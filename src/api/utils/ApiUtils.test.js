@@ -1,13 +1,8 @@
 import {
-  applyNameCollisionPolicy,
-  escapeRegExp,
   getCurrentRealmPath,
-  getRealmManagedUser,
   getTenantURL,
-  isEqualJson,
-  replaceAll,
-} from '../../../src/api/utils/ApiUtils';
-import sessionStorage from '../../../src/storage/SessionStorage';
+} from './ApiUtils.js';
+import sessionStorage from '../../storage/SessionStorage.js';
 
 test.skip('replaceAll should be deleted because it works like native String.replaceAll', () => {
   // Arrange
@@ -98,89 +93,4 @@ test('getTenantURL Invalid URL should throw', () => {
   };
   // Assert
   expect(trap).toThrow('Invalid URL');
-});
-
-test('applyNameCollisionPolicy should format correctly', () => {
-  // Arrange
-  const NAME = 'hello';
-  const EXPECTED = 'hello - imported (1)';
-  // Act
-  const result = applyNameCollisionPolicy(NAME);
-  // Assert
-  expect(result).toBe(EXPECTED);
-});
-
-test('applyNameCollisionPolicy undefined name throws', () => {
-  // Act
-  const trap = () => {
-    applyNameCollisionPolicy();
-  };
-  // Assert
-  expect(trap).toThrow();
-});
-
-test('applyNameCollisionPolicy blank string name does not throw', () => {
-  // Arrange
-  const NAME = '';
-  // Act
-  const trap = () => {
-    applyNameCollisionPolicy(NAME);
-  };
-  // Assert
-  expect(trap).not.toThrow();
-});
-
-test('applyNameCollisionPolicy name can have spaces', () => {
-  // Arrange
-  const NAME = 'hello world';
-  const EXPECTED = 'hello world - imported (1)';
-  // Act
-  const result = applyNameCollisionPolicy(NAME);
-  // Assert
-  expect(result).toBe(EXPECTED);
-});
-
-test('escapeRegExp should escape the Regular Expression special characters “^”, “$”, “”, “.”, “*”, “+”, “?”, “(“, “)”, “[“, “]”, “{“, “}”, and “|” in string.', () => {
-  // Arrange
-  const EXPECTED = /\*\?\{\}\./;
-  // Act
-  const result = escapeRegExp('/*?{}./');
-  // Assert
-  expect(result.toString()).toBe(EXPECTED.toString());
-});
-
-test.skip('getRealmManagedUser in cloud environments should return differnt value', () => {
-  properties.CLOUD_DEPLOYMENT_TYPE_KEY;
-  console.log(global);
-  expect(true).toBe(true);
-});
-
-test('getRealmManagedUser in prem environments should return differnt value', () => {
-  // Arrange
-  sessionStorage.session.setItem('deploymentType', 'cloud');
-  sessionStorage.session.setItem('realm', 'foxtrot');
-  // Act
-  const result = getRealmManagedUser();
-  // Assert
-  expect(result).toBe('foxtrot_user');
-});
-
-test('isEqualJson should check that two json formatted strings are the same', () => {
-  // Arrange
-  const json1 = JSON.stringify({ frodo: 123 });
-  const json2 = JSON.stringify({ frodo: 123 });
-  // Act
-  const result = isEqualJson(json1, json2);
-  // Assert
-  expect(result).toBe(true);
-});
-
-test.skip('isEqualJson should check that two json formatted strings are the same ignoring keys', () => {
-  // Arrange
-  const json1 = JSON.stringify({ frodo: 123, ignoreme: 0 });
-  const json2 = JSON.stringify({ frodo: 123 });
-  // Act
-  const result = isEqualJson(json1, json2, ['ignoreme']);
-  // Assert
-  expect(result).toBe(true);
 });

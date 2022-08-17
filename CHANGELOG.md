@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2022-08-16
+
+### Changed
+
+-   \#1: Split frodo into frodo-lib and frodo-cli
+-   \#5: Removed all cli artifacts
+-   \#2: Made frodo-lib a true library
+-   \#3: Updated pipeline to build the library package
+
 ## [0.10.4] - 2022-08-13
 
 ### Added
