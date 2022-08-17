@@ -50,7 +50,7 @@ export function getRealmString() {
 export function convertBase64TextToArray(b64text) {
   let arrayOut = [];
   let plainText = decode(b64text);
-  plainText = plainText.replaceAll('\t', '    ');
+  plainText = plainText.replace(/\t/g, '    ');
   arrayOut = plainText.split('\n');
   return arrayOut;
 }
@@ -58,7 +58,7 @@ export function convertBase64TextToArray(b64text) {
 export function convertBase64UrlTextToArray(b64UTF8Text) {
   let arrayOut = [];
   let plainText = decodeBase64Url(b64UTF8Text);
-  plainText = plainText.replaceAll('\t', '    ');
+  plainText = plainText.replace(/\t/g, '    ');
   arrayOut = plainText.split('\n');
   return arrayOut;
 }
