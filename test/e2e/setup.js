@@ -1,4 +1,5 @@
-import { spawnSync } from 'child_process';
+import fs from 'fs';
+import { Authenticate, state } from '../../src/index.js';
 
 export default async function setup(globalConfig) {
   let run = globalConfig.nonFlagArgs.length === 0;
@@ -10,21 +11,29 @@ export default async function setup(globalConfig) {
 
     // make sure we have connectivity
     try {
-      const infoCmd = spawnSync('frodo', [
-        'info',
-        '--scriptFriendly',
-        'frodo-dev',
-      ]);
-      const output = infoCmd.stdout.toString();
-      const infoObject = JSON.parse(output);
+      state.default.session.setTenant(
+        process.env.FIDC_TENANT_URL ||
+          'https://openam-frodo-dev.forgeblocks.com/am'
+      );
+      state.default.session.setRealm('alpha');
+      state.default.session.setUsername(
+        process.env.FIDC_TENANT_ADMIN_USERNAME ||
+          'volker.scheuber@forgerock.com'
+      );
+      state.default.session.setPassword(
+        process.env.FIDC_TENANT_ADMIN_PASSWORD ||
+          fs.readFileSync(new URL('./FIDC_TENANT_PWD', import.meta.url))
+      );
+
+      await Authenticate.getTokens();
       if (
-        infoObject.cookieName &&
-        infoObject.sessionToken &&
-        infoObject.bearerToken
+        state.default.session.getCookieName() &&
+        state.default.session.getCookieValue() &&
+        state.default.session.getBearerToken()
       ) {
         console.log(`successfully obtained session from frodo-dev`);
       } else {
-        console.dir(infoObject);
+        console.dir(state.default.session.raw);
         throw new Error('cannot get session from frodo-dev');
       }
     } catch (error) {
