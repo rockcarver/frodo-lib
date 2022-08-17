@@ -1,11 +1,3 @@
-*.cer
-*.p12
-*.developerprofile
-
-frodo-linux
-frodo-macos
-frodo-win.exe
-
 connections.json
 journey-*.json
 

@@ -1,8 +1,8 @@
 <!-- README.md for NPM; the one for GitHub is .github/README.md. -->
-# Frodo - ForgeROck DO
+# Frodo Library - @rockcarver/frodo-lib
 
-This is the ForgeROck DO - or short frodo - command line interface, a CLI to manage ForgeRock platform deployments. Frodo supports Identity Cloud tenants, ForgeOps deployments, and classic deployments.
+ForgeROck DO Library, frodo-lib, a library to manage ForgeRock platform deployments supporting Identity Cloud tenants, ForgeOps deployments, and classic deployments.
 
-Frodo is the successor to field tools like [amtree.sh](https://github.com/vscheuber/AM-treetool), [fidc-debug-tools](https://github.com/vscheuber/fidc-debug-tools), and ForgeRock-internal utilities.
+Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the command line tool to manage ForgeRock deployments.
 
-Please refer to the [GitHub README](https://github.com/rockcarver/frodo#readme) for full documentation.
+Please refer to the [GitHub README](https://github.com/rockcarver/frodo-lib#readme) for full documentation.
