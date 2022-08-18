@@ -1,5 +1,6 @@
 import fs from 'fs';
 import os from 'os';
+import path from 'path';
 import storage from '../storage/SessionStorage.js';
 import DataProtection from './utils/DataProtection.js';
 import {
@@ -7,6 +8,7 @@ import {
   createTable,
   printMessage,
 } from './utils/Console.js';
+import { FRODO_CONNECTION_PROFILES_PATH_KEY } from '../storage/StaticStorage.js';
 
 const dataProtection = new DataProtection();
 
@@ -15,14 +17,16 @@ const fileOptions = {
   indentation: 4,
 };
 
-const getConnectionProfilesFolder = () => `${os.homedir()}/.frodo`;
-
 /**
  * Get connection profiles file name
  * @returns {String} connection profiles file name
  */
-export function getConnectionProfilesFileName() {
-  return `${os.homedir()}/.frodo/.frodorc`;
+export function getConnectionProfilesPath() {
+  return (
+    storage.session.getConnectionProfilesPath() ||
+    process.env[FRODO_CONNECTION_PROFILES_PATH_KEY] ||
+    `${os.homedir()}/.frodo/.frodorc`
+  );
 }
 
 /**
@@ -47,7 +51,7 @@ function findConnectionProfile(connectionProfiles, host) {
  * @param {boolean} long Long list format with details
  */
 export function listConnectionProfiles(long = false) {
-  const filename = getConnectionProfilesFileName();
+  const filename = getConnectionProfilesPath();
   try {
     const data = fs.readFileSync(filename, 'utf8');
     const connectionsData = JSON.parse(data);
@@ -80,8 +84,8 @@ export function listConnectionProfiles(long = false) {
  */
 export function initConnectionProfiles() {
   // create connections.json file if it doesn't exist
-  const folderName = getConnectionProfilesFolder();
-  const filename = getConnectionProfilesFileName();
+  const filename = getConnectionProfilesPath();
+  const folderName = path.dirname(filename);
   if (!fs.existsSync(folderName)) {
     fs.mkdirSync(folderName, { recursive: true });
     if (!fs.existsSync(filename)) {
@@ -121,7 +125,7 @@ export function initConnectionProfiles() {
  */
 export async function getConnectionProfileByHost(host) {
   try {
-    const filename = getConnectionProfilesFileName();
+    const filename = getConnectionProfilesPath();
     const connectionsData = JSON.parse(
       fs.readFileSync(filename, fileOptions.options)
     );
@@ -163,7 +167,7 @@ export async function getConnectionProfile() {
  * Save connection profile
  */
 export async function saveConnectionProfile() {
-  const filename = getConnectionProfilesFileName();
+  const filename = getConnectionProfilesPath();
   printMessage(`Saving creds in ${filename}...`);
   let connectionsData = {};
   let existingData = {};
@@ -174,13 +178,13 @@ export async function saveConnectionProfile() {
     if (connectionsData[storage.session.getTenant()]) {
       existingData = connectionsData[storage.session.getTenant()];
       printMessage(
-        `Updating existing connection profile ${storage.session.getTenant()}`
+        `Updating connection profile ${storage.session.getTenant()}`
       );
     } else
       printMessage(`Adding connection profile ${storage.session.getTenant()}`);
   } catch (e) {
     printMessage(
-      `Creating connection profile file ${filename} with ${storage.session.getTenant()}`
+      `Creating connection profiles file ${filename} with ${storage.session.getTenant()}`
     );
   }
   if (storage.session.getUsername())
@@ -203,7 +207,7 @@ export async function saveConnectionProfile() {
  * @param {String} host host tenant host url or unique substring
  */
 export function deleteConnectionProfile(host) {
-  const filename = getConnectionProfilesFileName();
+  const filename = getConnectionProfilesPath();
   let connectionsData = {};
   fs.stat(filename, (err) => {
     if (err == null) {
