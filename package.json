@@ -1,6 +1,6 @@
 {
   "name": "@rockcarver/frodo-lib",
-  "version": "0.11.1-0",
+  "version": "0.11.1-1",
   "type": "module",
   "description": "ForgeROck DO Library, frodo-lib, a library to manage ForgeRock platform deployments supporting Identity Cloud tenants, ForgeOps deployments, and classic deployments.",
   "keywords": [
