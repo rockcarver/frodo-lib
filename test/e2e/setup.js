@@ -1,8 +1,8 @@
 import fs from 'fs';
-import { Authenticate, state } from '../../src/index.js';
+import { ConnectionProfile, Authenticate, state } from '../../src/index.js';
 
 export default async function setup(globalConfig) {
-  let run = globalConfig.nonFlagArgs.length === 0;
+  let run = globalConfig.nonFlagArgs.length === -1;
   for (const arg of globalConfig.nonFlagArgs) {
     if (arg.indexOf('e2e') > -1) run = true;
   }
@@ -12,19 +12,17 @@ export default async function setup(globalConfig) {
     // make sure we have connectivity
     try {
       state.default.session.setTenant(
-        process.env.FIDC_TENANT_URL ||
-          'https://openam-frodo-dev.forgeblocks.com/am'
+        process.env.FRODO_HOST || 'https://openam-frodo-dev.forgeblocks.com/am'
       );
-      state.default.session.setRealm('alpha');
+      state.default.session.setRealm(process.env.FRODO_REALM || 'alpha');
       state.default.session.setUsername(
-        process.env.FIDC_TENANT_ADMIN_USERNAME ||
-          'volker.scheuber@forgerock.com'
+        process.env.FRODO_USER || 'volker.scheuber@forgerock.com'
       );
       state.default.session.setPassword(
-        process.env.FIDC_TENANT_ADMIN_PASSWORD ||
-          fs.readFileSync(new URL('./FIDC_TENANT_PWD', import.meta.url))
+        process.env.FRODO_PASSWORD || '99Luftballons!'
       );
 
+      await ConnectionProfile.saveConnectionProfile();
       await Authenticate.getTokens();
       if (
         state.default.session.getCookieName() &&
