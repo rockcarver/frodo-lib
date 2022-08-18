@@ -1,5 +1,6 @@
 import storage from '../../storage/SessionStorage.js';
 import * as global from '../../storage/StaticStorage.js';
+import { getRealmName as _getRealmName } from '../../api/utils/ApiUtils.js';
 
 // TODO: do we really need this? if yes: document
 export function escapeRegExp(str) {
@@ -73,4 +74,13 @@ export function isEqualJson(obj1, obj2, ignoreKeys = []) {
   }
 
   return true;
+}
+
+/**
+ * Get current realm name
+ * @param {String} realm realm
+ * @returns {String} name of the realm. /alpha -> alpha
+ */
+export function getRealmName(realm) {
+  return _getRealmName(realm);
 }
