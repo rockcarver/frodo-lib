@@ -30,3 +30,4 @@ export * as Variables from './ops/VariablesOps.js';
 // TODO: reconsider the aproach to pass in state from client
 // lib should be stateless, an aplication should own its state
 export * as state from './storage/SessionStorage.js';
+export * as OAuth2OIDCApi from './api/OAuth2OIDCApi.js';
