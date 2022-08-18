@@ -43,7 +43,11 @@ describe('ConnectionProfileOps.js', () => {
     state.default.session.setTenant(host);
     state.default.session.setUsername(user);
     state.default.session.setPassword(password);
+    state.default.session.setConnectionProfilesPath(null);
     await ConnectionProfile.saveConnectionProfile();
+    expect(ConnectionProfile.getConnectionProfilesPath()).toEqual(
+      connectionProfilePath
+    );
     expect(fs.existsSync(connectionProfilePath)).toBeTruthy();
     const connections = JSON.parse(
       fs.readFileSync(connectionProfilePath, {
@@ -61,8 +65,6 @@ describe('ConnectionProfileOps.js', () => {
     const host = 'https://openam-tenant-name.forgeblocks.com/am';
     const user = 'frodo.baggins@shire.me';
     const password = 'G@nd@lfTheW153';
-    const encodedPassword =
-      'mB4Rd+qoY39QCTk9dnk+W1am2QfunbYT6g/++fVorGaSCXRhIzBpIk3KDBQggR1fHIpC7aGpQAUULPZP1jpdN035/Mh71kdZAn3wmN7EUImfDessem7qYwQR5Dp3SjYeqYWkQjW1/uv/vufxi0ilxA==';
     const connectionProfilePath = `${homedir()}/connections3.json`;
     const masterKey = 'bxnQlhcU5VfyDs+BBPhRhK09yHaNtdIIk85HUMKBnqg=';
     // set the hard-coded master key
