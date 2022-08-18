@@ -14,6 +14,11 @@ import crypto from 'crypto';
 import { homedir } from 'os';
 import { promisify } from 'util';
 import { printMessage } from './Console.js';
+import storage from '../../storage/SessionStorage.js';
+import {
+  FRODO_MASTER_KEY_PATH_KEY,
+  FRODO_MASTER_KEY_KEY,
+} from '../../storage/StaticStorage.js';
 
 const scrypt = promisify(crypto.scrypt);
 // using WeakMaps for added security since  it gets garbage collected
@@ -25,10 +30,15 @@ const _encrypt = new WeakMap();
 
 class DataProtection {
   constructor() {
-    const masterKeyPath = () => `${homedir()}/.frodo/masterkey.key`;
+    const masterKeyPath = () =>
+      storage.session.getMasterKeyPath() ||
+      process.env[FRODO_MASTER_KEY_PATH_KEY] ||
+      `${homedir()}/.frodo/masterkey.key`;
     // Generates a master key in base64 format. This master key will be used to derive the key for encryption. this key should be protected by an HSM or KMS
     _masterKey.set(this, async () => {
       try {
+        if (process.env[FRODO_MASTER_KEY_KEY])
+          return process.env[FRODO_MASTER_KEY_KEY];
         if (!fs.existsSync(masterKeyPath())) {
           const masterKey = crypto.randomBytes(32).toString('base64');
           await fsp.writeFile(masterKeyPath(), masterKey);
