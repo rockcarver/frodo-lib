@@ -41,5 +41,10 @@ export default {
       _sessionStorage.frodoVersion || `v${pkg.version} [${process.version}]`,
     setAllowInsecureConnection: (value) => (_sessionStorage.insecure = value),
     getAllowInsecureConnection: () => _sessionStorage.insecure,
+    setConnectionProfilesPath: (value) =>
+      (_sessionStorage.connectionProfilesPath = value),
+    getConnectionProfilesPath: () => _sessionStorage.connectionProfilesPath,
+    setMasterKeyPath: (value) => (_sessionStorage.masterKeyPath = value),
+    getMasterKeyPath: () => _sessionStorage.masterKeyPath,
   },
 };
