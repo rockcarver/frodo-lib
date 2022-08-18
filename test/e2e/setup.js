@@ -1,8 +1,7 @@
-import fs from 'fs';
 import { ConnectionProfile, Authenticate, state } from '../../src/index.js';
 
 export default async function setup(globalConfig) {
-  let run = globalConfig.nonFlagArgs.length === -1;
+  let run = globalConfig.nonFlagArgs.length === 0;
   for (const arg of globalConfig.nonFlagArgs) {
     if (arg.indexOf('e2e') > -1) run = true;
   }

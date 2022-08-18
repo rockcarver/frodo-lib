@@ -1,7 +1,7 @@
-import e2e from '../e2e/setup.js';
+// import e2e from '../e2e/setup.js';
 
 export default async function setup(globalConfig) {
-  e2e(globalConfig);
+  // e2e(globalConfig);
 }
 
 /*
