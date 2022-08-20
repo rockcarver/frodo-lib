@@ -1,14 +1,14 @@
-import { printMessage } from './utils/Console.js';
-import { getCurrentTimestamp } from './utils/ExportImportUtils.js';
+import { printMessage } from './utils/Console';
+import { getCurrentTimestamp } from './utils/ExportImportUtils';
 import {
   createAPIKeyAndSecret,
   getAPIKeys,
   getSources,
-} from '../api/LogApi.js';
+} from '../api/LogApi';
 
-import storage from '../storage/SessionStorage.js';
+import storage from '../storage/SessionStorage';
 
-import * as LogApi from '../api/LogApi.js';
+import * as LogApi from '../api/LogApi';
 
 const unfilterableNoise = [
   'text/plain'  // Unfortunately, it is impossible to filter out those without excluding IDM script logging as well

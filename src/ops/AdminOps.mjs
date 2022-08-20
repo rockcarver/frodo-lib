@@ -4,17 +4,17 @@ import {
   getOAuth2Clients,
   getOAuth2Client,
   putOAuth2Client,
-} from '../api/OAuth2ClientApi.js';
-import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi.js';
-import { isEqualJson, getRealmManagedUser } from './utils/OpsUtils.js';
-import { getRealmManagedOrganization } from './OrganizationOps.js';
-import { getOAuth2Provider } from '../api/OAuth2ProviderApi.js';
-import { putSecret } from '../api/SecretsApi.js';
-import { clientCredentialsGrant } from '../api/OAuth2OIDCApi.js';
+} from '../api/OAuth2ClientApi';
+import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
+import { isEqualJson, getRealmManagedUser } from './utils/OpsUtils';
+import { getRealmManagedOrganization } from './OrganizationOps';
+import { getOAuth2Provider } from '../api/OAuth2ProviderApi';
+import { putSecret } from '../api/SecretsApi';
+import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
 // import OAUTH2_CLIENT from './templates/OAuth2ClientTemplate.json' assert { type: 'json' };
 // import ORG_MODEL_USER_ATTRIBUTES from './templates/OrgModelUserAttributesTemplate.json' assert { type: 'json' };
 // import GENERIC_EXTENSION_ATTRIBUTES from './templates/cloud/GenericExtensionAttributesTemplate.json' assert { type: 'json' };
-import { printMessage } from './utils/Console.js';
+import { printMessage } from './utils/Console';
 
 const OAUTH2_CLIENT = JSON.parse(
   fs.readFileSync(

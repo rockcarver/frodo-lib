@@ -1,13 +1,13 @@
 import fs from 'fs';
 import { homedir } from 'os';
-import { ConnectionProfile, state } from '../index.js';
+import { ConnectionProfile, state } from '../index';
 import {
   FRODO_CONNECTION_PROFILES_PATH_KEY,
   FRODO_MASTER_KEY_PATH_KEY,
   FRODO_MASTER_KEY_KEY,
-} from '../storage/StaticStorage.js';
+} from '../storage/StaticStorage';
 
-describe('ConnectionProfileOps.js', () => {
+describe('ConnectionProfileOps', () => {
   test('saveConnectionProfile() 1: Create connection profiles in location from state field', async () => {
     const host = 'https://openam-tenant-name.forgeblocks.com/am';
     const user = 'frodo.baggins@shire.me';

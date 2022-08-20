@@ -1,14 +1,14 @@
 import fs from 'fs';
 import slugify from 'slugify';
-import storage from '../../storage/SessionStorage.js';
-import { FRODO_METADATA_ID } from '../../storage/StaticStorage.js';
+import storage from '../../storage/SessionStorage';
+import { FRODO_METADATA_ID } from '../../storage/StaticStorage';
 import {
   encode,
   decode,
   encodeBase64Url,
   decodeBase64Url,
-} from '../../api/utils/Base64.js';
-import { printMessage } from './Console.js';
+} from '../../api/utils/Base64';
+import { printMessage } from './Console';
 
 export function getCurrentTimestamp() {
   const ts = new Date();

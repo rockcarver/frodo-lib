@@ -2,7 +2,7 @@ import {
   getConfigEntitiesByType,
   getConfigEntity,
   putConfigEntity,
-} from './IdmConfigApi.js';
+} from './IdmConfigApi';
 
 /**
  * Email template type key used to build the IDM id: 'emailTemplate/<id>'

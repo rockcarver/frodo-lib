@@ -1,7 +1,7 @@
 import util from 'util';
-import { generateAmApi } from './BaseApi.js';
-import { getCurrentRealmPath } from './utils/ApiUtils.js';
-import storage from '../storage/SessionStorage.js';
+import { generateAmApi } from './BaseApi';
+import { getCurrentRealmPath } from './utils/ApiUtils';
+import storage from '../storage/SessionStorage';
 
 const scriptURLTemplate = '%s/json%s/scripts/%s';
 const scriptListURLTemplate = '%s/json%s/scripts?_queryFilter=true';

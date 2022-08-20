@@ -8,17 +8,17 @@ import {
   stopProgressBar,
   succeedSpinner,
   updateProgressBar,
-} from './utils/Console.js';
+} from './utils/Console';
 import {
   deleteVariable,
   getVariable,
   getVariables,
   putVariable,
   setVariableDescription,
-} from '../api/VariablesApi.js';
-import wordwrap from './utils/Wordwrap.js';
-import { resolveUserName } from './ManagedObjectOps.js';
-import { decode } from '../api/utils/Base64.js';
+} from '../api/VariablesApi';
+import wordwrap from './utils/Wordwrap';
+import { resolveUserName } from './ManagedObjectOps';
+import { decode } from '../api/utils/Base64';
 
 /**
  * List variables

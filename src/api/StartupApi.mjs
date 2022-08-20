@@ -1,7 +1,7 @@
 import util from 'util';
-import { getTenantURL } from './utils/ApiUtils.js';
-import { generateESVApi } from './BaseApi.js';
-import storage from '../storage/SessionStorage.js';
+import { getTenantURL } from './utils/ApiUtils';
+import { generateESVApi } from './BaseApi';
+import storage from '../storage/SessionStorage';
 
 const startupURLTemplate = '%s/environment/startup';
 const startupInitiateRestartURLTemplate = `${startupURLTemplate}?_action=restart`;

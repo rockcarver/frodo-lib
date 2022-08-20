@@ -3,7 +3,7 @@ import { createSpinner } from 'nanospinner';
 import Table from 'cli-table3';
 // eslint-disable-next-line no-unused-vars
 import * as colors from '@colors/colors';
-import storage from '../../storage/SessionStorage.js';
+import storage from '../../storage/SessionStorage';
 
 /**
  * Output a data message

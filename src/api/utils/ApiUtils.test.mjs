@@ -1,8 +1,8 @@
 import {
   getCurrentRealmPath,
   getTenantURL,
-} from './ApiUtils.js';
-import sessionStorage from '../../storage/SessionStorage.js';
+} from './ApiUtils';
+import sessionStorage from '../../storage/SessionStorage';
 
 test.skip('replaceAll should be deleted because it works like native String.replaceAll', () => {
   // Arrange

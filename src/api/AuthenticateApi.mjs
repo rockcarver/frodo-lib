@@ -1,6 +1,6 @@
 import util from 'util';
-import { generateAmApi } from './BaseApi.js';
-import storage from '../storage/SessionStorage.js';
+import { generateAmApi } from './BaseApi';
+import storage from '../storage/SessionStorage';
 
 const authenticateUrlTemplate = '%s/json%s/authenticate';
 

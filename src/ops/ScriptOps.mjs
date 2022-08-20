@@ -1,15 +1,15 @@
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { applyNameCollisionPolicy } from './utils/OpsUtils.js';
+import { applyNameCollisionPolicy } from './utils/OpsUtils';
 import {
   createProgressBar,
   createTable,
   printMessage,
   stopProgressBar,
   updateProgressBar,
-} from './utils/Console.js';
-import { getScriptByName, getScripts, putScript } from '../api/ScriptApi.js';
-import wordwrap from './utils/Wordwrap.js';
+} from './utils/Console';
+import { getScriptByName, getScripts, putScript } from '../api/ScriptApi';
+import wordwrap from './utils/Wordwrap';
 import {
   convertBase64TextToArray,
   convertTextArrayToBase64,
@@ -17,8 +17,8 @@ import {
   saveToFile,
   titleCase,
   validateImport,
-} from './utils/ExportImportUtils.js';
-import storage from '../storage/SessionStorage.js';
+} from './utils/ExportImportUtils';
+import storage from '../storage/SessionStorage';
 
 /**
  * List scripts

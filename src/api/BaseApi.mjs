@@ -4,8 +4,8 @@ import * as https from 'https';
 import HttpsProxyAgent from 'https-proxy-agent';
 import url from 'url';
 import fs from 'fs';
-import storage from '../storage/SessionStorage.js';
-import { getTenantURL } from './utils/ApiUtils.js';
+import storage from '../storage/SessionStorage';
+import { getTenantURL } from './utils/ApiUtils';
 // import pkg from '../../package.json' assert { type: 'json' };
 
 const pkg = JSON.parse(

@@ -2,17 +2,17 @@
 import url from 'url';
 import { createHash, randomBytes } from 'crypto';
 import readlineSync from 'readline-sync';
-import { encodeBase64Url } from '../api/utils/Base64.js';
-import storage from '../storage/SessionStorage.js';
-import * as global from '../storage/StaticStorage.js';
-import { printMessage } from './utils/Console.js';
-import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi.js';
-import { step } from '../api/AuthenticateApi.js';
-import { accessToken, authorize } from '../api/OAuth2OIDCApi.js';
+import { encodeBase64Url } from '../api/utils/Base64';
+import storage from '../storage/SessionStorage';
+import * as global from '../storage/StaticStorage';
+import { printMessage } from './utils/Console';
+import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
+import { step } from '../api/AuthenticateApi';
+import { accessToken, authorize } from '../api/OAuth2OIDCApi';
 import {
   getConnectionProfile,
   saveConnectionProfile,
-} from './ConnectionProfileOps.js';
+} from './ConnectionProfileOps';
 
 const adminClientPassword = 'doesnotmatter';
 const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';

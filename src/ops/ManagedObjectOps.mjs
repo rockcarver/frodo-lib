@@ -1,4 +1,4 @@
-import { getManagedObject } from '../api/ManagedObjectApi.js';
+import { getManagedObject } from '../api/ManagedObjectApi';
 
 /**
  * Resolve a managed object's uuid to a human readable username

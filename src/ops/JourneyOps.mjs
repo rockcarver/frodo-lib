@@ -10,9 +10,9 @@ import {
   getRealmString,
   convertTextArrayToBase64,
   convertTextArrayToBase64Url,
-} from './utils/ExportImportUtils.js';
-import { getRealmManagedUser, replaceAll } from './utils/OpsUtils.js';
-import storage from '../storage/SessionStorage.js';
+} from './utils/ExportImportUtils';
+import { getRealmManagedUser, replaceAll } from './utils/OpsUtils';
+import storage from '../storage/SessionStorage';
 import {
   getNode,
   putNode,
@@ -23,10 +23,10 @@ import {
   getNodeTypes,
   getNodesByType,
   deleteTree,
-} from '../api/TreeApi.js';
-import { getEmailTemplate, putEmailTemplate } from '../api/EmailTemplateApi.js';
-import { getScript } from '../api/ScriptApi.js';
-import * as global from '../storage/StaticStorage.js';
+} from '../api/TreeApi';
+import { getEmailTemplate, putEmailTemplate } from '../api/EmailTemplateApi';
+import { getScript } from '../api/ScriptApi';
+import * as global from '../storage/StaticStorage';
 import {
   printMessage,
   createProgressBar,
@@ -39,8 +39,8 @@ import {
   failSpinner,
   stopSpinner,
   warnSpinner,
-} from './utils/Console.js';
-import wordwrap from './utils/Wordwrap.js';
+} from './utils/Console';
+import wordwrap from './utils/Wordwrap';
 import {
   getProviderByLocationAndId,
   getProviders,
@@ -48,24 +48,24 @@ import {
   createProvider,
   findProviders,
   updateProvider,
-} from '../api/Saml2Api.js';
+} from '../api/Saml2Api';
 import {
   createCircleOfTrust,
   getCirclesOfTrust,
   updateCircleOfTrust,
-} from '../api/CirclesOfTrustApi.js';
+} from '../api/CirclesOfTrustApi';
 import {
   decode,
   encode,
   encodeBase64Url,
   isBase64Encoded,
-} from '../api/utils/Base64.js';
+} from '../api/utils/Base64';
 import {
   getSocialIdentityProviders,
   putProviderByTypeAndId,
-} from '../api/SocialIdentityProvidersApi.js';
-import { getThemes, putThemes } from '../api/ThemeApi.js';
-import { createOrUpdateScript } from './ScriptOps.js';
+} from '../api/SocialIdentityProvidersApi';
+import { getThemes, putThemes } from '../api/ThemeApi';
+import { createOrUpdateScript } from './ScriptOps';
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
 

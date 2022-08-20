@@ -1,5 +1,5 @@
 import util from 'util';
-import storage from '../../storage/SessionStorage.js';
+import storage from '../../storage/SessionStorage';
 
 const realmPathTemplate = '/realms/%s';
 

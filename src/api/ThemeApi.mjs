@@ -1,5 +1,5 @@
-import { getConfigEntity, putConfigEntity } from './IdmConfigApi.js';
-import { getCurrentRealmName } from './utils/ApiUtils.js';
+import { getConfigEntity, putConfigEntity } from './IdmConfigApi';
+import { getCurrentRealmName } from './utils/ApiUtils';
 
 const THEMEREALM_ID = 'ui/themerealm';
 

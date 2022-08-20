@@ -6,11 +6,11 @@ import {
   showSpinner,
   spinSpinner,
   succeedSpinner,
-} from './utils/Console.js';
-import { getSecrets } from '../api/SecretsApi.js';
-import { getStatus, initiateRestart } from '../api/StartupApi.js';
-import { resolveUserName } from './ManagedObjectOps.js';
-import { getVariables } from '../api/VariablesApi.js';
+} from './utils/Console';
+import { getSecrets } from '../api/SecretsApi';
+import { getStatus, initiateRestart } from '../api/StartupApi';
+import { resolveUserName } from './ManagedObjectOps';
+import { getVariables } from '../api/VariablesApi';
 
 export async function checkForUpdates() {
   showSpinner(`Checking for updates to apply...`);

@@ -6,7 +6,7 @@ import {
   saveToFile,
   validateImport,
   checkTargetCompatibility,
-} from './ExportImportUtils.js';
+} from './ExportImportUtils';
 // Warning! implimentation file contains non determinisitc functions which are either; not reasonable to test or imposible
 // Cause: date based non overidable functions
 // Not tested: getCurrentTimestamp

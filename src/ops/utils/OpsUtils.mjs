@@ -1,6 +1,6 @@
-import storage from '../../storage/SessionStorage.js';
-import * as global from '../../storage/StaticStorage.js';
-import { getRealmName as _getRealmName } from '../../api/utils/ApiUtils.js';
+import storage from '../../storage/SessionStorage';
+import * as global from '../../storage/StaticStorage';
+import { getRealmName as _getRealmName } from '../../api/utils/ApiUtils';
 
 // TODO: do we really need this? if yes: document
 export function escapeRegExp(str) {

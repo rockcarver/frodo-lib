@@ -1,8 +1,8 @@
 /* eslint-disable import/prefer-default-export */
 import util from 'util';
-import { generateAmApi } from './BaseApi.js';
-import { getCurrentRealmPath } from './utils/ApiUtils.js';
-import storage from '../storage/SessionStorage.js';
+import { generateAmApi } from './BaseApi';
+import { getCurrentRealmPath } from './utils/ApiUtils';
+import storage from '../storage/SessionStorage';
 
 const oauthProviderServiceURLTemplate =
   '%s/json%s/realm-config/services/oauth-oidc';

@@ -1,7 +1,7 @@
 import util from 'util';
-import { generateLogApi, generateLogKeysApi } from './BaseApi.js';
-import { getTenantURL } from './utils/ApiUtils.js';
-import storage from '../storage/SessionStorage.js';
+import { generateLogApi, generateLogKeysApi } from './BaseApi';
+import { getTenantURL } from './utils/ApiUtils';
+import storage from '../storage/SessionStorage';
 
 const logsTailURLTemplate = '%s/monitoring/logs/tail?source=%s';
 const logsSourcesURLTemplate = '%s/monitoring/logs/sources';
