@@ -1,6 +1,6 @@
 import fs from 'fs';
 import _ from 'lodash';
-import { decode, encode, encodeBase64Url } from '../api/utils/Base64.js';
+import { decode, encode, encodeBase64Url } from '../api/utils/Base64';
 import {
   createTable,
   printMessage,
@@ -8,7 +8,7 @@ import {
   updateProgressBar,
   stopProgressBar,
   createObjectTable,
-} from './utils/Console.js';
+} from './utils/Console';
 import {
   getProviders,
   findProviders,
@@ -16,8 +16,8 @@ import {
   getProviderMetadata,
   createProvider,
   getProviderMetadataUrl,
-} from '../api/Saml2Api.js';
-import { getScript } from '../api/ScriptApi.js';
+} from '../api/Saml2Api';
+import { getScript } from '../api/ScriptApi';
 import {
   convertBase64TextToArray,
   convertBase64UrlTextToArray,
@@ -28,8 +28,8 @@ import {
   saveJsonToFile,
   saveTextToFile,
   validateImport,
-} from './utils/ExportImportUtils.js';
-import { createOrUpdateScript } from './ScriptOps.js';
+} from './utils/ExportImportUtils';
+import { createOrUpdateScript } from './ScriptOps';
 
 const roleMap = {
   identityProvider: 'IDP',

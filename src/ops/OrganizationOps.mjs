@@ -1,6 +1,6 @@
-import { queryAllManagedObjectsByType } from '../api/IdmConfigApi.js';
-import storage from '../storage/SessionStorage.js';
-import { printMessage } from './utils/Console.js';
+import { queryAllManagedObjectsByType } from '../api/IdmConfigApi';
+import storage from '../storage/SessionStorage';
+import { printMessage } from './utils/Console';
 
 /**
  * Get organization managed object type

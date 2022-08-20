@@ -1,6 +1,6 @@
-import { Authenticate, state } from '../index.js';
+import { Authenticate, state } from '../index';
 
-describe('AuthenticationOps.js', () => {
+describe('AuthenticationOps', () => {
   test('getTokens() 1: ', async () => {
     state.default.session.setTenant(process.env.FRODO_HOST);
     state.default.session.setRealm('alpha');

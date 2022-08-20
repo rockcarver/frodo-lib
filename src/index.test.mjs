@@ -5,7 +5,7 @@ const pkg = JSON.parse(
   fs.readFileSync(new URL('../package.json', import.meta.url))
 );
 
-describe('index.js', () => {
+describe('index', () => {
   test('get library version', () => {
     const result = getVersion();
     expect(result).toEqual(`v${pkg.version}`);

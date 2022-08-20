@@ -6,18 +6,18 @@ import {
   createProgressBar,
   updateProgressBar,
   stopProgressBar,
-} from './utils/Console.js';
+} from './utils/Console';
 import {
   getCirclesOfTrust,
   getCircleOfTrust,
   createCircleOfTrust,
-} from '../api/CirclesOfTrustApi.js';
+} from '../api/CirclesOfTrustApi';
 import {
   getRealmString,
   getTypedFilename,
   saveJsonToFile,
   validateImport,
-} from './utils/ExportImportUtils.js';
+} from './utils/ExportImportUtils';
 
 // use a function vs a template variable to avoid problems in loops
 function getFileDataTemplate() {

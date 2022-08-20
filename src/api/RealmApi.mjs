@@ -3,9 +3,9 @@ import {
   getTenantURL,
   getCurrentRealmPath,
   getRealmName,
-} from './utils/ApiUtils.js';
-import { generateAmApi } from './BaseApi.js';
-import storage from '../storage/SessionStorage.js';
+} from './utils/ApiUtils';
+import { generateAmApi } from './BaseApi';
+import storage from '../storage/SessionStorage';
 
 const realmsListURLTemplate = '%s/json/global-config/realms/?_queryFilter=true';
 const realmURLTemplate = '%s/json/global-config/realms/%s';

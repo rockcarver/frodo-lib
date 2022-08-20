@@ -13,12 +13,12 @@ import fs, { promises as fsp } from 'fs';
 import crypto from 'crypto';
 import { homedir } from 'os';
 import { promisify } from 'util';
-import { printMessage } from './Console.js';
-import storage from '../../storage/SessionStorage.js';
+import { printMessage } from './Console';
+import storage from '../../storage/SessionStorage';
 import {
   FRODO_MASTER_KEY_PATH_KEY,
   FRODO_MASTER_KEY_KEY,
-} from '../../storage/StaticStorage.js';
+} from '../../storage/StaticStorage';
 
 const scrypt = promisify(crypto.scrypt);
 // using WeakMaps for added security since  it gets garbage collected

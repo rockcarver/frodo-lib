@@ -2,8 +2,8 @@ import {
   createKeyValueTable,
   createTable,
   printMessage,
-} from './utils/Console.js';
-import { getRealmByName, getRealms, putRealm } from '../api/RealmApi.js';
+} from './utils/Console';
+import { getRealmByName, getRealms, putRealm } from '../api/RealmApi';
 
 /**
  * List realms

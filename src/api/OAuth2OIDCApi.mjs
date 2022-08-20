@@ -1,9 +1,9 @@
 import util from 'util';
 import qs from 'qs';
-import { generateOauth2Api } from './BaseApi.js';
-import { getCurrentRealmPath } from './utils/ApiUtils.js';
-import storage from '../storage/SessionStorage.js';
-import { encode } from './utils/Base64.js';
+import { generateOauth2Api } from './BaseApi';
+import { getCurrentRealmPath } from './utils/ApiUtils';
+import storage from '../storage/SessionStorage';
+import { encode } from './utils/Base64';
 
 const authorizeUrlTemplate = '%s/oauth2%s/authorize';
 const accessTokenUrlTemplate = '%s/oauth2%s/access_token';

@@ -1,4 +1,4 @@
-import DataProtection from './DataProtection.js';
+import DataProtection from './DataProtection';
 
 test('DataProtection to encrypt', async () => {
   // Note this test checks that encyption happned not that encryption is correct

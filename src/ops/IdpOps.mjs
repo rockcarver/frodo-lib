@@ -2,9 +2,9 @@ import fs from 'fs';
 import {
   getSocialIdentityProviders,
   putProviderByTypeAndId,
-} from '../api/SocialIdentityProvidersApi.js';
-import { getScript } from '../api/ScriptApi.js';
-import { createOrUpdateScript } from './ScriptOps.js';
+} from '../api/SocialIdentityProvidersApi';
+import { getScript } from '../api/ScriptApi';
+import { createOrUpdateScript } from './ScriptOps';
 import {
   convertBase64TextToArray,
   convertTextArrayToBase64,
@@ -12,13 +12,13 @@ import {
   getTypedFilename,
   saveJsonToFile,
   validateImport,
-} from './utils/ExportImportUtils.js';
+} from './utils/ExportImportUtils';
 import {
   printMessage,
   createProgressBar,
   updateProgressBar,
   stopProgressBar,
-} from './utils/Console.js';
+} from './utils/Console';
 
 // use a function vs a template variable to avoid problems in loops
 function getFileDataTemplate() {

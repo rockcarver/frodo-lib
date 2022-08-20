@@ -8,7 +8,7 @@ import {
   stopProgressBar,
   succeedSpinner,
   updateProgressBar,
-} from './utils/Console.js';
+} from './utils/Console';
 import {
   createNewVersionOfSecret,
   deleteSecret,
@@ -19,9 +19,9 @@ import {
   putSecret,
   setSecretDescription,
   setStatusOfVersionOfSecret,
-} from '../api/SecretsApi.js';
-import wordwrap from './utils/Wordwrap.js';
-import { resolveUserName } from './ManagedObjectOps.js';
+} from '../api/SecretsApi';
+import wordwrap from './utils/Wordwrap';
+import { resolveUserName } from './ManagedObjectOps';
 
 /**
  * List secrets

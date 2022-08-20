@@ -1,8 +1,8 @@
 import util from 'util';
 import _ from 'lodash';
-import { generateAmApi } from './BaseApi.js';
-import { getCurrentRealmPath } from './utils/ApiUtils.js';
-import storage from '../storage/SessionStorage.js';
+import { generateAmApi } from './BaseApi';
+import { getCurrentRealmPath } from './utils/ApiUtils';
+import storage from '../storage/SessionStorage';
 
 const providerByLocationAndIdURLTemplate = '%s/json%s/realm-config/saml2/%s/%s';
 const createHostedProviderURLTemplate =

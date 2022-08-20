@@ -4,20 +4,20 @@ import {
   getEmailTemplate,
   getEmailTemplates,
   putEmailTemplate,
-} from '../api/EmailTemplateApi.js';
+} from '../api/EmailTemplateApi';
 import {
   createProgressBar,
   createTable,
   printMessage,
   stopProgressBar,
   updateProgressBar,
-} from './utils/Console.js';
+} from './utils/Console';
 import {
   getTypedFilename,
   saveJsonToFile,
   validateImport,
-} from './utils/ExportImportUtils.js';
-import wordwrap from './utils/Wordwrap.js';
+} from './utils/ExportImportUtils';
+import wordwrap from './utils/Wordwrap';
 
 /**
  * Maintain the file type centrally

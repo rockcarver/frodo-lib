@@ -1,8 +1,8 @@
 import util from 'util';
-import { encode } from './utils/Base64.js';
-import { getTenantURL, getCurrentRealmPath } from './utils/ApiUtils.js';
-import { generateESVApi } from './BaseApi.js';
-import storage from '../storage/SessionStorage.js';
+import { encode } from './utils/Base64';
+import { getTenantURL, getCurrentRealmPath } from './utils/ApiUtils';
+import { generateESVApi } from './BaseApi';
+import storage from '../storage/SessionStorage';
 
 const variablesListURLTemplate = '%s/environment/variables';
 const variableURLTemplate = '%s/environment/variables/%s';

@@ -1,7 +1,7 @@
 import util from 'util';
-import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils.js';
-import { generateAmApi } from './BaseApi.js';
-import storage from '../storage/SessionStorage.js';
+import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
+import { generateAmApi } from './BaseApi';
+import storage from '../storage/SessionStorage';
 
 const nodeURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s/%s';

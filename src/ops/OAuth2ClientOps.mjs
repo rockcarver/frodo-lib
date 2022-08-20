@@ -1,19 +1,19 @@
 import fs from 'fs';
-import { createTable, printMessage } from './utils/Console.js';
+import { createTable, printMessage } from './utils/Console';
 import {
   getTypedFilename,
   saveToFile,
   titleCase,
   validateImport,
-} from './utils/ExportImportUtils.js';
-import storage from '../storage/SessionStorage.js';
+} from './utils/ExportImportUtils';
+import storage from '../storage/SessionStorage';
 import {
   getOAuth2Client,
   getOAuth2Clients,
   putOAuth2Client,
-} from '../api/OAuth2ClientApi.js';
-import { getOAuth2Provider } from '../api/OAuth2ProviderApi.js';
-import { getRealmName } from '../api/utils/ApiUtils.js';
+} from '../api/OAuth2ClientApi';
+import { getOAuth2Provider } from '../api/OAuth2ProviderApi';
+import { getRealmName } from '../api/utils/ApiUtils';
 
 /**
  * List OAuth2 clients

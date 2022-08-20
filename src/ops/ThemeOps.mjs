@@ -9,7 +9,7 @@ import {
   putTheme,
   putThemeByName,
   putThemes,
-} from '../api/ThemeApi.js';
+} from '../api/ThemeApi';
 import {
   createProgressBar,
   createTable,
@@ -19,13 +19,13 @@ import {
   stopProgressBar,
   succeedSpinner,
   updateProgressBar,
-} from './utils/Console.js';
+} from './utils/Console';
 import {
   getRealmString,
   getTypedFilename,
   saveToFile,
   validateImport,
-} from './utils/ExportImportUtils.js';
+} from './utils/ExportImportUtils';
 
 /**
  * List all the themes

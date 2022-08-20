@@ -6,9 +6,9 @@ import {
   getAllConfigEntities,
   getConfigEntity,
   queryAllManagedObjectsByType,
-} from '../api/IdmConfigApi.js';
-import { printMessage, showSpinner, succeedSpinner } from './utils/Console.js';
-import { getTypedFilename } from './utils/ExportImportUtils.js';
+} from '../api/IdmConfigApi';
+import { printMessage, showSpinner, succeedSpinner } from './utils/Console';
+import { getTypedFilename } from './utils/ExportImportUtils';
 
 /**
  * List all IDM configuration objects
