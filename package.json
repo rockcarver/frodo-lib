@@ -10,12 +10,34 @@
       "default": "./src/index.mjs"
     }
   },
-  "description": "ForgeROck DO Library, frodo-lib, a library to manage ForgeRock platform deployments supporting Identity Cloud tenants, ForgeOps deployments, and classic deployments.",
+  "scripts": {
+    "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "lint": "npx eslint --ext .mjs --ignore-path .gitignore .",
+    "build": "npx gulp"
+  },
+  "jest": {
+    "roots": [
+      "<rootDir>/src/"
+    ],
+    "testMatch": [
+      "**/?(*.)(test).js?(x)",
+      "**/?(*.)(test).mjs"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/dist/"
+    ],
+    "verbose": true
+  },
+  "description": "A library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.",
   "keywords": [
     "forgerock",
     "library",
     "am",
+    "openam",
     "idm",
+    "openidm",
     "forgeops",
     "identity cloud",
     "export",
@@ -32,15 +54,6 @@
   },
   "bugs": {
     "url": "https://github.com/rockcarver/frodo-lib/issues"
-  },
-  "scripts": {
-    "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:watch": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
-    "lint": "eslint --ext .js --ignore-path .gitignore .",
-    "build": "node build.js"
-  },
-  "jest": {
-    "globalSetup": "<rootDir>/test/global/setup.mjs"
   },
   "contributors": [
     {
