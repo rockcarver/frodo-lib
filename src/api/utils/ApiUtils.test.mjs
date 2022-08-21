@@ -1,7 +1,4 @@
-import {
-  getCurrentRealmPath,
-  getTenantURL,
-} from './ApiUtils';
+import { getCurrentRealmPath, getTenantURL } from './ApiUtils';
 import sessionStorage from '../../storage/SessionStorage';
 
 test.skip('replaceAll should be deleted because it works like native String.replaceAll', () => {
