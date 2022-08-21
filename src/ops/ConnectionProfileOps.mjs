@@ -3,11 +3,7 @@ import os from 'os';
 import path from 'path';
 import storage from '../storage/SessionStorage';
 import DataProtection from './utils/DataProtection';
-import {
-  createObjectTable,
-  createTable,
-  printMessage,
-} from './utils/Console';
+import { createObjectTable, createTable, printMessage } from './utils/Console';
 import { FRODO_CONNECTION_PROFILES_PATH_KEY } from '../storage/StaticStorage';
 
 const dataProtection = new DataProtection();

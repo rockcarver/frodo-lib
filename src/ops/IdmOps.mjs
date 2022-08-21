@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 import fs from 'fs';
 import fse from 'fs-extra';
 import replaceall from 'replaceall';
@@ -212,7 +213,6 @@ export async function countManagedObjects(type) {
   };
   try {
     do {
-      // eslint-disable-next-line no-await-in-loop
       result = (
         await queryAllManagedObjectsByType(type, [], result.pagedResultsCookie)
       ).data;

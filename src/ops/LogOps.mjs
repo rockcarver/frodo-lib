@@ -1,18 +1,15 @@
 import { printMessage } from './utils/Console';
 import { getCurrentTimestamp } from './utils/ExportImportUtils';
-import {
-  createAPIKeyAndSecret,
-  getAPIKeys,
-  getSources,
-} from '../api/LogApi';
+import { createAPIKeyAndSecret, getAPIKeys, getSources } from '../api/LogApi';
 
 import storage from '../storage/SessionStorage';
 
 import * as LogApi from '../api/LogApi';
 
+// eslint-disable-next-line no-unused-vars
 const unfilterableNoise = [
-  'text/plain'  // Unfortunately, it is impossible to filter out those without excluding IDM script logging as well
-]
+  'text/plain', // Unfortunately, it is impossible to filter out those without excluding IDM script logging as well
+];
 
 const miscNoise = [
   'com.iplanet.dpro.session.operations.ServerSessionOperationStrategy',
@@ -242,13 +239,16 @@ export function resolveLevel(level) {
   return logLevelMap[numLogLevelMap[level][0]];
 }
 
-// It seems that the undesirable 'text/plain' logs start with a date, not a LEVEL 
+// It seems that the undesirable 'text/plain' logs start with a date, not a LEVEL
 // Therefore, for those, this function returns null, and thus filters out the undesirable
 export function resolvePayloadLevel(log) {
   try {
-    return log.type !== 'text/plain' ? log.payload.level : log.payload.match(/^([^:]*):/)[1];
-  } catch (e) { // Fail-safe for no group match
-    return null
+    return log.type !== 'text/plain'
+      ? log.payload.level
+      : log.payload.match(/^([^:]*):/)[1];
+  } catch (e) {
+    // Fail-safe for no group match
+    return null;
   }
 }
 
