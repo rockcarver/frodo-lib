@@ -1,12 +1,14 @@
 .eslintrc
 .github/
 .prettierrc
+cjs/**/*.test.js
 CODE_OF_CONDUCT.md
 docs/
 gulpfile.mjs
 jsconfig.json
 resources/
-test/
+src/**/*.test.mjs
+test/*
 
 # Logs
 logs
