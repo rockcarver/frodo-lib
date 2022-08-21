@@ -1,25 +1,10 @@
+/* eslint-disable import/no-extraneous-dependencies */
 import gulp from 'gulp';
 import babel from 'gulp-babel';
 import del from 'del';
 import sourcemaps from 'gulp-sourcemaps';
-import map from 'map-stream';
 
 gulp.task('clean', () => del(['cjs']));
-
-gulp.task('package', () =>
-  gulp
-    .src('*.json')
-    .pipe(
-      map((file, done) => {
-        const json = JSON.parse(file.contents.toString());
-        delete json.type;
-        // eslint-disable-next-line no-param-reassign
-        file.contents = Buffer.from(JSON.stringify(json));
-        done(null, file);
-      })
-    )
-    .pipe(gulp.dest('cjs'))
-);
 
 gulp.task('transpile', () =>
   gulp
