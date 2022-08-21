@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1-4] - 2022-08-21
+
 ### Changed
 
 -   \#10: frodo-lib is now a hybrid npm package supporting both ES modules and CommonJS modules.
@@ -423,7 +425,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-3...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-4...HEAD
+
+[0.11.1-4]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-3...v0.11.1-4
 
 [0.11.1-3]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-2...v0.11.1-3
 
