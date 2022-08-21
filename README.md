@@ -1,7 +1,7 @@
 <!-- README.md for NPM; the one for GitHub is .github/README.md. -->
-# Frodo Library - @rockcarver/frodo-lib
+# Frodo Library
 
-ForgeROck DO Library, frodo-lib, a library to manage ForgeRock platform deployments supporting Identity Cloud tenants, ForgeOps deployments, and classic deployments.
+A library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.
 
 Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the command line tool to manage ForgeRock deployments.
 

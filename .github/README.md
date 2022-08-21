@@ -1,7 +1,8 @@
 <!-- README.md for GitHub; the one for NPM is ../README.md. -->
+
 # Frodo Library - @rockcarver/frodo-lib
 
-ForgeROck DO library, frodo-lib, a library to manage ForgeRock platform deployments supporting Identity Cloud tenants, ForgeOps deployments, and classic deployments.
+ForgeROck DO library, frodo-lib, a library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.
 
 Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the command line tool to manage ForgeRock deployments.
 
@@ -86,6 +87,7 @@ Frodo allows an administrator to easily connect to and manage any number of Iden
 ## Installing
 
 ### Developer Mode
+
 For those who want to contribute or are just curious about the build process.
 
 - Make sure you have Node.js v18 (the version used by developers) or newer and npm.
@@ -100,6 +102,7 @@ For those who want to contribute or are just curious about the build process.
   ```
 
 ### NPM package
+
 If you are a node developer and want to use frodo-lib as a library for your own applications, you can install the npm package:
 
 - To install the latest version as a dependency for you own application:
@@ -112,10 +115,13 @@ If you are a node developer and want to use frodo-lib as a library for your own 
   ```
 
 ## Feature requests
+
 Please use the repository's [issues](https://github.com/rockcarver/frodo-lib/issues) to request new features/enhancements or report bugs/issues.
 
 ## Contributing
+
 If you would like to contribute to frodo, please refer to the [contributing instructions](../docs/CONTRIBUTE.md).
 
 ## Maintaining
+
 If you are a maintainer of this repository, please refer to the [pipeline and release process instructions](../docs/PIPELINE.md).

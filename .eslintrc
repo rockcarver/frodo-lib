@@ -1,4 +1,14 @@
 {
+  "settings": {
+    "import/resolver": {
+      "node": {
+        "extensions": [
+          ".mjs",
+          ".js"
+        ]
+      }
+    }
+  },
   "extends": ["airbnb", "prettier"],
   "parser": "@babel/eslint-parser",
   "parserOptions": {
