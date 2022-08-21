@@ -6,7 +6,7 @@ docs/
 gulpfile.mjs
 jsconfig.json
 resources/
-test/
+test/*
 
 # Logs
 logs
