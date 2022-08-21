@@ -73,7 +73,7 @@ jobs:
 
       - name: Security Audit
         run: |
-          npm audit
+          npm audit --omit=dev
 
   update-changelog:
     needs: smoke-tests
