@@ -1,6 +1,5 @@
-FIDC_TENANT_PWD
-connections.json
-journey-*.json
+# built commonjs
+cjs/
 
 # Logs
 logs
