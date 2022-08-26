@@ -38,12 +38,12 @@ export function decode(input) {
 
 let enc;
 if (Buffer.isEncoding('base64url')) {
-  enc = (input, encoding = 'utf8') =>
+  enc = (input, encoding: BufferEncoding = 'utf8') =>
     Buffer.from(input, encoding).toString('base64url');
 } else {
   const fromBase64 = (base64) =>
     base64.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  enc = (input, encoding = 'utf8') =>
+  enc = (input, encoding: BufferEncoding = 'utf8') =>
     fromBase64(Buffer.from(input, encoding).toString('base64'));
 }
 

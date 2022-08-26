@@ -32,18 +32,20 @@ export async function getOrganizations() {
   };
   try {
     do {
-      // eslint-disable-next-line no-await-in-loop
-      result = await queryAllManagedObjectsByType(
-        getRealmManagedOrganization(),
-        ['name', 'parent/*/name', 'children/*/name'],
-        result.pagedResultsCookie
-      ).catch((queryAllManagedObjectsByTypeError) => {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        result = await queryAllManagedObjectsByType(
+          getRealmManagedOrganization(),
+          ['name', 'parent/*/name', 'children/*/name'],
+          result.pagedResultsCookie
+        );
+      } catch (queryAllManagedObjectsByTypeError) {
         printMessage(queryAllManagedObjectsByTypeError, 'error');
         printMessage(
           `Error querying ${getRealmManagedOrganization()} objects: ${queryAllManagedObjectsByTypeError}`,
           'error'
         );
-      });
+      }
       orgs.concat(result.result);
       printMessage('.', 'text', false);
     } while (result.pagedResultsCookie);
@@ -66,18 +68,20 @@ export async function listOrganizationsTopDown() {
     remainingPagedResults: -1,
   };
   do {
-    // eslint-disable-next-line no-await-in-loop
-    result = await queryAllManagedObjectsByType(
-      getRealmManagedOrganization(),
-      ['name', 'parent/*/name', 'children/*/name'],
-      result.pagedResultsCookie
-    ).catch((queryAllManagedObjectsByTypeError) => {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      result = await queryAllManagedObjectsByType(
+        getRealmManagedOrganization(),
+        ['name', 'parent/*/name', 'children/*/name'],
+        result.pagedResultsCookie
+      );
+    } catch (queryAllManagedObjectsByTypeError) {
       printMessage(queryAllManagedObjectsByTypeError, 'error');
       printMessage(
         `Error querying ${getRealmManagedOrganization()} objects: ${queryAllManagedObjectsByTypeError}`,
         'error'
       );
-    });
+    }
     orgs.concat(result.result);
     printMessage('.', 'text', false);
   } while (result.pagedResultsCookie);

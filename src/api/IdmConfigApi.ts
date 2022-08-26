@@ -69,9 +69,20 @@ export async function putConfigEntity(id, data) {
  * @param {String} type managed object type
  * @param {[String]} fields fields to retrieve
  * @param {String} pageCookie paged results cookie
- * @returns {Promise} a promise that resolves to an object containing managed objects of the desired type
+ * @returns {Promise<{result: any[]; resultCount: number; pagedResultsCookie: any; totalPagedResultsPolicy: string; totalPagedResults: number; remainingPagedResults: number;}>} a promise that resolves to an object containing managed objects of the desired type
  */
-export async function queryAllManagedObjectsByType(type, fields, pageCookie) {
+export async function queryAllManagedObjectsByType(
+  type,
+  fields,
+  pageCookie
+): Promise<{
+  result: any[];
+  resultCount: number;
+  pagedResultsCookie: string;
+  totalPagedResultsPolicy: string;
+  totalPagedResults: number;
+  remainingPagedResults: number;
+}> {
   const fieldsParam =
     fields.length > 0 ? `&_fields=${fields.join(',')}` : '&_fields=_id';
   const urlTemplate = pageCookie

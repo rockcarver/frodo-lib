@@ -3,26 +3,31 @@
   "version": "0.11.1-7",
   "type": "commonjs",
   "main": "./cjs/index.js",
-  "module": "./src/index.mjs",
+  "module": "./src/index.ts",
+  "types": "./types/index.d.ts",
   "exports": {
     ".": {
       "require": "./cjs/index.js",
-      "default": "./src/index.mjs"
+      "default": "./src/index.ts"
     }
   },
   "scripts": {
     "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
-    "lint": "npx eslint --ext .mjs --ignore-path .gitignore .",
-    "build": "npx gulp"
+    "lint": "npx eslint --ext .ts --ignore-path .gitignore .",
+    "build": "rm -fr cjs esm && npx tsc -p tsconfig.json && npx tsc -p tsconfig-cjs.json",
+    "build-old": "npx gulp"
   },
   "jest": {
     "roots": [
-      "<rootDir>/src/"
+      "<rootDir>/src/",
+      "<rootDir>/cjs/"
     ],
     "testMatch": [
       "**/?(*.)(test).js?(x)",
-      "**/?(*.)(test).mjs"
+      "**/?(*.)(test).js",
+      "**/?(*.)(test).ts?(x)",
+      "**/?(*.)(test).ts"
     ],
     "testPathIgnorePatterns": [
       "/node_modules/",
@@ -79,11 +84,11 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@colors/colors": "^1.5.0",
     "axios": "^0.27.2",
     "axios-retry": "^3.3.1",
     "cli-progress": "^3.11.2",
     "cli-table3": "^0.6.2",
+    "colors": "^1.4.0",
     "commander": "^9.4.0",
     "fs-extra": "^10.0.0",
     "https-proxy-agent": "^5.0.1",
@@ -99,10 +104,21 @@
     "yesno": "^0.4.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.18.13",
     "@babel/eslint-parser": "^7.18.9",
     "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
     "@babel/plugin-syntax-import-assertions": "^7.16.7",
     "@babel/plugin-transform-modules-commonjs": "^7.16.8",
+    "@babel/preset-env": "^7.18.10",
+    "@babel/preset-typescript": "^7.18.6",
+    "@types/colors": "^1.2.1",
+    "@types/jest": "^28.1.7",
+    "@types/lodash": "^4.14.184",
+    "@types/node": "^18.7.10",
+    "@types/uuid": "^8.3.4",
+    "@typescript-eslint/eslint-plugin": "^5.34.0",
+    "@typescript-eslint/parser": "^5.34.0",
+    "babel-jest": "^28.1.3",
     "babel-plugin-transform-import-meta": "^2.1.1",
     "del": "^6.0.0",
     "eslint": "^8.21.0",
@@ -120,6 +136,7 @@
     "jest": "^28.1.3",
     "map-stream": "^0.0.7",
     "pkg": "^5.8.0",
-    "prettier": "^2.7.1"
+    "prettier": "^2.7.1",
+    "typescript": "^4.7.4"
   }
 }

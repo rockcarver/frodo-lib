@@ -49,7 +49,7 @@ export async function listOAuth2Clients(long = false) {
         table.push([
           client._id,
           client.coreOAuth2ClientConfig.status === 'Active'
-            ? 'Active'.brightGreen
+            ? 'Active'['brightGreen']
             : client.coreOAuth2ClientConfig.status.brightRed,
           client.coreOAuth2ClientConfig.clientType,
           client.advancedOAuth2ClientConfig.grantTypes

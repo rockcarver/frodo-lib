@@ -1,4 +1,3 @@
-/* eslint-disable import/no-extraneous-dependencies */
 import gulp from 'gulp';
 import babel from 'gulp-babel';
 import del from 'del';
@@ -8,20 +7,11 @@ gulp.task('clean', () => del(['cjs']));
 
 gulp.task('transpile', () =>
   gulp
-    .src(['src/*.mjs', 'src/**/*.mjs'])
+    .src(['src/*.ts', 'src/**/*.ts'])
     .pipe(sourcemaps.init({ loadMaps: true }))
     .pipe(
       babel({
-        plugins: [
-          ['@babel/plugin-proposal-export-namespace-from'],
-          [
-            '@babel/plugin-transform-modules-commonjs',
-            {
-              importInterop: 'babel',
-            },
-          ],
-          ['babel-plugin-transform-import-meta'],
-        ],
+        plugins: [['@babel/plugin-transform-typescript']],
       })
     )
     .pipe(sourcemaps.write('./'))

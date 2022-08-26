@@ -72,7 +72,7 @@ export async function getSocialIdentityProviderById(id) {
  * @param {String} id provider id/name
  * @param {String} file optional export file name
  */
-export async function exportProvider(id, file = null) {
+export async function exportProvider(id, file = '') {
   let fileName = file;
   if (!fileName) {
     fileName = getTypedFilename(id, 'idp');
@@ -89,7 +89,7 @@ export async function exportProvider(id, file = null) {
       fileData.script[idpData.transform] = scriptData;
     }
     saveJsonToFile(fileData, fileName);
-    stopProgressBar(`Exported ${id.brightCyan} to ${fileName.brightCyan}.`);
+    stopProgressBar(`Exported ${id.brightCyan} to ${fileName['brightCyan']}.`);
   } catch (err) {
     stopProgressBar(`${err}`);
     printMessage(`${err}`, 'error');

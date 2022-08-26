@@ -1,4 +1,3 @@
-/* eslint-disable import/prefer-default-export */
 import url from 'url';
 import { createHash, randomBytes } from 'crypto';
 import readlineSync from 'readline-sync';
@@ -96,7 +95,6 @@ function determineDefaultRealm(deploymentType) {
 async function determineDeploymentType() {
   const fidcClientId = 'idmAdminClient';
   const forgeopsClientId = 'idm-admin-ui';
-  let response = {};
 
   const verifier = encodeBase64Url(randomBytes(32));
   const challenge = encodeBase64Url(
@@ -115,7 +113,7 @@ async function determineDeploymentType() {
 
   let deploymentType = global.CLASSIC_DEPLOYMENT_TYPE_KEY;
   try {
-    response = await authorize(bodyFormData, config);
+    await authorize(bodyFormData, config);
   } catch (e) {
     if (e.response && e.response.status === 302) {
       printMessage('ForgeRock Identity Cloud ', 'info', false);
@@ -123,8 +121,7 @@ async function determineDeploymentType() {
     } else {
       try {
         bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScope}&response_type=code&client_id=${forgeopsClientId}&csrf=${storage.session.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
-        // eslint-disable-next-line no-unused-vars
-        response = await authorize(bodyFormData, config);
+        await authorize(bodyFormData, config);
       } catch (ex) {
         if (ex.response.status === 302) {
           adminClientId = forgeopsClientId;
@@ -178,7 +175,7 @@ async function authenticate() {
       response2 = skip2FA.payload;
     }
     if ('tokenId' in response2) {
-      storage.session.setCookieValue(response2.tokenId);
+      storage.session.setCookieValue(response2['tokenId']);
       if (!storage.session.getDeploymentType()) {
         storage.session.setDeploymentType(await determineDeploymentType());
       } else {

@@ -56,8 +56,8 @@ export async function getVariable(id) {
  */
 export async function putVariable(id, value, description) {
   const data = {};
-  if (value) data.valueBase64 = encode(value);
-  if (description) data.description = description;
+  if (value) data['valueBase64'] = encode(value);
+  if (description) data['description'] = description;
   const urlString = util.format(
     variableURLTemplate,
     getTenantURL(storage.session.getTenant()),

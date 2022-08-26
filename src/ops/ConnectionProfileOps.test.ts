@@ -21,10 +21,7 @@ describe('ConnectionProfileOps', () => {
     await ConnectionProfile.saveConnectionProfile();
     expect(fs.existsSync(connectionProfilePath)).toBeTruthy();
     const connections = JSON.parse(
-      fs.readFileSync(connectionProfilePath, {
-        options: 'utf8',
-        indentation: 4,
-      })
+      fs.readFileSync(connectionProfilePath, 'utf8')
     );
     expect(connections).toBeTruthy();
     expect(connections[host]).toBeTruthy();
@@ -50,10 +47,7 @@ describe('ConnectionProfileOps', () => {
     );
     expect(fs.existsSync(connectionProfilePath)).toBeTruthy();
     const connections = JSON.parse(
-      fs.readFileSync(connectionProfilePath, {
-        options: 'utf8',
-        indentation: 4,
-      })
+      fs.readFileSync(connectionProfilePath, 'utf8')
     );
     expect(connections).toBeTruthy();
     expect(connections[host]).toBeTruthy();
@@ -77,10 +71,7 @@ describe('ConnectionProfileOps', () => {
     await ConnectionProfile.saveConnectionProfile();
     expect(fs.existsSync(connectionProfilePath)).toBeTruthy();
     const connections = JSON.parse(
-      fs.readFileSync(connectionProfilePath, {
-        options: 'utf8',
-        indentation: 4,
-      })
+      fs.readFileSync(connectionProfilePath, 'utf8')
     );
     expect(connections).toBeTruthy();
     expect(connections[host]).toBeTruthy();

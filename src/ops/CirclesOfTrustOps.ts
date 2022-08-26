@@ -57,10 +57,10 @@ export async function listCirclesOfTrust(long = false) {
     });
   } else {
     const table = createTable([
-      'Name'.brightCyan,
-      'Description'.brightCyan,
-      'Status'.brightCyan,
-      'Trusted Providers'.brightCyan,
+      'Name'['brightCyan'],
+      'Description'['brightCyan'],
+      'Status'['brightCyan'],
+      'Trusted Providers'['brightCyan'],
     ]);
     cotList.forEach((cot) => {
       table.push([

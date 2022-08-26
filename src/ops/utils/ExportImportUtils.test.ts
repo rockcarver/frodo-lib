@@ -45,7 +45,7 @@ test('convertTextArrayToBase64', () => {
 });
 
 test('validateImport should always return true', () => {
-  expect(validateImport()).not.toBe(false);
+  expect(validateImport(null)).not.toBe(false);
 });
 
 // This function has no way to determine when its asnyc task is complete, suggest using callback or promises to allow for testing
@@ -80,7 +80,7 @@ describe.skip('file system based tests', () => {
     };
     // Act
     saveToFile('lotr', data, 'id', PATH_TO_ARTIFACT);
-    const resultingJSON = JSON.parse(readFileSync(PATH_TO_ARTIFACT));
+    const resultingJSON = JSON.parse(readFileSync(PATH_TO_ARTIFACT, 'utf8'));
     // Assert
     expect(resultingJSON.lotr).toEqual(expected.lotr);
   });
@@ -98,7 +98,7 @@ describe.skip('file system based tests', () => {
     ];
     // Act
     saveToFile('lotr', data, 'id', PATH_TO_ARTIFACT);
-    const resultingJSON = JSON.parse(readFileSync(PATH_TO_ARTIFACT));
+    const resultingJSON = JSON.parse(readFileSync(PATH_TO_ARTIFACT, 'utf8'));
     // Assert
     expect(Object.keys(resultingJSON.meta)).toEqual([
       'origin',
@@ -113,7 +113,7 @@ describe.skip('file system based tests', () => {
 test.skip('checkTargetCompatibility to be made testable', () => {
   // Arrange
   // Act
-  const result = checkTargetCompatibility();
+  const result = checkTargetCompatibility(null, null, null);
   // Assert
   expect(result).toBe('not tested yet');
 });

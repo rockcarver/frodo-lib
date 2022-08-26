@@ -43,15 +43,15 @@ export async function listThemes(long = false) {
     });
   } else {
     const table = createTable([
-      'Name'.brightCyan,
-      'Id'.brightCyan,
-      'Default'.brightCyan,
+      'Name'['brightCyan'],
+      'Id'['brightCyan'],
+      'Default'['brightCyan'],
     ]);
     themeList.forEach((theme) => {
       table.push([
         `${theme.name}`,
         `${theme._id}`,
-        `${theme.isDefault ? 'Yes'.brightGreen : ''}`,
+        `${theme.isDefault ? 'Yes'['brightGreen'] : ''}`,
       ]);
     });
     printMessage(table.toString(), 'data');

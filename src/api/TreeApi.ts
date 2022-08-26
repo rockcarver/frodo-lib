@@ -88,7 +88,7 @@ export async function getNode(id, nodeType) {
   const urlString = util.format(
     nodeURLTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(storage.session.getRealm()),
+    getCurrentRealmPath(),
     nodeType,
     id
   );
@@ -111,7 +111,7 @@ export async function putNode(id, nodeType, nodeData) {
   const urlString = util.format(
     nodeURLTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(storage.session.getRealm()),
+    getCurrentRealmPath(),
     nodeType,
     id
   );
@@ -181,7 +181,7 @@ export async function putTree(id, data) {
   const urlString = util.format(
     treeByIdURLTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(storage.session.getRealm()),
+    getCurrentRealmPath(),
     id
   );
   return generateAmApi(getTreeApiConfig()).put(urlString, data, {

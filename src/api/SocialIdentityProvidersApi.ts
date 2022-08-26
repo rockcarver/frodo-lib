@@ -104,7 +104,7 @@ export async function putProviderByTypeAndId(type, id, data) {
   const urlString = util.format(
     providerByTypeAndIdURLTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(storage.session.getRealm()),
+    getCurrentRealmPath(),
     type,
     id
   );

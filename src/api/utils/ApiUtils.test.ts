@@ -13,7 +13,7 @@ test('getCurrentRealmPath should prepend realmPath to specified realm', () => {
   const REALM_PATH = 'alpha';
   sessionStorage.session.setItem('realm', REALM_PATH);
   // Act
-  const testString = getCurrentRealmPath(REALM_PATH);
+  const testString = getCurrentRealmPath();
   // Assert
   expect(testString).toBe('/realms/root/realms/alpha');
 });
@@ -23,7 +23,7 @@ test('getCurrentRealmPath should prepend realmPath to specified realm with leadi
   const REALM_PATH = '/alpha';
   sessionStorage.session.setItem('realm', REALM_PATH);
   // Act
-  const testString = getCurrentRealmPath(REALM_PATH);
+  const testString = getCurrentRealmPath();
   // Assert
   expect(testString).toBe('/realms/root/realms/alpha');
 });
@@ -33,7 +33,7 @@ test('getCurrentRealmPath "/" should resolve to root', () => {
   const REALM_PATH = '/';
   sessionStorage.session.setItem('realm', REALM_PATH);
   // Act
-  const testString = getCurrentRealmPath(REALM_PATH);
+  const testString = getCurrentRealmPath();
   // Assert
   expect(testString).toBe('/realms/root');
 });
@@ -43,7 +43,7 @@ test('getCurrentRealmPath should not handle multiple leading slash', () => {
   const REALM_PATH = '//alpha';
   sessionStorage.session.setItem('realm', REALM_PATH);
   // Act
-  const testString = getCurrentRealmPath(REALM_PATH);
+  const testString = getCurrentRealmPath();
   // Assert
   expect(testString).toBe('/realms/root/realms//alpha');
 });
@@ -53,7 +53,7 @@ test('getCurrentRealmPath should not handle nested depth realms', () => {
   const REALM_PATH = '/alpha/erm';
   sessionStorage.session.setItem('realm', REALM_PATH);
   // Act
-  const testString = getCurrentRealmPath(REALM_PATH);
+  const testString = getCurrentRealmPath();
   // Assert
   expect(testString).toBe('/realms/root/realms/alpha/erm');
 });

@@ -34,19 +34,19 @@ export async function listVariables(long) {
   }
   if (long) {
     const table = createTable([
-      'Id'.brightCyan,
-      'Value'.brightCyan,
-      'Status'.brightCyan,
-      'Description'.brightCyan,
-      'Modifier'.brightCyan,
-      'Modified'.brightCyan,
+      'Id'['brightCyan'],
+      'Value'['brightCyan'],
+      'Status'['brightCyan'],
+      'Description'['brightCyan'],
+      'Modifier'['brightCyan'],
+      'Modified'['brightCyan'],
     ]);
     variables.sort((a, b) => a._id.localeCompare(b._id));
     for (const variable of variables) {
       table.push([
         variable._id,
         wordwrap(decode(variable.valueBase64), 40),
-        variable.loaded ? 'loaded'.brightGreen : 'unloaded'.brightRed,
+        variable.loaded ? 'loaded'['brightGreen'] : 'unloaded'['brightRed'],
         wordwrap(variable.description, 40),
         // eslint-disable-next-line no-await-in-loop
         await resolveUserName('teammember', variable.lastChangedBy),
@@ -165,21 +165,24 @@ export async function deleteVariablesCmd() {
 export async function describeVariable(variableId) {
   const variable = (await getVariable(variableId)).data;
   const table = createKeyValueTable();
-  table.push(['Name'.brightCyan, variable._id]);
-  table.push(['Value'.brightCyan, wordwrap(decode(variable.valueBase64), 40)]);
+  table.push(['Name'['brightCyan'], variable._id]);
   table.push([
-    'Status'.brightCyan,
-    variable.loaded ? 'loaded'.brightGreen : 'unloaded'.brightRed,
+    'Value'['brightCyan'],
+    wordwrap(decode(variable.valueBase64), 40),
   ]);
-  table.push(['Description'.brightCyan, wordwrap(variable.description, 60)]);
   table.push([
-    'Modified'.brightCyan,
+    'Status'['brightCyan'],
+    variable.loaded ? 'loaded'['brightGreen'] : 'unloaded'['brightRed'],
+  ]);
+  table.push(['Description'['brightCyan'], wordwrap(variable.description, 60)]);
+  table.push([
+    'Modified'['brightCyan'],
     new Date(variable.lastChangeDate).toLocaleString(),
   ]);
   table.push([
-    'Modifier'.brightCyan,
+    'Modifier'['brightCyan'],
     await resolveUserName('teammember', variable.lastChangedBy),
   ]);
-  table.push(['Modifier UUID'.brightCyan, variable.lastChangedBy]);
+  table.push(['Modifier UUID'['brightCyan'], variable.lastChangedBy]);
   printMessage(table.toString());
 }

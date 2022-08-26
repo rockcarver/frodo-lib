@@ -26,7 +26,7 @@ export async function listAllConfigEntities() {
     );
   }
   if ('configurations' in configEntities) {
-    configEntities.configurations.forEach((configEntity) => {
+    configEntities['configurations'].forEach((configEntity) => {
       printMessage(`${configEntity._id}`, 'data');
     });
   }
@@ -72,7 +72,7 @@ export async function exportAllRawConfigEntities(directory) {
     }
     showSpinner('Exporting config objects...');
     const entityPromises = [];
-    configEntities.configurations.forEach((x) => {
+    configEntities['configurations'].forEach((x) => {
       entityPromises.push(
         getConfigEntity(x._id)
           .then((response) => response.data)
@@ -156,7 +156,7 @@ export async function exportAllConfigEntities(
       }
       showSpinner('Exporting config objects...');
       const entityPromises = [];
-      configEntities.configurations.forEach((x) => {
+      configEntities['configurations'].forEach((x) => {
         if (entriesToExport.includes(x._id)) {
           // console.log(`- ${x._id}`);
           entityPromises.push(
@@ -215,7 +215,7 @@ export async function countManagedObjects(type) {
     do {
       result = (
         await queryAllManagedObjectsByType(type, [], result.pagedResultsCookie)
-      ).data;
+      )['data'];
       count += result.resultCount;
       // printMessage(result);
     } while (result.pagedResultsCookie);

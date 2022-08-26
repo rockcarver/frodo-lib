@@ -20,6 +20,11 @@ import {
 import wordwrap from './utils/Wordwrap';
 
 /**
+ * Regex to remove email template type from id
+ */
+const regexEmailTemplateType = new RegExp(`${EMAIL_TEMPLATE_TYPE}/`, 'g');
+
+/**
  * Maintain the file type centrally
  */
 const EMAIL_TEMPLATE_FILE_TYPE = 'template.email';
@@ -54,12 +59,12 @@ export async function listEmailTemplates(long = false) {
     }
   } else {
     const table = createTable([
-      'Id'.brightCyan,
-      'Name'.brightCyan,
-      'Status'.brightCyan,
-      'Locale(s)'.brightCyan,
-      'From'.brightCyan,
-      'Subject'.brightCyan,
+      'Id'['brightCyan'],
+      'Name'['brightCyan'],
+      'Status'['brightCyan'],
+      'Locale(s)'['brightCyan'],
+      'From'['brightCyan'],
+      'Subject'['brightCyan'],
     ]);
     emailTemplates.forEach((emailTemplate) => {
       table.push([
@@ -69,8 +74,8 @@ export async function listEmailTemplates(long = false) {
         `${emailTemplate.displayName ? emailTemplate.displayName : ''}`,
         // Status
         emailTemplate.enabled === false
-          ? 'disabled'.brightRed
-          : 'enabled'.brightGreen,
+          ? 'disabled'['brightRed']
+          : 'enabled'['brightGreen'],
         // Locale(s)
         `${emailTemplate.defaultLocale}${
           Object.keys(emailTemplate.subject).length > 1
@@ -224,7 +229,7 @@ export async function importEmailTemplatesFromFile(file) {
       );
       for (const id in fileData.emailTemplate) {
         if ({}.hasOwnProperty.call(fileData.emailTemplate, id)) {
-          const templateId = id.replaceAll(`${EMAIL_TEMPLATE_TYPE}/`, '');
+          const templateId = id.replace(regexEmailTemplateType, '');
           try {
             // eslint-disable-next-line no-await-in-loop
             await putEmailTemplate(
@@ -264,7 +269,7 @@ export async function importEmailTemplatesFromFiles() {
       let errors = 0;
       for (const id in fileData.emailTemplate) {
         if ({}.hasOwnProperty.call(fileData.emailTemplate, id)) {
-          const templateId = id.replaceAll(`${EMAIL_TEMPLATE_TYPE}/`, '');
+          const templateId = id.replace(regexEmailTemplateType, '');
           try {
             // eslint-disable-next-line no-await-in-loop
             await putEmailTemplate(
@@ -304,7 +309,7 @@ export async function importFirstEmailTemplateFromFile(file) {
       for (const id in fileData.emailTemplate) {
         if ({}.hasOwnProperty.call(fileData.emailTemplate, id)) {
           putEmailTemplate(
-            id.replaceAll('emailTemplate/', ''),
+            id.replace(regexEmailTemplateType, ''),
             fileData.emailTemplate[id]
           )
             .then(() => {
