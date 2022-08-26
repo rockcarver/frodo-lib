@@ -4,9 +4,9 @@ import { decode, encode, encodeBase64Url } from '../api/utils/Base64';
 import {
   createTable,
   printMessage,
-  createProgressBar,
-  updateProgressBar,
-  stopProgressBar,
+  createProgressIndicator,
+  updateProgressIndicator,
+  stopProgressIndicator,
   createObjectTable,
 } from './utils/Console';
 import {
@@ -126,7 +126,7 @@ export async function exportProvider(entityId, file = null) {
   if (!fileName) {
     fileName = getTypedFilename(entityId, 'saml');
   }
-  createProgressBar(1, `Exporting provider ${entityId}`);
+  createProgressIndicator(1, `Exporting provider ${entityId}`);
   const found = await findProviders(`entityId eq '${entityId}'`, 'location');
   switch (found.data.resultCount) {
     case 0:
@@ -139,17 +139,17 @@ export async function exportProvider(entityId, file = null) {
         getProviderByLocationAndId(location, id)
           .then(async (response) => {
             const providerData = response.data;
-            updateProgressBar(`Writing file ${fileName}`);
+            updateProgressIndicator(`Writing file ${fileName}`);
             const fileData = getFileDataTemplate();
             fileData.saml[location][providerData._id] = providerData;
             await exportDependencies(providerData, fileData);
             saveJsonToFile(fileData, fileName);
-            stopProgressBar(
+            stopProgressIndicator(
               `Exported ${entityId.brightCyan} to ${fileName.brightCyan}.`
             );
           })
           .catch((err) => {
-            stopProgressBar(`${err}`);
+            stopProgressIndicator(`${err}`);
             printMessage(err, 'error');
           });
       }
@@ -172,19 +172,19 @@ export async function exportMetadata(entityId, file = null) {
   if (!fileName) {
     fileName = getTypedFilename(entityId, 'metadata', 'xml');
   }
-  createProgressBar(1, `Exporting metadata for: ${entityId}`);
+  createProgressIndicator(1, `Exporting metadata for: ${entityId}`);
   getProviderMetadata(entityId)
     .then(async (response) => {
-      updateProgressBar(`Writing file ${fileName}`);
+      updateProgressIndicator(`Writing file ${fileName}`);
       // printMessage(response.data, 'error');
       const metaData = response.data;
       saveTextToFile(metaData, fileName);
-      stopProgressBar(
+      stopProgressIndicator(
         `Exported ${entityId.brightCyan} metadata to ${fileName.brightCyan}.`
       );
     })
     .catch((err) => {
-      stopProgressBar(`${err}`);
+      stopProgressIndicator(`${err}`);
       printMessage(err, 'error');
     });
 }
@@ -253,9 +253,9 @@ export async function exportProvidersToFile(file = null) {
     printMessage(found, 'data');
     printMessage(`exportProvidersToFile: ${found.status}`, 'error');
   } else if (found.data.resultCount > 0) {
-    createProgressBar(found.data.resultCount, 'Exporting providers');
+    createProgressIndicator(found.data.resultCount, 'Exporting providers');
     for (const stubData of found.data.result) {
-      updateProgressBar(`Exporting provider ${stubData.entityId}`);
+      updateProgressIndicator(`Exporting provider ${stubData.entityId}`);
       // eslint-disable-next-line no-await-in-loop
       const response = await getProviderByLocationAndId(
         stubData.location,
@@ -267,7 +267,7 @@ export async function exportProvidersToFile(file = null) {
       fileData.saml[stubData.location][providerData._id] = providerData;
     }
     saveJsonToFile(fileData, fileName);
-    stopProgressBar(
+    stopProgressIndicator(
       `${found.data.resultCount} providers exported to ${fileName}.`
     );
   } else {
@@ -281,9 +281,9 @@ export async function exportProvidersToFile(file = null) {
 export async function exportProvidersToFiles() {
   const found = await getProviders();
   if (found.data.resultCount > 0) {
-    createProgressBar(found.data.resultCount, 'Exporting providers');
+    createProgressIndicator(found.data.resultCount, 'Exporting providers');
     for (const stubData of found.data.result) {
-      updateProgressBar(`Exporting provider ${stubData.entityId}`);
+      updateProgressIndicator(`Exporting provider ${stubData.entityId}`);
       const fileName = getTypedFilename(stubData.entityId, 'saml');
       const fileData = getFileDataTemplate();
       // eslint-disable-next-line no-await-in-loop
@@ -297,7 +297,7 @@ export async function exportProvidersToFiles() {
       fileData.saml[stubData.location][providerData._id] = providerData;
       saveJsonToFile(fileData, fileName);
     }
-    stopProgressBar(`${found.data.resultCount} providers exported.`);
+    stopProgressIndicator(`${found.data.resultCount} providers exported.`);
   } else {
     printMessage('No entity providers found.', 'info');
   }
@@ -360,11 +360,11 @@ export async function importProvider(entityId, file) {
     if (err) throw err;
     const fileData = JSON.parse(data);
     if (validateImport(fileData.meta)) {
-      createProgressBar(1, 'Importing provider...');
+      createProgressIndicator(1, 'Importing provider...');
       const location = getLocation(entityId64, fileData);
       if (location) {
         const providerData = _.get(fileData, ['saml', location, entityId64]);
-        updateProgressBar(`Importing ${entityId}`);
+        updateProgressIndicator(`Importing ${entityId}`);
         await importDependencies(providerData, fileData);
         let metaData = null;
         if (location === 'remote') {
@@ -374,14 +374,16 @@ export async function importProvider(entityId, file) {
         }
         createProvider(location, providerData, metaData)
           .then(() => {
-            stopProgressBar(`Successfully imported provider ${entityId}.`);
+            stopProgressIndicator(
+              `Successfully imported provider ${entityId}.`
+            );
           })
           .catch((createProviderErr) => {
             printMessage(`\nError importing provider ${entityId}`, 'error');
             printMessage(createProviderErr.response, 'error');
           });
       } else {
-        stopProgressBar(
+        stopProgressIndicator(
           `Provider ${entityId.brightCyan} not found in ${file.brightCyan}!`
         );
       }
@@ -400,7 +402,7 @@ export async function importFirstProvider(file) {
     if (err) throw err;
     const fileData = JSON.parse(data);
     if (validateImport(fileData.meta)) {
-      createProgressBar(1, 'Importing provider...');
+      createProgressIndicator(1, 'Importing provider...');
       // find providers in hosted and if none exist in remote
       let location = 'hosted';
       let providerIds = _.keys(fileData.saml[location]);
@@ -415,7 +417,7 @@ export async function importFirstProvider(file) {
         const entityId64 = providerIds[0];
         const entityId = decode(entityId64);
         const providerData = _.get(fileData, ['saml', location, entityId64]);
-        updateProgressBar(`Importing ${entityId}`);
+        updateProgressIndicator(`Importing ${entityId}`);
         await importDependencies(providerData, fileData);
         let metaData = null;
         if (location === 'remote') {
@@ -425,15 +427,17 @@ export async function importFirstProvider(file) {
         }
         createProvider(location, providerData, metaData)
           .then(() => {
-            stopProgressBar(`Successfully imported provider ${entityId}.`);
+            stopProgressIndicator(
+              `Successfully imported provider ${entityId}.`
+            );
           })
           .catch((createProviderErr) => {
-            stopProgressBar(`Error importing provider ${entityId}`);
+            stopProgressIndicator(`Error importing provider ${entityId}`);
             printMessage(`\nError importing provider ${entityId}`, 'error');
             printMessage(createProviderErr.response.data, 'error');
           });
       } else {
-        stopProgressBar(`No providers found in ${file.brightCyan}!`);
+        stopProgressIndicator(`No providers found in ${file.brightCyan}!`);
       }
     } else {
       printMessage('Import validation failed...', 'error');
@@ -454,7 +458,7 @@ export async function importProvidersFromFile(file) {
       const hostedIds = _.keys(fileData.saml.hosted);
       const remoteIds = _.keys(fileData.saml.remote);
       const providerIds = hostedIds.concat(remoteIds);
-      createProgressBar(providerIds.length, 'Importing providers...');
+      createProgressIndicator(providerIds.length, 'Importing providers...');
       for (const entityId64 of providerIds) {
         const location = hostedIds.includes(entityId64) ? 'hosted' : 'remote';
         const entityId = decode(entityId64);
@@ -470,13 +474,13 @@ export async function importProvidersFromFile(file) {
         try {
           // eslint-disable-next-line no-await-in-loop
           await createProvider(location, providerData, metaData);
-          updateProgressBar(`Imported ${entityId}`);
+          updateProgressIndicator(`Imported ${entityId}`);
         } catch (createProviderErr) {
           printMessage(`\nError importing provider ${entityId}`, 'error');
           printMessage(createProviderErr.response.data, 'error');
         }
       }
-      stopProgressBar(`Providers imported.`);
+      stopProgressIndicator(`Providers imported.`);
     } else {
       printMessage('Import validation failed...', 'error');
     }
@@ -491,7 +495,7 @@ export async function importProvidersFromFiles() {
   const jsonFiles = names.filter((name) =>
     name.toLowerCase().endsWith('.saml.json')
   );
-  createProgressBar(jsonFiles.length, 'Importing providers...');
+  createProgressIndicator(jsonFiles.length, 'Importing providers...');
   let total = 0;
   let totalErrors = 0;
   for (const file of jsonFiles) {
@@ -518,7 +522,7 @@ export async function importProvidersFromFiles() {
         try {
           // eslint-disable-next-line no-await-in-loop
           await createProvider(location, providerData, metaData);
-          // updateProgressBar(`Imported ${entityId}`);
+          // updateProgressIndicator(`Imported ${entityId}`);
         } catch (createProviderErr) {
           errors += 1;
           printMessage(`\nError importing provider ${entityId}`, 'error');
@@ -526,14 +530,14 @@ export async function importProvidersFromFiles() {
         }
       }
       totalErrors += errors;
-      updateProgressBar(
+      updateProgressIndicator(
         `Imported ${providerIds.length - errors} provider(s) from ${file}`
       );
     } else {
       printMessage(`Validation of ${file} failed!`, 'error');
     }
   }
-  stopProgressBar(
+  stopProgressIndicator(
     `Imported ${total - totalErrors} of ${total} provider(s) from ${
       jsonFiles.length
     } file(s).`

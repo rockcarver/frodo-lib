@@ -1,11 +1,10 @@
 import yesno from 'yesno';
 import {
   createTable,
-  failSpinner,
   printMessage,
-  showSpinner,
-  spinSpinner,
-  succeedSpinner,
+  createProgressIndicator,
+  updateProgressIndicator,
+  stopProgressIndicator,
 } from './utils/Console';
 import { getSecrets } from '../api/SecretsApi';
 import { getStatus, initiateRestart } from '../api/StartupApi';
@@ -13,7 +12,11 @@ import { resolveUserName } from './ManagedObjectOps';
 import { getVariables } from '../api/VariablesApi';
 
 export async function checkForUpdates() {
-  showSpinner(`Checking for updates to apply...`);
+  createProgressIndicator(
+    undefined,
+    `Checking for updates to apply...`,
+    'indeterminate'
+  );
   const updates = createTable([
     'Type'.brightCyan,
     'Name'.brightCyan,
@@ -48,16 +51,20 @@ export async function checkForUpdates() {
       }
     }
   } catch (error) {
-    failSpinner(
-      `Error: ${error.response.data.code} - ${error.response.data.message}`
+    stopProgressIndicator(
+      `Error: ${error.response.data.code} - ${error.response.data.message}`,
+      'fail'
     );
   }
   if (updates.length > 0) {
-    succeedSpinner(`${updates.length} update(s) need to be applied`);
+    stopProgressIndicator(
+      `${updates.length} update(s) need to be applied`,
+      'success'
+    );
     printMessage(updates.toString(), 'data');
     return true;
   }
-  succeedSpinner(`No updates need to be applied`);
+  stopProgressIndicator(`No updates need to be applied`, 'success');
   return false;
 }
 
@@ -69,7 +76,11 @@ export async function applyUpdates(force, wait, yes) {
         question: `\nChanges may take up to 10 minutes to propagate, during which time you will not be able to make further updates.\n\nApply updates? (y|n):`,
       }));
     if (ok) {
-      showSpinner(`Applying updates...`);
+      createProgressIndicator(
+        undefined,
+        `Applying updates...`,
+        'indeterminate'
+      );
       try {
         await initiateRestart();
         if (wait) {
@@ -84,29 +95,35 @@ export async function applyUpdates(force, wait, yes) {
             // eslint-disable-next-line no-await-in-loop
             status = (await getStatus()).data.restartStatus;
             runtime = new Date().getTime() - start;
-            spinSpinner(`${status} (${Math.round(runtime / 1000)}s)`);
+            updateProgressIndicator(
+              `${status} (${Math.round(runtime / 1000)}s)`
+            );
           }
           if (runtime < timeout) {
-            succeedSpinner(
+            stopProgressIndicator(
               `Updates applied in ${Math.round(
                 runtime / 1000
-              )}s with final status: ${status}`
+              )}s with final status: ${status}`,
+              'success'
             );
           } else {
-            succeedSpinner(
+            stopProgressIndicator(
               `Updates timed out after ${Math.round(
                 runtime / 1000
-              )}s with final status: ${status}`
+              )}s with final status: ${status}`,
+              'success'
             );
           }
         } else {
-          succeedSpinner(
-            `Updates are being applied. Changes may take up to 10 minutes to propagate, during which time you will not be able to make further updates.`
+          stopProgressIndicator(
+            `Updates are being applied. Changes may take up to 10 minutes to propagate, during which time you will not be able to make further updates.`,
+            'success'
           );
         }
       } catch (error) {
-        failSpinner(
-          `Error: ${error.response.data.code} - ${error.response.data.message}`
+        stopProgressIndicator(
+          `Error: ${error.response.data.code} - ${error.response.data.message}`,
+          'fail'
         );
       }
     }

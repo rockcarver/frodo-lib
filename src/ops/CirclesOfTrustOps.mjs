@@ -3,9 +3,9 @@ import _ from 'lodash';
 import {
   createTable,
   printMessage,
-  createProgressBar,
-  updateProgressBar,
-  stopProgressBar,
+  createProgressIndicator,
+  updateProgressIndicator,
+  stopProgressIndicator,
 } from './utils/Console';
 import {
   getCirclesOfTrust,
@@ -96,22 +96,22 @@ export async function exportCircleOfTrust(cotId, file = null) {
   if (!fileName) {
     fileName = getTypedFilename(cotId, 'cot.saml');
   }
-  createProgressBar(1, `Exporting circle of trust ${cotId}`);
+  createProgressIndicator(1, `Exporting circle of trust ${cotId}`);
   getCircleOfTrust(cotId)
     .then(async (response) => {
       const cotData = _.cloneDeep(response.data);
       delete cotData._rev;
-      updateProgressBar(`Exporting ${cotId}`);
+      updateProgressIndicator(`Exporting ${cotId}`);
       const fileData = getFileDataTemplate();
       fileData.saml.cot[cotId] = cotData;
       await exportDependencies(cotData, fileData);
       saveJsonToFile(fileData, fileName);
-      stopProgressBar(
+      stopProgressIndicator(
         `Exported ${cotId.brightCyan} to ${fileName.brightCyan}.`
       );
     })
     .catch((err) => {
-      stopProgressBar(`${err}`);
+      stopProgressIndicator(`${err}`);
       printMessage(err, 'error');
     });
 }
@@ -137,16 +137,16 @@ export async function exportCirclesOfTrustToFile(file = null) {
       printMessage(`getCirclesOfTrust: ${response.status}`, 'error');
     }
     allCotData = _.cloneDeep(response.data.result);
-    createProgressBar(allCotData.length, 'Exporting circles of trust');
+    createProgressIndicator(allCotData.length, 'Exporting circles of trust');
     for (const cotData of allCotData) {
       delete cotData._rev;
-      updateProgressBar(`Exporting circle of trust ${cotData._id}`);
+      updateProgressIndicator(`Exporting circle of trust ${cotData._id}`);
       // eslint-disable-next-line no-await-in-loop
       await exportDependencies(cotData, fileData);
       fileData.saml.cot[cotData._id] = cotData;
     }
     saveJsonToFile(fileData, fileName);
-    stopProgressBar(
+    stopProgressIndicator(
       `${allCotData.length} circle(s) of trust exported to ${fileName}.`
     );
   } catch (error) {
@@ -167,10 +167,10 @@ export async function exportCirclesOfTrustToFiles() {
       printMessage(`getCirclesOfTrust: ${response.status}`, 'error');
     }
     allCotData = _.cloneDeep(response.data.result);
-    createProgressBar(allCotData.length, 'Exporting circles of trust');
+    createProgressIndicator(allCotData.length, 'Exporting circles of trust');
     for (const cotData of allCotData) {
       delete cotData._rev;
-      updateProgressBar(`Exporting circle of trust ${cotData._id}`);
+      updateProgressIndicator(`Exporting circle of trust ${cotData._id}`);
       const fileName = getTypedFilename(cotData._id, 'cot.saml');
       const fileData = getFileDataTemplate();
       // eslint-disable-next-line no-await-in-loop
@@ -178,7 +178,7 @@ export async function exportCirclesOfTrustToFiles() {
       fileData.saml.cot[cotData._id] = cotData;
       saveJsonToFile(fileData, fileName);
     }
-    stopProgressBar(`${allCotData.length} providers exported.`);
+    stopProgressIndicator(`${allCotData.length} providers exported.`);
   } catch (error) {
     printMessage(`getCirclesOfTrust ERROR: ${error}`, 'error');
     printMessage(error, 'data');
@@ -205,22 +205,22 @@ export async function importCircleOfTrust(cotId, file) {
     if (err) throw err;
     const fileData = JSON.parse(data);
     if (validateImport(fileData.meta)) {
-      createProgressBar(1, 'Importing circle of trust...');
+      createProgressIndicator(1, 'Importing circle of trust...');
       const cotData = _.get(fileData, ['saml', 'cot', cotId]);
       if (cotData) {
-        updateProgressBar(`Importing ${cotId}`);
+        updateProgressIndicator(`Importing ${cotId}`);
         await importDependencies(cotData, fileData);
         createCircleOfTrust(cotData)
           .then(() => {
-            stopProgressBar(`Successfully imported ${cotId}.`);
+            stopProgressIndicator(`Successfully imported ${cotId}.`);
           })
           .catch((createProviderErr) => {
-            stopProgressBar(`Error importing ${cotId}.`);
+            stopProgressIndicator(`Error importing ${cotId}.`);
             printMessage(`Error importing ${cotId}`, 'error');
             printMessage(createProviderErr.response.data, 'error');
           });
       } else {
-        stopProgressBar(
+        stopProgressIndicator(
           `Circle of trust ${cotId.brightCyan} not found in ${file.brightCyan}!`
         );
       }
@@ -239,19 +239,19 @@ export async function importFirstCircleOfTrust(file) {
     if (err) throw err;
     const fileData = JSON.parse(data);
     if (validateImport(fileData.meta)) {
-      createProgressBar(1, 'Importing circle of trust...');
+      createProgressIndicator(1, 'Importing circle of trust...');
       for (const cotId in fileData.saml.cot) {
         if ({}.hasOwnProperty.call(fileData.saml.cot, cotId)) {
           const cotData = _.cloneDeep(fileData.saml.cot[cotId]);
-          updateProgressBar(`Importing ${cotId}`);
+          updateProgressIndicator(`Importing ${cotId}`);
           // eslint-disable-next-line no-await-in-loop
           await importDependencies(cotData, fileData);
           createCircleOfTrust(cotData)
             .then(() => {
-              stopProgressBar(`Successfully imported ${cotId}.`);
+              stopProgressIndicator(`Successfully imported ${cotId}.`);
             })
             .catch((createCircleOfTrustErr) => {
-              stopProgressBar(`Error importing ${cotId}.`);
+              stopProgressIndicator(`Error importing ${cotId}.`);
               printMessage(`Error importing ${cotId}`, 'error');
               printMessage(createCircleOfTrustErr.response.data, 'error');
             });
@@ -273,7 +273,7 @@ export async function importCirclesOfTrustFromFile(file) {
     if (err) throw err;
     const fileData = JSON.parse(data);
     if (validateImport(fileData.meta)) {
-      createProgressBar(
+      createProgressIndicator(
         Object.keys(fileData.saml.cot).length,
         'Importing circles of trust...'
       );
@@ -285,14 +285,14 @@ export async function importCirclesOfTrustFromFile(file) {
           try {
             // eslint-disable-next-line no-await-in-loop
             await createCircleOfTrust(cotData);
-            updateProgressBar(`Imported ${cotId}`);
+            updateProgressIndicator(`Imported ${cotId}`);
           } catch (createCircleOfTrustErr) {
             printMessage(`\nError importing ${cotId}`, 'error');
             printMessage(createCircleOfTrustErr.response.data, 'error');
           }
         }
       }
-      stopProgressBar(`Circles of trust imported.`);
+      stopProgressIndicator(`Circles of trust imported.`);
     } else {
       printMessage('Import validation failed...', 'error');
     }
@@ -307,7 +307,7 @@ export async function importCirclesOfTrustFromFiles() {
   const jsonFiles = names.filter((name) =>
     name.toLowerCase().endsWith('.cot.saml.json')
   );
-  createProgressBar(jsonFiles.length, 'Importing circles or trust...');
+  createProgressIndicator(jsonFiles.length, 'Importing circles or trust...');
   let total = 0;
   let totalErrors = 0;
   for (const file of jsonFiles) {
@@ -324,7 +324,7 @@ export async function importCirclesOfTrustFromFiles() {
           try {
             // eslint-disable-next-line no-await-in-loop
             await createCircleOfTrust(cotData);
-            // updateProgressBar(`Imported ${cotId}`);
+            // updateProgressIndicator(`Imported ${cotId}`);
           } catch (createCircleOfTrustErr) {
             errors += 1;
             printMessage(`\nError importing ${cotId}`, 'error');
@@ -333,7 +333,7 @@ export async function importCirclesOfTrustFromFiles() {
         }
       }
       totalErrors += errors;
-      updateProgressBar(
+      updateProgressIndicator(
         `Imported ${
           _.keys(fileData.saml.cot).length - errors
         } circle(s) of trust from ${file}`
@@ -342,7 +342,7 @@ export async function importCirclesOfTrustFromFiles() {
       printMessage(`Validation of ${file} failed!`, 'error');
     }
   }
-  stopProgressBar(
+  stopProgressIndicator(
     `Imported ${total - totalErrors} of ${total} circle(s) of trust from ${
       jsonFiles.length
     } file(s).`

@@ -1,13 +1,10 @@
 import {
   createKeyValueTable,
-  createProgressBar,
+  createProgressIndicator,
   createTable,
-  failSpinner,
   printMessage,
-  showSpinner,
-  stopProgressBar,
-  succeedSpinner,
-  updateProgressBar,
+  stopProgressIndicator,
+  updateProgressIndicator,
 } from './utils/Console';
 import {
   deleteVariable,
@@ -68,13 +65,18 @@ export async function listVariables(long) {
  * @param {String} description variable description
  */
 export async function createVariable(variableId, value, description) {
-  showSpinner(`Creating variable ${variableId}...`);
+  createProgressIndicator(
+    undefined,
+    `Creating variable ${variableId}...`,
+    'indeterminate'
+  );
   try {
     await putVariable(variableId, value, description);
-    succeedSpinner(`Created variable ${variableId}`);
+    stopProgressIndicator(`Created variable ${variableId}`, 'success');
   } catch (error) {
-    failSpinner(
-      `Error: ${error.response.data.code} - ${error.response.data.message}`
+    stopProgressIndicator(
+      `Error: ${error.response.data.code} - ${error.response.data.message}`,
+      'fail'
     );
   }
 }
@@ -86,13 +88,18 @@ export async function createVariable(variableId, value, description) {
  * @param {String} description variable description
  */
 export async function updateVariable(variableId, value, description) {
-  showSpinner(`Updating variable ${variableId}...`);
+  createProgressIndicator(
+    undefined,
+    `Updating variable ${variableId}...`,
+    'indeterminate'
+  );
   try {
     await putVariable(variableId, value, description);
-    succeedSpinner(`Updated variable ${variableId}`);
+    stopProgressIndicator(`Updated variable ${variableId}`, 'success');
   } catch (error) {
-    failSpinner(
-      `Error: ${error.response.data.code} - ${error.response.data.message}`
+    stopProgressIndicator(
+      `Error: ${error.response.data.code} - ${error.response.data.message}`,
+      'fail'
     );
   }
 }
@@ -103,13 +110,21 @@ export async function updateVariable(variableId, value, description) {
  * @param {String} description variable description
  */
 export async function setDescriptionOfVariable(variableId, description) {
-  showSpinner(`Setting description of variable ${variableId}...`);
+  createProgressIndicator(
+    undefined,
+    `Setting description of variable ${variableId}...`,
+    'indeterminate'
+  );
   try {
     await setVariableDescription(variableId, description);
-    succeedSpinner(`Set description of variable ${variableId}`);
+    stopProgressIndicator(
+      `Set description of variable ${variableId}`,
+      'success'
+    );
   } catch (error) {
-    failSpinner(
-      `Error: ${error.response.data.code} - ${error.response.data.message}`
+    stopProgressIndicator(
+      `Error: ${error.response.data.code} - ${error.response.data.message}`,
+      'fail'
     );
   }
 }
@@ -119,13 +134,18 @@ export async function setDescriptionOfVariable(variableId, description) {
  * @param {String} variableId variable id
  */
 export async function deleteVariableCmd(variableId) {
-  showSpinner(`Deleting variable ${variableId}...`);
+  createProgressIndicator(
+    undefined,
+    `Deleting variable ${variableId}...`,
+    'indeterminate'
+  );
   try {
     await deleteVariable(variableId);
-    succeedSpinner(`Deleted variable ${variableId}`);
+    stopProgressIndicator(`Deleted variable ${variableId}`, 'success');
   } catch (error) {
-    failSpinner(
-      `Error: ${error.response.data.code} - ${error.response.data.message}`
+    stopProgressIndicator(
+      `Error: ${error.response.data.code} - ${error.response.data.message}`,
+      'fail'
     );
   }
 }
@@ -136,12 +156,12 @@ export async function deleteVariableCmd(variableId) {
 export async function deleteVariablesCmd() {
   try {
     const variables = (await getVariables()).data.result;
-    createProgressBar(variables.length, `Deleting variable...`);
+    createProgressIndicator(variables.length, `Deleting variable...`);
     for (const variable of variables) {
       try {
         // eslint-disable-next-line no-await-in-loop
         await deleteVariable(variable._id);
-        updateProgressBar(`Deleted variable ${variable._id}`);
+        updateProgressIndicator(`Deleted variable ${variable._id}`);
       } catch (error) {
         printMessage(
           `Error: ${error.response.data.code} - ${error.response.data.message}`,
@@ -149,7 +169,7 @@ export async function deleteVariablesCmd() {
         );
       }
     }
-    stopProgressBar(`Variables deleted.`);
+    stopProgressIndicator(`Variables deleted.`);
   } catch (error) {
     printMessage(
       `Error: ${error.response.data.code} - ${error.response.data.message}`,

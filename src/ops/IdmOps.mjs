@@ -8,7 +8,11 @@ import {
   getConfigEntity,
   queryAllManagedObjectsByType,
 } from '../api/IdmConfigApi';
-import { printMessage, showSpinner, succeedSpinner } from './utils/Console';
+import {
+  printMessage,
+  createProgressIndicator,
+  stopProgressIndicator,
+} from './utils/Console';
 import { getTypedFilename } from './utils/ExportImportUtils';
 
 /**
@@ -70,7 +74,11 @@ export async function exportAllRawConfigEntities(directory) {
     if (!fs.existsSync(directory)) {
       fs.mkdirSync(directory);
     }
-    showSpinner('Exporting config objects...');
+    createProgressIndicator(
+      undefined,
+      'Exporting config objects...',
+      'indeterminate'
+    );
     const entityPromises = [];
     configEntities.configurations.forEach((x) => {
       entityPromises.push(
@@ -112,7 +120,7 @@ export async function exportAllRawConfigEntities(directory) {
           );
         }
       });
-      succeedSpinner();
+      stopProgressIndicator(null, 'success');
     });
   }
 }
@@ -154,7 +162,11 @@ export async function exportAllConfigEntities(
       if (!fs.existsSync(directory)) {
         fs.mkdirSync(directory);
       }
-      showSpinner('Exporting config objects...');
+      createProgressIndicator(
+        undefined,
+        'Exporting config objects...',
+        'indeterminate'
+      );
       const entityPromises = [];
       configEntities.configurations.forEach((x) => {
         if (entriesToExport.includes(x._id)) {
@@ -191,7 +203,7 @@ export async function exportAllConfigEntities(
             );
           }
         });
-        succeedSpinner();
+        stopProgressIndicator(null, 'success');
       });
     }
   });

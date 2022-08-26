@@ -29,16 +29,10 @@ import { getScript } from '../api/ScriptApi';
 import * as global from '../storage/StaticStorage';
 import {
   printMessage,
-  createProgressBar,
-  updateProgressBar,
-  stopProgressBar,
-  showSpinner,
-  succeedSpinner,
+  createProgressIndicator,
+  updateProgressIndicator,
+  stopProgressIndicator,
   createTable,
-  spinSpinner,
-  failSpinner,
-  stopSpinner,
-  warnSpinner,
 } from './utils/Console';
 import wordwrap from './utils/Wordwrap';
 import {
@@ -558,25 +552,32 @@ export async function exportJourneyToFile(journeyId, file, options) {
   if (!fileName) {
     fileName = getTypedFilename(journeyId, 'journey');
   }
-  if (!verbose) showSpinner(`${journeyId}`);
+  if (!verbose)
+    createProgressIndicator(undefined, `${journeyId}`, 'indeterminate');
   await getTree(journeyId)
     .then(async (response) => {
       const treeData = response.data;
       const fileData = getSingleTreeFileDataTemplate();
       try {
         await exportTree(treeData, fileData, options);
-        if (verbose) showSpinner(`${journeyId}`);
+        if (verbose)
+          createProgressIndicator(undefined, `${journeyId}`, 'indeterminate');
         saveJsonToFile(fileData, fileName);
-        succeedSpinner(
-          `Exported ${journeyId.brightCyan} to ${fileName.brightCyan}.`
+        stopProgressIndicator(
+          `Exported ${journeyId.brightCyan} to ${fileName.brightCyan}.`,
+          'success'
         );
       } catch (error) {
-        if (verbose) showSpinner(`${journeyId}`);
-        failSpinner(`Error exporting journey ${journeyId}: ${error}`);
+        if (verbose)
+          createProgressIndicator(undefined, `${journeyId}`, 'indeterminate');
+        stopProgressIndicator(
+          `Error exporting journey ${journeyId}: ${error}`,
+          'fail'
+        );
       }
     })
     .catch((err) => {
-      failSpinner(err.message);
+      stopProgressIndicator(err.message, 'fail');
     });
 }
 
@@ -591,9 +592,9 @@ export async function exportJourneysToFile(file, options) {
   }
   const trees = (await getTrees()).data.result;
   const fileData = getMultipleTreesFileDataTemplate();
-  createProgressBar(trees.length, 'Exporting journeys...');
+  createProgressIndicator(trees.length, 'Exporting journeys...');
   for (const tree of trees) {
-    updateProgressBar(`${tree._id}`);
+    updateProgressIndicator(`${tree._id}`);
     try {
       // eslint-disable-next-line no-await-in-loop
       const treeData = (await getTree(tree._id)).data;
@@ -607,7 +608,7 @@ export async function exportJourneysToFile(file, options) {
     }
   }
   saveJsonToFile(fileData, fileName);
-  stopProgressBar(`Exported to ${fileName}`);
+  stopProgressIndicator(`Exported to ${fileName}`);
 }
 
 /**
@@ -615,9 +616,9 @@ export async function exportJourneysToFile(file, options) {
  */
 export async function exportJourneysToFiles(options) {
   const trees = (await getTrees()).data.result;
-  createProgressBar(trees.length, 'Exporting journeys...');
+  createProgressIndicator(trees.length, 'Exporting journeys...');
   for (const tree of trees) {
-    updateProgressBar(`${tree._id}`);
+    updateProgressIndicator(`${tree._id}`);
     const fileName = getTypedFilename(`${tree._id}`, 'journey');
     // eslint-disable-next-line no-await-in-loop
     const treeData = (await getTree(tree._id)).data;
@@ -626,7 +627,7 @@ export async function exportJourneysToFiles(options) {
     await exportTree(treeData, exportData, options);
     saveJsonToFile(exportData, fileName);
   }
-  stopProgressBar('Done');
+  stopProgressIndicator('Done');
 }
 
 /**
@@ -635,17 +636,17 @@ export async function exportJourneysToFiles(options) {
  * @returns {Object} object containing all journey data
  */
 export async function getJourneyData(journeyId) {
-  showSpinner(`${journeyId}`);
+  createProgressIndicator(undefined, `${journeyId}`, 'indeterminate');
   const journeyData = getSingleTreeFileDataTemplate();
   const treeData = (
     await getTree(journeyId).catch((err) => {
-      succeedSpinner();
+      stopProgressIndicator(null, 'success');
       printMessage(err, 'error');
     })
   ).data;
-  spinSpinner();
+  updateProgressIndicator();
   await exportTree(treeData, journeyData, { useStringArrays: true });
-  succeedSpinner();
+  stopProgressIndicator(null, 'success');
   return journeyData;
 }
 
@@ -1176,7 +1177,11 @@ export async function importJourneyFromFile(journeyId, file, options) {
       );
       const unresolvedJourneys = {};
       const resolvedJourneys = [];
-      showSpinner('Resolving dependencies');
+      createProgressIndicator(
+        undefined,
+        'Resolving dependencies',
+        'indeterminate'
+      );
       await resolveDependencies(
         installedJourneys,
         { [journeyId]: journeyData },
@@ -1184,20 +1189,35 @@ export async function importJourneyFromFile(journeyId, file, options) {
         resolvedJourneys
       );
       if (Object.keys(unresolvedJourneys).length === 0) {
-        succeedSpinner(`Resolved all dependencies.`);
+        stopProgressIndicator(`Resolved all dependencies.`, 'success');
 
-        if (!verbose) showSpinner(`Importing ${journeyId}...`);
+        if (!verbose)
+          createProgressIndicator(
+            undefined,
+            `Importing ${journeyId}...`,
+            'indeterminate'
+          );
         importTree(journeyData, options)
           .then(() => {
-            if (verbose) showSpinner(`Importing ${journeyId}...`);
-            succeedSpinner(`Imported ${journeyId}.`);
+            if (verbose)
+              createProgressIndicator(
+                undefined,
+                `Importing ${journeyId}...`,
+                'indeterminate'
+              );
+            stopProgressIndicator(`Imported ${journeyId}.`, 'success');
           })
           .catch((importError) => {
-            if (verbose) showSpinner(`Importing ${journeyId}...`);
-            failSpinner(`${importError}`);
+            if (verbose)
+              createProgressIndicator(
+                undefined,
+                `Importing ${journeyId}...`,
+                'indeterminate'
+              );
+            stopProgressIndicator(`${importError}`, 'fail');
           });
       } else {
-        failSpinner(`Unresolved dependencies:`);
+        stopProgressIndicator(`Unresolved dependencies:`, 'fail');
         for (const journey of Object.keys(unresolvedJourneys)) {
           printMessage(
             `  ${journey} requires ${unresolvedJourneys[journey]}`,
@@ -1207,8 +1227,12 @@ export async function importJourneyFromFile(journeyId, file, options) {
       }
       // end dependency resolution for single tree import
     } else {
-      showSpinner(`Importing ${journeyId}...`);
-      failSpinner(`${journeyId} not found!`);
+      createProgressIndicator(
+        undefined,
+        `Importing ${journeyId}...`,
+        'indeterminate'
+      );
+      stopProgressIndicator(`${journeyId} not found!`, 'fail');
     }
   });
 }
@@ -1247,7 +1271,11 @@ export async function importFirstJourneyFromFile(file, options) {
       );
       const unresolvedJourneys = {};
       const resolvedJourneys = [];
-      showSpinner('Resolving dependencies');
+      createProgressIndicator(
+        undefined,
+        'Resolving dependencies',
+        'indeterminate'
+      );
       await resolveDependencies(
         installedJourneys,
         { [journeyId]: journeyData },
@@ -1255,20 +1283,35 @@ export async function importFirstJourneyFromFile(file, options) {
         resolvedJourneys
       );
       if (Object.keys(unresolvedJourneys).length === 0) {
-        succeedSpinner(`Resolved all dependencies.`);
+        stopProgressIndicator(`Resolved all dependencies.`, 'success');
 
-        if (!verbose) showSpinner(`Importing ${journeyId}...`);
+        if (!verbose)
+          createProgressIndicator(
+            undefined,
+            `Importing ${journeyId}...`,
+            'indeterminate'
+          );
         importTree(journeyData, options)
           .then(() => {
-            if (verbose) showSpinner(`Importing ${journeyId}...`);
-            succeedSpinner(`Imported ${journeyId}.`);
+            if (verbose)
+              createProgressIndicator(
+                undefined,
+                `Importing ${journeyId}...`,
+                'indeterminate'
+              );
+            stopProgressIndicator(`Imported ${journeyId}.`, 'success');
           })
           .catch((importError) => {
-            if (verbose) showSpinner(`Importing ${journeyId}...`);
-            failSpinner(`${importError}`);
+            if (verbose)
+              createProgressIndicator(
+                undefined,
+                `Importing ${journeyId}...`,
+                'indeterminate'
+              );
+            stopProgressIndicator(`${importError}`, 'fail');
           });
       } else {
-        failSpinner(`Unresolved dependencies:`);
+        stopProgressIndicator(`Unresolved dependencies:`, 'fail');
         for (const journey of Object.keys(unresolvedJourneys)) {
           printMessage(
             `  ${journey} requires ${unresolvedJourneys[journey]}`,
@@ -1277,8 +1320,8 @@ export async function importFirstJourneyFromFile(file, options) {
         }
       }
     } else {
-      showSpinner(`Importing...`);
-      failSpinner(`No journeys found!`);
+      createProgressIndicator(undefined, `Importing...`, 'indeterminate');
+      stopProgressIndicator(`No journeys found!`, 'fail');
     }
     // end dependency resolution for single tree import
   });
@@ -1293,7 +1336,7 @@ async function importAllTrees(treesMap, options) {
   const installedJourneys = (await getTrees()).data.result.map((x) => x._id);
   const unresolvedJourneys = {};
   const resolvedJourneys = [];
-  showSpinner('Resolving dependencies');
+  createProgressIndicator(undefined, 'Resolving dependencies', 'indeterminate');
   await resolveDependencies(
     installedJourneys,
     treesMap,
@@ -1301,12 +1344,13 @@ async function importAllTrees(treesMap, options) {
     resolvedJourneys
   );
   if (Object.keys(unresolvedJourneys).length === 0) {
-    succeedSpinner(`Resolved all dependencies.`);
+    stopProgressIndicator(`Resolved all dependencies.`, 'success');
   } else {
-    failSpinner(
+    stopProgressIndicator(
       `${
         Object.keys(unresolvedJourneys).length
-      } journeys with unresolved dependencies:`
+      } journeys with unresolved dependencies:`,
+      'fail'
     );
     for (const journey of Object.keys(unresolvedJourneys)) {
       printMessage(
@@ -1315,17 +1359,17 @@ async function importAllTrees(treesMap, options) {
       );
     }
   }
-  createProgressBar(resolvedJourneys.length, 'Importing');
+  createProgressIndicator(resolvedJourneys.length, 'Importing');
   for (const tree of resolvedJourneys) {
     try {
       // eslint-disable-next-line no-await-in-loop
       await importTree(treesMap[tree], options);
-      updateProgressBar(`${tree}`);
+      updateProgressIndicator(`${tree}`);
     } catch (error) {
       printMessage(`\n${error.message}`, 'error');
     }
   }
-  stopProgressBar('Done');
+  stopProgressIndicator('Done');
 }
 
 /**
@@ -1410,7 +1454,11 @@ async function findOrphanedNodes() {
   let errorMessage = '';
   const errorTypes = [];
 
-  showSpinner(`Counting total nodes...`);
+  createProgressIndicator(
+    undefined,
+    `Counting total nodes...`,
+    'indeterminate'
+  );
   try {
     types = (await getNodeTypes()).data.result;
   } catch (error) {
@@ -1423,45 +1471,58 @@ async function findOrphanedNodes() {
       // eslint-disable-next-line no-await-in-loop, no-loop-func
       (await getNodesByType(type._id)).data.result.forEach((node) => {
         allNodes.push(node);
-        spinSpinner(`${allNodes.length} total nodes${errorMessage}`);
+        updateProgressIndicator(
+          `${allNodes.length} total nodes${errorMessage}`
+        );
       });
     } catch (error) {
       errorTypes.push(type._id);
       errorMessage = ` (Skipped type(s): ${errorTypes})`.yellow;
-      spinSpinner(`${allNodes.length} total nodes${errorMessage}`);
+      updateProgressIndicator(`${allNodes.length} total nodes${errorMessage}`);
     }
   }
   if (errorTypes.length > 0) {
-    warnSpinner(`${allNodes.length} total nodes${errorMessage}`);
+    stopProgressIndicator(
+      `${allNodes.length} total nodes${errorMessage}`,
+      'warn'
+    );
   } else {
-    succeedSpinner(`${allNodes.length} total nodes`);
+    stopProgressIndicator(`${allNodes.length} total nodes`, 'success');
   }
 
-  showSpinner('Counting active nodes...');
+  createProgressIndicator(
+    undefined,
+    'Counting active nodes...',
+    'indeterminate'
+  );
   const activeNodes = [];
   for (const journey of allJourneys) {
     for (const nodeId in journey.nodes) {
       if ({}.hasOwnProperty.call(journey.nodes, nodeId)) {
         activeNodes.push(nodeId);
-        spinSpinner(`${activeNodes.length} active nodes`);
+        updateProgressIndicator(`${activeNodes.length} active nodes`);
         const node = journey.nodes[nodeId];
         if (containerNodes.includes(node.nodeType)) {
           // eslint-disable-next-line no-await-in-loop
           const containerNode = (await getNode(nodeId, node.nodeType)).data;
           containerNode.nodes.forEach((n) => {
             activeNodes.push(n._id);
-            spinSpinner(`${activeNodes.length} active nodes`);
+            updateProgressIndicator(`${activeNodes.length} active nodes`);
           });
         }
       }
     }
   }
-  succeedSpinner(`${activeNodes.length} active nodes`);
+  stopProgressIndicator(`${activeNodes.length} active nodes`, 'success');
 
-  showSpinner('Calculating orphaned nodes...');
+  createProgressIndicator(
+    undefined,
+    'Calculating orphaned nodes...',
+    'indeterminate'
+  );
   const diff = allNodes.filter((x) => !activeNodes.includes(x._id));
   diff.forEach((x) => orphanedNodes.push(x));
-  succeedSpinner(`${orphanedNodes.length} orphaned nodes`);
+  stopProgressIndicator(`${orphanedNodes.length} orphaned nodes`, 'success');
   return orphanedNodes;
 }
 
@@ -1470,15 +1531,15 @@ async function findOrphanedNodes() {
  * @param {[Object]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
  */
 async function removeOrphanedNodes(orphanedNodes) {
-  createProgressBar(orphanedNodes.length, 'Removing orphaned nodes...');
+  createProgressIndicator(orphanedNodes.length, 'Removing orphaned nodes...');
   for (const node of orphanedNodes) {
-    updateProgressBar(`Removing ${node._id}...`);
+    updateProgressIndicator(`Removing ${node._id}...`);
     // eslint-disable-next-line no-await-in-loop
     await deleteNode(node._id, node._type._id).catch((deleteError) => {
       printMessage(`${deleteError}`, 'error');
     });
   }
-  stopProgressBar(`Removed ${orphanedNodes.length} orphaned nodes.`);
+  stopProgressIndicator(`Removed ${orphanedNodes.length} orphaned nodes.`);
 }
 
 /**
@@ -1849,8 +1910,13 @@ export async function deleteJourney(journeyId, options, spinner = true) {
   const { deep } = options;
   const { verbose } = options;
   const status = { nodes: {} };
-  if (spinner) showSpinner(`Deleting ${journeyId}...`);
-  if (spinner && verbose) stopSpinner();
+  if (spinner)
+    createProgressIndicator(
+      undefined,
+      `Deleting ${journeyId}...`,
+      'indeterminate'
+    );
+  if (spinner && verbose) stopProgressIndicator();
   return deleteTree(journeyId)
     .then(async (deleteTreeResponse) => {
       status.status = 'success';
@@ -1961,16 +2027,18 @@ export async function deleteJourney(journeyId, options, spinner = true) {
           if (status.nodes[node].status === 'error') errorCount += 1;
         }
         if (errorCount === 0) {
-          succeedSpinner(
+          stopProgressIndicator(
             `Deleted ${journeyId} and ${
               nodeCount - errorCount
-            }/${nodeCount} nodes.`
+            }/${nodeCount} nodes.`,
+            'success'
           );
         } else {
-          failSpinner(
+          stopProgressIndicator(
             `Deleted ${journeyId} and ${
               nodeCount - errorCount
-            }/${nodeCount} nodes.`
+            }/${nodeCount} nodes.`,
+            'fail'
           );
         }
       }
@@ -1979,7 +2047,7 @@ export async function deleteJourney(journeyId, options, spinner = true) {
     .catch((error) => {
       status.status = 'error';
       status.error = error;
-      failSpinner(`Error deleting ${journeyId}.`);
+      stopProgressIndicator(`Error deleting ${journeyId}.`, 'fail');
       if (verbose)
         printMessage(`Error deleting tree ${journeyId}: ${error}`, 'error');
       return status;
@@ -1994,12 +2062,12 @@ export async function deleteJourneys(options) {
   const { verbose } = options;
   const status = {};
   const trees = (await getTrees()).data.result;
-  createProgressBar(trees.length, 'Deleting journeys...');
+  createProgressIndicator(trees.length, 'Deleting journeys...');
   for (const tree of trees) {
     if (verbose) printMessage('');
     // eslint-disable-next-line no-await-in-loop
     status[tree._id] = await deleteJourney(tree._id, options, false);
-    updateProgressBar(`${tree._id}`);
+    updateProgressIndicator(`${tree._id}`);
     // introduce a 100ms wait to allow the progress bar to update before the next verbose message prints from the async function
     if (verbose)
       // eslint-disable-next-line no-await-in-loop
@@ -2019,7 +2087,7 @@ export async function deleteJourneys(options) {
       if (status[journey].nodes[node].status === 'error') nodeErrorCount += 1;
     }
   }
-  stopProgressBar(
+  stopProgressIndicator(
     `Deleted ${journeyCount - journeyErrorCount}/${journeyCount} journeys and ${
       nodeCount - nodeErrorCount
     }/${nodeCount} nodes.`
