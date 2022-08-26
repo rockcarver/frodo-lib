@@ -61,7 +61,7 @@ export async function createCircleOfTrust(cotData) {
   const urlString = util.format(
     createCircleOfTrustURLTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(storage.session.getRealm())
+    getCurrentRealmPath()
   );
   return generateAmApi(getApiConfig()).post(urlString, postData, {
     withCredentials: true,

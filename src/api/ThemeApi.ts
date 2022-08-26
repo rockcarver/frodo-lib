@@ -94,7 +94,7 @@ export async function putThemeByName(name, data) {
   if (isNew) {
     realmThemes.push(themeData);
   }
-  themes.realm[getCurrentRealmName()] = realmThemes;
+  themes['realm'][getCurrentRealmName()] = realmThemes;
   return putConfigEntity(THEMEREALM_ID, themes);
 }
 

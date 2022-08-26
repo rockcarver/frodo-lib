@@ -37,13 +37,13 @@ export async function listSecrets(long) {
   }
   if (long) {
     const table = createTable([
-      'Id'.brightCyan,
-      { hAlign: 'right', content: 'Active\nVersion'.brightCyan },
-      { hAlign: 'right', content: 'Loaded\nVersion'.brightCyan },
-      'Status'.brightCyan,
-      'Description'.brightCyan,
-      'Modifier'.brightCyan,
-      'Modified'.brightCyan,
+      'Id'['brightCyan'],
+      { hAlign: 'right', content: 'Active\nVersion'['brightCyan'] },
+      { hAlign: 'right', content: 'Loaded\nVersion'['brightCyan'] },
+      'Status'['brightCyan'],
+      'Description'['brightCyan'],
+      'Modifier'['brightCyan'],
+      'Modified'['brightCyan'],
     ]);
     secrets.sort((a, b) => a._id.localeCompare(b._id));
     for (const secret of secrets) {
@@ -51,7 +51,7 @@ export async function listSecrets(long) {
         secret._id,
         { hAlign: 'right', content: secret.activeVersion },
         { hAlign: 'right', content: secret.loadedVersion },
-        secret.loaded ? 'loaded'.brightGreen : 'unloaded'.brightRed,
+        secret.loaded ? 'loaded'['brightGreen'] : 'unloaded'['brightRed'],
         wordwrap(secret.description, 40),
         // eslint-disable-next-line no-await-in-loop
         await resolveUserName('teammember', secret.lastChangedBy),
@@ -166,22 +166,22 @@ export async function listSecretVersionsCmd(secretId) {
     printMessage(error.response.data, 'error');
   }
   const table = createTable([
-    { hAlign: 'right', content: 'Version'.brightCyan },
-    'Status'.brightCyan,
-    'Loaded'.brightCyan,
-    'Created'.brightCyan,
+    { hAlign: 'right', content: 'Version'['brightCyan'] },
+    'Status'['brightCyan'],
+    'Loaded'['brightCyan'],
+    'Created'['brightCyan'],
   ]);
   // versions.sort((a, b) => a._id.localeCompare(b._id));
   const statusMap = {
-    ENABLED: 'active'.brightGreen,
-    DISABLED: 'inactive'.brightRed,
-    DESTROYED: 'deleted'.brightRed,
+    ENABLED: 'active'['brightGreen'],
+    DISABLED: 'inactive'['brightRed'],
+    DESTROYED: 'deleted'['brightRed'],
   };
   versions.forEach((version) => {
     table.push([
       { hAlign: 'right', content: version.version },
       statusMap[version.status],
-      version.loaded ? 'loaded'.brightGreen : 'unloaded'.brightRed,
+      version.loaded ? 'loaded'['brightGreen'] : 'unloaded'['brightRed'],
       new Date(version.createDate).toLocaleString(),
     ]);
   });
@@ -195,25 +195,25 @@ export async function listSecretVersionsCmd(secretId) {
 export async function describeSecret(secretId) {
   const secret = (await getSecret(secretId)).data;
   const table = createKeyValueTable();
-  table.push(['Name'.brightCyan, secret._id]);
-  table.push(['Active Version'.brightCyan, secret.activeVersion]);
-  table.push(['Loaded Version'.brightCyan, secret.loadedVersion]);
+  table.push(['Name'['brightCyan'], secret._id]);
+  table.push(['Active Version'['brightCyan'], secret.activeVersion]);
+  table.push(['Loaded Version'['brightCyan'], secret.loadedVersion]);
   table.push([
-    'Status'.brightCyan,
-    secret.loaded ? 'loaded'.brightGreen : 'unloaded'.brightRed,
+    'Status'['brightCyan'],
+    secret.loaded ? 'loaded'['brightGreen'] : 'unloaded'['brightRed'],
   ]);
-  table.push(['Description'.brightCyan, wordwrap(secret.description, 60)]);
+  table.push(['Description'['brightCyan'], wordwrap(secret.description, 60)]);
   table.push([
-    'Modified'.brightCyan,
+    'Modified'['brightCyan'],
     new Date(secret.lastChangeDate).toLocaleString(),
   ]);
   table.push([
-    'Modifier'.brightCyan,
+    'Modifier'['brightCyan'],
     await resolveUserName('teammember', secret.lastChangedBy),
   ]);
-  table.push(['Modifier UUID'.brightCyan, secret.lastChangedBy]);
-  table.push(['Encoding'.brightCyan, secret.encoding]);
-  table.push(['Use In Placeholders'.brightCyan, secret.useInPlaceholders]);
+  table.push(['Modifier UUID'['brightCyan'], secret.lastChangedBy]);
+  table.push(['Encoding'['brightCyan'], secret.encoding]);
+  table.push(['Use In Placeholders'['brightCyan'], secret.useInPlaceholders]);
   printMessage(table.toString());
   printMessage('\nSecret Versions:');
   await listSecretVersionsCmd(secretId);

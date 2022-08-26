@@ -1,8 +1,9 @@
 import fs from 'fs';
+import path from 'path';
 import { getVersion } from '.';
 
 const pkg = JSON.parse(
-  fs.readFileSync(new URL('../package.json', import.meta.url))
+  fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8')
 );
 
 describe('index', () => {

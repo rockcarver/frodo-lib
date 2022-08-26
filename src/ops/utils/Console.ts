@@ -1,8 +1,7 @@
 import { SingleBar, Presets } from 'cli-progress';
 import { createSpinner } from 'nanospinner';
 import Table from 'cli-table3';
-// eslint-disable-next-line no-unused-vars
-import * as colors from '@colors/colors';
+import colors from 'colors';
 import storage from '../../storage/SessionStorage';
 
 /**
@@ -43,7 +42,7 @@ function info(message) {
       console.dir(message, { depth: 3 });
       break;
     default:
-      console.error(message.brightCyan);
+      console.error(colors.bold.cyan(message));
   }
 }
 
@@ -57,7 +56,7 @@ function warn(message) {
       console.dir(message, { depth: 3 });
       break;
     default:
-      console.error(message.yellow);
+      console.error(colors.bold.yellow(message));
   }
 }
 
@@ -71,7 +70,7 @@ function error(message) {
       console.dir(message, { depth: 4 });
       break;
     default:
-      console.error(message.brightRed);
+      console.error(colors.bold.red(message));
   }
 }
 
@@ -105,28 +104,28 @@ export function printMessage(message, type = 'text', newline = true) {
       if (newline) {
         info(message);
       } else {
-        process.stderr.write(message.brightCyan);
+        process.stderr.write(colors.bold.cyan(message));
       }
       break;
     case 'warn':
       if (newline) {
         warn(message);
       } else {
-        process.stderr.write(message.yellow);
+        process.stderr.write(colors.yellow(message));
       }
       break;
     case 'error':
       if (newline) {
         error(message);
       } else {
-        process.stderr.write(message.brightRed);
+        process.stderr.write(message);
       }
       break;
     default:
       if (newline) {
         error(message);
       } else {
-        process.stderr.write(message.bgBrightRed);
+        process.stderr.write(colors.bold.bgRed(message));
       }
   }
 }
@@ -144,14 +143,14 @@ export function printMessage(message, type = 'text', newline = true) {
  */
 export function createProgressBar(
   total,
-  message = null,
+  message = '',
   options = {
     format: '[{bar}] {percentage}% | {value}/{total} | {data}',
     noTTYOutput: true,
   }
 ) {
   let opt = options;
-  if (message == null) {
+  if (!message) {
     opt = {
       format: '[{bar}] {percentage}% | {value}/{total}',
       noTTYOutput: true,
@@ -170,7 +169,7 @@ export function createProgressBar(
  * @param {string} message optional message to update the progress bar
  *
  */
-export function updateProgressBar(message = null) {
+export function updateProgressBar(message = '') {
   const pBar = storage.session.getItem('progressBar');
   if (message)
     pBar.increment({
@@ -183,7 +182,7 @@ export function updateProgressBar(message = null) {
  * Stop and hide the progress bar
  * @param {*} message optional message to update the progress bar
  */
-export function stopProgressBar(message = null) {
+export function stopProgressBar(message = '') {
   const pBar = storage.session.getItem('progressBar');
   if (message)
     pBar.update({
@@ -205,7 +204,7 @@ export function showSpinner(message) {
  * Stop the spinner
  * @param {String} message optional message to update the spinner
  */
-export function stopSpinner(message = null) {
+export function stopSpinner(message = '') {
   const spinner = storage.session.getItem('Spinner');
   if (spinner) {
     let options = {};
@@ -218,7 +217,7 @@ export function stopSpinner(message = null) {
  * Succeed the spinner. Stop and render success checkmark with optional message.
  * @param {String} message optional message to update the spinner
  */
-export function succeedSpinner(message = null) {
+export function succeedSpinner(message = '') {
   const spinner = storage.session.getItem('Spinner');
   if (spinner) {
     let options = {};
@@ -231,7 +230,7 @@ export function succeedSpinner(message = null) {
  * Warn the spinner
  * @param {String} message optional message to update the spinner
  */
-export function warnSpinner(message = null) {
+export function warnSpinner(message = '') {
   const spinner = storage.session.getItem('Spinner');
   if (spinner) {
     let options = {};
@@ -244,7 +243,7 @@ export function warnSpinner(message = null) {
  * Fail the spinner
  * @param {String} message optional message to update the spinner
  */
-export function failSpinner(message = null) {
+export function failSpinner(message = '') {
   const spinner = storage.session.getItem('Spinner');
   if (spinner) {
     let options = {};
@@ -257,7 +256,7 @@ export function failSpinner(message = null) {
  * Spin the spinner
  * @param {String} message optional message to update the spinner
  */
-export function spinSpinner(message = null) {
+export function spinSpinner(message = '') {
   const spinner = storage.session.getItem('Spinner');
   if (spinner) {
     let options = {};
@@ -365,7 +364,7 @@ function addRows(object, depth, level, table, keyMap) {
     if (Object(object[key]) !== object[key]) {
       if (level === 1) {
         table.push([
-          keyMap[key] ? keyMap[key].brightCyan : key.brightCyan,
+          keyMap[key] ? keyMap[key].brightCyan : key['brightCyan'],
           object[key],
         ]);
       } else {
@@ -387,7 +386,7 @@ function addRows(object, depth, level, table, keyMap) {
         if (level < 3) indention = `\n${indention}`;
         table.push([
           indention.concat(
-            keyMap[key] ? keyMap[key].brightCyan : key.brightCyan
+            keyMap[key] ? keyMap[key].brightCyan : key['brightCyan']
           ),
           '',
         ]);

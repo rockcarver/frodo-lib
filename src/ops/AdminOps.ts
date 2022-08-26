@@ -15,18 +15,21 @@ import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
 // import ORG_MODEL_USER_ATTRIBUTES from './templates/OrgModelUserAttributesTemplate.json' assert { type: 'json' };
 // import GENERIC_EXTENSION_ATTRIBUTES from './templates/cloud/GenericExtensionAttributesTemplate.json' assert { type: 'json' };
 import { printMessage } from './utils/Console';
+import path from 'path';
 
 const OAUTH2_CLIENT = JSON.parse(
   fs.readFileSync(
-    new URL('./templates/OAuth2ClientTemplate.json', import.meta.url)
+    path.resolve(__dirname, './templates/OAuth2ClientTemplate.json'),
+    'utf8'
   )
 );
 const GENERIC_EXTENSION_ATTRIBUTES = JSON.parse(
   fs.readFileSync(
-    new URL(
-      './templates/cloud/GenericExtensionAttributesTemplate.json',
-      import.meta.url
-    )
+    path.resolve(
+      __dirname,
+      './templates/cloud/GenericExtensionAttributesTemplate.json'
+    ),
+    'utf8'
   )
 );
 
@@ -319,23 +322,25 @@ async function addAdminStaticUserMapping(name) {
   }
   let needsAdminMapping = true;
   let addRoles = [];
-  const mappings = authentication.rsFilter.staticUserMapping.map((mapping) => {
-    // ignore mappings for other subjects
-    if (mapping.subject !== name) {
-      return mapping;
-    }
-    needsAdminMapping = false;
-    addRoles = adminRoles.filter((role) => {
-      let add = false;
-      if (!mapping.roles.includes(role)) {
-        add = true;
+  const mappings = authentication['rsFilter']['staticUserMapping'].map(
+    (mapping) => {
+      // ignore mappings for other subjects
+      if (mapping.subject !== name) {
+        return mapping;
       }
-      return add;
-    });
-    const newMapping = mapping;
-    newMapping.roles = newMapping.roles.concat(addRoles);
-    return newMapping;
-  });
+      needsAdminMapping = false;
+      addRoles = adminRoles.filter((role) => {
+        let add = false;
+        if (!mapping.roles.includes(role)) {
+          add = true;
+        }
+        return add;
+      });
+      const newMapping = mapping;
+      newMapping.roles = newMapping.roles.concat(addRoles);
+      return newMapping;
+    }
+  );
   if (needsAdminMapping) {
     printMessage(`Creating static user mapping for client "${name}"...`);
     mappings.push({
@@ -345,7 +350,7 @@ async function addAdminStaticUserMapping(name) {
       roles: adminRoles,
     });
   }
-  authentication.rsFilter.staticUserMapping = mappings;
+  authentication['rsFilter']['staticUserMapping'] = mappings;
   if (addRoles.length > 0 || needsAdminMapping) {
     printMessage(
       `Adding admin roles to static user mapping for client "${name}"...`
@@ -854,48 +859,39 @@ async function repairOrgModelOrg(dryRun) {
   return repairData;
 }
 
-async function repairOrgModelData(dryRun = false) {
-  if (!dryRun) {
-    // const rootOrgs = await findRootOrganizations();
-  }
-}
+// async function repairOrgModelData(dryRun = false) {
+//   if (!dryRun) {
+//     // const rootOrgs = await findRootOrganizations();
+//   }
+// }
 
-async function extendOrgModelPermissins(dryRun = false) {
-  if (!dryRun) {
-    // const rootOrgs = await findRootOrganizations();
-  }
-}
+// async function extendOrgModelPermissins(dryRun = false) {
+//   if (!dryRun) {
+//     // const rootOrgs = await findRootOrganizations();
+//   }
+// }
 
-export async function repairOrgModel(
-  excludeCustomized,
-  extendPermissions,
-  dryRun
-) {
-  let repairData = false;
-  repairData = repairData || (await repairOrgModelUser(dryRun));
-  repairData = repairData || (await repairOrgModelOrg(dryRun));
-  if (repairData) {
-    await repairOrgModelData(dryRun);
-  }
-  if (extendPermissions) {
-    await extendOrgModelPermissins(dryRun);
-  }
-  if (dryRun) {
-    printMessage('Dry-run only. Changes are not saved.', 'warn');
-  }
-}
-
-// suggested by John K.
-// eslint-disable-next-line no-empty-function
-export async function removeRealmNameFromManagedObjectLabels() {}
-
-// eslint-disable-next-line no-empty-function
-export async function addRealmNameToManagedObjectLabels() {}
+// export async function repairOrgModel(
+//   excludeCustomized,
+//   extendPermissions,
+//   dryRun
+// ) {
+//   let repairData = false;
+//   repairData = repairData || (await repairOrgModelUser(dryRun));
+//   repairData = repairData || (await repairOrgModelOrg(dryRun));
+//   if (repairData) {
+//     await repairOrgModelData(dryRun);
+//   }
+//   if (extendPermissions) {
+//     await extendOrgModelPermissins(dryRun);
+//   }
+//   if (dryRun) {
+//     printMessage('Dry-run only. Changes are not saved.', 'warn');
+//   }
+// }
 
 // suggested by John K.
-// eslint-disable-next-line no-empty-function
-export async function cleanUpPostmanArtifacts() {}
-
-// suggested by John K.
-// eslint-disable-next-line no-empty-function
-export async function createSampleThemes() {}
+// export async function removeRealmNameFromManagedObjectLabels() {}
+// export async function addRealmNameToManagedObjectLabels() {}
+// export async function cleanUpPostmanArtifacts() {}
+// export async function createSampleThemes() {}

@@ -75,7 +75,7 @@ export async function putScript(id, data) {
   const urlString = util.format(
     scriptURLTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(storage.session.getRealm()),
+    getCurrentRealmPath(),
     id
   );
   return generateAmApi(getApiConfig()).put(urlString, data, {

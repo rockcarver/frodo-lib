@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosProxyConfig } from 'axios';
 import axiosRetry from 'axios-retry';
 import * as https from 'https';
 import HttpsProxyAgent from 'https-proxy-agent';
@@ -6,16 +6,15 @@ import url from 'url';
 import fs from 'fs';
 import storage from '../storage/SessionStorage';
 import { getTenantURL } from './utils/ApiUtils';
-// import pkg from '../../package.json' assert { type: 'json' };
+import path from 'path';
 
 const pkg = JSON.parse(
-  fs.readFileSync(new URL('../../package.json', import.meta.url))
+  fs.readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8')
 );
 
 axiosRetry(axios, {
   retries: 3,
   shouldResetTimeout: true,
-  // eslint-disable-next-line no-unused-vars
   retryCondition: (_error) => true, // retry no matter what
 });
 
@@ -37,18 +36,22 @@ function getHttpsAgent() {
     // https://github.com/axios/axios/issues/3459
     console.error(`Using proxy ${httpsProxy}`.yellow);
     const parsed = url.parse(httpsProxy);
-    options.host = parsed.hostname;
-    options.port = parsed.port;
-    options.protocol = parsed.protocol;
+    options['host'] = parsed.hostname;
+    options['port'] = parsed.port;
+    options['protocol'] = parsed.protocol;
     options.rejectUnauthorized = !storage.session.getAllowInsecureConnection();
-    httpsAgent = new HttpsProxyAgent(options);
+    httpsAgent = HttpsProxyAgent(options);
     return httpsAgent;
   }
   httpsAgent = new https.Agent(options);
   return httpsAgent;
 }
 
-function getProxy() {
+/**
+ * Get Proxy config
+ * @returns {AxiosProxyConfig | false} axios proxy config or false
+ */
+function getProxy(): AxiosProxyConfig | false {
   if (process.env.HTTPS_PROXY || process.env.https_proxy) return false;
   return null;
 }
@@ -66,12 +69,12 @@ export function generateAmApi(resource, requestOverride = {}) {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
     'Accept-API-Version': resource.apiVersion,
-    Cookie: `${storage.session.raw.cookieName}=${storage.session.raw.cookieValue}`,
+    Cookie: `${storage.session.raw['cookieName']}=${storage.session.raw['cookieValue']}`,
   };
-  if (requestOverride.headers) {
+  if (requestOverride['headers']) {
     headers = {
       ...headers,
-      ...requestOverride.headers,
+      ...requestOverride['headers'],
     };
   }
 
@@ -101,12 +104,12 @@ export function generateOauth2Api(resource, requestOverride = {}) {
   let headers = {
     'User-Agent': userAgent,
     'Accept-API-Version': resource.apiVersion,
-    Cookie: `${storage.session.raw.cookieName}=${storage.session.raw.cookieValue}`,
+    Cookie: `${storage.session.raw['cookieName']}=${storage.session.raw['cookieValue']}`,
   };
-  if (requestOverride.headers) {
+  if (requestOverride['headers']) {
     headers = {
       ...headers,
-      ...requestOverride.headers,
+      ...requestOverride['headers'],
     };
   }
 
@@ -145,7 +148,9 @@ export function generateIdmApi(requestOverride = {}) {
   };
 
   if (storage.session.getBearerToken()) {
-    requestDetails.headers.Authorization = `Bearer ${storage.session.getBearerToken()}`;
+    requestDetails.headers[
+      'Authorization'
+    ] = `Bearer ${storage.session.getBearerToken()}`;
   }
 
   const request = axios.create(requestDetails);
@@ -175,7 +180,9 @@ export function generateLogKeysApi(requestOverride = {}) {
   };
 
   if (storage.session.getBearerToken()) {
-    requestDetails.headers.Authorization = `Bearer ${storage.session.getBearerToken()}`;
+    requestDetails.headers[
+      'Authorization'
+    ] = `Bearer ${storage.session.getBearerToken()}`;
   }
 
   const request = axios.create(requestDetails);
@@ -233,7 +240,9 @@ export function generateESVApi(resource, requestOverride = {}) {
   };
 
   if (storage.session.getBearerToken()) {
-    requestDetails.headers.Authorization = `Bearer ${storage.session.getBearerToken()}`;
+    requestDetails.headers[
+      'Authorization'
+    ] = `Bearer ${storage.session.getBearerToken()}`;
   }
 
   const request = axios.create(requestDetails);

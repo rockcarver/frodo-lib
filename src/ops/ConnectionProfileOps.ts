@@ -9,7 +9,6 @@ import { FRODO_CONNECTION_PROFILES_PATH_KEY } from '../storage/StaticStorage';
 const dataProtection = new DataProtection();
 
 const fileOptions = {
-  options: 'utf8',
   indentation: 4,
 };
 
@@ -17,7 +16,7 @@ const fileOptions = {
  * Get connection profiles file name
  * @returns {String} connection profiles file name
  */
-export function getConnectionProfilesPath() {
+export function getConnectionProfilesPath(): string {
   return (
     storage.session.getConnectionProfilesPath() ||
     process.env[FRODO_CONNECTION_PROFILES_PATH_KEY] ||
@@ -93,7 +92,7 @@ export function initConnectionProfiles() {
   }
   // encrypt the password from clear text to aes-256-GCM
   else {
-    const data = fs.readFileSync(filename, fileOptions.options);
+    const data = fs.readFileSync(filename, 'utf8');
     const connectionsData = JSON.parse(data);
     let convert = false;
     Object.keys(connectionsData).forEach(async (conn) => {
@@ -122,9 +121,7 @@ export function initConnectionProfiles() {
 export async function getConnectionProfileByHost(host) {
   try {
     const filename = getConnectionProfilesPath();
-    const connectionsData = JSON.parse(
-      fs.readFileSync(filename, fileOptions.options)
-    );
+    const connectionsData = JSON.parse(fs.readFileSync(filename, 'utf8'));
     const profile = findConnectionProfile(connectionsData, host);
     if (!profile) {
       printMessage(
@@ -184,15 +181,15 @@ export async function saveConnectionProfile() {
     );
   }
   if (storage.session.getUsername())
-    existingData.username = storage.session.getUsername();
+    existingData['username'] = storage.session.getUsername();
   if (storage.session.getPassword())
-    existingData.encodedPassword = await dataProtection.encrypt(
+    existingData['encodedPassword'] = await dataProtection.encrypt(
       storage.session.getPassword()
     ); // Buffer.from(storage.session.getPassword()).toString('base64');
   if (storage.session.getLogApiKey())
-    existingData.logApiKey = storage.session.getLogApiKey();
+    existingData['logApiKey'] = storage.session.getLogApiKey();
   if (storage.session.getLogApiSecret())
-    existingData.logApiSecret = storage.session.getLogApiSecret();
+    existingData['logApiSecret'] = storage.session.getLogApiSecret();
   connectionsData[storage.session.getTenant()] = existingData;
 
   fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));

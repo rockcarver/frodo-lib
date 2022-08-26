@@ -60,7 +60,7 @@ export async function putOAuth2Client(id, data) {
   const urlString = util.format(
     oauth2ClientURLTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(storage.session.getRealm()),
+    getCurrentRealmPath(),
     id
   );
   return generateAmApi(getApiConfig()).put(urlString, client, {

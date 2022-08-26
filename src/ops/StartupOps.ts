@@ -15,10 +15,10 @@ import { getVariables } from '../api/VariablesApi';
 export async function checkForUpdates() {
   showSpinner(`Checking for updates to apply...`);
   const updates = createTable([
-    'Type'.brightCyan,
-    'Name'.brightCyan,
-    'Modified'.brightCyan,
-    'Modifier'.brightCyan,
+    'Type'['brightCyan'],
+    'Name'['brightCyan'],
+    'Modified'['brightCyan'],
+    'Modifier'['brightCyan'],
   ]);
   let secrets = [];
   let variables = [];

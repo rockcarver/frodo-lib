@@ -64,9 +64,9 @@ export async function listProviders(long = false) {
     });
   } else {
     const table = createTable([
-      'Entity Id'.brightCyan,
-      'Location'.brightCyan,
-      'Role(s)'.brightCyan,
+      'Entity Id'['brightCyan'],
+      'Location'['brightCyan'],
+      'Role(s)'['brightCyan'],
     ]);
     providerList.forEach((provider) => {
       table.push([

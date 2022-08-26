@@ -134,7 +134,7 @@ export async function createProvider(location, providerData, metaData) {
   let urlString = util.format(
     createHostedProviderURLTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(storage.session.getRealm())
+    getCurrentRealmPath()
   );
 
   if (location === 'remote') {
@@ -144,7 +144,7 @@ export async function createProvider(location, providerData, metaData) {
     urlString = util.format(
       createRemoteProviderURLTemplate,
       storage.session.getTenant(),
-      getCurrentRealmPath(storage.session.getRealm())
+      getCurrentRealmPath()
     );
     postData = {
       standardMetadata: metaData,

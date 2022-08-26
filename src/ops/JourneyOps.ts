@@ -230,7 +230,7 @@ async function exportTree(treeObject, exportData, options) {
   // get all the nodes
   for (const [nodeId, nodeInfo] of Object.entries(treeObject.nodes)) {
     nodePromises.push(
-      getNode(nodeId, nodeInfo.nodeType).then((response) => response.data)
+      getNode(nodeId, nodeInfo['nodeType']).then((response) => response.data)
     );
   }
   if (verbose && nodePromises.length > 0) printMessage('  - Nodes:');
@@ -642,7 +642,7 @@ export async function getJourneyData(journeyId) {
       succeedSpinner();
       printMessage(err, 'error');
     })
-  ).data;
+  )['data'];
   spinSpinner();
   await exportTree(treeData, journeyData, { useStringArrays: true });
   succeedSpinner();
@@ -672,17 +672,23 @@ async function importTree(treeObject, options) {
     if (verbose) printMessage('  - Scripts:');
     for (const [scriptId, scriptObject] of Object.entries(treeObject.scripts)) {
       if (verbose)
-        printMessage(`    - ${scriptId} (${scriptObject.name})`, 'info', false);
+        printMessage(
+          `    - ${scriptId} (${scriptObject['name']})`,
+          'info',
+          false
+        );
       // is the script stored as an array of strings or just b64 blob?
-      if (Array.isArray(scriptObject.script)) {
-        scriptObject.script = convertTextArrayToBase64(scriptObject.script);
-      } else if (!isBase64Encoded(scriptObject.script)) {
-        scriptObject.script = encode(JSON.parse(scriptObject.script));
+      if (Array.isArray(scriptObject['script'])) {
+        scriptObject['script'] = convertTextArrayToBase64(
+          scriptObject['script']
+        );
+      } else if (!isBase64Encoded(scriptObject['script'])) {
+        scriptObject['script'] = encode(JSON.parse(scriptObject['script']));
       }
       // eslint-disable-next-line no-await-in-loop
       if ((await createOrUpdateScript(scriptId, scriptObject)) == null) {
         throw new Error(
-          `Error importing script ${scriptObject.name} (${scriptId}) in journey ${treeId}`
+          `Error importing script ${scriptObject['name']} (${scriptId}) in journey ${treeId}`
         );
       }
       if (verbose) printMessage('');
@@ -740,7 +746,7 @@ async function importTree(treeObject, options) {
       try {
         // eslint-disable-next-line no-await-in-loop
         await putProviderByTypeAndId(
-          providerData._type._id,
+          providerData['_type']['_id'],
           providerId,
           providerData
         );
@@ -750,11 +756,11 @@ async function importTree(treeObject, options) {
           importError.response.data.message ===
             'Unable to update SMS config: Data validation failed for the attribute, Redirect after form post URL'
         ) {
-          providerData.redirectAfterFormPostURI = '';
+          providerData['redirectAfterFormPostURI'] = '';
           try {
             // eslint-disable-next-line no-await-in-loop
             await putProviderByTypeAndId(
-              providerData._type._id,
+              providerData['_type']['_id'],
               providerId,
               providerData
             );
@@ -782,20 +788,22 @@ async function importTree(treeObject, options) {
   ) {
     if (verbose) printMessage('  - SAML2 entity providers:');
     for (const [, providerData] of Object.entries(treeObject.saml2Entities)) {
-      delete providerData._rev;
-      const { entityId } = providerData;
-      const { entityLocation } = providerData;
+      delete providerData['_rev'];
+      const entityId = providerData['entityId'];
+      const entityLocation = providerData['entityLocation'];
       if (verbose) printMessage(`    - ${entityLocation} ${entityId}`, 'info');
       let metaData = null;
       if (entityLocation === 'remote') {
-        if (Array.isArray(providerData.base64EntityXML)) {
-          metaData = convertTextArrayToBase64Url(providerData.base64EntityXML);
+        if (Array.isArray(providerData['base64EntityXML'])) {
+          metaData = convertTextArrayToBase64Url(
+            providerData['base64EntityXML']
+          );
         } else {
-          metaData = providerData.base64EntityXML;
+          metaData = providerData['base64EntityXML'];
         }
       }
-      delete providerData.entityLocation;
-      delete providerData.base64EntityXML;
+      delete providerData['entityLocation'];
+      delete providerData['base64EntityXML'];
       // create the provider if it doesn't already exist, or just update it
       if (
         // eslint-disable-next-line no-await-in-loop
@@ -829,7 +837,7 @@ async function importTree(treeObject, options) {
   ) {
     if (verbose) printMessage('  - SAML2 circles of trust:');
     for (const [cotId, cotData] of Object.entries(treeObject.circlesOfTrust)) {
-      delete cotData._rev;
+      delete cotData['_rev'];
       if (verbose) printMessage(`    - ${cotId}`, 'info');
       // eslint-disable-next-line no-await-in-loop
       await createCircleOfTrust(cotData)
@@ -874,15 +882,15 @@ async function importTree(treeObject, options) {
   if (Object.entries(innerNodes).length > 0) {
     if (verbose) printMessage('  - Inner nodes:', 'text', true);
     for (const [innerNodeId, innerNodeData] of Object.entries(innerNodes)) {
-      delete innerNodeData._rev;
-      const nodeType = innerNodeData._type._id;
+      delete innerNodeData['_rev'];
+      const nodeType = innerNodeData['_type']['_id'];
       if (!reUuid) {
         newUuid = innerNodeId;
       } else {
         newUuid = uuidv4();
         uuidMap[innerNodeId] = newUuid;
       }
-      innerNodeData._id = newUuid;
+      innerNodeData['_id'] = newUuid;
 
       if (verbose)
         printMessage(
@@ -896,14 +904,14 @@ async function importTree(treeObject, options) {
       // and the node's identityResource is the same as the tree's identityResource
       // change it to the current realm managed user identityResource otherwise leave it alone.
       if (
-        innerNodeData.identityResource &&
-        innerNodeData.identityResource.endsWith('user') &&
-        innerNodeData.identityResource === treeObject.tree.identityResource
+        innerNodeData['identityResource'] &&
+        innerNodeData['identityResource'].endsWith('user') &&
+        innerNodeData['identityResource'] === treeObject.tree.identityResource
       ) {
-        innerNodeData.identityResource = `managed/${getRealmManagedUser()}`;
+        innerNodeData['identityResource'] = `managed/${getRealmManagedUser()}`;
         if (verbose)
           printMessage(
-            `\n      - identityResource: ${innerNodeData.identityResource}`,
+            `\n      - identityResource: ${innerNodeData['identityResource']}`,
             'info',
             false
           );
@@ -919,10 +927,10 @@ async function importTree(treeObject, options) {
         ) {
           throw new Error(
             `Missing script ${
-              innerNodeData.script
+              innerNodeData['script']
             } referenced by inner node ${innerNodeId}${
               innerNodeId === newUuid ? '' : ` [${newUuid}]`
-            } (${innerNodeData._type._id}) in journey ${treeId}.`
+            } (${innerNodeData['_type']['_id']}) in journey ${treeId}.`
           );
         } else {
           printMessage(nodeImportError.response.data, 'error');
@@ -942,19 +950,19 @@ async function importTree(treeObject, options) {
     if (verbose) printMessage('  - Nodes:');
     // eslint-disable-next-line prefer-const
     for (let [nodeId, nodeData] of Object.entries(treeObject.nodes)) {
-      delete nodeData._rev;
-      const nodeType = nodeData._type._id;
+      delete nodeData['_rev'];
+      const nodeType = nodeData['_type']['_id'];
       if (!reUuid) {
         newUuid = nodeId;
       } else {
         newUuid = uuidv4();
         uuidMap[nodeId] = newUuid;
       }
-      nodeData._id = newUuid;
+      nodeData['_id'] = newUuid;
 
       if (nodeType === 'PageNode' && reUuid) {
-        for (const [, inPageNodeData] of Object.entries(nodeData.nodes)) {
-          const currentId = inPageNodeData._id;
+        for (const [, inPageNodeData] of Object.entries(nodeData['nodes'])) {
+          const currentId = inPageNodeData['_id'];
           nodeData = JSON.parse(
             replaceAll(JSON.stringify(nodeData), currentId, uuidMap[currentId])
           );
@@ -973,14 +981,14 @@ async function importTree(treeObject, options) {
       // and the node's identityResource is the same as the tree's identityResource
       // change it to the current realm managed user identityResource otherwise leave it alone.
       if (
-        nodeData.identityResource &&
-        nodeData.identityResource.endsWith('user') &&
-        nodeData.identityResource === treeObject.tree.identityResource
+        nodeData['identityResource'] &&
+        nodeData['identityResource'].endsWith('user') &&
+        nodeData['identityResource'] === treeObject.tree.identityResource
       ) {
-        nodeData.identityResource = `managed/${getRealmManagedUser()}`;
+        nodeData['identityResource'] = `managed/${getRealmManagedUser()}`;
         if (verbose)
           printMessage(
-            `\n      - identityResource: ${nodeData.identityResource}`,
+            `\n      - identityResource: ${nodeData['identityResource']}`,
             'info',
             false
           );
@@ -995,9 +1003,9 @@ async function importTree(treeObject, options) {
             'Data validation failed for the attribute, Script'
         ) {
           throw new Error(
-            `Missing script ${nodeData.script} referenced by node ${nodeId}${
+            `Missing script ${nodeData['script']} referenced by node ${nodeId}${
               nodeId === newUuid ? '' : ` [${newUuid}]`
-            } (${nodeData._type._id}) in journey ${treeId}.`
+            } (${nodeData['_type']['_id']}) in journey ${treeId}.`
           );
         } else {
           printMessage(nodeImportError.response.data, 'error');
@@ -1368,34 +1376,34 @@ export function describeTree(treeData) {
   const nodeTypeMap = {};
   const scriptsMap = {};
   const emailTemplatesMap = {};
-  treeMap.treeName = treeData.tree._id;
+  treeMap['treeName'] = treeData.tree._id;
   for (const [, nodeData] of Object.entries(treeData.nodes)) {
-    if (nodeTypeMap[nodeData._type._id]) {
-      nodeTypeMap[nodeData._type._id] += 1;
+    if (nodeTypeMap[nodeData['_type']['_id']]) {
+      nodeTypeMap[nodeData['_type']['_id']] += 1;
     } else {
-      nodeTypeMap[nodeData._type._id] = 1;
+      nodeTypeMap[nodeData['_type']['_id']] = 1;
     }
   }
 
   for (const [, nodeData] of Object.entries(treeData.innerNodes)) {
-    if (nodeTypeMap[nodeData._type._id]) {
-      nodeTypeMap[nodeData._type._id] += 1;
+    if (nodeTypeMap[nodeData['_type']['_id']]) {
+      nodeTypeMap[nodeData['_type']['_id']] += 1;
     } else {
-      nodeTypeMap[nodeData._type._id] = 1;
+      nodeTypeMap[nodeData['_type']['_id']] = 1;
     }
   }
 
   for (const [, scriptData] of Object.entries(treeData.scripts)) {
-    scriptsMap[scriptData.name] = scriptData.description;
+    scriptsMap[scriptData['name']] = scriptData['description'];
   }
 
   for (const [id, data] of Object.entries(treeData.emailTemplates)) {
-    emailTemplatesMap[id] = data.displayName;
+    emailTemplatesMap[id] = data['displayName'];
   }
 
-  treeMap.nodeTypes = nodeTypeMap;
-  treeMap.scripts = scriptsMap;
-  treeMap.emailTemplates = emailTemplatesMap;
+  treeMap['nodeTypes'] = nodeTypeMap;
+  treeMap['scripts'] = scriptsMap;
+  treeMap['emailTemplates'] = emailTemplatesMap;
   return treeMap;
 }
 
@@ -1766,9 +1774,7 @@ async function isCustom(journey) {
       if (containerNodes.includes(nodeList[node].nodeType)) {
         results.push(
           // eslint-disable-next-line no-await-in-loop
-          (await getNode(node, nodeList[node].nodeType)).then(
-            (response) => response.data
-          )
+          (await getNode(node, nodeList[node].nodeType))['data']
         );
       }
     }
@@ -1821,16 +1827,16 @@ export async function listJourneys(long = false, analyze = false) {
     }
   } else {
     const table = createTable([
-      'Name'.brightCyan,
-      'Status'.brightCyan,
-      'Tags'.brightCyan,
+      'Name'['brightCyan'],
+      'Status'['brightCyan'],
+      'Tags'['brightCyan'],
     ]);
     journeys.forEach((journey, i) => {
       table.push([
-        `${customTrees[i] ? '*'.brightRed : ''}${journey._id}`,
+        `${customTrees[i] ? '*'['brightRed'] : ''}${journey._id}`,
         journey.enabled === false
-          ? 'disabled'.brightRed
-          : 'enabled'.brightGreen,
+          ? 'disabled'['brightRed']
+          : 'enabled'['brightGreen'],
         journey.uiConfig && journey.uiConfig.categories
           ? wordwrap(JSON.parse(journey.uiConfig.categories).join(', '), 60)
           : '',
@@ -1853,7 +1859,7 @@ export async function deleteJourney(journeyId, options, spinner = true) {
   if (spinner && verbose) stopSpinner();
   return deleteTree(journeyId)
     .then(async (deleteTreeResponse) => {
-      status.status = 'success';
+      status['status'] = 'success';
       const nodePromises = [];
       if (verbose) printMessage(`Deleted ${journeyId} (tree)`, 'info');
       if (deep) {
@@ -1861,14 +1867,14 @@ export async function deleteJourney(journeyId, options, spinner = true) {
           deleteTreeResponse.data.nodes
         )) {
           // delete inner nodes (nodes inside container nodes)
-          if (containerNodes.includes(nodeObject.nodeType)) {
+          if (containerNodes.includes(nodeObject['nodeType'])) {
             try {
               // eslint-disable-next-line no-await-in-loop
-              const pageNode = (await getNode(nodeId, nodeObject.nodeType))
+              const pageNode = (await getNode(nodeId, nodeObject['nodeType']))
                 .data;
               if (verbose)
                 printMessage(
-                  `Read ${nodeId} (${nodeObject.nodeType}) from ${journeyId}`,
+                  `Read ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
                   'info'
                 );
               for (const innerNodeObject of pageNode.nodes) {
@@ -1898,12 +1904,12 @@ export async function deleteJourney(journeyId, options, spinner = true) {
               }
               // finally delete the container node
               nodePromises.push(
-                deleteNode(nodeId, nodeObject.nodeType)
+                deleteNode(nodeId, nodeObject['nodeType'])
                   .then((response2) => {
                     status.nodes[nodeId] = { status: 'success' };
                     if (verbose)
                       printMessage(
-                        `Deleted ${nodeId} (${nodeObject.nodeType}) from ${journeyId}`,
+                        `Deleted ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
                         'info'
                       );
                     return response2.data;
@@ -1912,7 +1918,7 @@ export async function deleteJourney(journeyId, options, spinner = true) {
                     status.nodes[nodeId] = { status: 'error', error };
                     if (verbose)
                       printMessage(
-                        `Error deleting container node ${nodeId} (${nodeObject.nodeType}) from ${journeyId}: ${error}`,
+                        `Error deleting container node ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}: ${error}`,
                         'error'
                       );
                   })
@@ -1920,19 +1926,19 @@ export async function deleteJourney(journeyId, options, spinner = true) {
             } catch (error) {
               if (verbose)
                 printMessage(
-                  `Error getting container node ${nodeId} (${nodeObject.nodeType}) from ${journeyId}: ${error}`,
+                  `Error getting container node ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}: ${error}`,
                   'error'
                 );
             }
           } else {
             // delete the node
             nodePromises.push(
-              deleteNode(nodeId, nodeObject.nodeType)
+              deleteNode(nodeId, nodeObject['nodeType'])
                 .then((response) => {
                   status.nodes[nodeId] = { status: 'success' };
                   if (verbose)
                     printMessage(
-                      `Deleted ${nodeId} (${nodeObject.nodeType}) from ${journeyId}`,
+                      `Deleted ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
                       'info'
                     );
                   return response.data;
@@ -1941,7 +1947,7 @@ export async function deleteJourney(journeyId, options, spinner = true) {
                   status.nodes[nodeId] = { status: 'error', error };
                   if (verbose)
                     printMessage(
-                      `Error deleting node ${nodeId} (${nodeObject.nodeType}) from ${journeyId}: ${error}`,
+                      `Error deleting node ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}: ${error}`,
                       'error'
                     );
                 })
@@ -1977,8 +1983,8 @@ export async function deleteJourney(journeyId, options, spinner = true) {
       return status;
     })
     .catch((error) => {
-      status.status = 'error';
-      status.error = error;
+      status['status'] = 'error';
+      status['error'] = error;
       failSpinner(`Error deleting ${journeyId}.`);
       if (verbose)
         printMessage(`Error deleting tree ${journeyId}: ${error}`, 'error');

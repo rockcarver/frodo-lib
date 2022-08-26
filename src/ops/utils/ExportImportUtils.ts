@@ -76,18 +76,8 @@ export function convertTextArrayToBase64Url(textArray) {
 }
 
 // eslint-disable-next-line no-unused-vars
-export function validateImport(metadata) {
-  return true;
-}
-
-// eslint-disable-next-line no-unused-vars
-export function checkTargetCompatibility(type, source, target) {
-  // console.log(`source ${source}, target ${target}`);
-  //   compatibilityKeys[type].forEach((element) => {
-  //     if (source[element] != target[element]) {
-  //       console.warn(`${element} in ${type} mismatch between source and target`);
-  //     }
-  //   });
+export function validateImport(metadata): boolean {
+  return metadata || true;
 }
 
 export function getTypedFilename(name, type, suffix = 'json') {
@@ -97,7 +87,7 @@ export function getTypedFilename(name, type, suffix = 'json') {
 
 export function saveToFile(type, data, identifier, filename) {
   const exportData = {};
-  exportData.meta = getMetadata();
+  exportData['meta'] = getMetadata();
   exportData[type] = {};
   if (Array.isArray(data)) {
     data.forEach((element) => {

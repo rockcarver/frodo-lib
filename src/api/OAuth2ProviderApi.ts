@@ -1,4 +1,3 @@
-/* eslint-disable import/prefer-default-export */
 import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
