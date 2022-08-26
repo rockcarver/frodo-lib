@@ -2,11 +2,11 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { applyNameCollisionPolicy } from './utils/OpsUtils';
 import {
-  createProgressBar,
+  createProgressIndicator,
   createTable,
   printMessage,
-  stopProgressBar,
-  updateProgressBar,
+  stopProgressIndicator,
+  updateProgressIndicator,
 } from './utils/Console';
 import { getScriptByName, getScripts, putScript } from '../api/ScriptApi';
 import wordwrap from './utils/Wordwrap';
@@ -92,9 +92,9 @@ export async function exportScriptsToFile(file) {
   }
   const scriptList = (await getScripts()).data.result;
   const allScriptsData = [];
-  createProgressBar(scriptList.length, 'Exporting script');
+  createProgressIndicator(scriptList.length, 'Exporting script');
   for (const item of scriptList) {
-    updateProgressBar(`Reading script ${item.name}`);
+    updateProgressIndicator(`Reading script ${item.name}`);
     // eslint-disable-next-line no-await-in-loop
     const scriptData = (await getScriptByName(item.name)).data.result;
     scriptData.forEach((element) => {
@@ -104,7 +104,7 @@ export async function exportScriptsToFile(file) {
       allScriptsData.push(element);
     });
   }
-  stopProgressBar('Done');
+  stopProgressIndicator('Done');
   saveToFile('script', allScriptsData, '_id', fileName);
 }
 
@@ -113,9 +113,9 @@ export async function exportScriptsToFile(file) {
  */
 export async function exportScriptsToFiles() {
   const scriptList = (await getScripts()).data.result;
-  createProgressBar(scriptList.length, 'Exporting script');
+  createProgressIndicator(scriptList.length, 'Exporting script');
   for (const item of scriptList) {
-    updateProgressBar(`Reading script ${item.name}`);
+    updateProgressIndicator(`Reading script ${item.name}`);
     // eslint-disable-next-line no-await-in-loop
     const scriptData = (await getScriptByName(item.name)).data.result;
     scriptData.forEach((element) => {
@@ -126,7 +126,7 @@ export async function exportScriptsToFiles() {
     const fileName = getTypedFilename(item.name, 'script');
     saveToFile('script', scriptData, '_id', fileName);
   }
-  stopProgressBar('Done');
+  stopProgressIndicator('Done');
 }
 
 /**
@@ -166,7 +166,7 @@ export async function importScriptsFromFile(name, file, reUuid = false) {
     if (err) throw err;
     const scriptData = JSON.parse(data);
     if (validateImport(scriptData.meta)) {
-      createProgressBar(Object.keys(scriptData.script).length, '');
+      createProgressIndicator(Object.keys(scriptData.script).length, '');
       for (const existingId in scriptData.script) {
         if ({}.hasOwnProperty.call(scriptData.script, existingId)) {
           let newId = existingId;
@@ -188,7 +188,9 @@ export async function importScriptsFromFile(name, file, reUuid = false) {
             // );
             scriptData.script[existingId].name = name;
           }
-          updateProgressBar(`Importing ${scriptData.script[existingId].name}`);
+          updateProgressIndicator(
+            `Importing ${scriptData.script[existingId].name}`
+          );
           // console.log(scriptData.script[id]);
           createOrUpdateScript(newId, scriptData.script[existingId]).then(
             (result) => {
@@ -202,7 +204,7 @@ export async function importScriptsFromFile(name, file, reUuid = false) {
           if (name) break;
         }
       }
-      stopProgressBar('Done');
+      stopProgressIndicator('Done');
       // printMessage('Done');
     } else {
       printMessage('Import validation failed...', 'error');

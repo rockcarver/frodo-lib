@@ -46,5 +46,17 @@ export default {
     getConnectionProfilesPath: () => _sessionStorage.connectionProfilesPath,
     setMasterKeyPath: (value) => (_sessionStorage.masterKeyPath = value),
     getMasterKeyPath: () => _sessionStorage.masterKeyPath,
+    setPrintHandler: (printHandler) =>
+      (_sessionStorage.printHandler = printHandler),
+    getPrintHandler: () => _sessionStorage.printHandler,
+    setCreateProgressHandler: (handler) =>
+      (_sessionStorage.createProgressHandler = handler),
+    getCreateProgressHandler: () => _sessionStorage.createProgressHandler,
+    setUpdateProgressHandler: (handler) =>
+      (_sessionStorage.updateProgressHandler = handler),
+    getUpdateProgressHandler: () => _sessionStorage.updateProgressHandler,
+    setStopProgressHandler: (handler) =>
+      (_sessionStorage.stopProgressHandler = handler),
+    getStopProgressHandler: () => _sessionStorage.stopProgressHandler,
   },
 };

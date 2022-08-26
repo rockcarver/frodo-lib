@@ -1,269 +1,77 @@
-import { SingleBar, Presets } from 'cli-progress';
-import { createSpinner } from 'nanospinner';
 import Table from 'cli-table3';
 // eslint-disable-next-line no-unused-vars
 import * as colors from '@colors/colors';
 import storage from '../../storage/SessionStorage';
 
 /**
- * Output a data message
- * @param {Object} message the message
- */
-function data(message) {
-  switch (typeof message) {
-    case 'object':
-      console.dir(message, { depth: 3 });
-      break;
-    default:
-      console.log(message);
-  }
-}
-
-/**
- * Output a text message
- * @param {Object} message the message
- */
-function text(message) {
-  switch (typeof message) {
-    case 'object':
-      console.dir(message, { depth: 3 });
-      break;
-    default:
-      console.error(message);
-  }
-}
-
-/**
- * Output an info message
- * @param {Object} message the message
- */
-function info(message) {
-  switch (typeof message) {
-    case 'object':
-      console.dir(message, { depth: 3 });
-      break;
-    default:
-      console.error(message.brightCyan);
-  }
-}
-
-/**
- * Output a warn message
- * @param {Object} message the message
- */
-function warn(message) {
-  switch (typeof message) {
-    case 'object':
-      console.dir(message, { depth: 3 });
-      break;
-    default:
-      console.error(message.yellow);
-  }
-}
-
-/**
- * Output an error message
- * @param {Object} message the message
- */
-function error(message) {
-  switch (typeof message) {
-    case 'object':
-      console.dir(message, { depth: 4 });
-      break;
-    default:
-      console.error(message.brightRed);
-  }
-}
-
-/**
- * Prints a string message to console
+ * Handles data / messages output. The caller decides and implements how
+ * the data and messages are handled, by implementing the handler function
+ * on its side. `handler` is optional, and if not included by the caller,
+ * the data and messages will be lost.
  *
- * @param {string} message The string message to print
+ * @param {string} message The string message to return
  * @param {string} [type=text] "text", "info", "warn", "error" or "data". All but
  * type="data" will be written to stderr.
- * @param {boolean} [newline=true] Whether to add a new at the end of message
+ * @param {boolean} [newline=true] Whether to add a newline at the end of message
+ * messages returned
  *
  */
 export function printMessage(message, type = 'text', newline = true) {
-  //   if (storage.session.getItem('scriptFriendly')) {
-  switch (type) {
-    case 'data':
-      if (newline) {
-        data(message);
-      } else {
-        process.stdout.write(message);
-      }
-      break;
-    case 'text':
-      if (newline) {
-        text(message);
-      } else {
-        process.stderr.write(message);
-      }
-      break;
-    case 'info':
-      if (newline) {
-        info(message);
-      } else {
-        process.stderr.write(message.brightCyan);
-      }
-      break;
-    case 'warn':
-      if (newline) {
-        warn(message);
-      } else {
-        process.stderr.write(message.yellow);
-      }
-      break;
-    case 'error':
-      if (newline) {
-        error(message);
-      } else {
-        process.stderr.write(message.brightRed);
-      }
-      break;
-    default:
-      if (newline) {
-        error(message);
-      } else {
-        process.stderr.write(message.bgBrightRed);
-      }
+  const handler = storage.session.getPrintHandler();
+  if (handler) {
+    handler(message, type, newline);
   }
 }
 
 /**
- * Creates a progress bar on stderr
+ * Calls a callback on client to create a progress indicator.
+ * The actual implementation of the indicator is left to the client
+ * Two types of indicators are supported:
+ * - determinate: should be used when the process completion rate
+ * can be detected (example: progress bar showing percentage or count)
+ * - indeterminate: used when progress isn’t detectable, or if
+ * it’s not necessary to indicate how long an activity will take.
+ * (example: spinner showing progress, but not quantifying the progress)
  *
  * Example:
  * [========================================] 100% | 49/49 | Analyzing journey - transactional_auth
  *
  * @param {Number} total The total number of entries to track progress for
  * @param {String} message optional progress bar message
- * @param {Object} options progress bar configuration options
+ * @param {String} type optional type of progress indicator. default is 'determinate'
  *
  */
-export function createProgressBar(
+export function createProgressIndicator(
   total,
   message = null,
-  options = {
-    format: '[{bar}] {percentage}% | {value}/{total} | {data}',
-    noTTYOutput: true,
-  }
+  type = 'determinate'
 ) {
-  let opt = options;
-  if (message == null) {
-    opt = {
-      format: '[{bar}] {percentage}% | {value}/{total}',
-      noTTYOutput: true,
-    };
+  const handler = storage.session.getCreateProgressHandler();
+  if (handler) {
+    handler(type, total, message);
   }
-  let pBar = storage.session.getItem('progressBar');
-  if (!pBar) pBar = new SingleBar(opt, Presets.legacy); // create only when needed
-  pBar.start(total, 0, {
-    data: message,
-  });
-  storage.session.setItem('progressBar', pBar);
 }
 
 /**
- * Updates the progress bar by 1
- * @param {string} message optional message to update the progress bar
+ * Updates the progress indicator with new data/updated status.
+ * @param {string} message optional message to show with the indicator
  *
  */
-export function updateProgressBar(message = null) {
-  const pBar = storage.session.getItem('progressBar');
-  if (message)
-    pBar.increment({
-      data: message,
-    });
-  else pBar.increment();
-}
-
-/**
- * Stop and hide the progress bar
- * @param {*} message optional message to update the progress bar
- */
-export function stopProgressBar(message = null) {
-  const pBar = storage.session.getItem('progressBar');
-  if (message)
-    pBar.update({
-      data: message,
-    });
-  pBar.stop();
-}
-
-/**
- * Create the spinner
- * @param {String} message optional spinner message
- */
-export function showSpinner(message) {
-  const spinner = createSpinner(message).start();
-  storage.session.setItem('Spinner', spinner);
-}
-
-/**
- * Stop the spinner
- * @param {String} message optional message to update the spinner
- */
-export function stopSpinner(message = null) {
-  const spinner = storage.session.getItem('Spinner');
-  if (spinner) {
-    let options = {};
-    if (message) options = { text: message };
-    spinner.stop(options);
+export function updateProgressIndicator(message = null) {
+  const handler = storage.session.getUpdateProgressHandler();
+  if (handler) {
+    handler(message);
   }
 }
 
 /**
- * Succeed the spinner. Stop and render success checkmark with optional message.
- * @param {String} message optional message to update the spinner
+ * Stop and hide the progress indicator
+ * @param {*} message optional message to show with the indicator
  */
-export function succeedSpinner(message = null) {
-  const spinner = storage.session.getItem('Spinner');
-  if (spinner) {
-    let options = {};
-    if (message) options = { text: message };
-    spinner.success(options);
-  }
-}
-
-/**
- * Warn the spinner
- * @param {String} message optional message to update the spinner
- */
-export function warnSpinner(message = null) {
-  const spinner = storage.session.getItem('Spinner');
-  if (spinner) {
-    let options = {};
-    if (message) options = { text: message };
-    spinner.warn(options);
-  }
-}
-
-/**
- * Fail the spinner
- * @param {String} message optional message to update the spinner
- */
-export function failSpinner(message = null) {
-  const spinner = storage.session.getItem('Spinner');
-  if (spinner) {
-    let options = {};
-    if (message) options = { text: message };
-    spinner.error(options);
-  }
-}
-
-/**
- * Spin the spinner
- * @param {String} message optional message to update the spinner
- */
-export function spinSpinner(message = null) {
-  const spinner = storage.session.getItem('Spinner');
-  if (spinner) {
-    let options = {};
-    if (message) options = { text: message };
-    spinner.update(options);
-    spinner.spin();
+export function stopProgressIndicator(message = null, status = 'none') {
+  const handler = storage.session.getStopProgressHandler();
+  if (handler) {
+    handler(message, status);
   }
 }
 
