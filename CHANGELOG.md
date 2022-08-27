@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1] - 2022-08-27
+
 ### Changed
 
 -   \#4: New status and progress framework (reworked Console.js to be client-independent)
@@ -449,7 +451,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.12.1-0...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.12.1...HEAD
+
+[0.12.1]: https://github.com/rockcarver/frodo-lib/compare/v0.12.1-0...v0.12.1
 
 [0.12.1-0]: https://github.com/rockcarver/frodo-lib/compare/v0.12.0...v0.12.1-0
 
