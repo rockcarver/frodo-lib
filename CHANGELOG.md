@@ -7,17 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.12.1-0] - 2022-08-27
+### Changed
+
+-   \#4: New status and progress framework (reworked Console.js to be client-independent)
 
 ### Fixed
 
 -   \#22: Fixed a pipeline issue that broke `frodo-cli` binary builds.
 
-## [0.12.0] - 2022-08-27
+## [0.12.1-0] - 2022-08-27 [YANKED]
 
-### Changed
-
--   \#4: New status and progress framework (reworked Console.js to be client-independent)
+## [0.12.0] - 2022-08-27 [YANKED]
 
 ## [0.11.1-8] - 2022-08-27
 
