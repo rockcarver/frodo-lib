@@ -643,7 +643,7 @@ export async function getJourneyData(journeyId) {
       stopProgressIndicator(null, 'success');
       printMessage(err, 'error');
     })
-  ).data;
+  )['data'];
   updateProgressIndicator();
   await exportTree(treeData, journeyData, { useStringArrays: true });
   stopProgressIndicator(null, 'success');
@@ -1485,7 +1485,7 @@ async function findOrphanedNodes() {
       });
     } catch (error) {
       errorTypes.push(type._id);
-      errorMessage = ` (Skipped type(s): ${errorTypes})`.yellow;
+      errorMessage = ` (Skipped type(s): ${errorTypes})`['yellow'];
       updateProgressIndicator(`${allNodes.length} total nodes${errorMessage}`);
     }
   }
@@ -2051,8 +2051,8 @@ export async function deleteJourney(journeyId, options, spinner = true) {
       return status;
     })
     .catch((error) => {
-      status.status = 'error';
-      status.error = error;
+      status['status'] = 'error';
+      status['error'] = error;
       stopProgressIndicator(`Error deleting ${journeyId}.`, 'fail');
       if (verbose)
         printMessage(`Error deleting tree ${journeyId}: ${error}`, 'error');

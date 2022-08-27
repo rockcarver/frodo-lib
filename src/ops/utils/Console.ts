@@ -1,5 +1,4 @@
 import Table from 'cli-table3';
-import colors from 'colors';
 import storage from '../../storage/SessionStorage';
 
 /**
@@ -172,14 +171,14 @@ function addRows(object, depth, level, table, keyMap) {
     if (Object(object[key]) !== object[key]) {
       if (level === 1) {
         table.push([
-          keyMap[key] ? keyMap[key].brightCyan : key['brightCyan'],
+          keyMap[key] ? keyMap[key]['brightCyan'] : key['brightCyan'],
           object[key],
         ]);
       } else {
         table.push([
           {
             hAlign: 'right',
-            content: keyMap[key] ? keyMap[key].gray : key.gray,
+            content: keyMap[key] ? keyMap[key]['gray'] : key['gray'],
           },
           object[key],
         ]);
@@ -194,7 +193,7 @@ function addRows(object, depth, level, table, keyMap) {
         if (level < 3) indention = `\n${indention}`;
         table.push([
           indention.concat(
-            keyMap[key] ? keyMap[key].brightCyan : key['brightCyan']
+            keyMap[key] ? keyMap[key]['brightCyan'] : key['brightCyan']
           ),
           '',
         ]);
