@@ -2,38 +2,23 @@
   "settings": {
     "import/resolver": {
       "node": {
-        "extensions": [
-          ".mjs",
-          ".js"
-        ]
+        "extensions": [".ts"]
       }
     }
   },
-  "extends": ["airbnb", "prettier"],
-  "parser": "@babel/eslint-parser",
+  "extends": [
+    "prettier",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "requireConfigFile": false
   },
-  "plugins": ["prettier", "jest"],
+  "plugins": ["prettier", "jest", "@typescript-eslint"],
   "rules": {
-    "prettier/prettier": ["error"],
-    "import/extensions": [
-      "error",
-      {
-        "js": "always",
-        "json": "always"
-      }
-    ],
-    "no-console": "off",
-    "no-underscore-dangle": "off",
-    "no-restricted-syntax": [
-      "error",
-      // "ForInStatement",
-      // "ForOfStatement",
-      "LabeledStatement",
-      "WithStatement"
-    ],
-    "no-multi-str": "off"
+    "prettier/prettier": ["error"]
   },
   "env": {
     "jest": true,

@@ -276,7 +276,7 @@ jobs:
         run: |
           npm run lint
 
-      - name: Build commonjs
+      - name: Build
         run: |
           npm run build
 
