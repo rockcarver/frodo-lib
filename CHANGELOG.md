@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1-0] - 2022-08-27
+
 ### Fixed
 
 -   \#22: Fixed a pipeline issue that broke `frodo-cli` binary builds.
@@ -447,7 +449,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.12.1-0...HEAD
+
+[0.12.1-0]: https://github.com/rockcarver/frodo-lib/compare/v0.12.0...v0.12.1-0
 
 [0.12.0]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-8...v0.12.0
 
