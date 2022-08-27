@@ -5,7 +5,6 @@ import {
   convertBase64TextToArray,
   saveToFile,
   validateImport,
-  checkTargetCompatibility,
 } from './ExportImportUtils';
 // Warning! implimentation file contains non determinisitc functions which are either; not reasonable to test or imposible
 // Cause: date based non overidable functions
@@ -108,12 +107,4 @@ describe.skip('file system based tests', () => {
       'exportToolVersion',
     ]);
   });
-});
-
-test.skip('checkTargetCompatibility to be made testable', () => {
-  // Arrange
-  // Act
-  const result = checkTargetCompatibility(null, null, null);
-  // Assert
-  expect(result).toBe('not tested yet');
 });
