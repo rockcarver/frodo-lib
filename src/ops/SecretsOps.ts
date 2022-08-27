@@ -1,13 +1,10 @@
 import {
   createKeyValueTable,
-  createProgressBar,
+  createProgressIndicator,
   createTable,
-  failSpinner,
   printMessage,
-  showSpinner,
-  stopProgressBar,
-  succeedSpinner,
-  updateProgressBar,
+  stopProgressIndicator,
+  updateProgressIndicator,
 } from './utils/Console';
 import {
   createNewVersionOfSecret,
@@ -81,13 +78,18 @@ export async function createSecret(
   encoding,
   useInPlaceholders
 ) {
-  showSpinner(`Creating secret ${id}...`);
+  createProgressIndicator(
+    undefined,
+    `Creating secret ${id}...`,
+    'indeterminate'
+  );
   try {
     await putSecret(id, value, description, encoding, useInPlaceholders);
-    succeedSpinner(`Created secret ${id}`);
+    stopProgressIndicator(`Created secret ${id}`, 'success');
   } catch (error) {
-    failSpinner(
-      `Error: ${error.response.data.code} - ${error.response.data.message}`
+    stopProgressIndicator(
+      `Error: ${error.response.data.code} - ${error.response.data.message}`,
+      'fail'
     );
   }
 }
@@ -98,13 +100,18 @@ export async function createSecret(
  * @param {String} description secret description
  */
 export async function setDescriptionOfSecret(secretId, description) {
-  showSpinner(`Setting description of secret ${secretId}...`);
+  createProgressIndicator(
+    undefined,
+    `Setting description of secret ${secretId}...`,
+    'indeterminate'
+  );
   try {
     await setSecretDescription(secretId, description);
-    succeedSpinner(`Set description of secret ${secretId}`);
+    stopProgressIndicator(`Set description of secret ${secretId}`, 'success');
   } catch (error) {
-    failSpinner(
-      `Error: ${error.response.data.code} - ${error.response.data.message}`
+    stopProgressIndicator(
+      `Error: ${error.response.data.code} - ${error.response.data.message}`,
+      'fail'
     );
   }
 }
@@ -114,13 +121,18 @@ export async function setDescriptionOfSecret(secretId, description) {
  * @param {String} secretId secret id
  */
 export async function deleteSecretCmd(secretId) {
-  showSpinner(`Deleting secret ${secretId}...`);
+  createProgressIndicator(
+    undefined,
+    `Deleting secret ${secretId}...`,
+    'indeterminate'
+  );
   try {
     await deleteSecret(secretId);
-    succeedSpinner(`Deleted secret ${secretId}`);
+    stopProgressIndicator(`Deleted secret ${secretId}`, 'success');
   } catch (error) {
-    failSpinner(
-      `Error: ${error.response.data.code} - ${error.response.data.message}`
+    stopProgressIndicator(
+      `Error: ${error.response.data.code} - ${error.response.data.message}`,
+      'fail'
     );
   }
 }
@@ -131,12 +143,12 @@ export async function deleteSecretCmd(secretId) {
 export async function deleteSecretsCmd() {
   try {
     const secrets = (await getSecrets()).data.result;
-    createProgressBar(secrets.length, `Deleting secrets...`);
+    createProgressIndicator(secrets.length, `Deleting secrets...`);
     for (const secret of secrets) {
       try {
         // eslint-disable-next-line no-await-in-loop
         await deleteSecret(secret._id);
-        updateProgressBar(`Deleted secret ${secret._id}`);
+        updateProgressIndicator(`Deleted secret ${secret._id}`);
       } catch (error) {
         printMessage(
           `Error: ${error.response.data.code} - ${error.response.data.message}`,
@@ -144,7 +156,7 @@ export async function deleteSecretsCmd() {
         );
       }
     }
-    stopProgressBar(`Secrets deleted.`);
+    stopProgressIndicator(`Secrets deleted.`);
   } catch (error) {
     printMessage(
       `Error: ${error.response.data.code} - ${error.response.data.message}`,
@@ -225,13 +237,21 @@ export async function describeSecret(secretId) {
  * @param {String} value secret value
  */
 export async function createNewVersionOfSecretCmd(secretId, value) {
-  showSpinner(`Creating new version of secret ${secretId}...`);
+  createProgressIndicator(
+    undefined,
+    `Creating new version of secret ${secretId}...`,
+    'indeterminate'
+  );
   try {
     const version = (await createNewVersionOfSecret(secretId, value)).data;
-    succeedSpinner(`Created version ${version.version} of secret ${secretId}`);
+    stopProgressIndicator(
+      `Created version ${version.version} of secret ${secretId}`,
+      'success'
+    );
   } catch (error) {
-    failSpinner(
-      `Error: ${error.response.data.code} - ${error.response.data.message}`
+    stopProgressIndicator(
+      `Error: ${error.response.data.code} - ${error.response.data.message}`,
+      'fail'
     );
   }
 }
@@ -242,13 +262,21 @@ export async function createNewVersionOfSecretCmd(secretId, value) {
  * @param {Number} version version of secret
  */
 export async function activateVersionOfSecret(secretId, version) {
-  showSpinner(`Activating version ${version} of secret ${secretId}...`);
+  createProgressIndicator(
+    undefined,
+    `Activating version ${version} of secret ${secretId}...`,
+    'indeterminate'
+  );
   try {
     await setStatusOfVersionOfSecret(secretId, version, 'ENABLED');
-    succeedSpinner(`Activated version ${version} of secret ${secretId}`);
+    stopProgressIndicator(
+      `Activated version ${version} of secret ${secretId}`,
+      'success'
+    );
   } catch (error) {
-    failSpinner(
-      `Error: ${error.response.data.code} - ${error.response.data.message}`
+    stopProgressIndicator(
+      `Error: ${error.response.data.code} - ${error.response.data.message}`,
+      'fail'
     );
   }
 }
@@ -259,13 +287,21 @@ export async function activateVersionOfSecret(secretId, version) {
  * @param {Number} version version of secret
  */
 export async function deactivateVersionOfSecret(secretId, version) {
-  showSpinner(`Deactivating version ${version} of secret ${secretId}...`);
+  createProgressIndicator(
+    undefined,
+    `Deactivating version ${version} of secret ${secretId}...`,
+    'indeterminate'
+  );
   try {
     await setStatusOfVersionOfSecret(secretId, version, 'DISABLED');
-    succeedSpinner(`Deactivated version ${version} of secret ${secretId}`);
+    stopProgressIndicator(
+      `Deactivated version ${version} of secret ${secretId}`,
+      'success'
+    );
   } catch (error) {
-    failSpinner(
-      `Error: ${error.response.data.code} - ${error.response.data.message}`
+    stopProgressIndicator(
+      `Error: ${error.response.data.code} - ${error.response.data.message}`,
+      'fail'
     );
   }
 }
@@ -276,13 +312,21 @@ export async function deactivateVersionOfSecret(secretId, version) {
  * @param {Number} version version of secret
  */
 export async function deleteVersionOfSecretCmd(secretId, version) {
-  showSpinner(`Deleting version ${version} of secret ${secretId}...`);
+  createProgressIndicator(
+    undefined,
+    `Deleting version ${version} of secret ${secretId}...`,
+    'indeterminate'
+  );
   try {
     await deleteVersionOfSecret(secretId, version);
-    succeedSpinner(`Deleted version ${version} of secret ${secretId}`);
+    stopProgressIndicator(
+      `Deleted version ${version} of secret ${secretId}`,
+      'success'
+    );
   } catch (error) {
-    failSpinner(
-      `Error: ${error.response.data.code} - ${error.response.data.message}`
+    stopProgressIndicator(
+      `Error: ${error.response.data.code} - ${error.response.data.message}`,
+      'fail'
     );
   }
 }

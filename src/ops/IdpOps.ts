@@ -15,9 +15,9 @@ import {
 } from './utils/ExportImportUtils';
 import {
   printMessage,
-  createProgressBar,
-  updateProgressBar,
-  stopProgressBar,
+  createProgressIndicator,
+  updateProgressIndicator,
+  stopProgressIndicator,
 } from './utils/Console';
 
 // use a function vs a template variable to avoid problems in loops
@@ -77,10 +77,10 @@ export async function exportProvider(id, file = '') {
   if (!fileName) {
     fileName = getTypedFilename(id, 'idp');
   }
-  createProgressBar(1, `Exporting ${id}`);
+  createProgressIndicator(1, `Exporting ${id}`);
   try {
     const idpData = await getSocialIdentityProviderById(id);
-    updateProgressBar(`Writing file ${fileName}`);
+    updateProgressIndicator(`Writing file ${fileName}`);
     const fileData = getFileDataTemplate();
     fileData.idp[idpData._id] = idpData;
     if (idpData.transform) {
@@ -89,9 +89,11 @@ export async function exportProvider(id, file = '') {
       fileData.script[idpData.transform] = scriptData;
     }
     saveJsonToFile(fileData, fileName);
-    stopProgressBar(`Exported ${id.brightCyan} to ${fileName['brightCyan']}.`);
+    stopProgressIndicator(
+      `Exported ${id.brightCyan} to ${fileName.brightCyan}.`
+    );
   } catch (err) {
-    stopProgressBar(`${err}`);
+    stopProgressIndicator(`${err}`);
     printMessage(`${err}`, 'error');
   }
 }
@@ -107,9 +109,9 @@ export async function exportProvidersToFile(file) {
   }
   const fileData = getFileDataTemplate();
   const allIdpsData = (await getSocialIdentityProviders()).data.result;
-  createProgressBar(allIdpsData.length, 'Exporting providers');
+  createProgressIndicator(allIdpsData.length, 'Exporting providers');
   for (const idpData of allIdpsData) {
-    updateProgressBar(`Exporting provider ${idpData._id}`);
+    updateProgressIndicator(`Exporting provider ${idpData._id}`);
     fileData.idp[idpData._id] = idpData;
     if (idpData.transform) {
       // eslint-disable-next-line no-await-in-loop
@@ -119,7 +121,9 @@ export async function exportProvidersToFile(file) {
     }
   }
   saveJsonToFile(fileData, fileName);
-  stopProgressBar(`${allIdpsData.length} providers exported to ${fileName}.`);
+  stopProgressIndicator(
+    `${allIdpsData.length} providers exported to ${fileName}.`
+  );
 }
 
 /**
@@ -128,9 +132,9 @@ export async function exportProvidersToFile(file) {
 export async function exportProvidersToFiles() {
   const allIdpsData = await (await getSocialIdentityProviders()).data.result;
   // printMessage(allIdpsData, 'data');
-  createProgressBar(allIdpsData.length, 'Exporting providers');
+  createProgressIndicator(allIdpsData.length, 'Exporting providers');
   for (const idpData of allIdpsData) {
-    updateProgressBar(`Writing provider ${idpData._id}`);
+    updateProgressIndicator(`Writing provider ${idpData._id}`);
     const fileName = getTypedFilename(idpData._id, 'idp');
     const fileData = getFileDataTemplate();
     fileData.idp[idpData._id] = idpData;
@@ -142,7 +146,7 @@ export async function exportProvidersToFiles() {
     }
     saveJsonToFile(fileData, fileName);
   }
-  stopProgressBar(`${allIdpsData.length} providers exported.`);
+  stopProgressIndicator(`${allIdpsData.length} providers exported.`);
 }
 
 /**
@@ -155,13 +159,13 @@ export async function importProviderById(id, file) {
     if (err) throw err;
     const fileData = JSON.parse(data);
     if (validateImport(fileData.meta)) {
-      createProgressBar(1, 'Importing provider...');
+      createProgressIndicator(1, 'Importing provider...');
       let found = false;
       for (const idpId in fileData.idp) {
         if ({}.hasOwnProperty.call(fileData.idp, idpId)) {
           if (idpId === id) {
             found = true;
-            updateProgressBar(`Importing ${fileData.idp[idpId]._id}`);
+            updateProgressIndicator(`Importing ${fileData.idp[idpId]._id}`);
             const scriptId = fileData.idp[idpId].transform;
             const scriptData = fileData.script[scriptId];
             if (scriptId && scriptData) {
@@ -178,10 +182,10 @@ export async function importProviderById(id, file) {
               fileData.idp[idpId]
             )
               .then(() => {
-                stopProgressBar(`Successfully imported provider ${id}.`);
+                stopProgressIndicator(`Successfully imported provider ${id}.`);
               })
               .catch((importProviderErr) => {
-                stopProgressBar(
+                stopProgressIndicator(
                   `Error importing provider ${fileData.idp[idpId]._id}`
                 );
                 printMessage(`\nError importing provider ${id}`, 'error');
@@ -192,7 +196,7 @@ export async function importProviderById(id, file) {
         }
       }
       if (!found) {
-        stopProgressBar(
+        stopProgressIndicator(
           `Provider ${id.brightCyan} not found in ${file.brightCyan}!`
         );
       }
@@ -211,10 +215,10 @@ export async function importFirstProvider(file) {
     if (err) throw err;
     const fileData = JSON.parse(data);
     if (validateImport(fileData.meta)) {
-      createProgressBar(1, 'Importing provider...');
+      createProgressIndicator(1, 'Importing provider...');
       for (const idpId in fileData.idp) {
         if ({}.hasOwnProperty.call(fileData.idp, idpId)) {
-          updateProgressBar(`Importing ${fileData.idp[idpId]._id}`);
+          updateProgressIndicator(`Importing ${fileData.idp[idpId]._id}`);
           const scriptId = fileData.idp[idpId].transform;
           const scriptData = fileData.script[scriptId];
           if (scriptId && scriptData) {
@@ -231,7 +235,7 @@ export async function importFirstProvider(file) {
             fileData.idp[idpId]
           ).then((result) => {
             if (result == null) {
-              stopProgressBar(
+              stopProgressIndicator(
                 `Error importing provider ${fileData.idp[idpId]._id}`
               );
               printMessage(
@@ -239,7 +243,7 @@ export async function importFirstProvider(file) {
                 'error'
               );
             } else {
-              stopProgressBar(
+              stopProgressIndicator(
                 `Successfully imported provider ${fileData.idp[idpId]._id}.`
               );
             }
@@ -262,7 +266,7 @@ export async function importProvidersFromFile(file) {
     if (err) throw err;
     const fileData = JSON.parse(data);
     if (validateImport(fileData.meta)) {
-      createProgressBar(
+      createProgressIndicator(
         Object.keys(fileData.idp).length,
         'Importing providers...'
       );
@@ -285,13 +289,13 @@ export async function importProvidersFromFile(file) {
             fileData.idp[idpId]
           );
           if (!result) {
-            updateProgressBar(
+            updateProgressIndicator(
               `Successfully imported ${fileData.idp[idpId].name}`
             );
           }
         }
       }
-      stopProgressBar(`Providers imported.`);
+      stopProgressIndicator(`Providers imported.`);
     } else {
       printMessage('Import validation failed...', 'error');
     }
@@ -307,7 +311,7 @@ export async function importProvidersFromFiles() {
     name.toLowerCase().endsWith('.idp.json')
   );
 
-  createProgressBar(jsonFiles.length, 'Importing providers...');
+  createProgressIndicator(jsonFiles.length, 'Importing providers...');
   let total = 0;
   for (const file of jsonFiles) {
     const data = fs.readFileSync(file, 'utf8');
@@ -331,12 +335,12 @@ export async function importProvidersFromFiles() {
           }
         }
       }
-      updateProgressBar(`Imported ${count} provider(s) from ${file}`);
+      updateProgressIndicator(`Imported ${count} provider(s) from ${file}`);
     } else {
       printMessage(`Validation of ${file} failed!`, 'error');
     }
   }
-  stopProgressBar(
+  stopProgressIndicator(
     `Finished importing ${total} provider(s) from ${jsonFiles.length} file(s).`
   );
 }

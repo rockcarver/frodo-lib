@@ -37,7 +37,7 @@ function getHttpsAgent() {
   const httpsProxy = process.env.HTTPS_PROXY || process.env.https_proxy;
   if (httpsProxy) {
     // https://github.com/axios/axios/issues/3459
-    console.error(`Using proxy ${httpsProxy}`.yellow);
+    console.error(`Using proxy ${httpsProxy}`['yellow']);
     const parsed = url.parse(httpsProxy);
     options['host'] = parsed.hostname;
     options['port'] = parsed.port;

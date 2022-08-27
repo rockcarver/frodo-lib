@@ -11,14 +11,11 @@ import {
   putThemes,
 } from '../api/ThemeApi';
 import {
-  createProgressBar,
+  createProgressIndicator,
   createTable,
-  failSpinner,
   printMessage,
-  showSpinner,
-  stopProgressBar,
-  succeedSpinner,
-  updateProgressBar,
+  stopProgressIndicator,
+  updateProgressIndicator,
 } from './utils/Console';
 import {
   getRealmString,
@@ -68,15 +65,15 @@ export async function exportThemeByName(name, file) {
   if (file) {
     fileName = file;
   }
-  createProgressBar(1, `Exporting ${name}`);
+  createProgressIndicator(1, `Exporting ${name}`);
   const themeData = await getThemeByName(name);
   if (themeData.length === 0) {
-    stopProgressBar(`Theme ${name} not found!`);
+    stopProgressIndicator(`Theme ${name} not found!`);
     printMessage(`Theme ${name} not found!`, 'error');
   } else {
-    updateProgressBar(`Writing file ${fileName}`);
+    updateProgressIndicator(`Writing file ${fileName}`);
     saveToFile('theme', themeData, '_id', fileName);
-    stopProgressBar(`Successfully exported theme ${name}.`);
+    stopProgressIndicator(`Successfully exported theme ${name}.`);
   }
 }
 
@@ -90,15 +87,15 @@ export async function exportThemeById(id, file) {
   if (file) {
     fileName = file;
   }
-  createProgressBar(1, `Exporting ${id}`);
+  createProgressIndicator(1, `Exporting ${id}`);
   const themeData = await getTheme(id);
   if (themeData.length === 0) {
-    stopProgressBar(`Theme ${id} not found!`);
+    stopProgressIndicator(`Theme ${id} not found!`);
     printMessage(`Theme ${id} not found!`, 'error');
   } else {
-    updateProgressBar(`Writing file ${fileName}`);
+    updateProgressIndicator(`Writing file ${fileName}`);
     saveToFile('theme', themeData, '_id', fileName);
-    stopProgressBar(`Successfully exported theme ${id}.`);
+    stopProgressIndicator(`Successfully exported theme ${id}.`);
   }
 }
 
@@ -112,12 +109,14 @@ export async function exportThemesToFile(file) {
     fileName = file;
   }
   const allThemesData = await getThemes();
-  createProgressBar(allThemesData.length, 'Exporting themes');
+  createProgressIndicator(allThemesData.length, 'Exporting themes');
   for (const themeData of allThemesData) {
-    updateProgressBar(`Exporting theme ${themeData.name}`);
+    updateProgressIndicator(`Exporting theme ${themeData.name}`);
   }
   saveToFile('theme', allThemesData, '_id', fileName);
-  stopProgressBar(`${allThemesData.length} themes exported to ${fileName}.`);
+  stopProgressIndicator(
+    `${allThemesData.length} themes exported to ${fileName}.`
+  );
 }
 
 /**
@@ -125,13 +124,13 @@ export async function exportThemesToFile(file) {
  */
 export async function exportThemesToFiles() {
   const allThemesData = await getThemes();
-  createProgressBar(allThemesData.length, 'Exporting themes');
+  createProgressIndicator(allThemesData.length, 'Exporting themes');
   for (const themeData of allThemesData) {
-    updateProgressBar(`Writing theme ${themeData.name}`);
+    updateProgressIndicator(`Writing theme ${themeData.name}`);
     const fileName = getTypedFilename(themeData.name, 'theme');
     saveToFile('theme', themeData, '_id', fileName);
   }
-  stopProgressBar(`${allThemesData.length} themes exported.`);
+  stopProgressIndicator(`${allThemesData.length} themes exported.`);
 }
 
 /**
@@ -144,16 +143,16 @@ export async function importThemeByName(name, file) {
     if (err) throw err;
     const themeData = JSON.parse(data);
     if (validateImport(themeData.meta)) {
-      createProgressBar(1, 'Importing theme...');
+      createProgressIndicator(1, 'Importing theme...');
       let found = false;
       for (const id in themeData.theme) {
         if ({}.hasOwnProperty.call(themeData.theme, id)) {
           if (themeData.theme[id].name === name) {
             found = true;
-            updateProgressBar(`Importing ${themeData.theme[id].name}`);
+            updateProgressIndicator(`Importing ${themeData.theme[id].name}`);
             putThemeByName(name, themeData.theme[id]).then((result) => {
               if (result == null) {
-                stopProgressBar(
+                stopProgressIndicator(
                   `Error importing theme ${themeData.theme[id].name}`
                 );
                 printMessage(
@@ -161,7 +160,7 @@ export async function importThemeByName(name, file) {
                   'error'
                 );
               } else {
-                stopProgressBar(`Successfully imported theme ${name}.`);
+                stopProgressIndicator(`Successfully imported theme ${name}.`);
               }
             });
             break;
@@ -169,7 +168,7 @@ export async function importThemeByName(name, file) {
         }
       }
       if (!found) {
-        stopProgressBar(`Theme ${name} not found!`);
+        stopProgressIndicator(`Theme ${name} not found!`);
       }
     } else {
       printMessage('Import validation failed...', 'error');
@@ -187,16 +186,18 @@ export async function importThemeById(id, file) {
     if (err) throw err;
     const themeData = JSON.parse(data);
     if (validateImport(themeData.meta)) {
-      createProgressBar(1, 'Importing theme...');
+      createProgressIndicator(1, 'Importing theme...');
       let found = false;
       for (const themeId in themeData.theme) {
         if ({}.hasOwnProperty.call(themeData.theme, themeId)) {
           if (themeId === id) {
             found = true;
-            updateProgressBar(`Importing ${themeData.theme[themeId]._id}`);
+            updateProgressIndicator(
+              `Importing ${themeData.theme[themeId]._id}`
+            );
             putTheme(themeId, themeData.theme[themeId]).then((result) => {
               if (result == null) {
-                stopProgressBar(
+                stopProgressIndicator(
                   `Error importing theme ${themeData.theme[themeId]._id}`
                 );
                 printMessage(
@@ -204,7 +205,7 @@ export async function importThemeById(id, file) {
                   'error'
                 );
               } else {
-                stopProgressBar(`Successfully imported theme ${id}.`);
+                stopProgressIndicator(`Successfully imported theme ${id}.`);
               }
             });
             break;
@@ -212,7 +213,7 @@ export async function importThemeById(id, file) {
         }
       }
       if (!found) {
-        stopProgressBar(`Theme ${id} not found!`);
+        stopProgressIndicator(`Theme ${id} not found!`);
       }
     } else {
       printMessage('Import validation failed...', 'error');
@@ -229,18 +230,18 @@ export async function importThemesFromFile(file) {
     if (err) throw err;
     const fileData = JSON.parse(data);
     if (validateImport(fileData.meta)) {
-      createProgressBar(
+      createProgressIndicator(
         Object.keys(fileData.theme).length,
         'Importing themes...'
       );
       for (const id in fileData.theme) {
         if ({}.hasOwnProperty.call(fileData.theme, id)) {
-          updateProgressBar(`Importing ${fileData.theme[id].name}`);
+          updateProgressIndicator(`Importing ${fileData.theme[id].name}`);
         }
       }
       putThemes(fileData.theme).then((result) => {
         if (result == null) {
-          stopProgressBar(
+          stopProgressIndicator(
             `Error importing ${Object.keys(fileData.theme).length} themes!`
           );
           printMessage(
@@ -250,7 +251,7 @@ export async function importThemesFromFile(file) {
             'error'
           );
         } else {
-          stopProgressBar(
+          stopProgressIndicator(
             `Successfully imported ${
               Object.keys(fileData.theme).length
             } themes.`
@@ -272,7 +273,7 @@ export async function importThemesFromFiles() {
     name.toLowerCase().endsWith('.theme.json')
   );
 
-  createProgressBar(jsonFiles.length, 'Importing themes...');
+  createProgressIndicator(jsonFiles.length, 'Importing themes...');
   let fileData = null;
   let count = 0;
   let total = 0;
@@ -289,13 +290,13 @@ export async function importThemesFromFiles() {
       } else {
         files += 1;
         total += count;
-        updateProgressBar(`Imported ${count} theme(s) from ${file}`);
+        updateProgressIndicator(`Imported ${count} theme(s) from ${file}`);
       }
     } else {
       printMessage(`Validation of ${file} failed!`, 'error');
     }
   }
-  stopProgressBar(
+  stopProgressIndicator(
     `Finished importing ${total} theme(s) from ${files} file(s).`
   );
 }
@@ -309,13 +310,13 @@ export async function importFirstThemeFromFile(file) {
     if (err) throw err;
     const themeData = JSON.parse(data);
     if (validateImport(themeData.meta)) {
-      createProgressBar(1, 'Importing theme...');
+      createProgressIndicator(1, 'Importing theme...');
       for (const id in themeData.theme) {
         if ({}.hasOwnProperty.call(themeData.theme, id)) {
-          updateProgressBar(`Importing ${themeData.theme[id].name}`);
+          updateProgressIndicator(`Importing ${themeData.theme[id].name}`);
           putTheme(id, themeData.theme[id]).then((result) => {
             if (result == null) {
-              stopProgressBar(
+              stopProgressIndicator(
                 `Error importing theme ${themeData.theme[id].name}`
               );
               printMessage(
@@ -323,7 +324,7 @@ export async function importFirstThemeFromFile(file) {
                 'error'
               );
             } else {
-              stopProgressBar(
+              stopProgressIndicator(
                 `Successfully imported theme ${themeData.theme[id].name}`
               );
             }
@@ -342,12 +343,12 @@ export async function importFirstThemeFromFile(file) {
  * @param {String} id theme id
  */
 export async function deleteThemeCmd(id) {
-  showSpinner(`Deleting ${id}...`);
+  createProgressIndicator(undefined, `Deleting ${id}...`, 'indeterminate');
   try {
     await deleteTheme(id);
-    succeedSpinner(`Deleted ${id}.`);
+    stopProgressIndicator(`Deleted ${id}.`, 'success');
   } catch (error) {
-    failSpinner(`Error: ${error.message}`);
+    stopProgressIndicator(`Error: ${error.message}`, 'fail');
   }
 }
 
@@ -356,12 +357,12 @@ export async function deleteThemeCmd(id) {
  * @param {String} name theme name
  */
 export async function deleteThemeByNameCmd(name) {
-  showSpinner(`Deleting ${name}...`);
+  createProgressIndicator(undefined, `Deleting ${name}...`, 'indeterminate');
   try {
     await deleteThemeByName(name);
-    succeedSpinner(`Deleted ${name}.`);
+    stopProgressIndicator(`Deleted ${name}.`, 'success');
   } catch (error) {
-    failSpinner(`Error: ${error.message}`);
+    stopProgressIndicator(`Error: ${error.message}`, 'fail');
   }
 }
 
@@ -369,11 +370,15 @@ export async function deleteThemeByNameCmd(name) {
  * Delete all themes
  */
 export async function deleteThemesCmd() {
-  showSpinner(`Deleting all realm themes...`);
+  createProgressIndicator(
+    undefined,
+    `Deleting all realm themes...`,
+    'indeterminate'
+  );
   try {
     await deleteThemes();
-    succeedSpinner(`Deleted all realm themes.`);
+    stopProgressIndicator(`Deleted all realm themes.`, 'success');
   } catch (error) {
-    failSpinner(`Error: ${error.message}`);
+    stopProgressIndicator(`Error: ${error.message}`, 'fail');
   }
 }
