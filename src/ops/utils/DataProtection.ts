@@ -95,7 +95,8 @@ class DataProtection {
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, nonce);
     decipher.setAuthTag(tag);
     return JSON.parse(
-      decipher.update(encrypted, 'binary', 'utf8') + decipher.final('utf8')
+      decipher.update(encrypted.toString('binary'), 'binary', 'utf8') +
+        decipher.final('utf8')
     );
   }
 }

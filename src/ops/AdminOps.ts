@@ -11,11 +11,11 @@ import { getRealmManagedOrganization } from './OrganizationOps';
 import { getOAuth2Provider } from '../api/OAuth2ProviderApi';
 import { putSecret } from '../api/SecretsApi';
 import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
-// import OAUTH2_CLIENT from './templates/OAuth2ClientTemplate.json' assert { type: 'json' };
-// import ORG_MODEL_USER_ATTRIBUTES from './templates/OrgModelUserAttributesTemplate.json' assert { type: 'json' };
-// import GENERIC_EXTENSION_ATTRIBUTES from './templates/cloud/GenericExtensionAttributesTemplate.json' assert { type: 'json' };
 import { printMessage } from './utils/Console';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const OAUTH2_CLIENT = JSON.parse(
   fs.readFileSync(
