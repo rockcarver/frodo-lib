@@ -1,5 +1,7 @@
 # built commonjs
 cjs/
+esm/
+types/
 
 # Logs
 logs

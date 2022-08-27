@@ -1,14 +1,19 @@
+.babelrc.js
 .eslintrc
 .github/
 .prettierrc
+babel.config.cjs.json                                          
+babel.config.esm.json   
 cjs/**/*.test.js
 CODE_OF_CONDUCT.md
 docs/
+esm/**/*.test.js
 gulpfile.mjs
 jsconfig.json
 resources/
-src/**/*.test.mjs
+src/*
 test/*
+tsconfig.json
 
 # Logs
 logs
