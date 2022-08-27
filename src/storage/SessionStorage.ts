@@ -1,4 +1,3 @@
-/* eslint-disable no-return-assign */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -9,23 +8,6 @@ const pkg = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8')
 );
 
-// {
-//   username: string;
-//   password: string;
-//   tenant: string;
-//   deploymentType: string;
-//   realm: string;
-//   cookieName: string;
-//   cookieValue: string;
-//   bearerToken: string;
-//   logApiKey: string;
-//   logApiSecret: string;
-//   amVersion: string;
-//   frodoVersion: string;
-//   insecure: boolean;
-//   connectionProfilesPath: string;
-//   masterKeyPath: string;
-// }
 const _sessionStorage = {};
 
 export default {
@@ -67,5 +49,17 @@ export default {
     getConnectionProfilesPath: () => _sessionStorage['connectionProfilesPath'],
     setMasterKeyPath: (value) => (_sessionStorage['masterKeyPath'] = value),
     getMasterKeyPath: () => _sessionStorage['masterKeyPath'],
+    setPrintHandler: (printHandler) =>
+      (_sessionStorage['printHandler'] = printHandler),
+    getPrintHandler: () => _sessionStorage['printHandler'],
+    setCreateProgressHandler: (handler) =>
+      (_sessionStorage['createProgressHandler'] = handler),
+    getCreateProgressHandler: () => _sessionStorage['createProgressHandler'],
+    setUpdateProgressHandler: (handler) =>
+      (_sessionStorage['updateProgressHandler'] = handler),
+    getUpdateProgressHandler: () => _sessionStorage['updateProgressHandler'],
+    setStopProgressHandler: (handler) =>
+      (_sessionStorage['stopProgressHandler'] = handler),
+    getStopProgressHandler: () => _sessionStorage['stopProgressHandler'],
   },
 };
