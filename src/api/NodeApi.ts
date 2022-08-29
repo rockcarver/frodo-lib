@@ -108,7 +108,7 @@ export async function getNode(nodeId: string, nodeType: string) {
  * @param {Object} nodeData node object
  * @returns {Promise} a promise that resolves to an object containing a node object
  */
-export async function putNode(nodeId, nodeType, nodeData) {
+export async function putNode(nodeId: string, nodeType: string, nodeData) {
   // until we figure out a way to use transport keys in Frodo,
   // we'll have to drop those encrypted attributes.
   const cleanData = deleteDeepByKey(nodeData, '-encrypted');
@@ -131,19 +131,20 @@ export async function putNode(nodeId, nodeType, nodeData) {
 
 /**
  * Delete node by uuid and type
- * @param {String} id node uuid
+ * @param {String} nodeId node uuid
  * @param {String} nodeType node type
  * @returns {Promise} a promise that resolves to an object containing a node object
  */
-export async function deleteNode(id, nodeType) {
+export async function deleteNode(nodeId: string, nodeType: string) {
   const urlString = util.format(
     nodeURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
     nodeType,
-    id
+    nodeId
   );
-  return generateAmApi(getNodeApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi(getNodeApiConfig()).delete(urlString, {
     withCredentials: true,
   });
+  return data;
 }
