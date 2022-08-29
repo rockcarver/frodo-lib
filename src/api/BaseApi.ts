@@ -72,7 +72,7 @@ export function generateAmApi(resource, requestOverride = {}) {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
     'Accept-API-Version': resource.apiVersion,
-    Cookie: `${storage.session.raw['cookieName']}=${storage.session.raw['cookieValue']}`,
+    Cookie: `${storage.session.getCookieName()}=${storage.session.getCookieValue()}`,
   };
   if (requestOverride['headers']) {
     headers = {
@@ -82,7 +82,7 @@ export function generateAmApi(resource, requestOverride = {}) {
   }
 
   const requestDetails = {
-    baseURL: `${storage.session.getTenant()}/json${resource.path}`,
+    baseURL: `${storage.session.getTenant()}/json`,
     timeout,
     ...requestOverride,
     headers,
