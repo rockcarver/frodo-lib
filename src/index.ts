@@ -8,14 +8,15 @@ const pkg = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8')
 );
 
-// const pkg = JSON.parse(
-//   fs.readFileSync(new URL('../package.json', import.meta.url), 'utf-8')
-// );
-
 export function getVersion() {
   return `v${pkg.version}`;
 }
 
+// Api Layer
+export * as NodeRaw from './api/NodeApi';
+export * as TreeRaw from './api/TreeApi';
+
+// Ops Layer
 export * as Admin from './ops/AdminOps';
 export * as Authenticate from './ops/AuthenticateOps';
 export * as CirclesOfTrust from './ops/CirclesOfTrustOps';

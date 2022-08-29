@@ -41,7 +41,7 @@ export function printMessage(message, type = 'text', newline = true) {
  */
 export function createProgressIndicator(
   total,
-  message = null,
+  message: string = null,
   type = 'determinate'
 ) {
   const handler = storage.session.getCreateProgressHandler();
@@ -55,7 +55,7 @@ export function createProgressIndicator(
  * @param {string} message optional message to show with the indicator
  *
  */
-export function updateProgressIndicator(message = null) {
+export function updateProgressIndicator(message: string = null) {
   const handler = storage.session.getUpdateProgressHandler();
   if (handler) {
     handler(message);
@@ -66,7 +66,7 @@ export function updateProgressIndicator(message = null) {
  * Stop and hide the progress indicator
  * @param {*} message optional message to show with the indicator
  */
-export function stopProgressIndicator(message = null, status = 'none') {
+export function stopProgressIndicator(message: string = null, status = 'none') {
   const handler = storage.session.getStopProgressHandler();
   if (handler) {
     handler(message, status);

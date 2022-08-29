@@ -1,0 +1,9 @@
+{
+  "nodes": {},
+  "staticNodes": {},
+  "description": "invalid tree def",
+  "identityResource": "managed/alpha_user",
+  "uiConfig": {
+    "categories": "[]"
+  }
+}
