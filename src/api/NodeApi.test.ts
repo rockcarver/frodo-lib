@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import { NodeRaw, state } from '../index';
 import fs from 'fs';
@@ -156,4 +156,53 @@ describe('NodeApi - putNode()', () => {
   });
 });
 
-// deleteNode,
+describe('NodeApi - deleteNode()', () => {
+  test('deleteNode() 1: Delete existing node [1aea363f-d8d2-4711-b88d-d58fff92dbae]', async () => {
+    const response = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          '../../test/mocks/NodeApi/deleteNode/PageNode_1aea363f-d8d2-4711-b88d-d58fff92dbae.json'
+        ),
+        'utf8'
+      )
+    );
+    mock
+      .onDelete(
+        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/1aea363f-d8d2-4711-b88d-d58fff92dbae'
+      )
+      .reply(200, response);
+    const node = await NodeRaw.deleteNode(
+      '1aea363f-d8d2-4711-b88d-d58fff92dbae',
+      'PageNode'
+    );
+    expect(node).toBeTruthy();
+    expect(node._id).toEqual('1aea363f-d8d2-4711-b88d-d58fff92dbae');
+  });
+
+  test('deleteNode() 2: Delete non-existing node [00000000-0000-0000-0000-000000000000]', async () => {
+    mock
+      .onDelete(
+        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/00000000-0000-0000-0000-000000000000'
+      )
+      .reply(404, {
+        code: 404,
+        reason: 'Not Found',
+        message: 'Not Found',
+      });
+    expect.assertions(2);
+    try {
+      await NodeRaw.deleteNode(
+        '00000000-0000-0000-0000-000000000000',
+        'PageNode'
+      );
+    } catch (error) {
+      expect(error.response).toBeTruthy();
+      expect(error.response.data).toMatchObject({
+        code: 404,
+        reason: 'Not Found',
+        message: 'Not Found',
+      });
+    }
+  });
+});
