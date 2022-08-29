@@ -1,16 +1,8 @@
 import util from 'util';
-import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
+import { getCurrentRealmPath } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
 import storage from '../storage/SessionStorage';
 
-const nodeURLTemplate =
-  '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s/%s';
-const queryAllNodesByTypeURLTemplate =
-  '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s?_queryFilter=true';
-const queryAllNodesURLTemplate =
-  '%s/json%s/realm-config/authentication/authenticationtrees/nodes?_action=nextdescendents';
-const queryAllNodeTypesURLTemplate =
-  '%s/json%s/realm-config/authentication/authenticationtrees/nodes?_action=getAllTypes';
 const treeByIdURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/trees/%s';
 const queryAllTreesURLTemplate =
@@ -25,123 +17,9 @@ const getTreeApiConfig = () => {
   };
 };
 
-export async function getNodeTypes() {
-  const urlString = util.format(
-    queryAllNodeTypesURLTemplate,
-    storage.session.getTenant(),
-    getCurrentRealmPath()
-  );
-  return generateAmApi(getTreeApiConfig()).post(
-    urlString,
-    {},
-    {
-      withCredentials: true,
-      headers: { 'Accept-Encoding': 'gzip, deflate, br' },
-    }
-  );
-}
-
-/**
- * Get all nodes
- * @returns {Promise} a promise that resolves to an object containing an array of all node objects
- */
-export async function getNodes() {
-  const urlString = util.format(
-    queryAllNodesURLTemplate,
-    storage.session.getTenant(),
-    getCurrentRealmPath()
-  );
-  return generateAmApi(getTreeApiConfig()).post(
-    urlString,
-    {},
-    {
-      withCredentials: true,
-      headers: { 'Accept-Encoding': 'gzip, deflate, br' },
-    }
-  );
-}
-
-/**
- * Get all nodes by type
- * @param {*} type node type
- * @returns {Promise} a promise that resolves to an object containing an array of node objects of the requested type
- */
-export async function getNodesByType(type) {
-  const urlString = util.format(
-    queryAllNodesByTypeURLTemplate,
-    storage.session.getTenant(),
-    getCurrentRealmPath(),
-    type
-  );
-  return generateAmApi(getTreeApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
-}
-
-/**
- * Get node by uuid and type
- * @param {String} id node uuid
- * @param {String} nodeType node type
- * @returns {Promise} a promise that resolves to an object containing a node object
- */
-export async function getNode(id, nodeType) {
-  const urlString = util.format(
-    nodeURLTemplate,
-    storage.session.getTenant(),
-    getCurrentRealmPath(),
-    nodeType,
-    id
-  );
-  return generateAmApi(getTreeApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
-}
-
-/**
- * Put node by uuid and type
- * @param {String} id node uuid
- * @param {String} nodeType node type
- * @param {Object} data node object
- * @returns {Promise} a promise that resolves to an object containing a node object
- */
-export async function putNode(id, nodeType, nodeData) {
-  // until we figure out a way to use transport keys in Frodo,
-  // we'll have to drop those encrypted attributes.
-  const data = deleteDeepByKey(nodeData, '-encrypted');
-  const urlString = util.format(
-    nodeURLTemplate,
-    storage.session.getTenant(),
-    getCurrentRealmPath(),
-    nodeType,
-    id
-  );
-  return generateAmApi(getTreeApiConfig()).put(urlString, data, {
-    withCredentials: true,
-  });
-}
-
-/**
- * Delete node by uuid and type
- * @param {String} id node uuid
- * @param {String} nodeType node type
- * @returns {Promise} a promise that resolves to an object containing a node object
- */
-export async function deleteNode(id, nodeType) {
-  const urlString = util.format(
-    nodeURLTemplate,
-    storage.session.getTenant(),
-    getCurrentRealmPath(),
-    nodeType,
-    id
-  );
-  return generateAmApi(getTreeApiConfig()).delete(urlString, {
-    withCredentials: true,
-  });
-}
-
 /**
  * Get all trees
- * @returns {Promise} a promise that resolves to an object containing an array of tree objects
+ * @returns {Promise} a promise that resolves to an array of tree objects
  */
 export async function getTrees() {
   const urlString = util.format(
@@ -149,15 +27,16 @@ export async function getTrees() {
     storage.session.getTenant(),
     getCurrentRealmPath()
   );
-  return generateAmApi(getTreeApiConfig()).get(urlString, {
+  const response = await generateAmApi(getTreeApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return response.data.result;
 }
 
 /**
  * Get tree by id/name
  * @param {String} id tree id/name
- * @returns {Promise} a promise that resolves to an object containing a tree object
+ * @returns {Promise} a promise that resolves to a tree object
  */
 export async function getTree(id) {
   const urlString = util.format(
@@ -166,42 +45,49 @@ export async function getTree(id) {
     getCurrentRealmPath(),
     id
   );
-  return generateAmApi(getTreeApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getTreeApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 /**
  * Put tree by id/name
- * @param {String} id tree id/name
- * @param {Object} data tree object
- * @returns {Promise} a promise that resolves to an object containing a tree object
+ * @param {String} treeId tree id/name
+ * @param {Object} treeData tree object
+ * @returns {Promise} a promise that resolves to a tree object
  */
-export async function putTree(id, data) {
+export async function putTree(treeId: string, treeData) {
   const urlString = util.format(
     treeByIdURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
-    id
+    treeId
   );
-  return generateAmApi(getTreeApiConfig()).put(urlString, data, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi(getTreeApiConfig()).put(
+    urlString,
+    treeData,
+    {
+      withCredentials: true,
+    }
+  );
+  return data;
 }
 
 /**
  * Delete tree by id/name
- * @param {String} id tree id/name
- * @returns {Promise} a promise that resolves to an object containing a tree object
+ * @param {String} treeId tree id/name
+ * @returns {Promise} a promise that resolves to a tree object
  */
-export async function deleteTree(id) {
+export async function deleteTree(treeId) {
   const urlString = util.format(
     treeByIdURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
-    id
+    treeId
   );
-  return generateAmApi(getTreeApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi(getTreeApiConfig()).delete(urlString, {
     withCredentials: true,
   });
+  return data;
 }

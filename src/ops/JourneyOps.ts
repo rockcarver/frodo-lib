@@ -17,13 +17,10 @@ import {
   getNode,
   putNode,
   deleteNode,
-  getTrees,
-  getTree,
-  putTree,
   getNodeTypes,
   getNodesByType,
-  deleteTree,
-} from '../api/TreeApi';
+} from '../api/NodeApi';
+import { getTrees, getTree, putTree, deleteTree } from '../api/TreeApi';
 import { getEmailTemplate, putEmailTemplate } from '../api/EmailTemplateApi';
 import { getScript } from '../api/ScriptApi';
 import * as global from '../storage/StaticStorage';
@@ -179,6 +176,21 @@ async function getSaml2NodeDependencies(
   );
 }
 
+export async function getTreeNodes(treeObject) {
+  const nodeList = Object.entries(treeObject.nodes);
+  const results = await Promise.allSettled(
+    nodeList.map(
+      async ([nodeId, nodeInfo]) => await getNode(nodeId, nodeInfo['nodeType'])
+    )
+  );
+  const nodes = results.filter((r) => r.status === 'fulfilled');
+  nodes.map((f) => {
+    return f.status;
+  });
+  const failedList = results.filter((r) => r.status === 'rejected');
+  return nodes;
+}
+
 /**
  * Helper method to create export data for a tree with all its
  * dependencies. The export data can be written to a file as is
@@ -223,9 +235,7 @@ async function exportTree(treeObject, exportData, options) {
 
   // get all the nodes
   for (const [nodeId, nodeInfo] of Object.entries(treeObject.nodes)) {
-    nodePromises.push(
-      getNode(nodeId, nodeInfo['nodeType']).then((response) => response.data)
-    );
+    nodePromises.push(getNode(nodeId, nodeInfo['nodeType']));
   }
   if (verbose && nodePromises.length > 0) printMessage('  - Nodes:');
   const nodeObjects = await Promise.all(nodePromises);
@@ -311,11 +321,7 @@ async function exportTree(treeObject, exportData, options) {
     // get inner nodes (nodes inside container nodes)
     if (containerNodes.includes(nodeType)) {
       for (const innerNode of nodeObject.nodes) {
-        innerNodePromises.push(
-          getNode(innerNode._id, innerNode.nodeType).then(
-            (response) => response.data
-          )
-        );
+        innerNodePromises.push(getNode(innerNode._id, innerNode.nodeType));
       }
       // frodo supports themes in platform deployments
       if (
@@ -556,7 +562,7 @@ export async function exportJourneyToFile(journeyId, file, options) {
     createProgressIndicator(undefined, `${journeyId}`, 'indeterminate');
   await getTree(journeyId)
     .then(async (response) => {
-      const treeData = response.data;
+      const treeData = response;
       const fileData = getSingleTreeFileDataTemplate();
       try {
         await exportTree(treeData, fileData, options);
@@ -590,14 +596,14 @@ export async function exportJourneysToFile(file, options) {
   if (!fileName) {
     fileName = getTypedFilename(`all${getRealmString()}Journeys`, 'journeys');
   }
-  const trees = (await getTrees()).data.result;
+  const trees = await getTrees();
   const fileData = getMultipleTreesFileDataTemplate();
   createProgressIndicator(trees.length, 'Exporting journeys...');
   for (const tree of trees) {
     updateProgressIndicator(`${tree._id}`);
     try {
       // eslint-disable-next-line no-await-in-loop
-      const treeData = (await getTree(tree._id)).data;
+      const treeData = await getTree(tree._id);
       const exportData = getSingleTreeFileDataTemplate();
       delete exportData.meta;
       // eslint-disable-next-line no-await-in-loop
@@ -615,13 +621,13 @@ export async function exportJourneysToFile(file, options) {
  * Export all journeys to separate files
  */
 export async function exportJourneysToFiles(options) {
-  const trees = (await getTrees()).data.result;
+  const trees = await getTrees();
   createProgressIndicator(trees.length, 'Exporting journeys...');
   for (const tree of trees) {
     updateProgressIndicator(`${tree._id}`);
     const fileName = getTypedFilename(`${tree._id}`, 'journey');
     // eslint-disable-next-line no-await-in-loop
-    const treeData = (await getTree(tree._id)).data;
+    const treeData = await getTree(tree._id);
     const exportData = getSingleTreeFileDataTemplate();
     // eslint-disable-next-line no-await-in-loop
     await exportTree(treeData, exportData, options);
@@ -638,12 +644,10 @@ export async function exportJourneysToFiles(options) {
 export async function getJourneyData(journeyId) {
   createProgressIndicator(undefined, `${journeyId}`, 'indeterminate');
   const journeyData = getSingleTreeFileDataTemplate();
-  const treeData = (
-    await getTree(journeyId).catch((err) => {
-      stopProgressIndicator(null, 'success');
-      printMessage(err, 'error');
-    })
-  )['data'];
+  const treeData = await getTree(journeyId).catch((err) => {
+    stopProgressIndicator(null, 'success');
+    printMessage(err, 'error');
+  });
   updateProgressIndicator();
   await exportTree(treeData, journeyData, { useStringArrays: true });
   stopProgressIndicator(null, 'success');
@@ -1180,9 +1184,7 @@ export async function importJourneyFromFile(journeyId, file, options) {
     // if a journeyId was specified, only import the matching journey
     if (journeyData && journeyId === journeyData.tree._id) {
       // attempt dependency resolution for single tree import
-      const installedJourneys = (await getTrees()).data.result.map(
-        (x) => x._id
-      );
+      const installedJourneys = (await getTrees()).map((x) => x._id);
       const unresolvedJourneys = {};
       const resolvedJourneys = [];
       createProgressIndicator(
@@ -1274,9 +1276,7 @@ export async function importFirstJourneyFromFile(file, options) {
     // if a journeyId was specified, only import the matching journey
     if (journeyData && journeyId) {
       // attempt dependency resolution for single tree import
-      const installedJourneys = (await getTrees()).data.result.map(
-        (x) => x._id
-      );
+      const installedJourneys = (await getTrees()).map((x) => x._id);
       const unresolvedJourneys = {};
       const resolvedJourneys = [];
       createProgressIndicator(
@@ -1341,7 +1341,7 @@ export async function importFirstJourneyFromFile(file, options) {
  * @param {boolean} options reUuid:boolean: re-uuid all node objects, verbose:boolean: verbose output
  */
 async function importAllTrees(treesMap, options) {
-  const installedJourneys = (await getTrees()).data.result.map((x) => x._id);
+  const installedJourneys = (await getTrees()).map((x) => x._id);
   const unresolvedJourneys = {};
   const resolvedJourneys = [];
   createProgressIndicator(undefined, 'Resolving dependencies', 'indeterminate');
@@ -1458,7 +1458,7 @@ async function findOrphanedNodes() {
   const allNodes = [];
   const orphanedNodes = [];
   let types = [];
-  const allJourneys = (await getTrees()).data.result;
+  const allJourneys = await getTrees();
   let errorMessage = '';
   const errorTypes = [];
 
@@ -1468,7 +1468,7 @@ async function findOrphanedNodes() {
     'indeterminate'
   );
   try {
-    types = (await getNodeTypes()).data.result;
+    types = await getNodeTypes();
   } catch (error) {
     printMessage('Error retrieving all available node types:', 'error');
     printMessage(error.response.data, 'error');
@@ -1477,7 +1477,7 @@ async function findOrphanedNodes() {
   for (const type of types) {
     try {
       // eslint-disable-next-line no-await-in-loop, no-loop-func
-      (await getNodesByType(type._id)).data.result.forEach((node) => {
+      (await getNodesByType(type._id)).forEach((node) => {
         allNodes.push(node);
         updateProgressIndicator(
           `${allNodes.length} total nodes${errorMessage}`
@@ -1512,7 +1512,7 @@ async function findOrphanedNodes() {
         const node = journey.nodes[nodeId];
         if (containerNodes.includes(node.nodeType)) {
           // eslint-disable-next-line no-await-in-loop
-          const containerNode = (await getNode(nodeId, node.nodeType)).data;
+          const containerNode = await getNode(nodeId, node.nodeType);
           containerNode.nodes.forEach((n) => {
             activeNodes.push(n._id);
             updateProgressIndicator(`${activeNodes.length} active nodes`);
@@ -1835,7 +1835,7 @@ async function isCustom(journey) {
       if (containerNodes.includes(nodeList[node].nodeType)) {
         results.push(
           // eslint-disable-next-line no-await-in-loop
-          (await getNode(node, nodeList[node].nodeType))['data']
+          await getNode(node, nodeList[node].nodeType)
         );
       }
     }
@@ -1868,7 +1868,7 @@ async function isCustom(journey) {
 export async function listJourneys(long = false, analyze = false) {
   let journeys = [];
   try {
-    journeys = (await getTrees()).data.result;
+    journeys = await getTrees();
   } catch (error) {
     printMessage(`${error.message}`, 'error');
     printMessage(error.response.data, 'error');
@@ -1930,20 +1930,22 @@ export async function deleteJourney(journeyId, options, spinner = true) {
       if (verbose) printMessage(`Deleted ${journeyId} (tree)`, 'info');
       if (deep) {
         for (const [nodeId, nodeObject] of Object.entries(
-          deleteTreeResponse.data.nodes
+          deleteTreeResponse.nodes
         )) {
           // delete inner nodes (nodes inside container nodes)
           if (containerNodes.includes(nodeObject['nodeType'])) {
             try {
               // eslint-disable-next-line no-await-in-loop
-              const pageNode = (await getNode(nodeId, nodeObject['nodeType']))
-                .data;
+              const containerNode = await getNode(
+                nodeId,
+                nodeObject['nodeType']
+              );
               if (verbose)
                 printMessage(
                   `Read ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
                   'info'
                 );
-              for (const innerNodeObject of pageNode.nodes) {
+              for (const innerNodeObject of containerNode.nodes) {
                 nodePromises.push(
                   deleteNode(innerNodeObject._id, innerNodeObject.nodeType)
                     .then((response2) => {
@@ -1953,7 +1955,7 @@ export async function deleteJourney(journeyId, options, spinner = true) {
                           `Deleted ${innerNodeObject._id} (${innerNodeObject.nodeType}) from ${journeyId}`,
                           'info'
                         );
-                      return response2.data;
+                      return response2;
                     })
                     .catch((error) => {
                       status.nodes[innerNodeObject._id] = {
@@ -1970,23 +1972,39 @@ export async function deleteJourney(journeyId, options, spinner = true) {
               }
               // finally delete the container node
               nodePromises.push(
-                deleteNode(nodeId, nodeObject['nodeType'])
+                deleteNode(containerNode._id, containerNode['_type']['_id'])
                   .then((response2) => {
-                    status.nodes[nodeId] = { status: 'success' };
+                    status.nodes[containerNode._id] = { status: 'success' };
                     if (verbose)
                       printMessage(
-                        `Deleted ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
+                        `Deleted ${containerNode._id} (${containerNode['_type']['_id']}) from ${journeyId}`,
                         'info'
                       );
-                    return response2.data;
+                    return response2;
                   })
                   .catch((error) => {
-                    status.nodes[nodeId] = { status: 'error', error };
-                    if (verbose)
-                      printMessage(
-                        `Error deleting container node ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}: ${error}`,
-                        'error'
-                      );
+                    if (
+                      error?.response?.data?.code === 500 &&
+                      error.response.data.message ===
+                        'Unable to read SMS config: Node did not exist'
+                    ) {
+                      status.nodes[containerNode._id] = { status: 'success' };
+                      if (verbose)
+                        printMessage(
+                          `Deleted ${containerNode._id} (${containerNode['_type']['_id']}) from ${journeyId}`,
+                          'info'
+                        );
+                    } else {
+                      status.nodes[containerNode._id] = {
+                        status: 'error',
+                        error,
+                      };
+                      if (verbose)
+                        printMessage(
+                          `Error deleting container node ${containerNode._id} (${containerNode['_type']['_id']}) from ${journeyId}: ${error.response.data.message}`,
+                          'error'
+                        );
+                    }
                   })
               );
             } catch (error) {
@@ -2007,7 +2025,7 @@ export async function deleteJourney(journeyId, options, spinner = true) {
                       `Deleted ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
                       'info'
                     );
-                  return response.data;
+                  return response;
                 })
                 .catch((error) => {
                   status.nodes[nodeId] = { status: 'error', error };
@@ -2067,7 +2085,7 @@ export async function deleteJourney(journeyId, options, spinner = true) {
 export async function deleteJourneys(options) {
   const { verbose } = options;
   const status = {};
-  const trees = (await getTrees()).data.result;
+  const trees = await getTrees();
   createProgressIndicator(trees.length, 'Deleting journeys...');
   for (const tree of trees) {
     if (verbose) printMessage('');
