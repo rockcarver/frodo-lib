@@ -64,7 +64,8 @@ export function updateProgressIndicator(message: string = null) {
 
 /**
  * Stop and hide the progress indicator
- * @param {*} message optional message to show with the indicator
+ * @param {string} message optional message to show with the indicator
+ * @param {string} status one of 'none', 'success', 'warn', 'fail'
  */
 export function stopProgressIndicator(message: string = null, status = 'none') {
   const handler = storage.session.getStopProgressHandler();
