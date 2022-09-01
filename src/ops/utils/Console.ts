@@ -7,14 +7,18 @@ import storage from '../../storage/SessionStorage';
  * on its side. `handler` is optional, and if not included by the caller,
  * the data and messages will be lost.
  *
- * @param {string} message The string message to return
+ * @param {string | unknown} message The string message to return
  * @param {string} [type=text] "text", "info", "warn", "error" or "data". All but
  * type="data" will be written to stderr.
  * @param {boolean} [newline=true] Whether to add a newline at the end of message
  * messages returned
  *
  */
-export function printMessage(message, type = 'text', newline = true) {
+export function printMessage(
+  message: string | unknown,
+  type = 'text',
+  newline = true
+) {
   const handler = storage.session.getPrintHandler();
   if (handler) {
     handler(message, type, newline);
