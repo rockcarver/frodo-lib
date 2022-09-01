@@ -23,5 +23,6 @@
   "env": {
     "jest": true,
     "jest/globals": true
-  }
+  },
+  "ignorePatterns": ["types", "cjs", "esm"]
 }
