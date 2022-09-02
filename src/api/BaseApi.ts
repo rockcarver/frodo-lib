@@ -1,6 +1,6 @@
+import Agent from 'agentkeepalive';
 import axios, { AxiosProxyConfig } from 'axios';
 import axiosRetry from 'axios-retry';
-import * as https from 'https';
 import HttpsProxyAgent from 'https-proxy-agent';
 import url from 'url';
 import fs from 'fs';
@@ -21,9 +21,27 @@ axiosRetry(axios, {
   retryCondition: (_error) => true, // retry no matter what
 });
 
+// all agents
 const timeout = 30000;
+
+// agentkeepalive
+const maxSockets = 100;
+const maxFreeSockets = 10;
+const freeSocketTimeout = 30000;
+
 const userAgent = `${pkg.name}/${pkg.version}`;
-let httpsAgent;
+let httpAgent, httpsAgent;
+
+function getHttpAgent() {
+  if (httpAgent) return httpAgent;
+  httpAgent = new Agent({
+    maxSockets,
+    maxFreeSockets,
+    timeout,
+    freeSocketTimeout,
+  });
+  return httpAgent;
+}
 
 /**
  * Helper method to create properly configured httpsAgent
@@ -46,7 +64,13 @@ function getHttpsAgent() {
     httpsAgent = HttpsProxyAgent(options);
     return httpsAgent;
   }
-  httpsAgent = new https.Agent(options);
+  httpsAgent = new Agent.HttpsAgent({
+    ...options,
+    maxSockets,
+    maxFreeSockets,
+    timeout,
+    freeSocketTimeout,
+  });
   return httpsAgent;
 }
 
@@ -72,7 +96,7 @@ export function generateAmApi(resource, requestOverride = {}) {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
     'Accept-API-Version': resource.apiVersion,
-    Cookie: `${storage.session.raw['cookieName']}=${storage.session.raw['cookieValue']}`,
+    Cookie: `${storage.session.getCookieName()}=${storage.session.getCookieValue()}`,
   };
   if (requestOverride['headers']) {
     headers = {
@@ -82,10 +106,11 @@ export function generateAmApi(resource, requestOverride = {}) {
   }
 
   const requestDetails = {
-    baseURL: `${storage.session.getTenant()}/json${resource.path}`,
+    baseURL: `${storage.session.getTenant()}/json`,
     timeout,
     ...requestOverride,
     headers,
+    httpAgent: getHttpAgent(),
     httpsAgent: getHttpsAgent(),
     proxy: getProxy(),
   };
@@ -121,6 +146,7 @@ export function generateOauth2Api(resource, requestOverride = {}) {
     timeout,
     ...requestOverride,
     headers,
+    httpAgent: getHttpAgent(),
     httpsAgent: getHttpsAgent(),
     proxy: getProxy(),
   };
@@ -146,6 +172,7 @@ export function generateIdmApi(requestOverride = {}) {
       'Content-Type': 'application/json',
     },
     ...requestOverride,
+    httpAgent: getHttpAgent(),
     httpsAgent: getHttpsAgent(),
     proxy: getProxy(),
   };
@@ -178,6 +205,7 @@ export function generateLogKeysApi(requestOverride = {}) {
     timeout,
     headers,
     ...requestOverride,
+    httpAgent: getHttpAgent(),
     httpsAgent: getHttpsAgent(),
     proxy: getProxy(),
   };
@@ -211,6 +239,7 @@ export function generateLogApi(requestOverride = {}) {
     timeout,
     headers,
     ...requestOverride,
+    httpAgent: getHttpAgent(),
     httpsAgent: getHttpsAgent(),
     proxy: getProxy(),
   };
@@ -238,6 +267,7 @@ export function generateESVApi(resource, requestOverride = {}) {
     timeout,
     headers,
     ...requestOverride,
+    httpAgent: getHttpAgent(),
     httpsAgent: getHttpsAgent(),
     proxy: getProxy(),
   };

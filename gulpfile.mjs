@@ -53,10 +53,11 @@ gulp.task('resources-cjs', () =>
   gulp.src(['src/**/*.json'], { base: './src/' }).pipe(gulp.dest('cjs'))
 );
 
-gulp.task('clean-types', () => del(['cjs']));
+gulp.task('clean-types', () => del(['types']));
 
 gulp.task('generate-types', function () {
-  return tsProject.src().pipe(tsProject()).js.pipe(gulp.dest('types'));
+  var tsResult = tsProject.src().pipe(sourcemaps.init()).pipe(tsProject());
+  return tsResult.pipe(sourcemaps.write('.')).pipe(gulp.dest('types'));
 });
 
 gulp.task(
