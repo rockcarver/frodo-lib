@@ -15,6 +15,7 @@ export function getVersion() {
 // Api Layer
 export * as NodeRaw from './api/NodeApi';
 export * as TreeRaw from './api/TreeApi';
+export * as StartupRaw from './api/StartupApi';
 
 // Ops Layer
 export * as Admin from './ops/AdminOps';
