@@ -1,6 +1,4 @@
-/* eslint-disable no-param-reassign */
 import fs from 'fs';
-import yesno from 'yesno';
 import { v4 as uuidv4 } from 'uuid';
 import _ from 'lodash';
 import {
@@ -236,7 +234,11 @@ interface ExportOptions {
  */
 export async function exportTree(
   treeId: string,
-  options: ExportOptions
+  options: ExportOptions = {
+    useStringArrays: true,
+    deps: true,
+    verbose: false,
+  }
 ): Promise<SingleTreeExportTemplate> {
   const treeObject = await getTree(treeId);
   const exportData = createSingleTreeExportTemplate();
@@ -685,27 +687,6 @@ export async function exportJourneysToFiles(
 }
 
 /**
- * Get data for journey by id/name
- * @param {String} journeyId journey id/name
- * @returns {Promise<Object>} object containing all journey data
- */
-export async function getJourneyData(journeyId: string) {
-  createProgressIndicator(undefined, `${journeyId}`, 'indeterminate');
-  try {
-    const journeyData = await exportTree(journeyId, {
-      useStringArrays: true,
-      deps: true,
-      verbose: false,
-    });
-    stopProgressIndicator(null, 'success');
-    return journeyData;
-  } catch (error) {
-    stopProgressIndicator(error, 'fail');
-    return null;
-  }
-}
-
-/**
  * Import options
  */
 interface ImportOptions {
@@ -728,7 +709,7 @@ interface ImportOptions {
  * @param {SingleTreeExportTemplate} treeObject tree object containing tree and all its dependencies
  * @param {ImportOptions} options import options
  */
-async function importTree(
+export async function importTree(
   treeObject: SingleTreeExportTemplate,
   options: ImportOptions
 ): Promise<void> {
@@ -1418,7 +1399,10 @@ export async function importFirstJourneyFromFile(
  * @param {Object} treesMap map of trees object
  * @param {ImportOptions} options import options
  */
-async function importAllTrees(treesMap, options: ImportOptions) {
+async function importAllTrees(
+  treesMap: MultipleTreesExportTemplate,
+  options: ImportOptions
+) {
   const installedJourneys = (await getTrees()).map((x) => x._id);
   const unresolvedJourneys = {};
   const resolvedJourneys = [];
@@ -1488,7 +1472,7 @@ export async function importJourneysFromFiles(options: ImportOptions) {
     const journeyData = JSON.parse(fs.readFileSync(file, 'utf8'));
     allJourneysData.trees[journeyData.tree._id] = journeyData;
   }
-  importAllTrees(allJourneysData.trees, options);
+  importAllTrees(allJourneysData.trees as MultipleTreesExportTemplate, options);
 }
 
 /**
@@ -1529,13 +1513,36 @@ export function describeTree(treeData) {
   treeMap['nodeTypes'] = nodeTypeMap;
   treeMap['scripts'] = scriptsMap;
   treeMap['emailTemplates'] = emailTemplatesMap;
+
+  printMessage(`\nJourney: ${treeMap['treeName']}`, 'data');
+  printMessage('========');
+  printMessage('\nNodes:', 'data');
+  if (Object.entries(treeMap['nodeTypes']).length) {
+    for (const [name, count] of Object.entries(treeMap['nodeTypes'])) {
+      printMessage(`- ${name}: ${count}`, 'data');
+    }
+  }
+  if (Object.entries(treeMap['scripts']).length) {
+    printMessage('\nScripts:', 'data');
+    for (const [name, desc] of Object.entries(treeMap['scripts'])) {
+      printMessage(`- ${name}: ${desc}`, 'data');
+    }
+  }
+  if (Object.entries(treeMap['emailTemplates']).length) {
+    printMessage('\nEmail Templates:', 'data');
+    for (const [id] of Object.entries(treeMap['emailTemplates'])) {
+      printMessage(`- ${id}`, 'data');
+    }
+  }
+
   return treeMap;
 }
 
 /**
  * Find all node configuration objects that are no longer referenced by any tree
+ * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
  */
-async function findOrphanedNodes() {
+export async function findOrphanedNodes(): Promise<unknown[]> {
   const allNodes = [];
   const orphanedNodes = [];
   let types = [];
@@ -1618,34 +1625,25 @@ async function findOrphanedNodes() {
 /**
  * Remove orphaned nodes
  * @param {[Object]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
+ * @returns {Promise<unknown[]>} a promise that resolves to an array nodes that encountered errors deleting
  */
-async function removeOrphanedNodes(orphanedNodes) {
+export async function removeOrphanedNodes(
+  orphanedNodes: unknown[]
+): Promise<unknown[]> {
+  const errorNodes = [];
   createProgressIndicator(orphanedNodes.length, 'Removing orphaned nodes...');
   for (const node of orphanedNodes) {
-    updateProgressIndicator(`Removing ${node._id}...`);
-    // eslint-disable-next-line no-await-in-loop
-    await deleteNode(node._id, node._type._id).catch((deleteError) => {
-      printMessage(`${deleteError}`, 'error');
-    });
+    updateProgressIndicator(`Removing ${node['_id']}...`);
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      await deleteNode(node['_id'], node['_type']['_id']);
+    } catch (deleteError) {
+      errorNodes.push(node);
+      printMessage(` ${deleteError}`, 'error');
+    }
   }
   stopProgressIndicator(`Removed ${orphanedNodes.length} orphaned nodes.`);
-}
-
-/**
- * Prune orphaned nodes
- */
-export async function prune() {
-  const orphanedNodes = await findOrphanedNodes();
-  if (orphanedNodes.length > 0) {
-    const ok = await yesno({
-      question: 'Prune (permanently delete) orphaned nodes? (y|n):',
-    });
-    if (ok) {
-      await removeOrphanedNodes(orphanedNodes);
-    }
-  } else {
-    printMessage('No orphaned nodes found.');
-  }
+  return errorNodes;
 }
 
 const OOTB_NODE_TYPES_7 = [
