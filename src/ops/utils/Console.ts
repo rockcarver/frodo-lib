@@ -7,14 +7,18 @@ import storage from '../../storage/SessionStorage';
  * on its side. `handler` is optional, and if not included by the caller,
  * the data and messages will be lost.
  *
- * @param {string} message The string message to return
+ * @param {string | unknown} message The string message to return
  * @param {string} [type=text] "text", "info", "warn", "error" or "data". All but
  * type="data" will be written to stderr.
  * @param {boolean} [newline=true] Whether to add a newline at the end of message
  * messages returned
  *
  */
-export function printMessage(message, type = 'text', newline = true) {
+export function printMessage(
+  message: string | unknown,
+  type = 'text',
+  newline = true
+) {
   const handler = storage.session.getPrintHandler();
   if (handler) {
     handler(message, type, newline);
@@ -41,7 +45,7 @@ export function printMessage(message, type = 'text', newline = true) {
  */
 export function createProgressIndicator(
   total,
-  message = null,
+  message: string = null,
   type = 'determinate'
 ) {
   const handler = storage.session.getCreateProgressHandler();
@@ -55,7 +59,7 @@ export function createProgressIndicator(
  * @param {string} message optional message to show with the indicator
  *
  */
-export function updateProgressIndicator(message = null) {
+export function updateProgressIndicator(message: string = null) {
   const handler = storage.session.getUpdateProgressHandler();
   if (handler) {
     handler(message);
@@ -64,9 +68,10 @@ export function updateProgressIndicator(message = null) {
 
 /**
  * Stop and hide the progress indicator
- * @param {*} message optional message to show with the indicator
+ * @param {string} message optional message to show with the indicator
+ * @param {string} status one of 'none', 'success', 'warn', 'fail'
  */
-export function stopProgressIndicator(message = null, status = 'none') {
+export function stopProgressIndicator(message: string = null, status = 'none') {
   const handler = storage.session.getStopProgressHandler();
   if (handler) {
     handler(message, status);

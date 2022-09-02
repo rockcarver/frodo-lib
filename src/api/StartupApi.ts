@@ -12,34 +12,45 @@ const getApiConfig = () => ({
   apiVersion,
 });
 
+export enum RestartStatus {
+  restarting = 'restarting',
+  ready = 'ready',
+}
+
 /**
  * Get status
- * @returns {Promise} a promise that resolves to a status object
+ * @returns {Promise<RestartStatus>} a promise that resolves to a string indicating status
  */
-export async function getStatus() {
+export async function getStatus(): Promise<RestartStatus> {
   const urlString = util.format(
     startupURLTemplate,
     getTenantURL(storage.session.getTenant())
   );
-  return generateESVApi(getApiConfig()).get(urlString, {
+  const { data } = await generateESVApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data.restartStatus;
 }
 
 /**
  * Initiate restart
- * @returns {Promise} a promise that resolves to a status object
+ * @returns {Promise<string>} a promise that resolves to a string indicating status
  */
-export async function initiateRestart() {
-  const { restartStatus } = (await getStatus()).data;
-  if (restartStatus === 'ready') {
+export async function initiateRestart(): Promise<RestartStatus> {
+  const restartStatus = await getStatus();
+  if (restartStatus === RestartStatus.ready) {
     const urlString = util.format(
       startupInitiateRestartURLTemplate,
       getTenantURL(storage.session.getTenant())
     );
-    return generateESVApi(getApiConfig()).post(urlString, null, {
-      withCredentials: true,
-    });
+    const { data } = await generateESVApi(getApiConfig()).post(
+      urlString,
+      null,
+      {
+        withCredentials: true,
+      }
+    );
+    return data.restartStatus;
   }
   throw new Error(`Not ready! Current status: ${restartStatus}`);
 }

@@ -90,7 +90,7 @@ export async function exportProvider(id, file = '') {
     }
     saveJsonToFile(fileData, fileName);
     stopProgressIndicator(
-      `Exported ${id.brightCyan} to ${fileName.brightCyan}.`
+      `Exported ${id['brightCyan']} to ${fileName['brightCyan']}.`
     );
   } catch (err) {
     stopProgressIndicator(`${err}`);
