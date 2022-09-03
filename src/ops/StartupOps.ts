@@ -36,7 +36,7 @@ export async function checkForUpdates(): Promise<Updates> {
     updates.secrets = (await getSecrets()).filter(
       (secret: { loaded: unknown }) => !secret.loaded
     );
-    updates.variables = (await getVariables()).data.result.filter(
+    updates.variables = (await getVariables()).filter(
       (variable: { loaded: unknown }) => !variable.loaded
     );
   } catch (error) {
