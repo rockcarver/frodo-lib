@@ -27,7 +27,7 @@ import { resolveUserName } from './ManagedObjectOps';
 export async function listSecrets(long) {
   let secrets = [];
   try {
-    secrets = (await getSecrets()).data.result;
+    secrets = await getSecrets();
   } catch (error) {
     printMessage(`${error.message}`, 'error');
     printMessage(error.response.data, 'error');
@@ -142,7 +142,7 @@ export async function deleteSecretCmd(secretId) {
  */
 export async function deleteSecretsCmd() {
   try {
-    const secrets = (await getSecrets()).data.result;
+    const secrets = await getSecrets();
     createProgressIndicator(secrets.length, `Deleting secrets...`);
     for (const secret of secrets) {
       try {
@@ -172,7 +172,7 @@ export async function deleteSecretsCmd() {
 export async function listSecretVersionsCmd(secretId) {
   let versions = [];
   try {
-    versions = (await getSecretVersions(secretId)).data;
+    versions = await getSecretVersions(secretId);
   } catch (error) {
     printMessage(`${error.message}`, 'error');
     printMessage(error.response.data, 'error');
@@ -189,14 +189,14 @@ export async function listSecretVersionsCmd(secretId) {
     DISABLED: 'inactive'['brightRed'],
     DESTROYED: 'deleted'['brightRed'],
   };
-  versions.forEach((version) => {
+  for (const version of versions) {
     table.push([
       { hAlign: 'right', content: version.version },
       statusMap[version.status],
       version.loaded ? 'loaded'['brightGreen'] : 'unloaded'['brightRed'],
       new Date(version.createDate).toLocaleString(),
     ]);
-  });
+  }
   printMessage(table.toString());
 }
 
@@ -205,7 +205,7 @@ export async function listSecretVersionsCmd(secretId) {
  * @param {String} secretId Secret id
  */
 export async function describeSecret(secretId) {
-  const secret = (await getSecret(secretId)).data;
+  const secret = await getSecret(secretId);
   const table = createKeyValueTable();
   table.push(['Name'['brightCyan'], secret._id]);
   table.push(['Active Version'['brightCyan'], secret.activeVersion]);
@@ -243,7 +243,7 @@ export async function createNewVersionOfSecretCmd(secretId, value) {
     'indeterminate'
   );
   try {
-    const version = (await createNewVersionOfSecret(secretId, value)).data;
+    const version = await createNewVersionOfSecret(secretId, value);
     stopProgressIndicator(
       `Created version ${version.version} of secret ${secretId}`,
       'success'
