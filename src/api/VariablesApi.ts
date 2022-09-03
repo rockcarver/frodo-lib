@@ -26,79 +26,88 @@ export async function getVariables() {
     variablesListURLTemplate,
     getTenantURL(storage.session.getTenant())
   );
-  return generateESVApi(getApiConfig()).get(urlString, {
+  const { data } = await generateESVApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data.result;
 }
 
 /**
  * Get variable by id/name
- * @param {String} id variable id/name
+ * @param {String} variableId variable id/name
  * @returns {Promise} a promise that resolves to an object containing a variable object
  */
-export async function getVariable(id) {
+export async function getVariable(variableId) {
   const urlString = util.format(
     variableURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id
+    variableId
   );
-  return generateESVApi(getApiConfig()).get(urlString, {
+  const { data } = await generateESVApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 /**
  * Put variable by id/name
- * @param {String} id variable id/name
+ * @param {String} variableId variable id/name
  * @param {String} value variable value
  * @param {String} description variable description
  * @returns {Promise} a promise that resolves to an object containing a variable object
  */
-export async function putVariable(id, value, description) {
-  const data = {};
-  if (value) data['valueBase64'] = encode(value);
-  if (description) data['description'] = description;
+export async function putVariable(variableId, value, description) {
+  const variableData = {};
+  if (value) variableData['valueBase64'] = encode(value);
+  if (description) variableData['description'] = description;
   const urlString = util.format(
     variableURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id
+    variableId
   );
-  return generateESVApi(getApiConfig()).put(urlString, data, {
-    withCredentials: true,
-  });
+  const { data } = await generateESVApi(getApiConfig()).put(
+    urlString,
+    variableData,
+    {
+      withCredentials: true,
+    }
+  );
+  return data;
 }
 
 /**
  * Set variable description
- * @param {*} id variable id/name
+ * @param {*} variableId variable id/name
  * @param {*} description variable description
  * @returns {Promise} a promise that resolves to an object containing a status object
  */
-export async function setVariableDescription(id, description) {
+export async function setVariableDescription(variableId, description) {
   const urlString = util.format(
     variableSetDescriptionURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id
+    variableId
   );
-  return generateESVApi(getApiConfig()).post(
+  const { data } = await generateESVApi(getApiConfig()).post(
     urlString,
     { description },
     { withCredentials: true }
   );
+  return data;
 }
 
 /**
  * Delete variable by id/name
- * @param {String} id variable id/name
+ * @param {String} variableId variable id/name
  * @returns {Promise} a promise that resolves to an object containing a variable object
  */
-export async function deleteVariable(id) {
+export async function deleteVariable(variableId) {
   const urlString = util.format(
     variableURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id
+    variableId
   );
-  return generateESVApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateESVApi(getApiConfig()).delete(urlString, {
     withCredentials: true,
   });
+  return data;
 }
