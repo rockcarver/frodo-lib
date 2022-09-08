@@ -23,24 +23,26 @@ export async function getSecrets() {
     secretsListURLTemplate,
     getTenantURL(storage.session.getTenant())
   );
-  return generateESVApi(getApiConfig()).get(urlString, {
+  const { data } = await generateESVApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data.result;
 }
 
-export async function getSecret(id) {
+export async function getSecret(secretId) {
   const urlString = util.format(
     secretURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id
+    secretId
   );
-  return generateESVApi(getApiConfig()).get(urlString, {
+  const { data } = await generateESVApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 export async function putSecret(
-  id,
+  secretId,
   value,
   description,
   encoding = 'generic',
@@ -48,7 +50,7 @@ export async function putSecret(
 ) {
   if (encoding !== 'generic')
     throw new Error(`Unsupported encoding: ${encoding}`);
-  const data = {
+  const secretData = {
     valueBase64: encode(value),
     description,
     encoding,
@@ -57,95 +59,107 @@ export async function putSecret(
   const urlString = util.format(
     secretURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id
+    secretId
   );
-  return generateESVApi(getApiConfig()).put(urlString, data, {
-    withCredentials: true,
-  });
+  const { data } = await generateESVApi(getApiConfig()).put(
+    urlString,
+    secretData,
+    {
+      withCredentials: true,
+    }
+  );
+  return data;
 }
 
-export async function setSecretDescription(id, description) {
+export async function setSecretDescription(secretId, description) {
   const urlString = util.format(
     secretSetDescriptionURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id
+    secretId
   );
-  return generateESVApi(getApiConfig()).post(
+  const { data } = await generateESVApi(getApiConfig()).post(
     urlString,
     { description },
     { withCredentials: true }
   );
+  return data;
 }
 
-export async function deleteSecret(id) {
+export async function deleteSecret(secretId) {
   const urlString = util.format(
     secretURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id
+    secretId
   );
-  return generateESVApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateESVApi(getApiConfig()).delete(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
-export async function getSecretVersions(id) {
+export async function getSecretVersions(secretId) {
   const urlString = util.format(
     secretListVersionsURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id
+    secretId
   );
-  return generateESVApi(getApiConfig()).get(urlString, {
+  const { data } = await generateESVApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
-export async function createNewVersionOfSecret(id, value) {
+export async function createNewVersionOfSecret(secretId, value) {
   const urlString = util.format(
     secretCreateNewVersionURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id
+    secretId
   );
-  return generateESVApi(getApiConfig()).post(
+  const { data } = await generateESVApi(getApiConfig()).post(
     urlString,
     { valueBase64: encode(value) },
     { withCredentials: true }
   );
+  return data;
 }
 
-export async function getVersionOfSecret(id, version) {
+export async function getVersionOfSecret(secretId, version) {
   const urlString = util.format(
     secretGetVersionURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id,
+    secretId,
     version
   );
-  return generateESVApi(getApiConfig()).get(urlString, {
+  const { data } = await generateESVApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
-export async function setStatusOfVersionOfSecret(id, version, status) {
+export async function setStatusOfVersionOfSecret(secretId, version, status) {
   const urlString = util.format(
     secretVersionStatusURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id,
+    secretId,
     version
   );
-  return generateESVApi(getApiConfig()).post(
+  const { data } = await generateESVApi(getApiConfig()).post(
     urlString,
     { status },
     { withCredentials: true }
   );
+  return data;
 }
 
-export async function deleteVersionOfSecret(id, version) {
+export async function deleteVersionOfSecret(secretId, version) {
   const urlString = util.format(
     secretGetVersionURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id,
+    secretId,
     version
   );
-  return generateESVApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateESVApi(getApiConfig()).delete(urlString, {
     withCredentials: true,
   });
+  return data;
 }
