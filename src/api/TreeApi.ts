@@ -19,7 +19,7 @@ const getTreeApiConfig = () => {
 
 /**
  * Get all trees
- * @returns {Promise} a promise that resolves to an array of tree objects
+ * @returns {Promise<unknown[]>} a promise that resolves to an array of tree objects
  */
 export async function getTrees() {
   const urlString = util.format(
@@ -27,10 +27,10 @@ export async function getTrees() {
     storage.session.getTenant(),
     getCurrentRealmPath()
   );
-  const response = await generateAmApi(getTreeApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getTreeApiConfig()).get(urlString, {
     withCredentials: true,
   });
-  return response.data.result;
+  return data.result;
 }
 
 /**

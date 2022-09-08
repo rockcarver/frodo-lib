@@ -591,6 +591,22 @@ export async function exportTree(
 }
 
 /**
+ * Get all the journeys/trees without all their nodes and dependencies.
+ * @returns {Promise<unknown[]>} a promise that resolves to an array of journey objects
+ */
+export async function getJourneys(): Promise<unknown[]> {
+  let journeys = [];
+  try {
+    journeys = await getTrees();
+  } catch (error) {
+    printMessage(`${error.message}`, 'error');
+    printMessage(error.response.data, 'error');
+  }
+  journeys.sort((a, b) => a._id.localeCompare(b._id));
+  return journeys;
+}
+
+/**
  * Export journey by id/name to file
  * @param {string} journeyId journey id/name
  * @param {string} file optional export file name
@@ -1940,8 +1956,12 @@ export async function isCustom(journey) {
  * List all the journeys/trees
  * @param {boolean} long Long version, all the fields
  * @param {boolean} analyze Analyze journeys/trees for custom nodes (expensive)
+ * @returns {Promise<unknown[]>} a promise that resolves to an array journey objects
  */
-export async function listJourneys(long = false, analyze = false) {
+export async function listJourneys(
+  long = false,
+  analyze = false
+): Promise<unknown[]> {
   let journeys = [];
   try {
     journeys = await getTrees();
@@ -1981,6 +2001,7 @@ export async function listJourneys(long = false, analyze = false) {
     });
     printMessage(table.toString(), 'data');
   }
+  return journeys;
 }
 
 /**
