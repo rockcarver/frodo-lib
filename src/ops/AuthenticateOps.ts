@@ -183,7 +183,7 @@ async function authenticate() {
       }
       const versionInfo = (await getServerVersionInfo()).data;
       printMessage(`Connected to ${versionInfo.fullVersion}`);
-      const version = getSemanticVersion(versionInfo);
+      const version = await getSemanticVersion(versionInfo);
       storage.session.setAmVersion(version);
       return '';
     }
