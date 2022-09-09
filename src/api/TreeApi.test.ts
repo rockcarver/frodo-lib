@@ -15,6 +15,10 @@ state.default.session.setCookieName('cookieName');
 state.default.session.setCookieValue('cookieValue');
 
 describe('TreeApi - getTrees()', () => {
+  test('getTrees() 0: Method is implemented', async () => {
+    expect(TreeRaw.getTrees).toBeDefined();
+  });
+
   test('getTrees() 1: Get all trees', async () => {
     const response = JSON.parse(
       fs.readFileSync(
@@ -29,11 +33,15 @@ describe('TreeApi - getTrees()', () => {
       .reply(200, response);
     const trees = await TreeRaw.getTrees();
     expect(trees).toBeTruthy();
-    expect(trees.length).toBe(92);
+    expect(trees.result.length).toBe(92);
   });
 });
 
 describe('TreeApi - getTree()', () => {
+  test('getTree() 0: Method is implemented', async () => {
+    expect(TreeRaw.getTree).toBeDefined();
+  });
+
   test('getTree() 1: Get existing tree', async () => {
     const response = JSON.parse(
       fs.readFileSync(
@@ -79,6 +87,10 @@ describe('TreeApi - getTree()', () => {
 });
 
 describe('TreeApi - putTree()', () => {
+  test('putTree() 0: Method is implemented', async () => {
+    expect(TreeRaw.putTree).toBeDefined();
+  });
+
   test('putTree() 1: Put valid tree', async () => {
     const response = JSON.parse(
       fs.readFileSync(
@@ -245,6 +257,10 @@ describe('TreeApi - putTree()', () => {
 });
 
 describe('TreeApi - deleteTree()', () => {
+  test('deleteTree() 0: Method is implemented', async () => {
+    expect(TreeRaw.deleteTree).toBeDefined();
+  });
+
   test('deleteTree() 1: Delete existing tree', async () => {
     const response = JSON.parse(
       fs.readFileSync(
