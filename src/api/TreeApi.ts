@@ -30,7 +30,7 @@ export async function getTrees() {
   const { data } = await generateAmApi(getTreeApiConfig()).get(urlString, {
     withCredentials: true,
   });
-  return data.result;
+  return data;
 }
 
 /**

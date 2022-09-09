@@ -597,7 +597,7 @@ export async function exportTree(
 export async function getJourneys(): Promise<unknown[]> {
   let journeys = [];
   try {
-    journeys = await getTrees();
+    journeys = (await getTrees()).result;
   } catch (error) {
     printMessage(`${error.message}`, 'error');
     printMessage(error.response.data, 'error');
@@ -659,7 +659,7 @@ export async function exportJourneysToFile(
   if (!fileName) {
     fileName = getTypedFilename(`all${getRealmString()}Journeys`, 'journeys');
   }
-  const trees = await getTrees();
+  const trees = (await getTrees()).result;
   const fileData: MultipleTreesExportTemplate =
     createMultipleTreesExportTemplate();
   createProgressIndicator(trees.length, 'Exporting journeys...');
@@ -684,7 +684,7 @@ export async function exportJourneysToFile(
 export async function exportJourneysToFiles(
   options: ExportOptions
 ): Promise<void> {
-  const trees = await getTrees();
+  const trees = (await getTrees()).result;
   createProgressIndicator(trees.length, 'Exporting journeys...');
   for (const tree of trees) {
     updateProgressIndicator(`${tree._id}`);
@@ -1256,7 +1256,7 @@ export async function importJourneyFromFile(
     // if a journeyId was specified, only import the matching journey
     if (journeyData && journeyId === journeyData.tree._id) {
       // attempt dependency resolution for single tree import
-      const installedJourneys = (await getTrees()).map((x) => x._id);
+      const installedJourneys = (await getTrees()).result.map((x) => x._id);
       const unresolvedJourneys = {};
       const resolvedJourneys = [];
       createProgressIndicator(
@@ -1351,7 +1351,7 @@ export async function importFirstJourneyFromFile(
     // if a journeyId was specified, only import the matching journey
     if (journeyData && journeyId) {
       // attempt dependency resolution for single tree import
-      const installedJourneys = (await getTrees()).map((x) => x._id);
+      const installedJourneys = (await getTrees()).result.map((x) => x._id);
       const unresolvedJourneys = {};
       const resolvedJourneys = [];
       createProgressIndicator(
@@ -1419,7 +1419,7 @@ async function importAllTrees(
   treesMap: MultipleTreesExportTemplate,
   options: ImportOptions
 ) {
-  const installedJourneys = (await getTrees()).map((x) => x._id);
+  const installedJourneys = (await getTrees()).result.map((x) => x._id);
   const unresolvedJourneys = {};
   const resolvedJourneys = [];
   createProgressIndicator(undefined, 'Resolving dependencies', 'indeterminate');
@@ -1562,7 +1562,7 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
   const allNodes = [];
   const orphanedNodes = [];
   let types = [];
-  const allJourneys = await getTrees();
+  const allJourneys = (await getTrees()).result;
   let errorMessage = '';
   const errorTypes = [];
 
@@ -1964,7 +1964,7 @@ export async function listJourneys(
 ): Promise<unknown[]> {
   let journeys = [];
   try {
-    journeys = await getTrees();
+    journeys = (await getTrees()).result;
   } catch (error) {
     printMessage(`${error.message}`, 'error');
     printMessage(error.response.data, 'error');
@@ -2186,7 +2186,7 @@ export async function deleteJourney(
 export async function deleteJourneys(options) {
   const { verbose } = options;
   const status = {};
-  const trees = await getTrees();
+  const trees = (await getTrees()).result;
   createProgressIndicator(trees.length, 'Deleting journeys...');
   for (const tree of trees) {
     if (verbose) printMessage('');
