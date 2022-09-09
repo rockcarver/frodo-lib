@@ -16,6 +16,7 @@ import {
   putSecret,
   setSecretDescription,
   setStatusOfVersionOfSecret,
+  VersionOfSecretStatus,
 } from '../api/SecretsApi';
 import wordwrap from './utils/Wordwrap';
 import { resolveUserName } from './ManagedObjectOps';
@@ -27,7 +28,7 @@ import { resolveUserName } from './ManagedObjectOps';
 export async function listSecrets(long) {
   let secrets = [];
   try {
-    secrets = await getSecrets();
+    secrets = (await getSecrets()).results;
   } catch (error) {
     printMessage(`${error.message}`, 'error');
     printMessage(error.response.data, 'error');
@@ -142,7 +143,7 @@ export async function deleteSecretCmd(secretId) {
  */
 export async function deleteSecretsCmd() {
   try {
-    const secrets = await getSecrets();
+    const secrets = (await getSecrets()).results;
     createProgressIndicator(secrets.length, `Deleting secrets...`);
     for (const secret of secrets) {
       try {
@@ -268,7 +269,11 @@ export async function activateVersionOfSecret(secretId, version) {
     'indeterminate'
   );
   try {
-    await setStatusOfVersionOfSecret(secretId, version, 'ENABLED');
+    await setStatusOfVersionOfSecret(
+      secretId,
+      version,
+      VersionOfSecretStatus.ENABLED
+    );
     stopProgressIndicator(
       `Activated version ${version} of secret ${secretId}`,
       'success'
@@ -293,7 +298,11 @@ export async function deactivateVersionOfSecret(secretId, version) {
     'indeterminate'
   );
   try {
-    await setStatusOfVersionOfSecret(secretId, version, 'DISABLED');
+    await setStatusOfVersionOfSecret(
+      secretId,
+      version,
+      VersionOfSecretStatus.DISABLED
+    );
     stopProgressIndicator(
       `Deactivated version ${version} of secret ${secretId}`,
       'success'
