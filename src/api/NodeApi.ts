@@ -31,7 +31,7 @@ export async function getNodeTypes() {
     storage.session.getTenant(),
     getCurrentRealmPath()
   );
-  const response = await generateAmApi(getNodeApiConfig()).post(
+  const { data } = await generateAmApi(getNodeApiConfig()).post(
     urlString,
     {},
     {
@@ -39,12 +39,12 @@ export async function getNodeTypes() {
       headers: { 'Accept-Encoding': 'gzip, deflate, br' },
     }
   );
-  return response.data.result;
+  return data;
 }
 
 /**
  * Get all nodes
- * @returns {Promise} a promise that resolves to an array of node objects
+ * @returns {Promise} a promise that resolves to an object containing an array of node objects
  */
 export async function getNodes() {
   const urlString = util.format(
@@ -52,7 +52,7 @@ export async function getNodes() {
     storage.session.getTenant(),
     getCurrentRealmPath()
   );
-  const response = await generateAmApi(getNodeApiConfig()).post(
+  const { data } = await generateAmApi(getNodeApiConfig()).post(
     urlString,
     {},
     {
@@ -60,13 +60,13 @@ export async function getNodes() {
       headers: { 'Accept-Encoding': 'gzip, deflate, br' },
     }
   );
-  return response.data.result;
+  return data;
 }
 
 /**
  * Get all nodes by type
  * @param {string} nodeType node type
- * @returns {Promise} a promise that resolves to an array of node objects of the requested type
+ * @returns {Promise} a promise that resolves to an object containing an array of node objects of the requested type
  */
 export async function getNodesByType(nodeType: string) {
   const urlString = util.format(
@@ -75,10 +75,10 @@ export async function getNodesByType(nodeType: string) {
     getCurrentRealmPath(),
     nodeType
   );
-  const response = await generateAmApi(getNodeApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getNodeApiConfig()).get(urlString, {
     withCredentials: true,
   });
-  return response.data.result;
+  return data;
 }
 
 /**
