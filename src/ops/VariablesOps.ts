@@ -24,7 +24,7 @@ import { decode } from '../api/utils/Base64';
 export async function listVariables(long) {
   let variables = [];
   try {
-    variables = await getVariables();
+    variables = (await getVariables()).result;
   } catch (error) {
     printMessage(`${error.message}`, 'error');
     printMessage(error.response.data, 'error');
@@ -155,7 +155,7 @@ export async function deleteVariableCmd(variableId) {
  */
 export async function deleteVariablesCmd() {
   try {
-    const variables = await getVariables();
+    const variables = (await getVariables()).result;
     createProgressIndicator(variables.length, `Deleting variable...`);
     for (const variable of variables) {
       try {
