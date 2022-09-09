@@ -127,7 +127,7 @@ export async function exportOAuth2ClientsToFiles() {
  * @param {String} file file name
  */
 export async function importOAuth2ClientsFromFile(file) {
-  fs.readFile(file, 'utf8', (err, data) => {
+  fs.readFile(file, 'utf8', async (err, data) => {
     if (err) throw err;
     const applicationData = JSON.parse(data);
     if (validateImport(applicationData.meta)) {
@@ -137,11 +137,13 @@ export async function importOAuth2ClientsFromFile(file) {
         ) {
           delete applicationData.application[id]._provider;
           delete applicationData.application[id]._rev;
-          putOAuth2Client(id, applicationData.application[id]).then(
-            (result) => {
-              if (!result == null) printMessage(`Imported ${id}`);
-            }
-          );
+          try {
+            await putOAuth2Client(id, applicationData.application[id]);
+            printMessage(`Imported ${id}`);
+          } catch (error) {
+            printMessage(`${error.message}`, 'error');
+            printMessage(error.response.status, 'error');
+          }
         }
       }
     } else {

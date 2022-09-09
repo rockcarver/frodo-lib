@@ -18,6 +18,7 @@ export function getCurrentTimestamp() {
 function getMetadata() {
   const metadata = {
     origin: storage.session.getTenant(),
+    originAmVersion: storage.session.getAmVersion(),
     exportedBy: storage.session.getUsername(),
     exportDate: getCurrentTimestamp(),
     exportTool: FRODO_METADATA_ID,
