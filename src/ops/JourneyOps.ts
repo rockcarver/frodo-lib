@@ -1572,7 +1572,7 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
     'indeterminate'
   );
   try {
-    types = await getNodeTypes();
+    types = (await getNodeTypes()).result;
   } catch (error) {
     printMessage('Error retrieving all available node types:', 'error');
     printMessage(error.response.data, 'error');
@@ -1581,7 +1581,7 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
   for (const type of types) {
     try {
       // eslint-disable-next-line no-await-in-loop, no-loop-func
-      (await getNodesByType(type._id)).forEach((node) => {
+      (await getNodesByType(type._id)).result.forEach((node) => {
         allNodes.push(node);
         updateProgressIndicator(
           `${allNodes.length} total nodes${errorMessage}`
