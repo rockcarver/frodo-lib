@@ -1,6 +1,6 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
-import { getCurrentRealmPath } from './utils/ApiUtils';
+import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
 import storage from '../storage/SessionStorage';
 
 const oauth2ClientURLTemplate = '%s/json%s/realm-config/agents/OAuth2Client/%s';
@@ -54,7 +54,9 @@ export async function getOAuth2Client(id) {
  * @returns {Promise} a promise that resolves to an object containing an oauth2client object
  */
 export async function putOAuth2Client(id, data) {
-  const client = data;
+  // until we figure out a way to use transport keys in Frodo,
+  // we'll have to drop those encrypted attributes.
+  const client = deleteDeepByKey(data, '-encrypted');
   delete client._provider;
   delete client._rev;
   const urlString = util.format(
