@@ -28,7 +28,7 @@ import { resolveUserName } from './ManagedObjectOps';
 export async function listSecrets(long) {
   let secrets = [];
   try {
-    secrets = (await getSecrets()).results;
+    secrets = (await getSecrets()).result;
   } catch (error) {
     printMessage(`${error.message}`, 'error');
     printMessage(error.response.data, 'error');
@@ -143,7 +143,7 @@ export async function deleteSecretCmd(secretId) {
  */
 export async function deleteSecretsCmd() {
   try {
-    const secrets = (await getSecrets()).results;
+    const secrets = (await getSecrets()).result;
     createProgressIndicator(secrets.length, `Deleting secrets...`);
     for (const secret of secrets) {
       try {

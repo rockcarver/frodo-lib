@@ -19,7 +19,7 @@ const getApiConfig = () => {
 
 /**
  * Get all variables
- * @returns {Promise} a promise that resolves to an object containing an array of variable objects
+ * @returns {Promise<unknown[]>} a promise that resolves to an array of variable objects
  */
 export async function getVariables() {
   const urlString = util.format(
@@ -29,13 +29,13 @@ export async function getVariables() {
   const { data } = await generateESVApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
-  return data.result;
+  return data;
 }
 
 /**
  * Get variable by id/name
- * @param {String} variableId variable id/name
- * @returns {Promise} a promise that resolves to an object containing a variable object
+ * @param {string} variableId variable id/name
+ * @returns {Promise<unknown>} a promise that resolves to a variable object
  */
 export async function getVariable(variableId) {
   const urlString = util.format(
@@ -51,10 +51,10 @@ export async function getVariable(variableId) {
 
 /**
  * Put variable by id/name
- * @param {String} variableId variable id/name
- * @param {String} value variable value
- * @param {String} description variable description
- * @returns {Promise} a promise that resolves to an object containing a variable object
+ * @param {string} variableId variable id/name
+ * @param {string} value variable value
+ * @param {string} description variable description
+ * @returns {Promise<unknown>} a promise that resolves to a variable object
  */
 export async function putVariable(variableId, value, description) {
   const variableData = {};
@@ -77,9 +77,9 @@ export async function putVariable(variableId, value, description) {
 
 /**
  * Set variable description
- * @param {*} variableId variable id/name
- * @param {*} description variable description
- * @returns {Promise} a promise that resolves to an object containing a status object
+ * @param {string} variableId variable id/name
+ * @param {string} description variable description
+ * @returns {Promise<unknown>} a promise that resolves to a status object
  */
 export async function setVariableDescription(variableId, description) {
   const urlString = util.format(
@@ -97,8 +97,8 @@ export async function setVariableDescription(variableId, description) {
 
 /**
  * Delete variable by id/name
- * @param {String} variableId variable id/name
- * @returns {Promise} a promise that resolves to an object containing a variable object
+ * @param {string} variableId variable id/name
+ * @returns {Promise<unknown>} a promise that resolves to a variable object
  */
 export async function deleteVariable(variableId) {
   const urlString = util.format(
