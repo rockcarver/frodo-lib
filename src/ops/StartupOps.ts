@@ -33,7 +33,7 @@ export async function checkForUpdates(): Promise<Updates> {
     'indeterminate'
   );
   try {
-    updates.secrets = (await getSecrets()).filter(
+    updates.secrets = (await getSecrets()).results.filter(
       (secret: { loaded: unknown }) => !secret.loaded
     );
     updates.variables = (await getVariables()).filter(
