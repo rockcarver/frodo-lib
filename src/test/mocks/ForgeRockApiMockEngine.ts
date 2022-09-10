@@ -5,6 +5,39 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+export function getTree(treeId: string) {
+  const treeObject = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, `./TreeApi/getTree/${treeId}.json`),
+      'utf8'
+    )
+  );
+  return treeObject;
+}
+
+export function getTrees() {
+  const treeObjects = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, './TreeApi/getTrees/trees.json'),
+      'utf8'
+    )
+  );
+  return treeObjects;
+}
+
+export function mockGetTrees(mock: MockAdapter) {
+  mock
+    .onGet(
+      '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees?_queryFilter=true'
+    )
+    .reply(function () {
+      const mockStatus = 200;
+      const mockResponse = getTrees();
+      expect(mockResponse).toBeTruthy();
+      return [mockStatus, mockResponse];
+    });
+}
+
 export function mockGetTree(mock: MockAdapter) {
   mock
     .onGet(
@@ -14,12 +47,7 @@ export function mockGetTree(mock: MockAdapter) {
       const elements = config.url ? config.url.split('/') : [];
       const treeId = elements[elements?.length - 1];
       const mockStatus = 200;
-      const mockResponse = JSON.parse(
-        fs.readFileSync(
-          path.resolve(__dirname, `./TreeApi/getTree/${treeId}.json`),
-          'utf8'
-        )
-      );
+      const mockResponse = getTree(treeId);
       expect(mockResponse._id).toBe(treeId);
       return [mockStatus, mockResponse];
     });
