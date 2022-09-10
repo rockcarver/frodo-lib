@@ -89,7 +89,7 @@ export async function listOAuth2CustomClients() {
   clients = clients
     .map((client) => client._id)
     .filter((client) => !protectedClients.includes(client));
-  const authentication = (await getConfigEntity('authentication')).data;
+  const authentication = await getConfigEntity('authentication');
   const subjects = authentication.rsFilter.staticUserMapping
     .map((mapping) => mapping.subject)
     .filter((subject) => !protectedSubjects.includes(subject));
@@ -135,7 +135,7 @@ export async function listOAuth2AdminClients() {
     })
     .map((client) => client._id)
     .filter((client) => !protectedClients.includes(client));
-  const authentication = (await getConfigEntity('authentication')).data;
+  const authentication = await getConfigEntity('authentication');
   const subjects = authentication.rsFilter.staticUserMapping
     .filter((mapping) => {
       let isPrivileged = false;
@@ -200,7 +200,7 @@ export async function listNonOAuth2AdminStaticUserMappings(showProtected) {
   clients = clients
     .map((client) => client._id)
     .filter((client) => !protectedClients.includes(client));
-  const authentication = (await getConfigEntity('authentication')).data;
+  const authentication = await getConfigEntity('authentication');
   let subjects = authentication.rsFilter.staticUserMapping
     .filter((mapping) => {
       let isPrivileged = false;
@@ -313,7 +313,7 @@ function addClientCredentialsGrantType(clientId, client) {
 async function addAdminStaticUserMapping(name) {
   let authentication = {};
   try {
-    authentication = (await getConfigEntity('authentication')).data;
+    authentication = await getConfigEntity('authentication');
   } catch (error) {
     printMessage(
       `Error reading IDM authentication configuration: ${error.message}`,
@@ -391,7 +391,7 @@ async function addAdminStaticUserMapping(name) {
  */
 export async function addAutoIdStaticUserMapping() {
   const name = 'autoid-resource-server';
-  const authentication = (await getConfigEntity('authentication')).data;
+  const authentication = await getConfigEntity('authentication');
   let needsAdminMapping = true;
   let addRoles = [];
   const mappings = authentication.rsFilter.staticUserMapping.map((mapping) => {
@@ -536,7 +536,7 @@ function removeClientCredentialsGrantType(clientId, client) {
 }
 
 async function removeAdminStaticUserMapping(name) {
-  const authentication = (await getConfigEntity('authentication')).data;
+  const authentication = await getConfigEntity('authentication');
   let finalRoles = [];
   let removeMapping = false;
   let modified = false;
@@ -667,7 +667,7 @@ export async function createLongLivedToken(
 }
 
 export async function removeStaticUserMapping(subject) {
-  const authentication = (await getConfigEntity('authentication')).data;
+  const authentication = await getConfigEntity('authentication');
   let removeMapping = false;
   const mappings = authentication.rsFilter.staticUserMapping.filter(
     (mapping) => {
@@ -697,7 +697,7 @@ export async function hideGenericExtensionAttributes(
   includeCustomized,
   dryRun
 ) {
-  const managed = (await getConfigEntity('managed')).data;
+  const managed = await getConfigEntity('managed');
   const propertyNames = Object.keys(GENERIC_EXTENSION_ATTRIBUTES);
   const updatedObjects = managed.objects.map((object) => {
     // ignore all other objects
@@ -743,7 +743,7 @@ export async function showGenericExtensionAttributes(
   includeCustomized,
   dryRun
 ) {
-  const managed = (await getConfigEntity('managed')).data;
+  const managed = await getConfigEntity('managed');
   const propertyNames = Object.keys(GENERIC_EXTENSION_ATTRIBUTES);
   const updatedObjects = managed.objects.map((object) => {
     // ignore all other objects
@@ -786,7 +786,7 @@ export async function showGenericExtensionAttributes(
 }
 
 async function repairOrgModelUser(dryRun) {
-  const managed = (await getConfigEntity('managed')).data;
+  const managed = await getConfigEntity('managed');
   const RDVPs = ['memberOfOrgIDs'];
   let repairData = false;
   const updatedObjects = managed.objects.map((object) => {
@@ -820,7 +820,7 @@ async function repairOrgModelUser(dryRun) {
 }
 
 async function repairOrgModelOrg(dryRun) {
-  const managed = (await getConfigEntity('managed')).data;
+  const managed = await getConfigEntity('managed');
   const RDVPs = [
     'adminIDs',
     'ownerIDs',
