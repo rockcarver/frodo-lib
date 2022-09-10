@@ -66,7 +66,7 @@ export async function listEmailTemplates(long = false) {
       'From'['brightCyan'],
       'Subject'['brightCyan'],
     ]);
-    emailTemplates.forEach((emailTemplate) => {
+    for (const emailTemplate of emailTemplates) {
       table.push([
         // Id
         `${emailTemplate._id.replace(`${EMAIL_TEMPLATE_TYPE}/`, '')}`,
@@ -89,7 +89,7 @@ export async function listEmailTemplates(long = false) {
         // Subject
         wordwrap(emailTemplate.subject[emailTemplate.defaultLocale], 40),
       ]);
-    });
+    }
     printMessage(table.toString(), 'data');
   }
 }
@@ -105,21 +105,19 @@ export async function exportEmailTemplateToFile(templateId, file) {
     fileName = getTypedFilename(templateId, EMAIL_TEMPLATE_FILE_TYPE);
   }
   createProgressIndicator(1, `Exporting ${templateId}`);
-  getEmailTemplate(templateId)
-    .then(async (response) => {
-      const templateData = response.data;
-      updateProgressIndicator(`Writing file ${fileName}`);
-      const fileData = getFileDataTemplate();
-      fileData.emailTemplate[templateId] = templateData;
-      saveJsonToFile(fileData, fileName);
-      stopProgressIndicator(
-        `Exported ${templateId.brightCyan} to ${fileName.brightCyan}.`
-      );
-    })
-    .catch((err) => {
-      stopProgressIndicator(`${err}`);
-      printMessage(err, 'error');
-    });
+  try {
+    const templateData = await getEmailTemplate(templateId);
+    updateProgressIndicator(`Writing file ${fileName}`);
+    const fileData = getFileDataTemplate();
+    fileData.emailTemplate[templateId] = templateData;
+    saveJsonToFile(fileData, fileName);
+    stopProgressIndicator(
+      `Exported ${templateId.brightCyan} to ${fileName.brightCyan}.`
+    );
+  } catch (err) {
+    stopProgressIndicator(`${err}`);
+    printMessage(err, 'error');
+  }
 }
 
 /**
@@ -131,55 +129,47 @@ export async function exportEmailTemplatesToFile(file) {
   if (!fileName) {
     fileName = getTypedFilename(`allEmailTemplates`, EMAIL_TEMPLATE_FILE_TYPE);
   }
-  const fileData = getFileDataTemplate();
-  getEmailTemplates()
-    .then((response) => {
-      const templates = response.data.result;
-      createProgressIndicator(
-        response.data.resultCount,
-        'Exporting email templates'
-      );
-      for (const template of templates) {
-        const templateId = template._id.replace(`${EMAIL_TEMPLATE_TYPE}/`, '');
-        updateProgressIndicator(`Exporting ${templateId}`);
-        fileData.emailTemplate[templateId] = template;
-      }
-      saveJsonToFile(fileData, fileName);
-      stopProgressIndicator(
-        `${response.data.resultCount} templates exported to ${fileName}.`
-      );
-    })
-    .catch((err) => {
-      stopProgressIndicator(`${err}`);
-      printMessage(err, 'error');
-    });
+  try {
+    const fileData = getFileDataTemplate();
+    const response = await getEmailTemplates();
+    const templates = response.result;
+    createProgressIndicator(response.resultCount, 'Exporting email templates');
+    for (const template of templates) {
+      const templateId = template._id.replace(`${EMAIL_TEMPLATE_TYPE}/`, '');
+      updateProgressIndicator(`Exporting ${templateId}`);
+      fileData.emailTemplate[templateId] = template;
+    }
+    saveJsonToFile(fileData, fileName);
+    stopProgressIndicator(
+      `${response.resultCount} templates exported to ${fileName}.`
+    );
+  } catch (err) {
+    stopProgressIndicator(`${err}`);
+    printMessage(err, 'error');
+  }
 }
 
 /**
  * Export all email templates to separate files
  */
 export async function exportEmailTemplatesToFiles() {
-  getEmailTemplates()
-    .then((response) => {
-      const templates = response.data.result;
-      createProgressIndicator(
-        response.data.resultCount,
-        'Exporting email templates'
-      );
-      for (const template of templates) {
-        const templateId = template._id.replace(`${EMAIL_TEMPLATE_TYPE}/`, '');
-        const fileName = getTypedFilename(templateId, EMAIL_TEMPLATE_FILE_TYPE);
-        const fileData = getFileDataTemplate();
-        updateProgressIndicator(`Exporting ${templateId}`);
-        fileData.emailTemplate[templateId] = template;
-        saveJsonToFile(fileData, fileName);
-      }
-      stopProgressIndicator(`${response.data.resultCount} templates exported.`);
-    })
-    .catch((err) => {
-      stopProgressIndicator(`${err}`);
-      printMessage(err, 'error');
-    });
+  try {
+    const response = await getEmailTemplates();
+    const templates = response.result;
+    createProgressIndicator(response.resultCount, 'Exporting email templates');
+    for (const template of templates) {
+      const templateId = template._id.replace(`${EMAIL_TEMPLATE_TYPE}/`, '');
+      const fileName = getTypedFilename(templateId, EMAIL_TEMPLATE_FILE_TYPE);
+      const fileData = getFileDataTemplate();
+      updateProgressIndicator(`Exporting ${templateId}`);
+      fileData.emailTemplate[templateId] = template;
+      saveJsonToFile(fileData, fileName);
+    }
+    stopProgressIndicator(`${response.resultCount} templates exported.`);
+  } catch (err) {
+    stopProgressIndicator(`${err}`);
+    printMessage(err, 'error');
+  }
 }
 
 /**
@@ -190,21 +180,23 @@ export async function exportEmailTemplatesToFiles() {
 export async function importEmailTemplateFromFile(templateId, file) {
   // eslint-disable-next-line no-param-reassign
   templateId = templateId.replaceAll(`${EMAIL_TEMPLATE_TYPE}/`, '');
-  fs.readFile(file, 'utf8', (err, data) => {
+  fs.readFile(file, 'utf8', async (err, data) => {
     if (err) throw err;
     const fileData = JSON.parse(data);
     if (validateImport(fileData.meta)) {
       createProgressIndicator(1, `Importing ${templateId}`);
       if (fileData.emailTemplate[templateId]) {
-        putEmailTemplate(templateId, fileData.emailTemplate[templateId])
-          .then(() => {
-            updateProgressIndicator(`Importing ${templateId}`);
-            stopProgressIndicator(`Imported ${templateId}`);
-          })
-          .catch((putEmailTemplateError) => {
-            stopProgressIndicator(`${putEmailTemplateError}`);
-            printMessage(putEmailTemplateError, 'error');
-          });
+        try {
+          await putEmailTemplate(
+            templateId,
+            fileData.emailTemplate[templateId]
+          );
+          updateProgressIndicator(`Importing ${templateId}`);
+          stopProgressIndicator(`Imported ${templateId}`);
+        } catch (putEmailTemplateError) {
+          stopProgressIndicator(`${putEmailTemplateError}`);
+          printMessage(putEmailTemplateError, 'error');
+        }
       } else {
         stopProgressIndicator(
           `Email template ${templateId.brightCyan} not found in ${file.brightCyan}!`
@@ -307,26 +299,25 @@ export async function importEmailTemplatesFromFiles() {
  * @param {String} file optional filename
  */
 export async function importFirstEmailTemplateFromFile(file) {
-  fs.readFile(file, 'utf8', (err, data) => {
+  fs.readFile(file, 'utf8', async (err, data) => {
     if (err) throw err;
     const fileData = JSON.parse(data);
     if (validateImport(fileData.meta)) {
       createProgressIndicator(1, `Importing first email template`);
       for (const id in fileData.emailTemplate) {
         if ({}.hasOwnProperty.call(fileData.emailTemplate, id)) {
-          putEmailTemplate(
-            id.replace(regexEmailTemplateType, ''),
-            fileData.emailTemplate[id]
-          )
-            .then(() => {
-              updateProgressIndicator(`Imported ${id}`);
-              stopProgressIndicator(`Imported ${id}`);
-            })
-            .catch((putEmailTemplateError) => {
-              stopProgressIndicator(`Error importing email template ${id}`);
-              printMessage(`\nError importing email template ${id}`, 'error');
-              printMessage(putEmailTemplateError.response.data, 'error');
-            });
+          try {
+            await putEmailTemplate(
+              id.replace(regexEmailTemplateType, ''),
+              fileData.emailTemplate[id]
+            );
+            updateProgressIndicator(`Imported ${id}`);
+            stopProgressIndicator(`Imported ${id}`);
+          } catch (putEmailTemplateError) {
+            stopProgressIndicator(`Error importing email template ${id}`);
+            printMessage(`\nError importing email template ${id}`, 'error');
+            printMessage(putEmailTemplateError.response.data, 'error');
+          }
           break;
         }
       }

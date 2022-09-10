@@ -70,7 +70,7 @@ const emailTemplateNodes = ['EmailSuspendNode', 'EmailTemplateNode'];
 
 const emptyScriptPlaceholder = '[Empty]';
 
-interface SingleTreeExportTemplate {
+interface SingleJourneyExportTemplate {
   meta?: Record<string, unknown>;
   innerNodes?: Record<string, unknown>;
   innernodes?: Record<string, unknown>;
@@ -85,7 +85,7 @@ interface SingleTreeExportTemplate {
 }
 
 // use a function vs a template variable to avoid problems in loops
-function createSingleTreeExportTemplate() {
+export function createSingleJourneyExportTemplate(): SingleJourneyExportTemplate {
   return {
     meta: {},
     innerNodes: {},
@@ -97,20 +97,20 @@ function createSingleTreeExportTemplate() {
     saml2Entities: {},
     circlesOfTrust: {},
     tree: {},
-  } as SingleTreeExportTemplate;
+  } as SingleJourneyExportTemplate;
 }
 
-interface MultipleTreesExportTemplate {
+interface MultiJourneyExportTemplate {
   meta?: Record<string, unknown>;
-  trees: Record<string, SingleTreeExportTemplate>;
+  trees: Record<string, SingleJourneyExportTemplate>;
 }
 
 // use a function vs a template variable to avoid problems in loops
-function createMultipleTreesExportTemplate() {
+export function createMultiJourneyExportTemplate(): MultiJourneyExportTemplate {
   return {
     meta: {},
     trees: {},
-  } as MultipleTreesExportTemplate;
+  } as MultiJourneyExportTemplate;
 }
 
 /**
@@ -227,21 +227,21 @@ interface ExportOptions {
 }
 
 /**
- * Create export data for a tree with all its nodes and dependencies. The export data can be written to a file as is.
+ * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
  * @param {string} treeId tree id/name
  * @param {ExportOptions} options export options
- * @returns {Promise<SingleTreeExportTemplate>} a promise that resolves to an object containing the tree and all its nodes and dependencies
+ * @returns {Promise<SingleJourneyExportTemplate>} a promise that resolves to an object containing the tree and all its nodes and dependencies
  */
-export async function exportTree(
+export async function exportJourney(
   treeId: string,
   options: ExportOptions = {
     useStringArrays: true,
     deps: true,
     verbose: false,
   }
-): Promise<SingleTreeExportTemplate> {
+): Promise<SingleJourneyExportTemplate> {
   const treeObject = await getTree(treeId);
-  const exportData = createSingleTreeExportTemplate();
+  const exportData = createSingleJourneyExportTemplate();
   const { useStringArrays, deps, verbose } = options;
 
   if (verbose) printMessage(`\n- ${treeObject._id}\n`, 'info', false);
@@ -490,16 +490,16 @@ export async function exportTree(
     if (settledPromise.status === 'fulfilled' && settledPromise.value) {
       if (verbose)
         printMessage(
-          `    - ${settledPromise.value.data._id.split('/')[1]}${
-            settledPromise.value.data.displayName
-              ? ` (${settledPromise.value.data.displayName})`
+          `    - ${settledPromise.value._id.split('/')[1]}${
+            settledPromise.value.displayName
+              ? ` (${settledPromise.value.displayName})`
               : ''
           }`,
           'info',
           true
         );
-      exportData.emailTemplates[settledPromise.value.data._id.split('/')[1]] =
-        settledPromise.value.data;
+      exportData.emailTemplates[settledPromise.value._id.split('/')[1]] =
+        settledPromise.value;
     }
   });
 
@@ -625,7 +625,7 @@ export async function exportJourneyToFile(
   if (!verbose)
     createProgressIndicator(undefined, `${journeyId}`, 'indeterminate');
   try {
-    const fileData: SingleTreeExportTemplate = await exportTree(
+    const fileData: SingleJourneyExportTemplate = await exportJourney(
       journeyId,
       options
     );
@@ -660,13 +660,13 @@ export async function exportJourneysToFile(
     fileName = getTypedFilename(`all${getRealmString()}Journeys`, 'journeys');
   }
   const trees = (await getTrees()).result;
-  const fileData: MultipleTreesExportTemplate =
-    createMultipleTreesExportTemplate();
+  const fileData: MultiJourneyExportTemplate =
+    createMultiJourneyExportTemplate();
   createProgressIndicator(trees.length, 'Exporting journeys...');
   for (const tree of trees) {
     updateProgressIndicator(`${tree._id}`);
     try {
-      const exportData = await exportTree(tree._id, options);
+      const exportData = await exportJourney(tree._id, options);
       delete exportData.meta;
       fileData.trees[tree._id] = exportData;
     } catch (error) {
@@ -690,7 +690,7 @@ export async function exportJourneysToFiles(
     updateProgressIndicator(`${tree._id}`);
     const fileName = getTypedFilename(`${tree._id}`, 'journey');
     try {
-      const exportData: SingleTreeExportTemplate = await exportTree(
+      const exportData: SingleJourneyExportTemplate = await exportJourney(
         tree._id,
         options
       );
@@ -722,11 +722,11 @@ interface ImportOptions {
 
 /**
  * Helper to import a tree with all dependencies from an import data object (typically read from a file)
- * @param {SingleTreeExportTemplate} treeObject tree object containing tree and all its dependencies
+ * @param {SingleJourneyExportTemplate} treeObject tree object containing tree and all its dependencies
  * @param {ImportOptions} options import options
  */
-export async function importTree(
-  treeObject: SingleTreeExportTemplate,
+export async function importJourney(
+  treeObject: SingleJourneyExportTemplate,
   options: ImportOptions
 ): Promise<void> {
   const { reUuid, deps, verbose } = options;
@@ -1279,7 +1279,7 @@ export async function importJourneyFromFile(
             `Importing ${journeyId}...`,
             'indeterminate'
           );
-        importTree(journeyData, options)
+        importJourney(journeyData, options)
           .then(() => {
             if (verbose)
               createProgressIndicator(
@@ -1374,7 +1374,7 @@ export async function importFirstJourneyFromFile(
             `Importing ${journeyId}...`,
             'indeterminate'
           );
-        importTree(journeyData, options)
+        importJourney(journeyData, options)
           .then(() => {
             if (verbose)
               createProgressIndicator(
@@ -1415,8 +1415,8 @@ export async function importFirstJourneyFromFile(
  * @param {Object} treesMap map of trees object
  * @param {ImportOptions} options import options
  */
-async function importAllTrees(
-  treesMap: MultipleTreesExportTemplate,
+async function importAllJourneys(
+  treesMap: MultiJourneyExportTemplate,
   options: ImportOptions
 ) {
   const installedJourneys = (await getTrees()).result.map((x) => x._id);
@@ -1449,7 +1449,7 @@ async function importAllTrees(
   for (const tree of resolvedJourneys) {
     try {
       // eslint-disable-next-line no-await-in-loop
-      await importTree(treesMap[tree], options);
+      await importJourney(treesMap[tree], options);
       updateProgressIndicator(`${tree}`);
     } catch (error) {
       printMessage(`\n${error.message}`, 'error');
@@ -1470,7 +1470,7 @@ export async function importJourneysFromFile(
   fs.readFile(file, 'utf8', (err, data) => {
     if (err) throw err;
     const fileData = JSON.parse(data);
-    importAllTrees(fileData.trees, options);
+    importAllJourneys(fileData.trees, options);
   });
 }
 
@@ -1488,21 +1488,24 @@ export async function importJourneysFromFiles(options: ImportOptions) {
     const journeyData = JSON.parse(fs.readFileSync(file, 'utf8'));
     allJourneysData.trees[journeyData.tree._id] = journeyData;
   }
-  importAllTrees(allJourneysData.trees as MultipleTreesExportTemplate, options);
+  importAllJourneys(
+    allJourneysData.trees as MultiJourneyExportTemplate,
+    options
+  );
 }
 
 /**
  * Describe a tree
- * @param {Object} treeData tree
+ * @param {Object} journeyData tree
  * @returns {Object} an object describing the tree
  */
-export function describeTree(treeData) {
+export function describeJourney(journeyData) {
   const treeMap = {};
   const nodeTypeMap = {};
   const scriptsMap = {};
   const emailTemplatesMap = {};
-  treeMap['treeName'] = treeData.tree._id;
-  for (const [, nodeData] of Object.entries(treeData.nodes)) {
+  treeMap['treeName'] = journeyData.tree._id;
+  for (const [, nodeData] of Object.entries(journeyData.nodes)) {
     if (nodeTypeMap[nodeData['_type']['_id']]) {
       nodeTypeMap[nodeData['_type']['_id']] += 1;
     } else {
@@ -1510,7 +1513,7 @@ export function describeTree(treeData) {
     }
   }
 
-  for (const [, nodeData] of Object.entries(treeData.innerNodes)) {
+  for (const [, nodeData] of Object.entries(journeyData.innerNodes)) {
     if (nodeTypeMap[nodeData['_type']['_id']]) {
       nodeTypeMap[nodeData['_type']['_id']] += 1;
     } else {
@@ -1518,11 +1521,11 @@ export function describeTree(treeData) {
     }
   }
 
-  for (const [, scriptData] of Object.entries(treeData.scripts)) {
+  for (const [, scriptData] of Object.entries(journeyData.scripts)) {
     scriptsMap[scriptData['name']] = scriptData['description'];
   }
 
-  for (const [id, data] of Object.entries(treeData.emailTemplates)) {
+  for (const [id, data] of Object.entries(journeyData.emailTemplates)) {
     emailTemplatesMap[id] = data['displayName'];
   }
 

@@ -21,7 +21,7 @@ import { getTypedFilename } from './utils/ExportImportUtils';
 export async function listAllConfigEntities() {
   let configEntities = [];
   try {
-    configEntities = (await getAllConfigEntities()).data;
+    configEntities = await getAllConfigEntities();
   } catch (getAllConfigEntitiesError) {
     printMessage(getAllConfigEntitiesError, 'error');
     printMessage(
@@ -46,7 +46,7 @@ export async function exportConfigEntity(id, file) {
   if (!fileName) {
     fileName = getTypedFilename(`${id}`, 'idm');
   }
-  const configEntity = (await getConfigEntity(id)).data;
+  const configEntity = await getConfigEntity(id);
   fs.writeFile(fileName, JSON.stringify(configEntity, null, 2), (err) => {
     if (err) {
       return printMessage(`ERROR - can't save ${id} export to file`, 'error');
@@ -62,7 +62,7 @@ export async function exportConfigEntity(id, file) {
 export async function exportAllRawConfigEntities(directory) {
   let configEntities = [];
   try {
-    configEntities = (await getAllConfigEntities()).data;
+    configEntities = await getAllConfigEntities();
   } catch (getAllConfigEntitiesError) {
     printMessage(getAllConfigEntitiesError, 'error');
     printMessage(
@@ -82,23 +82,21 @@ export async function exportAllRawConfigEntities(directory) {
     const entityPromises = [];
     configEntities['configurations'].forEach((x) => {
       entityPromises.push(
-        getConfigEntity(x._id)
-          .then((response) => response.data)
-          .catch((getConfigEntityError) => {
-            if (
-              !(
-                getConfigEntityError.response.status === 403 &&
-                getConfigEntityError.response.data.message ===
-                  'This operation is not available in ForgeRock Identity Cloud.'
-              )
-            ) {
-              printMessage(getConfigEntityError, 'error');
-              printMessage(
-                `Error getting config entity: ${getConfigEntityError}`,
-                'error'
-              );
-            }
-          })
+        getConfigEntity(x._id).catch((getConfigEntityError) => {
+          if (
+            !(
+              getConfigEntityError.response.status === 403 &&
+              getConfigEntityError.response.data.message ===
+                'This operation is not available in ForgeRock Identity Cloud.'
+            )
+          ) {
+            printMessage(getConfigEntityError, 'error');
+            printMessage(
+              `Error getting config entity: ${getConfigEntityError}`,
+              'error'
+            );
+          }
+        })
       );
     });
     Promise.all(entityPromises).then((result) => {
@@ -149,7 +147,7 @@ export async function exportAllConfigEntities(
 
     let configEntities = [];
     try {
-      configEntities = (await getAllConfigEntities()).data;
+      configEntities = await getAllConfigEntities();
     } catch (getAllConfigEntitiesError) {
       printMessage(getAllConfigEntitiesError, 'error');
       printMessage(
@@ -171,9 +169,7 @@ export async function exportAllConfigEntities(
       configEntities['configurations'].forEach((x) => {
         if (entriesToExport.includes(x._id)) {
           // console.log(`- ${x._id}`);
-          entityPromises.push(
-            getConfigEntity(x._id).then((response) => response.data)
-          );
+          entityPromises.push(getConfigEntity(x._id));
         }
       });
       Promise.all(entityPromises).then((result) => {
@@ -225,9 +221,11 @@ export async function countManagedObjects(type) {
   };
   try {
     do {
-      result = (
-        await queryAllManagedObjectsByType(type, [], result.pagedResultsCookie)
-      )['data'];
+      result = await queryAllManagedObjectsByType(
+        type,
+        [],
+        result.pagedResultsCookie
+      );
       count += result.resultCount;
       // printMessage(result);
     } while (result.pagedResultsCookie);
