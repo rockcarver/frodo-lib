@@ -1,0 +1,32 @@
+{
+  "_id": "fc7e47cd-c679-4211-8e05-a36654f23c67",
+  "_rev": "1698174580",
+  "minimumPasswordLength": 8,
+  "_type": {
+    "_id": "IdentityStoreDecisionNode",
+    "name": "Identity Store Decision",
+    "collection": true
+  },
+  "_outcomes": [
+    {
+      "id": "TRUE",
+      "displayName": "True"
+    },
+    {
+      "id": "FALSE",
+      "displayName": "False"
+    },
+    {
+      "id": "LOCKED",
+      "displayName": "Locked"
+    },
+    {
+      "id": "CANCELLED",
+      "displayName": "Cancelled"
+    },
+    {
+      "id": "EXPIRED",
+      "displayName": "Expired"
+    }
+  ]
+}
