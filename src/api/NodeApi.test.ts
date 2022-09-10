@@ -24,7 +24,7 @@ describe('NodeApi - getNodeTypes()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/NodeApi/getNodeTypes/types.json'
+          '../test/mocks/NodeApi/getNodeTypes/types.json'
         ),
         'utf8'
       )
@@ -1061,7 +1061,7 @@ describe('NodeApi - getNodesByType()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/NodeApi/getNodesByType/PageNode.json'
+          '../test/mocks/NodeApi/getNodesByType/PageNode.json'
         ),
         'utf8'
       )
@@ -1087,7 +1087,7 @@ describe('NodeApi - getNode()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/NodeApi/getNode/PageNode_1aea363f-d8d2-4711-b88d-d58fff92dbae.json'
+          '../test/mocks/NodeApi/getNode/PageNode_1aea363f-d8d2-4711-b88d-d58fff92dbae.json'
         ),
         'utf8'
       )
@@ -1139,7 +1139,7 @@ describe('NodeApi - putNode()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/NodeApi/putNode/PageNode_0ad90971-d08a-4af3-86f3-01729572dc8f.json'
+          '../test/mocks/NodeApi/putNode/PageNode_0ad90971-d08a-4af3-86f3-01729572dc8f.json'
         ),
         'utf8'
       )
@@ -1163,7 +1163,7 @@ describe('NodeApi - putNode()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/NodeApi/putNode/PageNode_1aea363f-d8d2-4711-b88d-d58fff92dbae.json'
+          '../test/mocks/NodeApi/putNode/PageNode_1aea363f-d8d2-4711-b88d-d58fff92dbae.json'
         ),
         'utf8'
       )
@@ -1193,7 +1193,7 @@ describe('NodeApi - deleteNode()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/NodeApi/deleteNode/PageNode_1aea363f-d8d2-4711-b88d-d58fff92dbae.json'
+          '../test/mocks/NodeApi/deleteNode/PageNode_1aea363f-d8d2-4711-b88d-d58fff92dbae.json'
         ),
         'utf8'
       )
