@@ -1,0 +1,13 @@
+{
+  "_id": "739bdc48-fd24-4c52-b353-88706d75558a",
+  "name": "Check Username",
+  "description": "Check if username has already been collected.",
+  "script": "\"/* Check Username\\n *\\n * Author: volker.scheuber@forgerock.com\\n * \\n * Check if username has already been collected.\\n * Return \\\"known\\\" if yes, \\\"unknown\\\" otherwise.\\n * \\n * This script does not need to be parametrized. It will work properly as is.\\n * \\n * The Scripted Decision Node needs the following outcomes defined:\\n * - known\\n * - unknown\\n */\\n(function () {\\n    if (null != sharedState.get(\\\"username\\\")) {\\n        outcome = \\\"known\\\";\\n    }\\n    else {\\n        outcome = \\\"unknown\\\";\\n    }\\n}());\"",
+  "default": false,
+  "language": "JAVASCRIPT",
+  "context": "AUTHENTICATION_TREE_DECISION_NODE",
+  "createdBy": "null",
+  "creationDate": 0,
+  "lastModifiedBy": "null",
+  "lastModifiedDate": 0
+}
