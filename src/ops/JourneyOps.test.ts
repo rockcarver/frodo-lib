@@ -5,61 +5,11 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import * as global from '../storage/StaticStorage';
-import {
-  mockGetTree,
-  mockGetNode,
-} from '../../test/mocks/ForgeRockApiMockEngine';
+import { mockGetTree, mockGetNode } from '../test/mocks/ForgeRockApiMockEngine';
 
 const mock = new MockAdapter(axios);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// function mockGetTree(mock: MockAdapter) {
-//   mock
-//     .onGet(
-//       /\/json\/realms\/root\/realms\/alpha\/realm-config\/authentication\/authenticationtrees\/trees\/.+/
-//     )
-//     .reply(function (config) {
-//       const elements = config.url ? config.url.split('/') : [];
-//       const treeId = elements[elements?.length - 1];
-//       const mockStatus = 200;
-//       const mockResponse = JSON.parse(
-//         fs.readFileSync(
-//           path.resolve(
-//             __dirname,
-//             `../../test/mocks/TreeApi/getTree/${treeId}.json`
-//           ),
-//           'utf8'
-//         )
-//       );
-//       expect(mockResponse._id).toBe(treeId);
-//       return [mockStatus, mockResponse];
-//     });
-// }
-
-// function mockGetNode(mock: MockAdapter) {
-//   mock
-//     .onGet(
-//       /\/json\/realms\/root\/realms\/alpha\/realm-config\/authentication\/authenticationtrees\/nodes\/.+/
-//     )
-//     .reply(function (config) {
-//       const elements = config.url ? config.url.split('/') : [];
-//       const nodeType = elements[elements?.length - 2];
-//       const nodeId = elements[elements?.length - 1];
-//       const mockStatus = 200;
-//       const mockResponse = JSON.parse(
-//         fs.readFileSync(
-//           path.resolve(
-//             __dirname,
-//             `../../test/mocks/NodeApi/getNode/${nodeType}/${nodeId}.json`
-//           ),
-//           'utf8'
-//         )
-//       );
-//       expect(mockResponse._id).toBe(nodeId);
-//       return [mockStatus, mockResponse];
-//     });
-// }
 
 state.default.session.setTenant('');
 state.default.session.setRealm('alpha');
@@ -70,10 +20,7 @@ state.default.session.setDeploymentType(global.CLOUD_DEPLOYMENT_TYPE_KEY);
 const journeyId = 'FrodoTest';
 const journeyObject = JSON.parse(
   fs.readFileSync(
-    path.resolve(
-      __dirname,
-      `../../test/mocks/TreeApi/getTree/${journeyId}.json`
-    ),
+    path.resolve(__dirname, `../test/mocks/TreeApi/getTree/${journeyId}.json`),
     'utf8'
   )
 );
@@ -86,7 +33,7 @@ describe('JourneyOps - getJourneys()', () => {
   test('getJourneys() 1: Get all journeys', async () => {
     const mockResponse = JSON.parse(
       fs.readFileSync(
-        path.resolve(__dirname, '../../test/mocks/TreeApi/getTrees/trees.json'),
+        path.resolve(__dirname, '../test/mocks/TreeApi/getTrees/trees.json'),
         'utf8'
       )
     );

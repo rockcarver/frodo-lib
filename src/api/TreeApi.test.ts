@@ -22,7 +22,7 @@ describe('TreeApi - getTrees()', () => {
   test('getTrees() 1: Get all trees', async () => {
     const response = JSON.parse(
       fs.readFileSync(
-        path.resolve(__dirname, '../../test/mocks/TreeApi/getTrees/trees.json'),
+        path.resolve(__dirname, '../test/mocks/TreeApi/getTrees/trees.json'),
         'utf8'
       )
     );
@@ -45,10 +45,7 @@ describe('TreeApi - getTree()', () => {
   test('getTree() 1: Get existing tree', async () => {
     const response = JSON.parse(
       fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../../test/mocks/TreeApi/getTree/FrodoTest.json'
-        ),
+        path.resolve(__dirname, '../test/mocks/TreeApi/getTree/FrodoTest.json'),
         'utf8'
       )
     );
@@ -94,10 +91,7 @@ describe('TreeApi - putTree()', () => {
   test('putTree() 1: Put valid tree', async () => {
     const response = JSON.parse(
       fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../../test/mocks/TreeApi/putTree/FrodoTest.json'
-        ),
+        path.resolve(__dirname, '../test/mocks/TreeApi/putTree/FrodoTest.json'),
         'utf8'
       )
     );
@@ -115,7 +109,7 @@ describe('TreeApi - putTree()', () => {
     const request = fs.readFileSync(
       path.resolve(
         __dirname,
-        '../../test/mocks/TreeApi/putTree/Invalid_trailing-data.txt'
+        '../test/mocks/TreeApi/putTree/Invalid_trailing-data.txt'
       ),
       'utf8'
     );
@@ -147,7 +141,7 @@ describe('TreeApi - putTree()', () => {
     const request = fs.readFileSync(
       path.resolve(
         __dirname,
-        '../../test/mocks/TreeApi/putTree/Invalid_invalid-attribute.json'
+        '../test/mocks/TreeApi/putTree/Invalid_invalid-attribute.json'
       ),
       'utf8'
     );
@@ -199,7 +193,7 @@ describe('TreeApi - putTree()', () => {
     const request = fs.readFileSync(
       path.resolve(
         __dirname,
-        '../../test/mocks/TreeApi/putTree/Invalid_no-entry-node.json'
+        '../test/mocks/TreeApi/putTree/Invalid_no-entry-node.json'
       ),
       'utf8'
     );
@@ -229,7 +223,7 @@ describe('TreeApi - putTree()', () => {
     const request = fs.readFileSync(
       path.resolve(
         __dirname,
-        '../../test/mocks/TreeApi/putTree/Invalid_invalid-nodes.json'
+        '../test/mocks/TreeApi/putTree/Invalid_invalid-nodes.json'
       ),
       'utf8'
     );
@@ -266,7 +260,7 @@ describe('TreeApi - deleteTree()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/TreeApi/deleteTree/FrodoTest.json'
+          '../test/mocks/TreeApi/deleteTree/FrodoTest.json'
         ),
         'utf8'
       )
