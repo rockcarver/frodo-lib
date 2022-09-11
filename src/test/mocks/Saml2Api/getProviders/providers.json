@@ -1,0 +1,69 @@
+{
+  "result": [
+    {
+      "_id": "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQQXp1cmU",
+      "_rev": "-904573104",
+      "entityId": "https://idc.scheuber.io/am/saml2/IDPAzure",
+      "location": "hosted",
+      "roles": ["identityProvider"]
+    },
+    {
+      "_id": "U1BBenVyZQ",
+      "_rev": "-1707034309",
+      "entityId": "SPAzure",
+      "location": "hosted",
+      "roles": ["serviceProvider"]
+    },
+    {
+      "_id": "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw",
+      "_rev": "761336767",
+      "entityId": "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/",
+      "location": "remote",
+      "roles": ["identityProvider"]
+    },
+    {
+      "_id": "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQRmVkbGV0",
+      "_rev": "-514203039",
+      "entityId": "https://idc.scheuber.io/am/saml2/IDPFedlet",
+      "location": "hosted",
+      "roles": ["identityProvider"]
+    },
+    {
+      "_id": "aVNQQXp1cmU",
+      "_rev": "2065843986",
+      "entityId": "iSPAzure",
+      "location": "hosted",
+      "roles": ["serviceProvider"]
+    },
+    {
+      "_id": "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQQnJvYWRjb20",
+      "_rev": "-1255848860",
+      "entityId": "https://idc.scheuber.io/am/saml2/IDPBroadcom",
+      "location": "hosted",
+      "roles": ["identityProvider"]
+    },
+    {
+      "_id": "dXJuOmZlZGVyYXRpb246TWljcm9zb2Z0T25saW5l",
+      "_rev": "-1154647349",
+      "entityId": "urn:federation:MicrosoftOnline",
+      "location": "remote",
+      "roles": ["serviceProvider"]
+    },
+    {
+      "_id": "aHR0cHM6Ly9zYW1sLm15dGVzdHJ1bi5jb20vc3A",
+      "_rev": "-1468669138",
+      "entityId": "https://saml.mytestrun.com/sp",
+      "location": "remote",
+      "roles": [
+        "serviceProvider",
+        "attributeQueryProvider",
+        "xacmlPolicyEnforcementPoint"
+      ]
+    }
+  ],
+  "resultCount": 8,
+  "pagedResultsCookie": null,
+  "totalPagedResultsPolicy": "EXACT",
+  "totalPagedResults": 8,
+  "remainingPagedResults": -1
+}

@@ -36,7 +36,7 @@ gulp.task('create-mjs-esm', () =>
 
 gulp.task('resources-esm', () =>
   gulp
-    .src(['src/**/*.json', 'src/**/*.txt'], { base: './src/' })
+    .src(['src/**/*.json', 'src/**/*.txt', 'src/**/*.xml'], { base: './src/' })
     .pipe(gulp.dest('esm'))
 );
 
@@ -53,7 +53,7 @@ gulp.task('transpile-cjs', () =>
 
 gulp.task('resources-cjs', () =>
   gulp
-    .src(['src/**/*.json', 'src/**/*.txt'], { base: './src/' })
+    .src(['src/**/*.json', 'src/**/*.txt', 'src/**/*.xml'], { base: './src/' })
     .pipe(gulp.dest('cjs'))
 );
 
