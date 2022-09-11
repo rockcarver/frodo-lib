@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import _, { template } from 'lodash';
+import _ from 'lodash';
 import {
   convertBase64TextToArray,
   getTypedFilename,
