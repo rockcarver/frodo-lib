@@ -9,9 +9,8 @@ const scriptQueryURLTemplate =
   '%s/json%s/scripts?_queryFilter=name+eq+%%22%s%%22';
 const apiVersion = 'protocol=2.0,resource=1.0';
 const getApiConfig = () => {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/authentication/authenticationtrees`,
+    path: `/json${getCurrentRealmPath()}/scripts`,
     apiVersion,
   };
 };

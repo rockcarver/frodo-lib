@@ -12,9 +12,8 @@ const queryAllCirclesOfTrustURLTemplate =
   '%s/json%s/realm-config/federation/circlesoftrust?_queryFilter=true';
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/realm-config/federation/circlesoftrust`,
+    path: `/json${getCurrentRealmPath()}/realm-config/federation/circlesoftrust`,
     apiVersion,
   };
 };
@@ -29,9 +28,10 @@ export async function getCirclesOfTrust() {
     storage.session.getTenant(),
     getCurrentRealmPath()
   );
-  return generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 /**
@@ -46,9 +46,10 @@ export async function getCircleOfTrust(cotId) {
     getCurrentRealmPath(),
     cotId
   );
-  return generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 /**
@@ -63,9 +64,14 @@ export async function createCircleOfTrust(cotData) {
     storage.session.getTenant(),
     getCurrentRealmPath()
   );
-  return generateAmApi(getApiConfig()).post(urlString, postData, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi(getApiConfig()).post(
+    urlString,
+    postData,
+    {
+      withCredentials: true,
+    }
+  );
+  return data;
 }
 
 /**
@@ -81,7 +87,8 @@ export async function updateCircleOfTrust(cotId, cotData) {
     getCurrentRealmPath(),
     cotId
   );
-  return generateAmApi(getApiConfig()).put(urlString, cotData, {
+  const { data } = await generateAmApi(getApiConfig()).put(urlString, cotData, {
     withCredentials: true,
   });
+  return data;
 }
