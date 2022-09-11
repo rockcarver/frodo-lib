@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import _ from 'lodash';
+import _, { template } from 'lodash';
 import {
   convertBase64TextToArray,
   getTypedFilename,
@@ -127,7 +127,7 @@ async function getSaml2NodeDependencies(
 ) {
   const samlProperties = ['metaAlias', 'idpEntityId'];
   const saml2EntityPromises = [];
-  samlProperties.forEach(async (samlProperty) => {
+  for (const samlProperty of samlProperties) {
     // In the following line nodeObject[samlProperty] will look like '/alpha/iSPAzure'.
     const entityId =
       samlProperty === 'metaAlias'
@@ -135,62 +135,66 @@ async function getSaml2NodeDependencies(
         : nodeObject[samlProperty];
     const entity = _.find(allProviders, { entityId });
     if (entity) {
-      saml2EntityPromises.push(
-        getProviderByLocationAndId(entity.location, entity._id).then(
-          (providerResponse) => {
-            /**
-             * Adding entityLocation here to the entityResponse because the import tool
-             * needs to know whether the saml2 entity is remote or not (this will be removed
-             * from the config before importing see updateSaml2Entity and createSaml2Entity functions).
-             * Importing a remote saml2 entity is a slightly different request (see createSaml2Entity).
-             */
-            providerResponse.data.entityLocation = entity.location;
+      try {
+        const providerResponse = await getProviderByLocationAndId(
+          entity.location,
+          entity._id
+        );
+        /**
+         * Adding entityLocation here to the entityResponse because the import tool
+         * needs to know whether the saml2 entity is remote or not (this will be removed
+         * from the config before importing see updateSaml2Entity and createSaml2Entity functions).
+         * Importing a remote saml2 entity is a slightly different request (see createSaml2Entity).
+         */
+        providerResponse.entityLocation = entity.location;
 
-            if (entity.location === 'remote') {
-              // get the xml representation of this entity and add it to the entityResponse;
-              return getProviderMetadata(providerResponse.data.entityId).then(
-                (metaDataResponse) => {
-                  providerResponse.data.base64EntityXML = encodeBase64Url(
-                    metaDataResponse.data
-                  );
-                  return providerResponse;
-                }
-              );
-            }
-            return providerResponse;
-          }
-        )
-      );
-    }
-  });
-  return Promise.all(saml2EntityPromises).then(
-    (saml2EntitiesPromisesResults) => {
-      const saml2Entities = [];
-      saml2EntitiesPromisesResults.forEach((saml2Entity) => {
-        if (saml2Entity) {
-          saml2Entities.push(saml2Entity.data);
+        if (entity.location === 'remote') {
+          // get the xml representation of this entity and add it to the entityResponse;
+          const metaDataResponse = await getProviderMetadata(
+            providerResponse.entityId
+          );
+          providerResponse.base64EntityXML = encodeBase64Url(metaDataResponse);
         }
-      });
-      const samlEntityIds = _.map(
-        saml2Entities,
-        (saml2EntityConfig) => `${saml2EntityConfig.entityId}|saml2`
-      );
-      const circlesOfTrust = _.filter(allCirclesOfTrust, (circleOfTrust) => {
-        let hasEntityId = false;
-        circleOfTrust.trustedProviders.forEach((trustedProvider) => {
-          if (!hasEntityId && samlEntityIds.includes(trustedProvider)) {
-            hasEntityId = true;
-          }
-        });
-        return hasEntityId;
-      });
-      const saml2NodeDependencies = {
-        saml2Entities,
-        circlesOfTrust,
-      };
-      return saml2NodeDependencies;
+        saml2EntityPromises.push(providerResponse);
+      } catch (error) {
+        printMessage(error.message, 'error');
+      }
     }
-  );
+  }
+  try {
+    const saml2EntitiesPromisesResults = await Promise.all(saml2EntityPromises);
+    const saml2Entities = [];
+    for (const saml2Entity of saml2EntitiesPromisesResults) {
+      if (saml2Entity) {
+        saml2Entities.push(saml2Entity);
+      }
+    }
+    const samlEntityIds = _.map(
+      saml2Entities,
+      (saml2EntityConfig) => `${saml2EntityConfig.entityId}|saml2`
+    );
+    const circlesOfTrust = _.filter(allCirclesOfTrust, (circleOfTrust) => {
+      let hasEntityId = false;
+      for (const trustedProvider of circleOfTrust.trustedProviders) {
+        if (!hasEntityId && samlEntityIds.includes(trustedProvider)) {
+          hasEntityId = true;
+        }
+      }
+      return hasEntityId;
+    });
+    const saml2NodeDependencies = {
+      saml2Entities,
+      circlesOfTrust,
+    };
+    return saml2NodeDependencies;
+  } catch (error) {
+    printMessage(error.message, 'error');
+    const saml2NodeDependencies = {
+      saml2Entities: [],
+      circlesOfTrust: [],
+    };
+    return saml2NodeDependencies;
+  }
 }
 
 // export async function getTreeNodes(treeObject) {
@@ -307,18 +311,21 @@ export async function exportJourney(
         global.FORGEOPS_DEPLOYMENT_TYPE_KEY
     ) {
       if (emailTemplateNodes.includes(nodeType)) {
-        emailTemplatePromises.push(
-          getEmailTemplate(nodeObject.emailTemplateName).catch((error) => {
-            let message = `${error}`;
-            if (error.isAxiosError && error.response.status) {
-              message = error.response.statusText;
-            }
-            printMessage(
-              `\n${message}: Email Template "${nodeObject.emailTemplateName}"`,
-              'error'
-            );
-          })
-        );
+        try {
+          const emailTemplate = await getEmailTemplate(
+            nodeObject.emailTemplateName
+          );
+          emailTemplatePromises.push(emailTemplate);
+        } catch (error) {
+          let message = `${error}`;
+          if (error.isAxiosError && error.response.status) {
+            message = error.response.statusText;
+          }
+          printMessage(
+            `\n${message}: Email Template "${nodeObject.emailTemplateName}"`,
+            'error'
+          );
+        }
       }
     }
 
@@ -326,11 +333,11 @@ export async function exportJourney(
     if (deps && nodeType === 'product-Saml2Node') {
       if (!allSaml2Providers) {
         // eslint-disable-next-line no-await-in-loop
-        allSaml2Providers = (await getProviders()).data.result;
+        allSaml2Providers = (await getProviders()).result;
       }
       if (!allCirclesOfTrust) {
         // eslint-disable-next-line no-await-in-loop
-        allCirclesOfTrust = (await getCirclesOfTrust()).data.result;
+        allCirclesOfTrust = (await getCirclesOfTrust()).result;
       }
       saml2ConfigPromises.push(
         getSaml2NodeDependencies(
@@ -420,18 +427,21 @@ export async function exportJourney(
         global.FORGEOPS_DEPLOYMENT_TYPE_KEY
     ) {
       if (emailTemplateNodes.includes(innerNodeType)) {
-        emailTemplatePromises.push(
-          getEmailTemplate(innerNodeObject.emailTemplateName).catch((error) => {
-            let message = `${error}`;
-            if (error.isAxiosError && error.response.status) {
-              message = error.response.statusText;
-            }
-            printMessage(
-              `\n${message}: Email Template "${innerNodeObject.emailTemplateName}"`,
-              'error'
-            );
-          })
-        );
+        try {
+          const emailTemplate = await getEmailTemplate(
+            innerNodeObject.emailTemplateName
+          );
+          emailTemplatePromises.push(emailTemplate);
+        } catch (error) {
+          let message = `${error}`;
+          if (error.isAxiosError && error.response.status) {
+            message = error.response.statusText;
+          }
+          printMessage(
+            `\n${message}: Email Template "${innerNodeObject.emailTemplateName}"`,
+            'error'
+          );
+        }
       }
     }
 
@@ -440,11 +450,11 @@ export async function exportJourney(
       printMessage('SAML2 inner node', 'error');
       if (!allSaml2Providers) {
         // eslint-disable-next-line no-await-in-loop
-        allSaml2Providers = (await getProviders()).data.result;
+        allSaml2Providers = (await getProviders()).result;
       }
       if (!allCirclesOfTrust) {
         // eslint-disable-next-line no-await-in-loop
-        allCirclesOfTrust = (await getCirclesOfTrust()).data.result;
+        allCirclesOfTrust = (await getCirclesOfTrust()).result;
       }
       saml2ConfigPromises.push(
         getSaml2NodeDependencies(
@@ -505,30 +515,30 @@ export async function exportJourney(
 
   // Process SAML2 providers and circles of trust
   const saml2NodeDependencies = await Promise.all(saml2ConfigPromises);
-  saml2NodeDependencies.forEach((saml2NodeDependency) => {
+  for (const saml2NodeDependency of saml2NodeDependencies) {
     if (saml2NodeDependency) {
       if (verbose) printMessage('  - SAML2 entity providers:');
-      saml2NodeDependency.saml2Entities.forEach((saml2Entity) => {
+      for (const saml2Entity of saml2NodeDependency.saml2Entities) {
         if (verbose)
           printMessage(
             `    - ${saml2Entity.entityLocation} ${saml2Entity.entityId}`,
             'info'
           );
         exportData.saml2Entities[saml2Entity._id] = saml2Entity;
-      });
+      }
       if (verbose) printMessage('  - SAML2 circles of trust:');
-      saml2NodeDependency.circlesOfTrust.forEach((circleOfTrust) => {
+      for (const circleOfTrust of saml2NodeDependency.circlesOfTrust) {
         if (verbose) printMessage(`    - ${circleOfTrust._id}`, 'info');
         exportData.circlesOfTrust[circleOfTrust._id] = circleOfTrust;
-      });
+      }
     }
-  });
+  }
 
   // Process socialIdentityProviders
   const socialProvidersResponse = await Promise.resolve(socialProviderPromise);
   if (socialProvidersResponse) {
     if (verbose) printMessage('  - OAuth2/OIDC (social) identity providers:');
-    socialProvidersResponse.data.result.forEach((socialProvider) => {
+    socialProvidersResponse.result.forEach((socialProvider) => {
       // If the list of socialIdentityProviders needs to be filtered based on the
       // filteredProviders property of a SelectIdPNode do it here.
       if (
@@ -566,8 +576,9 @@ export async function exportJourney(
   // Process themes
   if (themePromise) {
     if (verbose) printMessage('  - Themes:');
-    await Promise.resolve(themePromise).then((themePromiseResults) => {
-      themePromiseResults.forEach((themeObject) => {
+    try {
+      const themePromiseResults = await Promise.resolve(themePromise);
+      for (const themeObject of themePromiseResults) {
         if (
           themeObject &&
           // has the theme been specified by id or name in a page node?
@@ -583,8 +594,10 @@ export async function exportJourney(
             );
           exportData.themes.push(themeObject);
         }
-      });
-    });
+      }
+    } catch (error) {
+      printMessage(error.message, 'error');
+    }
   }
 
   return exportData;
@@ -880,7 +893,7 @@ export async function importJourney(
       // create the provider if it doesn't already exist, or just update it
       if (
         // eslint-disable-next-line no-await-in-loop
-        (await findProviders(`entityId eq '${entityId}'`, 'location')).data
+        (await findProviders(`entityId eq '${entityId}'`, 'location'))
           .resultCount === 0
       ) {
         // eslint-disable-next-line no-await-in-loop
@@ -912,28 +925,27 @@ export async function importJourney(
     for (const [cotId, cotData] of Object.entries(treeObject.circlesOfTrust)) {
       delete cotData['_rev'];
       if (verbose) printMessage(`    - ${cotId}`, 'info');
-      // eslint-disable-next-line no-await-in-loop
-      await createCircleOfTrust(cotData)
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        await createCircleOfTrust(cotData);
+      } catch (createCotErr) {
         // eslint-disable-next-line no-unused-vars
-        .catch(async (createCotErr) => {
-          if (
-            createCotErr.response.status === 409 ||
-            createCotErr.response.status === 500
-          ) {
-            await updateCircleOfTrust(cotId, cotData).catch(
-              async (updateCotErr) => {
-                printMessage(createCotErr.response.data, 'error');
-                printMessage(updateCotErr.response.data, 'error');
-                throw new Error(
-                  `Error creating/updating circle of trust ${cotId}`
-                );
-              }
-            );
-          } else {
+        if (
+          createCotErr.response.status === 409 ||
+          createCotErr.response.status === 500
+        ) {
+          try {
+            await updateCircleOfTrust(cotId, cotData);
+          } catch (updateCotErr) {
             printMessage(createCotErr.response.data, 'error');
-            throw new Error(`Error creating circle of trust ${cotId}`);
+            printMessage(updateCotErr.response.data, 'error');
+            throw new Error(`Error creating/updating circle of trust ${cotId}`);
           }
-        });
+        } else {
+          printMessage(createCotErr.response.data, 'error');
+          throw new Error(`Error creating circle of trust ${cotId}`);
+        }
+      }
     }
   }
 

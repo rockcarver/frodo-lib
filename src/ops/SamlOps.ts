@@ -56,7 +56,7 @@ function getFileDataTemplate() {
  * @param {boolean} long Long list format with details
  */
 export async function listProviders(long = false) {
-  const providerList = (await getProviders()).data.result;
+  const providerList = (await getProviders()).result;
   providerList.sort((a, b) => a._id.localeCompare(b._id));
   if (!long) {
     providerList.forEach((item) => {
@@ -112,7 +112,7 @@ async function exportDependencies(providerData, fileData) {
   const metaDataResponse = await getProviderMetadata(providerData.entityId);
   // eslint-disable-next-line no-param-reassign
   fileData.saml.metadata[providerData._id] = convertBase64UrlTextToArray(
-    encodeBase64Url(metaDataResponse.data)
+    encodeBase64Url(metaDataResponse)
   );
 }
 
@@ -127,18 +127,19 @@ export async function exportProvider(entityId, file = null) {
     fileName = getTypedFilename(entityId, 'saml');
   }
   createProgressIndicator(1, `Exporting provider ${entityId}`);
-  const found = await findProviders(`entityId eq '${entityId}'`, 'location');
-  switch (found.data.resultCount) {
-    case 0:
-      printMessage(`No provider with entity id '${entityId}' found`, 'error');
-      break;
-    case 1:
-      {
-        const { location } = found.data.result[0];
-        const id = found.data.result[0]._id;
-        getProviderByLocationAndId(location, id)
-          .then(async (response) => {
-            const providerData = response.data;
+  try {
+    const found = await findProviders(`entityId eq '${entityId}'`, 'location');
+    switch (found.resultCount) {
+      case 0:
+        printMessage(`No provider with entity id '${entityId}' found`, 'error');
+        break;
+      case 1:
+        {
+          const { location } = found.result[0];
+          const id = found.result[0]._id;
+          try {
+            const response = await getProviderByLocationAndId(location, id);
+            const providerData = response;
             updateProgressIndicator(`Writing file ${fileName}`);
             const fileData = getFileDataTemplate();
             fileData.saml[location][providerData._id] = providerData;
@@ -147,18 +148,21 @@ export async function exportProvider(entityId, file = null) {
             stopProgressIndicator(
               `Exported ${entityId.brightCyan} to ${fileName.brightCyan}.`
             );
-          })
-          .catch((err) => {
+          } catch (err) {
             stopProgressIndicator(`${err}`);
             printMessage(err, 'error');
-          });
-      }
-      break;
-    default:
-      printMessage(
-        `Multiple providers with entity id '${entityId}' found`,
-        'error'
-      );
+          }
+        }
+        break;
+      default:
+        printMessage(
+          `Multiple providers with entity id '${entityId}' found`,
+          'error'
+        );
+    }
+  } catch (error) {
+    stopProgressIndicator(`${error}`);
+    printMessage(error.message, 'error');
   }
 }
 
@@ -177,7 +181,7 @@ export async function exportMetadata(entityId, file = null) {
     .then(async (response) => {
       updateProgressIndicator(`Writing file ${fileName}`);
       // printMessage(response.data, 'error');
-      const metaData = response.data;
+      const metaData = response;
       saveTextToFile(metaData, fileName);
       stopProgressIndicator(
         `Exported ${entityId.brightCyan} metadata to ${fileName.brightCyan}.`
@@ -194,24 +198,25 @@ export async function exportMetadata(entityId, file = null) {
  * @param {String} entityId Provider entity id
  */
 export async function describeProvider(entityId) {
-  const found = await findProviders(
-    `entityId eq '${entityId}'`,
-    'location,roles'
-  );
-  switch (found.data.resultCount) {
-    case 0:
-      printMessage(`No provider with entity id '${entityId}' found`, 'error');
-      break;
-    case 1:
-      {
-        const { location } = found.data.result[0];
-        const id = found.data.result[0]._id;
-        const roles = found.data.result[0].roles
-          .map((role) => roleMap[role])
-          .join(', ');
-        getProviderByLocationAndId(location, id)
-          .then(async (response) => {
-            const rawProviderData = response.data;
+  try {
+    const found = await findProviders(
+      `entityId eq '${entityId}'`,
+      'location,roles'
+    );
+    switch (found.resultCount) {
+      case 0:
+        printMessage(`No provider with entity id '${entityId}' found`, 'error');
+        break;
+      case 1:
+        {
+          try {
+            const { location } = found.result[0];
+            const id = found.result[0]._id;
+            const roles = found.result[0].roles
+              .map((role) => roleMap[role])
+              .join(', ');
+            const response = await getProviderByLocationAndId(location, id);
+            const rawProviderData = response;
             delete rawProviderData._id;
             delete rawProviderData._rev;
             rawProviderData.location = location;
@@ -224,17 +229,19 @@ export async function describeProvider(entityId) {
             // describe the provider
             const table = createObjectTable(rawProviderData);
             printMessage(table.toString());
-          })
-          .catch((err) => {
+          } catch (err) {
             printMessage(err, 'error');
-          });
-      }
-      break;
-    default:
-      printMessage(
-        `Multiple providers with entity id '${entityId}' found`,
-        'error'
-      );
+          }
+        }
+        break;
+      default:
+        printMessage(
+          `Multiple providers with entity id '${entityId}' found`,
+          'error'
+        );
+    }
+  } catch (error) {
+    printMessage(error.message, 'error');
   }
 }
 
@@ -247,31 +254,32 @@ export async function exportProvidersToFile(file = null) {
   if (!fileName) {
     fileName = getTypedFilename(`all${getRealmString()}Providers`, 'saml');
   }
-  const fileData = getFileDataTemplate();
-  const found = await getProviders();
-  if (found.status < 200 || found.status > 399) {
-    printMessage(found, 'data');
-    printMessage(`exportProvidersToFile: ${found.status}`, 'error');
-  } else if (found.data.resultCount > 0) {
-    createProgressIndicator(found.data.resultCount, 'Exporting providers');
-    for (const stubData of found.data.result) {
-      updateProgressIndicator(`Exporting provider ${stubData.entityId}`);
-      // eslint-disable-next-line no-await-in-loop
-      const response = await getProviderByLocationAndId(
-        stubData.location,
-        stubData._id
+  try {
+    const fileData = getFileDataTemplate();
+    const found = await getProviders();
+    if (found.resultCount > 0) {
+      createProgressIndicator(found.data.resultCount, 'Exporting providers');
+      for (const stubData of found.data.result) {
+        updateProgressIndicator(`Exporting provider ${stubData.entityId}`);
+        // eslint-disable-next-line no-await-in-loop
+        const providerData = await getProviderByLocationAndId(
+          stubData.location,
+          stubData._id
+        );
+        // eslint-disable-next-line no-await-in-loop
+        await exportDependencies(providerData, fileData);
+        fileData.saml[stubData.location][providerData._id] = providerData;
+      }
+      saveJsonToFile(fileData, fileName);
+      stopProgressIndicator(
+        `${found.data.resultCount} providers exported to ${fileName}.`
       );
-      const providerData = response.data;
-      // eslint-disable-next-line no-await-in-loop
-      await exportDependencies(providerData, fileData);
-      fileData.saml[stubData.location][providerData._id] = providerData;
+    } else {
+      printMessage('No entity providers found.', 'info');
     }
-    saveJsonToFile(fileData, fileName);
-    stopProgressIndicator(
-      `${found.data.resultCount} providers exported to ${fileName}.`
-    );
-  } else {
-    printMessage('No entity providers found.', 'info');
+  } catch (error) {
+    printMessage(error.message, 'error');
+    printMessage(`exportProvidersToFile: ${error.response?.status}`, 'error');
   }
 }
 
@@ -280,18 +288,17 @@ export async function exportProvidersToFile(file = null) {
  */
 export async function exportProvidersToFiles() {
   const found = await getProviders();
-  if (found.data.resultCount > 0) {
+  if (found.resultCount > 0) {
     createProgressIndicator(found.data.resultCount, 'Exporting providers');
     for (const stubData of found.data.result) {
       updateProgressIndicator(`Exporting provider ${stubData.entityId}`);
       const fileName = getTypedFilename(stubData.entityId, 'saml');
       const fileData = getFileDataTemplate();
       // eslint-disable-next-line no-await-in-loop
-      const response = await getProviderByLocationAndId(
+      const providerData = await getProviderByLocationAndId(
         stubData.location,
         stubData._id
       );
-      const providerData = response.data;
       // eslint-disable-next-line no-await-in-loop
       await exportDependencies(providerData, fileData);
       fileData.saml[stubData.location][providerData._id] = providerData;
