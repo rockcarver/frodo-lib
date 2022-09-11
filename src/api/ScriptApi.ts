@@ -25,59 +25,67 @@ export async function getScripts() {
     storage.session.getTenant(),
     getCurrentRealmPath()
   );
-  return generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 /**
  * Get script by name
- * @param {String} name script name
+ * @param {String} scriptName script name
  * @returns {Promise} a promise that resolves to an object containing a script object
  */
-export async function getScriptByName(name) {
+export async function getScriptByName(scriptName) {
   const urlString = util.format(
     scriptQueryURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
-    name
+    scriptName
   );
-  return generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 /**
  * Get script by id
- * @param {String} id script uuid/name
+ * @param {String} scriptId script uuid/name
  * @returns {Promise} a promise that resolves to an object containing a script object
  */
-export async function getScript(id) {
+export async function getScript(scriptId) {
   const urlString = util.format(
     scriptURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
-    id
+    scriptId
   );
-  return generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 /**
  * Put script
- * @param {String} id script uuid
- * @param {Object} data script object
+ * @param {string} scriptId script uuid
+ * @param {Object} scriptData script object
  * @returns {Promise} a promise that resolves to an object containing a script object
  */
-export async function putScript(id, data) {
+export async function putScript(scriptId, scriptData) {
   const urlString = util.format(
     scriptURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
-    id
+    scriptId
   );
-  return generateAmApi(getApiConfig()).put(urlString, data, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi(getApiConfig()).put(
+    urlString,
+    scriptData,
+    {
+      withCredentials: true,
+    }
+  );
+  return data;
 }
