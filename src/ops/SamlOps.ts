@@ -92,7 +92,7 @@ async function exportDependencies(providerData, fileData) {
     'attributeMapperScript',
   ]);
   if (attrMapperScriptId && attrMapperScriptId !== '[Empty]') {
-    const scriptData = (await getScript(attrMapperScriptId)).data;
+    const scriptData = await getScript(attrMapperScriptId);
     scriptData.script = convertBase64TextToArray(scriptData.script);
     // eslint-disable-next-line no-param-reassign
     fileData.script[attrMapperScriptId] = scriptData;
@@ -104,7 +104,7 @@ async function exportDependencies(providerData, fileData) {
     'idpAdapterScript',
   ]);
   if (idpAdapterScriptId && idpAdapterScriptId !== '[Empty]') {
-    const scriptData = (await getScript(idpAdapterScriptId)).data;
+    const scriptData = await getScript(idpAdapterScriptId);
     scriptData.script = convertBase64TextToArray(scriptData.script);
     // eslint-disable-next-line no-param-reassign
     fileData.script[idpAdapterScriptId] = scriptData;

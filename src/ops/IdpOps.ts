@@ -84,7 +84,7 @@ export async function exportProvider(id, file = '') {
     const fileData = getFileDataTemplate();
     fileData.idp[idpData._id] = idpData;
     if (idpData.transform) {
-      const scriptData = (await getScript(idpData.transform)).data;
+      const scriptData = await getScript(idpData.transform);
       scriptData.script = convertBase64TextToArray(scriptData.script);
       fileData.script[idpData.transform] = scriptData;
     }
@@ -115,7 +115,7 @@ export async function exportProvidersToFile(file) {
     fileData.idp[idpData._id] = idpData;
     if (idpData.transform) {
       // eslint-disable-next-line no-await-in-loop
-      const scriptData = (await getScript(idpData.transform)).data;
+      const scriptData = await getScript(idpData.transform);
       scriptData.script = convertBase64TextToArray(scriptData.script);
       fileData.script[idpData.transform] = scriptData;
     }
@@ -140,7 +140,7 @@ export async function exportProvidersToFiles() {
     fileData.idp[idpData._id] = idpData;
     if (idpData.transform) {
       // eslint-disable-next-line no-await-in-loop
-      const scriptData = (await getScript(idpData.transform)).data;
+      const scriptData = await getScript(idpData.transform);
       scriptData.script = convertBase64TextToArray(scriptData.script);
       fileData.script[idpData.transform] = scriptData;
     }

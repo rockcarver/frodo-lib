@@ -25,7 +25,7 @@ import storage from '../storage/SessionStorage';
  */
 export async function listScripts(long = false) {
   try {
-    const scripts = (await getScripts()).data.result;
+    const scripts = (await getScripts()).result;
     scripts.sort((a, b) => a.name.localeCompare(b.name));
     if (long) {
       const table = createTable([
@@ -66,7 +66,7 @@ export async function exportScriptByName(name, file) {
   if (file) {
     fileName = file;
   }
-  const scriptData = (await getScriptByName(name)).data.result;
+  const scriptData = (await getScriptByName(name)).result;
   if (scriptData.length > 1) {
     printMessage(`Multiple scripts with name ${name} found...`, 'error');
   }
@@ -90,13 +90,13 @@ export async function exportScriptsToFile(file) {
   if (file) {
     fileName = file;
   }
-  const scriptList = (await getScripts()).data.result;
+  const scriptList = (await getScripts()).result;
   const allScriptsData = [];
   createProgressIndicator(scriptList.length, 'Exporting script');
   for (const item of scriptList) {
     updateProgressIndicator(`Reading script ${item.name}`);
     // eslint-disable-next-line no-await-in-loop
-    const scriptData = (await getScriptByName(item.name)).data.result;
+    const scriptData = (await getScriptByName(item.name)).result;
     scriptData.forEach((element) => {
       const scriptTextArray = convertBase64TextToArray(element.script);
       // eslint-disable-next-line no-param-reassign
@@ -112,12 +112,12 @@ export async function exportScriptsToFile(file) {
  * Export all scripts to individual files
  */
 export async function exportScriptsToFiles() {
-  const scriptList = (await getScripts()).data.result;
+  const scriptList = (await getScripts()).result;
   createProgressIndicator(scriptList.length, 'Exporting script');
   for (const item of scriptList) {
     updateProgressIndicator(`Reading script ${item.name}`);
     // eslint-disable-next-line no-await-in-loop
-    const scriptData = (await getScriptByName(item.name)).data.result;
+    const scriptData = (await getScriptByName(item.name)).result;
     scriptData.forEach((element) => {
       const scriptTextArray = convertBase64TextToArray(element.script);
       // eslint-disable-next-line no-param-reassign

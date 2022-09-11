@@ -496,7 +496,7 @@ export async function exportJourney(
   const settledEmailTemplatePromises = await Promise.allSettled(
     emailTemplatePromises
   );
-  settledEmailTemplatePromises.forEach((settledPromise) => {
+  for (const settledPromise of settledEmailTemplatePromises) {
     if (settledPromise.status === 'fulfilled' && settledPromise.value) {
       if (verbose)
         printMessage(
@@ -511,7 +511,7 @@ export async function exportJourney(
       exportData.emailTemplates[settledPromise.value._id.split('/')[1]] =
         settledPromise.value;
     }
-  });
+  }
 
   // Process SAML2 providers and circles of trust
   const saml2NodeDependencies = await Promise.all(saml2ConfigPromises);
@@ -535,10 +535,10 @@ export async function exportJourney(
   }
 
   // Process socialIdentityProviders
-  const socialProvidersResponse = await Promise.resolve(socialProviderPromise);
-  if (socialProvidersResponse) {
+  const socialProviders = await Promise.resolve(socialProviderPromise);
+  if (socialProviders) {
     if (verbose) printMessage('  - OAuth2/OIDC (social) identity providers:');
-    socialProvidersResponse.result.forEach((socialProvider) => {
+    for (const socialProvider of socialProviders.result) {
       // If the list of socialIdentityProviders needs to be filtered based on the
       // filteredProviders property of a SelectIdPNode do it here.
       if (
@@ -551,14 +551,13 @@ export async function exportJourney(
         scriptPromises.push(getScript(socialProvider.transform));
         exportData.socialIdentityProviders[socialProvider._id] = socialProvider;
       }
-    });
+    }
   }
 
   // Process scripts
   if (verbose && scriptPromises.length > 0) printMessage('  - Scripts:');
-  const scripts = await Promise.all(scriptPromises);
-  scripts.forEach((scriptResultObject) => {
-    const scriptObject = _.get(scriptResultObject, 'data');
+  const scriptObjects = await Promise.all(scriptPromises);
+  for (const scriptObject of scriptObjects) {
     if (scriptObject) {
       if (verbose)
         printMessage(
@@ -571,7 +570,7 @@ export async function exportJourney(
         : JSON.stringify(decode(scriptObject.script));
       exportData.scripts[scriptObject._id] = scriptObject;
     }
-  });
+  }
 
   // Process themes
   if (themePromise) {
@@ -1143,7 +1142,7 @@ export async function importJourney(
     ) {
       const { validAttributes } = importError.response.data.detail;
       validAttributes.push('_id');
-      Object.keys(treeObject.tree).forEach((attribute) => {
+      for (const attribute of Object.keys(treeObject.tree)) {
         if (!validAttributes.includes(attribute)) {
           if (verbose)
             printMessage(
@@ -1153,7 +1152,7 @@ export async function importJourney(
             );
           delete treeObject.tree[attribute];
         }
-      });
+      }
       try {
         await putTree(treeObject.tree._id as string, treeObject.tree);
         if (verbose) printMessage(`\n    - Done`, 'info', true);
@@ -1596,12 +1595,13 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
   for (const type of types) {
     try {
       // eslint-disable-next-line no-await-in-loop, no-loop-func
-      (await getNodesByType(type._id)).result.forEach((node) => {
+      const nodes = (await getNodesByType(type._id)).result;
+      for (const node of nodes) {
         allNodes.push(node);
         updateProgressIndicator(
           `${allNodes.length} total nodes${errorMessage}`
         );
-      });
+      }
     } catch (error) {
       errorTypes.push(type._id);
       errorMessage = ` (Skipped type(s): ${errorTypes})`['yellow'];
@@ -1630,12 +1630,11 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
         updateProgressIndicator(`${activeNodes.length} active nodes`);
         const node = journey.nodes[nodeId];
         if (containerNodes.includes(node.nodeType)) {
-          // eslint-disable-next-line no-await-in-loop
           const containerNode = await getNode(nodeId, node.nodeType);
-          containerNode.nodes.forEach((n) => {
-            activeNodes.push(n._id);
+          for (const innerNode of containerNode.nodes) {
+            activeNodes.push(innerNode._id);
             updateProgressIndicator(`${activeNodes.length} active nodes`);
-          });
+          }
         }
       }
     }
@@ -1648,7 +1647,9 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
     'indeterminate'
   );
   const diff = allNodes.filter((x) => !activeNodes.includes(x._id));
-  diff.forEach((x) => orphanedNodes.push(x));
+  for (const orphanedNode of diff) {
+    orphanedNodes.push(orphanedNode);
+  }
   stopProgressIndicator(`${orphanedNodes.length} orphaned nodes`, 'success');
   return orphanedNodes;
 }
@@ -1940,16 +1941,13 @@ export async function isCustom(journey) {
         return true;
       }
       if (containerNodes.includes(nodeList[node].nodeType)) {
-        results.push(
-          // eslint-disable-next-line no-await-in-loop
-          await getNode(node, nodeList[node].nodeType)
-        );
+        results.push(await getNode(node, nodeList[node].nodeType));
       }
     }
   }
   const pageNodes = await Promise.all(results);
   let custom = false;
-  pageNodes.forEach((pageNode) => {
+  for (const pageNode of pageNodes) {
     if (pageNode != null) {
       for (const pnode of pageNode.nodes) {
         if (!ootbNodeTypes.includes(pnode.nodeType)) {
@@ -1963,7 +1961,7 @@ export async function isCustom(journey) {
       );
       custom = false;
     }
-  });
+  }
   return custom;
 }
 
@@ -2003,7 +2001,7 @@ export async function listJourneys(
       'Status'['brightCyan'],
       'Tags'['brightCyan'],
     ]);
-    journeys.forEach((journey, i) => {
+    for (const [journey, i] of journeys) {
       table.push([
         `${customTrees[i] ? '*'['brightRed'] : ''}${journey._id}`,
         journey.enabled === false
@@ -2013,7 +2011,7 @@ export async function listJourneys(
           ? wordwrap(JSON.parse(journey.uiConfig.categories).join(', '), 60)
           : '',
       ]);
-    });
+    }
     printMessage(table.toString(), 'data');
   }
   return journeys;
