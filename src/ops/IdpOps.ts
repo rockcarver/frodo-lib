@@ -35,8 +35,8 @@ function getFileDataTemplate() {
 export async function listProviders() {
   getSocialIdentityProviders()
     .then((response) => {
-      response.data.result.sort((a, b) => a._id.localeCompare(b._id));
-      response.data.result.forEach((socialIdentityProvider) => {
+      response.result.sort((a, b) => a._id.localeCompare(b._id));
+      response.result.forEach((socialIdentityProvider) => {
         printMessage(`${socialIdentityProvider._id}`, 'data');
       });
     })
@@ -53,7 +53,7 @@ export async function listProviders() {
  */
 export async function getSocialIdentityProviderById(id) {
   return getSocialIdentityProviders().then((response) => {
-    const foundProviders = response.data.result.filter(
+    const foundProviders = response.result.filter(
       (provider) => provider._id === id
     );
     switch (foundProviders.length) {
@@ -108,7 +108,7 @@ export async function exportProvidersToFile(file) {
     fileName = getTypedFilename(`all${getRealmString()}Providers`, 'idp');
   }
   const fileData = getFileDataTemplate();
-  const allIdpsData = (await getSocialIdentityProviders()).data.result;
+  const allIdpsData = (await getSocialIdentityProviders()).result;
   createProgressIndicator(allIdpsData.length, 'Exporting providers');
   for (const idpData of allIdpsData) {
     updateProgressIndicator(`Exporting provider ${idpData._id}`);
@@ -130,7 +130,7 @@ export async function exportProvidersToFile(file) {
  * Export all providers to individual files
  */
 export async function exportProvidersToFiles() {
-  const allIdpsData = await (await getSocialIdentityProviders()).data.result;
+  const allIdpsData = await (await getSocialIdentityProviders()).result;
   // printMessage(allIdpsData, 'data');
   createProgressIndicator(allIdpsData.length, 'Exporting providers');
   for (const idpData of allIdpsData) {
