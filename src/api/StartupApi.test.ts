@@ -20,7 +20,7 @@ describe('StartupApi - getStatus()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/StartupApi/getStatus/ready.json'
+          '../test/mocks/StartupApi/getStatus/ready.json'
         ),
         'utf8'
       )
@@ -38,7 +38,7 @@ describe('StartupApi - getStatus()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/StartupApi/getStatus/restarting.json'
+          '../test/mocks/StartupApi/getStatus/restarting.json'
         ),
         'utf8'
       )
@@ -58,7 +58,7 @@ describe('StartupApi - initiateRestart()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/StartupApi/getStatus/ready.json'
+          '../test/mocks/StartupApi/getStatus/ready.json'
         ),
         'utf8'
       )
@@ -70,7 +70,7 @@ describe('StartupApi - initiateRestart()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/StartupApi/initiateRestart/restarting.json'
+          '../test/mocks/StartupApi/initiateRestart/restarting.json'
         ),
         'utf8'
       )
@@ -90,7 +90,7 @@ describe('StartupApi - initiateRestart()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/StartupApi/getStatus/restarting.json'
+          '../test/mocks/StartupApi/getStatus/restarting.json'
         ),
         'utf8'
       )
@@ -102,7 +102,7 @@ describe('StartupApi - initiateRestart()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/StartupApi/initiateRestart/restarting.json'
+          '../test/mocks/StartupApi/initiateRestart/restarting.json'
         ),
         'utf8'
       )

@@ -15,10 +15,14 @@ state.default.session.setCookieName('cookieName');
 state.default.session.setCookieValue('cookieValue');
 
 describe('TreeApi - getTrees()', () => {
+  test('getTrees() 0: Method is implemented', async () => {
+    expect(TreeRaw.getTrees).toBeDefined();
+  });
+
   test('getTrees() 1: Get all trees', async () => {
     const response = JSON.parse(
       fs.readFileSync(
-        path.resolve(__dirname, '../../test/mocks/TreeApi/getTrees/trees.json'),
+        path.resolve(__dirname, '../test/mocks/TreeApi/getTrees/trees.json'),
         'utf8'
       )
     );
@@ -29,18 +33,19 @@ describe('TreeApi - getTrees()', () => {
       .reply(200, response);
     const trees = await TreeRaw.getTrees();
     expect(trees).toBeTruthy();
-    expect(trees.length).toBe(92);
+    expect(trees.result.length).toBe(92);
   });
 });
 
 describe('TreeApi - getTree()', () => {
+  test('getTree() 0: Method is implemented', async () => {
+    expect(TreeRaw.getTree).toBeDefined();
+  });
+
   test('getTree() 1: Get existing tree', async () => {
     const response = JSON.parse(
       fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../../test/mocks/TreeApi/getTree/FrodoTest.json'
-        ),
+        path.resolve(__dirname, '../test/mocks/TreeApi/getTree/FrodoTest.json'),
         'utf8'
       )
     );
@@ -79,13 +84,14 @@ describe('TreeApi - getTree()', () => {
 });
 
 describe('TreeApi - putTree()', () => {
+  test('putTree() 0: Method is implemented', async () => {
+    expect(TreeRaw.putTree).toBeDefined();
+  });
+
   test('putTree() 1: Put valid tree', async () => {
     const response = JSON.parse(
       fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../../test/mocks/TreeApi/putTree/FrodoTest.json'
-        ),
+        path.resolve(__dirname, '../test/mocks/TreeApi/putTree/FrodoTest.json'),
         'utf8'
       )
     );
@@ -103,7 +109,7 @@ describe('TreeApi - putTree()', () => {
     const request = fs.readFileSync(
       path.resolve(
         __dirname,
-        '../../test/mocks/TreeApi/putTree/Invalid_trailing-data.txt'
+        '../test/mocks/TreeApi/putTree/Invalid_trailing-data.txt'
       ),
       'utf8'
     );
@@ -135,7 +141,7 @@ describe('TreeApi - putTree()', () => {
     const request = fs.readFileSync(
       path.resolve(
         __dirname,
-        '../../test/mocks/TreeApi/putTree/Invalid_invalid-attribute.json'
+        '../test/mocks/TreeApi/putTree/Invalid_invalid-attribute.json'
       ),
       'utf8'
     );
@@ -187,7 +193,7 @@ describe('TreeApi - putTree()', () => {
     const request = fs.readFileSync(
       path.resolve(
         __dirname,
-        '../../test/mocks/TreeApi/putTree/Invalid_no-entry-node.json'
+        '../test/mocks/TreeApi/putTree/Invalid_no-entry-node.json'
       ),
       'utf8'
     );
@@ -217,7 +223,7 @@ describe('TreeApi - putTree()', () => {
     const request = fs.readFileSync(
       path.resolve(
         __dirname,
-        '../../test/mocks/TreeApi/putTree/Invalid_invalid-nodes.json'
+        '../test/mocks/TreeApi/putTree/Invalid_invalid-nodes.json'
       ),
       'utf8'
     );
@@ -245,12 +251,16 @@ describe('TreeApi - putTree()', () => {
 });
 
 describe('TreeApi - deleteTree()', () => {
+  test('deleteTree() 0: Method is implemented', async () => {
+    expect(TreeRaw.deleteTree).toBeDefined();
+  });
+
   test('deleteTree() 1: Delete existing tree', async () => {
     const response = JSON.parse(
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/TreeApi/deleteTree/FrodoTest.json'
+          '../test/mocks/TreeApi/deleteTree/FrodoTest.json'
         ),
         'utf8'
       )

@@ -40,12 +40,7 @@ function getFileDataTemplate() {
 export async function listCirclesOfTrust(long = false) {
   let cotList = [];
   try {
-    const response = await getCirclesOfTrust();
-    if (response.status < 200 || response.status > 399) {
-      printMessage(response, 'data');
-      printMessage(`getCirclesOfTrust: ${response.status}`, 'error');
-    }
-    cotList = response.data.result;
+    cotList = (await getCirclesOfTrust()).result;
   } catch (error) {
     printMessage(`getCirclesOfTrust ERROR: ${error}`, 'error');
     printMessage(error, 'data');
@@ -97,23 +92,21 @@ export async function exportCircleOfTrust(cotId, file = null) {
     fileName = getTypedFilename(cotId, 'cot.saml');
   }
   createProgressIndicator(1, `Exporting circle of trust ${cotId}`);
-  getCircleOfTrust(cotId)
-    .then(async (response) => {
-      const cotData = _.cloneDeep(response.data);
-      delete cotData._rev;
-      updateProgressIndicator(`Exporting ${cotId}`);
-      const fileData = getFileDataTemplate();
-      fileData.saml.cot[cotId] = cotData;
-      await exportDependencies(cotData, fileData);
-      saveJsonToFile(fileData, fileName);
-      stopProgressIndicator(
-        `Exported ${cotId.brightCyan} to ${fileName.brightCyan}.`
-      );
-    })
-    .catch((err) => {
-      stopProgressIndicator(`${err}`);
-      printMessage(err, 'error');
-    });
+  try {
+    const cotData = _.cloneDeep(getCircleOfTrust(cotId));
+    delete cotData['_rev'];
+    updateProgressIndicator(`Exporting ${cotId}`);
+    const fileData = getFileDataTemplate();
+    fileData.saml.cot[cotId] = cotData;
+    await exportDependencies(cotData, fileData);
+    saveJsonToFile(fileData, fileName);
+    stopProgressIndicator(
+      `Exported ${cotId.brightCyan} to ${fileName.brightCyan}.`
+    );
+  } catch (err) {
+    stopProgressIndicator(`${err}`);
+    printMessage(err, 'error');
+  }
 }
 
 /**
@@ -131,12 +124,7 @@ export async function exportCirclesOfTrustToFile(file = null) {
   const fileData = getFileDataTemplate();
   let allCotData = [];
   try {
-    const response = await getCirclesOfTrust();
-    if (response.status < 200 || response.status > 399) {
-      printMessage(response, 'data');
-      printMessage(`getCirclesOfTrust: ${response.status}`, 'error');
-    }
-    allCotData = _.cloneDeep(response.data.result);
+    allCotData = _.cloneDeep((await getCirclesOfTrust()).result);
     createProgressIndicator(allCotData.length, 'Exporting circles of trust');
     for (const cotData of allCotData) {
       delete cotData._rev;
@@ -161,12 +149,7 @@ export async function exportCirclesOfTrustToFile(file = null) {
 export async function exportCirclesOfTrustToFiles() {
   let allCotData = [];
   try {
-    const response = await getCirclesOfTrust();
-    if (response.status < 200 || response.status > 399) {
-      printMessage(response, 'data');
-      printMessage(`getCirclesOfTrust: ${response.status}`, 'error');
-    }
-    allCotData = _.cloneDeep(response.data.result);
+    allCotData = _.cloneDeep((await getCirclesOfTrust()).result);
     createProgressIndicator(allCotData.length, 'Exporting circles of trust');
     for (const cotData of allCotData) {
       delete cotData._rev;
@@ -210,15 +193,14 @@ export async function importCircleOfTrust(cotId, file) {
       if (cotData) {
         updateProgressIndicator(`Importing ${cotId}`);
         await importDependencies(cotData, fileData);
-        createCircleOfTrust(cotData)
-          .then(() => {
-            stopProgressIndicator(`Successfully imported ${cotId}.`);
-          })
-          .catch((createProviderErr) => {
-            stopProgressIndicator(`Error importing ${cotId}.`);
-            printMessage(`Error importing ${cotId}`, 'error');
-            printMessage(createProviderErr.response.data, 'error');
-          });
+        try {
+          await createCircleOfTrust(cotData);
+          stopProgressIndicator(`Successfully imported ${cotId}.`);
+        } catch (createProviderErr) {
+          stopProgressIndicator(`Error importing ${cotId}.`);
+          printMessage(`Error importing ${cotId}`, 'error');
+          printMessage(createProviderErr.response.data, 'error');
+        }
       } else {
         stopProgressIndicator(
           `Circle of trust ${cotId.brightCyan} not found in ${file.brightCyan}!`
@@ -246,15 +228,14 @@ export async function importFirstCircleOfTrust(file) {
           updateProgressIndicator(`Importing ${cotId}`);
           // eslint-disable-next-line no-await-in-loop
           await importDependencies(cotData, fileData);
-          createCircleOfTrust(cotData)
-            .then(() => {
-              stopProgressIndicator(`Successfully imported ${cotId}.`);
-            })
-            .catch((createCircleOfTrustErr) => {
-              stopProgressIndicator(`Error importing ${cotId}.`);
-              printMessage(`Error importing ${cotId}`, 'error');
-              printMessage(createCircleOfTrustErr.response.data, 'error');
-            });
+          try {
+            await createCircleOfTrust(cotData);
+            stopProgressIndicator(`Successfully imported ${cotId}.`);
+          } catch (createCircleOfTrustErr) {
+            stopProgressIndicator(`Error importing ${cotId}.`);
+            printMessage(`Error importing ${cotId}`, 'error');
+            printMessage(createCircleOfTrustErr.response.data, 'error');
+          }
           break;
         }
       }

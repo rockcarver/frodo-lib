@@ -1,0 +1,53 @@
+{
+  "result": [
+    {
+      "_id": "AzureCOT",
+      "_rev": "-954827061",
+      "trustedProviders": [
+        "iSPAzure|saml2",
+        "urn:federation:MicrosoftOnline|saml2",
+        "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
+        "SPAzure|saml2",
+        "https://idc.scheuber.io/am/saml2/IDPAzure|saml2"
+      ],
+      "status": "active",
+      "_type": {
+        "_id": "circlesoftrust",
+        "name": "Circle of Trust",
+        "collection": true
+      }
+    },
+    {
+      "_id": "BroadcomCOT",
+      "_rev": "-719471108",
+      "trustedProviders": [
+        "https://idc.scheuber.io/am/saml2/IDPBroadcom|saml2"
+      ],
+      "status": "active",
+      "_type": {
+        "_id": "circlesoftrust",
+        "name": "Circle of Trust",
+        "collection": true
+      }
+    },
+    {
+      "_id": "FedletCOT",
+      "_rev": "746874853",
+      "trustedProviders": [
+        "https://idc.scheuber.io/am/saml2/IDPFedlet|saml2",
+        "https://saml.mytestrun.com/sp|saml2"
+      ],
+      "status": "active",
+      "_type": {
+        "_id": "circlesoftrust",
+        "name": "Circle of Trust",
+        "collection": true
+      }
+    }
+  ],
+  "resultCount": 3,
+  "pagedResultsCookie": null,
+  "totalPagedResultsPolicy": "NONE",
+  "totalPagedResults": -1,
+  "remainingPagedResults": -1
+}

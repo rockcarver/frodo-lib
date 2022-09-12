@@ -1,0 +1,22 @@
+{
+  "_id": "bf153f37-83dd-4f39-aa0c-74135430242e",
+  "_rev": "707624425",
+  "emailTemplateName": "welcome",
+  "identityAttribute": "userName",
+  "emailAttribute": "mail",
+  "_type": {
+    "_id": "EmailTemplateNode",
+    "name": "Email Template Node",
+    "collection": true
+  },
+  "_outcomes": [
+    {
+      "id": "EMAIL_SENT",
+      "displayName": "Email Sent"
+    },
+    {
+      "id": "EMAIL_NOT_SENT",
+      "displayName": "Email Not Sent"
+    }
+  ]
+}

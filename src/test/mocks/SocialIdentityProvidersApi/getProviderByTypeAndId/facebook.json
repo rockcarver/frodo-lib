@@ -1,0 +1,36 @@
+{
+  "clientId": "123741918345526",
+  "pkceMethod": "S256",
+  "jwtEncryptionMethod": "NONE",
+  "authorizationEndpoint": "https://www.facebook.com/dialog/oauth",
+  "jwtEncryptionAlgorithm": "NONE",
+  "clientSecret": null,
+  "scopeDelimiter": " ",
+  "scopes": ["email"],
+  "enabled": true,
+  "authenticationIdKey": "id",
+  "uiConfig": {
+    "buttonClass": "fa-facebook-official",
+    "buttonCustomStyle": "background-color: #3b5998; border-color: #3b5998; color: white;",
+    "buttonCustomStyleHover": "background-color: #334b7d; border-color: #334b7d; color: white;",
+    "buttonDisplayName": "Facebook",
+    "buttonImage": "",
+    "iconBackground": "#3b5998",
+    "iconClass": "fa-facebook",
+    "iconFontColor": "white"
+  },
+  "privateKeyJwtExpTime": 3600,
+  "transform": "bae1d54a-e97d-4997-aa5d-c027f21af82c",
+  "userInfoEndpoint": "https://graph.facebook.com/me?fields=id,name,picture,email,first_name,last_name,locale",
+  "jwtSigningAlgorithm": "NONE",
+  "redirectURI": "https://idc.scheuber.io/am/XUI/?realm=%2Falpha",
+  "clientAuthenticationMethod": "CLIENT_SECRET_POST",
+  "responseMode": "DEFAULT",
+  "tokenEndpoint": "https://graph.facebook.com/v2.7/oauth/access_token",
+  "_id": "facebook",
+  "_type": {
+    "_id": "oauth2Config",
+    "name": "Client configuration for providers that implement the OAuth2 specification.",
+    "collection": true
+  }
+}

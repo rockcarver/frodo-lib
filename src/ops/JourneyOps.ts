@@ -70,7 +70,7 @@ const emailTemplateNodes = ['EmailSuspendNode', 'EmailTemplateNode'];
 
 const emptyScriptPlaceholder = '[Empty]';
 
-interface SingleTreeExportTemplate {
+interface SingleJourneyExportTemplate {
   meta?: Record<string, unknown>;
   innerNodes?: Record<string, unknown>;
   innernodes?: Record<string, unknown>;
@@ -85,7 +85,7 @@ interface SingleTreeExportTemplate {
 }
 
 // use a function vs a template variable to avoid problems in loops
-function createSingleTreeExportTemplate() {
+export function createSingleJourneyExportTemplate(): SingleJourneyExportTemplate {
   return {
     meta: {},
     innerNodes: {},
@@ -97,20 +97,20 @@ function createSingleTreeExportTemplate() {
     saml2Entities: {},
     circlesOfTrust: {},
     tree: {},
-  } as SingleTreeExportTemplate;
+  } as SingleJourneyExportTemplate;
 }
 
-interface MultipleTreesExportTemplate {
+interface MultiJourneyExportTemplate {
   meta?: Record<string, unknown>;
-  trees: Record<string, SingleTreeExportTemplate>;
+  trees: Record<string, SingleJourneyExportTemplate>;
 }
 
 // use a function vs a template variable to avoid problems in loops
-function createMultipleTreesExportTemplate() {
+export function createMultiJourneyExportTemplate(): MultiJourneyExportTemplate {
   return {
     meta: {},
     trees: {},
-  } as MultipleTreesExportTemplate;
+  } as MultiJourneyExportTemplate;
 }
 
 /**
@@ -127,7 +127,7 @@ async function getSaml2NodeDependencies(
 ) {
   const samlProperties = ['metaAlias', 'idpEntityId'];
   const saml2EntityPromises = [];
-  samlProperties.forEach(async (samlProperty) => {
+  for (const samlProperty of samlProperties) {
     // In the following line nodeObject[samlProperty] will look like '/alpha/iSPAzure'.
     const entityId =
       samlProperty === 'metaAlias'
@@ -135,62 +135,66 @@ async function getSaml2NodeDependencies(
         : nodeObject[samlProperty];
     const entity = _.find(allProviders, { entityId });
     if (entity) {
-      saml2EntityPromises.push(
-        getProviderByLocationAndId(entity.location, entity._id).then(
-          (providerResponse) => {
-            /**
-             * Adding entityLocation here to the entityResponse because the import tool
-             * needs to know whether the saml2 entity is remote or not (this will be removed
-             * from the config before importing see updateSaml2Entity and createSaml2Entity functions).
-             * Importing a remote saml2 entity is a slightly different request (see createSaml2Entity).
-             */
-            providerResponse.data.entityLocation = entity.location;
+      try {
+        const providerResponse = await getProviderByLocationAndId(
+          entity.location,
+          entity._id
+        );
+        /**
+         * Adding entityLocation here to the entityResponse because the import tool
+         * needs to know whether the saml2 entity is remote or not (this will be removed
+         * from the config before importing see updateSaml2Entity and createSaml2Entity functions).
+         * Importing a remote saml2 entity is a slightly different request (see createSaml2Entity).
+         */
+        providerResponse.entityLocation = entity.location;
 
-            if (entity.location === 'remote') {
-              // get the xml representation of this entity and add it to the entityResponse;
-              return getProviderMetadata(providerResponse.data.entityId).then(
-                (metaDataResponse) => {
-                  providerResponse.data.base64EntityXML = encodeBase64Url(
-                    metaDataResponse.data
-                  );
-                  return providerResponse;
-                }
-              );
-            }
-            return providerResponse;
-          }
-        )
-      );
-    }
-  });
-  return Promise.all(saml2EntityPromises).then(
-    (saml2EntitiesPromisesResults) => {
-      const saml2Entities = [];
-      saml2EntitiesPromisesResults.forEach((saml2Entity) => {
-        if (saml2Entity) {
-          saml2Entities.push(saml2Entity.data);
+        if (entity.location === 'remote') {
+          // get the xml representation of this entity and add it to the entityResponse;
+          const metaDataResponse = await getProviderMetadata(
+            providerResponse.entityId
+          );
+          providerResponse.base64EntityXML = encodeBase64Url(metaDataResponse);
         }
-      });
-      const samlEntityIds = _.map(
-        saml2Entities,
-        (saml2EntityConfig) => `${saml2EntityConfig.entityId}|saml2`
-      );
-      const circlesOfTrust = _.filter(allCirclesOfTrust, (circleOfTrust) => {
-        let hasEntityId = false;
-        circleOfTrust.trustedProviders.forEach((trustedProvider) => {
-          if (!hasEntityId && samlEntityIds.includes(trustedProvider)) {
-            hasEntityId = true;
-          }
-        });
-        return hasEntityId;
-      });
-      const saml2NodeDependencies = {
-        saml2Entities,
-        circlesOfTrust,
-      };
-      return saml2NodeDependencies;
+        saml2EntityPromises.push(providerResponse);
+      } catch (error) {
+        printMessage(error.message, 'error');
+      }
     }
-  );
+  }
+  try {
+    const saml2EntitiesPromisesResults = await Promise.all(saml2EntityPromises);
+    const saml2Entities = [];
+    for (const saml2Entity of saml2EntitiesPromisesResults) {
+      if (saml2Entity) {
+        saml2Entities.push(saml2Entity);
+      }
+    }
+    const samlEntityIds = _.map(
+      saml2Entities,
+      (saml2EntityConfig) => `${saml2EntityConfig.entityId}|saml2`
+    );
+    const circlesOfTrust = _.filter(allCirclesOfTrust, (circleOfTrust) => {
+      let hasEntityId = false;
+      for (const trustedProvider of circleOfTrust.trustedProviders) {
+        if (!hasEntityId && samlEntityIds.includes(trustedProvider)) {
+          hasEntityId = true;
+        }
+      }
+      return hasEntityId;
+    });
+    const saml2NodeDependencies = {
+      saml2Entities,
+      circlesOfTrust,
+    };
+    return saml2NodeDependencies;
+  } catch (error) {
+    printMessage(error.message, 'error');
+    const saml2NodeDependencies = {
+      saml2Entities: [],
+      circlesOfTrust: [],
+    };
+    return saml2NodeDependencies;
+  }
 }
 
 // export async function getTreeNodes(treeObject) {
@@ -227,21 +231,21 @@ interface ExportOptions {
 }
 
 /**
- * Create export data for a tree with all its nodes and dependencies. The export data can be written to a file as is.
+ * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
  * @param {string} treeId tree id/name
  * @param {ExportOptions} options export options
- * @returns {Promise<SingleTreeExportTemplate>} a promise that resolves to an object containing the tree and all its nodes and dependencies
+ * @returns {Promise<SingleJourneyExportTemplate>} a promise that resolves to an object containing the tree and all its nodes and dependencies
  */
-export async function exportTree(
+export async function exportJourney(
   treeId: string,
   options: ExportOptions = {
     useStringArrays: true,
     deps: true,
     verbose: false,
   }
-): Promise<SingleTreeExportTemplate> {
+): Promise<SingleJourneyExportTemplate> {
   const treeObject = await getTree(treeId);
-  const exportData = createSingleTreeExportTemplate();
+  const exportData = createSingleJourneyExportTemplate();
   const { useStringArrays, deps, verbose } = options;
 
   if (verbose) printMessage(`\n- ${treeObject._id}\n`, 'info', false);
@@ -307,18 +311,21 @@ export async function exportTree(
         global.FORGEOPS_DEPLOYMENT_TYPE_KEY
     ) {
       if (emailTemplateNodes.includes(nodeType)) {
-        emailTemplatePromises.push(
-          getEmailTemplate(nodeObject.emailTemplateName).catch((error) => {
-            let message = `${error}`;
-            if (error.isAxiosError && error.response.status) {
-              message = error.response.statusText;
-            }
-            printMessage(
-              `\n${message}: Email Template "${nodeObject.emailTemplateName}"`,
-              'error'
-            );
-          })
-        );
+        try {
+          const emailTemplate = await getEmailTemplate(
+            nodeObject.emailTemplateName
+          );
+          emailTemplatePromises.push(emailTemplate);
+        } catch (error) {
+          let message = `${error}`;
+          if (error.isAxiosError && error.response.status) {
+            message = error.response.statusText;
+          }
+          printMessage(
+            `\n${message}: Email Template "${nodeObject.emailTemplateName}"`,
+            'error'
+          );
+        }
       }
     }
 
@@ -326,11 +333,11 @@ export async function exportTree(
     if (deps && nodeType === 'product-Saml2Node') {
       if (!allSaml2Providers) {
         // eslint-disable-next-line no-await-in-loop
-        allSaml2Providers = (await getProviders()).data.result;
+        allSaml2Providers = (await getProviders()).result;
       }
       if (!allCirclesOfTrust) {
         // eslint-disable-next-line no-await-in-loop
-        allCirclesOfTrust = (await getCirclesOfTrust()).data.result;
+        allCirclesOfTrust = (await getCirclesOfTrust()).result;
       }
       saml2ConfigPromises.push(
         getSaml2NodeDependencies(
@@ -420,18 +427,21 @@ export async function exportTree(
         global.FORGEOPS_DEPLOYMENT_TYPE_KEY
     ) {
       if (emailTemplateNodes.includes(innerNodeType)) {
-        emailTemplatePromises.push(
-          getEmailTemplate(innerNodeObject.emailTemplateName).catch((error) => {
-            let message = `${error}`;
-            if (error.isAxiosError && error.response.status) {
-              message = error.response.statusText;
-            }
-            printMessage(
-              `\n${message}: Email Template "${innerNodeObject.emailTemplateName}"`,
-              'error'
-            );
-          })
-        );
+        try {
+          const emailTemplate = await getEmailTemplate(
+            innerNodeObject.emailTemplateName
+          );
+          emailTemplatePromises.push(emailTemplate);
+        } catch (error) {
+          let message = `${error}`;
+          if (error.isAxiosError && error.response.status) {
+            message = error.response.statusText;
+          }
+          printMessage(
+            `\n${message}: Email Template "${innerNodeObject.emailTemplateName}"`,
+            'error'
+          );
+        }
       }
     }
 
@@ -440,11 +450,11 @@ export async function exportTree(
       printMessage('SAML2 inner node', 'error');
       if (!allSaml2Providers) {
         // eslint-disable-next-line no-await-in-loop
-        allSaml2Providers = (await getProviders()).data.result;
+        allSaml2Providers = (await getProviders()).result;
       }
       if (!allCirclesOfTrust) {
         // eslint-disable-next-line no-await-in-loop
-        allCirclesOfTrust = (await getCirclesOfTrust()).data.result;
+        allCirclesOfTrust = (await getCirclesOfTrust()).result;
       }
       saml2ConfigPromises.push(
         getSaml2NodeDependencies(
@@ -486,49 +496,49 @@ export async function exportTree(
   const settledEmailTemplatePromises = await Promise.allSettled(
     emailTemplatePromises
   );
-  settledEmailTemplatePromises.forEach((settledPromise) => {
+  for (const settledPromise of settledEmailTemplatePromises) {
     if (settledPromise.status === 'fulfilled' && settledPromise.value) {
       if (verbose)
         printMessage(
-          `    - ${settledPromise.value.data._id.split('/')[1]}${
-            settledPromise.value.data.displayName
-              ? ` (${settledPromise.value.data.displayName})`
+          `    - ${settledPromise.value._id.split('/')[1]}${
+            settledPromise.value.displayName
+              ? ` (${settledPromise.value.displayName})`
               : ''
           }`,
           'info',
           true
         );
-      exportData.emailTemplates[settledPromise.value.data._id.split('/')[1]] =
-        settledPromise.value.data;
+      exportData.emailTemplates[settledPromise.value._id.split('/')[1]] =
+        settledPromise.value;
     }
-  });
+  }
 
   // Process SAML2 providers and circles of trust
   const saml2NodeDependencies = await Promise.all(saml2ConfigPromises);
-  saml2NodeDependencies.forEach((saml2NodeDependency) => {
+  for (const saml2NodeDependency of saml2NodeDependencies) {
     if (saml2NodeDependency) {
       if (verbose) printMessage('  - SAML2 entity providers:');
-      saml2NodeDependency.saml2Entities.forEach((saml2Entity) => {
+      for (const saml2Entity of saml2NodeDependency.saml2Entities) {
         if (verbose)
           printMessage(
             `    - ${saml2Entity.entityLocation} ${saml2Entity.entityId}`,
             'info'
           );
         exportData.saml2Entities[saml2Entity._id] = saml2Entity;
-      });
+      }
       if (verbose) printMessage('  - SAML2 circles of trust:');
-      saml2NodeDependency.circlesOfTrust.forEach((circleOfTrust) => {
+      for (const circleOfTrust of saml2NodeDependency.circlesOfTrust) {
         if (verbose) printMessage(`    - ${circleOfTrust._id}`, 'info');
         exportData.circlesOfTrust[circleOfTrust._id] = circleOfTrust;
-      });
+      }
     }
-  });
+  }
 
   // Process socialIdentityProviders
-  const socialProvidersResponse = await Promise.resolve(socialProviderPromise);
-  if (socialProvidersResponse) {
+  const socialProviders = await Promise.resolve(socialProviderPromise);
+  if (socialProviders) {
     if (verbose) printMessage('  - OAuth2/OIDC (social) identity providers:');
-    socialProvidersResponse.data.result.forEach((socialProvider) => {
+    for (const socialProvider of socialProviders.result) {
       // If the list of socialIdentityProviders needs to be filtered based on the
       // filteredProviders property of a SelectIdPNode do it here.
       if (
@@ -541,14 +551,13 @@ export async function exportTree(
         scriptPromises.push(getScript(socialProvider.transform));
         exportData.socialIdentityProviders[socialProvider._id] = socialProvider;
       }
-    });
+    }
   }
 
   // Process scripts
   if (verbose && scriptPromises.length > 0) printMessage('  - Scripts:');
-  const scripts = await Promise.all(scriptPromises);
-  scripts.forEach((scriptResultObject) => {
-    const scriptObject = _.get(scriptResultObject, 'data');
+  const scriptObjects = await Promise.all(scriptPromises);
+  for (const scriptObject of scriptObjects) {
     if (scriptObject) {
       if (verbose)
         printMessage(
@@ -561,13 +570,14 @@ export async function exportTree(
         : JSON.stringify(decode(scriptObject.script));
       exportData.scripts[scriptObject._id] = scriptObject;
     }
-  });
+  }
 
   // Process themes
   if (themePromise) {
     if (verbose) printMessage('  - Themes:');
-    await Promise.resolve(themePromise).then((themePromiseResults) => {
-      themePromiseResults.forEach((themeObject) => {
+    try {
+      const themePromiseResults = await Promise.resolve(themePromise);
+      for (const themeObject of themePromiseResults) {
         if (
           themeObject &&
           // has the theme been specified by id or name in a page node?
@@ -583,8 +593,10 @@ export async function exportTree(
             );
           exportData.themes.push(themeObject);
         }
-      });
-    });
+      }
+    } catch (error) {
+      printMessage(error.message, 'error');
+    }
   }
 
   return exportData;
@@ -597,7 +609,7 @@ export async function exportTree(
 export async function getJourneys(): Promise<unknown[]> {
   let journeys = [];
   try {
-    journeys = await getTrees();
+    journeys = (await getTrees()).result;
   } catch (error) {
     printMessage(`${error.message}`, 'error');
     printMessage(error.response.data, 'error');
@@ -625,7 +637,7 @@ export async function exportJourneyToFile(
   if (!verbose)
     createProgressIndicator(undefined, `${journeyId}`, 'indeterminate');
   try {
-    const fileData: SingleTreeExportTemplate = await exportTree(
+    const fileData: SingleJourneyExportTemplate = await exportJourney(
       journeyId,
       options
     );
@@ -659,14 +671,14 @@ export async function exportJourneysToFile(
   if (!fileName) {
     fileName = getTypedFilename(`all${getRealmString()}Journeys`, 'journeys');
   }
-  const trees = await getTrees();
-  const fileData: MultipleTreesExportTemplate =
-    createMultipleTreesExportTemplate();
+  const trees = (await getTrees()).result;
+  const fileData: MultiJourneyExportTemplate =
+    createMultiJourneyExportTemplate();
   createProgressIndicator(trees.length, 'Exporting journeys...');
   for (const tree of trees) {
     updateProgressIndicator(`${tree._id}`);
     try {
-      const exportData = await exportTree(tree._id, options);
+      const exportData = await exportJourney(tree._id, options);
       delete exportData.meta;
       fileData.trees[tree._id] = exportData;
     } catch (error) {
@@ -684,13 +696,13 @@ export async function exportJourneysToFile(
 export async function exportJourneysToFiles(
   options: ExportOptions
 ): Promise<void> {
-  const trees = await getTrees();
+  const trees = (await getTrees()).result;
   createProgressIndicator(trees.length, 'Exporting journeys...');
   for (const tree of trees) {
     updateProgressIndicator(`${tree._id}`);
     const fileName = getTypedFilename(`${tree._id}`, 'journey');
     try {
-      const exportData: SingleTreeExportTemplate = await exportTree(
+      const exportData: SingleJourneyExportTemplate = await exportJourney(
         tree._id,
         options
       );
@@ -722,11 +734,11 @@ interface ImportOptions {
 
 /**
  * Helper to import a tree with all dependencies from an import data object (typically read from a file)
- * @param {SingleTreeExportTemplate} treeObject tree object containing tree and all its dependencies
+ * @param {SingleJourneyExportTemplate} treeObject tree object containing tree and all its dependencies
  * @param {ImportOptions} options import options
  */
-export async function importTree(
-  treeObject: SingleTreeExportTemplate,
+export async function importJourney(
+  treeObject: SingleJourneyExportTemplate,
   options: ImportOptions
 ): Promise<void> {
   const { reUuid, deps, verbose } = options;
@@ -757,7 +769,6 @@ export async function importTree(
       } else if (!isBase64Encoded(scriptObject['script'])) {
         scriptObject['script'] = encode(JSON.parse(scriptObject['script']));
       }
-      // eslint-disable-next-line no-await-in-loop
       if ((await createOrUpdateScript(scriptId, scriptObject)) == null) {
         throw new Error(
           `Error importing script ${scriptObject['name']} (${scriptId}) in journey ${treeId}`
@@ -779,7 +790,6 @@ export async function importTree(
     )) {
       if (verbose) printMessage(`    - ${templateId}`, 'info', false);
       try {
-        // eslint-disable-next-line no-await-in-loop
         await putEmailTemplate(templateId, templateData);
       } catch (error) {
         printMessage(error.response.data, 'error');
@@ -817,7 +827,6 @@ export async function importTree(
     )) {
       if (verbose) printMessage(`    - ${providerId}`, 'info');
       try {
-        // eslint-disable-next-line no-await-in-loop
         await putProviderByTypeAndId(
           providerData['_type']['_id'],
           providerId,
@@ -825,26 +834,25 @@ export async function importTree(
         );
       } catch (importError) {
         if (
-          importError.response.status === 500 &&
-          importError.response.data.message ===
+          importError.response?.status === 500 &&
+          importError.response?.data?.message ===
             'Unable to update SMS config: Data validation failed for the attribute, Redirect after form post URL'
         ) {
           providerData['redirectAfterFormPostURI'] = '';
           try {
-            // eslint-disable-next-line no-await-in-loop
             await putProviderByTypeAndId(
               providerData['_type']['_id'],
               providerId,
               providerData
             );
           } catch (importError2) {
-            printMessage(importError.response.data, 'error');
+            printMessage(importError.response?.data || importError, 'error');
             throw new Error(
               `Error importing provider ${providerId} in journey ${treeId}: ${importError}`
             );
           }
         } else {
-          printMessage(importError.response.data, 'error');
+          printMessage(importError.response?.data || importError, 'error');
           throw new Error(
             `\nError importing provider ${providerId} in journey ${treeId}: ${importError}`
           );
@@ -879,22 +887,25 @@ export async function importTree(
       delete providerData['base64EntityXML'];
       // create the provider if it doesn't already exist, or just update it
       if (
-        // eslint-disable-next-line no-await-in-loop
-        (await findProviders(`entityId eq '${entityId}'`, 'location')).data
+        (await findProviders(`entityId eq '${entityId}'`, 'location'))
           .resultCount === 0
       ) {
-        // eslint-disable-next-line no-await-in-loop
         await createProvider(entityLocation, providerData, metaData).catch(
           (createProviderErr) => {
-            printMessage(createProviderErr.response.data, 'error');
+            printMessage(
+              createProviderErr.response?.data || createProviderErr,
+              'error'
+            );
             throw new Error(`Error creating provider ${entityId}`);
           }
         );
       } else {
-        // eslint-disable-next-line no-await-in-loop
         await updateProvider(entityLocation, providerData).catch(
           (updateProviderErr) => {
-            printMessage(updateProviderErr.response.data, 'error');
+            printMessage(
+              updateProviderErr.response?.data || updateProviderErr,
+              'error'
+            );
             throw new Error(`Error updating provider ${entityId}`);
           }
         );
@@ -912,28 +923,25 @@ export async function importTree(
     for (const [cotId, cotData] of Object.entries(treeObject.circlesOfTrust)) {
       delete cotData['_rev'];
       if (verbose) printMessage(`    - ${cotId}`, 'info');
-      // eslint-disable-next-line no-await-in-loop
-      await createCircleOfTrust(cotData)
-        // eslint-disable-next-line no-unused-vars
-        .catch(async (createCotErr) => {
-          if (
-            createCotErr.response.status === 409 ||
-            createCotErr.response.status === 500
-          ) {
-            await updateCircleOfTrust(cotId, cotData).catch(
-              async (updateCotErr) => {
-                printMessage(createCotErr.response.data, 'error');
-                printMessage(updateCotErr.response.data, 'error');
-                throw new Error(
-                  `Error creating/updating circle of trust ${cotId}`
-                );
-              }
-            );
-          } else {
-            printMessage(createCotErr.response.data, 'error');
-            throw new Error(`Error creating circle of trust ${cotId}`);
+      try {
+        await createCircleOfTrust(cotData);
+      } catch (createCotErr) {
+        if (
+          createCotErr.response?.status === 409 ||
+          createCotErr.response?.status === 500
+        ) {
+          try {
+            await updateCircleOfTrust(cotId, cotData);
+          } catch (updateCotErr) {
+            printMessage(createCotErr.response?.data || createCotErr, 'error');
+            printMessage(updateCotErr.response?.data || updateCotErr, 'error');
+            throw new Error(`Error creating/updating circle of trust ${cotId}`);
           }
-        });
+        } else {
+          printMessage(createCotErr.response?.data || createCotErr, 'error');
+          throw new Error(`Error creating circle of trust ${cotId}`);
+        }
+      }
     }
   }
 
@@ -990,7 +998,6 @@ export async function importTree(
           );
       }
       try {
-        // eslint-disable-next-line no-await-in-loop
         await putNode(newUuid, nodeType, innerNodeData);
       } catch (nodeImportError) {
         if (
@@ -1067,7 +1074,6 @@ export async function importTree(
           );
       }
       try {
-        // eslint-disable-next-line no-await-in-loop
         await putNode(newUuid, nodeType, nodeData);
       } catch (nodeImportError) {
         if (
@@ -1126,12 +1132,12 @@ export async function importTree(
     if (verbose) printMessage(`\n    - Done`, 'info', true);
   } catch (importError) {
     if (
-      importError.response.status === 400 &&
-      importError.response.data.message === 'Invalid attribute specified.'
+      importError.response?.status === 400 &&
+      importError.response?.data?.message === 'Invalid attribute specified.'
     ) {
       const { validAttributes } = importError.response.data.detail;
       validAttributes.push('_id');
-      Object.keys(treeObject.tree).forEach((attribute) => {
+      for (const attribute of Object.keys(treeObject.tree)) {
         if (!validAttributes.includes(attribute)) {
           if (verbose)
             printMessage(
@@ -1141,7 +1147,7 @@ export async function importTree(
             );
           delete treeObject.tree[attribute];
         }
-      });
+      }
       try {
         await putTree(treeObject.tree._id as string, treeObject.tree);
         if (verbose) printMessage(`\n    - Done`, 'info', true);
@@ -1150,7 +1156,8 @@ export async function importTree(
         throw new Error(`Error importing journey flow ${treeId}`);
       }
     } else {
-      printMessage(importError.response.data, 'error');
+      printMessage(importError.response?.data || importError, 'error');
+      console.dir(importError.response?.data || importError);
       throw new Error(`\nError importing journey flow ${treeId}`);
     }
   }
@@ -1256,7 +1263,7 @@ export async function importJourneyFromFile(
     // if a journeyId was specified, only import the matching journey
     if (journeyData && journeyId === journeyData.tree._id) {
       // attempt dependency resolution for single tree import
-      const installedJourneys = (await getTrees()).map((x) => x._id);
+      const installedJourneys = (await getTrees()).result.map((x) => x._id);
       const unresolvedJourneys = {};
       const resolvedJourneys = [];
       createProgressIndicator(
@@ -1279,7 +1286,7 @@ export async function importJourneyFromFile(
             `Importing ${journeyId}...`,
             'indeterminate'
           );
-        importTree(journeyData, options)
+        importJourney(journeyData, options)
           .then(() => {
             if (verbose)
               createProgressIndicator(
@@ -1351,7 +1358,7 @@ export async function importFirstJourneyFromFile(
     // if a journeyId was specified, only import the matching journey
     if (journeyData && journeyId) {
       // attempt dependency resolution for single tree import
-      const installedJourneys = (await getTrees()).map((x) => x._id);
+      const installedJourneys = (await getTrees()).result.map((x) => x._id);
       const unresolvedJourneys = {};
       const resolvedJourneys = [];
       createProgressIndicator(
@@ -1374,7 +1381,7 @@ export async function importFirstJourneyFromFile(
             `Importing ${journeyId}...`,
             'indeterminate'
           );
-        importTree(journeyData, options)
+        importJourney(journeyData, options)
           .then(() => {
             if (verbose)
               createProgressIndicator(
@@ -1415,11 +1422,11 @@ export async function importFirstJourneyFromFile(
  * @param {Object} treesMap map of trees object
  * @param {ImportOptions} options import options
  */
-async function importAllTrees(
-  treesMap: MultipleTreesExportTemplate,
+async function importAllJourneys(
+  treesMap: MultiJourneyExportTemplate,
   options: ImportOptions
 ) {
-  const installedJourneys = (await getTrees()).map((x) => x._id);
+  const installedJourneys = (await getTrees()).result.map((x) => x._id);
   const unresolvedJourneys = {};
   const resolvedJourneys = [];
   createProgressIndicator(undefined, 'Resolving dependencies', 'indeterminate');
@@ -1449,7 +1456,7 @@ async function importAllTrees(
   for (const tree of resolvedJourneys) {
     try {
       // eslint-disable-next-line no-await-in-loop
-      await importTree(treesMap[tree], options);
+      await importJourney(treesMap[tree], options);
       updateProgressIndicator(`${tree}`);
     } catch (error) {
       printMessage(`\n${error.message}`, 'error');
@@ -1470,7 +1477,7 @@ export async function importJourneysFromFile(
   fs.readFile(file, 'utf8', (err, data) => {
     if (err) throw err;
     const fileData = JSON.parse(data);
-    importAllTrees(fileData.trees, options);
+    importAllJourneys(fileData.trees, options);
   });
 }
 
@@ -1488,21 +1495,24 @@ export async function importJourneysFromFiles(options: ImportOptions) {
     const journeyData = JSON.parse(fs.readFileSync(file, 'utf8'));
     allJourneysData.trees[journeyData.tree._id] = journeyData;
   }
-  importAllTrees(allJourneysData.trees as MultipleTreesExportTemplate, options);
+  importAllJourneys(
+    allJourneysData.trees as MultiJourneyExportTemplate,
+    options
+  );
 }
 
 /**
  * Describe a tree
- * @param {Object} treeData tree
+ * @param {Object} journeyData tree
  * @returns {Object} an object describing the tree
  */
-export function describeTree(treeData) {
+export function describeJourney(journeyData) {
   const treeMap = {};
   const nodeTypeMap = {};
   const scriptsMap = {};
   const emailTemplatesMap = {};
-  treeMap['treeName'] = treeData.tree._id;
-  for (const [, nodeData] of Object.entries(treeData.nodes)) {
+  treeMap['treeName'] = journeyData.tree._id;
+  for (const [, nodeData] of Object.entries(journeyData.nodes)) {
     if (nodeTypeMap[nodeData['_type']['_id']]) {
       nodeTypeMap[nodeData['_type']['_id']] += 1;
     } else {
@@ -1510,7 +1520,7 @@ export function describeTree(treeData) {
     }
   }
 
-  for (const [, nodeData] of Object.entries(treeData.innerNodes)) {
+  for (const [, nodeData] of Object.entries(journeyData.innerNodes)) {
     if (nodeTypeMap[nodeData['_type']['_id']]) {
       nodeTypeMap[nodeData['_type']['_id']] += 1;
     } else {
@@ -1518,11 +1528,11 @@ export function describeTree(treeData) {
     }
   }
 
-  for (const [, scriptData] of Object.entries(treeData.scripts)) {
+  for (const [, scriptData] of Object.entries(journeyData.scripts)) {
     scriptsMap[scriptData['name']] = scriptData['description'];
   }
 
-  for (const [id, data] of Object.entries(treeData.emailTemplates)) {
+  for (const [id, data] of Object.entries(journeyData.emailTemplates)) {
     emailTemplatesMap[id] = data['displayName'];
   }
 
@@ -1562,7 +1572,7 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
   const allNodes = [];
   const orphanedNodes = [];
   let types = [];
-  const allJourneys = await getTrees();
+  const allJourneys = (await getTrees()).result;
   let errorMessage = '';
   const errorTypes = [];
 
@@ -1572,7 +1582,7 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
     'indeterminate'
   );
   try {
-    types = await getNodeTypes();
+    types = (await getNodeTypes()).result;
   } catch (error) {
     printMessage('Error retrieving all available node types:', 'error');
     printMessage(error.response.data, 'error');
@@ -1581,12 +1591,13 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
   for (const type of types) {
     try {
       // eslint-disable-next-line no-await-in-loop, no-loop-func
-      (await getNodesByType(type._id)).forEach((node) => {
+      const nodes = (await getNodesByType(type._id)).result;
+      for (const node of nodes) {
         allNodes.push(node);
         updateProgressIndicator(
           `${allNodes.length} total nodes${errorMessage}`
         );
-      });
+      }
     } catch (error) {
       errorTypes.push(type._id);
       errorMessage = ` (Skipped type(s): ${errorTypes})`['yellow'];
@@ -1615,12 +1626,11 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
         updateProgressIndicator(`${activeNodes.length} active nodes`);
         const node = journey.nodes[nodeId];
         if (containerNodes.includes(node.nodeType)) {
-          // eslint-disable-next-line no-await-in-loop
           const containerNode = await getNode(nodeId, node.nodeType);
-          containerNode.nodes.forEach((n) => {
-            activeNodes.push(n._id);
+          for (const innerNode of containerNode.nodes) {
+            activeNodes.push(innerNode._id);
             updateProgressIndicator(`${activeNodes.length} active nodes`);
-          });
+          }
         }
       }
     }
@@ -1633,7 +1643,9 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
     'indeterminate'
   );
   const diff = allNodes.filter((x) => !activeNodes.includes(x._id));
-  diff.forEach((x) => orphanedNodes.push(x));
+  for (const orphanedNode of diff) {
+    orphanedNodes.push(orphanedNode);
+  }
   stopProgressIndicator(`${orphanedNodes.length} orphaned nodes`, 'success');
   return orphanedNodes;
 }
@@ -1925,16 +1937,13 @@ export async function isCustom(journey) {
         return true;
       }
       if (containerNodes.includes(nodeList[node].nodeType)) {
-        results.push(
-          // eslint-disable-next-line no-await-in-loop
-          await getNode(node, nodeList[node].nodeType)
-        );
+        results.push(await getNode(node, nodeList[node].nodeType));
       }
     }
   }
   const pageNodes = await Promise.all(results);
   let custom = false;
-  pageNodes.forEach((pageNode) => {
+  for (const pageNode of pageNodes) {
     if (pageNode != null) {
       for (const pnode of pageNode.nodes) {
         if (!ootbNodeTypes.includes(pnode.nodeType)) {
@@ -1948,7 +1957,7 @@ export async function isCustom(journey) {
       );
       custom = false;
     }
-  });
+  }
   return custom;
 }
 
@@ -1964,7 +1973,7 @@ export async function listJourneys(
 ): Promise<unknown[]> {
   let journeys = [];
   try {
-    journeys = await getTrees();
+    journeys = (await getTrees()).result;
   } catch (error) {
     printMessage(`${error.message}`, 'error');
     printMessage(error.response.data, 'error');
@@ -1988,7 +1997,7 @@ export async function listJourneys(
       'Status'['brightCyan'],
       'Tags'['brightCyan'],
     ]);
-    journeys.forEach((journey, i) => {
+    for (const [journey, i] of journeys) {
       table.push([
         `${customTrees[i] ? '*'['brightRed'] : ''}${journey._id}`,
         journey.enabled === false
@@ -1998,7 +2007,7 @@ export async function listJourneys(
           ? wordwrap(JSON.parse(journey.uiConfig.categories).join(', '), 60)
           : '',
       ]);
-    });
+    }
     printMessage(table.toString(), 'data');
   }
   return journeys;
@@ -2186,7 +2195,7 @@ export async function deleteJourney(
 export async function deleteJourneys(options) {
   const { verbose } = options;
   const status = {};
-  const trees = await getTrees();
+  const trees = (await getTrees()).result;
   createProgressIndicator(trees.length, 'Deleting journeys...');
   for (const tree of trees) {
     if (verbose) printMessage('');

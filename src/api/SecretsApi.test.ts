@@ -20,7 +20,7 @@ describe('SecretsApi - getSecrets()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/getSecrets/secrets.json'
+          '../test/mocks/SecretsApi/getSecrets/secrets.json'
         ),
         'utf8'
       )
@@ -38,7 +38,7 @@ describe('SecretsApi - getSecrets()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/getSecrets/error.json'
+          '../test/mocks/SecretsApi/getSecrets/error.json'
         ),
         'utf8'
       )
@@ -65,7 +65,7 @@ describe('SecretsApi - getSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/getSecret/esv-volkerstestsecret1.json'
+          '../test/mocks/SecretsApi/getSecret/esv-volkerstestsecret1.json'
         ),
         'utf8'
       )
@@ -85,7 +85,7 @@ describe('SecretsApi - getSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/getSecret/esv-does-not-exist.json'
+          '../test/mocks/SecretsApi/getSecret/esv-does-not-exist.json'
         ),
         'utf8'
       )
@@ -116,7 +116,7 @@ describe('SecretsApi - putSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/putSecret/esv-volkerstestsecret1.json'
+          '../test/mocks/SecretsApi/putSecret/esv-volkerstestsecret1.json'
         ),
         'utf8'
       )
@@ -142,7 +142,7 @@ describe('SecretsApi - putSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/putSecret/error.json'
+          '../test/mocks/SecretsApi/putSecret/error.json'
         ),
         'utf8'
       )
@@ -191,7 +191,7 @@ describe('SecretsApi - setSecretDescription()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/setSecretDescription/error.json'
+          '../test/mocks/SecretsApi/setSecretDescription/error.json'
         ),
         'utf8'
       )
@@ -223,7 +223,7 @@ describe('SecretsApi - deleteSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/deleteSecret/esv-volkerstestsecret1.json'
+          '../test/mocks/SecretsApi/deleteSecret/esv-volkerstestsecret1.json'
         ),
         'utf8'
       )
@@ -243,7 +243,7 @@ describe('SecretsApi - deleteSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/deleteSecret/error.json'
+          '../test/mocks/SecretsApi/deleteSecret/error.json'
         ),
         'utf8'
       )
@@ -272,7 +272,7 @@ describe('SecretsApi - getSecretVersions()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/getSecretVersions/esv-volkerstestsecret1.json'
+          '../test/mocks/SecretsApi/getSecretVersions/esv-volkerstestsecret1.json'
         ),
         'utf8'
       )
@@ -294,7 +294,7 @@ describe('SecretsApi - getSecretVersions()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/getSecretVersions/esv-does-not-exist.json'
+          '../test/mocks/SecretsApi/getSecretVersions/esv-does-not-exist.json'
         ),
         'utf8'
       )
@@ -325,7 +325,7 @@ describe('SecretsApi - createNewVersionOfSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/createNewVersionOfSecret/esv-volkerstestsecret1.json'
+          '../test/mocks/SecretsApi/createNewVersionOfSecret/esv-volkerstestsecret1.json'
         ),
         'utf8'
       )
@@ -348,7 +348,7 @@ describe('SecretsApi - createNewVersionOfSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/createNewVersionOfSecret/error.json'
+          '../test/mocks/SecretsApi/createNewVersionOfSecret/error.json'
         ),
         'utf8'
       )
@@ -377,7 +377,7 @@ describe('SecretsApi - createNewVersionOfSecret()', () => {
     const mockResponse = fs.readFileSync(
       path.resolve(
         __dirname,
-        '../../test/mocks/SecretsApi/createNewVersionOfSecret/esv-does-not-exist.txt'
+        '../test/mocks/SecretsApi/createNewVersionOfSecret/esv-does-not-exist.txt'
       ),
       'utf8'
     );
@@ -407,7 +407,7 @@ describe('SecretsApi - getVersionOfSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/getVersionOfSecret/esv-volkerstestsecret1_v2.json'
+          '../test/mocks/SecretsApi/getVersionOfSecret/esv-volkerstestsecret1_v2.json'
         ),
         'utf8'
       )
@@ -430,7 +430,7 @@ describe('SecretsApi - getVersionOfSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/getVersionOfSecret/esv-does-not-exist_v2.json'
+          '../test/mocks/SecretsApi/getVersionOfSecret/esv-does-not-exist_v2.json'
         ),
         'utf8'
       )
@@ -461,7 +461,7 @@ describe('SecretsApi - setStatusOfVersionOfSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/setStatusOfVersionOfSecret/esv-volkerstestsecret1_v2_DISABLED.json'
+          '../test/mocks/SecretsApi/setStatusOfVersionOfSecret/esv-volkerstestsecret1_v2_DISABLED.json'
         ),
         'utf8'
       )
@@ -485,7 +485,7 @@ describe('SecretsApi - setStatusOfVersionOfSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/setStatusOfVersionOfSecret/error.json'
+          '../test/mocks/SecretsApi/setStatusOfVersionOfSecret/error.json'
         ),
         'utf8'
       )
@@ -516,7 +516,7 @@ describe('SecretsApi - setStatusOfVersionOfSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/setStatusOfVersionOfSecret/esv-does-not-exist_v2_DISABLED.json'
+          '../test/mocks/SecretsApi/setStatusOfVersionOfSecret/esv-does-not-exist_v2_DISABLED.json'
         ),
         'utf8'
       )
@@ -551,7 +551,7 @@ describe('SecretsApi - deleteVersionOfSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/deleteVersionOfSecret/esv-volkerstestsecret1_v2.json'
+          '../test/mocks/SecretsApi/deleteVersionOfSecret/esv-volkerstestsecret1_v2.json'
         ),
         'utf8'
       )
@@ -574,7 +574,7 @@ describe('SecretsApi - deleteVersionOfSecret()', () => {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          '../../test/mocks/SecretsApi/deleteVersionOfSecret/error.json'
+          '../test/mocks/SecretsApi/deleteVersionOfSecret/error.json'
         ),
         'utf8'
       )

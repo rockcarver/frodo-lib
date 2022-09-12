@@ -11,14 +11,15 @@ const idmManagedObjectURLTemplate =
 
 /**
  * Get all IDM config entities
- * @returns {Promise} a promise that resolves to an object containing all IDM config entities
+ * @returns {Promise} a promise that resolves to all IDM config entities
  */
 export async function getAllConfigEntities() {
   const urlString = util.format(
     idmAllConfigURLTemplate,
     getTenantURL(storage.session.getTenant())
   );
-  return generateIdmApi().get(urlString);
+  const { data } = await generateIdmApi().get(urlString);
+  return data;
 }
 
 /**
@@ -32,36 +33,39 @@ export async function getConfigEntitiesByType(type) {
     getTenantURL(storage.session.getTenant()),
     encodeURIComponent(`_id sw '${type}'`)
   );
-  return generateIdmApi().get(urlString);
+  const { data } = await generateIdmApi().get(urlString);
+  return data;
 }
 
 /**
  * Get an IDM config entity
- * @param {String} id the desired config entity
- * @returns {Promise} a promise that resolves to an object containing an IDM config entity
+ * @param {string} entityId the desired config entity
+ * @returns {Promise<unknown>} a promise that resolves to an IDM config entity
  */
-export async function getConfigEntity(id) {
+export async function getConfigEntity(entityId) {
   const urlString = util.format(
     idmConfigURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id
+    entityId
   );
-  return generateIdmApi().get(urlString);
+  const { data } = await generateIdmApi().get(urlString);
+  return data;
 }
 
 /**
  * Put IDM config entity
- * @param {String} id config entity id
- * @param {String} data config entity object
- * @returns {Promise} a promise that resolves to an object containing an IDM config entity
+ * @param {string} entityId config entity id
+ * @param {string} entityData config entity object
+ * @returns {Promise<unknown>} a promise that resolves to an IDM config entity
  */
-export async function putConfigEntity(id, data) {
+export async function putConfigEntity(entityId, entityData) {
   const urlString = util.format(
     idmConfigURLTemplate,
     getTenantURL(storage.session.getTenant()),
-    id
+    entityId
   );
-  return generateIdmApi().put(urlString, data);
+  const { data } = await generateIdmApi().put(urlString, entityData);
+  return data;
 }
 
 /**
@@ -69,14 +73,14 @@ export async function putConfigEntity(id, data) {
  * @param {String} type managed object type
  * @param {[String]} fields fields to retrieve
  * @param {String} pageCookie paged results cookie
- * @returns {Promise<{result: any[]; resultCount: number; pagedResultsCookie: any; totalPagedResultsPolicy: string; totalPagedResults: number; remainingPagedResults: number;}>} a promise that resolves to an object containing managed objects of the desired type
+ * @returns {Promise<{result: any[]; resultCount: number; pagedResultsCookie: any; totalPagedResultsPolicy: string; totalPagedResults: number; remainingPagedResults: number;}>} a promise that resolves to managed objects of the desired type
  */
 export async function queryAllManagedObjectsByType(
   type,
   fields,
   pageCookie
 ): Promise<{
-  result: any[];
+  result: unknown[];
   resultCount: number;
   pagedResultsCookie: string;
   totalPagedResultsPolicy: string;
@@ -95,5 +99,6 @@ export async function queryAllManagedObjectsByType(
     getTenantURL(storage.session.getTenant()),
     type
   );
-  return generateIdmApi().get(urlString);
+  const { data } = await generateIdmApi().get(urlString);
+  return data;
 }
