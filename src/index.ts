@@ -26,7 +26,7 @@ export * as CirclesOfTrust from './ops/CirclesOfTrustOps';
 export * as ConnectionProfile from './ops/ConnectionProfileOps';
 export * as EmailTemplate from './ops/EmailTemplateOps';
 export * as Idm from './ops/IdmOps';
-export * as Idp from './ops/IdmOps';
+export * as Idp from './ops/IdpOps';
 export * as Journey from './ops/JourneyOps';
 export * as Log from './ops/LogOps';
 export * as ManagedObject from './ops/ManagedObjectOps';
