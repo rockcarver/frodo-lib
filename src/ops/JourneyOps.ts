@@ -1997,7 +1997,7 @@ export async function listJourneys(
       'Status'['brightCyan'],
       'Tags'['brightCyan'],
     ]);
-    for (const [journey, i] of journeys) {
+    for (const [i, journey] of journeys.entries()) {
       table.push([
         `${customTrees[i] ? '*'['brightRed'] : ''}${journey._id}`,
         journey.enabled === false
