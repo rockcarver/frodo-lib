@@ -34,16 +34,17 @@ export async function getProviders() {
     storage.session.getTenant(),
     getCurrentRealmPath()
   );
-  return generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 /**
  * Find all providers matching the filter and return the requested fields
- * @param {String} filter CREST filter string, eg "entityId+eq+'${entityId}'"
- * @param {String} fields Comma-delimited list of fields to include in the response
- * @returns {Promise} a promise that resolves to an array of saml2 entities
+ * @param {string} filter CREST filter string, eg "entityId+eq+'${entityId}'"
+ * @param {string} fields Comma-delimited list of fields to include in the response
+ * @returns {Promise} a promise that resolves to an object containing an array of saml2 entities
  */
 export async function findProviders(filter = 'true', fields = '*') {
   const urlString = util.format(
@@ -53,18 +54,22 @@ export async function findProviders(filter = 'true', fields = '*') {
     encodeURIComponent(filter),
     fields
   );
-  return generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 /**
  * Geta SAML2 entity provider by location and id
- * @param {String} location Entity provider location (hosted or remote)
- * @param {String} entityId64 Base64-encoded provider entity id
+ * @param {string} location Entity provider location (hosted or remote)
+ * @param {string} entityId64 Base64-encoded provider entity id
  * @returns {Promise} a promise that resolves to a saml2 entity provider object
  */
-export async function getProviderByLocationAndId(location, entityId64) {
+export async function getProviderByLocationAndId(
+  location: string,
+  entityId64: string
+) {
   const urlString = util.format(
     providerByLocationAndIdURLTemplate,
     storage.session.getTenant(),
@@ -72,24 +77,25 @@ export async function getProviderByLocationAndId(location, entityId64) {
     location,
     entityId64
   );
-  return generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 /**
  * Get SAML2 entity provider by entity id
- * @param {String} entityId Provider entity id
+ * @param {string} entityId Provider entity id
  * @returns {Promise} a promise that resolves to a saml2 entity provider object or null
  */
 export async function getProvider(entityId) {
   const response = await findProviders(`entityId eq '${entityId}'`, 'location');
-  switch (response.data.resultCount) {
+  switch (response.resultCount) {
     case 0:
       throw new Error(`No provider with entity id '${entityId}' found`);
     case 1: {
-      const { location } = response.data.result[0];
-      const id = response.data.result[0]._id;
+      const { location } = response.result[0];
+      const id = response.result[0]._id;
       return getProviderByLocationAndId(location, id);
     }
     default:
@@ -99,8 +105,8 @@ export async function getProvider(entityId) {
 
 /**
  * Get a SAML2 entity provider's metadata URL by entity id
- * @param {String} entityId SAML2 entity id
- * @returns {String} the URL to get the metadata from
+ * @param {string} entityId SAML2 entity id
+ * @returns {string} the URL to get the metadata from
  */
 export function getProviderMetadataUrl(entityId) {
   return util.format(
@@ -117,9 +123,13 @@ export function getProviderMetadataUrl(entityId) {
  * @returns {Promise} a promise that resolves to an object containing a SAML2 metadata
  */
 export async function getProviderMetadata(entityId) {
-  return generateAmApi(getApiConfig()).get(getProviderMetadataUrl(entityId), {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi(getApiConfig()).get(
+    getProviderMetadataUrl(entityId),
+    {
+      withCredentials: true,
+    }
+  );
+  return data;
 }
 
 /**
@@ -151,9 +161,14 @@ export async function createProvider(location, providerData, metaData) {
     };
   }
 
-  return generateAmApi(getApiConfig()).post(urlString, postData, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi(getApiConfig()).post(
+    urlString,
+    postData,
+    {
+      withCredentials: true,
+    }
+  );
+  return data;
 }
 
 /**
@@ -170,7 +185,12 @@ export async function updateProvider(location, providerData) {
     location,
     providerData._id
   );
-  return generateAmApi(getApiConfig()).put(urlString, providerData, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi(getApiConfig()).put(
+    urlString,
+    providerData,
+    {
+      withCredentials: true,
+    }
+  );
+  return data;
 }

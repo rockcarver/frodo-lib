@@ -30,9 +30,10 @@ export async function getSocialIdentityProviderTypes() {
     storage.session.getTenant(),
     getCurrentRealmPath()
   );
-  return generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 /**
@@ -47,9 +48,10 @@ export async function getSocialIdentityProvidersByType(type) {
     getCurrentRealmPath(),
     type
   );
-  return generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 /**
@@ -62,13 +64,14 @@ export async function getSocialIdentityProviders() {
     storage.session.getTenant(),
     getCurrentRealmPath()
   );
-  return generateAmApi(getApiConfig()).post(
+  const { data } = await generateAmApi(getApiConfig()).post(
     urlString,
     {},
     {
       withCredentials: true,
     }
   );
+  return data;
 }
 
 /**
@@ -85,22 +88,23 @@ export async function getProviderByTypeAndId(type, id) {
     type,
     id
   );
-  return generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
 /**
  * Get social identity provider by type and id
  * @param {String} type social identity provider type
  * @param {String} id social identity provider id/name
- * @param {Object} data a social identity provider object
+ * @param {Object} providerData a social identity provider object
  * @returns {Promise} a promise that resolves to an object containing a social identity provider
  */
-export async function putProviderByTypeAndId(type, id, data) {
+export async function putProviderByTypeAndId(type, id, providerData) {
   // until we figure out a way to use transport keys in Frodo,
   // we'll have to drop those encrypted attributes.
-  const providerData = deleteDeepByKey(data, '-encrypted');
+  const cleanData = deleteDeepByKey(providerData, '-encrypted');
   const urlString = util.format(
     providerByTypeAndIdURLTemplate,
     storage.session.getTenant(),
@@ -108,7 +112,12 @@ export async function putProviderByTypeAndId(type, id, data) {
     type,
     id
   );
-  return generateAmApi(getApiConfig()).put(urlString, providerData, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi(getApiConfig()).put(
+    urlString,
+    cleanData,
+    {
+      withCredentials: true,
+    }
+  );
+  return data;
 }

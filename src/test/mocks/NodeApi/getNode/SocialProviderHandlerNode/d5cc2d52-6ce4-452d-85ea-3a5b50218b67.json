@@ -1,0 +1,22 @@
+{
+  "_id": "d5cc2d52-6ce4-452d-85ea-3a5b50218b67",
+  "_rev": "60612304",
+  "clientType": "BROWSER",
+  "script": "58c824ae-84ed-4724-82cd-db128fc3f6c",
+  "usernameAttribute": "userName",
+  "_type": {
+    "_id": "SocialProviderHandlerNode",
+    "name": "Social Provider Handler Node",
+    "collection": true
+  },
+  "_outcomes": [
+    {
+      "id": "ACCOUNT_EXISTS",
+      "displayName": "Account exists"
+    },
+    {
+      "id": "NO_ACCOUNT",
+      "displayName": "No account exists"
+    }
+  ]
+}
