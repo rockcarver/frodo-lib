@@ -50,7 +50,7 @@ export function getRealmManagedUser() {
  * @param {[String]} ignoreKeys array of keys to ignore in comparison
  * @returns {boolean} true if the two json objects have the same length and all the properties have the same value
  */
-export function isEqualJson(obj1, obj2, ignoreKeys = []) {
+export function isEqualJson(obj1, obj2, ignoreKeys: string[] = []) {
   const obj1Keys = Object.keys(obj1).filter((key) => !ignoreKeys.includes(key));
   const obj2Keys = Object.keys(obj2).filter((key) => !ignoreKeys.includes(key));
 

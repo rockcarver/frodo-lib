@@ -769,7 +769,6 @@ export async function importJourney(
       } else if (!isBase64Encoded(scriptObject['script'])) {
         scriptObject['script'] = encode(JSON.parse(scriptObject['script']));
       }
-      // eslint-disable-next-line no-await-in-loop
       if ((await createOrUpdateScript(scriptId, scriptObject)) == null) {
         throw new Error(
           `Error importing script ${scriptObject['name']} (${scriptId}) in journey ${treeId}`
@@ -791,7 +790,6 @@ export async function importJourney(
     )) {
       if (verbose) printMessage(`    - ${templateId}`, 'info', false);
       try {
-        // eslint-disable-next-line no-await-in-loop
         await putEmailTemplate(templateId, templateData);
       } catch (error) {
         printMessage(error.response.data, 'error');
@@ -829,7 +827,6 @@ export async function importJourney(
     )) {
       if (verbose) printMessage(`    - ${providerId}`, 'info');
       try {
-        // eslint-disable-next-line no-await-in-loop
         await putProviderByTypeAndId(
           providerData['_type']['_id'],
           providerId,
@@ -837,26 +834,25 @@ export async function importJourney(
         );
       } catch (importError) {
         if (
-          importError.response.status === 500 &&
-          importError.response.data.message ===
+          importError.response?.status === 500 &&
+          importError.response?.data?.message ===
             'Unable to update SMS config: Data validation failed for the attribute, Redirect after form post URL'
         ) {
           providerData['redirectAfterFormPostURI'] = '';
           try {
-            // eslint-disable-next-line no-await-in-loop
             await putProviderByTypeAndId(
               providerData['_type']['_id'],
               providerId,
               providerData
             );
           } catch (importError2) {
-            printMessage(importError.response.data, 'error');
+            printMessage(importError.response?.data || importError, 'error');
             throw new Error(
               `Error importing provider ${providerId} in journey ${treeId}: ${importError}`
             );
           }
         } else {
-          printMessage(importError.response.data, 'error');
+          printMessage(importError.response?.data || importError, 'error');
           throw new Error(
             `\nError importing provider ${providerId} in journey ${treeId}: ${importError}`
           );
@@ -891,22 +887,25 @@ export async function importJourney(
       delete providerData['base64EntityXML'];
       // create the provider if it doesn't already exist, or just update it
       if (
-        // eslint-disable-next-line no-await-in-loop
         (await findProviders(`entityId eq '${entityId}'`, 'location'))
           .resultCount === 0
       ) {
-        // eslint-disable-next-line no-await-in-loop
         await createProvider(entityLocation, providerData, metaData).catch(
           (createProviderErr) => {
-            printMessage(createProviderErr.response.data, 'error');
+            printMessage(
+              createProviderErr.response?.data || createProviderErr,
+              'error'
+            );
             throw new Error(`Error creating provider ${entityId}`);
           }
         );
       } else {
-        // eslint-disable-next-line no-await-in-loop
         await updateProvider(entityLocation, providerData).catch(
           (updateProviderErr) => {
-            printMessage(updateProviderErr.response.data, 'error');
+            printMessage(
+              updateProviderErr.response?.data || updateProviderErr,
+              'error'
+            );
             throw new Error(`Error updating provider ${entityId}`);
           }
         );
@@ -925,23 +924,21 @@ export async function importJourney(
       delete cotData['_rev'];
       if (verbose) printMessage(`    - ${cotId}`, 'info');
       try {
-        // eslint-disable-next-line no-await-in-loop
         await createCircleOfTrust(cotData);
       } catch (createCotErr) {
-        // eslint-disable-next-line no-unused-vars
         if (
-          createCotErr.response.status === 409 ||
-          createCotErr.response.status === 500
+          createCotErr.response?.status === 409 ||
+          createCotErr.response?.status === 500
         ) {
           try {
             await updateCircleOfTrust(cotId, cotData);
           } catch (updateCotErr) {
-            printMessage(createCotErr.response.data, 'error');
-            printMessage(updateCotErr.response.data, 'error');
+            printMessage(createCotErr.response?.data || createCotErr, 'error');
+            printMessage(updateCotErr.response?.data || updateCotErr, 'error');
             throw new Error(`Error creating/updating circle of trust ${cotId}`);
           }
         } else {
-          printMessage(createCotErr.response.data, 'error');
+          printMessage(createCotErr.response?.data || createCotErr, 'error');
           throw new Error(`Error creating circle of trust ${cotId}`);
         }
       }
@@ -1001,7 +998,6 @@ export async function importJourney(
           );
       }
       try {
-        // eslint-disable-next-line no-await-in-loop
         await putNode(newUuid, nodeType, innerNodeData);
       } catch (nodeImportError) {
         if (
@@ -1078,7 +1074,6 @@ export async function importJourney(
           );
       }
       try {
-        // eslint-disable-next-line no-await-in-loop
         await putNode(newUuid, nodeType, nodeData);
       } catch (nodeImportError) {
         if (
@@ -1137,8 +1132,8 @@ export async function importJourney(
     if (verbose) printMessage(`\n    - Done`, 'info', true);
   } catch (importError) {
     if (
-      importError.response.status === 400 &&
-      importError.response.data.message === 'Invalid attribute specified.'
+      importError.response?.status === 400 &&
+      importError.response?.data?.message === 'Invalid attribute specified.'
     ) {
       const { validAttributes } = importError.response.data.detail;
       validAttributes.push('_id');
@@ -1161,7 +1156,8 @@ export async function importJourney(
         throw new Error(`Error importing journey flow ${treeId}`);
       }
     } else {
-      printMessage(importError.response.data, 'error');
+      printMessage(importError.response?.data || importError, 'error');
+      console.dir(importError.response?.data || importError);
       throw new Error(`\nError importing journey flow ${treeId}`);
     }
   }
