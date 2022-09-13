@@ -59,22 +59,22 @@ export async function listProviders(long = false) {
   const providerList = (await getProviders()).result;
   providerList.sort((a, b) => a._id.localeCompare(b._id));
   if (!long) {
-    providerList.forEach((item) => {
-      printMessage(`${item.entityId}`, 'data');
-    });
+    for (const provider of providerList) {
+      printMessage(`${provider.entityId}`, 'data');
+    }
   } else {
     const table = createTable([
       'Entity Id'['brightCyan'],
       'Location'['brightCyan'],
       'Role(s)'['brightCyan'],
     ]);
-    providerList.forEach((provider) => {
+    for (const provider of providerList) {
       table.push([
         provider.entityId,
         provider.location,
         provider.roles.map((role) => roleMap[role]).join(', '),
       ]);
-    });
+    }
     printMessage(table.toString());
   }
 }
@@ -258,8 +258,8 @@ export async function exportProvidersToFile(file = null) {
     const fileData = getFileDataTemplate();
     const found = await getProviders();
     if (found.resultCount > 0) {
-      createProgressIndicator(found.data.resultCount, 'Exporting providers');
-      for (const stubData of found.data.result) {
+      createProgressIndicator(found.resultCount, 'Exporting providers');
+      for (const stubData of found.result) {
         updateProgressIndicator(`Exporting provider ${stubData.entityId}`);
         // eslint-disable-next-line no-await-in-loop
         const providerData = await getProviderByLocationAndId(
@@ -272,7 +272,7 @@ export async function exportProvidersToFile(file = null) {
       }
       saveJsonToFile(fileData, fileName);
       stopProgressIndicator(
-        `${found.data.resultCount} providers exported to ${fileName}.`
+        `${found.resultCount} providers exported to ${fileName}.`
       );
     } else {
       printMessage('No entity providers found.', 'info');
@@ -289,8 +289,8 @@ export async function exportProvidersToFile(file = null) {
 export async function exportProvidersToFiles() {
   const found = await getProviders();
   if (found.resultCount > 0) {
-    createProgressIndicator(found.data.resultCount, 'Exporting providers');
-    for (const stubData of found.data.result) {
+    createProgressIndicator(found.resultCount, 'Exporting providers');
+    for (const stubData of found.result) {
       updateProgressIndicator(`Exporting provider ${stubData.entityId}`);
       const fileName = getTypedFilename(stubData.entityId, 'saml');
       const fileData = getFileDataTemplate();
@@ -304,7 +304,7 @@ export async function exportProvidersToFiles() {
       fileData.saml[stubData.location][providerData._id] = providerData;
       saveJsonToFile(fileData, fileName);
     }
-    stopProgressIndicator(`${found.data.resultCount} providers exported.`);
+    stopProgressIndicator(`${found.resultCount} providers exported.`);
   } else {
     printMessage('No entity providers found.', 'info');
   }
