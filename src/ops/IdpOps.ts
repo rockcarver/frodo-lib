@@ -32,54 +32,55 @@ function getFileDataTemplate() {
 /**
  * List providers
  */
-export async function listProviders() {
-  getSocialIdentityProviders()
-    .then((response) => {
-      response.result.sort((a, b) => a._id.localeCompare(b._id));
-      response.result.forEach((socialIdentityProvider) => {
-        printMessage(`${socialIdentityProvider._id}`, 'data');
-      });
-    })
-    .catch((err) => {
-      printMessage(`listProviders ERROR: ${err.message}`, 'error');
-      printMessage(err, 'error');
+export async function listSocialProviders() {
+  try {
+    const providers = await getSocialIdentityProviders();
+    providers.result.sort((a, b) => a._id.localeCompare(b._id));
+    providers.result.forEach((socialIdentityProvider) => {
+      printMessage(`${socialIdentityProvider._id}`, 'data');
     });
+  } catch (err) {
+    printMessage(`listSocialProviders ERROR: ${err.message}`, 'error');
+    printMessage(err, 'error');
+  }
 }
 
 /**
  * Get social identity provider by id
- * @param {String} id social identity provider id/name
+ * @param {String} providerId social identity provider id/name
  * @returns {Promise} a promise that resolves a social identity provider object
  */
-export async function getSocialIdentityProviderById(id) {
+export async function getSocialProvider(providerId) {
   return getSocialIdentityProviders().then((response) => {
     const foundProviders = response.result.filter(
-      (provider) => provider._id === id
+      (provider) => provider._id === providerId
     );
     switch (foundProviders.length) {
       case 1:
         return foundProviders[0];
       case 0:
-        throw new Error(`Provider '${id}' not found`);
+        throw new Error(`Provider '${providerId}' not found`);
       default:
-        throw new Error(`${foundProviders.length} providers '${id}' found`);
+        throw new Error(
+          `${foundProviders.length} providers '${providerId}' found`
+        );
     }
   });
 }
 
 /**
  * Export provider by id
- * @param {String} id provider id/name
+ * @param {String} providerId provider id/name
  * @param {String} file optional export file name
  */
-export async function exportProvider(id, file = '') {
+export async function exportSocialProviderToFile(providerId, file = '') {
   let fileName = file;
   if (!fileName) {
-    fileName = getTypedFilename(id, 'idp');
+    fileName = getTypedFilename(providerId, 'idp');
   }
-  createProgressIndicator(1, `Exporting ${id}`);
+  createProgressIndicator(1, `Exporting ${providerId}`);
   try {
-    const idpData = await getSocialIdentityProviderById(id);
+    const idpData = await getSocialProvider(providerId);
     updateProgressIndicator(`Writing file ${fileName}`);
     const fileData = getFileDataTemplate();
     fileData.idp[idpData._id] = idpData;
@@ -90,7 +91,7 @@ export async function exportProvider(id, file = '') {
     }
     saveJsonToFile(fileData, fileName);
     stopProgressIndicator(
-      `Exported ${id['brightCyan']} to ${fileName['brightCyan']}.`
+      `Exported ${providerId['brightCyan']} to ${fileName['brightCyan']}.`
     );
   } catch (err) {
     stopProgressIndicator(`${err}`);
@@ -102,7 +103,7 @@ export async function exportProvider(id, file = '') {
  * Export all providers
  * @param {String} file optional export file name
  */
-export async function exportProvidersToFile(file) {
+export async function exportSocialProvidersToFile(file) {
   let fileName = file;
   if (!fileName) {
     fileName = getTypedFilename(`all${getRealmString()}Providers`, 'idp');
@@ -129,7 +130,7 @@ export async function exportProvidersToFile(file) {
 /**
  * Export all providers to individual files
  */
-export async function exportProvidersToFiles() {
+export async function exportSocialProvidersToFiles() {
   const allIdpsData = await (await getSocialIdentityProviders()).result;
   // printMessage(allIdpsData, 'data');
   createProgressIndicator(allIdpsData.length, 'Exporting providers');
@@ -151,10 +152,10 @@ export async function exportProvidersToFiles() {
 
 /**
  * Import provider by id/name
- * @param {String} id provider id/name
+ * @param {String} providerId provider id/name
  * @param {String} file import file name
  */
-export async function importProviderById(id, file) {
+export async function importSocialProviderFromFile(providerId, file) {
   fs.readFile(file, 'utf8', async (err, data) => {
     if (err) throw err;
     const fileData = JSON.parse(data);
@@ -163,7 +164,7 @@ export async function importProviderById(id, file) {
       let found = false;
       for (const idpId in fileData.idp) {
         if ({}.hasOwnProperty.call(fileData.idp, idpId)) {
-          if (idpId === id) {
+          if (idpId === providerId) {
             found = true;
             updateProgressIndicator(`Importing ${fileData.idp[idpId]._id}`);
             const scriptId = fileData.idp[idpId].transform;
@@ -182,13 +183,18 @@ export async function importProviderById(id, file) {
               fileData.idp[idpId]
             )
               .then(() => {
-                stopProgressIndicator(`Successfully imported provider ${id}.`);
+                stopProgressIndicator(
+                  `Successfully imported provider ${providerId}.`
+                );
               })
               .catch((importProviderErr) => {
                 stopProgressIndicator(
                   `Error importing provider ${fileData.idp[idpId]._id}`
                 );
-                printMessage(`\nError importing provider ${id}`, 'error');
+                printMessage(
+                  `\nError importing provider ${providerId}`,
+                  'error'
+                );
                 printMessage(importProviderErr.response.data, 'error');
               });
             break;
@@ -197,7 +203,7 @@ export async function importProviderById(id, file) {
       }
       if (!found) {
         stopProgressIndicator(
-          `Provider ${id.brightCyan} not found in ${file.brightCyan}!`
+          `Provider ${providerId.brightCyan} not found in ${file.brightCyan}!`
         );
       }
     } else {
@@ -210,7 +216,7 @@ export async function importProviderById(id, file) {
  * Import first provider from file
  * @param {String} file import file name
  */
-export async function importFirstProvider(file) {
+export async function importFirstSocialProviderFromFile(file) {
   fs.readFile(file, 'utf8', async (err, data) => {
     if (err) throw err;
     const fileData = JSON.parse(data);
@@ -261,7 +267,7 @@ export async function importFirstProvider(file) {
  * Import all providers from file
  * @param {String} file import file name
  */
-export async function importProvidersFromFile(file) {
+export async function importSocialProvidersFromFile(file) {
   fs.readFile(file, 'utf8', async (err, data) => {
     if (err) throw err;
     const fileData = JSON.parse(data);
@@ -305,7 +311,7 @@ export async function importProvidersFromFile(file) {
 /**
  * Import providers from *.idp.json files in current working directory
  */
-export async function importProvidersFromFiles() {
+export async function importSocialProvidersFromFiles() {
   const names = fs.readdirSync('.');
   const jsonFiles = names.filter((name) =>
     name.toLowerCase().endsWith('.idp.json')
