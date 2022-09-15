@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+-   More unit and regression tests
+
+### Changed
+
+-   Typify code and restructure api and ops layers for library use. As frodo-lib prepares to be a real library for backend use, some of the existing functions will change to cater to that new role. This is an ongoing effort over the next few patch and minor releases.
+
+### Fixed
+
+-   \#33: Describing all journeys in a realm (`frodo journey describe <host>`) now runs properly
+-   \#69: AM version is now included in export meta data. This will help identify if an export is suitable for import into a target environment based on both origin and target versions.
+-   \#70: AM version is now stored properly in session storage
+-   \#71: Importing applications into Catalyst demo environments now works properly
+-   \#78: `frodo journey list -l <host>` now runs properly
+-   \#80: `frodo idp export -A <host>` now runs properly
+-   \#83: `frodo saml export -A <host>` now runs properly
+-   \#85: `frodo journey export -A <host>` now runs properly
+-   \#90: Exporting journeys from bravo realm of a cloud tenant now works properly
+
 ## [0.12.2-10] - 2022-09-15
 
 ## [0.12.2-9] - 2022-09-13
