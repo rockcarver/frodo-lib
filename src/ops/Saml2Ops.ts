@@ -55,7 +55,7 @@ function getFileDataTemplate() {
  * List entity providers
  * @param {boolean} long Long list format with details
  */
-export async function listProviders(long = false) {
+export async function listSaml2Providers(long = false) {
   const providerList = (await getProviders()).result;
   providerList.sort((a, b) => a._id.localeCompare(b._id));
   if (!long) {
@@ -121,7 +121,7 @@ async function exportDependencies(providerData, fileData) {
  * @param {String} entityId Provider entity id
  * @param {String} file Optional filename
  */
-export async function exportProvider(entityId, file = null) {
+export async function exportSaml2ProviderToFile(entityId, file = null) {
   let fileName = file;
   if (!fileName) {
     fileName = getTypedFilename(entityId, 'saml');
@@ -171,7 +171,7 @@ export async function exportProvider(entityId, file = null) {
  * @param {String} entityId Provider entity id
  * @param {String} file Optional filename
  */
-export async function exportMetadata(entityId, file = null) {
+export async function exportSaml2Metadata(entityId, file = null) {
   let fileName = file;
   if (!fileName) {
     fileName = getTypedFilename(entityId, 'metadata', 'xml');
@@ -197,7 +197,7 @@ export async function exportMetadata(entityId, file = null) {
  * Describe an entity provider's configuration
  * @param {String} entityId Provider entity id
  */
-export async function describeProvider(entityId) {
+export async function describeSaml2Provider(entityId) {
   try {
     const found = await findProviders(
       `entityId eq '${entityId}'`,
@@ -249,7 +249,7 @@ export async function describeProvider(entityId) {
  * Export all entity providers to one file
  * @param {String} file Optional filename
  */
-export async function exportProvidersToFile(file = null) {
+export async function exportSaml2ProvidersToFile(file = null) {
   let fileName = file;
   if (!fileName) {
     fileName = getTypedFilename(`all${getRealmString()}Providers`, 'saml');
@@ -286,7 +286,7 @@ export async function exportProvidersToFile(file = null) {
 /**
  * Export all entity providers to individual files
  */
-export async function exportProvidersToFiles() {
+export async function exportSaml2ProvidersToFiles() {
   const found = await getProviders();
   if (found.resultCount > 0) {
     createProgressIndicator(found.resultCount, 'Exporting providers');
@@ -361,7 +361,7 @@ function getLocation(entityId64, fileData) {
  * @param {String} entityId Provider entity id
  * @param {String} file Import file name
  */
-export async function importProvider(entityId, file) {
+export async function importSaml2ProviderFromFile(entityId, file) {
   const entityId64 = encode(entityId, false);
   fs.readFile(file, 'utf8', async (err, data) => {
     if (err) throw err;
@@ -404,7 +404,7 @@ export async function importProvider(entityId, file) {
  * Import first SAML entity provider from file
  * @param {String} file Import file name
  */
-export async function importFirstProvider(file) {
+export async function importFirstSaml2ProviderFromFile(file) {
   fs.readFile(file, 'utf8', async (err, data) => {
     if (err) throw err;
     const fileData = JSON.parse(data);
@@ -456,7 +456,7 @@ export async function importFirstProvider(file) {
  * Import all SAML entity providers from file
  * @param {String} file Import file name
  */
-export async function importProvidersFromFile(file) {
+export async function importSaml2ProvidersFromFile(file) {
   fs.readFile(file, 'utf8', async (err, data) => {
     if (err) throw err;
     const fileData = JSON.parse(data);
@@ -497,7 +497,7 @@ export async function importProvidersFromFile(file) {
 /**
  * Import all SAML entity providers from all *.saml.json files in the current directory
  */
-export async function importProvidersFromFiles() {
+export async function importSaml2ProvidersFromFiles() {
   const names = fs.readdirSync('.');
   const jsonFiles = names.filter((name) =>
     name.toLowerCase().endsWith('.saml.json')
