@@ -859,36 +859,39 @@ async function repairOrgModelOrg(dryRun) {
   return repairData;
 }
 
-// async function repairOrgModelData(dryRun = false) {
-//   if (!dryRun) {
-//     // const rootOrgs = await findRootOrganizations();
-//   }
-// }
+async function repairOrgModelData(dryRun = false) {
+  if (!dryRun) {
+    // const rootOrgs = await findRootOrganizations();
+  }
+}
 
-// async function extendOrgModelPermissins(dryRun = false) {
-//   if (!dryRun) {
-//     // const rootOrgs = await findRootOrganizations();
-//   }
-// }
+async function extendOrgModelPermissins(dryRun = false) {
+  if (!dryRun) {
+    // const rootOrgs = await findRootOrganizations();
+  }
+}
 
-// export async function repairOrgModel(
-//   excludeCustomized,
-//   extendPermissions,
-//   dryRun
-// ) {
-//   let repairData = false;
-//   repairData = repairData || (await repairOrgModelUser(dryRun));
-//   repairData = repairData || (await repairOrgModelOrg(dryRun));
-//   if (repairData) {
-//     await repairOrgModelData(dryRun);
-//   }
-//   if (extendPermissions) {
-//     await extendOrgModelPermissins(dryRun);
-//   }
-//   if (dryRun) {
-//     printMessage('Dry-run only. Changes are not saved.', 'warn');
-//   }
-// }
+export async function repairOrgModel(
+  excludeCustomized,
+  extendPermissions,
+  dryRun
+) {
+  let repairData = false;
+  repairData = repairData || (await repairOrgModelUser(dryRun));
+  repairData = repairData || (await repairOrgModelOrg(dryRun));
+  if (excludeCustomized) {
+    //
+  }
+  if (repairData) {
+    await repairOrgModelData(dryRun);
+  }
+  if (extendPermissions) {
+    await extendOrgModelPermissins(dryRun);
+  }
+  if (dryRun) {
+    printMessage('Dry-run only. Changes are not saved.', 'warn');
+  }
+}
 
 // suggested by John K.
 // export async function removeRealmNameFromManagedObjectLabels() {}
