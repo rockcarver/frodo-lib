@@ -464,6 +464,22 @@ export function mockPutSocialProviderByTypeAndId(
  * IDM Mocks and Utils
  */
 
+export function mockListAllConfigEntities(mock: MockAdapter) {
+  mock.onGet(/.*?\/openidm\/config$/).reply(function () {
+    const mockStatus = 200;
+    const mockResponse = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          `./IdmConfigApi/getAllConfigEntities/entities.json`
+        ),
+        'utf8'
+      )
+    );
+    return [mockStatus, mockResponse];
+  });
+}
+
 export function mockGetConfigEntity(mock: MockAdapter) {
   mock.onGet(/.*?\/openidm\/config\/.+/).reply(function (config) {
     const entityId = config.url
