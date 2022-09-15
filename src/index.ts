@@ -33,7 +33,7 @@ export * as ManagedObject from './ops/ManagedObjectOps';
 export * as OAuth2Client from './ops/OAuth2ClientOps';
 export * as Organization from './ops/OrganizationOps';
 export * as Realm from './ops/RealmOps';
-export * as Saml from './ops/SamlOps';
+export * as Saml2 from './ops/Saml2Ops';
 export * as Script from './ops/ScriptOps';
 export * as Secrets from './ops/SecretsOps';
 export * as Startup from './ops/StartupOps';
