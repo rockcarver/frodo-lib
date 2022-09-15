@@ -1,0 +1,490 @@
+{
+  "_id": "",
+  "configurations": [
+      {
+          "_id": "script",
+          "pid": "script",
+          "factoryPid": null
+      },
+      {
+          "_id": "secrets",
+          "pid": "secrets",
+          "factoryPid": null
+      },
+      {
+          "_id": "notification/profileUpdate",
+          "pid": "notification.7710faf8-b8e1-44ee-a519-bd385918c99c",
+          "factoryPid": "notification"
+      },
+      {
+          "_id": "identityProviders",
+          "pid": "identityProviders",
+          "factoryPid": null
+      },
+      {
+          "_id": "emailTemplate/mytemplate",
+          "pid": "emailTemplate.c3a1a172-8b3b-4c14-a48b-679d3eef6572",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "endpoint/oauthproxy",
+          "pid": "endpoint.d58493f0-7e34-4d46-95da-975f6a684656",
+          "factoryPid": "endpoint"
+      },
+      {
+          "_id": "ui/profile",
+          "pid": "ui.c6a776dd-2a19-4f24-b66e-a3ac71095662",
+          "factoryPid": "ui"
+      },
+      {
+          "_id": "fieldPolicy/alpha_user",
+          "pid": "fieldPolicy.ebcf06f0-fd1c-4f9b-8081-5a4ae7431661",
+          "factoryPid": "fieldPolicy"
+      },
+      {
+          "_id": "provisioner.openicf/HR",
+          "pid": "provisioner.openicf.2deba947-1fb1-4870-aee4-802ba3d92947",
+          "factoryPid": "provisioner.openicf"
+      },
+      {
+          "_id": "notificationFactory",
+          "pid": "notificationFactory",
+          "factoryPid": null
+      },
+      {
+          "_id": "bravoOrgPrivileges",
+          "pid": "bravoOrgPrivileges",
+          "factoryPid": null
+      },
+      {
+          "_id": "emailTemplate/foohoo",
+          "pid": "emailTemplate.246aec69-803e-4ca6-8fdb-dccd12cfcc91",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "emailTemplate/UnknownDeviceNotification",
+          "pid": "emailTemplate.a775f987-7657-434b-b140-46ae3a949505",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "apiVersion",
+          "pid": "apiVersion",
+          "factoryPid": null
+      },
+      {
+          "_id": "provisioner.openicf.connectorinfoprovider",
+          "pid": "provisioner.openicf.connectorinfoprovider",
+          "factoryPid": null
+      },
+      {
+          "_id": "ui.context/enduser",
+          "pid": "ui.context.4e924d57-3932-4e65-8d98-b6c0addc9607",
+          "factoryPid": "ui.context"
+      },
+      {
+          "_id": "external.email",
+          "pid": "external.email",
+          "factoryPid": null
+      },
+      {
+          "_id": "selfservice/reset",
+          "pid": "selfservice.d6ab661b-ae74-4167-9708-d72f28521b03",
+          "factoryPid": "selfservice"
+      },
+      {
+          "_id": "alphaOrgPrivileges",
+          "pid": "alphaOrgPrivileges",
+          "factoryPid": null
+      },
+      {
+          "_id": "provisioner.openicf/OUD",
+          "pid": "provisioner.openicf.9c125505-5d96-4881-aa52-7daf3e2287bb",
+          "factoryPid": "provisioner.openicf"
+      },
+      {
+          "_id": "emailTemplate/frForgotUsername",
+          "pid": "emailTemplate.3a25be3d-e7e9-4134-8212-1dab75f81e38",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "schedule/taskscan_expire",
+          "pid": "schedule.305a6dbb-6ea2-4d5b-94ab-8ef8b8a6711e",
+          "factoryPid": "schedule"
+      },
+      {
+          "_id": "repo.ds",
+          "pid": "repo.ds",
+          "factoryPid": null
+      },
+      {
+          "_id": "ui/configuration",
+          "pid": "ui.8d478e03-84c1-4590-ac2b-d621deec0c3d",
+          "factoryPid": "ui"
+      },
+      {
+          "_id": "ui.context/api",
+          "pid": "ui.context.8366ba03-97a7-414e-9e5e-4517b2834ac7",
+          "factoryPid": "ui.context"
+      },
+      {
+          "_id": "privilegeAssignments",
+          "pid": "privilegeAssignments",
+          "factoryPid": null
+      },
+      {
+          "_id": "repo.init",
+          "pid": "repo.init",
+          "factoryPid": null
+      },
+      {
+          "_id": "process/access",
+          "pid": "process.9d557254-dcbf-43f8-8fd0-8f14f7305406",
+          "factoryPid": "process"
+      },
+      {
+          "_id": "endpoint/mappingDetails",
+          "pid": "endpoint.d9785577-6ac8-44c7-9096-5ced3e5f93b4",
+          "factoryPid": "endpoint"
+      },
+      {
+          "_id": "servletfilter/payload",
+          "pid": "servletfilter.2899aa9a-48a1-42d9-bd9d-3ac1f4fa67e4",
+          "factoryPid": "servletfilter"
+      },
+      {
+          "_id": "servletfilter/upload",
+          "pid": "servletfilter.65a7c467-bf83-4ca4-9064-577fe810ec00",
+          "factoryPid": "servletfilter"
+      },
+      {
+          "_id": "scheduler",
+          "pid": "scheduler",
+          "factoryPid": null
+      },
+      {
+          "_id": "emailTemplate/multiFactorEmailLink",
+          "pid": "emailTemplate.8f6f82de-e5fe-4788-a43e-e084b7608c21",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "external.rest",
+          "pid": "external.rest",
+          "factoryPid": null
+      },
+      {
+          "_id": "endpoint/gettasksview",
+          "pid": "endpoint.d1c2abf8-dfc9-4474-a967-33454e0a1b0d",
+          "factoryPid": "endpoint"
+      },
+      {
+          "_id": "provisioner.openicf/SecureREST",
+          "pid": "provisioner.openicf.3fc0d6c1-df1d-462d-b9c9-8c83d693719e",
+          "factoryPid": "provisioner.openicf"
+      },
+      {
+          "_id": "emailTemplate/oneTimePassword",
+          "pid": "emailTemplate.0650016e-9810-49c1-bd60-60c2b40be55b",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "selfservice.terms",
+          "pid": "selfservice.terms",
+          "factoryPid": null
+      },
+      {
+          "_id": "emailTemplate/Welcome",
+          "pid": "emailTemplate.f403bfe1-70e9-43c3-bce8-a8552fee467f",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "cluster",
+          "pid": "cluster",
+          "factoryPid": null
+      },
+      {
+          "_id": "endpoint/removeRepoPathFromRelationships",
+          "pid": "endpoint.30bc81f1-0cc1-468e-83ab-192cf449b790",
+          "factoryPid": "endpoint"
+      },
+      {
+          "_id": "schedule/stats",
+          "pid": "schedule.c2913ac9-eeb1-4435-8390-006610b49c3e",
+          "factoryPid": "schedule"
+      },
+      {
+          "_id": "emailTemplate/registration",
+          "pid": "emailTemplate.187d0200-a829-4337-9885-e78fea3e01df",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "endpoint/test",
+          "pid": "endpoint.dc5aa139-050f-481e-b0c6-70c1451a16d2",
+          "factoryPid": "endpoint"
+      },
+      {
+          "_id": "emailTemplate/forgottenUsername",
+          "pid": "emailTemplate.43ab0ed2-277c-4737-adc5-8be74a305181",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "notification/passwordUpdate",
+          "pid": "notification.59c5144c-3d44-4804-bcfa-f9ab745660f8",
+          "factoryPid": "notification"
+      },
+      {
+          "_id": "selfservice/registration",
+          "pid": "selfservice.d5e51f15-5c8e-4374-9388-ec536f03bfd1",
+          "factoryPid": "selfservice"
+      },
+      {
+          "_id": "auth.profile",
+          "pid": "auth.profile",
+          "factoryPid": null
+      },
+      {
+          "_id": "selfservice.propertymap",
+          "pid": "selfservice.propertymap",
+          "factoryPid": null
+      },
+      {
+          "_id": "ui.context/oauth",
+          "pid": "ui.context.1029128c-a16f-4416-a174-30ed06adcf1e",
+          "factoryPid": "ui.context"
+      },
+      {
+          "_id": "provisioner.openicf/ASREST",
+          "pid": "provisioner.openicf.1bbe40d5-b5d7-4622-8813-9546a106b0a8",
+          "factoryPid": "provisioner.openicf"
+      },
+      {
+          "_id": "fieldPolicy/teammember",
+          "pid": "fieldPolicy.269b45dd-fb7f-40c4-9bab-762239db222a",
+          "factoryPid": "fieldPolicy"
+      },
+      {
+          "_id": "schedule/recon",
+          "pid": "schedule.35893338-4473-442d-8c0d-1a5d38d41345",
+          "factoryPid": "schedule"
+      },
+      {
+          "_id": "provisioner.openicf/AD",
+          "pid": "provisioner.openicf.639b36a4-d3be-4ec0-afba-8733c6444d91",
+          "factoryPid": "provisioner.openicf"
+      },
+      {
+          "_id": "router",
+          "pid": "router",
+          "factoryPid": null
+      },
+      {
+          "_id": "ui/dashboard",
+          "pid": "ui.38772fcc-7787-4e40-9422-dbfb25820cac",
+          "factoryPid": "ui"
+      },
+      {
+          "_id": "emailTemplate/frProfileUpdated",
+          "pid": "emailTemplate.ccda7630-7b4e-429a-a4c0-44cd039f9fbe",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "ui/themerealm",
+          "pid": "ui.1f2496c2-4787-4912-8b71-4e039f6bc0b3",
+          "factoryPid": "ui"
+      },
+      {
+          "_id": "managed",
+          "pid": "managed",
+          "factoryPid": null
+      },
+      {
+          "_id": "authentication",
+          "pid": "authentication",
+          "factoryPid": null
+      },
+      {
+          "_id": "schedule/DeleteBravoUsers",
+          "pid": "schedule.a7545165-f60e-4fb0-babf-42475c14e829",
+          "factoryPid": "schedule"
+      },
+      {
+          "_id": "endpoint/repairMetadata",
+          "pid": "endpoint.8ae4ed63-8470-4246-8d50-27907eba6b98",
+          "factoryPid": "endpoint"
+      },
+      {
+          "_id": "endpoint/validateQueryFilter",
+          "pid": "endpoint.3ac0ffd8-a6ba-42c0-8f31-cfa9b5873911",
+          "factoryPid": "endpoint"
+      },
+      {
+          "_id": "access",
+          "pid": "access",
+          "factoryPid": null
+      },
+      {
+          "_id": "emailTemplate/frPasswordUpdated",
+          "pid": "emailTemplate.26867bd1-d511-4aac-8f59-1a5c61afd327",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "emailTemplate/profileUpdateNotificationEmailChange",
+          "pid": "emailTemplate.781d1ad4-cf9d-4d8f-a096-d67704a73e59",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "audit",
+          "pid": "audit",
+          "factoryPid": null
+      },
+      {
+          "_id": "metrics",
+          "pid": "metrics",
+          "factoryPid": null
+      },
+      {
+          "_id": "felix.webconsole",
+          "pid": "felix.webconsole",
+          "factoryPid": null
+      },
+      {
+          "_id": "ui/themeconfig",
+          "pid": "ui.96999cc9-4d78-4999-ab1d-256d425eaed4",
+          "factoryPid": "ui"
+      },
+      {
+          "_id": "emailTemplate/test",
+          "pid": "emailTemplate.b267a8a1-ea65-4655-bfee-729622f54b36",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "emailTemplate/FraudNotification",
+          "pid": "emailTemplate.790d82db-1427-4a03-88fc-ee3e6aea2870",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "endpoint/otp",
+          "pid": "endpoint.a8736e83-3cb6-4e72-b35e-f587f1270b89",
+          "factoryPid": "endpoint"
+      },
+      {
+          "_id": "servletfilter/cors",
+          "pid": "servletfilter.537f15dc-120c-40cf-bcbd-cb47cadd1f52",
+          "factoryPid": "servletfilter"
+      },
+      {
+          "_id": "emailTemplate/frOnboarding",
+          "pid": "emailTemplate.31376cd1-8bce-4823-a0fa-9febe30df7a5",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "privileges",
+          "pid": "privileges",
+          "factoryPid": null
+      },
+      {
+          "_id": "jsonstore",
+          "pid": "jsonstore",
+          "factoryPid": null
+      },
+      {
+          "_id": "sync",
+          "pid": "sync",
+          "factoryPid": null
+      },
+      {
+          "_id": "emailTemplate/welcome",
+          "pid": "emailTemplate.65f1eb8a-825a-4cf3-bec0-99db0a36492e",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "emailTemplate/MobileEmailOTP",
+          "pid": "emailTemplate.c452d145-80d4-49d9-a9f1-6ffce6344b4a",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "emailTemplate/frResetPassword",
+          "pid": "emailTemplate.5f8a0703-e8eb-425d-8f70-127f1373814d",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "endpoint/getprocessesforuser",
+          "pid": "endpoint.57307c52-4776-4c46-b197-e52c6efeb53d",
+          "factoryPid": "endpoint"
+      },
+      {
+          "_id": "emailTemplate/profileUpdated",
+          "pid": "emailTemplate.57a3f8f0-8b34-49b5-ab43-bfc1973e1657",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "emailTemplate/profileUpdateNotification",
+          "pid": "emailTemplate.77105a4a-6c30-430d-a574-53b11db06aae",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "endpoint/getavailableuserstoassign",
+          "pid": "endpoint.16b43ce4-9273-4dd3-b266-e57a447f69c4",
+          "factoryPid": "endpoint"
+      },
+      {
+          "_id": "fieldPolicy/bravo_user",
+          "pid": "fieldPolicy.8ea1792e-1df7-440f-8ea4-5ee63c60d7ea",
+          "factoryPid": "fieldPolicy"
+      },
+      {
+          "_id": "external.emailDefault",
+          "pid": "external.emailDefault",
+          "factoryPid": null
+      },
+      {
+          "_id": "ui.context/admin",
+          "pid": "ui.context.f63108b0-4b31-4903-b197-570e5d38026d",
+          "factoryPid": "ui.context"
+      },
+      {
+          "_id": "policy",
+          "pid": "policy",
+          "factoryPid": null
+      },
+      {
+          "_id": "internal",
+          "pid": "internal",
+          "factoryPid": null
+      },
+      {
+          "_id": "org.apache.felix.fileinstall/openidm",
+          "pid": "org.apache.felix.fileinstall.17d372d3-564b-4e85-8630-9a2b11524040",
+          "factoryPid": "org.apache.felix.fileinstall"
+      },
+      {
+          "_id": "emailTemplate/frEmailUpdated",
+          "pid": "emailTemplate.6729db87-ce43-4121-aa36-101534dd9c90",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "emailTemplate/updatePassword",
+          "pid": "emailTemplate.bb6f87be-ce14-4fac-8072-cf9e52a47749",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "emailTemplate/frUsernameUpdated",
+          "pid": "emailTemplate.165ab2fd-92f3-4fb9-a5ac-e4c6993ce354",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "emailTemplate/resetPassword",
+          "pid": "emailTemplate.fd54b919-e04a-485e-8482-e39c3f80e74f",
+          "factoryPid": "emailTemplate"
+      },
+      {
+          "_id": "endpoint/updateInternalUserAndInternalRoleEntries",
+          "pid": "endpoint.c899422d-e1e6-488a-b3ca-cf50cde37919",
+          "factoryPid": "endpoint"
+      },
+      {
+          "_id": "selfservice.kba",
+          "pid": "selfservice.kba",
+          "factoryPid": null
+      }
+  ]
+}
