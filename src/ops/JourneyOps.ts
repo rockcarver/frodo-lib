@@ -584,7 +584,7 @@ export async function exportJourney(
           (themes.includes(themeObject._id) ||
             themes.includes(themeObject.name) ||
             // has this journey been linked to a theme?
-            themeObject.linkedTrees.includes(treeObject._id))
+            themeObject.linkedTrees?.includes(treeObject._id))
         ) {
           if (verbose)
             printMessage(
@@ -595,7 +595,8 @@ export async function exportJourney(
         }
       }
     } catch (error) {
-      printMessage(error.message, 'error');
+      printMessage(error, 'error');
+      printMessage('Error handling themes: ' + error.message, 'error');
     }
   }
 
