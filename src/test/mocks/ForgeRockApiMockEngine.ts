@@ -514,3 +514,28 @@ export function mockPutConfigEntity(
     return [mockStatus, mockResponse];
   });
 }
+
+export function mockGetConfigEntitiesByType(mock: MockAdapter) {
+  mock
+    .onGet(/.*?\/openidm\/config\?_queryFilter=_id%20sw%20'.+?'/)
+    .reply(function (config) {
+      console.log('config.url=' + config.url);
+      const entityType = config.url
+        ? config.url.match(
+            /.*?\/openidm\/config\?_queryFilter=_id%20sw%20'(.+?)'/
+          )[1]
+        : '';
+      const mockStatus = 200;
+      console.log('entityType=' + entityType);
+      const mockResponse = JSON.parse(
+        fs.readFileSync(
+          path.resolve(
+            __dirname,
+            `./IdmConfigApi/getConfigEntitiesByType/${entityType}.json`
+          ),
+          'utf8'
+        )
+      );
+      return [mockStatus, mockResponse];
+    });
+}

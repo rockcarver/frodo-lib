@@ -40,14 +40,14 @@ function getFileDataTemplate() {
 /**
  * List email templates
  * @param {boolean} long Long list format with details
+ * @return {Promise<unknown[]>} a promise that resolves to an array of email template objects
  */
-export async function listEmailTemplates(long = false) {
+export async function listEmailTemplates(long = false): Promise<unknown[]> {
   let emailTemplates = [];
   try {
-    emailTemplates = (await getEmailTemplates()).data.result;
+    emailTemplates = (await getEmailTemplates()).result;
   } catch (error) {
-    printMessage(`${error.message}`, 'error');
-    printMessage(error.response.data, 'error');
+    printMessage(`Error retrieving email templates: ${error.message}`, 'error');
   }
   emailTemplates.sort((a, b) => a._id.localeCompare(b._id));
   if (!long) {
@@ -92,6 +92,7 @@ export async function listEmailTemplates(long = false) {
     }
     printMessage(table.toString(), 'data');
   }
+  return emailTemplates;
 }
 
 /**
