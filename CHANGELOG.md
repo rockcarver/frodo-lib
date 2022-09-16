@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.3] - 2022-09-16
+
 ### Fixed
 
 -   \#92: `frodo email template list <host>` now runs properly
@@ -499,7 +501,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.12.3...HEAD
+
+[0.12.3]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2...v0.12.3
 
 [0.12.2]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2-10...v0.12.2
 
