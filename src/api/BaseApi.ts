@@ -109,7 +109,10 @@ export function generateAmApi(resource, requestOverride = {}) {
     baseURL: `${storage.session.getTenant()}/json`,
     timeout,
     ...requestOverride,
-    headers,
+    headers: {
+      ...headers,
+      ...storage.session.getAuthenticationHeaderOverrides(),
+    },
     httpAgent: getHttpAgent(),
     httpsAgent: getHttpsAgent(),
     proxy: getProxy(),
@@ -145,7 +148,10 @@ export function generateOauth2Api(resource, requestOverride = {}) {
     baseURL: `${storage.session.getTenant()}/json${resource.path}`,
     timeout,
     ...requestOverride,
-    headers,
+    headers: {
+      ...headers,
+      ...storage.session.getAuthenticationHeaderOverrides(),
+    },
     httpAgent: getHttpAgent(),
     httpsAgent: getHttpsAgent(),
     proxy: getProxy(),
