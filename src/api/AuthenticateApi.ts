@@ -3,6 +3,7 @@ import { generateAmApi } from './BaseApi';
 import storage from '../storage/SessionStorage';
 
 const authenticateUrlTemplate = '%s/json%s/authenticate';
+const authenticateWithServiceUrlTemplate = `${authenticateUrlTemplate}?authIndexType=service&authIndexValue=%s`;
 
 const apiVersion = 'resource=2.0, protocol=1.0';
 const getApiConfig = () => ({
@@ -24,10 +25,17 @@ export function getRealmUrl(realm) {
 }
 
 export async function step(data = {}, config = {}) {
-  const urlString = util.format(
-    authenticateUrlTemplate,
-    storage.session.getTenant(),
-    getRealmUrl('/')
-  );
+  const urlString = storage.session.getAuthenticationService()
+    ? util.format(
+        authenticateWithServiceUrlTemplate,
+        storage.session.getTenant(),
+        getRealmUrl('/'),
+        storage.session.getAuthenticationService()
+      )
+    : util.format(
+        authenticateUrlTemplate,
+        storage.session.getTenant(),
+        getRealmUrl('/')
+      );
   return generateAmApi(getApiConfig()).post(urlString, data, config);
 }

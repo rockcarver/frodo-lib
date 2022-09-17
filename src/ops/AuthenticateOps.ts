@@ -115,7 +115,10 @@ async function determineDeploymentType() {
   try {
     await authorize(bodyFormData, config);
   } catch (e) {
-    if (e.response && e.response.status === 302) {
+    if (
+      e.response?.status === 302 &&
+      e.response.headers?.location?.indexOf('code=') > -1
+    ) {
       printMessage('ForgeRock Identity Cloud ', 'info', false);
       deploymentType = global.CLOUD_DEPLOYMENT_TYPE_KEY;
     } else {
@@ -123,7 +126,10 @@ async function determineDeploymentType() {
         bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScope}&response_type=code&client_id=${forgeopsClientId}&csrf=${storage.session.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
         await authorize(bodyFormData, config);
       } catch (ex) {
-        if (ex.response.status === 302) {
+        if (
+          ex.response?.status === 302 &&
+          ex.response.headers?.location?.indexOf('code=') > -1
+        ) {
           adminClientId = forgeopsClientId;
           printMessage('ForgeOps deployment ', 'info', false);
           deploymentType = global.FORGEOPS_DEPLOYMENT_TYPE_KEY;
@@ -191,15 +197,16 @@ async function authenticate() {
     printMessage('+++ likely cause, bad credentials!!! +++', 'error');
     return null;
   } catch (e) {
-    if (e.response && e.response.status === 401) {
+    if (e.response?.status === 401) {
       printMessage(`error authenticating - ${e.message}`, 'error');
       printMessage('+++ likely cause, bad credentials +++', 'error');
     }
-    if (e.message && e.message === 'self signed certificate') {
+    if (e.message === 'self signed certificate') {
       printMessage(`error authenticating - ${e.message}`, 'error');
       printMessage('+++ use -k, --insecure option to allow +++', 'error');
     } else {
       printMessage(`error authenticating - ${e.message}`, 'error');
+      printMessage(e.response?.data, 'error');
     }
     return null;
   }
@@ -313,6 +320,10 @@ export async function getTokens(save = false) {
       storage.session.setTenant(conn.tenant);
       storage.session.setUsername(conn.username);
       storage.session.setPassword(conn.password);
+      storage.session.setAuthenticationService(conn.authenticationService);
+      storage.session.setAuthenticationHeaderOverrides(
+        conn.authenticationHeaderOverrides
+      );
     } else {
       return false;
     }
