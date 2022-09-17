@@ -8,7 +8,9 @@ const pkg = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8')
 );
 
-const _sessionStorage = {};
+const _sessionStorage = {
+  authenticationHeaderOverrides: {},
+};
 
 export default {
   session: {
@@ -30,6 +32,13 @@ export default {
     getCookieName: () => _sessionStorage['cookieName'],
     setCookieValue: (value) => (_sessionStorage['cookieValue'] = value),
     getCookieValue: () => _sessionStorage['cookieValue'],
+    setAuthenticationService: (value) =>
+      (_sessionStorage['authenticationService'] = value),
+    getAuthenticationService: () => _sessionStorage['authenticationService'],
+    setAuthenticationHeaderOverrides: (value) =>
+      (_sessionStorage['authenticationHeaderOverrides'] = value),
+    getAuthenticationHeaderOverrides: () =>
+      _sessionStorage['authenticationHeaderOverrides'],
     setBearerToken: (value) => (_sessionStorage['bearerToken'] = value),
     getBearerToken: () => _sessionStorage['bearerToken'],
     setLogApiKey: (value) => (_sessionStorage['logApiKey'] = value),

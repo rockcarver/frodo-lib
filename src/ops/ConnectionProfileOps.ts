@@ -138,6 +138,12 @@ export async function getConnectionProfileByHost(host) {
         : null,
       key: profile.logApiKey ? profile.logApiKey : null,
       secret: profile.logApiSecret ? profile.logApiSecret : null,
+      authenticationService: profile.authenticationService
+        ? profile.authenticationService
+        : null,
+      authenticationHeaderOverrides: profile.authenticationHeaderOverrides
+        ? profile.authenticationHeaderOverrides
+        : {},
     };
   } catch (e) {
     printMessage(
@@ -185,11 +191,29 @@ export async function saveConnectionProfile() {
   if (storage.session.getPassword())
     existingData['encodedPassword'] = await dataProtection.encrypt(
       storage.session.getPassword()
-    ); // Buffer.from(storage.session.getPassword()).toString('base64');
+    );
   if (storage.session.getLogApiKey())
     existingData['logApiKey'] = storage.session.getLogApiKey();
   if (storage.session.getLogApiSecret())
     existingData['logApiSecret'] = storage.session.getLogApiSecret();
+
+  // advanced settings
+  if (storage.session.getAuthenticationService()) {
+    existingData['authenticationService'] =
+      storage.session.getAuthenticationService();
+    printMessage(
+      'Advanced setting: Authentication Service: ' +
+        storage.session.getAuthenticationService(),
+      'info'
+    );
+  }
+  if (storage.session.getAuthenticationHeaderOverrides()) {
+    existingData['authenticationHeaderOverrides'] =
+      storage.session.getAuthenticationHeaderOverrides();
+    printMessage('Advanced setting: Authentication Header Overrides: ', 'info');
+    printMessage(storage.session.getAuthenticationHeaderOverrides(), 'info');
+  }
+
   connectionsData[storage.session.getTenant()] = existingData;
 
   fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
@@ -242,6 +266,8 @@ export async function describeConnectionProfile(host, showSecrets) {
       password: 'Password',
       key: 'Log API Key',
       secret: 'Log API Secret',
+      authenticationService: 'Authentication Service',
+      authenticationHeaderOverrides: 'Authentication Header Overrides',
     };
     const table = createObjectTable(profile, keyMap);
     printMessage(table.toString(), 'data');
