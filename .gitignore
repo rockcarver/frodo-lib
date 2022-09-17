@@ -3,6 +3,10 @@ cjs/
 esm/
 types/
 
+# test artifacts
+iSPAzure.metadata.xml
+urn:federation:MicrosoftOnline.metadata.xml
+
 # Logs
 logs
 *.log
