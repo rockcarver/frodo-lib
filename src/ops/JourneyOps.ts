@@ -18,6 +18,7 @@ import {
   getNodeTypes,
   getNodesByType,
 } from '../api/NodeApi';
+import { isCloudOnlyNode, isCustomNode, isPremiumNode } from './NodeOps';
 import { getTrees, getTree, putTree, deleteTree } from '../api/TreeApi';
 import { getEmailTemplate, putEmailTemplate } from '../api/EmailTemplateApi';
 import { getScript } from '../api/ScriptApi';
@@ -28,6 +29,7 @@ import {
   updateProgressIndicator,
   stopProgressIndicator,
   createTable,
+  createKeyValueTable,
 } from './utils/Console';
 import wordwrap from './utils/Wordwrap';
 import {
@@ -1503,17 +1505,15 @@ export async function importJourneysFromFiles(options: ImportOptions) {
 }
 
 /**
- * Describe a tree
- * @param {Object} journeyData tree
- * @returns {Object} an object describing the tree
+ * Describe a journey
+ * @param {SingleJourneyExportTemplate} journeyData journey export object
  */
-export function describeJourney(journeyData) {
-  const treeMap = {};
+export function describeJourney(
+  journeyData: SingleJourneyExportTemplate
+): void {
   const nodeTypeMap = {};
-  const scriptsMap = {};
-  const emailTemplatesMap = {};
-  treeMap['treeName'] = journeyData.tree._id;
-  for (const [, nodeData] of Object.entries(journeyData.nodes)) {
+
+  for (const nodeData of Object.values(journeyData.nodes)) {
     if (nodeTypeMap[nodeData['_type']['_id']]) {
       nodeTypeMap[nodeData['_type']['_id']] += 1;
     } else {
@@ -1521,7 +1521,7 @@ export function describeJourney(journeyData) {
     }
   }
 
-  for (const [, nodeData] of Object.entries(journeyData.innerNodes)) {
+  for (const nodeData of Object.values(journeyData.innerNodes)) {
     if (nodeTypeMap[nodeData['_type']['_id']]) {
       nodeTypeMap[nodeData['_type']['_id']] += 1;
     } else {
@@ -1529,40 +1529,72 @@ export function describeJourney(journeyData) {
     }
   }
 
-  for (const [, scriptData] of Object.entries(journeyData.scripts)) {
-    scriptsMap[scriptData['name']] = scriptData['description'];
+  printMessage(`\n${journeyData.tree._id}`, 'data');
+  const line = Array(journeyData.tree._id['length']).fill('=').join('');
+  printMessage(line);
+  if (journeyData.tree.description) {
+    printMessage(`\n${journeyData.tree.description}\n`, 'data');
   }
 
-  for (const [id, data] of Object.entries(journeyData.emailTemplates)) {
-    emailTemplatesMap[id] = data['displayName'];
-  }
-
-  treeMap['nodeTypes'] = nodeTypeMap;
-  treeMap['scripts'] = scriptsMap;
-  treeMap['emailTemplates'] = emailTemplatesMap;
-
-  printMessage(`\nJourney: ${treeMap['treeName']}`, 'data');
-  printMessage('========');
   printMessage('\nNodes:', 'data');
-  if (Object.entries(treeMap['nodeTypes']).length) {
-    for (const [name, count] of Object.entries(treeMap['nodeTypes'])) {
-      printMessage(`- ${name}: ${count}`, 'data');
-    }
-  }
-  if (Object.entries(treeMap['scripts']).length) {
-    printMessage('\nScripts:', 'data');
-    for (const [name, desc] of Object.entries(treeMap['scripts'])) {
-      printMessage(`- ${name}: ${desc}`, 'data');
-    }
-  }
-  if (Object.entries(treeMap['emailTemplates']).length) {
-    printMessage('\nEmail Templates:', 'data');
-    for (const [id] of Object.entries(treeMap['emailTemplates'])) {
-      printMessage(`- ${id}`, 'data');
+  if (Object.entries(nodeTypeMap).length) {
+    for (const [name, count] of Object.entries(nodeTypeMap)) {
+      printMessage(`- [${String(count)['brightCyan']}] ${name}`, 'data');
     }
   }
 
-  return treeMap;
+  if (journeyData.themes?.length) {
+    printMessage('\nThemes:', 'data');
+    for (const themeData of journeyData.themes) {
+      printMessage(
+        `- [${themeData['_id']['brightCyan']}] ${themeData['name']}`,
+        'data'
+      );
+    }
+  }
+
+  if (Object.entries(journeyData.scripts).length) {
+    printMessage('\nScripts:', 'data');
+    for (const scriptData of Object.values(journeyData.scripts)) {
+      printMessage(
+        `- [${scriptData['_id'].brightCyan}] ${scriptData['name']}`,
+        'data'
+      );
+    }
+  }
+
+  if (Object.entries(journeyData.emailTemplates).length) {
+    printMessage('\nEmail Templates:', 'data');
+    for (const templateData of Object.values(journeyData.emailTemplates)) {
+      printMessage(`- ${templateData['_id'].split('/')[1]}`, 'data');
+    }
+  }
+
+  if (Object.entries(journeyData.socialIdentityProviders).length) {
+    printMessage('\nSocial Identity Providers:', 'data');
+    for (const socialIdpData of Object.values(
+      journeyData.socialIdentityProviders
+    )) {
+      printMessage(
+        `- ${socialIdpData['_id']} [${socialIdpData['_type']['_id'].brightCyan}]`,
+        'data'
+      );
+    }
+  }
+
+  if (Object.entries(journeyData.saml2Entities).length) {
+    printMessage('\nSAML2 Entity Providers:', 'data');
+    for (const entityProviderData of Object.values(journeyData.saml2Entities)) {
+      printMessage(`- ${entityProviderData['entityId']}`, 'data');
+    }
+  }
+
+  if (Object.entries(journeyData.circlesOfTrust).length) {
+    printMessage('\nSAML2 Circles Of Trust:', 'data');
+    for (const cotData of Object.values(journeyData.circlesOfTrust)) {
+      printMessage(`- ${cotData['_id']}`, 'data');
+    }
+  }
 }
 
 /**
@@ -1675,291 +1707,81 @@ export async function removeOrphanedNodes(
   return errorNodes;
 }
 
-const OOTB_NODE_TYPES_7 = [
-  'AcceptTermsAndConditionsNode',
-  'AccountActiveDecisionNode',
-  'AccountLockoutNode',
-  'AgentDataStoreDecisionNode',
-  'AnonymousSessionUpgradeNode',
-  'AnonymousUserNode',
-  'AttributeCollectorNode',
-  'AttributePresentDecisionNode',
-  'AttributeValueDecisionNode',
-  'AuthLevelDecisionNode',
-  'ChoiceCollectorNode',
-  'ConsentNode',
-  'CookiePresenceDecisionNode',
-  'CreateObjectNode',
-  'CreatePasswordNode',
-  'DataStoreDecisionNode',
-  'DeviceGeoFencingNode',
-  'DeviceLocationMatchNode',
-  'DeviceMatchNode',
-  'DeviceProfileCollectorNode',
-  'DeviceSaveNode',
-  'DeviceTamperingVerificationNode',
-  'DisplayUserNameNode',
-  'EmailSuspendNode',
-  'EmailTemplateNode',
-  'IdentifyExistingUserNode',
-  'IncrementLoginCountNode',
-  'InnerTreeEvaluatorNode',
-  'IotAuthenticationNode',
-  'IotRegistrationNode',
-  'KbaCreateNode',
-  'KbaDecisionNode',
-  'KbaVerifyNode',
-  'LdapDecisionNode',
-  'LoginCountDecisionNode',
-  'MessageNode',
-  'MetadataNode',
-  'MeterNode',
-  'ModifyAuthLevelNode',
-  'OneTimePasswordCollectorDecisionNode',
-  'OneTimePasswordGeneratorNode',
-  'OneTimePasswordSmsSenderNode',
-  'OneTimePasswordSmtpSenderNode',
-  'PageNode',
-  'PasswordCollectorNode',
-  'PatchObjectNode',
-  'PersistentCookieDecisionNode',
-  'PollingWaitNode',
-  'ProfileCompletenessDecisionNode',
-  'ProvisionDynamicAccountNode',
-  'ProvisionIdmAccountNode',
-  'PushAuthenticationSenderNode',
-  'PushResultVerifierNode',
-  'QueryFilterDecisionNode',
-  'RecoveryCodeCollectorDecisionNode',
-  'RecoveryCodeDisplayNode',
-  'RegisterLogoutWebhookNode',
-  'RemoveSessionPropertiesNode',
-  'RequiredAttributesDecisionNode',
-  'RetryLimitDecisionNode',
-  'ScriptedDecisionNode',
-  'SelectIdPNode',
-  'SessionDataNode',
-  'SetFailureUrlNode',
-  'SetPersistentCookieNode',
-  'SetSessionPropertiesNode',
-  'SetSuccessUrlNode',
-  'SocialFacebookNode',
-  'SocialGoogleNode',
-  'SocialNode',
-  'SocialOAuthIgnoreProfileNode',
-  'SocialOpenIdConnectNode',
-  'SocialProviderHandlerNode',
-  'TermsAndConditionsDecisionNode',
-  'TimeSinceDecisionNode',
-  'TimerStartNode',
-  'TimerStopNode',
-  'UsernameCollectorNode',
-  'ValidatedPasswordNode',
-  'ValidatedUsernameNode',
-  'WebAuthnAuthenticationNode',
-  'WebAuthnDeviceStorageNode',
-  'WebAuthnRegistrationNode',
-  'ZeroPageLoginNode',
-  'product-CertificateCollectorNode',
-  'product-CertificateUserExtractorNode',
-  'product-CertificateValidationNode',
-  'product-KerberosNode',
-  'product-ReCaptchaNode',
-  'product-Saml2Node',
-  'product-WriteFederationInformationNode',
-];
-
-const OOTB_NODE_TYPES_7_1 = [
-  'PushRegistrationNode',
-  'GetAuthenticatorAppNode',
-  'MultiFactorRegistrationOptionsNode',
-  'OptOutMultiFactorAuthenticationNode',
-].concat(OOTB_NODE_TYPES_7);
-
-const OOTB_NODE_TYPES_7_2 = [
-  'OathRegistrationNode',
-  'OathTokenVerifierNode',
-  'PassthroughAuthenticationNode',
-  'ConfigProviderNode',
-  'DebugNode',
-].concat(OOTB_NODE_TYPES_7_1);
-
-const OOTB_NODE_TYPES_6_5 = [
-  'AbstractSocialAuthLoginNode',
-  'AccountLockoutNode',
-  'AgentDataStoreDecisionNode',
-  'AnonymousUserNode',
-  'AuthLevelDecisionNode',
-  'ChoiceCollectorNode',
-  'CookiePresenceDecisionNode',
-  'CreatePasswordNode',
-  'DataStoreDecisionNode',
-  'InnerTreeEvaluatorNode',
-  'LdapDecisionNode',
-  'MessageNode',
-  'MetadataNode',
-  'MeterNode',
-  'ModifyAuthLevelNode',
-  'OneTimePasswordCollectorDecisionNode',
-  'OneTimePasswordGeneratorNode',
-  'OneTimePasswordSmsSenderNode',
-  'OneTimePasswordSmtpSenderNode',
-  'PageNode',
-  'PasswordCollectorNode',
-  'PersistentCookieDecisionNode',
-  'PollingWaitNode',
-  'ProvisionDynamicAccountNode',
-  'ProvisionIdmAccountNode',
-  'PushAuthenticationSenderNode',
-  'PushResultVerifierNode',
-  'RecoveryCodeCollectorDecisionNode',
-  'RecoveryCodeDisplayNode',
-  'RegisterLogoutWebhookNode',
-  'RemoveSessionPropertiesNode',
-  'RetryLimitDecisionNode',
-  'ScriptedDecisionNode',
-  'SessionDataNode',
-  'SetFailureUrlNode',
-  'SetPersistentCookieNode',
-  'SetSessionPropertiesNode',
-  'SetSuccessUrlNode',
-  'SocialFacebookNode',
-  'SocialGoogleNode',
-  'SocialNode',
-  'SocialOAuthIgnoreProfileNode',
-  'SocialOpenIdConnectNode',
-  'TimerStartNode',
-  'TimerStopNode',
-  'UsernameCollectorNode',
-  'WebAuthnAuthenticationNode',
-  'WebAuthnRegistrationNode',
-  'ZeroPageLoginNode',
-];
-
-const OOTB_NODE_TYPES_6 = [
-  'AbstractSocialAuthLoginNode',
-  'AccountLockoutNode',
-  'AgentDataStoreDecisionNode',
-  'AnonymousUserNode',
-  'AuthLevelDecisionNode',
-  'ChoiceCollectorNode',
-  'CookiePresenceDecisionNode',
-  'CreatePasswordNode',
-  'DataStoreDecisionNode',
-  'InnerTreeEvaluatorNode',
-  'LdapDecisionNode',
-  'MessageNode',
-  'MetadataNode',
-  'MeterNode',
-  'ModifyAuthLevelNode',
-  'OneTimePasswordCollectorDecisionNode',
-  'OneTimePasswordGeneratorNode',
-  'OneTimePasswordSmsSenderNode',
-  'OneTimePasswordSmtpSenderNode',
-  'PageNode',
-  'PasswordCollectorNode',
-  'PersistentCookieDecisionNode',
-  'PollingWaitNode',
-  'ProvisionDynamicAccountNode',
-  'ProvisionIdmAccountNode',
-  'PushAuthenticationSenderNode',
-  'PushResultVerifierNode',
-  'RecoveryCodeCollectorDecisionNode',
-  'RecoveryCodeDisplayNode',
-  'RegisterLogoutWebhookNode',
-  'RemoveSessionPropertiesNode',
-  'RetryLimitDecisionNode',
-  'ScriptedDecisionNode',
-  'SessionDataNode',
-  'SetFailureUrlNode',
-  'SetPersistentCookieNode',
-  'SetSessionPropertiesNode',
-  'SetSuccessUrlNode',
-  'SocialFacebookNode',
-  'SocialGoogleNode',
-  'SocialNode',
-  'SocialOAuthIgnoreProfileNode',
-  'SocialOpenIdConnectNode',
-  'TimerStartNode',
-  'TimerStopNode',
-  'UsernameCollectorNode',
-  'WebAuthnAuthenticationNode',
-  'WebAuthnRegistrationNode',
-  'ZeroPageLoginNode',
-];
-
 /**
  * Analyze if a journey contains any custom nodes considering the detected or the overridden version.
- * @param {Object} journey Journey/tree configuration object
+ * @param {SingleJourneyExportTemplate} journey Journey/tree configuration object
  * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
  */
-export async function isCustom(journey) {
-  let ootbNodeTypes = [];
-  const nodeList = journey.nodes;
-  switch (storage.session.getAmVersion()) {
-    case '7.1.0':
-      ootbNodeTypes = OOTB_NODE_TYPES_7_1.slice(0);
-      break;
-    case '7.2.0':
-      ootbNodeTypes = OOTB_NODE_TYPES_7_2.slice(0);
-      break;
-    case '7.0.0':
-    case '7.0.1':
-    case '7.0.2':
-      ootbNodeTypes = OOTB_NODE_TYPES_7.slice(0);
-      break;
-    case '6.5.3':
-    case '6.5.2.3':
-    case '6.5.2.2':
-    case '6.5.2.1':
-    case '6.5.2':
-    case '6.5.1':
-    case '6.5.0.2':
-    case '6.5.0.1':
-      ootbNodeTypes = OOTB_NODE_TYPES_6_5.slice(0);
-      break;
-    case '6.0.0.7':
-    case '6.0.0.6':
-    case '6.0.0.5':
-    case '6.0.0.4':
-    case '6.0.0.3':
-    case '6.0.0.2':
-    case '6.0.0.1':
-    case '6.0.0':
-      ootbNodeTypes = OOTB_NODE_TYPES_6.slice(0);
-      break;
-    default:
+export function isCustomJourney(journey: SingleJourneyExportTemplate) {
+  const nodeList = Object.values(journey.nodes).concat(
+    Object.values(journey.innerNodes)
+  );
+  for (const node of nodeList) {
+    if (isCustomNode(node['_type']['_id'])) {
       return true;
-  }
-  const results = [];
-  for (const node in nodeList) {
-    if ({}.hasOwnProperty.call(nodeList, node)) {
-      if (!ootbNodeTypes.includes(nodeList[node].nodeType)) {
-        return true;
-      }
-      if (containerNodes.includes(nodeList[node].nodeType)) {
-        results.push(await getNode(node, nodeList[node].nodeType));
-      }
     }
   }
-  const pageNodes = await Promise.all(results);
-  let custom = false;
-  for (const pageNode of pageNodes) {
-    if (pageNode != null) {
-      for (const pnode of pageNode.nodes) {
-        if (!ootbNodeTypes.includes(pnode.nodeType)) {
-          custom = true;
-        }
-      }
-    } else {
-      printMessage(
-        `isCustom ERROR: can't get ${nodeList[pageNode].nodeType} with id ${pageNode} in ${journey._id}`,
-        'error'
-      );
-      custom = false;
+  return false;
+}
+
+/**
+ * Analyze if a journey contains any premium nodes considering the detected or the overridden version.
+ * @param {SingleJourneyExportTemplate} journey Journey/tree configuration object
+ * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
+ */
+export function isPremiumJourney(journey: SingleJourneyExportTemplate) {
+  const nodeList = Object.values(journey.nodes).concat(
+    Object.values(journey.innerNodes)
+  );
+  for (const node of nodeList) {
+    if (isPremiumNode(node['_type']['_id'])) {
+      return true;
     }
   }
-  return custom;
+  return false;
+}
+
+/**
+ * Analyze if a journey contains any cloud-only nodes considering the detected or the overridden version.
+ * @param {SingleJourneyExportTemplate} journey Journey/tree configuration object
+ * @returns {boolean} True if the journey/tree contains any cloud-only nodes, false otherwise.
+ */
+export function isCloudOnlyJourney(journey: SingleJourneyExportTemplate) {
+  const nodeList = Object.values(journey.nodes).concat(
+    Object.values(journey.innerNodes)
+  );
+  for (const node of nodeList) {
+    if (isCloudOnlyNode(node['_type']['_id'])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Get a journey's classifications, which can be one or multiple of:
+ * - standard: can run on any instance of a ForgeRock platform
+ * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
+ * - premium: utilizes nodes, which come at a premium
+ * @param {SingleJourneyExportTemplate} journey journey export data
+ * @returns {string[]} an array of one or multiple classifications
+ */
+export function getJourneyClassification(
+  journey: SingleJourneyExportTemplate
+): string[] {
+  const classifications = [];
+  const premium = isPremiumJourney(journey);
+  const custom = isCustomJourney(journey);
+  const cloud = isCloudOnlyJourney(journey);
+  if (custom) {
+    classifications.push('custom');
+  } else if (cloud) {
+    classifications.push('cloud');
+  } else {
+    classifications.push('standard');
+  }
+  if (premium) classifications.push('premium');
+  return classifications;
 }
 
 /**
@@ -1973,43 +1795,65 @@ export async function listJourneys(
   analyze = false
 ): Promise<unknown[]> {
   let journeys = [];
-  try {
-    journeys = (await getTrees()).result;
-  } catch (error) {
-    printMessage(`${error.message}`, 'error');
-    printMessage(error.response.data, 'error');
-  }
-  journeys.sort((a, b) => a._id.localeCompare(b._id));
-  let customTrees = Array(journeys.length).fill(false);
-  if (analyze) {
-    const results = [];
-    for (const journey of journeys) {
-      results.push(isCustom(journey));
-    }
-    customTrees = await Promise.all(results);
-  }
-  if (!long) {
-    for (const [i, journey] of journeys.entries()) {
-      printMessage(`${customTrees[i] ? '*' : ''}${journey._id}`, 'data');
+  journeys = await getJourneys();
+  if (!long && !analyze) {
+    for (const journeyStub of journeys) {
+      printMessage(`${journeyStub['_id']}`, 'data');
     }
   } else {
-    const table = createTable([
-      'Name'['brightCyan'],
-      'Status'['brightCyan'],
-      'Tags'['brightCyan'],
-    ]);
-    for (const [i, journey] of journeys.entries()) {
-      table.push([
-        `${customTrees[i] ? '*'['brightRed'] : ''}${journey._id}`,
-        journey.enabled === false
-          ? 'disabled'['brightRed']
-          : 'enabled'['brightGreen'],
-        journey.uiConfig && journey.uiConfig.categories
-          ? wordwrap(JSON.parse(journey.uiConfig.categories).join(', '), 60)
-          : '',
-      ]);
+    if (!analyze) {
+      const table = createTable(['Name', 'Status', 'Tags']);
+      for (const journeyStub of journeys) {
+        table.push([
+          `${journeyStub._id}`,
+          journeyStub.enabled === false
+            ? 'disabled'['brightRed']
+            : 'enabled'['brightGreen'],
+          journeyStub.uiConfig?.categories
+            ? wordwrap(
+                JSON.parse(journeyStub.uiConfig.categories).join(', '),
+                60
+              )
+            : '',
+        ]);
+      }
+      printMessage(table.toString(), 'data');
+    } else {
+      createProgressIndicator(
+        0,
+        'Retrieving details of all journeys...',
+        'indeterminate'
+      );
+      const exportPromises = [];
+      for (const journeyStub of journeys) {
+        exportPromises.push(
+          exportJourney(journeyStub['_id'], {
+            useStringArrays: false,
+            deps: false,
+            verbose: false,
+          })
+        );
+      }
+      const journeyExports = await Promise.all(exportPromises);
+      stopProgressIndicator('Retrieved details of all journeys.', 'success');
+      const table = createTable(['Name', 'Status', 'Classification', 'Tags']);
+      for (const journeyExport of journeyExports) {
+        table.push([
+          `${journeyExport.tree._id}`,
+          journeyExport.tree.enabled === false
+            ? 'disabled'['brightRed']
+            : 'enabled'['brightGreen'],
+          getJourneyClassification(journeyExport).join(', '),
+          journeyExport.tree.uiConfig?.categories
+            ? wordwrap(
+                JSON.parse(journeyExport.tree.uiConfig.categories).join(', '),
+                60
+              )
+            : '',
+        ]);
+      }
+      printMessage(table.toString(), 'data');
     }
-    printMessage(table.toString(), 'data');
   }
   return journeys;
 }
