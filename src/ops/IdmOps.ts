@@ -85,12 +85,18 @@ export async function exportAllRawConfigEntities(directory) {
         getConfigEntity(x._id).catch((getConfigEntityError) => {
           if (
             !(
-              getConfigEntityError.response.status === 403 &&
-              getConfigEntityError.response.data.message ===
+              getConfigEntityError.response?.status === 403 &&
+              getConfigEntityError.response?.data?.message ===
                 'This operation is not available in ForgeRock Identity Cloud.'
+            ) &&
+            // https://bugster.forgerock.org/jira/browse/OPENIDM-18270
+            !(
+              getConfigEntityError.response?.status === 404 &&
+              getConfigEntityError.response?.data?.message ===
+                'No configuration exists for id org.apache.felix.fileinstall/openidm'
             )
           ) {
-            printMessage(getConfigEntityError, 'error');
+            printMessage(getConfigEntityError.response?.data, 'error');
             printMessage(
               `Error getting config entity: ${getConfigEntityError}`,
               'error'
@@ -118,7 +124,7 @@ export async function exportAllRawConfigEntities(directory) {
           );
         }
       });
-      stopProgressIndicator(null, 'success');
+      stopProgressIndicator('Exported config objects.', 'success');
     });
   }
 }
