@@ -1,6 +1,9 @@
 import storage from '../../storage/SessionStorage';
 import * as global from '../../storage/StaticStorage';
-import { getRealmName as _getRealmName } from '../../api/utils/ApiUtils';
+import {
+  getCurrentRealmName,
+  getRealmName as _getRealmName,
+} from '../../api/utils/ApiUtils';
 
 // TODO: do we really need this? if yes: document
 export function escapeRegExp(str) {
@@ -38,7 +41,7 @@ export function getRealmManagedUser() {
   if (
     storage.session.getDeploymentType() === global.CLOUD_DEPLOYMENT_TYPE_KEY
   ) {
-    realmManagedUser = `${storage.session.getRealm()}_user`;
+    realmManagedUser = `${getCurrentRealmName()}_user`;
   }
   return realmManagedUser;
 }
