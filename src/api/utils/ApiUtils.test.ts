@@ -38,24 +38,24 @@ test('getCurrentRealmPath "/" should resolve to root', () => {
   expect(testString).toBe('/realms/root');
 });
 
-test('getCurrentRealmPath should not handle multiple leading slash', () => {
+test('getCurrentRealmPath should handle multiple leading slashes', () => {
   // Arrange
   const REALM_PATH = '//alpha';
   sessionStorage.session.setItem('realm', REALM_PATH);
   // Act
   const testString = getCurrentRealmPath();
   // Assert
-  expect(testString).toBe('/realms/root/realms//alpha');
+  expect(testString).toBe('/realms/root/realms/alpha');
 });
 
-test('getCurrentRealmPath should not handle nested depth realms', () => {
+test('getCurrentRealmPath should handle nested realms', () => {
   // Arrange
-  const REALM_PATH = '/alpha/erm';
+  const REALM_PATH = '/parent/child';
   sessionStorage.session.setItem('realm', REALM_PATH);
   // Act
   const testString = getCurrentRealmPath();
   // Assert
-  expect(testString).toBe('/realms/root/realms/alpha/erm');
+  expect(testString).toBe('/realms/root/realms/parent/realms/child');
 });
 
 test('getTenantURL should parse the https protocol and the hostname', () => {

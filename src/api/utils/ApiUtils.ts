@@ -1,7 +1,4 @@
-import util from 'util';
 import storage from '../../storage/SessionStorage';
-
-const realmPathTemplate = '/realms/%s';
 
 /**
  * Get current realm path
@@ -9,13 +6,13 @@ const realmPathTemplate = '/realms/%s';
  */
 export function getCurrentRealmPath() {
   let realm = storage.session.getRealm();
-  if (realm.startsWith('/') && realm.length > 1) {
+  if (realm.startsWith('/')) {
     realm = realm.substring(1);
   }
-  let realmPath = util.format(realmPathTemplate, 'root');
-  if (realm !== '/') {
-    realmPath += util.format(realmPathTemplate, realm);
-  }
+  const elements = ['root'].concat(
+    realm.split('/').filter((element) => element !== '')
+  );
+  const realmPath = `/realms/${elements.join('/realms/')}`;
   return realmPath;
 }
 
