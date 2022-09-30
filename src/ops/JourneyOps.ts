@@ -19,6 +19,13 @@ import {
   getNodesByType,
 } from '../api/NodeApi';
 import { isCloudOnlyNode, isCustomNode, isPremiumNode } from './NodeOps';
+import * as Node from './NodeOps';
+import * as EmailTemplate from './EmailTemplateOps';
+import * as Script from './ScriptOps';
+import * as Theme from './ThemeOps';
+import * as Idp from './IdpOps';
+import * as Saml2 from './Saml2Ops';
+import * as CirclesOfTrust from './CirclesOfTrustOps';
 import { getTrees, getTree, putTree, deleteTree } from '../api/TreeApi';
 import { getEmailTemplate, putEmailTemplate } from '../api/EmailTemplateApi';
 import { getScript } from '../api/ScriptApi';
@@ -29,7 +36,7 @@ import {
   updateProgressIndicator,
   stopProgressIndicator,
   createTable,
-  createKeyValueTable,
+  debugMessage,
 } from './utils/Console';
 import wordwrap from './utils/Wordwrap';
 import {
@@ -57,6 +64,20 @@ import {
 } from '../api/SocialIdentityProvidersApi';
 import { getThemes, putThemes } from '../api/ThemeApi';
 import { createOrUpdateScript } from './ScriptOps';
+import { TreeExportResolverInterface } from './OpsTypes';
+import {
+  InnerNodeRefSkeletonInterface,
+  NodeRefSkeletonInterface,
+  NodeSkeleton,
+  TreeSkeleton,
+} from '../api/ApiTypes';
+import {
+  SingleTreeExportInterface,
+  MultiTreeExportInterface,
+  TreeDependencyMapInterface,
+  TreeExportOptions,
+  TreeImportOptions,
+} from './OpsTypes';
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
 
@@ -72,22 +93,21 @@ const emailTemplateNodes = ['EmailSuspendNode', 'EmailTemplateNode'];
 
 const emptyScriptPlaceholder = '[Empty]';
 
-interface SingleJourneyExportTemplate {
-  meta?: Record<string, unknown>;
-  innerNodes?: Record<string, unknown>;
-  innernodes?: Record<string, unknown>;
-  nodes?: Record<string, unknown>;
-  scripts?: Record<string, unknown>;
-  emailTemplates?: Record<string, unknown>;
-  socialIdentityProviders?: Record<string, unknown>;
-  themes?: unknown[];
-  saml2Entities?: Record<string, unknown>;
-  circlesOfTrust?: Record<string, unknown>;
-  tree: Record<string, unknown>;
+/**
+ * Get a one-line description of the tree object
+ * @param {TreeSkeleton} treeObj circle of trust object to describe
+ * @returns {string} a one-line description
+ */
+export function getOneLineDescription(treeObj: TreeSkeleton): string {
+  const description = `[${treeObj._id['brightCyan']}]`;
+  return description;
 }
 
-// use a function vs a template variable to avoid problems in loops
-export function createSingleJourneyExportTemplate(): SingleJourneyExportTemplate {
+/**
+ * Create an empty single tree export template
+ * @returns {SingleTreeExportInterface} an empty single tree export template
+ */
+export function createSingleTreeExportTemplate(): SingleTreeExportInterface {
   return {
     meta: {},
     innerNodes: {},
@@ -99,20 +119,18 @@ export function createSingleJourneyExportTemplate(): SingleJourneyExportTemplate
     saml2Entities: {},
     circlesOfTrust: {},
     tree: {},
-  } as SingleJourneyExportTemplate;
+  } as SingleTreeExportInterface;
 }
 
-interface MultiJourneyExportTemplate {
-  meta?: Record<string, unknown>;
-  trees: Record<string, SingleJourneyExportTemplate>;
-}
-
-// use a function vs a template variable to avoid problems in loops
-export function createMultiJourneyExportTemplate(): MultiJourneyExportTemplate {
+/**
+ * Create an empty multi tree export template
+ * @returns {MultiTreeExportInterface} an empty multi tree export template
+ */
+export function createMultiTreeExportTemplate(): MultiTreeExportInterface {
   return {
     meta: {},
     trees: {},
-  } as MultiJourneyExportTemplate;
+  } as MultiTreeExportInterface;
 }
 
 /**
@@ -199,55 +217,22 @@ async function getSaml2NodeDependencies(
   }
 }
 
-// export async function getTreeNodes(treeObject) {
-//   const nodeList = Object.entries(treeObject.nodes);
-//   const results = await Promise.allSettled(
-//     nodeList.map(
-//       async ([nodeId, nodeInfo]) => await getNode(nodeId, nodeInfo['nodeType'])
-//     )
-//   );
-//   const nodes = results.filter((r) => r.status === 'fulfilled');
-//   nodes.map((f) => {
-//     return f.status;
-//   });
-//   const failedList = results.filter((r) => r.status === 'rejected');
-//   return nodes;
-// }
-
-/**
- * Export options
- */
-interface ExportOptions {
-  /**
-   * Where applicable, use string arrays to store multi-line text (e.g. scripts).
-   */
-  useStringArrays: boolean;
-  /**
-   * Include any dependencies (scripts, email templates, SAML entity providers and circles of trust, social identity providers, themes).
-   */
-  deps: boolean;
-  /**
-   * Verbose output during command execution. May or may not produce additional output.
-   */
-  verbose: boolean;
-}
-
 /**
  * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
  * @param {string} treeId tree id/name
- * @param {ExportOptions} options export options
- * @returns {Promise<SingleJourneyExportTemplate>} a promise that resolves to an object containing the tree and all its nodes and dependencies
+ * @param {TreeExportOptions} options export options
+ * @returns {Promise<SingleTreeExportInterface>} a promise that resolves to an object containing the tree and all its nodes and dependencies
  */
 export async function exportJourney(
   treeId: string,
-  options: ExportOptions = {
+  options: TreeExportOptions = {
     useStringArrays: true,
     deps: true,
     verbose: false,
   }
-): Promise<SingleJourneyExportTemplate> {
+): Promise<SingleTreeExportInterface> {
   const treeObject = await getTree(treeId);
-  const exportData = createSingleJourneyExportTemplate();
+  const exportData = createSingleTreeExportTemplate();
   const { useStringArrays, deps, verbose } = options;
 
   if (verbose) printMessage(`\n- ${treeObject._id}\n`, 'info', false);
@@ -625,12 +610,12 @@ export async function getJourneys(): Promise<unknown[]> {
  * Export journey by id/name to file
  * @param {string} journeyId journey id/name
  * @param {string} file optional export file name
- * @param {ExportOptions} options export options
+ * @param {TreeExportOptions} options export options
  */
 export async function exportJourneyToFile(
   journeyId: string,
   file: string,
-  options: ExportOptions
+  options: TreeExportOptions
 ): Promise<void> {
   const { verbose } = options;
   let fileName = file;
@@ -640,7 +625,7 @@ export async function exportJourneyToFile(
   if (!verbose)
     createProgressIndicator(undefined, `${journeyId}`, 'indeterminate');
   try {
-    const fileData: SingleJourneyExportTemplate = await exportJourney(
+    const fileData: SingleTreeExportInterface = await exportJourney(
       journeyId,
       options
     );
@@ -664,19 +649,22 @@ export async function exportJourneyToFile(
 /**
  * Export all journeys to file
  * @param {string} file optional export file name
- * @param {ExportOptions} options export options
+ * @param {TreeExportOptions} options export options
  */
 export async function exportJourneysToFile(
   file: string,
-  options: ExportOptions
+  options: TreeExportOptions = {
+    deps: false,
+    useStringArrays: false,
+    verbose: false,
+  }
 ): Promise<void> {
   let fileName = file;
   if (!fileName) {
     fileName = getTypedFilename(`all${getRealmString()}Journeys`, 'journeys');
   }
   const trees = (await getTrees()).result;
-  const fileData: MultiJourneyExportTemplate =
-    createMultiJourneyExportTemplate();
+  const fileData: MultiTreeExportInterface = createMultiTreeExportTemplate();
   createProgressIndicator(trees.length, 'Exporting journeys...');
   for (const tree of trees) {
     updateProgressIndicator(`${tree._id}`);
@@ -694,10 +682,10 @@ export async function exportJourneysToFile(
 
 /**
  * Export all journeys to separate files
- * @param {ExportOptions} options export options
+ * @param {TreeExportOptions} options export options
  */
 export async function exportJourneysToFiles(
-  options: ExportOptions
+  options: TreeExportOptions
 ): Promise<void> {
   const trees = (await getTrees()).result;
   createProgressIndicator(trees.length, 'Exporting journeys...');
@@ -705,7 +693,7 @@ export async function exportJourneysToFiles(
     updateProgressIndicator(`${tree._id}`);
     const fileName = getTypedFilename(`${tree._id}`, 'journey');
     try {
-      const exportData: SingleJourneyExportTemplate = await exportJourney(
+      const exportData: SingleTreeExportInterface = await exportJourney(
         tree._id,
         options
       );
@@ -718,31 +706,13 @@ export async function exportJourneysToFiles(
 }
 
 /**
- * Import options
- */
-interface ImportOptions {
-  /**
-   * Generate new UUIDs for all nodes during import.
-   */
-  reUuid: boolean;
-  /**
-   * Include any dependencies (scripts, email templates, SAML entity providers and circles of trust, social identity providers, themes).
-   */
-  deps: boolean;
-  /**
-   * Verbose output during command execution. May or may not produce additional output.
-   */
-  verbose: boolean;
-}
-
-/**
  * Helper to import a tree with all dependencies from an import data object (typically read from a file)
- * @param {SingleJourneyExportTemplate} treeObject tree object containing tree and all its dependencies
- * @param {ImportOptions} options import options
+ * @param {SingleTreeExportInterface} treeObject tree object containing tree and all its dependencies
+ * @param {TreeImportOptions} options import options
  */
 export async function importJourney(
-  treeObject: SingleJourneyExportTemplate,
-  options: ImportOptions
+  treeObject: SingleTreeExportInterface,
+  options: TreeImportOptions
 ): Promise<void> {
   const { reUuid, deps, verbose } = options;
   if (verbose) printMessage(`\n- ${treeObject.tree._id}\n`, 'info', false);
@@ -1064,9 +1034,9 @@ export async function importJourney(
       // and the node's identityResource is the same as the tree's identityResource
       // change it to the current realm managed user identityResource otherwise leave it alone.
       if (
-        nodeData['identityResource'] &&
-        nodeData['identityResource'].endsWith('user') &&
-        nodeData['identityResource'] === treeObject.tree.identityResource
+        nodeData.identityResource &&
+        nodeData.identityResource.endsWith('user') &&
+        nodeData.identityResource === treeObject.tree.identityResource
       ) {
         nodeData['identityResource'] = `managed/${getRealmManagedUser()}`;
         if (verbose)
@@ -1160,7 +1130,7 @@ export async function importJourney(
       }
     } else {
       printMessage(importError.response?.data || importError, 'error');
-      console.dir(importError.response?.data || importError);
+      debugMessage(importError.response?.data || importError);
       throw new Error(`\nError importing journey flow ${treeId}`);
     }
   }
@@ -1245,12 +1215,12 @@ async function resolveDependencies(
  * Import a journey from file
  * @param {string} journeyId journey id/name
  * @param {string} file import file name
- * @param {ImportOptions} options import options
+ * @param {TreeImportOptions} options import options
  */
 export async function importJourneyFromFile(
   journeyId: string,
   file: string,
-  options: ImportOptions
+  options: TreeImportOptions
 ) {
   const { verbose } = options;
   fs.readFile(file, 'utf8', async (err, data) => {
@@ -1332,11 +1302,11 @@ export async function importJourneyFromFile(
 /**
  * Import first journey from file
  * @param {string} file import file name
- * @param {ImportOptions} options import options
+ * @param {TreeImportOptions} options import options
  */
 export async function importFirstJourneyFromFile(
   file: string,
-  options: ImportOptions
+  options: TreeImportOptions
 ) {
   const { verbose } = options;
   fs.readFile(file, 'utf8', async (err, data) => {
@@ -1423,11 +1393,11 @@ export async function importFirstJourneyFromFile(
 /**
  * Helper to import multiple trees from a tree map
  * @param {Object} treesMap map of trees object
- * @param {ImportOptions} options import options
+ * @param {TreeImportOptions} options import options
  */
 async function importAllJourneys(
-  treesMap: MultiJourneyExportTemplate,
-  options: ImportOptions
+  treesMap: MultiTreeExportInterface,
+  options: TreeImportOptions
 ) {
   const installedJourneys = (await getTrees()).result.map((x) => x._id);
   const unresolvedJourneys = {};
@@ -1471,11 +1441,11 @@ async function importAllJourneys(
 /**
  * Import all journeys from file
  * @param {string} file import file name
- * @param {ImportOptions} options import options
+ * @param {TreeImportOptions} options import options
  */
 export async function importJourneysFromFile(
   file: string,
-  options: ImportOptions
+  options: TreeImportOptions
 ) {
   fs.readFile(file, 'utf8', (err, data) => {
     if (err) throw err;
@@ -1486,9 +1456,9 @@ export async function importJourneysFromFile(
 
 /**
  * Import all journeys from separate files
- * @param {ImportOptions} options import options
+ * @param {TreeImportOptions} options import options
  */
-export async function importJourneysFromFiles(options: ImportOptions) {
+export async function importJourneysFromFiles(options: TreeImportOptions) {
   const names = fs.readdirSync('.');
   const jsonFiles = names.filter((name) =>
     name.toLowerCase().endsWith('.journey.json')
@@ -1498,101 +1468,332 @@ export async function importJourneysFromFiles(options: ImportOptions) {
     const journeyData = JSON.parse(fs.readFileSync(file, 'utf8'));
     allJourneysData.trees[journeyData.tree._id] = journeyData;
   }
-  importAllJourneys(
-    allJourneysData.trees as MultiJourneyExportTemplate,
-    options
-  );
+  importAllJourneys(allJourneysData.trees as MultiTreeExportInterface, options);
 }
 
 /**
- * Describe a journey
- * @param {SingleJourneyExportTemplate} journeyData journey export object
+ * Get the node reference obbject for a node object. Node reference objects
+ * are used in a tree flow definition and within page nodes to reference
+ * nodes. Among other things, node references contain all the non-configuration
+ * meta data that exists for readaility, like the x/y coordinates of the node
+ * and the display name chosen by the tree designer. The dislay name is the
+ * only intuitive link between the graphical representation of the tree and
+ * the node configurations that make up the tree.
+ * @param nodeObj node object to retrieve the node reference object for
+ * @param singleTreeExport tree export with or without dependencies
+ * @returns {NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface} node reference object
  */
-export function describeJourney(
-  journeyData: SingleJourneyExportTemplate
-): void {
+export function getNodeRef(
+  nodeObj: NodeSkeleton,
+  singleTreeExport: SingleTreeExportInterface
+): NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface {
+  if (singleTreeExport.tree.nodes[nodeObj._id]) {
+    return singleTreeExport.tree.nodes[nodeObj._id];
+  } else {
+    for (const node of Object.values(singleTreeExport.nodes)) {
+      if (containerNodes.includes(node._type._id)) {
+        for (const nodeRef of node.nodes) {
+          if (nodeRef._id === nodeObj._id) {
+            return nodeRef;
+          }
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Default tree export resolver used to resolve a tree id/name to a full export
+ * w/o dependencies of that tree from a platform instance.
+ * @param {string} treeId id/name of the tree to resolve
+ * @returns {TreeExportResolverInterface} tree export
+ */
+export const onlineTreeExportResolver: TreeExportResolverInterface =
+  async function (treeId: string) {
+    debugMessage(`onlineTreeExportResolver(${treeId})`);
+    return await exportJourney(treeId, {
+      deps: false,
+      useStringArrays: false,
+      verbose: false,
+    });
+  };
+
+/**
+ * Tree export resolver used to resolve a tree id/name to a full export
+ * of that tree from individual `treename.journey.json` export files.
+ * @param {string} treeId id/name of the tree to resolve
+ * @returns {TreeExportResolverInterface} tree export
+ */
+export const fileByIdTreeExportResolver: TreeExportResolverInterface =
+  async function (treeId: string) {
+    debugMessage(`fileByIdTreeExportResolver(${treeId})`);
+    let treeExport = createSingleTreeExportTemplate();
+    const file = getTypedFilename(`${treeId}`, 'journey');
+    debugMessage(
+      `fileByIdTreeExportResolver: resolving '${treeId}' to ${file}`
+    );
+    try {
+      const jsonData = JSON.parse(fs.readFileSync(file, 'utf8'));
+      // did we resolve the tree we were asked to resolved?
+      if (jsonData.tree?._id === treeId) {
+        treeExport = jsonData;
+      }
+      // check if this is a file with multiple trees and get journey by id
+      else if (jsonData.trees && jsonData.trees[treeId]) {
+        treeExport = jsonData.trees[treeId];
+      }
+    } catch (error) {
+      //
+    }
+    return treeExport;
+  };
+
+/**
+ * Factory that creates a tree export resolver used to resolve a tree id
+ * to a full export of that tree from a multi-tree export file.
+ * @param {string} file multi-tree export file
+ * @returns {TreeExportResolverInterface} tree export resolver
+ */
+export function createFileParamTreeExportResolver(
+  file: string
+): TreeExportResolverInterface {
+  const fileParamTreeExportResolver: TreeExportResolverInterface =
+    async function (treeId: string) {
+      debugMessage(`fileParamTreeExportResolver(${treeId})`);
+      let treeExport: SingleTreeExportInterface =
+        createSingleTreeExportTemplate();
+      try {
+        const jsonData = JSON.parse(fs.readFileSync(file, 'utf8'));
+        // did we resolve the tree we were asked to resolved?
+        if (jsonData.tree?._id === treeId) {
+          treeExport = jsonData;
+        }
+        // check if this is a file with multiple trees and get journey by id
+        else if (jsonData.trees && jsonData.trees[treeId]) {
+          treeExport = jsonData.trees[treeId];
+        }
+        // fall back to fileByIdTreeExportResolver
+        else {
+          treeExport = await fileByIdTreeExportResolver(treeId);
+        }
+      } catch (error) {
+        //
+      }
+      return treeExport;
+    };
+  debugMessage('fileParamTreeExportResolver:');
+  debugMessage(fileParamTreeExportResolver);
+  return fileParamTreeExportResolver;
+}
+
+/**
+ * Get tree dependencies (all descendent inner trees)
+ * @param {SingleTreeExportInterface} treeExport single tree export
+ * @param {string[]} resolvedTreeIds list of tree ids wich have already been resolved
+ * @param {TreeExportResolverInterface} resolveTreeExport tree export resolver callback function
+ * @returns {Promise<TreeDependencyMapInterface>} a promise that resolves to a tree dependency map
+ */
+export async function getTreeDescendents(
+  treeExport: SingleTreeExportInterface,
+  resolveTreeExport: TreeExportResolverInterface = onlineTreeExportResolver,
+  resolvedTreeIds: string[] = []
+): Promise<TreeDependencyMapInterface> {
+  debugMessage(
+    `getTreeDependencies(${treeExport.tree._id}, [${resolvedTreeIds.join(
+      ', '
+    )}])`
+  );
+  if (!resolvedTreeIds.includes(treeExport.tree._id)) {
+    resolvedTreeIds.push(treeExport.tree._id);
+  }
+  const treeDependencyMap: TreeDependencyMapInterface = {
+    [treeExport.tree._id]: [],
+  };
+  const dependencies: TreeDependencyMapInterface[] = [];
+  for (const [nodeId, node] of Object.entries(treeExport.tree.nodes)) {
+    const innerTreeId = treeExport.nodes[nodeId].tree;
+    if (
+      node.nodeType === 'InnerTreeEvaluatorNode' &&
+      !resolvedTreeIds.includes(innerTreeId)
+    ) {
+      const innerTreeExport = await resolveTreeExport(innerTreeId);
+      debugMessage(`resolved inner tree: ${innerTreeExport.tree._id}`);
+      // resolvedTreeIds.push(innerTreeId);
+      dependencies.push(
+        await getTreeDescendents(
+          innerTreeExport,
+          resolveTreeExport,
+          resolvedTreeIds
+        )
+      );
+    }
+  }
+  treeDependencyMap[treeExport.tree._id] = dependencies;
+  return treeDependencyMap;
+}
+
+function describeTreeDescendents(
+  descendents: TreeDependencyMapInterface,
+  depth = 0
+) {
+  if ([Object.values(descendents)].length) {
+    // heading
+    if (depth === 0) {
+      printMessage(
+        `\nInner Tree Dependencies (${Object.values(descendents)[0].length}):`,
+        'data'
+      );
+    }
+    const indent = Array(depth * 2)
+      .fill(' ')
+      .join('');
+    const [tree] = Object.keys(descendents);
+    printMessage(`${indent}- ${tree}`, 'data');
+    for (const descendent of descendents[tree]) {
+      describeTreeDescendents(descendent, depth + 1);
+    }
+  }
+}
+
+/**
+ * Describe a journey:
+ * - Properties, tags, description, name, metadata
+ * - Inner tree dependency tree
+ * - Node type summary
+ * - Nodes
+ * - Themes
+ * - Scripts
+ * - Email templates
+ * - Social identity providers
+ * - SAML2 entity providers
+ * - SAML2 circles of trust
+ * @param {SingleTreeExportInterface} journeyData journey export object
+ * @param {TreeExportResolverInterface} resolveTreeExport tree export resolver callback function
+ */
+export async function describeJourney(
+  journeyData: SingleTreeExportInterface,
+  resolveTreeExport: TreeExportResolverInterface = onlineTreeExportResolver
+): Promise<void> {
+  const allNodes = {
+    ...journeyData.nodes,
+    ...journeyData.innerNodes,
+  };
   const nodeTypeMap = {};
 
-  for (const nodeData of Object.values(journeyData.nodes)) {
-    if (nodeTypeMap[nodeData['_type']['_id']]) {
-      nodeTypeMap[nodeData['_type']['_id']] += 1;
+  for (const nodeData of Object.values(allNodes)) {
+    if (nodeTypeMap[nodeData._type._id]) {
+      nodeTypeMap[nodeData._type._id] += 1;
     } else {
-      nodeTypeMap[nodeData['_type']['_id']] = 1;
+      nodeTypeMap[nodeData._type._id] = 1;
     }
   }
 
-  for (const nodeData of Object.values(journeyData.innerNodes)) {
-    if (nodeTypeMap[nodeData['_type']['_id']]) {
-      nodeTypeMap[nodeData['_type']['_id']] += 1;
-    } else {
-      nodeTypeMap[nodeData['_type']['_id']] = 1;
-    }
-  }
-
-  printMessage(`\n${journeyData.tree._id}`, 'data');
-  const line = Array(journeyData.tree._id['length']).fill('=').join('');
-  printMessage(line);
+  printMessage(`${getOneLineDescription(journeyData.tree)}`, 'data');
+  printMessage(Array(`[${journeyData.tree._id}]`['length']).fill('=').join(''));
   if (journeyData.tree.description) {
-    printMessage(`\n${journeyData.tree.description}\n`, 'data');
+    printMessage(`\n${journeyData.tree.description['brightYellow']}`, 'data');
   }
 
-  printMessage('\nNodes:', 'data');
+  const descendents = await getTreeDescendents(journeyData, resolveTreeExport);
+  describeTreeDescendents(descendents);
+
   if (Object.entries(nodeTypeMap).length) {
+    printMessage(
+      `\nNode Types (${Object.entries(nodeTypeMap).length}):`,
+      'data'
+    );
     for (const [name, count] of Object.entries(nodeTypeMap)) {
-      printMessage(`- [${String(count)['brightCyan']}] ${name}`, 'data');
+      printMessage(`- ${String(count)} [${name['brightCyan']}]`, 'data');
+    }
+  }
+
+  if (Object.entries(allNodes).length) {
+    printMessage(`\nNodes (${Object.entries(allNodes).length}):`, 'data');
+    for (const nodeObj of Object.values<NodeSkeleton>(allNodes)) {
+      printMessage(
+        `- ${Node.getOneLineDescription(
+          nodeObj,
+          getNodeRef(nodeObj, journeyData)
+        )}`,
+        'data'
+      );
     }
   }
 
   if (journeyData.themes?.length) {
-    printMessage('\nThemes:', 'data');
+    printMessage(`\nThemes (${journeyData.themes.length}):`, 'data');
     for (const themeData of journeyData.themes) {
-      printMessage(
-        `- [${themeData['_id']['brightCyan']}] ${themeData['name']}`,
-        'data'
-      );
+      printMessage(`- ${Theme.getOneLineDescription(themeData)}`, 'data');
     }
   }
 
   if (Object.entries(journeyData.scripts).length) {
-    printMessage('\nScripts:', 'data');
+    printMessage(
+      `\nScripts (${Object.entries(journeyData.scripts).length}):`,
+      'data'
+    );
     for (const scriptData of Object.values(journeyData.scripts)) {
-      printMessage(
-        `- [${scriptData['_id'].brightCyan}] ${scriptData['name']}`,
-        'data'
-      );
+      printMessage(`- ${Script.getOneLineDescription(scriptData)}`, 'data');
     }
   }
 
   if (Object.entries(journeyData.emailTemplates).length) {
-    printMessage('\nEmail Templates:', 'data');
+    printMessage(
+      `\nEmail Templates (${
+        Object.entries(journeyData.emailTemplates).length
+      }):`,
+      'data'
+    );
     for (const templateData of Object.values(journeyData.emailTemplates)) {
-      printMessage(`- ${templateData['_id'].split('/')[1]}`, 'data');
-    }
-  }
-
-  if (Object.entries(journeyData.socialIdentityProviders).length) {
-    printMessage('\nSocial Identity Providers:', 'data');
-    for (const socialIdpData of Object.values(
-      journeyData.socialIdentityProviders
-    )) {
       printMessage(
-        `- ${socialIdpData['_id']} [${socialIdpData['_type']['_id'].brightCyan}]`,
+        `- ${EmailTemplate.getOneLineDescription(templateData)}`,
         'data'
       );
     }
   }
 
+  if (Object.entries(journeyData.socialIdentityProviders).length) {
+    printMessage(
+      `\nSocial Identity Providers (${
+        Object.entries(journeyData.socialIdentityProviders).length
+      }):`,
+      'data'
+    );
+    for (const socialIdpData of Object.values(
+      journeyData.socialIdentityProviders
+    )) {
+      printMessage(`- ${Idp.getOneLineDescription(socialIdpData)}`, 'data');
+    }
+  }
+
   if (Object.entries(journeyData.saml2Entities).length) {
-    printMessage('\nSAML2 Entity Providers:', 'data');
+    printMessage(
+      `\nSAML2 Entity Providers (${
+        Object.entries(journeyData.saml2Entities).length
+      }):`,
+      'data'
+    );
     for (const entityProviderData of Object.values(journeyData.saml2Entities)) {
-      printMessage(`- ${entityProviderData['entityId']}`, 'data');
+      printMessage(
+        `- ${Saml2.getOneLineDescription(entityProviderData)}`,
+        'data'
+      );
     }
   }
 
   if (Object.entries(journeyData.circlesOfTrust).length) {
-    printMessage('\nSAML2 Circles Of Trust:', 'data');
+    printMessage(
+      `\nSAML2 Circles Of Trust (${
+        Object.entries(journeyData.circlesOfTrust).length
+      }):`,
+      'data'
+    );
     for (const cotData of Object.values(journeyData.circlesOfTrust)) {
-      printMessage(`- ${cotData['_id']}`, 'data');
+      printMessage(
+        `- ${CirclesOfTrust.getOneLineDescription(cotData)}`,
+        'data'
+      );
     }
   }
 }
@@ -1709,10 +1910,10 @@ export async function removeOrphanedNodes(
 
 /**
  * Analyze if a journey contains any custom nodes considering the detected or the overridden version.
- * @param {SingleJourneyExportTemplate} journey Journey/tree configuration object
+ * @param {SingleTreeExportInterface} journey Journey/tree configuration object
  * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
  */
-export function isCustomJourney(journey: SingleJourneyExportTemplate) {
+export function isCustomJourney(journey: SingleTreeExportInterface) {
   const nodeList = Object.values(journey.nodes).concat(
     Object.values(journey.innerNodes)
   );
@@ -1726,10 +1927,10 @@ export function isCustomJourney(journey: SingleJourneyExportTemplate) {
 
 /**
  * Analyze if a journey contains any premium nodes considering the detected or the overridden version.
- * @param {SingleJourneyExportTemplate} journey Journey/tree configuration object
+ * @param {SingleTreeExportInterface} journey Journey/tree configuration object
  * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
  */
-export function isPremiumJourney(journey: SingleJourneyExportTemplate) {
+export function isPremiumJourney(journey: SingleTreeExportInterface) {
   const nodeList = Object.values(journey.nodes).concat(
     Object.values(journey.innerNodes)
   );
@@ -1743,10 +1944,10 @@ export function isPremiumJourney(journey: SingleJourneyExportTemplate) {
 
 /**
  * Analyze if a journey contains any cloud-only nodes considering the detected or the overridden version.
- * @param {SingleJourneyExportTemplate} journey Journey/tree configuration object
+ * @param {SingleTreeExportInterface} journey Journey/tree configuration object
  * @returns {boolean} True if the journey/tree contains any cloud-only nodes, false otherwise.
  */
-export function isCloudOnlyJourney(journey: SingleJourneyExportTemplate) {
+export function isCloudOnlyJourney(journey: SingleTreeExportInterface) {
   const nodeList = Object.values(journey.nodes).concat(
     Object.values(journey.innerNodes)
   );
@@ -1763,11 +1964,11 @@ export function isCloudOnlyJourney(journey: SingleJourneyExportTemplate) {
  * - standard: can run on any instance of a ForgeRock platform
  * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
  * - premium: utilizes nodes, which come at a premium
- * @param {SingleJourneyExportTemplate} journey journey export data
+ * @param {SingleTreeExportInterface} journey journey export data
  * @returns {string[]} an array of one or multiple classifications
  */
 export function getJourneyClassification(
-  journey: SingleJourneyExportTemplate
+  journey: SingleTreeExportInterface
 ): string[] {
   const classifications = [];
   const premium = isPremiumJourney(journey);
