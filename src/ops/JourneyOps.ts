@@ -1087,8 +1087,10 @@ export async function importJourney(
   // and the identityResource ends in 'user'
   // Set the identityResource for the tree to the selected resource.
   if (
-    treeObject.tree.identityResource &&
-    (treeObject.tree['identityResource'] as string).endsWith('user')
+    (treeObject.tree.identityResource &&
+      (treeObject.tree['identityResource'] as string).endsWith('user')) ||
+    storage.session.getDeploymentType() === global.CLOUD_DEPLOYMENT_TYPE_KEY ||
+    storage.session.getDeploymentType() === global.FORGEOPS_DEPLOYMENT_TYPE_KEY
   ) {
     treeObject.tree.identityResource = `managed/${getRealmManagedUser()}`;
     if (verbose)
