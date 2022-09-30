@@ -12,7 +12,6 @@ import storage from '../../storage/SessionStorage';
  * type="data" will be written to stderr.
  * @param {boolean} [newline=true] Whether to add a newline at the end of message
  * messages returned
- *
  */
 export function printMessage(
   message: string | unknown,
@@ -22,6 +21,21 @@ export function printMessage(
   const handler = storage.session.getPrintHandler();
   if (handler) {
     handler(message, type, newline);
+  }
+}
+
+/**
+ * Handles debug output. The caller decides and implements how
+ * the messages are handled, by implementing the handler function
+ * on its side. `handler` is optional, and if not included by the caller,
+ * the data and messages will be lost.
+ *
+ * @param {string | unknown} message The string message to return
+ */
+export function debugMessage(message: string | unknown) {
+  const handler = storage.session.getDebugHandler();
+  if (handler) {
+    handler(message);
   }
 }
 

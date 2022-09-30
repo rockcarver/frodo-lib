@@ -61,6 +61,12 @@ export default {
     setPrintHandler: (printHandler) =>
       (_sessionStorage['printHandler'] = printHandler),
     getPrintHandler: () => _sessionStorage['printHandler'],
+    setErrorHandler: (errorHandler) =>
+      (_sessionStorage['errorHandler'] = errorHandler),
+    getErrorHandler: () => _sessionStorage['errorHandler'],
+    setDebugHandler: (debugHandler) =>
+      (_sessionStorage['debugHandler'] = debugHandler),
+    getDebugHandler: () => _sessionStorage['debugHandler'],
     setCreateProgressHandler: (handler) =>
       (_sessionStorage['createProgressHandler'] = handler),
     getCreateProgressHandler: () => _sessionStorage['createProgressHandler'],
