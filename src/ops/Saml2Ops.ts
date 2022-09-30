@@ -30,13 +30,34 @@ import {
   validateImport,
 } from './utils/ExportImportUtils';
 import { createOrUpdateScript } from './ScriptOps';
+import { Saml2ProviderSkeleton } from '../api/ApiTypes';
 
-const roleMap = {
+export const roleMap = {
   identityProvider: 'IDP',
   serviceProvider: 'SP',
   attributeQueryProvider: 'AttrQuery',
   xacmlPolicyEnforcementPoint: 'XACML PEP',
 };
+
+/**
+ * Get a one-line description of the saml2 provider object
+ * @param {Saml2ProviderSkeleton} saml2ProviderObj saml2 provider object to describe
+ * @returns {string} a one-line description
+ */
+export function getOneLineDescription(
+  saml2ProviderObj: Saml2ProviderSkeleton
+): string {
+  const roles = [];
+  for (const [key, value] of Object.entries(roleMap)) {
+    if (saml2ProviderObj[key]) {
+      roles.push(value);
+    }
+  }
+  const description = `[${saml2ProviderObj.entityId['brightCyan']}]${
+    ' (' + saml2ProviderObj.entityLocation
+  }${roles.length ? ' ' + roles.join(', ') + ')' : ')'}`;
+  return description;
+}
 
 // use a function vs a template variable to avoid problems in loops
 function getFileDataTemplate() {

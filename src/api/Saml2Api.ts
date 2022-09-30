@@ -42,7 +42,7 @@ export async function getProviders() {
 
 /**
  * Find all providers matching the filter and return the requested fields
- * @param {string} filter CREST filter string, eg "entityId+eq+'${entityId}'"
+ * @param {string} filter CREST filter string, eg "entityId+eq+'${entityId}'" or "true" for all providers
  * @param {string} fields Comma-delimited list of fields to include in the response
  * @returns {Promise} a promise that resolves to an object containing an array of saml2 entities
  */
