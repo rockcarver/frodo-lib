@@ -19,6 +19,17 @@ import {
   validateImport,
 } from './utils/ExportImportUtils';
 import storage from '../storage/SessionStorage';
+import { ScriptSkeleton } from '../api/ApiTypes';
+
+/**
+ * Get a one-line description of the script object
+ * @param {ScriptSkeleton} scriptObj script object to describe
+ * @returns {string} a one-line description
+ */
+export function getOneLineDescription(scriptObj: ScriptSkeleton): string {
+  const description = `[${scriptObj._id['brightCyan']}] ${scriptObj.context} - ${scriptObj.name['brightYellow']}`;
+  return description;
+}
 
 /**
  * List scripts

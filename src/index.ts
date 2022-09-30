@@ -13,6 +13,7 @@ export function getVersion() {
 }
 
 // Api Layer
+export * as TypesRaw from './api/ApiTypes';
 export * as NodeRaw from './api/NodeApi';
 export * as TreeRaw from './api/TreeApi';
 export * as StartupRaw from './api/StartupApi';
@@ -20,6 +21,7 @@ export * as SecretsRaw from './api/SecretsApi';
 export * as VariablesRaw from './api/VariablesApi';
 
 // Ops Layer
+export * as Types from './ops/OpsTypes';
 export * as Admin from './ops/AdminOps';
 export * as Authenticate from './ops/AuthenticateOps';
 export * as CirclesOfTrust from './ops/CirclesOfTrustOps';

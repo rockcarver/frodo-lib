@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { ThemeSkeleton } from '../api/ApiTypes';
 import {
   deleteTheme,
   deleteThemeByName,
@@ -23,6 +24,22 @@ import {
   saveToFile,
   validateImport,
 } from './utils/ExportImportUtils';
+
+/**
+ * Get a one-line description of the theme
+ * @param {ThemeSkeleton} themeObj theme object to describe
+ * @returns {string} a one-line description
+ */
+export function getOneLineDescription(themeObj: ThemeSkeleton): string {
+  const description = `[${themeObj._id['brightCyan']}] ${
+    themeObj.name['brightYellow']
+  }${
+    themeObj.linkedTrees
+      ? ' (' + themeObj.linkedTrees.join(', ')['brightCyan'] + ')'
+      : ''
+  }`;
+  return description;
+}
 
 /**
  * List all the themes

@@ -9,14 +9,15 @@ import {
   decodeBase64Url,
 } from '../../api/utils/Base64';
 import { printMessage } from './Console';
+import { ExportMetaData } from '../OpsTypes';
 
 export function getCurrentTimestamp() {
   const ts = new Date();
   return ts.toISOString();
 }
 
-function getMetadata() {
-  const metadata = {
+function getMetadata(): ExportMetaData {
+  const metadata: ExportMetaData = {
     origin: storage.session.getTenant(),
     originAmVersion: storage.session.getAmVersion(),
     exportedBy: storage.session.getUsername(),

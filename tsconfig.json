@@ -102,5 +102,5 @@
   },
   "files": ["src/index.ts"],
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"]
+  "exclude": ["src/**/*.test.ts", "src/**/*.test_.ts"]
 }
