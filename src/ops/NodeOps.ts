@@ -1,4 +1,9 @@
 import _ from 'lodash';
+import {
+  InnerNodeRefSkeletonInterface,
+  NodeRefSkeletonInterface,
+  NodeSkeleton,
+} from '../api/ApiTypes';
 import storage from '../storage/SessionStorage';
 import {
   getNode,
@@ -32,6 +37,22 @@ const scriptedNodes = [
 const emailTemplateNodes = ['EmailSuspendNode', 'EmailTemplateNode'];
 
 const emptyScriptPlaceholder = '[Empty]';
+
+/**
+ * Get a one-line description of the node
+ * @param {NodeSkeleton} nodeObj node object to describe
+ * @param {NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface} nodeRef node reference object
+ * @returns {string} a one-line description
+ */
+export function getOneLineDescription(
+  nodeObj: NodeSkeleton,
+  nodeRef?: NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface
+): string {
+  const description = `[${nodeObj._id['brightCyan']}] ${nodeObj._type._id}${
+    nodeRef ? ' - ' + nodeRef?.displayName['brightYellow'] : ''
+  }`;
+  return description;
+}
 
 /**
  * Helper to get all SAML2 dependencies for a given node object
