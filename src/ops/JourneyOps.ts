@@ -985,6 +985,34 @@ export async function importJourney(
               innerNodeId === newUuid ? '' : ` [${newUuid}]`
             } (${innerNodeData['_type']['_id']}) in journey ${treeId}.`
           );
+        } else if (
+          nodeImportError.response?.status === 400 &&
+          nodeImportError.response?.data?.message ===
+            'Invalid attribute specified.'
+        ) {
+          const { validAttributes } = nodeImportError.response.data.detail;
+          validAttributes.push('_id');
+          for (const attribute of Object.keys(innerNodeData)) {
+            if (!validAttributes.includes(attribute)) {
+              if (verbose)
+                printMessage(
+                  `\n      - Removing invalid attribute: ${attribute}`,
+                  'warn',
+                  false
+                );
+              delete innerNodeData[attribute];
+            }
+          }
+          try {
+            await putNode(newUuid, nodeType, innerNodeData);
+          } catch (nodeImportError2) {
+            printMessage(nodeImportError2.response.data, 'error');
+            throw new Error(
+              `Error importing node ${innerNodeId}${
+                innerNodeId === newUuid ? '' : ` [${newUuid}]`
+              } in journey ${treeId}`
+            );
+          }
         } else {
           printMessage(nodeImportError.response.data, 'error');
           throw new Error(
@@ -1059,6 +1087,34 @@ export async function importJourney(
               nodeId === newUuid ? '' : ` [${newUuid}]`
             } (${nodeData['_type']['_id']}) in journey ${treeId}.`
           );
+        } else if (
+          nodeImportError.response?.status === 400 &&
+          nodeImportError.response?.data?.message ===
+            'Invalid attribute specified.'
+        ) {
+          const { validAttributes } = nodeImportError.response.data.detail;
+          validAttributes.push('_id');
+          for (const attribute of Object.keys(nodeData)) {
+            if (!validAttributes.includes(attribute)) {
+              if (verbose)
+                printMessage(
+                  `\n      - Removing invalid attribute: ${attribute}`,
+                  'warn',
+                  false
+                );
+              delete nodeData[attribute];
+            }
+          }
+          try {
+            await putNode(newUuid, nodeType, nodeData);
+          } catch (nodeImportError2) {
+            printMessage(nodeImportError2.response.data, 'error');
+            throw new Error(
+              `Error importing node ${nodeId}${
+                nodeId === newUuid ? '' : ` [${newUuid}]`
+              } in journey ${treeId}`
+            );
+          }
         } else {
           printMessage(nodeImportError.response.data, 'error');
           throw new Error(
@@ -1117,7 +1173,7 @@ export async function importJourney(
           if (verbose)
             printMessage(
               `\n    - Removing invalid attribute: ${attribute}`,
-              'info',
+              'warn',
               false
             );
           delete treeObject.tree[attribute];
