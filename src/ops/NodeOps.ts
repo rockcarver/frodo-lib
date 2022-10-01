@@ -138,21 +138,6 @@ async function getSaml2NodeDependencies(
   }
 }
 
-// export async function getTreeNodes(treeObject) {
-//   const nodeList = Object.entries(treeObject.nodes);
-//   const results = await Promise.allSettled(
-//     nodeList.map(
-//       async ([nodeId, nodeInfo]) => await getNode(nodeId, nodeInfo['nodeType'])
-//     )
-//   );
-//   const nodes = results.filter((r) => r.status === 'fulfilled');
-//   nodes.map((f) => {
-//     return f.status;
-//   });
-//   const failedList = results.filter((r) => r.status === 'rejected');
-//   return nodes;
-// }
-
 /**
  * Find all node configuration objects that are no longer referenced by any tree
  * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
