@@ -79,3 +79,13 @@ gulp.task(
     gulp.series('clean-types', 'generate-types')
   )
 );
+
+gulp.task('watch', () => {
+  gulp.watch(
+    ['src/*.ts', 'src/**/*.ts'],
+    gulp.parallel(
+      gulp.series('transpile-esm', 'create-mjs-esm'),
+      'transpile-cjs'
+    )
+  );
+});
