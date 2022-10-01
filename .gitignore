@@ -1,4 +1,5 @@
 # built commonjs
+build/
 cjs/
 esm/
 types/
