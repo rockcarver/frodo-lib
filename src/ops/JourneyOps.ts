@@ -1839,6 +1839,7 @@ export function isCloudOnlyJourney(journey: SingleTreeExportInterface) {
  * - standard: can run on any instance of a ForgeRock platform
  * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
  * - premium: utilizes nodes, which come at a premium
+ * - custom: utilizes nodes not included in the ForgeRock platform release
  * @param {SingleTreeExportInterface} journey journey export data
  * @returns {JourneyClassification[]} an array of one or multiple classifications
  */
