@@ -19,13 +19,6 @@ import {
   getNodesByType,
 } from '../api/NodeApi';
 import { isCloudOnlyNode, isCustomNode, isPremiumNode } from './NodeOps';
-import * as Node from './NodeOps';
-import * as EmailTemplate from './EmailTemplateOps';
-import * as Script from './ScriptOps';
-import * as Theme from './ThemeOps';
-import * as Idp from './IdpOps';
-import * as Saml2 from './Saml2Ops';
-import * as CirclesOfTrust from './CirclesOfTrustOps';
 import { getTrees, getTree, putTree, deleteTree } from '../api/TreeApi';
 import { getEmailTemplate, putEmailTemplate } from '../api/EmailTemplateApi';
 import { getScript } from '../api/ScriptApi';
@@ -64,12 +57,11 @@ import {
 } from '../api/SocialIdentityProvidersApi';
 import { getThemes, putThemes } from '../api/ThemeApi';
 import { createOrUpdateScript } from './ScriptOps';
-import { TreeExportResolverInterface } from './OpsTypes';
+import { JourneyClassification, TreeExportResolverInterface } from './OpsTypes';
 import {
   InnerNodeRefSkeletonInterface,
   NodeRefSkeletonInterface,
   NodeSkeleton,
-  TreeSkeleton,
 } from '../api/ApiTypes';
 import {
   SingleTreeExportInterface,
@@ -92,16 +84,6 @@ const scriptedNodes = [
 const emailTemplateNodes = ['EmailSuspendNode', 'EmailTemplateNode'];
 
 const emptyScriptPlaceholder = '[Empty]';
-
-/**
- * Get a one-line description of the tree object
- * @param {TreeSkeleton} treeObj circle of trust object to describe
- * @returns {string} a one-line description
- */
-export function getOneLineDescription(treeObj: TreeSkeleton): string {
-  const description = `[${treeObj._id['brightCyan']}]`;
-  return description;
-}
 
 /**
  * Create an empty single tree export template
@@ -985,6 +967,34 @@ export async function importJourney(
               innerNodeId === newUuid ? '' : ` [${newUuid}]`
             } (${innerNodeData['_type']['_id']}) in journey ${treeId}.`
           );
+        } else if (
+          nodeImportError.response?.status === 400 &&
+          nodeImportError.response?.data?.message ===
+            'Invalid attribute specified.'
+        ) {
+          const { validAttributes } = nodeImportError.response.data.detail;
+          validAttributes.push('_id');
+          for (const attribute of Object.keys(innerNodeData)) {
+            if (!validAttributes.includes(attribute)) {
+              if (verbose)
+                printMessage(
+                  `\n      - Removing invalid attribute: ${attribute}`,
+                  'warn',
+                  false
+                );
+              delete innerNodeData[attribute];
+            }
+          }
+          try {
+            await putNode(newUuid, nodeType, innerNodeData);
+          } catch (nodeImportError2) {
+            printMessage(nodeImportError2.response.data, 'error');
+            throw new Error(
+              `Error importing node ${innerNodeId}${
+                innerNodeId === newUuid ? '' : ` [${newUuid}]`
+              } in journey ${treeId}`
+            );
+          }
         } else {
           printMessage(nodeImportError.response.data, 'error');
           throw new Error(
@@ -1059,6 +1069,34 @@ export async function importJourney(
               nodeId === newUuid ? '' : ` [${newUuid}]`
             } (${nodeData['_type']['_id']}) in journey ${treeId}.`
           );
+        } else if (
+          nodeImportError.response?.status === 400 &&
+          nodeImportError.response?.data?.message ===
+            'Invalid attribute specified.'
+        ) {
+          const { validAttributes } = nodeImportError.response.data.detail;
+          validAttributes.push('_id');
+          for (const attribute of Object.keys(nodeData)) {
+            if (!validAttributes.includes(attribute)) {
+              if (verbose)
+                printMessage(
+                  `\n      - Removing invalid attribute: ${attribute}`,
+                  'warn',
+                  false
+                );
+              delete nodeData[attribute];
+            }
+          }
+          try {
+            await putNode(newUuid, nodeType, nodeData);
+          } catch (nodeImportError2) {
+            printMessage(nodeImportError2.response.data, 'error');
+            throw new Error(
+              `Error importing node ${nodeId}${
+                nodeId === newUuid ? '' : ` [${newUuid}]`
+              } in journey ${treeId}`
+            );
+          }
         } else {
           printMessage(nodeImportError.response.data, 'error');
           throw new Error(
@@ -1087,8 +1125,10 @@ export async function importJourney(
   // and the identityResource ends in 'user'
   // Set the identityResource for the tree to the selected resource.
   if (
-    treeObject.tree.identityResource &&
-    (treeObject.tree['identityResource'] as string).endsWith('user')
+    (treeObject.tree.identityResource &&
+      (treeObject.tree['identityResource'] as string).endsWith('user')) ||
+    storage.session.getDeploymentType() === global.CLOUD_DEPLOYMENT_TYPE_KEY ||
+    storage.session.getDeploymentType() === global.FORGEOPS_DEPLOYMENT_TYPE_KEY
   ) {
     treeObject.tree.identityResource = `managed/${getRealmManagedUser()}`;
     if (verbose)
@@ -1115,7 +1155,7 @@ export async function importJourney(
           if (verbose)
             printMessage(
               `\n    - Removing invalid attribute: ${attribute}`,
-              'info',
+              'warn',
               false
             );
           delete treeObject.tree[attribute];
@@ -1633,171 +1673,6 @@ export async function getTreeDescendents(
   return treeDependencyMap;
 }
 
-function describeTreeDescendents(
-  descendents: TreeDependencyMapInterface,
-  depth = 0
-) {
-  if ([Object.values(descendents)].length) {
-    // heading
-    if (depth === 0) {
-      printMessage(
-        `\nInner Tree Dependencies (${Object.values(descendents)[0].length}):`,
-        'data'
-      );
-    }
-    const indent = Array(depth * 2)
-      .fill(' ')
-      .join('');
-    const [tree] = Object.keys(descendents);
-    printMessage(`${indent}- ${tree}`, 'data');
-    for (const descendent of descendents[tree]) {
-      describeTreeDescendents(descendent, depth + 1);
-    }
-  }
-}
-
-/**
- * Describe a journey:
- * - Properties, tags, description, name, metadata
- * - Inner tree dependency tree
- * - Node type summary
- * - Nodes
- * - Themes
- * - Scripts
- * - Email templates
- * - Social identity providers
- * - SAML2 entity providers
- * - SAML2 circles of trust
- * @param {SingleTreeExportInterface} journeyData journey export object
- * @param {TreeExportResolverInterface} resolveTreeExport tree export resolver callback function
- */
-export async function describeJourney(
-  journeyData: SingleTreeExportInterface,
-  resolveTreeExport: TreeExportResolverInterface = onlineTreeExportResolver
-): Promise<void> {
-  const allNodes = {
-    ...journeyData.nodes,
-    ...journeyData.innerNodes,
-  };
-  const nodeTypeMap = {};
-
-  for (const nodeData of Object.values(allNodes)) {
-    if (nodeTypeMap[nodeData._type._id]) {
-      nodeTypeMap[nodeData._type._id] += 1;
-    } else {
-      nodeTypeMap[nodeData._type._id] = 1;
-    }
-  }
-
-  printMessage(`${getOneLineDescription(journeyData.tree)}`, 'data');
-  printMessage(Array(`[${journeyData.tree._id}]`['length']).fill('=').join(''));
-  if (journeyData.tree.description) {
-    printMessage(`\n${journeyData.tree.description['brightYellow']}`, 'data');
-  }
-
-  const descendents = await getTreeDescendents(journeyData, resolveTreeExport);
-  describeTreeDescendents(descendents);
-
-  if (Object.entries(nodeTypeMap).length) {
-    printMessage(
-      `\nNode Types (${Object.entries(nodeTypeMap).length}):`,
-      'data'
-    );
-    for (const [name, count] of Object.entries(nodeTypeMap)) {
-      printMessage(`- ${String(count)} [${name['brightCyan']}]`, 'data');
-    }
-  }
-
-  if (Object.entries(allNodes).length) {
-    printMessage(`\nNodes (${Object.entries(allNodes).length}):`, 'data');
-    for (const nodeObj of Object.values<NodeSkeleton>(allNodes)) {
-      printMessage(
-        `- ${Node.getOneLineDescription(
-          nodeObj,
-          getNodeRef(nodeObj, journeyData)
-        )}`,
-        'data'
-      );
-    }
-  }
-
-  if (journeyData.themes?.length) {
-    printMessage(`\nThemes (${journeyData.themes.length}):`, 'data');
-    for (const themeData of journeyData.themes) {
-      printMessage(`- ${Theme.getOneLineDescription(themeData)}`, 'data');
-    }
-  }
-
-  if (Object.entries(journeyData.scripts).length) {
-    printMessage(
-      `\nScripts (${Object.entries(journeyData.scripts).length}):`,
-      'data'
-    );
-    for (const scriptData of Object.values(journeyData.scripts)) {
-      printMessage(`- ${Script.getOneLineDescription(scriptData)}`, 'data');
-    }
-  }
-
-  if (Object.entries(journeyData.emailTemplates).length) {
-    printMessage(
-      `\nEmail Templates (${
-        Object.entries(journeyData.emailTemplates).length
-      }):`,
-      'data'
-    );
-    for (const templateData of Object.values(journeyData.emailTemplates)) {
-      printMessage(
-        `- ${EmailTemplate.getOneLineDescription(templateData)}`,
-        'data'
-      );
-    }
-  }
-
-  if (Object.entries(journeyData.socialIdentityProviders).length) {
-    printMessage(
-      `\nSocial Identity Providers (${
-        Object.entries(journeyData.socialIdentityProviders).length
-      }):`,
-      'data'
-    );
-    for (const socialIdpData of Object.values(
-      journeyData.socialIdentityProviders
-    )) {
-      printMessage(`- ${Idp.getOneLineDescription(socialIdpData)}`, 'data');
-    }
-  }
-
-  if (Object.entries(journeyData.saml2Entities).length) {
-    printMessage(
-      `\nSAML2 Entity Providers (${
-        Object.entries(journeyData.saml2Entities).length
-      }):`,
-      'data'
-    );
-    for (const entityProviderData of Object.values(journeyData.saml2Entities)) {
-      printMessage(
-        `- ${Saml2.getOneLineDescription(entityProviderData)}`,
-        'data'
-      );
-    }
-  }
-
-  if (Object.entries(journeyData.circlesOfTrust).length) {
-    printMessage(
-      `\nSAML2 Circles Of Trust (${
-        Object.entries(journeyData.circlesOfTrust).length
-      }):`,
-      'data'
-    );
-    for (const cotData of Object.values(journeyData.circlesOfTrust)) {
-      printMessage(
-        `- ${CirclesOfTrust.getOneLineDescription(cotData)}`,
-        'data'
-      );
-    }
-  }
-}
-
 /**
  * Find all node configuration objects that are no longer referenced by any tree
  * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
@@ -1965,23 +1840,23 @@ export function isCloudOnlyJourney(journey: SingleTreeExportInterface) {
  * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
  * - premium: utilizes nodes, which come at a premium
  * @param {SingleTreeExportInterface} journey journey export data
- * @returns {string[]} an array of one or multiple classifications
+ * @returns {JourneyClassification[]} an array of one or multiple classifications
  */
 export function getJourneyClassification(
   journey: SingleTreeExportInterface
-): string[] {
-  const classifications = [];
+): JourneyClassification[] {
+  const classifications: JourneyClassification[] = [];
   const premium = isPremiumJourney(journey);
   const custom = isCustomJourney(journey);
   const cloud = isCloudOnlyJourney(journey);
   if (custom) {
-    classifications.push('custom');
+    classifications.push(JourneyClassification.CUSTOM);
   } else if (cloud) {
-    classifications.push('cloud');
+    classifications.push(JourneyClassification.CLOUD);
   } else {
-    classifications.push('standard');
+    classifications.push(JourneyClassification.STANDARD);
   }
-  if (premium) classifications.push('premium');
+  if (premium) classifications.push(JourneyClassification.PREMIUM);
   return classifications;
 }
 

@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import Color from 'colors';
+
+Color.enable();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -34,6 +37,7 @@ export * as Log from './ops/LogOps';
 export * as ManagedObject from './ops/ManagedObjectOps';
 export * as OAuth2Client from './ops/OAuth2ClientOps';
 export * as Organization from './ops/OrganizationOps';
+export * as Node from './ops/NodeOps';
 export * as Realm from './ops/RealmOps';
 export * as Saml2 from './ops/Saml2Ops';
 export * as Script from './ops/ScriptOps';

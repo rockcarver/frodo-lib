@@ -16,7 +16,8 @@
     "test": "npx gulp && node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --silent",
     "test:debug": "npx gulp && node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false",
     "lint": "npx eslint --ext .ts --ignore-path .gitignore .",
-    "build": "npx gulp"
+    "build": "npx gulp",
+    "watch": "npx gulp watch"
   },
   "jest": {
     "roots": [
