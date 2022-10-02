@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.7] - 2022-10-02
+
 ### Changed
 
 -   \#107: Frodo now sets identityResource on import when the target is ID Cloud or ForgeOps but the import file was exported from a classic deployment
@@ -571,7 +573,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.12.6...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.12.7...HEAD
+
+[0.12.7]: https://github.com/rockcarver/frodo-lib/compare/v0.12.6...v0.12.7
 
 [0.12.6]: https://github.com/rockcarver/frodo-lib/compare/v0.12.5...v0.12.6
 
