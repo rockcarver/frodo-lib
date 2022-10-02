@@ -18,17 +18,6 @@ import {
   saveJsonToFile,
   validateImport,
 } from './utils/ExportImportUtils';
-import { CircleOfTrustSkeleton } from '../api/ApiTypes';
-
-/**
- * Get a one-line description of the circle of trust object
- * @param {CircleOfTrustSkeleton} cotObj circle of trust object to describe
- * @returns {string} a one-line description
- */
-export function getOneLineDescription(cotObj: CircleOfTrustSkeleton): string {
-  const description = `[${cotObj._id['brightCyan']}]`;
-  return description;
-}
 
 // use a function vs a template variable to avoid problems in loops
 function getFileDataTemplate() {
