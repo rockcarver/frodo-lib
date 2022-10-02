@@ -5,7 +5,7 @@ interface ObjectSkeletonInterface {
 }
 
 export interface UiConfigInterface {
-  categories: string[];
+  categories: string;
 }
 
 export interface NodeRefSkeletonInterface {

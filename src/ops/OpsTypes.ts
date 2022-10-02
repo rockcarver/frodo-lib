@@ -80,3 +80,17 @@ export interface TreeDependencyMapInterface {
 export interface TreeExportResolverInterface {
   (treeId: string): Promise<SingleTreeExportInterface>;
 }
+
+export enum NodeClassification {
+  STANDARD = 'standard',
+  CUSTOM = 'custom',
+  CLOUD = 'cloud',
+  PREMIUM = 'premium',
+}
+
+export enum JourneyClassification {
+  STANDARD = 'standard',
+  CUSTOM = 'custom',
+  CLOUD = 'cloud',
+  PREMIUM = 'premium',
+}

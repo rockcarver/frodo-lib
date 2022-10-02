@@ -23,6 +23,7 @@ import {
   getProviderMetadata,
 } from '../api/Saml2Api';
 import { encodeBase64Url } from '../api/utils/Base64';
+import { NodeClassification } from './OpsTypes';
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
 
@@ -37,22 +38,6 @@ const scriptedNodes = [
 const emailTemplateNodes = ['EmailSuspendNode', 'EmailTemplateNode'];
 
 const emptyScriptPlaceholder = '[Empty]';
-
-/**
- * Get a one-line description of the node
- * @param {NodeSkeleton} nodeObj node object to describe
- * @param {NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface} nodeRef node reference object
- * @returns {string} a one-line description
- */
-export function getOneLineDescription(
-  nodeObj: NodeSkeleton,
-  nodeRef?: NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface
-): string {
-  const description = `[${nodeObj._id['brightCyan']}] ${nodeObj._type._id}${
-    nodeRef ? ' - ' + nodeRef?.displayName['brightYellow'] : ''
-  }`;
-  return description;
-}
 
 /**
  * Helper to get all SAML2 dependencies for a given node object
@@ -137,21 +122,6 @@ async function getSaml2NodeDependencies(
     return saml2NodeDependencies;
   }
 }
-
-// export async function getTreeNodes(treeObject) {
-//   const nodeList = Object.entries(treeObject.nodes);
-//   const results = await Promise.allSettled(
-//     nodeList.map(
-//       async ([nodeId, nodeInfo]) => await getNode(nodeId, nodeInfo['nodeType'])
-//     )
-//   );
-//   const nodes = results.filter((r) => r.status === 'fulfilled');
-//   nodes.map((f) => {
-//     return f.status;
-//   });
-//   const failedList = results.filter((r) => r.status === 'rejected');
-//   return nodes;
-// }
 
 /**
  * Find all node configuration objects that are no longer referenced by any tree
@@ -554,4 +524,28 @@ export function isCustomNode(nodeType: string): boolean {
     !isPremiumNode(nodeType) &&
     !isCloudOnlyNode(nodeType)
   );
+}
+
+/**
+ * Get a node's classifications, which can be one or multiple of:
+ * - standard: can run on any instance of a ForgeRock platform
+ * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
+ * - premium: utilizes nodes, which come at a premium
+ * @param {string} nodeType Node type
+ * @returns {NodeClassification[]} an array of one or multiple classifications
+ */
+export function getNodeClassification(nodeType: string): NodeClassification[] {
+  const classifications: NodeClassification[] = [];
+  const premium = isPremiumNode(nodeType);
+  const custom = isCustomNode(nodeType);
+  const cloud = isCloudOnlyNode(nodeType);
+  if (custom) {
+    classifications.push(NodeClassification.CUSTOM);
+  } else if (cloud) {
+    classifications.push(NodeClassification.CLOUD);
+  } else {
+    classifications.push(NodeClassification.STANDARD);
+  }
+  if (premium) classifications.push(NodeClassification.PREMIUM);
+  return classifications;
 }
