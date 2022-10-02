@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+-   \#107: Frodo now sets identityResource on import when the target is ID Cloud or ForgeOps but the import file was exported from a classic deployment
+-   Better journey import resiliency by handling `400 - invalid attribute` errors and retrying without the attributes. This is necessary to import journeys exported from a different version requiring different configuration options. Use the `--verbose` parameter to see when invalid attributes are being removed on import.
+
 ## [0.12.6] - 2022-09-30
 
 ### Added

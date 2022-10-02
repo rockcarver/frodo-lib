@@ -85,7 +85,8 @@ gulp.task('watch', () => {
     ['src/*.ts', 'src/**/*.ts'],
     gulp.parallel(
       gulp.series('transpile-esm', 'create-mjs-esm'),
-      'transpile-cjs'
+      'transpile-cjs',
+      'generate-types'
     )
   );
 });

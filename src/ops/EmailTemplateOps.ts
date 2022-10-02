@@ -1,5 +1,4 @@
 import fs from 'fs';
-import { EmailTemplateSkeleton } from '../api/ApiTypes';
 import {
   EMAIL_TEMPLATE_TYPE,
   getEmailTemplate,
@@ -36,20 +35,6 @@ function getFileDataTemplate() {
     meta: {},
     emailTemplate: {},
   };
-}
-
-/**
- * Get a one-line description of the email template
- * @param {EmailTemplateSkeleton} templateObj email template object to describe
- * @returns {string} a one-line description
- */
-export function getOneLineDescription(
-  templateObj: EmailTemplateSkeleton
-): string {
-  const description = `[${templateObj._id.split('/')[1]['brightCyan']}] ${
-    templateObj.displayName['brightYellow']
-  } - ${templateObj.subject[templateObj.defaultLocale]['brightYellow']}`;
-  return description;
 }
 
 /**
