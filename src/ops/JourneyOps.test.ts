@@ -300,3 +300,63 @@ describe('JourneyOps - importJourney()', () => {
     expect(socialProviderIds.length).toBe(0);
   });
 });
+
+describe('JourneyOps - enableJourney()', () => {
+  test('enableJourney() 0: Method is implemented', async () => {
+    expect(Journey.enableJourney).toBeDefined();
+  });
+
+  test('enableJourney() 1: Enable a disabled journey', async () => {
+    const treeId = 'Disabled';
+    mockGetTree(mock);
+    mockPutTree(mock, (mockTreeId, mockTreeObj) => {
+      expect(mockTreeId).toEqual(treeId);
+      expect(mockTreeObj['enabled']).toBeTruthy();
+    });
+    expect.assertions(4);
+    const result = await Journey.enableJourney(treeId);
+    expect(result).toBeTruthy();
+  });
+
+  test('enableJourney() 2: Enable an already enabled journey', async () => {
+    const treeId = 'FrodoTest';
+    mockGetTree(mock);
+    mockPutTree(mock, (mockTreeId, mockTreeObj) => {
+      expect(mockTreeId).toEqual(treeId);
+      expect(mockTreeObj['enabled']).toBeTruthy();
+    });
+    expect.assertions(4);
+    const result = await Journey.enableJourney(treeId);
+    expect(result).toBeTruthy();
+  });
+});
+
+describe('JourneyOps - disableJourney()', () => {
+  test('disableJourney() 0: Method is implemented', async () => {
+    expect(Journey.disableJourney).toBeDefined();
+  });
+
+  test('disableJourney() 1: Disable an enabled journey', async () => {
+    const treeId = 'FrodoTest';
+    mockGetTree(mock);
+    mockPutTree(mock, (mockTreeId, mockTreeObj) => {
+      expect(mockTreeId).toEqual(treeId);
+      expect(mockTreeObj['enabled']).toBeFalsy();
+    });
+    expect.assertions(4);
+    const result = await Journey.disableJourney(treeId);
+    expect(result).toBeTruthy();
+  });
+
+  test('disableJourney() 2: Disable an already disabled journey', async () => {
+    const treeId = 'Disabled';
+    mockGetTree(mock);
+    mockPutTree(mock, (mockTreeId, mockTreeObj) => {
+      expect(mockTreeId).toEqual(treeId);
+      expect(mockTreeObj['enabled']).toBeFalsy();
+    });
+    expect.assertions(4);
+    const result = await Journey.disableJourney(treeId);
+    expect(result).toBeTruthy();
+  });
+});

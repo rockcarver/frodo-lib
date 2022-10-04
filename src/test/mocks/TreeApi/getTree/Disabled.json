@@ -1,0 +1,26 @@
+{
+  "_id": "Disabled",
+  "_rev": "-296440409",
+  "identityResource": "managed/alpha_user",
+  "uiConfig": {
+    "categories": "[\"Prototype\"]"
+  },
+  "entryNodeId": "e301438c-0bd0-429c-ab0c-66126501069a",
+  "nodes": {},
+  "description": "Test the new status flag for journeys.",
+  "staticNodes": {
+    "70e691a5-1e33-4ac3-a356-e7b6d60d92e0": {
+      "x": 500,
+      "y": 50
+    },
+    "e301438c-0bd0-429c-ab0c-66126501069a": {
+      "x": 500,
+      "y": 350
+    },
+    "startNode": {
+      "x": 50,
+      "y": 250
+    }
+  },
+  "enabled": false
+}
