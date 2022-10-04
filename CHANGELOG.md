@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+-   rockcarver/frodo-cli\#70: Added ability to create custom logging noise filters
+
 ## [0.13.1] - 2022-10-04
 
 ### Fixed
