@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.2-0] - 2022-10-04
+
 ### Added
 
--   rockcarver/frodo-cli\#70: Added ability to create custom logging noise filters
+-   rockcarver/frodo-cli#70: Added ability to create custom logging noise filters
 
 ## [0.13.1] - 2022-10-04
 
@@ -593,7 +595,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.13.1...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.13.2-0...HEAD
+
+[0.13.2-0]: https://github.com/rockcarver/frodo-lib/compare/v0.13.1...v0.13.2-0
 
 [0.13.1]: https://github.com/rockcarver/frodo-lib/compare/v0.13.0...v0.13.1
 
