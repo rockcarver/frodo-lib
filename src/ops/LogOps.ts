@@ -230,6 +230,10 @@ const logLevelMap = {
   ALL: ['ALL'],
 };
 
+export function defaultNoiseFilter() {
+  return noise;
+}
+
 export function resolveLevel(level) {
   //   const levels = ['FATAL', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE', 'ALL'];
   //   levels.splice(levels.indexOf(levelName) + 1, levels.length);
@@ -270,7 +274,7 @@ export async function getLogSources() {
   return sources;
 }
 
-export async function tailLogs(source, levels, txid, cookie) {
+export async function tailLogs(source, levels, txid, cookie, nf) {
   try {
     const response = await LogApi.tail(source, cookie);
     if (response.status < 200 || response.status > 399) {
@@ -285,11 +289,12 @@ export async function tailLogs(source, levels, txid, cookie) {
     // }
     const logsObject = response.data;
     let filteredLogs = [];
+    const noiseFilter = nf == null ? noise : nf;
     if (Array.isArray(logsObject.result)) {
       filteredLogs = logsObject.result.filter(
         (el) =>
-          !noise.includes(el.payload.logger) &&
-          !noise.includes(el.type) &&
+          !noiseFilter.includes(el.payload.logger) &&
+          !noiseFilter.includes(el.type) &&
           (levels[0] === 'ALL' || levels.includes(resolvePayloadLevel(el))) &&
           (typeof txid === 'undefined' ||
             txid === null ||
@@ -302,7 +307,7 @@ export async function tailLogs(source, levels, txid, cookie) {
     });
 
     setTimeout(() => {
-      tailLogs(source, levels, txid, logsObject.result.pagedResultsCookie);
+      tailLogs(source, levels, txid, logsObject.result.pagedResultsCookie, nf);
     }, 5000);
     return null;
   } catch (e) {
