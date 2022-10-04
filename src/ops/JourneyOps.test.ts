@@ -311,9 +311,10 @@ describe('JourneyOps - enableJourney()', () => {
     mockGetTree(mock);
     mockPutTree(mock, (mockTreeId, mockTreeObj) => {
       expect(mockTreeId).toEqual(treeId);
+      expect(mockTreeObj['_rev']).toBeFalsy();
       expect(mockTreeObj['enabled']).toBeTruthy();
     });
-    expect.assertions(4);
+    expect.assertions(5);
     const result = await Journey.enableJourney(treeId);
     expect(result).toBeTruthy();
   });
@@ -323,9 +324,10 @@ describe('JourneyOps - enableJourney()', () => {
     mockGetTree(mock);
     mockPutTree(mock, (mockTreeId, mockTreeObj) => {
       expect(mockTreeId).toEqual(treeId);
+      expect(mockTreeObj['_rev']).toBeFalsy();
       expect(mockTreeObj['enabled']).toBeTruthy();
     });
-    expect.assertions(4);
+    expect.assertions(5);
     const result = await Journey.enableJourney(treeId);
     expect(result).toBeTruthy();
   });
@@ -341,9 +343,10 @@ describe('JourneyOps - disableJourney()', () => {
     mockGetTree(mock);
     mockPutTree(mock, (mockTreeId, mockTreeObj) => {
       expect(mockTreeId).toEqual(treeId);
+      expect(mockTreeObj['_rev']).toBeFalsy();
       expect(mockTreeObj['enabled']).toBeFalsy();
     });
-    expect.assertions(4);
+    expect.assertions(5);
     const result = await Journey.disableJourney(treeId);
     expect(result).toBeTruthy();
   });
@@ -353,9 +356,10 @@ describe('JourneyOps - disableJourney()', () => {
     mockGetTree(mock);
     mockPutTree(mock, (mockTreeId, mockTreeObj) => {
       expect(mockTreeId).toEqual(treeId);
+      expect(mockTreeObj['_rev']).toBeFalsy();
       expect(mockTreeObj['enabled']).toBeFalsy();
     });
-    expect.assertions(4);
+    expect.assertions(5);
     const result = await Journey.disableJourney(treeId);
     expect(result).toBeTruthy();
   });

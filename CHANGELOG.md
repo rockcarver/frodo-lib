@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+-   \#113: Frodo now properly enables and disables journeys.
+
 ## [0.13.0] - 2022-10-04
 
 ### Added
