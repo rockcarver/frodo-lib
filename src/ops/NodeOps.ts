@@ -448,7 +448,12 @@ const OOTB_NODE_TYPES_6 = [
   'ZeroPageLoginNode',
 ];
 
-const CLOUD_ONLY_NODE_TYPES = ['IdentityStoreDecisionNode'];
+const CLOUD_ONLY_NODE_TYPES = [
+  'IdentityStoreDecisionNode',
+  'AutonomousAccessSignalNode',
+  'AutonomousAccessDecisionNode',
+  'AutonomousAccessResultNode',
+];
 
 const PREMIUM_NODE_TYPES = [
   'AutonomousAccessSignalNode',
