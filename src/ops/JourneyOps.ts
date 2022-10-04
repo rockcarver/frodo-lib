@@ -1839,6 +1839,7 @@ export function isCloudOnlyJourney(journey: SingleTreeExportInterface) {
  * - standard: can run on any instance of a ForgeRock platform
  * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
  * - premium: utilizes nodes, which come at a premium
+ * - custom: utilizes nodes not included in the ForgeRock platform release
  * @param {SingleTreeExportInterface} journey journey export data
  * @returns {JourneyClassification[]} an array of one or multiple classifications
  */
@@ -2148,4 +2149,36 @@ export async function deleteJourneys(options) {
     }/${nodeCount} nodes.`
   );
   return status;
+}
+
+/**
+ * Enable a journey
+ * @param journeyId journey id/name
+ * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+ */
+export async function enableJourney(journeyId: string): Promise<boolean> {
+  try {
+    const treeObject = await getTree(journeyId);
+    treeObject['enabled'] = true;
+    const newTreeObject = await putTree(journeyId, treeObject);
+    return newTreeObject['enabled'] === true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Disable a journey
+ * @param journeyId journey id/name
+ * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+ */
+export async function disableJourney(journeyId: string): Promise<boolean> {
+  try {
+    const treeObject = await getTree(journeyId);
+    treeObject['enabled'] = false;
+    const newTreeObject = await putTree(journeyId, treeObject);
+    return newTreeObject['enabled'] === false;
+  } catch (error) {
+    return false;
+  }
 }
