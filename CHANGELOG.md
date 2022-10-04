@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- \#110: Added `enableJourney` and `disableJourney` funtions to `JourneyOps.ts` in support of new `frodo-cli` commands `frodo journey enable` and `frodo journey disable`
+
 ### Fixed
 
 - \#109: Autonomous Access nodes are now properly classified as `premium` and `cloud`.

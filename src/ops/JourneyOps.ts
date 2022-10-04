@@ -2150,3 +2150,35 @@ export async function deleteJourneys(options) {
   );
   return status;
 }
+
+/**
+ * Enable a journey
+ * @param journeyId journey id/name
+ * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+ */
+export async function enableJourney(journeyId: string): Promise<boolean> {
+  try {
+    const treeObject = await getTree(journeyId);
+    treeObject['enabled'] = true;
+    const newTreeObject = await putTree(journeyId, treeObject);
+    return newTreeObject['enabled'] === true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Disable a journey
+ * @param journeyId journey id/name
+ * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+ */
+export async function disableJourney(journeyId: string): Promise<boolean> {
+  try {
+    const treeObject = await getTree(journeyId);
+    treeObject['enabled'] = false;
+    const newTreeObject = await putTree(journeyId, treeObject);
+    return newTreeObject['enabled'] === false;
+  } catch (error) {
+    return false;
+  }
+}
