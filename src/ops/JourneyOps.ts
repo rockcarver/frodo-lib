@@ -2160,9 +2160,11 @@ export async function enableJourney(journeyId: string): Promise<boolean> {
   try {
     const treeObject = await getTree(journeyId);
     treeObject['enabled'] = true;
+    delete treeObject._rev;
     const newTreeObject = await putTree(journeyId, treeObject);
     return newTreeObject['enabled'] === true;
   } catch (error) {
+    printMessage(error.response.data, 'error');
     return false;
   }
 }
@@ -2176,9 +2178,11 @@ export async function disableJourney(journeyId: string): Promise<boolean> {
   try {
     const treeObject = await getTree(journeyId);
     treeObject['enabled'] = false;
+    delete treeObject._rev;
     const newTreeObject = await putTree(journeyId, treeObject);
     return newTreeObject['enabled'] === false;
   } catch (error) {
+    printMessage(error.response.data, 'error');
     return false;
   }
 }
