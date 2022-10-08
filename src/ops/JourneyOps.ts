@@ -213,135 +213,70 @@ export async function exportJourney(
     verbose: false,
   }
 ): Promise<SingleTreeExportInterface> {
-  const treeObject = await getTree(treeId);
   const exportData = createSingleTreeExportTemplate();
-  const { useStringArrays, deps, verbose } = options;
+  try {
+    const treeObject = await getTree(treeId);
+    const { useStringArrays, deps, verbose } = options;
 
-  if (verbose) printMessage(`\n- ${treeObject._id}\n`, 'info', false);
+    if (verbose) printMessage(`\n- ${treeObject._id}\n`, 'info', false);
 
-  // Process tree
-  if (verbose) printMessage('  - Flow');
-  exportData.tree = treeObject;
-  if (verbose && treeObject.identityResource)
-    printMessage(
-      `    - identityResource: ${treeObject.identityResource}`,
-      'info'
-    );
-  if (verbose) printMessage(`    - Done`, 'info');
-
-  const nodePromises = [];
-  const scriptPromises = [];
-  const emailTemplatePromises = [];
-  const innerNodePromises = [];
-  const saml2ConfigPromises = [];
-  let socialProviderPromise = null;
-  const themePromise =
-    deps &&
-    storage.session.getDeploymentType() !== global.CLASSIC_DEPLOYMENT_TYPE_KEY
-      ? getThemes().catch((error) => {
-          printMessage(error, 'error');
-        })
-      : null;
-
-  let allSaml2Providers = null;
-  let allCirclesOfTrust = null;
-  let filteredSocialProviders = null;
-  const themes = [];
-
-  // get all the nodes
-  for (const [nodeId, nodeInfo] of Object.entries(treeObject.nodes)) {
-    nodePromises.push(getNode(nodeId, nodeInfo['nodeType']));
-  }
-  if (verbose && nodePromises.length > 0) printMessage('  - Nodes:');
-  const nodeObjects = await Promise.all(nodePromises);
-
-  // iterate over every node in tree
-  for (const nodeObject of nodeObjects) {
-    const nodeId = nodeObject._id;
-    const nodeType = nodeObject._type._id;
-    if (verbose) printMessage(`    - ${nodeId} (${nodeType})`, 'info', true);
-    exportData.nodes[nodeObject._id] = nodeObject;
-
-    // handle script node types
-    if (
-      deps &&
-      scriptedNodes.includes(nodeType) &&
-      nodeObject.script !== emptyScriptPlaceholder
-    ) {
-      scriptPromises.push(getScript(nodeObject.script));
-    }
-
-    // frodo supports email templates in platform deployments
-    if (
-      (deps &&
-        storage.session.getDeploymentType() ===
-          global.CLOUD_DEPLOYMENT_TYPE_KEY) ||
-      storage.session.getDeploymentType() ===
-        global.FORGEOPS_DEPLOYMENT_TYPE_KEY
-    ) {
-      if (emailTemplateNodes.includes(nodeType)) {
-        try {
-          const emailTemplate = await getEmailTemplate(
-            nodeObject.emailTemplateName
-          );
-          emailTemplatePromises.push(emailTemplate);
-        } catch (error) {
-          let message = `${error}`;
-          if (error.isAxiosError && error.response.status) {
-            message = error.response.statusText;
-          }
-          printMessage(
-            `\n${message}: Email Template "${nodeObject.emailTemplateName}"`,
-            'error'
-          );
-        }
-      }
-    }
-
-    // handle SAML2 node dependencies
-    if (deps && nodeType === 'product-Saml2Node') {
-      if (!allSaml2Providers) {
-        // eslint-disable-next-line no-await-in-loop
-        allSaml2Providers = (await getProviders()).result;
-      }
-      if (!allCirclesOfTrust) {
-        // eslint-disable-next-line no-await-in-loop
-        allCirclesOfTrust = (await getCirclesOfTrust()).result;
-      }
-      saml2ConfigPromises.push(
-        getSaml2NodeDependencies(
-          nodeObject,
-          allSaml2Providers,
-          allCirclesOfTrust
-        )
+    // Process tree
+    if (verbose) printMessage('  - Flow');
+    exportData.tree = treeObject;
+    if (verbose && treeObject.identityResource)
+      printMessage(
+        `    - identityResource: ${treeObject.identityResource}`,
+        'info'
       );
-    }
+    if (verbose) printMessage(`    - Done`, 'info');
 
-    // If this is a SocialProviderHandlerNode get each enabled social identity provider.
+    const nodePromises = [];
+    const scriptPromises = [];
+    const emailTemplatePromises = [];
+    const innerNodePromises = [];
+    const saml2ConfigPromises = [];
+    let socialProviderPromise = null;
+    let themePromise = null;
     if (
       deps &&
-      !socialProviderPromise &&
-      nodeType === 'SocialProviderHandlerNode'
+      storage.session.getDeploymentType() !== global.CLASSIC_DEPLOYMENT_TYPE_KEY
     ) {
-      socialProviderPromise = getSocialIdentityProviders();
-    }
-
-    // If this is a SelectIdPNode and filteredProviters is not already set to empty array set filteredSocialProviers.
-    if (deps && !filteredSocialProviders && nodeType === 'SelectIdPNode') {
-      filteredSocialProviders = filteredSocialProviders || [];
-      for (const filteredProvider of nodeObject.filteredProviders) {
-        if (!filteredSocialProviders.includes(filteredProvider)) {
-          filteredSocialProviders.push(filteredProvider);
-        }
+      try {
+        themePromise = getThemes();
+      } catch (error) {
+        printMessage(error, 'error');
       }
     }
 
-    // get inner nodes (nodes inside container nodes)
-    if (containerNodes.includes(nodeType)) {
-      for (const innerNode of nodeObject.nodes) {
-        innerNodePromises.push(getNode(innerNode._id, innerNode.nodeType));
+    let allSaml2Providers = null;
+    let allCirclesOfTrust = null;
+    let filteredSocialProviders = null;
+    const themes = [];
+
+    // get all the nodes
+    for (const [nodeId, nodeInfo] of Object.entries(treeObject.nodes)) {
+      nodePromises.push(getNode(nodeId, nodeInfo['nodeType']));
+    }
+    if (verbose && nodePromises.length > 0) printMessage('  - Nodes:');
+    const nodeObjects = await Promise.all(nodePromises);
+
+    // iterate over every node in tree
+    for (const nodeObject of nodeObjects) {
+      const nodeId = nodeObject._id;
+      const nodeType = nodeObject._type._id;
+      if (verbose) printMessage(`    - ${nodeId} (${nodeType})`, 'info', true);
+      exportData.nodes[nodeObject._id] = nodeObject;
+
+      // handle script node types
+      if (
+        deps &&
+        scriptedNodes.includes(nodeType) &&
+        nodeObject.script !== emptyScriptPlaceholder
+      ) {
+        scriptPromises.push(getScript(nodeObject.script));
       }
-      // frodo supports themes in platform deployments
+
+      // frodo supports email templates in platform deployments
       if (
         (deps &&
           storage.session.getDeploymentType() ===
@@ -349,224 +284,303 @@ export async function exportJourney(
         storage.session.getDeploymentType() ===
           global.FORGEOPS_DEPLOYMENT_TYPE_KEY
       ) {
-        let themeId = false;
-
-        if (nodeObject.stage) {
-          // see if themeId is part of the stage object
+        if (emailTemplateNodes.includes(nodeType)) {
           try {
-            themeId = JSON.parse(nodeObject.stage).themeId;
-          } catch (e) {
-            themeId = false;
+            const emailTemplate = await getEmailTemplate(
+              nodeObject.emailTemplateName
+            );
+            emailTemplatePromises.push(emailTemplate);
+          } catch (error) {
+            let message = `${error}`;
+            if (error.isAxiosError && error.response.status) {
+              message = error.response.statusText;
+            }
+            printMessage(
+              `\n${message}: Email Template "${nodeObject.emailTemplateName}"`,
+              'error'
+            );
           }
-          // if the page node's themeId is set the "old way" set themeId accordingly
-          if (!themeId && nodeObject.stage.indexOf('themeId=') === 0) {
-            // eslint-disable-next-line prefer-destructuring
-            themeId = nodeObject.stage.split('=')[1];
-          }
-        }
-
-        if (themeId) {
-          if (!themes.includes(themeId)) themes.push(themeId);
         }
       }
-    }
-  }
 
-  // Process inner nodes
-  if (verbose && innerNodePromises.length > 0) printMessage('  - Inner nodes:');
-  const innerNodeDataResults = await Promise.all(innerNodePromises);
-  for (const innerNodeObject of innerNodeDataResults) {
-    const innerNodeId = innerNodeObject._id;
-    const innerNodeType = innerNodeObject._type._id;
-    if (verbose)
-      printMessage(`    - ${innerNodeId} (${innerNodeType})`, 'info', true);
-    exportData.innerNodes[innerNodeId] = innerNodeObject;
-
-    // handle script node types
-    if (deps && scriptedNodes.includes(innerNodeType)) {
-      scriptPromises.push(getScript(innerNodeObject.script));
-    }
-
-    // frodo supports email templates in platform deployments
-    if (
-      (deps &&
-        storage.session.getDeploymentType() ===
-          global.CLOUD_DEPLOYMENT_TYPE_KEY) ||
-      storage.session.getDeploymentType() ===
-        global.FORGEOPS_DEPLOYMENT_TYPE_KEY
-    ) {
-      if (emailTemplateNodes.includes(innerNodeType)) {
-        try {
-          const emailTemplate = await getEmailTemplate(
-            innerNodeObject.emailTemplateName
-          );
-          emailTemplatePromises.push(emailTemplate);
-        } catch (error) {
-          let message = `${error}`;
-          if (error.isAxiosError && error.response.status) {
-            message = error.response.statusText;
-          }
-          printMessage(
-            `\n${message}: Email Template "${innerNodeObject.emailTemplateName}"`,
-            'error'
-          );
+      // handle SAML2 node dependencies
+      if (deps && nodeType === 'product-Saml2Node') {
+        if (!allSaml2Providers) {
+          // eslint-disable-next-line no-await-in-loop
+          allSaml2Providers = (await getProviders()).result;
         }
-      }
-    }
-
-    // handle SAML2 node dependencies
-    if (deps && innerNodeType === 'product-Saml2Node') {
-      printMessage('SAML2 inner node', 'error');
-      if (!allSaml2Providers) {
-        // eslint-disable-next-line no-await-in-loop
-        allSaml2Providers = (await getProviders()).result;
-      }
-      if (!allCirclesOfTrust) {
-        // eslint-disable-next-line no-await-in-loop
-        allCirclesOfTrust = (await getCirclesOfTrust()).result;
-      }
-      saml2ConfigPromises.push(
-        getSaml2NodeDependencies(
-          innerNodeObject,
-          allSaml2Providers,
-          allCirclesOfTrust
-        )
-      );
-    }
-
-    // If this is a SocialProviderHandlerNode get each enabled social identity provider.
-    if (
-      deps &&
-      !socialProviderPromise &&
-      innerNodeType === 'SocialProviderHandlerNode'
-    ) {
-      socialProviderPromise = getSocialIdentityProviders();
-    }
-
-    // If this is a SelectIdPNode and filteredProviters is not already set to empty array set filteredSocialProviers.
-    if (
-      deps &&
-      !filteredSocialProviders &&
-      innerNodeType === 'SelectIdPNode' &&
-      innerNodeObject.filteredProviders
-    ) {
-      filteredSocialProviders = filteredSocialProviders || [];
-      for (const filteredProvider of innerNodeObject.filteredProviders) {
-        if (!filteredSocialProviders.includes(filteredProvider)) {
-          filteredSocialProviders.push(filteredProvider);
+        if (!allCirclesOfTrust) {
+          // eslint-disable-next-line no-await-in-loop
+          allCirclesOfTrust = (await getCirclesOfTrust()).result;
         }
-      }
-    }
-  }
-
-  // Process email templates
-  if (verbose && emailTemplatePromises.length > 0)
-    printMessage('  - Email templates:');
-  const settledEmailTemplatePromises = await Promise.allSettled(
-    emailTemplatePromises
-  );
-  for (const settledPromise of settledEmailTemplatePromises) {
-    if (settledPromise.status === 'fulfilled' && settledPromise.value) {
-      if (verbose)
-        printMessage(
-          `    - ${settledPromise.value._id.split('/')[1]}${
-            settledPromise.value.displayName
-              ? ` (${settledPromise.value.displayName})`
-              : ''
-          }`,
-          'info',
-          true
+        saml2ConfigPromises.push(
+          getSaml2NodeDependencies(
+            nodeObject,
+            allSaml2Providers,
+            allCirclesOfTrust
+          )
         );
-      exportData.emailTemplates[settledPromise.value._id.split('/')[1]] =
-        settledPromise.value;
-    }
-  }
+      }
 
-  // Process SAML2 providers and circles of trust
-  const saml2NodeDependencies = await Promise.all(saml2ConfigPromises);
-  for (const saml2NodeDependency of saml2NodeDependencies) {
-    if (saml2NodeDependency) {
-      if (verbose) printMessage('  - SAML2 entity providers:');
-      for (const saml2Entity of saml2NodeDependency.saml2Entities) {
+      // If this is a SocialProviderHandlerNode get each enabled social identity provider.
+      if (
+        deps &&
+        !socialProviderPromise &&
+        nodeType === 'SocialProviderHandlerNode'
+      ) {
+        socialProviderPromise = getSocialIdentityProviders();
+      }
+
+      // If this is a SelectIdPNode and filteredProviters is not already set to empty array set filteredSocialProviers.
+      if (deps && !filteredSocialProviders && nodeType === 'SelectIdPNode') {
+        filteredSocialProviders = filteredSocialProviders || [];
+        for (const filteredProvider of nodeObject.filteredProviders) {
+          if (!filteredSocialProviders.includes(filteredProvider)) {
+            filteredSocialProviders.push(filteredProvider);
+          }
+        }
+      }
+
+      // get inner nodes (nodes inside container nodes)
+      if (containerNodes.includes(nodeType)) {
+        for (const innerNode of nodeObject.nodes) {
+          innerNodePromises.push(getNode(innerNode._id, innerNode.nodeType));
+        }
+        // frodo supports themes in platform deployments
+        if (
+          (deps &&
+            storage.session.getDeploymentType() ===
+              global.CLOUD_DEPLOYMENT_TYPE_KEY) ||
+          storage.session.getDeploymentType() ===
+            global.FORGEOPS_DEPLOYMENT_TYPE_KEY
+        ) {
+          let themeId = false;
+
+          if (nodeObject.stage) {
+            // see if themeId is part of the stage object
+            try {
+              themeId = JSON.parse(nodeObject.stage).themeId;
+            } catch (e) {
+              themeId = false;
+            }
+            // if the page node's themeId is set the "old way" set themeId accordingly
+            if (!themeId && nodeObject.stage.indexOf('themeId=') === 0) {
+              // eslint-disable-next-line prefer-destructuring
+              themeId = nodeObject.stage.split('=')[1];
+            }
+          }
+
+          if (themeId) {
+            if (!themes.includes(themeId)) themes.push(themeId);
+          }
+        }
+      }
+    }
+
+    // Process inner nodes
+    if (verbose && innerNodePromises.length > 0)
+      printMessage('  - Inner nodes:');
+    const innerNodeDataResults = await Promise.all(innerNodePromises);
+    for (const innerNodeObject of innerNodeDataResults) {
+      const innerNodeId = innerNodeObject._id;
+      const innerNodeType = innerNodeObject._type._id;
+      if (verbose)
+        printMessage(`    - ${innerNodeId} (${innerNodeType})`, 'info', true);
+      exportData.innerNodes[innerNodeId] = innerNodeObject;
+
+      // handle script node types
+      if (deps && scriptedNodes.includes(innerNodeType)) {
+        scriptPromises.push(getScript(innerNodeObject.script));
+      }
+
+      // frodo supports email templates in platform deployments
+      if (
+        (deps &&
+          storage.session.getDeploymentType() ===
+            global.CLOUD_DEPLOYMENT_TYPE_KEY) ||
+        storage.session.getDeploymentType() ===
+          global.FORGEOPS_DEPLOYMENT_TYPE_KEY
+      ) {
+        if (emailTemplateNodes.includes(innerNodeType)) {
+          try {
+            const emailTemplate = await getEmailTemplate(
+              innerNodeObject.emailTemplateName
+            );
+            emailTemplatePromises.push(emailTemplate);
+          } catch (error) {
+            let message = `${error}`;
+            if (error.isAxiosError && error.response.status) {
+              message = error.response.statusText;
+            }
+            printMessage(
+              `\n${message}: Email Template "${innerNodeObject.emailTemplateName}"`,
+              'error'
+            );
+          }
+        }
+      }
+
+      // handle SAML2 node dependencies
+      if (deps && innerNodeType === 'product-Saml2Node') {
+        printMessage('SAML2 inner node', 'error');
+        if (!allSaml2Providers) {
+          // eslint-disable-next-line no-await-in-loop
+          allSaml2Providers = (await getProviders()).result;
+        }
+        if (!allCirclesOfTrust) {
+          // eslint-disable-next-line no-await-in-loop
+          allCirclesOfTrust = (await getCirclesOfTrust()).result;
+        }
+        saml2ConfigPromises.push(
+          getSaml2NodeDependencies(
+            innerNodeObject,
+            allSaml2Providers,
+            allCirclesOfTrust
+          )
+        );
+      }
+
+      // If this is a SocialProviderHandlerNode get each enabled social identity provider.
+      if (
+        deps &&
+        !socialProviderPromise &&
+        innerNodeType === 'SocialProviderHandlerNode'
+      ) {
+        socialProviderPromise = getSocialIdentityProviders();
+      }
+
+      // If this is a SelectIdPNode and filteredProviters is not already set to empty array set filteredSocialProviers.
+      if (
+        deps &&
+        !filteredSocialProviders &&
+        innerNodeType === 'SelectIdPNode' &&
+        innerNodeObject.filteredProviders
+      ) {
+        filteredSocialProviders = filteredSocialProviders || [];
+        for (const filteredProvider of innerNodeObject.filteredProviders) {
+          if (!filteredSocialProviders.includes(filteredProvider)) {
+            filteredSocialProviders.push(filteredProvider);
+          }
+        }
+      }
+    }
+
+    // Process email templates
+    if (verbose && emailTemplatePromises.length > 0)
+      printMessage('  - Email templates:');
+    const settledEmailTemplatePromises = await Promise.allSettled(
+      emailTemplatePromises
+    );
+    for (const settledPromise of settledEmailTemplatePromises) {
+      if (settledPromise.status === 'fulfilled' && settledPromise.value) {
         if (verbose)
           printMessage(
-            `    - ${saml2Entity.entityLocation} ${saml2Entity.entityId}`,
-            'info'
+            `    - ${settledPromise.value._id.split('/')[1]}${
+              settledPromise.value.displayName
+                ? ` (${settledPromise.value.displayName})`
+                : ''
+            }`,
+            'info',
+            true
           );
-        exportData.saml2Entities[saml2Entity._id] = saml2Entity;
-      }
-      if (verbose) printMessage('  - SAML2 circles of trust:');
-      for (const circleOfTrust of saml2NodeDependency.circlesOfTrust) {
-        if (verbose) printMessage(`    - ${circleOfTrust._id}`, 'info');
-        exportData.circlesOfTrust[circleOfTrust._id] = circleOfTrust;
+        exportData.emailTemplates[settledPromise.value._id.split('/')[1]] =
+          settledPromise.value;
       }
     }
-  }
 
-  // Process socialIdentityProviders
-  const socialProviders = await Promise.resolve(socialProviderPromise);
-  if (socialProviders) {
-    if (verbose) printMessage('  - OAuth2/OIDC (social) identity providers:');
-    for (const socialProvider of socialProviders.result) {
-      // If the list of socialIdentityProviders needs to be filtered based on the
-      // filteredProviders property of a SelectIdPNode do it here.
-      if (
-        socialProvider &&
-        (!filteredSocialProviders ||
-          filteredSocialProviders.length === 0 ||
-          filteredSocialProviders.includes(socialProvider._id))
-      ) {
-        if (verbose) printMessage(`    - ${socialProvider._id}`, 'info');
-        scriptPromises.push(getScript(socialProvider.transform));
-        exportData.socialIdentityProviders[socialProvider._id] = socialProvider;
-      }
-    }
-  }
-
-  // Process scripts
-  if (verbose && scriptPromises.length > 0) printMessage('  - Scripts:');
-  const scriptObjects = await Promise.all(scriptPromises);
-  for (const scriptObject of scriptObjects) {
-    if (scriptObject) {
-      if (verbose)
-        printMessage(
-          `    - ${scriptObject._id} (${scriptObject.name})`,
-          'info',
-          true
-        );
-      scriptObject.script = useStringArrays
-        ? convertBase64TextToArray(scriptObject.script)
-        : JSON.stringify(decode(scriptObject.script));
-      exportData.scripts[scriptObject._id] = scriptObject;
-    }
-  }
-
-  // Process themes
-  if (themePromise) {
-    if (verbose) printMessage('  - Themes:');
-    try {
-      const themePromiseResults = await Promise.resolve(themePromise);
-      for (const themeObject of themePromiseResults) {
-        if (
-          themeObject &&
-          // has the theme been specified by id or name in a page node?
-          (themes.includes(themeObject._id) ||
-            themes.includes(themeObject.name) ||
-            // has this journey been linked to a theme?
-            themeObject.linkedTrees?.includes(treeObject._id))
-        ) {
+    // Process SAML2 providers and circles of trust
+    const saml2NodeDependencies = await Promise.all(saml2ConfigPromises);
+    for (const saml2NodeDependency of saml2NodeDependencies) {
+      if (saml2NodeDependency) {
+        if (verbose) printMessage('  - SAML2 entity providers:');
+        for (const saml2Entity of saml2NodeDependency.saml2Entities) {
           if (verbose)
             printMessage(
-              `    - ${themeObject._id} (${themeObject.name})`,
+              `    - ${saml2Entity.entityLocation} ${saml2Entity.entityId}`,
               'info'
             );
-          exportData.themes.push(themeObject);
+          exportData.saml2Entities[saml2Entity._id] = saml2Entity;
+        }
+        if (verbose) printMessage('  - SAML2 circles of trust:');
+        for (const circleOfTrust of saml2NodeDependency.circlesOfTrust) {
+          if (verbose) printMessage(`    - ${circleOfTrust._id}`, 'info');
+          exportData.circlesOfTrust[circleOfTrust._id] = circleOfTrust;
         }
       }
-    } catch (error) {
-      printMessage(error, 'error');
-      printMessage('Error handling themes: ' + error.message, 'error');
     }
+
+    // Process socialIdentityProviders
+    const socialProviders = await Promise.resolve(socialProviderPromise);
+    if (socialProviders) {
+      if (verbose) printMessage('  - OAuth2/OIDC (social) identity providers:');
+      for (const socialProvider of socialProviders.result) {
+        // If the list of socialIdentityProviders needs to be filtered based on the
+        // filteredProviders property of a SelectIdPNode do it here.
+        if (
+          socialProvider &&
+          (!filteredSocialProviders ||
+            filteredSocialProviders.length === 0 ||
+            filteredSocialProviders.includes(socialProvider._id))
+        ) {
+          if (verbose) printMessage(`    - ${socialProvider._id}`, 'info');
+          scriptPromises.push(getScript(socialProvider.transform));
+          exportData.socialIdentityProviders[socialProvider._id] =
+            socialProvider;
+        }
+      }
+    }
+
+    // Process scripts
+    if (verbose && scriptPromises.length > 0) printMessage('  - Scripts:');
+    const scriptObjects = await Promise.all(scriptPromises);
+    for (const scriptObject of scriptObjects) {
+      if (scriptObject) {
+        if (verbose)
+          printMessage(
+            `    - ${scriptObject._id} (${scriptObject.name})`,
+            'info',
+            true
+          );
+        scriptObject.script = useStringArrays
+          ? convertBase64TextToArray(scriptObject.script)
+          : JSON.stringify(decode(scriptObject.script));
+        exportData.scripts[scriptObject._id] = scriptObject;
+      }
+    }
+
+    // Process themes
+    if (themePromise) {
+      if (verbose) printMessage('  - Themes:');
+      try {
+        const themePromiseResults = await Promise.resolve(themePromise);
+        for (const themeObject of themePromiseResults) {
+          if (
+            themeObject &&
+            // has the theme been specified by id or name in a page node?
+            (themes.includes(themeObject._id) ||
+              themes.includes(themeObject.name) ||
+              // has this journey been linked to a theme?
+              themeObject.linkedTrees?.includes(treeObject._id))
+          ) {
+            if (verbose)
+              printMessage(
+                `    - ${themeObject._id} (${themeObject.name})`,
+                'info'
+              );
+            exportData.themes.push(themeObject);
+          }
+        }
+      } catch (error) {
+        printMessage(error.response.data, 'error');
+        printMessage('Error handling themes: ' + error.message, 'error');
+      }
+    }
+  } catch (error) {
+    printMessage(error.response.data, 'error');
+    printMessage(
+      'Error exporting tree: ' + treeId + ' - ' + error.message,
+      'error'
+    );
   }
 
   return exportData;
@@ -1872,65 +1886,87 @@ export async function listJourneys(
   analyze = false
 ): Promise<unknown[]> {
   let journeys = [];
-  journeys = await getJourneys();
-  if (!long && !analyze) {
-    for (const journeyStub of journeys) {
-      printMessage(`${journeyStub['_id']}`, 'data');
-    }
-  } else {
-    if (!analyze) {
-      const table = createTable(['Name', 'Status', 'Tags']);
+  try {
+    journeys = await getJourneys();
+    if (!long && !analyze) {
       for (const journeyStub of journeys) {
-        table.push([
-          `${journeyStub._id}`,
-          journeyStub.enabled === false
-            ? 'disabled'['brightRed']
-            : 'enabled'['brightGreen'],
-          journeyStub.uiConfig?.categories
-            ? wordwrap(
-                JSON.parse(journeyStub.uiConfig.categories).join(', '),
-                60
-              )
-            : '',
-        ]);
+        printMessage(`${journeyStub['_id']}`, 'data');
       }
-      printMessage(table.toString(), 'data');
     } else {
-      createProgressIndicator(
-        0,
-        'Retrieving details of all journeys...',
-        'indeterminate'
-      );
-      const exportPromises = [];
-      for (const journeyStub of journeys) {
-        exportPromises.push(
-          exportJourney(journeyStub['_id'], {
-            useStringArrays: false,
-            deps: false,
-            verbose: false,
-          })
+      if (!analyze) {
+        const table = createTable(['Name', 'Status', 'Tags']);
+        for (const journeyStub of journeys) {
+          table.push([
+            `${journeyStub._id}`,
+            journeyStub.enabled === false
+              ? 'disabled'['brightRed']
+              : 'enabled'['brightGreen'],
+            journeyStub.uiConfig?.categories
+              ? wordwrap(
+                  JSON.parse(journeyStub.uiConfig.categories).join(', '),
+                  60
+                )
+              : '',
+          ]);
+        }
+        printMessage(table.toString(), 'data');
+      } else {
+        createProgressIndicator(
+          0,
+          'Retrieving details of all journeys...',
+          'indeterminate'
         );
+        const exportPromises = [];
+        try {
+          for (const journeyStub of journeys) {
+            exportPromises.push(
+              exportJourney(journeyStub['_id'], {
+                useStringArrays: false,
+                deps: false,
+                verbose: false,
+              })
+            );
+          }
+          const journeyExports = await Promise.all(exportPromises);
+          stopProgressIndicator(
+            'Retrieved details of all journeys.',
+            'success'
+          );
+          const table = createTable([
+            'Name',
+            'Status',
+            'Classification',
+            'Tags',
+          ]);
+          for (const journeyExport of journeyExports) {
+            table.push([
+              `${journeyExport.tree._id}`,
+              journeyExport.tree.enabled === false
+                ? 'disabled'['brightRed']
+                : 'enabled'['brightGreen'],
+              getJourneyClassification(journeyExport).join(', '),
+              journeyExport.tree.uiConfig?.categories
+                ? wordwrap(
+                    JSON.parse(journeyExport.tree.uiConfig.categories).join(
+                      ', '
+                    ),
+                    60
+                  )
+                : '',
+            ]);
+          }
+          printMessage(table.toString(), 'data');
+        } catch (error) {
+          stopProgressIndicator(
+            'Error retrieving details of all journeys.',
+            'fail'
+          );
+          printMessage(error.response.data, 'error');
+        }
       }
-      const journeyExports = await Promise.all(exportPromises);
-      stopProgressIndicator('Retrieved details of all journeys.', 'success');
-      const table = createTable(['Name', 'Status', 'Classification', 'Tags']);
-      for (const journeyExport of journeyExports) {
-        table.push([
-          `${journeyExport.tree._id}`,
-          journeyExport.tree.enabled === false
-            ? 'disabled'['brightRed']
-            : 'enabled'['brightGreen'],
-          getJourneyClassification(journeyExport).join(', '),
-          journeyExport.tree.uiConfig?.categories
-            ? wordwrap(
-                JSON.parse(journeyExport.tree.uiConfig.categories).join(', '),
-                60
-              )
-            : '',
-        ]);
-      }
-      printMessage(table.toString(), 'data');
     }
+  } catch (error) {
+    printMessage(error.response.data, 'error');
   }
   return journeys;
 }
