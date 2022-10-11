@@ -1,55 +1,79 @@
+import { ThemeSkeleton, UiThemeRealmObject } from './ApiTypes';
 import { getConfigEntity, putConfigEntity } from './IdmConfigApi';
 import { getCurrentRealmName } from './utils/ApiUtils';
+import { debug } from '../ops/utils/Console';
 
-const THEMEREALM_ID = 'ui/themerealm';
+export const THEMEREALM_ID = 'ui/themerealm';
 
 /**
  * Get realm themes
- * @param {Object} themes object containing themes
- * @returns {Object} array of theme pertaining to the current realm
+ * @param {UiThemeRealmObject} themes object containing themes
+ * @returns {ThemeSkeleton[]} array of theme pertaining to the current realm
  */
-function getRealmThemes(themes) {
-  return themes.realm[getCurrentRealmName()]
-    ? themes.realm[getCurrentRealmName()]
-    : [];
+function getRealmThemes(themes: UiThemeRealmObject): ThemeSkeleton[] {
+  if (themes.realm && themes.realm[getCurrentRealmName()]) {
+    return themes.realm[getCurrentRealmName()];
+  }
+  return [];
 }
 
 /**
  * Get all themes
- * @returns {Promise} a promise that resolves to an array of themes
+ * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
  */
-export async function getThemes() {
+export async function getThemes(): Promise<ThemeSkeleton[]> {
   const themes = await getConfigEntity(THEMEREALM_ID);
   return getRealmThemes(themes);
 }
 
 /**
  * Get theme by id
- * @param {String} themeId theme id
- * @returns {Promise} a promise that resolves to an array of themes
+ * @param {string} themeId theme id
+ * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
  */
-export async function getTheme(themeId) {
+export async function getTheme(themeId: string): Promise<ThemeSkeleton> {
   const themes = await getConfigEntity(THEMEREALM_ID);
-  return getRealmThemes(themes).filter((theme) => theme._id === themeId);
+  const found = getRealmThemes(themes).filter((theme) => theme._id === themeId);
+  if (found.length === 1) {
+    return found[0];
+  }
+  if (found.length > 1) {
+    throw new Error(`Multiple themes with id "${themeId}" found!`);
+  }
+  throw new Error(`Theme with id "${themeId}" not found!`);
 }
 
 /**
  * Get theme by name
- * @param {String} themeName theme name
- * @returns {Promise} a promise that resolves to an array of themes
+ * @param {string} themeName theme name
+ * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
  */
-export async function getThemeByName(themeName) {
+export async function getThemeByName(
+  themeName: string
+): Promise<ThemeSkeleton> {
   const themes = await getConfigEntity(THEMEREALM_ID);
-  return getRealmThemes(themes).filter((theme) => theme.name === themeName);
+  const found = getRealmThemes(themes).filter(
+    (theme) => theme.name === themeName
+  );
+  if (found.length === 1) {
+    return found[0];
+  }
+  if (found.length > 1) {
+    throw new Error(`Multiple themes with the name "${themeName}" found!`);
+  }
+  throw new Error(`Theme "${themeName}" not found!`);
 }
 
 /**
  * Put theme by id
- * @param {String} themeId theme id
- * @param {Object} themeData theme object
- * @returns {Promise} a promise that resolves to a themes object
+ * @param {string} themeId theme id
+ * @param {ThemeSkeleton} themeData theme object
+ * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
  */
-export async function putTheme(themeId, themeData) {
+export async function putTheme(
+  themeId: string,
+  themeData: ThemeSkeleton
+): Promise<ThemeSkeleton> {
   const data = themeData;
   data._id = themeId;
   const themes = await getConfigEntity(THEMEREALM_ID);
@@ -67,16 +91,28 @@ export async function putTheme(themeId, themeData) {
     realmThemes.push(data);
   }
   themes.realm[getCurrentRealmName()] = realmThemes;
-  return putConfigEntity(THEMEREALM_ID, themes);
+  const found = getRealmThemes(
+    await putConfigEntity(THEMEREALM_ID, themes)
+  ).filter((theme) => theme._id === themeId);
+  if (found.length === 1) {
+    return found[0];
+  }
+  if (found.length > 1) {
+    throw new Error(`Multiple themes with id "${themeId}" found!`);
+  }
+  throw new Error(`Theme with id "${themeId}" not saved!`);
 }
 
 /**
  * Put theme by name
  * @param {String} themeName theme name
- * @param {Object} themeData theme object
- * @returns {Promise} a promise that resolves to a themes object
+ * @param {ThemeSkeleton} themeData theme object
+ * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
  */
-export async function putThemeByName(themeName, themeData) {
+export async function putThemeByName(
+  themeName: string,
+  themeData: ThemeSkeleton
+): Promise<ThemeSkeleton> {
   const data = themeData;
   data.name = themeName;
   const themes = await getConfigEntity(THEMEREALM_ID);
@@ -94,27 +130,39 @@ export async function putThemeByName(themeName, themeData) {
     realmThemes.push(data);
   }
   themes['realm'][getCurrentRealmName()] = realmThemes;
-  return putConfigEntity(THEMEREALM_ID, themes);
+  const found = getRealmThemes(
+    await putConfigEntity(THEMEREALM_ID, themes)
+  ).filter((theme) => theme.name === themeName);
+  if (found.length === 1) {
+    return found[0];
+  }
+  if (found.length > 1) {
+    throw new Error(`Multiple themes "${themeName}" found!`);
+  }
+  throw new Error(`Theme "${themeName}" not saved!`);
 }
 
 /**
  * Put all themes
- * @param {Object} allThemesData themes object containing all themes for all realms
- * @returns {Promise} a promise that resolves to a themes object
+ * @param {Map<string, ThemeSkeleton>} allThemesData themes object containing all themes for all realms
+ * @returns {Promise<Map<string, ThemeSkeleton>>} a promise that resolves to a themes object
  */
-export async function putThemes(allThemesData) {
-  const data = allThemesData;
+export async function putThemes(
+  themeMap: Map<string, ThemeSkeleton>
+): Promise<Map<string, ThemeSkeleton>> {
+  debug(`ThemeApi.putThemes: start`);
   const themes = await getConfigEntity(THEMEREALM_ID);
-  const allThemeIDs = Object.keys(data);
+  const allThemeIDs = Object.keys(themeMap);
   const existingThemeIDs = [];
   let defaultThemeId = null;
   // update existing themes
   let realmThemes = getRealmThemes(themes).map((theme) => {
-    if (data[theme._id]) {
+    if (themeMap[theme._id]) {
+      debug(`Update theme: ${theme._id} - ${theme.name}`);
       existingThemeIDs.push(theme._id);
       // remember the id of the last default theme
-      if (data[theme._id].isDefault) defaultThemeId = theme._id;
-      return data[theme._id];
+      if (themeMap[theme._id].isDefault) defaultThemeId = theme._id;
+      return themeMap[theme._id];
     }
     return theme;
   });
@@ -123,9 +171,10 @@ export async function putThemes(allThemesData) {
   );
   // add new themes
   newThemeIDs.forEach((themeId) => {
+    debug(`Add theme: ${themeMap[themeId]._id} - ${themeMap[themeId].name}`);
     // remember the id of the last default theme
-    if (data[themeId].isDefault) defaultThemeId = themeId;
-    realmThemes.push(data[themeId]);
+    if (themeMap[themeId].isDefault) defaultThemeId = themeId;
+    realmThemes.push(themeMap[themeId]);
   });
   // if we imported a default theme, flag all the other themes as not default
   if (defaultThemeId) {
@@ -136,45 +185,99 @@ export async function putThemes(allThemesData) {
     });
   }
   themes.realm[getCurrentRealmName()] = realmThemes;
-  return putConfigEntity(THEMEREALM_ID, themes);
+  const updatedThemes = new Map(
+    getRealmThemes(await putConfigEntity(THEMEREALM_ID, themes)).map(
+      (theme) => [theme._id, theme]
+    )
+  );
+  debug(updatedThemes);
+  debug(`ThemeApi.putThemes: finished`);
+  return updatedThemes;
 }
 
 /**
  * Delete theme by id
- * @param {String} themeId theme id
- * @returns {Promise} a promise that resolves to a themes object
+ * @param {string} themeId theme id
+ * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
  */
-export async function deleteTheme(themeId) {
+export async function deleteTheme(themeId: string): Promise<ThemeSkeleton> {
   const themes = await getConfigEntity(THEMEREALM_ID);
   const realmThemes = getRealmThemes(themes);
-  const finalThemes = realmThemes.filter((theme) => theme._id !== themeId);
+  const deletedThemes: ThemeSkeleton[] = [];
+  const finalThemes = realmThemes.filter((theme) => {
+    if (theme._id !== themeId) {
+      return true;
+    }
+    deletedThemes.push(theme);
+    return false;
+  });
   if (realmThemes.length === finalThemes.length)
     throw new Error(`${themeId} not found`);
   themes.realm[getCurrentRealmName()] = realmThemes;
-  return putConfigEntity(THEMEREALM_ID, themes);
+  const undeletedThemes = getRealmThemes(
+    await putConfigEntity(THEMEREALM_ID, themes)
+  ).filter((theme) => deletedThemes.includes(theme));
+  if (deletedThemes.length > 0 && undeletedThemes.length === 0) {
+    return deletedThemes[0];
+  }
+  throw new Error(
+    `Theme(s) with id(s) "${undeletedThemes.map(
+      (theme) => theme._id
+    )}" not deleted!`
+  );
 }
 
 /**
  * Delete theme by name
- * @param {String} themeName theme name
- * @returns {Promise} a promise that resolves to a themes object
+ * @param {string} themeName theme name
+ * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
  */
-export async function deleteThemeByName(themeName) {
+export async function deleteThemeByName(
+  themeName: string
+): Promise<ThemeSkeleton> {
   const themes = await getConfigEntity(THEMEREALM_ID);
   const realmThemes = getRealmThemes(themes);
-  const finalThemes = realmThemes.filter((theme) => theme.name !== themeName);
+  const deletedThemes: ThemeSkeleton[] = [];
+  const finalThemes = realmThemes.filter((theme) => {
+    if (theme.name !== themeName) {
+      return true;
+    }
+    deletedThemes.push(theme);
+    return false;
+  });
   if (realmThemes.length === finalThemes.length)
     throw new Error(`${themeName} not found`);
   themes.realm[getCurrentRealmName()] = finalThemes;
-  return putConfigEntity(THEMEREALM_ID, themes);
+  // return putConfigEntity(THEMEREALM_ID, themes);
+  const undeletedThemes = getRealmThemes(
+    await putConfigEntity(THEMEREALM_ID, themes)
+  ).filter((theme) => deletedThemes.includes(theme));
+  if (deletedThemes.length > 0 && undeletedThemes.length === 0) {
+    return deletedThemes[0];
+  }
+  throw new Error(
+    `Theme(s) with id(s) "${undeletedThemes.map(
+      (theme) => theme._id
+    )}" not deleted!`
+  );
 }
 
 /**
  * Delete all themes
- * @returns {Promise} a promise that resolves to an array of themes
+ * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
  */
-export async function deleteThemes() {
+export async function deleteThemes(): Promise<ThemeSkeleton[]> {
   const themes = await getConfigEntity(THEMEREALM_ID);
+  const realmThemes = themes.realm[getCurrentRealmName()];
+  if (!realmThemes)
+    throw new Error(
+      `No theme configuration found for realm "${getCurrentRealmName()}"`
+    );
+  const deletedThemes: ThemeSkeleton[] = [];
+  for (const theme of realmThemes) {
+    deletedThemes.push(theme);
+  }
   themes.realm[getCurrentRealmName()] = [];
-  return putConfigEntity(THEMEREALM_ID, themes);
+  await putConfigEntity(THEMEREALM_ID, themes);
+  return deletedThemes;
 }

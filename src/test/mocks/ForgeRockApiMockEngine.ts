@@ -480,7 +480,10 @@ export function mockListAllConfigEntities(mock: MockAdapter) {
   });
 }
 
-export function mockGetConfigEntity(mock: MockAdapter) {
+export function mockGetConfigEntity(
+  mock: MockAdapter,
+  variation: string = null
+) {
   mock.onGet(/.*?\/openidm\/config\/.+/).reply(function (config) {
     const entityId = config.url
       ? config.url.substring(config.url.indexOf('/config/') + 8)
@@ -490,7 +493,9 @@ export function mockGetConfigEntity(mock: MockAdapter) {
       fs.readFileSync(
         path.resolve(
           __dirname,
-          `./IdmConfigApi/getConfigEntity/${entityId}.json`
+          `./IdmConfigApi/getConfigEntity/${
+            variation ? entityId + '-' + variation : entityId
+          }.json`
         ),
         'utf8'
       )

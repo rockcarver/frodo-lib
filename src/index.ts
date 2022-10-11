@@ -22,6 +22,7 @@ export * as TreeRaw from './api/TreeApi';
 export * as StartupRaw from './api/StartupApi';
 export * as SecretsRaw from './api/SecretsApi';
 export * as VariablesRaw from './api/VariablesApi';
+export * as ThemeRaw from './api/ThemeApi';
 
 // Ops Layer
 export * as Types from './ops/OpsTypes';
