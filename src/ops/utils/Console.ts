@@ -25,14 +25,27 @@ export function printMessage(
 }
 
 /**
+ * Handles verbose output. The caller decides and implements how
+ * the messages are handled, by implementing the handler function
+ * on its side. Implementing and registering a `handler` is optional.
+ *
+ * @param {string | unknown} message The verbose output message
+ */
+export function verbose(message: string | object) {
+  const handler = storage.session.getVerboseHandler();
+  if (handler) {
+    handler(message);
+  }
+}
+
+/**
  * Handles debug output. The caller decides and implements how
  * the messages are handled, by implementing the handler function
- * on its side. `handler` is optional, and if not included by the caller,
- * the data and messages will be lost.
+ * on its side. Implementing and registering a `handler` is optional.
  *
- * @param {string | unknown} message The string message to return
+ * @param {string | object} message The debug output message
  */
-export function debugMessage(message: string | unknown) {
+export function debug(message: string | object) {
   const handler = storage.session.getDebugHandler();
   if (handler) {
     handler(message);

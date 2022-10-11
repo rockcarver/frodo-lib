@@ -64,9 +64,16 @@ export default {
     setErrorHandler: (errorHandler) =>
       (_sessionStorage['errorHandler'] = errorHandler),
     getErrorHandler: () => _sessionStorage['errorHandler'],
+    setVerboseHandler: (verboseHandler) =>
+      (_sessionStorage['verboseHandler'] = verboseHandler),
+    getVerboseHandler: () => _sessionStorage['verboseHandler'],
+    setVerbose: (verbose: boolean) => (_sessionStorage['verbose'] = verbose),
+    getVerbose: (): boolean => _sessionStorage['verbose'],
     setDebugHandler: (debugHandler) =>
       (_sessionStorage['debugHandler'] = debugHandler),
     getDebugHandler: () => _sessionStorage['debugHandler'],
+    setDebug: (debug: boolean) => (_sessionStorage['debug'] = debug),
+    getDebug: (): boolean => _sessionStorage['debug'],
     setCreateProgressHandler: (handler) =>
       (_sessionStorage['createProgressHandler'] = handler),
     getCreateProgressHandler: () => _sessionStorage['createProgressHandler'],

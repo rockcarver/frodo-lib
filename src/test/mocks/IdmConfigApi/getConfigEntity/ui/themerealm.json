@@ -1648,7 +1648,7 @@
         "topBarTextColor": "#69788b"
       },
       {
-        "_id": "2c23505e-e10c-4f09-be73-13307f615298",
+        "_id": "d6636b33-111b-40f2-870d-f4dcb7281e43",
         "accountFooter": "<div class=\"d-flex justify-content-center py-4 w-100\"><span class=\"pr-1\">© 2021</span>\n<a href=\"#\"target=\"_blank\"class=\"text-body\">My Company, Inc</a><a href=\"#\"target=\"_blank\"style=\"color:#0000ee\"class=\"pl-3 text-body\">Privacy Policy</a><a href=\"#\"target=\"_blank\"style=\"color:#0000ee\"class=\"pl-3 text-body\">Terms & Conditions</a></div>",
         "accountFooterEnabled": false,
         "accountPageSections": {
