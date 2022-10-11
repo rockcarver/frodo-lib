@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2022-10-11
+
 ### Added
 
 -   rockcarver/frodo-cli#70: Added ability to create custom logging noise filters
--   \#119, \#121: Library modules can now produce verbose output Embedding code has to register a verboseHandler and enable verbose flag in session.
--   \#120, \#122: Library modules can now produce debug output. Embedding code has to register a debugHandler and enable debug flag in session.
+-   \#119, #121: Library modules can now produce verbose output Embedding code has to register a verboseHandler and enable verbose flag in session.
+-   \#120, #122: Library modules can now produce debug output. Embedding code has to register a debugHandler and enable debug flag in session.
 
 ### Fixed
 
@@ -605,7 +607,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.13.2-0...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.14.0...HEAD
+
+[0.14.0]: https://github.com/rockcarver/frodo-lib/compare/v0.13.2-0...v0.14.0
 
 [0.13.2-0]: https://github.com/rockcarver/frodo-lib/compare/v0.13.1...v0.13.2-0
 
