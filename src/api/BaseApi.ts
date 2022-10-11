@@ -288,3 +288,29 @@ export function generateESVApi(resource, requestOverride = {}) {
 
   return request;
 }
+
+/**
+ * Generates a release (Github or Npm) Axios API instance
+ * @param {object} requestOverride Takes an object of AXIOS parameters that can be used to either add
+ * on extra information or override default properties https://github.com/axios/axios#request-config
+ *
+ * @returns {AxiosInstance}
+ */
+export function generateReleaseApi(baseUrl, requestOverride = {}) {
+  const requestDetails = {
+    baseURL: baseUrl,
+    timeout,
+    headers: {
+      'User-Agent': userAgent,
+      'Content-Type': 'application/json',
+    },
+    ...requestOverride,
+    httpAgent: getHttpAgent(),
+    httpsAgent: getHttpsAgent(),
+    proxy: getProxy(),
+  };
+
+  const request = axios.create(requestDetails);
+
+  return request;
+}
