@@ -11,6 +11,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -   rockcarver/frodo-cli\#82: Added version update checking
 
+## [0.14.1] - 2022-10-11
+
+### Changed
+
+-   Release name is now prefixed with `Frodo Libray` for clarity in notifications.
+
+### Added
+
+-   rockcarver/frodo-cli#70: Added ability to create custom logging noise filters
+-   \#119, #121: Library modules can now produce verbose output Embedding code has to register a verboseHandler and enable verbose flag in session.
+-   \#120, #122: Library modules can now produce debug output. Embedding code has to register a debugHandler and enable debug flag in session.
+
+### Fixed
+
+-   \#116: Frodo now properly imports themes.
+
+## [0.14.0] - 2022-10-11
+
+### Added
+
+-   rockcarver/frodo-cli#70: Added ability to create custom logging noise filters
+-   \#119, #121: Library modules can now produce verbose output Embedding code has to register a verboseHandler and enable verbose flag in session.
+-   \#120, #122: Library modules can now produce debug output. Embedding code has to register a debugHandler and enable debug flag in session.
+
+### Fixed
+
+-   \#116: Frodo now properly imports themes.
+
 ## [0.13.2-0] - 2022-10-04
 
 ### Added
@@ -599,7 +627,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.13.2-0...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.14.1...HEAD
+
+[0.14.1]: https://github.com/rockcarver/frodo-lib/compare/v0.14.0...v0.14.1
+
+[0.14.0]: https://github.com/rockcarver/frodo-lib/compare/v0.13.2-0...v0.14.0
 
 [0.13.2-0]: https://github.com/rockcarver/frodo-lib/compare/v0.13.1...v0.13.2-0
 
