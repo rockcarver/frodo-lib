@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.1] - 2022-10-11
+
 ### Changed
 
 -   Release name is now prefixed with `Frodo Libray` for clarity in notifications.
@@ -621,7 +623,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.14.1...HEAD
+
+[0.14.1]: https://github.com/rockcarver/frodo-lib/compare/v0.14.0...v0.14.1
 
 [0.14.0]: https://github.com/rockcarver/frodo-lib/compare/v0.13.2-0...v0.14.0
 
