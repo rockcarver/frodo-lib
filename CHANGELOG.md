@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+-   rockcarver/frodo-cli\#82: Added version update checking
+
 ## [0.13.2-0] - 2022-10-04
 
 ### Added
