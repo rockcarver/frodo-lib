@@ -1,7 +1,7 @@
 interface ObjectSkeletonInterface {
   _id: string;
   _rev?: number;
-  [k: string]: string | number | ObjectSkeletonInterface;
+  [k: string]: string | number | boolean | string[] | ObjectSkeletonInterface;
 }
 
 export interface UiConfigInterface {
@@ -58,6 +58,11 @@ export type ThemeSkeleton = ObjectSkeletonInterface & {
   name: string;
   isDefault: boolean;
   linkedTrees: string[];
+};
+
+export type UiThemeRealmObject = ObjectSkeletonInterface & {
+  name: string;
+  realm: Map<string, ThemeSkeleton[]>;
 };
 
 export enum ScriptLanguage {
