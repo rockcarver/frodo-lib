@@ -1,19 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import Color from 'colors';
 
 Color.enable();
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const pkg = JSON.parse(
-  fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8')
-);
-
-export function getVersion() {
-  return `v${pkg.version}`;
-}
 
 // Api Layer
 export * as TypesRaw from './api/ApiTypes';
@@ -55,3 +42,4 @@ export * as state from './storage/SessionStorage';
 // use a public oauth2/oidc library. might be ok for now since there is only
 // one place where the cli needs to execute an oauth flow.
 export * as OAuth2OIDCApi from './api/OAuth2OIDCApi';
+export * as LibVersion from './ops/utils/Version';
