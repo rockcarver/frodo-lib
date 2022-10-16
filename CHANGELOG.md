@@ -9,11 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   rockcarver/frodo-cli#82: Added version update checking
-
-### Changed
-
--   Exposed more api layer modules
+-   Backend support for rockcarver/frodo-cli#86:
+    -   Added field and getters/setters for outputFile to session
+    -   Added function to append text to file to ExportImportUtils.ts
 
 ## [0.15.0] - 2022-10-14
 
