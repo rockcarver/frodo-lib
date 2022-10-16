@@ -58,6 +58,8 @@ export default {
     getConnectionProfilesPath: () => _sessionStorage['connectionProfilesPath'],
     setMasterKeyPath: (value) => (_sessionStorage['masterKeyPath'] = value),
     getMasterKeyPath: () => _sessionStorage['masterKeyPath'],
+    setOutputFile: (value) => (_sessionStorage['outputFile'] = value),
+    getOutputFile: () => _sessionStorage['outputFile'],
     setPrintHandler: (printHandler) =>
       (_sessionStorage['printHandler'] = printHandler),
     getPrintHandler: () => _sessionStorage['printHandler'],
