@@ -136,3 +136,16 @@ export function saveTextToFile(data, filename) {
     return true;
   });
 }
+
+/**
+ * Append text data to file
+ * @param {String} data text data
+ * @param {String} filename file name
+ */
+export function appendTextToFile(data, filename) {
+  try {
+    fs.appendFileSync(filename, data);
+  } catch (error) {
+    printMessage(`${error.message}`, 'error');
+  }
+}
