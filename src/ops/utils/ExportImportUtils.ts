@@ -149,3 +149,37 @@ export function appendTextToFile(data, filename) {
     printMessage(`${error.message}`, 'error');
   }
 }
+
+/**
+ * Find files by name
+ * @param {string} fileName file name to search for
+ * @param {boolean} fast return first result and stop search
+ * @param {string} path path to directory where to start the search
+ * @returns {string[]} array of found file paths relative to starting directory
+ */
+export function findFilesByName(
+  fileName: string,
+  fast = true,
+  path = './'
+): string[] {
+  const entries = fs.readdirSync(path, {
+    encoding: 'utf8',
+    withFileTypes: true,
+  });
+
+  // Get files within the current directory and add a path key to the file objects
+  const files: string[] = entries
+    .filter((entry) => !entry.isDirectory())
+    .filter((file) => file.name === fileName)
+    // .map((file) => ({ ...file, path: path + file.name }));
+    .map((file) => path + file.name);
+
+  if (fast && files.length > 0) return files;
+
+  // search sub-folders
+  const folders = entries.filter((entry) => entry.isDirectory());
+  for (const folder of folders)
+    files.push(...findFilesByName(fileName, fast, `${path}${folder.name}/`));
+
+  return files;
+}
