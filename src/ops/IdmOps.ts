@@ -6,6 +6,7 @@ import propertiesReader from 'properties-reader';
 import {
   getAllConfigEntities,
   getConfigEntity,
+  putConfigEntity,
   queryAllManagedObjectsByType,
 } from '../api/IdmConfigApi';
 import {
@@ -14,6 +15,8 @@ import {
   stopProgressIndicator,
 } from './utils/Console';
 import { getTypedFilename } from './utils/ExportImportUtils';
+import { readFilesRecursive, unSubstituteEnvParams } from './utils/OpsUtils';
+import path from 'path';
 
 /**
  * List all IDM configuration objects
@@ -208,6 +211,109 @@ export async function exportAllConfigEntities(
         stopProgressIndicator(null, 'success');
       });
     }
+  });
+}
+
+/**
+ * Import an IDM configuration object.
+ * @param entityId the configuration object to import
+ * @param file optional file to import
+ */
+export async function importConfigEntity(entityId: string, file?: string) {
+  if (!file) {
+    file = getTypedFilename(entityId, 'idm');
+  }
+
+  const entityData = fs.readFileSync(path.resolve(process.cwd(), file), 'utf8');
+
+  try {
+    await putConfigEntity(entityId, entityData);
+  } catch (putConfigEntityError) {
+    printMessage(putConfigEntityError, 'error');
+    printMessage(`Error: ${putConfigEntityError}`, 'error');
+  }
+}
+
+/**
+ * Import all IDM configuration objects from separate JSON files in a directory specified by <directory>
+ * @param baseDirectory export directory
+ */
+export async function importAllRawConfigEntities(baseDirectory: string) {
+  if (!fs.existsSync(baseDirectory)) {
+    return;
+  }
+  const files = await readFilesRecursive(baseDirectory);
+  const jsonFiles = files.filter((file) =>
+    file.toLowerCase().endsWith('.json')
+  );
+
+  createProgressIndicator(
+    undefined,
+    'Importing config objects...',
+    'indeterminate'
+  );
+
+  const entityPromises = jsonFiles.map((file) => {
+    // Remove .json extension
+    const entityId = file.substring(0, file.length - 5);
+
+    const entityData = fs.readFileSync(file, 'utf8');
+    return putConfigEntity(entityId, entityData);
+  });
+
+  await Promise.all(entityPromises).then(() => {
+    stopProgressIndicator('Imported config objects.', 'success');
+  });
+}
+
+/**
+ * Import all IDM configuration objects
+ * @param directory import directory
+ * @param entitiesFile JSON file that specifies the config entities to export/import
+ * @param envFile File that defines environment specific variables for replacement during configuration export/import
+ */
+export async function importAllConfigEntities(
+  baseDirectory: string,
+  entitiesFile: string,
+  envFile: string
+) {
+  if (!fs.existsSync(baseDirectory)) {
+    return;
+  }
+  const entities = JSON.parse(fs.readFileSync(entitiesFile, 'utf8'));
+  const entriesToImport = entities.idm;
+
+  const envParams = propertiesReader(envFile);
+
+  const files = await readFilesRecursive(baseDirectory);
+  const jsonFiles = files.filter((file) =>
+    file.toLowerCase().endsWith('.json')
+  );
+
+  createProgressIndicator(
+    undefined,
+    'Importing config objects...',
+    'indeterminate'
+  );
+
+  const entityPromises = jsonFiles
+    .filter((file) => {
+      // Remove .json extension
+      const entityId = file.substring(0, file.length - 5);
+      return entriesToImport.includes(entityId);
+    })
+    .map((file) => {
+      // Remove .json extension
+      const entityId = file.substring(0, file.length - 5);
+
+      const entityData = fs.readFileSync(file, 'utf8');
+      const unsubstituted = unSubstituteEnvParams(entityData, envParams);
+
+      return putConfigEntity(entityId, unsubstituted);
+    });
+
+  await Promise.all(entityPromises).then(() => {
+    stopProgressIndicator('Imported config objects.', 'success');
   });
 }
 
