@@ -8,6 +8,7 @@ import {
   getRealmString,
   convertTextArrayToBase64,
   convertTextArrayToBase64Url,
+  findFilesByName,
 } from './utils/ExportImportUtils';
 import { getRealmManagedUser, replaceAll } from './utils/OpsUtils';
 import storage from '../storage/SessionStorage';
@@ -1584,10 +1585,11 @@ export const fileByIdTreeExportResolver: TreeExportResolverInterface =
   async function (treeId: string) {
     debug(`fileByIdTreeExportResolver(${treeId})`);
     let treeExport = createSingleTreeExportTemplate();
-    const file = getTypedFilename(`${treeId}`, 'journey');
-    debug(`fileByIdTreeExportResolver: resolving '${treeId}' to ${file}`);
+    const files = findFilesByName(getTypedFilename(`${treeId}`, 'journey'));
     try {
+      const file = files.pop();
       const jsonData = JSON.parse(fs.readFileSync(file, 'utf8'));
+      debug(`fileByIdTreeExportResolver: resolved '${treeId}' to ${file}`);
       // did we resolve the tree we were asked to resolved?
       if (jsonData.tree?._id === treeId) {
         treeExport = jsonData;
@@ -1597,7 +1599,9 @@ export const fileByIdTreeExportResolver: TreeExportResolverInterface =
         treeExport = jsonData.trees[treeId];
       }
     } catch (error) {
-      //
+      debug(
+        `fileByIdTreeExportResolver: unable to resolve '${treeId}' to a file.`
+      );
     }
     return treeExport;
   };
@@ -1635,8 +1639,7 @@ export function createFileParamTreeExportResolver(
       }
       return treeExport;
     };
-  debug('fileParamTreeExportResolver:');
-  debug(fileParamTreeExportResolver);
+  debug(`fileParamTreeExportResolver: file=${file}`);
   return fileParamTreeExportResolver;
 }
 
