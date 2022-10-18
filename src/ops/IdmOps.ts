@@ -17,6 +17,7 @@ import {
 import { getTypedFilename } from './utils/ExportImportUtils';
 import { readFilesRecursive, unSubstituteEnvParams } from './utils/OpsUtils';
 import path from 'path';
+import { validateScriptHooks } from './utils/ValidationUtils';
 
 /**
  * List all IDM configuration objects
@@ -219,12 +220,23 @@ export async function exportAllConfigEntities(
  * @param entityId the configuration object to import
  * @param file optional file to import
  */
-export async function importConfigEntity(entityId: string, file?: string) {
+export async function importConfigEntity(
+  entityId: string,
+  file?: string,
+  validate?: boolean
+) {
   if (!file) {
     file = getTypedFilename(entityId, 'idm');
   }
 
   const entityData = fs.readFileSync(path.resolve(process.cwd(), file), 'utf8');
+
+  const jsObject = JSON.parse(entityData);
+  const isValid = validateScriptHooks(jsObject);
+  if (validate && !isValid) {
+    printMessage('Invalid IDM configuration object', 'error');
+    return;
+  }
 
   try {
     await putConfigEntity(entityId, entityData);
@@ -238,14 +250,31 @@ export async function importConfigEntity(entityId: string, file?: string) {
  * Import all IDM configuration objects from separate JSON files in a directory specified by <directory>
  * @param baseDirectory export directory
  */
-export async function importAllRawConfigEntities(baseDirectory: string) {
+export async function importAllRawConfigEntities(
+  baseDirectory: string,
+  validate?: boolean
+) {
   if (!fs.existsSync(baseDirectory)) {
     return;
   }
   const files = await readFilesRecursive(baseDirectory);
-  const jsonFiles = files.filter((file) =>
-    file.toLowerCase().endsWith('.json')
-  );
+  const jsonFiles = files
+    .filter((file) => file.toLowerCase().endsWith('.json'))
+    .map((filePath) => ({
+      // Remove .json extension
+      entityId: filePath.substring(0, filePath.length - 5),
+      content: fs.readFileSync(filePath, 'utf8'),
+      path: filePath,
+    }));
+
+  for (const file of jsonFiles) {
+    const jsObject = JSON.parse(file.content);
+    const isValid = validateScriptHooks(jsObject);
+    if (validate && !isValid) {
+      printMessage(`Invalid script hook in ${file.path}`, 'error');
+      return;
+    }
+  }
 
   createProgressIndicator(
     undefined,
@@ -254,11 +283,7 @@ export async function importAllRawConfigEntities(baseDirectory: string) {
   );
 
   const entityPromises = jsonFiles.map((file) => {
-    // Remove .json extension
-    const entityId = file.substring(0, file.length - 5);
-
-    const entityData = fs.readFileSync(file, 'utf8');
-    return putConfigEntity(entityId, entityData);
+    return putConfigEntity(file.entityId, file.content);
   });
 
   await Promise.all(entityPromises).then(() => {
@@ -275,7 +300,8 @@ export async function importAllRawConfigEntities(baseDirectory: string) {
 export async function importAllConfigEntities(
   baseDirectory: string,
   entitiesFile: string,
-  envFile: string
+  envFile: string,
+  validate?: boolean
 ) {
   if (!fs.existsSync(baseDirectory)) {
     return;
@@ -286,9 +312,23 @@ export async function importAllConfigEntities(
   const envParams = propertiesReader(envFile);
 
   const files = await readFilesRecursive(baseDirectory);
-  const jsonFiles = files.filter((file) =>
-    file.toLowerCase().endsWith('.json')
-  );
+  const jsonFiles = files
+    .filter((file) => file.toLowerCase().endsWith('.json'))
+    .map((filePath) => ({
+      // Remove .json extension
+      entityId: filePath.substring(0, filePath.length - 5),
+      content: fs.readFileSync(filePath, 'utf8'),
+      path: filePath,
+    }));
+
+  for (const file of jsonFiles) {
+    const jsObject = JSON.parse(file.content);
+    const isValid = validateScriptHooks(jsObject);
+    if (validate && !isValid) {
+      printMessage(`Invalid script hook in ${file.path}`, 'error');
+      return;
+    }
+  }
 
   createProgressIndicator(
     undefined,
@@ -297,18 +337,11 @@ export async function importAllConfigEntities(
   );
 
   const entityPromises = jsonFiles
-    .filter((file) => {
-      // Remove .json extension
-      const entityId = file.substring(0, file.length - 5);
+    .filter(({ entityId }) => {
       return entriesToImport.includes(entityId);
     })
-    .map((file) => {
-      // Remove .json extension
-      const entityId = file.substring(0, file.length - 5);
-
-      const entityData = fs.readFileSync(file, 'utf8');
-      const unsubstituted = unSubstituteEnvParams(entityData, envParams);
-
+    .map(({ entityId, content }) => {
+      const unsubstituted = unSubstituteEnvParams(content, envParams);
       return putConfigEntity(entityId, unsubstituted);
     });
 
