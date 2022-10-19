@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.1] - 2022-10-19
+
 ### Fixed
 
 -   rockcarver/frodo-cli#95: Error tailing logs with txId
@@ -669,7 +671,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.16.1...HEAD
+
+[0.16.1]: https://github.com/rockcarver/frodo-lib/compare/v0.16.0...v0.16.1
 
 [0.16.0]: https://github.com/rockcarver/frodo-lib/compare/v0.15.3-0...v0.16.0
 
