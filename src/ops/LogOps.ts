@@ -298,7 +298,7 @@ export async function tailLogs(source, levels, txid, cookie, nf) {
           (levels[0] === 'ALL' || levels.includes(resolvePayloadLevel(el))) &&
           (typeof txid === 'undefined' ||
             txid === null ||
-            el.payload.transactionId.includes(txid))
+            el.payload.transactionId?.includes(txid))
       );
     }
 
