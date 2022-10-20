@@ -298,7 +298,7 @@ export async function tailLogs(source, levels, txid, cookie, nf) {
           (levels[0] === 'ALL' || levels.includes(resolvePayloadLevel(el))) &&
           (typeof txid === 'undefined' ||
             txid === null ||
-            el.payload.transactionId.includes(txid))
+            el.payload.transactionId?.includes(txid))
       );
     }
 
@@ -358,5 +358,69 @@ export async function provisionCreds() {
   } catch (e) {
     printMessage(`create keys ERROR: create keys data error - ${e}`, 'error');
     return null;
+  }
+}
+
+export async function fetchLogs(
+  source,
+  startTs,
+  endTs,
+  levels,
+  txid,
+  ffString,
+  cookie,
+  nf
+) {
+  try {
+    // console.log(`startTs: ${startTs} endTs : ${endTs}`);
+    const response = await LogApi.fetch(source, startTs, endTs, cookie);
+    if (response.status < 200 || response.status > 399) {
+      printMessage(
+        `fetch ERROR: fetch call returned ${response.status}`,
+        'error'
+      );
+      return null;
+    }
+    const logsObject = response.data;
+    let filteredLogs = [];
+    const noiseFilter = nf == null ? noise : nf;
+    if (Array.isArray(logsObject.result)) {
+      filteredLogs = logsObject.result.filter(
+        (el) =>
+          !noiseFilter.includes(el.payload.logger) &&
+          !noiseFilter.includes(el.type) &&
+          (levels[0] === 'ALL' || levels.includes(resolvePayloadLevel(el))) &&
+          (typeof txid === 'undefined' ||
+            txid === null ||
+            el.payload.transactionId.includes(txid))
+      );
+    }
+
+    filteredLogs.forEach((e) => {
+      const log = JSON.stringify(e, null, 2);
+      if (ffString) {
+        if (log.includes(ffString)) {
+          printMessage(log, 'data');
+        }
+      } else {
+        printMessage(log, 'data');
+      }
+    });
+    if (logsObject.pagedResultsCookie != null) {
+      await fetchLogs(
+        source,
+        startTs,
+        endTs,
+        levels,
+        txid,
+        ffString,
+        logsObject.pagedResultsCookie,
+        nf
+      );
+    }
+    return null;
+  } catch (e) {
+    printMessage(`fetch ERROR: fetch data error - ${e}`, 'error');
+    return `fetch ERROR: fetch data error - ${e}`;
   }
 }
