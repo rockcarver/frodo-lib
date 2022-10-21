@@ -10,6 +10,8 @@ import {
 } from '../../api/utils/Base64';
 import { printMessage } from './Console';
 import { ExportMetaData } from '../OpsTypes';
+import { lstat, readdir } from 'fs/promises';
+import { join } from 'path';
 
 export function getCurrentTimestamp() {
   const ts = new Date();
@@ -182,4 +184,28 @@ export function findFilesByName(
     files.push(...findFilesByName(fileName, fast, `${path}${folder.name}/`));
 
   return files;
+}
+
+/**
+ * find all (nested) files in a directory
+ *
+ * @param directory directory to search
+ * @returns list of files
+ */
+export async function readFilesRecursive(directory: string): Promise<string[]> {
+  const items = await readdir(directory);
+
+  const filePathsNested = await Promise.all(
+    items.map(async (entity) => {
+      const path = join(directory, entity);
+      const isDirectory = (await lstat(path)).isDirectory();
+
+      if (isDirectory) {
+        return readFilesRecursive(path);
+      }
+      return path;
+    })
+  );
+
+  return filePathsNested.flat();
 }
