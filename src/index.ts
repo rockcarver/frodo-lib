@@ -29,6 +29,7 @@ export * as Organization from './ops/OrganizationOps';
 export * as Realm from './ops/RealmOps';
 export * as Saml2 from './ops/Saml2Ops';
 export * as Script from './ops/ScriptOps';
+export * as Service from './ops/ServiceOps';
 export * as Secrets from './ops/SecretsOps';
 export * as Startup from './ops/StartupOps';
 export * as Theme from './ops/ThemeOps';
