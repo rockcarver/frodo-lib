@@ -21,10 +21,6 @@ export interface TreeExportOptions {
    * Include any dependencies (scripts, email templates, SAML entity providers and circles of trust, social identity providers, themes).
    */
   deps: boolean;
-  /**
-   * Verbose output during command execution. May or may not produce additional output.
-   */
-  verbose: boolean;
 }
 
 /**
@@ -39,10 +35,6 @@ export interface TreeImportOptions {
    * Include any dependencies (scripts, email templates, SAML entity providers and circles of trust, social identity providers, themes).
    */
   deps: boolean;
-  /**
-   * Verbose output during command execution. May or may not produce additional output.
-   */
-  verbose: boolean;
 }
 
 export interface ExportMetaData {
