@@ -208,13 +208,13 @@ export async function exportJourney(
   options: TreeExportOptions = {
     useStringArrays: true,
     deps: true,
-    verbose: false,
   }
 ): Promise<SingleTreeExportInterface> {
   const exportData = createSingleTreeExportTemplate();
   try {
     const treeObject = await getTree(treeId);
-    const { useStringArrays, deps, verbose } = options;
+    const { useStringArrays, deps } = options;
+    const verbose = storage.session.getDebug();
 
     if (verbose) printMessage(`\n- ${treeObject._id}\n`, 'info', false);
 
@@ -609,7 +609,8 @@ export async function importJourney(
   treeObject: SingleTreeExportInterface,
   options: TreeImportOptions
 ): Promise<void> {
-  const { reUuid, deps, verbose } = options;
+  const { reUuid, deps } = options;
+  const verbose = storage.session.getDebug();
   if (verbose) printMessage(`\n- ${treeObject.tree._id}\n`, 'info', false);
   let newUuid = '';
   const uuidMap = {};
@@ -1256,7 +1257,6 @@ export const onlineTreeExportResolver: TreeExportResolverInterface =
     return await exportJourney(treeId, {
       deps: false,
       useStringArrays: false,
-      verbose: false,
     });
   };
 
