@@ -60,6 +60,8 @@ export default {
     getMasterKeyPath: () => _sessionStorage['masterKeyPath'],
     setOutputFile: (value) => (_sessionStorage['outputFile'] = value),
     getOutputFile: () => _sessionStorage['outputFile'],
+    setDirectory: (value) => (_sessionStorage['directory'] = value),
+    getDirectory: () => _sessionStorage['directory'],
     setPrintHandler: (printHandler) =>
       (_sessionStorage['printHandler'] = printHandler),
     getPrintHandler: () => _sessionStorage['printHandler'],
