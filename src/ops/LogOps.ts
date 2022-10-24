@@ -392,7 +392,7 @@ export async function fetchLogs(
           (levels[0] === 'ALL' || levels.includes(resolvePayloadLevel(el))) &&
           (typeof txid === 'undefined' ||
             txid === null ||
-            el.payload.transactionId.includes(txid))
+            el.payload.transactionId?.includes(txid))
       );
     }
 
