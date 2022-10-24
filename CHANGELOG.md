@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   \#137: Error fetching logs with txId
 -   rockcarver/frodo-cli#109: Suppress am version output
 -   rockcarver/frodo-cli#102: Verbosity of connection string used
+-   rockcarver/frodo-cli#106: Handle non-unique connection name used in cli
 
 ## [0.16.2-0] - 2022-10-22
 
