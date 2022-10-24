@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+-   \#137: Error fetching logs with txId
+
 ## [0.16.2-0] - 2022-10-22
 
 ## [0.16.1] - 2022-10-19
