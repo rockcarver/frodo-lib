@@ -1,7 +1,7 @@
-import { getCurrentRealmPath } from './utils/ApiUtils';
 import util from 'util';
 import storage from '../storage/SessionStorage';
 import { generateAmApi } from './BaseApi';
+import { getCurrentRealmPath } from './utils/ApiUtils';
 
 const serviceURLTemplate = '%s/json%s/realm-config/services/%s';
 const serviceURLNextDescendentsTemplate =
@@ -100,12 +100,31 @@ export async function getServiceNextDescendents(
     .post<ServiceNextDescendent[]>(urlString, {
       withCredentials: true,
     })
-    .then((response) => response.data)
+    .then((response) => {
+      if (response.status < 200 || response.status > 399) {
+        console.error(
+          'getServiceNextDescendents ERROR: get service structure call returned %d, possible cause: service not found',
+          response.status
+        );
+        return null;
+      } else {
+        return response.data;
+      }
+    })
     .catch((error) => {
       if (error.response.status === 403) {
-        return [];
+        console.error(
+          `getServiceNextDescendents ERROR: get service structure error - 403. Service ID -> ${id}.`,
+          error.response.data.message
+        );
+      } else {
+        console.error(
+          `getServiceNextDescendents ERROR: get service structure error - 403. Service ID -> ${id}.`,
+          error.response.data.message
+        );
+        //throw error;
       }
-      throw error;
+      return null;
     });
 }
 

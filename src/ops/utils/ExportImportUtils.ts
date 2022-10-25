@@ -1,17 +1,17 @@
 import fs from 'fs';
-import slugify from 'slugify';
-import storage from '../../storage/SessionStorage';
-import { FRODO_METADATA_ID } from '../../storage/StaticStorage';
-import {
-  encode,
-  decode,
-  encodeBase64Url,
-  decodeBase64Url,
-} from '../../api/utils/Base64';
-import { printMessage } from './Console';
-import { ExportMetaData } from '../OpsTypes';
 import { lstat, readdir } from 'fs/promises';
 import { join } from 'path';
+import slugify from 'slugify';
+import {
+  decode,
+  decodeBase64Url,
+  encode,
+  encodeBase64Url,
+} from '../../api/utils/Base64';
+import storage from '../../storage/SessionStorage';
+import { FRODO_METADATA_ID } from '../../storage/StaticStorage';
+import { ExportMetaData } from '../OpsTypes';
+import { printMessage } from './Console';
 
 export function getCurrentTimestamp() {
   const ts = new Date();
@@ -93,12 +93,17 @@ export function saveToFile(type, data, identifier, filename) {
   const exportData = {};
   exportData['meta'] = getMetadata();
   exportData[type] = {};
+
   if (Array.isArray(data)) {
     data.forEach((element) => {
-      exportData[type][element[identifier]] = element;
+      exportData[type][element['_type'][identifier]] = element;
     });
   } else {
-    exportData[type][data[identifier]] = data;
+    if (exportData[type][data[identifier]]?.length) {
+      exportData[type][data[identifier]] = data;
+    } else {
+      exportData[type][data['_type'][identifier]] = data;
+    }
   }
   fs.writeFile(filename, JSON.stringify(exportData, null, 2), (err) => {
     if (err) {
