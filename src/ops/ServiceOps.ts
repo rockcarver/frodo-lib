@@ -1,12 +1,12 @@
 import { readFileSync } from 'fs';
 import {
-  getServiceList,
-  getService,
-  getServiceNextDescendents,
   deleteService,
+  deleteServiceNextDescendents,
+  getService,
+  getServiceList,
+  getServiceNextDescendents,
   putService,
   putServiceDescendents,
-  deleteServiceNextDescendents,
   Service,
   ServiceNextDescendent,
 } from '../api/ServiceApi';
@@ -19,8 +19,6 @@ export async function listServices() {
   serviceList.forEach((item) => {
     printMessage(`${item._id} - ${item.name}`, 'data');
   });
-
-  await getFullServices();
 }
 
 export async function exportService(serviceId: string, file?: string) {
@@ -51,41 +49,48 @@ async function getFullServices(): Promise<FullService[]> {
           getServiceNextDescendents(listItem._id),
         ]);
 
-        console.log('nextDescendents', nextDescendents);
-
         return {
           ...service,
           nextDescendents,
         };
       } catch (error) {
-        console.log(error);
-        // throw error;
+        console.error(
+          `Unable to retrieve data for ${listItem._id} with error: ${error.message}`
+        );
       }
     })
   );
 
-  return fullServiceData;
+  return fullServiceData.filter((data) => !!data); // make sure to filter out any undefined objects
 }
 
 export async function exportServicesToFile(file?: string) {
   const fileName = file ?? 'services.json';
-
-  console.log('Exporting all services to a single file...');
   const services = await getFullServices();
 
   saveToFile('service', services, '_id', fileName);
 }
 
 export async function exportServicesToFiles() {
-  console.log('Exporting all services to separate files...');
-
   const services = await getFullServices();
 
-  services.forEach((service) => {
-    const fileName = `./${service._id}.json`;
+  for (const item of services) {
+    const serviceData = await getService(item._id);
+    if (null !== serviceData) {
+      const serviceNextDescendentData = await getServiceNextDescendents(
+        item._id
+      );
+      serviceData['nextDescendents'] = serviceNextDescendentData;
+      const fileName = `./${item._id}.json`;
+      saveToFile('service', [serviceData], '_id', fileName);
+    }
+  }
 
-    saveToFile('service', service, '_id', fileName);
-  });
+  // services.forEach((s) => {
+  //   const fileName = `./${service._id}.json`;
+
+  //   saveToFile('service', service, '_id', fileName);
+  // });
 }
 
 async function deleteFullService(serviceId: string) {
