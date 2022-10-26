@@ -74,23 +74,10 @@ export async function exportServicesToFile(file?: string) {
 export async function exportServicesToFiles() {
   const services = await getFullServices();
 
-  for (const item of services) {
-    const serviceData = await getService(item._id);
-    if (null !== serviceData) {
-      const serviceNextDescendentData = await getServiceNextDescendents(
-        item._id
-      );
-      serviceData['nextDescendents'] = serviceNextDescendentData;
-      const fileName = `./${item._id}.json`;
-      saveToFile('service', [serviceData], '_id', fileName);
-    }
-  }
-
-  // services.forEach((s) => {
-  //   const fileName = `./${service._id}.json`;
-
-  //   saveToFile('service', service, '_id', fileName);
-  // });
+  services.forEach((service) => {
+    const fileName = `./${service._type._id}.json`;
+    saveToFile('service', service, '_id', fileName);
+  });
 }
 
 async function deleteFullService(serviceId: string) {
