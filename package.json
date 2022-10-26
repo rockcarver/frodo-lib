@@ -85,6 +85,7 @@
   "dependencies": {
     "agentkeepalive": "^4.2.1",
     "axios": "^0.27.2",
+    "axios-curlirize": "^2.0.0",
     "axios-retry": "^3.3.1",
     "cli-table3": "^0.6.2",
     "colors": "^1.4.0",
