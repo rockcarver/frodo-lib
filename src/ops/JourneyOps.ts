@@ -27,7 +27,7 @@ import {
   createProgressIndicator,
   updateProgressIndicator,
   stopProgressIndicator,
-  debug,
+  debugMessage,
 } from './utils/Console';
 import {
   getProviderByLocationAndId,
@@ -1084,7 +1084,7 @@ export async function importJourney(
       }
     } else {
       printMessage(importError.response?.data || importError, 'error');
-      debug(importError.response?.data || importError);
+      debugMessage(importError.response?.data || importError);
       throw new Error(`\nError importing journey flow ${treeId}`);
     }
   }
@@ -1253,7 +1253,7 @@ export function getNodeRef(
  */
 export const onlineTreeExportResolver: TreeExportResolverInterface =
   async function (treeId: string) {
-    debug(`onlineTreeExportResolver(${treeId})`);
+    debugMessage(`onlineTreeExportResolver(${treeId})`);
     return await exportJourney(treeId, {
       deps: false,
       useStringArrays: false,
@@ -1268,13 +1268,15 @@ export const onlineTreeExportResolver: TreeExportResolverInterface =
  */
 export const fileByIdTreeExportResolver: TreeExportResolverInterface =
   async function (treeId: string) {
-    debug(`fileByIdTreeExportResolver(${treeId})`);
+    debugMessage(`fileByIdTreeExportResolver(${treeId})`);
     let treeExport = createSingleTreeExportTemplate();
     const files = findFilesByName(getTypedFilename(`${treeId}`, 'journey'));
     try {
       const file = files.pop();
       const jsonData = JSON.parse(fs.readFileSync(file, 'utf8'));
-      debug(`fileByIdTreeExportResolver: resolved '${treeId}' to ${file}`);
+      debugMessage(
+        `fileByIdTreeExportResolver: resolved '${treeId}' to ${file}`
+      );
       // did we resolve the tree we were asked to resolved?
       if (jsonData.tree?._id === treeId) {
         treeExport = jsonData;
@@ -1284,7 +1286,7 @@ export const fileByIdTreeExportResolver: TreeExportResolverInterface =
         treeExport = jsonData.trees[treeId];
       }
     } catch (error) {
-      debug(
+      debugMessage(
         `fileByIdTreeExportResolver: unable to resolve '${treeId}' to a file.`
       );
     }
@@ -1302,7 +1304,7 @@ export function createFileParamTreeExportResolver(
 ): TreeExportResolverInterface {
   const fileParamTreeExportResolver: TreeExportResolverInterface =
     async function (treeId: string) {
-      debug(`fileParamTreeExportResolver(${treeId})`);
+      debugMessage(`fileParamTreeExportResolver(${treeId})`);
       let treeExport: SingleTreeExportInterface =
         createSingleTreeExportTemplate();
       try {
@@ -1324,7 +1326,7 @@ export function createFileParamTreeExportResolver(
       }
       return treeExport;
     };
-  debug(`fileParamTreeExportResolver: file=${file}`);
+  debugMessage(`fileParamTreeExportResolver: file=${file}`);
   return fileParamTreeExportResolver;
 }
 
@@ -1340,7 +1342,7 @@ export async function getTreeDescendents(
   resolveTreeExport: TreeExportResolverInterface = onlineTreeExportResolver,
   resolvedTreeIds: string[] = []
 ): Promise<TreeDependencyMapInterface> {
-  debug(
+  debugMessage(
     `getTreeDependencies(${treeExport.tree._id}, [${resolvedTreeIds.join(
       ', '
     )}])`
@@ -1359,7 +1361,7 @@ export async function getTreeDescendents(
       !resolvedTreeIds.includes(innerTreeId)
     ) {
       const innerTreeExport = await resolveTreeExport(innerTreeId);
-      debug(`resolved inner tree: ${innerTreeExport.tree._id}`);
+      debugMessage(`resolved inner tree: ${innerTreeExport.tree._id}`);
       // resolvedTreeIds.push(innerTreeId);
       dependencies.push(
         await getTreeDescendents(

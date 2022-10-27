@@ -85,6 +85,7 @@
   "dependencies": {
     "agentkeepalive": "^4.2.1",
     "axios": "^0.27.2",
+    "axios-curlirize": "^2.0.0",
     "axios-retry": "^3.3.1",
     "cli-table3": "^0.6.2",
     "colors": "^1.4.0",
@@ -103,7 +104,6 @@
     "@babel/eslint-parser": "^7.18.9",
     "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
     "@babel/plugin-syntax-import-assertions": "^7.16.7",
-    "@babel/plugin-transform-modules-commonjs": "^7.16.8",
     "@babel/preset-env": "^7.18.10",
     "@babel/preset-typescript": "^7.18.6",
     "@jest/globals": "^29.0.1",
