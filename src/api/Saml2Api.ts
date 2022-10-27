@@ -1,8 +1,8 @@
-import util from 'util';
 import _ from 'lodash';
+import util from 'util';
+import storage from '../storage/SessionStorage';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
-import storage from '../storage/SessionStorage';
 
 const providerByLocationAndIdURLTemplate = '%s/json%s/realm-config/saml2/%s/%s';
 const createHostedProviderURLTemplate =
@@ -15,6 +15,8 @@ const queryProvidersByEntityIdURLTemplate =
   '%s/json%s/realm-config/saml2?_queryFilter=%s&_fields=%s';
 const metadataByEntityIdURLTemplate =
   '%s/saml2/jsp/exportmetadata.jsp?entityid=%s&realm=%s';
+const samlApplicationListURLTemplateEntityIdRaw =
+  '%s/json%s/realm-config/federation/entityproviders/saml2/%s';
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => {
   const configPath = getCurrentRealmPath();
@@ -100,6 +102,28 @@ export async function getProvider(entityId) {
     }
     default:
       throw new Error(`Multiple providers with entity id '${entityId}' found`);
+  }
+}
+
+export async function deleteProvider(entityId) {
+  try {
+    const urlString = util.format(
+      samlApplicationListURLTemplateEntityIdRaw,
+      storage.session.getTenant(),
+      getCurrentRealmPath(),
+      entityId
+    );
+    const response = await generateAmApi(getApiConfig()).delete(urlString, {
+      withCredentials: true,
+    });
+    if (response.status < 200 || response.status > 399) {
+      throw new Error(
+        `deleteSamlEntityByEntityId ERROR: get Saml entity call returned %d, possible cause: application not found`
+      );
+    }
+    return response.data;
+  } catch (e) {
+    throw new Error(e.message);
   }
 }
 

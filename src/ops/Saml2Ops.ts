@@ -1,23 +1,25 @@
 import fs from 'fs';
 import _ from 'lodash';
-import { decode, encode, encodeBase64Url } from '../api/utils/Base64';
 import {
-  createTable,
-  printMessage,
-  createProgressIndicator,
-  updateProgressIndicator,
-  stopProgressIndicator,
-  createObjectTable,
-} from './utils/Console';
-import {
-  getProviders,
+  createProvider,
+  deleteProvider,
   findProviders,
   getProviderByLocationAndId,
   getProviderMetadata,
-  createProvider,
   getProviderMetadataUrl,
+  getProviders,
 } from '../api/Saml2Api';
 import { getScript } from '../api/ScriptApi';
+import { decode, encode, encodeBase64Url } from '../api/utils/Base64';
+import { createOrUpdateScript } from './ScriptOps';
+import {
+  createObjectTable,
+  createProgressIndicator,
+  createTable,
+  printMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from './utils/Console';
 import {
   convertBase64TextToArray,
   convertBase64UrlTextToArray,
@@ -29,7 +31,6 @@ import {
   saveTextToFile,
   validateImport,
 } from './utils/ExportImportUtils';
-import { createOrUpdateScript } from './ScriptOps';
 
 export const roleMap = {
   identityProvider: 'IDP',
@@ -76,6 +77,18 @@ export async function listSaml2Providers(long = false) {
       ]);
     }
     printMessage(table.toString());
+  }
+}
+
+/**
+ * Deletes the identityprovider provided by the entityId
+ * @param {string} entityId The entity id for the entity to be deleted
+ */
+export async function deleteSamlEntityByEntityId(entityId: string) {
+  try {
+    await deleteProvider(entityId);
+  } catch (error) {
+    printMessage(error.message, 'error');
   }
 }
 
