@@ -97,11 +97,18 @@ function getProxy(): AxiosProxyConfig | false {
   return null;
 }
 
+function waitUntilDefined(variable) {
+  if (typeof variable === 'undefined') {
+    setTimeout(waitUntilDefined, 250);
+  }
+}
+
 /**
  * Customize curlirize output
  * @param request axios request object
  */
 function curlirize(request) {
+  waitUntilDefined(_curlirize);
   _curlirize.default(request, (result, err) => {
     const { command } = result;
     if (err) {
