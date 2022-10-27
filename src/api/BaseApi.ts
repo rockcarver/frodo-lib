@@ -1,7 +1,6 @@
 import Agent from 'agentkeepalive';
 import axios, { AxiosProxyConfig } from 'axios';
 import axiosRetry from 'axios-retry';
-import _curlirize from 'axios-curlirize';
 import HttpsProxyAgent from 'https-proxy-agent';
 import url from 'url';
 import fs from 'fs';
@@ -9,6 +8,19 @@ import storage from '../storage/SessionStorage';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { curlirizeMessage, printMessage } from '../ops/utils/Console';
+// import _curlirize from 'axios-curlirize';
+/**
+ * For the time being, we will need to compile to CommonJS.
+ * axios-curlirize is an ESM-only module and cannot be loaded
+ * using require(). The solution is to use a dynamic import,
+ * which requires an async function and await.
+ * Using an async IIFE because CommonJS does not support
+ * top-level await.
+ */
+let _curlirize = undefined;
+(async function () {
+  _curlirize = await import('axios-curlirize');
+})();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -90,7 +102,7 @@ function getProxy(): AxiosProxyConfig | false {
  * @param request axios request object
  */
 function curlirize(request) {
-  _curlirize(request, (result, err) => {
+  _curlirize.default(request, (result, err) => {
     const { command } = result;
     if (err) {
       printMessage(err, 'error');
