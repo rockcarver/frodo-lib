@@ -32,7 +32,8 @@
       "/node_modules/",
       "/dist/"
     ],
-    "verbose": true
+    "verbose": true,
+    "timers": "fake"
   },
   "description": "A library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.",
   "keywords": [
