@@ -23,7 +23,11 @@ import {
  */
 let _curlirize = undefined;
 (async function () {
-  _curlirize = await import('axios-curlirize');
+  try {
+    _curlirize = await import('axios-curlirize');
+  } catch (error) {
+    // catch errors
+  }
 })();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
