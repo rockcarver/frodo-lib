@@ -7,7 +7,9 @@ import {
   getProviderByLocationAndId,
   getProviderMetadata,
   getProviderMetadataUrl,
+  getProviderRaw,
   getProviders,
+  getProvidersRaw,
 } from '../api/Saml2Api';
 import { getScript } from '../api/ScriptApi';
 import { decode, encode, encodeBase64Url } from '../api/utils/Base64';
@@ -29,6 +31,7 @@ import {
   getTypedFilename,
   saveJsonToFile,
   saveTextToFile,
+  saveToFile,
   validateImport,
 } from './utils/ExportImportUtils';
 
@@ -179,6 +182,21 @@ export async function exportSaml2ProviderToFile(entityId, file = null) {
   }
 }
 
+export async function exportSaml2Raw(entityId, file = null) {
+  console.log(`Exporting SAML application ${entityId}`);
+  let fileName = entityId + '.json';
+  if (file) {
+    fileName = file;
+  }
+  createProgressIndicator(1, `Exporting raw entity: ${entityId}`);
+  getProviderRaw(entityId).then(async (response) => {
+    updateProgressIndicator(`Writing file ${fileName}`);
+    const rawData = response;
+    saveTextToFile(JSON.stringify(rawData, null, 2), fileName);
+    stopProgressIndicator(`Exported ${entityId} metadata to ${fileName}.`);
+  });
+}
+
 /**
  * Export provider metadata to file
  * @param {String} entityId Provider entity id
@@ -255,6 +273,51 @@ export async function describeSaml2Provider(entityId) {
     }
   } catch (error) {
     printMessage(error.message, 'error');
+  }
+}
+
+/**
+ * Export all entity providers raw to one file
+ * @param {String} file Optional filename
+ */
+export async function exportSaml2ProvidersRawToFile(file = null) {
+  let fileName = file;
+  if (!fileName) {
+    fileName = getTypedFilename(`all${getRealmString()}ProvidersRaw`, 'json');
+  }
+  try {
+    const samlApplicationList = await getProvidersRaw();
+
+    saveToFile('application', samlApplicationList, '_id', fileName);
+  } catch (error) {
+    printMessage(error.message, 'error');
+    printMessage(
+      `exportProvidersRawToFile: ${error.response?.status}`,
+      'error'
+    );
+  }
+}
+
+/**
+ * Export all entity providers to individual files
+ */
+export async function exportSaml2ProvidersRawToFiles() {
+  const samlApplicationList = await getProvidersRaw();
+  let hasError = false;
+  for (const item of samlApplicationList) {
+    try {
+      const samlApplicationData = await getProviderRaw(item._id);
+      const fileName = `./${item._id}.json`;
+      saveToFile('application', [samlApplicationData], '_id', fileName);
+    } catch (error) {
+      hasError = true;
+      printMessage(`Unable to export:  ${item._id}`, 'error');
+    }
+  }
+  if (!hasError) {
+    printMessage('All entities exported.', 'info');
+  } else {
+    printMessage('All other entities exported.', 'info');
   }
 }
 

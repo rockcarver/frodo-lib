@@ -15,6 +15,8 @@ const queryProvidersByEntityIdURLTemplate =
   '%s/json%s/realm-config/saml2?_queryFilter=%s&_fields=%s';
 const metadataByEntityIdURLTemplate =
   '%s/saml2/jsp/exportmetadata.jsp?entityid=%s&realm=%s';
+const samlApplicationListURLTemplateRaw =
+  '%s/json%s/realm-config/federation/entityproviders/saml2?_queryFilter=true';
 const samlApplicationListURLTemplateEntityIdRaw =
   '%s/json%s/realm-config/federation/entityproviders/saml2/%s';
 const apiVersion = 'protocol=2.1,resource=1.0';
@@ -124,6 +126,53 @@ export async function deleteProvider(entityId) {
     return response.data;
   } catch (e) {
     throw new Error(e.message);
+  }
+}
+
+export async function getProvidersRaw() {
+  try {
+    const urlString = util.format(
+      samlApplicationListURLTemplateRaw,
+      storage.session.getTenant(),
+      getCurrentRealmPath()
+    );
+    const response = await generateAmApi(getApiConfig()).get(urlString, {
+      withCredentials: true,
+    });
+    if (response.status < 200 || response.status > 399) {
+      throw new Error(
+        'listSamlEntitiesRaw ERROR: list Saml application call returned %d, possible cause: entities not found'
+      );
+    }
+    return response.data.result;
+  } catch (e) {
+    throw new Error(
+      `listSamlEntitiesRaw ERROR: list Saml application error - ${e.message}`
+    );
+  }
+}
+
+export async function getProviderRaw(entityId) {
+  try {
+    const urlString = util.format(
+      samlApplicationListURLTemplateEntityIdRaw,
+      storage.session.getTenant(),
+      getCurrentRealmPath(),
+      entityId
+    );
+    const response = await generateAmApi(getApiConfig()).get(urlString, {
+      withCredentials: true,
+    });
+    if (response.status < 200 || response.status > 399) {
+      throw new Error(
+        'getSamlEntityByEntityIdRaw ERROR: get Saml entity call returned %d, possible cause: application not found'
+      );
+    }
+    return response.data;
+  } catch (e) {
+    throw new Error(
+      `getSamlEntityByEntityIdRaw ERROR: get Saml entity error - ${e.message}`
+    );
   }
 }
 
