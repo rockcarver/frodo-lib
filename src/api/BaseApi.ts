@@ -7,7 +7,11 @@ import fs from 'fs';
 import storage from '../storage/SessionStorage';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { curlirizeMessage, debugMessage, printMessage } from '../ops/utils/Console';
+import {
+  curlirizeMessage,
+  debugMessage,
+  printMessage,
+} from '../ops/utils/Console';
 // import _curlirize from 'axios-curlirize';
 /**
  * For the time being, we will need to compile to CommonJS.
