@@ -7,7 +7,7 @@ import fs from 'fs';
 import storage from '../storage/SessionStorage';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { curlirizeMessage, printMessage } from '../ops/utils/Console';
+import { curlirizeMessage, debugMessage, printMessage } from '../ops/utils/Console';
 // import _curlirize from 'axios-curlirize';
 /**
  * For the time being, we will need to compile to CommonJS.
@@ -97,10 +97,12 @@ function getProxy(): AxiosProxyConfig | false {
   return null;
 }
 
-function waitUntilDefined(variable) {
-  if (typeof variable === 'undefined') {
-    setTimeout(waitUntilDefined, 250);
+function waitUntilCurlirizeIsReady() {
+  if (typeof _curlirize === 'undefined') {
+    debugMessage('waiting for curlirize to load...');
+    setTimeout(waitUntilCurlirizeIsReady, 50);
   }
+  debugMessage('curlirize loaded and ready.');
 }
 
 /**
@@ -108,7 +110,7 @@ function waitUntilDefined(variable) {
  * @param request axios request object
  */
 function curlirize(request) {
-  waitUntilDefined(_curlirize);
+  waitUntilCurlirizeIsReady();
   _curlirize.default(request, (result, err) => {
     const { command } = result;
     if (err) {
