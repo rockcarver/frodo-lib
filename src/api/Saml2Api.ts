@@ -107,6 +107,11 @@ export async function getProvider(entityId) {
   }
 }
 
+/**
+ * Deletes a SAML2 entity provider by entity id
+ * @param {string} entityId Provider entity id
+ * @returns {Promise} a promise that resolves whenever the deletion is succesfull
+ */
 export async function deleteProvider(entityId) {
   try {
     const urlString = util.format(
@@ -129,6 +134,9 @@ export async function deleteProvider(entityId) {
   }
 }
 
+/**
+ * Retrieves all entity providers using the SAML2 enpoint.
+ */
 export async function getProvidersRaw() {
   try {
     const urlString = util.format(
@@ -152,6 +160,47 @@ export async function getProvidersRaw() {
   }
 }
 
+/**
+ * Stores a new SAML2 entity provider
+ * @param {string} id The entity provider id
+ * @param data The actual data containing the entity provider configuration
+ * @returns Promise resolving whenever the put operation was a success
+ */
+export async function putSamlEntity(id, data) {
+  try {
+    const urlString = util.format(
+      samlApplicationListURLTemplateEntityIdRaw,
+      storage.session.getTenant(),
+      getCurrentRealmPath(),
+      id
+    );
+    const response = await generateAmApi(getApiConfig()).put(urlString, data, {
+      withCredentials: true,
+    });
+    if (response.status < 200 || response.status > 399) {
+      throw new Error(
+        `putSamlEntity ERROR: put SAML Entity call returned ${response.status}, details: ${response}`
+      );
+    }
+    if (response.data._id !== id) {
+      throw new Error(
+        `putSamlEntity ERROR: generic error importing SAML Entity ${id}`
+      );
+    }
+    return response.data;
+  } catch (e) {
+    throw new Error(
+      `putSamlEntity ERROR: put SAML Entity error, entity [${id}] - ${e.message}`,
+      e
+    );
+  }
+}
+
+/**
+ * Gets the data for an entity provider including the raw XML.
+ * @param {string} id The entity provider id
+ * @returns Promise that when resolved includes the configuration and raw xml for a SAML entity provider
+ */
 export async function getProviderRaw(entityId) {
   try {
     const urlString = util.format(
