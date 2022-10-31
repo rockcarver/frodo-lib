@@ -1,6 +1,6 @@
+import { createAPIKeyAndSecret, getAPIKeys, getSources } from '../api/LogApi';
 import { printMessage } from './utils/Console';
 import { getCurrentTimestamp } from './utils/ExportImportUtils';
-import { createAPIKeyAndSecret, getAPIKeys, getSources } from '../api/LogApi';
 
 import storage from '../storage/SessionStorage';
 
