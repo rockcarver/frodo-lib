@@ -94,6 +94,7 @@ async function deleteFullService(serviceId: string) {
   );
 
   await deleteService(serviceId);
+  printMessage(`Deleted... ${serviceId}`, 'info');
 }
 
 async function deleteFullServices() {
