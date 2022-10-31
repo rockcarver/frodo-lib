@@ -6,7 +6,6 @@ import propertiesReader from 'properties-reader';
 import {
   getAllConfigEntities,
   getConfigEntity,
-  putConfigEntity,
   queryAllManagedObjectsByType,
 } from '../api/IdmConfigApi';
 import {
@@ -15,9 +14,6 @@ import {
   stopProgressIndicator,
 } from './utils/Console';
 import { getTypedFilename } from './utils/ExportImportUtils';
-import { readFilesRecursive, unSubstituteEnvParams } from './utils/OpsUtils';
-import path from 'path';
-import { validateScriptHooks } from './utils/ValidationUtils';
 
 /**
  * List all IDM configuration objects
@@ -212,141 +208,6 @@ export async function exportAllConfigEntities(
         stopProgressIndicator(null, 'success');
       });
     }
-  });
-}
-
-/**
- * Import an IDM configuration object.
- * @param entityId the configuration object to import
- * @param file optional file to import
- */
-export async function importConfigEntity(
-  entityId: string,
-  file?: string,
-  validate?: boolean
-) {
-  if (!file) {
-    file = getTypedFilename(entityId, 'idm');
-  }
-
-  const entityData = fs.readFileSync(path.resolve(process.cwd(), file), 'utf8');
-
-  const jsObject = JSON.parse(entityData);
-  const isValid = validateScriptHooks(jsObject);
-  if (validate && !isValid) {
-    printMessage('Invalid IDM configuration object', 'error');
-    return;
-  }
-
-  try {
-    await putConfigEntity(entityId, entityData);
-  } catch (putConfigEntityError) {
-    printMessage(putConfigEntityError, 'error');
-    printMessage(`Error: ${putConfigEntityError}`, 'error');
-  }
-}
-
-/**
- * Import all IDM configuration objects from separate JSON files in a directory specified by <directory>
- * @param baseDirectory export directory
- */
-export async function importAllRawConfigEntities(
-  baseDirectory: string,
-  validate?: boolean
-) {
-  if (!fs.existsSync(baseDirectory)) {
-    return;
-  }
-  const files = await readFilesRecursive(baseDirectory);
-  const jsonFiles = files
-    .filter((file) => file.toLowerCase().endsWith('.json'))
-    .map((filePath) => ({
-      // Remove .json extension
-      entityId: filePath.substring(0, filePath.length - 5),
-      content: fs.readFileSync(filePath, 'utf8'),
-      path: filePath,
-    }));
-
-  for (const file of jsonFiles) {
-    const jsObject = JSON.parse(file.content);
-    const isValid = validateScriptHooks(jsObject);
-    if (validate && !isValid) {
-      printMessage(`Invalid script hook in ${file.path}`, 'error');
-      return;
-    }
-  }
-
-  createProgressIndicator(
-    undefined,
-    'Importing config objects...',
-    'indeterminate'
-  );
-
-  const entityPromises = jsonFiles.map((file) => {
-    return putConfigEntity(file.entityId, file.content);
-  });
-
-  await Promise.all(entityPromises).then(() => {
-    stopProgressIndicator('Imported config objects.', 'success');
-  });
-}
-
-/**
- * Import all IDM configuration objects
- * @param directory import directory
- * @param entitiesFile JSON file that specifies the config entities to export/import
- * @param envFile File that defines environment specific variables for replacement during configuration export/import
- */
-export async function importAllConfigEntities(
-  baseDirectory: string,
-  entitiesFile: string,
-  envFile: string,
-  validate?: boolean
-) {
-  if (!fs.existsSync(baseDirectory)) {
-    return;
-  }
-  const entities = JSON.parse(fs.readFileSync(entitiesFile, 'utf8'));
-  const entriesToImport = entities.idm;
-
-  const envParams = propertiesReader(envFile);
-
-  const files = await readFilesRecursive(baseDirectory);
-  const jsonFiles = files
-    .filter((file) => file.toLowerCase().endsWith('.json'))
-    .map((filePath) => ({
-      // Remove .json extension
-      entityId: filePath.substring(0, filePath.length - 5),
-      content: fs.readFileSync(filePath, 'utf8'),
-      path: filePath,
-    }));
-
-  for (const file of jsonFiles) {
-    const jsObject = JSON.parse(file.content);
-    const isValid = validateScriptHooks(jsObject);
-    if (validate && !isValid) {
-      printMessage(`Invalid script hook in ${file.path}`, 'error');
-      return;
-    }
-  }
-
-  createProgressIndicator(
-    undefined,
-    'Importing config objects...',
-    'indeterminate'
-  );
-
-  const entityPromises = jsonFiles
-    .filter(({ entityId }) => {
-      return entriesToImport.includes(entityId);
-    })
-    .map(({ entityId, content }) => {
-      const unsubstituted = unSubstituteEnvParams(content, envParams);
-      return putConfigEntity(entityId, unsubstituted);
-    });
-
-  await Promise.all(entityPromises).then(() => {
-    stopProgressIndicator('Imported config objects.', 'success');
   });
 }
 
