@@ -56,6 +56,10 @@ export interface Service {
   [key: string]: any;
 }
 
+export interface ServiceNextDescendentResponse {
+  result: ServiceNextDescendent;
+}
+
 export interface ServiceNextDescendent {
   [key: string]: any;
 }
@@ -97,7 +101,7 @@ export async function getServiceNextDescendents(
     id
   );
   return generateAmApi(getApiConfig())
-    .post<ServiceNextDescendent[]>(urlString, {
+    .post<ServiceNextDescendentResponse>(urlString, {
       withCredentials: true,
     })
     .then((response) => {
@@ -108,7 +112,7 @@ export async function getServiceNextDescendents(
         );
         return null;
       } else {
-        return response.data;
+        return response.data.result;
       }
     })
     .catch((error) => {
@@ -129,12 +133,15 @@ export async function getServiceNextDescendents(
 }
 
 export async function putService(id: string, data: Service): Promise<void> {
+  const realm =
+    storage.session.getRealm() === '/' ? '' : storage.session.getRealm();
   const urlString = util.format(
     serviceURLTemplate,
     storage.session.getTenant(),
-    storage.session.getRealm(),
+    realm,
     id
   );
+
   return generateAmApi(getApiConfig()).put(urlString, data, {
     withCredentials: true,
   });
@@ -146,10 +153,12 @@ export async function putServiceDescendents(
   id: string,
   data: ServiceNextDescendent
 ): Promise<unknown> {
+  const realm =
+    storage.session.getRealm() === '/' ? '' : storage.session.getRealm();
   const urlString = util.format(
     serviceURLNextDescendentsPutTemplate,
     storage.session.getTenant(),
-    storage.session.getRealm(),
+    realm,
     serviceId,
     type,
     id
