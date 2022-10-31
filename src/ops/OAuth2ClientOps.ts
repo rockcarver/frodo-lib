@@ -67,7 +67,7 @@ export async function listOAuth2Clients(long = false) {
       });
     }
   } catch (error) {
-    printMessage(`Error listing scripts - ${error}`, 'error');
+    printMessage(`Error listing applications - ${error}`, 'error');
   }
 }
 

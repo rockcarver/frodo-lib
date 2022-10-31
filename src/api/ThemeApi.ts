@@ -1,7 +1,7 @@
 import { ThemeSkeleton, UiThemeRealmObject } from './ApiTypes';
 import { getConfigEntity, putConfigEntity } from './IdmConfigApi';
 import { getCurrentRealmName } from './utils/ApiUtils';
-import { debug } from '../ops/utils/Console';
+import { debugMessage } from '../ops/utils/Console';
 
 export const THEMEREALM_ID = 'ui/themerealm';
 
@@ -150,7 +150,7 @@ export async function putThemeByName(
 export async function putThemes(
   themeMap: Map<string, ThemeSkeleton>
 ): Promise<Map<string, ThemeSkeleton>> {
-  debug(`ThemeApi.putThemes: start`);
+  debugMessage(`ThemeApi.putThemes: start`);
   const themes = await getConfigEntity(THEMEREALM_ID);
   const allThemeIDs = Object.keys(themeMap);
   const existingThemeIDs = [];
@@ -158,7 +158,7 @@ export async function putThemes(
   // update existing themes
   let realmThemes = getRealmThemes(themes).map((theme) => {
     if (themeMap[theme._id]) {
-      debug(`Update theme: ${theme._id} - ${theme.name}`);
+      debugMessage(`Update theme: ${theme._id} - ${theme.name}`);
       existingThemeIDs.push(theme._id);
       // remember the id of the last default theme
       if (themeMap[theme._id].isDefault) defaultThemeId = theme._id;
@@ -171,7 +171,9 @@ export async function putThemes(
   );
   // add new themes
   newThemeIDs.forEach((themeId) => {
-    debug(`Add theme: ${themeMap[themeId]._id} - ${themeMap[themeId].name}`);
+    debugMessage(
+      `Add theme: ${themeMap[themeId]._id} - ${themeMap[themeId].name}`
+    );
     // remember the id of the last default theme
     if (themeMap[themeId].isDefault) defaultThemeId = themeId;
     realmThemes.push(themeMap[themeId]);
@@ -190,8 +192,8 @@ export async function putThemes(
       (theme) => [theme._id, theme]
     )
   );
-  debug(updatedThemes);
-  debug(`ThemeApi.putThemes: finished`);
+  debugMessage(updatedThemes);
+  debugMessage(`ThemeApi.putThemes: finished`);
   return updatedThemes;
 }
 

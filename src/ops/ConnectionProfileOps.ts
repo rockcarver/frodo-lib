@@ -5,6 +5,7 @@ import storage from '../storage/SessionStorage';
 import DataProtection from './utils/DataProtection';
 import { createObjectTable, createTable, printMessage } from './utils/Console';
 import { FRODO_CONNECTION_PROFILES_PATH_KEY } from '../storage/StaticStorage';
+import { profile } from 'console';
 
 const dataProtection = new DataProtection();
 
@@ -31,14 +32,15 @@ export function getConnectionProfilesPath(): string {
  * @returns {Object} connection profile object or null
  */
 function findConnectionProfile(connectionProfiles, host) {
+  const profiles = [];
   for (const tenant in connectionProfiles) {
     if (tenant.includes(host)) {
-      const profile = connectionProfiles[tenant];
-      profile.tenant = tenant;
-      return profile;
+      const foundProfile = connectionProfiles[tenant];
+      foundProfile.tenant = tenant;
+      profiles.push(foundProfile);
     }
   }
-  return null;
+  return profiles;
 }
 
 /**
@@ -122,27 +124,35 @@ export async function getConnectionProfileByHost(host) {
   try {
     const filename = getConnectionProfilesPath();
     const connectionsData = JSON.parse(fs.readFileSync(filename, 'utf8'));
-    const profile = findConnectionProfile(connectionsData, host);
-    if (!profile) {
+    const profiles = findConnectionProfile(connectionsData, host);
+    if (profiles.length == 0) {
       printMessage(
         `Profile for ${host} not found. Please specify credentials on command line`,
         'error'
       );
       return null;
     }
+    if (profiles.length > 1) {
+      printMessage(`Multiple matching profiles found.`, 'error');
+      profiles.forEach((p) => {
+        printMessage(`- ${p.tenant}`, 'error');
+      });
+      printMessage(`Please specify a unique sub-string`, 'error');
+      return null;
+    }
     return {
-      tenant: profile.tenant,
-      username: profile.username ? profile.username : null,
-      password: profile.encodedPassword
-        ? await dataProtection.decrypt(profile.encodedPassword)
+      tenant: profiles[0].tenant,
+      username: profiles[0].username ? profiles[0].username : null,
+      password: profiles[0].encodedPassword
+        ? await dataProtection.decrypt(profiles[0].encodedPassword)
         : null,
-      key: profile.logApiKey ? profile.logApiKey : null,
-      secret: profile.logApiSecret ? profile.logApiSecret : null,
-      authenticationService: profile.authenticationService
-        ? profile.authenticationService
+      key: profiles[0].logApiKey ? profiles[0].logApiKey : null,
+      secret: profiles[0].logApiSecret ? profiles[0].logApiSecret : null,
+      authenticationService: profiles[0].authenticationService
+        ? profiles[0].authenticationService
         : null,
-      authenticationHeaderOverrides: profile.authenticationHeaderOverrides
-        ? profile.authenticationHeaderOverrides
+      authenticationHeaderOverrides: profiles[0].authenticationHeaderOverrides
+        ? profiles[0].authenticationHeaderOverrides
         : {},
     };
   } catch (e) {
@@ -230,13 +240,22 @@ export function deleteConnectionProfile(host) {
     if (err == null) {
       const data = fs.readFileSync(filename, 'utf8');
       connectionsData = JSON.parse(data);
-      const profile = findConnectionProfile(connectionsData, host);
-      if (profile) {
-        printMessage(`Deleting connection profile ${profile.tenant}`);
-        delete connectionsData[profile.tenant];
+      const profiles = findConnectionProfile(connectionsData, host);
+      if (profiles.length == 1) {
+        printMessage(`Deleting connection profile ${profiles[0].tenant}`);
+        delete connectionsData[profiles[0].tenant];
         fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
       } else {
-        printMessage(`No connection profile ${host} found`);
+        if (profiles.length > 1) {
+          printMessage(`Multiple matching profiles found.`, 'error');
+          profiles.forEach((p) => {
+            printMessage(`- ${p.tenant}`, 'error');
+          });
+          printMessage(`Please specify a unique sub-string`, 'error');
+          return null;
+        } else {
+          printMessage(`No connection profile ${host} found`);
+        }
       }
     } else if (err.code === 'ENOENT') {
       printMessage(`Connection profile file ${filename} not found`);

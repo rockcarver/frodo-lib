@@ -188,7 +188,16 @@ async function authenticate() {
         determineDefaultRealm(storage.session.getDeploymentType());
       }
       const versionInfo = (await getServerVersionInfo()).data;
-      printMessage(`Connected to ${versionInfo.fullVersion}`);
+
+      // https://github.com/rockcarver/frodo-cli/issues/109
+      // printMessage(`Connected to ${versionInfo.fullVersion}`);
+
+      // https://github.com/rockcarver/frodo-cli/issues/102
+      printMessage(
+        `Connected to [${storage.session.getTenant()}], [${
+          !storage.session.getRealm() ? 'alpha' : storage.session.getRealm()
+        }] realm, as [${storage.session.getUsername()}]`
+      );
       const version = await getSemanticVersion(versionInfo);
       storage.session.setAmVersion(version);
       return '';
