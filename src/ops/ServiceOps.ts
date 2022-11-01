@@ -10,7 +10,12 @@ import {
   Service,
   ServiceNextDescendent,
 } from '../api/ServiceApi';
-import { printMessage } from './utils/Console';
+import {
+  createProgressIndicator,
+  printMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from './utils/Console';
 import { readFilesRecursive, saveToFile } from './utils/ExportImportUtils';
 
 export async function listServices() {
@@ -70,16 +75,27 @@ export async function exportServicesToFile(file?: string) {
   const fileName = file ?? 'services.json';
   const services = await getFullServices();
 
+  createProgressIndicator(1, `Exporting services to file: ${fileName}`);
   saveToFile('service', services, '_id', fileName);
+  updateProgressIndicator(`Exporting ${fileName}`);
+  stopProgressIndicator(`Export to '${fileName}' done.`);
 }
 
 export async function exportServicesToFiles() {
   const services = await getFullServices();
 
+  createProgressIndicator(
+    services.length,
+    'Exporting services to separate files.'
+  );
   services.forEach((service) => {
     const fileName = `./${service._type._id}.json`;
+    updateProgressIndicator(
+      `Exporting service: ${service._type._id} to ${fileName}`
+    );
     saveToFile('service', service, '_id', fileName);
   });
+  stopProgressIndicator(`Export done.`);
 }
 
 async function deleteFullService(serviceId: string) {
