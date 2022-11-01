@@ -96,10 +96,14 @@ export function saveToFile(type, data, identifier, filename) {
 
   if (Array.isArray(data)) {
     data.forEach((element) => {
-      exportData[type][element['_type'][identifier]] = element;
+      if (exportData[type][element[identifier]] !== null) {
+        exportData[type][element[identifier]] = element;
+      } else {
+        exportData[type][element['_type'][identifier]] = element;
+      }
     });
   } else {
-    if (exportData[type][data[identifier]]?.length) {
+    if (exportData[type][data[identifier]] !== null) {
       exportData[type][data[identifier]] = data;
     } else {
       exportData[type][data['_type'][identifier]] = data;
