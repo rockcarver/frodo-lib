@@ -145,13 +145,48 @@ export async function importService(
     await deleteService(serviceId);
   }
 
-  await putService(serviceId, serviceData);
+  for (const id in serviceData.service) {
+    const data = serviceData.service[id];
+    await putFullService(serviceId, data);
+  }
+  printMessage(`Imported service: ${serviceId}`);
+
+  return;
+
+  for (const id in serviceData.service) {
+    if ({}.hasOwnProperty.call(serviceData.service, id)) {
+      const data = serviceData.service[id];
+      let nextDescendents = null;
+      // eslint-disable-next-line no-prototype-builtins
+      if (data.hasOwnProperty('nextDescendents')) {
+        nextDescendents = data['nextDescendents'];
+        delete data['nextDescendents'];
+      }
+      delete data._rev;
+      putService(id, data).then((result) => {
+        if (result !== null) {
+          console.log(`Imported ${id}`);
+          if (nextDescendents !== null) {
+            nextDescendents.forEach(function (descendent) {
+              const type = descendent._type._id;
+              const descendentId = descendent._id;
+              putServiceDescendents(id, type, descendentId, descendent).then(
+                (result) => {
+                  if (result !== null)
+                    console.log(`Imported Service Descendent ${descendentId}`);
+                }
+              );
+            });
+          }
+        }
+      });
+    }
+  }
 }
 
 export async function importServices(clean: boolean, file: string) {
   const fileString = readFileSync(file, 'utf8');
   const serviceData = JSON.parse(fileString);
-  // TODO: validate file
 
   if (clean) {
     await deleteFullServices();
@@ -164,12 +199,16 @@ export async function importServicesSeparate(
   clean: boolean,
   directory: string
 ) {
-  const fileNames = await readFilesRecursive(directory);
+  const paths = await readFilesRecursive(directory);
 
-  const serviceData = fileNames.map((fileName): [string, FullService] => {
-    const fileString = readFileSync(`${directory}/${fileName}`, 'utf8');
+  const serviceData = paths.map((path): [string, FullService] => {
+    const fileString = readFileSync(`${path}`, 'utf8');
+    const parts = path.split('/');
+    const fileName = parts[parts.length - 1];
     const serviceId = fileName.replace('.json', '');
-    const serviceData = JSON.parse(fileString);
+    const serviceData = JSON.parse(fileString).service[serviceId];
+
+    //console.log(JSON.stringify())
     // TODO: validate file
     return [serviceId, serviceData];
   });
