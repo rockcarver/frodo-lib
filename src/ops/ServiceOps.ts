@@ -54,8 +54,10 @@ async function getFullServices(): Promise<FullService[]> {
           nextDescendents,
         };
       } catch (error) {
-        console.error(
-          `Unable to retrieve data for ${listItem._id} with error: ${error.message}`
+        const message = error.response?.data?.message;
+        printMessage(
+          `Unable to retrieve data for ${listItem._id} with error: ${message}`,
+          'error'
         );
       }
     })
@@ -110,6 +112,7 @@ async function putFullService(id: string, data: FullService) {
 
   delete data.nextDescendents;
   delete data._rev;
+  delete data.enabled;
 
   await putService(id, data);
 
@@ -127,11 +130,22 @@ async function putFullService(id: string, data: FullService) {
 }
 
 async function putFullServices(serviceEntries: [string, FullService][]) {
-  await Promise.all(
-    serviceEntries.map(([id, data]) => {
-      return putFullService(id, data);
-    })
-  );
+  for (const [id, data] of serviceEntries) {
+    try {
+      await putFullService(id, data);
+      printMessage(`Imported: ${id}`, 'info');
+    } catch (error) {
+      const message = error.response?.data?.message;
+      const detail = error.response?.data?.detail;
+      printMessage(
+        `Unable to import service: ${id} with error: ${message}`,
+        'error'
+      );
+      if (detail) {
+        printMessage(`Details: ${JSON.stringify(detail)}`, 'error');
+      }
+    }
+  }
 }
 
 export async function importService(
@@ -145,43 +159,25 @@ export async function importService(
     await deleteService(serviceId);
   }
 
-  for (const id in serviceData.service) {
-    const data = serviceData.service[id];
-    await putFullService(serviceId, data);
-  }
-  printMessage(`Imported service: ${serviceId}`);
-
-  return;
-
-  for (const id in serviceData.service) {
-    if ({}.hasOwnProperty.call(serviceData.service, id)) {
+  try {
+    for (const id in serviceData.service) {
       const data = serviceData.service[id];
-      let nextDescendents = null;
-      // eslint-disable-next-line no-prototype-builtins
-      if (data.hasOwnProperty('nextDescendents')) {
-        nextDescendents = data['nextDescendents'];
-        delete data['nextDescendents'];
-      }
-      delete data._rev;
-      putService(id, data).then((result) => {
-        if (result !== null) {
-          console.log(`Imported ${id}`);
-          if (nextDescendents !== null) {
-            nextDescendents.forEach(function (descendent) {
-              const type = descendent._type._id;
-              const descendentId = descendent._id;
-              putServiceDescendents(id, type, descendentId, descendent).then(
-                (result) => {
-                  if (result !== null)
-                    console.log(`Imported Service Descendent ${descendentId}`);
-                }
-              );
-            });
-          }
-        }
-      });
+      await putFullService(serviceId, data);
+    }
+    printMessage(`Imported service: ${serviceId}`);
+  } catch (error) {
+    const message = error.response?.data?.message;
+    const detail = error.response?.data?.detail;
+    printMessage(
+      `Unable to import service: ${serviceId} with error: ${message}`,
+      'error'
+    );
+    if (detail) {
+      printMessage(`Details: ${JSON.stringify(detail)}`, 'error');
     }
   }
+
+  return;
 }
 
 export async function importServices(clean: boolean, file: string) {
@@ -192,7 +188,7 @@ export async function importServices(clean: boolean, file: string) {
     await deleteFullServices();
   }
 
-  await putFullServices(Object.entries(serviceData));
+  await putFullServices(Object.entries(serviceData.service));
 }
 
 export async function importServicesSeparate(
@@ -201,23 +197,17 @@ export async function importServicesSeparate(
 ) {
   const paths = await readFilesRecursive(directory);
 
-  const serviceData = paths.map((path): [string, FullService] => {
-    const fileString = readFileSync(`${path}`, 'utf8');
-    const parts = path.split('/');
-    const fileName = parts[parts.length - 1];
-    const serviceId = fileName.replace('.json', '');
-    const serviceData = JSON.parse(fileString).service[serviceId];
-
-    //console.log(JSON.stringify())
-    // TODO: validate file
-    return [serviceId, serviceData];
-  });
-
   if (clean) {
     await deleteFullServices();
   }
 
-  await putFullServices(serviceData);
+  for (const path of paths) {
+    const parts = path.replaceAll('\\', '/').split('/');
+    const fileName = parts[parts.length - 1];
+    const serviceId = fileName.replace('.json', '');
+
+    await importService(serviceId, false, path);
+  }
 }
 
 export async function deleteServiceOp(serviceId: string) {
