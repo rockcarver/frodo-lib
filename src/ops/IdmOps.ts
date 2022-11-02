@@ -196,7 +196,7 @@ export async function exportAllConfigEntities(
             });
             fse.outputFile(
               `${directory}/${item._id}.json`,
-              JSON.stringify(item, null, 2),
+              configEntityString,
               // eslint-disable-next-line consistent-return
               (error) => {
                 if (err) {
