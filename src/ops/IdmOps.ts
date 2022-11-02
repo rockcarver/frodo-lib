@@ -249,6 +249,7 @@ export async function importConfigEntity(
 /**
  * Import all IDM configuration objects from separate JSON files in a directory specified by <directory>
  * @param baseDirectory export directory
+ * @param validate validate script hooks
  */
 export async function importAllRawConfigEntities(
   baseDirectory: string,
@@ -320,9 +321,10 @@ export async function importAllRawConfigEntities(
 
 /**
  * Import all IDM configuration objects
- * @param directory import directory
+ * @param baseDirectory import directory
  * @param entitiesFile JSON file that specifies the config entities to export/import
  * @param envFile File that defines environment specific variables for replacement during configuration export/import
+ * @param validate validate script hooks
  */
 export async function importAllConfigEntities(
   baseDirectory: string,
@@ -333,10 +335,9 @@ export async function importAllConfigEntities(
   if (!fs.existsSync(baseDirectory)) {
     return;
   }
-  const entities = JSON.parse(fs.readFileSync(entitiesFile, 'utf8'));
-  const entriesToImport = entities.idm;
+  const entriesToImport = JSON.parse(fs.readFileSync(entitiesFile, 'utf8')).idm;
 
-  const envParams = propertiesReader(envFile);
+  const envReader = propertiesReader(envFile);
 
   const files = await readFiles(baseDirectory);
   const jsonFiles = files
@@ -373,7 +374,7 @@ export async function importAllConfigEntities(
       return entriesToImport.includes(entityId);
     })
     .map(({ entityId, content }) => {
-      const unsubstituted = unSubstituteEnvParams(content, envParams);
+      const unsubstituted = unSubstituteEnvParams(content, envReader);
       return putConfigEntity(entityId, unsubstituted);
     });
 
