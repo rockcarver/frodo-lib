@@ -84,9 +84,29 @@ export function validateImport(metadata): boolean {
   return metadata || true;
 }
 
-export function getTypedFilename(name, type, suffix = 'json') {
+export function getTypedFilename(name: string, type: string, suffix = 'json') {
   const slug = slugify(name.replace(/^http(s?):\/\//, ''));
   return `${slug}.${type}.${suffix}`;
+}
+
+export function saveServicesToFile(type, data, identifier, filename) {
+  const exportData = {};
+  exportData['meta'] = getMetadata();
+  exportData[type] = {};
+
+  if (Array.isArray(data)) {
+    data.forEach((element) => {
+      exportData[type][element['_type'][identifier]] = element;
+    });
+  } else {
+    exportData[type][data['_type'][identifier]] = data;
+  }
+  fs.writeFile(filename, JSON.stringify(exportData, null, 2), (err) => {
+    if (err) {
+      return printMessage(`ERROR - can't save ${type} to file`, 'error');
+    }
+    return '';
+  });
 }
 
 export function saveToFile(type, data, identifier, filename) {
@@ -96,18 +116,10 @@ export function saveToFile(type, data, identifier, filename) {
 
   if (Array.isArray(data)) {
     data.forEach((element) => {
-      if (exportData[type][element[identifier]] !== null) {
-        exportData[type][element[identifier]] = element;
-      } else {
-        exportData[type][element['_type'][identifier]] = element;
-      }
+      exportData[type][element[identifier]] = element;
     });
   } else {
-    if (exportData[type][data[identifier]] !== null) {
-      exportData[type][data[identifier]] = data;
-    } else {
-      exportData[type][data['_type'][identifier]] = data;
-    }
+    exportData[type][data[identifier]] = data;
   }
   fs.writeFile(filename, JSON.stringify(exportData, null, 2), (err) => {
     if (err) {

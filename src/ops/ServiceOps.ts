@@ -16,7 +16,10 @@ import {
   stopProgressIndicator,
   updateProgressIndicator,
 } from './utils/Console';
-import { readFilesRecursive, saveToFile } from './utils/ExportImportUtils';
+import {
+  readFilesRecursive,
+  saveServicesToFile,
+} from './utils/ExportImportUtils';
 
 export async function listServices() {
   const serviceList = await getServiceList();
@@ -34,9 +37,16 @@ export async function exportService(serviceId: string, file?: string) {
   }
   const service = await getService(serviceId);
 
+  createProgressIndicator(
+    1,
+    `Exporting service ${serviceId} to file: ${fileName}`
+  );
+
   const serviceNextDescendentData = await getServiceNextDescendents(serviceId);
   service.nextDescendents = serviceNextDescendentData;
-  saveToFile('service', service, '_id', fileName);
+  saveServicesToFile('service', service, '_id', fileName);
+  updateProgressIndicator(`Exporting ${serviceId}`);
+  stopProgressIndicator(`Export to '${fileName}' done.`);
 }
 
 interface FullService extends Service {
@@ -76,7 +86,7 @@ export async function exportServicesToFile(file?: string) {
   const services = await getFullServices();
 
   createProgressIndicator(1, `Exporting services to file: ${fileName}`);
-  saveToFile('service', services, '_id', fileName);
+  saveServicesToFile('service', services, '_id', fileName);
   updateProgressIndicator(`Exporting ${fileName}`);
   stopProgressIndicator(`Export to '${fileName}' done.`);
 }
@@ -93,7 +103,7 @@ export async function exportServicesToFiles() {
     updateProgressIndicator(
       `Exporting service: ${service._type._id} to ${fileName}`
     );
-    saveToFile('service', service, '_id', fileName);
+    saveServicesToFile('service', service, '_id', fileName);
   });
   stopProgressIndicator(`Export done.`);
 }
@@ -180,7 +190,7 @@ export async function importService(
       const data = serviceData.service[id];
       await putFullService(serviceId, data);
     }
-    printMessage(`Imported service: ${serviceId}`);
+    printMessage(`Imported service: ${serviceId}`, 'info');
   } catch (error) {
     const message = error.response?.data?.message;
     const detail = error.response?.data?.detail;
