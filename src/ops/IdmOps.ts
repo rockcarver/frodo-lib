@@ -15,7 +15,7 @@ import {
   stopProgressIndicator,
 } from './utils/Console';
 import { getTypedFilename } from './utils/ExportImportUtils';
-import { readFilesRecursive, unSubstituteEnvParams } from './utils/OpsUtils';
+import { readFiles, unSubstituteEnvParams } from './utils/OpsUtils';
 import path from 'path';
 import { validateScriptHooks } from './utils/ValidationUtils';
 
@@ -102,7 +102,7 @@ export async function exportAllRawConfigEntities(directory) {
           ) {
             printMessage(getConfigEntityError.response?.data, 'error');
             printMessage(
-              `Error getting config entity: ${getConfigEntityError}`,
+              `Error getting config entity ${x._id}: ${getConfigEntityError}`,
               'error'
             );
           }
@@ -257,23 +257,28 @@ export async function importAllRawConfigEntities(
   if (!fs.existsSync(baseDirectory)) {
     return;
   }
-  const files = await readFilesRecursive(baseDirectory);
+  const files = await readFiles(baseDirectory);
   const jsonFiles = files
-    .filter((file) => file.toLowerCase().endsWith('.json'))
-    .map((filePath) => ({
+    .filter(({ path }) => path.toLowerCase().endsWith('.json'))
+    .map(({ path, content }) => ({
       // Remove .json extension
-      entityId: filePath.substring(0, filePath.length - 5),
-      content: fs.readFileSync(filePath, 'utf8'),
-      path: filePath,
+      entityId: path.substring(0, path.length - 5),
+      content,
+      path,
     }));
 
+  let everyScriptValid = true;
   for (const file of jsonFiles) {
     const jsObject = JSON.parse(file.content);
-    const isValid = validateScriptHooks(jsObject);
-    if (validate && !isValid) {
+    const isScriptValid = validateScriptHooks(jsObject);
+    if (!isScriptValid) {
       printMessage(`Invalid script hook in ${file.path}`, 'error');
-      return;
+      everyScriptValid = false;
     }
+  }
+
+  if (validate && !everyScriptValid) {
+    return;
   }
 
   createProgressIndicator(
@@ -311,23 +316,28 @@ export async function importAllConfigEntities(
 
   const envParams = propertiesReader(envFile);
 
-  const files = await readFilesRecursive(baseDirectory);
+  const files = await readFiles(baseDirectory);
   const jsonFiles = files
-    .filter((file) => file.toLowerCase().endsWith('.json'))
-    .map((filePath) => ({
+    .filter(({ path }) => path.toLowerCase().endsWith('.json'))
+    .map(({ content, path }) => ({
       // Remove .json extension
-      entityId: filePath.substring(0, filePath.length - 5),
-      content: fs.readFileSync(filePath, 'utf8'),
-      path: filePath,
+      entityId: path.substring(0, path.length - 5),
+      content,
+      path,
     }));
 
+  let everyScriptValid = true;
   for (const file of jsonFiles) {
     const jsObject = JSON.parse(file.content);
-    const isValid = validateScriptHooks(jsObject);
-    if (validate && !isValid) {
+    const isScriptValid = validateScriptHooks(jsObject);
+    if (!isScriptValid) {
       printMessage(`Invalid script hook in ${file.path}`, 'error');
-      return;
+      everyScriptValid = false;
     }
+  }
+
+  if (validate && !everyScriptValid) {
+    return;
   }
 
   createProgressIndicator(

@@ -4,7 +4,7 @@ import {
   getCurrentRealmName,
   getRealmName as _getRealmName,
 } from '../../api/utils/ApiUtils';
-import { lstat, readdir } from 'fs/promises';
+import { lstat, readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import { Reader } from 'properties-reader';
 import replaceall from 'replaceall';
@@ -95,21 +95,36 @@ export function getRealmName(realm) {
 /**
  * find all (nested) files in a directory
  *
- * @param directory directory to search
+ * @param baseDirectory directory to search
+ * @param childDirectory subdirectory to search
  * @returns list of files
  */
-export async function readFilesRecursive(directory: string): Promise<string[]> {
-  const items = await readdir(directory);
+export async function readFiles(
+  baseDirectory: string,
+  childDirectory = ''
+): Promise<
+  {
+    path: string;
+    content: string;
+  }[]
+> {
+  const targetDirectory = join(baseDirectory, childDirectory);
+  const directoryItems = await readdir(targetDirectory);
+  const childPaths = directoryItems.map((item) => join(childDirectory, item));
 
   const filePathsNested = await Promise.all(
-    items.map(async (entity) => {
-      const path = join(directory, entity);
+    childPaths.map(async (childPath) => {
+      const path = join(baseDirectory, childPath);
       const isDirectory = (await lstat(path)).isDirectory();
 
       if (isDirectory) {
-        return readFilesRecursive(path);
+        return readFiles(baseDirectory, childPath);
       }
-      return path;
+
+      return {
+        path: childPath,
+        content: await readFile(path, 'utf8'),
+      };
     })
   );
 
