@@ -71,11 +71,7 @@ export async function putConfigEntity(
     const { data } = await generateIdmApi().put(urlString, entityData);
     return data;
   } catch (error) {
-    console.error(
-      `Error while updating config entity ${entityId} with data ${entityData}`,
-      error
-    );
-    throw error;
+    throw Error(`Could not put config entity: ${error}`);
   }
 }
 
