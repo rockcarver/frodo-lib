@@ -1,8 +1,9 @@
 /* eslint-disable no-await-in-loop */
 import fs from 'fs';
 import fse from 'fs-extra';
-import replaceall from 'replaceall';
+import path from 'path';
 import propertiesReader from 'properties-reader';
+import replaceall from 'replaceall';
 import {
   getAllConfigEntities,
   getConfigEntity,
@@ -10,13 +11,12 @@ import {
   queryAllManagedObjectsByType,
 } from '../api/IdmConfigApi';
 import {
-  printMessage,
   createProgressIndicator,
+  printMessage,
   stopProgressIndicator,
 } from './utils/Console';
 import { getTypedFilename } from './utils/ExportImportUtils';
 import { readFiles, unSubstituteEnvParams } from './utils/OpsUtils';
-import path from 'path';
 import { validateScriptHooks } from './utils/ValidationUtils';
 
 /**
@@ -110,7 +110,6 @@ export async function exportAllRawConfigEntities(directory) {
       );
     });
     Promise.all(entityPromises).then((result) => {
-      // console.log(result);
       result.forEach((item) => {
         if (item != null) {
           fse.outputFile(
@@ -178,12 +177,10 @@ export async function exportAllConfigEntities(
       const entityPromises = [];
       configEntities['configurations'].forEach((x) => {
         if (entriesToExport.includes(x._id)) {
-          // console.log(`- ${x._id}`);
           entityPromises.push(getConfigEntity(x._id));
         }
       });
       Promise.all(entityPromises).then((result) => {
-        // console.log(result);
         result.forEach((item) => {
           if (item != null) {
             let configEntityString = JSON.stringify(item, null, 2);
@@ -427,7 +424,6 @@ export async function countManagedObjects(type) {
         result.pagedResultsCookie
       );
       count += result.resultCount;
-      // printMessage(result);
     } while (result.pagedResultsCookie);
     printMessage(`${type}: ${count}`);
   } catch (error) {
