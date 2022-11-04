@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import {
   deleteService,
   deleteServiceNextDescendents,
@@ -230,6 +230,17 @@ export async function importService(
   clean: boolean,
   file: string
 ) {
+  if (!file || !file?.length) {
+    file = `${serviceId}.service.json`;
+  }
+
+  if (!existsSync(file)) {
+    printMessage(
+      `Unable to import service: ${serviceId} with error: file: ${file} not found`,
+      'error'
+    );
+    return;
+  }
   const serviceData = JSON.parse(readFileSync(file, 'utf8'));
 
   if (clean) {
