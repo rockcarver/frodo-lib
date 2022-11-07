@@ -196,7 +196,7 @@ export async function exportSaml2Raw(entityId, file = null) {
     fileName = file;
   }
   createProgressIndicator(1, `Exporting raw entity: ${entityId}`);
-  getProviderRaw(entityId).then(async (response) => {
+  await getProviderRaw(entityId).then(async (response) => {
     updateProgressIndicator(`Writing file ${fileName}`);
     const rawData = response;
     saveTextToFile(JSON.stringify(rawData, null, 2), fileName);
@@ -555,10 +555,10 @@ export async function importFirstSaml2ProviderFromFile(file) {
 
 /**
  * Imports the RAW provider info from a single file.
- * @param {String} file Import file name
+ * @param file Import file name
  */
-export async function importSaml2RAWProvidersFromFile(file) {
-  fs.readFile(file, 'utf8', function (err, data) {
+export async function importSaml2RAWProvidersFromFile(file: string) {
+  fs.readFile(file, 'utf8', async function (err, data) {
     if (err) throw err;
     const samlEntityData = JSON.parse(data);
     let amountOfEntities = 0;
@@ -572,11 +572,13 @@ export async function importSaml2RAWProvidersFromFile(file) {
       for (const id in samlEntityData.application) {
         // remove the "_rev" data before PUT
         delete samlEntityData.application[id]._rev;
-        putSamlEntity(id, samlEntityData.application[id]).then((result) => {
-          if (result === null) {
-            printMessage(`Import validation failed for ${id}`, 'error');
+        await putSamlEntity(id, samlEntityData.application[id]).then(
+          (result) => {
+            if (result === null) {
+              printMessage(`Import validation failed for ${id}`, 'error');
+            }
           }
-        });
+        );
         updateProgressIndicator(`Imported ${id}...`);
       }
       stopProgressIndicator(`Import done`);
@@ -599,7 +601,7 @@ export async function importSaml2RawProvidersFromFiles(directory) {
 
   if (filesToImport.length > 0) {
     createProgressIndicator(filesToImport.length, 'Importing providers...');
-    filesToImport.forEach((file) => {
+    filesToImport.forEach(async (file) => {
       const filePathAbsolute = path.join(directory, file);
       filesToImport.push(file);
       const samlEntityData = JSON.parse(
@@ -609,11 +611,13 @@ export async function importSaml2RawProvidersFromFiles(directory) {
         for (const id in samlEntityData.application) {
           // remove the "_rev" data before PUT
           delete samlEntityData.application[id]._rev;
-          putSamlEntity(id, samlEntityData.application[id]).then((result) => {
-            if (result === null) {
-              printMessage(`Import validation failed for ${id}`, 'error');
+          await putSamlEntity(id, samlEntityData.application[id]).then(
+            (result) => {
+              if (result === null) {
+                printMessage(`Import validation failed for ${id}`, 'error');
+              }
             }
-          });
+          );
           updateProgressIndicator(`Imported ${id}...`);
         }
       } else {
