@@ -1,0 +1,22 @@
+{
+  "result": [
+    {
+      "_id": "ig_chico",
+      "_rev": "1137074734",
+      "igTokenIntrospection": "Realm_Subs",
+      "status": "Active",
+      "igCdssoRedirectUrls": [],
+      "userpassword": null,
+      "_type": {
+        "_id": "IdentityGatewayAgent",
+        "name": "Identity Gateway Agents",
+        "collection": true
+      }
+    }
+  ],
+  "resultCount": 1,
+  "pagedResultsCookie": null,
+  "totalPagedResultsPolicy": "EXACT",
+  "totalPagedResults": 1,
+  "remainingPagedResults": -1
+}

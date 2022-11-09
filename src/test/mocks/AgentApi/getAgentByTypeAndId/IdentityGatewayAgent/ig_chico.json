@@ -1,0 +1,22 @@
+{
+  "_id": "ig_chico",
+  "_rev": "1284103029",
+  "userpassword": null,
+  "igTokenIntrospection": {
+    "inherited": false,
+    "value": "Realm_Subs"
+  },
+  "status": {
+    "inherited": false,
+    "value": "Active"
+  },
+  "igCdssoRedirectUrls": {
+    "inherited": false,
+    "value": []
+  },
+  "_type": {
+    "_id": "IdentityGatewayAgent",
+    "name": "Identity Gateway Agents",
+    "collection": true
+  }
+}
