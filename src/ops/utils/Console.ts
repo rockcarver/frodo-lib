@@ -31,7 +31,7 @@ export function printMessage(
  *
  * @param {string | unknown} message The verbose output message
  */
-export function verbose(message: string | object) {
+export function verboseMessage(message: string | object) {
   const handler = storage.session.getVerboseHandler();
   if (handler) {
     handler(message);
@@ -45,10 +45,36 @@ export function verbose(message: string | object) {
  *
  * @param {string | object} message The debug output message
  */
-export function debug(message: string | object) {
+export function debugMessage(message: string | object) {
   const handler = storage.session.getDebugHandler();
   if (handler) {
     handler(message);
+  }
+}
+
+/**
+ * Helper function to mask password header in curl command
+ * @param curlCommand curl command to mask
+ * @returns masked curl command
+ */
+function maskPasswordHeader(curlCommand: string) {
+  const header = 'X-OpenAM-Password:';
+  const mask = '<suppressed>';
+  const regex = new RegExp('"' + header + '.+?"', 'g');
+  return curlCommand.replace(regex, '"' + header + mask + '"');
+}
+
+/**
+ * Handles curlirize output. The caller decides and implements how
+ * the messages are handled, by implementing the handler function
+ * on its side. Implementing and registering a `handler` is optional.
+ *
+ * @param {string} message The curlirize output message
+ */
+export function curlirizeMessage(message: string) {
+  const handler = storage.session.getCurlirizeHandler();
+  if (handler) {
+    handler(maskPasswordHeader(message));
   }
 }
 

@@ -1,0 +1,19 @@
+{
+  "result": [
+    {
+      "_id": "api_client",
+      "_rev": "730049208",
+      "igTokenIntrospection": "Realm_Subs",
+      "status": "Active",
+      "igCdssoRedirectUrls": [],
+      "agentgroup": null,
+      "userpassword": null,
+      "_type": "IdentityGatewayAgent"
+    }
+  ],
+  "resultCount": 1,
+  "pagedResultsCookie": null,
+  "totalPagedResultsPolicy": "NONE",
+  "totalPagedResults": -1,
+  "remainingPagedResults": -1
+}

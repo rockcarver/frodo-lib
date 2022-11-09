@@ -2,7 +2,11 @@
   "presets": [
     [
       "@babel/preset-env",
-      { "targets": { "node": "14", "esmodules": true }, "modules": "cjs" }
+      {
+        "targets": { "node": "14", "esmodules": true },
+        "modules": "cjs",
+        "exclude": ["proposal-dynamic-import"]
+      }
     ],
     "@babel/preset-typescript"
   ],
