@@ -8,7 +8,7 @@ import storage from '../storage/SessionStorage';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { curlirizeMessage, printMessage } from '../ops/utils/Console';
-import _curlirize from 'axios-curlirize';
+import _curlirize from '../ext/axios-curlirize/curlirize';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
