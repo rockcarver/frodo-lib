@@ -1,0 +1,23 @@
+{
+  "result": [
+    {
+      "_id": "ajays_client",
+      "_rev": "-1579763659",
+      "igTokenIntrospection": "Realm_Subs",
+      "status": "Active",
+      "igCdssoRedirectUrls": [],
+      "agentgroup": null,
+      "userpassword": null,
+      "_type": {
+        "_id": "IdentityGatewayAgent",
+        "name": "Identity Gateway Agents",
+        "collection": true
+      }
+    }
+  ],
+  "resultCount": 1,
+  "pagedResultsCookie": null,
+  "totalPagedResultsPolicy": "EXACT",
+  "totalPagedResults": 1,
+  "remainingPagedResults": -1
+}
