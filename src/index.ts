@@ -3,6 +3,7 @@ import Color from 'colors';
 Color.enable();
 
 // Api Layer
+export * as AgentRaw from './api/AgentApi';
 export * as EmailTemplateRaw from './api/EmailTemplateApi';
 export * as NodeRaw from './api/NodeApi';
 export * as SecretsRaw from './api/SecretsApi';
@@ -14,6 +15,7 @@ export * as VariablesRaw from './api/VariablesApi';
 
 // Ops Layer
 export * as Admin from './ops/AdminOps';
+export * as Agent from './ops/AgentOps';
 export * as Authenticate from './ops/AuthenticateOps';
 export * as CirclesOfTrust from './ops/CirclesOfTrustOps';
 export * as ConnectionProfile from './ops/ConnectionProfileOps';
