@@ -1,4 +1,5 @@
 import {
+  AgentSkeleton,
   CircleOfTrustSkeleton,
   EmailTemplateSkeleton,
   NodeSkeleton,
@@ -21,10 +22,6 @@ export interface TreeExportOptions {
    * Include any dependencies (scripts, email templates, SAML entity providers and circles of trust, social identity providers, themes).
    */
   deps: boolean;
-  /**
-   * Verbose output during command execution. May or may not produce additional output.
-   */
-  verbose: boolean;
 }
 
 /**
@@ -39,10 +36,6 @@ export interface TreeImportOptions {
    * Include any dependencies (scripts, email templates, SAML entity providers and circles of trust, social identity providers, themes).
    */
   deps: boolean;
-  /**
-   * Verbose output during command execution. May or may not produce additional output.
-   */
-  verbose: boolean;
 }
 
 export interface ExportMetaData {
@@ -71,6 +64,11 @@ export interface SingleTreeExportInterface {
 export interface MultiTreeExportInterface {
   meta?: Record<string, ExportMetaData>;
   trees: Record<string, SingleTreeExportInterface>;
+}
+
+export interface AgentExportInterface {
+  meta?: Record<string, ExportMetaData>;
+  agents: Record<string, AgentSkeleton>;
 }
 
 export interface TreeDependencyMapInterface {

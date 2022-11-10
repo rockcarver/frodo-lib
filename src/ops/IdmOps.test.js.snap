@@ -1,0 +1,39 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`IdmOps - importConfigEntity() importConfigEntity() 1: Import a config entity 1`] = `
+{
+  "_id": "emailTemplate/welcome",
+  "defaultLocale": "en",
+  "displayName": "Welcome",
+  "enabled": true,
+  "from": "saas@forgerock.com",
+  "html": {
+    "en": "<div class="content"><p>Welcome. Your username is '{{object.userName}}'.</p></div>",
+  },
+  "message": {
+    "en": "<html><head></head><body style="background-color: #324054; color: #5e6d82; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>Welcome. Your username is '{{object.userName}}'.</p></div></body></html>",
+  },
+  "mimeType": "text/html",
+  "styles": "body{
+ background-color:#324054;
+ color:#5e6d82;
+ padding:60px;
+ text-align:center
+}
+a{
+ text-decoration:none;
+ color:#109cf1
+}
+.content{
+ background-color:#fff;
+ border-radius:4px;
+ margin:0 auto;
+ padding:48px;
+ width:235px
+}
+",
+  "subject": {
+    "en": "Your account has been created",
+  },
+}
+`;

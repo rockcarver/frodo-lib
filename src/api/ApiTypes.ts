@@ -46,6 +46,10 @@ export type SocialIdpSkeleton = ObjectSkeletonInterface & {
   enabled: boolean;
 };
 
+export type AgentSkeleton = ObjectSkeletonInterface & {
+  _type: AmServiceType;
+};
+
 export type EmailTemplateSkeleton = ObjectSkeletonInterface & {
   defaultLocale?: string;
   displayName?: string;

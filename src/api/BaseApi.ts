@@ -5,9 +5,10 @@ import HttpsProxyAgent from 'https-proxy-agent';
 import url from 'url';
 import fs from 'fs';
 import storage from '../storage/SessionStorage';
-import { getTenantURL } from './utils/ApiUtils';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { curlirizeMessage, printMessage } from '../ops/utils/Console';
+import _curlirize from '../ext/axios-curlirize/curlirize';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -18,6 +19,7 @@ const pkg = JSON.parse(
 axiosRetry(axios, {
   retries: 3,
   shouldResetTimeout: true,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   retryCondition: (_error) => true, // retry no matter what
 });
 
@@ -84,6 +86,21 @@ function getProxy(): AxiosProxyConfig | false {
 }
 
 /**
+ * Customize curlirize output
+ * @param request axios request object
+ */
+function curlirize(request) {
+  _curlirize(request, (result, err) => {
+    const { command } = result;
+    if (err) {
+      printMessage(err, 'error');
+    } else {
+      curlirizeMessage(command);
+    }
+  });
+}
+
+/**
  * Generates an AM Axios API instance
  * @param {object} resource Takes an object takes a resource object. example:
  * @param {object} requestOverride Takes an object of AXIOS parameters that can be used to either
@@ -95,8 +112,13 @@ export function generateAmApi(resource, requestOverride = {}) {
   let headers = {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
-    'Accept-API-Version': resource.apiVersion,
-    Cookie: `${storage.session.getCookieName()}=${storage.session.getCookieValue()}`,
+    // only add API version if we have it
+    ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
+    // only send session cookie if we know its name and value
+    ...(storage.session.getCookieName() &&
+      storage.session.getCookieValue() && {
+        Cookie: `${storage.session.getCookieName()}=${storage.session.getCookieValue()}`,
+      }),
   };
   if (requestOverride['headers']) {
     headers = {
@@ -106,7 +128,7 @@ export function generateAmApi(resource, requestOverride = {}) {
   }
 
   const requestDetails = {
-    baseURL: `${storage.session.getTenant()}/json`,
+    // baseURL: `${storage.session.getTenant()}/json`,
     timeout,
     ...requestOverride,
     headers: {
@@ -119,6 +141,11 @@ export function generateAmApi(resource, requestOverride = {}) {
   };
 
   const request = axios.create(requestDetails);
+
+  // enable curlirizer output in debug mode
+  if (storage.session.getCurlirize()) {
+    curlirize(request);
+  }
 
   return request;
 }
@@ -134,8 +161,13 @@ export function generateAmApi(resource, requestOverride = {}) {
 export function generateOauth2Api(resource, requestOverride = {}) {
   let headers = {
     'User-Agent': userAgent,
-    'Accept-API-Version': resource.apiVersion,
-    Cookie: `${storage.session.raw['cookieName']}=${storage.session.raw['cookieValue']}`,
+    // only add API version if we have it
+    ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
+    // only send session cookie if we know its name and value
+    ...(storage.session.getCookieName() &&
+      storage.session.getCookieValue() && {
+        Cookie: `${storage.session.getCookieName()}=${storage.session.getCookieValue()}`,
+      }),
   };
   if (requestOverride['headers']) {
     headers = {
@@ -145,7 +177,7 @@ export function generateOauth2Api(resource, requestOverride = {}) {
   }
 
   const requestDetails = {
-    baseURL: `${storage.session.getTenant()}/json${resource.path}`,
+    // baseURL: `${storage.session.getTenant()}/json${resource.path}`,
     timeout,
     ...requestOverride,
     headers: {
@@ -159,6 +191,11 @@ export function generateOauth2Api(resource, requestOverride = {}) {
 
   const request = axios.create(requestDetails);
 
+  // enable curlirizer output in debug mode
+  if (storage.session.getCurlirize()) {
+    curlirize(request);
+  }
+
   return request;
 }
 
@@ -171,7 +208,7 @@ export function generateOauth2Api(resource, requestOverride = {}) {
  */
 export function generateIdmApi(requestOverride = {}) {
   const requestDetails = {
-    baseURL: getTenantURL(storage.session.getTenant()),
+    // baseURL: getTenantURL(storage.session.getTenant()),
     timeout,
     headers: {
       'User-Agent': userAgent,
@@ -191,6 +228,11 @@ export function generateIdmApi(requestOverride = {}) {
 
   const request = axios.create(requestDetails);
 
+  // enable curlirizer output in debug mode
+  if (storage.session.getCurlirize()) {
+    curlirize(request);
+  }
+
   return request;
 }
 
@@ -207,7 +249,7 @@ export function generateLogKeysApi(requestOverride = {}) {
     'Content-Type': 'application/json',
   };
   const requestDetails = {
-    baseURL: getTenantURL(storage.session.getTenant()),
+    // baseURL: getTenantURL(storage.session.getTenant()),
     timeout,
     headers,
     ...requestOverride,
@@ -223,6 +265,11 @@ export function generateLogKeysApi(requestOverride = {}) {
   }
 
   const request = axios.create(requestDetails);
+
+  // enable curlirizer output in debug mode
+  if (storage.session.getCurlirize()) {
+    curlirize(request);
+  }
 
   return request;
 }
@@ -241,7 +288,7 @@ export function generateLogApi(requestOverride = {}) {
     'X-API-Secret': storage.session.getLogApiSecret(),
   };
   const requestDetails = {
-    baseURL: getTenantURL(storage.session.getTenant()),
+    // baseURL: getTenantURL(storage.session.getTenant()),
     timeout,
     headers,
     ...requestOverride,
@@ -251,6 +298,11 @@ export function generateLogApi(requestOverride = {}) {
   };
 
   const request = axios.create(requestDetails);
+
+  // enable curlirizer output in debug mode
+  if (storage.session.getCurlirize()) {
+    curlirize(request);
+  }
 
   return request;
 }
@@ -266,10 +318,11 @@ export function generateESVApi(resource, requestOverride = {}) {
   const headers = {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
-    'Accept-API-Version': resource.apiVersion,
+    // only add API version if we have it
+    ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
   };
   const requestDetails = {
-    baseURL: getTenantURL(storage.session.getTenant()),
+    // baseURL: getTenantURL(storage.session.getTenant()),
     timeout,
     headers,
     ...requestOverride,
@@ -285,6 +338,11 @@ export function generateESVApi(resource, requestOverride = {}) {
   }
 
   const request = axios.create(requestDetails);
+
+  // enable curlirizer output in debug mode
+  if (storage.session.getCurlirize()) {
+    curlirize(request);
+  }
 
   return request;
 }
@@ -311,6 +369,11 @@ export function generateReleaseApi(baseUrl, requestOverride = {}) {
   };
 
   const request = axios.create(requestDetails);
+
+  // enable curlirizer output in debug mode
+  if (storage.session.getCurlirize()) {
+    curlirize(request);
+  }
 
   return request;
 }
