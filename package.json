@@ -32,6 +32,7 @@
       "/node_modules/",
       "/dist/"
     ],
+    "snapshotResolver": "<rootDir>/src/test/mocks/snapshotResolve.ts",
     "verbose": true
   },
   "description": "A library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.",
