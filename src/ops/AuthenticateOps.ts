@@ -3,7 +3,7 @@ import { createHash, randomBytes } from 'crypto';
 import readlineSync from 'readline-sync';
 import { encodeBase64Url } from '../api/utils/Base64';
 import storage from '../storage/SessionStorage';
-import * as global from '../storage/StaticStorage';
+import * as globalConfig from '../storage/StaticStorage';
 import { printMessage } from './utils/Console';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
 import { step } from '../api/AuthenticateApi';
@@ -83,8 +83,10 @@ function checkAndHandle2FA(payload) {
  * @param {String} deploymentType deployment type
  */
 function determineDefaultRealm(deploymentType) {
-  if (storage.session.getRealm() === global.DEFAULT_REALM_KEY) {
-    storage.session.setRealm(global.DEPLOYMENT_TYPE_REALM_MAP[deploymentType]);
+  if (storage.session.getRealm() === globalConfig.DEFAULT_REALM_KEY) {
+    storage.session.setRealm(
+      globalConfig.DEPLOYMENT_TYPE_REALM_MAP[deploymentType]
+    );
   }
 }
 
@@ -111,7 +113,7 @@ async function determineDeploymentType() {
   };
   let bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScope}&response_type=code&client_id=${fidcClientId}&csrf=${storage.session.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
 
-  let deploymentType = global.CLASSIC_DEPLOYMENT_TYPE_KEY;
+  let deploymentType = globalConfig.CLASSIC_DEPLOYMENT_TYPE_KEY;
   try {
     await authorize(bodyFormData, config);
   } catch (e) {
@@ -120,7 +122,7 @@ async function determineDeploymentType() {
       e.response.headers?.location?.indexOf('code=') > -1
     ) {
       printMessage('ForgeRock Identity Cloud ', 'info', false);
-      deploymentType = global.CLOUD_DEPLOYMENT_TYPE_KEY;
+      deploymentType = globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY;
     } else {
       try {
         bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScope}&response_type=code&client_id=${forgeopsClientId}&csrf=${storage.session.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
@@ -132,7 +134,7 @@ async function determineDeploymentType() {
         ) {
           adminClientId = forgeopsClientId;
           printMessage('ForgeOps deployment ', 'info', false);
-          deploymentType = global.FORGEOPS_DEPLOYMENT_TYPE_KEY;
+          deploymentType = globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY;
         } else {
           printMessage('Classic deployment ', 'info', false);
         }
@@ -188,7 +190,16 @@ async function authenticate() {
         determineDefaultRealm(storage.session.getDeploymentType());
       }
       const versionInfo = (await getServerVersionInfo()).data;
-      printMessage(`Connected to ${versionInfo.fullVersion}`);
+
+      // https://github.com/rockcarver/frodo-cli/issues/109
+      // printMessage(`Connected to ${versionInfo.fullVersion}`);
+
+      // https://github.com/rockcarver/frodo-cli/issues/102
+      printMessage(
+        `Connected to [${storage.session.getTenant()}], [${
+          !storage.session.getRealm() ? 'alpha' : storage.session.getRealm()
+        }] realm, as [${storage.session.getUsername()}]`
+      );
       const version = await getSemanticVersion(versionInfo);
       storage.session.setAmVersion(version);
       return '';
@@ -272,7 +283,8 @@ async function getAccessToken() {
     }
     let response = null;
     if (
-      storage.session.getDeploymentType() === global.CLOUD_DEPLOYMENT_TYPE_KEY
+      storage.session.getDeploymentType() ===
+      globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY
     ) {
       const config = {
         auth: {
@@ -332,9 +344,10 @@ export async function getTokens(save = false) {
   if (
     storage.session.getCookieValue() &&
     !storage.session.getBearerToken() &&
-    (storage.session.getDeploymentType() === global.CLOUD_DEPLOYMENT_TYPE_KEY ||
+    (storage.session.getDeploymentType() ===
+      globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY ||
       storage.session.getDeploymentType() ===
-        global.FORGEOPS_DEPLOYMENT_TYPE_KEY)
+        globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY)
   ) {
     await getAccessToken();
   }

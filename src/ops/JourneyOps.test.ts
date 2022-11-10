@@ -63,7 +63,6 @@ describe('JourneyOps - exportJourney()', () => {
     const journeyExport = await Journey.exportJourney(treeId, {
       useStringArrays: false,
       deps: false,
-      verbose: false,
     });
     expect(journeyExport).toBeTruthy();
     expect(journeyExport.tree['_id']).toBe(treeId);
@@ -96,7 +95,6 @@ describe('JourneyOps - exportJourney()', () => {
     const journeyExport = await Journey.exportJourney('FrodoTest', {
       useStringArrays: false,
       deps: true,
-      verbose: false,
     });
     // console.dir(journeyExport);
     expect(journeyExport).toBeTruthy();
@@ -154,7 +152,6 @@ describe('JourneyOps - importJourney()', () => {
     await Journey.importJourney(journeyExport, {
       reUuid: false,
       deps: false,
-      verbose: false,
     });
     expect(nodeIds.length).toBe(0);
   });
@@ -290,7 +287,6 @@ describe('JourneyOps - importJourney()', () => {
     await Journey.importJourney(journeyExport, {
       reUuid: false,
       deps: true,
-      verbose: false,
     });
     expect(nodeIds.length).toBe(0);
     expect(entityIds.length).toBe(0);

@@ -58,14 +58,21 @@ export async function getConfigEntity(entityId) {
  * @param {string} entityData config entity object
  * @returns {Promise<unknown>} a promise that resolves to an IDM config entity
  */
-export async function putConfigEntity(entityId, entityData) {
+export async function putConfigEntity(
+  entityId: string,
+  entityData: string | object
+) {
   const urlString = util.format(
     idmConfigURLTemplate,
     getTenantURL(storage.session.getTenant()),
     entityId
   );
-  const { data } = await generateIdmApi().put(urlString, entityData);
-  return data;
+  try {
+    const { data } = await generateIdmApi().put(urlString, entityData);
+    return data;
+  } catch (error) {
+    throw Error(`Could not put config entity ${entityId}: ${error}`);
+  }
 }
 
 /**

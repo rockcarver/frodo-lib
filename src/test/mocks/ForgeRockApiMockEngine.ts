@@ -14,8 +14,14 @@ export function readJsonFile(file: string) {
   return json;
 }
 
+/****
+ **
+ ** AM Mocks and Utils
+ **
+ **/
+
 /**
- * AM Mocks and Utils
+ * Tree Mocks
  */
 
 export function getTrees() {
@@ -84,6 +90,10 @@ export function mockPutTree(
     });
 }
 
+/**
+ * Node Mocks
+ */
+
 export function mockGetNode(mock: MockAdapter) {
   mock
     .onGet(
@@ -126,6 +136,10 @@ export function mockPutNode(
     });
 }
 
+/**
+ * Script Mocks
+ */
+
 export function getScript(scriptId: string) {
   const treeObject = JSON.parse(
     fs.readFileSync(
@@ -149,7 +163,6 @@ export function mockGetScript(mock: MockAdapter) {
     });
 }
 
-// mockPutScript(mock);
 export function mockPutScript(
   mock: MockAdapter,
   callback: (mockScriptId: string, mockScriptObj) => void
@@ -176,20 +189,9 @@ export function getScriptByName(scriptName: string) {
   return treeObject;
 }
 
-// export function mockGetScriptByName(mock: MockAdapter) {
-//   mock
-//     .onGet(
-//       /\/json\/realms\/root\/realms\/alpha\/scripts\?_queryFilter=name\+eq\+'.+'/
-//     )
-//     .reply(function (config) {
-//       const elements = config.url ? config.url.split('/') : [];
-//       const scriptId = elements[elements?.length - 1];
-//       const mockStatus = 200;
-//       const mockResponse = getScript(scriptId);
-//       expect(mockResponse._id).toBe(scriptId);
-//       return [mockStatus, mockResponse];
-//     });
-// }
+/**
+ * SAML Mocks
+ */
 
 export function getSaml2Providers() {
   const treeObjects = JSON.parse(
@@ -407,8 +409,12 @@ export function mockGetSaml2ProviderMetadata(mock: MockAdapter) {
     });
 }
 
+/**
+ * Social Identity Provider Mocks
+ */
+
 export function getSocialProviders() {
-  const treeObjects = JSON.parse(
+  const objects = JSON.parse(
     fs.readFileSync(
       path.resolve(
         __dirname,
@@ -417,7 +423,7 @@ export function getSocialProviders() {
       'utf8'
     )
   );
-  return treeObjects;
+  return objects;
 }
 
 export function mockGetSocialProviders(mock: MockAdapter) {
@@ -461,8 +467,215 @@ export function mockPutSocialProviderByTypeAndId(
 }
 
 /**
- * IDM Mocks and Utils
+ * Agent mocks and utils
  */
+
+export function getAgentTypes() {
+  const objects = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, './AgentApi/getAgentTypes/agentTypes.json'),
+      'utf8'
+    )
+  );
+  return objects;
+}
+
+export function getAgents() {
+  const objects = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, './AgentApi/getAgents/agents.json'),
+      'utf8'
+    )
+  );
+  return objects;
+}
+
+export function getAgent(agentType, agentId) {
+  const objects = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        `./AgentApi/getAgentByTypeAndId/${agentType}/${agentId}.json`
+      ),
+      'utf8'
+    )
+  );
+  return objects;
+}
+
+export function mockGetAgentTypes(mock: MockAdapter) {
+  mock
+    .onGet(
+      /\/json\/realms\/root\/realms\/alpha\/realm-config\/agents\?_action=getAllTypes/
+    )
+    .reply(function () {
+      const mockStatus = 200;
+      const mockResponse = getAgentTypes();
+      expect(mockResponse).toBeTruthy();
+      return [mockStatus, mockResponse];
+    });
+}
+
+export function mockGetAgentsByType(mock: MockAdapter) {
+  mock
+    .onGet(
+      /\/json\/realms\/root\/realms\/alpha\/realm-config\/agents\/.+?\?_queryFilter=true/
+    )
+    .reply(function (config) {
+      const parsed = parseUrl(config.url);
+      const elements = parsed.pathname ? parsed.pathname.split('/') : [];
+      const agentType = elements[elements?.length - 1];
+      const mockStatus = 200;
+      const mockResponse = JSON.parse(
+        fs.readFileSync(
+          path.resolve(
+            __dirname,
+            `./AgentApi/getAgentsByType/${agentType}s.json`
+          ),
+          'utf8'
+        )
+      );
+      expect(mockResponse).toBeTruthy();
+      return [mockStatus, mockResponse];
+    });
+}
+
+export function mockGetAgents(mock: MockAdapter) {
+  mock
+    .onPost(
+      /\/json\/realms\/root\/realms\/alpha\/realm-config\/agents\?_action=nextdescendents/
+    )
+    .reply(function () {
+      const mockStatus = 200;
+      const mockResponse = getAgents();
+      expect(mockResponse).toBeTruthy();
+      return [mockStatus, mockResponse];
+    });
+}
+
+export function mockFindAgentById(mock: MockAdapter) {
+  mock
+    .onGet(
+      /\/json\/realms\/root\/realms\/alpha\/realm-config\/agents\?_queryFilter=_id\+eq\+'.+?'/
+    )
+    .reply(function (config) {
+      const parsed = parseUrl(config.url);
+      const filter = parsed.searchParam['_queryFilter'];
+      const agentId = filter.match(/_id\+eq\+'(.+?)'/)[1];
+      const mockStatus = 200;
+      const mockResponse = JSON.parse(
+        fs.readFileSync(
+          path.resolve(__dirname, `./AgentApi/findAgentById/${agentId}.json`),
+          'utf8'
+        )
+      );
+      expect(mockResponse.result[0]._id).toBe(agentId);
+      return [mockStatus, mockResponse];
+    });
+}
+
+export function mockFindAgentByTypeAndId(mock: MockAdapter) {
+  mock
+    .onGet(
+      /\/json\/realms\/root\/realms\/alpha\/realm-config\/agents\/.+?\?_queryFilter=_id\+eq\+'.+?'/
+    )
+    .reply(function (config) {
+      const parsed = parseUrl(config.url);
+      const elements = parsed.pathname ? parsed.pathname.split('/') : [];
+      const agentType = elements[elements?.length - 1];
+      const filter = parsed.searchParam['_queryFilter'];
+      const agentId = filter.match(/_id\+eq\+'(.+?)'/)[1];
+      const mockStatus = 200;
+      let mockResponse = JSON.parse(
+        fs.readFileSync(
+          path.resolve(
+            __dirname,
+            `./AgentApi/findAgentByTypeAndId/not_found.json`
+          ),
+          'utf8'
+        )
+      );
+      try {
+        mockResponse = JSON.parse(
+          fs.readFileSync(
+            path.resolve(
+              __dirname,
+              `./AgentApi/findAgentByTypeAndId/${agentType}/${agentId}.json`
+            ),
+            'utf8'
+          )
+        );
+        expect(mockResponse.result[0]._id).toBe(agentId);
+      } catch (error) {
+        // ignore errors
+      }
+      return [mockStatus, mockResponse];
+    });
+}
+
+export function mockGetAgentByTypeAndId(mock: MockAdapter) {
+  mock
+    .onGet(
+      /\/json\/realms\/root\/realms\/alpha\/realm-config\/agents\/[a-zA-Z0-9/_-]+$/
+    )
+    .reply(function (config) {
+      const elements = config.url ? config.url.split('/') : [];
+      const agentType = elements[elements?.length - 2];
+      const agentId = elements[elements?.length - 1];
+      const mockStatus = 200;
+      const mockResponse = JSON.parse(
+        fs.readFileSync(
+          path.resolve(
+            __dirname,
+            `./AgentApi/getAgentByTypeAndId/${agentType}/${agentId}.json`
+          ),
+          'utf8'
+        )
+      );
+      expect(mockResponse._id).toBe(agentId);
+      return [mockStatus, mockResponse];
+    });
+}
+
+export function mockPutAgentByTypeAndId(
+  mock: MockAdapter,
+  callback: (mockAgentType: string, mockAgentId: string, mockAgentObj) => void
+) {
+  mock
+    .onPut(/\/json\/realms\/root\/realms\/alpha\/realm-config\/agents\/.+/)
+    .reply(function (config) {
+      const elements = config.url ? config.url.split('/') : [];
+      const agentType = elements[elements?.length - 2];
+      const agentId = elements[elements?.length - 1];
+      const mockStatus = 200;
+      const mockAgentObj = JSON.parse(config.data);
+      callback(agentType, agentId, mockAgentObj);
+      return [mockStatus, mockAgentObj];
+    });
+}
+
+export function mockDeleteAgentByTypeAndId(
+  mock: MockAdapter,
+  callback: (mockAgentType: string, mockAgentId: string, mockAgentObj) => void
+) {
+  mock
+    .onDelete(/\/json\/realms\/root\/realms\/alpha\/realm-config\/agents\/.+/)
+    .reply(function (config) {
+      const elements = config.url ? config.url.split('/') : [];
+      const agentType = elements[elements?.length - 2];
+      const agentId = elements[elements?.length - 1];
+      const mockStatus = 200;
+      const mockAgentObj = getAgent(agentType, agentId);
+      callback(agentType, agentId, mockAgentObj);
+      return [mockStatus, mockAgentObj];
+    });
+}
+
+/****
+ **
+ ** IDM Mocks and Utils
+ **
+ **/
 
 export function mockListAllConfigEntities(mock: MockAdapter) {
   mock.onGet(/.*?\/openidm\/config$/).reply(function () {

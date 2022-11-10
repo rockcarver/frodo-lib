@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.2-5] - 2022-11-10
+
+## [0.16.2-0] - 2022-11-10
+
+## [0.16.2-4] - 2022-11-09
+
+## [0.16.2-3] - 2022-11-09
+
+## [0.16.2-2] - 2022-10-28
+
+## [0.16.2-1] - 2022-10-24
+
+### Fixed
+
+-   \#137: Error fetching logs with txId
+-   rockcarver/frodo-cli#109: Suppress am version output
+-   rockcarver/frodo-cli#102: Verbosity of connection string used
+-   rockcarver/frodo-cli#106: Handle non-unique connection name used in cli
+
+## [0.16.2-0] - 2022-10-22
+
 ## [0.16.1] - 2022-10-19
 
 ### Fixed
@@ -671,7 +692,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.16.1...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-5...HEAD
+
+[0.16.2-5]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-0...v0.16.2-5
+
+[0.16.2-0]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-4...v0.16.2-0
+
+[0.16.2-4]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-3...v0.16.2-4
+
+[0.16.2-3]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-2...v0.16.2-3
+
+[0.16.2-2]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-1...v0.16.2-2
+
+[0.16.2-1]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-0...v0.16.2-1
+
+[0.16.2-0]: https://github.com/rockcarver/frodo-lib/compare/v0.16.1...v0.16.2-0
 
 [0.16.1]: https://github.com/rockcarver/frodo-lib/compare/v0.16.0...v0.16.1
 
