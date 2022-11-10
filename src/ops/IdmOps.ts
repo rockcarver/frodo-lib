@@ -1,19 +1,23 @@
 /* eslint-disable no-await-in-loop */
 import fs from 'fs';
 import fse from 'fs-extra';
-import replaceall from 'replaceall';
+import path from 'path';
 import propertiesReader from 'properties-reader';
+import replaceall from 'replaceall';
 import {
   getAllConfigEntities,
   getConfigEntity,
+  putConfigEntity,
   queryAllManagedObjectsByType,
 } from '../api/IdmConfigApi';
 import {
-  printMessage,
   createProgressIndicator,
+  printMessage,
   stopProgressIndicator,
 } from './utils/Console';
 import { getTypedFilename } from './utils/ExportImportUtils';
+import { readFiles, unSubstituteEnvParams } from './utils/OpsUtils';
+import { validateScriptHooks } from './utils/ValidationUtils';
 
 /**
  * List all IDM configuration objects
@@ -98,7 +102,7 @@ export async function exportAllRawConfigEntities(directory) {
           ) {
             printMessage(getConfigEntityError.response?.data, 'error');
             printMessage(
-              `Error getting config entity: ${getConfigEntityError}`,
+              `Error getting config entity ${x._id}: ${getConfigEntityError}`,
               'error'
             );
           }
@@ -106,7 +110,6 @@ export async function exportAllRawConfigEntities(directory) {
       );
     });
     Promise.all(entityPromises).then((result) => {
-      // console.log(result);
       result.forEach((item) => {
         if (item != null) {
           fse.outputFile(
@@ -174,12 +177,10 @@ export async function exportAllConfigEntities(
       const entityPromises = [];
       configEntities['configurations'].forEach((x) => {
         if (entriesToExport.includes(x._id)) {
-          // console.log(`- ${x._id}`);
           entityPromises.push(getConfigEntity(x._id));
         }
       });
       Promise.all(entityPromises).then((result) => {
-        // console.log(result);
         result.forEach((item) => {
           if (item != null) {
             let configEntityString = JSON.stringify(item, null, 2);
@@ -192,7 +193,7 @@ export async function exportAllConfigEntities(
             });
             fse.outputFile(
               `${directory}/${item._id}.json`,
-              JSON.stringify(item, null, 2),
+              configEntityString,
               // eslint-disable-next-line consistent-return
               (error) => {
                 if (err) {
@@ -208,6 +209,196 @@ export async function exportAllConfigEntities(
         stopProgressIndicator(null, 'success');
       });
     }
+  });
+}
+
+/**
+ * Import an IDM configuration object.
+ * @param entityId the configuration object to import
+ * @param file optional file to import
+ */
+export async function importConfigEntity(
+  entityId: string,
+  file?: string,
+  validate?: boolean
+) {
+  if (!file) {
+    file = getTypedFilename(entityId, 'idm');
+  }
+
+  const entityData = fs.readFileSync(path.resolve(process.cwd(), file), 'utf8');
+
+  const jsObject = JSON.parse(entityData);
+  const isValid = validateScriptHooks(jsObject);
+  if (validate && !isValid) {
+    printMessage('Invalid IDM configuration object', 'error');
+    return;
+  }
+
+  try {
+    await putConfigEntity(entityId, entityData);
+  } catch (putConfigEntityError) {
+    printMessage(putConfigEntityError, 'error');
+    printMessage(`Error: ${putConfigEntityError}`, 'error');
+  }
+}
+
+/**
+ * Import all IDM configuration objects from separate JSON files in a directory specified by <directory>
+ * @param baseDirectory export directory
+ * @param validate validate script hooks
+ */
+export async function importAllRawConfigEntities(
+  baseDirectory: string,
+  validate?: boolean
+) {
+  if (!fs.existsSync(baseDirectory)) {
+    return;
+  }
+  const files = await readFiles(baseDirectory);
+  const jsonFiles = files
+    .filter(({ path }) => path.toLowerCase().endsWith('.json'))
+    .map(({ path, content }) => ({
+      // Remove .json extension
+      entityId: path.substring(0, path.length - 5),
+      content,
+      path,
+    }));
+
+  let everyScriptValid = true;
+  for (const file of jsonFiles) {
+    const jsObject = JSON.parse(file.content);
+    const isScriptValid = validateScriptHooks(jsObject);
+    if (!isScriptValid) {
+      printMessage(`Invalid script hook in ${file.path}`, 'error');
+      everyScriptValid = false;
+    }
+  }
+
+  if (validate && !everyScriptValid) {
+    return;
+  }
+
+  createProgressIndicator(
+    undefined,
+    'Importing config objects...',
+    'indeterminate'
+  );
+
+  const entityPromises = jsonFiles.map((file) => {
+    return putConfigEntity(file.entityId, file.content);
+  });
+
+  await Promise.allSettled(entityPromises).then((results) => {
+    const errors = results.filter(
+      (result): result is PromiseRejectedResult => result.status === 'rejected'
+    );
+
+    if (errors.length > 0) {
+      printMessage(
+        `Failed to import ${errors.length} config objects:`,
+        'error'
+      );
+      errors.forEach((error) => {
+        printMessage(`- ${error.reason}`, 'error');
+      });
+      stopProgressIndicator(
+        `Failed to import ${errors.length} config objects`,
+        'error'
+      );
+      return;
+    }
+
+    stopProgressIndicator(
+      `Imported ${results.length} config objects`,
+      'success'
+    );
+  });
+}
+
+/**
+ * Import all IDM configuration objects
+ * @param baseDirectory import directory
+ * @param entitiesFile JSON file that specifies the config entities to export/import
+ * @param envFile File that defines environment specific variables for replacement during configuration export/import
+ * @param validate validate script hooks
+ */
+export async function importAllConfigEntities(
+  baseDirectory: string,
+  entitiesFile: string,
+  envFile: string,
+  validate?: boolean
+) {
+  if (!fs.existsSync(baseDirectory)) {
+    return;
+  }
+  const entriesToImport = JSON.parse(fs.readFileSync(entitiesFile, 'utf8')).idm;
+
+  const envReader = propertiesReader(envFile);
+
+  const files = await readFiles(baseDirectory);
+  const jsonFiles = files
+    .filter(({ path }) => path.toLowerCase().endsWith('.json'))
+    .map(({ content, path }) => ({
+      // Remove .json extension
+      entityId: path.substring(0, path.length - 5),
+      content,
+      path,
+    }));
+
+  let everyScriptValid = true;
+  for (const file of jsonFiles) {
+    const jsObject = JSON.parse(file.content);
+    const isScriptValid = validateScriptHooks(jsObject);
+    if (!isScriptValid) {
+      printMessage(`Invalid script hook in ${file.path}`, 'error');
+      everyScriptValid = false;
+    }
+  }
+
+  if (validate && !everyScriptValid) {
+    return;
+  }
+
+  createProgressIndicator(
+    undefined,
+    'Importing config objects...',
+    'indeterminate'
+  );
+
+  const entityPromises = jsonFiles
+    .filter(({ entityId }) => {
+      return entriesToImport.includes(entityId);
+    })
+    .map(({ entityId, content }) => {
+      const unsubstituted = unSubstituteEnvParams(content, envReader);
+      return putConfigEntity(entityId, unsubstituted);
+    });
+
+  await Promise.allSettled(entityPromises).then((results) => {
+    const errors = results.filter(
+      (result): result is PromiseRejectedResult => result.status === 'rejected'
+    );
+
+    if (errors.length > 0) {
+      printMessage(
+        `Failed to import ${errors.length} config objects:`,
+        'error'
+      );
+      errors.forEach((error) => {
+        printMessage(`- ${error.reason}`, 'error');
+      });
+      stopProgressIndicator(
+        `Failed to import ${errors.length} config objects`,
+        'error'
+      );
+      return;
+    }
+
+    stopProgressIndicator(
+      `Imported ${results.length} config objects`,
+      'success'
+    );
   });
 }
 
@@ -233,7 +424,6 @@ export async function countManagedObjects(type) {
         result.pagedResultsCookie
       );
       count += result.resultCount;
-      // printMessage(result);
     } while (result.pagedResultsCookie);
     printMessage(`${type}: ${count}`);
   } catch (error) {

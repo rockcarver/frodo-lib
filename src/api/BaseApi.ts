@@ -8,7 +8,7 @@ import storage from '../storage/SessionStorage';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { curlirizeMessage, printMessage } from '../ops/utils/Console';
-import _curlirize from 'axios-curlirize';
+import _curlirize from '../ext/axios-curlirize/curlirize';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -112,7 +112,8 @@ export function generateAmApi(resource, requestOverride = {}) {
   let headers = {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
-    'Accept-API-Version': resource.apiVersion,
+    // only add API version if we have it
+    ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
     // only send session cookie if we know its name and value
     ...(storage.session.getCookieName() &&
       storage.session.getCookieValue() && {
@@ -160,8 +161,13 @@ export function generateAmApi(resource, requestOverride = {}) {
 export function generateOauth2Api(resource, requestOverride = {}) {
   let headers = {
     'User-Agent': userAgent,
-    'Accept-API-Version': resource.apiVersion,
-    Cookie: `${storage.session.raw['cookieName']}=${storage.session.raw['cookieValue']}`,
+    // only add API version if we have it
+    ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
+    // only send session cookie if we know its name and value
+    ...(storage.session.getCookieName() &&
+      storage.session.getCookieValue() && {
+        Cookie: `${storage.session.getCookieName()}=${storage.session.getCookieValue()}`,
+      }),
   };
   if (requestOverride['headers']) {
     headers = {
@@ -312,7 +318,8 @@ export function generateESVApi(resource, requestOverride = {}) {
   const headers = {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
-    'Accept-API-Version': resource.apiVersion,
+    // only add API version if we have it
+    ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
   };
   const requestDetails = {
     // baseURL: getTenantURL(storage.session.getTenant()),
