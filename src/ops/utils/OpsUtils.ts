@@ -4,6 +4,10 @@ import {
   getCurrentRealmName,
   getRealmName as _getRealmName,
 } from '../../api/utils/ApiUtils';
+import { lstat, readdir, readFile } from 'fs/promises';
+import { join } from 'path';
+import { Reader } from 'properties-reader';
+import replaceall from 'replaceall';
 
 // TODO: do we really need this? if yes: document
 export function escapeRegExp(str) {
@@ -86,4 +90,57 @@ export function isEqualJson(obj1, obj2, ignoreKeys: string[] = []) {
  */
 export function getRealmName(realm) {
   return _getRealmName(realm);
+}
+
+/**
+ * find all (nested) files in a directory
+ *
+ * @param baseDirectory directory to search
+ * @param childDirectory subdirectory to search
+ * @returns list of files
+ */
+export async function readFiles(
+  baseDirectory: string,
+  childDirectory = ''
+): Promise<
+  {
+    path: string;
+    content: string;
+  }[]
+> {
+  const targetDirectory = join(baseDirectory, childDirectory);
+  const directoryItems = await readdir(targetDirectory);
+  const childPaths = directoryItems.map((item) => join(childDirectory, item));
+
+  const filePathsNested = await Promise.all(
+    childPaths.map(async (childPath) => {
+      const path = join(baseDirectory, childPath);
+      const isDirectory = (await lstat(path)).isDirectory();
+
+      if (isDirectory) {
+        return readFiles(baseDirectory, childPath);
+      }
+
+      return {
+        path: childPath,
+        content: await readFile(path, 'utf8'),
+      };
+    })
+  );
+
+  return filePathsNested.flat();
+}
+
+export function substituteEnvParams(input: string, reader: Reader) {
+  reader.each((key, value) => {
+    input = replaceall(value, `\${${key}}`, input);
+  });
+  return input;
+}
+
+export function unSubstituteEnvParams(input: string, reader: Reader) {
+  reader.each((key, value) => {
+    input = replaceall(`\${${key}}`, value, input);
+  });
+  return input;
 }
