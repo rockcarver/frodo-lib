@@ -1,7 +1,7 @@
 import util from 'util';
-import storage from '../storage/SessionStorage';
 import { generateLogApi, generateLogKeysApi } from './BaseApi';
 import { getTenantURL } from './utils/ApiUtils';
+import storage from '../storage/SessionStorage';
 
 const logsTailURLTemplate = '%s/monitoring/logs/tail?source=%s';
 const logsFetchURLTemplate =
