@@ -173,7 +173,10 @@ async function deleteFullServices() {
  * @param {string} data service object including descendants
  * @returns promise resolving when the service has been saved
  */
-async function putFullService(id: string, data: FullService): Promise<AmService> {
+async function putFullService(
+  id: string,
+  data: FullService
+): Promise<AmService> {
   const nextDescendents = data.nextDescendents;
 
   delete data.nextDescendents;
@@ -193,7 +196,12 @@ async function putFullService(id: string, data: FullService): Promise<AmService>
     nextDescendents.map(async (descendent) => {
       const type = descendent._type._id;
       const descendentId = descendent._id;
-      const result = await putServiceNextDescendent(id, type, descendentId, descendent);
+      const result = await putServiceNextDescendent(
+        id,
+        type,
+        descendentId,
+        descendent
+      );
       return result;
     })
   );
