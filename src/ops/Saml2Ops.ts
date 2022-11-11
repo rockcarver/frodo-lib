@@ -1,23 +1,29 @@
 import fs from 'fs';
 import _ from 'lodash';
-import { decode, encode, encodeBase64Url } from '../api/utils/Base64';
+import path from 'path';
 import {
-  createTable,
-  printMessage,
-  createProgressIndicator,
-  updateProgressIndicator,
-  stopProgressIndicator,
-  createObjectTable,
-} from './utils/Console';
-import {
-  getProviders,
+  createProvider,
+  deleteProvider,
   findProviders,
   getProviderByLocationAndId,
   getProviderMetadata,
-  createProvider,
   getProviderMetadataUrl,
+  getRawProvider,
+  getProviders,
+  getRawProviders,
+  putRawProvider,
 } from '../api/Saml2Api';
 import { getScript } from '../api/ScriptApi';
+import { decode, encode, encodeBase64Url } from '../api/utils/Base64';
+import { createOrUpdateScript } from './ScriptOps';
+import {
+  createObjectTable,
+  createProgressIndicator,
+  createTable,
+  printMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from './utils/Console';
 import {
   convertBase64TextToArray,
   convertBase64UrlTextToArray,
@@ -27,9 +33,9 @@ import {
   getTypedFilename,
   saveJsonToFile,
   saveTextToFile,
+  saveToFile,
   validateImport,
 } from './utils/ExportImportUtils';
-import { createOrUpdateScript } from './ScriptOps';
 
 export const roleMap = {
   identityProvider: 'IDP',
@@ -549,4 +555,218 @@ export async function importSaml2ProvidersFromFiles() {
       jsonFiles.length
     } file(s).`
   );
+}
+
+// Contributions using legacy APIs. Need to investigate if those will be deprecated in the future
+
+/**
+ * Deletes entity provider
+ * @param {string} entityId The entity id for the entity to be deleted
+ */
+export async function deleteSaml2Provider(entityId: string) {
+  try {
+    await deleteProvider(entityId);
+  } catch (error) {
+    printMessage(error.message, 'error');
+  }
+}
+
+/**
+ * Deletes all entity providers.
+ */
+export async function deleteSaml2Providers() {
+  const applicationList = (await getRawProviders()).result;
+  const deleteApplicationPromises = [];
+  applicationList.forEach((item) => {
+    printMessage(`Deleting Application ${item._id}`, 'error');
+    deleteApplicationPromises.push(deleteSaml2Provider(item._id));
+  });
+  const deleteApplicationResult = await Promise.all(deleteApplicationPromises);
+  if (deleteApplicationResult.length == applicationList.length) {
+    printMessage('SAML Entity cleanup done', 'info');
+  }
+}
+
+/**
+ * Exports a RAW SAML entity, which means the raw xml is included.
+ * @param {string} entityId Reference to the entity for export
+ * @param {string} file Optional filename for the exported file
+ */
+export async function exportRawSaml2ProviderToFile(entityId, file = null) {
+  printMessage(`Exporting SAML application ${entityId}`, 'info');
+  let fileName = entityId;
+  if (file) {
+    fileName = file;
+  }
+  createProgressIndicator(1, `Exporting raw entity: ${entityId}`);
+  await getRawProvider(entityId).then(async (response) => {
+    updateProgressIndicator(`Writing file ${fileName}`);
+    const rawData = response;
+    saveTextToFile(JSON.stringify(rawData, null, 2), fileName);
+    stopProgressIndicator(`Exported ${entityId} metadata to ${fileName}.`);
+  });
+}
+
+/**
+ * Export all entity providers raw to one file
+ * @param {String} file Optional filename
+ */
+export async function exportRawSaml2ProvidersToFile(file = null) {
+  let fileName = file;
+  if (!fileName) {
+    fileName = getTypedFilename(
+      `all${getRealmString()}ProvidersRaw`,
+      'samlRaw'
+    );
+  }
+  try {
+    const samlApplicationList = (await getRawProviders()).result;
+
+    saveToFile('application', samlApplicationList, '_id', fileName);
+    printMessage(
+      `All RAW saml entity providers exported to: ${fileName}`,
+      'info'
+    );
+  } catch (error) {
+    printMessage(error.message, 'error');
+    printMessage(
+      `exportProvidersRawToFile: ${error.response?.status}`,
+      'error'
+    );
+  }
+}
+
+/**
+ * Export all entity providers to individual files
+ */
+export async function exportRawSaml2ProvidersToFiles() {
+  const samlApplicationList = (await getRawProviders()).result;
+  let hasError = false;
+  createProgressIndicator(
+    samlApplicationList.length,
+    'Exporting RAW providers'
+  );
+  let exportedAmount = 0;
+  for (const item of samlApplicationList) {
+    updateProgressIndicator(`Exporting provider ${item.entityId}`);
+    try {
+      const samlApplicationData = await getRawProvider(item._id);
+      const fileName = getTypedFilename(
+        `${item._id}${getRealmString()}ProviderRaw`,
+        'samlRaw'
+      );
+      saveToFile('application', [samlApplicationData], '_id', fileName);
+      exportedAmount++;
+    } catch (error) {
+      hasError = true;
+      printMessage(`Unable to export:  ${item._id}`, 'error');
+    }
+  }
+  stopProgressIndicator(`${exportedAmount} providers exported.`);
+  if (!hasError) {
+    printMessage('All entities exported.', 'info');
+  } else {
+    printMessage('All other entities exported.', 'info');
+  }
+}
+
+/**
+ * Imports the RAW provider info from a single file.
+ * @param file Import file name
+ */
+export async function importRawSaml2ProvidersFromFile(file: string) {
+  fs.readFile(file, 'utf8', async function (err, data) {
+    if (err) throw err;
+    const samlEntityData = JSON.parse(data);
+    let amountOfEntities = 0;
+    for (const id in samlEntityData.application) {
+      if (id.length) {
+        amountOfEntities++;
+      }
+    }
+    if (validateImport(samlEntityData.meta)) {
+      createProgressIndicator(amountOfEntities, 'Importing providers...');
+      for (const id in samlEntityData.application) {
+        // remove the "_rev" data before PUT
+        delete samlEntityData.application[id]._rev;
+        await putRawProvider(id, samlEntityData.application[id]).then(
+          (result) => {
+            if (result === null) {
+              printMessage(`Import validation failed for ${id}`, 'error');
+            }
+          }
+        );
+        updateProgressIndicator(`Imported ${id}...`);
+      }
+      stopProgressIndicator(`Import done`);
+    } else {
+      printMessage('Import validation failed...', 'error');
+    }
+  });
+}
+
+/**
+ * Whenever the SAML RAW file were exported using the exportRAW functionality this function
+ * is used to read them back in. Only files with the .samlRaw.json extension will be imported.
+ * @param {string} directory The directory from which to import the files
+ */
+export async function importRawSaml2ProvidersFromFiles(directory) {
+  const files = fs.readdirSync(directory);
+  const filesToImport = files.filter(
+    (file) => file.indexOf('.samlRaw.json') > -1
+  );
+
+  if (filesToImport.length > 0) {
+    createProgressIndicator(filesToImport.length, 'Importing providers...');
+    filesToImport.forEach(async (file) => {
+      const filePathAbsolute = path.join(directory, file);
+      filesToImport.push(file);
+      const samlEntityData = JSON.parse(
+        fs.readFileSync(filePathAbsolute, 'utf8')
+      );
+      if (validateImport(samlEntityData.meta)) {
+        for (const id in samlEntityData.application) {
+          // remove the "_rev" data before PUT
+          delete samlEntityData.application[id]._rev;
+          await putRawProvider(id, samlEntityData.application[id]).then(
+            (result) => {
+              if (result === null) {
+                printMessage(`Import validation failed for ${id}`, 'error');
+              }
+            }
+          );
+          updateProgressIndicator(`Imported ${id}...`);
+        }
+      } else {
+        printMessage('Import validation failed...', 'error');
+      }
+    });
+    stopProgressIndicator(`Import done`);
+  } else {
+    printMessage(
+      'Import failed, no files to import. (check extension to be .samlRaw.json)',
+      'warn'
+    );
+  }
+}
+
+/**
+ * Imports a raw SAML export file (containing one entity).
+ * @param {string} file The import file
+ */
+export async function importRawSaml2ProviderFromFile(file) {
+  printMessage(`Importing SAML Entity ${file}...`, 'info');
+  if (file.indexOf('.samlRaw.json') > -1) {
+    const samlEntityData = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (validateImport(samlEntityData.meta)) {
+      for (const id in samlEntityData.application) {
+        // remove the "_rev" data before PUT
+        delete samlEntityData.application[id]._rev;
+        const result = await putRawProvider(id, samlEntityData.application[id]);
+        printMessage(`Imported ${id}`, 'info');
+      }
+    } else {
+      printMessage('Import validation failed...', 'error');
+    }
+  }
 }
