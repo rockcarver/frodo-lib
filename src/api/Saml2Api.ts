@@ -108,124 +108,6 @@ export async function getProvider(entityId) {
 }
 
 /**
- * Deletes a SAML2 entity provider by entity id
- * @param {string} entityId Provider entity id
- * @returns {Promise} a promise that resolves whenever the deletion is succesfull
- */
-export async function deleteProvider(entityId) {
-  try {
-    const urlString = util.format(
-      samlApplicationListURLTemplateEntityIdRaw,
-      storage.session.getTenant(),
-      getCurrentRealmPath(),
-      entityId
-    );
-    const response = await generateAmApi(getApiConfig()).delete(urlString, {
-      withCredentials: true,
-    });
-    if (response.status < 200 || response.status > 399) {
-      throw new Error(
-        `deleteSamlEntityByEntityId ERROR: get Saml entity call returned %d, possible cause: application not found`
-      );
-    }
-    return response.data;
-  } catch (e) {
-    throw new Error(e.message);
-  }
-}
-
-/**
- * Retrieves all entity providers using the SAML2 enpoint.
- */
-export async function getProvidersRaw() {
-  try {
-    const urlString = util.format(
-      samlApplicationListURLTemplateRaw,
-      storage.session.getTenant(),
-      getCurrentRealmPath()
-    );
-    const response = await generateAmApi(getApiConfig()).get(urlString, {
-      withCredentials: true,
-    });
-    if (response.status < 200 || response.status > 399) {
-      throw new Error(
-        'listSamlEntitiesRaw ERROR: list Saml application call returned %d, possible cause: entities not found'
-      );
-    }
-    return response.data.result;
-  } catch (e) {
-    throw new Error(
-      `listSamlEntitiesRaw ERROR: list Saml application error - ${e.message}`
-    );
-  }
-}
-
-/**
- * Stores a new SAML2 entity provider
- * @param {string} id The entity provider id
- * @param data The actual data containing the entity provider configuration
- * @returns Promise resolving whenever the put operation was a success
- */
-export async function putSamlEntity(id, data) {
-  try {
-    const urlString = util.format(
-      samlApplicationListURLTemplateEntityIdRaw,
-      storage.session.getTenant(),
-      getCurrentRealmPath(),
-      id
-    );
-    const response = await generateAmApi(getApiConfig()).put(urlString, data, {
-      withCredentials: true,
-    });
-    if (response.status < 200 || response.status > 399) {
-      throw new Error(
-        `putSamlEntity ERROR: put SAML Entity call returned ${response.status}, details: ${response}`
-      );
-    }
-    if (response.data._id !== id) {
-      throw new Error(
-        `putSamlEntity ERROR: generic error importing SAML Entity ${id}`
-      );
-    }
-    return response.data;
-  } catch (e) {
-    throw new Error(
-      `putSamlEntity ERROR: put SAML Entity error, entity [${id}] - ${e.message}`,
-      e
-    );
-  }
-}
-
-/**
- * Gets the data for an entity provider including the raw XML.
- * @param {string} id The entity provider id
- * @returns Promise that when resolved includes the configuration and raw xml for a SAML entity provider
- */
-export async function getProviderRaw(entityId) {
-  try {
-    const urlString = util.format(
-      samlApplicationListURLTemplateEntityIdRaw,
-      storage.session.getTenant(),
-      getCurrentRealmPath(),
-      entityId
-    );
-    const response = await generateAmApi(getApiConfig()).get(urlString, {
-      withCredentials: true,
-    });
-    if (response.status < 200 || response.status > 399) {
-      throw new Error(
-        'getSamlEntityByEntityIdRaw ERROR: get Saml entity call returned %d, possible cause: application not found'
-      );
-    }
-    return response.data;
-  } catch (e) {
-    throw new Error(
-      `getSamlEntityByEntityIdRaw ERROR: get Saml entity error - ${e.message}`
-    );
-  }
-}
-
-/**
  * Get a SAML2 entity provider's metadata URL by entity id
  * @param {string} entityId SAML2 entity id
  * @returns {string} the URL to get the metadata from
@@ -310,6 +192,83 @@ export async function updateProvider(location, providerData) {
   const { data } = await generateAmApi(getApiConfig()).put(
     urlString,
     providerData,
+    {
+      withCredentials: true,
+    }
+  );
+  return data;
+}
+
+// Contributions using legacy APIs. Need to investigate if those will be deprecated in the future
+
+/**
+ * Deletes a SAML2 entity provider by entity id
+ * @param {string} entityId Provider entity id
+ * @returns {Promise} a promise that resolves to a provider object
+ */
+export async function deleteProvider(entityId) {
+  const urlString = util.format(
+    samlApplicationListURLTemplateEntityIdRaw,
+    storage.session.getTenant(),
+    getCurrentRealmPath(),
+    entityId
+  );
+  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+/**
+ * Retrieves all entity providers using the legacy federation enpoints.
+ * @returns {Promise} a promise that resolves to an object containing an array of providers
+ */
+export async function getRawProviders() {
+  const urlString = util.format(
+    samlApplicationListURLTemplateRaw,
+    storage.session.getTenant(),
+    getCurrentRealmPath()
+  );
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+/**
+ * Gets the data for an entity provider including the raw XML.
+ * @param {string} id The entity provider id
+ * @returns Promise that when resolved includes the configuration and raw xml for a SAML entity provider
+ */
+export async function getRawProvider(entityId) {
+  const urlString = util.format(
+    samlApplicationListURLTemplateEntityIdRaw,
+    storage.session.getTenant(),
+    getCurrentRealmPath(),
+    entityId
+  );
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+/**
+ * Stores a new SAML2 entity provider
+ * @param {string} id The entity provider id
+ * @param {string} entityData The actual data containing the entity provider configuration
+ * @returns {Promise} Promise that resolves to a provider object
+ */
+export async function putRawProvider(id, entityData) {
+  const urlString = util.format(
+    samlApplicationListURLTemplateEntityIdRaw,
+    storage.session.getTenant(),
+    getCurrentRealmPath(),
+    id
+  );
+  const { data } = await generateAmApi(getApiConfig()).put(
+    urlString,
+    entityData,
     {
       withCredentials: true,
     }
