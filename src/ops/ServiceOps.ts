@@ -1,13 +1,13 @@
 import { existsSync, readFileSync } from 'fs';
+import { AmService } from '../api/ApiTypes';
 import {
   deleteService,
-  deleteServiceNextDescendents,
+  deleteServiceNextDescendent,
   getService,
-  getServiceList,
-  getServiceNextDescendents,
+  getListOfServices,
+  getServiceDescendents,
   putService,
-  putServiceDescendents,
-  Service,
+  putServiceNextDescendent,
   ServiceNextDescendent,
 } from '../api/ServiceApi';
 import { getCurrentRealmName } from '../api/utils/ApiUtils';
@@ -23,7 +23,7 @@ import {
   saveServicesToFile,
 } from './utils/ExportImportUtils';
 
-interface FullService extends Service {
+interface FullService extends AmService {
   nextDescendents?: ServiceNextDescendent[];
 }
 
@@ -31,7 +31,7 @@ interface FullService extends Service {
  * Lists all services
  */
 export async function listServices() {
-  const serviceList = await getServiceList();
+  const serviceList = (await getListOfServices()).result;
   serviceList.sort((a, b) => a.name.localeCompare(b.name));
   serviceList.forEach((item) => {
     printMessage(`${item._id} - ${item.name}`, 'data');
@@ -59,7 +59,7 @@ export async function exportService(serviceId: string, file?: string) {
     `Exporting service ${serviceId} to file: ${fileName}`
   );
 
-  const serviceNextDescendentData = await getServiceNextDescendents(serviceId);
+  const serviceNextDescendentData = await getServiceDescendents(serviceId);
   service.nextDescendents = serviceNextDescendentData;
   saveServicesToFile('service', service, '_id', fileName);
   updateProgressIndicator(`Exporting ${serviceId}`);
@@ -71,14 +71,14 @@ export async function exportService(serviceId: string, file?: string) {
  * @returns Promise resolving to an array of services with their descendants
  */
 async function getFullServices(): Promise<FullService[]> {
-  const serviceList = await getServiceList();
+  const serviceList = (await getListOfServices()).result;
 
   const fullServiceData = await Promise.all(
     serviceList.map(async (listItem) => {
       try {
         const [service, nextDescendents] = await Promise.all([
           getService(listItem._id),
-          getServiceNextDescendents(listItem._id),
+          getServiceDescendents(listItem._id),
         ]);
 
         return {
@@ -140,11 +140,11 @@ export async function exportServicesToFiles() {
  * @param {string} serviceId The service to delete
  */
 async function deleteFullService(serviceId: string) {
-  const serviceNextDescendentData = await getServiceNextDescendents(serviceId);
+  const serviceNextDescendentData = await getServiceDescendents(serviceId);
 
   await Promise.all(
     serviceNextDescendentData.map((nextDescendent) =>
-      deleteServiceNextDescendents(
+      deleteServiceNextDescendent(
         serviceId,
         nextDescendent._type._id,
         nextDescendent._id
@@ -160,7 +160,7 @@ async function deleteFullService(serviceId: string) {
  * Deletes all services
  */
 async function deleteFullServices() {
-  const serviceList = await getServiceList();
+  const serviceList = (await getListOfServices()).result;
 
   await Promise.all(
     serviceList.map((serviceListItem) => deleteFullService(serviceListItem._id))
@@ -168,29 +168,33 @@ async function deleteFullServices() {
 }
 
 /**
- * Saves a service using the provide id and data, including descendants
+ * Saves a service using the provide id and data, including descendents
  * @param {string} id the service id / name
  * @param {string} data service object including descendants
  * @returns promise resolving when the service has been saved
  */
-async function putFullService(id: string, data: FullService) {
+async function putFullService(id: string, data: FullService): Promise<AmService> {
   const nextDescendents = data.nextDescendents;
 
   delete data.nextDescendents;
   delete data._rev;
   delete data.enabled;
 
-  await putService(id, data);
+  // create service first
+  const result = await putService(id, data);
 
+  // return fast if no next descendents supplied
   if (!nextDescendents) {
-    return;
+    return result;
   }
 
+  // now create next descendents
   await Promise.all(
     nextDescendents.map(async (descendent) => {
       const type = descendent._type._id;
       const descendentId = descendent._id;
-      await putServiceDescendents(id, type, descendentId, descendent);
+      const result = await putServiceNextDescendent(id, type, descendentId, descendent);
+      return result;
     })
   );
 }

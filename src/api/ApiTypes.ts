@@ -34,6 +34,13 @@ export type AmServiceType = ObjectSkeletonInterface & {
   name: string;
 };
 
+export type AmService = ObjectSkeletonInterface & {
+  _id: '';
+  _rev: string;
+  _type: AmServiceType;
+  [key: string]: any;
+};
+
 export type NodeSkeleton = ObjectSkeletonInterface & {
   _type: AmServiceType;
   nodes?: InnerNodeRefSkeletonInterface[];
@@ -122,4 +129,13 @@ export type CircleOfTrustSkeleton = ObjectSkeletonInterface & {
   _type: AmServiceType;
   status: string;
   trustedProviders: string[];
+};
+
+export type PagedResult<Result> = {
+  result: Result[];
+  resultCount: number;
+  pagedResultsCookie: string;
+  totalPagedResultsPolicy: 'EXACT';
+  totalPagedResults: number;
+  remainingPagedResults: number;
 };

@@ -1,12 +1,13 @@
 import util from 'util';
 import storage from '../storage/SessionStorage';
+import { AmService, AmServiceType, PagedResult } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 
 const serviceURLTemplate = '%s/json%s/realm-config/services/%s';
 const serviceURLNextDescendentsTemplate =
   '%s/json%s/realm-config/services/%s?_action=nextdescendents';
-const serviceURLNextDescendentsPutTemplate =
+const serviceURLNextDescendentTemplate =
   '%s/json%s/realm-config/services/%s/%s/%s';
 const serviceListURLTemplate =
   '%s/json%s/realm-config/services?_queryFilter=true';
@@ -19,16 +20,6 @@ function getApiConfig() {
     apiVersion,
   };
 }
-
-// TODO: move this to a common place
-type PagedResult<Result> = {
-  result: Result[];
-  resultCount: number;
-  pagedResultsCookie: string;
-  totalPagedResultsPolicy: 'EXACT';
-  totalPagedResults: number;
-  remainingPagedResults: number;
-};
 
 export interface ServiceListItem {
   /**
@@ -45,16 +36,16 @@ export interface ServiceListItem {
   _rev: string;
 }
 
-export interface Service {
-  _id: '';
-  _rev: string;
-  _type: {
-    _id: string;
-    name: string;
-    collection: boolean;
-  };
-  [key: string]: any;
-}
+// export interface AmService {
+//   _id: '';
+//   _rev: string;
+//   _type: {
+//     _id: string;
+//     name: string;
+//     collection: boolean;
+//   };
+//   [key: string]: any;
+// }
 
 export interface ServiceNextDescendentResponse {
   result: ServiceNextDescendent;
@@ -64,136 +55,171 @@ export interface ServiceNextDescendent {
   [key: string]: any;
 }
 
-export async function getServiceList(): Promise<ServiceListItem[]> {
+/**
+ * Get a list of services
+ * @returns {Promise<ServiceListItem[]>} a promise resolving to an array of service list items.
+ */
+export async function getListOfServices(): Promise<
+  PagedResult<ServiceListItem>
+> {
   const urlString = util.format(
     serviceListURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath()
   );
-  return generateAmApi(getApiConfig())
-    .get<PagedResult<ServiceListItem>>(urlString, {
-      withCredentials: true,
-    })
-    .then((response) => response.data.result);
+  const { data } = await generateAmApi(getApiConfig()).get<
+    PagedResult<ServiceListItem>
+  >(urlString, {
+    withCredentials: true,
+  });
+  return data;
 }
 
-export async function getService(id: string): Promise<Service> {
+/**
+ * Get service
+ * @param {string} serviceId servide id
+ * @returns {Promise<AmService>} a promise resolving to a service object
+ */
+export async function getService(serviceId: string): Promise<AmService> {
   const urlString = util.format(
     serviceURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
-    id
+    serviceId
   );
-  return generateAmApi(getApiConfig())
-    .get<Service>(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get<AmService>(
+    urlString,
+    {
       withCredentials: true,
-    })
-    .then((response) => response.data);
+    }
+  );
+  return data;
 }
 
-export async function getServiceNextDescendents(
-  id: string
+/**
+ * Get a service's decendents (applicable for structured services only, e.g. SocialIdentityProviders)
+ * @param {string} serviceId service id
+ * @returns {Promise<ServiceNextDescendent[]>} a promise resolving to an array of the service's next decendents
+ */
+export async function getServiceDescendents(
+  serviceId: string
 ): Promise<ServiceNextDescendent[]> {
   const urlString = util.format(
     serviceURLNextDescendentsTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
-    id
+    serviceId
   );
-  return generateAmApi(getApiConfig())
-    .post<ServiceNextDescendentResponse>(urlString, {
+  const { data } = await generateAmApi(
+    getApiConfig()
+  ).post<ServiceNextDescendentResponse>(urlString, {
+    withCredentials: true,
+  });
+  return data.result as ServiceNextDescendent[];
+}
+
+/**
+ * Create or update a service
+ * @param {string} serviceId service id
+ * @param {AmService} serviceData service configuration
+ * @returns {Promise<AmService>} a promise resolving to a service object
+ */
+export async function putService(
+  serviceId: string,
+  serviceData: AmService
+): Promise<AmService> {
+  const realm =
+    storage.session.getRealm() === '/' ? '' : storage.session.getRealm();
+  const urlString = util.format(
+    serviceURLTemplate,
+    storage.session.getTenant(),
+    realm,
+    serviceId
+  );
+  const { data } = await generateAmApi(getApiConfig()).put(
+    urlString,
+    serviceData,
+    {
       withCredentials: true,
-    })
-    .then((response) => {
-      if (response.status < 200 || response.status > 399) {
-        console.error(
-          'getServiceNextDescendents ERROR: get service structure call returned %d, possible cause: service not found',
-          response.status
-        );
-        return null;
-      } else {
-        return response.data.result;
-      }
-    })
-    .catch((error) => {
-      if (error.response.status === 403) {
-        console.error(
-          `getServiceNextDescendents ERROR: get service structure error - 403. Service ID -> ${id}.`,
-          error.response.data.message
-        );
-      } else {
-        console.error(
-          `getServiceNextDescendents ERROR: get service structure error - 403. Service ID -> ${id}.`,
-          error.response.data.message
-        );
-        //throw error;
-      }
-      return null;
-    });
-}
-
-export async function putService(id: string, data: Service): Promise<void> {
-  const realm =
-    storage.session.getRealm() === '/' ? '' : storage.session.getRealm();
-  const urlString = util.format(
-    serviceURLTemplate,
-    storage.session.getTenant(),
-    realm,
-    id
+    }
   );
-
-  return generateAmApi(getApiConfig()).put(urlString, data, {
-    withCredentials: true,
-  });
+  return data;
 }
 
-export async function putServiceDescendents(
+/**
+ * Create or update a service next descendent instance
+ * @param {string} serviceId service id
+ * @param {string} serviceType service type
+ * @param {string} serviceNextDescendentId service instance id
+ * @param {ServiceNextDescendent} serviceNextDescendentData service next descendent configuration
+ * @returns {Promise<ServiceNextDescendent>} a promise resolving to a service next descendent
+ */
+export async function putServiceNextDescendent(
   serviceId: string,
-  type: string,
-  id: string,
-  data: ServiceNextDescendent
-): Promise<unknown> {
+  serviceType: string,
+  serviceNextDescendentId: string,
+  serviceNextDescendentData: ServiceNextDescendent
+): Promise<ServiceNextDescendent> {
   const realm =
     storage.session.getRealm() === '/' ? '' : storage.session.getRealm();
   const urlString = util.format(
-    serviceURLNextDescendentsPutTemplate,
+    serviceURLNextDescendentTemplate,
     storage.session.getTenant(),
     realm,
     serviceId,
-    type,
-    id
+    serviceType,
+    serviceNextDescendentId
   );
-  return generateAmApi(getApiConfig()).put(urlString, data, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi(getApiConfig()).put(
+    urlString,
+    serviceNextDescendentData,
+    {
+      withCredentials: true,
+    }
+  );
+  return data;
 }
 
-export async function deleteService(id: string): Promise<unknown> {
+/**
+ * Delete service
+ * @param {string} serviceId service id
+ * @returns {Promise<AmService>} a promise resolving to a service object
+ */
+export async function deleteService(serviceId: string): Promise<AmService> {
   const urlString = util.format(
     serviceURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
-    id
+    serviceId
   );
-  return generateAmApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
     withCredentials: true,
   });
+  return data;
 }
 
-export async function deleteServiceNextDescendents(
+/**
+ * Delete service next descendent
+ * @param {string} serviceId service id
+ * @param {string} serviceType service type
+ * @param {string} serviceNextDescendentId service instance id
+ * @returns {Promise<ServiceNextDescendent>} a promise resolving to a service next descendent
+ */
+export async function deleteServiceNextDescendent(
   serviceId: string,
-  type: string,
-  id: string
-) {
+  serviceType: string,
+  serviceNextDescendentId: string
+): Promise<ServiceNextDescendent> {
   const urlString = util.format(
-    serviceURLNextDescendentsPutTemplate,
+    serviceURLNextDescendentTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
     serviceId,
-    type,
-    id
+    serviceType,
+    serviceNextDescendentId
   );
-  return generateAmApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
     withCredentials: true,
   });
+  return data;
 }
