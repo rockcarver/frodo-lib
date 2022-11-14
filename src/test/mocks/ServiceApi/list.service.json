@@ -1,0 +1,37 @@
+{
+  "result": [
+    { "_id": "baseurl", "_rev": "1864594958", "name": "Base URL Source" },
+    {
+      "_id": "amSessionPropertyWhitelist",
+      "_rev": "1818486303",
+      "name": "Session Property Whitelist Service"
+    },
+    { "_id": "oauth-oidc", "_rev": "735455423", "name": "OAuth2 Provider" },
+    {
+      "_id": "SocialIdentityProviders",
+      "_rev": "492678293",
+      "name": "Social Identity Provider Service"
+    },
+    {
+      "_id": "DataStoreService",
+      "_rev": "1773812278",
+      "name": "External Data Stores"
+    },
+    {
+      "_id": "selfServiceTrees",
+      "_rev": "446331392",
+      "name": "Self Service Trees"
+    },
+    { "_id": "validation", "_rev": "1260092", "name": "Validation Service" },
+    {
+      "_id": "policyconfiguration",
+      "_rev": "1893337007",
+      "name": "Policy Configuration"
+    }
+  ],
+  "resultCount": 8,
+  "pagedResultsCookie": null,
+  "totalPagedResultsPolicy": "EXACT",
+  "totalPagedResults": 8,
+  "remainingPagedResults": -1
+}

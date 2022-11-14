@@ -36,15 +36,21 @@ export async function listServices() {
   serviceList.forEach((item) => {
     printMessage(`${item._id} - ${item.name}`, 'data');
   });
+  return serviceList;
 }
 
 /**
  * Exports a single service to file
  * @param {string} serviceId The service to export
  * @param {string} file Optional filename for the export
+ * @param {boolean} writeToFile Optional boolean indicating exporting to file as well which by default is true
  * @returns Promise resolving succesfull export
  */
-export async function exportService(serviceId: string, file?: string) {
+export async function exportService(
+  serviceId: string,
+  file?: string,
+  writeToFile = true
+) {
   const fileName = file
     ? getTypedFilename(file, 'service')
     : getTypedFilename(serviceId, 'service');
@@ -54,16 +60,22 @@ export async function exportService(serviceId: string, file?: string) {
   }
   const service = await getService(serviceId);
 
-  createProgressIndicator(
-    1,
-    `Exporting service ${serviceId} to file: ${fileName}`
-  );
+  if (writeToFile) {
+    createProgressIndicator(
+      1,
+      `Exporting service ${serviceId} to file: ${fileName}`
+    );
 
-  const serviceNextDescendentData = await getServiceNextDescendents(serviceId);
-  service.nextDescendents = serviceNextDescendentData;
-  saveServicesToFile('service', service, '_id', fileName);
-  updateProgressIndicator(`Exporting ${serviceId}`);
-  stopProgressIndicator(`Export to '${fileName}' done.`);
+    const serviceNextDescendentData = await getServiceNextDescendents(
+      serviceId
+    );
+    service.nextDescendents = serviceNextDescendentData;
+    saveServicesToFile('service', service, '_id', fileName);
+    updateProgressIndicator(`Exporting ${serviceId}`);
+    stopProgressIndicator(`Export to '${fileName}' done.`);
+  }
+
+  return service;
 }
 
 /**
@@ -101,18 +113,23 @@ async function getFullServices(): Promise<FullService[]> {
 /**
  * Exports all services for the realm to a single file
  * @param {string} file Options filename for the file, otherwise all{realm}Services.service.json will be the name
+ * @param {boolean} writeToFile Optional boolean indicating exporting to file as well which by default is true
  */
-export async function exportServicesToFile(file?: string) {
+export async function exportServicesToFile(file?: string, writeToFile = true) {
   const realm = getCurrentRealmName() ?? '';
   const fileName = file
     ? getTypedFilename(file, 'service')
     : getTypedFilename(`all${realm}Services`, 'service');
   const services = await getFullServices();
 
-  createProgressIndicator(1, `Exporting services to file: ${fileName}`);
-  saveServicesToFile('service', services, '_id', fileName);
-  updateProgressIndicator(`Exporting ${fileName}`);
-  stopProgressIndicator(`Export to '${fileName}' done.`);
+  if (writeToFile) {
+    createProgressIndicator(1, `Exporting services to file: ${fileName}`);
+    saveServicesToFile('service', services, '_id', fileName);
+    updateProgressIndicator(`Exporting ${fileName}`);
+    stopProgressIndicator(`Export to '${fileName}' done.`);
+  }
+
+  return services;
 }
 
 /**
@@ -133,6 +150,8 @@ export async function exportServicesToFiles() {
     saveServicesToFile('service', service, '_id', fileName);
   });
   stopProgressIndicator(`Export done.`);
+
+  return services;
 }
 
 /**
@@ -152,8 +171,9 @@ async function deleteFullService(serviceId: string) {
     )
   );
 
-  await deleteService(serviceId);
+  const result = await deleteService(serviceId);
   printMessage(`Deleted... ${serviceId}`, 'info');
+  return result;
 }
 
 /**
@@ -314,6 +334,8 @@ export async function importServicesSeparate(
  * Deletes a service by id/name
  * @param {string} serviceId Reference to the service to delete
  */
-export async function deleteServiceOp(serviceId: string) {
-  await deleteFullService(serviceId);
+export async function deleteServiceOp(
+  serviceId: string
+): Promise<{ status: number }> {
+  return (await deleteFullService(serviceId)) as { status: number };
 }

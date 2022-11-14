@@ -409,6 +409,85 @@ export function mockGetSaml2ProviderMetadata(mock: MockAdapter) {
     });
 }
 
+export function mockDeleteDeleteServiceById(mock: MockAdapter) {
+  mock
+    .onDelete(
+      /.*?\/json\/realms\/root\/realms\/alpha\/realm-config\/services\/.+/
+    )
+    .reply(() => {
+      const mockStatus = 200;
+      return [mockStatus];
+    });
+}
+
+export function getServiceList() {
+  const objects = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, './ServiceApi/list.service.json'),
+      'utf8'
+    )
+  );
+  return objects;
+}
+
+export function mockListServices(mock: MockAdapter) {
+  mock
+    .onGet(
+      /.*?\/json\/realms\/root\/realms\/alpha\/realm-config\/services\?_queryFilter=true/
+    )
+    .reply(function () {
+      const mockStatus = 200;
+      const mockResponse = getServiceList();
+      expect(mockResponse).toBeTruthy();
+      return [mockStatus, mockResponse];
+    });
+}
+
+//%s/json%s/realm-config/services/%s?_action=nextdescendents
+export function getEmptyDescendants() {
+  const objects = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, './ServiceApi/empty.serviceDescendants.json'),
+      'utf8'
+    )
+  );
+  return objects;
+}
+
+export function mockEmptyNextDescendants(mock: MockAdapter) {
+  mock
+    .onPost(
+      /.*?\/json\/realms\/root\/realms\/alpha\/realm-config\/services\/.+?_action=nextdescendents/
+    )
+    .reply(function () {
+      const mockStatus = 200;
+      const mockResponse = getEmptyDescendants();
+      expect(mockResponse).toBeTruthy();
+      return [mockStatus, mockResponse];
+    });
+}
+
+export function getSingleService() {
+  const objects = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, './ServiceApi/single.service.json'),
+      'utf8'
+    )
+  );
+  return objects;
+}
+
+export function mockExportSingleService(mock: MockAdapter) {
+  mock
+    .onGet(/.*?\/json\/realms\/root\/realms\/alpha\/realm-config\/services\/.+/)
+    .reply(function () {
+      const mockStatus = 200;
+      const mockResponse = getSingleService();
+      expect(mockResponse).toBeTruthy();
+      return [mockStatus, mockResponse];
+    });
+}
+
 /**
  * Social Identity Provider Mocks
  */
