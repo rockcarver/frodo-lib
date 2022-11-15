@@ -219,11 +219,15 @@ async function putFullService(id: string, data: FullService) {
  * Saves multiple services using the serviceEntries which contain both id and data with descendants
  * @param {[string, FullService][]} serviceEntries The services to add
  */
-async function putFullServices(serviceEntries: [string, FullService][]) {
+async function putFullServices(
+  serviceEntries: [string, FullService][]
+): Promise<boolean> {
+  let amountImported = 0;
   for (const [id, data] of serviceEntries) {
     try {
       await putFullService(id, data);
       printMessage(`Imported: ${id}`, 'info');
+      amountImported++;
     } catch (error) {
       const message = error.response?.data?.message;
       const detail = error.response?.data?.detail;
@@ -236,6 +240,7 @@ async function putFullServices(serviceEntries: [string, FullService][]) {
       }
     }
   }
+  return amountImported > 0;
 }
 
 /**
@@ -249,17 +254,18 @@ export async function importService(
   serviceId: string,
   clean: boolean,
   file: string
-) {
+): Promise<boolean> {
   if (!file || !file?.length) {
     file = `${serviceId}.service.json`;
   }
 
   if (!existsSync(file)) {
+    console.log('file not found');
     printMessage(
       `Unable to import service: ${serviceId} with error: file: ${file} not found`,
       'error'
     );
-    return;
+    return false;
   }
   const serviceData = JSON.parse(readFileSync(file, 'utf8'));
 
@@ -272,20 +278,25 @@ export async function importService(
       const data = serviceData.service[id];
       await putFullService(serviceId, data);
     }
+    console.log('Imported service');
     printMessage(`Imported service: ${serviceId}`, 'info');
   } catch (error) {
+    console.log('Error');
+    console.log(error);
     const message = error.response?.data?.message;
     const detail = error.response?.data?.detail;
     printMessage(
       `Unable to import service: ${serviceId} with error: ${message}`,
       'error'
     );
+    return false;
     if (detail) {
       printMessage(`Details: ${JSON.stringify(detail)}`, 'error');
+      return false;
     }
   }
 
-  return;
+  return true;
 }
 
 /**
@@ -293,7 +304,15 @@ export async function importService(
  * @param {boolean} clean Indicates whether to remove possible existing services first
  * @param {string} file Reference to the filename with the services to import
  */
-export async function importServices(clean: boolean, file: string) {
+export async function importServices(
+  clean: boolean,
+  file: string
+): Promise<boolean> {
+  if (!existsSync(file)) {
+    console.log('file not found');
+    printMessage(`Unable to import services: file: ${file} not found`, 'error');
+    return false;
+  }
   const fileString = readFileSync(file, 'utf8');
   const serviceData = JSON.parse(fileString);
 
@@ -301,7 +320,7 @@ export async function importServices(clean: boolean, file: string) {
     await deleteFullServices();
   }
 
-  await putFullServices(Object.entries(serviceData.service));
+  return await putFullServices(Object.entries(serviceData.service));
 }
 
 /**

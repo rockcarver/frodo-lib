@@ -2,13 +2,12 @@ import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import { Service, state } from '../index';
 
-import { writeFileSync } from 'fs';
-
 import {
   mockDeleteDeleteServiceById,
   mockEmptyNextDescendants,
   mockExportSingleService,
   mockListServices,
+  mockPutService,
 } from '../test/mocks/ForgeRockApiMockEngine';
 
 const mock = new MockAdapter(axios);
@@ -151,5 +150,85 @@ describe('ServiceOps - deleteServiceOp()', () => {
 describe('ServiceOps - importService()', () => {
   test('importService() 0: Method is implemented', async () => {
     expect(Service.importService).toBeDefined();
+  });
+
+  test('importService() 1: Import single service', async () => {
+    mockPutService(mock);
+    const serviceId = 'baseurl';
+    expect.assertions(1);
+    const importService = await Service.importService(
+      serviceId,
+      false,
+      './src/test/mocks/ServiceApi/baseurl.service.json'
+    );
+
+    expect(importService).toBeTruthy();
+  });
+
+  test('importService() 2: Import single service failure: file not found', async () => {
+    mockPutService(mock);
+    const serviceId = 'baseurl';
+    expect.assertions(1);
+    const importService = await Service.importService(
+      serviceId,
+      false,
+      './src/test/mocks/ServiceApi/baseurl_not_found.service.json'
+    );
+
+    expect(importService).toBeFalsy();
+  });
+
+  test('importService() 2: Clean import single service', async () => {
+    mockPutService(mock);
+    mockDeleteDeleteServiceById(mock);
+    const serviceId = 'baseurl';
+    expect.assertions(1);
+    const importService = await Service.importService(
+      serviceId,
+      true,
+      './src/test/mocks/ServiceApi/baseurl.service.json'
+    );
+
+    expect(importService).toBeTruthy();
+  });
+});
+
+describe('ServiceOps - importServices()', () => {
+  test('importServices() 0: Method is implemented', async () => {
+    expect(Service.importServices).toBeDefined();
+  });
+
+  test('importServices() 1: Import multiple services', async () => {
+    mockPutService(mock);
+    expect.assertions(1);
+    const importService = await Service.importServices(
+      false,
+      './src/test/mocks/ServiceApi/allServices.service.json'
+    );
+
+    expect(importService).toBeTruthy();
+  });
+
+  test('importServices() 2: Import multiple service failure: file not found', async () => {
+    mockPutService(mock);
+    expect.assertions(1);
+    const importService = await Service.importServices(
+      false,
+      './src/test/mocks/ServiceApi/allServices_not_found.service.json'
+    );
+
+    expect(importService).toBeFalsy();
+  });
+
+  test('importServices() 3: Clean import multiple services', async () => {
+    mockPutService(mock);
+    mockDeleteDeleteServiceById(mock);
+    expect.assertions(10);
+    const importService = await Service.importServices(
+      true,
+      './src/test/mocks/ServiceApi/allServices.service.json'
+    );
+
+    expect(importService).toBeTruthy();
   });
 });

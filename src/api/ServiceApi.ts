@@ -133,14 +133,15 @@ export async function getServiceNextDescendents(
 }
 
 export async function putService(id: string, data: Service): Promise<void> {
-  const realm =
-    storage.session.getRealm() === '/' ? '' : storage.session.getRealm();
+  const realm = storage.session.getRealm() === '/' ? '' : getCurrentRealmPath();
   const urlString = util.format(
     serviceURLTemplate,
     storage.session.getTenant(),
     realm,
     id
   );
+
+  console.log(urlString);
 
   return generateAmApi(getApiConfig()).put(urlString, data, {
     withCredentials: true,
@@ -153,8 +154,7 @@ export async function putServiceDescendents(
   id: string,
   data: ServiceNextDescendent
 ): Promise<unknown> {
-  const realm =
-    storage.session.getRealm() === '/' ? '' : storage.session.getRealm();
+  const realm = storage.session.getRealm() === '/' ? '' : getCurrentRealmPath();
   const urlString = util.format(
     serviceURLNextDescendentsPutTemplate,
     storage.session.getTenant(),

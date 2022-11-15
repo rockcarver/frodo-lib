@@ -409,6 +409,15 @@ export function mockGetSaml2ProviderMetadata(mock: MockAdapter) {
     });
 }
 
+export function mockPutService(mock: MockAdapter) {
+  mock
+    .onPut(/.*?\/json\/realms\/root\/realms\/alpha\/realm-config\/services\/.+/)
+    .reply(() => {
+      const mockStatus = 200;
+      return [mockStatus];
+    });
+}
+
 export function mockDeleteDeleteServiceById(mock: MockAdapter) {
   mock
     .onDelete(
