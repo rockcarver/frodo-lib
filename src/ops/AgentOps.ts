@@ -16,8 +16,8 @@ export const AGENT_TYPE_JAVA = 'J2EEAgent';
 export const AGENT_TYPE_WEB = 'WebAgent';
 
 /**
- * Create an empty single tree export template
- * @returns {SingleTreeExportInterface} an empty single tree export template
+ * Create an empty agent export template
+ * @returns {AgentExportInterface} an empty agent export template
  */
 export function createAgentExportTemplate(): AgentExportInterface {
   return {
