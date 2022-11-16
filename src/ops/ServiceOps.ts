@@ -81,26 +81,47 @@ export async function getFullServices(): Promise<FullService[]> {
 
 /**
  * Saves a service using the provide id and data, including descendents
- * @param {string} id the service id / name
- * @param {string} data service object including descendants
+ * @param {string} serviceId the service id / name
+ * @param {string} fullServiceData service object including descendants
  * @returns promise resolving to a service object
  */
 async function putFullService(
-  id: string,
-  data: FullService
+  serviceId: string,
+  fullServiceData: FullService,
+  clean: boolean
 ): Promise<AmServiceSkeleton> {
-  debugMessage(`ServiceOps.putFullService: start`);
-  const nextDescendents = data.nextDescendents;
+  debugMessage(`ServiceOps.putFullService: start, serviceId=${serviceId}`);
+  const nextDescendents = fullServiceData.nextDescendents;
 
-  delete data.nextDescendents;
-  delete data._rev;
-  delete data.enabled;
+  delete fullServiceData.nextDescendents;
+  delete fullServiceData._rev;
+  delete fullServiceData.enabled;
+
+  if (clean) {
+    try {
+      debugMessage(`ServiceOps.putFullService: clean`);
+      await deleteFullService(serviceId);
+    } catch (error) {
+      if (
+        !(
+          error.response?.status === 404 &&
+          error.response?.data?.message === 'Not Found'
+        )
+      ) {
+        const message = error.response?.data?.message;
+        printMessage(
+          `Error deleting service '${serviceId}' before import: ${message}`,
+          'error'
+        );
+      }
+    }
+  }
 
   // create service first
-  const result = await putService(id, data);
+  const result = await putService(serviceId, fullServiceData);
 
   // return fast if no next descendents supplied
-  if (!nextDescendents) {
+  if (nextDescendents.length === 0) {
     debugMessage(`ServiceOps.putFullService: end (w/o descendents)`);
     return result;
   }
@@ -110,40 +131,49 @@ async function putFullService(
     nextDescendents.map(async (descendent) => {
       const type = descendent._type._id;
       const descendentId = descendent._id;
-      const result = await putServiceNextDescendent(
-        id,
-        type,
-        descendentId,
-        descendent
-      );
-      debugMessage(`ServiceOps.putFullService: end (w/ descendents)`);
+      debugMessage(`ServiceOps.putFullService: descendentId=${descendentId}`);
+      let result = undefined;
+      try {
+        result = await putServiceNextDescendent(
+          serviceId,
+          type,
+          descendentId,
+          descendent
+        );
+      } catch (error) {
+        const message = error.response?.data?.message;
+        printMessage(
+          `Put descendent '${descendentId}' of service '${serviceId}': ${message}`,
+          'error'
+        );
+      }
       return result;
     })
   );
+  debugMessage(`ServiceOps.putFullService: end (w/ descendents)`);
 }
 
 /**
  * Saves multiple services using the serviceEntries which contain both id and data with descendants
  * @param {[string, FullService][]} serviceEntries The services to add
+ * @param {boolean} clean Indicates whether to remove possible existing services first
  * @returns {Promise<AmService[]>} promise resolving to an array of service objects
  */
 async function putFullServices(
-  serviceEntries: [string, FullService][]
+  serviceEntries: [string, FullService][],
+  clean: boolean
 ): Promise<AmServiceSkeleton[]> {
   debugMessage(`ServiceOps.putFullServices: start`);
   const results: AmServiceSkeleton[] = [];
   for (const [id, data] of serviceEntries) {
     try {
-      const result = await putFullService(id, data);
+      const result = await putFullService(id, data, clean);
       results.push(result);
       printMessage(`Imported: ${id}`, 'info');
     } catch (error) {
       const message = error.response?.data?.message;
       const detail = error.response?.data?.detail;
-      printMessage(
-        `Unable to import service: ${id} with error: ${message}`,
-        'error'
-      );
+      printMessage(`Import service '${id}': ${message}`, 'error');
       if (detail) {
         printMessage(`Details: ${JSON.stringify(detail)}`, 'error');
       }
@@ -176,12 +206,37 @@ export async function deleteFullService(serviceId: string) {
 /**
  * Deletes all services
  */
-async function deleteFullServices() {
-  const serviceList = (await _getListOfServices()).result;
+export async function deleteFullServices() {
+  debugMessage(`ServiceOps.deleteFullServices: start`);
+  try {
+    const serviceList = (await _getListOfServices()).result;
 
-  await Promise.all(
-    serviceList.map((serviceListItem) => deleteFullService(serviceListItem._id))
-  );
+    await Promise.all(
+      serviceList.map(async (serviceListItem) => {
+        try {
+          await deleteFullService(serviceListItem._id);
+        } catch (error) {
+          if (
+            !(
+              error.response?.status === 403 &&
+              error.response?.data?.message ===
+                'This operation is not available in ForgeRock Identity Cloud.'
+            )
+          ) {
+            const message = error.response?.data?.message;
+            printMessage(
+              `Delete service '${serviceListItem._id}': ${message}`,
+              'error'
+            );
+          }
+        }
+      })
+    );
+  } catch (error) {
+    const message = error.response?.data?.message;
+    printMessage(`Delete services: ${message}`, 'error');
+  }
+  debugMessage(`ServiceOps.deleteFullServices: end`);
 }
 
 /**
@@ -239,32 +294,10 @@ export async function importService(
   clean: boolean
 ): Promise<AmServiceSkeleton> {
   debugMessage(`ServiceOps.importService: start`);
-
   const serviceData = importData.service[serviceId];
-
-  if (clean) {
-    debugMessage(`ServiceOps.importService: clean`);
-    await deleteService(serviceId);
-  }
-
-  try {
-    const result = await putFullService(serviceId, serviceData);
-    debugMessage(`ServiceOps.importService: end`);
-    return result;
-  } catch (error) {
-    const message = error.response?.data?.message;
-    const detail = error.response?.data?.detail;
-    printMessage(
-      `Unable to import service: ${serviceId} with error: ${message}`,
-      'error'
-    );
-    if (detail) {
-      printMessage(`Details: ${JSON.stringify(detail)}`, 'error');
-    }
-  }
-
+  const result = await putFullService(serviceId, serviceData, clean);
   debugMessage(`ServiceOps.importService: end`);
-  return null;
+  return result;
 }
 
 /**
@@ -276,14 +309,11 @@ export async function importServices(
   clean: boolean
 ) {
   debugMessage(`ServiceOps.importServices: start`);
-
-  if (clean) {
-    debugMessage(`ServiceOps.importServices: clean`);
-    await deleteFullServices();
-  }
-
   try {
-    const result = await putFullServices(Object.entries(importData.service));
+    const result = await putFullServices(
+      Object.entries(importData.service),
+      clean
+    );
     debugMessage(`ServiceOps.importServices: end`);
     return result;
   } catch (error) {
