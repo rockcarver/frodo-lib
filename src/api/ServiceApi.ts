@@ -131,12 +131,10 @@ export async function putService(
   serviceId: string,
   serviceData: AmServiceSkeleton
 ): Promise<AmServiceSkeleton> {
-  const realm =
-    storage.session.getRealm() === '/' ? '' : storage.session.getRealm();
   const urlString = util.format(
     serviceURLTemplate,
     storage.session.getTenant(),
-    realm,
+    getCurrentRealmPath(),
     serviceId
   );
   const { data } = await generateAmApi(getApiConfig()).put(
@@ -163,12 +161,10 @@ export async function putServiceNextDescendent(
   serviceNextDescendentId: string,
   serviceNextDescendentData: ServiceNextDescendent
 ): Promise<ServiceNextDescendent> {
-  const realm =
-    storage.session.getRealm() === '/' ? '' : storage.session.getRealm();
   const urlString = util.format(
     serviceURLNextDescendentTemplate,
     storage.session.getTenant(),
-    realm,
+    getCurrentRealmPath(),
     serviceId,
     serviceType,
     serviceNextDescendentId
