@@ -210,7 +210,7 @@ export async function exportServices(): Promise<ServiceExportInterface> {
   const exportData = createServiceExportTemplate();
   const services = await getFullServices();
   for (const service of services) {
-    exportData.service[service._id] = service;
+    exportData.service[service._type._id] = service;
   }
   debugMessage(`ServiceOps.exportServices: end`);
   return exportData;
