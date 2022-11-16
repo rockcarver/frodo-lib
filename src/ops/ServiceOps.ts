@@ -58,11 +58,19 @@ export async function getFullServices(): Promise<FullService[]> {
           nextDescendents,
         };
       } catch (error) {
-        const message = error.response?.data?.message;
-        printMessage(
-          `Unable to retrieve data for ${listItem._id} with error: ${message}`,
-          'error'
-        );
+        if (
+          !(
+            error.response?.status === 403 &&
+            error.response?.data?.message ===
+              'This operation is not available in ForgeRock Identity Cloud.'
+          )
+        ) {
+          const message = error.response?.data?.message;
+          printMessage(
+            `Unable to retrieve data for ${listItem._id} with error: ${message}`,
+            'error'
+          );
+        }
       }
     })
   );
