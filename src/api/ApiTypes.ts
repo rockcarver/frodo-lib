@@ -46,6 +46,12 @@ export type SocialIdpSkeleton = ObjectSkeletonInterface & {
   enabled: boolean;
 };
 
+export type AmServiceSkeleton = ObjectSkeletonInterface & {
+  _type: AmServiceType;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+};
+
 export type AgentSkeleton = ObjectSkeletonInterface & {
   _type: AmServiceType;
 };
@@ -122,4 +128,13 @@ export type CircleOfTrustSkeleton = ObjectSkeletonInterface & {
   _type: AmServiceType;
   status: string;
   trustedProviders: string[];
+};
+
+export type PagedResult<Result> = {
+  result: Result[];
+  resultCount: number;
+  pagedResultsCookie: string;
+  totalPagedResultsPolicy: 'EXACT';
+  totalPagedResults: number;
+  remainingPagedResults: number;
 };
