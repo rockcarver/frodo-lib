@@ -1,77 +1,49 @@
-import { existsSync, readFileSync } from 'fs';
-import { AmService } from '../api/ApiTypes';
+import { AmServiceSkeleton } from '../api/ApiTypes';
 import {
   deleteService,
   deleteServiceNextDescendent,
   getService,
-  getListOfServices,
+  getListOfServices as _getListOfServices,
   getServiceDescendents,
   putService,
   putServiceNextDescendent,
   ServiceNextDescendent,
 } from '../api/ServiceApi';
-import { getCurrentRealmName } from '../api/utils/ApiUtils';
-import {
-  createProgressIndicator,
-  printMessage,
-  stopProgressIndicator,
-  updateProgressIndicator,
-} from './utils/Console';
-import {
-  getTypedFilename,
-  readFilesRecursive,
-  saveServicesToFile,
-} from './utils/ExportImportUtils';
+import { ServiceExportInterface } from './OpsTypes';
+import { debugMessage, printMessage } from './utils/Console';
 
-interface FullService extends AmService {
+interface FullService extends AmServiceSkeleton {
   nextDescendents?: ServiceNextDescendent[];
 }
 
 /**
- * Lists all services
+ * Create an empty service export template
+ * @returns {SingleTreeExportInterface} an empty service export template
  */
-export async function listServices() {
-  const serviceList = (await getListOfServices()).result;
-  serviceList.sort((a, b) => a.name.localeCompare(b.name));
-  serviceList.forEach((item) => {
-    printMessage(`${item._id} - ${item.name}`, 'data');
-  });
+export function createServiceExportTemplate(): ServiceExportInterface {
+  return {
+    meta: {},
+    service: {},
+  } as ServiceExportInterface;
 }
 
 /**
- * Exports a single service to file
- * @param {string} serviceId The service to export
- * @param {string} file Optional filename for the export
- * @returns Promise resolving succesfull export
+ * Get list of services
  */
-export async function exportService(serviceId: string, file?: string) {
-  const fileName = file
-    ? getTypedFilename(file, 'service')
-    : getTypedFilename(serviceId, 'service');
-
-  if (serviceId === null) {
-    return;
-  }
-  const service = await getService(serviceId);
-
-  createProgressIndicator(
-    1,
-    `Exporting service ${serviceId} to file: ${fileName}`
-  );
-
-  const serviceNextDescendentData = await getServiceDescendents(serviceId);
-  service.nextDescendents = serviceNextDescendentData;
-  saveServicesToFile('service', service, '_id', fileName);
-  updateProgressIndicator(`Exporting ${serviceId}`);
-  stopProgressIndicator(`Export to '${fileName}' done.`);
+export async function getListOfServices() {
+  debugMessage(`ServiceOps.getListOfServices: start`);
+  const services = (await _getListOfServices()).result;
+  debugMessage(`ServiceOps.getListOfServices: end`);
+  return services;
 }
 
 /**
- * Retrieves all services and their descendants.
+ * Get all services including their descendents.
  * @returns Promise resolving to an array of services with their descendants
  */
-async function getFullServices(): Promise<FullService[]> {
-  const serviceList = (await getListOfServices()).result;
+export async function getFullServices(): Promise<FullService[]> {
+  debugMessage(`ServiceOps.getFullServices: start`);
+  const serviceList = (await _getListOfServices()).result;
 
   const fullServiceData = await Promise.all(
     serviceList.map(async (listItem) => {
@@ -95,88 +67,21 @@ async function getFullServices(): Promise<FullService[]> {
     })
   );
 
+  debugMessage(`ServiceOps.getFullServices: end`);
   return fullServiceData.filter((data) => !!data); // make sure to filter out any undefined objects
-}
-
-/**
- * Exports all services for the realm to a single file
- * @param {string} file Options filename for the file, otherwise all{realm}Services.service.json will be the name
- */
-export async function exportServicesToFile(file?: string) {
-  const realm = getCurrentRealmName() ?? '';
-  const fileName = file
-    ? getTypedFilename(file, 'service')
-    : getTypedFilename(`all${realm}Services`, 'service');
-  const services = await getFullServices();
-
-  createProgressIndicator(1, `Exporting services to file: ${fileName}`);
-  saveServicesToFile('service', services, '_id', fileName);
-  updateProgressIndicator(`Exporting ${fileName}`);
-  stopProgressIndicator(`Export to '${fileName}' done.`);
-}
-
-/**
- * Exports all services to separate files.
- */
-export async function exportServicesToFiles() {
-  const services = await getFullServices();
-
-  createProgressIndicator(
-    services.length,
-    'Exporting services to separate files.'
-  );
-  services.forEach((service) => {
-    const fileName = getTypedFilename(service._type._id, 'service');
-    updateProgressIndicator(
-      `Exporting service: ${service._type._id} to ${fileName}`
-    );
-    saveServicesToFile('service', service, '_id', fileName);
-  });
-  stopProgressIndicator(`Export done.`);
-}
-
-/**
- * Deletes the specified service
- * @param {string} serviceId The service to delete
- */
-async function deleteFullService(serviceId: string) {
-  const serviceNextDescendentData = await getServiceDescendents(serviceId);
-
-  await Promise.all(
-    serviceNextDescendentData.map((nextDescendent) =>
-      deleteServiceNextDescendent(
-        serviceId,
-        nextDescendent._type._id,
-        nextDescendent._id
-      )
-    )
-  );
-
-  await deleteService(serviceId);
-  printMessage(`Deleted... ${serviceId}`, 'info');
-}
-
-/**
- * Deletes all services
- */
-async function deleteFullServices() {
-  const serviceList = (await getListOfServices()).result;
-
-  await Promise.all(
-    serviceList.map((serviceListItem) => deleteFullService(serviceListItem._id))
-  );
 }
 
 /**
  * Saves a service using the provide id and data, including descendents
  * @param {string} id the service id / name
  * @param {string} data service object including descendants
- * @returns promise resolving when the service has been saved
+ * @returns promise resolving to a service object
  */
 async function putFullService(
   id: string,
   data: FullService
-): Promise<AmService> {
+): Promise<AmServiceSkeleton> {
+  debugMessage(`ServiceOps.putFullService: start`);
   const nextDescendents = data.nextDescendents;
 
   delete data.nextDescendents;
@@ -188,6 +93,7 @@ async function putFullService(
 
   // return fast if no next descendents supplied
   if (!nextDescendents) {
+    debugMessage(`ServiceOps.putFullService: end (w/o descendents)`);
     return result;
   }
 
@@ -202,6 +108,7 @@ async function putFullService(
         descendentId,
         descendent
       );
+      debugMessage(`ServiceOps.putFullService: end (w/ descendents)`);
       return result;
     })
   );
@@ -210,11 +117,17 @@ async function putFullService(
 /**
  * Saves multiple services using the serviceEntries which contain both id and data with descendants
  * @param {[string, FullService][]} serviceEntries The services to add
+ * @returns {Promise<AmService[]>} promise resolving to an array of service objects
  */
-async function putFullServices(serviceEntries: [string, FullService][]) {
+async function putFullServices(
+  serviceEntries: [string, FullService][]
+): Promise<AmServiceSkeleton[]> {
+  debugMessage(`ServiceOps.putFullServices: start`);
+  const results: AmServiceSkeleton[] = [];
   for (const [id, data] of serviceEntries) {
     try {
-      await putFullService(id, data);
+      const result = await putFullService(id, data);
+      results.push(result);
       printMessage(`Imported: ${id}`, 'info');
     } catch (error) {
       const message = error.response?.data?.message;
@@ -228,6 +141,71 @@ async function putFullServices(serviceEntries: [string, FullService][]) {
       }
     }
   }
+  debugMessage(`ServiceOps.putFullServices: end`);
+  return results;
+}
+
+/**
+ * Deletes the specified service
+ * @param {string} serviceId The service to delete
+ */
+export async function deleteFullService(serviceId: string) {
+  const serviceNextDescendentData = await getServiceDescendents(serviceId);
+
+  await Promise.all(
+    serviceNextDescendentData.map((nextDescendent) =>
+      deleteServiceNextDescendent(
+        serviceId,
+        nextDescendent._type._id,
+        nextDescendent._id
+      )
+    )
+  );
+
+  await deleteService(serviceId);
+}
+
+/**
+ * Deletes all services
+ */
+async function deleteFullServices() {
+  const serviceList = (await _getListOfServices()).result;
+
+  await Promise.all(
+    serviceList.map((serviceListItem) => deleteFullService(serviceListItem._id))
+  );
+}
+
+/**
+ * Export service. The response can be saved to file as is.
+ * @param serviceId service id/name
+ * @returns {Promise<ServiceExportInterface>} Promise resolving to a ServiceExportInterface object.
+ */
+export async function exportService(
+  serviceId: string
+): Promise<ServiceExportInterface> {
+  debugMessage(`ServiceOps.exportService: start`);
+  const exportData = createServiceExportTemplate();
+  const service = await getService(serviceId);
+  service.nextDescendents = await getServiceDescendents(serviceId);
+  exportData.service[serviceId] = service;
+  debugMessage(`ServiceOps.exportService: end`);
+  return exportData;
+}
+
+/**
+ * Export all services
+ * @param {string} file Options filename for the file, otherwise all{realm}Services.service.json will be the name
+ */
+export async function exportServices(): Promise<ServiceExportInterface> {
+  debugMessage(`ServiceOps.exportServices: start`);
+  const exportData = createServiceExportTemplate();
+  const services = await getFullServices();
+  for (const service of services) {
+    exportData.service[service._id] = service;
+  }
+  debugMessage(`ServiceOps.exportServices: end`);
+  return exportData;
 }
 
 /**
@@ -239,32 +217,22 @@ async function putFullServices(serviceEntries: [string, FullService][]) {
  */
 export async function importService(
   serviceId: string,
-  clean: boolean,
-  file: string
-) {
-  if (!file || !file?.length) {
-    file = `${serviceId}.service.json`;
-  }
+  importData: ServiceExportInterface,
+  clean: boolean
+): Promise<AmServiceSkeleton> {
+  debugMessage(`ServiceOps.importService: start`);
 
-  if (!existsSync(file)) {
-    printMessage(
-      `Unable to import service: ${serviceId} with error: file: ${file} not found`,
-      'error'
-    );
-    return;
-  }
-  const serviceData = JSON.parse(readFileSync(file, 'utf8'));
+  const serviceData = importData.service[serviceId];
 
   if (clean) {
+    debugMessage(`ServiceOps.importService: clean`);
     await deleteService(serviceId);
   }
 
   try {
-    for (const id in serviceData.service) {
-      const data = serviceData.service[id];
-      await putFullService(serviceId, data);
-    }
-    printMessage(`Imported service: ${serviceId}`, 'info');
+    const result = await putFullService(serviceId, serviceData);
+    debugMessage(`ServiceOps.importService: end`);
+    return result;
   } catch (error) {
     const message = error.response?.data?.message;
     const detail = error.response?.data?.detail;
@@ -277,55 +245,36 @@ export async function importService(
     }
   }
 
-  return;
+  debugMessage(`ServiceOps.importService: end`);
+  return null;
 }
 
 /**
  * Imports multiple services from the same file. Optionally clean (remove) existing services first
  * @param {boolean} clean Indicates whether to remove possible existing services first
- * @param {string} file Reference to the filename with the services to import
  */
-export async function importServices(clean: boolean, file: string) {
-  const fileString = readFileSync(file, 'utf8');
-  const serviceData = JSON.parse(fileString);
-
-  if (clean) {
-    await deleteFullServices();
-  }
-
-  await putFullServices(Object.entries(serviceData.service));
-}
-
-/**
- * Reads the specified directory and imports all files with a .service.json extension.
- * @param {boolean} clean Indicates whether to remove possible existing services first
- * @param {string} directory Reference to the directory with the services to import
- */
-export async function importServicesSeparate(
-  clean: boolean,
-  directory: string
+export async function importServices(
+  importData: ServiceExportInterface,
+  clean: boolean
 ) {
-  const paths = await readFilesRecursive(directory);
+  debugMessage(`ServiceOps.importServices: start`);
 
   if (clean) {
+    debugMessage(`ServiceOps.importServices: clean`);
     await deleteFullServices();
   }
 
-  for (const path of paths) {
-    const parts = path.replaceAll('\\', '/').split('/');
-    const fileName = parts[parts.length - 1];
-
-    if (fileName.indexOf('.service.') > -1) {
-      const serviceId = fileName.replace('.service.json', '');
-      await importService(serviceId, false, path);
+  try {
+    const result = await putFullServices(Object.entries(importData.service));
+    debugMessage(`ServiceOps.importServices: end`);
+    return result;
+  } catch (error) {
+    const message = error.response?.data?.message;
+    const detail = error.response?.data?.detail;
+    printMessage(`Unable to import services: error: ${message}`, 'error');
+    if (detail) {
+      printMessage(`Details: ${JSON.stringify(detail)}`, 'error');
     }
+    throw error;
   }
-}
-
-/**
- * Deletes a service by id/name
- * @param {string} serviceId Reference to the service to delete
- */
-export async function deleteServiceOp(serviceId: string) {
-  await deleteFullService(serviceId);
 }
