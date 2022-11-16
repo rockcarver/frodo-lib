@@ -194,9 +194,14 @@ export async function exportService(
 ): Promise<ServiceExportInterface> {
   debugMessage(`ServiceOps.exportService: start`);
   const exportData = createServiceExportTemplate();
-  const service = await getService(serviceId);
-  service.nextDescendents = await getServiceDescendents(serviceId);
-  exportData.service[serviceId] = service;
+  try {
+    const service = await getService(serviceId);
+    service.nextDescendents = await getServiceDescendents(serviceId);
+    exportData.service[serviceId] = service;
+  } catch (error) {
+    const message = error.response?.data?.message;
+    printMessage(`Export service '${serviceId}': ${message}`, 'error');
+  }
   debugMessage(`ServiceOps.exportService: end`);
   return exportData;
 }
@@ -208,9 +213,14 @@ export async function exportService(
 export async function exportServices(): Promise<ServiceExportInterface> {
   debugMessage(`ServiceOps.exportServices: start`);
   const exportData = createServiceExportTemplate();
-  const services = await getFullServices();
-  for (const service of services) {
-    exportData.service[service._type._id] = service;
+  try {
+    const services = await getFullServices();
+    for (const service of services) {
+      exportData.service[service._type._id] = service;
+    }
+  } catch (error) {
+    const message = error.response?.data?.message;
+    printMessage(`Export servics: ${message}`, 'error');
   }
   debugMessage(`ServiceOps.exportServices: end`);
   return exportData;
