@@ -1,5 +1,6 @@
 import {
   AgentSkeleton,
+  AmServiceSkeleton,
   CircleOfTrustSkeleton,
   EmailTemplateSkeleton,
   NodeSkeleton,
@@ -69,6 +70,11 @@ export interface MultiTreeExportInterface {
 export interface AgentExportInterface {
   meta?: Record<string, ExportMetaData>;
   agents: Record<string, AgentSkeleton>;
+}
+
+export interface ServiceExportInterface {
+  meta?: Record<string, ExportMetaData>;
+  service: Record<string, AmServiceSkeleton>;
 }
 
 export interface TreeDependencyMapInterface {

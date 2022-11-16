@@ -34,13 +34,6 @@ export type AmServiceType = ObjectSkeletonInterface & {
   name: string;
 };
 
-export type AmService = ObjectSkeletonInterface & {
-  _id: '';
-  _rev: string;
-  _type: AmServiceType;
-  [key: string]: any;
-};
-
 export type NodeSkeleton = ObjectSkeletonInterface & {
   _type: AmServiceType;
   nodes?: InnerNodeRefSkeletonInterface[];
@@ -51,6 +44,12 @@ export type NodeSkeleton = ObjectSkeletonInterface & {
 export type SocialIdpSkeleton = ObjectSkeletonInterface & {
   _type: AmServiceType;
   enabled: boolean;
+};
+
+export type AmServiceSkeleton = ObjectSkeletonInterface & {
+  _type: AmServiceType;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 };
 
 export type AgentSkeleton = ObjectSkeletonInterface & {
