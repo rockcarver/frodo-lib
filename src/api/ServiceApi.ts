@@ -1,6 +1,6 @@
 import util from 'util';
 import storage from '../storage/SessionStorage';
-import { AmService, AmServiceType, PagedResult } from './ApiTypes';
+import { AmServiceSkeleton, PagedResult } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 
@@ -52,6 +52,7 @@ export interface ServiceNextDescendentResponse {
 }
 
 export interface ServiceNextDescendent {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -80,14 +81,16 @@ export async function getListOfServices(): Promise<
  * @param {string} serviceId servide id
  * @returns {Promise<AmService>} a promise resolving to a service object
  */
-export async function getService(serviceId: string): Promise<AmService> {
+export async function getService(
+  serviceId: string
+): Promise<AmServiceSkeleton> {
   const urlString = util.format(
     serviceURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
     serviceId
   );
-  const { data } = await generateAmApi(getApiConfig()).get<AmService>(
+  const { data } = await generateAmApi(getApiConfig()).get<AmServiceSkeleton>(
     urlString,
     {
       withCredentials: true,
@@ -126,8 +129,8 @@ export async function getServiceDescendents(
  */
 export async function putService(
   serviceId: string,
-  serviceData: AmService
-): Promise<AmService> {
+  serviceData: AmServiceSkeleton
+): Promise<AmServiceSkeleton> {
   const realm =
     storage.session.getRealm() === '/' ? '' : storage.session.getRealm();
   const urlString = util.format(
@@ -185,7 +188,9 @@ export async function putServiceNextDescendent(
  * @param {string} serviceId service id
  * @returns {Promise<AmService>} a promise resolving to a service object
  */
-export async function deleteService(serviceId: string): Promise<AmService> {
+export async function deleteService(
+  serviceId: string
+): Promise<AmServiceSkeleton> {
   const urlString = util.format(
     serviceURLTemplate,
     storage.session.getTenant(),
