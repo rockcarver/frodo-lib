@@ -1,15 +1,17 @@
 import fs from 'fs';
+import { lstat, readdir } from 'fs/promises';
+import { join } from 'path';
 import slugify from 'slugify';
+import {
+  decode,
+  decodeBase64Url,
+  encode,
+  encodeBase64Url,
+} from '../../api/utils/Base64';
 import storage from '../../storage/SessionStorage';
 import { FRODO_METADATA_ID } from '../../storage/StaticStorage';
-import {
-  encode,
-  decode,
-  encodeBase64Url,
-  decodeBase64Url,
-} from '../../api/utils/Base64';
-import { printMessage } from './Console';
 import { ExportMetaData } from '../OpsTypes';
+import { debugMessage, printMessage } from './Console';
 
 export function getCurrentTimestamp() {
   const ts = new Date();
@@ -87,10 +89,26 @@ export function getTypedFilename(name: string, type: string, suffix = 'json') {
   return `${slug}.${type}.${suffix}`;
 }
 
+export function getWorkingDirectory() {
+  let wd = '.';
+  if (storage.session.getDirectory()) {
+    wd = storage.session.getDirectory().replace(/\/$/, '');
+    // create directory if it doesn't exist
+    if (!fs.existsSync(wd)) {
+      debugMessage(
+        `ExportImportUtils.getWorkingDirectory: creating directory '${wd}'`
+      );
+      fs.mkdirSync(wd, { recursive: true });
+    }
+  }
+  return wd;
+}
+
 export function saveToFile(type, data, identifier, filename) {
   const exportData = {};
   exportData['meta'] = getMetadata();
   exportData[type] = {};
+
   if (Array.isArray(data)) {
     data.forEach((element) => {
       exportData[type][element[identifier]] = element;
@@ -182,4 +200,28 @@ export function findFilesByName(
     files.push(...findFilesByName(fileName, fast, `${path}${folder.name}/`));
 
   return files;
+}
+
+/**
+ * find all (nested) files in a directory
+ *
+ * @param directory directory to search
+ * @returns list of files
+ */
+export async function readFilesRecursive(directory: string): Promise<string[]> {
+  const items = await readdir(directory);
+
+  const filePathsNested = await Promise.all(
+    items.map(async (entity) => {
+      const path = join(directory, entity);
+      const isDirectory = (await lstat(path)).isDirectory();
+
+      if (isDirectory) {
+        return readFilesRecursive(path);
+      }
+      return path;
+    })
+  );
+
+  return filePathsNested.flat();
 }
