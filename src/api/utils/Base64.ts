@@ -16,6 +16,7 @@ export function isBase64Encoded(input) {
 /**
  * Base64-encode a string
  * @param {String} input String to base64-encode
+ * @param {boolean} padding add padding
  * @returns {String} Base64-encoded input string
  */
 export function encode(input, padding = true) {
