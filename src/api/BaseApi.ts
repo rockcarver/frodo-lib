@@ -9,6 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { curlirizeMessage, printMessage } from '../ops/utils/Console';
 import _curlirize from '../ext/axios-curlirize/curlirize';
+import { randomUUID } from 'crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,6 +33,7 @@ const maxFreeSockets = 10;
 const freeSocketTimeout = 30000;
 
 const userAgent = `${pkg.name}/${pkg.version}`;
+const transactionId = `frodo-${randomUUID()}`;
 let httpAgent, httpsAgent;
 
 function getHttpAgent() {
@@ -111,6 +113,7 @@ function curlirize(request) {
 export function generateAmApi(resource, requestOverride = {}) {
   let headers = {
     'User-Agent': userAgent,
+    'X-ForgeRock-TransactionId': transactionId,
     'Content-Type': 'application/json',
     // only add API version if we have it
     ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
@@ -161,6 +164,7 @@ export function generateAmApi(resource, requestOverride = {}) {
 export function generateOauth2Api(resource, requestOverride = {}) {
   let headers = {
     'User-Agent': userAgent,
+    'X-ForgeRock-TransactionId': transactionId,
     // only add API version if we have it
     ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
     // only send session cookie if we know its name and value
@@ -212,6 +216,7 @@ export function generateIdmApi(requestOverride = {}) {
     timeout,
     headers: {
       'User-Agent': userAgent,
+      'X-ForgeRock-TransactionId': transactionId,
       'Content-Type': 'application/json',
     },
     ...requestOverride,
