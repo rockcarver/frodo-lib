@@ -13,6 +13,8 @@ const fileOptions = {
   indentation: 4,
 };
 
+const legacyProfileFilename = '.frodorc';
+const newProfileFilename = 'Connections.json';
 /**
  * Get connection profiles file name
  * @returns {String} connection profiles file name
@@ -21,7 +23,7 @@ export function getConnectionProfilesPath(): string {
   return (
     storage.session.getConnectionProfilesPath() ||
     process.env[FRODO_CONNECTION_PROFILES_PATH_KEY] ||
-    `${os.homedir()}/.frodo/.frodorc`
+    `${os.homedir()}/.frodo/${newProfileFilename}`
   );
 }
 
@@ -77,6 +79,21 @@ export function listConnectionProfiles(long = false) {
 }
 
 /**
+ * Migrate from .frodorc to Connections.json
+ * @returns {String} connections profile filename
+ */
+function migrateFromLegacyProfile() {
+  const legacyPath = `${os.homedir()}/.frodo/${legacyProfileFilename}`;
+  if (fs.existsSync(legacyPath)) {
+    fs.copyFileSync(legacyPath, `${os.homedir()}/.frodo/${newProfileFilename}`);
+    // for now, just add a "deprecated" suffix. May delete the old file
+    // in a future release
+    fs.renameSync(legacyPath, `${legacyPath}.deprecated`);
+  }
+  return;
+}
+
+/**
  * Initialize connection profiles
  */
 export function initConnectionProfiles() {
@@ -94,6 +111,7 @@ export function initConnectionProfiles() {
   }
   // encrypt the password from clear text to aes-256-GCM
   else {
+    migrateFromLegacyProfile();
     const data = fs.readFileSync(filename, 'utf8');
     const connectionsData = JSON.parse(data);
     let convert = false;
