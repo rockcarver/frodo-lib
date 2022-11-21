@@ -1,0 +1,18 @@
+{
+  "result": [
+      {
+          "_id": "aVNQQXp1cmU",
+          "_rev": "2065843986",
+          "entityId": "iSPAzure",
+          "location": "hosted",
+          "roles": [
+              "serviceProvider"
+          ]
+      }
+  ],
+  "resultCount": 1,
+  "pagedResultsCookie": null,
+  "totalPagedResultsPolicy": "EXACT",
+  "totalPagedResults": 1,
+  "remainingPagedResults": -1
+}
