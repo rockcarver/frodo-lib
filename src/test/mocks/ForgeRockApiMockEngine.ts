@@ -4,6 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { encode, decode } from '../../api/utils/Base64';
 import { parseUrl } from '../../api/utils/ApiUtils';
+import slugify from 'slugify';
+import { getTypedFilename } from '../../ops/utils/ExportImportUtils';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -192,15 +194,44 @@ export function getScriptByName(scriptName: string) {
 /**
  * SAML Mocks
  */
+export function getSaml2ProviderImportData(entityId: string) {
+  const importData = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        `./Saml2Ops/importSaml2Provider/${getTypedFilename(
+          entityId,
+          'saml',
+          'json'
+        )}`
+      ),
+      'utf8'
+    )
+  );
+  return importData;
+}
+
+export function getSaml2ProvidersImportData() {
+  const importData = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        `./Saml2Ops/importSaml2Providers/allAlphaProviders.saml.json`
+      ),
+      'utf8'
+    )
+  );
+  return importData;
+}
 
 export function getSaml2Providers() {
-  const treeObjects = JSON.parse(
+  const providers = JSON.parse(
     fs.readFileSync(
       path.resolve(__dirname, './Saml2Api/getProviders/providers.json'),
       'utf8'
     )
   );
-  return treeObjects;
+  return providers;
 }
 
 export function mockGetSaml2Providers(mock: MockAdapter) {
@@ -221,9 +252,12 @@ export function mockFindSaml2Providers(mock: MockAdapter) {
     .onGet(
       /.*?\/json\/realms\/root\/realms\/alpha\/realm-config\/saml2\?_queryFilter=.+?&_fields=.+/
     )
-    .reply(function () {
+    .reply(function (config) {
+      const parsed = parseUrl(config.url);
+      const filter = parsed.searchParam['_queryFilter'];
+      const entityId = filter.match(/entityId eq '(.+?)'/)[1];
       const mockStatus = 200;
-      const mockResponse = {
+      let mockResponse = {
         result: [],
         resultCount: 0,
         pagedResultsCookie: null,
@@ -231,6 +265,20 @@ export function mockFindSaml2Providers(mock: MockAdapter) {
         totalPagedResults: 1,
         remainingPagedResults: -1,
       };
+      try {
+        mockResponse = JSON.parse(
+          fs.readFileSync(
+            path.resolve(
+              __dirname,
+              `./Saml2Api/findSaml2Providers/${slugify(entityId)}_stub.json`
+            ),
+            'utf8'
+          )
+        );
+        expect(mockResponse.result[0].entityId).toBe(entityId);
+      } catch (error) {
+        // ignore errors
+      }
       expect(mockResponse).toBeTruthy();
       return [mockStatus, mockResponse];
     });
@@ -337,7 +385,7 @@ export function mockCreateSaml2Provider(
       const elements = config.url
         ? parseUrl(config.url).pathname.split('/')
         : [];
-      const mockSaml2ProviderLocation = elements[elements?.length - 1];
+      const mockSaml2ProviderLocation = elements[elements?.length - 2];
       const mockSaml2ProviderObj = JSON.parse(config.data);
       let mockSaml2ProviderId64 = '';
       if (mockSaml2ProviderObj._id) {
@@ -397,9 +445,8 @@ export function mockGetSaml2ProviderMetadata(mock: MockAdapter) {
       const mockResponse = fs.readFileSync(
         path.resolve(
           __dirname,
-          `./Saml2Api/getProviderMetadata/${realm}/${encode(
-            entityId,
-            false
+          `./Saml2Api/getProviderMetadata/${realm}/${encodeURIComponent(
+            entityId
           )}.xml`
         ),
         'utf8'

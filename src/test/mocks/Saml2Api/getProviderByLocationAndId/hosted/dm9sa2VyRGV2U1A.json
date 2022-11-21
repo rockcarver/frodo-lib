@@ -1,7 +1,7 @@
 {
-  "_id": "aVNQQXp1cmU",
-  "_rev": "1379466460",
-  "entityId": "iSPAzure",
+  "_id": "dm9sa2VyRGV2U1A",
+  "_rev": "-1233096083",
+  "entityId": "volkerDevSP",
   "serviceProvider": {
     "assertionContent": {
       "signingAndEncryption": {
@@ -40,24 +40,8 @@
         "attributeMapper": "com.sun.identity.saml2.plugins.DefaultSPAttributeMapper",
         "attributeMap": [
           {
-            "key": "http://schemas.microsoft.com/identity/claims/displayname",
-            "value": "cn"
-          },
-          {
-            "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
-            "value": "givenName"
-          },
-          {
-            "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
-            "value": "sn"
-          },
-          {
-            "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
-            "value": "mail"
-          },
-          {
-            "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
-            "value": "uid"
+            "key": "*",
+            "value": "*"
           }
         ]
       },
@@ -75,66 +59,54 @@
       "adapter": {}
     },
     "services": {
-      "metaAlias": "/alpha/iSPAzure",
+      "metaAlias": "/alpha/volkerDevSP",
       "serviceAttributes": {
         "singleLogoutService": [
           {
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
-            "location": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/iSPAzure"
+            "location": "https://openam-volker-dev.forgeblocks.com/am/SPSloRedirect/metaAlias/alpha/volkerDevSP",
+            "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPSloRedirect/metaAlias/alpha/volkerDevSP"
           },
           {
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-            "location": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/iSPAzure"
+            "location": "https://openam-volker-dev.forgeblocks.com/am/SPSloPOST/metaAlias/alpha/volkerDevSP",
+            "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPSloPOST/metaAlias/alpha/volkerDevSP"
           },
           {
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
-            "location": "https://idc.scheuber.io/am/SPSloSoap/metaAlias/alpha/iSPAzure"
+            "location": "https://openam-volker-dev.forgeblocks.com/am/SPSloSoap/metaAlias/alpha/volkerDevSP"
           }
         ],
         "nameIdService": [
           {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
-            "location": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/iSPAzure"
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "location": "https://openam-volker-dev.forgeblocks.com/am/SPMniPOST/metaAlias/alpha/volkerDevSP",
+            "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPMniPOST/metaAlias/alpha/volkerDevSP"
           },
           {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-            "location": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/iSPAzure"
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "location": "https://openam-volker-dev.forgeblocks.com/am/SPMniRedirect/metaAlias/alpha/volkerDevSP",
+            "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPMniRedirect/metaAlias/alpha/volkerDevSP"
           },
           {
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
-            "location": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/iSPAzure"
+            "location": "https://openam-volker-dev.forgeblocks.com/am/SPMniSoap/metaAlias/alpha/volkerDevSP",
+            "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPMniSoap/metaAlias/alpha/volkerDevSP"
           }
         ],
         "assertionConsumerService": [
           {
             "isDefault": true,
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact",
-            "location": "https://idc.scheuber.io/am/AuthConsumer/metaAlias/alpha/iSPAzure",
-            "index": 0
-          },
-          {
-            "isDefault": false,
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-            "location": "https://idc.scheuber.io/am/AuthConsumer/metaAlias/alpha/iSPAzure",
+            "location": "https://openam-volker-dev.forgeblocks.com/am/Consumer/metaAlias/alpha/volkerDevSP",
             "index": 1
-          },
-          {
-            "isDefault": false,
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:PAOS",
-            "location": "https://idc.scheuber.io/am/Consumer/ECP/metaAlias/alpha/iSPAzure",
-            "index": 2
           }
         ]
       }
     },
     "advanced": {
       "saeConfiguration": {
-        "spUrl": "https://idc.scheuber.io/am/spsaehandler/metaAlias/alpha/iSPAzure"
+        "spUrl": "https://openam-volker-dev.forgeblocks.com/am/spsaehandler/metaAlias/alpha/volkerDevSP"
       },
       "ecpConfiguration": {
         "ecpRequestIdpListFinderImpl": "com.sun.identity.saml2.plugins.ECPIDPFinder"
