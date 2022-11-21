@@ -115,6 +115,12 @@ export enum Saml2ProiderLocation {
   REMOTE = 'remote',
 }
 
+export type Saml2ProviderStub = ObjectSkeletonInterface & {
+  entityId: string;
+  location: Saml2ProiderLocation;
+  roles: string[];
+};
+
 export type Saml2ProviderSkeleton = ObjectSkeletonInterface & {
   entityId: string;
   entityLocation: Saml2ProiderLocation;

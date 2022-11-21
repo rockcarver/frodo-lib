@@ -15,9 +15,9 @@ const queryProvidersByEntityIdURLTemplate =
   '%s/json%s/realm-config/saml2?_queryFilter=%s&_fields=%s';
 const metadataByEntityIdURLTemplate =
   '%s/saml2/jsp/exportmetadata.jsp?entityid=%s&realm=%s';
-const samlApplicationListURLTemplateRaw =
+const samlApplicationQueryURLTemplateRaw =
   '%s/json%s/realm-config/federation/entityproviders/saml2?_queryFilter=true';
-const samlApplicationListURLTemplateEntityIdRaw =
+const samlApplicationByEntityIdURLTemplate =
   '%s/json%s/realm-config/federation/entityproviders/saml2/%s';
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => {
@@ -47,16 +47,16 @@ export async function getProviders() {
 /**
  * Find all providers matching the filter and return the requested fields
  * @param {string} filter CREST filter string, eg "entityId+eq+'${entityId}'" or "true" for all providers
- * @param {string} fields Comma-delimited list of fields to include in the response
+ * @param {string[]} fields array of field names to include in the response
  * @returns {Promise} a promise that resolves to an object containing an array of saml2 entities
  */
-export async function findProviders(filter = 'true', fields = '*') {
+export async function findProviders(filter = 'true', fields = ['*']) {
   const urlString = util.format(
     queryProvidersByEntityIdURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
     encodeURIComponent(filter),
-    fields
+    fields.join(',')
   );
   const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
@@ -88,31 +88,11 @@ export async function getProviderByLocationAndId(
 }
 
 /**
- * Get SAML2 entity provider by entity id
- * @param {string} entityId Provider entity id
- * @returns {Promise} a promise that resolves to a saml2 entity provider object or null
- */
-export async function getProvider(entityId) {
-  const response = await findProviders(`entityId eq '${entityId}'`, 'location');
-  switch (response.resultCount) {
-    case 0:
-      throw new Error(`No provider with entity id '${entityId}' found`);
-    case 1: {
-      const { location } = response.result[0];
-      const id = response.result[0]._id;
-      return getProviderByLocationAndId(location, id);
-    }
-    default:
-      throw new Error(`Multiple providers with entity id '${entityId}' found`);
-  }
-}
-
-/**
  * Get a SAML2 entity provider's metadata URL by entity id
  * @param {string} entityId SAML2 entity id
  * @returns {string} the URL to get the metadata from
  */
-export function getProviderMetadataUrl(entityId) {
+export function getProviderMetadataUrl(entityId: string): string {
   return util.format(
     metadataByEntityIdURLTemplate,
     storage.session.getTenant(),
@@ -208,7 +188,7 @@ export async function updateProvider(location, providerData) {
  */
 export async function deleteProvider(entityId) {
   const urlString = util.format(
-    samlApplicationListURLTemplateEntityIdRaw,
+    samlApplicationByEntityIdURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
     entityId
@@ -225,7 +205,7 @@ export async function deleteProvider(entityId) {
  */
 export async function getRawProviders() {
   const urlString = util.format(
-    samlApplicationListURLTemplateRaw,
+    samlApplicationQueryURLTemplateRaw,
     storage.session.getTenant(),
     getCurrentRealmPath()
   );
@@ -237,15 +217,15 @@ export async function getRawProviders() {
 
 /**
  * Gets the data for an entity provider including the raw XML.
- * @param {string} id The entity provider id
+ * @param {string} entityId The entity provider id
  * @returns Promise that when resolved includes the configuration and raw xml for a SAML entity provider
  */
-export async function getRawProvider(entityId) {
+export async function getRawProvider(entityId: string) {
   const urlString = util.format(
-    samlApplicationListURLTemplateEntityIdRaw,
+    samlApplicationByEntityIdURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
-    entityId
+    encodeURIComponent(entityId)
   );
   const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
@@ -255,16 +235,16 @@ export async function getRawProvider(entityId) {
 
 /**
  * Stores a new SAML2 entity provider
- * @param {string} id The entity provider id
+ * @param {string} entityId The entity provider id
  * @param {string} entityData The actual data containing the entity provider configuration
  * @returns {Promise} Promise that resolves to a provider object
  */
-export async function putRawProvider(id, entityData) {
+export async function putRawProvider(entityId: string, entityData) {
   const urlString = util.format(
-    samlApplicationListURLTemplateEntityIdRaw,
+    samlApplicationByEntityIdURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
-    id
+    encodeURIComponent(entityId)
   );
   const { data } = await generateAmApi(getApiConfig()).put(
     urlString,
