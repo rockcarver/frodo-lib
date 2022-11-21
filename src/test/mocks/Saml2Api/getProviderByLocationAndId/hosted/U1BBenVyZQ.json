@@ -1,7 +1,7 @@
 {
-  "_id": "aVNQQXp1cmU",
-  "_rev": "1379466460",
-  "entityId": "iSPAzure",
+  "_id": "U1BBenVyZQ",
+  "_rev": "-1930164078",
+  "entityId": "SPAzure",
   "serviceProvider": {
     "assertionContent": {
       "signingAndEncryption": {
@@ -72,61 +72,62 @@
         "encoding": "URI"
       },
       "url": {},
+      "defaultRelayState": "https://idc.scheuber.io/enduser/?realm=alpha#/profile",
       "adapter": {}
     },
     "services": {
-      "metaAlias": "/alpha/iSPAzure",
+      "metaAlias": "/alpha/SPAzure",
       "serviceAttributes": {
         "singleLogoutService": [
           {
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
-            "location": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/iSPAzure"
+            "location": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/SPAzure",
+            "responseLocation": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/SPAzure"
           },
           {
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-            "location": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/iSPAzure"
+            "location": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/SPAzure",
+            "responseLocation": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/SPAzure"
           },
           {
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
-            "location": "https://idc.scheuber.io/am/SPSloSoap/metaAlias/alpha/iSPAzure"
+            "location": "https://idc.scheuber.io/am/SPSloSoap/metaAlias/alpha/SPAzure"
           }
         ],
         "nameIdService": [
           {
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
-            "location": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/iSPAzure"
+            "location": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/SPAzure",
+            "responseLocation": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/SPAzure"
           },
           {
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-            "location": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/iSPAzure"
+            "location": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/SPAzure",
+            "responseLocation": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/SPAzure"
           },
           {
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
-            "location": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/iSPAzure"
+            "location": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/SPAzure",
+            "responseLocation": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/SPAzure"
           }
         ],
         "assertionConsumerService": [
           {
             "isDefault": true,
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact",
-            "location": "https://idc.scheuber.io/am/AuthConsumer/metaAlias/alpha/iSPAzure",
+            "location": "https://idc.scheuber.io/am/Consumer/metaAlias/alpha/SPAzure",
             "index": 0
           },
           {
             "isDefault": false,
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-            "location": "https://idc.scheuber.io/am/AuthConsumer/metaAlias/alpha/iSPAzure",
+            "location": "https://idc.scheuber.io/am/Consumer/metaAlias/alpha/SPAzure",
             "index": 1
           },
           {
             "isDefault": false,
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:PAOS",
-            "location": "https://idc.scheuber.io/am/Consumer/ECP/metaAlias/alpha/iSPAzure",
+            "location": "https://idc.scheuber.io/am/Consumer/ECP/metaAlias/alpha/SPAzure",
             "index": 2
           }
         ]
@@ -134,7 +135,7 @@
     },
     "advanced": {
       "saeConfiguration": {
-        "spUrl": "https://idc.scheuber.io/am/spsaehandler/metaAlias/alpha/iSPAzure"
+        "spUrl": "https://idc.scheuber.io/am/spsaehandler/metaAlias/alpha/SPAzure"
       },
       "ecpConfiguration": {
         "ecpRequestIdpListFinderImpl": "com.sun.identity.saml2.plugins.ECPIDPFinder"

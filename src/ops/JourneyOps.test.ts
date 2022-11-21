@@ -280,7 +280,7 @@ describe('JourneyOps - importJourney()', () => {
         );
       }
     );
-    expect.assertions(45);
+    expect.assertions(46);
     const journeyExport = readJsonFile(
       './JourneyOps/importJourney/FrodoTest.journey.json'
     );

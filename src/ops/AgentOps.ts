@@ -197,7 +197,7 @@ export async function putWebAgent(agentId: string, agentData) {
 
 /**
  * Export all agents. The response can be saved to file as is.
- * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+ * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
  */
 export async function exportAgents(): Promise<AgentExportInterface> {
   debugMessage(`AgentOps.exportAgents: start`);
