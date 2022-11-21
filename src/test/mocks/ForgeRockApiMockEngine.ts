@@ -682,7 +682,9 @@ export function mockPutService(mock: MockAdapter) {
     .onPut(/.*?\/json\/realms\/root\/realms\/alpha\/realm-config\/services\/.+/)
     .reply(() => {
       const mockStatus = 200;
-      return [mockStatus];
+      const mockResponse = getSingleService();
+      expect(mockResponse).toBeTruthy();
+      return [mockStatus, mockResponse];
     });
 }
 
