@@ -1,0 +1,66 @@
+{
+  "_id": "aHR0cHM6Ly9zYW1sLm15dGVzdHJ1bi5jb20vc3A",
+  "_rev": "278033832",
+  "entityId": "https://saml.mytestrun.com/sp",
+  "serviceProvider": {
+    "assertionContent": {
+      "signingAndEncryption": {
+        "requestResponseSigning": {
+          "authenticationRequest": false,
+          "assertion": false
+        },
+        "encryption": {}
+      },
+      "nameIdFormat": {
+        "nameIdFormatList": [
+          "urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
+        ]
+      },
+      "basicAuthentication": {
+        "enabled": false
+      }
+    },
+    "assertionProcessing": {
+      "attributeMapper": {},
+      "responseArtifactMessageEncoding": {}
+    },
+    "services": {
+      "serviceAttributes": {
+        "singleLogoutService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "location": "https://saml.mytestrun.com:443/sp/fedletSloRedirect",
+            "responseLocation": "https://saml.mytestrun.com:443/sp/fedletSloRedirect"
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "location": "https://saml.mytestrun.com:443/sp/fedletSloPOST",
+            "responseLocation": "https://saml.mytestrun.com:443/sp/fedletSloPOST"
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://saml.mytestrun.com:443/sp/fedletSloSoap"
+          }
+        ],
+        "assertionConsumerService": [
+          {
+            "isDefault": true,
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "location": "https://saml.mytestrun.com:443/sp/fedletapplication",
+            "index": 0
+          },
+          {
+            "isDefault": false,
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact",
+            "location": "https://saml.mytestrun.com:443/sp/fedletapplication",
+            "index": 1
+          }
+        ]
+      }
+    },
+    "advanced": {
+      "saeConfiguration": {},
+      "idpProxy": {}
+    }
+  }
+}

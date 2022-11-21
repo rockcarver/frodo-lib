@@ -72,6 +72,16 @@ export interface AgentExportInterface {
   agents: Record<string, AgentSkeleton>;
 }
 
+export interface Saml2ExportInterface {
+  meta?: ExportMetaData;
+  script: Record<string, ScriptSkeleton>;
+  saml: {
+    hosted: Record<string, Saml2ProviderSkeleton>;
+    remote: Record<string, Saml2ProviderSkeleton>;
+    metadata: Record<string, string[]>;
+  };
+}
+
 export interface ServiceExportInterface {
   meta?: Record<string, ExportMetaData>;
   service: Record<string, AmServiceSkeleton>;
@@ -97,4 +107,12 @@ export enum JourneyClassification {
   CUSTOM = 'custom',
   CLOUD = 'cloud',
   PREMIUM = 'premium',
+}
+
+export interface MultiOpStatusInterface {
+  total: number;
+  successes: number;
+  warnings: number;
+  failures: number;
+  message?: string;
 }

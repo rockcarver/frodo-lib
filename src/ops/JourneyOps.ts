@@ -756,7 +756,7 @@ export async function importJourney(
       delete providerData['base64EntityXML'];
       // create the provider if it doesn't already exist, or just update it
       if (
-        (await findProviders(`entityId eq '${entityId}'`, 'location'))
+        (await findProviders(`entityId eq '${entityId}'`, ['location']))
           .resultCount === 0
       ) {
         await createProvider(entityLocation, providerData, metaData).catch(
