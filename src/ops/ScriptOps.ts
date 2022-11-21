@@ -140,7 +140,7 @@ export async function createOrUpdateScript(id, data) {
     await putScript(id, data);
     return { error: false, name: data.name };
   } catch (e) {
-    if (e.response.status === 409) {
+    if (e.response?.status === 409) {
       printMessage(
         `createOrUpdateScript WARNING: script with name ${data.name} already exists, using renaming policy... <name> => <name - imported (n)>`,
         'warn'
