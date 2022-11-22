@@ -12,58 +12,28 @@ state.default.session.setCookieName('cookieName');
 state.default.session.setCookieValue('cookieValue');
 state.default.session.setDeploymentType(global.CLOUD_DEPLOYMENT_TYPE_KEY);
 
-describe('EmailTemplateOps - exportEmailTemplateToFile()', () => {
-  test('exportEmailTemplateToFile() 0: Method is implemented', async () => {
-    expect(EmailTemplate.exportEmailTemplateToFile).toBeDefined();
+describe('EmailTemplateOps - getEmailTemplate()', () => {
+  test('getEmailTemplate() 0: Method is implemented', async () => {
+    expect(EmailTemplate.getEmailTemplate).toBeDefined();
   });
 });
 
-describe('EmailTemplateOps - exportEmailTemplatesToFile()', () => {
-  test('exportEmailTemplatesToFile() 0: Method is implemented', async () => {
-    expect(EmailTemplate.exportEmailTemplatesToFile).toBeDefined();
-  });
-});
-
-describe('EmailTemplateOps - exportEmailTemplatesToFiles()', () => {
-  test('exportEmailTemplatesToFiles() 0: Method is implemented', async () => {
-    expect(EmailTemplate.exportEmailTemplatesToFiles).toBeDefined();
-  });
-});
-
-describe('EmailTemplateOps - importEmailTemplateFromFile()', () => {
-  test('importEmailTemplateFromFile() 0: Method is implemented', async () => {
-    expect(EmailTemplate.importEmailTemplateFromFile).toBeDefined();
-  });
-});
-
-describe('EmailTemplateOps - importEmailTemplatesFromFile()', () => {
-  test('importEmailTemplatesFromFile() 0: Method is implemented', async () => {
-    expect(EmailTemplate.importEmailTemplatesFromFile).toBeDefined();
-  });
-});
-
-describe('EmailTemplateOps - importEmailTemplatesFromFiles()', () => {
-  test('importEmailTemplatesFromFiles() 0: Method is implemented', async () => {
-    expect(EmailTemplate.importEmailTemplatesFromFiles).toBeDefined();
-  });
-});
-
-describe('EmailTemplateOps - importFirstEmailTemplateFromFile()', () => {
-  test('importFirstEmailTemplateFromFile() 0: Method is implemented', async () => {
-    expect(EmailTemplate.importFirstEmailTemplateFromFile).toBeDefined();
-  });
-});
-
-describe('EmailTemplateOps - listEmailTemplates()', () => {
-  test('listEmailTemplates() 0: Method is implemented', async () => {
-    expect(EmailTemplate.listEmailTemplates).toBeDefined();
+describe('EmailTemplateOps - getEmailTemplates()', () => {
+  test('getEmailTemplates() 0: Method is implemented', async () => {
+    expect(EmailTemplate.getEmailTemplates).toBeDefined();
   });
 
-  test('listEmailTemplates() 1: List email templates', async () => {
+  test('getEmailTemplates() 1: Get email templates', async () => {
     mockGetConfigEntitiesByType(mock);
     expect.assertions(2);
-    const emailTemplates = await EmailTemplate.listEmailTemplates();
+    const emailTemplates = await EmailTemplate.getEmailTemplates();
     expect(emailTemplates).toBeTruthy();
-    expect(emailTemplates.length).toBe(17);
+    expect(emailTemplates.result.length).toBe(17);
+  });
+});
+
+describe('EmailTemplateOps - putEmailTemplate()', () => {
+  test('putEmailTemplate() 0: Method is implemented', async () => {
+    expect(EmailTemplate.putEmailTemplate).toBeDefined();
   });
 });

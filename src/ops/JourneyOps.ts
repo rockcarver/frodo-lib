@@ -19,7 +19,7 @@ import {
 } from '../api/NodeApi';
 import { isCloudOnlyNode, isCustomNode, isPremiumNode } from './NodeOps';
 import { getTrees, getTree, putTree, deleteTree } from '../api/TreeApi';
-import { getEmailTemplate, putEmailTemplate } from '../api/EmailTemplateApi';
+import { getEmailTemplate, putEmailTemplate } from './EmailTemplateOps';
 import { getScript } from '../api/ScriptApi';
 import * as global from '../storage/StaticStorage';
 import {
@@ -52,7 +52,7 @@ import {
   getSocialIdentityProviders,
   putProviderByTypeAndId,
 } from '../api/SocialIdentityProvidersApi';
-import { getThemes, putThemes } from '../api/ThemeApi';
+import { getThemes, putThemes } from './ThemeOps';
 import { createOrUpdateScript } from './ScriptOps';
 import { JourneyClassification, TreeExportResolverInterface } from './OpsTypes';
 import { ThemeSkeleton, TreeSkeleton } from '../api/ApiTypes';
