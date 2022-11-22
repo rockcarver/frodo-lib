@@ -1,0 +1,18 @@
+{
+  "result": [
+      {
+          "_id": "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw",
+          "_rev": "761336767",
+          "entityId": "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/",
+          "location": "remote",
+          "roles": [
+              "identityProvider"
+          ]
+      }
+  ],
+  "resultCount": 1,
+  "pagedResultsCookie": null,
+  "totalPagedResultsPolicy": "EXACT",
+  "totalPagedResults": 1,
+  "remainingPagedResults": -1
+}
