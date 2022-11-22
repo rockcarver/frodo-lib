@@ -23,20 +23,17 @@ import { validateScriptHooks } from './utils/ValidationUtils';
  * List all IDM configuration objects
  */
 export async function listAllConfigEntities() {
-  let configEntities = [];
   try {
-    configEntities = await getAllConfigEntities();
+    const { configurations } = await getAllConfigEntities();
+    for (const configEntity of configurations) {
+      printMessage(`${configEntity._id}`, 'data');
+    }
   } catch (getAllConfigEntitiesError) {
     printMessage(getAllConfigEntitiesError, 'error');
     printMessage(
       `Error getting config entities: ${getAllConfigEntitiesError}`,
       'error'
     );
-  }
-  if ('configurations' in configEntities) {
-    configEntities['configurations'].forEach((configEntity) => {
-      printMessage(`${configEntity._id}`, 'data');
-    });
   }
 }
 
@@ -64,17 +61,8 @@ export async function exportConfigEntity(id, file) {
  * @param {String} directory export directory
  */
 export async function exportAllRawConfigEntities(directory) {
-  let configEntities = [];
   try {
-    configEntities = await getAllConfigEntities();
-  } catch (getAllConfigEntitiesError) {
-    printMessage(getAllConfigEntitiesError, 'error');
-    printMessage(
-      `Error getting config entities: ${getAllConfigEntitiesError}`,
-      'error'
-    );
-  }
-  if ('configurations' in configEntities) {
+    const { configurations } = await getAllConfigEntities();
     if (!fs.existsSync(directory)) {
       fs.mkdirSync(directory);
     }
@@ -84,9 +72,9 @@ export async function exportAllRawConfigEntities(directory) {
       'indeterminate'
     );
     const entityPromises = [];
-    configEntities['configurations'].forEach((x) => {
+    for (const configEntity of configurations) {
       entityPromises.push(
-        getConfigEntity(x._id).catch((getConfigEntityError) => {
+        getConfigEntity(configEntity._id).catch((getConfigEntityError) => {
           if (
             !(
               getConfigEntityError.response?.status === 403 &&
@@ -102,33 +90,37 @@ export async function exportAllRawConfigEntities(directory) {
           ) {
             printMessage(getConfigEntityError.response?.data, 'error');
             printMessage(
-              `Error getting config entity ${x._id}: ${getConfigEntityError}`,
+              `Error getting config entity ${configEntity._id}: ${getConfigEntityError}`,
               'error'
             );
           }
         })
       );
-    });
-    Promise.all(entityPromises).then((result) => {
-      result.forEach((item) => {
-        if (item != null) {
-          fse.outputFile(
-            `${directory}/${item._id}.json`,
-            JSON.stringify(item, null, 2),
-            // eslint-disable-next-line consistent-return
-            (err) => {
-              if (err) {
-                return printMessage(
-                  `ERROR - can't save config ${item._id} to file - ${err}`,
-                  'error'
-                );
-              }
+    }
+    const results = await Promise.all(entityPromises);
+    for (const item of results) {
+      if (item != null) {
+        fse.outputFile(
+          `${directory}/${item._id}.json`,
+          JSON.stringify(item, null, 2),
+          (err) => {
+            if (err) {
+              return printMessage(
+                `ERROR - can't save config ${item._id} to file - ${err}`,
+                'error'
+              );
             }
-          );
-        }
-      });
-      stopProgressIndicator('Exported config objects.', 'success');
-    });
+          }
+        );
+      }
+    }
+    stopProgressIndicator('Exported config objects.', 'success');
+  } catch (getAllConfigEntitiesError) {
+    printMessage(getAllConfigEntitiesError, 'error');
+    printMessage(
+      `Error getting config entities: ${getAllConfigEntitiesError}`,
+      'error'
+    );
   }
 }
 
@@ -154,17 +146,8 @@ export async function exportAllConfigEntities(
     // read list of configs to parameterize for environment specific values
     const envParams = propertiesReader(envFile);
 
-    let configEntities = [];
     try {
-      configEntities = await getAllConfigEntities();
-    } catch (getAllConfigEntitiesError) {
-      printMessage(getAllConfigEntitiesError, 'error');
-      printMessage(
-        `Error getting config entities: ${getAllConfigEntitiesError}`,
-        'error'
-      );
-    }
-    if ('configurations' in configEntities) {
+      const { configurations } = await getAllConfigEntities();
       // create export directory if not exist
       if (!fs.existsSync(directory)) {
         fs.mkdirSync(directory);
@@ -175,39 +158,43 @@ export async function exportAllConfigEntities(
         'indeterminate'
       );
       const entityPromises = [];
-      configEntities['configurations'].forEach((x) => {
-        if (entriesToExport.includes(x._id)) {
-          entityPromises.push(getConfigEntity(x._id));
+      for (const configEntity of configurations) {
+        if (entriesToExport.includes(configEntity._id)) {
+          entityPromises.push(getConfigEntity(configEntity._id));
         }
-      });
-      Promise.all(entityPromises).then((result) => {
-        result.forEach((item) => {
-          if (item != null) {
-            let configEntityString = JSON.stringify(item, null, 2);
-            envParams.each((key, value) => {
-              configEntityString = replaceall(
-                value,
-                `\${${key}}`,
-                configEntityString
-              );
-            });
-            fse.outputFile(
-              `${directory}/${item._id}.json`,
-              configEntityString,
-              // eslint-disable-next-line consistent-return
-              (error) => {
-                if (err) {
-                  return printMessage(
-                    `ERROR - can't save config ${item._id} to file - ${error}`,
-                    'error'
-                  );
-                }
-              }
+      }
+      const results = await Promise.all(entityPromises);
+      for (const item of results) {
+        if (item != null) {
+          let configEntityString = JSON.stringify(item, null, 2);
+          envParams.each((key, value) => {
+            configEntityString = replaceall(
+              value,
+              `\${${key}}`,
+              configEntityString
             );
-          }
-        });
-        stopProgressIndicator(null, 'success');
-      });
+          });
+          fse.outputFile(
+            `${directory}/${item._id}.json`,
+            configEntityString,
+            (error) => {
+              if (err) {
+                return printMessage(
+                  `ERROR - can't save config ${item._id} to file - ${error}`,
+                  'error'
+                );
+              }
+            }
+          );
+        }
+      }
+      stopProgressIndicator(null, 'success');
+    } catch (getAllConfigEntitiesError) {
+      printMessage(getAllConfigEntitiesError, 'error');
+      printMessage(
+        `Error getting config entities: ${getAllConfigEntitiesError}`,
+        'error'
+      );
     }
   });
 }
@@ -289,31 +276,24 @@ export async function importAllRawConfigEntities(
     return putConfigEntity(file.entityId, file.content);
   });
 
-  await Promise.allSettled(entityPromises).then((results) => {
-    const errors = results.filter(
-      (result): result is PromiseRejectedResult => result.status === 'rejected'
-    );
+  const results = await Promise.allSettled(entityPromises);
+  const errors = results.filter(
+    (result): result is PromiseRejectedResult => result.status === 'rejected'
+  );
 
-    if (errors.length > 0) {
-      printMessage(
-        `Failed to import ${errors.length} config objects:`,
-        'error'
-      );
-      errors.forEach((error) => {
-        printMessage(`- ${error.reason}`, 'error');
-      });
-      stopProgressIndicator(
-        `Failed to import ${errors.length} config objects`,
-        'error'
-      );
-      return;
+  if (errors.length > 0) {
+    printMessage(`Failed to import ${errors.length} config objects:`, 'error');
+    for (const error of errors) {
+      printMessage(`- ${error.reason}`, 'error');
     }
-
     stopProgressIndicator(
-      `Imported ${results.length} config objects`,
-      'success'
+      `Failed to import ${errors.length} config objects`,
+      'error'
     );
-  });
+    return;
+  }
+
+  stopProgressIndicator(`Imported ${results.length} config objects`, 'success');
 }
 
 /**
@@ -375,31 +355,24 @@ export async function importAllConfigEntities(
       return putConfigEntity(entityId, unsubstituted);
     });
 
-  await Promise.allSettled(entityPromises).then((results) => {
-    const errors = results.filter(
-      (result): result is PromiseRejectedResult => result.status === 'rejected'
-    );
+  const results = await Promise.allSettled(entityPromises);
+  const errors = results.filter(
+    (result): result is PromiseRejectedResult => result.status === 'rejected'
+  );
 
-    if (errors.length > 0) {
-      printMessage(
-        `Failed to import ${errors.length} config objects:`,
-        'error'
-      );
-      errors.forEach((error) => {
-        printMessage(`- ${error.reason}`, 'error');
-      });
-      stopProgressIndicator(
-        `Failed to import ${errors.length} config objects`,
-        'error'
-      );
-      return;
+  if (errors.length > 0) {
+    printMessage(`Failed to import ${errors.length} config objects:`, 'error');
+    for (const error of errors) {
+      printMessage(`- ${error.reason}`, 'error');
     }
-
     stopProgressIndicator(
-      `Imported ${results.length} config objects`,
-      'success'
+      `Failed to import ${errors.length} config objects`,
+      'error'
     );
-  });
+    return;
+  }
+
+  stopProgressIndicator(`Imported ${results.length} config objects`, 'success');
 }
 
 /**
