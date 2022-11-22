@@ -18,7 +18,7 @@ export function getCurrentTimestamp() {
   return ts.toISOString();
 }
 
-function getMetadata(): ExportMetaData {
+export function getMetadata(): ExportMetaData {
   const metadata: ExportMetaData = {
     origin: storage.session.getTenant(),
     originAmVersion: storage.session.getAmVersion(),

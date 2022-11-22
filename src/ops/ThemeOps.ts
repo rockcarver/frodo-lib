@@ -1,390 +1,285 @@
-import fs from 'fs';
-import {
-  deleteTheme,
-  deleteThemeByName,
-  deleteThemes as _deleteThemes,
-  getTheme,
-  getThemeByName,
-  getThemes,
-  putTheme,
-  putThemeByName,
-  putThemes,
-} from '../api/ThemeApi';
-import {
-  createProgressIndicator,
-  createTable,
-  printMessage,
-  stopProgressIndicator,
-  updateProgressIndicator,
-} from './utils/Console';
-import {
-  getRealmString,
-  getTypedFilename,
-  saveToFile,
-  validateImport,
-} from './utils/ExportImportUtils';
+import { ThemeSkeleton, UiThemeRealmObject } from '../api/ApiTypes';
+import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
+import { getCurrentRealmName } from '../api/utils/ApiUtils';
+import { debugMessage } from '../ops/utils/Console';
+
+export const THEMEREALM_ID = 'ui/themerealm';
 
 /**
- * List all the themes
- * @param {boolean} long Long version, more fields
+ * Get realm themes
+ * @param {UiThemeRealmObject} themes object containing themes
+ * @returns {ThemeSkeleton[]} array of theme pertaining to the current realm
  */
-export async function listThemes(long = false) {
-  const themeList = await getThemes();
-  themeList.sort((a, b) => a.name.localeCompare(b.name));
-  if (!long) {
-    themeList.forEach((theme) => {
-      printMessage(
-        `${theme.isDefault ? theme.name['brightCyan'] : theme.name}`,
-        'data'
-      );
+function getRealmThemes(themes: UiThemeRealmObject): ThemeSkeleton[] {
+  if (themes.realm && themes.realm[getCurrentRealmName()]) {
+    return themes.realm[getCurrentRealmName()];
+  }
+  return [];
+}
+
+/**
+ * Get all themes
+ * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
+ */
+export async function getThemes(): Promise<ThemeSkeleton[]> {
+  const themes = await getConfigEntity(THEMEREALM_ID);
+  return getRealmThemes(themes);
+}
+
+/**
+ * Get theme by id
+ * @param {string} themeId theme id
+ * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+ */
+export async function getTheme(themeId: string): Promise<ThemeSkeleton> {
+  const themes = await getConfigEntity(THEMEREALM_ID);
+  const found = getRealmThemes(themes).filter((theme) => theme._id === themeId);
+  if (found.length === 1) {
+    return found[0];
+  }
+  if (found.length > 1) {
+    throw new Error(`Multiple themes with id "${themeId}" found!`);
+  }
+  throw new Error(`Theme with id "${themeId}" not found!`);
+}
+
+/**
+ * Get theme by name
+ * @param {string} themeName theme name
+ * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+ */
+export async function getThemeByName(
+  themeName: string
+): Promise<ThemeSkeleton> {
+  const themes = await getConfigEntity(THEMEREALM_ID);
+  const found = getRealmThemes(themes).filter(
+    (theme) => theme.name === themeName
+  );
+  if (found.length === 1) {
+    return found[0];
+  }
+  if (found.length > 1) {
+    throw new Error(`Multiple themes with the name "${themeName}" found!`);
+  }
+  throw new Error(`Theme "${themeName}" not found!`);
+}
+
+/**
+ * Put theme by id
+ * @param {string} themeId theme id
+ * @param {ThemeSkeleton} themeData theme object
+ * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+ */
+export async function putTheme(
+  themeId: string,
+  themeData: ThemeSkeleton
+): Promise<ThemeSkeleton> {
+  const data = themeData;
+  data._id = themeId;
+  const themes = await getConfigEntity(THEMEREALM_ID);
+  let isNew = true;
+  const realmThemes = getRealmThemes(themes).map((theme) => {
+    if (theme._id === themeId) {
+      isNew = false;
+      return data;
+    }
+    // eslint-disable-next-line no-param-reassign
+    if (data.isDefault) theme.isDefault = false;
+    return theme;
+  });
+  if (isNew) {
+    realmThemes.push(data);
+  }
+  themes.realm[getCurrentRealmName()] = realmThemes;
+  const found = getRealmThemes(
+    await putConfigEntity(THEMEREALM_ID, themes)
+  ).filter((theme) => theme._id === themeId);
+  if (found.length === 1) {
+    return found[0];
+  }
+  if (found.length > 1) {
+    throw new Error(`Multiple themes with id "${themeId}" found!`);
+  }
+  throw new Error(`Theme with id "${themeId}" not saved!`);
+}
+
+/**
+ * Put theme by name
+ * @param {String} themeName theme name
+ * @param {ThemeSkeleton} themeData theme object
+ * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+ */
+export async function putThemeByName(
+  themeName: string,
+  themeData: ThemeSkeleton
+): Promise<ThemeSkeleton> {
+  const data = themeData;
+  data.name = themeName;
+  const themes = await getConfigEntity(THEMEREALM_ID);
+  let isNew = true;
+  const realmThemes = getRealmThemes(themes).map((theme) => {
+    if (theme.name === themeName) {
+      isNew = false;
+      return data;
+    }
+    // eslint-disable-next-line no-param-reassign
+    if (data.isDefault) theme.isDefault = false;
+    return theme;
+  });
+  if (isNew) {
+    realmThemes.push(data);
+  }
+  themes['realm'][getCurrentRealmName()] = realmThemes;
+  const found = getRealmThemes(
+    await putConfigEntity(THEMEREALM_ID, themes)
+  ).filter((theme) => theme.name === themeName);
+  if (found.length === 1) {
+    return found[0];
+  }
+  if (found.length > 1) {
+    throw new Error(`Multiple themes "${themeName}" found!`);
+  }
+  throw new Error(`Theme "${themeName}" not saved!`);
+}
+
+/**
+ * Put all themes
+ * @param {Map<string, ThemeSkeleton>} allThemesData themes object containing all themes for all realms
+ * @returns {Promise<Map<string, ThemeSkeleton>>} a promise that resolves to a themes object
+ */
+export async function putThemes(
+  themeMap: Map<string, ThemeSkeleton>
+): Promise<Map<string, ThemeSkeleton>> {
+  debugMessage(`ThemeApi.putThemes: start`);
+  const themes = await getConfigEntity(THEMEREALM_ID);
+  const allThemeIDs = Object.keys(themeMap);
+  const existingThemeIDs = [];
+  let defaultThemeId = null;
+  // update existing themes
+  let realmThemes = getRealmThemes(themes).map((theme) => {
+    if (themeMap[theme._id]) {
+      debugMessage(`Update theme: ${theme._id} - ${theme.name}`);
+      existingThemeIDs.push(theme._id);
+      // remember the id of the last default theme
+      if (themeMap[theme._id].isDefault) defaultThemeId = theme._id;
+      return themeMap[theme._id];
+    }
+    return theme;
+  });
+  const newThemeIDs = allThemeIDs.filter(
+    (id) => !existingThemeIDs.includes(id)
+  );
+  // add new themes
+  newThemeIDs.forEach((themeId) => {
+    debugMessage(
+      `Add theme: ${themeMap[themeId]._id} - ${themeMap[themeId].name}`
+    );
+    // remember the id of the last default theme
+    if (themeMap[themeId].isDefault) defaultThemeId = themeId;
+    realmThemes.push(themeMap[themeId]);
+  });
+  // if we imported a default theme, flag all the other themes as not default
+  if (defaultThemeId) {
+    realmThemes = realmThemes.map((theme) => {
+      // eslint-disable-next-line no-param-reassign
+      theme.isDefault = theme._id === defaultThemeId;
+      return theme;
     });
-  } else {
-    const table = createTable([
-      'Name'['brightCyan'],
-      'Id'['brightCyan'],
-      'Default'['brightCyan'],
-    ]);
-    themeList.forEach((theme) => {
-      table.push([
-        `${theme.name}`,
-        `${theme._id}`,
-        `${theme.isDefault ? 'Yes'['brightGreen'] : ''}`,
-      ]);
-    });
-    printMessage(table.toString(), 'data');
   }
-}
-
-/**
- * Export theme by name to file
- * @param {String} name theme name
- * @param {String} file optional export file name
- */
-export async function exportThemeByName(name, file) {
-  let fileName = getTypedFilename(name, 'theme');
-  if (file) {
-    fileName = file;
-  }
-  createProgressIndicator(1, `Exporting ${name}`);
-  try {
-    const themeData = await getThemeByName(name);
-    updateProgressIndicator(`Writing file ${fileName}`);
-    saveToFile('theme', [themeData], '_id', fileName);
-    stopProgressIndicator(`Successfully exported theme ${name}.`);
-  } catch (error) {
-    stopProgressIndicator(`${error.message}`);
-    printMessage(`${error.message}`, 'error');
-  }
-}
-
-/**
- * Export theme by uuid to file
- * @param {String} id theme uuid
- * @param {String} file optional export file name
- */
-export async function exportThemeById(id, file) {
-  let fileName = getTypedFilename(id, 'theme');
-  if (file) {
-    fileName = file;
-  }
-  createProgressIndicator(1, `Exporting ${id}`);
-  try {
-    const themeData = await getTheme(id);
-    updateProgressIndicator(`Writing file ${fileName}`);
-    saveToFile('theme', [themeData], '_id', fileName);
-    stopProgressIndicator(`Successfully exported theme ${id}.`);
-  } catch (error) {
-    stopProgressIndicator(`${error.message}`);
-    printMessage(`${error.message}`, 'error');
-  }
-}
-
-/**
- * Export all themes to file
- * @param {String} file optional export file name
- */
-export async function exportThemesToFile(file) {
-  let fileName = getTypedFilename(`all${getRealmString()}Themes`, 'theme');
-  if (file) {
-    fileName = file;
-  }
-  const allThemesData = await getThemes();
-  createProgressIndicator(allThemesData.length, 'Exporting themes');
-  for (const themeData of allThemesData) {
-    updateProgressIndicator(`Exporting theme ${themeData.name}`);
-  }
-  saveToFile('theme', allThemesData, '_id', fileName);
-  stopProgressIndicator(
-    `${allThemesData.length} themes exported to ${fileName}.`
+  themes.realm[getCurrentRealmName()] = realmThemes;
+  const updatedThemes = new Map(
+    getRealmThemes(await putConfigEntity(THEMEREALM_ID, themes)).map(
+      (theme) => [theme._id, theme]
+    )
   );
-}
-
-/**
- * Export all themes to separate files
- */
-export async function exportThemesToFiles() {
-  const allThemesData = await getThemes();
-  createProgressIndicator(allThemesData.length, 'Exporting themes');
-  for (const themeData of allThemesData) {
-    updateProgressIndicator(`Writing theme ${themeData.name}`);
-    const fileName = getTypedFilename(themeData.name, 'theme');
-    saveToFile('theme', themeData, '_id', fileName);
-  }
-  stopProgressIndicator(`${allThemesData.length} themes exported.`);
-}
-
-/**
- * Import theme by name from file
- * @param {String} name theme name
- * @param {String} file import file name
- */
-export async function importThemeByName(name, file) {
-  fs.readFile(file, 'utf8', async (err, data) => {
-    if (err) throw err;
-    const themeData = JSON.parse(data);
-    if (validateImport(themeData.meta)) {
-      createProgressIndicator(1, 'Importing theme...');
-      let found = false;
-      for (const id in themeData.theme) {
-        if ({}.hasOwnProperty.call(themeData.theme, id)) {
-          if (themeData.theme[id].name === name) {
-            found = true;
-            updateProgressIndicator(`Importing ${themeData.theme[id].name}`);
-            try {
-              await putThemeByName(name, themeData.theme[id]);
-              stopProgressIndicator(`Successfully imported theme ${name}.`);
-            } catch (error) {
-              stopProgressIndicator(
-                `Error importing theme ${themeData.theme[id].name}: ${error.message}`
-              );
-              printMessage(
-                `Error importing theme ${themeData.theme[id].name}: ${error.message}`,
-                'error'
-              );
-            }
-            break;
-          }
-        }
-      }
-      if (!found) {
-        stopProgressIndicator(`Theme ${name} not found!`);
-      }
-    } else {
-      printMessage('Import validation failed...', 'error');
-    }
-  });
-}
-
-/**
- * Import theme by uuid from file
- * @param {String} id theme uuid
- * @param {String} file import file name
- */
-export async function importThemeById(id, file) {
-  fs.readFile(file, 'utf8', async (err, data) => {
-    if (err) throw err;
-    const themeData = JSON.parse(data);
-    if (validateImport(themeData.meta)) {
-      createProgressIndicator(1, 'Importing theme...');
-      let found = false;
-      for (const themeId in themeData.theme) {
-        if ({}.hasOwnProperty.call(themeData.theme, themeId)) {
-          if (themeId === id) {
-            found = true;
-            updateProgressIndicator(
-              `Importing ${themeData.theme[themeId]._id}`
-            );
-            try {
-              await putTheme(themeId, themeData.theme[themeId]);
-              stopProgressIndicator(`Successfully imported theme ${id}.`);
-            } catch (error) {
-              stopProgressIndicator(
-                `Error importing theme ${themeData.theme[themeId]._id}: ${error.message}`
-              );
-              printMessage(
-                `Error importing theme ${themeData.theme[themeId]._id}: ${error.message}`,
-                'error'
-              );
-            }
-            break;
-          }
-        }
-      }
-      if (!found) {
-        stopProgressIndicator(`Theme ${id} not found!`);
-      }
-    } else {
-      printMessage('Import validation failed...', 'error');
-    }
-  });
-}
-
-/**
- * Import all themes from single file
- * @param {String} file import file name
- */
-export async function importThemesFromFile(file) {
-  fs.readFile(file, 'utf8', (err, data) => {
-    if (err) throw err;
-    const fileData = JSON.parse(data);
-    if (validateImport(fileData.meta)) {
-      createProgressIndicator(
-        Object.keys(fileData.theme).length,
-        'Importing themes...'
-      );
-      for (const id in fileData.theme) {
-        if ({}.hasOwnProperty.call(fileData.theme, id)) {
-          updateProgressIndicator(`Importing ${fileData.theme[id].name}`);
-        }
-      }
-      putThemes(fileData.theme).then((result) => {
-        if (result == null) {
-          stopProgressIndicator(
-            `Error importing ${Object.keys(fileData.theme).length} themes!`
-          );
-          printMessage(
-            `Error importing ${
-              Object.keys(fileData.theme).length
-            } themes from ${file}`,
-            'error'
-          );
-        } else {
-          stopProgressIndicator(
-            `Successfully imported ${
-              Object.keys(fileData.theme).length
-            } themes.`
-          );
-        }
-      });
-    } else {
-      printMessage('Import validation failed...', 'error');
-    }
-  });
-}
-
-/**
- * Import themes from separate files
- */
-export async function importThemesFromFiles() {
-  const names = fs.readdirSync('.');
-  const jsonFiles = names.filter((name) =>
-    name.toLowerCase().endsWith('.theme.json')
-  );
-
-  createProgressIndicator(jsonFiles.length, 'Importing themes...');
-  let fileData = null;
-  let count = 0;
-  let total = 0;
-  let files = 0;
-  for (const file of jsonFiles) {
-    const data = fs.readFileSync(file, 'utf8');
-    fileData = JSON.parse(data);
-    if (validateImport(fileData.meta)) {
-      count = Object.keys(fileData.theme).length;
-      // eslint-disable-next-line no-await-in-loop
-      const result = await putThemes(fileData.theme);
-      if (result == null) {
-        printMessage(`Error importing ${count} themes from ${file}`, 'error');
-      } else {
-        files += 1;
-        total += count;
-        updateProgressIndicator(`Imported ${count} theme(s) from ${file}`);
-      }
-    } else {
-      printMessage(`Validation of ${file} failed!`, 'error');
-    }
-  }
-  stopProgressIndicator(
-    `Finished importing ${total} theme(s) from ${files} file(s).`
-  );
-}
-
-/**
- * Import first theme from file
- * @param {String} file import file name
- */
-export async function importFirstThemeFromFile(file) {
-  fs.readFile(file, 'utf8', (err, data) => {
-    if (err) throw err;
-    const themeData = JSON.parse(data);
-    if (validateImport(themeData.meta)) {
-      createProgressIndicator(1, 'Importing theme...');
-      for (const id in themeData.theme) {
-        if ({}.hasOwnProperty.call(themeData.theme, id)) {
-          updateProgressIndicator(`Importing ${themeData.theme[id].name}`);
-          putTheme(id, themeData.theme[id]).then((result) => {
-            if (result == null) {
-              stopProgressIndicator(
-                `Error importing theme ${themeData.theme[id].name}`
-              );
-              printMessage(
-                `Error importing theme ${themeData.theme[id].name}`,
-                'error'
-              );
-            } else {
-              stopProgressIndicator(
-                `Successfully imported theme ${themeData.theme[id].name}`
-              );
-            }
-          });
-          break;
-        }
-      }
-    } else {
-      printMessage('Import validation failed...', 'error');
-    }
-  });
+  debugMessage(updatedThemes);
+  debugMessage(`ThemeApi.putThemes: finished`);
+  return updatedThemes;
 }
 
 /**
  * Delete theme by id
- * @param {String} id theme id
+ * @param {string} themeId theme id
+ * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
  */
-export async function deleteThemeCmd(id) {
-  createProgressIndicator(undefined, `Deleting ${id}...`, 'indeterminate');
-  try {
-    await deleteTheme(id);
-    stopProgressIndicator(`Deleted ${id}.`, 'success');
-  } catch (error) {
-    stopProgressIndicator(`Error: ${error.message}`, 'fail');
+export async function deleteTheme(themeId: string): Promise<ThemeSkeleton> {
+  const themes = await getConfigEntity(THEMEREALM_ID);
+  const realmThemes = getRealmThemes(themes);
+  const deletedThemes: ThemeSkeleton[] = [];
+  const finalThemes = realmThemes.filter((theme) => {
+    if (theme._id !== themeId) {
+      return true;
+    }
+    deletedThemes.push(theme);
+    return false;
+  });
+  if (realmThemes.length === finalThemes.length)
+    throw new Error(`${themeId} not found`);
+  themes.realm[getCurrentRealmName()] = realmThemes;
+  const undeletedThemes = getRealmThemes(
+    await putConfigEntity(THEMEREALM_ID, themes)
+  ).filter((theme) => deletedThemes.includes(theme));
+  if (deletedThemes.length > 0 && undeletedThemes.length === 0) {
+    return deletedThemes[0];
   }
+  throw new Error(
+    `Theme(s) with id(s) "${undeletedThemes.map(
+      (theme) => theme._id
+    )}" not deleted!`
+  );
 }
 
 /**
  * Delete theme by name
- * @param {String} name theme name
+ * @param {string} themeName theme name
+ * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
  */
-export async function deleteThemeByNameCmd(name) {
-  createProgressIndicator(undefined, `Deleting ${name}...`, 'indeterminate');
-  try {
-    await deleteThemeByName(name);
-    stopProgressIndicator(`Deleted ${name}.`, 'success');
-  } catch (error) {
-    stopProgressIndicator(`Error: ${error.message}`, 'fail');
+export async function deleteThemeByName(
+  themeName: string
+): Promise<ThemeSkeleton> {
+  const themes = await getConfigEntity(THEMEREALM_ID);
+  const realmThemes = getRealmThemes(themes);
+  const deletedThemes: ThemeSkeleton[] = [];
+  const finalThemes = realmThemes.filter((theme) => {
+    if (theme.name !== themeName) {
+      return true;
+    }
+    deletedThemes.push(theme);
+    return false;
+  });
+  if (realmThemes.length === finalThemes.length)
+    throw new Error(`${themeName} not found`);
+  themes.realm[getCurrentRealmName()] = finalThemes;
+  // return putConfigEntity(THEMEREALM_ID, themes);
+  const undeletedThemes = getRealmThemes(
+    await putConfigEntity(THEMEREALM_ID, themes)
+  ).filter((theme) => deletedThemes.includes(theme));
+  if (deletedThemes.length > 0 && undeletedThemes.length === 0) {
+    return deletedThemes[0];
   }
-}
-
-/**
- * Delete all themes
- */
-export async function deleteThemes() {
-  createProgressIndicator(
-    undefined,
-    `Deleting all realm themes...`,
-    'indeterminate'
+  throw new Error(
+    `Theme(s) with id(s) "${undeletedThemes.map(
+      (theme) => theme._id
+    )}" not deleted!`
   );
-  try {
-    await _deleteThemes();
-    stopProgressIndicator(`Deleted all realm themes.`, 'success');
-  } catch (error) {
-    stopProgressIndicator(`Error: ${error.message}`, 'fail');
-  }
 }
 
 /**
  * Delete all themes
- * @deprecated since version 0.14.0
+ * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
  */
-export async function deleteThemesCmd() {
-  return deleteThemes();
+export async function deleteThemes(): Promise<ThemeSkeleton[]> {
+  const themes = await getConfigEntity(THEMEREALM_ID);
+  const realmThemes = themes.realm[getCurrentRealmName()];
+  if (!realmThemes)
+    throw new Error(
+      `No theme configuration found for realm "${getCurrentRealmName()}"`
+    );
+  const deletedThemes: ThemeSkeleton[] = [];
+  for (const theme of realmThemes) {
+    deletedThemes.push(theme);
+  }
+  themes.realm[getCurrentRealmName()] = [];
+  await putConfigEntity(THEMEREALM_ID, themes);
+  return deletedThemes;
 }

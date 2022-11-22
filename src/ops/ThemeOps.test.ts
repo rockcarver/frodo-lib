@@ -1,13 +1,13 @@
 import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
-import { ThemeRaw, state } from '../index';
+import { Theme, state } from '../index';
 import { isEqualJson } from '../ops/utils/OpsUtils';
 import {
   mockGetConfigEntity,
   mockPutConfigEntity,
 } from '../test/mocks/ForgeRockApiMockEngine';
-import { THEMEREALM_ID } from './ThemeApi';
-import { ThemeSkeleton } from './ApiTypes';
+import { THEMEREALM_ID } from './ThemeOps';
+import { ThemeSkeleton } from '../api/ApiTypes';
 
 const mock = new MockAdapter(axios);
 
@@ -493,13 +493,13 @@ state.default.session.setCookieValue('cookieValue');
 
 describe('ThemeApi - getThemes()', () => {
   test('getThemes() 0: Method is implemented', async () => {
-    expect(ThemeRaw.getThemes).toBeDefined();
+    expect(Theme.getThemes).toBeDefined();
   });
 
   test('getThemes() 1: Get all alpha themes (cloud)', async () => {
     mockGetConfigEntity(mock);
     state.default.session.setRealm('alpha');
-    const themes = await ThemeRaw.getThemes();
+    const themes = await Theme.getThemes();
     expect(themes).toBeTruthy();
     expect(themes.length).toBe(31);
   });
@@ -507,7 +507,7 @@ describe('ThemeApi - getThemes()', () => {
   test('getThemes() 2: Get all bravo themes (cloud)', async () => {
     mockGetConfigEntity(mock);
     state.default.session.setRealm('bravo');
-    const themes = await ThemeRaw.getThemes();
+    const themes = await Theme.getThemes();
     expect(themes).toBeTruthy();
     expect(themes.length).toBe(6);
   });
@@ -515,7 +515,7 @@ describe('ThemeApi - getThemes()', () => {
   test('getThemes() 3: Get all root themes (encore)', async () => {
     mockGetConfigEntity(mock, 'encore');
     state.default.session.setRealm('/');
-    const themes = await ThemeRaw.getThemes();
+    const themes = await Theme.getThemes();
     expect(themes).toBeTruthy();
     expect(themes.length).toBe(1);
   });
@@ -523,7 +523,7 @@ describe('ThemeApi - getThemes()', () => {
   test('getThemes() 4: Get all themes from non-existent realm (encore)', async () => {
     mockGetConfigEntity(mock, 'encore');
     state.default.session.setRealm('doesnotexist');
-    const themes = await ThemeRaw.getThemes();
+    const themes = await Theme.getThemes();
     expect(themes).toBeTruthy();
     expect(themes.length).toBe(0);
   });
@@ -531,13 +531,13 @@ describe('ThemeApi - getThemes()', () => {
 
 describe('ThemeApi - getTheme()', () => {
   test('getTheme() 0: Method is implemented', async () => {
-    expect(ThemeRaw.getTheme).toBeDefined();
+    expect(Theme.getTheme).toBeDefined();
   });
 
   test('getTheme() 1: Get alpha theme (cloud)', async () => {
     mockGetConfigEntity(mock);
     state.default.session.setRealm('alpha');
-    const theme = await ThemeRaw.getTheme(THEME_ID);
+    const theme = await Theme.getTheme(THEME_ID);
     expect(theme).toBeTruthy();
     expect(theme._id).toBe(THEME_ID);
   });
@@ -545,7 +545,7 @@ describe('ThemeApi - getTheme()', () => {
   test('getTheme() 2: Get bravo theme (cloud)', async () => {
     mockGetConfigEntity(mock);
     state.default.session.setRealm('bravo');
-    const theme = await ThemeRaw.getTheme(THEME_ID);
+    const theme = await Theme.getTheme(THEME_ID);
     expect(theme).toBeTruthy();
     expect(theme._id).toBe(THEME_ID);
   });
@@ -553,7 +553,7 @@ describe('ThemeApi - getTheme()', () => {
   test('getTheme() 3: Get root theme (encore)', async () => {
     mockGetConfigEntity(mock, 'encore');
     state.default.session.setRealm('/');
-    const theme = await ThemeRaw.getTheme(THEME_ID);
+    const theme = await Theme.getTheme(THEME_ID);
     expect(theme).toBeTruthy();
     expect(theme._id).toBe(THEME_ID);
   });
@@ -563,7 +563,7 @@ describe('ThemeApi - getTheme()', () => {
     state.default.session.setRealm('doesnotexist');
     expect.assertions(3);
     try {
-      await ThemeRaw.getTheme(THEME_ID);
+      await Theme.getTheme(THEME_ID);
     } catch (error) {
       expect(error).toBeTruthy();
       expect(error.message).toBe(`Theme with id "${THEME_ID}" not found!`);
@@ -573,13 +573,13 @@ describe('ThemeApi - getTheme()', () => {
 
 describe('ThemeApi - getThemeByName()', () => {
   test('getThemeByName() 0: Method is implemented', async () => {
-    expect(ThemeRaw.getThemeByName).toBeDefined();
+    expect(Theme.getThemeByName).toBeDefined();
   });
 
   test('getThemeByName() 1: Get alpha theme (cloud)', async () => {
     mockGetConfigEntity(mock);
     state.default.session.setRealm('alpha');
-    const theme = await ThemeRaw.getThemeByName(THEME_NAME);
+    const theme = await Theme.getThemeByName(THEME_NAME);
     expect(theme).toBeTruthy();
     expect(theme.name).toBe(THEME_NAME);
   });
@@ -587,7 +587,7 @@ describe('ThemeApi - getThemeByName()', () => {
   test('getThemeByName() 2: Get bravo theme (cloud)', async () => {
     mockGetConfigEntity(mock);
     state.default.session.setRealm('bravo');
-    const theme = await ThemeRaw.getThemeByName(THEME_NAME);
+    const theme = await Theme.getThemeByName(THEME_NAME);
     expect(theme).toBeTruthy();
     expect(theme.name).toBe(THEME_NAME);
   });
@@ -595,7 +595,7 @@ describe('ThemeApi - getThemeByName()', () => {
   test('getThemeByName() 3: Get root theme (encore)', async () => {
     mockGetConfigEntity(mock, 'encore');
     state.default.session.setRealm('/');
-    const theme = await ThemeRaw.getThemeByName(THEME_NAME);
+    const theme = await Theme.getThemeByName(THEME_NAME);
     expect(theme).toBeTruthy();
     expect(theme.name).toBe(THEME_NAME);
   });
@@ -605,7 +605,7 @@ describe('ThemeApi - getThemeByName()', () => {
     state.default.session.setRealm('doesnotexist');
     expect.assertions(3);
     try {
-      await ThemeRaw.getThemeByName(THEME_NAME);
+      await Theme.getThemeByName(THEME_NAME);
     } catch (error) {
       expect(error).toBeTruthy();
       expect(error.message).toBe(`Theme "${THEME_NAME}" not found!`);
@@ -615,7 +615,7 @@ describe('ThemeApi - getThemeByName()', () => {
 
 describe('ThemeApi - putTheme()', () => {
   test('putTheme() 0: Method is implemented', async () => {
-    expect(ThemeRaw.putTheme).toBeDefined();
+    expect(Theme.putTheme).toBeDefined();
   });
 
   test('putTheme() 1: Put alpha theme (cloud)', async () => {
@@ -626,7 +626,7 @@ describe('ThemeApi - putTheme()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(6);
-    const theme = await ThemeRaw.putTheme(THEME_ID, THEME_OBJ);
+    const theme = await Theme.putTheme(THEME_ID, THEME_OBJ);
     expect(theme).toBeTruthy();
     expect(theme._id).toBe(THEME_ID);
     expect(isEqualJson(theme, THEME_OBJ)).toBeTruthy();
@@ -640,7 +640,7 @@ describe('ThemeApi - putTheme()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(6);
-    const theme = await ThemeRaw.putTheme(THEME_ID, THEME_OBJ);
+    const theme = await Theme.putTheme(THEME_ID, THEME_OBJ);
     expect(theme).toBeTruthy();
     expect(theme._id).toBe(THEME_ID);
     expect(isEqualJson(theme, THEME_OBJ)).toBeTruthy();
@@ -654,7 +654,7 @@ describe('ThemeApi - putTheme()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(6);
-    const theme = await ThemeRaw.putTheme(THEME_ID, THEME_OBJ);
+    const theme = await Theme.putTheme(THEME_ID, THEME_OBJ);
     expect(theme).toBeTruthy();
     expect(theme._id).toBe(THEME_ID);
     expect(isEqualJson(theme, THEME_OBJ)).toBeTruthy();
@@ -668,7 +668,7 @@ describe('ThemeApi - putTheme()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(6);
-    const theme = await ThemeRaw.putTheme(THEME_ID, THEME_OBJ);
+    const theme = await Theme.putTheme(THEME_ID, THEME_OBJ);
     expect(theme).toBeTruthy();
     expect(theme._id).toBe(THEME_ID);
     expect(isEqualJson(theme, THEME_OBJ)).toBeTruthy();
@@ -677,7 +677,7 @@ describe('ThemeApi - putTheme()', () => {
 
 describe('ThemeApi - putThemeByName()', () => {
   test('putThemeByName() 0: Method is implemented', async () => {
-    expect(ThemeRaw.putThemeByName).toBeDefined();
+    expect(Theme.putThemeByName).toBeDefined();
   });
 
   test('putThemeByName() 1: Get alpha theme (cloud)', async () => {
@@ -688,7 +688,7 @@ describe('ThemeApi - putThemeByName()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(6);
-    const theme = await ThemeRaw.putThemeByName(THEME_NAME, THEME_OBJ);
+    const theme = await Theme.putThemeByName(THEME_NAME, THEME_OBJ);
     expect(theme).toBeTruthy();
     expect(theme.name).toBe(THEME_NAME);
     expect(isEqualJson(theme, THEME_OBJ)).toBeTruthy();
@@ -702,7 +702,7 @@ describe('ThemeApi - putThemeByName()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(6);
-    const theme = await ThemeRaw.putThemeByName(THEME_NAME, THEME_OBJ);
+    const theme = await Theme.putThemeByName(THEME_NAME, THEME_OBJ);
     expect(theme).toBeTruthy();
     expect(theme.name).toBe(THEME_NAME);
     expect(isEqualJson(theme, THEME_OBJ)).toBeTruthy();
@@ -716,7 +716,7 @@ describe('ThemeApi - putThemeByName()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(6);
-    const theme = await ThemeRaw.putThemeByName(THEME_NAME, THEME_OBJ);
+    const theme = await Theme.putThemeByName(THEME_NAME, THEME_OBJ);
     expect(theme).toBeTruthy();
     expect(theme.name).toBe(THEME_NAME);
     expect(isEqualJson(theme, THEME_OBJ)).toBeTruthy();
@@ -730,7 +730,7 @@ describe('ThemeApi - putThemeByName()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(6);
-    const theme = await ThemeRaw.putThemeByName(THEME_NAME, THEME_OBJ);
+    const theme = await Theme.putThemeByName(THEME_NAME, THEME_OBJ);
     expect(theme).toBeTruthy();
     expect(theme.name).toBe(THEME_NAME);
     expect(isEqualJson(theme, THEME_OBJ)).toBeTruthy();
@@ -739,7 +739,7 @@ describe('ThemeApi - putThemeByName()', () => {
 
 describe('ThemeApi - putThemes()', () => {
   test('putThemes() 0: Method is implemented', async () => {
-    expect(ThemeRaw.putThemes).toBeDefined();
+    expect(Theme.putThemes).toBeDefined();
   });
 
   test('putThemes() 1: Update 4/6 alpha themes', async () => {
@@ -750,7 +750,7 @@ describe('ThemeApi - putThemes()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(5);
-    const newThemeMap = await ThemeRaw.putThemes(THEME_MAP);
+    const newThemeMap = await Theme.putThemes(THEME_MAP);
     expect(newThemeMap).toBeTruthy();
     expect(newThemeMap.size).toBe(6);
   });
@@ -763,7 +763,7 @@ describe('ThemeApi - putThemes()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(5);
-    const newThemeMap = await ThemeRaw.putThemes(THEME_MAP);
+    const newThemeMap = await Theme.putThemes(THEME_MAP);
     expect(newThemeMap).toBeTruthy();
     expect(newThemeMap.size).toBe(5);
   });
@@ -776,7 +776,7 @@ describe('ThemeApi - putThemes()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(5);
-    const newThemeMap = await ThemeRaw.putThemes(THEME_MAP);
+    const newThemeMap = await Theme.putThemes(THEME_MAP);
     expect(newThemeMap).toBeTruthy();
     expect(newThemeMap.size).toBe(4);
   });
@@ -789,7 +789,7 @@ describe('ThemeApi - putThemes()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(5);
-    const newThemeMap = await ThemeRaw.putThemes(THEME_MAP);
+    const newThemeMap = await Theme.putThemes(THEME_MAP);
     expect(newThemeMap).toBeTruthy();
     expect(newThemeMap.size).toBe(4);
   });
@@ -797,7 +797,7 @@ describe('ThemeApi - putThemes()', () => {
 
 describe('ThemeApi - deleteTheme()', () => {
   test('deleteTheme() 0: Method is implemented', async () => {
-    expect(ThemeRaw.deleteTheme).toBeDefined();
+    expect(Theme.deleteTheme).toBeDefined();
   });
 
   test('deleteTheme() 1: Delete alpha theme (cloud)', async () => {
@@ -807,7 +807,7 @@ describe('ThemeApi - deleteTheme()', () => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
       expect(mockEntityObj).toBeTruthy();
     });
-    const theme = await ThemeRaw.deleteTheme(THEME_ID);
+    const theme = await Theme.deleteTheme(THEME_ID);
     expect(theme).toBeTruthy();
     expect(theme._id).toBe(THEME_ID);
   });
@@ -819,7 +819,7 @@ describe('ThemeApi - deleteTheme()', () => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
       expect(mockEntityObj).toBeTruthy();
     });
-    const theme = await ThemeRaw.deleteTheme(THEME_ID);
+    const theme = await Theme.deleteTheme(THEME_ID);
     expect(theme).toBeTruthy();
     expect(theme._id).toBe(THEME_ID);
   });
@@ -831,7 +831,7 @@ describe('ThemeApi - deleteTheme()', () => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
       expect(mockEntityObj).toBeTruthy();
     });
-    const theme = await ThemeRaw.deleteTheme(THEME_ID);
+    const theme = await Theme.deleteTheme(THEME_ID);
     expect(theme).toBeTruthy();
     expect(theme._id).toBe(THEME_ID);
   });
@@ -845,7 +845,7 @@ describe('ThemeApi - deleteTheme()', () => {
     });
     expect.assertions(3);
     try {
-      await ThemeRaw.deleteTheme(THEME_ID);
+      await Theme.deleteTheme(THEME_ID);
     } catch (error) {
       expect(error).toBeTruthy();
       expect(error.message).toBe(`${THEME_ID} not found`);
@@ -855,7 +855,7 @@ describe('ThemeApi - deleteTheme()', () => {
 
 describe('ThemeApi - deleteThemeByName()', () => {
   test('deleteThemeByName() 0: Method is implemented', async () => {
-    expect(ThemeRaw.deleteThemeByName).toBeDefined();
+    expect(Theme.deleteThemeByName).toBeDefined();
   });
 
   test('deleteThemeByName() 1: Delete alpha theme by name (cloud)', async () => {
@@ -865,7 +865,7 @@ describe('ThemeApi - deleteThemeByName()', () => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
       expect(mockEntityObj).toBeTruthy();
     });
-    const theme = await ThemeRaw.deleteThemeByName(THEME_NAME);
+    const theme = await Theme.deleteThemeByName(THEME_NAME);
     expect(theme).toBeTruthy();
     expect(theme.name).toBe(THEME_NAME);
   });
@@ -877,7 +877,7 @@ describe('ThemeApi - deleteThemeByName()', () => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
       expect(mockEntityObj).toBeTruthy();
     });
-    const theme = await ThemeRaw.deleteThemeByName(THEME_NAME);
+    const theme = await Theme.deleteThemeByName(THEME_NAME);
     expect(theme).toBeTruthy();
     expect(theme.name).toBe(THEME_NAME);
   });
@@ -889,7 +889,7 @@ describe('ThemeApi - deleteThemeByName()', () => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
       expect(mockEntityObj).toBeTruthy();
     });
-    const theme = await ThemeRaw.deleteThemeByName(THEME_NAME);
+    const theme = await Theme.deleteThemeByName(THEME_NAME);
     expect(theme).toBeTruthy();
     expect(theme.name).toBe(THEME_NAME);
   });
@@ -903,7 +903,7 @@ describe('ThemeApi - deleteThemeByName()', () => {
     });
     expect.assertions(3);
     try {
-      await ThemeRaw.deleteThemeByName(THEME_NAME);
+      await Theme.deleteThemeByName(THEME_NAME);
     } catch (error) {
       expect(error).toBeTruthy();
       expect(error.message).toBe(`${THEME_NAME} not found`);
@@ -913,7 +913,7 @@ describe('ThemeApi - deleteThemeByName()', () => {
 
 describe('ThemeApi - deleteThemes()', () => {
   test('deleteThemes() 0: Method is implemented', async () => {
-    expect(ThemeRaw.deleteThemes).toBeDefined();
+    expect(Theme.deleteThemes).toBeDefined();
   });
 
   test('deleteThemes() 1: Delete all (6) alpha themes', async () => {
@@ -924,7 +924,7 @@ describe('ThemeApi - deleteThemes()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(5);
-    const deletedThemes = await ThemeRaw.deleteThemes();
+    const deletedThemes = await Theme.deleteThemes();
     expect(deletedThemes).toBeTruthy();
     expect(deletedThemes.length).toBe(6);
   });
@@ -937,7 +937,7 @@ describe('ThemeApi - deleteThemes()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(5);
-    const deletedThemes = await ThemeRaw.deleteThemes();
+    const deletedThemes = await Theme.deleteThemes();
     expect(deletedThemes).toBeTruthy();
     expect(deletedThemes.length).toBe(1);
   });
@@ -950,7 +950,7 @@ describe('ThemeApi - deleteThemes()', () => {
       expect(mockEntityObj).toBeTruthy();
     });
     expect.assertions(5);
-    const deletedThemes = await ThemeRaw.deleteThemes();
+    const deletedThemes = await Theme.deleteThemes();
     expect(deletedThemes).toBeTruthy();
     expect(deletedThemes.length).toBe(1);
   });
@@ -964,7 +964,7 @@ describe('ThemeApi - deleteThemes()', () => {
     });
     expect.assertions(2);
     try {
-      await ThemeRaw.deleteThemes();
+      await Theme.deleteThemes();
     } catch (error) {
       expect(error.message).toBe(
         'No theme configuration found for realm "doesnotexist"'
