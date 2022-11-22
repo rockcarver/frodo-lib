@@ -5,7 +5,6 @@ import storage from '../storage/SessionStorage';
 import DataProtection from './utils/DataProtection';
 import { createObjectTable, createTable, printMessage } from './utils/Console';
 import { FRODO_CONNECTION_PROFILES_PATH_KEY } from '../storage/StaticStorage';
-import { profile } from 'console';
 
 const dataProtection = new DataProtection();
 
