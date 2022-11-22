@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.2-11] - 2022-11-22
+
 -   \#154: Add frodo specific transactionId to all API requests
 -   rockcarver/frodo-cli#110: Migrate from .frodorc to Connections.json
 -   Refactored Email Template and Theme functionality in lib to remove fs operations
@@ -706,7 +708,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-10...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-11...HEAD
+
+[0.16.2-11]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-10...v0.16.2-11
 
 [0.16.2-10]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-9...v0.16.2-10
 
