@@ -158,7 +158,6 @@ export async function exportAllConfigEntities(
         'indeterminate'
       );
       const entityPromises = [];
-      // configEntities['configurations'].forEach((configEntity) => {
       for (const configEntity of configurations) {
         if (entriesToExport.includes(configEntity._id)) {
           entityPromises.push(getConfigEntity(configEntity._id));
@@ -277,31 +276,24 @@ export async function importAllRawConfigEntities(
     return putConfigEntity(file.entityId, file.content);
   });
 
-  await Promise.allSettled(entityPromises).then((results) => {
-    const errors = results.filter(
-      (result): result is PromiseRejectedResult => result.status === 'rejected'
-    );
+  const results = await Promise.allSettled(entityPromises);
+  const errors = results.filter(
+    (result): result is PromiseRejectedResult => result.status === 'rejected'
+  );
 
-    if (errors.length > 0) {
-      printMessage(
-        `Failed to import ${errors.length} config objects:`,
-        'error'
-      );
-      errors.forEach((error) => {
-        printMessage(`- ${error.reason}`, 'error');
-      });
-      stopProgressIndicator(
-        `Failed to import ${errors.length} config objects`,
-        'error'
-      );
-      return;
+  if (errors.length > 0) {
+    printMessage(`Failed to import ${errors.length} config objects:`, 'error');
+    for (const error of errors) {
+      printMessage(`- ${error.reason}`, 'error');
     }
-
     stopProgressIndicator(
-      `Imported ${results.length} config objects`,
-      'success'
+      `Failed to import ${errors.length} config objects`,
+      'error'
     );
-  });
+    return;
+  }
+
+  stopProgressIndicator(`Imported ${results.length} config objects`, 'success');
 }
 
 /**
@@ -363,31 +355,24 @@ export async function importAllConfigEntities(
       return putConfigEntity(entityId, unsubstituted);
     });
 
-  await Promise.allSettled(entityPromises).then((results) => {
-    const errors = results.filter(
-      (result): result is PromiseRejectedResult => result.status === 'rejected'
-    );
+  const results = await Promise.allSettled(entityPromises);
+  const errors = results.filter(
+    (result): result is PromiseRejectedResult => result.status === 'rejected'
+  );
 
-    if (errors.length > 0) {
-      printMessage(
-        `Failed to import ${errors.length} config objects:`,
-        'error'
-      );
-      errors.forEach((error) => {
-        printMessage(`- ${error.reason}`, 'error');
-      });
-      stopProgressIndicator(
-        `Failed to import ${errors.length} config objects`,
-        'error'
-      );
-      return;
+  if (errors.length > 0) {
+    printMessage(`Failed to import ${errors.length} config objects:`, 'error');
+    for (const error of errors) {
+      printMessage(`- ${error.reason}`, 'error');
     }
-
     stopProgressIndicator(
-      `Imported ${results.length} config objects`,
-      'success'
+      `Failed to import ${errors.length} config objects`,
+      'error'
     );
-  });
+    return;
+  }
+
+  stopProgressIndicator(`Imported ${results.length} config objects`, 'success');
 }
 
 /**
