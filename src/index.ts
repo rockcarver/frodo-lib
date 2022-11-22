@@ -4,11 +4,9 @@ Color.enable();
 
 // Api Layer
 export * as AgentRaw from './api/AgentApi';
-export * as EmailTemplateRaw from './api/EmailTemplateApi';
 export * as NodeRaw from './api/NodeApi';
 export * as SecretsRaw from './api/SecretsApi';
 export * as StartupRaw from './api/StartupApi';
-export * as ThemeRaw from './api/ThemeApi';
 export * as TreeRaw from './api/TreeApi';
 export * as TypesRaw from './api/ApiTypes';
 export * as VariablesRaw from './api/VariablesApi';
