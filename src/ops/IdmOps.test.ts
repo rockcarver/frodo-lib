@@ -1,15 +1,20 @@
 import mockfs from 'mock-fs';
+import fs from 'fs';
 import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
+import { fileURLToPath } from 'url';
 import { Idm, state } from '../index';
 import * as global from '../storage/StaticStorage';
 import {
-  mockListAllConfigEntities,
+  mockGetAllConfigEntities,
   mockPutConfigEntity,
+  mockGetConfigEntity,
+  mockGetConfigEntitiesByType,
 } from '../test/mocks/ForgeRockApiMockEngine';
 import path, { resolve } from 'path';
 
 const mock = new MockAdapter(axios);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 state.default.session.setTenant('https://openam-frodo-dev.forgeblocks.com/am');
 state.default.session.setRealm('alpha');
@@ -17,86 +22,76 @@ state.default.session.setCookieName('cookieName');
 state.default.session.setCookieValue('cookieValue');
 state.default.session.setDeploymentType(global.CLOUD_DEPLOYMENT_TYPE_KEY);
 
-describe('IdmOps - countManagedObjects()', () => {
-  test('countManagedObjects() 0: Method is implemented', async () => {
-    expect(Idm.countManagedObjects).toBeDefined();
+describe('IdmOps - getAllConfigEntities()', () => {
+  test('getAllConfigEntities() 0: Method is implemented', async () => {
+    expect(Idm.getAllConfigEntities).toBeDefined();
+  });
+  test('getAllConfigEntities() 1: get all config entities', async () => {
+    mockGetAllConfigEntities(mock);
+    expect.assertions(2);
+    const configEntities = await Idm.getAllConfigEntities();
+    expect(configEntities).toBeTruthy();
+    expect(configEntities.configurations.length).toBeGreaterThan(0);
   });
 });
 
-describe('IdmOps - exportAllConfigEntities()', () => {
-  test('exportAllConfigEntities() 0: Method is implemented', async () => {
-    expect(Idm.exportAllConfigEntities).toBeDefined();
+describe('IdmOps - getConfigEntitiesByType()', () => {
+  test('getConfigEntitiesByType() 0: Method is implemented', async () => {
+    expect(Idm.getConfigEntitiesByType).toBeDefined();
+  });
+  test('getConfigEntitiesByType() 1: Get config entity by type', async () => {
+    mockGetConfigEntitiesByType(mock);
+    expect.assertions(2);
+    const configEntity = await Idm.getConfigEntitiesByType('emailTemplate');
+    expect(configEntity).toBeTruthy();
+    expect(configEntity).toMatchSnapshot();
   });
 });
 
-describe('IdmOps - exportAllRawConfigEntities()', () => {
-  test('exportAllRawConfigEntities() 0: Method is implemented', async () => {
-    expect(Idm.exportAllRawConfigEntities).toBeDefined();
+describe('IdmOps - getConfigEntity()', () => {
+  test('getConfigEntity() 0: Method is implemented', async () => {
+    expect(Idm.getConfigEntity).toBeDefined();
+  });
+  test('getConfigEntity() 1: Get config entity by Id', async () => {
+    mockGetConfigEntity(mock);
+    // expect.assertions(2);
+    const configEntity = await Idm.getConfigEntity('managed');
+    expect(configEntity).toBeTruthy();
+    expect(configEntity).toMatchSnapshot();
   });
 });
 
-describe('IdmOps - exportConfigEntity()', () => {
-  test('exportConfigEntity() 0: Method is implemented', async () => {
-    expect(Idm.exportConfigEntity).toBeDefined();
-  });
-});
-
-describe('IdmOps - importAllConfigEntities()', () => {
-  test('importAllConfigEntities() 0: Method is implemented', async () => {
-    expect(Idm.importAllConfigEntities).toBeDefined();
-  });
-});
-
-describe('IdmOps - importAllRawConfigEntities()', () => {
-  test('importAllRawConfigEntities() 0: Method is implemented', async () => {
-    expect(Idm.importAllRawConfigEntities).toBeDefined();
-  });
-});
-
-describe('IdmOps - importConfigEntity()', () => {
-  beforeEach(() => {
-    mockfs({
-      'emailTemplatewelcome.idm.json': mockfs.load(
-        resolve(
-          path.dirname('.'),
-          './src/test/mocks/IdmConfigApi/getConfigEntity/emailTemplate/welcome.json'
-        )
-      ),
-    });
-  });
-  test('importConfigEntity() 0: Method is implemented', async () => {
-    expect(Idm.importConfigEntity).toBeDefined();
+describe('IdmOps - putConfigEntity()', () => {
+  test('putConfigEntity() 0: Method is implemented', async () => {
+    expect(Idm.putConfigEntity).toBeDefined();
   });
 
-  test('importConfigEntity() 1: Import a config entity', async () => {
+  test('putConfigEntity() 1: Put a config entity', async () => {
+    const templateData = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          '../test/mocks/IdmConfigApi/getConfigEntity/emailTemplate/welcome.json'
+        ),
+        'utf8'
+      )
+    );
+
     let uploaded: string | null = null;
     mockPutConfigEntity(mock, (id, data) => {
       uploaded = data;
     });
 
-    await Idm.importConfigEntity('emailTemplate/welcome');
+    await Idm.putConfigEntity('emailTemplate/welcome', templateData);
 
     expect(uploaded).toBeDefined();
 
-    // Restore fs so we may use snapshots
-    mockfs.restore();
     expect(uploaded).toMatchSnapshot();
-  });
-
-  afterEach(() => {
-    mockfs.restore();
   });
 });
 
-describe('IdmOps - listAllConfigEntities()', () => {
-  test('listAllConfigEntities() 0: Method is implemented', async () => {
-    expect(Idm.listAllConfigEntities).toBeDefined();
-  });
-
-  test('listSocialProviders() 1: List social identity providers', async () => {
-    mockListAllConfigEntities(mock);
-    expect.assertions(1);
-    await Idm.listAllConfigEntities();
-    expect(true).toBeTruthy();
+describe('IdmOps - queryAllManagedObjectsByType()', () => {
+  test('queryAllManagedObjectsByType() 0: Method is implemented', async () => {
+    expect(Idm.queryAllManagedObjectsByType).toBeDefined();
   });
 });

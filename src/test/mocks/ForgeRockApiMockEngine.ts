@@ -724,7 +724,7 @@ export function mockDeleteAgentByTypeAndId(
  **
  **/
 
-export function mockListAllConfigEntities(mock: MockAdapter) {
+export function mockGetAllConfigEntities(mock: MockAdapter) {
   mock.onGet(/.*?\/openidm\/config$/).reply(function () {
     const mockStatus = 200;
     const mockResponse = JSON.parse(
