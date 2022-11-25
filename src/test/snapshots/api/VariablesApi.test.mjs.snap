@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`VariablesApi - deleteVariable() deleteVariable() 2: Delete variable: esv-volkerstestvariable1 - error 1`] = `[Error: Request failed with status code 500]`;
+
+exports[`VariablesApi - getVariable() getVariable() 2: Get non-existing variable: esv-does-not-exist 1`] = `[Error: Request failed with status code 404]`;
+
+exports[`VariablesApi - getVariables() getVariables() 2: Get all variables - error 1`] = `[Error: Request failed with status code 500]`;
+
+exports[`VariablesApi - putVariable() putVariable() 2: Create variable: esv-volkerstestvariable1 - error 1`] = `[Error: Request failed with status code 500]`;
+
+exports[`VariablesApi - setVariableDescription() setVariableDescription() 2: Set variable description: esv-volkerstestvariable1 - error 1`] = `[Error: Request failed with status code 500]`;

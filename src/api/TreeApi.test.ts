@@ -33,7 +33,7 @@ describe('TreeApi - getTrees()', () => {
       .reply(200, response);
     const trees = await TreeRaw.getTrees();
     expect(trees).toBeTruthy();
-    expect(trees.result.length).toBe(92);
+    expect(trees).toMatchSnapshot();
   });
 });
 
@@ -56,7 +56,7 @@ describe('TreeApi - getTree()', () => {
       .reply(200, response);
     const tree = await TreeRaw.getTree('FrodoTest');
     expect(tree).toBeTruthy();
-    expect(tree._id).toEqual('FrodoTest');
+    expect(tree).toMatchSnapshot();
   });
 
   test('getTree() 2: Get non-existing tree', async () => {
@@ -74,11 +74,7 @@ describe('TreeApi - getTree()', () => {
       await TreeRaw.getTree('DoesNotExist');
     } catch (error) {
       expect(error.response).toBeTruthy();
-      expect(error.response.data).toMatchObject({
-        code: 404,
-        reason: 'Not Found',
-        message: 'Not Found',
-      });
+      expect(error.response.data).toMatchSnapshot();
     }
   });
 });
@@ -102,7 +98,7 @@ describe('TreeApi - putTree()', () => {
       .reply(201, response);
     const tree = await TreeRaw.putTree('FrodoTest', response);
     expect(tree).toBeTruthy();
-    expect(tree._id).toEqual('FrodoTest');
+    expect(tree).toMatchSnapshot();
   });
 
   test('putTree() 2: Put invalid tree [trailing data]', async () => {
@@ -128,12 +124,7 @@ describe('TreeApi - putTree()', () => {
       await TreeRaw.putTree('Invalid', request);
     } catch (error) {
       expect(error.response).toBeTruthy();
-      expect(error.response.data).toMatchObject({
-        code: 400,
-        reason: 'Bad Request',
-        message:
-          'The request could not be processed because there is trailing data after the JSON content',
-      });
+      expect(error.response.data).toMatchSnapshot();
     }
   });
 
@@ -170,22 +161,7 @@ describe('TreeApi - putTree()', () => {
       await TreeRaw.putTree('Invalid', request);
     } catch (error) {
       expect(error.response).toBeTruthy();
-      expect(error.response.data).toMatchObject({
-        code: 400,
-        reason: 'Bad Request',
-        message: 'Invalid attribute specified.',
-        detail: {
-          validAttributes: [
-            'description',
-            'enabled',
-            'entryNodeId',
-            'identityResource',
-            'nodes',
-            'staticNodes',
-            'uiConfig',
-          ],
-        },
-      });
+      expect(error.response.data).toMatchSnapshot();
     }
   });
 
@@ -211,11 +187,7 @@ describe('TreeApi - putTree()', () => {
       await TreeRaw.putTree('Invalid', request);
     } catch (error) {
       expect(error.response).toBeTruthy();
-      expect(error.response.data).toMatchObject({
-        code: 400,
-        reason: 'Bad Request',
-        message: 'Node with ID entryNodeId must exist in the tree.',
-      });
+      expect(error.response.data).toMatchSnapshot();
     }
   });
 
@@ -241,11 +213,7 @@ describe('TreeApi - putTree()', () => {
       await TreeRaw.putTree('Invalid', request);
     } catch (error) {
       expect(error.response).toBeTruthy();
-      expect(error.response.data).toMatchObject({
-        code: 400,
-        reason: 'Bad Request',
-        message: 'Node with ID entryNodeId must exist in the tree.',
-      });
+      expect(error.response.data).toMatchSnapshot();
     }
   });
 });
@@ -272,7 +240,7 @@ describe('TreeApi - deleteTree()', () => {
       .reply(200, response);
     const tree = await TreeRaw.deleteTree('FrodoTest');
     expect(tree).toBeTruthy();
-    expect(tree._id).toEqual('FrodoTest');
+    expect(tree).toMatchSnapshot();
   });
 
   test('deleteTree() 2: Delete non-existing tree', async () => {
@@ -290,11 +258,7 @@ describe('TreeApi - deleteTree()', () => {
       await TreeRaw.deleteTree('DoesNotExist');
     } catch (error) {
       expect(error.response).toBeTruthy();
-      expect(error.response.data).toMatchObject({
-        code: 404,
-        reason: 'Not Found',
-        message: 'Not Found',
-      });
+      expect(error.response.data).toMatchSnapshot();
     }
   });
 });
