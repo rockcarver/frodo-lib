@@ -82,10 +82,18 @@ gulp.task(
 
 gulp.task('watch', () => {
   gulp.watch(
-    ['src/*.ts', 'src/**/*.ts'],
+    [
+      'src/*.ts',
+      'src/**/*.ts',
+      'src/**/*.json',
+      'src/**/*.txt',
+      'src/**/*.xml',
+    ],
     gulp.parallel(
       gulp.series('transpile-esm', 'create-mjs-esm'),
       'transpile-cjs',
+      'resources-esm',
+      'resources-cjs',
       'generate-types'
     )
   );
