@@ -4,7 +4,12 @@ Color.enable();
 
 // Api Layer
 export * as AgentRaw from './api/AgentApi';
+export * as AuthenticateRaw from './api/AuthenticateApi';
 export * as NodeRaw from './api/NodeApi';
+// TODO: need to figure out if this is the right approach or if we should even
+// use a public oauth2/oidc library. might be ok for now since there is only
+// one place where the cli needs to execute an oauth flow.
+export * as OAuth2OIDCApi from './api/OAuth2OIDCApi';
 export * as SecretsRaw from './api/SecretsApi';
 export * as StartupRaw from './api/StartupApi';
 export * as TreeRaw from './api/TreeApi';
@@ -42,7 +47,7 @@ export * as ExportImportUtils from './ops/utils/ExportImportUtils';
 // TODO: reconsider the aproach to pass in state from client
 // lib should be stateless, an aplication should own its state
 export * as state from './storage/SessionStorage';
-// TODO: need to figure out if this is the right approach or if we should even
-// use a public oauth2/oidc library. might be ok for now since there is only
-// one place where the cli needs to execute an oauth flow.
-export * as OAuth2OIDCApi from './api/OAuth2OIDCApi';
+
+// Mock Engine
+export * as ForgeRockApiMockEngine from './test/mocks/ForgeRockApiMockEngine';
+export { FrodoMockAdapter } from './api/BaseApi';

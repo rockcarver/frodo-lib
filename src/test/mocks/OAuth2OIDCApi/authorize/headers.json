@@ -1,0 +1,38 @@
+[
+  { "key": "x-frame-options", "value": "SAMEORIGIN" },
+  { "key": "x-content-type-options", "value": "nosniff" },
+  { "key": "cache-control", "value": "no-store" },
+  {
+    "key": "location",
+    "value": "https://openam-volker-dev.forgeblocks.com/platform/appAuthHelperRedirect.html?code=18mxu6ACkxVRJdmW6QjpUL01h8c&iss=https%3A%2F%2Fopenam-volker-dev.forgeblocks.com%3A443%2Fam%2Foauth2&client_id=idmAdminClient"
+  },
+  { "key": "pragma", "value": "no-cache" },
+  {
+    "key": "set-cookie",
+    "value": "OAUTH_REQUEST_ATTRIBUTES=DELETED; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Domain=.mytest.run; Secure; HttpOnly; SameSite=none"
+  },
+  {
+    "key": "set-cookie",
+    "value": "OAUTH_REQUEST_ATTRIBUTES=DELETED; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Domain=openam-volker-dev.forgeblocks.com; Secure; HttpOnly; SameSite=none"
+  },
+  {
+    "key": "set-cookie",
+    "value": "OAUTH_REQUEST_ATTRIBUTES=DELETED; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Domain=.scheuber.io; Secure; HttpOnly; SameSite=none"
+  },
+  {
+    "key": "set-cookie",
+    "value": "OAUTH_REQUEST_ATTRIBUTES=DELETED; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Domain=.mytestrun.com; Secure; HttpOnly; SameSite=none"
+  },
+  { "key": "content-length", "value": "0" },
+  { "key": "date", "value": "Fri, 25 Nov 2022 16:26:00 GMT" },
+  { "key": "x-forgerock-transactionid", "value": "volker-authZ-1669393558" },
+  {
+    "key": "strict-transport-security",
+    "value": "max-age=31536000; includeSubDomains; preload;"
+  },
+  { "key": "Via", "value": "1.1 google" },
+  {
+    "key": "Alt-Svc",
+    "value": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000"
+  }
+]
