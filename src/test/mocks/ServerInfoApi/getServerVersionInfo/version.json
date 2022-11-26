@@ -1,0 +1,8 @@
+{
+  "_id": "version",
+  "_rev": "-126497850",
+  "version": "7.3.0-2022-8-SNAPSHOT",
+  "fullVersion": "ForgeRock Access Management 7.3.0-2022-8-SNAPSHOT Build 3ec5d7df1472451f3bd7bbd28e5ac3ce09fa4c5c (2022-November-22 10:22)",
+  "revision": "3ec5d7df1472451f3bd7bbd28e5ac3ce09fa4c5c",
+  "date": "2022-November-22 10:22"
+}
