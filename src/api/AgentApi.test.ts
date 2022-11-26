@@ -7,14 +7,12 @@ import {
   getAgent,
   mockDeleteAgentByTypeAndId,
   mockFindAgentById,
-  mockFindAgentByTypeAndId,
-  mockGetAgentByTypeAndId,
-  mockPutAgentByTypeAndId,
-} from '../test/mocks/ForgeRockApiMockEngine';
-import {
   mockGetAgentTypes,
   mockGetAgentsByType,
   mockGetAgents,
+  mockFindAgentByTypeAndId,
+  mockGetAgentByTypeAndId,
+  mockPutAgentByTypeAndId,
 } from '../test/mocks/ForgeRockApiMockEngine';
 
 const mock = new MockAdapter(axios);

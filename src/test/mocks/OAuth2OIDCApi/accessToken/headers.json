@@ -1,0 +1,19 @@
+[
+  { "key": "x-frame-options", "value": "SAMEORIGIN" },
+  { "key": "x-content-type-options", "value": "nosniff" },
+  { "key": "cache-control", "value": "no-store" },
+  { "key": "pragma", "value": "no-cache" },
+  { "key": "content-type", "value": "application/json;charset=UTF-8" },
+  { "key": "content-length", "value": "1282" },
+  { "key": "date", "value": "Fri, 25 Nov 2022 17:49:54 GMT" },
+  { "key": "x-forgerock-transactionid", "value": "volker-at_PKCE-1669398592" },
+  {
+    "key": "strict-transport-security",
+    "value": "max-age=31536000; includeSubDomains; preload;"
+  },
+  { "key": "Via", "value": "1.1 google" },
+  {
+    "key": "Alt-Svc",
+    "value": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000"
+  }
+]

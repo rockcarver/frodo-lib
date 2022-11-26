@@ -135,3 +135,13 @@ export function parseUrl(href) {
   r.href = r.origin + r.pathname + r.search + r.hash;
   return r;
 }
+
+export function parseQueryString(query: string) {
+  const vars = query.split('&');
+  const searchParam = {};
+  for (let i = 0; i < vars.length; i++) {
+    const pair = vars[i].split('=');
+    searchParam[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+  }
+  return searchParam;
+}

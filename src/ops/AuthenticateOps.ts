@@ -4,7 +4,7 @@ import readlineSync from 'readline-sync';
 import { encodeBase64Url } from '../api/utils/Base64';
 import storage from '../storage/SessionStorage';
 import * as globalConfig from '../storage/StaticStorage';
-import { printMessage } from './utils/Console';
+import { debugMessage, printMessage } from './utils/Console';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
 import { step } from '../api/AuthenticateApi';
 import { accessToken, authorize } from '../api/OAuth2OIDCApi';
@@ -26,9 +26,14 @@ let adminClientId = 'idmAdminClient';
  */
 async function getCookieName() {
   try {
-    return (await getServerInfo()).data.cookieName;
+    const { data } = await getServerInfo();
+    debugMessage(
+      `AuthenticateOps.getCookieName: cookieName=${data.cookieName}`
+    );
+    return data.cookieName;
   } catch (error) {
     printMessage(`Error getting cookie name: ${error}`, 'error');
+    debugMessage(error.stack);
     return null;
   }
 }
@@ -174,11 +179,11 @@ async function authenticate() {
         'X-OpenAM-Password': storage.session.getPassword(),
       },
     };
-    const response1 = (await step({}, config)).data;
+    const response1 = await step({}, config);
     const skip2FA = checkAndHandle2FA(response1);
     let response2 = {};
     if (skip2FA.need2fa) {
-      response2 = (await step(skip2FA.payload)).data;
+      response2 = await step(skip2FA.payload);
     } else {
       response2 = skip2FA.payload;
     }
@@ -237,8 +242,14 @@ async function getAuthCode(redirectURL, codeChallenge, codeChallengeMethod) {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
+      maxRedirects: 0,
     };
-    const response = await authorize(bodyFormData, config);
+    let response = undefined;
+    try {
+      response = await authorize(bodyFormData, config);
+    } catch (error) {
+      response = error.response;
+    }
     if (response.status < 200 || response.status > 399) {
       printMessage('error getting auth code', 'error');
       printMessage(
@@ -247,7 +258,7 @@ async function getAuthCode(redirectURL, codeChallenge, codeChallengeMethod) {
       );
       return null;
     }
-    const redirectLocationURL = response.request.res.responseUrl;
+    const redirectLocationURL = response.headers?.location;
     const queryObject = url.parse(redirectLocationURL, true).query;
     if ('code' in queryObject) {
       return queryObject.code;
@@ -256,7 +267,8 @@ async function getAuthCode(redirectURL, codeChallenge, codeChallengeMethod) {
     return null;
   } catch (error) {
     printMessage(`error getting auth code - ${error.message}`, 'error');
-    printMessage(error.response.data, 'error');
+    printMessage(error.response?.data, 'error');
+    debugMessage(error.stack);
     return null;
   }
 }
