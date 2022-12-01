@@ -46,15 +46,13 @@ describe('SecretsApi - getSecrets()', () => {
     mock
       .onGet('https://openam-frodo-dev.forgeblocks.com/environment/secrets')
       .reply(500, mockResponse);
-    expect.assertions(4);
+    expect.assertions(2);
     try {
       await SecretsRaw.getSecrets();
     } catch (error) {
       // console.dir(error);
       expect(error).toBeTruthy();
-      expect(error.response.status).toBe(500);
-      expect(error.response.data.code).toBe(500);
-      expect(error.response.data.message).toBe('Server Error');
+      expect(error).toMatchSnapshot();
     }
   });
 });
@@ -95,17 +93,13 @@ describe('SecretsApi - getSecret()', () => {
         'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-does-not-exist'
       )
       .reply(404, mockResponse);
-    expect.assertions(4);
+    expect.assertions(2);
     try {
       await SecretsRaw.getSecret('esv-does-not-exist');
     } catch (error) {
       // console.dir(error);
       expect(error).toBeTruthy();
-      expect(error.response.status).toBe(404);
-      expect(error.response.data.code).toBe(404);
-      expect(error.response.data.message).toBe(
-        'The secret does not exist or does not have a version'
-      );
+      expect(error).toMatchSnapshot();
     }
   });
 });
@@ -152,7 +146,6 @@ describe('SecretsApi - putSecret()', () => {
         'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1'
       )
       .reply(500, mockResponse);
-    expect.assertions(4);
     try {
       await SecretsRaw.putSecret(
         'esv-volkerstestsecret1',
@@ -163,10 +156,7 @@ describe('SecretsApi - putSecret()', () => {
       );
     } catch (error) {
       // console.dir(error);
-      expect(error).toBeTruthy();
-      expect(error.response.status).toBe(500);
-      expect(error.response.data.code).toBe(500);
-      expect(error.response.data.message).toBe('Server Error');
+      expect(error).toMatchSnapshot();
     }
   });
 });
