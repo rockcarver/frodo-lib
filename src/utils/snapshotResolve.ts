@@ -11,7 +11,7 @@ module.exports = {
         .replace('esm', 'src')
         .concat(snapshotExtension);
     }
-    snapshotFilePath = snapshotFilePath.replaceAll(
+    snapshotFilePath = snapshotFilePath.replace(
       /(.*\/src)\/(.*)\/(.*)\.snap/g,
       '$1/test/snapshots/$2/$3.snap'
     );
