@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.2-13] - 2022-11-26
+
+## [0.16.2-12] - 2022-11-26
+
 ## [0.16.2-11] - 2022-11-22
 
 -   \#154: Add frodo specific transactionId to all API requests
@@ -708,7 +712,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-11...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-13...HEAD
+
+[0.16.2-13]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-12...v0.16.2-13
+
+[0.16.2-12]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-11...v0.16.2-12
 
 [0.16.2-11]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-10...v0.16.2-11
 
