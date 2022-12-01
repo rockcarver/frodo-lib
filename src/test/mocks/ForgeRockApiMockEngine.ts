@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { encode, decode } from '../../api/utils/Base64';
-import { parseUrl } from '../../api/utils/ApiUtils';
+import { parseQueryString, parseUrl } from '../../api/utils/ApiUtils';
 import slugify from 'slugify';
 import { getTypedFilename } from '../../ops/utils/ExportImportUtils';
 
@@ -21,6 +21,139 @@ export function readJsonFile(file: string) {
  ** AM Mocks and Utils
  **
  **/
+
+/**
+ * Authentication Mocks
+ */
+
+export function getServerInfo(variation: string = null) {
+  const prefix = 'info';
+  const infoObject = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        `./ServerInfoApi/getServerInfo/${
+          variation ? prefix + '-' + variation : prefix
+        }.json`
+      ),
+      'utf8'
+    )
+  );
+  return infoObject;
+}
+
+export function getServerVersionInfo(variation: string = null) {
+  const prefix = 'version';
+  const versionObject = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        `./ServerInfoApi/getServerVersionInfo/${
+          variation ? prefix + '-' + variation : prefix
+        }.json`
+      ),
+      'utf8'
+    )
+  );
+  return versionObject;
+}
+
+export function mockGetServerInfo(mock: MockAdapter, variation: string = null) {
+  mock.onGet(/.*?\/json\/serverinfo\/\*/).reply(function (config) {
+    const elements = config.url ? config.url.split('/') : [];
+    const id = elements[elements?.length - 1];
+    const mockStatus = 200;
+    const mockResponse = getServerInfo(variation);
+    if (typeof expect !== 'undefined') expect(mockResponse._id).toBe(id);
+    return [mockStatus, mockResponse];
+  });
+}
+
+export function mockGetServerVersionInfo(
+  mock: MockAdapter,
+  variation: string = null
+) {
+  mock.onGet(/.*?\/json\/serverinfo\/version/).reply(function (config) {
+    const elements = config.url ? config.url.split('/') : [];
+    const id = elements[elements?.length - 1];
+    const mockStatus = 200;
+    const mockResponse = getServerVersionInfo(variation);
+    if (typeof expect !== 'undefined') expect(mockResponse._id).toBe(id);
+    return [mockStatus, mockResponse];
+  });
+}
+
+export function getTreeStepResponse(
+  treeId: string | undefined,
+  authId: string | undefined
+) {
+  const key = authId ? authId : 'undefined';
+  const treeStepsObj = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        `./AuthenticateApi/step/${treeId ? treeId : 'default'}_steps.json`
+      ),
+      'utf8'
+    )
+  );
+  return treeStepsObj[key];
+}
+
+export function mockStep(mock: MockAdapter) {
+  mock
+    .onPost(/.*?\/json\/realms\/root\/authenticate.*/)
+    .reply(function (config) {
+      const parsed = parseUrl(config.url);
+      const treeId = parsed.searchParam['authIndexValue'];
+      const body = JSON.parse(config.data);
+      const authId = body.authId;
+      const mockStatus = 200;
+      const mockResponse = getTreeStepResponse(treeId, authId);
+      if (typeof expect !== 'undefined') expect(mockResponse).toBeTruthy();
+      return [mockStatus, mockResponse];
+    });
+}
+
+export function mockAuthorize(mock: MockAdapter) {
+  mock.onPost(/.*?\/oauth2\/authorize.*/).reply(function (config) {
+    const parsed = parseQueryString(config.data);
+    const responseType = parsed['response_type'];
+    let mockStatus = 500;
+    const mockResponse = undefined;
+    const mockHeaders = {};
+    if (responseType === 'code') {
+      mockStatus = 302;
+      const headers = readJsonFile(`./OAuth2OIDCApi/authorize/headers.json`);
+      for (const header of headers) {
+        mockHeaders[header['key']] = header['value'];
+      }
+    }
+    if (typeof expect !== 'undefined') expect(mockHeaders).toBeTruthy();
+    return [mockStatus, mockResponse, mockHeaders];
+  });
+}
+
+export function mockAccessToken(mock: MockAdapter) {
+  mock.onPost(/.*?\/oauth2\/access_token.*/).reply(function (config) {
+    const parsed = parseQueryString(config.data);
+    const grantType = parsed['grant_type'];
+    const code = parsed['code'];
+    let mockStatus = 500;
+    let mockResponse = undefined;
+    const mockHeaders = {};
+    if (grantType === 'authorization_code' && code) {
+      mockStatus = 200;
+      mockResponse = readJsonFile(`./OAuth2OIDCApi/accessToken/body.json`);
+      const headers = readJsonFile(`./OAuth2OIDCApi/accessToken/headers.json`);
+      for (const header of Object.entries(headers)) {
+        mockHeaders[header['key']] = header['value'];
+      }
+    }
+    if (typeof expect !== 'undefined') expect(mockResponse).toBeTruthy();
+    return [mockStatus, mockResponse, mockHeaders];
+  });
+}
 
 /**
  * Tree Mocks
@@ -44,7 +177,7 @@ export function mockGetTrees(mock: MockAdapter) {
     .reply(function () {
       const mockStatus = 200;
       const mockResponse = getTrees();
-      expect(mockResponse).toBeTruthy();
+      if (typeof expect !== 'undefined') expect(mockResponse).toBeTruthy();
       return [mockStatus, mockResponse];
     });
 }
@@ -69,7 +202,7 @@ export function mockGetTree(mock: MockAdapter) {
       const treeId = elements[elements?.length - 1];
       const mockStatus = 200;
       const mockResponse = getTree(treeId);
-      expect(mockResponse._id).toBe(treeId);
+      if (typeof expect !== 'undefined') expect(mockResponse._id).toBe(treeId);
       return [mockStatus, mockResponse];
     });
 }
@@ -115,7 +248,7 @@ export function mockGetNode(mock: MockAdapter) {
           'utf8'
         )
       );
-      expect(mockResponse._id).toBe(nodeId);
+      if (typeof expect !== 'undefined') expect(mockResponse._id).toBe(nodeId);
       return [mockStatus, mockResponse];
     });
 }
@@ -160,7 +293,8 @@ export function mockGetScript(mock: MockAdapter) {
       const scriptId = elements[elements?.length - 1];
       const mockStatus = 200;
       const mockResponse = getScript(scriptId);
-      expect(mockResponse._id).toBe(scriptId);
+      if (typeof expect !== 'undefined')
+        expect(mockResponse._id).toBe(scriptId);
       return [mockStatus, mockResponse];
     });
 }
@@ -242,7 +376,7 @@ export function mockGetSaml2Providers(mock: MockAdapter) {
     .reply(function () {
       const mockStatus = 200;
       const mockResponse = getSaml2Providers();
-      expect(mockResponse).toBeTruthy();
+      if (typeof expect !== 'undefined') expect(mockResponse).toBeTruthy();
       return [mockStatus, mockResponse];
     });
 }
@@ -275,11 +409,12 @@ export function mockFindSaml2Providers(mock: MockAdapter) {
             'utf8'
           )
         );
-        expect(mockResponse.result[0].entityId).toBe(entityId);
+        if (typeof expect !== 'undefined')
+          expect(mockResponse.result[0].entityId).toBe(entityId);
       } catch (error) {
         // ignore errors
       }
-      expect(mockResponse).toBeTruthy();
+      if (typeof expect !== 'undefined') expect(mockResponse).toBeTruthy();
       return [mockStatus, mockResponse];
     });
 }
@@ -305,7 +440,7 @@ export function mockGetCirclesOfTrust(mock: MockAdapter) {
     .reply(function () {
       const mockStatus = 200;
       const mockResponse = getCirclesOfTrust();
-      expect(mockResponse).toBeTruthy();
+      if (typeof expect !== 'undefined') expect(mockResponse).toBeTruthy();
       return [mockStatus, mockResponse];
     });
 }
@@ -364,7 +499,8 @@ export function mockGetSaml2ProviderByLocationAndId(mock: MockAdapter) {
           'utf8'
         )
       );
-      expect(mockResponse._id).toBe(providerId);
+      if (typeof expect !== 'undefined')
+        expect(mockResponse._id).toBe(providerId);
       return [mockStatus, mockResponse];
     });
 }
@@ -451,7 +587,7 @@ export function mockGetSaml2ProviderMetadata(mock: MockAdapter) {
         ),
         'utf8'
       );
-      expect(mockResponse).toBeTruthy();
+      if (typeof expect !== 'undefined') expect(mockResponse).toBeTruthy();
       return [mockStatus, mockResponse];
     });
 }
@@ -481,7 +617,7 @@ export function mockGetSocialProviders(mock: MockAdapter) {
     .reply(function () {
       const mockStatus = 200;
       const mockResponse = getSocialProviders();
-      expect(mockResponse).toBeTruthy();
+      if (typeof expect !== 'undefined') expect(mockResponse).toBeTruthy();
       return [mockStatus, mockResponse];
     });
 }
@@ -558,7 +694,7 @@ export function mockGetAgentTypes(mock: MockAdapter) {
     .reply(function () {
       const mockStatus = 200;
       const mockResponse = getAgentTypes();
-      expect(mockResponse).toBeTruthy();
+      if (typeof expect !== 'undefined') expect(mockResponse).toBeTruthy();
       return [mockStatus, mockResponse];
     });
 }
@@ -582,7 +718,7 @@ export function mockGetAgentsByType(mock: MockAdapter) {
           'utf8'
         )
       );
-      expect(mockResponse).toBeTruthy();
+      if (typeof expect !== 'undefined') expect(mockResponse).toBeTruthy();
       return [mockStatus, mockResponse];
     });
 }
@@ -595,7 +731,7 @@ export function mockGetAgents(mock: MockAdapter) {
     .reply(function () {
       const mockStatus = 200;
       const mockResponse = getAgents();
-      expect(mockResponse).toBeTruthy();
+      if (typeof expect !== 'undefined') expect(mockResponse).toBeTruthy();
       return [mockStatus, mockResponse];
     });
 }
@@ -616,7 +752,8 @@ export function mockFindAgentById(mock: MockAdapter) {
           'utf8'
         )
       );
-      expect(mockResponse.result[0]._id).toBe(agentId);
+      if (typeof expect !== 'undefined')
+        expect(mockResponse.result[0]._id).toBe(agentId);
       return [mockStatus, mockResponse];
     });
 }
@@ -652,7 +789,8 @@ export function mockFindAgentByTypeAndId(mock: MockAdapter) {
             'utf8'
           )
         );
-        expect(mockResponse.result[0]._id).toBe(agentId);
+        if (typeof expect !== 'undefined')
+          expect(mockResponse.result[0]._id).toBe(agentId);
       } catch (error) {
         // ignore errors
       }
@@ -679,7 +817,7 @@ export function mockGetAgentByTypeAndId(mock: MockAdapter) {
           'utf8'
         )
       );
-      expect(mockResponse._id).toBe(agentId);
+      if (typeof expect !== 'undefined') expect(mockResponse._id).toBe(agentId);
       return [mockStatus, mockResponse];
     });
 }
@@ -760,7 +898,7 @@ export function mockGetConfigEntity(
         'utf8'
       )
     );
-    expect(mockResponse._id).toBe(entityId);
+    if (typeof expect !== 'undefined') expect(mockResponse._id).toBe(entityId);
     return [mockStatus, mockResponse];
   });
 }
@@ -803,4 +941,19 @@ export function mockGetConfigEntitiesByType(mock: MockAdapter) {
       );
       return [mockStatus, mockResponse];
     });
+}
+
+/****
+ **
+ ** Mock Helpers & Utils
+ **
+ **/
+
+export function mockAll(mock: MockAdapter) {
+  mockGetServerInfo(mock);
+  mockGetServerVersionInfo(mock);
+  mockStep(mock);
+  mockAuthorize(mock);
+  mockAccessToken(mock);
+  mockGetTrees(mock);
 }

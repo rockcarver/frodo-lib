@@ -24,7 +24,7 @@ export function getRealmUrl(realm) {
   return realmPath;
 }
 
-export async function step(data = {}, config = {}) {
+export async function step(body = {}, config = {}) {
   const urlString = storage.session.getAuthenticationService()
     ? util.format(
         authenticateWithServiceUrlTemplate,
@@ -37,5 +37,10 @@ export async function step(data = {}, config = {}) {
         storage.session.getTenant(),
         getRealmUrl('/')
       );
-  return generateAmApi(getApiConfig()).post(urlString, data, config);
+  const { data } = await generateAmApi(getApiConfig()).post(
+    urlString,
+    body,
+    config
+  );
+  return data;
 }
