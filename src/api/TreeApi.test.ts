@@ -69,11 +69,9 @@ describe('TreeApi - getTree()', () => {
         reason: 'Not Found',
         message: 'Not Found',
       });
-    expect.assertions(2);
     try {
       await TreeRaw.getTree('DoesNotExist');
     } catch (error) {
-      expect(error.response).toBeTruthy();
       expect(error.response.data).toMatchSnapshot();
     }
   });
