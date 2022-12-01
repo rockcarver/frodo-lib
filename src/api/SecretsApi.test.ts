@@ -146,7 +146,6 @@ describe('SecretsApi - putSecret()', () => {
         'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1'
       )
       .reply(500, mockResponse);
-    expect.assertions(4);
     try {
       await SecretsRaw.putSecret(
         'esv-volkerstestsecret1',
@@ -157,10 +156,7 @@ describe('SecretsApi - putSecret()', () => {
       );
     } catch (error) {
       // console.dir(error);
-      expect(error).toBeTruthy();
-      expect(error).toBe(500);
-      expect(error.response.data.code).toBe(500);
-      expect(error.response.data.message).toBe('Server Error');
+      expect(error).toMatchSnapshot();
     }
   });
 });
