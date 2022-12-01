@@ -1,5 +1,24 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`VariablesApi VariablesApi - deleteVariable() deleteVariable() 1: Delete variable: esv-volkerstestvariable2 - success 1`] = `
+{
+  "_id": "esv-volkerstestvariable2",
+  "description": "Volker's Updated Test Secret Description",
+  "expressionType": "",
+  "lastChangeDate": "2022-12-01T00:37:16.388Z",
+  "lastChangedBy": "10ecab02-f357-4522-bc17-dfcc64744064",
+  "loaded": false,
+  "valueBase64": "Vm9sa2VyJ3MgVGVzdCBWYXJpYWJsZSBWYWx1ZQ==",
+}
+`;
+
+exports[`VariablesApi VariablesApi - deleteVariable() deleteVariable() 2: Delete variable: esv-volkerstestvariable3 - error 1`] = `
+{
+  "code": 404,
+  "message": "The variable does not exist",
+}
+`;
+
 exports[`VariablesApi VariablesApi - getVariable() getVariable() 1: Get existing variable: esv-volkerstestvariable1 1`] = `
 {
   "_id": "esv-volkerstestvariable1",
@@ -60,5 +79,26 @@ exports[`VariablesApi VariablesApi - getVariables() getVariables() 1: Get all va
   "resultCount": 3,
   "totalPagedResults": -1,
   "totalPagedResultsPolicy": "NONE",
+}
+`;
+
+exports[`VariablesApi VariablesApi - putVariable() putVariable() 1: Create variable: esv-volkerstestvariable2 - success 1`] = `
+{
+  "_id": "esv-volkerstestvariable2",
+  "description": "Volker's Test Variable Description",
+  "expressionType": "",
+  "lastChangeDate": "2022-12-01T00:37:14.740Z",
+  "lastChangedBy": "10ecab02-f357-4522-bc17-dfcc64744064",
+  "loaded": false,
+  "valueBase64": "Vm9sa2VyJ3MgVGVzdCBWYXJpYWJsZSBWYWx1ZQ==",
+}
+`;
+
+exports[`VariablesApi VariablesApi - setVariableDescription() setVariableDescription() 1: Set variable description: esv-volkerstestvariable2 - success 1`] = `""`;
+
+exports[`VariablesApi VariablesApi - setVariableDescription() setVariableDescription() 2: Set variable description: esv-volkerstestvariable3 - error 1`] = `
+{
+  "code": 404,
+  "message": "The variable does not exist",
 }
 `;
