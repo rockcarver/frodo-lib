@@ -22,7 +22,7 @@ let mode = MODES.REPLAY;
 
 // resolve "/home/sandeepc/work/ForgeRock/sources/frodo-lib/esm/api" to
 // "/home/sandeepc/work/ForgeRock/sources/frodo-lib/src/test/recordings"
-const recordingsDir = __dirname.replaceAll(
+const recordingsDir = __dirname.replace(
   /^(.*\/frodo-\w{3})(.*)$/gi,
   '$1/src/test/mock-recordings'
 );
