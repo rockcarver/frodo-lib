@@ -212,7 +212,13 @@ exports[`TreeApi - getTree() getTree() 1: Get existing tree 1`] = `
 }
 `;
 
-exports[`TreeApi - getTree() getTree() 2: Get non-existing tree 1`] = `[Error: Request failed with status code 404]`;
+exports[`TreeApi - getTree() getTree() 2: Get non-existing tree 1`] = `
+{
+  "code": 404,
+  "message": "Not Found",
+  "reason": "Not Found",
+}
+`;
 
 exports[`TreeApi - getTrees() getTrees() 1: Get all trees 1`] = `
 {
