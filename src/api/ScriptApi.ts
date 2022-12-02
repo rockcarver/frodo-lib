@@ -2,6 +2,7 @@ import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 import storage from '../storage/SessionStorage';
+import { PagedResult } from './ApiTypes';
 
 const scriptURLTemplate = '%s/json%s/scripts/%s';
 const scriptListURLTemplate = '%s/json%s/scripts?_queryFilter=true';
@@ -15,19 +16,40 @@ const getApiConfig = () => {
   };
 };
 
+export interface Script {
+  _id: string;
+  name: string;
+  description: string;
+
+  /**
+   * A Base64 encoded string of the script
+   */
+  script: string;
+  default: boolean;
+  language: string;
+  context: string;
+  createdBy: string;
+  creationDate: number;
+  lastModifiedBy: string;
+  lastModifiedDate: number;
+}
+
 /**
  * Get all scripts
  * @returns {Promise} a promise that resolves to an object containing an array of script objects
  */
-export async function getScripts() {
+export async function getScripts(): Promise<PagedResult<Script>> {
   const urlString = util.format(
     scriptListURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath()
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi(getApiConfig()).get<PagedResult<Script>>(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -36,16 +58,21 @@ export async function getScripts() {
  * @param {String} scriptName script name
  * @returns {Promise} a promise that resolves to an object containing a script object
  */
-export async function getScriptByName(scriptName) {
+export async function getScriptByName(
+  scriptName: string
+): Promise<PagedResult<Script>> {
   const urlString = util.format(
     scriptQueryURLTemplate,
     storage.session.getTenant(),
     getCurrentRealmPath(),
     scriptName
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi(getApiConfig()).get<PagedResult<Script>>(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 

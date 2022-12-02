@@ -8,17 +8,27 @@ import {
   stopProgressIndicator,
   updateProgressIndicator,
 } from './utils/Console';
-import { getScriptByName, getScripts, putScript } from '../api/ScriptApi';
+import {
+  getScriptByName,
+  getScripts,
+  putScript,
+  Script,
+} from '../api/ScriptApi';
 import wordwrap from './utils/Wordwrap';
 import {
   convertBase64TextToArray,
   convertTextArrayToBase64,
   getTypedFilename,
+  readFilesRecursive,
+  saveTextToFile,
   saveToFile,
   titleCase,
   validateImport,
 } from './utils/ExportImportUtils';
 import storage from '../storage/SessionStorage';
+import { decode, encode } from '../api/utils/Base64';
+
+type SavedScript = Omit<Script, 'script'> & { script: string[] };
 
 /**
  * List scripts
@@ -26,6 +36,7 @@ import storage from '../storage/SessionStorage';
 export async function listScripts(long = false) {
   try {
     const scripts = (await getScripts()).result;
+
     scripts.sort((a, b) => a.name.localeCompare(b.name));
     if (long) {
       const table = createTable([
@@ -70,12 +81,16 @@ export async function exportScriptByName(name, file) {
   if (scriptData.length > 1) {
     printMessage(`Multiple scripts with name ${name} found...`, 'error');
   }
-  scriptData.forEach((element) => {
+  const scriptsToSave: SavedScript[] = scriptData.map((element) => {
     const scriptTextArray = convertBase64TextToArray(element.script);
     // eslint-disable-next-line no-param-reassign
-    element.script = scriptTextArray;
+
+    return {
+      ...element,
+      script: scriptTextArray,
+    };
   });
-  saveToFile('script', scriptData, '_id', fileName);
+  saveToFile('script', scriptsToSave, '_id', fileName);
 }
 
 /**
@@ -91,7 +106,7 @@ export async function exportScriptsToFile(file) {
     fileName = file;
   }
   const scriptList = (await getScripts()).result;
-  const allScriptsData = [];
+  const allScriptsData: SavedScript[] = [];
   createProgressIndicator(scriptList.length, 'Exporting script');
   for (const item of scriptList) {
     updateProgressIndicator(`Reading script ${item.name}`);
@@ -99,9 +114,10 @@ export async function exportScriptsToFile(file) {
     const scriptData = (await getScriptByName(item.name)).result;
     scriptData.forEach((element) => {
       const scriptTextArray = convertBase64TextToArray(element.script);
-      // eslint-disable-next-line no-param-reassign
-      element.script = scriptTextArray;
-      allScriptsData.push(element);
+      allScriptsData.push({
+        ...element,
+        script: scriptTextArray,
+      });
     });
   }
   stopProgressIndicator('Done');
@@ -118,12 +134,43 @@ export async function exportScriptsToFiles() {
     updateProgressIndicator(`Reading script ${item.name}`);
     // eslint-disable-next-line no-await-in-loop
     const scriptData = (await getScriptByName(item.name)).result;
-    scriptData.forEach((element) => {
+    const scriptsToSave = scriptData.map((element) => {
       const scriptTextArray = convertBase64TextToArray(element.script);
-      // eslint-disable-next-line no-param-reassign
-      element.script = scriptTextArray;
+      return {
+        ...element,
+        script: scriptTextArray,
+      };
     });
     const fileName = getTypedFilename(item.name, 'script');
+    saveToFile('script', scriptsToSave, '_id', fileName);
+  }
+  stopProgressIndicator('Done');
+}
+
+/**
+ * Export all scripts to 2 files: one script file and one metadata file
+ */
+export async function exportScriptsExtract() {
+  const scriptList = (await getScripts()).result;
+  createProgressIndicator(scriptList.length, 'Exporting script');
+  for (const item of scriptList) {
+    updateProgressIndicator(`Reading script ${item.name}`);
+    // eslint-disable-next-line no-await-in-loop
+    const scriptData = (await getScriptByName(item.name)).result;
+    scriptData.forEach((element) => {
+      const fileExtension = element.language === 'JAVASCRIPT' ? 'js' : 'groovy';
+      const scriptFileName = getTypedFilename(
+        element.name,
+        'script',
+        fileExtension
+      );
+
+      const scriptText = decode(element.script);
+      element.script = scriptFileName;
+
+      saveTextToFile(scriptText, scriptFileName);
+    });
+    const fileName = getTypedFilename(item.name, 'meta');
     saveToFile('script', scriptData, '_id', fileName);
   }
   stopProgressIndicator('Done');
@@ -210,4 +257,20 @@ export async function importScriptsFromFile(name, file, reUuid = false) {
       printMessage('Import validation failed...', 'error');
     }
   });
+}
+
+export async function importExtractedScripts() {
+  const files = await readFilesRecursive('.');
+  const metaFiles = files.filter((file) => file.endsWith('.meta.json'));
+  createProgressIndicator(metaFiles.length, 'Importing scripts');
+  for (const metaFile of metaFiles) {
+    updateProgressIndicator(`Reading ${metaFile}`);
+    const metaData = JSON.parse(fs.readFileSync(metaFile, 'utf8')) as Script;
+    const scriptFileName = metaData.script;
+    const scriptData = fs.readFileSync(scriptFileName, 'utf8');
+    const encodedScript = encode(scriptData);
+    metaData.script = encodedScript;
+    await createOrUpdateScript(metaData._id, metaData);
+  }
+  stopProgressIndicator('Done');
 }
