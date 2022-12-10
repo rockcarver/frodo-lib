@@ -6,6 +6,7 @@ import { encode, decode } from '../../api/utils/Base64';
 import { parseQueryString, parseUrl } from '../../api/utils/ApiUtils';
 import slugify from 'slugify';
 import { getTypedFilename } from '../../ops/utils/ExportImportUtils';
+import { v4 as uuidv4 } from 'uuid';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -939,6 +940,22 @@ export function mockGetConfigEntitiesByType(mock: MockAdapter) {
           'utf8'
         )
       );
+      return [mockStatus, mockResponse];
+    });
+}
+
+export function mockCreateManagedObject(
+  mock: MockAdapter,
+  callback: (mockManagedObjId: string, mockManagedObj) => void
+) {
+  mock
+    .onPost(/.*?\/openidm\/managed\/.+?\?_action=create/)
+    .reply(function (config) {
+      const mockStatus = 201;
+      const mockResponse = JSON.parse(config.data);
+      const moId = uuidv4();
+      mockResponse._id = moId;
+      callback(moId, mockResponse);
       return [mockStatus, mockResponse];
     });
 }
