@@ -128,16 +128,18 @@ export function saveToFile(type, data, identifier, filename) {
  * Save JSON object to file
  * @param {Object} data data object
  * @param {String} filename file name
+ * @return {boolean} true if successful, false otherwise
  */
-export function saveJsonToFile(data, filename, includeMeta = true) {
+export function saveJsonToFile(data, filename, includeMeta = true): boolean {
   const exportData = data;
   if (includeMeta) exportData.meta = getMetadata();
-  fs.writeFile(filename, JSON.stringify(exportData, null, 2), (err) => {
-    if (err) {
-      return printMessage(`ERROR - can't save ${filename}`, 'error');
-    }
-    return '';
-  });
+  try {
+    fs.writeFileSync(filename, JSON.stringify(exportData, null, 2));
+    return true;
+  } catch (err) {
+    printMessage(`ERROR - can't save ${filename}`, 'error');
+    return false;
+  }
 }
 
 /**
