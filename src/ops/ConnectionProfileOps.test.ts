@@ -18,7 +18,7 @@ describe('ConnectionProfileOps', () => {
     state.default.session.setUsername(user);
     state.default.session.setPassword(password);
     state.default.session.setConnectionProfilesPath(connectionProfilePath);
-    await ConnectionProfile.saveConnectionProfile();
+    await ConnectionProfile.saveConnectionProfile(host);
     expect(fs.existsSync(connectionProfilePath)).toBeTruthy();
     const connections = JSON.parse(
       fs.readFileSync(connectionProfilePath, 'utf8')
@@ -41,7 +41,7 @@ describe('ConnectionProfileOps', () => {
     state.default.session.setUsername(user);
     state.default.session.setPassword(password);
     state.default.session.setConnectionProfilesPath(null);
-    await ConnectionProfile.saveConnectionProfile();
+    await ConnectionProfile.saveConnectionProfile(host);
     expect(ConnectionProfile.getConnectionProfilesPath()).toEqual(
       connectionProfilePath
     );
@@ -68,7 +68,7 @@ describe('ConnectionProfileOps', () => {
     state.default.session.setUsername(user);
     state.default.session.setPassword(password);
     state.default.session.setConnectionProfilesPath(connectionProfilePath);
-    await ConnectionProfile.saveConnectionProfile();
+    await ConnectionProfile.saveConnectionProfile(host);
     expect(fs.existsSync(connectionProfilePath)).toBeTruthy();
     const connections = JSON.parse(
       fs.readFileSync(connectionProfilePath, 'utf8')
