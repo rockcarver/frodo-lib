@@ -127,10 +127,16 @@ export function generateAmApi(resource, requestOverride = {}) {
     'Content-Type': 'application/json',
     // only add API version if we have it
     ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
-    // only send session cookie if we know its name and value
-    ...(storage.session.getCookieName() &&
+    // only send session cookie if we know its name and value and we are not instructed to use the bearer token for AM APIs
+    ...(!storage.session.getUseBearerTokenForAmApis() &&
+      storage.session.getCookieName() &&
       storage.session.getCookieValue() && {
         Cookie: `${storage.session.getCookieName()}=${storage.session.getCookieValue()}`,
+      }),
+    // only add authorization header if we have a bearer token and are instructed to use it for AM APIs
+    ...(storage.session.getUseBearerTokenForAmApis() &&
+      storage.session.getBearerToken() && {
+        Authorization: `Bearer ${storage.session.getBearerToken()}`,
       }),
   };
   if (requestOverride['headers']) {
@@ -177,10 +183,16 @@ export function generateOauth2Api(resource, requestOverride = {}) {
     'X-ForgeRock-TransactionId': transactionId,
     // only add API version if we have it
     ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
-    // only send session cookie if we know its name and value
-    ...(storage.session.getCookieName() &&
+    // only send session cookie if we know its name and value and we are not instructed to use the bearer token for AM APIs
+    ...(!storage.session.getUseBearerTokenForAmApis() &&
+      storage.session.getCookieName() &&
       storage.session.getCookieValue() && {
         Cookie: `${storage.session.getCookieName()}=${storage.session.getCookieValue()}`,
+      }),
+    // only add authorization header if we have a bearer token and are instructed to use it for AM APIs
+    ...(storage.session.getUseBearerTokenForAmApis() &&
+      storage.session.getBearerToken() && {
+        Authorization: `Bearer ${storage.session.getBearerToken()}`,
       }),
   };
   if (requestOverride['headers']) {
@@ -228,6 +240,10 @@ export function generateIdmApi(requestOverride = {}) {
       'User-Agent': userAgent,
       'X-ForgeRock-TransactionId': transactionId,
       'Content-Type': 'application/json',
+      // only add authorization header if we have a bearer token
+      ...(storage.session.getBearerToken() && {
+        Authorization: `Bearer ${storage.session.getBearerToken()}`,
+      }),
     },
     ...requestOverride,
     httpAgent: getHttpAgent(),
@@ -235,11 +251,11 @@ export function generateIdmApi(requestOverride = {}) {
     proxy: getProxy(),
   };
 
-  if (storage.session.getBearerToken()) {
-    requestDetails.headers[
-      'Authorization'
-    ] = `Bearer ${storage.session.getBearerToken()}`;
-  }
+  // if (storage.session.getBearerToken()) {
+  //   requestDetails.headers[
+  //     'Authorization'
+  //   ] = `Bearer ${storage.session.getBearerToken()}`;
+  // }
 
   const request = axios.create(requestDetails);
 
@@ -262,6 +278,10 @@ export function generateLogKeysApi(requestOverride = {}) {
   const headers = {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
+    // only add authorization header if we have a bearer token
+    ...(storage.session.getBearerToken() && {
+      Authorization: `Bearer ${storage.session.getBearerToken()}`,
+    }),
   };
   const requestDetails = {
     // baseURL: getTenantURL(storage.session.getTenant()),
@@ -273,11 +293,11 @@ export function generateLogKeysApi(requestOverride = {}) {
     proxy: getProxy(),
   };
 
-  if (storage.session.getBearerToken()) {
-    requestDetails.headers[
-      'Authorization'
-    ] = `Bearer ${storage.session.getBearerToken()}`;
-  }
+  // if (storage.session.getBearerToken()) {
+  //   requestDetails.headers[
+  //     'Authorization'
+  //   ] = `Bearer ${storage.session.getBearerToken()}`;
+  // }
 
   const request = axios.create(requestDetails);
 
@@ -335,6 +355,10 @@ export function generateESVApi(resource, requestOverride = {}) {
     'Content-Type': 'application/json',
     // only add API version if we have it
     ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
+    // only add authorization header if we have a bearer token
+    ...(storage.session.getBearerToken() && {
+      Authorization: `Bearer ${storage.session.getBearerToken()}`,
+    }),
   };
   const requestDetails = {
     // baseURL: getTenantURL(storage.session.getTenant()),
@@ -346,11 +370,11 @@ export function generateESVApi(resource, requestOverride = {}) {
     proxy: getProxy(),
   };
 
-  if (storage.session.getBearerToken()) {
-    requestDetails.headers[
-      'Authorization'
-    ] = `Bearer ${storage.session.getBearerToken()}`;
-  }
+  // if (storage.session.getBearerToken()) {
+  //   requestDetails.headers[
+  //     'Authorization'
+  //   ] = `Bearer ${storage.session.getBearerToken()}`;
+  // }
 
   const request = axios.create(requestDetails);
 

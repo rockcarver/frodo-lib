@@ -144,3 +144,16 @@ export function unSubstituteEnvParams(input: string, reader: Reader) {
   });
   return input;
 }
+
+/**
+ * Check if a string is a valid URL
+ * @param {string} urlString input string to be evaluated
+ * @returns {boolean} true if a valid URL, false otherwise
+ */
+export function isValidUrl(urlString: string) {
+  try {
+    return Boolean(new URL(urlString));
+  } catch (error) {
+    return false;
+  }
+}

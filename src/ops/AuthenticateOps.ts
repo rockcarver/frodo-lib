@@ -4,19 +4,49 @@ import readlineSync from 'readline-sync';
 import { encodeBase64Url } from '../api/utils/Base64';
 import storage from '../storage/SessionStorage';
 import * as globalConfig from '../storage/StaticStorage';
-import { debugMessage, printMessage } from './utils/Console';
+import { debugMessage, printMessage, verboseMessage } from './utils/Console';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
 import { step } from '../api/AuthenticateApi';
 import { accessToken, authorize } from '../api/OAuth2OIDCApi';
-import {
-  getConnectionProfile,
-  saveConnectionProfile,
-} from './ConnectionProfileOps';
+import { getConnectionProfile } from './ConnectionProfileOps';
+import { v4 } from 'uuid';
+import { parseUrl } from '../api/utils/ApiUtils';
+import { JwkRsa, createSignedJwtToken } from './JoseOps';
+import { getManagedObject } from '../api/ManagedObjectApi';
+
+const {
+  setAmVersion,
+  setAuthenticationService,
+  setAuthenticationHeaderOverrides,
+  getBearerToken,
+  setBearerToken,
+  getCookieName,
+  setCookieName,
+  getCookieValue,
+  setCookieValue,
+  getDeploymentType,
+  setDeploymentType,
+  getPassword,
+  setPassword,
+  getRealm,
+  setRealm,
+  getServiceAccountId,
+  setServiceAccountId,
+  getServiceAccountJwk,
+  setServiceAccountJwk,
+  getTenant,
+  setTenant,
+  getUseBearerTokenForAmApis,
+  setUseBearerTokenForAmApis,
+  getUsername,
+  setUsername,
+} = storage.session;
 
 const adminClientPassword = 'doesnotmatter';
 const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
 
-const idmAdminScope = 'fr:idm:* openid';
+const idmAdminScopes = 'fr:idm:* openid';
+const serviceAccountScopes = 'fr:am:* fr:idm:* fr:idc:esv:*';
 
 let adminClientId = 'idmAdminClient';
 
@@ -24,7 +54,7 @@ let adminClientId = 'idmAdminClient';
  * Helper function to get cookie name
  * @returns {String} cookie name
  */
-async function getCookieName() {
+async function determineCookieName() {
   try {
     const { data } = await getServerInfo();
     debugMessage(
@@ -85,21 +115,32 @@ function checkAndHandle2FA(payload) {
 
 /**
  * Helper function to set the default realm by deployment type
- * @param {String} deploymentType deployment type
+ * @param {string} deploymentType deployment type
  */
-function determineDefaultRealm(deploymentType) {
-  if (storage.session.getRealm() === globalConfig.DEFAULT_REALM_KEY) {
-    storage.session.setRealm(
-      globalConfig.DEPLOYMENT_TYPE_REALM_MAP[deploymentType]
-    );
+function determineDefaultRealm(deploymentType: string) {
+  if (getRealm() === globalConfig.DEFAULT_REALM_KEY) {
+    setRealm(globalConfig.DEPLOYMENT_TYPE_REALM_MAP[deploymentType]);
   }
 }
 
 /**
  * Helper function to determine the deployment type
- * @returns {String} deployment type
+ * @returns {Promise<string>} deployment type
  */
-async function determineDeploymentType() {
+async function determineDeploymentType(): Promise<string> {
+  const cookieValue = getCookieValue();
+  // https://bugster.forgerock.org/jira/browse/FRAAS-13018
+  // There is a chance that this will be blocked due to security concerns and thus is probably best not to keep active
+  // if (!cookieValue && getUseBearerTokenForAmApis()) {
+  //   const token = await getTokenInfo();
+  //   cookieValue = token.sessionToken;
+  //   setCookieValue(cookieValue);
+  // }
+
+  // if we are using a service account, we know it's cloud
+  if (getUseBearerTokenForAmApis())
+    return globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY;
+
   const fidcClientId = 'idmAdminClient';
   const forgeopsClientId = 'idm-admin-ui';
 
@@ -108,29 +149,30 @@ async function determineDeploymentType() {
     createHash('sha256').update(verifier).digest()
   );
   const challengeMethod = 'S256';
-  const redirectURL = url.resolve(
-    storage.session.getTenant(),
-    redirectUrlTemplate
-  );
+  const redirectURL = url.resolve(getTenant(), redirectUrlTemplate);
 
   const config = {
     maxRedirects: 0,
+    headers: {
+      [getCookieName()]: getCookieValue(),
+    },
   };
-  let bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScope}&response_type=code&client_id=${fidcClientId}&csrf=${storage.session.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+  let bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
 
   let deploymentType = globalConfig.CLASSIC_DEPLOYMENT_TYPE_KEY;
   try {
     await authorize(bodyFormData, config);
   } catch (e) {
+    // debugMessage(e.response);
     if (
       e.response?.status === 302 &&
       e.response.headers?.location?.indexOf('code=') > -1
     ) {
-      printMessage('ForgeRock Identity Cloud ', 'info', false);
+      verboseMessage(`ForgeRock Identity Cloud`['brightCyan'] + ` detected.`);
       deploymentType = globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY;
     } else {
       try {
-        bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScope}&response_type=code&client_id=${forgeopsClientId}&csrf=${storage.session.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+        bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
         await authorize(bodyFormData, config);
       } catch (ex) {
         if (
@@ -138,14 +180,13 @@ async function determineDeploymentType() {
           ex.response.headers?.location?.indexOf('code=') > -1
         ) {
           adminClientId = forgeopsClientId;
-          printMessage('ForgeOps deployment ', 'info', false);
+          verboseMessage(`ForgeOps deployment`['brightCyan'] + ` detected.`);
           deploymentType = globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY;
         } else {
-          printMessage('Classic deployment ', 'info', false);
+          verboseMessage(`Classic deployment`['brightCyan'] + ` detected.`);
         }
       }
     }
-    printMessage('detected.');
   }
   determineDefaultRealm(deploymentType);
   return deploymentType;
@@ -168,15 +209,14 @@ async function getSemanticVersion(versionInfo) {
 
 /**
  * Helper function to authenticate and obtain and store session cookie
- * @returns {String} empty string or null
+ * @returns {string} Session token or null
  */
-async function authenticate() {
-  storage.session.setCookieName(await getCookieName());
+async function authenticate(username: string, password: string) {
   try {
     const config = {
       headers: {
-        'X-OpenAM-Username': storage.session.getUsername(),
-        'X-OpenAM-Password': storage.session.getPassword(),
+        'X-OpenAM-Username': username,
+        'X-OpenAM-Password': password,
       },
     };
     const response1 = await step({}, config);
@@ -188,30 +228,10 @@ async function authenticate() {
       response2 = skip2FA.payload;
     }
     if ('tokenId' in response2) {
-      storage.session.setCookieValue(response2['tokenId']);
-      if (!storage.session.getDeploymentType()) {
-        storage.session.setDeploymentType(await determineDeploymentType());
-      } else {
-        determineDefaultRealm(storage.session.getDeploymentType());
-      }
-      const versionInfo = (await getServerVersionInfo()).data;
-
-      // https://github.com/rockcarver/frodo-cli/issues/109
-      // printMessage(`Connected to ${versionInfo.fullVersion}`);
-
-      // https://github.com/rockcarver/frodo-cli/issues/102
-      printMessage(
-        `Connected to [${storage.session.getTenant()}], [${
-          !storage.session.getRealm() ? 'alpha' : storage.session.getRealm()
-        }] realm, as [${storage.session.getUsername()}]`
-      );
-      const version = await getSemanticVersion(versionInfo);
-      storage.session.setAmVersion(version);
-      return '';
+      return response2['tokenId'];
     }
     printMessage(`error authenticating`, 'error');
     printMessage('+++ likely cause, bad credentials!!! +++', 'error');
-    return null;
   } catch (e) {
     if (e.response?.status === 401) {
       printMessage(`error authenticating - ${e.message}`, 'error');
@@ -224,20 +244,20 @@ async function authenticate() {
       printMessage(`error authenticating - ${e.message}`, 'error');
       printMessage(e.response?.data, 'error');
     }
-    return null;
   }
+  return null;
 }
 
 /**
  * Helper function to obtain an oauth2 authorization code
- * @param {String} redirectURL oauth2 redirect uri
- * @param {String} codeChallenge PKCE code challenge
- * @param {String} codeChallengeMethod PKCE code challenge method
- * @returns {String} oauth2 authorization code or null
+ * @param {string} redirectURL oauth2 redirect uri
+ * @param {string} codeChallenge PKCE code challenge
+ * @param {string} codeChallengeMethod PKCE code challenge method
+ * @returns {string} oauth2 authorization code or null
  */
 async function getAuthCode(redirectURL, codeChallenge, codeChallengeMethod) {
   try {
-    const bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScope}&response_type=code&client_id=${adminClientId}&csrf=${storage.session.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
+    const bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${adminClientId}&csrf=${getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
     const config = {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -275,29 +295,23 @@ async function getAuthCode(redirectURL, codeChallenge, codeChallengeMethod) {
 
 /**
  * Helper function to obtain oauth2 access token
- * @returns {String} empty string or null
+ * @returns {Promise<string | null>} access token or null
  */
-async function getAccessToken() {
+async function getAccessTokenForUser(): Promise<string | null> {
   try {
     const verifier = encodeBase64Url(randomBytes(32));
     const challenge = encodeBase64Url(
       createHash('sha256').update(verifier).digest()
     );
     const challengeMethod = 'S256';
-    const redirectURL = url.resolve(
-      storage.session.getTenant(),
-      redirectUrlTemplate
-    );
+    const redirectURL = url.resolve(getTenant(), redirectUrlTemplate);
     const authCode = await getAuthCode(redirectURL, challenge, challengeMethod);
     if (authCode == null) {
       printMessage('error getting auth code', 'error');
       return null;
     }
     let response = null;
-    if (
-      storage.session.getDeploymentType() ===
-      globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY
-    ) {
+    if (getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) {
       const config = {
         auth: {
           username: adminClientId,
@@ -310,66 +324,175 @@ async function getAccessToken() {
       const bodyFormData = `client_id=${adminClientId}&redirect_uri=${redirectURL}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
       response = await accessToken(bodyFormData);
     }
-    if (response.status < 200 || response.status > 399) {
-      printMessage(`access token call returned ${response.status}`, 'error');
-      return null;
-    }
     if ('access_token' in response.data) {
-      storage.session.setBearerToken(response.data.access_token);
-      return '';
+      return response.data.access_token;
     }
-    printMessage("can't get access token", 'error');
-    return null;
-  } catch (e) {
-    printMessage('error getting access token - ', 'error');
-    return null;
+    printMessage('No access token in response.', 'error');
+  } catch (error) {
+    debugMessage(`Error getting access token for user: ${error}`);
+    debugMessage(error.response?.data);
   }
+  return null;
+}
+
+function createPayload(serviceAccountId: string) {
+  const u = parseUrl(getTenant());
+  const aud = `${u.origin}:${
+    u.port ? u.port : u.protocol === 'https' ? '443' : '80'
+  }${u.pathname}/oauth2/access_token`;
+
+  // Cross platform way of setting JWT expiry time 3 minutes in the future, expressed as number of seconds since EPOCH
+  const exp = Math.floor(new Date().getTime() / 1000 + 180);
+
+  // A unique ID for the JWT which is required when requesting the openid scope
+  const jti = v4();
+
+  const iss = serviceAccountId;
+  const sub = serviceAccountId;
+
+  // Create the payload for our bearer token
+  const payload = { iss, sub, aud, exp, jti };
+
+  return payload;
+}
+
+/**
+ * Get access token for service account
+ * @param {string} serviceAccountId UUID of service account
+ * @param {JwkRsa} jwk Java Wek Key
+ * @returns {string | null} Access token or null
+ */
+export async function getAccessTokenForServiceAccount(
+  serviceAccountId: string,
+  jwk: JwkRsa
+): Promise<string | null> {
+  try {
+    debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: start`);
+    const payload = createPayload(serviceAccountId);
+    debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: payload:`);
+    debugMessage(payload);
+    const jwt = await createSignedJwtToken(payload, jwk);
+    debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: jwt:`);
+    debugMessage(jwt);
+    const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${serviceAccountScopes}`;
+    const response = await accessToken(bodyFormData);
+    if ('access_token' in response.data) {
+      debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: token:`);
+      debugMessage(response.data.access_token);
+      debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: end`);
+      return response.data.access_token;
+    }
+    debugMessage(`No access token in response.`);
+  } catch (error) {
+    debugMessage(`error getting access token for service account: ${error}`);
+    debugMessage(error.response?.data);
+  }
+  return null;
+}
+async function getVersionAndDeploymentType() {
+  if (!getDeploymentType()) {
+    setDeploymentType(await determineDeploymentType());
+  } else {
+    determineDefaultRealm(getDeploymentType());
+  }
+  const versionInfo = (await getServerVersionInfo()).data;
+
+  // https://github.com/rockcarver/frodo-cli/issues/109
+  debugMessage(`Full version: ${versionInfo.fullVersion}`);
+
+  const version = await getSemanticVersion(versionInfo);
+  setAmVersion(version);
+}
+
+async function getLoggedInSubject(): Promise<string> {
+  let subjectString = `user ${getUsername()}`;
+  if (getUseBearerTokenForAmApis()) {
+    const name = (
+      await getManagedObject('svcacct', getServiceAccountId(), ['name'])
+    ).data.name;
+    subjectString = `service account ${name} [${getServiceAccountId()}]`;
+  }
+  return subjectString;
 }
 
 /**
  * Get tokens
  * @param {boolean} save true to save a connection profile upon successful authentication, false otherwise
- * @returns {boolean} true if tokens were successfully obtained, false otherwise
+ * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
  */
-export async function getTokens(save = false) {
-  let credsFromParameters = true;
-  // if username/password on cli are empty, try to read from connections.json
-  if (
-    storage.session.getUsername() == null &&
-    storage.session.getPassword() == null
-  ) {
-    credsFromParameters = false;
-    const conn = await getConnectionProfile();
-    if (conn) {
-      storage.session.setTenant(conn.tenant);
-      storage.session.setUsername(conn.username);
-      storage.session.setPassword(conn.password);
-      storage.session.setAuthenticationService(conn.authenticationService);
-      storage.session.setAuthenticationHeaderOverrides(
-        conn.authenticationHeaderOverrides
-      );
-    } else {
-      return false;
+export async function getTokens(): Promise<boolean> {
+  try {
+    // if username/password on cli are empty, try to read from connections.json
+    if (
+      getUsername() == null &&
+      getPassword() == null &&
+      !getServiceAccountId() &&
+      !getServiceAccountJwk()
+    ) {
+      const conn = await getConnectionProfile();
+      if (conn) {
+        setTenant(conn.tenant);
+        setUsername(conn.username);
+        setPassword(conn.password);
+        setAuthenticationService(conn.authenticationService);
+        setAuthenticationHeaderOverrides(conn.authenticationHeaderOverrides);
+        setServiceAccountId(conn.svcacctId);
+        setServiceAccountJwk(conn.svcacctJwk);
+      } else {
+        return false;
+      }
     }
+    // now that we have the full tenant URL we can lookup the cookie name
+    setCookieName(await determineCookieName());
+
+    // use service account to login?
+    if (getServiceAccountId() && getServiceAccountJwk()) {
+      debugMessage(
+        `AuthenticateOps.getTokens: Authenticating with service account ${getServiceAccountId()}`
+      );
+      const token = await getAccessTokenForServiceAccount(
+        getServiceAccountId(),
+        getServiceAccountJwk()
+      );
+      setBearerToken(token);
+      setUseBearerTokenForAmApis(true);
+      await getVersionAndDeploymentType();
+    }
+    // use user account to login
+    else {
+      debugMessage(
+        `AuthenticateOps.getTokens: Authenticating with user account ${getUsername()}`
+      );
+      const token = await authenticate(getUsername(), getPassword());
+      if (token) setCookieValue(token);
+      await getVersionAndDeploymentType();
+      if (
+        getCookieValue() &&
+        !getBearerToken() &&
+        (getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY ||
+          getDeploymentType() === globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY)
+      ) {
+        const accessToken = await getAccessTokenForUser();
+        if (accessToken) setBearerToken(accessToken);
+      }
+    }
+    if (
+      getCookieValue() ||
+      (getUseBearerTokenForAmApis() && getBearerToken())
+    ) {
+      // https://github.com/rockcarver/frodo-cli/issues/102
+      printMessage(
+        `Connected to ${getTenant()} [${
+          getRealm() ? getRealm() : 'root'
+        }] as ${await getLoggedInSubject()}`,
+        'info'
+      );
+      return true;
+    }
+  } catch (error) {
+    printMessage(`Error getting tokens: ${error.message}`, 'error');
+    debugMessage(error.response?.status);
+    debugMessage(error.stack);
   }
-  await authenticate();
-  if (
-    storage.session.getCookieValue() &&
-    !storage.session.getBearerToken() &&
-    (storage.session.getDeploymentType() ===
-      globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY ||
-      storage.session.getDeploymentType() ===
-        globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY)
-  ) {
-    await getAccessToken();
-  }
-  if (save && storage.session.getCookieValue() && credsFromParameters) {
-    // valid cookie, which means valid username/password combo. Save it in connections.json
-    saveConnectionProfile();
-    return true;
-  }
-  if (!storage.session.getCookieValue()) {
-    return false;
-  }
-  return true;
+  return false;
 }

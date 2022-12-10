@@ -129,9 +129,9 @@ export function saveToFile(type, data, identifier, filename) {
  * @param {Object} data data object
  * @param {String} filename file name
  */
-export function saveJsonToFile(data, filename) {
+export function saveJsonToFile(data, filename, includeMeta = true) {
   const exportData = data;
-  exportData.meta = getMetadata();
+  if (includeMeta) exportData.meta = getMetadata();
   fs.writeFile(filename, JSON.stringify(exportData, null, 2), (err) => {
     if (err) {
       return printMessage(`ERROR - can't save ${filename}`, 'error');

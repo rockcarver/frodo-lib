@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { JwkRsa } from '../ops/JoseOps';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -46,6 +47,17 @@ export default {
       (_sessionStorage['authenticationHeaderOverrides'] = value),
     getAuthenticationHeaderOverrides: () =>
       _sessionStorage['authenticationHeaderOverrides'],
+
+    setServiceAccountId: (value: string) =>
+      (_sessionStorage['serviceAccountId'] = value),
+    getServiceAccountId: (): string => _sessionStorage['serviceAccountId'],
+    setServiceAccountJwk: (value: JwkRsa) =>
+      (_sessionStorage['serviceAccountJwk'] = value),
+    getServiceAccountJwk: (): JwkRsa => _sessionStorage['serviceAccountJwk'],
+    setUseBearerTokenForAmApis: (value: boolean) =>
+      (_sessionStorage['useBearerTokenForAmApis'] = value),
+    getUseBearerTokenForAmApis: () =>
+      _sessionStorage['useBearerTokenForAmApis'],
 
     setBearerToken: (value) => (_sessionStorage['bearerToken'] = value),
     getBearerToken: () => _sessionStorage['bearerToken'],
