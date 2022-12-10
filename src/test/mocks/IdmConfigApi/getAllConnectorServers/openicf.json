@@ -1,0 +1,14 @@
+{
+    "openicf": [
+        {
+            "name": "online_rcs",
+            "type": "remoteConnectorClient",
+            "ok": true
+        },
+        {
+            "name": "offline_rcs",
+            "type": "remoteConnectorClient",
+            "ok": false
+        }
+    ]
+}
