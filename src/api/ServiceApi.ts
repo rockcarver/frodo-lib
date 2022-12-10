@@ -4,13 +4,11 @@ import { AmServiceSkeleton, PagedResult } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 
-const serviceURLTemplate = '%s/json%s/realm-config/services/%s';
+const serviceURLTemplate = '%s/json%s/%s/services/%s';
 const serviceURLNextDescendentsTemplate =
-  '%s/json%s/realm-config/services/%s?_action=nextdescendents';
-const serviceURLNextDescendentTemplate =
-  '%s/json%s/realm-config/services/%s/%s/%s';
-const serviceListURLTemplate =
-  '%s/json%s/realm-config/services?_queryFilter=true';
+  '%s/json%s/%s/services/%s?_action=nextdescendents';
+const serviceURLNextDescendentTemplate = '%s/json%s/%s/services/%s/%s/%s';
+const serviceListURLTemplate = '%s/json%s/%s/services?_queryFilter=true';
 const apiVersion = 'protocol=2.0,resource=1.0';
 
 function getApiConfig() {
@@ -57,16 +55,40 @@ export interface ServiceNextDescendent {
 }
 
 /**
+ * Helper function to get the realm path required for the API call considering if the request
+ * should obtain the realm config or the global config of the service in question
+ * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise.
+ * @returns {string} The realm path to be used for the request
+ */
+function getRealmPath(globalConfig: boolean): string {
+  if (globalConfig) return '';
+  return getCurrentRealmPath();
+}
+
+/**
+ * Helper function to get the config path required for the API call considering if the request
+ * should obtain the realm config or the global config of the service in question
+ * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise.
+ * @returns {string} The config path to be used for the request
+ */
+function getConfigPath(globalConfig: boolean): string {
+  if (globalConfig) return 'global-config';
+  return 'realm-config';
+}
+
+/**
  * Get a list of services
+ * @param {boolean} globalConfig true if the global list of services is requested, false otherwise. Default: false.
  * @returns {Promise<ServiceListItem[]>} a promise resolving to an array of service list items.
  */
-export async function getListOfServices(): Promise<
-  PagedResult<ServiceListItem>
-> {
+export async function getListOfServices(
+  globalConfig = false
+): Promise<PagedResult<ServiceListItem>> {
   const urlString = util.format(
     serviceListURLTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath()
+    getRealmPath(globalConfig),
+    getConfigPath(globalConfig)
   );
   const { data } = await generateAmApi(getApiConfig()).get<
     PagedResult<ServiceListItem>
@@ -79,15 +101,18 @@ export async function getListOfServices(): Promise<
 /**
  * Get service
  * @param {string} serviceId servide id
+ * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AmService>} a promise resolving to a service object
  */
 export async function getService(
-  serviceId: string
+  serviceId: string,
+  globalConfig = false
 ): Promise<AmServiceSkeleton> {
   const urlString = util.format(
     serviceURLTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(),
+    getRealmPath(globalConfig),
+    getConfigPath(globalConfig),
     serviceId
   );
   const { data } = await generateAmApi(getApiConfig()).get<AmServiceSkeleton>(
@@ -102,15 +127,18 @@ export async function getService(
 /**
  * Get a service's decendents (applicable for structured services only, e.g. SocialIdentityProviders)
  * @param {string} serviceId service id
+ * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<ServiceNextDescendent[]>} a promise resolving to an array of the service's next decendents
  */
 export async function getServiceDescendents(
-  serviceId: string
+  serviceId: string,
+  globalConfig = false
 ): Promise<ServiceNextDescendent[]> {
   const urlString = util.format(
     serviceURLNextDescendentsTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(),
+    getRealmPath(globalConfig),
+    getConfigPath(globalConfig),
     serviceId
   );
   const { data } = await generateAmApi(
@@ -125,16 +153,19 @@ export async function getServiceDescendents(
  * Create or update a service
  * @param {string} serviceId service id
  * @param {AmService} serviceData service configuration
+ * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AmService>} a promise resolving to a service object
  */
 export async function putService(
   serviceId: string,
-  serviceData: AmServiceSkeleton
+  serviceData: AmServiceSkeleton,
+  globalConfig = false
 ): Promise<AmServiceSkeleton> {
   const urlString = util.format(
     serviceURLTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(),
+    getRealmPath(globalConfig),
+    getConfigPath(globalConfig),
     serviceId
   );
   const { data } = await generateAmApi(getApiConfig()).put(
@@ -153,18 +184,21 @@ export async function putService(
  * @param {string} serviceType service type
  * @param {string} serviceNextDescendentId service instance id
  * @param {ServiceNextDescendent} serviceNextDescendentData service next descendent configuration
+ * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<ServiceNextDescendent>} a promise resolving to a service next descendent
  */
 export async function putServiceNextDescendent(
   serviceId: string,
   serviceType: string,
   serviceNextDescendentId: string,
-  serviceNextDescendentData: ServiceNextDescendent
+  serviceNextDescendentData: ServiceNextDescendent,
+  globalConfig = false
 ): Promise<ServiceNextDescendent> {
   const urlString = util.format(
     serviceURLNextDescendentTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(),
+    getRealmPath(globalConfig),
+    getConfigPath(globalConfig),
     serviceId,
     serviceType,
     serviceNextDescendentId
@@ -182,15 +216,18 @@ export async function putServiceNextDescendent(
 /**
  * Delete service
  * @param {string} serviceId service id
+ * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AmService>} a promise resolving to a service object
  */
 export async function deleteService(
-  serviceId: string
+  serviceId: string,
+  globalConfig = false
 ): Promise<AmServiceSkeleton> {
   const urlString = util.format(
     serviceURLTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(),
+    getRealmPath(globalConfig),
+    getConfigPath(globalConfig),
     serviceId
   );
   const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
@@ -204,17 +241,20 @@ export async function deleteService(
  * @param {string} serviceId service id
  * @param {string} serviceType service type
  * @param {string} serviceNextDescendentId service instance id
+ * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<ServiceNextDescendent>} a promise resolving to a service next descendent
  */
 export async function deleteServiceNextDescendent(
   serviceId: string,
   serviceType: string,
-  serviceNextDescendentId: string
+  serviceNextDescendentId: string,
+  globalConfig = false
 ): Promise<ServiceNextDescendent> {
   const urlString = util.format(
     serviceURLNextDescendentTemplate,
     storage.session.getTenant(),
-    getCurrentRealmPath(),
+    getRealmPath(globalConfig),
+    getConfigPath(globalConfig),
     serviceId,
     serviceType,
     serviceNextDescendentId
