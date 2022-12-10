@@ -4,9 +4,11 @@ import { generateOauth2Api } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 import storage from '../storage/SessionStorage';
 import { encode } from './utils/Base64';
+import { AxiosRequestConfig } from 'axios';
 
 const authorizeUrlTemplate = '%s/oauth2%s/authorize';
 const accessTokenUrlTemplate = '%s/oauth2%s/access_token';
+const tokenInfoUrlTemplate = '%s/oauth2%s/tokeninfo';
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => ({
   apiVersion,
@@ -18,7 +20,7 @@ const getApiConfig = () => ({
  * @param {Object} config axios request config object
  * @returns {Promise} a promise resolving to an object containing the authorization server response object
  */
-export async function authorize(data, config = {}) {
+export async function authorize(data, config: AxiosRequestConfig = {}) {
   const authorizeURL = util.format(
     authorizeUrlTemplate,
     storage.session.getTenant(),
@@ -33,13 +35,26 @@ export async function authorize(data, config = {}) {
  * @param {*} config config axios request config object
  * @returns {Promise} a promise resolving to an object containing the authorization server response object containing the access token
  */
-export async function accessToken(data, config = {}) {
+export async function accessToken(data, config: AxiosRequestConfig = {}) {
   const accessTokenURL = util.format(
     accessTokenUrlTemplate,
     storage.session.getTenant(),
     ''
   );
   return generateOauth2Api(getApiConfig()).post(accessTokenURL, data, config);
+}
+
+export async function getTokenInfo(config: AxiosRequestConfig = {}) {
+  const accessTokenURL = util.format(
+    tokenInfoUrlTemplate,
+    storage.session.getTenant(),
+    ''
+  );
+  const { data } = await generateOauth2Api(getApiConfig()).get(
+    accessTokenURL,
+    config
+  );
+  return data;
 }
 
 /**

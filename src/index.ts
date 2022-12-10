@@ -27,6 +27,7 @@ export * as EmailTemplate from './ops/EmailTemplateOps';
 export * as Idp from './ops/IdpOps';
 export * as Idm from './ops/IdmOps';
 export * as Journey from './ops/JourneyOps';
+export * as Jose from './ops/JoseOps';
 export * as Log from './ops/LogOps';
 export * as ManagedObject from './ops/ManagedObjectOps';
 export * as Node from './ops/NodeOps';
@@ -37,6 +38,7 @@ export * as Saml2 from './ops/Saml2Ops';
 export * as Script from './ops/ScriptOps';
 export * as Service from './ops/ServiceOps';
 export * as Secrets from './ops/SecretsOps';
+export * as ServiceAccount from './ops/ServiceAccountOps';
 export * as Startup from './ops/StartupOps';
 export * as Theme from './ops/ThemeOps';
 export * as Types from './ops/OpsTypes';
@@ -49,6 +51,7 @@ export * as ExportImportUtils from './ops/utils/ExportImportUtils';
 // TODO: reconsider the aproach to pass in state from client
 // lib should be stateless, an aplication should own its state
 export * as state from './storage/SessionStorage';
+export * as constants from './storage/StaticStorage';
 
 // Mock Engine
 export * as ForgeRockApiMockEngine from './test/mocks/ForgeRockApiMockEngine';
