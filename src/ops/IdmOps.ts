@@ -4,7 +4,16 @@ import {
   putConfigEntity as putConfigEntityRaw,
   getConfigEntitiesByType as getConfigEntitiesByTypeRaw,
   queryAllManagedObjectsByType as queryAllManagedObjectsByTypeRaw,
+  getAllConnectorServers as getAllConnectorServersRaw,
 } from '../api/IdmConfigApi';
+
+/**
+ * Get all IDM config entities
+ * @returns {Promise} a promise that resolves to all IDM config entities
+ */
+export async function getAllConnectorServers() {
+  return getAllConnectorServersRaw();
+}
 
 /**
  * Get all IDM config entities
