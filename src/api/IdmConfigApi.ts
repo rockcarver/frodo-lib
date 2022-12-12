@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateIdmApi } from './BaseApi';
 import { getTenantURL } from './utils/ApiUtils';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 const idmAllConfigURLTemplate = '%s/openidm/config';
 const idmConfigURLTemplate = '%s/openidm/config/%s';
@@ -16,7 +16,7 @@ const idmManagedObjectURLTemplate =
 export async function getAllConfigEntities() {
   const urlString = util.format(
     idmAllConfigURLTemplate,
-    getTenantURL(storage.session.getTenant())
+    getTenantURL(state.getHost())
   );
   const { data } = await generateIdmApi().get(urlString);
   return data;
@@ -30,7 +30,7 @@ export async function getAllConfigEntities() {
 export async function getConfigEntitiesByType(type) {
   const urlString = util.format(
     idmConfigEntityQueryTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     encodeURIComponent(`_id sw '${type}'`)
   );
   const { data } = await generateIdmApi().get(urlString);
@@ -45,7 +45,7 @@ export async function getConfigEntitiesByType(type) {
 export async function getConfigEntity(entityId) {
   const urlString = util.format(
     idmConfigURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     entityId
   );
   const { data } = await generateIdmApi().get(urlString);
@@ -64,7 +64,7 @@ export async function putConfigEntity(
 ) {
   const urlString = util.format(
     idmConfigURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     entityId
   );
   try {
@@ -103,7 +103,7 @@ export async function queryAllManagedObjectsByType(
     : `${idmManagedObjectURLTemplate}${fieldsParam}`;
   const urlString = util.format(
     urlTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     type
   );
   const { data } = await generateIdmApi().get(urlString);

@@ -14,8 +14,8 @@ Polly.register(FSPersister);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-state.default.session.setTenant('https://openam-frodo-dev.forgeblocks.com/am');
-state.default.session.setRealm('alpha');
+state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
+state.setRealm('alpha');
 
 let recordIfMissing = true;
 let mode = MODES.REPLAY;

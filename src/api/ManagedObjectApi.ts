@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateIdmApi } from './BaseApi';
 import { getTenantURL } from './utils/ApiUtils';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 import { ObjectSkeletonInterface } from './ApiTypes';
 
 const managedObjectURLTemplate = '%s/openidm/managed/%s';
@@ -19,7 +19,7 @@ export async function getManagedObject(type, id, fields) {
     fields.length > 0 ? `_fields=${fields.join(',')}` : '_fields=*';
   const urlString = util.format(
     `${managedObjectByIdURLTemplate}?${fieldsParam}`,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     type,
     id
   );
@@ -38,7 +38,7 @@ export async function createManagedObject(
 ): Promise<ObjectSkeletonInterface> {
   const urlString = util.format(
     createManagedObjectURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     moType
   );
   const { data } = await generateIdmApi().post(urlString, moData);
@@ -54,7 +54,7 @@ export async function createManagedObject(
 export async function putManagedObject(type, id, data) {
   const urlString = util.format(
     managedObjectByIdURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     type,
     id
   );
@@ -76,7 +76,7 @@ export async function queryAllManagedObjectsByType(type, fields, pageCookie) {
     : `${managedObjectQueryAllURLTemplate}${fieldsParam}`;
   const urlString = util.format(
     urlTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     type
   );
   return generateIdmApi().get(urlString);

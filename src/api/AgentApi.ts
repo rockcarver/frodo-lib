@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 import { debugMessage } from '../ops/utils/Console';
 
 const getAgentTypesURLTemplate =
@@ -32,7 +32,7 @@ export async function getAgentTypes() {
   debugMessage(`AgentApi.getAgentTypes: start`);
   const urlString = util.format(
     getAgentTypesURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath()
   );
   const { data } = await generateAmApi(getApiConfig()).get(urlString, {
@@ -51,7 +51,7 @@ export async function getAgentsByType(agentType: string) {
   debugMessage(`AgentApi.getAgentsByType: start`);
   const urlString = util.format(
     agentListURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     agentType
   );
@@ -70,7 +70,7 @@ export async function getAgents() {
   debugMessage(`AgentApi.getAgents: start`);
   const urlString = util.format(
     getAllAgentsURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath()
   );
   const { data } = await generateAmApi(getApiConfig()).post(
@@ -93,7 +93,7 @@ export async function findAgentById(agentId: string) {
   debugMessage(`AgentApi.findAgentById: start`);
   const urlString = util.format(
     queryAgentURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     agentId
   );
@@ -114,7 +114,7 @@ export async function findAgentByTypeAndId(agentType: string, agentId: string) {
   debugMessage(`AgentApi.findAgentById: start`);
   const urlString = util.format(
     queryAgentByTypeURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     agentType,
     agentId
@@ -136,7 +136,7 @@ export async function getAgentByTypeAndId(agentType: string, agentId: string) {
   debugMessage(`AgentApi.getAgentByTypeAndId: start`);
   const urlString = util.format(
     agentURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     agentType,
     agentId
@@ -168,7 +168,7 @@ export async function putAgentByTypeAndId(
   delete agent._rev;
   const urlString = util.format(
     agentURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     agentType,
     agentId
@@ -193,7 +193,7 @@ export async function deleteAgentByTypeAndId(
   debugMessage(`AgentApi.deleteAgentByTypeAndId: start`);
   const urlString = util.format(
     agentURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     agentType,
     agentId

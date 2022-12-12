@@ -2,7 +2,7 @@ import { printMessage } from './utils/Console';
 import { getCurrentTimestamp } from './utils/ExportImportUtils';
 import { createAPIKeyAndSecret, getAPIKeys, getSources } from '../api/LogApi';
 
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 import * as LogApi from '../api/LogApi';
 
@@ -318,7 +318,7 @@ export async function tailLogs(source, levels, txid, cookie, nf) {
 
 export async function provisionCreds() {
   try {
-    let keyName = `frodo-${storage.session.getUsername()}`;
+    let keyName = `frodo-${state.getUsername()}`;
     return getAPIKeys()
       .then((response) => {
         response.data.result.forEach((k) => {
@@ -337,7 +337,7 @@ export async function provisionCreds() {
               return null;
             }
             printMessage(
-              `Created a new log API key [${keyName}] in ${storage.session.getTenant()}`
+              `Created a new log API key [${keyName}] in ${state.getHost()}`
             );
             return resp.data;
           })

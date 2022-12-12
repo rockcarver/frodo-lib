@@ -50,7 +50,7 @@ export * as LibVersion from './ops/utils/Version';
 export * as ExportImportUtils from './ops/utils/ExportImportUtils';
 // TODO: reconsider the aproach to pass in state from client
 // lib should be stateless, an aplication should own its state
-export * as state from './storage/SessionStorage';
+export * as state from './shared/State';
 export * as constants from './storage/StaticStorage';
 
 // Mock Engine

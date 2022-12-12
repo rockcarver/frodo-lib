@@ -1,6 +1,6 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 const serverInfoUrlTemplate = '%s/json/serverinfo/%s';
 
@@ -19,11 +19,7 @@ const getServerVersionApiConfig = () => ({
  * @returns {Promise} a promise that resolves to an object containing a server info object
  */
 export async function getServerInfo() {
-  const urlString = util.format(
-    serverInfoUrlTemplate,
-    storage.session.getTenant(),
-    '*'
-  );
+  const urlString = util.format(serverInfoUrlTemplate, state.getHost(), '*');
   return generateAmApi(getServerInfoApiConfig()).get(urlString, {});
 }
 
@@ -34,7 +30,7 @@ export async function getServerInfo() {
 export async function getServerVersionInfo() {
   const urlString = util.format(
     serverInfoUrlTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     'version'
   );
   return generateAmApi(getServerVersionApiConfig()).get(urlString, {});

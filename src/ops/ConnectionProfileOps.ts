@@ -1,7 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 import DataProtection from './utils/DataProtection';
 import {
   createObjectTable,
@@ -16,22 +16,6 @@ import { createServiceAccount } from './ServiceAccountOps';
 import { ObjectSkeletonInterface } from '../api/ApiTypes';
 import { saveJsonToFile } from './utils/ExportImportUtils';
 import { isValidUrl } from './utils/OpsUtils';
-
-const {
-  getAuthenticationService,
-  getAuthenticationHeaderOverrides,
-  getConnectionProfilesPath: _getConnectionProfilesPath,
-  getLogApiKey,
-  getLogApiSecret,
-  getPassword,
-  getServiceAccountId,
-  setServiceAccountId,
-  getServiceAccountJwk,
-  setServiceAccountJwk,
-  getTenant,
-  setTenant,
-  getUsername,
-} = storage.session;
 
 const crypto = new DataProtection();
 
@@ -78,7 +62,7 @@ const newProfileFilename = 'Connections.json';
  */
 export function getConnectionProfilesPath(): string {
   return (
-    _getConnectionProfilesPath() ||
+    state.getConnectionProfilesPath() ||
     process.env[FRODO_CONNECTION_PROFILES_PATH_KEY] ||
     `${os.homedir()}/.frodo/${newProfileFilename}`
   );
@@ -270,7 +254,7 @@ export async function getConnectionProfileByHost(
  * @returns {Object} connection profile or null
  */
 export async function getConnectionProfile(): Promise<ConnectionProfileInterface> {
-  return getConnectionProfileByHost(getTenant());
+  return getConnectionProfileByHost(state.getHost());
 }
 
 /**
@@ -294,14 +278,14 @@ export async function saveConnectionProfile(host: string): Promise<boolean> {
     // replace tenant in session with real tenant url if necessary
     if (found.length === 1) {
       profile = found[0];
-      setTenant(profile.tenant);
+      state.setHost(profile.tenant);
       verboseMessage(`Existing profile: ${profile.tenant}`);
     }
 
     // connection profile not found, validate host is a real URL
     if (found.length === 0) {
       if (isValidUrl(host)) {
-        setTenant(host);
+        state.setHost(host);
         verboseMessage(`New profile: ${host}`);
       } else {
         printMessage(
@@ -316,42 +300,47 @@ export async function saveConnectionProfile(host: string): Promise<boolean> {
   }
 
   // user account
-  if (getUsername()) profile.username = getUsername();
-  if (getPassword())
-    profile.encodedPassword = await crypto.encrypt(getPassword());
+  if (state.getUsername()) profile.username = state.getUsername();
+  if (state.getPassword())
+    profile.encodedPassword = await crypto.encrypt(state.getPassword());
 
   // log API
-  if (getLogApiKey()) profile.logApiKey = getLogApiKey();
-  if (getLogApiSecret())
-    profile.encodedLogApiSecret = await crypto.encrypt(getLogApiSecret());
+  if (state.getLogApiKey()) profile.logApiKey = state.getLogApiKey();
+  if (state.getLogApiSecret())
+    profile.encodedLogApiSecret = await crypto.encrypt(state.getLogApiSecret());
 
   // service account
-  if (getServiceAccountId()) profile.svcacctId = getServiceAccountId();
-  if (getServiceAccountJwk())
-    profile.encodedSvcacctJwk = await crypto.encrypt(getServiceAccountJwk());
+  if (state.getServiceAccountId())
+    profile.svcacctId = state.getServiceAccountId();
+  if (state.getServiceAccountJwk())
+    profile.encodedSvcacctJwk = await crypto.encrypt(
+      state.getServiceAccountJwk()
+    );
 
   // advanced settings
-  if (getAuthenticationService()) {
-    profile.authenticationService = getAuthenticationService();
+  if (state.getAuthenticationService()) {
+    profile.authenticationService = state.getAuthenticationService();
     printMessage(
-      'Advanced setting: Authentication Service: ' + getAuthenticationService(),
+      'Advanced setting: Authentication Service: ' +
+        state.getAuthenticationService(),
       'info'
     );
   }
   if (
-    getAuthenticationHeaderOverrides() &&
-    Object.entries(getAuthenticationHeaderOverrides()).length
+    state.getAuthenticationHeaderOverrides() &&
+    Object.entries(state.getAuthenticationHeaderOverrides()).length
   ) {
-    profile.authenticationHeaderOverrides = getAuthenticationHeaderOverrides();
+    profile.authenticationHeaderOverrides =
+      state.getAuthenticationHeaderOverrides();
     printMessage('Advanced setting: Authentication Header Overrides: ', 'info');
-    printMessage(getAuthenticationHeaderOverrides(), 'info');
+    printMessage(state.getAuthenticationHeaderOverrides(), 'info');
   }
 
   // remove the helper key 'tenant'
   delete profile.tenant;
 
   // update profiles
-  profiles[getTenant()] = profile;
+  profiles[state.getHost()] = profile;
 
   // sort profiles
   const orderedProfiles = Object.keys(profiles)
@@ -363,7 +352,7 @@ export async function saveConnectionProfile(host: string): Promise<boolean> {
 
   // save profiles
   saveJsonToFile(orderedProfiles, filename, false);
-  verboseMessage(`Saved connection profile ${getTenant()} in ${filename}`);
+  verboseMessage(`Saved connection profile ${state.getHost()} in ${filename}`);
   return true;
 }
 
@@ -471,7 +460,7 @@ export async function addNewServiceAccount(): Promise<ObjectSkeletonInterface> {
   debugMessage(`ConnectionProfileOps.addNewServiceAccount: start`);
   const name = `Frodo-SA-${new Date().getTime()}`;
   debugMessage(`ConnectionProfileOps.addNewServiceAccount: name=${name}...`);
-  const description = `${getUsername()}'s Frodo Service Account`;
+  const description = `${state.getUsername()}'s Frodo Service Account`;
   const scope = ['fr:am:*', 'fr:idm:*', 'fr:idc:esv:*'];
   const jwkPrivate = await createJwkRsa();
   const jwkPublic = await getJwkRsaPublic(jwkPrivate);
@@ -484,8 +473,8 @@ export async function addNewServiceAccount(): Promise<ObjectSkeletonInterface> {
     jwks
   );
   debugMessage(`ConnectionProfileOps.addNewServiceAccount: id=${sa._id}`);
-  setServiceAccountId(sa._id);
-  setServiceAccountJwk(jwkPrivate);
+  state.setServiceAccountId(sa._id);
+  state.setServiceAccountJwk(jwkPrivate);
   debugMessage(`ConnectionProfileOps.addNewServiceAccount: end`);
   return sa;
 }
