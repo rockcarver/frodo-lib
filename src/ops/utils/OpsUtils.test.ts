@@ -1,5 +1,5 @@
 import * as OpsUtils from './OpsUtils';
-import sessionStorage from '../../storage/SessionStorage';
+import * as state from '../../shared/State';
 import {
   CLOUD_DEPLOYMENT_TYPE_KEY,
   FORGEOPS_DEPLOYMENT_TYPE_KEY,
@@ -15,8 +15,8 @@ describe('OpsUtils - getRealmManagedUser()', () => {
     // Arrange
     const REALM = 'alpha';
     const DEPLOYMENT_TYPE = CLOUD_DEPLOYMENT_TYPE_KEY;
-    sessionStorage.session.setRealm(REALM);
-    sessionStorage.session.setDeploymentType(DEPLOYMENT_TYPE);
+    state.setRealm(REALM);
+    state.setDeploymentType(DEPLOYMENT_TYPE);
     // Act
     const testString = OpsUtils.getRealmManagedUser();
     // Assert
@@ -27,8 +27,8 @@ describe('OpsUtils - getRealmManagedUser()', () => {
     // Arrange
     const REALM = '/alpha';
     const DEPLOYMENT_TYPE = CLOUD_DEPLOYMENT_TYPE_KEY;
-    sessionStorage.session.setRealm(REALM);
-    sessionStorage.session.setDeploymentType(DEPLOYMENT_TYPE);
+    state.setRealm(REALM);
+    state.setDeploymentType(DEPLOYMENT_TYPE);
     // Act
     const testString = OpsUtils.getRealmManagedUser();
     // Assert
@@ -39,8 +39,8 @@ describe('OpsUtils - getRealmManagedUser()', () => {
     // Arrange
     const REALM = 'alpha';
     const DEPLOYMENT_TYPE = FORGEOPS_DEPLOYMENT_TYPE_KEY;
-    sessionStorage.session.setRealm(REALM);
-    sessionStorage.session.setDeploymentType(DEPLOYMENT_TYPE);
+    state.setRealm(REALM);
+    state.setDeploymentType(DEPLOYMENT_TYPE);
     // Act
     const testString = OpsUtils.getRealmManagedUser();
     // Assert
@@ -51,8 +51,8 @@ describe('OpsUtils - getRealmManagedUser()', () => {
     // Arrange
     const REALM = 'alpha';
     const DEPLOYMENT_TYPE = CLASSIC_DEPLOYMENT_TYPE_KEY;
-    sessionStorage.session.setRealm(REALM);
-    sessionStorage.session.setDeploymentType(DEPLOYMENT_TYPE);
+    state.setRealm(REALM);
+    state.setDeploymentType(DEPLOYMENT_TYPE);
     // Act
     const testString = OpsUtils.getRealmManagedUser();
     // Assert

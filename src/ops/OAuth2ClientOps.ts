@@ -6,7 +6,7 @@ import {
   titleCase,
   validateImport,
 } from './utils/ExportImportUtils';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 import {
   getOAuth2Client,
   getOAuth2Clients,
@@ -93,7 +93,7 @@ export async function exportOAuth2ClientToFile(id, file) {
  */
 export async function exportOAuth2ClientsToFile(file) {
   let fileName = getTypedFilename(
-    `all${titleCase(getRealmName(storage.session.getRealm()))}Applications`,
+    `all${titleCase(getRealmName(state.getRealm()))}Applications`,
     'oauth2.app'
   );
   if (file) {

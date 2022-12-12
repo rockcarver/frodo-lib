@@ -2,7 +2,7 @@ import util from 'util';
 import _ from 'lodash';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 const circleOfTrustByIdURLTemplate =
   '%s/json%s/realm-config/federation/circlesoftrust/%s';
@@ -25,7 +25,7 @@ const getApiConfig = () => {
 export async function getCirclesOfTrust() {
   const urlString = util.format(
     queryAllCirclesOfTrustURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath()
   );
   const { data } = await generateAmApi(getApiConfig()).get(urlString, {
@@ -42,7 +42,7 @@ export async function getCirclesOfTrust() {
 export async function getCircleOfTrust(cotId) {
   const urlString = util.format(
     circleOfTrustByIdURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     cotId
   );
@@ -61,7 +61,7 @@ export async function createCircleOfTrust(cotData) {
   const postData = _.cloneDeep(cotData);
   const urlString = util.format(
     createCircleOfTrustURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath()
   );
   const { data } = await generateAmApi(getApiConfig()).post(
@@ -83,7 +83,7 @@ export async function createCircleOfTrust(cotData) {
 export async function updateCircleOfTrust(cotId, cotData) {
   const urlString = util.format(
     circleOfTrustByIdURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     cotId
   );

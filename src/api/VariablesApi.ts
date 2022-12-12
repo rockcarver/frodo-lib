@@ -2,7 +2,7 @@ import util from 'util';
 import { encode } from './utils/Base64';
 import { getTenantURL, getCurrentRealmPath } from './utils/ApiUtils';
 import { generateESVApi } from './BaseApi';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 const variablesListURLTemplate = '%s/environment/variables';
 const variableURLTemplate = '%s/environment/variables/%s';
@@ -24,7 +24,7 @@ const getApiConfig = () => {
 export async function getVariables() {
   const urlString = util.format(
     variablesListURLTemplate,
-    getTenantURL(storage.session.getTenant())
+    getTenantURL(state.getHost())
   );
   const { data } = await generateESVApi(getApiConfig()).get(urlString, {
     withCredentials: true,
@@ -40,7 +40,7 @@ export async function getVariables() {
 export async function getVariable(variableId) {
   const urlString = util.format(
     variableURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     variableId
   );
   const { data } = await generateESVApi(getApiConfig()).get(urlString, {
@@ -62,7 +62,7 @@ export async function putVariable(variableId, value, description) {
   if (description) variableData['description'] = description;
   const urlString = util.format(
     variableURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     variableId
   );
   const { data } = await generateESVApi(getApiConfig()).put(
@@ -84,7 +84,7 @@ export async function putVariable(variableId, value, description) {
 export async function setVariableDescription(variableId, description) {
   const urlString = util.format(
     variableSetDescriptionURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     variableId
   );
   const { data } = await generateESVApi(getApiConfig()).post(
@@ -103,7 +103,7 @@ export async function setVariableDescription(variableId, description) {
 export async function deleteVariable(variableId) {
   const urlString = util.format(
     variableURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     variableId
   );
   const { data } = await generateESVApi(getApiConfig()).delete(urlString, {

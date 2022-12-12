@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 const getAllProviderTypesURLTemplate =
   '%s/json%s/realm-config/services/SocialIdentityProviders?_action=getAllTypes';
@@ -27,7 +27,7 @@ const getApiConfig = () => {
 export async function getSocialIdentityProviderTypes() {
   const urlString = util.format(
     getAllProviderTypesURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath()
   );
   const { data } = await generateAmApi(getApiConfig()).get(urlString, {
@@ -44,7 +44,7 @@ export async function getSocialIdentityProviderTypes() {
 export async function getSocialIdentityProvidersByType(type) {
   const urlString = util.format(
     getProvidersByTypeURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     type
   );
@@ -61,7 +61,7 @@ export async function getSocialIdentityProvidersByType(type) {
 export async function getSocialIdentityProviders() {
   const urlString = util.format(
     getAllProvidersURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath()
   );
   const { data } = await generateAmApi(getApiConfig()).post(
@@ -83,7 +83,7 @@ export async function getSocialIdentityProviders() {
 export async function getProviderByTypeAndId(type, id) {
   const urlString = util.format(
     providerByTypeAndIdURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     type,
     id
@@ -107,7 +107,7 @@ export async function putProviderByTypeAndId(type, id, providerData) {
   const cleanData = deleteDeepByKey(providerData, '-encrypted');
   const urlString = util.format(
     providerByTypeAndIdURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     type,
     id
