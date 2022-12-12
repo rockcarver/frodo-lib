@@ -10,6 +10,9 @@ describe('JoseOps - createJWK()', () => {
   });
 
   test('createJWK() 1: Create JWK with RSA key', async () => {
+    // Increase timeout for this test as pipeline keeps failing with error:
+    // Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
+    jest.setTimeout(30000);
     const jwk = await Jose.createJwkRsa();
     expect(jwk).toBeTruthy();
     expect(jwk.kty).toBe('RSA');
@@ -32,6 +35,9 @@ describe('JoseOps - getJwkRsaPublic()', () => {
   });
 
   test('getJwkRsaPublic() 1: Get JWK with RSA public key, only', async () => {
+    // Increase timeout for this test as pipeline keeps failing with error:
+    // Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
+    jest.setTimeout(30000);
     const jwk = await Jose.createJwkRsa();
     const jwkPublic = await Jose.getJwkRsaPublic(jwk);
     expect(jwkPublic).toBeTruthy();
@@ -55,6 +61,9 @@ describe('JoseOps - createJwks()', () => {
   });
 
   test('createJwks() 1: Create JWKS with 1 key', async () => {
+    // Increase timeout for this test as pipeline keeps failing with error:
+    // Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
+    jest.setTimeout(30000);
     const jwk = await Jose.createJwkRsa();
     const jwks = await Jose.createJwks(jwk);
     expect(jwks).toBeTruthy();
@@ -63,6 +72,9 @@ describe('JoseOps - createJwks()', () => {
   });
 
   test('createJwks() 2: Create JWKS with 2 keys', async () => {
+    // Increase timeout for this test as pipeline keeps failing with error:
+    // Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
+    jest.setTimeout(30000);
     const jwk1 = await Jose.createJwkRsa();
     const jwk2 = await Jose.createJwkRsa();
     const jwks = await Jose.createJwks(jwk1, jwk2);
@@ -78,6 +90,9 @@ describe('JoseOps - createSignedJwtToken()', () => {
   });
 
   test('createSignedJwtToken() 1: Create signed JWT', async () => {
+    // Increase timeout for this test as pipeline keeps failing with error:
+    // Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
+    jest.setTimeout(30000);
     // The audience is the URL of the access token in the realm for client, and must include the port number
     const u = parseUrl('https://openam-svcaccts-final.forgeblocks.com/am');
     const aud = `${u.origin}:${
@@ -117,6 +132,9 @@ describe('JoseOps - verifySignedJwtToken()', () => {
   });
 
   test('verifySignedJwtToken() 1: Verify signed JWT', async () => {
+    // Increase timeout for this test as pipeline keeps failing with error:
+    // Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
+    jest.setTimeout(30000);
     // The audience is the URL of the access token in the realm for client, and must include the port number
     const u = parseUrl('https://openam-svcaccts-final.forgeblocks.com/am');
     const aud = `${u.origin}:${
