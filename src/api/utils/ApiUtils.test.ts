@@ -1,5 +1,5 @@
 import { getCurrentRealmPath, getTenantURL } from './ApiUtils';
-import sessionStorage from '../../storage/SessionStorage';
+import * as state from '../../shared/State';
 
 test.skip('replaceAll should be deleted because it works like native String.replaceAll', () => {
   // Arrange
@@ -11,7 +11,7 @@ test.skip('replaceAll should be deleted because it works like native String.repl
 test('getCurrentRealmPath should prepend realmPath to specified realm', () => {
   // Arrange
   const REALM_PATH = 'alpha';
-  sessionStorage.session.setRealm(REALM_PATH);
+  state.setRealm(REALM_PATH);
   // Act
   const testString = getCurrentRealmPath();
   // Assert
@@ -21,7 +21,7 @@ test('getCurrentRealmPath should prepend realmPath to specified realm', () => {
 test('getCurrentRealmPath should prepend realmPath to specified realm with leading slash', () => {
   // Arrange
   const REALM_PATH = '/alpha';
-  sessionStorage.session.setRealm(REALM_PATH);
+  state.setRealm(REALM_PATH);
   // Act
   const testString = getCurrentRealmPath();
   // Assert
@@ -31,7 +31,7 @@ test('getCurrentRealmPath should prepend realmPath to specified realm with leadi
 test('getCurrentRealmPath "/" should resolve to root', () => {
   // Arrange
   const REALM_PATH = '/';
-  sessionStorage.session.setRealm(REALM_PATH);
+  state.setRealm(REALM_PATH);
   // Act
   const testString = getCurrentRealmPath();
   // Assert
@@ -41,7 +41,7 @@ test('getCurrentRealmPath "/" should resolve to root', () => {
 test('getCurrentRealmPath should handle multiple leading slashes', () => {
   // Arrange
   const REALM_PATH = '//alpha';
-  sessionStorage.session.setRealm(REALM_PATH);
+  state.setRealm(REALM_PATH);
   // Act
   const testString = getCurrentRealmPath();
   // Assert
@@ -51,7 +51,7 @@ test('getCurrentRealmPath should handle multiple leading slashes', () => {
 test('getCurrentRealmPath should handle nested realms', () => {
   // Arrange
   const REALM_PATH = '/parent/child';
-  sessionStorage.session.setRealm(REALM_PATH);
+  state.setRealm(REALM_PATH);
   // Act
   const testString = getCurrentRealmPath();
   // Assert
