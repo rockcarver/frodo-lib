@@ -1,5 +1,5 @@
 import util from 'util';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 import { AmServiceSkeleton, PagedResult } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
@@ -86,7 +86,7 @@ export async function getListOfServices(
 ): Promise<PagedResult<ServiceListItem>> {
   const urlString = util.format(
     serviceListURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getRealmPath(globalConfig),
     getConfigPath(globalConfig)
   );
@@ -110,7 +110,7 @@ export async function getService(
 ): Promise<AmServiceSkeleton> {
   const urlString = util.format(
     serviceURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getRealmPath(globalConfig),
     getConfigPath(globalConfig),
     serviceId
@@ -136,7 +136,7 @@ export async function getServiceDescendents(
 ): Promise<ServiceNextDescendent[]> {
   const urlString = util.format(
     serviceURLNextDescendentsTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getRealmPath(globalConfig),
     getConfigPath(globalConfig),
     serviceId
@@ -163,7 +163,7 @@ export async function putService(
 ): Promise<AmServiceSkeleton> {
   const urlString = util.format(
     serviceURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getRealmPath(globalConfig),
     getConfigPath(globalConfig),
     serviceId
@@ -196,7 +196,7 @@ export async function putServiceNextDescendent(
 ): Promise<ServiceNextDescendent> {
   const urlString = util.format(
     serviceURLNextDescendentTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getRealmPath(globalConfig),
     getConfigPath(globalConfig),
     serviceId,
@@ -225,7 +225,7 @@ export async function deleteService(
 ): Promise<AmServiceSkeleton> {
   const urlString = util.format(
     serviceURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getRealmPath(globalConfig),
     getConfigPath(globalConfig),
     serviceId
@@ -252,7 +252,7 @@ export async function deleteServiceNextDescendent(
 ): Promise<ServiceNextDescendent> {
   const urlString = util.format(
     serviceURLNextDescendentTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getRealmPath(globalConfig),
     getConfigPath(globalConfig),
     serviceId,

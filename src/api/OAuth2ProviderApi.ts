@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 const oauthProviderServiceURLTemplate =
   '%s/json%s/realm-config/services/oauth-oidc';
@@ -22,7 +22,7 @@ const getApiConfig = () => {
 export async function getOAuth2Provider() {
   const urlString = util.format(
     oauthProviderServiceURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath()
   );
   return generateAmApi(getApiConfig()).get(urlString, {

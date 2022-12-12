@@ -2,7 +2,7 @@ import url from 'url';
 import { createHash, randomBytes } from 'crypto';
 import readlineSync from 'readline-sync';
 import { encodeBase64Url } from '../api/utils/Base64';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 import * as globalConfig from '../storage/StaticStorage';
 import { debugMessage, printMessage, verboseMessage } from './utils/Console';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
@@ -13,34 +13,6 @@ import { v4 } from 'uuid';
 import { parseUrl } from '../api/utils/ApiUtils';
 import { JwkRsa, createSignedJwtToken } from './JoseOps';
 import { getManagedObject } from '../api/ManagedObjectApi';
-
-const {
-  setAmVersion,
-  setAuthenticationService,
-  setAuthenticationHeaderOverrides,
-  getBearerToken,
-  setBearerToken,
-  getCookieName,
-  setCookieName,
-  getCookieValue,
-  setCookieValue,
-  getDeploymentType,
-  setDeploymentType,
-  getPassword,
-  setPassword,
-  getRealm,
-  setRealm,
-  getServiceAccountId,
-  setServiceAccountId,
-  getServiceAccountJwk,
-  setServiceAccountJwk,
-  getTenant,
-  setTenant,
-  getUseBearerTokenForAmApis,
-  setUseBearerTokenForAmApis,
-  getUsername,
-  setUsername,
-} = storage.session;
 
 const adminClientPassword = 'doesnotmatter';
 const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
@@ -118,8 +90,8 @@ function checkAndHandle2FA(payload) {
  * @param {string} deploymentType deployment type
  */
 function determineDefaultRealm(deploymentType: string) {
-  if (getRealm() === globalConfig.DEFAULT_REALM_KEY) {
-    setRealm(globalConfig.DEPLOYMENT_TYPE_REALM_MAP[deploymentType]);
+  if (state.getRealm() === globalConfig.DEFAULT_REALM_KEY) {
+    state.setRealm(globalConfig.DEPLOYMENT_TYPE_REALM_MAP[deploymentType]);
   }
 }
 
@@ -128,7 +100,7 @@ function determineDefaultRealm(deploymentType: string) {
  * @returns {Promise<string>} deployment type
  */
 async function determineDeploymentType(): Promise<string> {
-  const cookieValue = getCookieValue();
+  const cookieValue = state.getCookieValue();
   // https://bugster.forgerock.org/jira/browse/FRAAS-13018
   // There is a chance that this will be blocked due to security concerns and thus is probably best not to keep active
   // if (!cookieValue && getUseBearerTokenForAmApis()) {
@@ -138,7 +110,7 @@ async function determineDeploymentType(): Promise<string> {
   // }
 
   // if we are using a service account, we know it's cloud
-  if (getUseBearerTokenForAmApis())
+  if (state.getUseBearerTokenForAmApis())
     return globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY;
 
   const fidcClientId = 'idmAdminClient';
@@ -149,12 +121,12 @@ async function determineDeploymentType(): Promise<string> {
     createHash('sha256').update(verifier).digest()
   );
   const challengeMethod = 'S256';
-  const redirectURL = url.resolve(getTenant(), redirectUrlTemplate);
+  const redirectURL = url.resolve(state.getHost(), redirectUrlTemplate);
 
   const config = {
     maxRedirects: 0,
     headers: {
-      [getCookieName()]: getCookieValue(),
+      [state.getCookieName()]: state.getCookieValue(),
     },
   };
   let bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
@@ -172,7 +144,7 @@ async function determineDeploymentType(): Promise<string> {
       deploymentType = globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY;
     } else {
       try {
-        bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+        bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
         await authorize(bodyFormData, config);
       } catch (ex) {
         if (
@@ -211,7 +183,10 @@ async function getSemanticVersion(versionInfo) {
  * Helper function to authenticate and obtain and store session cookie
  * @returns {string} Session token or null
  */
-async function authenticate(username: string, password: string) {
+async function authenticate(
+  username: string,
+  password: string
+): Promise<string> {
   try {
     const config = {
       headers: {
@@ -228,7 +203,7 @@ async function authenticate(username: string, password: string) {
       response2 = skip2FA.payload;
     }
     if ('tokenId' in response2) {
-      return response2['tokenId'];
+      return response2['tokenId'] as string;
     }
     printMessage(`error authenticating`, 'error');
     printMessage('+++ likely cause, bad credentials!!! +++', 'error');
@@ -257,7 +232,7 @@ async function authenticate(username: string, password: string) {
  */
 async function getAuthCode(redirectURL, codeChallenge, codeChallengeMethod) {
   try {
-    const bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${adminClientId}&csrf=${getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
+    const bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${adminClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
     const config = {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -304,14 +279,14 @@ async function getAccessTokenForUser(): Promise<string | null> {
       createHash('sha256').update(verifier).digest()
     );
     const challengeMethod = 'S256';
-    const redirectURL = url.resolve(getTenant(), redirectUrlTemplate);
+    const redirectURL = url.resolve(state.getHost(), redirectUrlTemplate);
     const authCode = await getAuthCode(redirectURL, challenge, challengeMethod);
     if (authCode == null) {
       printMessage('error getting auth code', 'error');
       return null;
     }
     let response = null;
-    if (getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) {
+    if (state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) {
       const config = {
         auth: {
           username: adminClientId,
@@ -336,7 +311,7 @@ async function getAccessTokenForUser(): Promise<string | null> {
 }
 
 function createPayload(serviceAccountId: string) {
-  const u = parseUrl(getTenant());
+  const u = parseUrl(state.getHost());
   const aud = `${u.origin}:${
     u.port ? u.port : u.protocol === 'https' ? '443' : '80'
   }${u.pathname}/oauth2/access_token`;
@@ -390,10 +365,10 @@ export async function getAccessTokenForServiceAccount(
   return null;
 }
 async function getVersionAndDeploymentType() {
-  if (!getDeploymentType()) {
-    setDeploymentType(await determineDeploymentType());
+  if (!state.getDeploymentType()) {
+    state.setDeploymentType(await determineDeploymentType());
   } else {
-    determineDefaultRealm(getDeploymentType());
+    determineDefaultRealm(state.getDeploymentType());
   }
   const versionInfo = (await getServerVersionInfo()).data;
 
@@ -401,16 +376,16 @@ async function getVersionAndDeploymentType() {
   debugMessage(`Full version: ${versionInfo.fullVersion}`);
 
   const version = await getSemanticVersion(versionInfo);
-  setAmVersion(version);
+  state.setAmVersion(version);
 }
 
 async function getLoggedInSubject(): Promise<string> {
-  let subjectString = `user ${getUsername()}`;
-  if (getUseBearerTokenForAmApis()) {
+  let subjectString = `user ${state.getUsername()}`;
+  if (state.getUseBearerTokenForAmApis()) {
     const name = (
-      await getManagedObject('svcacct', getServiceAccountId(), ['name'])
+      await getManagedObject('svcacct', state.getServiceAccountId(), ['name'])
     ).data.name;
-    subjectString = `service account ${name} [${getServiceAccountId()}]`;
+    subjectString = `service account ${name} [${state.getServiceAccountId()}]`;
   }
   return subjectString;
 }
@@ -424,66 +399,72 @@ export async function getTokens(): Promise<boolean> {
   try {
     // if username/password on cli are empty, try to read from connections.json
     if (
-      getUsername() == null &&
-      getPassword() == null &&
-      !getServiceAccountId() &&
-      !getServiceAccountJwk()
+      state.getUsername() == null &&
+      state.getPassword() == null &&
+      !state.getServiceAccountId() &&
+      !state.getServiceAccountJwk()
     ) {
       const conn = await getConnectionProfile();
       if (conn) {
-        setTenant(conn.tenant);
-        setUsername(conn.username);
-        setPassword(conn.password);
-        setAuthenticationService(conn.authenticationService);
-        setAuthenticationHeaderOverrides(conn.authenticationHeaderOverrides);
-        setServiceAccountId(conn.svcacctId);
-        setServiceAccountJwk(conn.svcacctJwk);
+        state.setHost(conn.tenant);
+        state.setUsername(conn.username);
+        state.setPassword(conn.password);
+        state.setAuthenticationService(conn.authenticationService);
+        state.setAuthenticationHeaderOverrides(
+          conn.authenticationHeaderOverrides
+        );
+        state.setServiceAccountId(conn.svcacctId);
+        state.setServiceAccountJwk(conn.svcacctJwk);
       } else {
         return false;
       }
     }
     // now that we have the full tenant URL we can lookup the cookie name
-    setCookieName(await determineCookieName());
+    state.setCookieName(await determineCookieName());
 
     // use service account to login?
-    if (getServiceAccountId() && getServiceAccountJwk()) {
+    if (state.getServiceAccountId() && state.getServiceAccountJwk()) {
       debugMessage(
-        `AuthenticateOps.getTokens: Authenticating with service account ${getServiceAccountId()}`
+        `AuthenticateOps.getTokens: Authenticating with service account ${state.getServiceAccountId()}`
       );
       const token = await getAccessTokenForServiceAccount(
-        getServiceAccountId(),
-        getServiceAccountJwk()
+        state.getServiceAccountId(),
+        state.getServiceAccountJwk()
       );
-      setBearerToken(token);
-      setUseBearerTokenForAmApis(true);
+      state.setBearerToken(token);
+      state.setUseBearerTokenForAmApis(true);
       await getVersionAndDeploymentType();
     }
     // use user account to login
     else {
       debugMessage(
-        `AuthenticateOps.getTokens: Authenticating with user account ${getUsername()}`
+        `AuthenticateOps.getTokens: Authenticating with user account ${state.getUsername()}`
       );
-      const token = await authenticate(getUsername(), getPassword());
-      if (token) setCookieValue(token);
+      const token = await authenticate(
+        state.getUsername(),
+        state.getPassword()
+      );
+      if (token) state.setCookieValue(token);
       await getVersionAndDeploymentType();
       if (
-        getCookieValue() &&
-        !getBearerToken() &&
-        (getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY ||
-          getDeploymentType() === globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY)
+        state.getCookieValue() &&
+        !state.getBearerToken() &&
+        (state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY ||
+          state.getDeploymentType() ===
+            globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY)
       ) {
         const accessToken = await getAccessTokenForUser();
-        if (accessToken) setBearerToken(accessToken);
+        if (accessToken) state.setBearerToken(accessToken);
       }
     }
     if (
-      getCookieValue() ||
-      (getUseBearerTokenForAmApis() && getBearerToken())
+      state.getCookieValue() ||
+      (state.getUseBearerTokenForAmApis() && state.getBearerToken())
     ) {
       // https://github.com/rockcarver/frodo-cli/issues/102
       printMessage(
-        `Connected to ${getTenant()} [${
-          getRealm() ? getRealm() : 'root'
+        `Connected to ${state.getHost()} [${
+          state.getRealm() ? state.getRealm() : 'root'
         }] as ${await getLoggedInSubject()}`,
         'info'
       );

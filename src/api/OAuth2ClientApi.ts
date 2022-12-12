@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 const oauth2ClientURLTemplate = '%s/json%s/realm-config/agents/OAuth2Client/%s';
 const oauth2ClientListURLTemplate =
@@ -22,7 +22,7 @@ const getApiConfig = () => {
 export async function getOAuth2Clients() {
   const urlString = util.format(
     oauth2ClientListURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath()
   );
   return generateAmApi(getApiConfig()).get(urlString, {
@@ -38,7 +38,7 @@ export async function getOAuth2Clients() {
 export async function getOAuth2Client(id) {
   const urlString = util.format(
     oauth2ClientURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     id
   );
@@ -61,7 +61,7 @@ export async function putOAuth2Client(id, data) {
   delete client._rev;
   const urlString = util.format(
     oauth2ClientURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     id
   );

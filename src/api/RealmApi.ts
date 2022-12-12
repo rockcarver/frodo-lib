@@ -5,7 +5,7 @@ import {
   getRealmName,
 } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 const realmsListURLTemplate = '%s/json/global-config/realms/?_queryFilter=true';
 const realmURLTemplate = '%s/json/global-config/realms/%s';
@@ -24,10 +24,7 @@ const getApiConfig = () => {
  * @returns {Promise} a promise that resolves to an object containing an array of realm objects
  */
 export async function getRealms() {
-  const urlString = util.format(
-    realmsListURLTemplate,
-    storage.session.getTenant()
-  );
+  const urlString = util.format(realmsListURLTemplate, state.getHost());
   return generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
@@ -39,11 +36,7 @@ export async function getRealms() {
  * @returns {Promise} a promise that resolves to an object containing a realm object
  */
 export async function getRealm(id) {
-  const urlString = util.format(
-    realmURLTemplate,
-    storage.session.getTenant(),
-    id
-  );
+  const urlString = util.format(realmURLTemplate, state.getHost(), id);
   return generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
@@ -72,11 +65,7 @@ export async function getRealmByName(name) {
  * @returns {Promise} a promise that resolves to an object containing a realm object
  */
 export async function putRealm(id, data) {
-  const urlString = util.format(
-    realmURLTemplate,
-    storage.session.getTenant(),
-    id
-  );
+  const urlString = util.format(realmURLTemplate, state.getHost(), id);
   return generateAmApi(getApiConfig()).put(urlString, data, {
     withCredentials: true,
   });
@@ -90,7 +79,7 @@ export async function putRealm(id, data) {
 export async function deleteRealm(id) {
   const urlString = util.format(
     realmURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     id
   );
   return generateAmApi(getApiConfig()).delete(urlString, {

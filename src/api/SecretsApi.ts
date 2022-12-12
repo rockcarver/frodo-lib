@@ -2,7 +2,7 @@ import util from 'util';
 import { encode } from './utils/Base64';
 import { getTenantURL } from './utils/ApiUtils';
 import { generateESVApi } from './BaseApi';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 const secretsListURLTemplate = '%s/environment/secrets';
 const secretListVersionsURLTemplate = '%s/environment/secrets/%s/versions';
@@ -25,7 +25,7 @@ const getApiConfig = () => ({
 export async function getSecrets() {
   const urlString = util.format(
     secretsListURLTemplate,
-    getTenantURL(storage.session.getTenant())
+    getTenantURL(state.getHost())
   );
   const { data } = await generateESVApi(getApiConfig()).get(urlString, {
     withCredentials: true,
@@ -41,7 +41,7 @@ export async function getSecrets() {
 export async function getSecret(secretId) {
   const urlString = util.format(
     secretURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     secretId
   );
   const { data } = await generateESVApi(getApiConfig()).get(urlString, {
@@ -76,7 +76,7 @@ export async function putSecret(
   };
   const urlString = util.format(
     secretURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     secretId
   );
   const { data } = await generateESVApi(getApiConfig()).put(
@@ -98,7 +98,7 @@ export async function putSecret(
 export async function setSecretDescription(secretId, description) {
   const urlString = util.format(
     secretSetDescriptionURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     secretId
   );
   const { data } = await generateESVApi(getApiConfig()).post(
@@ -117,7 +117,7 @@ export async function setSecretDescription(secretId, description) {
 export async function deleteSecret(secretId) {
   const urlString = util.format(
     secretURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     secretId
   );
   const { data } = await generateESVApi(getApiConfig()).delete(urlString, {
@@ -134,7 +134,7 @@ export async function deleteSecret(secretId) {
 export async function getSecretVersions(secretId) {
   const urlString = util.format(
     secretListVersionsURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     secretId
   );
   const { data } = await generateESVApi(getApiConfig()).get(urlString, {
@@ -152,7 +152,7 @@ export async function getSecretVersions(secretId) {
 export async function createNewVersionOfSecret(secretId, value) {
   const urlString = util.format(
     secretCreateNewVersionURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     secretId
   );
   const { data } = await generateESVApi(getApiConfig()).post(
@@ -172,7 +172,7 @@ export async function createNewVersionOfSecret(secretId, value) {
 export async function getVersionOfSecret(secretId, version) {
   const urlString = util.format(
     secretGetVersionURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     secretId,
     version
   );
@@ -201,7 +201,7 @@ export async function setStatusOfVersionOfSecret(
 ) {
   const urlString = util.format(
     secretVersionStatusURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     secretId,
     version
   );
@@ -222,7 +222,7 @@ export async function setStatusOfVersionOfSecret(
 export async function deleteVersionOfSecret(secretId, version) {
   const urlString = util.format(
     secretGetVersionURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     secretId,
     version
   );

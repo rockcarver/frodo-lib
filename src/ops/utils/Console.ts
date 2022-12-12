@@ -1,5 +1,5 @@
 import Table from 'cli-table3';
-import storage from '../../storage/SessionStorage';
+import * as state from '../../shared/State';
 
 /**
  * Handles data / messages output. The caller decides and implements how
@@ -14,11 +14,11 @@ import storage from '../../storage/SessionStorage';
  * messages returned
  */
 export function printMessage(
-  message: string | unknown,
+  message: string | object,
   type = 'text',
   newline = true
 ) {
-  const handler = storage.session.getPrintHandler();
+  const handler = state.getPrintHandler();
   if (handler) {
     handler(message, type, newline);
   }
@@ -32,7 +32,7 @@ export function printMessage(
  * @param {string | unknown} message The verbose output message
  */
 export function verboseMessage(message: string | object) {
-  const handler = storage.session.getVerboseHandler();
+  const handler = state.getVerboseHandler();
   if (handler) {
     handler(message);
   }
@@ -46,7 +46,7 @@ export function verboseMessage(message: string | object) {
  * @param {string | object} message The debug output message
  */
 export function debugMessage(message: string | object) {
-  const handler = storage.session.getDebugHandler();
+  const handler = state.getDebugHandler();
   if (handler) {
     handler(message);
   }
@@ -72,7 +72,7 @@ function maskPasswordHeader(curlCommand: string) {
  * @param {string} message The curlirize output message
  */
 export function curlirizeMessage(message: string) {
-  const handler = storage.session.getCurlirizeHandler();
+  const handler = state.getCurlirizeHandler();
   if (handler) {
     handler(maskPasswordHeader(message));
   }
@@ -101,7 +101,7 @@ export function createProgressIndicator(
   message: string = null,
   type = 'determinate'
 ) {
-  const handler = storage.session.getCreateProgressHandler();
+  const handler = state.getCreateProgressHandler();
   if (handler) {
     handler(type, total, message);
   }
@@ -113,7 +113,7 @@ export function createProgressIndicator(
  *
  */
 export function updateProgressIndicator(message: string = null) {
-  const handler = storage.session.getUpdateProgressHandler();
+  const handler = state.getUpdateProgressHandler();
   if (handler) {
     handler(message);
   }
@@ -125,7 +125,7 @@ export function updateProgressIndicator(message: string = null) {
  * @param {string} status one of 'none', 'success', 'warn', 'fail'
  */
 export function stopProgressIndicator(message: string = null, status = 'none') {
-  const handler = storage.session.getStopProgressHandler();
+  const handler = state.getStopProgressHandler();
   if (handler) {
     handler(message, status);
   }

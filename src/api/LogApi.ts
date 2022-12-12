@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateLogApi, generateLogKeysApi } from './BaseApi';
 import { getTenantURL } from './utils/ApiUtils';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 const logsTailURLTemplate = '%s/monitoring/logs/tail?source=%s';
 const logsFetchURLTemplate =
@@ -13,7 +13,7 @@ const logsGetAPIKeysURLTemplate = '%s/keys';
 export async function tail(source, cookie) {
   let urlString = util.format(
     logsTailURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     encodeURIComponent(source)
   );
   if (cookie) {
@@ -25,7 +25,7 @@ export async function tail(source, cookie) {
 export async function getAPIKeys() {
   const urlString = util.format(
     logsGetAPIKeysURLTemplate,
-    getTenantURL(storage.session.getTenant())
+    getTenantURL(state.getHost())
   );
   return generateLogKeysApi().get(urlString);
 }
@@ -33,7 +33,7 @@ export async function getAPIKeys() {
 export async function getSources() {
   const urlString = util.format(
     logsSourcesURLTemplate,
-    getTenantURL(storage.session.getTenant())
+    getTenantURL(state.getHost())
   );
   return generateLogApi().get(urlString);
 }
@@ -41,7 +41,7 @@ export async function getSources() {
 export async function createAPIKeyAndSecret(keyName) {
   const urlString = util.format(
     logsCreateAPIKeyAndSecretURLTemplate,
-    getTenantURL(storage.session.getTenant())
+    getTenantURL(state.getHost())
   );
   return generateLogKeysApi().post(urlString, { name: keyName });
 }
@@ -49,7 +49,7 @@ export async function createAPIKeyAndSecret(keyName) {
 export async function fetch(source, startTs, endTs, cookie) {
   let urlString = util.format(
     logsFetchURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     encodeURIComponent(source),
     startTs,
     endTs

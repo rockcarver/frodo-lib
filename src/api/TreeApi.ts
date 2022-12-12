@@ -1,7 +1,7 @@
 import util from 'util';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 const treeByIdURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/trees/%s';
@@ -24,7 +24,7 @@ const getTreeApiConfig = () => {
 export async function getTrees() {
   const urlString = util.format(
     queryAllTreesURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath()
   );
   const { data } = await generateAmApi(getTreeApiConfig()).get(urlString, {
@@ -41,7 +41,7 @@ export async function getTrees() {
 export async function getTree(id) {
   const urlString = util.format(
     treeByIdURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     id
   );
@@ -60,7 +60,7 @@ export async function getTree(id) {
 export async function putTree(treeId: string, treeData) {
   const urlString = util.format(
     treeByIdURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     treeId
   );
@@ -82,7 +82,7 @@ export async function putTree(treeId: string, treeData) {
 export async function deleteTree(treeId) {
   const urlString = util.format(
     treeByIdURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     treeId
   );
