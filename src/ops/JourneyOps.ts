@@ -9,7 +9,7 @@ import {
   findFilesByName,
 } from './utils/ExportImportUtils';
 import { getRealmManagedUser, replaceAll } from './utils/OpsUtils';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 import {
   getNode,
   putNode,
@@ -21,7 +21,7 @@ import { isCloudOnlyNode, isCustomNode, isPremiumNode } from './NodeOps';
 import { getTrees, getTree, putTree, deleteTree } from '../api/TreeApi';
 import { getEmailTemplate, putEmailTemplate } from './EmailTemplateOps';
 import { getScript } from '../api/ScriptApi';
-import * as global from '../storage/StaticStorage';
+import * as globalConfig from '../storage/StaticStorage';
 import {
   printMessage,
   createProgressIndicator,
@@ -214,7 +214,7 @@ export async function exportJourney(
   try {
     const treeObject = await getTree(treeId);
     const { useStringArrays, deps } = options;
-    const verbose = storage.session.getDebug();
+    const verbose = state.getDebug();
 
     if (verbose) printMessage(`\n- ${treeObject._id}\n`, 'info', false);
 
@@ -237,7 +237,7 @@ export async function exportJourney(
     let themePromise = null;
     if (
       deps &&
-      storage.session.getDeploymentType() !== global.CLASSIC_DEPLOYMENT_TYPE_KEY
+      state.getDeploymentType() !== globalConfig.CLASSIC_DEPLOYMENT_TYPE_KEY
     ) {
       try {
         themePromise = getThemes();
@@ -277,10 +277,9 @@ export async function exportJourney(
       // frodo supports email templates in platform deployments
       if (
         (deps &&
-          storage.session.getDeploymentType() ===
-            global.CLOUD_DEPLOYMENT_TYPE_KEY) ||
-        storage.session.getDeploymentType() ===
-          global.FORGEOPS_DEPLOYMENT_TYPE_KEY
+          state.getDeploymentType() ===
+            globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) ||
+        state.getDeploymentType() === globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY
       ) {
         if (emailTemplateNodes.includes(nodeType)) {
           try {
@@ -347,10 +346,10 @@ export async function exportJourney(
         // frodo supports themes in platform deployments
         if (
           (deps &&
-            storage.session.getDeploymentType() ===
-              global.CLOUD_DEPLOYMENT_TYPE_KEY) ||
-          storage.session.getDeploymentType() ===
-            global.FORGEOPS_DEPLOYMENT_TYPE_KEY
+            state.getDeploymentType() ===
+              globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) ||
+          state.getDeploymentType() ===
+            globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY
         ) {
           let themeId = false;
 
@@ -394,10 +393,9 @@ export async function exportJourney(
       // frodo supports email templates in platform deployments
       if (
         (deps &&
-          storage.session.getDeploymentType() ===
-            global.CLOUD_DEPLOYMENT_TYPE_KEY) ||
-        storage.session.getDeploymentType() ===
-          global.FORGEOPS_DEPLOYMENT_TYPE_KEY
+          state.getDeploymentType() ===
+            globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) ||
+        state.getDeploymentType() === globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY
       ) {
         if (emailTemplateNodes.includes(innerNodeType)) {
           try {
@@ -610,7 +608,7 @@ export async function importJourney(
   options: TreeImportOptions
 ): Promise<void> {
   const { reUuid, deps } = options;
-  const verbose = storage.session.getDebug();
+  const verbose = state.getDebug();
   if (verbose) printMessage(`\n- ${treeObject.tree._id}\n`, 'info', false);
   let newUuid = '';
   const uuidMap = {};
@@ -1041,8 +1039,8 @@ export async function importJourney(
   if (
     (treeObject.tree.identityResource &&
       (treeObject.tree['identityResource'] as string).endsWith('user')) ||
-    storage.session.getDeploymentType() === global.CLOUD_DEPLOYMENT_TYPE_KEY ||
-    storage.session.getDeploymentType() === global.FORGEOPS_DEPLOYMENT_TYPE_KEY
+    state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY ||
+    state.getDeploymentType() === globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY
   ) {
     treeObject.tree.identityResource = `managed/${getRealmManagedUser()}`;
     if (verbose)

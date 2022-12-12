@@ -1,7 +1,7 @@
 import util from 'util';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 const queryAllNodeTypesURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/nodes?_action=getAllTypes';
@@ -28,7 +28,7 @@ const getNodeApiConfig = () => {
 export async function getNodeTypes() {
   const urlString = util.format(
     queryAllNodeTypesURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath()
   );
   const { data } = await generateAmApi(getNodeApiConfig()).post(
@@ -49,7 +49,7 @@ export async function getNodeTypes() {
 export async function getNodes() {
   const urlString = util.format(
     queryAllNodesURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath()
   );
   const { data } = await generateAmApi(getNodeApiConfig()).post(
@@ -71,7 +71,7 @@ export async function getNodes() {
 export async function getNodesByType(nodeType: string) {
   const urlString = util.format(
     queryAllNodesByTypeURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     nodeType
   );
@@ -90,7 +90,7 @@ export async function getNodesByType(nodeType: string) {
 export async function getNode(nodeId: string, nodeType: string) {
   const urlString = util.format(
     nodeURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     nodeType,
     nodeId
@@ -114,7 +114,7 @@ export async function putNode(nodeId: string, nodeType: string, nodeData) {
   const cleanData = deleteDeepByKey(nodeData, '-encrypted');
   const urlString = util.format(
     nodeURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     nodeType,
     nodeId
@@ -138,7 +138,7 @@ export async function putNode(nodeId: string, nodeType: string, nodeData) {
 export async function deleteNode(nodeId: string, nodeType: string) {
   const urlString = util.format(
     nodeURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     nodeType,
     nodeId

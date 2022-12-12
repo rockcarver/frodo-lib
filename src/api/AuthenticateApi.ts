@@ -1,6 +1,6 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 const authenticateUrlTemplate = '%s/json%s/authenticate';
 const authenticateWithServiceUrlTemplate = `${authenticateUrlTemplate}?authIndexType=service&authIndexValue=%s`;
@@ -25,18 +25,14 @@ export function getRealmUrl(realm) {
 }
 
 export async function step(body = {}, config = {}) {
-  const urlString = storage.session.getAuthenticationService()
+  const urlString = state.getAuthenticationService()
     ? util.format(
         authenticateWithServiceUrlTemplate,
-        storage.session.getTenant(),
+        state.getHost(),
         getRealmUrl('/'),
-        storage.session.getAuthenticationService()
+        state.getAuthenticationService()
       )
-    : util.format(
-        authenticateUrlTemplate,
-        storage.session.getTenant(),
-        getRealmUrl('/')
-      );
+    : util.format(authenticateUrlTemplate, state.getHost(), getRealmUrl('/'));
   const { data } = await generateAmApi(getApiConfig()).post(
     urlString,
     body,
