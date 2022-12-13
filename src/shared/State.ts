@@ -66,25 +66,25 @@ const _state: StateInterface = {
 };
 
 export const setHost = (host: string) => (_state.host = host);
-export const getHost = () => _state.host;
+export const getHost = () => _state.host || process.env.FRODO_HOST;
 
 /**
- * @deprecated since v0.17.0 use setHost instead
+ * @deprecated since v0.17.0 use `setHost(host: string)` instead
  */
 export const setTenant = setHost;
 /**
- * @deprecated since v0.17.0 use getHost instead
+ * @deprecated since v0.17.0 use `getHost` instead
  */
 export const getTenant = getHost;
 
 export const setUsername = (username: string) => (_state.username = username);
-export const getUsername = () => _state.username;
+export const getUsername = () => _state.username || process.env.FRODO_USERNAME;
 
 export const setPassword = (password: string) => (_state.password = password);
-export const getPassword = () => _state.password;
+export const getPassword = () => _state.password || process.env.FRODO_PASSWORD;
 
 export const setRealm = (realm: string) => (_state.realm = realm);
-export const getRealm = () => _state.realm;
+export const getRealm = () => _state.realm || process.env.FRODO_REALM;
 
 export const setDeploymentType = (type: string) =>
   (_state.deploymentType = type);
@@ -111,10 +111,13 @@ export const getAuthenticationService = () => _state.authenticationService;
 
 export const setServiceAccountId = (uuid: string) =>
   (_state.serviceAccountId = uuid);
-export const getServiceAccountId = (): string => _state.serviceAccountId;
+export const getServiceAccountId = (): string =>
+  _state.serviceAccountId || process.env.FRODO_SA_ID;
 export const setServiceAccountJwk = (jwk: JwkRsa) =>
-  (_state.serviceAccountJwk = jwk);
-export const getServiceAccountJwk = (): JwkRsa => _state.serviceAccountJwk;
+  (_state.serviceAccountJwk = { ...jwk });
+export const getServiceAccountJwk = (): JwkRsa =>
+  _state.serviceAccountJwk ||
+  (process.env.FRODO_SA_JWK ? JSON.parse(process.env.FRODO_SA_JWK) : undefined);
 
 export const setUseBearerTokenForAmApis = (useBearerTokenForAmApis: boolean) =>
   (_state.useBearerTokenForAmApis = useBearerTokenForAmApis);
@@ -123,10 +126,11 @@ export const setBearerToken = (token: string) => (_state.bearerToken = token);
 export const getBearerToken = () => _state.bearerToken;
 
 export const setLogApiKey = (key: string) => (_state.logApiKey = key);
-export const getLogApiKey = () => _state.logApiKey;
+export const getLogApiKey = () => _state.logApiKey || process.env.FRODO_LOG_KEY;
 export const setLogApiSecret = (secret: string) =>
   (_state.logApiSecret = secret);
-export const getLogApiSecret = () => _state.logApiSecret;
+export const getLogApiSecret = () =>
+  _state.logApiSecret || process.env.FRODO_LOG_SECRET;
 
 export const setAmVersion = (version: string) => (_state.amVersion = version);
 export const getAmVersion = () => _state.amVersion;
@@ -197,7 +201,13 @@ export const setStopProgressHandler = (
 export const getStopProgressHandler = () => _state.stopProgressHandler;
 
 /**
- * @deprecated since version v0.17.0
+ * @deprecated since version v0.17.0. Import state:
+ *
+ * ```import { state } from '@rockcarver/frodo-lib';```
+ *
+ * then call functions:
+ *
+ * ```const username = state.getUsername();```
  */
 export default {
   session: {
