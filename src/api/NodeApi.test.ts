@@ -9,10 +9,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const mock = new MockAdapter(axios);
 
-state.default.session.setTenant('');
-state.default.session.setRealm('alpha');
-state.default.session.setCookieName('cookieName');
-state.default.session.setCookieValue('cookieValue');
+state.setHost('');
+state.setRealm('alpha');
+state.setCookieName('cookieName');
+state.setCookieValue('cookieValue');
 
 describe('NodeApi - getNodeTypes()', () => {
   test('getNodeTypes() 0: Method is implemented', async () => {
@@ -31,7 +31,7 @@ describe('NodeApi - getNodeTypes()', () => {
     );
     mock
       .onPost(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes?_action=getAllTypes'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes?_action=getAllTypes`
       )
       .reply(200, response);
     const types = await NodeRaw.getNodeTypes();
@@ -1042,7 +1042,7 @@ describe('NodeApi - getNodes()', () => {
     };
     mock
       .onPost(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes?_action=nextdescendents'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes?_action=nextdescendents`
       )
       .reply(200, response);
     const nodes = await NodeRaw.getNodes();
@@ -1068,7 +1068,7 @@ describe('NodeApi - getNodesByType()', () => {
     );
     mock
       .onGet(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode?_queryFilter=true'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode?_queryFilter=true`
       )
       .reply(200, response);
     const nodes = await NodeRaw.getNodesByType('PageNode');
@@ -1094,7 +1094,7 @@ describe('NodeApi - getNode()', () => {
     );
     mock
       .onGet(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/1aea363f-d8d2-4711-b88d-d58fff92dbae'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/1aea363f-d8d2-4711-b88d-d58fff92dbae`
       )
       .reply(200, response);
     const node = await NodeRaw.getNode(
@@ -1108,7 +1108,7 @@ describe('NodeApi - getNode()', () => {
   test('getNode() 2: Get non-existing page node [00000000-0000-0000-0000-000000000000]', async () => {
     mock
       .onGet(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/00000000-0000-0000-0000-000000000000'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/00000000-0000-0000-0000-000000000000`
       )
       .reply(404, {
         code: 404,
@@ -1146,7 +1146,7 @@ describe('NodeApi - putNode()', () => {
     );
     mock
       .onPut(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/0ad90971-d08a-4af3-86f3-01729572dc8f'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/0ad90971-d08a-4af3-86f3-01729572dc8f`
       )
       .reply(201, nodeData);
     const node = await NodeRaw.putNode(
@@ -1170,7 +1170,7 @@ describe('NodeApi - putNode()', () => {
     );
     mock
       .onPut(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/1aea363f-d8d2-4711-b88d-d58fff92dbae'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/1aea363f-d8d2-4711-b88d-d58fff92dbae`
       )
       .reply(200, nodeData);
     const node = await NodeRaw.putNode(
@@ -1200,7 +1200,7 @@ describe('NodeApi - deleteNode()', () => {
     );
     mock
       .onDelete(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/1aea363f-d8d2-4711-b88d-d58fff92dbae'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/1aea363f-d8d2-4711-b88d-d58fff92dbae`
       )
       .reply(200, response);
     const node = await NodeRaw.deleteNode(
@@ -1214,7 +1214,7 @@ describe('NodeApi - deleteNode()', () => {
   test('deleteNode() 2: Delete non-existing node [00000000-0000-0000-0000-000000000000]', async () => {
     mock
       .onDelete(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/00000000-0000-0000-0000-000000000000'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/nodes/PageNode/00000000-0000-0000-0000-000000000000`
       )
       .reply(404, {
         code: 404,
