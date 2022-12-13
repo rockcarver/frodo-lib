@@ -20,18 +20,18 @@ import { mockCreateSaml2Provider } from '../test/mocks/ForgeRockApiMockEngine';
 import { convertTextArrayToBase64Url } from './utils/ExportImportUtils';
 
 const mock = new MockAdapter(axios);
-const outputHandler = (message: string) => {
+const outputHandler = (message: string | object) => {
   console.log(message);
 };
 
-state.default.session.setTenant('https://openam-volker-dev.forgeblocks.com/am');
-state.default.session.setRealm('alpha');
-state.default.session.setCookieName('cookieName');
-state.default.session.setCookieValue('cookieValue');
-state.default.session.setDeploymentType(globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY);
-state.default.session.setDebug(true);
-state.default.session.setDebugHandler(outputHandler);
-state.default.session.setPrintHandler(outputHandler);
+state.setHost('https://openam-volker-dev.forgeblocks.com/am');
+state.setRealm('alpha');
+state.setCookieName('cookieName');
+state.setCookieValue('cookieValue');
+state.setDeploymentType(globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY);
+state.setDebug(true);
+state.setDebugHandler(outputHandler);
+state.setPrintHandler(outputHandler);
 
 describe('Saml2Ops - createSaml2ExportTemplate()', () => {
   test('createSaml2ExportTemplate() 0: Method is implemented', async () => {

@@ -14,10 +14,10 @@ describe('ConnectionProfileOps', () => {
     const password = 'G@nd@lfTheW153';
     const connectionProfilePath = `${homedir()}/connections1.json`;
 
-    state.default.session.setTenant(host);
-    state.default.session.setUsername(user);
-    state.default.session.setPassword(password);
-    state.default.session.setConnectionProfilesPath(connectionProfilePath);
+    state.setHost(host);
+    state.setUsername(user);
+    state.setPassword(password);
+    state.setConnectionProfilesPath(connectionProfilePath);
     await ConnectionProfile.saveConnectionProfile(host);
     expect(fs.existsSync(connectionProfilePath)).toBeTruthy();
     const connections = JSON.parse(
@@ -37,10 +37,10 @@ describe('ConnectionProfileOps', () => {
     // set the hard-coded master key
     process.env[FRODO_CONNECTION_PROFILES_PATH_KEY] = connectionProfilePath;
 
-    state.default.session.setTenant(host);
-    state.default.session.setUsername(user);
-    state.default.session.setPassword(password);
-    state.default.session.setConnectionProfilesPath(null);
+    state.setHost(host);
+    state.setUsername(user);
+    state.setPassword(password);
+    state.setConnectionProfilesPath('');
     await ConnectionProfile.saveConnectionProfile(host);
     expect(ConnectionProfile.getConnectionProfilesPath()).toEqual(
       connectionProfilePath
@@ -64,10 +64,10 @@ describe('ConnectionProfileOps', () => {
     // set the hard-coded master key
     process.env[FRODO_MASTER_KEY_KEY] = masterKey;
 
-    state.default.session.setTenant(host);
-    state.default.session.setUsername(user);
-    state.default.session.setPassword(password);
-    state.default.session.setConnectionProfilesPath(connectionProfilePath);
+    state.setHost(host);
+    state.setUsername(user);
+    state.setPassword(password);
+    state.setConnectionProfilesPath(connectionProfilePath);
     await ConnectionProfile.saveConnectionProfile(host);
     expect(fs.existsSync(connectionProfilePath)).toBeTruthy();
     const connections = JSON.parse(
