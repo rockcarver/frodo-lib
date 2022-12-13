@@ -9,13 +9,13 @@ import {
 
 const mock = new MockAdapter(axios);
 
-state.default.session.setTenant('https://openam-frodo-dev.forgeblocks.com/am');
-state.default.session.setUsername('volker.scheuber@forgerock.com');
-state.default.session.setPassword('Sup3rS3cr3t!');
-state.default.session.setRealm('alpha');
-state.default.session.setCookieName('cookieName');
-state.default.session.setCookieValue('cookieValue');
-state.default.session.setDeploymentType(global.CLOUD_DEPLOYMENT_TYPE_KEY);
+state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
+state.setUsername('volker.scheuber@forgerock.com');
+state.setPassword('Sup3rS3cr3t!');
+state.setRealm('alpha');
+state.setCookieName('cookieName');
+state.setCookieValue('cookieValue');
+state.setDeploymentType(global.CLOUD_DEPLOYMENT_TYPE_KEY);
 
 describe.only('AuthenticateApi - step()', () => {
   test('step() 0: Method is implemented', async () => {
@@ -26,8 +26,8 @@ describe.only('AuthenticateApi - step()', () => {
     mockStep(mock);
     const config = {
       headers: {
-        'X-OpenAM-Username': state.default.session.getUsername(),
-        'X-OpenAM-Password': state.default.session.getPassword(),
+        'X-OpenAM-Username': state.getUsername(),
+        'X-OpenAM-Password': state.getPassword(),
       },
     };
     const response = await AuthenticateRaw.step({}, config);

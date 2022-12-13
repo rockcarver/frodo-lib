@@ -16,11 +16,11 @@ import { AgentExportInterface } from './OpsTypes';
 
 const mock = new MockAdapter(axios);
 
-state.default.session.setTenant('https://openam-frodo-dev.forgeblocks.com/am');
-state.default.session.setRealm('alpha');
-state.default.session.setCookieName('cookieName');
-state.default.session.setCookieValue('cookieValue');
-state.default.session.setDeploymentType(global.CLOUD_DEPLOYMENT_TYPE_KEY);
+state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
+state.setRealm('alpha');
+state.setCookieName('cookieName');
+state.setCookieValue('cookieValue');
+state.setDeploymentType(global.CLOUD_DEPLOYMENT_TYPE_KEY);
 
 describe('AgentOps - createAgentExportTemplate()', () => {
   test('createAgentExportTemplate() 0: Method is implemented', async () => {
