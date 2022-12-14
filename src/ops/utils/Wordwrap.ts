@@ -3,7 +3,7 @@ export default function wordwrap(str, len, indent = undefined) {
   return (
     str.match(
       new RegExp(
-        `(\\S.{0,${len - 1 - (indent ? indent.length : 0)}})(?=\\s+|$)`,
+        `(\\S.{0,${len - 1 - (indent ? indent.length : 0)}})(?=\\S+|$)`,
         'g'
       )
     ) || []
