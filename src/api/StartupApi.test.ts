@@ -9,10 +9,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const mock = new MockAdapter(axios);
 
-state.default.session.setTenant('https://openam-frodo-dev.forgeblocks.com/am');
-state.default.session.setRealm('alpha');
-state.default.session.setCookieName('cookieName');
-state.default.session.setCookieValue('cookieValue');
+state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
+state.setRealm('alpha');
+state.setCookieName('cookieName');
+state.setCookieValue('cookieValue');
 
 describe('StartupApi - getStatus()', () => {
   test('getStatus() 1: Get restart status - expect "ready"', async () => {

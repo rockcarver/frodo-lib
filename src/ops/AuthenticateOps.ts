@@ -187,38 +187,22 @@ async function authenticate(
   username: string,
   password: string
 ): Promise<string> {
-  try {
-    const config = {
-      headers: {
-        'X-OpenAM-Username': username,
-        'X-OpenAM-Password': password,
-      },
-    };
-    const response1 = await step({}, config);
-    const skip2FA = checkAndHandle2FA(response1);
-    let response2 = {};
-    if (skip2FA.need2fa) {
-      response2 = await step(skip2FA.payload);
-    } else {
-      response2 = skip2FA.payload;
-    }
-    if ('tokenId' in response2) {
-      return response2['tokenId'] as string;
-    }
-    printMessage(`error authenticating`, 'error');
-    printMessage('+++ likely cause, bad credentials!!! +++', 'error');
-  } catch (e) {
-    if (e.response?.status === 401) {
-      printMessage(`error authenticating - ${e.message}`, 'error');
-      printMessage('+++ likely cause, bad credentials +++', 'error');
-    }
-    if (e.message === 'self signed certificate') {
-      printMessage(`error authenticating - ${e.message}`, 'error');
-      printMessage('+++ use -k, --insecure option to allow +++', 'error');
-    } else {
-      printMessage(`error authenticating - ${e.message}`, 'error');
-      printMessage(e.response?.data, 'error');
-    }
+  const config = {
+    headers: {
+      'X-OpenAM-Username': username,
+      'X-OpenAM-Password': password,
+    },
+  };
+  const response1 = await step({}, config);
+  const skip2FA = checkAndHandle2FA(response1);
+  let response2 = {};
+  if (skip2FA.need2fa) {
+    response2 = await step(skip2FA.payload);
+  } else {
+    response2 = skip2FA.payload;
+  }
+  if ('tokenId' in response2) {
+    return response2['tokenId'] as string;
   }
   return null;
 }
@@ -341,29 +325,28 @@ export async function getAccessTokenForServiceAccount(
   serviceAccountId: string,
   jwk: JwkRsa
 ): Promise<string | null> {
-  try {
-    debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: start`);
-    const payload = createPayload(serviceAccountId);
-    debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: payload:`);
-    debugMessage(payload);
-    const jwt = await createSignedJwtToken(payload, jwk);
-    debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: jwt:`);
-    debugMessage(jwt);
-    const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${serviceAccountScopes}`;
-    const response = await accessToken(bodyFormData);
-    if ('access_token' in response.data) {
-      debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: token:`);
-      debugMessage(response.data.access_token);
-      debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: end`);
-      return response.data.access_token;
-    }
-    debugMessage(`No access token in response.`);
-  } catch (error) {
-    debugMessage(`error getting access token for service account: ${error}`);
-    debugMessage(error.response?.data);
+  debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: start`);
+  const payload = createPayload(serviceAccountId);
+  debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: payload:`);
+  debugMessage(payload);
+  const jwt = await createSignedJwtToken(payload, jwk);
+  debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: jwt:`);
+  debugMessage(jwt);
+  const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${serviceAccountScopes}`;
+  const response = await accessToken(bodyFormData);
+  if ('access_token' in response.data) {
+    debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: token:`);
+    debugMessage(response.data.access_token);
+    debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: end`);
+    return response.data.access_token;
   }
+  debugMessage(
+    `AuthenticateOps.getAccessTokenForServiceAccount: No access token in response.`
+  );
+  debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: end`);
   return null;
 }
+
 async function getVersionAndDeploymentType() {
   if (!state.getDeploymentType()) {
     state.setDeploymentType(await determineDeploymentType());
@@ -396,6 +379,13 @@ async function getLoggedInSubject(): Promise<string> {
  * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
  */
 export async function getTokens(): Promise<boolean> {
+  if (!state.getHost()) {
+    printMessage(
+      `No host specified and FRODO_HOST env variable not set!`,
+      'error'
+    );
+    return false;
+  }
   try {
     // if username/password on cli are empty, try to read from connections.json
     if (
@@ -427,16 +417,25 @@ export async function getTokens(): Promise<boolean> {
       debugMessage(
         `AuthenticateOps.getTokens: Authenticating with service account ${state.getServiceAccountId()}`
       );
-      const token = await getAccessTokenForServiceAccount(
-        state.getServiceAccountId(),
-        state.getServiceAccountJwk()
-      );
-      state.setBearerToken(token);
-      state.setUseBearerTokenForAmApis(true);
-      await getVersionAndDeploymentType();
+      try {
+        const token = await getAccessTokenForServiceAccount(
+          state.getServiceAccountId(),
+          state.getServiceAccountJwk()
+        );
+        state.setBearerToken(token);
+        state.setUseBearerTokenForAmApis(true);
+        await getVersionAndDeploymentType();
+      } catch (saErr) {
+        throw new Error(
+          `Service account login error: ${
+            saErr.response?.data?.error_description ||
+            saErr.response?.data?.message
+          }`
+        );
+      }
     }
     // use user account to login
-    else {
+    else if (state.getUsername() && state.getPassword()) {
       debugMessage(
         `AuthenticateOps.getTokens: Authenticating with user account ${state.getUsername()}`
       );
@@ -457,6 +456,11 @@ export async function getTokens(): Promise<boolean> {
         if (accessToken) state.setBearerToken(accessToken);
       }
     }
+    // incomplete or no credentials
+    else {
+      printMessage(`Incomplete or no credentials!`, 'error');
+      return false;
+    }
     if (
       state.getCookieValue() ||
       (state.getUseBearerTokenForAmApis() && state.getBearerToken())
@@ -471,9 +475,16 @@ export async function getTokens(): Promise<boolean> {
       return true;
     }
   } catch (error) {
-    printMessage(`Error getting tokens: ${error.message}`, 'error');
-    debugMessage(error.response?.status);
-    debugMessage(error.stack);
+    // regular error
+    printMessage(error.message, 'error');
+    // axios error am api
+    printMessage(error.response?.data?.message, 'error');
+    // axios error am oauth2 api
+    printMessage(error.response?.data?.error_description, 'error');
+    // axios error data
+    debugMessage(error.response?.data);
+    // stack trace
+    debugMessage(error.stack || new Error().stack);
   }
   return false;
 }
