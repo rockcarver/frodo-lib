@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import { Theme, state } from '../index';
@@ -484,12 +485,12 @@ for (const theme of Object.values(THEME_MAP_RAW)) {
   THEME_MAP[theme._id] = theme;
 }
 
-state.default.session.setTenant('https://openam-frodo-dev.forgeblocks.com/am');
-state.default.session.setRealm('alpha');
-state.default.session.setCookieName('cookieName');
-state.default.session.setCookieValue('cookieValue');
-// state.default.session.setDebug(true);
-// state.default.session.setDebugHandler((message) => console.log(message));
+state.setTenant('https://openam-frodo-dev.forgeblocks.com/am');
+state.setRealm('alpha');
+state.setCookieName('cookieName');
+state.setCookieValue('cookieValue');
+// state.setDebug(true);
+// state.setDebugHandler((message) => console.log(message));
 
 describe('ThemeApi - getThemes()', () => {
   test('getThemes() 0: Method is implemented', async () => {
@@ -498,7 +499,7 @@ describe('ThemeApi - getThemes()', () => {
 
   test('getThemes() 1: Get all alpha themes (cloud)', async () => {
     mockGetConfigEntity(mock);
-    state.default.session.setRealm('alpha');
+    state.setRealm('alpha');
     const themes = await Theme.getThemes();
     expect(themes).toBeTruthy();
     expect(themes.length).toBe(31);
@@ -506,7 +507,7 @@ describe('ThemeApi - getThemes()', () => {
 
   test('getThemes() 2: Get all bravo themes (cloud)', async () => {
     mockGetConfigEntity(mock);
-    state.default.session.setRealm('bravo');
+    state.setRealm('bravo');
     const themes = await Theme.getThemes();
     expect(themes).toBeTruthy();
     expect(themes.length).toBe(6);
@@ -514,7 +515,7 @@ describe('ThemeApi - getThemes()', () => {
 
   test('getThemes() 3: Get all root themes (encore)', async () => {
     mockGetConfigEntity(mock, 'encore');
-    state.default.session.setRealm('/');
+    state.setRealm('/');
     const themes = await Theme.getThemes();
     expect(themes).toBeTruthy();
     expect(themes.length).toBe(1);
@@ -522,7 +523,7 @@ describe('ThemeApi - getThemes()', () => {
 
   test('getThemes() 4: Get all themes from non-existent realm (encore)', async () => {
     mockGetConfigEntity(mock, 'encore');
-    state.default.session.setRealm('doesnotexist');
+    state.setRealm('doesnotexist');
     const themes = await Theme.getThemes();
     expect(themes).toBeTruthy();
     expect(themes.length).toBe(0);
@@ -536,7 +537,7 @@ describe('ThemeApi - getTheme()', () => {
 
   test('getTheme() 1: Get alpha theme (cloud)', async () => {
     mockGetConfigEntity(mock);
-    state.default.session.setRealm('alpha');
+    state.setRealm('alpha');
     const theme = await Theme.getTheme(THEME_ID);
     expect(theme).toBeTruthy();
     expect(theme._id).toBe(THEME_ID);
@@ -544,7 +545,7 @@ describe('ThemeApi - getTheme()', () => {
 
   test('getTheme() 2: Get bravo theme (cloud)', async () => {
     mockGetConfigEntity(mock);
-    state.default.session.setRealm('bravo');
+    state.setRealm('bravo');
     const theme = await Theme.getTheme(THEME_ID);
     expect(theme).toBeTruthy();
     expect(theme._id).toBe(THEME_ID);
@@ -552,7 +553,7 @@ describe('ThemeApi - getTheme()', () => {
 
   test('getTheme() 3: Get root theme (encore)', async () => {
     mockGetConfigEntity(mock, 'encore');
-    state.default.session.setRealm('/');
+    state.setRealm('/');
     const theme = await Theme.getTheme(THEME_ID);
     expect(theme).toBeTruthy();
     expect(theme._id).toBe(THEME_ID);
@@ -560,7 +561,7 @@ describe('ThemeApi - getTheme()', () => {
 
   test('getTheme() 4: Get theme from non-existent realm (encore)', async () => {
     mockGetConfigEntity(mock, 'encore');
-    state.default.session.setRealm('doesnotexist');
+    state.setRealm('doesnotexist');
     expect.assertions(3);
     try {
       await Theme.getTheme(THEME_ID);
@@ -578,7 +579,7 @@ describe('ThemeApi - getThemeByName()', () => {
 
   test('getThemeByName() 1: Get alpha theme (cloud)', async () => {
     mockGetConfigEntity(mock);
-    state.default.session.setRealm('alpha');
+    state.setRealm('alpha');
     const theme = await Theme.getThemeByName(THEME_NAME);
     expect(theme).toBeTruthy();
     expect(theme.name).toBe(THEME_NAME);
@@ -586,7 +587,7 @@ describe('ThemeApi - getThemeByName()', () => {
 
   test('getThemeByName() 2: Get bravo theme (cloud)', async () => {
     mockGetConfigEntity(mock);
-    state.default.session.setRealm('bravo');
+    state.setRealm('bravo');
     const theme = await Theme.getThemeByName(THEME_NAME);
     expect(theme).toBeTruthy();
     expect(theme.name).toBe(THEME_NAME);
@@ -594,7 +595,7 @@ describe('ThemeApi - getThemeByName()', () => {
 
   test('getThemeByName() 3: Get root theme (encore)', async () => {
     mockGetConfigEntity(mock, 'encore');
-    state.default.session.setRealm('/');
+    state.setRealm('/');
     const theme = await Theme.getThemeByName(THEME_NAME);
     expect(theme).toBeTruthy();
     expect(theme.name).toBe(THEME_NAME);
@@ -602,7 +603,7 @@ describe('ThemeApi - getThemeByName()', () => {
 
   test('getThemeByName() 4: Get theme from non-existent realm (encore)', async () => {
     mockGetConfigEntity(mock, 'encore');
-    state.default.session.setRealm('doesnotexist');
+    state.setRealm('doesnotexist');
     expect.assertions(3);
     try {
       await Theme.getThemeByName(THEME_NAME);
@@ -619,7 +620,7 @@ describe('ThemeApi - putTheme()', () => {
   });
 
   test('putTheme() 1: Put alpha theme (cloud)', async () => {
-    state.default.session.setRealm('alpha');
+    state.setRealm('alpha');
     mockGetConfigEntity(mock);
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -633,7 +634,7 @@ describe('ThemeApi - putTheme()', () => {
   });
 
   test('putTheme() 2: Put bravo theme (cloud)', async () => {
-    state.default.session.setRealm('bravo');
+    state.setRealm('bravo');
     mockGetConfigEntity(mock);
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -647,7 +648,7 @@ describe('ThemeApi - putTheme()', () => {
   });
 
   test('putTheme() 3: Put root theme (encore)', async () => {
-    state.default.session.setRealm('/');
+    state.setRealm('/');
     mockGetConfigEntity(mock, 'encore');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -661,7 +662,7 @@ describe('ThemeApi - putTheme()', () => {
   });
 
   test('putTheme() 4: Put theme from non-existent realm (encore)', async () => {
-    state.default.session.setRealm('doesnotexist');
+    state.setRealm('doesnotexist');
     mockGetConfigEntity(mock, 'encore');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -681,7 +682,7 @@ describe('ThemeApi - putThemeByName()', () => {
   });
 
   test('putThemeByName() 1: Get alpha theme (cloud)', async () => {
-    state.default.session.setRealm('alpha');
+    state.setRealm('alpha');
     mockGetConfigEntity(mock);
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -695,7 +696,7 @@ describe('ThemeApi - putThemeByName()', () => {
   });
 
   test('putThemeByName() 2: Get bravo theme (cloud)', async () => {
-    state.default.session.setRealm('bravo');
+    state.setRealm('bravo');
     mockGetConfigEntity(mock);
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -709,7 +710,7 @@ describe('ThemeApi - putThemeByName()', () => {
   });
 
   test('putThemeByName() 3: Get root theme (encore)', async () => {
-    state.default.session.setRealm('/');
+    state.setRealm('/');
     mockGetConfigEntity(mock, 'encore');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -723,7 +724,7 @@ describe('ThemeApi - putThemeByName()', () => {
   });
 
   test('putThemeByName() 4: Get theme from non-existent realm (encore)', async () => {
-    state.default.session.setRealm('doesnotexist');
+    state.setRealm('doesnotexist');
     mockGetConfigEntity(mock, 'encore');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -743,7 +744,7 @@ describe('ThemeApi - putThemes()', () => {
   });
 
   test('putThemes() 1: Update 4/6 alpha themes', async () => {
-    state.default.session.setRealm('alpha');
+    state.setRealm('alpha');
     mockGetConfigEntity(mock, 'putThemes');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -756,7 +757,7 @@ describe('ThemeApi - putThemes()', () => {
   });
 
   test('putThemes() 2: Update 1/1 and add 3 bravo themes', async () => {
-    state.default.session.setRealm('bravo');
+    state.setRealm('bravo');
     mockGetConfigEntity(mock, 'putThemes');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -769,7 +770,7 @@ describe('ThemeApi - putThemes()', () => {
   });
 
   test('putThemes() 3: Add 4 root themes', async () => {
-    state.default.session.setRealm('/');
+    state.setRealm('/');
     mockGetConfigEntity(mock, 'putThemes');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -782,7 +783,7 @@ describe('ThemeApi - putThemes()', () => {
   });
 
   test('putThemes() 4: Add 4 themes to non-existent realm', async () => {
-    state.default.session.setRealm('doesnotexist');
+    state.setRealm('doesnotexist');
     mockGetConfigEntity(mock, 'putThemes');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -801,7 +802,7 @@ describe('ThemeApi - deleteTheme()', () => {
   });
 
   test('deleteTheme() 1: Delete alpha theme (cloud)', async () => {
-    state.default.session.setRealm('alpha');
+    state.setRealm('alpha');
     mockGetConfigEntity(mock);
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -813,7 +814,7 @@ describe('ThemeApi - deleteTheme()', () => {
   });
 
   test('deleteTheme() 2: Delete bravo theme (cloud)', async () => {
-    state.default.session.setRealm('bravo');
+    state.setRealm('bravo');
     mockGetConfigEntity(mock);
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -825,7 +826,7 @@ describe('ThemeApi - deleteTheme()', () => {
   });
 
   test('deleteTheme() 3: Delete root theme (encore)', async () => {
-    state.default.session.setRealm('/');
+    state.setRealm('/');
     mockGetConfigEntity(mock, 'encore');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -837,7 +838,7 @@ describe('ThemeApi - deleteTheme()', () => {
   });
 
   test('deleteTheme() 4: Delete theme from non-existent realm (encore)', async () => {
-    state.default.session.setRealm('doesnotexist');
+    state.setRealm('doesnotexist');
     mockGetConfigEntity(mock, 'encore');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -859,7 +860,7 @@ describe('ThemeApi - deleteThemeByName()', () => {
   });
 
   test('deleteThemeByName() 1: Delete alpha theme by name (cloud)', async () => {
-    state.default.session.setRealm('alpha');
+    state.setRealm('alpha');
     mockGetConfigEntity(mock);
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -871,7 +872,7 @@ describe('ThemeApi - deleteThemeByName()', () => {
   });
 
   test('deleteThemeByName() 2: Delete bravo theme by name (cloud)', async () => {
-    state.default.session.setRealm('bravo');
+    state.setRealm('bravo');
     mockGetConfigEntity(mock);
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -883,7 +884,7 @@ describe('ThemeApi - deleteThemeByName()', () => {
   });
 
   test('deleteThemeByName() 3: Delete root theme by name (encore)', async () => {
-    state.default.session.setRealm('/');
+    state.setRealm('/');
     mockGetConfigEntity(mock, 'encore');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -895,7 +896,7 @@ describe('ThemeApi - deleteThemeByName()', () => {
   });
 
   test('deleteThemeByName() 4: Delete theme by name from non-existent realm (encore)', async () => {
-    state.default.session.setRealm('doesnotexist');
+    state.setRealm('doesnotexist');
     mockGetConfigEntity(mock, 'encore');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -917,7 +918,7 @@ describe('ThemeApi - deleteThemes()', () => {
   });
 
   test('deleteThemes() 1: Delete all (6) alpha themes', async () => {
-    state.default.session.setRealm('alpha');
+    state.setRealm('alpha');
     mockGetConfigEntity(mock, 'putThemes');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -930,7 +931,7 @@ describe('ThemeApi - deleteThemes()', () => {
   });
 
   test('deleteThemes() 2: Delete all (1) bravo themes', async () => {
-    state.default.session.setRealm('bravo');
+    state.setRealm('bravo');
     mockGetConfigEntity(mock, 'putThemes');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -943,7 +944,7 @@ describe('ThemeApi - deleteThemes()', () => {
   });
 
   test('deleteThemes() 3: Delete all (1) root themes (encore)', async () => {
-    state.default.session.setRealm('/');
+    state.setRealm('/');
     mockGetConfigEntity(mock, 'encore');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
@@ -956,7 +957,7 @@ describe('ThemeApi - deleteThemes()', () => {
   });
 
   test('deleteThemes() 4: Delete all themes in non-existent realm', async () => {
-    state.default.session.setRealm('doesnotexist');
+    state.setRealm('doesnotexist');
     mockGetConfigEntity(mock, 'putThemes');
     mockPutConfigEntity(mock, (mockEntityId: string, mockEntityObj: any) => {
       expect(mockEntityId).toEqual(THEMEREALM_ID);
