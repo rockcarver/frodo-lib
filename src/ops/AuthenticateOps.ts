@@ -160,7 +160,6 @@ async function determineDeploymentType(): Promise<string> {
       }
     }
   }
-  determineDefaultRealm(deploymentType);
   return deploymentType;
 }
 
@@ -347,12 +346,15 @@ export async function getAccessTokenForServiceAccount(
   return null;
 }
 
-async function getVersionAndDeploymentType() {
+async function determineDeploymentTypeAndDefaultRealmAndVersion() {
+  debugMessage(
+    `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: start`
+  );
   if (!state.getDeploymentType()) {
     state.setDeploymentType(await determineDeploymentType());
-  } else {
-    determineDefaultRealm(state.getDeploymentType());
   }
+  determineDefaultRealm(state.getDeploymentType());
+
   const versionInfo = (await getServerVersionInfo()).data;
 
   // https://github.com/rockcarver/frodo-cli/issues/109
@@ -360,6 +362,9 @@ async function getVersionAndDeploymentType() {
 
   const version = await getSemanticVersion(versionInfo);
   state.setAmVersion(version);
+  debugMessage(
+    `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: end`
+  );
 }
 
 async function getLoggedInSubject(): Promise<string> {
@@ -424,7 +429,7 @@ export async function getTokens(): Promise<boolean> {
         );
         state.setBearerToken(token);
         state.setUseBearerTokenForAmApis(true);
-        await getVersionAndDeploymentType();
+        await determineDeploymentTypeAndDefaultRealmAndVersion();
       } catch (saErr) {
         throw new Error(
           `Service account login error: ${
@@ -444,7 +449,7 @@ export async function getTokens(): Promise<boolean> {
         state.getPassword()
       );
       if (token) state.setCookieValue(token);
-      await getVersionAndDeploymentType();
+      await determineDeploymentTypeAndDefaultRealmAndVersion();
       if (
         state.getCookieValue() &&
         !state.getBearerToken() &&
