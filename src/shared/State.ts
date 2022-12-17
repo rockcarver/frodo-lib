@@ -175,7 +175,8 @@ export const setDebugHandler = (
 ) => (_state.debugHandler = debugHandler);
 export const getDebugHandler = () => _state.debugHandler;
 export const setDebug = (debug: boolean) => (_state.debug = debug);
-export const getDebug = (): boolean => _state.debug;
+export const getDebug = (): boolean =>
+  _state.debug || process.env.FRODO_DEBUG !== undefined;
 
 export const setCurlirizeHandler = (debugHandler: (message: string) => void) =>
   (_state.curlirizeHandler = debugHandler);
