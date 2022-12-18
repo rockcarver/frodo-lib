@@ -90,7 +90,10 @@ function checkAndHandle2FA(payload) {
  * @param {string} deploymentType deployment type
  */
 function determineDefaultRealm(deploymentType: string) {
-  if (state.getRealm() === globalConfig.DEFAULT_REALM_KEY) {
+  if (
+    !state.getRealm() ||
+    state.getRealm() === globalConfig.DEFAULT_REALM_KEY
+  ) {
     state.setRealm(globalConfig.DEPLOYMENT_TYPE_REALM_MAP[deploymentType]);
   }
 }
@@ -354,6 +357,9 @@ async function determineDeploymentTypeAndDefaultRealmAndVersion() {
     state.setDeploymentType(await determineDeploymentType());
   }
   determineDefaultRealm(state.getDeploymentType());
+  debugMessage(
+    `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: realm=${state.getRealm()}, type=${state.getDeploymentType()}`
+  );
 
   const versionInfo = (await getServerVersionInfo()).data;
 
