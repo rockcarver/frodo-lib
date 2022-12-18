@@ -13,7 +13,7 @@ const outputHandler = (message: string | object) => {
   console.log(message);
 };
 
-state.setTenant('https://openam-frodo-dev.forgeblocks.com/am');
+state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
 state.setRealm('alpha');
 state.setCookieName('cookieName');
 state.setCookieValue('cookieValue');
@@ -39,7 +39,6 @@ describe('SvcacctOps - createSvcacct()', () => {
     const scopes = ['fr:am:*', 'fr:idm:*', 'fr:idc:esv:*'];
     const jwk = await createJwkRsa();
     const publicJwk = await getJwkRsaPublic(jwk);
-    console.dir(publicJwk);
     const jwks = await createJwks(publicJwk);
     mockCreateManagedObject(mock, (mockManagedObjId, mockManagedObj) => {
       moId = mockManagedObjId;
