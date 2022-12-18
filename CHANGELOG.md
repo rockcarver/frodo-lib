@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2022-12-18
+
 ### Added
 
 -   \#68: Support upcoming Identity Cloud service accounts. Service accounts are the future way to authenticate to Identity Cloud environments without using a personal tenant admin account. Tenant admins can create any number of service accounts and assign sets of privileges to each account. Frodo Library can create service accounts with the required privileges or can use existing service accounts.
 
     To create a service account use the new ServiceAccount API:
+
     ```js
     import { createJwkRsa, createJwks, getJwkRsaPublic } from './JoseOps';
     import { createServiceAccount, isServiceAccountsFeatureAvailable } from './ServiceAccountOps';
@@ -42,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     ```
 
     To use a service account set the following state variables:
+
     ```js
     import { state } from '@rockcarver/frodo-lib';
 
@@ -51,7 +55,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     ```
 
 -   \#154: Frodo-specific transaction id in all API requests: `frodo-<random uuid>`
+
 -   Support AM realm and global services.
+
     ```js
     import { Service } from '@rockcarver/frodo-lib';
 
@@ -67,13 +73,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         importService,
     } = Service;
     ```
+
 -   Support import IDM configuration.
+
     ```js
     import { Idm } from '@rockcarver/frodo-lib';
 
     const { putConfigEntity } = Idm;
     ```
+
 -   \#139: Support for Agents / Gateways.
+
     ```js
     import { Agent } from '@rockcarver/frodo-lib';
 
@@ -104,6 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         importWebAgent,
     } = Agent;
     ```
+
 -   \#180: Allow all connection parameters to be supplied using environment variables for secure CI/CD:
     -   `FRODO_HOST`
     -   `FRODO_REALM`
@@ -114,10 +125,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     -   `FRODO_LOG_KEY`
     -   `FRODO_LOG_SECRET`
     -   `FRODO_DEBUG`
+
 -   \#141: Add curlirizer support for troubleshooting. The library can output curl commands for every REST API call it makes. Clients can use this functionality by registering a curlirize handler and enabling the feature:
+
     ```js
     import { state } from '@rockcarver/frodo-lib';
-    
+
     /**
      * Output a curlirize message
      * @param {string} message the message
@@ -129,7 +142,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
     state.setCurlirizeHandler(curlirizeMessage);
     ```
+
 -   Added new `raw` Saml2 API functions that use the classic (pre 7.0.0) SAML REST APIs. This allows Frodo to export and import SAML entity providers from pre 7 platform instances.
+
     ```js
     import { Saml2 } from '@rockcarver/frodo-lib';
 
@@ -139,6 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         putRawProvider,
     } = Saml2;
     ```
+
 -   More automated tests
 
 ### Changed
@@ -156,7 +172,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 -   \#137: Error fetching logs with txId
-
 
 ## [0.16.2-20] - 2022-12-17
 
@@ -877,7 +892,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-20...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.17.0...HEAD
+
+[0.17.0]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-20...v0.17.0
 
 [0.16.2-20]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-19...v0.16.2-20
 
