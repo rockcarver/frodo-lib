@@ -7,6 +7,157 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+-   \#68: Support upcoming Identity Cloud service accounts. Service accounts are the future way to authenticate to Identity Cloud environments without using a personal tenant admin account. Tenant admins can create any number of service accounts and assign sets of privileges to each account. Frodo Library can create service accounts with the required privileges or can use existing service accounts.
+
+    To create a service account use the new ServiceAccount API:
+    ```js
+    import { createJwkRsa, createJwks, getJwkRsaPublic } from './JoseOps';
+    import { createServiceAccount, isServiceAccountsFeatureAvailable } from './ServiceAccountOps';
+
+    // check if the tenant supports service accounts
+    if (isServiceAccountsFeatureAvailable()) {
+        const name = 'sa';
+        const description = 'service account';
+        const accountStatus = 'Active';
+        const scopes = ['fr:am:*', 'fr:idm:*', 'fr:idc:esv:*'];
+        // create a java web key (JWK) using RSA
+        const jwk = await createJwkRsa();
+        // extract only the public key as a JWK from the full JWK
+        const publicJwk = await getJwkRsaPublic(jwk);
+        // create a java wek key set (JWKS) from the public JWK
+        const jwks = await createJwks(publicJwk);
+        // create service account
+        const payload = await ServiceAccount.createServiceAccount(
+            name,
+            description,
+            accountStatus,
+            scopes,
+            jwks
+        );
+        // uuid of new service account if creation succeeded
+        const saId = payload._id;
+    }
+    ```
+
+    To use a service account set the following state variables:
+    ```js
+    import { state } from '@rockcarver/frodo-lib';
+
+    // setting both, id and jwk, instruct the library to use the service account
+    state.setServiceAccountId(saId);
+    state.setServiceAccountJwk(jwk);
+    ```
+
+-   \#154: Frodo-specific transaction id in all API requests: `frodo-<random uuid>`
+-   Support AM realm and global services.
+    ```js
+    import { Service } from '@rockcarver/frodo-lib';
+
+    const {
+        createServiceExportTemplate,
+        deleteFullServices,
+        deleteFullService,
+        getListOfServices,
+        getFullServices,
+        exportServices,
+        exportService,
+        importServices,
+        importService,
+    } = Service;
+    ```
+-   Support import IDM configuration.
+    ```js
+    import { Idm } from '@rockcarver/frodo-lib';
+
+    const { putConfigEntity } = Idm;
+    ```
+-   \#139: Support for Agents / Gateways.
+    ```js
+    import { Agent } from '@rockcarver/frodo-lib';
+
+    const {
+        AGENT_TYPE_IG,
+        AGENT_TYPE_JAVA,
+        AGENT_TYPE_WEB,
+        createAgentExportTemplate,
+        getAgents,
+        getIdentityGatewayAgents,
+        getJavaAgents,
+        getWebAgents,
+        exportAgents,
+        exportIdentityGatewayAgents,
+        exportJavaAgents,
+        exportWebAgents,
+        exportAgent,
+        exportIdentityGatewayAgent,
+        exportJavaAgent,
+        exportWebAgent,
+        importAgents,
+        importIdentityGatewayAgents,
+        importJavaAgents,
+        importWebAgents,
+        importAgent,
+        importIdentityGatewayAgent,
+        importJavaAgent,
+        importWebAgent,
+    } = Agent;
+    ```
+-   \#180: Allow all connection parameters to be supplied using environment variables for secure CI/CD:
+    -   `FRODO_HOST`
+    -   `FRODO_REALM`
+    -   `FRODO_USERNAME`
+    -   `FRODO_PASSWORD`
+    -   `FRODO_SA_ID`
+    -   `FRODO_SA_JWK`
+    -   `FRODO_LOG_KEY`
+    -   `FRODO_LOG_SECRET`
+    -   `FRODO_DEBUG`
+-   \#141: Add curlirizer support for troubleshooting. The library can output curl commands for every REST API call it makes. Clients can use this functionality by registering a curlirize handler and enabling the feature:
+    ```js
+    import { state } from '@rockcarver/frodo-lib';
+    
+    /**
+     * Output a curlirize message
+     * @param {string} message the message
+     */
+    export function curlirizeMessage(message) {
+        if (!message) return;
+        console.error(message['brightBlue']);
+    }
+
+    state.setCurlirizeHandler(curlirizeMessage);
+    ```
+-   Added new `raw` Saml2 API functions that use the classic (pre 7.0.0) SAML REST APIs. This allows Frodo to export and import SAML entity providers from pre 7 platform instances.
+    ```js
+    import { Saml2 } from '@rockcarver/frodo-lib';
+
+    const {
+        getRawProviders,
+        getRawProvider,
+        putRawProvider,
+    } = Saml2;
+    ```
+-   More automated tests
+
+### Changed
+
+-   rockcarver/frodo-cli#110: Migrate from .frodorc to Connections.json
+-   Adjust default output:
+    -   rockcarver/frodo-cli#109: Suppress am version output
+    -   rockcarver/frodo-cli#102: Verbosity of connection string used
+    -   rockcarver/frodo-cli#106: Handle non-unique connection name used in cli
+-   Ongoing refactoring of code base:
+    -   \#133: Move cli functions from frodo-lib to frodo-cli
+    -   Refactored Email Template and Theme functionality in lib to remove fs operations from frodo-lib
+-   Updated package dependencies
+
+### Fixed
+
+-   \#137: Error fetching logs with txId
+
+
 ## [0.16.2-20] - 2022-12-17
 
 ## [0.16.2-19] - 2022-12-14
