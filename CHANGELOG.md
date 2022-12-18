@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.1] - 2022-12-18
+
 ### Added
 
 -   \#68: Support upcoming Identity Cloud service accounts. Service accounts are the future way to authenticate to Identity Cloud environments without using a personal tenant admin account. Tenant admins can create any number of service accounts and assign sets of privileges to each account. Frodo Library can create service accounts with the required privileges or can use existing service accounts.
@@ -893,7 +895,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.17.1...HEAD
+
+[0.17.1]: https://github.com/rockcarver/frodo-lib/compare/v0.17.0...v0.17.1
 
 [0.17.0]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-20...v0.17.0
 
