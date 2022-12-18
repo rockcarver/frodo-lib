@@ -155,50 +155,41 @@ export const setDirectory = (directory: string) =>
 export const getDirectory = () => _state.directory;
 
 export const setPrintHandler = (
-  printHandler: (
-    message: string | object,
-    type?: string,
-    newline?: boolean
-  ) => void
-) => (_state.printHandler = printHandler);
+  handler: (message: string | object, type?: string, newline?: boolean) => void
+) => (_state.printHandler = handler);
 export const getPrintHandler = () => _state.printHandler;
 
 export const setVerboseHandler = (
-  verboseHandler: (message: string | object) => void
-) => (_state.verboseHandler = verboseHandler);
+  handler: (message: string | object) => void
+) => (_state.verboseHandler = handler);
 export const getVerboseHandler = () => _state.verboseHandler;
 export const setVerbose = (verbose: boolean) => (_state.verbose = verbose);
 export const getVerbose = (): boolean => _state.verbose;
 
-export const setDebugHandler = (
-  debugHandler: (message: string | object) => void
-) => (_state.debugHandler = debugHandler);
+export const setDebugHandler = (handler: (message: string | object) => void) =>
+  (_state.debugHandler = handler);
 export const getDebugHandler = () => _state.debugHandler;
 export const setDebug = (debug: boolean) => (_state.debug = debug);
 export const getDebug = (): boolean =>
   _state.debug || process.env.FRODO_DEBUG !== undefined;
 
-export const setCurlirizeHandler = (debugHandler: (message: string) => void) =>
-  (_state.curlirizeHandler = debugHandler);
+export const setCurlirizeHandler = (handler: (message: string) => void) =>
+  (_state.curlirizeHandler = handler);
 export const getCurlirizeHandler = () => _state.curlirizeHandler;
-export const setCurlirize = (debug: boolean) => (_state.curlirize = debug);
+export const setCurlirize = (curlirize: boolean) =>
+  (_state.curlirize = curlirize);
 export const getCurlirize = (): boolean => _state.curlirize;
 
 export const setCreateProgressHandler = (
-  createProgressHandler: (
-    type: string,
-    total?: number,
-    message?: string
-  ) => void
-) => (_state.createProgressHandler = createProgressHandler);
+  handler: (type: string, total?: number, message?: string) => void
+) => (_state.createProgressHandler = handler);
 export const getCreateProgressHandler = () => _state.createProgressHandler;
-export const setUpdateProgressHandler = (
-  updateProgressHandler: (message: string) => void
-) => (_state.updateProgressHandler = updateProgressHandler);
+export const setUpdateProgressHandler = (handler: (message: string) => void) =>
+  (_state.updateProgressHandler = handler);
 export const getUpdateProgressHandler = () => _state.updateProgressHandler;
 export const setStopProgressHandler = (
-  stopProgressHandler: (message: string, status?: string) => void
-) => (_state.stopProgressHandler = stopProgressHandler);
+  handler: (message: string, status?: string) => void
+) => (_state.stopProgressHandler = handler);
 export const getStopProgressHandler = () => _state.stopProgressHandler;
 
 /**
