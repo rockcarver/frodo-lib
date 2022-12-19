@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 import { PagedResult } from './ApiTypes';
 
 const scriptURLTemplate = '%s/json%s/scripts/%s';
@@ -41,7 +41,7 @@ export interface Script {
 export async function getScripts(): Promise<PagedResult<Script>> {
   const urlString = util.format(
     scriptListURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath()
   );
   const { data } = await generateAmApi(getApiConfig()).get<PagedResult<Script>>(
@@ -63,7 +63,7 @@ export async function getScriptByName(
 ): Promise<PagedResult<Script>> {
   const urlString = util.format(
     scriptQueryURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     scriptName
   );
@@ -84,7 +84,7 @@ export async function getScriptByName(
 export async function getScript(scriptId) {
   const urlString = util.format(
     scriptURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     scriptId
   );
@@ -103,7 +103,7 @@ export async function getScript(scriptId) {
 export async function putScript(scriptId, scriptData) {
   const urlString = util.format(
     scriptURLTemplate,
-    storage.session.getTenant(),
+    state.getHost(),
     getCurrentRealmPath(),
     scriptId
   );

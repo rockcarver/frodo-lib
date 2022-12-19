@@ -8,7 +8,7 @@ import {
   encode,
   encodeBase64Url,
 } from '../../api/utils/Base64';
-import storage from '../../storage/SessionStorage';
+import * as state from '../../shared/State';
 import { FRODO_METADATA_ID } from '../../storage/StaticStorage';
 import { ExportMetaData } from '../OpsTypes';
 import { debugMessage, printMessage } from './Console';
@@ -20,12 +20,12 @@ export function getCurrentTimestamp() {
 
 export function getMetadata(): ExportMetaData {
   const metadata: ExportMetaData = {
-    origin: storage.session.getTenant(),
-    originAmVersion: storage.session.getAmVersion(),
-    exportedBy: storage.session.getUsername(),
+    origin: state.getHost(),
+    originAmVersion: state.getAmVersion(),
+    exportedBy: state.getUsername(),
     exportDate: getCurrentTimestamp(),
     exportTool: FRODO_METADATA_ID,
-    exportToolVersion: storage.session.getFrodoVersion(),
+    exportToolVersion: state.getFrodoVersion(),
   };
   return metadata;
 }
@@ -45,7 +45,7 @@ export function titleCase(input) {
 }
 
 export function getRealmString() {
-  const realm = storage.session.getRealm();
+  const realm = state.getRealm();
   return realm
     .split('/')
     .reduce((result, item) => `${result}${titleCase(item)}`, '');
@@ -91,8 +91,8 @@ export function getTypedFilename(name: string, type: string, suffix = 'json') {
 
 export function getWorkingDirectory() {
   let wd = '.';
-  if (storage.session.getDirectory()) {
-    wd = storage.session.getDirectory().replace(/\/$/, '');
+  if (state.getDirectory()) {
+    wd = state.getDirectory().replace(/\/$/, '');
     // create directory if it doesn't exist
     if (!fs.existsSync(wd)) {
       debugMessage(
@@ -128,16 +128,18 @@ export function saveToFile(type, data, identifier, filename) {
  * Save JSON object to file
  * @param {Object} data data object
  * @param {String} filename file name
+ * @return {boolean} true if successful, false otherwise
  */
-export function saveJsonToFile(data, filename) {
+export function saveJsonToFile(data, filename, includeMeta = true): boolean {
   const exportData = data;
-  exportData.meta = getMetadata();
-  fs.writeFile(filename, JSON.stringify(exportData, null, 2), (err) => {
-    if (err) {
-      return printMessage(`ERROR - can't save ${filename}`, 'error');
-    }
-    return '';
-  });
+  if (includeMeta) exportData.meta = getMetadata();
+  try {
+    fs.writeFileSync(filename, JSON.stringify(exportData, null, 2));
+    return true;
+  } catch (err) {
+    printMessage(`ERROR - can't save ${filename}`, 'error');
+    return false;
+  }
 }
 
 /**

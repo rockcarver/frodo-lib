@@ -22,7 +22,8 @@
   },
   "env": {
     "jest": true,
-    "jest/globals": true
+    "jest/globals": true,
+    "node": true
   },
   "ignorePatterns": ["types", "cjs", "esm"]
 }

@@ -49,7 +49,7 @@ export interface ExportMetaData {
 }
 
 export interface SingleTreeExportInterface {
-  meta?: Record<string, ExportMetaData>;
+  meta?: ExportMetaData;
   innerNodes?: Record<string, NodeSkeleton>;
   innernodes?: Record<string, NodeSkeleton>;
   nodes: Record<string, NodeSkeleton>;

@@ -9,10 +9,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const mock = new MockAdapter(axios);
 
-state.default.session.setTenant('');
-state.default.session.setRealm('alpha');
-state.default.session.setCookieName('cookieName');
-state.default.session.setCookieValue('cookieValue');
+state.setHost('');
+state.setRealm('alpha');
+state.setCookieName('cookieName');
+state.setCookieValue('cookieValue');
 
 describe('TreeApi - getTrees()', () => {
   test('getTrees() 0: Method is implemented', async () => {
@@ -28,7 +28,7 @@ describe('TreeApi - getTrees()', () => {
     );
     mock
       .onGet(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees?_queryFilter=true'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees?_queryFilter=true`
       )
       .reply(200, response);
     const trees = await TreeRaw.getTrees();
@@ -51,7 +51,7 @@ describe('TreeApi - getTree()', () => {
     );
     mock
       .onGet(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/FrodoTest'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/FrodoTest`
       )
       .reply(200, response);
     const tree = await TreeRaw.getTree('FrodoTest');
@@ -62,7 +62,7 @@ describe('TreeApi - getTree()', () => {
   test('getTree() 2: Get non-existing tree', async () => {
     mock
       .onGet(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/DoesNotExist'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/DoesNotExist`
       )
       .reply(404, {
         code: 404,
@@ -91,7 +91,7 @@ describe('TreeApi - putTree()', () => {
     );
     mock
       .onPut(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/FrodoTest'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/FrodoTest`
       )
       .reply(201, response);
     const tree = await TreeRaw.putTree('FrodoTest', response);
@@ -109,7 +109,7 @@ describe('TreeApi - putTree()', () => {
     );
     mock
       .onPut(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/Invalid'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/Invalid`
       )
       .reply(400, {
         code: 400,
@@ -136,7 +136,7 @@ describe('TreeApi - putTree()', () => {
     );
     mock
       .onPut(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/Invalid'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/Invalid`
       )
       .reply(400, {
         code: 400,
@@ -173,7 +173,7 @@ describe('TreeApi - putTree()', () => {
     );
     mock
       .onPut(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/Invalid'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/Invalid`
       )
       .reply(400, {
         code: 400,
@@ -199,7 +199,7 @@ describe('TreeApi - putTree()', () => {
     );
     mock
       .onPut(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/Invalid'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/Invalid`
       )
       .reply(400, {
         code: 400,
@@ -233,7 +233,7 @@ describe('TreeApi - deleteTree()', () => {
     );
     mock
       .onDelete(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/FrodoTest'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/FrodoTest`
       )
       .reply(200, response);
     const tree = await TreeRaw.deleteTree('FrodoTest');
@@ -244,7 +244,7 @@ describe('TreeApi - deleteTree()', () => {
   test('deleteTree() 2: Delete non-existing tree', async () => {
     mock
       .onDelete(
-        '/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/DoesNotExist'
+        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/DoesNotExist`
       )
       .reply(404, {
         code: 404,

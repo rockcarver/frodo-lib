@@ -1,9 +1,11 @@
 import util from 'util';
 import { generateIdmApi } from './BaseApi';
 import { getTenantURL } from './utils/ApiUtils';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
+import { ObjectSkeletonInterface } from './ApiTypes';
 
 const managedObjectURLTemplate = '%s/openidm/managed/%s';
+const createManagedObjectURLTemplate = '%s/openidm/managed/%s?_action=create';
 const managedObjectByIdURLTemplate = '%s/openidm/managed/%s/%s';
 const managedObjectQueryAllURLTemplate = `${managedObjectURLTemplate}?_queryFilter=true&_pageSize=10000`;
 
@@ -17,7 +19,7 @@ export async function getManagedObject(type, id, fields) {
     fields.length > 0 ? `_fields=${fields.join(',')}` : '_fields=*';
   const urlString = util.format(
     `${managedObjectByIdURLTemplate}?${fieldsParam}`,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     type,
     id
   );
@@ -25,7 +27,26 @@ export async function getManagedObject(type, id, fields) {
 }
 
 /**
- * Put managed object
+ * Create managed object with server-generated id
+ * @param {string} moType managed object type
+ * @param {any} moData managed object data
+ * @returns {Promise<ObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
+ */
+export async function createManagedObject(
+  moType: string,
+  moData
+): Promise<ObjectSkeletonInterface> {
+  const urlString = util.format(
+    createManagedObjectURLTemplate,
+    getTenantURL(state.getHost()),
+    moType
+  );
+  const { data } = await generateIdmApi().post(urlString, moData);
+  return data;
+}
+
+/**
+ * Create or update managed object
  * @param {String} id managed object id
  * @param {String} data managed object
  * @returns {Promise} a promise that resolves to an object containing a managed object
@@ -33,7 +54,7 @@ export async function getManagedObject(type, id, fields) {
 export async function putManagedObject(type, id, data) {
   const urlString = util.format(
     managedObjectByIdURLTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     type,
     id
   );
@@ -55,7 +76,7 @@ export async function queryAllManagedObjectsByType(type, fields, pageCookie) {
     : `${managedObjectQueryAllURLTemplate}${fieldsParam}`;
   const urlString = util.format(
     urlTemplate,
-    getTenantURL(storage.session.getTenant()),
+    getTenantURL(state.getHost()),
     type
   );
   return generateIdmApi().get(urlString);

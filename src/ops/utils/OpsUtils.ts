@@ -1,5 +1,5 @@
-import storage from '../../storage/SessionStorage';
-import * as global from '../../storage/StaticStorage';
+import * as state from '../../shared/State';
+import * as globalConfig from '../../storage/StaticStorage';
 import {
   getCurrentRealmName,
   getRealmName as _getRealmName,
@@ -42,9 +42,7 @@ export function applyNameCollisionPolicy(name) {
  */
 export function getRealmManagedUser() {
   let realmManagedUser = 'user';
-  if (
-    storage.session.getDeploymentType() === global.CLOUD_DEPLOYMENT_TYPE_KEY
-  ) {
+  if (state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) {
     realmManagedUser = `${getCurrentRealmName()}_user`;
   }
   return realmManagedUser;
@@ -143,4 +141,17 @@ export function unSubstituteEnvParams(input: string, reader: Reader) {
     input = replaceall(`\${${key}}`, value, input);
   });
   return input;
+}
+
+/**
+ * Check if a string is a valid URL
+ * @param {string} urlString input string to be evaluated
+ * @returns {boolean} true if a valid URL, false otherwise
+ */
+export function isValidUrl(urlString: string) {
+  try {
+    return Boolean(new URL(urlString));
+  } catch (error) {
+    return false;
+  }
 }

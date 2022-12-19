@@ -25,11 +25,10 @@ import {
   titleCase,
   validateImport,
 } from './utils/ExportImportUtils';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 import { decode, encode } from '../api/utils/Base64';
 
 type SavedScript = Omit<Script, 'script'> & { script: string[] };
-
 /**
  * List scripts
  */
@@ -98,10 +97,7 @@ export async function exportScriptByName(name, file) {
  * @param {String} file file name
  */
 export async function exportScriptsToFile(file) {
-  let fileName = getTypedFilename(
-    `all${storage.session.getRealm()}Scripts`,
-    'script'
-  );
+  let fileName = getTypedFilename(`all${state.getRealm()}Scripts`, 'script');
   if (file) {
     fileName = file;
   }

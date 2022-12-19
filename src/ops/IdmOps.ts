@@ -1,4 +1,3 @@
-import util from 'util';
 import {
   getAllConfigEntities as getAllConfigEntitiesRaw,
   getConfigEntity as getConfigEntityRaw,

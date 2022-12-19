@@ -1,4 +1,4 @@
-interface ObjectSkeletonInterface {
+export interface ObjectSkeletonInterface {
   _id: string;
   _rev?: number;
   [k: string]: string | number | boolean | string[] | ObjectSkeletonInterface;

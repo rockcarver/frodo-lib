@@ -2,21 +2,23 @@ import url from 'url';
 import { createHash, randomBytes } from 'crypto';
 import readlineSync from 'readline-sync';
 import { encodeBase64Url } from '../api/utils/Base64';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 import * as globalConfig from '../storage/StaticStorage';
-import { debugMessage, printMessage } from './utils/Console';
+import { debugMessage, printMessage, verboseMessage } from './utils/Console';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
 import { step } from '../api/AuthenticateApi';
 import { accessToken, authorize } from '../api/OAuth2OIDCApi';
-import {
-  getConnectionProfile,
-  saveConnectionProfile,
-} from './ConnectionProfileOps';
+import { getConnectionProfile } from './ConnectionProfileOps';
+import { v4 } from 'uuid';
+import { parseUrl } from '../api/utils/ApiUtils';
+import { JwkRsa, createSignedJwtToken } from './JoseOps';
+import { getManagedObject } from '../api/ManagedObjectApi';
 
 const adminClientPassword = 'doesnotmatter';
 const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
 
-const idmAdminScope = 'fr:idm:* openid';
+const idmAdminScopes = 'fr:idm:* openid';
+const serviceAccountScopes = 'fr:am:* fr:idm:* fr:idc:esv:*';
 
 let adminClientId = 'idmAdminClient';
 
@@ -24,7 +26,7 @@ let adminClientId = 'idmAdminClient';
  * Helper function to get cookie name
  * @returns {String} cookie name
  */
-async function getCookieName() {
+async function determineCookieName() {
   try {
     const { data } = await getServerInfo();
     debugMessage(
@@ -85,21 +87,35 @@ function checkAndHandle2FA(payload) {
 
 /**
  * Helper function to set the default realm by deployment type
- * @param {String} deploymentType deployment type
+ * @param {string} deploymentType deployment type
  */
-function determineDefaultRealm(deploymentType) {
-  if (storage.session.getRealm() === globalConfig.DEFAULT_REALM_KEY) {
-    storage.session.setRealm(
-      globalConfig.DEPLOYMENT_TYPE_REALM_MAP[deploymentType]
-    );
+function determineDefaultRealm(deploymentType: string) {
+  if (
+    !state.getRealm() ||
+    state.getRealm() === globalConfig.DEFAULT_REALM_KEY
+  ) {
+    state.setRealm(globalConfig.DEPLOYMENT_TYPE_REALM_MAP[deploymentType]);
   }
 }
 
 /**
  * Helper function to determine the deployment type
- * @returns {String} deployment type
+ * @returns {Promise<string>} deployment type
  */
-async function determineDeploymentType() {
+async function determineDeploymentType(): Promise<string> {
+  const cookieValue = state.getCookieValue();
+  // https://bugster.forgerock.org/jira/browse/FRAAS-13018
+  // There is a chance that this will be blocked due to security concerns and thus is probably best not to keep active
+  // if (!cookieValue && getUseBearerTokenForAmApis()) {
+  //   const token = await getTokenInfo();
+  //   cookieValue = token.sessionToken;
+  //   setCookieValue(cookieValue);
+  // }
+
+  // if we are using a service account, we know it's cloud
+  if (state.getUseBearerTokenForAmApis())
+    return globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY;
+
   const fidcClientId = 'idmAdminClient';
   const forgeopsClientId = 'idm-admin-ui';
 
@@ -108,29 +124,30 @@ async function determineDeploymentType() {
     createHash('sha256').update(verifier).digest()
   );
   const challengeMethod = 'S256';
-  const redirectURL = url.resolve(
-    storage.session.getTenant(),
-    redirectUrlTemplate
-  );
+  const redirectURL = url.resolve(state.getHost(), redirectUrlTemplate);
 
   const config = {
     maxRedirects: 0,
+    headers: {
+      [state.getCookieName()]: state.getCookieValue(),
+    },
   };
-  let bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScope}&response_type=code&client_id=${fidcClientId}&csrf=${storage.session.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+  let bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
 
   let deploymentType = globalConfig.CLASSIC_DEPLOYMENT_TYPE_KEY;
   try {
     await authorize(bodyFormData, config);
   } catch (e) {
+    // debugMessage(e.response);
     if (
       e.response?.status === 302 &&
       e.response.headers?.location?.indexOf('code=') > -1
     ) {
-      printMessage('ForgeRock Identity Cloud ', 'info', false);
+      verboseMessage(`ForgeRock Identity Cloud`['brightCyan'] + ` detected.`);
       deploymentType = globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY;
     } else {
       try {
-        bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScope}&response_type=code&client_id=${forgeopsClientId}&csrf=${storage.session.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+        bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
         await authorize(bodyFormData, config);
       } catch (ex) {
         if (
@@ -138,16 +155,14 @@ async function determineDeploymentType() {
           ex.response.headers?.location?.indexOf('code=') > -1
         ) {
           adminClientId = forgeopsClientId;
-          printMessage('ForgeOps deployment ', 'info', false);
+          verboseMessage(`ForgeOps deployment`['brightCyan'] + ` detected.`);
           deploymentType = globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY;
         } else {
-          printMessage('Classic deployment ', 'info', false);
+          verboseMessage(`Classic deployment`['brightCyan'] + ` detected.`);
         }
       }
     }
-    printMessage('detected.');
   }
-  determineDefaultRealm(deploymentType);
   return deploymentType;
 }
 
@@ -168,76 +183,42 @@ async function getSemanticVersion(versionInfo) {
 
 /**
  * Helper function to authenticate and obtain and store session cookie
- * @returns {String} empty string or null
+ * @returns {string} Session token or null
  */
-async function authenticate() {
-  storage.session.setCookieName(await getCookieName());
-  try {
-    const config = {
-      headers: {
-        'X-OpenAM-Username': storage.session.getUsername(),
-        'X-OpenAM-Password': storage.session.getPassword(),
-      },
-    };
-    const response1 = await step({}, config);
-    const skip2FA = checkAndHandle2FA(response1);
-    let response2 = {};
-    if (skip2FA.need2fa) {
-      response2 = await step(skip2FA.payload);
-    } else {
-      response2 = skip2FA.payload;
-    }
-    if ('tokenId' in response2) {
-      storage.session.setCookieValue(response2['tokenId']);
-      if (!storage.session.getDeploymentType()) {
-        storage.session.setDeploymentType(await determineDeploymentType());
-      } else {
-        determineDefaultRealm(storage.session.getDeploymentType());
-      }
-      const versionInfo = (await getServerVersionInfo()).data;
-
-      // https://github.com/rockcarver/frodo-cli/issues/109
-      // printMessage(`Connected to ${versionInfo.fullVersion}`);
-
-      // https://github.com/rockcarver/frodo-cli/issues/102
-      printMessage(
-        `Connected to [${storage.session.getTenant()}], [${
-          !storage.session.getRealm() ? 'alpha' : storage.session.getRealm()
-        }] realm, as [${storage.session.getUsername()}]`
-      );
-      const version = await getSemanticVersion(versionInfo);
-      storage.session.setAmVersion(version);
-      return '';
-    }
-    printMessage(`error authenticating`, 'error');
-    printMessage('+++ likely cause, bad credentials!!! +++', 'error');
-    return null;
-  } catch (e) {
-    if (e.response?.status === 401) {
-      printMessage(`error authenticating - ${e.message}`, 'error');
-      printMessage('+++ likely cause, bad credentials +++', 'error');
-    }
-    if (e.message === 'self signed certificate') {
-      printMessage(`error authenticating - ${e.message}`, 'error');
-      printMessage('+++ use -k, --insecure option to allow +++', 'error');
-    } else {
-      printMessage(`error authenticating - ${e.message}`, 'error');
-      printMessage(e.response?.data, 'error');
-    }
-    return null;
+async function authenticate(
+  username: string,
+  password: string
+): Promise<string> {
+  const config = {
+    headers: {
+      'X-OpenAM-Username': username,
+      'X-OpenAM-Password': password,
+    },
+  };
+  const response1 = await step({}, config);
+  const skip2FA = checkAndHandle2FA(response1);
+  let response2 = {};
+  if (skip2FA.need2fa) {
+    response2 = await step(skip2FA.payload);
+  } else {
+    response2 = skip2FA.payload;
   }
+  if ('tokenId' in response2) {
+    return response2['tokenId'] as string;
+  }
+  return null;
 }
 
 /**
  * Helper function to obtain an oauth2 authorization code
- * @param {String} redirectURL oauth2 redirect uri
- * @param {String} codeChallenge PKCE code challenge
- * @param {String} codeChallengeMethod PKCE code challenge method
- * @returns {String} oauth2 authorization code or null
+ * @param {string} redirectURL oauth2 redirect uri
+ * @param {string} codeChallenge PKCE code challenge
+ * @param {string} codeChallengeMethod PKCE code challenge method
+ * @returns {string} oauth2 authorization code or null
  */
 async function getAuthCode(redirectURL, codeChallenge, codeChallengeMethod) {
   try {
-    const bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScope}&response_type=code&client_id=${adminClientId}&csrf=${storage.session.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
+    const bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${adminClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
     const config = {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -275,29 +256,23 @@ async function getAuthCode(redirectURL, codeChallenge, codeChallengeMethod) {
 
 /**
  * Helper function to obtain oauth2 access token
- * @returns {String} empty string or null
+ * @returns {Promise<string | null>} access token or null
  */
-async function getAccessToken() {
+async function getAccessTokenForUser(): Promise<string | null> {
   try {
     const verifier = encodeBase64Url(randomBytes(32));
     const challenge = encodeBase64Url(
       createHash('sha256').update(verifier).digest()
     );
     const challengeMethod = 'S256';
-    const redirectURL = url.resolve(
-      storage.session.getTenant(),
-      redirectUrlTemplate
-    );
+    const redirectURL = url.resolve(state.getHost(), redirectUrlTemplate);
     const authCode = await getAuthCode(redirectURL, challenge, challengeMethod);
     if (authCode == null) {
       printMessage('error getting auth code', 'error');
       return null;
     }
     let response = null;
-    if (
-      storage.session.getDeploymentType() ===
-      globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY
-    ) {
+    if (state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) {
       const config = {
         auth: {
           username: adminClientId,
@@ -310,66 +285,217 @@ async function getAccessToken() {
       const bodyFormData = `client_id=${adminClientId}&redirect_uri=${redirectURL}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
       response = await accessToken(bodyFormData);
     }
-    if (response.status < 200 || response.status > 399) {
-      printMessage(`access token call returned ${response.status}`, 'error');
-      return null;
-    }
     if ('access_token' in response.data) {
-      storage.session.setBearerToken(response.data.access_token);
-      return '';
+      return response.data.access_token;
     }
-    printMessage("can't get access token", 'error');
-    return null;
-  } catch (e) {
-    printMessage('error getting access token - ', 'error');
-    return null;
+    printMessage('No access token in response.', 'error');
+  } catch (error) {
+    debugMessage(`Error getting access token for user: ${error}`);
+    debugMessage(error.response?.data);
   }
+  return null;
+}
+
+function createPayload(serviceAccountId: string) {
+  const u = parseUrl(state.getHost());
+  const aud = `${u.origin}:${
+    u.port ? u.port : u.protocol === 'https' ? '443' : '80'
+  }${u.pathname}/oauth2/access_token`;
+
+  // Cross platform way of setting JWT expiry time 3 minutes in the future, expressed as number of seconds since EPOCH
+  const exp = Math.floor(new Date().getTime() / 1000 + 180);
+
+  // A unique ID for the JWT which is required when requesting the openid scope
+  const jti = v4();
+
+  const iss = serviceAccountId;
+  const sub = serviceAccountId;
+
+  // Create the payload for our bearer token
+  const payload = { iss, sub, aud, exp, jti };
+
+  return payload;
+}
+
+/**
+ * Get access token for service account
+ * @param {string} serviceAccountId UUID of service account
+ * @param {JwkRsa} jwk Java Wek Key
+ * @returns {string | null} Access token or null
+ */
+export async function getAccessTokenForServiceAccount(
+  serviceAccountId: string,
+  jwk: JwkRsa
+): Promise<string | null> {
+  debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: start`);
+  const payload = createPayload(serviceAccountId);
+  debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: payload:`);
+  debugMessage(payload);
+  const jwt = await createSignedJwtToken(payload, jwk);
+  debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: jwt:`);
+  debugMessage(jwt);
+  const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${serviceAccountScopes}`;
+  const response = await accessToken(bodyFormData);
+  if ('access_token' in response.data) {
+    debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: token:`);
+    debugMessage(response.data.access_token);
+    debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: end`);
+    return response.data.access_token;
+  }
+  debugMessage(
+    `AuthenticateOps.getAccessTokenForServiceAccount: No access token in response.`
+  );
+  debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: end`);
+  return null;
+}
+
+async function determineDeploymentTypeAndDefaultRealmAndVersion() {
+  debugMessage(
+    `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: start`
+  );
+  if (!state.getDeploymentType()) {
+    state.setDeploymentType(await determineDeploymentType());
+  }
+  determineDefaultRealm(state.getDeploymentType());
+  debugMessage(
+    `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: realm=${state.getRealm()}, type=${state.getDeploymentType()}`
+  );
+
+  const versionInfo = (await getServerVersionInfo()).data;
+
+  // https://github.com/rockcarver/frodo-cli/issues/109
+  debugMessage(`Full version: ${versionInfo.fullVersion}`);
+
+  const version = await getSemanticVersion(versionInfo);
+  state.setAmVersion(version);
+  debugMessage(
+    `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: end`
+  );
+}
+
+async function getLoggedInSubject(): Promise<string> {
+  let subjectString = `user ${state.getUsername()}`;
+  if (state.getUseBearerTokenForAmApis()) {
+    const name = (
+      await getManagedObject('svcacct', state.getServiceAccountId(), ['name'])
+    ).data.name;
+    subjectString = `service account ${name} [${state.getServiceAccountId()}]`;
+  }
+  return subjectString;
 }
 
 /**
  * Get tokens
  * @param {boolean} save true to save a connection profile upon successful authentication, false otherwise
- * @returns {boolean} true if tokens were successfully obtained, false otherwise
+ * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
  */
-export async function getTokens(save = false) {
-  let credsFromParameters = true;
-  // if username/password on cli are empty, try to read from connections.json
-  if (
-    storage.session.getUsername() == null &&
-    storage.session.getPassword() == null
-  ) {
-    credsFromParameters = false;
-    const conn = await getConnectionProfile();
-    if (conn) {
-      storage.session.setTenant(conn.tenant);
-      storage.session.setUsername(conn.username);
-      storage.session.setPassword(conn.password);
-      storage.session.setAuthenticationService(conn.authenticationService);
-      storage.session.setAuthenticationHeaderOverrides(
-        conn.authenticationHeaderOverrides
-      );
-    } else {
-      return false;
-    }
-  }
-  await authenticate();
-  if (
-    storage.session.getCookieValue() &&
-    !storage.session.getBearerToken() &&
-    (storage.session.getDeploymentType() ===
-      globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY ||
-      storage.session.getDeploymentType() ===
-        globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY)
-  ) {
-    await getAccessToken();
-  }
-  if (save && storage.session.getCookieValue() && credsFromParameters) {
-    // valid cookie, which means valid username/password combo. Save it in connections.json
-    saveConnectionProfile();
-    return true;
-  }
-  if (!storage.session.getCookieValue()) {
+export async function getTokens(): Promise<boolean> {
+  if (!state.getHost()) {
+    printMessage(
+      `No host specified and FRODO_HOST env variable not set!`,
+      'error'
+    );
     return false;
   }
-  return true;
+  try {
+    // if username/password on cli are empty, try to read from connections.json
+    if (
+      state.getUsername() == null &&
+      state.getPassword() == null &&
+      !state.getServiceAccountId() &&
+      !state.getServiceAccountJwk()
+    ) {
+      const conn = await getConnectionProfile();
+      if (conn) {
+        state.setHost(conn.tenant);
+        state.setUsername(conn.username);
+        state.setPassword(conn.password);
+        state.setAuthenticationService(conn.authenticationService);
+        state.setAuthenticationHeaderOverrides(
+          conn.authenticationHeaderOverrides
+        );
+        state.setServiceAccountId(conn.svcacctId);
+        state.setServiceAccountJwk(conn.svcacctJwk);
+      } else {
+        return false;
+      }
+    }
+    // now that we have the full tenant URL we can lookup the cookie name
+    state.setCookieName(await determineCookieName());
+
+    // use service account to login?
+    if (state.getServiceAccountId() && state.getServiceAccountJwk()) {
+      debugMessage(
+        `AuthenticateOps.getTokens: Authenticating with service account ${state.getServiceAccountId()}`
+      );
+      try {
+        const token = await getAccessTokenForServiceAccount(
+          state.getServiceAccountId(),
+          state.getServiceAccountJwk()
+        );
+        state.setBearerToken(token);
+        state.setUseBearerTokenForAmApis(true);
+        await determineDeploymentTypeAndDefaultRealmAndVersion();
+      } catch (saErr) {
+        throw new Error(
+          `Service account login error: ${
+            saErr.response?.data?.error_description ||
+            saErr.response?.data?.message
+          }`
+        );
+      }
+    }
+    // use user account to login
+    else if (state.getUsername() && state.getPassword()) {
+      debugMessage(
+        `AuthenticateOps.getTokens: Authenticating with user account ${state.getUsername()}`
+      );
+      const token = await authenticate(
+        state.getUsername(),
+        state.getPassword()
+      );
+      if (token) state.setCookieValue(token);
+      await determineDeploymentTypeAndDefaultRealmAndVersion();
+      if (
+        state.getCookieValue() &&
+        !state.getBearerToken() &&
+        (state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY ||
+          state.getDeploymentType() ===
+            globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY)
+      ) {
+        const accessToken = await getAccessTokenForUser();
+        if (accessToken) state.setBearerToken(accessToken);
+      }
+    }
+    // incomplete or no credentials
+    else {
+      printMessage(`Incomplete or no credentials!`, 'error');
+      return false;
+    }
+    if (
+      state.getCookieValue() ||
+      (state.getUseBearerTokenForAmApis() && state.getBearerToken())
+    ) {
+      // https://github.com/rockcarver/frodo-cli/issues/102
+      printMessage(
+        `Connected to ${state.getHost()} [${
+          state.getRealm() ? state.getRealm() : 'root'
+        }] as ${await getLoggedInSubject()}`,
+        'info'
+      );
+      return true;
+    }
+  } catch (error) {
+    // regular error
+    printMessage(error.message, 'error');
+    // axios error am api
+    printMessage(error.response?.data?.message, 'error');
+    // axios error am oauth2 api
+    printMessage(error.response?.data?.error_description, 'error');
+    // axios error data
+    debugMessage(error.response?.data);
+    // stack trace
+    debugMessage(error.stack || new Error().stack);
+  }
+  return false;
 }

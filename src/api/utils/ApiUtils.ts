@@ -1,11 +1,11 @@
-import storage from '../../storage/SessionStorage';
+import * as state from '../../shared/State';
 
 /**
  * Get current realm path
  * @returns {String} a CREST-compliant realm path, e.g. /realms/root/realms/alpha
  */
 export function getCurrentRealmPath() {
-  let realm = storage.session.getRealm();
+  let realm = state.getRealm();
   if (realm.startsWith('/')) {
     realm = realm.substring(1);
   }
@@ -21,7 +21,7 @@ export function getCurrentRealmPath() {
  * @returns {String} name of the current realm. /alpha -> alpha
  */
 export function getCurrentRealmName() {
-  const realm = storage.session.getRealm();
+  const realm = state.getRealm();
   const components = realm.split('/');
   let realmName = '/';
   if (components.length > 0 && realmName !== realm) {

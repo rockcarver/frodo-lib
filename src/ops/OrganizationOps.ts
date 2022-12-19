@@ -1,5 +1,5 @@
 import { queryAllManagedObjectsByType } from '../api/IdmConfigApi';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 import { printMessage } from './utils/Console';
 
 /**
@@ -8,10 +8,8 @@ import { printMessage } from './utils/Console';
  */
 export function getRealmManagedOrganization() {
   let realmManagedOrg = 'organization';
-  if (
-    storage.session.getDeploymentType() === global.CLOUD_DEPLOYMENT_TYPE_KEY
-  ) {
-    realmManagedOrg = `${storage.session.getRealm()}_organization`;
+  if (state.getDeploymentType() === global.CLOUD_DEPLOYMENT_TYPE_KEY) {
+    realmManagedOrg = `${state.getRealm()}_organization`;
   }
   return realmManagedOrg;
 }

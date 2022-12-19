@@ -1,10 +1,5 @@
 import _ from 'lodash';
-import {
-  InnerNodeRefSkeletonInterface,
-  NodeRefSkeletonInterface,
-  NodeSkeleton,
-} from '../api/ApiTypes';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 import {
   getNode,
   deleteNode,
@@ -486,7 +481,7 @@ export function isCloudOnlyNode(nodeType: string): boolean {
  */
 export function isCustomNode(nodeType: string): boolean {
   let ootbNodeTypes = [];
-  switch (storage.session.getAmVersion()) {
+  switch (state.getAmVersion()) {
     case '7.1.0':
       ootbNodeTypes = OOTB_NODE_TYPES_7_1.slice(0);
       break;

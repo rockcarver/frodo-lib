@@ -2,11 +2,11 @@ import { printMessage } from './utils/Console';
 import { getCurrentTimestamp } from './utils/ExportImportUtils';
 import { createAPIKeyAndSecret, getAPIKeys, getSources } from '../api/LogApi';
 
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 
 import * as LogApi from '../api/LogApi';
 
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const unfilterableNoise = [
   'text/plain', // Unfortunately, it is impossible to filter out those without excluding IDM script logging as well
 ];
@@ -97,7 +97,7 @@ const journeysNoise = [
   'org.forgerock.openam.auth.trees.engine.AuthTreeExecutor',
 ];
 
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const journeys = [
   'org.forgerock.openam.auth.nodes.SelectIdPNode',
   'org.forgerock.openam.auth.nodes.ValidatedPasswordNode',
@@ -125,7 +125,7 @@ const samlNoise = [
   'org.apache.xml.security.signature.Manifest',
 ];
 
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const saml = [
   'jsp.saml2.spAssertionConsumer',
   'com.sun.identity.saml.common.SAMLUtils',
@@ -318,7 +318,7 @@ export async function tailLogs(source, levels, txid, cookie, nf) {
 
 export async function provisionCreds() {
   try {
-    let keyName = `frodo-${storage.session.getUsername()}`;
+    let keyName = `frodo-${state.getUsername()}`;
     return getAPIKeys()
       .then((response) => {
         response.data.result.forEach((k) => {
@@ -337,7 +337,7 @@ export async function provisionCreds() {
               return null;
             }
             printMessage(
-              `Created a new log API key [${keyName}] in ${storage.session.getTenant()}`
+              `Created a new log API key [${keyName}] in ${state.getHost()}`
             );
             return resp.data;
           })

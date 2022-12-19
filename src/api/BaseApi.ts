@@ -5,7 +5,7 @@ import axiosRetry from 'axios-retry';
 import HttpsProxyAgent from 'https-proxy-agent';
 import url from 'url';
 import fs from 'fs';
-import storage from '../storage/SessionStorage';
+import * as state from '../shared/State';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { curlirizeMessage, printMessage } from '../ops/utils/Console';
@@ -64,7 +64,7 @@ function getHttpAgent() {
 function getHttpsAgent() {
   if (httpsAgent) return httpsAgent;
   const options = {
-    rejectUnauthorized: !storage.session.getAllowInsecureConnection(),
+    rejectUnauthorized: !state.getAllowInsecureConnection(),
   };
   const httpsProxy = process.env.HTTPS_PROXY || process.env.https_proxy;
   if (httpsProxy) {
@@ -74,7 +74,7 @@ function getHttpsAgent() {
     options['host'] = parsed.hostname;
     options['port'] = parsed.port;
     options['protocol'] = parsed.protocol;
-    options.rejectUnauthorized = !storage.session.getAllowInsecureConnection();
+    options.rejectUnauthorized = !state.getAllowInsecureConnection();
     httpsAgent = HttpsProxyAgent(options);
     return httpsAgent;
   }
@@ -127,10 +127,16 @@ export function generateAmApi(resource, requestOverride = {}) {
     'Content-Type': 'application/json',
     // only add API version if we have it
     ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
-    // only send session cookie if we know its name and value
-    ...(storage.session.getCookieName() &&
-      storage.session.getCookieValue() && {
-        Cookie: `${storage.session.getCookieName()}=${storage.session.getCookieValue()}`,
+    // only send session cookie if we know its name and value and we are not instructed to use the bearer token for AM APIs
+    ...(!state.getUseBearerTokenForAmApis() &&
+      state.getCookieName() &&
+      state.getCookieValue() && {
+        Cookie: `${state.getCookieName()}=${state.getCookieValue()}`,
+      }),
+    // only add authorization header if we have a bearer token and are instructed to use it for AM APIs
+    ...(state.getUseBearerTokenForAmApis() &&
+      state.getBearerToken() && {
+        Authorization: `Bearer ${state.getBearerToken()}`,
       }),
   };
   if (requestOverride['headers']) {
@@ -146,7 +152,7 @@ export function generateAmApi(resource, requestOverride = {}) {
     ...requestOverride,
     headers: {
       ...headers,
-      ...storage.session.getAuthenticationHeaderOverrides(),
+      ...state.getAuthenticationHeaderOverrides(),
     },
     httpAgent: getHttpAgent(),
     httpsAgent: getHttpsAgent(),
@@ -156,7 +162,7 @@ export function generateAmApi(resource, requestOverride = {}) {
   const request = axios.create(requestDetails);
 
   // enable curlirizer output in debug mode
-  if (storage.session.getCurlirize()) {
+  if (state.getCurlirize()) {
     curlirize(request);
   }
 
@@ -177,10 +183,16 @@ export function generateOauth2Api(resource, requestOverride = {}) {
     'X-ForgeRock-TransactionId': transactionId,
     // only add API version if we have it
     ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
-    // only send session cookie if we know its name and value
-    ...(storage.session.getCookieName() &&
-      storage.session.getCookieValue() && {
-        Cookie: `${storage.session.getCookieName()}=${storage.session.getCookieValue()}`,
+    // only send session cookie if we know its name and value and we are not instructed to use the bearer token for AM APIs
+    ...(!state.getUseBearerTokenForAmApis() &&
+      state.getCookieName() &&
+      state.getCookieValue() && {
+        Cookie: `${state.getCookieName()}=${state.getCookieValue()}`,
+      }),
+    // only add authorization header if we have a bearer token and are instructed to use it for AM APIs
+    ...(state.getUseBearerTokenForAmApis() &&
+      state.getBearerToken() && {
+        Authorization: `Bearer ${state.getBearerToken()}`,
       }),
   };
   if (requestOverride['headers']) {
@@ -196,7 +208,7 @@ export function generateOauth2Api(resource, requestOverride = {}) {
     ...requestOverride,
     headers: {
       ...headers,
-      ...storage.session.getAuthenticationHeaderOverrides(),
+      ...state.getAuthenticationHeaderOverrides(),
     },
     httpAgent: getHttpAgent(),
     httpsAgent: getHttpsAgent(),
@@ -206,7 +218,7 @@ export function generateOauth2Api(resource, requestOverride = {}) {
   const request = axios.create(requestDetails);
 
   // enable curlirizer output in debug mode
-  if (storage.session.getCurlirize()) {
+  if (state.getCurlirize()) {
     curlirize(request);
   }
 
@@ -228,6 +240,10 @@ export function generateIdmApi(requestOverride = {}) {
       'User-Agent': userAgent,
       'X-ForgeRock-TransactionId': transactionId,
       'Content-Type': 'application/json',
+      // only add authorization header if we have a bearer token
+      ...(state.getBearerToken() && {
+        Authorization: `Bearer ${state.getBearerToken()}`,
+      }),
     },
     ...requestOverride,
     httpAgent: getHttpAgent(),
@@ -235,16 +251,16 @@ export function generateIdmApi(requestOverride = {}) {
     proxy: getProxy(),
   };
 
-  if (storage.session.getBearerToken()) {
-    requestDetails.headers[
-      'Authorization'
-    ] = `Bearer ${storage.session.getBearerToken()}`;
-  }
+  // if (storage.session.getBearerToken()) {
+  //   requestDetails.headers[
+  //     'Authorization'
+  //   ] = `Bearer ${storage.session.getBearerToken()}`;
+  // }
 
   const request = axios.create(requestDetails);
 
   // enable curlirizer output in debug mode
-  if (storage.session.getCurlirize()) {
+  if (state.getCurlirize()) {
     curlirize(request);
   }
 
@@ -262,6 +278,10 @@ export function generateLogKeysApi(requestOverride = {}) {
   const headers = {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
+    // only add authorization header if we have a bearer token
+    ...(state.getBearerToken() && {
+      Authorization: `Bearer ${state.getBearerToken()}`,
+    }),
   };
   const requestDetails = {
     // baseURL: getTenantURL(storage.session.getTenant()),
@@ -273,16 +293,10 @@ export function generateLogKeysApi(requestOverride = {}) {
     proxy: getProxy(),
   };
 
-  if (storage.session.getBearerToken()) {
-    requestDetails.headers[
-      'Authorization'
-    ] = `Bearer ${storage.session.getBearerToken()}`;
-  }
-
   const request = axios.create(requestDetails);
 
   // enable curlirizer output in debug mode
-  if (storage.session.getCurlirize()) {
+  if (state.getCurlirize()) {
     curlirize(request);
   }
 
@@ -299,8 +313,8 @@ export function generateLogKeysApi(requestOverride = {}) {
 export function generateLogApi(requestOverride = {}) {
   const headers = {
     'User-Agent': userAgent,
-    'X-API-Key': storage.session.getLogApiKey(),
-    'X-API-Secret': storage.session.getLogApiSecret(),
+    'X-API-Key': state.getLogApiKey(),
+    'X-API-Secret': state.getLogApiSecret(),
   };
   const requestDetails = {
     // baseURL: getTenantURL(storage.session.getTenant()),
@@ -315,7 +329,7 @@ export function generateLogApi(requestOverride = {}) {
   const request = axios.create(requestDetails);
 
   // enable curlirizer output in debug mode
-  if (storage.session.getCurlirize()) {
+  if (state.getCurlirize()) {
     curlirize(request);
   }
 
@@ -335,6 +349,10 @@ export function generateESVApi(resource, requestOverride = {}) {
     'Content-Type': 'application/json',
     // only add API version if we have it
     ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
+    // only add authorization header if we have a bearer token
+    ...(state.getBearerToken() && {
+      Authorization: `Bearer ${state.getBearerToken()}`,
+    }),
   };
   const requestDetails = {
     // baseURL: getTenantURL(storage.session.getTenant()),
@@ -346,16 +364,10 @@ export function generateESVApi(resource, requestOverride = {}) {
     proxy: getProxy(),
   };
 
-  if (storage.session.getBearerToken()) {
-    requestDetails.headers[
-      'Authorization'
-    ] = `Bearer ${storage.session.getBearerToken()}`;
-  }
-
   const request = axios.create(requestDetails);
 
   // enable curlirizer output in debug mode
-  if (storage.session.getCurlirize()) {
+  if (state.getCurlirize()) {
     curlirize(request);
   }
 
@@ -386,7 +398,7 @@ export function generateReleaseApi(baseUrl, requestOverride = {}) {
   const request = axios.create(requestDetails);
 
   // enable curlirizer output in debug mode
-  if (storage.session.getCurlirize()) {
+  if (state.getCurlirize()) {
     curlirize(request);
   }
 
