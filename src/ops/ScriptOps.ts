@@ -19,7 +19,6 @@ import {
   convertBase64TextToArray,
   convertTextArrayToBase64,
   getTypedFilename,
-  readFilesRecursive,
   saveTextToFile,
   saveToFile,
   titleCase,
@@ -27,6 +26,7 @@ import {
 } from './utils/ExportImportUtils';
 import * as state from '../shared/State';
 import { decode, encode } from '../api/utils/Base64';
+import chokidar from 'chokidar';
 
 type SavedScript = Omit<Script, 'script'> & { script: string[] };
 /**
@@ -120,6 +120,15 @@ export async function exportScriptsToFile(file) {
   saveToFile('script', allScriptsData, '_id', fileName);
 }
 
+function assertSingleScript(scripts: Script[]): asserts scripts is [Script] {
+  if (scripts.length === 0) {
+    throw new Error('No script found');
+  }
+  if (scripts.length > 1) {
+    throw new Error('Multiple scripts found');
+  }
+}
+
 /**
  * Export all scripts to individual files
  */
@@ -128,19 +137,30 @@ export async function exportScriptsToFiles() {
   createProgressIndicator(scriptList.length, 'Exporting script');
   for (const item of scriptList) {
     updateProgressIndicator(`Reading script ${item.name}`);
-    // eslint-disable-next-line no-await-in-loop
+
     const scriptData = (await getScriptByName(item.name)).result;
-    const scriptsToSave = scriptData.map((element) => {
-      const scriptTextArray = convertBase64TextToArray(element.script);
-      return {
-        ...element,
-        script: scriptTextArray,
-      };
-    });
-    const fileName = getTypedFilename(item.name, 'script');
-    saveToFile('script', scriptsToSave, '_id', fileName);
+    assertSingleScript(scriptData);
+    exportScript(scriptData[0]);
   }
   stopProgressIndicator('Done');
+}
+
+/**
+ * Export script to an individual file
+ *
+ * @param script The script to export
+ */
+function exportScript(script: Script) {
+  const scriptTextArray = convertBase64TextToArray(script.script);
+
+  const scriptWithTextArray = {
+    ...script,
+    script: scriptTextArray,
+  };
+
+  const fileName = getTypedFilename(scriptWithTextArray.name, 'script');
+
+  saveToFile('script', [scriptWithTextArray], '_id', fileName);
 }
 
 /**
@@ -151,25 +171,30 @@ export async function exportScriptsExtract() {
   createProgressIndicator(scriptList.length, 'Exporting script');
   for (const item of scriptList) {
     updateProgressIndicator(`Reading script ${item.name}`);
-    // eslint-disable-next-line no-await-in-loop
+
     const scriptData = (await getScriptByName(item.name)).result;
-    scriptData.forEach((element) => {
-      const fileExtension = element.language === 'JAVASCRIPT' ? 'js' : 'groovy';
-      const scriptFileName = getTypedFilename(
-        element.name,
-        'script',
-        fileExtension
-      );
-
-      const scriptText = decode(element.script);
-      element.script = scriptFileName;
-
-      saveTextToFile(scriptText, scriptFileName);
-    });
-    const fileName = getTypedFilename(item.name, 'meta');
-    saveToFile('script', scriptData, '_id', fileName);
+    assertSingleScript(scriptData);
+    const scriptToExport = scriptData[0];
+    exportScriptExtract(scriptToExport);
   }
   stopProgressIndicator('Done');
+}
+
+/**
+ * Export script to 2 files: one script file and one metadata file
+ *
+ * @param script The script to export
+ */
+function exportScriptExtract(script: Script) {
+  const fileExtension = script.language === 'JAVASCRIPT' ? 'js' : 'groovy';
+  const scriptFileName = getTypedFilename(script.name, 'script', fileExtension);
+
+  const scriptText = decode(script.script);
+  script.script = scriptFileName;
+
+  saveTextToFile(scriptText, scriptFileName);
+  const fileName = getTypedFilename(script.name, 'meta');
+  saveToFile('script', [script], '_id', fileName);
 }
 
 /**
@@ -178,7 +203,10 @@ export async function exportScriptsExtract() {
  * @param {Object} data script object
  * @returns {Object} a status object
  */
-export async function createOrUpdateScript(id, data) {
+export async function createOrUpdateScript(
+  id: string,
+  data: Script
+): Promise<any> {
   try {
     await putScript(id, data);
     return { error: false, name: data.name };
@@ -255,18 +283,51 @@ export async function importScriptsFromFile(name, file, reUuid = false) {
   });
 }
 
-export async function importExtractedScripts() {
-  const files = await readFilesRecursive('.');
-  const metaFiles = files.filter((file) => file.endsWith('.meta.json'));
-  createProgressIndicator(metaFiles.length, 'Importing scripts');
-  for (const metaFile of metaFiles) {
-    updateProgressIndicator(`Reading ${metaFile}`);
-    const metaData = JSON.parse(fs.readFileSync(metaFile, 'utf8')) as Script;
-    const scriptFileName = metaData.script;
-    const scriptData = fs.readFileSync(scriptFileName, 'utf8');
-    const encodedScript = encode(scriptData);
-    metaData.script = encodedScript;
-    await createOrUpdateScript(metaData._id, metaData);
+/**
+ * Import extracted scripts.
+ *
+ * @param watch whether or not to watch for file changes
+ */
+export async function importExtractedScripts(watch?: boolean) {
+  /**
+   * Run on file change detection.
+   */
+  function onChange(path: string, _stats?: fs.Stats): void {
+    handleExtractedScriptFileImport(path);
   }
-  stopProgressIndicator('Done');
+
+  // We watch both the meta.json files and the script files.
+
+  chokidar
+    .watch([`./**/*.json`, `./**/*.js`], {
+      persistent: watch,
+    })
+    .on('add', onChange)
+    .on('change', onChange)
+    .on('ready', () => {
+      if (watch) {
+        printMessage('Watching for changes...');
+      } else {
+        printMessage('Done');
+      }
+    });
+}
+
+async function handleExtractedScriptFileImport(file: string) {
+  const script = extractedScriptFileToScript(file);
+  await importScript(script);
+}
+
+async function importScript(script: Script) {
+  await createOrUpdateScript(script._id, script);
+}
+
+function extractedScriptFileToScript(metaFile: string) {
+  const metaRaw = fs.readFileSync(metaFile, 'utf8');
+  const meta = JSON.parse(metaRaw) as Script;
+  const scriptFile = meta.script;
+  const scriptRaw = fs.readFileSync(scriptFile, 'utf8');
+  const script = encode(scriptRaw);
+  meta.script = script;
+  return meta;
 }

@@ -93,6 +93,7 @@
     "axios": "0.27.2",
     "axios-mock-adapter": "^1.21.2",
     "axios-retry": "^3.3.1",
+    "chokidar": "^3.5.3",
     "colors": "^1.4.0",
     "esprima": "^4.0.1",
     "fs-extra": "^10.0.0",
