@@ -1,262 +1,141 @@
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
-import { TreeRaw, state } from '../index';
+import { TreeRaw } from '../index';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import autoSetupPolly from '../utils/AutoSetupPolly';
+
+const context = autoSetupPolly();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const mock = new MockAdapter(axios);
+describe('TreeApi', () => {
+  describe('getTrees()', () => {
+    test('0: Method is implemented', async () => {
+      expect(TreeRaw.getTrees).toBeDefined();
+    });
 
-state.setHost('');
-state.setRealm('alpha');
-state.setCookieName('cookieName');
-state.setCookieValue('cookieValue');
-
-describe('TreeApi - getTrees()', () => {
-  test('getTrees() 0: Method is implemented', async () => {
-    expect(TreeRaw.getTrees).toBeDefined();
+    test('1: Get all trees', async () => {
+      console.dir(context.polly);
+      const response = await TreeRaw.getTrees();
+      expect(response).toMatchSnapshot();
+    });
   });
 
-  test('getTrees() 1: Get all trees', async () => {
-    const response = JSON.parse(
-      fs.readFileSync(
-        path.resolve(__dirname, '../test/mocks/TreeApi/getTrees/trees.json'),
-        'utf8'
-      )
-    );
-    mock
-      .onGet(
-        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees?_queryFilter=true`
-      )
-      .reply(200, response);
-    const trees = await TreeRaw.getTrees();
-    expect(trees).toBeTruthy();
-    expect(trees).toMatchSnapshot();
-  });
-});
+  describe('getTree()', () => {
+    test('0: Method is implemented', async () => {
+      expect(TreeRaw.getTree).toBeDefined();
+    });
 
-describe('TreeApi - getTree()', () => {
-  test('getTree() 0: Method is implemented', async () => {
-    expect(TreeRaw.getTree).toBeDefined();
+    test('1: Get existing tree', async () => {
+      const response = await TreeRaw.getTree('FrodoTest');
+      expect(response).toMatchSnapshot();
+    });
+
+    test('2: Get non-existing tree', async () => {
+      try {
+        await TreeRaw.getTree('DoesNotExist');
+      } catch (error) {
+        expect(error.response.data).toMatchSnapshot();
+      }
+    });
   });
 
-  test('getTree() 1: Get existing tree', async () => {
-    const response = JSON.parse(
-      fs.readFileSync(
-        path.resolve(__dirname, '../test/mocks/TreeApi/getTree/FrodoTest.json'),
-        'utf8'
-      )
-    );
-    mock
-      .onGet(
-        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/FrodoTest`
-      )
-      .reply(200, response);
-    const tree = await TreeRaw.getTree('FrodoTest');
-    expect(tree).toBeTruthy();
-    expect(tree).toMatchSnapshot();
-  });
+  describe('putTree()', () => {
+    test('0: Method is implemented', async () => {
+      expect(TreeRaw.putTree).toBeDefined();
+    });
 
-  test('getTree() 2: Get non-existing tree', async () => {
-    mock
-      .onGet(
-        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/DoesNotExist`
-      )
-      .reply(404, {
-        code: 404,
-        reason: 'Not Found',
-        message: 'Not Found',
-      });
-    try {
-      await TreeRaw.getTree('DoesNotExist');
-    } catch (error) {
-      expect(error.response.data).toMatchSnapshot();
-    }
-  });
-});
+    test('1: Put valid tree', async () => {
+      const treeData = JSON.parse(
+        fs.readFileSync(
+          path.resolve(
+            __dirname,
+            '../test/mocks/TreeApi/putTree/FrodoTest.json'
+          ),
+          'utf8'
+        )
+      );
+      const response = await TreeRaw.putTree('FrodoTest', treeData);
+      expect(response).toMatchSnapshot();
+    });
 
-describe('TreeApi - putTree()', () => {
-  test('putTree() 0: Method is implemented', async () => {
-    expect(TreeRaw.putTree).toBeDefined();
-  });
-
-  test('putTree() 1: Put valid tree', async () => {
-    const response = JSON.parse(
-      fs.readFileSync(
-        path.resolve(__dirname, '../test/mocks/TreeApi/putTree/FrodoTest.json'),
-        'utf8'
-      )
-    );
-    mock
-      .onPut(
-        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/FrodoTest`
-      )
-      .reply(201, response);
-    const tree = await TreeRaw.putTree('FrodoTest', response);
-    expect(tree).toBeTruthy();
-    expect(tree).toMatchSnapshot();
-  });
-
-  test('putTree() 2: Put invalid tree [trailing data]', async () => {
-    const request = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        '../test/mocks/TreeApi/putTree/Invalid_trailing-data.txt'
-      ),
-      'utf8'
-    );
-    mock
-      .onPut(
-        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/Invalid`
-      )
-      .reply(400, {
-        code: 400,
-        reason: 'Bad Request',
-        message:
-          'The request could not be processed because there is trailing data after the JSON content',
-      });
-    expect.assertions(2);
-    try {
-      await TreeRaw.putTree('Invalid', request);
-    } catch (error) {
-      expect(error.response).toBeTruthy();
-      expect(error.response.data).toMatchSnapshot();
-    }
-  });
-
-  test('putTree() 3: Put invalid tree [invalid attribute]', async () => {
-    const request = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        '../test/mocks/TreeApi/putTree/Invalid_invalid-attribute.json'
-      ),
-      'utf8'
-    );
-    mock
-      .onPut(
-        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/Invalid`
-      )
-      .reply(400, {
-        code: 400,
-        reason: 'Bad Request',
-        message: 'Invalid attribute specified.',
-        detail: {
-          validAttributes: [
-            'description',
-            'enabled',
-            'entryNodeId',
-            'identityResource',
-            'nodes',
-            'staticNodes',
-            'uiConfig',
-          ],
-        },
-      });
-    expect.assertions(2);
-    try {
-      await TreeRaw.putTree('Invalid', request);
-    } catch (error) {
-      expect(error.response).toBeTruthy();
-      expect(error.response.data).toMatchSnapshot();
-    }
-  });
-
-  test('putTree() 4: Put invalid tree [no entry node]', async () => {
-    const request = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        '../test/mocks/TreeApi/putTree/Invalid_no-entry-node.json'
-      ),
-      'utf8'
-    );
-    mock
-      .onPut(
-        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/Invalid`
-      )
-      .reply(400, {
-        code: 400,
-        reason: 'Bad Request',
-        message: 'Node with ID entryNodeId must exist in the tree.',
-      });
-    expect.assertions(2);
-    try {
-      await TreeRaw.putTree('Invalid', request);
-    } catch (error) {
-      expect(error.response).toBeTruthy();
-      expect(error.response.data).toMatchSnapshot();
-    }
-  });
-
-  test('putTree() 5: Put invalid tree [invalid nodes]', async () => {
-    const request = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        '../test/mocks/TreeApi/putTree/Invalid_invalid-nodes.json'
-      ),
-      'utf8'
-    );
-    mock
-      .onPut(
-        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/Invalid`
-      )
-      .reply(400, {
-        code: 400,
-        reason: 'Bad Request',
-        message: 'Node with ID entryNodeId must exist in the tree.',
-      });
-    expect.assertions(2);
-    try {
-      await TreeRaw.putTree('Invalid', request);
-    } catch (error) {
-      expect(error.response).toBeTruthy();
-      expect(error.response.data).toMatchSnapshot();
-    }
-  });
-});
-
-describe('TreeApi - deleteTree()', () => {
-  test('deleteTree() 0: Method is implemented', async () => {
-    expect(TreeRaw.deleteTree).toBeDefined();
-  });
-
-  test('deleteTree() 1: Delete existing tree', async () => {
-    const response = JSON.parse(
-      fs.readFileSync(
+    test('2: Put invalid tree [trailing data]', async () => {
+      const treeData = fs.readFileSync(
         path.resolve(
           __dirname,
-          '../test/mocks/TreeApi/deleteTree/FrodoTest.json'
+          '../test/mocks/TreeApi/putTree/Invalid_trailing-data.txt'
         ),
         'utf8'
-      )
-    );
-    mock
-      .onDelete(
-        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/FrodoTest`
-      )
-      .reply(200, response);
-    const tree = await TreeRaw.deleteTree('FrodoTest');
-    expect(tree).toBeTruthy();
-    expect(tree).toMatchSnapshot();
+      );
+      try {
+        await TreeRaw.putTree('Invalid', treeData);
+      } catch (error) {
+        expect(error.response.data).toMatchSnapshot();
+      }
+    });
+
+    test('3: Put invalid tree [invalid attribute]', async () => {
+      const treeData = fs.readFileSync(
+        path.resolve(
+          __dirname,
+          '../test/mocks/TreeApi/putTree/Invalid_invalid-attribute.json'
+        ),
+        'utf8'
+      );
+      try {
+        await TreeRaw.putTree('Invalid', treeData);
+      } catch (error) {
+        expect(error.response.data).toMatchSnapshot();
+      }
+    });
+
+    test('4: Put invalid tree [no entry node]', async () => {
+      const treeData = fs.readFileSync(
+        path.resolve(
+          __dirname,
+          '../test/mocks/TreeApi/putTree/Invalid_no-entry-node.json'
+        ),
+        'utf8'
+      );
+      try {
+        await TreeRaw.putTree('Invalid', treeData);
+      } catch (error) {
+        expect(error.response.data).toMatchSnapshot();
+      }
+    });
+
+    test('5: Put invalid tree [invalid nodes]', async () => {
+      const treeData = fs.readFileSync(
+        path.resolve(
+          __dirname,
+          '../test/mocks/TreeApi/putTree/Invalid_invalid-nodes.json'
+        ),
+        'utf8'
+      );
+      try {
+        await TreeRaw.putTree('Invalid', treeData);
+      } catch (error) {
+        expect(error.response.data).toMatchSnapshot();
+      }
+    });
   });
 
-  test('deleteTree() 2: Delete non-existing tree', async () => {
-    mock
-      .onDelete(
-        `${state.getHost()}/json/realms/root/realms/alpha/realm-config/authentication/authenticationtrees/trees/DoesNotExist`
-      )
-      .reply(404, {
-        code: 404,
-        reason: 'Not Found',
-        message: 'Not Found',
-      });
-    expect.assertions(2);
-    try {
-      await TreeRaw.deleteTree('DoesNotExist');
-    } catch (error) {
-      expect(error.response).toBeTruthy();
-      expect(error.response.data).toMatchSnapshot();
-    }
+  describe('deleteTree()', () => {
+    test('0: Method is implemented', async () => {
+      expect(TreeRaw.deleteTree).toBeDefined();
+    });
+
+    test('1: Delete existing tree', async () => {
+      const response = await TreeRaw.deleteTree('FrodoTest');
+      expect(response).toMatchSnapshot();
+    });
+
+    test('2: Delete non-existing tree', async () => {
+      try {
+        await TreeRaw.deleteTree('DoesNotExist');
+      } catch (error) {
+        expect(error.response.data).toMatchSnapshot();
+      }
+    });
   });
 });
