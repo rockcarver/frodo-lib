@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import { state } from '../index';
@@ -8,6 +9,10 @@ import { mockCreateManagedObject } from '../test/mocks/ForgeRockApiMockEngine';
 import { isEqualJson } from './utils/OpsUtils';
 
 const mock = new MockAdapter(axios);
+
+// Increase timeout for this test as pipeline keeps failing with error:
+// Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
+jest.setTimeout(30000);
 
 const outputHandler = (message: string | object) => {
   console.log(message);
