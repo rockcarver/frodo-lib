@@ -14,8 +14,10 @@ Polly.register(FSPersister);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
-state.setRealm('alpha');
+state.setHost(
+  process.env.FRODO_HOST || 'https://openam-frodo-dev.forgeblocks.com/am'
+);
+state.setRealm(process.env.FRODO_REALM || 'alpha');
 
 let recordIfMissing = true;
 let mode = MODES.REPLAY;
@@ -34,8 +36,8 @@ switch (process.env.FRODO_POLLY_MODE) {
     break;
   case 'replay':
     mode = MODES.REPLAY;
-    state.default.session.setCookieName('cookieName');
-    state.default.session.setCookieValue('cookieValue');
+    state.setCookieName('cookieName');
+    state.setCookieValue('cookieValue');
     break;
   case 'offline':
     mode = MODES.REPLAY;
