@@ -30,10 +30,14 @@ const recordingsDir = __dirname.replace(
 );
 
 switch (process.env.FRODO_POLLY_MODE) {
-  case 'record':
+  case 'record': {
     mode = MODES.RECORD;
-    await getTokens();
+    if (!(await getTokens()))
+      throw new Error(
+        `Unable to record mock responses from '${state.getHost()}'`
+      );
     break;
+  }
   case 'replay':
     mode = MODES.REPLAY;
     state.setCookieName('cookieName');
@@ -68,7 +72,7 @@ export default function autoSetupPolly() {
         protocol: true,
         username: false,
         password: false,
-        hostname: true,
+        hostname: false, // we will record from different envs but run tests always against `frodo-dev`
         port: false,
         pathname: true,
         query: true,
