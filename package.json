@@ -15,9 +15,8 @@
   "scripts": {
     "test": "npx gulp && node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --silent",
     "test:only": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --silent",
-    "test:record": "npm run test:record:esm && npm run test:update:cjs",
-    "test:record:esm": "FRODO_POLLY_MODE=record node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --silent esm -u",
-    "test:update:cjs": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --silent cjs -u",
+    "test:record": "FRODO_POLLY_MODE=record node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --silent --updateSnapshot --testPathIgnorePatterns cjs --testPathPattern",
+    "test:update": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --silent --updateSnapshot --testPathIgnorePatterns esm --testPathPattern",
     "test:debug": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false",
     "lint": "npx eslint --ext .ts --ignore-path .gitignore .",
     "build": "npx gulp",
