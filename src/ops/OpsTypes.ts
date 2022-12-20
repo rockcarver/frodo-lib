@@ -95,6 +95,11 @@ export interface TreeExportResolverInterface {
   (treeId: string): Promise<SingleTreeExportInterface>;
 }
 
+export interface ScriptExportInterface {
+  meta?: ExportMetaData;
+  script: Record<string, ScriptSkeleton>;
+}
+
 export enum NodeClassification {
   STANDARD = 'standard',
   CUSTOM = 'custom',
