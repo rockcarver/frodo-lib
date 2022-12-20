@@ -1,4 +1,6 @@
 import { parseScript } from 'esprima';
+import { ScriptLanguage, ScriptSkeleton } from '../../api/ApiTypes';
+import { decode } from '../../api/utils/Base64';
 import { printMessage } from './Console';
 
 interface ScriptHook {
@@ -44,6 +46,15 @@ function findAllScriptHooks(
   }
 
   return scriptHooksArray;
+}
+
+export function validateScript(script: ScriptSkeleton): boolean {
+  const scriptRaw = decode(script.script);
+
+  if (script.language === ScriptLanguage.JAVASCRIPT) {
+    return isValidJs(scriptRaw);
+  }
+  return true;
 }
 
 function isValidJs(javascriptSource: string) {

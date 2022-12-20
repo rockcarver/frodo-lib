@@ -8,12 +8,7 @@ import {
   stopProgressIndicator,
   updateProgressIndicator,
 } from './utils/Console';
-import {
-  getScriptByName,
-  getScripts,
-  putScript,
-  Script,
-} from '../api/ScriptApi';
+import { getScriptByName, getScripts, putScript } from '../api/ScriptApi';
 import wordwrap from './utils/Wordwrap';
 import {
   convertBase64TextToArray,
@@ -27,8 +22,14 @@ import {
 import * as state from '../shared/State';
 import { decode, encode } from '../api/utils/Base64';
 import chokidar from 'chokidar';
+import { ScriptSkeleton } from '../api/ApiTypes';
+import { validateScript } from './utils/ValidationUtils';
+import { ScriptExportInterface } from './OpsTypes';
 
-type SavedScript = Omit<Script, 'script'> & { script: string[] };
+type ScriptWithScriptArray = Omit<ScriptSkeleton, 'script'> & {
+  script: string[];
+};
+
 /**
  * List scripts
  */
@@ -68,10 +69,10 @@ export async function listScripts(long = false) {
 
 /**
  * Export script to file
- * @param {String} name script name
- * @param {String} file file name
+ * @param name script name
+ * @param file file name
  */
-export async function exportScriptByName(name, file) {
+export async function exportScriptByName(name: string, file: string) {
   let fileName = getTypedFilename(name, 'script');
   if (file) {
     fileName = file;
@@ -80,7 +81,7 @@ export async function exportScriptByName(name, file) {
   if (scriptData.length > 1) {
     printMessage(`Multiple scripts with name ${name} found...`, 'error');
   }
-  const scriptsToSave: SavedScript[] = scriptData.map((element) => {
+  const scriptsToSave: ScriptWithScriptArray[] = scriptData.map((element) => {
     const scriptTextArray = convertBase64TextToArray(element.script);
     // eslint-disable-next-line no-param-reassign
 
@@ -94,15 +95,15 @@ export async function exportScriptByName(name, file) {
 
 /**
  * Export all scripts to single file
- * @param {String} file file name
+ * @param file file name
  */
-export async function exportScriptsToFile(file) {
+export async function exportScriptsToFile(file: string): Promise<void> {
   let fileName = getTypedFilename(`all${state.getRealm()}Scripts`, 'script');
   if (file) {
     fileName = file;
   }
   const scriptList = (await getScripts()).result;
-  const allScriptsData: SavedScript[] = [];
+  const allScriptsData: ScriptWithScriptArray[] = [];
   createProgressIndicator(scriptList.length, 'Exporting script');
   for (const item of scriptList) {
     updateProgressIndicator(`Reading script ${item.name}`);
@@ -120,7 +121,25 @@ export async function exportScriptsToFile(file) {
   saveToFile('script', allScriptsData, '_id', fileName);
 }
 
-function assertSingleScript(scripts: Script[]): asserts scripts is [Script] {
+/**
+ * Export all scripts to multiple files
+ */
+export async function exportScriptsToFiles(extract?: boolean) {
+  const scriptList = (await getScripts()).result;
+  createProgressIndicator(scriptList.length, 'Exporting script');
+  for (const item of scriptList) {
+    updateProgressIndicator(`Reading script ${item.name}`);
+
+    const scriptData = (await getScriptByName(item.name)).result;
+    assertSingleScript(scriptData);
+    exportScript(scriptData[0], extract);
+  }
+  stopProgressIndicator('Done');
+}
+
+function assertSingleScript(
+  scripts: ScriptSkeleton[]
+): asserts scripts is [ScriptSkeleton] {
   if (scripts.length === 0) {
     throw new Error('No script found');
   }
@@ -130,27 +149,19 @@ function assertSingleScript(scripts: Script[]): asserts scripts is [Script] {
 }
 
 /**
- * Export all scripts to individual files
- */
-export async function exportScriptsToFiles() {
-  const scriptList = (await getScripts()).result;
-  createProgressIndicator(scriptList.length, 'Exporting script');
-  for (const item of scriptList) {
-    updateProgressIndicator(`Reading script ${item.name}`);
-
-    const scriptData = (await getScriptByName(item.name)).result;
-    assertSingleScript(scriptData);
-    exportScript(scriptData[0]);
-  }
-  stopProgressIndicator('Done');
-}
-
-/**
- * Export script to an individual file
+ * Export script to file(s)
  *
  * @param script The script to export
  */
-function exportScript(script: Script) {
+function exportScript(script: ScriptSkeleton, extract = false) {
+  if (extract) {
+    exportScriptExtract(script);
+  } else {
+    exportScriptWithTextArray(script);
+  }
+}
+
+function exportScriptWithTextArray(script: ScriptSkeleton): void {
   const scriptTextArray = convertBase64TextToArray(script.script);
 
   const scriptWithTextArray = {
@@ -164,28 +175,11 @@ function exportScript(script: Script) {
 }
 
 /**
- * Export all scripts to 2 files: one script file and one metadata file
- */
-export async function exportScriptsExtract() {
-  const scriptList = (await getScripts()).result;
-  createProgressIndicator(scriptList.length, 'Exporting script');
-  for (const item of scriptList) {
-    updateProgressIndicator(`Reading script ${item.name}`);
-
-    const scriptData = (await getScriptByName(item.name)).result;
-    assertSingleScript(scriptData);
-    const scriptToExport = scriptData[0];
-    exportScriptExtract(scriptToExport);
-  }
-  stopProgressIndicator('Done');
-}
-
-/**
  * Export script to 2 files: one script file and one metadata file
  *
  * @param script The script to export
  */
-function exportScriptExtract(script: Script) {
+function exportScriptExtract(script: ScriptSkeleton) {
   const fileExtension = script.language === 'JAVASCRIPT' ? 'js' : 'groovy';
   const scriptFileName = getTypedFilename(script.name, 'script', fileExtension);
 
@@ -205,7 +199,7 @@ function exportScriptExtract(script: Script) {
  */
 export async function createOrUpdateScript(
   id: string,
-  data: Script
+  data: ScriptSkeleton
 ): Promise<any> {
   try {
     await putScript(id, data);
@@ -232,55 +226,64 @@ export async function createOrUpdateScript(
   }
 }
 
-export async function importScriptsFromFile(name, file, reUuid = false) {
-  fs.readFile(file, 'utf8', (err, data) => {
-    if (err) throw err;
-    const scriptData = JSON.parse(data);
-    if (validateImport(scriptData.meta)) {
-      createProgressIndicator(Object.keys(scriptData.script).length, '');
-      for (const existingId in scriptData.script) {
-        if ({}.hasOwnProperty.call(scriptData.script, existingId)) {
-          let newId = existingId;
-          // console.log(id);
-          const encodedScript = convertTextArrayToBase64(
-            scriptData.script[existingId].script
-          );
-          scriptData.script[existingId].script = encodedScript;
-          if (reUuid) {
-            newId = uuidv4();
-            // printMessage(
-            //   `Re-uuid-ing script ${scriptData.script[existingId].name} ${existingId} => ${newId}...`
-            // );
-            scriptData.script[existingId]._id = newId;
-          }
-          if (name) {
-            // printMessage(
-            //   `Renaming script ${scriptData.script[existingId].name} => ${options.script}...`
-            // );
-            scriptData.script[existingId].name = name;
-          }
-          updateProgressIndicator(
-            `Importing ${scriptData.script[existingId].name}`
-          );
-          // console.log(scriptData.script[id]);
-          createOrUpdateScript(newId, scriptData.script[existingId]).then(
-            (result) => {
-              if (result == null)
-                printMessage(
-                  `Error importing ${scriptData.script[existingId].name}`,
-                  'error'
-                );
-            }
-          );
-          if (name) break;
-        }
-      }
-      stopProgressIndicator('Done');
-      // printMessage('Done');
-    } else {
-      printMessage('Import validation failed...', 'error');
+export async function importScriptsFromFile(
+  name: string,
+  file: string,
+  reUuid = false
+) {
+  const data = fs.readFileSync(file, 'utf8');
+
+  const scriptData = JSON.parse(data);
+  if (!validateImport(scriptData.meta)) {
+    printMessage('Import validation failed...', 'error');
+    return;
+  }
+
+  createProgressIndicator(Object.keys(scriptData.script).length, '');
+  for (const existingId in scriptData.script) {
+    if (!{}.hasOwnProperty.call(scriptData.script, existingId)) {
+      continue;
     }
-  });
+
+    let newId = existingId;
+    // console.log(id);
+    const encodedScript = convertTextArrayToBase64(
+      scriptData.script[existingId].script
+    );
+    scriptData.script[existingId].script = encodedScript;
+    if (reUuid) {
+      newId = uuidv4();
+      // printMessage(
+      //   `Re-uuid-ing script ${scriptData.script[existingId].name} ${existingId} => ${newId}...`
+      // );
+      scriptData.script[existingId]._id = newId;
+    }
+    if (name) {
+      // printMessage(
+      //   `Renaming script ${scriptData.script[existingId].name} => ${options.script}...`
+      // );
+      scriptData.script[existingId].name = name;
+    }
+    updateProgressIndicator(`Importing ${scriptData.script[existingId].name}`);
+    // console.log(scriptData.script[id]);
+    const result = await createOrUpdateScript(
+      newId,
+      scriptData.script[existingId]
+    );
+
+    if (result == null) {
+      printMessage(
+        `Error importing ${scriptData.script[existingId].name}`,
+        'error'
+      );
+    }
+
+    if (name) {
+      break;
+    }
+  }
+  stopProgressIndicator('Done');
+  // printMessage('Done');
 }
 
 /**
@@ -288,18 +291,17 @@ export async function importScriptsFromFile(name, file, reUuid = false) {
  *
  * @param watch whether or not to watch for file changes
  */
-export async function importExtractedScripts(watch?: boolean) {
+export async function importScriptsFromFiles(watch?: boolean) {
   /**
-   * Run on file change detection.
+   * Run on file change detection, as well as on initial run.
    */
   function onChange(path: string, _stats?: fs.Stats): void {
-    handleExtractedScriptFileImport(path);
+    handleScriptFileImport(path);
   }
 
-  // We watch both the meta.json files and the script files.
-
+  // We watch json files and script files.
   chokidar
-    .watch([`./**/*.json`, `./**/*.js`], {
+    .watch([`./**/*.json`, `./**/*.js`, `./**/*.groovy`], {
       persistent: watch,
     })
     .on('add', onChange)
@@ -313,21 +315,73 @@ export async function importExtractedScripts(watch?: boolean) {
     });
 }
 
-async function handleExtractedScriptFileImport(file: string) {
-  const script = extractedScriptFileToScript(file);
-  await importScript(script);
+async function handleScriptFileImport(file: string) {
+  const script = getScriptByPath(file);
+  if (validateScript(script)) {
+    await importScript(script);
+    printMessage(`Imported script: ${file}`);
+  } else {
+    printMessage(`Invalid script: ${file}, skipped`, 'error');
+  }
 }
 
-async function importScript(script: Script) {
+async function importScript(script: ScriptSkeleton) {
   await createOrUpdateScript(script._id, script);
 }
 
-function extractedScriptFileToScript(metaFile: string) {
-  const metaRaw = fs.readFileSync(metaFile, 'utf8');
-  const meta = JSON.parse(metaRaw) as Script;
-  const scriptFile = meta.script;
+function getScriptByPath(file: string): ScriptSkeleton {
+  if (file.endsWith('.meta.json')) {
+    return getScriptByMetaFile(file);
+  } else if (file.endsWith('.json')) {
+    return getScriptByJsonFile(file);
+  }
+  // Assume this is a script file.
+  return getScriptByScriptFile(file);
+}
+
+function getScriptByMetaFile(metaFile: string): ScriptSkeleton {
+  const scriptData = getScriptData(metaFile);
+  const scriptFile = scriptData.script;
+
   const scriptRaw = fs.readFileSync(scriptFile, 'utf8');
   const script = encode(scriptRaw);
-  meta.script = script;
-  return meta;
+  scriptData.script = script;
+  return scriptData;
+}
+
+function getScriptByScriptFile(scriptFile: string): ScriptSkeleton {
+  // Anything that ends with .script.js or .script.groovy is a script file.
+  const metaFile = scriptFile.replace(/\.script\.[^.]+$/, '.meta.json');
+  const scriptData = getScriptData(metaFile);
+
+  if (scriptData.script !== scriptFile) {
+    throw new Error(
+      `Expected script file ${scriptData.script}, found ${scriptFile}`
+    );
+  }
+
+  const scriptRaw = fs.readFileSync(scriptFile, 'utf8');
+  const script = encode(scriptRaw);
+  scriptData.script = script;
+  return scriptData;
+}
+
+function getScriptByJsonFile(jsonFile: string): ScriptSkeleton {
+  const scriptData = getScriptData(jsonFile);
+  return scriptData;
+}
+
+function getScriptData(file: string): ScriptSkeleton {
+  const scriptExportRaw = fs.readFileSync(file, 'utf8');
+  const scriptExport = JSON.parse(scriptExportRaw) as ScriptExportInterface;
+
+  const scriptIds = Object.keys(scriptExport.script);
+
+  if (scriptIds.length !== 1) {
+    throw new Error(`Expected 1 script in ${file}, found ${scriptIds.length}`);
+  }
+  const scriptId = scriptIds[0];
+  const scriptData = scriptExport.script[scriptId];
+
+  return scriptData;
 }
