@@ -2,7 +2,7 @@ import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 import * as state from '../shared/State';
-import { PagedResult } from './ApiTypes';
+import { PagedResult, ScriptSkeleton } from './ApiTypes';
 
 const scriptURLTemplate = '%s/json%s/scripts/%s';
 const scriptListURLTemplate = '%s/json%s/scripts?_queryFilter=true';
@@ -16,40 +16,21 @@ const getApiConfig = () => {
   };
 };
 
-export interface Script {
-  _id: string;
-  name: string;
-  description: string;
-
-  /**
-   * A Base64 encoded string of the script
-   */
-  script: string;
-  default: boolean;
-  language: string;
-  context: string;
-  createdBy: string;
-  creationDate: number;
-  lastModifiedBy: string;
-  lastModifiedDate: number;
-}
-
 /**
  * Get all scripts
  * @returns {Promise} a promise that resolves to an object containing an array of script objects
  */
-export async function getScripts(): Promise<PagedResult<Script>> {
+export async function getScripts(): Promise<PagedResult<ScriptSkeleton>> {
   const urlString = util.format(
     scriptListURLTemplate,
     state.getHost(),
     getCurrentRealmPath()
   );
-  const { data } = await generateAmApi(getApiConfig()).get<PagedResult<Script>>(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi(getApiConfig()).get<
+    PagedResult<ScriptSkeleton>
+  >(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -60,19 +41,18 @@ export async function getScripts(): Promise<PagedResult<Script>> {
  */
 export async function getScriptByName(
   scriptName: string
-): Promise<PagedResult<Script>> {
+): Promise<PagedResult<ScriptSkeleton>> {
   const urlString = util.format(
     scriptQueryURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
     scriptName
   );
-  const { data } = await generateAmApi(getApiConfig()).get<PagedResult<Script>>(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi(getApiConfig()).get<
+    PagedResult<ScriptSkeleton>
+  >(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
