@@ -14,10 +14,7 @@ Polly.register(FSPersister);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
-state.setRealm('alpha');
-
-let recordIfMissing = true;
+let recordIfMissing = false;
 let mode = MODES.REPLAY;
 
 // resolve "/home/sandeepc/work/ForgeRock/sources/frodo-lib/esm/api" to
@@ -28,22 +25,58 @@ const recordingsDir = __dirname.replace(
 );
 
 switch (process.env.FRODO_POLLY_MODE) {
-  case 'record':
+  // record mock responses from a real env: `npm run test:record`
+  case 'record': {
+    state.setHost(
+      process.env.FRODO_HOST || 'https://openam-frodo-dev.forgeblocks.com/am'
+    );
+    state.setRealm(process.env.FRODO_REALM || 'alpha');
+    if (!(await getTokens()))
+      throw new Error(
+        `Unable to record mock responses from '${state.getHost()}'`
+      );
     mode = MODES.RECORD;
-    await getTokens();
+    recordIfMissing = true;
     break;
-  case 'replay':
-    mode = MODES.REPLAY;
-    state.default.session.setCookieName('cookieName');
-    state.default.session.setCookieValue('cookieValue');
+  }
+  // record mock responses from authentication APIs (don't authenticate): `npm run test:record_noauth`
+  case 'record_noauth':
+    mode = MODES.RECORD;
+    recordIfMissing = true;
     break;
-  case 'offline':
-    mode = MODES.REPLAY;
-    recordIfMissing = false;
+  // replay mock responses: `npm test`
+  default:
+    state.setHost(
+      process.env.FRODO_HOST || 'https://openam-frodo-dev.forgeblocks.com/am'
+    );
+    state.setRealm(process.env.FRODO_REALM || 'alpha');
+    state.setCookieName('cookieName');
+    state.setCookieValue('cookieValue');
     break;
 }
 
-export default function autoSetupPolly() {
+export function defaultMatchRequestsBy() {
+  return JSON.parse(
+    JSON.stringify({
+      method: true,
+      headers: false, // do not match headers, because "Authorization" header is sent only at recording time
+      body: true,
+      order: false,
+      url: {
+        protocol: true,
+        username: false,
+        password: false,
+        hostname: false, // we will record from different envs but run tests always against `frodo-dev`
+        port: false,
+        pathname: true,
+        query: true,
+        hash: true,
+      },
+    })
+  );
+}
+
+export function autoSetupPolly(matchRequestsBy = defaultMatchRequestsBy()) {
   return setupPolly({
     adapters: ['node-http'],
     mode,
@@ -57,21 +90,6 @@ export default function autoSetupPolly() {
         recordingsDir,
       },
     },
-    matchRequestsBy: {
-      method: true,
-      headers: false, // do not match headers, because "Authorization" header is sent only at recording time
-      body: true,
-      order: false,
-      url: {
-        protocol: true,
-        username: false,
-        password: false,
-        hostname: true,
-        port: false,
-        pathname: true,
-        query: true,
-        hash: true,
-      },
-    },
+    matchRequestsBy,
   });
 }

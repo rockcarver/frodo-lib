@@ -1,6 +1,4 @@
 {
-  "_id": "FrodoTest",
-  "_rev": "189750709",
   "identityResource": "managed/alpha_user",
   "uiConfig": {
     "categories": "[]"
