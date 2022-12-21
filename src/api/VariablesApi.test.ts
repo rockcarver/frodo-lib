@@ -1,7 +1,7 @@
 import { VariablesRaw } from '../index';
-import autoSetupPolly from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
-const pollyContext = autoSetupPolly();
+autoSetupPolly();
 
 describe('VariablesApi', () => {
   describe('getVariables()', () => {
@@ -13,14 +13,6 @@ describe('VariablesApi', () => {
       const response = await VariablesRaw.getVariables();
       expect(response).toMatchSnapshot();
     });
-
-    // test('2: Get all variables - error', async () => {
-    //   try {
-    //     await VariablesRaw.getVariables();
-    //   } catch (error) {
-    //     expect(error.response.data).toMatchSnapshot();
-    //   }
-    // });
   });
 
   describe('getVariable()', () => {
@@ -57,18 +49,6 @@ describe('VariablesApi', () => {
       );
       expect(response).toMatchSnapshot();
     });
-
-    // test('putVariable() 2: Create variable: esv-volkerstestvariable2 - error', async () => {
-    //   try {
-    //     await VariablesRaw.putVariable(
-    //       'esv-volkerstestvariable2',
-    //       "Volker's Test Variable Value",
-    //       "Volker's Test Variable Description"
-    //     );
-    //   } catch (error) {
-    //     expect(error.response.data).toMatchSnapshot();
-    //   }
-    // });
   });
 
   describe('setVariableDescription()', () => {
