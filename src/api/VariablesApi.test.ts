@@ -1,3 +1,34 @@
+/**
+ * To record and update snapshots, you must perform 3 steps in order:
+ *
+ * 1. Record API responses & update ESM snapshots
+ *
+ *    To record and update ESM snapshots, you must call the test:record
+ *    script and override all the connection state variables required
+ *    to connect to the env to record from:
+ *
+ *        FRODO_DEBUG=1 FRODO_HOST=volker-dev npm run test:record VariablesApi
+ *
+ *    The above command assumes that you have a connection profile for
+ *    'volker-dev' on your development machine.
+ *
+ * 2. Update CJS snapshots
+ *
+ *    After recording, the ESM snapshots will already be updated as that happens
+ *    in one go, but you musty manually update the CJS snapshots by running:
+ *
+ *        FRODO_DEBUG=1 npm run test:update VariablesApi
+ *
+ * 3. Test your changes
+ *
+ *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
+ *    replay mode and make sure they all succeed as well:
+ *
+ *        npm run test VariablesApi
+ *
+ * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
+ * in case things don't function as expected
+ */
 import { VariablesRaw } from '../index';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
