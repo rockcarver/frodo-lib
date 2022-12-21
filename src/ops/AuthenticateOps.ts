@@ -259,6 +259,7 @@ async function getAuthCode(redirectURL, codeChallenge, codeChallengeMethod) {
  * @returns {Promise<string | null>} access token or null
  */
 async function getAccessTokenForUser(): Promise<string | null> {
+  debugMessage(`AuthenticateOps.getAccessTokenForUser: start`);
   try {
     const verifier = encodeBase64Url(randomBytes(32));
     const challenge = encodeBase64Url(
@@ -286,6 +287,7 @@ async function getAccessTokenForUser(): Promise<string | null> {
       response = await accessToken(bodyFormData);
     }
     if ('access_token' in response.data) {
+      debugMessage(`AuthenticateOps.getAccessTokenForUser: end with token`);
       return response.data.access_token;
     }
     printMessage('No access token in response.', 'error');
@@ -293,6 +295,7 @@ async function getAccessTokenForUser(): Promise<string | null> {
     debugMessage(`Error getting access token for user: ${error}`);
     debugMessage(error.response?.data);
   }
+  debugMessage(`AuthenticateOps.getAccessTokenForUser: end without token`);
   return null;
 }
 
@@ -390,6 +393,7 @@ async function getLoggedInSubject(): Promise<string> {
  * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
  */
 export async function getTokens(): Promise<boolean> {
+  debugMessage(`AuthenticateOps.getTokens: start`);
   if (!state.getHost()) {
     printMessage(
       `No host specified and FRODO_HOST env variable not set!`,
@@ -456,6 +460,26 @@ export async function getTokens(): Promise<boolean> {
       );
       if (token) state.setCookieValue(token);
       await determineDeploymentTypeAndDefaultRealmAndVersion();
+      debugMessage(`AuthenticateOps.getTokens: before bearer`);
+      debugMessage(
+        `AuthenticateOps.getTokens: cookie=${state.getCookieValue()}`
+      );
+      debugMessage(
+        `AuthenticateOps.getTokens: bearer=${state.getBearerToken()}`
+      );
+      debugMessage(
+        `AuthenticateOps.getTokens: type=${state.getDeploymentType()}`
+      );
+      debugMessage(
+        `AuthenticateOps.getTokens: condition=${
+          state.getCookieValue() &&
+          !state.getBearerToken() &&
+          (state.getDeploymentType() ===
+            globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY ||
+            state.getDeploymentType() ===
+              globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY)
+        }`
+      );
       if (
         state.getCookieValue() &&
         !state.getBearerToken() &&
@@ -463,9 +487,11 @@ export async function getTokens(): Promise<boolean> {
           state.getDeploymentType() ===
             globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY)
       ) {
+        debugMessage(`AuthenticateOps.getTokens: in bearer`);
         const accessToken = await getAccessTokenForUser();
         if (accessToken) state.setBearerToken(accessToken);
       }
+      debugMessage(`AuthenticateOps.getTokens: after bearer`);
     }
     // incomplete or no credentials
     else {
@@ -483,6 +509,7 @@ export async function getTokens(): Promise<boolean> {
         }] as ${await getLoggedInSubject()}`,
         'info'
       );
+      debugMessage(`AuthenticateOps.getTokens: end with tokens`);
       return true;
     }
   } catch (error) {
@@ -497,5 +524,6 @@ export async function getTokens(): Promise<boolean> {
     // stack trace
     debugMessage(error.stack || new Error().stack);
   }
+  debugMessage(`AuthenticateOps.getTokens: end without tokens`);
   return false;
 }
