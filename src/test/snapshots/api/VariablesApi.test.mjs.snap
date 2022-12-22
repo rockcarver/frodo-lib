@@ -1,33 +1,33 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`VariablesApi deleteVariable() 1: Delete variable: esv-volkerstestvariable2 - success 1`] = `
+exports[`VariablesApi deleteVariable() 1: Delete existing variable: esv-frodo-test-variable3 - success 1`] = `
 {
-  "_id": "esv-volkerstestvariable2",
-  "description": "Volker's Updated Test Secret Description",
+  "_id": "esv-frodo-test-variable3",
+  "description": "Frodo Test Variable Three Description",
   "expressionType": "",
-  "lastChangeDate": "2022-12-20T18:27:22.007Z",
+  "lastChangeDate": "2022-12-22T20:09:13.861Z",
   "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
   "loaded": false,
-  "valueBase64": "Vm9sa2VyJ3MgVGVzdCBWYXJpYWJsZSBWYWx1ZQ==",
+  "valueBase64": "RnJvZG8gVGVzdCBWYXJpYWJsZSBUaHJlZSBWYWx1ZQ==",
 }
 `;
 
-exports[`VariablesApi deleteVariable() 2: Delete variable: esv-volkerstestvariable3 - error 1`] = `
+exports[`VariablesApi deleteVariable() 2: Delete non-existing variable: esv-does-not-exist - error 1`] = `
 {
   "code": 404,
   "message": "The variable does not exist",
 }
 `;
 
-exports[`VariablesApi getVariable() 1: Get existing variable: esv-volkerstestvariable1 1`] = `
+exports[`VariablesApi getVariable() 1: Get existing variable: esv-frodo-test-variable1 1`] = `
 {
-  "_id": "esv-volkerstestvariable1",
-  "description": "Volker's Updated Test Variable Description",
+  "_id": "esv-frodo-test-variable1",
+  "description": "Frodo Test Variable One Description",
   "expressionType": "",
-  "lastChangeDate": "2022-04-10T20:55:39.746Z",
+  "lastChangeDate": "2022-12-22T20:09:08.400Z",
   "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
-  "loaded": true,
-  "valueBase64": "Vm9sa2VyJ3MgVGVzdCBWYXJpYWJsZSBWYWx1ZQo=",
+  "loaded": false,
+  "valueBase64": "RnJvZG8gVGVzdCBWYXJpYWJsZSBPbmUgVmFsdWU=",
 }
 `;
 
@@ -44,13 +44,40 @@ exports[`VariablesApi getVariables() 1: Get all variables - success 1`] = `
   "remainingPagedResults": -1,
   "result": [
     {
-      "_id": "esv-volkerstestvariable2",
-      "description": "Volker's Test Variable Description",
+      "_id": "esv-frodo-test-variable2",
+      "description": "Frodo Test Variable Two Description",
       "expressionType": "",
-      "lastChangeDate": "2022-12-20T18:27:22.007Z",
+      "lastChangeDate": "2022-12-22T20:09:12.711Z",
       "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
       "loaded": false,
-      "valueBase64": "Vm9sa2VyJ3MgVGVzdCBWYXJpYWJsZSBWYWx1ZQ==",
+      "valueBase64": "RnJvZG8gVGVzdCBWYXJpYWJsZSBUd28gVmFsdWU=",
+    },
+    {
+      "_id": "esv-ipv4-cidr-access-rules",
+      "description": "IPv4 CIDR access rules: { "allow": [ "address/mask" ] }",
+      "expressionType": "",
+      "lastChangeDate": "2022-08-25T20:16:54.243Z",
+      "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
+      "loaded": true,
+      "valueBase64": "eyAiYWxsb3ciOiBbICIxNDUuMTE4LjAuMC8xNiIsICIxMzIuMzUuMC4wLzE2IiwgIjEwMS4yMjYuMC4wLzE2IiwgIjk5LjcyLjI4LjE4Mi8zMiIgXSB9",
+    },
+    {
+      "_id": "esv-twilio-phone-number",
+      "description": "Twilio phone number. Get your own at: https://twilio.com",
+      "expressionType": "",
+      "lastChangeDate": "2022-08-12T21:27:18.560Z",
+      "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
+      "loaded": true,
+      "valueBase64": "KzEzMTc2NDQzMTA3",
+    },
+    {
+      "_id": "esv-frodo-test-variable1",
+      "description": "Frodo Test Variable One Description",
+      "expressionType": "",
+      "lastChangeDate": "2022-12-22T20:09:08.400Z",
+      "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
+      "loaded": false,
+      "valueBase64": "RnJvZG8gVGVzdCBWYXJpYWJsZSBPbmUgVmFsdWU=",
     },
     {
       "_id": "esv-volkerstestvariable1",
@@ -80,45 +107,36 @@ exports[`VariablesApi getVariables() 1: Get all variables - success 1`] = `
       "valueBase64": "QUM3NTA0MTVlMzE2M2EyZTU3YjdhZWVhN2VlZDgyZDk0NA==",
     },
     {
-      "_id": "esv-ipv4-cidr-access-rules",
-      "description": "IPv4 CIDR access rules: { "allow": [ "address/mask" ] }",
+      "_id": "esv-frodo-test-variable3",
+      "description": "Frodo Test Variable Three Description",
       "expressionType": "",
-      "lastChangeDate": "2022-08-25T20:16:54.243Z",
+      "lastChangeDate": "2022-12-22T20:09:13.861Z",
       "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
-      "loaded": true,
-      "valueBase64": "eyAiYWxsb3ciOiBbICIxNDUuMTE4LjAuMC8xNiIsICIxMzIuMzUuMC4wLzE2IiwgIjEwMS4yMjYuMC4wLzE2IiwgIjk5LjcyLjI4LjE4Mi8zMiIgXSB9",
-    },
-    {
-      "_id": "esv-twilio-phone-number",
-      "description": "Twilio phone number. Get your own at: https://twilio.com",
-      "expressionType": "",
-      "lastChangeDate": "2022-08-12T21:27:18.560Z",
-      "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
-      "loaded": true,
-      "valueBase64": "KzEzMTc2NDQzMTA3",
+      "loaded": false,
+      "valueBase64": "RnJvZG8gVGVzdCBWYXJpYWJsZSBUaHJlZSBWYWx1ZQ==",
     },
   ],
-  "resultCount": 6,
+  "resultCount": 8,
   "totalPagedResults": -1,
   "totalPagedResultsPolicy": "NONE",
 }
 `;
 
-exports[`VariablesApi putVariable() 1: Create variable: esv-volkerstestvariable2 - success 1`] = `
+exports[`VariablesApi putVariable() 2: Create new variable: esv-frodo-test-variable4 - success 1`] = `
 {
-  "_id": "esv-volkerstestvariable2",
-  "description": "Volker's Test Variable Description",
+  "_id": "esv-frodo-test-variable4",
+  "description": "Frodo Test Variable Four Description",
   "expressionType": "",
-  "lastChangeDate": "2022-12-20T18:27:22.007Z",
+  "lastChangeDate": "2022-12-22T20:09:16.280Z",
   "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
   "loaded": false,
-  "valueBase64": "Vm9sa2VyJ3MgVGVzdCBWYXJpYWJsZSBWYWx1ZQ==",
+  "valueBase64": "RnJvZG8gVGVzdCBWYXJpYWJsZSBGb3VyIFZhbHVl",
 }
 `;
 
-exports[`VariablesApi setVariableDescription() 1: Set variable description: esv-volkerstestvariable2 - success 1`] = `""`;
+exports[`VariablesApi setVariableDescription() 1: Set existing variable's description: esv-frodo-test-variable2 - success 1`] = `""`;
 
-exports[`VariablesApi setVariableDescription() 2: Set variable description: esv-volkerstestvariable3 - error 1`] = `
+exports[`VariablesApi setVariableDescription() 2: Set non-existing variable's description: esv-does-not-exist - error 1`] = `
 {
   "code": 404,
   "message": "The variable does not exist",
