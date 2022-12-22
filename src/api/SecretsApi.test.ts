@@ -1,588 +1,218 @@
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
-import { SecretsRaw, state } from '../index';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+/**
+ * To record and update snapshots, you must perform 3 steps in order:
+ *
+ * 1. Record API responses & update ESM snapshots
+ *
+ *    To record and update ESM snapshots, you must call the test:record
+ *    script and override all the connection state variables required
+ *    to connect to the env to record from:
+ *
+ *        FRODO_DEBUG=1 FRODO_HOST=volker-dev npm run test:record SecretsApi
+ *
+ *    The above command assumes that you have a connection profile for
+ *    'volker-dev' on your development machine.
+ *
+ * 2. Update CJS snapshots
+ *
+ *    After recording, the ESM snapshots will already be updated as that happens
+ *    in one go, but you musty manually update the CJS snapshots by running:
+ *
+ *        FRODO_DEBUG=1 npm run test:update SecretsApi
+ *
+ * 3. Test your changes
+ *
+ *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
+ *    replay mode and make sure they all succeed as well:
+ *
+ *        npm run test SecretsApi
+ *
+ * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
+ * in case things don't function as expected
+ */
+import { SecretsRaw } from '../index';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+autoSetupPolly();
 
-const mock = new MockAdapter(axios);
+describe('SecretsApi', () => {
+  describe('getSecrets()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsRaw.getSecrets).toBeDefined();
+    });
 
-state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
-state.setRealm('alpha');
-state.setCookieName('cookieName');
-state.setCookieValue('cookieValue');
-
-describe('SecretsApi - getSecrets()', () => {
-  test('getSecrets() 1: Get all secrets - success', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/getSecrets/secrets.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onGet('https://openam-frodo-dev.forgeblocks.com/environment/secrets')
-      .reply(200, mockResponse);
-    const response = await SecretsRaw.getSecrets();
-    expect(response).toBeTruthy();
-    expect(response).toMatchObject(mockResponse);
+    test('1: Get all secrets - success', async () => {
+      const response = await SecretsRaw.getSecrets();
+      expect(response).toMatchSnapshot();
+    });
   });
 
-  test('getSecrets() 2: Get all secrets - error', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/getSecrets/error.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onGet('https://openam-frodo-dev.forgeblocks.com/environment/secrets')
-      .reply(500, mockResponse);
-    expect.assertions(2);
-    try {
-      await SecretsRaw.getSecrets();
-    } catch (error) {
-      // console.dir(error);
-      expect(error).toBeTruthy();
-      expect(error).toMatchSnapshot();
-    }
-  });
-});
+  describe('getSecret()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsRaw.getSecret).toBeDefined();
+    });
 
-describe('SecretsApi - getSecret()', () => {
-  test('getSecret() 1: Get existing secret: esv-volkerstestsecret1', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/getSecret/esv-volkerstestsecret1.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onGet(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1'
-      )
-      .reply(200, mockResponse);
-    const response = await SecretsRaw.getSecret('esv-volkerstestsecret1');
-    expect(response).toBeTruthy();
-    expect(response).toMatchObject(mockResponse);
+    test('1: Get existing secret: esv-volkerstestsecret1', async () => {
+      const response = await SecretsRaw.getSecret('esv-volkerstestsecret1');
+      expect(response).toMatchSnapshot();
+    });
+
+    test('2: Get non-existing secret: esv-does-not-exist', async () => {
+      try {
+        await SecretsRaw.getSecret('esv-does-not-exist');
+      } catch (error) {
+        expect(error).toMatchSnapshot();
+      }
+    });
   });
 
-  test('getSecret() 2: Get non-existing secret: esv-does-not-exist', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/getSecret/esv-does-not-exist.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onGet(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-does-not-exist'
-      )
-      .reply(404, mockResponse);
-    expect.assertions(2);
-    try {
-      await SecretsRaw.getSecret('esv-does-not-exist');
-    } catch (error) {
-      // console.dir(error);
-      expect(error).toBeTruthy();
-      expect(error).toMatchSnapshot();
-    }
-  });
-});
+  describe('putSecret()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsRaw.putSecret).toBeDefined();
+    });
 
-describe('SecretsApi - putSecret()', () => {
-  test('putSecret() 1: Create secret: esv-volkerstestsecret1 - success', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/putSecret/esv-volkerstestsecret1.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onPut(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1'
-      )
-      .reply(200, mockResponse);
-    const response = await SecretsRaw.putSecret(
-      'esv-volkerstestsecret1',
-      "Volker's Test Secret Value",
-      "Volker's Test Secret Description",
-      'generic',
-      true
-    );
-    expect(response).toBeTruthy();
-    expect(response).toMatchObject(mockResponse);
-  });
-
-  test('putSecret() 2: Create secret: esv-volkerstestsecret1 - error', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/putSecret/error.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onPut(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1'
-      )
-      .reply(500, mockResponse);
-    try {
-      await SecretsRaw.putSecret(
+    test('1: Create secret: esv-volkerstestsecret1 - success', async () => {
+      const response = await SecretsRaw.putSecret(
         'esv-volkerstestsecret1',
         "Volker's Test Secret Value",
         "Volker's Test Secret Description",
         'generic',
         true
       );
-    } catch (error) {
-      // console.dir(error);
-      expect(error).toMatchSnapshot();
-    }
-  });
-});
-
-describe('SecretsApi - setSecretDescription()', () => {
-  test('setSecretDescription() 1: Set secret description: esv-volkerstestsecret1 - success', async () => {
-    const mockResponse = '';
-    mock
-      .onPost(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1?_action=setDescription'
-      )
-      .reply(200, mockResponse);
-    const response = await SecretsRaw.setSecretDescription(
-      'esv-volkerstestsecret1',
-      "Volker's Updated Test Secret Description"
-    );
-    expect(response).toBe('');
+      expect(response).toMatchSnapshot();
+    });
   });
 
-  test('setSecretDescription() 2: Set secret description: esv-volkerstestsecret1 - error', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/setSecretDescription/error.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onPost(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1?_action=setDescription'
-      )
-      .reply(500, mockResponse);
-    expect.assertions(4);
-    try {
-      await SecretsRaw.setSecretDescription(
+  describe('setSecretDescription()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsRaw.setSecretDescription).toBeDefined();
+    });
+
+    test('1: Set secret description: esv-volkerstestsecret1 - success', async () => {
+      const response = await SecretsRaw.setSecretDescription(
         'esv-volkerstestsecret1',
         "Volker's Updated Test Secret Description"
       );
-    } catch (error) {
-      // console.dir(error);
-      expect(error).toBeTruthy();
-      expect(error.response.status).toBe(500);
-      expect(error.response.data.code).toBe(500);
-      expect(error.response.data.message).toBe('Server Error');
-    }
-  });
-});
-
-describe('SecretsApi - deleteSecret()', () => {
-  test('deleteSecret() 1: Delete secret: esv-volkerstestsecret1 - success', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/deleteSecret/esv-volkerstestsecret1.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onDelete(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1'
-      )
-      .reply(200, mockResponse);
-    const response = await SecretsRaw.deleteSecret('esv-volkerstestsecret1');
-    expect(response).toBeTruthy();
-    expect(response).toMatchObject(mockResponse);
+      expect(response).toMatchSnapshot();
+    });
   });
 
-  test('deleteSecret() 2: Delete secret: esv-volkerstestsecret1 - error', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/deleteSecret/error.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onDelete(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1'
-      )
-      .reply(500, mockResponse);
-    expect.assertions(4);
-    try {
-      await SecretsRaw.deleteSecret('esv-volkerstestsecret1');
-    } catch (error) {
-      // console.dir(error);
-      expect(error).toBeTruthy();
-      expect(error.response.status).toBe(500);
-      expect(error.response.data.code).toBe(500);
-      expect(error.response.data.message).toBe('Server Error');
-    }
-  });
-});
+  describe('deleteSecret()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsRaw.deleteSecret).toBeDefined();
+    });
 
-describe('SecretsApi - getSecretVersions()', () => {
-  test('getSecretVersions() 1: Get versions of existing secret: esv-volkerstestsecret1', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/getSecretVersions/esv-volkerstestsecret1.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onGet(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1/versions'
-      )
-      .reply(200, mockResponse);
-    const response = await SecretsRaw.getSecretVersions(
-      'esv-volkerstestsecret1'
-    );
-    expect(response).toBeTruthy();
-    expect(response).toMatchObject(mockResponse);
+    test('1: Delete secret: esv-volkerstestsecret1 - success', async () => {
+      const response = await SecretsRaw.deleteSecret('esv-volkerstestsecret1');
+      expect(response).toMatchSnapshot();
+    });
   });
 
-  test('getSecretVersions() 2: Get versions of non-existing secret: esv-does-not-exist', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/getSecretVersions/esv-does-not-exist.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onGet(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-does-not-exist/versions'
-      )
-      .reply(404, mockResponse);
-    expect.assertions(4);
-    try {
-      await SecretsRaw.getSecretVersions('esv-does-not-exist');
-    } catch (error) {
-      // console.dir(error);
-      expect(error).toBeTruthy();
-      expect(error.response.status).toBe(404);
-      expect(error.response.data.code).toBe(404);
-      expect(error.response.data.message).toBe(
-        'The secret does not exist or does not have a version'
+  describe('getSecretVersions()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsRaw.getSecretVersions).toBeDefined();
+    });
+
+    test('1: Get versions of existing secret: esv-volkerstestsecret1', async () => {
+      const response = await SecretsRaw.getSecretVersions(
+        'esv-volkerstestsecret1'
       );
-    }
-  });
-});
+      expect(response).toMatchSnapshot();
+    });
 
-describe('SecretsApi - createNewVersionOfSecret()', () => {
-  test('createNewVersionOfSecret() 1: Create new version of existing secret: esv-volkerstestsecret1 - success', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/createNewVersionOfSecret/esv-volkerstestsecret1.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onPost(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1/versions?_action=create'
-      )
-      .reply(200, mockResponse);
-    const response = await SecretsRaw.createNewVersionOfSecret(
-      'esv-volkerstestsecret1',
-      "Volker's Test Secret Value"
-    );
-    expect(response).toBeTruthy();
-    expect(response).toMatchObject(mockResponse);
+    test('2: Get versions of non-existing secret: esv-does-not-exist', async () => {
+      try {
+        await SecretsRaw.getSecretVersions('esv-does-not-exist');
+      } catch (error) {
+        expect(error).toMatchSnapshot();
+      }
+    });
   });
 
-  test('createNewVersionOfSecret() 2: Create new version of existing secret: esv-volkerstestsecret1 - error', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/createNewVersionOfSecret/error.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onPost(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1/versions?_action=create'
-      )
-      .reply(500, mockResponse);
-    expect.assertions(4);
-    try {
-      await SecretsRaw.createNewVersionOfSecret(
+  describe('createNewVersionOfSecret()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsRaw.createNewVersionOfSecret).toBeDefined();
+    });
+
+    test('1: Create new version of existing secret: esv-volkerstestsecret1 - success', async () => {
+      const response = await SecretsRaw.createNewVersionOfSecret(
         'esv-volkerstestsecret1',
         "Volker's Test Secret Value"
       );
-    } catch (error) {
-      // console.dir(error);
-      expect(error).toBeTruthy();
-      expect(error.response.status).toBe(500);
-      expect(error.response.data.code).toBe(500);
-      expect(error.response.data.message).toBe('Server Error');
-    }
+      expect(response).toMatchSnapshot();
+    });
+
+    test('2: Create new version of non-existing secret: esv-does-not-exist - error', async () => {
+      try {
+        await SecretsRaw.createNewVersionOfSecret(
+          'esv-does-not-exist',
+          "Volker's Test Secret Value"
+        );
+      } catch (error) {
+        expect(error).toMatchSnapshot();
+      }
+    });
   });
 
-  test('createNewVersionOfSecret() 3: Create new version of non-existing secret: esv-does-not-exist - error', async () => {
-    const mockResponse = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        '../test/mocks/SecretsApi/createNewVersionOfSecret/esv-does-not-exist.txt'
-      ),
-      'utf8'
-    );
-    mock
-      .onPost(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1/versions?_action=create'
-      )
-      .reply(500, mockResponse);
-    expect.assertions(3);
-    try {
-      await SecretsRaw.createNewVersionOfSecret(
+  describe('getVersionOfSecret()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsRaw.getVersionOfSecret).toBeDefined();
+    });
+
+    test('1: Get version 2 of existing secret: esv-volkerstestsecret1', async () => {
+      const response = await SecretsRaw.getVersionOfSecret(
         'esv-volkerstestsecret1',
-        "Volker's Test Secret Value"
+        '2'
       );
-    } catch (error) {
-      // console.dir(error);
-      expect(error).toBeTruthy();
-      expect(error.response.status).toBe(500);
-      expect(error.response.data).toBe(mockResponse);
-    }
-  });
-});
+      expect(response).toMatchSnapshot();
+    });
 
-describe('SecretsApi - getVersionOfSecret()', () => {
-  test('getVersionOfSecret() 1: Get version 2 of existing secret: esv-volkerstestsecret1', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/getVersionOfSecret/esv-volkerstestsecret1_v2.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onGet(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1/versions/2'
-      )
-      .reply(200, mockResponse);
-    const response = await SecretsRaw.getVersionOfSecret(
-      'esv-volkerstestsecret1',
-      '2'
-    );
-    expect(response).toBeTruthy();
-    expect(response).toMatchObject(mockResponse);
+    test('2: Get version 2 of non-existing secret: esv-does-not-exist', async () => {
+      try {
+        await SecretsRaw.getVersionOfSecret('esv-does-not-exist', '2');
+      } catch (error) {
+        expect(error).toMatchSnapshot();
+      }
+    });
   });
 
-  test('getVersionOfSecret() 2: Get version 2 of non-existing secret: esv-does-not-exist', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/getVersionOfSecret/esv-does-not-exist_v2.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onGet(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-does-not-exist/versions/2'
-      )
-      .reply(500, mockResponse);
-    expect.assertions(4);
-    try {
-      await SecretsRaw.getVersionOfSecret('esv-does-not-exist', '2');
-    } catch (error) {
-      // console.dir(error);
-      expect(error).toBeTruthy();
-      expect(error.response.status).toBe(500);
-      expect(error.response.data.code).toBe(500);
-      expect(error.response.data.message).toBe(
-        'Failed to update secret version'
-      );
-    }
-  });
-});
+  describe('setStatusOfVersionOfSecret()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsRaw.setStatusOfVersionOfSecret).toBeDefined();
+    });
 
-describe('SecretsApi - setStatusOfVersionOfSecret()', () => {
-  test('setStatusOfVersionOfSecret() 1: Disable version 2 of existing secret: esv-volkerstestsecret1 - success', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/setStatusOfVersionOfSecret/esv-volkerstestsecret1_v2_DISABLED.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onPost(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1/versions/2?_action=changestatus'
-      )
-      .reply(200, mockResponse);
-    const response = await SecretsRaw.setStatusOfVersionOfSecret(
-      'esv-volkerstestsecret1',
-      '2',
-      SecretsRaw.VersionOfSecretStatus.DISABLED
-    );
-    expect(response).toBeTruthy();
-    expect(response).toMatchObject(mockResponse);
-  });
-
-  test('setStatusOfVersionOfSecret() 2: Disable version 2 of existing secret: esv-volkerstestsecret1 - error', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/setStatusOfVersionOfSecret/error.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onPost(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1/versions/2?_action=changestatus'
-      )
-      .reply(500, mockResponse);
-    expect.assertions(4);
-    try {
-      await SecretsRaw.setStatusOfVersionOfSecret(
+    test('1: Disable version 2 of existing secret: esv-volkerstestsecret1 - success', async () => {
+      const response = await SecretsRaw.setStatusOfVersionOfSecret(
         'esv-volkerstestsecret1',
         '2',
         SecretsRaw.VersionOfSecretStatus.DISABLED
       );
-    } catch (error) {
-      // console.dir(error);
-      expect(error).toBeTruthy();
-      expect(error.response.status).toBe(500);
-      expect(error.response.data.code).toBe(500);
-      expect(error.response.data.message).toBe('Server Error');
-    }
+      expect(response).toMatchSnapshot();
+    });
+
+    test('2: Disable version 2 of non-existing secret: esv-does-not-exist - error', async () => {
+      try {
+        await SecretsRaw.setStatusOfVersionOfSecret(
+          'esv-does-not-exist',
+          '2',
+          SecretsRaw.VersionOfSecretStatus.DISABLED
+        );
+      } catch (error) {
+        expect(error).toMatchSnapshot();
+      }
+    });
   });
 
-  test('setStatusOfVersionOfSecret() 3: Disable version 2 of non-existing secret: esv-does-not-exist - error', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/setStatusOfVersionOfSecret/esv-does-not-exist_v2_DISABLED.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onPost(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-does-not-exist/versions/2?_action=changestatus'
-      )
-      .reply(404, mockResponse);
-    expect.assertions(4);
-    try {
-      await SecretsRaw.setStatusOfVersionOfSecret(
-        'esv-does-not-exist',
-        '2',
-        SecretsRaw.VersionOfSecretStatus.DISABLED
+  describe('deleteVersionOfSecret()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsRaw.deleteVersionOfSecret).toBeDefined();
+    });
+
+    test('1: Delete version 2 of secret: esv-volkerstestsecret1 - success', async () => {
+      const response = await SecretsRaw.deleteVersionOfSecret(
+        'esv-volkerstestsecret1',
+        '2'
       );
-    } catch (error) {
-      // console.dir(error);
-      expect(error).toBeTruthy();
-      expect(error.response.status).toBe(404);
-      expect(error.response.data.code).toBe(404);
-      expect(error.response.data.message).toBe(
-        'The secret does not exist or does not have a version'
-      );
-    }
-  });
-});
-
-describe('SecretsApi - deleteVersionOfSecret()', () => {
-  test('deleteVersionOfSecret() 1: Delete version 2 of secret: esv-volkerstestsecret1 - success', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/deleteVersionOfSecret/esv-volkerstestsecret1_v2.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onDelete(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1/versions/2'
-      )
-      .reply(200, mockResponse);
-    const response = await SecretsRaw.deleteVersionOfSecret(
-      'esv-volkerstestsecret1',
-      '2'
-    );
-    expect(response).toBeTruthy();
-    expect(response).toMatchObject(mockResponse);
-  });
-
-  test('deleteVersionOfSecret() 2: Delete version 2 of secret: esv-volkerstestsecret1 - error', async () => {
-    const mockResponse = JSON.parse(
-      fs.readFileSync(
-        path.resolve(
-          __dirname,
-          '../test/mocks/SecretsApi/deleteVersionOfSecret/error.json'
-        ),
-        'utf8'
-      )
-    );
-    mock
-      .onDelete(
-        'https://openam-frodo-dev.forgeblocks.com/environment/secrets/esv-volkerstestsecret1/versions/2'
-      )
-      .reply(500, mockResponse);
-    expect.assertions(4);
-    try {
-      await SecretsRaw.deleteVersionOfSecret('esv-volkerstestsecret1', '2');
-    } catch (error) {
-      // console.dir(error);
-      expect(error).toBeTruthy();
-      expect(error.response.status).toBe(500);
-      expect(error.response.data.code).toBe(500);
-      expect(error.response.data.message).toBe('Server Error');
-    }
+      expect(response).toMatchSnapshot();
+    });
   });
 });
