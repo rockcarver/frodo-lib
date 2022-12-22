@@ -35,6 +35,154 @@ import { autoSetupPolly } from '../utils/AutoSetupPolly';
 autoSetupPolly();
 
 describe('TreeApi', () => {
+  const tree1 = {
+    name: 'FrodoTestTree1',
+    tree: {
+      identityResource: 'managed/alpha_user',
+      uiConfig: {
+        categories: '["Authentication","Frodo"]',
+      },
+      entryNodeId: 'e301438c-0bd0-429c-ab0c-66126501069a',
+      nodes: {},
+      staticNodes: {
+        startNode: {
+          x: 70,
+          y: 80,
+        },
+        '70e691a5-1e33-4ac3-a356-e7b6d60d92e0': {
+          x: 70,
+          y: 230,
+        },
+        'e301438c-0bd0-429c-ab0c-66126501069a': {
+          x: 210,
+          y: 80,
+        },
+      },
+      description: 'Frodo Test Tree One',
+      enabled: true,
+    },
+  };
+  const tree2 = {
+    name: 'FrodoTestTree2',
+    tree: {
+      identityResource: 'managed/alpha_user',
+      uiConfig: {
+        categories: '["Authentication","Frodo"]',
+      },
+      entryNodeId: 'f19e5458-6c2e-43e6-9273-84d66f4a8f46',
+      nodes: {},
+      staticNodes: {
+        startNode: {
+          x: 70,
+          y: 80,
+        },
+        'c904b319-0bb0-454e-b408-08ade91469cf': {
+          x: 70,
+          y: 230,
+        },
+        '97704adc-c3a0-469a-9f6a-c07325890232': {
+          x: 210,
+          y: 80,
+        },
+      },
+      description: 'Frodo Test Tree Two',
+      enabled: true,
+    },
+  };
+  const tree3 = {
+    name: 'FrodoTestTree3',
+    tree: {
+      identityResource: 'managed/alpha_user',
+      uiConfig: {
+        categories: '["Authentication","Frodo"]',
+      },
+      entryNodeId: 'b320a71e-ddac-4180-a106-e6690ac775ca',
+      nodes: {},
+      staticNodes: {
+        startNode: {
+          x: 70,
+          y: 80,
+        },
+        '1edf4a79-6103-48ee-af91-75af47f85870': {
+          x: 70,
+          y: 230,
+        },
+        '4bb0250d-40fe-4ab8-9ea4-77e901615736': {
+          x: 210,
+          y: 80,
+        },
+      },
+      description: 'Frodo Test Tree Three',
+      enabled: true,
+    },
+  };
+  const tree4 = {
+    name: 'FrodoTestTree4',
+    tree: {
+      identityResource: 'managed/alpha_user',
+      uiConfig: {
+        categories: '["Authentication","Frodo"]',
+      },
+      entryNodeId: 'f3bea587-d5ad-476b-80bb-b288ab45bc52',
+      nodes: {},
+      staticNodes: {
+        startNode: {
+          x: 70,
+          y: 80,
+        },
+        'e6b2ead4-7cb2-4f6f-b9ef-f2086a3814dd': {
+          x: 70,
+          y: 230,
+        },
+        'be2da6e2-ca86-4c4a-9252-5df7ea0551be': {
+          x: 210,
+          y: 80,
+        },
+      },
+      description: 'Frodo Test Tree Four',
+      enabled: true,
+    },
+  };
+  // in recording mode, setup test data
+  beforeAll(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      // setup FrodoTestTree1 - delete if exists, then create
+      try {
+        await TreeRaw.getTree(tree1.name);
+        await TreeRaw.deleteTree(tree1.name);
+      } catch (error) {
+        // ignore
+      } finally {
+        await TreeRaw.putTree(tree1.name, tree1.tree);
+      }
+      // setup FrodoTestTree2 - delete if exists, then create
+      try {
+        await TreeRaw.getTree(tree2.name);
+        await TreeRaw.deleteTree(tree2.name);
+      } catch (error) {
+        // ignore
+      } finally {
+        await TreeRaw.putTree(tree2.name, tree2.tree);
+      }
+      // setup FrodoTestTree3 - delete if exists, then create
+      try {
+        await TreeRaw.getTree(tree3.name);
+        await TreeRaw.deleteTree(tree3.name);
+      } catch (error) {
+        // ignore
+      } finally {
+        await TreeRaw.putTree(tree3.name, tree3.tree);
+      }
+      // setup FrodoTestTree4 - delete if exists
+      try {
+        await TreeRaw.getTree(tree4.name);
+        await TreeRaw.deleteTree(tree4.name);
+      } catch (error) {
+        // ignore
+      }
+    }
+  });
+
   describe('getTrees()', () => {
     test('0: Method is implemented', async () => {
       expect(TreeRaw.getTrees).toBeDefined();
@@ -51,12 +199,12 @@ describe('TreeApi', () => {
       expect(TreeRaw.getTree).toBeDefined();
     });
 
-    test('1: Get existing tree', async () => {
-      const response = await TreeRaw.getTree('FrodoTest');
+    test(`1: Get existing tree ${tree1.name}`, async () => {
+      const response = await TreeRaw.getTree(tree1.name);
       expect(response).toMatchSnapshot();
     });
 
-    test('2: Get non-existing tree', async () => {
+    test('2: Get non-existing tree DoesNotExist', async () => {
       try {
         await TreeRaw.getTree('DoesNotExist');
       } catch (error) {
@@ -70,107 +218,8 @@ describe('TreeApi', () => {
       expect(TreeRaw.putTree).toBeDefined();
     });
 
-    test('1: Put valid tree', async () => {
-      const treeData = JSON.parse(
-        JSON.stringify({
-          identityResource: 'managed/alpha_user',
-          uiConfig: {
-            categories: '[]',
-          },
-          entryNodeId: 'e2c39477-847a-4df2-9c5d-b449a752638b',
-          nodes: {
-            '278bf084-9eea-46fe-8ce9-2600dde3b046': {
-              connections: {
-                localAuthentication: 'fc7e47cd-c679-4211-8e05-a36654f23c67',
-                socialAuthentication: 'd5cc2d52-6ce4-452d-85ea-3a5b50218b67',
-              },
-              displayName: 'Login Page',
-              nodeType: 'PageNode',
-              x: 444,
-              y: 273.015625,
-            },
-            '64157fca-bd5b-4405-a4c8-64ffd98a5461': {
-              connections: {
-                ACCOUNT_EXISTS: '70e691a5-1e33-4ac3-a356-e7b6d60d92e0',
-                NO_ACCOUNT: 'e301438c-0bd0-429c-ab0c-66126501069a',
-              },
-              displayName: 'SAML2 Authentication',
-              nodeType: 'product-Saml2Node',
-              x: 1168,
-              y: 188.015625,
-            },
-            '731c5810-020b-45c8-a7fc-3c21903ae2b3': {
-              connections: {
-                localAuthentication: 'fc7e47cd-c679-4211-8e05-a36654f23c67',
-                socialAuthentication: 'd5cc2d52-6ce4-452d-85ea-3a5b50218b67',
-              },
-              displayName: 'Login Page',
-              nodeType: 'PageNode',
-              x: 443,
-              y: 26.015625,
-            },
-            'bf153f37-83dd-4f39-aa0c-74135430242e': {
-              connections: {
-                EMAIL_NOT_SENT: 'e301438c-0bd0-429c-ab0c-66126501069a',
-                EMAIL_SENT: '64157fca-bd5b-4405-a4c8-64ffd98a5461',
-              },
-              displayName: 'Email Template Node',
-              nodeType: 'EmailTemplateNode',
-              x: 910,
-              y: 224.015625,
-            },
-            'd5cc2d52-6ce4-452d-85ea-3a5b50218b67': {
-              connections: {
-                ACCOUNT_EXISTS: '70e691a5-1e33-4ac3-a356-e7b6d60d92e0',
-                NO_ACCOUNT: 'bf153f37-83dd-4f39-aa0c-74135430242e',
-              },
-              displayName: 'Social Login',
-              nodeType: 'SocialProviderHandlerNode',
-              x: 702,
-              y: 116.015625,
-            },
-            'e2c39477-847a-4df2-9c5d-b449a752638b': {
-              connections: {
-                known: '731c5810-020b-45c8-a7fc-3c21903ae2b3',
-                unknown: '278bf084-9eea-46fe-8ce9-2600dde3b046',
-              },
-              displayName: 'Check Username',
-              nodeType: 'ScriptedDecisionNode',
-              x: 200,
-              y: 235.015625,
-            },
-            'fc7e47cd-c679-4211-8e05-a36654f23c67': {
-              connections: {
-                CANCELLED: '70e691a5-1e33-4ac3-a356-e7b6d60d92e0',
-                EXPIRED: '70e691a5-1e33-4ac3-a356-e7b6d60d92e0',
-                FALSE: 'e301438c-0bd0-429c-ab0c-66126501069a',
-                LOCKED: 'e301438c-0bd0-429c-ab0c-66126501069a',
-                TRUE: '70e691a5-1e33-4ac3-a356-e7b6d60d92e0',
-              },
-              displayName: 'Validate Creds',
-              nodeType: 'IdentityStoreDecisionNode',
-              x: 702,
-              y: 292.015625,
-            },
-          },
-          staticNodes: {
-            '70e691a5-1e33-4ac3-a356-e7b6d60d92e0': {
-              x: 1434,
-              y: 60,
-            },
-            'e301438c-0bd0-429c-ab0c-66126501069a': {
-              x: 1433,
-              y: 459,
-            },
-            startNode: {
-              x: 63,
-              y: 252,
-            },
-          },
-          enabled: true,
-        })
-      );
-      const response = await TreeRaw.putTree('FrodoTest', treeData);
+    test(`1: Put valid tree ${tree4.name}`, async () => {
+      const response = await TreeRaw.putTree(tree4.name, tree4.tree);
       expect(response).toMatchSnapshot();
     });
 
@@ -260,12 +309,12 @@ describe('TreeApi', () => {
       expect(TreeRaw.deleteTree).toBeDefined();
     });
 
-    test('1: Delete existing tree', async () => {
-      const response = await TreeRaw.deleteTree('FrodoTest');
+    test(`1: Delete existing tree ${tree2.name}`, async () => {
+      const response = await TreeRaw.deleteTree(tree2.name);
       expect(response).toMatchSnapshot();
     });
 
-    test('2: Delete non-existing tree', async () => {
+    test('2: Delete non-existing tree DoesNotExist', async () => {
       try {
         await TreeRaw.deleteTree('DoesNotExist');
       } catch (error) {
