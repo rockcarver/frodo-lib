@@ -460,26 +460,6 @@ export async function getTokens(): Promise<boolean> {
       );
       if (token) state.setCookieValue(token);
       await determineDeploymentTypeAndDefaultRealmAndVersion();
-      debugMessage(`AuthenticateOps.getTokens: before bearer`);
-      debugMessage(
-        `AuthenticateOps.getTokens: cookie=${state.getCookieValue()}`
-      );
-      debugMessage(
-        `AuthenticateOps.getTokens: bearer=${state.getBearerToken()}`
-      );
-      debugMessage(
-        `AuthenticateOps.getTokens: type=${state.getDeploymentType()}`
-      );
-      debugMessage(
-        `AuthenticateOps.getTokens: condition=${
-          state.getCookieValue() &&
-          !state.getBearerToken() &&
-          (state.getDeploymentType() ===
-            globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY ||
-            state.getDeploymentType() ===
-              globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY)
-        }`
-      );
       if (
         state.getCookieValue() &&
         !state.getBearerToken() &&
@@ -487,11 +467,9 @@ export async function getTokens(): Promise<boolean> {
           state.getDeploymentType() ===
             globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY)
       ) {
-        debugMessage(`AuthenticateOps.getTokens: in bearer`);
         const accessToken = await getAccessTokenForUser();
         if (accessToken) state.setBearerToken(accessToken);
       }
-      debugMessage(`AuthenticateOps.getTokens: after bearer`);
     }
     // incomplete or no credentials
     else {
