@@ -25,6 +25,7 @@ export async function listVariables(long) {
   let variables = [];
   try {
     variables = (await getVariables()).result;
+    variables.sort((a, b) => a._id.localeCompare(b._id));
   } catch (error) {
     printMessage(`${error.message}`, 'error');
     printMessage(error.response.data, 'error');
@@ -38,7 +39,6 @@ export async function listVariables(long) {
       'Modifier'['brightCyan'],
       'Modified'['brightCyan'],
     ]);
-    variables.sort((a, b) => a._id.localeCompare(b._id));
     for (const variable of variables) {
       table.push([
         variable._id,
