@@ -29,6 +29,7 @@ export async function listSecrets(long) {
   let secrets = [];
   try {
     secrets = (await getSecrets()).result;
+    secrets.sort((a, b) => a._id.localeCompare(b._id));
   } catch (error) {
     printMessage(`${error.message}`, 'error');
     printMessage(error.response.data, 'error');
@@ -43,7 +44,6 @@ export async function listSecrets(long) {
       'Modifier'['brightCyan'],
       'Modified'['brightCyan'],
     ]);
-    secrets.sort((a, b) => a._id.localeCompare(b._id));
     for (const secret of secrets) {
       table.push([
         secret._id,
