@@ -155,6 +155,7 @@ describe('VariablesApi', () => {
     });
 
     test('2: Get non-existing variable: esv-does-not-exist', async () => {
+      expect.assertions(1);
       try {
         await VariablesRaw.getVariable('esv-does-not-exist');
       } catch (error) {
@@ -192,6 +193,7 @@ describe('VariablesApi', () => {
     });
 
     test("2: Set non-existing variable's description: esv-does-not-exist - error", async () => {
+      expect.assertions(1);
       try {
         await VariablesRaw.setVariableDescription(
           'esv-does-not-exist',
@@ -214,6 +216,7 @@ describe('VariablesApi', () => {
     });
 
     test('2: Delete non-existing variable: esv-does-not-exist - error', async () => {
+      expect.assertions(1);
       try {
         await VariablesRaw.deleteVariable('esv-does-not-exist');
       } catch (error) {

@@ -234,6 +234,7 @@ describe('TreeApi', () => {
     });
 
     test('2: Get non-existing tree DoesNotExist', async () => {
+      expect.assertions(1);
       try {
         await TreeRaw.getTree('DoesNotExist');
       } catch (error) {
@@ -253,6 +254,7 @@ describe('TreeApi', () => {
     });
 
     test('2: Put invalid tree [trailing data]', async () => {
+      expect.assertions(1);
       const treeData =
         JSON.stringify({
           entryNodeId: 'e301438c-0bd0-429c-ab0c-66126501069a',
@@ -272,6 +274,7 @@ describe('TreeApi', () => {
     });
 
     test('3: Put invalid tree [invalid attribute]', async () => {
+      expect.assertions(1);
       const treeData = JSON.parse(
         JSON.stringify({
           entryNodeId: 'e301438c-0bd0-429c-ab0c-66126501069a',
@@ -292,6 +295,7 @@ describe('TreeApi', () => {
     });
 
     test('4: Put invalid tree [no entry node]', async () => {
+      expect.assertions(1);
       const treeData = JSON.parse(
         JSON.stringify({
           nodes: {},
@@ -311,6 +315,7 @@ describe('TreeApi', () => {
     });
 
     test('5: Put invalid tree [invalid nodes]', async () => {
+      expect.assertions(1);
       const treeData = JSON.parse(
         JSON.stringify({
           entryNodeId: 'e301438c-0bd0-429c-ab0c-66126501069a',
@@ -344,6 +349,7 @@ describe('TreeApi', () => {
     });
 
     test('2: Delete non-existing tree DoesNotExist', async () => {
+      expect.assertions(1);
       try {
         await TreeRaw.deleteTree('DoesNotExist');
       } catch (error) {

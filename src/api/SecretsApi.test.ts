@@ -190,6 +190,7 @@ describe('SecretsApi', () => {
     });
 
     test('2: Get non-existing secret: esv-does-not-exist', async () => {
+      expect.assertions(1);
       try {
         await SecretsRaw.getSecret('esv-does-not-exist');
       } catch (error) {
@@ -251,6 +252,7 @@ describe('SecretsApi', () => {
     });
 
     test('2: Get versions of non-existing secret: esv-does-not-exist', async () => {
+      expect.assertions(1);
       try {
         await SecretsRaw.getSecretVersions('esv-does-not-exist');
       } catch (error) {
@@ -270,6 +272,7 @@ describe('SecretsApi', () => {
     });
 
     test('2: Get version 2 of non-existing secret: esv-does-not-exist', async () => {
+      expect.assertions(1);
       try {
         await SecretsRaw.getVersionOfSecret('esv-does-not-exist', '2');
       } catch (error) {
@@ -292,6 +295,7 @@ describe('SecretsApi', () => {
     });
 
     test('2: Create new version of non-existing secret: esv-does-not-exist - error', async () => {
+      expect.assertions(1);
       try {
         await SecretsRaw.createNewVersionOfSecret(
           'esv-does-not-exist',
@@ -309,6 +313,7 @@ describe('SecretsApi', () => {
     });
 
     test(`1: Disable version 2 of existing secret: ${secret2.name} - success`, async () => {
+      expect.assertions(1);
       const response = await SecretsRaw.setStatusOfVersionOfSecret(
         secret2.name,
         '2',
@@ -318,6 +323,7 @@ describe('SecretsApi', () => {
     });
 
     test('2: Disable version 2 of non-existing secret: esv-does-not-exist - error', async () => {
+      expect.assertions(1);
       try {
         await SecretsRaw.setStatusOfVersionOfSecret(
           'esv-does-not-exist',
