@@ -102,28 +102,24 @@ describe('VariablesApi', () => {
   // in recording mode, remove test data after recording
   afterAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
-      // setup var1 - delete if exists, then create
       try {
         await VariablesRaw.getVariable(var1.name);
         await VariablesRaw.deleteVariable(var1.name);
       } catch (error) {
         // ignore
       }
-      // setup var2 - delete if exists, then create
       try {
         await VariablesRaw.getVariable(var2.name);
         await VariablesRaw.deleteVariable(var2.name);
       } catch (error) {
         // ignore
       }
-      // setup var3 - delete if exists, then create
       try {
         await VariablesRaw.getVariable(var3.name);
         await VariablesRaw.deleteVariable(var3.name);
       } catch (error) {
         // ignore
       }
-      // setup var4 - delete if exists
       try {
         await VariablesRaw.getVariable(var4.name);
         await VariablesRaw.deleteVariable(var4.name);

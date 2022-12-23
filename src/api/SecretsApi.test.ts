@@ -137,28 +137,24 @@ describe('SecretsApi', () => {
   // in recording mode, remove test data after recording
   afterAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
-      // setup secret1 - delete if exists, then create
       try {
         await SecretsRaw.getSecret(secret1.name);
         await SecretsRaw.deleteSecret(secret1.name);
       } catch (error) {
         // ignore
       }
-      // setup secret2 - delete if exists, then create
       try {
         await SecretsRaw.getSecret(secret2.name);
         await SecretsRaw.deleteSecret(secret2.name);
       } catch (error) {
         // ignore
       }
-      // setup secret3 - delete if exists, then create
       try {
         await SecretsRaw.getSecret(secret3.name);
         await SecretsRaw.deleteSecret(secret3.name);
       } catch (error) {
         // ignore
       }
-      // setup secret4 - delete if exists
       try {
         await SecretsRaw.getSecret(secret4.name);
         await SecretsRaw.deleteSecret(secret4.name);
