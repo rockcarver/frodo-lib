@@ -141,7 +141,8 @@ export const getAuthenticationHeaderOverrides = () =>
   _state.authenticationHeaderOverrides;
 export const setAuthenticationService = (service: string) =>
   (_state.authenticationService = service);
-export const getAuthenticationService = () => _state.authenticationService;
+export const getAuthenticationService = () =>
+  _state.authenticationService || process.env.FRODO_AUTHENTICATION_SERVICE;
 
 export const setServiceAccountId = (uuid: string) =>
   (_state.serviceAccountId = uuid);
