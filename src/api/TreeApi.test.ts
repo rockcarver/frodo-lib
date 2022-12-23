@@ -146,7 +146,7 @@ describe('TreeApi', () => {
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
-      // setup FrodoTestTree1 - delete if exists, then create
+      // setup tree1 - delete if exists, then create
       try {
         await TreeRaw.getTree(tree1.name);
         await TreeRaw.deleteTree(tree1.name);
@@ -155,7 +155,7 @@ describe('TreeApi', () => {
       } finally {
         await TreeRaw.putTree(tree1.name, tree1.tree);
       }
-      // setup FrodoTestTree2 - delete if exists, then create
+      // setup tree2 - delete if exists, then create
       try {
         await TreeRaw.getTree(tree2.name);
         await TreeRaw.deleteTree(tree2.name);
@@ -164,7 +164,7 @@ describe('TreeApi', () => {
       } finally {
         await TreeRaw.putTree(tree2.name, tree2.tree);
       }
-      // setup FrodoTestTree3 - delete if exists, then create
+      // setup tree3 - delete if exists, then create
       try {
         await TreeRaw.getTree(tree3.name);
         await TreeRaw.deleteTree(tree3.name);
@@ -173,7 +173,7 @@ describe('TreeApi', () => {
       } finally {
         await TreeRaw.putTree(tree3.name, tree3.tree);
       }
-      // setup FrodoTestTree4 - delete if exists
+      // setup tree4 - delete if exists
       try {
         await TreeRaw.getTree(tree4.name);
         await TreeRaw.deleteTree(tree4.name);
@@ -185,28 +185,24 @@ describe('TreeApi', () => {
   // in recording mode, remove test data after recording
   afterAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
-      // setup FrodoTestTree1 - delete if exists, then create
       try {
         await TreeRaw.getTree(tree1.name);
         await TreeRaw.deleteTree(tree1.name);
       } catch (error) {
         // ignore
       }
-      // setup FrodoTestTree2 - delete if exists, then create
       try {
         await TreeRaw.getTree(tree2.name);
         await TreeRaw.deleteTree(tree2.name);
       } catch (error) {
         // ignore
       }
-      // setup FrodoTestTree3 - delete if exists, then create
       try {
         await TreeRaw.getTree(tree3.name);
         await TreeRaw.deleteTree(tree3.name);
       } catch (error) {
         // ignore
       }
-      // setup FrodoTestTree4 - delete if exists
       try {
         await TreeRaw.getTree(tree4.name);
         await TreeRaw.deleteTree(tree4.name);
