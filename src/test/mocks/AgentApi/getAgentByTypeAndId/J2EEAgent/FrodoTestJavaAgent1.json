@@ -1,6 +1,4 @@
 {
-  "_id": "javaAgent",
-  "_rev": "-1626316908",
   "ssoJ2EEAgentConfig": {
     "encodeCookies": {
       "inherited": false,

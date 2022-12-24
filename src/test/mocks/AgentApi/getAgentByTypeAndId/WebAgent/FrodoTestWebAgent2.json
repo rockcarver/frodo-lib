@@ -1,6 +1,4 @@
 {
-  "_id": "webserver",
-  "_rev": "-396035021",
   "miscWebAgentConfig": {
     "anonymousUserId": {
       "inherited": false,
