@@ -35,9 +35,13 @@ export async function getAgentTypes() {
     state.getHost(),
     getCurrentRealmPath()
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi(getApiConfig()).post(
+    urlString,
+    {},
+    {
+      withCredentials: true,
+    }
+  );
   debugMessage(`AgentApi.getAgentTypes: end`);
   return data;
 }
