@@ -15,7 +15,7 @@
  * 2. Update CJS snapshots
  *
  *    After recording, the ESM snapshots will already be updated as that happens
- *    in one go, but you musty manually update the CJS snapshots by running:
+ *    in one go, but you must manually update the CJS snapshots by running:
  *
  *        FRODO_DEBUG=1 npm run test:update NodeApi
  *
@@ -24,7 +24,7 @@
  *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
  *    replay mode and make sure they all succeed as well:
  *
- *        npm run test NodeApi
+ *        npm run test:only NodeApi
  *
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
