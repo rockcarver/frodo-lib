@@ -1,6 +1,4 @@
 {
-  "_id": "apacheagent",
-  "_rev": "-443740962",
   "miscWebAgentConfig": {
     "anonymousUserId": {
       "inherited": false,
@@ -28,7 +26,7 @@
     },
     "addCacheControlHeader": {
       "inherited": false,
-      "value": true
+      "value": false
     },
     "anonymousUserEnabled": {
       "inherited": false,
@@ -77,7 +75,7 @@
   "advancedWebAgentConfig": {
     "overrideRequestHost": {
       "inherited": false,
-      "value": true
+      "value": false
     },
     "pdpSkipPostUrl": {
       "inherited": false,
@@ -100,7 +98,7 @@
     },
     "overrideRequestProtocol": {
       "inherited": false,
-      "value": true
+      "value": false
     },
     "clientIpHeader": {
       "inherited": false
@@ -130,7 +128,7 @@
     },
     "overrideRequestPort": {
       "inherited": false,
-      "value": true
+      "value": false
     },
     "apacheAuthDirectives": {
       "inherited": false
@@ -222,7 +220,7 @@
     "conditionalLoginUrl": {
       "inherited": false,
       "value": [
-        "mytestrun.com|https://idc.scheuber.io:443/am/oauth2/authorize?realm=/alpha"
+        "|https://openam-volker-dev.forgeblocks.com:443/am/oauth2/authorize?realm=/alpha"
       ]
     },
     "customLoginMode": {
@@ -277,15 +275,14 @@
     },
     "amLoginUrl": {
       "inherited": false,
-      "value": ["https://idc.scheuber.io/login?realm=/alpha"]
+      "value": []
     },
     "policyEvaluationApplication": {
-      "inherited": false,
-      "value": "apps"
+      "inherited": false
     },
     "amLogoutUrl": {
       "inherited": false,
-      "value": ["https://idc.scheuber.io:443/am/UI/Logout"]
+      "value": ["https://openam-volker-dev.forgeblocks.com:443/am/UI/Logout"]
     },
     "ssoCachePollingInterval": {
       "inherited": false,
@@ -347,7 +344,7 @@
     },
     "notEnforcedUrls": {
       "inherited": false,
-      "value": ["", "https://apps.mytestrun.com/app1/*"]
+      "value": [""]
     },
     "sessionAttributeMap": {
       "inherited": false,
@@ -371,11 +368,11 @@
     "repositoryLocation": "centralized",
     "agentDebugLevel": {
       "inherited": false,
-      "value": "Info"
+      "value": "Error"
     },
     "fqdnDefault": {
       "inherited": false,
-      "value": "apps.mytestrun.com"
+      "value": "www.mytestrun.com"
     },
     "webSocketConnectionIntervalInMinutes": {
       "inherited": false,
@@ -391,7 +388,7 @@
     },
     "auditLogLocation": {
       "inherited": false,
-      "value": "ALL"
+      "value": "REMOTE"
     },
     "fqdnCheck": {
       "inherited": false,
@@ -418,7 +415,7 @@
     },
     "auditAccessType": {
       "inherited": false,
-      "value": "LOG_BOTH"
+      "value": "LOG_NONE"
     },
     "notificationsEnabled": {
       "inherited": false,
@@ -426,7 +423,7 @@
     },
     "agentUriPrefix": {
       "inherited": false,
-      "value": "https://apps.mytestrun.com:443/amagent"
+      "value": "https://www.mytestrun.com:443/amagent"
     },
     "disableJwtAudit": {
       "inherited": false,
@@ -438,7 +435,7 @@
     },
     "cdssoRootUrl": {
       "inherited": false,
-      "value": ["agentRootURL=https://apps.mytestrun.com:443/"]
+      "value": ["agentRootURL=https://www.mytestrun.com:443/"]
     },
     "agentConfigChangeNotificationsEnabled": {
       "inherited": false,

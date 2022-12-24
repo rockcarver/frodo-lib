@@ -1,6 +1,4 @@
 {
-  "_id": "ig_chico",
-  "_rev": "1284103029",
   "userpassword": null,
   "igTokenIntrospection": {
     "inherited": false,

@@ -1,6 +1,4 @@
 {
-  "_id": "tomcatagent",
-  "_rev": "-1129585272",
   "ssoJ2EEAgentConfig": {
     "encodeCookies": {
       "inherited": false,
