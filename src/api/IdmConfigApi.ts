@@ -76,6 +76,23 @@ export async function putConfigEntity(
 }
 
 /**
+ * Delete IDM config entity
+ * @param {string} entityId config entity id
+ * @returns {Promise<unknown>} a promise that resolves to an IDM config entity
+ */
+export async function deleteConfigEntity(entityId: string) {
+  const urlString = util.format(
+    idmConfigURLTemplate,
+    getTenantURL(state.getHost()),
+    entityId
+  );
+  const { data } = await generateIdmApi().delete(urlString, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+/**
  * Query managed objects
  * @param {String} type managed object type
  * @param {[String]} fields fields to retrieve
