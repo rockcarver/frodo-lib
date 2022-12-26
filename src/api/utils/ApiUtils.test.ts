@@ -1,93 +1,100 @@
-import { getCurrentRealmPath, getTenantURL } from './ApiUtils';
+import { getRealmPath, getCurrentRealmPath, getTenantURL } from './ApiUtils';
 import * as state from '../../shared/State';
 
-test.skip('replaceAll should be deleted because it works like native String.replaceAll', () => {
-  // Arrange
-  // Act
-  // Assert
-  expect(true).toBe(false);
-});
+describe.only('ApiUtils', () => {
+  describe.only('getRealmPath()', () => {
+    test("Should prepend realm path to specified realm 'alpha'", () => {
+      const realm = 'alpha';
+      const testString = getRealmPath(realm);
+      expect(testString).toBe('/realms/root/realms/alpha');
+    });
 
-test('getCurrentRealmPath should prepend realmPath to specified realm', () => {
-  // Arrange
-  const REALM_PATH = 'alpha';
-  state.setRealm(REALM_PATH);
-  // Act
-  const testString = getCurrentRealmPath();
-  // Assert
-  expect(testString).toBe('/realms/root/realms/alpha');
-});
+    test('Should prepend realmPath to specified realm with leading slash', () => {
+      const realm = '/alpha';
+      const testString = getRealmPath(realm);
+      expect(testString).toBe('/realms/root/realms/alpha');
+    });
 
-test('getCurrentRealmPath should prepend realmPath to specified realm with leading slash', () => {
-  // Arrange
-  const REALM_PATH = '/alpha';
-  state.setRealm(REALM_PATH);
-  // Act
-  const testString = getCurrentRealmPath();
-  // Assert
-  expect(testString).toBe('/realms/root/realms/alpha');
-});
+    test("'/' should resolve to root", () => {
+      const realm = '/';
+      const testString = getRealmPath(realm);
+      expect(testString).toBe('/realms/root');
+    });
 
-test('getCurrentRealmPath "/" should resolve to root', () => {
-  // Arrange
-  const REALM_PATH = '/';
-  state.setRealm(REALM_PATH);
-  // Act
-  const testString = getCurrentRealmPath();
-  // Assert
-  expect(testString).toBe('/realms/root');
-});
+    test('Should handle multiple leading slashes', () => {
+      const realm = '//alpha';
+      const testString = getRealmPath(realm);
+      expect(testString).toBe('/realms/root/realms/alpha');
+    });
 
-test('getCurrentRealmPath should handle multiple leading slashes', () => {
-  // Arrange
-  const REALM_PATH = '//alpha';
-  state.setRealm(REALM_PATH);
-  // Act
-  const testString = getCurrentRealmPath();
-  // Assert
-  expect(testString).toBe('/realms/root/realms/alpha');
-});
+    test('Should handle nested realms', () => {
+      const realm = '/parent/child';
+      const testString = getRealmPath(realm);
+      expect(testString).toBe('/realms/root/realms/parent/realms/child');
+    });
+  });
 
-test('getCurrentRealmPath should handle nested realms', () => {
-  // Arrange
-  const REALM_PATH = '/parent/child';
-  state.setRealm(REALM_PATH);
-  // Act
-  const testString = getCurrentRealmPath();
-  // Assert
-  expect(testString).toBe('/realms/root/realms/parent/realms/child');
-});
+  describe.only('getCurrentRealmPath()', () => {
+    test("Should prepend realm path to specified realm 'alpha'", () => {
+      const realm = 'alpha';
+      state.setRealm(realm);
+      const testString = getCurrentRealmPath();
+      expect(testString).toBe('/realms/root/realms/alpha');
+    });
 
-test('getTenantURL should parse the https protocol and the hostname', () => {
-  // Arrange
-  const URL_WITH_TENANT =
-    'https://example.frodo.com/am/ui-admin/#realms/%2Falpha/dashboard';
+    test('Should prepend realmPath to specified realm with leading slash', () => {
+      const realm = '/alpha';
+      state.setRealm(realm);
+      const testString = getCurrentRealmPath();
+      expect(testString).toBe('/realms/root/realms/alpha');
+    });
 
-  // Act
-  const parsed = getTenantURL(URL_WITH_TENANT);
+    test("'/' should resolve to root", () => {
+      const realm = '/';
+      state.setRealm(realm);
+      const testString = getCurrentRealmPath();
+      expect(testString).toBe('/realms/root');
+    });
 
-  // Assert
-  expect(parsed).toBe('https://example.frodo.com');
-});
+    test('Should handle multiple leading slashes', () => {
+      const realm = '//alpha';
+      state.setRealm(realm);
+      const testString = getCurrentRealmPath();
+      expect(testString).toBe('/realms/root/realms/alpha');
+    });
 
-test('getTenantURL should not validate protocol', () => {
-  // Arrange
-  const URL_WITH_TENANT =
-    'ftp://example.frodo.com/am/ui-admin/#realms/%2Falpha/dashboard';
-  // Act
-  const parsed = getTenantURL(URL_WITH_TENANT);
-  // Assert
-  expect(parsed).toBe('ftp://example.frodo.com');
-});
+    test('Should handle nested realms', () => {
+      const realm = '/parent/child';
+      state.setRealm(realm);
+      const testString = getCurrentRealmPath();
+      expect(testString).toBe('/realms/root/realms/parent/realms/child');
+    });
+  });
 
-test('getTenantURL Invalid URL should throw', () => {
-  // Arrange
-  const URL_WITH_TENANT =
-    '//:example.frodo.com/am/ui-admin/#realms/%2Falpha/dashboard';
-  // Act
-  const trap = () => {
-    getTenantURL(URL_WITH_TENANT);
-  };
-  // Assert
-  expect(trap).toThrow('Invalid URL');
+  describe.only('getTenantURL()', () => {
+    test('Should parse the https protocol and the hostname', () => {
+      const URL_WITH_TENANT =
+        'https://example.frodo.com/am/ui-admin/#realms/%2Falpha/dashboard';
+
+      const parsed = getTenantURL(URL_WITH_TENANT);
+
+      expect(parsed).toBe('https://example.frodo.com');
+    });
+
+    test('Should not validate protocol', () => {
+      const URL_WITH_TENANT =
+        'ftp://example.frodo.com/am/ui-admin/#realms/%2Falpha/dashboard';
+      const parsed = getTenantURL(URL_WITH_TENANT);
+      expect(parsed).toBe('ftp://example.frodo.com');
+    });
+
+    test('Invalid URL should throw', () => {
+      const URL_WITH_TENANT =
+        '//:example.frodo.com/am/ui-admin/#realms/%2Falpha/dashboard';
+      const trap = () => {
+        getTenantURL(URL_WITH_TENANT);
+      };
+      expect(trap).toThrow('Invalid URL');
+    });
+  });
 });

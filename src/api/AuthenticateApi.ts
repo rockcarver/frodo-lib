@@ -1,6 +1,7 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
 import * as state from '../shared/State';
+import { getRealmPath } from './utils/ApiUtils';
 
 const authenticateUrlTemplate = '%s/json%s/authenticate';
 const authenticateWithServiceUrlTemplate = `${authenticateUrlTemplate}?authIndexType=service&authIndexValue=%s`;
@@ -10,29 +11,37 @@ const getApiConfig = () => ({
   apiVersion,
 });
 
-const realmPathTemplate = '/realms/%s';
-
-export function getRealmUrl(realm) {
-  let localRealm = realm;
-  if (localRealm.startsWith('/') && localRealm.length > 1) {
-    localRealm = localRealm.substring(1);
+/**
+ * Fill callbacks from a map
+ * Just a start
+ * @param {object} response json response from a call to /authenticate
+ * @param {{ [k: string]: string | number | boolean | string[] }} map name/value map
+ * @returns filled response body so it can be used as input to another call to /authenticate
+ */
+export function fillCallbacks(
+  response: object,
+  map: { [k: string]: string | number | boolean | string[] }
+): object {
+  const body = JSON.parse(JSON.stringify(response));
+  for (const callback of body.callbacks) {
+    callback.input[0].value = map[callback.input[0].name];
   }
-  let realmPath = util.format(realmPathTemplate, 'root');
-  if (localRealm !== '/') {
-    realmPath += util.format(realmPathTemplate, localRealm);
-  }
-  return realmPath;
+  return body;
 }
 
-export async function step(body = {}, config = {}) {
+export async function step(body = {}, config = {}, realm = '/') {
   const urlString = state.getAuthenticationService()
     ? util.format(
         authenticateWithServiceUrlTemplate,
         state.getHost(),
-        getRealmUrl('/'),
+        getRealmPath(realm),
         state.getAuthenticationService()
       )
-    : util.format(authenticateUrlTemplate, state.getHost(), getRealmUrl('/'));
+    : util.format(
+        authenticateUrlTemplate,
+        state.getHost(),
+        getRealmPath(realm)
+      );
   const { data } = await generateAmApi(getApiConfig()).post(
     urlString,
     body,
