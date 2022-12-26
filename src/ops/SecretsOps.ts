@@ -56,10 +56,10 @@ export async function listSecrets(long) {
         new Date(secret.lastChangeDate).toLocaleString(),
       ]);
     }
-    printMessage(table.toString());
+    printMessage(table.toString(), 'data');
   } else {
     secrets.forEach((secret) => {
-      printMessage(secret._id);
+      printMessage(secret._id, 'data');
     });
   }
 }

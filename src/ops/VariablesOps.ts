@@ -50,10 +50,10 @@ export async function listVariables(long) {
         new Date(variable.lastChangeDate).toLocaleString(),
       ]);
     }
-    printMessage(table.toString());
+    printMessage(table.toString(), 'data');
   } else {
     variables.forEach((secret) => {
-      printMessage(secret._id);
+      printMessage(secret._id, 'data');
     });
   }
 }
