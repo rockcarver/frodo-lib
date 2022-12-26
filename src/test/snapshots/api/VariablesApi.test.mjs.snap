@@ -1,33 +1,33 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`VariablesApi deleteVariable() 1: Delete variable: esv-volkerstestvariable2 - success 1`] = `
+exports[`VariablesApi deleteVariable() 1: Delete existing variable: esv-frodo-test-variable3 - success 1`] = `
 {
-  "_id": "esv-volkerstestvariable2",
-  "description": "Volker's Updated Test Secret Description",
+  "_id": "esv-frodo-test-variable3",
+  "description": "Frodo Test Variable Three Description",
   "expressionType": "",
-  "lastChangeDate": "2022-12-20T18:27:22.007Z",
+  "lastChangeDate": "2022-12-22T23:14:34.888Z",
   "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
   "loaded": false,
-  "valueBase64": "Vm9sa2VyJ3MgVGVzdCBWYXJpYWJsZSBWYWx1ZQ==",
+  "valueBase64": "RnJvZG8gVGVzdCBWYXJpYWJsZSBUaHJlZSBWYWx1ZQ==",
 }
 `;
 
-exports[`VariablesApi deleteVariable() 2: Delete variable: esv-volkerstestvariable3 - error 1`] = `
+exports[`VariablesApi deleteVariable() 2: Delete non-existing variable: esv-does-not-exist - error 1`] = `
 {
   "code": 404,
   "message": "The variable does not exist",
 }
 `;
 
-exports[`VariablesApi getVariable() 1: Get existing variable: esv-volkerstestvariable1 1`] = `
+exports[`VariablesApi getVariable() 1: Get existing variable: esv-frodo-test-variable1 1`] = `
 {
-  "_id": "esv-volkerstestvariable1",
-  "description": "Volker's Updated Test Variable Description",
+  "_id": "esv-frodo-test-variable1",
+  "description": "Frodo Test Variable One Description",
   "expressionType": "",
-  "lastChangeDate": "2022-04-10T20:55:39.746Z",
+  "lastChangeDate": "2022-12-22T23:14:32.500Z",
   "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
-  "loaded": true,
-  "valueBase64": "Vm9sa2VyJ3MgVGVzdCBWYXJpYWJsZSBWYWx1ZQo=",
+  "loaded": false,
+  "valueBase64": "RnJvZG8gVGVzdCBWYXJpYWJsZSBPbmUgVmFsdWU=",
 }
 `;
 
@@ -44,22 +44,22 @@ exports[`VariablesApi getVariables() 1: Get all variables - success 1`] = `
   "remainingPagedResults": -1,
   "result": [
     {
-      "_id": "esv-volkerstestvariable2",
-      "description": "Volker's Test Variable Description",
+      "_id": "esv-frodo-test-variable3",
+      "description": "Frodo Test Variable Three Description",
       "expressionType": "",
-      "lastChangeDate": "2022-12-20T18:27:22.007Z",
+      "lastChangeDate": "2022-12-22T23:14:34.888Z",
       "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
       "loaded": false,
-      "valueBase64": "Vm9sa2VyJ3MgVGVzdCBWYXJpYWJsZSBWYWx1ZQ==",
+      "valueBase64": "RnJvZG8gVGVzdCBWYXJpYWJsZSBUaHJlZSBWYWx1ZQ==",
     },
     {
-      "_id": "esv-volkerstestvariable1",
-      "description": "Volker's Updated Test Variable Description",
+      "_id": "esv-frodo-test-variable2",
+      "description": "Frodo Test Variable Two Description",
       "expressionType": "",
-      "lastChangeDate": "2022-04-10T20:55:39.746Z",
+      "lastChangeDate": "2022-12-22T23:14:33.714Z",
       "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
-      "loaded": true,
-      "valueBase64": "Vm9sa2VyJ3MgVGVzdCBWYXJpYWJsZSBWYWx1ZQo=",
+      "loaded": false,
+      "valueBase64": "RnJvZG8gVGVzdCBWYXJpYWJsZSBUd28gVmFsdWU=",
     },
     {
       "_id": "esv-461016d8d2-configurationpropertiescredentials",
@@ -69,6 +69,15 @@ exports[`VariablesApi getVariables() 1: Get all variables - success 1`] = `
       "lastChangedBy": "forgerock-automation",
       "loaded": true,
       "valueBase64": "RnJkcC0yMDEw",
+    },
+    {
+      "_id": "esv-volkerstestvariable1",
+      "description": "Volker's Updated Test Variable Description",
+      "expressionType": "",
+      "lastChangeDate": "2022-04-10T20:55:39.746Z",
+      "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
+      "loaded": true,
+      "valueBase64": "Vm9sa2VyJ3MgVGVzdCBWYXJpYWJsZSBWYWx1ZQo=",
     },
     {
       "_id": "esv-twilio-account-sid",
@@ -97,28 +106,37 @@ exports[`VariablesApi getVariables() 1: Get all variables - success 1`] = `
       "loaded": true,
       "valueBase64": "KzEzMTc2NDQzMTA3",
     },
+    {
+      "_id": "esv-frodo-test-variable1",
+      "description": "Frodo Test Variable One Description",
+      "expressionType": "",
+      "lastChangeDate": "2022-12-22T23:14:32.500Z",
+      "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
+      "loaded": false,
+      "valueBase64": "RnJvZG8gVGVzdCBWYXJpYWJsZSBPbmUgVmFsdWU=",
+    },
   ],
-  "resultCount": 6,
+  "resultCount": 8,
   "totalPagedResults": -1,
   "totalPagedResultsPolicy": "NONE",
 }
 `;
 
-exports[`VariablesApi putVariable() 1: Create variable: esv-volkerstestvariable2 - success 1`] = `
+exports[`VariablesApi putVariable() 2: Create new variable: esv-frodo-test-variable4 - success 1`] = `
 {
-  "_id": "esv-volkerstestvariable2",
-  "description": "Volker's Test Variable Description",
+  "_id": "esv-frodo-test-variable4",
+  "description": "Frodo Test Variable Four Description",
   "expressionType": "",
-  "lastChangeDate": "2022-12-20T18:27:22.007Z",
+  "lastChangeDate": "2022-12-22T23:14:37.549Z",
   "lastChangedBy": "c5f3cf35-4cc1-42f9-80b3-59e1ca842510",
   "loaded": false,
-  "valueBase64": "Vm9sa2VyJ3MgVGVzdCBWYXJpYWJsZSBWYWx1ZQ==",
+  "valueBase64": "RnJvZG8gVGVzdCBWYXJpYWJsZSBGb3VyIFZhbHVl",
 }
 `;
 
-exports[`VariablesApi setVariableDescription() 1: Set variable description: esv-volkerstestvariable2 - success 1`] = `""`;
+exports[`VariablesApi setVariableDescription() 1: Set existing variable's description: esv-frodo-test-variable2 - success 1`] = `""`;
 
-exports[`VariablesApi setVariableDescription() 2: Set variable description: esv-volkerstestvariable3 - error 1`] = `
+exports[`VariablesApi setVariableDescription() 2: Set non-existing variable's description: esv-does-not-exist - error 1`] = `
 {
   "code": 404,
   "message": "The variable does not exist",

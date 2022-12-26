@@ -1,0 +1,30 @@
+{
+  "userpassword": null,
+  "igTokenIntrospection": {
+    "inherited": false,
+    "value": "Realm_Subs"
+  },
+  "status": {
+    "inherited": false,
+    "value": "Active"
+  },
+  "igCdssoRedirectUrls": {
+    "inherited": false,
+    "value": [
+      "https://ig.mytestrun.com/expanse/cdsso/redirect",
+      "https://ig.mytestrun.com/ig/cdsso/redirect",
+      "https://ig.scheuber.io/ig/studio/cdsso/redirect",
+      "https://ig.mytestrun.com/grafana/cdsso/redirect",
+      "https://ig.mytestrun.com/ig-sample-app/cdsso/redirect",
+      "https://ig.mytestrun.com/bi/cdsso/redirect",
+      "https://ig.mytestrun.com/prometheus/cdsso/redirect",
+      "https://ig.mytestrun.com/ig/studio/cdsso/redirect",
+      "https://ig.mytestrun.com/forgerock/cdsso/redirect"
+    ]
+  },
+  "_type": {
+    "_id": "IdentityGatewayAgent",
+    "name": "Identity Gateway Agents",
+    "collection": true
+  }
+}

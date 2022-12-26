@@ -29,12 +29,106 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
+import { jest } from '@jest/globals';
 import { VariablesRaw } from '../index';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
+
+// Increase timeout for this test as pipeline keeps failing with error:
+// Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
+jest.setTimeout(30000);
 
 autoSetupPolly();
 
 describe('VariablesApi', () => {
+  const var1 = {
+    name: 'esv-frodo-test-variable1',
+    value: 'Frodo Test Variable One Value',
+    description: 'Frodo Test Variable One Description',
+  };
+  const var2 = {
+    name: 'esv-frodo-test-variable2',
+    value: 'Frodo Test Variable Two Value',
+    description: 'Frodo Test Variable Two Description',
+  };
+  const var3 = {
+    name: 'esv-frodo-test-variable3',
+    value: 'Frodo Test Variable Three Value',
+    description: 'Frodo Test Variable Three Description',
+  };
+  const var4 = {
+    name: 'esv-frodo-test-variable4',
+    value: 'Frodo Test Variable Four Value',
+    description: 'Frodo Test Variable Four Description',
+  };
+  // in recording mode, setup test data before recording
+  beforeAll(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      // setup var1 - delete if exists, then create
+      try {
+        await VariablesRaw.getVariable(var1.name);
+        await VariablesRaw.deleteVariable(var1.name);
+      } catch (error) {
+        // ignore
+      } finally {
+        await VariablesRaw.putVariable(var1.name, var1.value, var1.description);
+      }
+      // setup var2 - delete if exists, then create
+      try {
+        await VariablesRaw.getVariable(var2.name);
+        await VariablesRaw.deleteVariable(var2.name);
+      } catch (error) {
+        // ignore
+      } finally {
+        await VariablesRaw.putVariable(var2.name, var2.value, var2.description);
+      }
+      // setup var3 - delete if exists, then create
+      try {
+        await VariablesRaw.getVariable(var3.name);
+        await VariablesRaw.deleteVariable(var3.name);
+      } catch (error) {
+        // ignore
+      } finally {
+        await VariablesRaw.putVariable(var3.name, var3.value, var3.description);
+      }
+      // setup var4 - delete if exists
+      try {
+        await VariablesRaw.getVariable(var4.name);
+        await VariablesRaw.deleteVariable(var4.name);
+      } catch (error) {
+        // ignore
+      }
+    }
+  });
+  // in recording mode, remove test data after recording
+  afterAll(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      try {
+        await VariablesRaw.getVariable(var1.name);
+        await VariablesRaw.deleteVariable(var1.name);
+      } catch (error) {
+        // ignore
+      }
+      try {
+        await VariablesRaw.getVariable(var2.name);
+        await VariablesRaw.deleteVariable(var2.name);
+      } catch (error) {
+        // ignore
+      }
+      try {
+        await VariablesRaw.getVariable(var3.name);
+        await VariablesRaw.deleteVariable(var3.name);
+      } catch (error) {
+        // ignore
+      }
+      try {
+        await VariablesRaw.getVariable(var4.name);
+        await VariablesRaw.deleteVariable(var4.name);
+      } catch (error) {
+        // ignore
+      }
+    }
+  });
+
   describe('getVariables()', () => {
     test('0: Method is implemented', async () => {
       expect(VariablesRaw.getVariables).toBeDefined();
@@ -51,14 +145,13 @@ describe('VariablesApi', () => {
       expect(VariablesRaw.getVariable).toBeDefined();
     });
 
-    test('1: Get existing variable: esv-volkerstestvariable1', async () => {
-      const response = await VariablesRaw.getVariable(
-        'esv-volkerstestvariable1'
-      );
+    test(`1: Get existing variable: ${var1.name}`, async () => {
+      const response = await VariablesRaw.getVariable(var1.name);
       expect(response).toMatchSnapshot();
     });
 
     test('2: Get non-existing variable: esv-does-not-exist', async () => {
+      expect.assertions(1);
       try {
         await VariablesRaw.getVariable('esv-does-not-exist');
       } catch (error) {
@@ -72,11 +165,11 @@ describe('VariablesApi', () => {
       expect(VariablesRaw.putVariable).toBeDefined();
     });
 
-    test('1: Create variable: esv-volkerstestvariable2 - success', async () => {
+    test(`2: Create new variable: ${var4.name} - success`, async () => {
       const response = await VariablesRaw.putVariable(
-        'esv-volkerstestvariable2',
-        "Volker's Test Variable Value",
-        "Volker's Test Variable Description"
+        var4.name,
+        var4.value,
+        var4.description
       );
       expect(response).toMatchSnapshot();
     });
@@ -87,19 +180,20 @@ describe('VariablesApi', () => {
       expect(VariablesRaw.setVariableDescription).toBeDefined();
     });
 
-    test('1: Set variable description: esv-volkerstestvariable2 - success', async () => {
+    test(`1: Set existing variable's description: ${var2.name} - success`, async () => {
       const response = await VariablesRaw.setVariableDescription(
-        'esv-volkerstestvariable2',
-        "Volker's Updated Test Secret Description"
+        var2.name,
+        'Updated Frodo Test Variable Two Description'
       );
       expect(response).toMatchSnapshot();
     });
 
-    test('2: Set variable description: esv-volkerstestvariable3 - error', async () => {
+    test("2: Set non-existing variable's description: esv-does-not-exist - error", async () => {
+      expect.assertions(1);
       try {
         await VariablesRaw.setVariableDescription(
-          'esv-volkerstestvariable3',
-          "Volker's Updated Test Secret Description"
+          'esv-does-not-exist',
+          'Updated Frodo Test Variable Description'
         );
       } catch (error) {
         expect(error.response.data).toMatchSnapshot();
@@ -112,16 +206,15 @@ describe('VariablesApi', () => {
       expect(VariablesRaw.deleteVariable).toBeDefined();
     });
 
-    test('1: Delete variable: esv-volkerstestvariable2 - success', async () => {
-      const response = await VariablesRaw.deleteVariable(
-        'esv-volkerstestvariable2'
-      );
+    test(`1: Delete existing variable: ${var3.name} - success`, async () => {
+      const response = await VariablesRaw.deleteVariable(var3.name);
       expect(response).toMatchSnapshot();
     });
 
-    test('2: Delete variable: esv-volkerstestvariable3 - error', async () => {
+    test('2: Delete non-existing variable: esv-does-not-exist - error', async () => {
+      expect.assertions(1);
       try {
-        await VariablesRaw.deleteVariable('esv-volkerstestvariable3');
+        await VariablesRaw.deleteVariable('esv-does-not-exist');
       } catch (error) {
         expect(error.response.data).toMatchSnapshot();
       }
