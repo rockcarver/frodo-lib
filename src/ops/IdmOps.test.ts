@@ -105,17 +105,17 @@ describe('IdmOps', () => {
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
-      stageConfigEntity(configEntity1);
-      stageConfigEntity(configEntity2);
-      stageConfigEntity(configEntity3, false);
+      await stageConfigEntity(configEntity1);
+      await stageConfigEntity(configEntity2);
+      await stageConfigEntity(configEntity3, false);
     }
   });
   // in recording mode, remove test data after recording
   afterAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
-      stageConfigEntity(configEntity1, false);
-      stageConfigEntity(configEntity2, false);
-      stageConfigEntity(configEntity3, false);
+      await stageConfigEntity(configEntity1, false);
+      await stageConfigEntity(configEntity2, false);
+      await stageConfigEntity(configEntity3, false);
     }
   });
 
