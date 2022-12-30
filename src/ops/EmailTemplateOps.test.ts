@@ -1,39 +1,164 @@
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
-import { EmailTemplate, state } from '../index';
-import * as global from '../storage/StaticStorage';
-import { mockGetConfigEntitiesByType } from '../test/mocks/ForgeRockApiMockEngine';
+/**
+ * To record and update snapshots, you must perform 3 steps in order:
+ *
+ * 1. Record API responses & update ESM snapshots
+ *
+ *    To record and update ESM snapshots, you must call the test:record
+ *    script and override all the connection state variables required
+ *    to connect to the env to record from:
+ *
+ *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record EmailTemplateOps
+ *
+ *    The above command assumes that you have a connection profile for
+ *    'frodo-dev' on your development machine.
+ *
+ * 2. Update CJS snapshots
+ *
+ *    After recording, the ESM snapshots will already be updated as that happens
+ *    in one go, but you musty manually update the CJS snapshots by running:
+ *
+ *        FRODO_DEBUG=1 npm run test:update EmailTemplateOps
+ *
+ * 3. Test your changes
+ *
+ *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
+ *    replay mode and make sure they all succeed as well:
+ *
+ *        npm run test:only EmailTemplateOps
+ *
+ * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
+ * in case things don't function as expected
+ */
+import { EmailTemplate, IdmConfigRaw } from '../index';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
-const mock = new MockAdapter(axios);
+autoSetupPolly();
 
-state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
-state.setRealm('alpha');
-state.setCookieName('cookieName');
-state.setCookieValue('cookieValue');
-state.setDeploymentType(global.CLOUD_DEPLOYMENT_TYPE_KEY);
+const { EMAIL_TEMPLATE_TYPE } = EmailTemplate;
 
-describe('EmailTemplateOps - getEmailTemplate()', () => {
-  test('getEmailTemplate() 0: Method is implemented', async () => {
-    expect(EmailTemplate.getEmailTemplate).toBeDefined();
+async function stageTemplate(
+  template: { id: string; data: object },
+  create = true
+) {
+  // delete if exists, then create
+  try {
+    await IdmConfigRaw.getConfigEntity(`${EMAIL_TEMPLATE_TYPE}/${template.id}`);
+    await IdmConfigRaw.deleteConfigEntity(
+      `${EMAIL_TEMPLATE_TYPE}/${template.id}`
+    );
+  } catch (error) {
+    // ignore
+  } finally {
+    if (create) {
+      await IdmConfigRaw.putConfigEntity(
+        `${EMAIL_TEMPLATE_TYPE}/${template.id}`,
+        template.data
+      );
+    }
+  }
+}
+
+describe('EmailTemplateOps', () => {
+  const template1 = {
+    id: 'FrodoTestEmailTemplate1',
+    data: {
+      defaultLocale: 'en',
+      displayName: 'Frodo Test Email Template One',
+      enabled: true,
+      from: '',
+      message: {
+        en: '<h3>Click to reset your password</h3><h4><a href="{{object.resumeURI}}">Password reset link</a></h4>',
+        fr: '<h3>Cliquez pour réinitialiser votre mot de passe</h3><h4><a href="{{object.resumeURI}}">Mot de passe lien de réinitialisation</a></h4>',
+      },
+      mimeType: 'text/html',
+      subject: {
+        en: 'Reset your password',
+        fr: 'Réinitialisez votre mot de passe',
+      },
+    },
+  };
+  const template2 = {
+    id: 'FrodoTestEmailTemplate2',
+    data: {
+      defaultLocale: 'en',
+      displayName: 'Frodo Test Email Template Two',
+      enabled: true,
+      from: '',
+      message: {
+        en: '<h3>This is your one-time password:</h3><h4>{{object.description}}</a></h4>',
+      },
+      mimeType: 'text/html',
+      subject: {
+        en: 'One-Time Password for login',
+      },
+    },
+  };
+  const template3 = {
+    id: 'FrodoTestEmailTemplate3',
+    data: {
+      defaultLocale: 'en',
+      displayName: 'Frodo Test Email Template Three',
+      enabled: true,
+      from: '',
+      message: {
+        en: '<html><body><h3>You started a login or profile update that requires MFA. </h3><h4><a href="{{object.resumeURI}}">Click to Proceed</a></h4></body></html>',
+      },
+      mimeType: 'text/html',
+      subject: {
+        en: 'Multi-Factor Email for Identity Cloud login',
+      },
+    },
+  };
+  // in recording mode, setup test data before recording
+  beforeAll(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      await stageTemplate(template1);
+      await stageTemplate(template2);
+      await stageTemplate(template3, false);
+    }
   });
-});
-
-describe('EmailTemplateOps - getEmailTemplates()', () => {
-  test('getEmailTemplates() 0: Method is implemented', async () => {
-    expect(EmailTemplate.getEmailTemplates).toBeDefined();
+  // in recording mode, remove test data after recording
+  afterAll(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      await stageTemplate(template1, false);
+      await stageTemplate(template2, false);
+      await stageTemplate(template3, false);
+    }
   });
 
-  test('getEmailTemplates() 1: Get email templates', async () => {
-    mockGetConfigEntitiesByType(mock);
-    expect.assertions(2);
-    const emailTemplates = await EmailTemplate.getEmailTemplates();
-    expect(emailTemplates).toBeTruthy();
-    expect(emailTemplates.result.length).toBe(17);
-  });
-});
+  describe('getEmailTemplate()', () => {
+    test('0: Method is implemented', async () => {
+      expect(EmailTemplate.getEmailTemplate).toBeDefined();
+    });
 
-describe('EmailTemplateOps - putEmailTemplate()', () => {
-  test('putEmailTemplate() 0: Method is implemented', async () => {
-    expect(EmailTemplate.putEmailTemplate).toBeDefined();
+    test(`1: Get email template '${template1.id}'`, async () => {
+      const response = await EmailTemplate.getEmailTemplate(template1.id);
+      expect(response).toMatchSnapshot();
+    });
+  });
+
+  describe('getEmailTemplates()', () => {
+    test('0: Method is implemented', async () => {
+      expect(EmailTemplate.getEmailTemplates).toBeDefined();
+    });
+
+    test('1: Get all email templates', async () => {
+      const response = await EmailTemplate.getEmailTemplates();
+      expect(response).toMatchSnapshot();
+    });
+  });
+
+  describe('putEmailTemplate()', () => {
+    test('0: Method is implemented', async () => {
+      expect(EmailTemplate.putEmailTemplate).toBeDefined();
+    });
+
+    test(`1: Create email template '${template3.id}'`, async () => {
+      const response = await EmailTemplate.putEmailTemplate(
+        template3.id,
+        template3.data
+      );
+      expect(response).toMatchSnapshot();
+    });
   });
 });

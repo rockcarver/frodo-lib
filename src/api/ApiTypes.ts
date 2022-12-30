@@ -1,7 +1,14 @@
 export interface ObjectSkeletonInterface {
   _id: string;
   _rev?: number;
-  [k: string]: string | number | boolean | string[] | ObjectSkeletonInterface;
+  [k: string]:
+    | string
+    | number
+    | boolean
+    | string[]
+    | ObjectSkeletonInterface
+    | object
+    | null;
 }
 
 export interface UiConfigInterface {
@@ -76,34 +83,34 @@ export type UiThemeRealmObject = ObjectSkeletonInterface & {
 };
 
 export enum ScriptLanguage {
-  GROOVY = 'GROOVY',
-  JAVASCRIPT = 'JAVASCRIPT',
+  GROOVY,
+  JAVASCRIPT,
 }
 
 export enum ScriptContext {
-  OAUTH2_ACCESS_TOKEN_MODIFICATION = 'OAUTH2_ACCESS_TOKEN_MODIFICATION',
-  AUTHENTICATION_CLIENT_SIDE = 'AUTHENTICATION_CLIENT_SIDE',
-  AUTHENTICATION_TREE_DECISION_NODE = 'AUTHENTICATION_TREE_DECISION_NODE',
-  AUTHENTICATION_SERVER_SIDE = 'AUTHENTICATION_SERVER_SIDE',
-  SOCIAL_IDP_PROFILE_TRANSFORMATION = 'SOCIAL_IDP_PROFILE_TRANSFORMATION',
-  OAUTH2_VALIDATE_SCOPE = 'OAUTH2_VALIDATE_SCOPE',
-  CONFIG_PROVIDER_NODE = 'CONFIG_PROVIDER_NODE',
-  OAUTH2_AUTHORIZE_ENDPOINT_DATA_PROVIDER = 'OAUTH2_AUTHORIZE_ENDPOINT_DATA_PROVIDER',
-  OAUTH2_EVALUATE_SCOPE = 'OAUTH2_EVALUATE_SCOPE',
-  POLICY_CONDITION = 'POLICY_CONDITION',
-  OIDC_CLAIMS = 'OIDC_CLAIMS',
-  SAML2_IDP_ADAPTER = 'SAML2_IDP_ADAPTER',
-  SAML2_IDP_ATTRIBUTE_MAPPER = 'SAML2_IDP_ATTRIBUTE_MAPPER',
-  OAUTH2_MAY_ACT = 'OAUTH2_MAY_ACT',
+  OAUTH2_ACCESS_TOKEN_MODIFICATION,
+  AUTHENTICATION_CLIENT_SIDE,
+  AUTHENTICATION_TREE_DECISION_NODE,
+  AUTHENTICATION_SERVER_SIDE,
+  SOCIAL_IDP_PROFILE_TRANSFORMATION,
+  OAUTH2_VALIDATE_SCOPE,
+  CONFIG_PROVIDER_NODE,
+  OAUTH2_AUTHORIZE_ENDPOINT_DATA_PROVIDER,
+  OAUTH2_EVALUATE_SCOPE,
+  POLICY_CONDITION,
+  OIDC_CLAIMS,
+  SAML2_IDP_ADAPTER,
+  SAML2_IDP_ATTRIBUTE_MAPPER,
+  OAUTH2_MAY_ACT,
 }
 
 export type ScriptSkeleton = ObjectSkeletonInterface & {
   name: string;
   description: string;
-  isDefault: boolean;
-  script: string;
-  language: ScriptLanguage;
-  context: ScriptContext;
+  default: boolean;
+  script: string | string[];
+  language: keyof typeof ScriptLanguage;
+  context: keyof typeof ScriptContext;
   createdBy: string;
   creationDate: number;
   lastModifiedBy: string;

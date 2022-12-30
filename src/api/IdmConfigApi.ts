@@ -24,7 +24,7 @@ export async function getAllConfigEntities() {
 
 /**
  * Get IDM config entities by type
- * @param {String} type the desired type of config entity
+ * @param {string} type the desired type of config entity
  * @returns {Promise} a promise that resolves to an object containing all IDM config entities of the desired type
  */
 export async function getConfigEntitiesByType(type) {
@@ -76,16 +76,33 @@ export async function putConfigEntity(
 }
 
 /**
+ * Delete IDM config entity
+ * @param {string} entityId config entity id
+ * @returns {Promise<unknown>} a promise that resolves to an IDM config entity
+ */
+export async function deleteConfigEntity(entityId: string) {
+  const urlString = util.format(
+    idmConfigURLTemplate,
+    getTenantURL(state.getHost()),
+    entityId
+  );
+  const { data } = await generateIdmApi().delete(urlString, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+/**
  * Query managed objects
- * @param {String} type managed object type
- * @param {[String]} fields fields to retrieve
- * @param {String} pageCookie paged results cookie
+ * @param {string} type managed object type
+ * @param {string[]} fields fields to retrieve
+ * @param {string} pageCookie paged results cookie
  * @returns {Promise<{result: any[]; resultCount: number; pagedResultsCookie: any; totalPagedResultsPolicy: string; totalPagedResults: number; remainingPagedResults: number;}>} a promise that resolves to managed objects of the desired type
  */
 export async function queryAllManagedObjectsByType(
-  type,
-  fields,
-  pageCookie
+  type: string,
+  fields: string[],
+  pageCookie: string
 ): Promise<{
   result: unknown[];
   resultCount: number;

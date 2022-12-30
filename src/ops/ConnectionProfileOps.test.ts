@@ -8,74 +8,115 @@ import {
 } from '../storage/StaticStorage';
 
 describe('ConnectionProfileOps', () => {
-  test('saveConnectionProfile() 1: Create connection profiles in location from state field', async () => {
-    const host = 'https://openam-tenant-name.forgeblocks.com/am';
-    const user = 'frodo.baggins@shire.me';
-    const password = 'G@nd@lfTheW153';
-    const connectionProfilePath = `${homedir()}/connections1.json`;
+  const connectionProfilePath1 = `${homedir()}/connections1.json`;
+  const connectionProfilePath2 = `${homedir()}/connections2.json`;
+  const connectionProfilePath3 = `${homedir()}/connections3.json`;
 
-    state.setHost(host);
-    state.setUsername(user);
-    state.setPassword(password);
-    state.setConnectionProfilesPath(connectionProfilePath);
-    await ConnectionProfile.saveConnectionProfile(host);
-    expect(fs.existsSync(connectionProfilePath)).toBeTruthy();
-    const connections = JSON.parse(
-      fs.readFileSync(connectionProfilePath, 'utf8')
-    );
-    expect(connections).toBeTruthy();
-    expect(connections[host]).toBeTruthy();
-    expect(connections[host].username).toEqual(user);
-    expect(connections[host].encodedPassword).toBeTruthy();
+  // delete all connection profile files before running the tests
+  beforeAll(() => {
+    try {
+      fs.unlinkSync(connectionProfilePath1);
+    } catch (error) {
+      // ignore
+    }
+    try {
+      fs.unlinkSync(connectionProfilePath2);
+    } catch (error) {
+      // ignore
+    }
+    try {
+      fs.unlinkSync(connectionProfilePath3);
+    } catch (error) {
+      // ignore
+    }
   });
 
-  test(`saveConnectionProfile() 2: Create connection profiles in location from env ${FRODO_MASTER_KEY_PATH_KEY}`, async () => {
-    const host = 'https://openam-tenant-name.forgeblocks.com/am';
-    const user = 'frodo.baggins@shire.me';
-    const password = 'G@nd@lfTheW153';
-    const connectionProfilePath = `${homedir()}/connections2.json`;
-    // set the hard-coded master key
-    process.env[FRODO_CONNECTION_PROFILES_PATH_KEY] = connectionProfilePath;
-
-    state.setHost(host);
-    state.setUsername(user);
-    state.setPassword(password);
-    state.setConnectionProfilesPath('');
-    await ConnectionProfile.saveConnectionProfile(host);
-    expect(ConnectionProfile.getConnectionProfilesPath()).toEqual(
-      connectionProfilePath
-    );
-    expect(fs.existsSync(connectionProfilePath)).toBeTruthy();
-    const connections = JSON.parse(
-      fs.readFileSync(connectionProfilePath, 'utf8')
-    );
-    expect(connections).toBeTruthy();
-    expect(connections[host]).toBeTruthy();
-    expect(connections[host].username).toEqual(user);
-    expect(connections[host].encodedPassword).toBeTruthy();
+  // clean up all connection profile files after running the tests
+  afterAll(() => {
+    try {
+      fs.unlinkSync(connectionProfilePath1);
+    } catch (error) {
+      // ignore
+    }
+    try {
+      fs.unlinkSync(connectionProfilePath2);
+    } catch (error) {
+      // ignore
+    }
+    try {
+      fs.unlinkSync(connectionProfilePath3);
+    } catch (error) {
+      // ignore
+    }
   });
 
-  test(`saveConnectionProfile() 3: Use Master Key from env ${FRODO_MASTER_KEY_KEY}`, async () => {
-    const host = 'https://openam-tenant-name.forgeblocks.com/am';
-    const user = 'frodo.baggins@shire.me';
-    const password = 'G@nd@lfTheW153';
-    const connectionProfilePath = `${homedir()}/connections3.json`;
-    const masterKey = 'bxnQlhcU5VfyDs+BBPhRhK09yHaNtdIIk85HUMKBnqg=';
-    // set the hard-coded master key
-    process.env[FRODO_MASTER_KEY_KEY] = masterKey;
+  describe('saveConnectionProfile()', () => {
+    test('1: Create connection profiles in location from state field', async () => {
+      const host = 'https://openam-tenant-name.forgeblocks.com/am';
+      const user = 'frodo.baggins@shire.me';
+      const password = 'G@nd@lfTheW153';
 
-    state.setHost(host);
-    state.setUsername(user);
-    state.setPassword(password);
-    state.setConnectionProfilesPath(connectionProfilePath);
-    await ConnectionProfile.saveConnectionProfile(host);
-    expect(fs.existsSync(connectionProfilePath)).toBeTruthy();
-    const connections = JSON.parse(
-      fs.readFileSync(connectionProfilePath, 'utf8')
-    );
-    expect(connections).toBeTruthy();
-    expect(connections[host]).toBeTruthy();
-    expect(connections[host].username).toEqual(user);
-    expect(connections[host].encodedPassword).toBeTruthy();
+      state.setHost(host);
+      state.setUsername(user);
+      state.setPassword(password);
+      state.setConnectionProfilesPath(connectionProfilePath1);
+      await ConnectionProfile.saveConnectionProfile(host);
+      expect(fs.existsSync(connectionProfilePath1)).toBeTruthy();
+      const connections = JSON.parse(
+        fs.readFileSync(connectionProfilePath1, 'utf8')
+      );
+      expect(connections).toBeTruthy();
+      expect(connections[host]).toBeTruthy();
+      expect(connections[host].username).toEqual(user);
+      expect(connections[host].encodedPassword).toBeTruthy();
+    });
+
+    test(`2: Create connection profiles in location from env ${FRODO_MASTER_KEY_PATH_KEY}`, async () => {
+      const host = 'https://openam-tenant-name.forgeblocks.com/am';
+      const user = 'frodo.baggins@shire.me';
+      const password = 'G@nd@lfTheW153';
+      // set the hard-coded master key
+      process.env[FRODO_CONNECTION_PROFILES_PATH_KEY] = connectionProfilePath2;
+
+      state.setHost(host);
+      state.setUsername(user);
+      state.setPassword(password);
+      state.setConnectionProfilesPath('');
+      await ConnectionProfile.saveConnectionProfile(host);
+      expect(ConnectionProfile.getConnectionProfilesPath()).toEqual(
+        connectionProfilePath2
+      );
+      expect(fs.existsSync(connectionProfilePath2)).toBeTruthy();
+      const connections = JSON.parse(
+        fs.readFileSync(connectionProfilePath2, 'utf8')
+      );
+      expect(connections).toBeTruthy();
+      expect(connections[host]).toBeTruthy();
+      expect(connections[host].username).toEqual(user);
+      expect(connections[host].encodedPassword).toBeTruthy();
+    });
+
+    test(`3: Use Master Key from env ${FRODO_MASTER_KEY_KEY}`, async () => {
+      const host = 'https://openam-tenant-name.forgeblocks.com/am';
+      const user = 'frodo.baggins@shire.me';
+      const password = 'G@nd@lfTheW153';
+      const masterKey = 'bxnQlhcU5VfyDs+BBPhRhK09yHaNtdIIk85HUMKBnqg=';
+      // set the hard-coded master key
+      process.env[FRODO_MASTER_KEY_KEY] = masterKey;
+
+      state.setHost(host);
+      state.setUsername(user);
+      state.setPassword(password);
+      state.setConnectionProfilesPath(connectionProfilePath3);
+      await ConnectionProfile.saveConnectionProfile(host);
+      expect(fs.existsSync(connectionProfilePath3)).toBeTruthy();
+      const connections = JSON.parse(
+        fs.readFileSync(connectionProfilePath3, 'utf8')
+      );
+      expect(connections).toBeTruthy();
+      expect(connections[host]).toBeTruthy();
+      expect(connections[host].username).toEqual(user);
+      expect(connections[host].encodedPassword).toBeTruthy();
+    });
   });
 });

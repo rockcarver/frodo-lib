@@ -58,7 +58,7 @@ jest.setTimeout(30000);
 autoSetupPolly();
 
 async function stageAgent(agent: { id: string; type: string }, create = true) {
-  // setup gateway1 - delete if exists, then create
+  // delete if exists, then create
   try {
     await AgentRaw.getAgentByTypeAndId(agent.type, agent.id);
     await AgentRaw.deleteAgentByTypeAndId(agent.type, agent.id);
