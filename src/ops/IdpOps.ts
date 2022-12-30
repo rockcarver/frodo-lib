@@ -82,6 +82,7 @@ export async function putProviderByTypeAndId(
       providerId,
       providerData
     );
+    debugMessage(`IdpOps.putProviderByTypeAndId: end`);
     return response;
   } catch (importError) {
     if (
@@ -107,6 +108,7 @@ export async function putProviderByTypeAndId(
         providerId,
         providerData
       );
+      debugMessage(`IdpOps.putProviderByTypeAndId: end (after retry)`);
       return response;
     } else {
       // re-throw unhandleable error
