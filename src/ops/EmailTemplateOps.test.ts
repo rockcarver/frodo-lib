@@ -112,17 +112,17 @@ describe('EmailTemplateOps', () => {
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
-      stageTemplate(template1);
-      stageTemplate(template2);
-      stageTemplate(template3, false);
+      await stageTemplate(template1);
+      await stageTemplate(template2);
+      await stageTemplate(template3, false);
     }
   });
   // in recording mode, remove test data after recording
   afterAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
-      stageTemplate(template1, false);
-      stageTemplate(template2, false);
-      stageTemplate(template3, false);
+      await stageTemplate(template1, false);
+      await stageTemplate(template2, false);
+      await stageTemplate(template3, false);
     }
   });
 
