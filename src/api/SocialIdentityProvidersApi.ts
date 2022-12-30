@@ -121,3 +121,26 @@ export async function putProviderByTypeAndId(type, id, providerData) {
   );
   return data;
 }
+
+/**
+ * Delete social identity provider by type and id
+ * @param {string} providerId provider type
+ * @param {string} providerId provider id
+ * @returns {Promise<unknown>} a promise that resolves to a social identity provider
+ */
+export async function deleteProviderByTypeAndId(
+  type: string,
+  providerId: string
+) {
+  const urlString = util.format(
+    providerByTypeAndIdURLTemplate,
+    state.getHost(),
+    getCurrentRealmPath(),
+    type,
+    providerId
+  );
+  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
+    withCredentials: true,
+  });
+  return data;
+}
