@@ -41,7 +41,7 @@ export async function getScriptByName(scriptName) {
     scriptQueryURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
-    scriptName
+    encodeURIComponent(scriptName)
   );
   const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
