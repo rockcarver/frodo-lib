@@ -24,7 +24,7 @@ import {
   encodeBase64Url,
 } from '../api/utils/Base64';
 import { MultiOpStatusInterface, Saml2ExportInterface } from './OpsTypes';
-import { createOrUpdateScript } from './ScriptOps';
+import { putScript } from './ScriptOps';
 import {
   createProgressIndicator,
   debugMessage,
@@ -232,7 +232,7 @@ async function importDependencies(providerData, fileData) {
     );
     const scriptData = _.get(fileData, ['script', attrMapperScriptId]);
     scriptData.script = convertTextArrayToBase64(scriptData.script);
-    await createOrUpdateScript(attrMapperScriptId, scriptData);
+    await putScript(attrMapperScriptId, scriptData);
   }
   const idpAdapterScriptId = _.get(providerData, [
     'identityProvider',
@@ -246,7 +246,7 @@ async function importDependencies(providerData, fileData) {
     );
     const scriptData = _.get(fileData, ['script', idpAdapterScriptId]);
     scriptData.script = convertTextArrayToBase64(scriptData.script);
-    await createOrUpdateScript(idpAdapterScriptId, scriptData);
+    await putScript(idpAdapterScriptId, scriptData);
   }
   debugMessage(`Saml2Ops.importDependencies: end`);
 }

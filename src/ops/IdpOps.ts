@@ -4,7 +4,7 @@ import {
   putProviderByTypeAndId as _putProviderByTypeAndId,
 } from '../api/SocialIdentityProvidersApi';
 import { getScript } from '../api/ScriptApi';
-import { createOrUpdateScript } from './ScriptOps';
+import { putScript } from './ScriptOps';
 import {
   convertBase64TextToArray,
   convertTextArrayToBase64,
@@ -198,11 +198,11 @@ export async function importSocialProvider(
 ): Promise<boolean> {
   for (const idpId of Object.keys(importData.idp)) {
     if (idpId === providerId) {
-      const scriptId = importData.idp[idpId].transform;
+      const scriptId = importData.idp[idpId].transform as string;
       const scriptData = importData.script[scriptId as string];
       if (scriptId && scriptData) {
         scriptData.script = convertTextArrayToBase64(scriptData.script);
-        await createOrUpdateScript(scriptId, scriptData);
+        await putScript(scriptId, scriptData);
       }
       await putProviderByTypeAndId(
         importData.idp[idpId]._type._id,
@@ -223,11 +223,11 @@ export async function importFirstSocialProvider(
   importData: SocialProviderExportInterface
 ): Promise<boolean> {
   for (const idpId of Object.keys(importData.idp)) {
-    const scriptId = importData.idp[idpId].transform;
+    const scriptId = importData.idp[idpId].transform as string;
     const scriptData = importData.script[scriptId as string];
     if (scriptId && scriptData) {
       scriptData.script = convertTextArrayToBase64(scriptData.script);
-      await createOrUpdateScript(scriptId, scriptData);
+      await putScript(scriptId, scriptData);
     }
     await putProviderByTypeAndId(
       importData.idp[idpId]._type._id,
@@ -249,11 +249,11 @@ export async function importSocialProviders(
   let outcome = true;
   for (const idpId of Object.keys(importData.idp)) {
     try {
-      const scriptId = importData.idp[idpId].transform;
+      const scriptId = importData.idp[idpId].transform as string;
       const scriptData = { ...importData.script[scriptId as string] };
       if (scriptId && scriptData) {
         scriptData.script = convertTextArrayToBase64(scriptData.script);
-        await createOrUpdateScript(scriptId, scriptData);
+        await putScript(scriptId, scriptData);
       }
       await putProviderByTypeAndId(
         importData.idp[idpId]._type._id,

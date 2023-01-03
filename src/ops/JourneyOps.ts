@@ -53,7 +53,7 @@ import {
   putProviderByTypeAndId,
 } from '../api/SocialIdentityProvidersApi';
 import { getThemes, putThemes } from './ThemeOps';
-import { createOrUpdateScript } from './ScriptOps';
+import { putScript } from './ScriptOps';
 import { JourneyClassification, TreeExportResolverInterface } from './OpsTypes';
 import { ThemeSkeleton, TreeSkeleton } from '../api/ApiTypes';
 import {
@@ -636,9 +636,11 @@ export async function importJourney(
       } else if (!isBase64Encoded(scriptObject['script'])) {
         scriptObject['script'] = encode(JSON.parse(scriptObject['script']));
       }
-      if ((await createOrUpdateScript(scriptId, scriptObject)) == null) {
+      try {
+        await putScript(scriptId, scriptObject);
+      } catch (error) {
         throw new Error(
-          `Error importing script ${scriptObject['name']} (${scriptId}) in journey ${treeId}`
+          `Error importing script ${scriptObject['name']} (${scriptId}) in journey ${treeId}: ${error.message}`
         );
       }
       if (verbose) printMessage('');
