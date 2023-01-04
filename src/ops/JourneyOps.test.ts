@@ -1,362 +1,245 @@
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
+/**
+ * To record and update snapshots, you must perform 5 steps in order:
+ *
+ * 1. Record API responses & update ESM snapshots
+ *
+ *    This step breaks down into 4 phases:
+ *
+ *    Phase 1: Record Non-destructive tests
+ *    Phase 2: Record Group 1 of DESTRUCTIVE tests - Deletes by ID
+ *    Phase 3: Record Group 2 of DESTRUCTIVE tests - Deletes by tag
+ *    Phase 4: Record Group 3 of DESTRUCTIVE tests - Delete all
+ *
+ *    Because destructive tests interfere with the recording of non-destructive
+ *    tests and also interfere among themselves, they have to be run in groups
+ *    of non-interfering tests.
+ *
+ *    To record and update ESM snapshots, you must call the test:record
+ *    script and override all the connection state variables required
+ *    to connect to the env to record from and also indicate the phase:
+ *
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=1 FRODO_HOST=frodo-dev npm run test:record JourneyOps
+ *
+ *    THESE TESTS ARE DESTRUCTIVE!!! DO NOT RUN AGAINST AN ENV WITH ACTIVE AGENTS!!!
+ *
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=frodo-dev npm run test:record JourneyOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=frodo-dev npm run test:record JourneyOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=4 FRODO_HOST=frodo-dev npm run test:record JourneyOps
+ *
+ *    The above command assumes that you have a connection profile for
+ *    'frodo-dev' on your development machine.
+ *
+ * 2. Update CJS snapshots
+ *
+ *    After recording, the ESM snapshots will already be updated as that happens
+ *    in one go, but you must manually update the CJS snapshots by running:
+ *
+ *        FRODO_DEBUG=1 npm run test:update JourneyOps
+ *
+ * 3. Test your changes
+ *
+ *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
+ *    replay mode and make sure they all succeed as well:
+ *
+ *        npm run test:only JourneyOps
+ *
+ * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
+ * in case things don't function as expected
+ */
+import { jest } from '@jest/globals';
 import { Journey, state } from '../index';
-import * as global from '../storage/StaticStorage';
-import { isEqualJson } from './utils/OpsUtils';
-import {
-  mockFindSaml2Providers,
-  mockPutSocialProviderByTypeAndId,
-  mockCreateSaml2Provider,
-  mockUpdateSaml2Provider,
-  mockCreateCircleOfTrust,
-  mockUpdateCircleOfTrust,
-  mockPutScript,
-  mockPutConfigEntity,
-  mockGetSocialProviders,
-  mockGetSaml2ProviderMetadata,
-  mockGetSaml2ProviderByLocationAndId,
-  mockGetSaml2Providers,
-  mockGetCirclesOfTrust,
-  mockGetConfigEntity,
-  mockGetScript,
-  getTree,
-  mockGetTrees,
-  mockGetTree,
-  mockGetNode,
-  mockPutTree,
-  mockPutNode,
-  readJsonFile,
-} from '../test/mocks/ForgeRockApiMockEngine';
+import { getJourney } from '../test/mocks/ForgeRockApiMockEngine';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import * as globalConfig from '../storage/StaticStorage';
 
-const mock = new MockAdapter(axios);
+// Increase timeout for this test as pipeline keeps failing with error:
+// Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
+jest.setTimeout(30000);
 
-state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
-state.setRealm('alpha');
-state.setCookieName('cookieName');
-state.setCookieValue('cookieValue');
-state.setDeploymentType(global.CLOUD_DEPLOYMENT_TYPE_KEY);
+autoSetupPolly();
 
-describe('JourneyOps - getJourneys()', () => {
-  test('getJourneys() 0: Method is implemented', async () => {
-    expect(Journey.getJourneys).toBeDefined();
+state.setDeploymentType(globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY);
+
+async function stageJourney(journey: { id: string }, create = true) {
+  // delete if exists, then create
+  try {
+    await Journey.getJourney(journey.id);
+    await Journey.deleteJourney(journey.id, {
+      deep: true,
+      verbose: false,
+      progress: false,
+    });
+  } catch (error) {
+    // ignore
+  } finally {
+    if (create) {
+      await Journey.importJourney(getJourney(journey.id), {
+        reUuid: false,
+        deps: true,
+      });
+    }
+  }
+}
+
+describe('JourneyOps', () => {
+  const journey1 = {
+    id: 'FrodoTestJourney1',
+  };
+  const journey2 = {
+    id: 'FrodoTestJourney2',
+  };
+  const journey3 = {
+    id: 'FrodoTestJourney3',
+  };
+  const journey4 = {
+    id: 'FrodoTestJourney4',
+  };
+  const journey5 = {
+    id: 'FrodoTestJourney5',
+  };
+  const journey6 = {
+    id: 'FrodoTestJourney6',
+  };
+  const journey7 = {
+    id: 'FrodoTestJourney7',
+  };
+  const journey8 = {
+    id: 'FrodoTestJourney8',
+  };
+  const journey9 = {
+    id: 'FrodoTestJourney9',
+  };
+  // in recording mode, setup test data before recording
+  beforeAll(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      await stageJourney(journey1);
+      await stageJourney(journey2);
+      await stageJourney(journey3);
+      await stageJourney(journey4, false);
+      await stageJourney(journey5, false);
+      await stageJourney(journey6);
+      await stageJourney(journey7);
+      await stageJourney(journey8);
+      await stageJourney(journey9);
+    }
   });
-
-  test('getJourneys() 1: Get all journeys', async () => {
-    mockGetTrees(mock);
-    const journeys = await Journey.getJourneys();
-    expect(journeys).toBeTruthy();
-    expect(journeys.length).toBe(92);
+  // in recording mode, remove test data after recording
+  afterAll(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      await stageJourney(journey1, false);
+      await stageJourney(journey2, false);
+      await stageJourney(journey3, false);
+      await stageJourney(journey4, false);
+      await stageJourney(journey5, false);
+      await stageJourney(journey6, false);
+      await stageJourney(journey7, false);
+      await stageJourney(journey8, false);
+      await stageJourney(journey9, false);
+    }
   });
-});
+  // Phase 1
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '1')
+  ) {
+    describe('getJourneys()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Journey.getJourneys).toBeDefined();
+      });
 
-describe('JourneyOps - exportJourney()', () => {
-  test('exportJourney() 0: Method is implemented', async () => {
-    expect(Journey.exportJourney).toBeDefined();
-  });
+      test('1: Get all journeys', async () => {
+        const journeys = await Journey.getJourneys();
+        expect(journeys).toMatchSnapshot();
+      });
+    });
 
-  test('exportJourney() 1: Export journey w/o dependencies', async () => {
-    mockGetTree(mock);
-    mockGetNode(mock);
-    const treeId = 'FrodoTest';
-    const treeObject = getTree(treeId);
-    expect.assertions(24);
-    const journeyExport = await Journey.exportJourney(treeId, {
-      useStringArrays: false,
-      deps: false,
-    });
-    expect(journeyExport).toBeTruthy();
-    expect(journeyExport.tree['_id']).toBe(treeId);
-    expect(journeyExport.tree).toStrictEqual(treeObject);
-    expect(Object.keys(journeyExport.nodes as object).length).toBe(7);
-    expect(Object.keys(journeyExport.innerNodes as object).length).toBe(5);
-    expect(Object.keys(journeyExport.circlesOfTrust as object).length).toBe(0);
-    expect(Object.keys(journeyExport.emailTemplates as object).length).toBe(0);
-    expect(Object.keys(journeyExport.saml2Entities as object).length).toBe(0);
-    expect(Object.keys(journeyExport.scripts as object).length).toBe(0);
-    expect(
-      Object.keys(journeyExport.socialIdentityProviders as object).length
-    ).toBe(0);
-    expect(journeyExport.themes?.length).toBe(0);
-  });
+    describe('exportJourney()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Journey.exportJourney).toBeDefined();
+      });
 
-  test('exportJourney() 2: Export journey w/ dependencies', async () => {
-    mockGetTree(mock);
-    mockGetNode(mock);
-    mockGetConfigEntity(mock);
-    mockGetScript(mock);
-    mockGetSaml2Providers(mock);
-    mockGetCirclesOfTrust(mock);
-    mockGetSaml2ProviderByLocationAndId(mock);
-    mockGetSaml2ProviderMetadata(mock);
-    mockGetSocialProviders(mock);
-    const treeId = 'FrodoTest';
-    const treeObject = getTree(treeId);
-    expect.assertions(42);
-    const journeyExport = await Journey.exportJourney('FrodoTest', {
-      useStringArrays: false,
-      deps: true,
-    });
-    // console.dir(journeyExport);
-    expect(journeyExport).toBeTruthy();
-    expect(journeyExport.tree['_id']).toBe(treeId);
-    expect(journeyExport.tree).toStrictEqual(treeObject);
-    expect(Object.keys(journeyExport.nodes as object).length).toBe(7);
-    expect(Object.keys(journeyExport.innerNodes as object).length).toBe(5);
-    expect(Object.keys(journeyExport.circlesOfTrust as object).length).toBe(1);
-    expect(Object.keys(journeyExport.emailTemplates as object).length).toBe(1);
-    expect(Object.keys(journeyExport.saml2Entities as object).length).toBe(2);
-    expect(Object.keys(journeyExport.scripts as object).length).toBe(9);
-    expect(
-      Object.keys(journeyExport.socialIdentityProviders as object).length
-    ).toBe(8);
-    expect(journeyExport.themes?.length).toBe(1);
-  });
-});
+      test(`1: Export journey '${journey3.id}' w/o dependencies`, async () => {
+        const response = await Journey.exportJourney(journey3.id, {
+          useStringArrays: false,
+          deps: false,
+        });
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
+      });
 
-describe('JourneyOps - importJourney()', () => {
-  test('importJourney() 0: Method is implemented', async () => {
-    expect(Journey.importJourney).toBeDefined();
-  });
+      test(`2: Export journey '${journey3.id}' w/ dependencies`, async () => {
+        const response = await Journey.exportJourney(journey3.id, {
+          useStringArrays: false,
+          deps: true,
+        });
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
+      });
+    });
 
-  test('importJourney() 1: Import journey w/o dependencies', async () => {
-    const treeId = 'FrodoTest';
-    const treeObject = getTree(treeId);
-    mockPutTree(mock, (mockTreeId, mockTreeObj) => {
-      expect(mockTreeId).toEqual(treeId);
-      expect(isEqualJson(mockTreeObj, treeObject, ['_rev'])).toBeTruthy();
-    });
-    let nodeIds = [
-      // nodes
-      '278bf084-9eea-46fe-8ce9-2600dde3b046',
-      '64157fca-bd5b-4405-a4c8-64ffd98a5461',
-      '731c5810-020b-45c8-a7fc-3c21903ae2b3',
-      'bf153f37-83dd-4f39-aa0c-74135430242e',
-      'd5cc2d52-6ce4-452d-85ea-3a5b50218b67',
-      'e2c39477-847a-4df2-9c5d-b449a752638b',
-      'fc7e47cd-c679-4211-8e05-a36654f23c67',
-      // inner nodes
-      '7a351800-fb7e-4145-903c-388554747556',
-      '804e6a68-1720-442b-926a-007e90f02782',
-      '228a44d5-fd78-4278-8999-fdd470ea7ebf',
-      'dd16c8d4-baca-4ae0-bcd8-fb98b9040524',
-      '038f9b2a-36b2-489b-9e03-386c9a62ea21',
-    ];
-    mockPutNode(mock, (mockNodeId, mockNodeObj) => {
-      expect(nodeIds).toContain(mockNodeId);
-      nodeIds = nodeIds.filter((nodeId) => nodeId !== mockNodeId);
-    });
-    expect.assertions(15);
-    const journeyExport = readJsonFile(
-      './JourneyOps/importJourney/FrodoTest.journey.json'
-    );
-    await Journey.importJourney(journeyExport, {
-      reUuid: false,
-      deps: false,
-    });
-    expect(nodeIds.length).toBe(0);
-  });
+    describe('importJourney()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Journey.importJourney).toBeDefined();
+      });
 
-  test('importJourney() 2: Import journey w/ dependencies', async () => {
-    const treeId = 'FrodoTest';
-    // mock TreeApi
-    const treeObject = getTree(treeId);
-    mockPutTree(mock, (mockTreeId, mockTreeObj) => {
-      // console.log('mockPutTree: ' + mockTreeId);
-      expect(mockTreeId).toEqual(treeId);
-      expect(isEqualJson(mockTreeObj, treeObject, ['_rev'])).toBeTruthy();
-    });
-    // mock NodeApi
-    let nodeIds = [
-      // nodes
-      '278bf084-9eea-46fe-8ce9-2600dde3b046',
-      '64157fca-bd5b-4405-a4c8-64ffd98a5461',
-      '731c5810-020b-45c8-a7fc-3c21903ae2b3',
-      'bf153f37-83dd-4f39-aa0c-74135430242e',
-      'd5cc2d52-6ce4-452d-85ea-3a5b50218b67',
-      'e2c39477-847a-4df2-9c5d-b449a752638b',
-      'fc7e47cd-c679-4211-8e05-a36654f23c67',
-      // inner nodes
-      '7a351800-fb7e-4145-903c-388554747556',
-      '804e6a68-1720-442b-926a-007e90f02782',
-      '228a44d5-fd78-4278-8999-fdd470ea7ebf',
-      'dd16c8d4-baca-4ae0-bcd8-fb98b9040524',
-      '038f9b2a-36b2-489b-9e03-386c9a62ea21',
-    ];
-    mockPutNode(mock, (mockNodeId, mockNodeObj) => {
-      // console.log('mockPutNode: ' + mockNodeId);
-      expect(nodeIds).toContain(mockNodeId);
-      nodeIds = nodeIds.filter((nodeId) => nodeId !== mockNodeId);
-    });
-    // mock EmailTemplateApi
-    let entityIds = ['emailTemplate/welcome', 'ui/themerealm'];
-    mockPutConfigEntity(mock, (mockEntityId, mockEntityObj) => {
-      // console.log('mockPutConfigEntity: ' + mockEntityId);
-      expect(entityIds).toContain(mockEntityId);
-      entityIds = entityIds.filter((entityId) => entityId !== mockEntityId);
-    });
-    // mock ScriptApi
-    let scriptIds = [
-      '58c824ae-84ed-4724-82cd-db128fc3f6c',
-      '739bdc48-fd24-4c52-b353-88706d75558a',
-      '58d29080-4563-480b-89bb-1e7719776a21',
-      '23143919-6b78-40c3-b25e-beca19b229e0',
-      'bae1d54a-e97d-4997-aa5d-c027f21af82c',
-      '484e6246-dbc6-4288-97e6-54e55431402e',
-      '6325cf19-a49b-471e-8d26-7e4df76df0e2',
-      'dbe0bf9a-72aa-49d5-8483-9db147985a47',
-      '73cecbfc-dad0-4395-be6a-6858ee3a80e5',
-    ];
-    mockPutScript(mock, (mockScriptId, mockScriptObj) => {
-      // console.log('mockPutScript: ' + mockScriptId);
-      expect(scriptIds).toContain(mockScriptId);
-      scriptIds = scriptIds.filter((scriptId) => scriptId !== mockScriptId);
-    });
-    // mock CircleOfTrustApi
-    let cotIds = ['AzureCOT'];
-    mockCreateCircleOfTrust(mock, (mockCotId, mockCotObj) => {
-      // console.log('mockCreateCirclesOfTrust: ' + mockCotId);
-      expect(cotIds).toContain(mockCotId);
-      cotIds = cotIds.filter((cotId) => cotId !== mockCotId);
-    });
-    mockUpdateCircleOfTrust(mock, (mockCotId, mockCotObj) => {
-      // console.log('mockUpdateCirclesOfTrust: ' + mockCotId);
-      expect(cotIds).toContain(mockCotId);
-      cotIds = cotIds.filter((cotId) => cotId !== mockCotId);
-    });
-    // mock Saml2Api
-    mockFindSaml2Providers(mock);
-    let saml2ProviderIds64 = [
-      'aVNQQXp1cmU',
-      'dXJuOmZlZGVyYXRpb246TWljcm9zb2Z0T25saW5l',
-    ];
-    mockCreateSaml2Provider(
-      mock,
-      (
-        mockSaml2ProviderId64,
-        mockSaml2ProviderLocation,
-        mockSaml2ProviderObj
-      ) => {
-        // console.log('mockCreateSaml2Provider: ' + mockSaml2ProviderId64);
-        expect(saml2ProviderIds64).toContain(mockSaml2ProviderId64);
-        saml2ProviderIds64 = saml2ProviderIds64.filter(
-          (saml2ProviderId) => saml2ProviderId !== mockSaml2ProviderId64
-        );
-      }
-    );
-    mockUpdateSaml2Provider(
-      mock,
-      (
-        mockSaml2ProviderId64,
-        mockSaml2ProviderLocation,
-        mockSaml2ProviderObj
-      ) => {
-        // console.log('mockUpdateSaml2Provider: ' + mockSaml2ProviderId64);
-        expect(saml2ProviderIds64).toContain(mockSaml2ProviderId64);
-        saml2ProviderIds64 = saml2ProviderIds64.filter(
-          (saml2ProviderId) => saml2ProviderId !== mockSaml2ProviderId64
-        );
-      }
-    );
-    // mock SocialIdentityProviderApi
-    let socialProviderIds = [
-      'google',
-      'github',
-      'facebook',
-      'apple-stoyan',
-      'apple_web',
-      'okta-trial-5735851',
-      'adfs',
-      'azure',
-    ];
-    mockPutSocialProviderByTypeAndId(
-      mock,
-      (mockSocialProviderId, mockSocialProviderType, mockSocialProviderObj) => {
-        // console.log(
-        //   'mockPutSocialProviderByTypeAndId: ' + mockSocialProviderId
-        // );
-        expect(socialProviderIds).toContain(mockSocialProviderId);
-        socialProviderIds = socialProviderIds.filter(
-          (socialProviderId) => socialProviderId !== mockSocialProviderId
-        );
-      }
-    );
-    expect.assertions(46);
-    const journeyExport = readJsonFile(
-      './JourneyOps/importJourney/FrodoTest.journey.json'
-    );
-    await Journey.importJourney(journeyExport, {
-      reUuid: false,
-      deps: true,
-    });
-    expect(nodeIds.length).toBe(0);
-    expect(entityIds.length).toBe(0);
-    expect(scriptIds.length).toBe(0);
-    expect(cotIds.length).toBe(0);
-    expect(saml2ProviderIds64.length).toBe(0);
-    expect(socialProviderIds.length).toBe(0);
-  });
-});
+      test(`1: Import journey '${journey4.id}' w/o dependencies`, async () => {
+        const journeyExport = getJourney(journey4.id);
+        expect.assertions(1);
+        const response = await Journey.importJourney(journeyExport, {
+          reUuid: false,
+          deps: false,
+        });
+        expect(response).toBeTruthy();
+      });
 
-describe('JourneyOps - enableJourney()', () => {
-  test('enableJourney() 0: Method is implemented', async () => {
-    expect(Journey.enableJourney).toBeDefined();
-  });
-
-  test('enableJourney() 1: Enable a disabled journey', async () => {
-    const treeId = 'Disabled';
-    mockGetTree(mock);
-    mockPutTree(mock, (mockTreeId, mockTreeObj) => {
-      expect(mockTreeId).toEqual(treeId);
-      expect(mockTreeObj['_rev']).toBeFalsy();
-      expect(mockTreeObj['enabled']).toBeTruthy();
+      test(`2: Import journey '${journey5.id}' w/ dependencies`, async () => {
+        const journeyExport = getJourney(journey5.id);
+        expect.assertions(1);
+        const response = await Journey.importJourney(journeyExport, {
+          reUuid: false,
+          deps: true,
+        });
+        expect(response).toBeTruthy();
+      });
     });
-    expect.assertions(5);
-    const result = await Journey.enableJourney(treeId);
-    expect(result).toBeTruthy();
-  });
 
-  test('enableJourney() 2: Enable an already enabled journey', async () => {
-    const treeId = 'FrodoTest';
-    mockGetTree(mock);
-    mockPutTree(mock, (mockTreeId, mockTreeObj) => {
-      expect(mockTreeId).toEqual(treeId);
-      expect(mockTreeObj['_rev']).toBeFalsy();
-      expect(mockTreeObj['enabled']).toBeTruthy();
+    describe('enableJourney()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Journey.enableJourney).toBeDefined();
+      });
+
+      test(`1: Enable disabled journey '${journey6.id}'`, async () => {
+        expect.assertions(1);
+        const result = await Journey.enableJourney(journey6.id);
+        expect(result).toBeTruthy();
+      });
+
+      test(`2: Enable already enabled journey '${journey7.id}'`, async () => {
+        expect.assertions(1);
+        const result = await Journey.enableJourney(journey7.id);
+        expect(result).toBeTruthy();
+      });
     });
-    expect.assertions(5);
-    const result = await Journey.enableJourney(treeId);
-    expect(result).toBeTruthy();
-  });
-});
 
-describe('JourneyOps - disableJourney()', () => {
-  test('disableJourney() 0: Method is implemented', async () => {
-    expect(Journey.disableJourney).toBeDefined();
-  });
+    describe('disableJourney()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Journey.disableJourney).toBeDefined();
+      });
 
-  test('disableJourney() 1: Disable an enabled journey', async () => {
-    const treeId = 'FrodoTest';
-    mockGetTree(mock);
-    mockPutTree(mock, (mockTreeId, mockTreeObj) => {
-      expect(mockTreeId).toEqual(treeId);
-      expect(mockTreeObj['_rev']).toBeFalsy();
-      expect(mockTreeObj['enabled']).toBeFalsy();
+      test(`1: Disable enabled journey '${journey8.id}'`, async () => {
+        expect.assertions(1);
+        const result = await Journey.disableJourney(journey8.id);
+        expect(result).toBeTruthy();
+      });
+
+      test(`2: Disable already disabled journey '${journey9.id}'`, async () => {
+        expect.assertions(1);
+        const result = await Journey.disableJourney(journey9.id);
+        expect(result).toBeTruthy();
+      });
     });
-    expect.assertions(5);
-    const result = await Journey.disableJourney(treeId);
-    expect(result).toBeTruthy();
-  });
-
-  test('disableJourney() 2: Disable an already disabled journey', async () => {
-    const treeId = 'Disabled';
-    mockGetTree(mock);
-    mockPutTree(mock, (mockTreeId, mockTreeObj) => {
-      expect(mockTreeId).toEqual(treeId);
-      expect(mockTreeObj['_rev']).toBeFalsy();
-      expect(mockTreeObj['enabled']).toBeFalsy();
-    });
-    expect.assertions(5);
-    const result = await Journey.disableJourney(treeId);
-    expect(result).toBeTruthy();
-  });
+  }
 });
