@@ -587,26 +587,31 @@ export async function exportJourney(
  * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of journey objects
  */
 export async function getJourneys(): Promise<TreeSkeleton[]> {
-  let journeys = [];
-  try {
-    journeys = (await getTrees()).result;
-  } catch (error) {
-    printMessage(`${error.message}`, 'error');
-    printMessage(error.response.data, 'error');
-  }
-  journeys.sort((a, b) => a._id.localeCompare(b._id));
-  return journeys;
+  const { result } = await getTrees();
+  result.sort((a, b) => a._id.localeCompare(b._id));
+  return result;
+}
+
+/**
+ * Get a journey/tree without all its nodes and dependencies.
+ * @param {string} journeyId journey id/name
+ * @returns {Promise<TreeSkeleton>} a promise that resolves to a journey object
+ */
+export async function getJourney(journeyId: string): Promise<TreeSkeleton> {
+  const response = await getTree(journeyId);
+  return response;
 }
 
 /**
  * Helper to import a tree with all dependencies from a `SingleTreeExportInterface` object (typically read from a file)
  * @param {SingleTreeExportInterface} treeObject tree object containing tree and all its dependencies
  * @param {TreeImportOptions} options import options
+ * @returns {Promise<boolean>} a promise that resolves to true if no errors occurred during import
  */
 export async function importJourney(
   treeObject: SingleTreeExportInterface,
   options: TreeImportOptions
-): Promise<void> {
+): Promise<boolean> {
   const { reUuid, deps } = options;
   const verbose = state.getDebug();
   if (verbose) printMessage(`\n- ${treeObject.tree._id}\n`, 'info', false);
@@ -1088,6 +1093,7 @@ export async function importJourney(
       throw new Error(`\nError importing journey flow ${treeId}`);
     }
   }
+  return true;
 }
 
 /**
@@ -1571,11 +1577,10 @@ export function getJourneyClassification(
  */
 export async function deleteJourney(
   journeyId: string,
-  options,
-  progress = true
+  options: { deep: boolean; verbose: boolean; progress?: boolean }
 ) {
-  const { deep } = options;
-  const { verbose } = options;
+  const { deep, verbose } = options;
+  const progress = !('progress' in options) ? true : options.progress;
   const status = { nodes: {} };
   if (progress)
     createProgressIndicator(
@@ -1743,15 +1748,18 @@ export async function deleteJourney(
  * Delete all journeys
  * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
  */
-export async function deleteJourneys(options) {
+export async function deleteJourneys(options: {
+  deep: boolean;
+  verbose: boolean;
+}) {
   const { verbose } = options;
   const status = {};
   const trees = (await getTrees()).result;
   createProgressIndicator(trees.length, 'Deleting journeys...');
   for (const tree of trees) {
     if (verbose) printMessage('');
-    // eslint-disable-next-line no-await-in-loop
-    status[tree._id] = await deleteJourney(tree._id, options, false);
+    options['progress'] = false;
+    status[tree._id] = await deleteJourney(tree._id, options);
     updateProgressIndicator(`${tree._id}`);
     // introduce a 100ms wait to allow the progress bar to update before the next verbose message prints from the async function
     if (verbose)
