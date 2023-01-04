@@ -1,0 +1,148 @@
+{
+  "meta": {
+    "origin": "https://openam-volker-dev.forgeblocks.com/am",
+    "originAmVersion": "7.3.0",
+    "exportedBy": "volker.scheuber@forgerock.com",
+    "exportDate": "2023-01-04T19:10:44.037Z",
+    "exportTool": "frodo",
+    "exportToolVersion": "v0.17.3 [v18.7.0]"
+  },
+  "innerNodes": {
+    "f7446364-c2af-4a05-b3cc-e51d2cac5495": {
+      "_id": "f7446364-c2af-4a05-b3cc-e51d2cac5495",
+      "_rev": "1088101812",
+      "usernameAttribute": "userName",
+      "validateInput": false,
+      "_type": {
+        "_id": "ValidatedUsernameNode",
+        "name": "Platform Username",
+        "collection": true
+      },
+      "_outcomes": [
+        {
+          "id": "outcome",
+          "displayName": "Outcome"
+        }
+      ]
+    },
+    "25f9ef92-b8a8-45fd-97bd-d32e90040202": {
+      "_id": "25f9ef92-b8a8-45fd-97bd-d32e90040202",
+      "_rev": "-1249183159",
+      "passwordAttribute": "password",
+      "validateInput": false,
+      "_type": {
+        "_id": "ValidatedPasswordNode",
+        "name": "Platform Password",
+        "collection": true
+      },
+      "_outcomes": [
+        {
+          "id": "outcome",
+          "displayName": "Outcome"
+        }
+      ]
+    }
+  },
+  "nodes": {
+    "1c586352-4568-4918-8985-876f142d1427": {
+      "_id": "1c586352-4568-4918-8985-876f142d1427",
+      "_rev": "1832077009",
+      "_type": {
+        "_id": "DataStoreDecisionNode",
+        "name": "Data Store Decision",
+        "collection": true
+      },
+      "_outcomes": [
+        {
+          "id": "true",
+          "displayName": "True"
+        },
+        {
+          "id": "false",
+          "displayName": "False"
+        }
+      ]
+    },
+    "cc4b5c15-4af6-4a94-b0c6-fc6f31895b4f": {
+      "_id": "cc4b5c15-4af6-4a94-b0c6-fc6f31895b4f",
+      "_rev": "-1422384466",
+      "nodes": [
+        {
+          "_id": "f7446364-c2af-4a05-b3cc-e51d2cac5495",
+          "nodeType": "ValidatedUsernameNode",
+          "displayName": "Username"
+        },
+        {
+          "_id": "25f9ef92-b8a8-45fd-97bd-d32e90040202",
+          "nodeType": "ValidatedPasswordNode",
+          "displayName": "Password"
+        }
+      ],
+      "pageDescription": {},
+      "pageHeader": {},
+      "_type": {
+        "_id": "PageNode",
+        "name": "Page Node",
+        "collection": true
+      },
+      "_outcomes": [
+        {
+          "id": "outcome",
+          "displayName": "Outcome"
+        }
+      ]
+    }
+  },
+  "scripts": {},
+  "emailTemplates": {},
+  "socialIdentityProviders": {},
+  "themes": [],
+  "saml2Entities": {},
+  "circlesOfTrust": {},
+  "tree": {
+    "_id": "FrodoTestJourney1",
+    "_rev": "781670037",
+    "identityResource": "managed/alpha_user",
+    "uiConfig": {
+      "categories": "[\"Frodo\",\"Prototype\"]"
+    },
+    "entryNodeId": "cc4b5c15-4af6-4a94-b0c6-fc6f31895b4f",
+    "nodes": {
+      "1c586352-4568-4918-8985-876f142d1427": {
+        "connections": {
+          "false": "e301438c-0bd0-429c-ab0c-66126501069a",
+          "true": "70e691a5-1e33-4ac3-a356-e7b6d60d92e0"
+        },
+        "displayName": "Validate Credentials",
+        "nodeType": "DataStoreDecisionNode",
+        "x": 455,
+        "y": 137.5
+      },
+      "cc4b5c15-4af6-4a94-b0c6-fc6f31895b4f": {
+        "connections": {
+          "outcome": "1c586352-4568-4918-8985-876f142d1427"
+        },
+        "displayName": "Login Page",
+        "nodeType": "PageNode",
+        "x": 210,
+        "y": 109
+      }
+    },
+    "description": "Frodo test journey",
+    "staticNodes": {
+      "70e691a5-1e33-4ac3-a356-e7b6d60d92e0": {
+        "x": 692,
+        "y": 230
+      },
+      "e301438c-0bd0-429c-ab0c-66126501069a": {
+        "x": 692,
+        "y": 80
+      },
+      "startNode": {
+        "x": 70,
+        "y": 155
+      }
+    },
+    "enabled": true
+  }
+}

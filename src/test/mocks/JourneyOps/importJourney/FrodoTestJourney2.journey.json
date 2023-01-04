@@ -1,0 +1,76 @@
+{
+  "meta": {
+    "origin": "https://openam-volker-dev.forgeblocks.com/am",
+    "originAmVersion": "7.3.0",
+    "exportedBy": "volker.scheuber@forgerock.com",
+    "exportDate": "2023-01-04T19:11:00.843Z",
+    "exportTool": "frodo",
+    "exportToolVersion": "v0.17.3 [v18.7.0]"
+  },
+  "innerNodes": {},
+  "nodes": {
+    "e3bc0d65-9f4d-4ca3-aa44-69fee11753a1": {
+      "_id": "e3bc0d65-9f4d-4ca3-aa44-69fee11753a1",
+      "_rev": "-724872196",
+      "tree": "FrodoTestJourney1",
+      "_type": {
+        "_id": "InnerTreeEvaluatorNode",
+        "name": "Inner Tree Evaluator",
+        "collection": true
+      },
+      "_outcomes": [
+        {
+          "id": "true",
+          "displayName": "True"
+        },
+        {
+          "id": "false",
+          "displayName": "False"
+        }
+      ]
+    }
+  },
+  "scripts": {},
+  "emailTemplates": {},
+  "socialIdentityProviders": {},
+  "themes": [],
+  "saml2Entities": {},
+  "circlesOfTrust": {},
+  "tree": {
+    "_id": "FrodoTestJourney2",
+    "_rev": "1682367743",
+    "identityResource": "managed/alpha_user",
+    "uiConfig": {
+      "categories": "[\"Frodo\",\"Prototype\"]"
+    },
+    "entryNodeId": "e3bc0d65-9f4d-4ca3-aa44-69fee11753a1",
+    "nodes": {
+      "e3bc0d65-9f4d-4ca3-aa44-69fee11753a1": {
+        "connections": {
+          "false": "e301438c-0bd0-429c-ab0c-66126501069a",
+          "true": "70e691a5-1e33-4ac3-a356-e7b6d60d92e0"
+        },
+        "displayName": "Login",
+        "nodeType": "InnerTreeEvaluatorNode",
+        "x": 210,
+        "y": 137.5
+      }
+    },
+    "description": "Frodo test journey",
+    "staticNodes": {
+      "70e691a5-1e33-4ac3-a356-e7b6d60d92e0": {
+        "x": 440,
+        "y": 80
+      },
+      "e301438c-0bd0-429c-ab0c-66126501069a": {
+        "x": 440,
+        "y": 230
+      },
+      "startNode": {
+        "x": 70,
+        "y": 155
+      }
+    },
+    "enabled": true
+  }
+}
