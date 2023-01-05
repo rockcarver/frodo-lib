@@ -1,5 +1,5 @@
 /**
- * To record and update snapshots, you must perform 5 steps in order:
+ * To record and update snapshots, you must perform 3 steps in order:
  *
  * 1. Record API responses & update ESM snapshots
  *
