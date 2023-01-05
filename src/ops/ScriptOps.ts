@@ -20,7 +20,7 @@ import {
   getMetadata,
 } from './utils/ExportImportUtils';
 import { ScriptSkeleton } from '../api/ApiTypes';
-import { ExportMetaData } from '../../types/ops/OpsTypes';
+import { ExportMetaData } from '../ops/OpsTypes';
 
 export interface ScriptExportInterface {
   meta?: ExportMetaData;
