@@ -18,7 +18,7 @@
     "test:debug": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false",
     "test:record": "FRODO_POLLY_MODE=record node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false --updateSnapshot --testPathIgnorePatterns cjs --testPathPattern",
     "test:record_noauth": "FRODO_POLLY_MODE=record_noauth node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false --updateSnapshot --testPathIgnorePatterns cjs --testPathPattern",
-    "test:update": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false --updateSnapshot --testPathIgnorePatterns esm --testPathPattern",
+    "test:update": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false --updateSnapshot --testPathPattern",
     "lint": "npx eslint --ext .ts --ignore-path .gitignore .",
     "build": "npx gulp",
     "watch": "npx gulp watch"
@@ -75,8 +75,16 @@
       "email": "adam.crockett@forgerock.com"
     },
     {
+      "name": "Mees van Dongen",
+      "email": "meesvandongen@gmail.com"
+    },
+    {
       "name": "Ali Falahi",
       "email": "ali@falahi.com"
+    },
+    {
+      "name": "Marcel Maas",
+      "email": "maas.marcel@gmail.com"
     },
     {
       "name": "Joshua Sayers",

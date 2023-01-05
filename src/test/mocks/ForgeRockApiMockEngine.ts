@@ -193,6 +193,19 @@ export function getTree(treeId: string) {
   return treeObject;
 }
 
+export function getJourney(journeyId: string) {
+  const treeObject = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        `./JourneyOps/importJourney/${journeyId}.journey.json`
+      ),
+      'utf8'
+    )
+  );
+  return treeObject;
+}
+
 export function mockGetTree(mock: MockAdapter) {
   mock
     .onGet(
