@@ -5,24 +5,24 @@
  *
  *    This step breaks down into 5 phases:
  *
- *    Phase 1: Record non-destructive tests
- *    Phase 2: Record conflicting non-destructive tests - Import all
+ *    Phase 1: Record Group 1 of non-destructive tests
+ *    Phase 2: Record Group 2 of non-destructive tests - Import all
  *    Phase 3: Record Group 1 of DESTRUCTIVE tests - Deletes by entity id
- *    Phase 4: Record Group 3 of DESTRUCTIVE tests - Delete all
+ *    Phase 4: Record Group 2 of DESTRUCTIVE tests - Delete all
  *    Phase 5: Record Group 3 of DESTRUCTIVE tests - Delete all raw (legacy API - pre 7.0)
  *
  *    Because destructive tests interfere with the recording of non-destructive
  *    tests and also interfere among themselves, they have to be run in groups
  *    of non-interfering tests.
  *
- *    To record and update ESM snapshots, you must call the test:record
- *    script and override all the connection state variables required
- *    to connect to the env to record from and also indicate the phase:
+ *    To record API responses, you must call the test:record script and
+ *    override all the connection state variables required to connect to the
+ *    env to record from and also indicate the phase:
  *
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=1 FRODO_HOST=frodo-dev npm run test:record Saml2Ops
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=frodo-dev npm run test:record Saml2Ops
  *
- *    THESE TESTS ARE DESTRUCTIVE!!! DO NOT RUN AGAINST AN ENV WITH ACTIVE AGENTS!!!
+ *    THESE TESTS ARE DESTRUCTIVE!!! DO NOT RUN AGAINST AN ENV WITH ACTIVE CONFIGURATION!!!
  *
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=frodo-dev npm run test:record Saml2Ops
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=4 FRODO_HOST=frodo-dev npm run test:record Saml2Ops
@@ -33,7 +33,8 @@
  *
  * 2. Update snapshots
  *
- *    After recording API responses, you must manually update/create snapshots by running:
+ *    After recording API responses, you must manually update/create snapshots
+ *    by running:
  *
  *        FRODO_DEBUG=1 npm run test:update Saml2Ops
  *
