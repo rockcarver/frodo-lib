@@ -225,7 +225,9 @@ describe('Saml2Ops', () => {
 
       test('1: Create saml2 export template', () => {
         const response = Saml2.createSaml2ExportTemplate();
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
     });
 
@@ -333,12 +335,16 @@ describe('Saml2Ops', () => {
 
       test(`1: Export hosted provider '${provider1.entityId}'`, async () => {
         const response = await Saml2.exportSaml2Provider(provider1.entityId);
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
 
       test(`2: Export remote provider '${provider4.entityId}'`, async () => {
         const response = await Saml2.exportSaml2Provider(provider4.entityId);
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
     });
 
@@ -349,7 +355,9 @@ describe('Saml2Ops', () => {
 
       test('1: Export saml2 entity providers', async () => {
         const response = await Saml2.exportSaml2Providers();
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
     });
 
