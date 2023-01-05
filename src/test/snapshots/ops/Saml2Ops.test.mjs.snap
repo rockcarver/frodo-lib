@@ -2,7 +2,7 @@
 
 exports[`Saml2Ops createSaml2ExportTemplate() 1: Create saml2 export template 1`] = `
 {
-  "meta": {},
+  "meta": Any<Object>,
   "saml": {
     "hosted": {},
     "metadata": {},
@@ -1158,7 +1158,7 @@ exports[`Saml2Ops deleteSaml2Providers() 1: Delete all providers 1`] = `
 
 exports[`Saml2Ops exportSaml2Provider() 1: Export hosted provider 'iSPAzure' 1`] = `
 {
-  "meta": {},
+  "meta": Any<Object>,
   "saml": {
     "hosted": {
       "aVNQQXp1cmU": {
@@ -1396,7 +1396,7 @@ exports[`Saml2Ops exportSaml2Provider() 1: Export hosted provider 'iSPAzure' 1`]
 
 exports[`Saml2Ops exportSaml2Provider() 2: Export remote provider 'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/' 1`] = `
 {
-  "meta": {},
+  "meta": Any<Object>,
   "saml": {
     "hosted": {},
     "metadata": {
@@ -1509,7 +1509,7 @@ exports[`Saml2Ops exportSaml2Provider() 2: Export remote provider 'https://sts.w
 
 exports[`Saml2Ops exportSaml2Providers() 1: Export saml2 entity providers 1`] = `
 {
-  "meta": {},
+  "meta": Any<Object>,
   "saml": {
     "hosted": {
       "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQRmVkbGV0": {

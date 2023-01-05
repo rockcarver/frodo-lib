@@ -7,6 +7,7 @@ import {
   convertTextArrayToBase64,
   convertTextArrayToBase64Url,
   findFilesByName,
+  getMetadata,
 } from './utils/ExportImportUtils';
 import { getRealmManagedUser, replaceAll } from './utils/OpsUtils';
 import * as state from '../shared/State';
@@ -89,7 +90,7 @@ const emptyScriptPlaceholder = '[Empty]';
  */
 export function createSingleTreeExportTemplate(): SingleTreeExportInterface {
   return {
-    meta: {},
+    meta: getMetadata(),
     innerNodes: {},
     nodes: {},
     scripts: {},
@@ -108,7 +109,7 @@ export function createSingleTreeExportTemplate(): SingleTreeExportInterface {
  */
 export function createMultiTreeExportTemplate(): MultiTreeExportInterface {
   return {
-    meta: {},
+    meta: getMetadata(),
     trees: {},
   } as MultiTreeExportInterface;
 }

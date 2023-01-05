@@ -38,6 +38,7 @@ import {
   convertBase64UrlTextToArray,
   convertTextArrayToBase64,
   convertTextArrayToBase64Url,
+  getMetadata,
 } from './utils/ExportImportUtils';
 
 export const roleMap = {
@@ -50,7 +51,7 @@ export const roleMap = {
 // use a function vs a template variable to avoid problems in loops
 export function createSaml2ExportTemplate(): Saml2ExportInterface {
   return {
-    meta: {},
+    meta: getMetadata(),
     script: {},
     saml: {
       hosted: {},
