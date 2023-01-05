@@ -1,500 +1,504 @@
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
+/**
+ * To record and update snapshots, you must perform 3 steps in order:
+ *
+ * 1. Record API responses
+ *
+ *    This step breaks down into 5 phases:
+ *
+ *    Phase 1: Record non-destructive tests
+ *    Phase 2: Record conflicting non-destructive tests - Import all
+ *    Phase 3: Record Group 1 of DESTRUCTIVE tests - Deletes by entity id
+ *    Phase 4: Record Group 3 of DESTRUCTIVE tests - Delete all
+ *    Phase 5: Record Group 3 of DESTRUCTIVE tests - Delete all raw (legacy API - pre 7.0)
+ *
+ *    Because destructive tests interfere with the recording of non-destructive
+ *    tests and also interfere among themselves, they have to be run in groups
+ *    of non-interfering tests.
+ *
+ *    To record and update ESM snapshots, you must call the test:record
+ *    script and override all the connection state variables required
+ *    to connect to the env to record from and also indicate the phase:
+ *
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=1 FRODO_HOST=frodo-dev npm run test:record Saml2Ops
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=frodo-dev npm run test:record Saml2Ops
+ *
+ *    THESE TESTS ARE DESTRUCTIVE!!! DO NOT RUN AGAINST AN ENV WITH ACTIVE AGENTS!!!
+ *
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=frodo-dev npm run test:record Saml2Ops
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=4 FRODO_HOST=frodo-dev npm run test:record Saml2Ops
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=5 FRODO_HOST=frodo-dev npm run test:record Saml2Ops
+ *
+ *    The above command assumes that you have a connection profile for
+ *    'frodo-dev' on your development machine.
+ *
+ * 2. Update snapshots
+ *
+ *    After recording API responses, you must manually update/create snapshots by running:
+ *
+ *        FRODO_DEBUG=1 npm run test:update Saml2Ops
+ *
+ * 3. Test your changes
+ *
+ *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
+ *    replay mode and make sure they all succeed as well:
+ *
+ *        npm run test:only Saml2Ops
+ *
+ * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
+ * in case things don't function as expected
+ */
+import { jest } from '@jest/globals';
 import { Saml2, state } from '../index';
 import * as globalConfig from '../storage/StaticStorage';
 import { Saml2ProiderLocation } from '../api/ApiTypes';
 import {
-  mockGetSaml2Providers,
-  mockFindSaml2Providers,
-  mockGetSaml2ProviderByLocationAndId,
-  mockGetSaml2ProviderMetadata,
-  mockGetScript,
-  mockPutScript,
   getSaml2ProviderImportData,
   getSaml2ProvidersImportData,
 } from '../test/mocks/ForgeRockApiMockEngine';
 import { encodeBase64Url } from '../api/utils/Base64';
-import { Saml2ExportInterface } from '../../types/ops/OpsTypes';
-import { isEqualJson } from './utils/OpsUtils';
-import { mockCreateSaml2Provider } from '../test/mocks/ForgeRockApiMockEngine';
-import { convertTextArrayToBase64Url } from './utils/ExportImportUtils';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
-const mock = new MockAdapter(axios);
-const outputHandler = (message: string | object) => {
-  console.log(message);
-};
+// Increase timeout for this test as pipeline keeps failing with error:
+// Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
+jest.setTimeout(30000);
 
-state.setHost('https://openam-volker-dev.forgeblocks.com/am');
-state.setRealm('alpha');
-state.setCookieName('cookieName');
-state.setCookieValue('cookieValue');
+autoSetupPolly();
+
 state.setDeploymentType(globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY);
-state.setDebug(true);
-state.setDebugHandler(outputHandler);
-state.setPrintHandler(outputHandler);
 
-describe('Saml2Ops - createSaml2ExportTemplate()', () => {
-  test('createSaml2ExportTemplate() 0: Method is implemented', async () => {
-    expect(Saml2.createSaml2ExportTemplate).toBeDefined();
-  });
-
-  test('createSaml2ExportTemplate() 1: Create saml2 export template', async () => {
-    const saml2Export: Saml2ExportInterface = {
-      script: {},
-      saml: {
-        hosted: {},
-        remote: {},
-        metadata: {},
-      },
-    };
-    const response = Saml2.createSaml2ExportTemplate();
-    expect(isEqualJson(response, saml2Export, ['meta'])).toBeTruthy();
-  });
-});
-
-describe('Saml2Ops - getSaml2ProviderStubs()', () => {
-  test('getSaml2ProviderStubs() 0: Method is implemented', async () => {
-    expect(Saml2.getSaml2ProviderStubs).toBeDefined();
-  });
-
-  test('getSaml2ProviderStubs() 1: Get saml2 entity provider stubs', async () => {
-    mockGetSaml2Providers(mock);
-    const providers = await Saml2.getSaml2ProviderStubs();
-    expect(providers).toBeTruthy();
-    expect(providers.length).toBe(8);
-  });
-});
-
-describe('Saml2Ops - getProviderByLocationAndId()', () => {
-  test('getProviderByLocationAndId() 0: Method is implemented', async () => {
-    expect(Saml2.getProviderByLocationAndId).toBeDefined();
-  });
-
-  test('getProviderByLocationAndId() 1: Get hosted provider "iSPAzure"', async () => {
-    const location = Saml2ProiderLocation.HOSTED;
-    const entityId = 'iSPAzure';
-    const entityId64 = encodeBase64Url(entityId);
-    mockGetSaml2ProviderByLocationAndId(mock);
-    const provider = await Saml2.getProviderByLocationAndId(
-      location,
-      entityId64
-    );
-    expect(provider).toBeTruthy();
-    expect(provider._id).toBe(entityId64);
-    expect(provider.entityId).toBe(entityId);
-    expect(provider.entityLocation).toBeFalsy();
-    expect(provider.roles).toBeFalsy();
-  });
-
-  test('getProviderByLocationAndId() 2: Get remote provider "urn:federation:MicrosoftOnline"', async () => {
-    const location = Saml2ProiderLocation.REMOTE;
-    const entityId = 'urn:federation:MicrosoftOnline';
-    const entityId64 = encodeBase64Url(entityId);
-    mockGetSaml2ProviderByLocationAndId(mock);
-    const provider = await Saml2.getProviderByLocationAndId(
-      location,
-      entityId64
-    );
-    expect(provider).toBeTruthy();
-    expect(provider._id).toBe(entityId64);
-    expect(provider.entityId).toBe(entityId);
-    expect(provider.entityLocation).toBeFalsy();
-    expect(provider.roles).toBeFalsy();
-  });
-});
-
-describe('Saml2Ops - getProviderMetadataUrl()', () => {
-  test('getProviderMetadataUrl() 0: Method is implemented', async () => {
-    expect(Saml2.getProviderMetadataUrl).toBeDefined();
-  });
-
-  test('getProviderMetadataUrl() 1: Get metadata url for hosted entity provider "idp"', async () => {
-    const entityId = 'idp';
-    const metadataUrl =
-      'https://openam-volker-dev.forgeblocks.com/am/saml2/jsp/exportmetadata.jsp?entityid=idp&realm=alpha';
-    const result = Saml2.getProviderMetadataUrl(entityId);
-    expect(result).toBe(metadataUrl);
-  });
-
-  test('getProviderMetadataUrl() 2: Get metadata url for hosted entity provider "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/"', async () => {
-    const entityId =
-      'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/';
-    const metadataUrl =
-      'https://openam-volker-dev.forgeblocks.com/am/saml2/jsp/exportmetadata.jsp?entityid=https%3A%2F%2Fsts.windows.net%2F711ffa9c-5972-4713-ace3-688c9732614a%2F&realm=alpha';
-    const result = Saml2.getProviderMetadataUrl(entityId);
-    expect(result).toBe(metadataUrl);
-  });
-});
-
-describe('Saml2Ops - getProviderMetadata()', () => {
-  test('getProviderMetadata() 0: Method is implemented', async () => {
-    expect(Saml2.getProviderMetadata).toBeDefined();
-  });
-
-  test('getProviderMetadata() 1: Get metadata for hosted provider "iSPAzure"', async () => {
-    const entityId = 'iSPAzure';
-    const metaSub =
-      '<EntityDescriptor entityID="iSPAzure" xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:query="urn:oasis:names:tc:SAML:metadata:ext:query" xmlns:mdattr="urn:oasis:names:tc:SAML:metadata:attribute" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" xmlns:xenc11="http://www.w3.org/2009/xmlenc11#" xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport" xmlns:x509qry="urn:oasis:names:tc:SAML:metadata:X509:query" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">';
-    mockGetSaml2ProviderMetadata(mock);
-    const metadata = await Saml2.getProviderMetadata(entityId);
-    expect(metadata).toBeTruthy();
-    expect(metadata.indexOf(metaSub)).toBeTruthy();
-  });
-
-  test('getProviderMetadata() 2: Get metadata for hosted provider "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/"', async () => {
-    const entityId =
-      'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/';
-    const metaSub =
-      '<EntityDescriptor entityID="https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/" ID="_e5f839b8-1482-40ae-9261-b6eb35465a16" xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:query="urn:oasis:names:tc:SAML:metadata:ext:query" xmlns:mdattr="urn:oasis:names:tc:SAML:metadata:attribute" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" xmlns:xenc11="http://www.w3.org/2009/xmlenc11#" xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport" xmlns:x509qry="urn:oasis:names:tc:SAML:metadata:X509:query" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">';
-    mockGetSaml2ProviderMetadata(mock);
-    const metadata = await Saml2.getProviderMetadata(entityId);
-    expect(metadata).toBeTruthy();
-    expect(metadata.indexOf(metaSub)).toBeTruthy();
-  });
-});
-
-describe('Saml2Ops - getSaml2ProviderStub()', () => {
-  test('getSaml2ProviderStub() 0: Method is implemented', async () => {
-    expect(Saml2.getSaml2ProviderStub).toBeDefined();
-  });
-
-  test('getSaml2ProviderStub() 1: Get stub of hosted provider "iSPAzure"', async () => {
-    const location = Saml2ProiderLocation.HOSTED;
-    const entityId = 'iSPAzure';
-    const entityId64 = encodeBase64Url(entityId);
-    mockFindSaml2Providers(mock);
-    const stub = await Saml2.getSaml2ProviderStub(entityId);
-    expect(stub).toBeTruthy();
-    expect(stub._id).toBe(entityId64);
-    expect(stub.entityId).toBe(entityId);
-    expect(stub.location).toBe(location);
-    expect(stub.roles).toBeTruthy();
-  });
-
-  test('getSaml2ProviderStub() 2: Get stub of remote provider "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/"', async () => {
-    const location = Saml2ProiderLocation.REMOTE;
-    const entityId =
-      'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/';
-    const entityId64 = encodeBase64Url(entityId);
-    mockFindSaml2Providers(mock);
-    const stub = await Saml2.getSaml2ProviderStub(entityId);
-    expect(stub).toBeTruthy();
-    expect(stub._id).toBe(entityId64);
-    expect(stub.entityId).toBe(entityId);
-    expect(stub.location).toBe(location);
-    expect(stub.roles).toBeTruthy();
-  });
-});
-
-describe('Saml2Ops - getSaml2Provider()', () => {
-  test('getSaml2Provider() 0: Method is implemented', async () => {
-    expect(Saml2.getSaml2Provider).toBeDefined();
-  });
-
-  test('getSaml2Provider() 1: Get hosted provider "iSPAzure"', async () => {
-    const entityId = 'iSPAzure';
-    const entityId64 = encodeBase64Url(entityId);
-    mockFindSaml2Providers(mock);
-    mockGetSaml2ProviderByLocationAndId(mock);
-    const provider = await Saml2.getSaml2Provider(entityId);
-    expect(provider).toBeTruthy();
-    expect(provider._id).toBe(entityId64);
-    expect(provider.entityId).toBe(entityId);
-    expect(provider.entityLocation).toBeFalsy();
-    expect(provider.location).toBeFalsy();
-    expect(provider.roles).toBeFalsy();
-  });
-
-  test('getSaml2Provider() 2: Get remote provider "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/"', async () => {
-    const entityId =
-      'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/';
-    const entityId64 = encodeBase64Url(entityId);
-    mockFindSaml2Providers(mock);
-    mockGetSaml2ProviderByLocationAndId(mock);
-    const provider = await Saml2.getSaml2Provider(entityId);
-    expect(provider).toBeTruthy();
-    expect(provider._id).toBe(entityId64);
-    expect(provider.entityId).toBe(entityId);
-    expect(provider.entityLocation).toBeFalsy();
-    expect(provider.location).toBeFalsy();
-    expect(provider.roles).toBeFalsy();
-  });
-});
-
-describe('Saml2Ops - exportSaml2Provider()', () => {
-  test('exportSaml2Provider() 0: Method is implemented', async () => {
-    expect(Saml2.exportSaml2Provider).toBeDefined();
-  });
-
-  test('exportSaml2Provider() 1: Export hosted provider "iSPAzure"', async () => {
-    const location = Saml2ProiderLocation.HOSTED;
-    const entityId = 'iSPAzure';
-    const entityId64 = encodeBase64Url(entityId);
-    mockFindSaml2Providers(mock);
-    mockGetSaml2ProviderByLocationAndId(mock);
-    mockGetSaml2ProviderMetadata(mock);
-    mockGetScript(mock);
-    const exportData = await Saml2.exportSaml2Provider(entityId);
-    expect(
-      isEqualJson(exportData, Saml2.createSaml2ExportTemplate(), [
-        'meta',
-        'script',
-        'hosted',
-        'remote',
-        'metadata',
-      ])
-    ).toBeTruthy();
-    expect(exportData.saml[location][entityId64]).toBeTruthy();
-    expect(exportData.saml.metadata[entityId64]).toBeTruthy();
-    expect(Object.keys(exportData.script).length).toBe(0);
-  });
-
-  test('exportSaml2Provider() 2: Export remote provider "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/"', async () => {
-    const location = Saml2ProiderLocation.REMOTE;
-    const entityId =
-      'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/';
-    const entityId64 = encodeBase64Url(entityId);
-    mockFindSaml2Providers(mock);
-    mockGetSaml2ProviderByLocationAndId(mock);
-    mockGetSaml2ProviderMetadata(mock);
-    mockGetScript(mock);
-    const exportData = await Saml2.exportSaml2Provider(entityId);
-    expect(
-      isEqualJson(exportData, Saml2.createSaml2ExportTemplate(), [
-        'meta',
-        'script',
-        'hosted',
-        'remote',
-        'metadata',
-      ])
-    ).toBeTruthy();
-    expect(exportData.saml[location][entityId64]).toBeTruthy();
-    expect(exportData.saml.metadata[entityId64]).toBeTruthy();
-    expect(Object.keys(exportData.script).length).toBe(0);
-  });
-});
-
-describe('Saml2Ops - exportSaml2Providers()', () => {
-  test('exportSaml2Providers() 0: Method is implemented', async () => {
-    expect(Saml2.exportSaml2Providers).toBeDefined();
-  });
-
-  test('exportSaml2Providers() 1: Export saml2 entity providers', async () => {
-    mockGetSaml2Providers(mock);
-    mockGetSaml2ProviderByLocationAndId(mock);
-    mockGetSaml2ProviderMetadata(mock);
-    mockGetScript(mock);
-    const exportData = await Saml2.exportSaml2Providers();
-    expect(
-      isEqualJson(exportData, Saml2.createSaml2ExportTemplate(), [
-        'meta',
-        'script',
-        'hosted',
-        'remote',
-        'metadata',
-      ])
-    ).toBeTruthy();
-    expect(Object.entries(exportData.saml.hosted).length).toBe(5);
-    expect(Object.entries(exportData.saml.remote).length).toBe(3);
-    expect(Object.entries(exportData.saml.metadata).length).toBe(8);
-    expect(Object.keys(exportData.script).length).toBe(3);
-  });
-});
-
-describe('Saml2Ops - importSaml2Provider()', () => {
-  test('importSaml2Provider() 0: Method is implemented', async () => {
-    expect(Saml2.importSaml2Provider).toBeDefined();
-  });
-
-  test('importSaml2Provider() 1: Import hosted provider "https://idc.scheuber.io/am/saml2/IDPAzure"', async () => {
-    const entityLocation = Saml2ProiderLocation.HOSTED;
-    const entityId = 'https://idc.scheuber.io/am/saml2/IDPAzure';
-    const entityId64 = encodeBase64Url(entityId);
-    const importData: Saml2ExportInterface =
-      getSaml2ProviderImportData(entityId);
-    mockPutScript(mock, (mockScriptId, mockScriptObj) => {
-      expect(Object.keys(importData.script)).toContain(mockScriptId);
-      expect(mockScriptObj._id).toEqual(mockScriptId);
-    });
-    mockCreateSaml2Provider(
-      mock,
-      (
-        mockSaml2ProviderId64,
-        mockSaml2ProviderLocation,
-        mockSaml2ProviderObj
-      ) => {
-        expect(mockSaml2ProviderId64).toEqual(entityId64);
-        expect(mockSaml2ProviderLocation).toEqual(entityLocation);
-        expect(
-          isEqualJson(
-            importData.saml[entityLocation][entityId64],
-            mockSaml2ProviderObj,
-            ['_rev']
-          )
-        ).toBeTruthy();
-      }
-    );
-    // expect 5 assertions because import contains 1 script
-    expect.assertions(5);
-    await Saml2.importSaml2Provider(entityId, importData);
-  });
-
-  test('importSaml2Provider() 2: Import hosted provider "https://idc.scheuber.io/am/saml2/IDPBroadcom"', async () => {
-    const entityLocation = Saml2ProiderLocation.HOSTED;
-    const entityId = 'https://idc.scheuber.io/am/saml2/IDPBroadcom';
-    const entityId64 = encodeBase64Url(entityId);
-    const importData: Saml2ExportInterface =
-      getSaml2ProviderImportData(entityId);
-    mockPutScript(mock, (mockScriptId, mockScriptObj) => {
-      expect(Object.keys(importData.script)).toContain(mockScriptId);
-      expect(mockScriptObj._id).toEqual(mockScriptId);
-    });
-    mockCreateSaml2Provider(
-      mock,
-      (
-        mockSaml2ProviderId64,
-        mockSaml2ProviderLocation,
-        mockSaml2ProviderObj
-      ) => {
-        expect(mockSaml2ProviderId64).toEqual(entityId64);
-        expect(mockSaml2ProviderLocation).toEqual(entityLocation);
-        expect(
-          isEqualJson(
-            importData.saml[entityLocation][entityId64],
-            mockSaml2ProviderObj,
-            ['_rev']
-          )
-        ).toBeTruthy();
-      }
-    );
-    // expect 7 assertions because import contains 2 scripts
-    expect.assertions(7);
-    await Saml2.importSaml2Provider(entityId, importData);
-  });
-
-  test('importSaml2Provider() 3: Import remote provider "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/" with metadata', async () => {
-    const entityLocation = Saml2ProiderLocation.REMOTE;
-    const entityId =
-      'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/';
-    const entityId64 = encodeBase64Url(entityId);
-    const importData: Saml2ExportInterface =
-      getSaml2ProviderImportData(entityId);
-    mockPutScript(mock, (mockScriptId, mockScriptObj) => {
-      expect(Object.keys(importData.script)).toContain(mockScriptId);
-      expect(mockScriptObj._id).toEqual(mockScriptId);
-    });
-    mockCreateSaml2Provider(
-      mock,
-      (
-        mockSaml2ProviderId64,
-        mockSaml2ProviderLocation,
-        mockSaml2ProviderObj
-      ) => {
-        expect(mockSaml2ProviderId64).toEqual(entityId64);
-        expect(mockSaml2ProviderLocation).toEqual(entityLocation);
-        // this is an import of a remote identity provider, which can only be done using SAML2 metadata
-        expect(mockSaml2ProviderObj.standardMetadata).toEqual(
-          convertTextArrayToBase64Url(importData.saml.metadata[entityId64])
+async function stageProvider(provider: { entityId: string }, create = true) {
+  // delete if exists, then create
+  try {
+    await Saml2.getSaml2Provider(provider.entityId);
+    await Saml2.deleteSaml2Provider(provider.entityId);
+  } catch (error) {
+    if (error.isAxiosError) {
+      console.log(
+        `Error deleting provider '${provider.entityId}': ${error.message}`
+      );
+      console.dir(error.response?.data);
+    }
+  } finally {
+    if (create) {
+      try {
+        await Saml2.importSaml2Provider(
+          provider.entityId,
+          getSaml2ProviderImportData(provider.entityId)
         );
+      } catch (error) {
+        console.log(
+          `Error importing provider '${provider.entityId}': ${error.message}`
+        );
+        console.dir(error.response?.data);
       }
-    );
-    // expect only 3 assertions because import contains no scripts
-    expect.assertions(3);
-    await Saml2.importSaml2Provider(entityId, importData);
-  });
-});
+    }
+  }
+}
 
-describe('Saml2Ops - importSaml2Providers()', () => {
-  test('importSaml2Providers() 0: Method is implemented', async () => {
-    expect(Saml2.importSaml2Providers).toBeDefined();
+describe('Saml2Ops', () => {
+  const provider1 = {
+    entityId: 'iSPAzure',
+    location: Saml2ProiderLocation.HOSTED,
+    entityId64: encodeBase64Url('iSPAzure'),
+  };
+  const provider2 = {
+    entityId: 'urn:federation:MicrosoftOnline',
+    location: Saml2ProiderLocation.REMOTE,
+    entityId64: encodeBase64Url('urn:federation:MicrosoftOnline'),
+  };
+  const provider3 = {
+    entityId: 'https://idc.scheuber.io/am/saml2/IDPFedlet',
+    location: Saml2ProiderLocation.HOSTED,
+    entityId64: encodeBase64Url('https://idc.scheuber.io/am/saml2/IDPFedlet'),
+  };
+  const provider4 = {
+    entityId: 'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/',
+    location: Saml2ProiderLocation.REMOTE,
+    entityId64: encodeBase64Url(
+      'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/'
+    ),
+  };
+  const provider5 = {
+    entityId: 'https://idc.scheuber.io/am/saml2/IDPAzure',
+    location: Saml2ProiderLocation.HOSTED,
+    entityId64: encodeBase64Url('https://idc.scheuber.io/am/saml2/IDPAzure'),
+  };
+  const provider6 = {
+    entityId: 'https://idc.scheuber.io/am/saml2/IDPBroadcom',
+    location: Saml2ProiderLocation.HOSTED,
+    entityId64: encodeBase64Url('https://idc.scheuber.io/am/saml2/IDPBroadcom'),
+  };
+  const provider7 = {
+    entityId: 'idp',
+    location: Saml2ProiderLocation.REMOTE,
+    entityId64: encodeBase64Url('idp'),
+  };
+  const provider8 = {
+    entityId: 'SPAzure',
+    location: Saml2ProiderLocation.HOSTED,
+    entityId64: encodeBase64Url('SPAzure'),
+  };
+  const provider9 = {
+    entityId: 'volkerDevSP',
+    location: Saml2ProiderLocation.HOSTED,
+    entityId64: encodeBase64Url('volkerDevSP'),
+  };
+  const provider10 = {
+    entityId: 'https://saml.mytestrun.com/sp',
+    location: Saml2ProiderLocation.REMOTE,
+    entityId64: encodeBase64Url('https://saml.mytestrun.com/sp'),
+  };
+  // in recording mode, setup test data before recording
+  beforeAll(async () => {
+    if (
+      process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '1'
+    ) {
+      await stageProvider(provider1);
+      await stageProvider(provider2);
+      await stageProvider(provider3);
+      await stageProvider(provider4);
+      await stageProvider(provider5, false);
+      await stageProvider(provider6, false);
+      await stageProvider(provider7, false);
+    } else if (
+      process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '2'
+    ) {
+      await stageProvider(provider1, false);
+      await stageProvider(provider2, false);
+      await stageProvider(provider3, false);
+      await stageProvider(provider4, false);
+      await stageProvider(provider5, false);
+      await stageProvider(provider6, false);
+      await stageProvider(provider7, false);
+      await stageProvider(provider8, false);
+      await stageProvider(provider9, false);
+      await stageProvider(provider10, false);
+    } else if (
+      process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '5'
+    ) {
+      await stageProvider(provider1, false);
+      await stageProvider(provider2, false);
+      await stageProvider(provider7, false);
+      await stageProvider(provider8, false);
+      await stageProvider(provider9, false);
+    }
+    // Pahses 3 + 4
+    else if (process.env.FRODO_POLLY_MODE === 'record') {
+      await stageProvider(provider1);
+      await stageProvider(provider2);
+      await stageProvider(provider3);
+      await stageProvider(provider4);
+      await stageProvider(provider5);
+      await stageProvider(provider6);
+      await stageProvider(provider7);
+    }
+  });
+  // in recording mode, remove test data after recording
+  afterAll(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      await stageProvider(provider1, false);
+      await stageProvider(provider2, false);
+      await stageProvider(provider3, false);
+      await stageProvider(provider4, false);
+      await stageProvider(provider5, false);
+      await stageProvider(provider6, false);
+      await stageProvider(provider7, false);
+      await stageProvider(provider8, false);
+      await stageProvider(provider9, false);
+      await stageProvider(provider10, false);
+    }
   });
 
-  test('importSaml2Providers() 1: Import providers', async () => {
-    const importData: Saml2ExportInterface = getSaml2ProvidersImportData();
-    let scriptIds = Object.keys(importData.script);
-    let hostedEntityIds64 = Object.keys(importData.saml.hosted);
-    let remoteEntityIds64 = Object.keys(importData.saml.remote);
-    const allEntityIds64 = hostedEntityIds64.concat(remoteEntityIds64);
-    let metaDataIds64 = Object.keys(importData.saml.metadata);
-    mockPutScript(mock, (mockScriptId, mockScriptObj) => {
-      expect(scriptIds).toContain(mockScriptId);
-      expect(mockScriptObj._id).toEqual(mockScriptId);
-      scriptIds = scriptIds.filter((scriptId) => scriptId !== mockScriptId);
+  // Phase 1
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '1')
+  ) {
+    describe('createSaml2ExportTemplate()', () => {
+      test('0: Method is implemented', () => {
+        expect(Saml2.createSaml2ExportTemplate).toBeDefined();
+      });
+
+      test('1: Create saml2 export template', () => {
+        const response = Saml2.createSaml2ExportTemplate();
+        expect(response).toMatchSnapshot();
+      });
     });
-    mockCreateSaml2Provider(
-      mock,
-      (
-        mockSaml2ProviderId64,
-        mockSaml2ProviderLocation,
-        mockSaml2ProviderObj
-      ) => {
-        expect(allEntityIds64).toContain(mockSaml2ProviderId64);
-        expect(mockSaml2ProviderLocation).toEqual(
-          hostedEntityIds64.includes(mockSaml2ProviderId64)
-            ? Saml2ProiderLocation.HOSTED
-            : Saml2ProiderLocation.REMOTE
+
+    describe('getSaml2ProviderStubs()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.getSaml2ProviderStubs).toBeDefined();
+      });
+
+      test('1: Get saml2 provider stubs', async () => {
+        const response = await Saml2.getSaml2ProviderStubs();
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('getProviderByLocationAndId()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.getProviderByLocationAndId).toBeDefined();
+      });
+
+      test(`1: Get hosted provider '${provider1.entityId}'`, async () => {
+        const response = await Saml2.getProviderByLocationAndId(
+          provider1.location,
+          provider1.entityId64
         );
-        // for hosted providers compare the provider config, for remote providers compare the metadata
-        expect(
-          isEqualJson(
-            importData.saml[mockSaml2ProviderLocation][mockSaml2ProviderId64],
-            mockSaml2ProviderObj,
-            ['_rev']
-          ) ||
-            mockSaml2ProviderObj.standardMetadata ===
-              convertTextArrayToBase64Url(
-                importData.saml.metadata[mockSaml2ProviderId64]
-              )
-        ).toBeTruthy();
-        hostedEntityIds64 = hostedEntityIds64.filter(
-          (saml2ProviderId64) => saml2ProviderId64 !== mockSaml2ProviderId64
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`2: Get remote provider '${provider2.entityId}'`, async () => {
+        const response = await Saml2.getProviderByLocationAndId(
+          provider2.location,
+          provider2.entityId64
         );
-        remoteEntityIds64 = remoteEntityIds64.filter(
-          (saml2ProviderId64) => saml2ProviderId64 !== mockSaml2ProviderId64
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('getProviderMetadataUrl()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.getProviderMetadataUrl).toBeDefined();
+      });
+
+      test(`1: Get metadata url for hosted provider '${provider3.entityId}'`, async () => {
+        const response = Saml2.getProviderMetadataUrl(provider3.entityId);
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`2: Get metadata url for remote provider '${provider4.entityId}'`, async () => {
+        const response = Saml2.getProviderMetadataUrl(provider4.entityId);
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('getProviderMetadata()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.getProviderMetadata).toBeDefined();
+      });
+
+      test(`1: Get metadata for hosted provider '${provider1.entityId}'`, async () => {
+        const response = await Saml2.getProviderMetadata(provider1.entityId);
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`2: Get metadata for remote provider '${provider4.entityId}'`, async () => {
+        const response = await Saml2.getProviderMetadata(provider4.entityId);
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('getSaml2ProviderStub()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.getSaml2ProviderStub).toBeDefined();
+      });
+
+      test(`1: Get stub of hosted provider '${provider1.entityId}'`, async () => {
+        const response = await Saml2.getSaml2ProviderStub(provider1.entityId);
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`2: Get stub of remote provider '${provider4.entityId}'`, async () => {
+        const response = await Saml2.getSaml2ProviderStub(provider4.entityId);
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('getSaml2Provider()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.getSaml2Provider).toBeDefined();
+      });
+
+      test(`1: Get hosted provider '${provider1.entityId}'`, async () => {
+        const response = await Saml2.getSaml2Provider(provider1.entityId);
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`2: Get remote provider '${provider4.entityId}'`, async () => {
+        const response = await Saml2.getSaml2Provider(provider4.entityId);
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('exportSaml2Provider()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.exportSaml2Provider).toBeDefined();
+      });
+
+      test(`1: Export hosted provider '${provider1.entityId}'`, async () => {
+        const response = await Saml2.exportSaml2Provider(provider1.entityId);
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`2: Export remote provider '${provider4.entityId}'`, async () => {
+        const response = await Saml2.exportSaml2Provider(provider4.entityId);
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('exportSaml2Providers()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.exportSaml2Providers).toBeDefined();
+      });
+
+      test('1: Export saml2 entity providers', async () => {
+        const response = await Saml2.exportSaml2Providers();
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('importSaml2Provider()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.importSaml2Provider).toBeDefined();
+      });
+
+      test(`1: Import hosted provider '${provider5.entityId}'`, async () => {
+        expect.assertions(1);
+        const response = await Saml2.importSaml2Provider(
+          provider5.entityId,
+          getSaml2ProviderImportData(provider5.entityId)
         );
-        if (mockSaml2ProviderObj.standardMetadata) {
-          metaDataIds64 = metaDataIds64.filter(
-            (saml2ProviderId64) => saml2ProviderId64 !== mockSaml2ProviderId64
-          );
-        }
-      }
-    );
-    expect.assertions(40);
-    await Saml2.importSaml2Providers(importData);
-    expect(scriptIds.length).toBe(0);
-    expect(hostedEntityIds64.length).toBe(0);
-    expect(remoteEntityIds64.length).toBe(0);
-    // frodo exports metadata for both hosted and remote providers but on import it is only required for remote providers
-    expect(metaDataIds64.length).toBe(6);
-  });
-});
+        expect(response).toBeTruthy();
+      });
 
-describe('Saml2Ops - deleteSaml2Provider()', () => {
-  test('deleteSaml2Provider() 0: Method is implemented', async () => {
-    expect(Saml2.deleteSaml2Provider).toBeDefined();
-  });
-});
+      test(`2: Import hosted provider '${provider6.entityId}'`, async () => {
+        expect.assertions(1);
+        const response = await Saml2.importSaml2Provider(
+          provider6.entityId,
+          getSaml2ProviderImportData(provider6.entityId)
+        );
+        expect(response).toBeTruthy();
+      });
 
-describe('Saml2Ops - deleteSaml2Providers()', () => {
-  test('deleteSaml2Providers() 0: Method is implemented', async () => {
-    expect(Saml2.deleteSaml2Providers).toBeDefined();
-  });
-});
+      test(`3: Import remote provider '${provider7.entityId}' with metadata`, async () => {
+        expect.assertions(1);
+        const response = await Saml2.importSaml2Provider(
+          provider7.entityId,
+          getSaml2ProviderImportData(provider7.entityId)
+        );
+        expect(response).toBeTruthy();
+      });
+    });
 
-describe('Saml2Ops - getRawProviders()', () => {
-  test('getRawProviders() 0: Method is implemented', async () => {
-    expect(Saml2.getRawProviders).toBeDefined();
-  });
-});
+    describe('getRawProviders()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.getRawSaml2Providers).toBeDefined();
+      });
+    });
 
-describe('Saml2Ops - getRawProvider()', () => {
-  test('getRawProvider() 0: Method is implemented', async () => {
-    expect(Saml2.getRawProvider).toBeDefined();
-  });
-});
+    describe('getRawProvider()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.getRawSaml2Provider).toBeDefined();
+      });
+    });
 
-describe('Saml2Ops - putRawProvider()', () => {
-  test('putRawProvider() 0: Method is implemented', async () => {
-    expect(Saml2.putRawProvider).toBeDefined();
-  });
+    describe('putRawProvider()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.putRawSaml2Provider).toBeDefined();
+      });
+    });
+  }
+
+  // Phase 2
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '2')
+  ) {
+    describe('importSaml2Providers()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.importSaml2Providers).toBeDefined();
+      });
+
+      test('1: Import providers', async () => {
+        expect.assertions(2);
+        const response = await Saml2.importSaml2Providers(
+          getSaml2ProvidersImportData()
+        );
+        expect(response.failures).toBe(0);
+        expect(response.warnings).toBe(0);
+      });
+    });
+  }
+
+  // Phase 3
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '3')
+  ) {
+    describe('deleteSaml2Provider()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.deleteSaml2Provider).toBeDefined();
+      });
+
+      test(`1: Delete hosted provider '${provider3.entityId}'`, async () => {
+        const response = await Saml2.deleteSaml2Provider(provider3.entityId);
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`2: Delete remote provider '${provider4.entityId}'`, async () => {
+        const response = await Saml2.deleteSaml2Provider(provider4.entityId);
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('deleteRawSaml2Provider()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.deleteRawSaml2Provider).toBeDefined();
+      });
+
+      test(`1: Delete raw hosted provider '${provider1.entityId}'`, async () => {
+        const response = await Saml2.deleteRawSaml2Provider(provider1.entityId);
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`2: Delete raw remote provider '${provider2.entityId}'`, async () => {
+        const response = await Saml2.deleteRawSaml2Provider(provider2.entityId);
+        expect(response).toMatchSnapshot();
+      });
+    });
+  }
+
+  // Phase 4
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '4')
+  ) {
+    describe('deleteSaml2Providers()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.deleteSaml2Providers).toBeDefined();
+      });
+
+      test(`1: Delete all providers`, async () => {
+        const response = await Saml2.deleteSaml2Providers();
+        expect(response).toMatchSnapshot();
+      });
+    });
+  }
+
+  // Phase 5
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '5')
+  ) {
+    describe('deleteRawSaml2Providers()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Saml2.deleteRawSaml2Providers).toBeDefined();
+      });
+
+      test(`1: Delete all raw providers`, async () => {
+        const response = await Saml2.deleteRawSaml2Providers();
+        expect(response).toMatchSnapshot();
+      });
+    });
+  }
 });
