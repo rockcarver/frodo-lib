@@ -1,210 +1,223 @@
-import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { applyNameCollisionPolicy } from './utils/OpsUtils';
 import {
   createProgressIndicator,
-  createTable,
+  debugMessage,
   printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
 } from './utils/Console';
-import { getScriptByName, getScripts, putScript } from '../api/ScriptApi';
-import wordwrap from './utils/Wordwrap';
+import {
+  getScript as _getScript,
+  getScriptByName as _getScriptByName,
+  getScripts as _getScripts,
+  putScript as _putScript,
+  deleteScript as _deleteScript,
+} from '../api/ScriptApi';
 import {
   convertBase64TextToArray,
   convertTextArrayToBase64,
-  getTypedFilename,
-  saveToFile,
-  titleCase,
-  validateImport,
+  getMetadata,
 } from './utils/ExportImportUtils';
-import * as state from '../shared/State';
+import { ScriptSkeleton } from '../api/ApiTypes';
+import { ExportMetaData } from '../ops/OpsTypes';
+
+export interface ScriptExportInterface {
+  meta?: ExportMetaData;
+  script: Record<string, ScriptSkeleton>;
+}
 
 /**
- * List scripts
+ * Create an empty idp export template
+ * @returns {ScriptExportInterface} an empty idp export template
  */
-export async function listScripts(long = false) {
+export function createScriptExportTemplate(): ScriptExportInterface {
+  return {
+    meta: getMetadata(),
+    script: {},
+  } as ScriptExportInterface;
+}
+
+/**
+ * Get all scripts
+ * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
+ */
+export async function getScripts(): Promise<ScriptSkeleton[]> {
+  const { result } = await _getScripts();
+  return result;
+}
+
+/**
+ * Get script by id
+ * @param {string} scriptId script uuid
+ * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
+ */
+export async function getScript(scriptId: string): Promise<ScriptSkeleton> {
+  const response = await _getScript(scriptId);
+  return response;
+}
+
+/**
+ * Get script by name
+ * @param {string} name name of the script
+ * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
+ */
+export async function getScriptByName(name: string): Promise<ScriptSkeleton> {
+  const { result } = await _getScriptByName(name);
+  switch (result.length) {
+    case 1:
+      return result[0];
+    case 0:
+      throw new Error(`Script '${name}' not found`);
+    default:
+      throw new Error(`${result.length} scripts '${name}' found`);
+  }
+}
+
+/**
+ * Create or update script
+ * @param {string} scriptId script uuid
+ * @param {ScriptSkeleton} scriptData script object
+ * @returns {Promise<boolean>} a status object
+ */
+export async function putScript(
+  scriptId: string,
+  scriptData: ScriptSkeleton
+): Promise<boolean> {
   try {
-    const scripts = (await getScripts()).result;
-    scripts.sort((a, b) => a.name.localeCompare(b.name));
-    if (long) {
-      const table = createTable([
-        'Name',
-        'UUID',
-        'Language',
-        'Context',
-        'Description',
-      ]);
-      const langMap = { JAVASCRIPT: 'JS', GROOVY: 'Groovy' };
-      scripts.forEach((script) => {
-        table.push([
-          wordwrap(script.name, 25, '  '),
-          script._id,
-          langMap[script.language],
-          wordwrap(titleCase(script.context.split('_').join(' ')), 25),
-          wordwrap(script.description, 30),
-        ]);
-      });
-      printMessage(table.toString(), 'data');
-    } else {
-      scripts.forEach((script) => {
-        printMessage(`${script.name}`, 'data');
-      });
+    if (Array.isArray(scriptData.script)) {
+      scriptData.script = convertTextArrayToBase64(scriptData.script);
     }
+    const result = await _putScript(scriptId, scriptData);
+    return result;
   } catch (error) {
-    printMessage(`Error listing scripts - ${error}`, 'error');
-  }
-}
-
-/**
- * Export script to file
- * @param {String} name script name
- * @param {String} file file name
- */
-export async function exportScriptByName(name, file) {
-  let fileName = getTypedFilename(name, 'script');
-  if (file) {
-    fileName = file;
-  }
-  const scriptData = (await getScriptByName(name)).result;
-  if (scriptData.length > 1) {
-    printMessage(`Multiple scripts with name ${name} found...`, 'error');
-  }
-  scriptData.forEach((element) => {
-    const scriptTextArray = convertBase64TextToArray(element.script);
-    // eslint-disable-next-line no-param-reassign
-    element.script = scriptTextArray;
-  });
-  saveToFile('script', scriptData, '_id', fileName);
-}
-
-/**
- * Export all scripts to single file
- * @param {String} file file name
- */
-export async function exportScriptsToFile(file) {
-  let fileName = getTypedFilename(`all${state.getRealm()}Scripts`, 'script');
-  if (file) {
-    fileName = file;
-  }
-  const scriptList = (await getScripts()).result;
-  const allScriptsData = [];
-  createProgressIndicator(scriptList.length, 'Exporting script');
-  for (const item of scriptList) {
-    updateProgressIndicator(`Reading script ${item.name}`);
-    // eslint-disable-next-line no-await-in-loop
-    const scriptData = (await getScriptByName(item.name)).result;
-    scriptData.forEach((element) => {
-      const scriptTextArray = convertBase64TextToArray(element.script);
-      // eslint-disable-next-line no-param-reassign
-      element.script = scriptTextArray;
-      allScriptsData.push(element);
-    });
-  }
-  stopProgressIndicator('Done');
-  saveToFile('script', allScriptsData, '_id', fileName);
-}
-
-/**
- * Export all scripts to individual files
- */
-export async function exportScriptsToFiles() {
-  const scriptList = (await getScripts()).result;
-  createProgressIndicator(scriptList.length, 'Exporting script');
-  for (const item of scriptList) {
-    updateProgressIndicator(`Reading script ${item.name}`);
-    // eslint-disable-next-line no-await-in-loop
-    const scriptData = (await getScriptByName(item.name)).result;
-    scriptData.forEach((element) => {
-      const scriptTextArray = convertBase64TextToArray(element.script);
-      // eslint-disable-next-line no-param-reassign
-      element.script = scriptTextArray;
-    });
-    const fileName = getTypedFilename(item.name, 'script');
-    saveToFile('script', scriptData, '_id', fileName);
-  }
-  stopProgressIndicator('Done');
-}
-
-/**
- * Import script
- * @param {String} id script uuid
- * @param {Object} data script object
- * @returns {Object} a status object
- */
-export async function createOrUpdateScript(id, data) {
-  try {
-    await putScript(id, data);
-    return { error: false, name: data.name };
-  } catch (e) {
-    if (e.response?.status === 409) {
+    if (error.response?.status === 409) {
       printMessage(
-        `createOrUpdateScript WARNING: script with name ${data.name} already exists, using renaming policy... <name> => <name - imported (n)>`,
+        `createOrUpdateScript WARNING: script with name ${scriptData.name} already exists, using renaming policy... <name> => <name - imported (n)>`,
         'warn'
       );
-      const newName = applyNameCollisionPolicy(data.name);
-      // console.log(newName);
-      printMessage(`Trying to save script as ${newName}`, 'warn');
-      // eslint-disable-next-line no-param-reassign
-      data.name = newName;
-      await createOrUpdateScript(id, data);
-      return { error: false, name: data.name };
+      const newName = applyNameCollisionPolicy(scriptData.name);
+      scriptData.name = newName;
+      const result = await putScript(scriptId, scriptData);
+      printMessage(`Saved script as ${newName}`, 'warn');
+      return result;
     }
-    printMessage(
-      `createOrUpdateScript ERROR: put script error, script ${id} - ${e.message}`,
-      'error'
-    );
-    return { error: true, name: data.name };
+    throw error;
   }
 }
 
-export async function importScriptsFromFile(name, file, reUuid = false) {
-  fs.readFile(file, 'utf8', (err, data) => {
-    if (err) throw err;
-    const scriptData = JSON.parse(data);
-    if (validateImport(scriptData.meta)) {
-      createProgressIndicator(Object.keys(scriptData.script).length, '');
-      for (const existingId in scriptData.script) {
-        if ({}.hasOwnProperty.call(scriptData.script, existingId)) {
-          let newId = existingId;
-          // console.log(id);
-          const encodedScript = convertTextArrayToBase64(
-            scriptData.script[existingId].script
-          );
-          scriptData.script[existingId].script = encodedScript;
-          if (reUuid) {
-            newId = uuidv4();
-            // printMessage(
-            //   `Re-uuid-ing script ${scriptData.script[existingId].name} ${existingId} => ${newId}...`
-            // );
-            scriptData.script[existingId]._id = newId;
-          }
-          if (name) {
-            // printMessage(
-            //   `Renaming script ${scriptData.script[existingId].name} => ${options.script}...`
-            // );
-            scriptData.script[existingId].name = name;
-          }
-          updateProgressIndicator(
-            `Importing ${scriptData.script[existingId].name}`
-          );
-          // console.log(scriptData.script[id]);
-          createOrUpdateScript(newId, scriptData.script[existingId]).then(
-            (result) => {
-              if (result == null)
-                printMessage(
-                  `Error importing ${scriptData.script[existingId].name}`,
-                  'error'
-                );
-            }
-          );
-          if (name) break;
-        }
-      }
-      stopProgressIndicator('Done');
-      // printMessage('Done');
-    } else {
-      printMessage('Import validation failed...', 'error');
+/**
+ * Delete script by id
+ * @param {string} scriptId script uuid
+ * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
+ */
+export async function deleteScript(scriptId: string): Promise<ScriptSkeleton> {
+  const response = await _deleteScript(scriptId);
+  return response;
+}
+
+/**
+ * Export script by id
+ * @param {string} scriptId script uuid
+ * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
+ */
+export async function exportScript(
+  scriptId: string
+): Promise<ScriptExportInterface> {
+  debugMessage(`ScriptOps.exportScriptById: start`);
+  const scriptData = await _getScript(scriptId);
+  scriptData.script = convertBase64TextToArray(scriptData.script);
+  const exportData = createScriptExportTemplate();
+  exportData.script[scriptData._id] = scriptData;
+  debugMessage(`ScriptOps.exportScriptById: end`);
+  return exportData;
+}
+
+/**
+ * Export script by name
+ * @param {string} name script name
+ * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
+ */
+export async function exportScriptByName(
+  name: string
+): Promise<ScriptExportInterface> {
+  debugMessage(`ScriptOps.exportScriptByName: start`);
+  const scriptData = await getScriptByName(name);
+  scriptData.script = convertBase64TextToArray(scriptData.script);
+  const exportData = createScriptExportTemplate();
+  exportData.script[scriptData._id] = scriptData;
+  debugMessage(`ScriptOps.exportScriptByName: end`);
+  return exportData;
+}
+
+/**
+ * Export all scripts
+ * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
+ */
+export async function exportScripts(): Promise<ScriptExportInterface> {
+  const scriptList = await getScripts();
+  const exportData = createScriptExportTemplate();
+  createProgressIndicator(
+    scriptList.length,
+    `Exporting ${scriptList.length} scripts...`
+  );
+  for (const script of scriptList) {
+    updateProgressIndicator(`Reading script ${script.name}`);
+    const scriptData = await getScriptByName(script.name);
+    scriptData.script = convertBase64TextToArray(scriptData.script);
+    exportData.script[scriptData._id] = scriptData;
+  }
+  stopProgressIndicator(`Exported ${scriptList.length} scripts.`);
+  return exportData;
+}
+
+/**
+ * Import scripts
+ * @param {string} name Optional name of script. If supplied, only the script of that name is imported
+ * @param {ScriptExportInterface} importData Script import data
+ * @param {boolean} reUuid true to generate a new uuid for each script on import, false otherwise
+ * @returns {Promise<boolean>} true if no errors occurred during import, false otherwise
+ */
+export async function importScripts(
+  name: string,
+  importData: ScriptExportInterface,
+  reUuid = false
+): Promise<boolean> {
+  let outcome = true;
+  debugMessage(`ScriptOps.importScriptsFromFile: start`);
+  createProgressIndicator(
+    Object.keys(importData.script).length,
+    'Importing scripts...'
+  );
+  for (const existingId of Object.keys(importData.script)) {
+    let newId = existingId;
+    if (reUuid) {
+      newId = uuidv4();
+      debugMessage(
+        `ScriptOps.importScriptsFromFile: Re-uuid-ing script ${importData.script[existingId].name} ${existingId} => ${newId}...`
+      );
+      importData.script[existingId]._id = newId;
     }
-  });
+    if (name) {
+      debugMessage(
+        `ScriptOps.importScriptsFromFile: Renaming script ${importData.script[existingId].name} => ${name}...`
+      );
+      importData.script[existingId].name = name;
+    }
+    try {
+      await putScript(newId, importData.script[existingId]);
+      updateProgressIndicator(`Imported ${importData.script[existingId].name}`);
+    } catch (error) {
+      outcome = false;
+      printMessage(
+        `Error importing script '${importData.script[existingId].name}': ${error.message}`,
+        'error'
+      );
+      debugMessage(error);
+    }
+    if (name) break;
+  }
+  stopProgressIndicator('Done');
+  debugMessage(`ScriptOps.importScriptsFromFile: end`);
+  return outcome;
 }

@@ -88,6 +88,29 @@ export async function getProviderByLocationAndId(
 }
 
 /**
+ * Geta SAML2 entity provider by location and id
+ * @param {string} location Entity provider location (hosted or remote)
+ * @param {string} entityId64 Base64-encoded provider entity id
+ * @returns {Promise} a promise that resolves to a saml2 entity provider object
+ */
+export async function deleteProviderByLocationAndId(
+  location: string,
+  entityId64: string
+) {
+  const urlString = util.format(
+    providerByLocationAndIdURLTemplate,
+    state.getHost(),
+    getCurrentRealmPath(),
+    location,
+    entityId64
+  );
+  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+/**
  * Get a SAML2 entity provider's metadata URL by entity id
  * @param {string} entityId SAML2 entity id
  * @returns {string} the URL to get the metadata from
@@ -186,7 +209,7 @@ export async function updateProvider(location, providerData) {
  * @param {string} entityId Provider entity id
  * @returns {Promise} a promise that resolves to a provider object
  */
-export async function deleteProvider(entityId) {
+export async function deleteRawProvider(entityId) {
   const urlString = util.format(
     samlApplicationByEntityIdURLTemplate,
     state.getHost(),
