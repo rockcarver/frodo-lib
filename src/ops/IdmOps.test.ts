@@ -190,4 +190,15 @@ describe('IdmOps', () => {
       expect(response).toMatchSnapshot();
     });
   });
+
+  describe('testConnectorServers()', () => {
+    test('0: Method is implemented', async () => {
+      expect(Idm.testConnectorServers).toBeDefined();
+    });
+
+    test(`1: Test connector servers`, async () => {
+      const response = await Idm.testConnectorServers();
+      expect(response).toMatchSnapshot();
+    });
+  });
 });

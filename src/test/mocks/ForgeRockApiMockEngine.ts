@@ -686,6 +686,23 @@ export function getAgent(agentType, agentId) {
  **
  **/
 
+// openidm/system?_action=testConnectorServers
+export function mockGetAllConnectorServers(mock: MockAdapter) {
+  mock.onGet(/.*?\/openidm\/system\.+/).reply(function () {
+    const mockStatus = 200;
+    const mockResponse = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          './IdmConfigApi/getAllConnectorServers/openicf.json'
+        ),
+        'utf8'
+      )
+    );
+    return [mockStatus, mockResponse];
+  });
+}
+
 export function mockGetAllConfigEntities(mock: MockAdapter) {
   mock.onGet(/.*?\/openidm\/config$/).reply(function () {
     const mockStatus = 200;
