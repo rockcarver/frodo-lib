@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "origin": "https://platform.localtest.me/am",
+    "originAmVersion": "7.2.0",
+    "exportedBy": "amadmin",
+    "exportDate": "2022-11-15T08:25:17.684Z",
+    "exportTool": "frodo",
+    "exportToolVersion": "v0.16.2-6 [v16.13.2]"
+  },
+  "service": {
+    "baseurl": {
+      "_id": "",
+      "_rev": "-1246849815",
+      "source": "FIXED_VALUE",
+      "fixedValue": "https://platform.localtest.me",
+      "contextPath": "/am",
+      "_type": {
+        "_id": "baseurl",
+        "name": "Base URL Source",
+        "collection": false
+      },
+      "nextDescendents": []
+    }
+  }
+}
