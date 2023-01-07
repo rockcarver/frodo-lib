@@ -8,25 +8,6 @@ const idmConfigURLTemplate = '%s/openidm/config/%s';
 const idmConfigEntityQueryTemplate = '%s/openidm/config?_queryFilter=%s';
 const idmManagedObjectURLTemplate =
   '%s/openidm/managed/%s?_queryFilter=true&_pageSize=10000';
-const idmSystemURLTemplate = '%s/openidm/system?_action=testConnectorServers';
-
-/**
- * Get all connector servers
- * @returns {Promise} a promise that resolves to status of all IDM RCS
- */
-export async function getAllConnectorServers() {
-  const urlString = util.format(
-    idmSystemURLTemplate,
-    getTenantURL(storage.session.getTenant())
-  );
-
-  try {
-    const { data } = await generateIdmApi().post(urlString);
-    return data;
-  } catch (error) {
-    throw Error(`Unable to test connector server status: ${error}`);
-  }
-}
 
 /**
  * Get all IDM config entities
