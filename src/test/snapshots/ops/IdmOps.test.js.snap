@@ -10781,3 +10781,13 @@ exports[`IdmOps queryAllManagedObjectsByType() 1: Query managed objects of type 
   "totalPagedResultsPolicy": "NONE",
 }
 `;
+
+exports[`IdmOps testConnectorServers() 1: Test connector servers 1`] = `
+[
+  {
+    "name": "rcsdocker",
+    "ok": true,
+    "type": "remoteConnectorClient",
+  },
+]
+`;
