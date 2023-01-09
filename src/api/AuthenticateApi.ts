@@ -29,19 +29,33 @@ export function fillCallbacks(
   return body;
 }
 
-export async function step(body = {}, config = {}, realm = '/') {
-  const urlString = state.getAuthenticationService()
-    ? util.format(
-        authenticateWithServiceUrlTemplate,
-        state.getHost(),
-        getRealmPath(realm),
-        state.getAuthenticationService()
-      )
-    : util.format(
-        authenticateUrlTemplate,
-        state.getHost(),
-        getRealmPath(realm)
-      );
+/**
+ *
+ * @param {any} body POST request body
+ * @param {any} config request config
+ * @param {string} realm realm
+ * @param {string} service name of authentication service/journey
+ * @returns Promise resolving to the authentication service response
+ */
+export async function step(
+  body = {},
+  config = {},
+  realm = '/',
+  service: string = undefined
+) {
+  const urlString =
+    service || state.getAuthenticationService()
+      ? util.format(
+          authenticateWithServiceUrlTemplate,
+          state.getHost(),
+          getRealmPath(realm),
+          service || state.getAuthenticationService()
+        )
+      : util.format(
+          authenticateUrlTemplate,
+          state.getHost(),
+          getRealmPath(realm)
+        );
   const { data } = await generateAmApi(getApiConfig()).post(
     urlString,
     body,

@@ -51,15 +51,15 @@ export async function putConfigEntity(
 
 /**
  * Query managed objects
- * @param {String} type managed object type
- * @param {[String]} fields fields to retrieve
- * @param {String} pageCookie paged results cookie
+ * @param {string} type managed object type
+ * @param {string[]} fields fields to retrieve
+ * @param {string} pageCookie paged results cookie
  * @returns {Promise<{result: any[]; resultCount: number; pagedResultsCookie: any; totalPagedResultsPolicy: string; totalPagedResults: number; remainingPagedResults: number;}>} a promise that resolves to managed objects of the desired type
  */
 export async function queryAllManagedObjectsByType(
-  type,
-  fields,
-  pageCookie
+  type: string,
+  fields: string[] = [],
+  pageCookie: string = undefined
 ): Promise<{
   result: unknown[];
   resultCount: number;
