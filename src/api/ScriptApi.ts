@@ -46,7 +46,7 @@ export async function getScriptByName(
     scriptQueryURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
-    scriptName
+    encodeURIComponent(scriptName)
   );
   const { data } = await generateAmApi(getApiConfig()).get<
     PagedResult<ScriptSkeleton>
@@ -59,7 +59,7 @@ export async function getScriptByName(
 /**
  * Get script by id
  * @param {String} scriptId script uuid/name
- * @returns {Promise} a promise that resolves to an object containing a script object
+ * @returns {Promise} a promise that resolves to a script object
  */
 export async function getScript(scriptId) {
   const urlString = util.format(
@@ -94,5 +94,23 @@ export async function putScript(scriptId, scriptData) {
       withCredentials: true,
     }
   );
+  return data;
+}
+
+/**
+ * Delete script by id
+ * @param {String} scriptId script uuid/name
+ * @returns {Promise} a promise that resolves to a script object
+ */
+export async function deleteScript(scriptId) {
+  const urlString = util.format(
+    scriptURLTemplate,
+    state.getHost(),
+    getCurrentRealmPath(),
+    scriptId
+  );
+  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
+    withCredentials: true,
+  });
   return data;
 }

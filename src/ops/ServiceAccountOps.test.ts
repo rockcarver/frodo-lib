@@ -1,61 +1,96 @@
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
-import { state } from '../index';
-import * as globalConfig from '../storage/StaticStorage';
+/**
+ * To record and update snapshots, you must perform 3 steps in order:
+ *
+ * 1. Record API responses
+ *
+ *    To record API responses, you must call the test:record script and
+ *    override all the connection state variables required to connect to the
+ *    env to record from:
+ *
+ *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record ServiceAccountOps
+ *
+ *    The above command assumes that you have a connection profile for
+ *    'frodo-dev' on your development machine.
+ *
+ * 2. Update snapshots
+ *
+ *    After recording API responses, you must manually update/create snapshots
+ *    by running:
+ *
+ *        FRODO_DEBUG=1 npm run test:update ServiceAccountOps
+ *
+ * 3. Test your changes
+ *
+ *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
+ *    replay mode and make sure they all succeed as well:
+ *
+ *        npm run test:only ServiceAccountOps
+ *
+ * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
+ * in case things don't function as expected
+ */
+import { jest } from '@jest/globals';
 import { createJwkRsa, createJwks, getJwkRsaPublic } from './JoseOps';
 import * as ServiceAccount from './ServiceAccountOps';
-import { mockCreateManagedObject } from '../test/mocks/ForgeRockApiMockEngine';
-import { isEqualJson } from './utils/OpsUtils';
+import {
+  autoSetupPolly,
+  defaultMatchRequestsBy,
+} from '../utils/AutoSetupPolly';
 
-const mock = new MockAdapter(axios);
+// Increase timeout for this test as pipeline keeps failing with error:
+// Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
+jest.setTimeout(30000);
 
-const outputHandler = (message: string | object) => {
-  console.log(message);
-};
+// need to modify the default matching rules to allow the mocking to work for service account tests.
+const matchConfig = defaultMatchRequestsBy();
+matchConfig.body = false; // service account create requests are tricky because of the public key, which is different for each request
 
-state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
-state.setRealm('alpha');
-state.setCookieName('cookieName');
-state.setCookieValue('cookieValue');
-state.setDeploymentType(globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY);
-state.setDebug(true);
-state.setDebugHandler(outputHandler);
-state.setPrintHandler(outputHandler);
-state.setCurlirize(true);
-state.setCurlirizeHandler(outputHandler);
+autoSetupPolly(matchConfig);
 
-describe('SvcacctOps - createSvcacct()', () => {
-  test('createSvcacct() 0: Method is implemented', async () => {
-    expect(ServiceAccount.createServiceAccount).toBeDefined();
+describe.only('ServiceAccountOps', () => {
+  describe('isServiceAccountsFeatureAvailable()', () => {
+    test('0: Method is implemented', async () => {
+      expect(ServiceAccount.isServiceAccountsFeatureAvailable).toBeDefined();
+    });
+
+    test('1: Check tenant supporting service accounts', async () => {
+      const response = await ServiceAccount.isServiceAccountsFeatureAvailable();
+      expect(response).toBeTruthy();
+    });
+
+    // test('2: Check tenant not supporting service accounts', async () => {
+    //   (context.polly as Polly).server.any().on('request', (req) => {
+    //     req.overrideRecordingName(
+    //       'ServiceAccountOps/isServiceAccountsFeatureAvailable()/2: Check tenant not supporting service accounts'
+    //     );
+    //     console.log(`+++++polly: recordingName: ${req.recordingName}`);
+    //   });
+    //   const response = await ServiceAccount.isServiceAccountsFeatureAvailable();
+    //   expect(response).toBeFalsy();
+    // });
   });
 
-  test('createSvcacct() 1: Create service account', async () => {
-    let moId: string | null = null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let moData: any | null = null;
-    const name = 'sa';
-    const description = 'service account';
-    const accountStatus = 'Active';
-    const scopes = ['fr:am:*', 'fr:idm:*', 'fr:idc:esv:*'];
-    const jwk = await createJwkRsa();
-    const publicJwk = await getJwkRsaPublic(jwk);
-    const jwks = await createJwks(publicJwk);
-    mockCreateManagedObject(mock, (mockManagedObjId, mockManagedObj) => {
-      moId = mockManagedObjId;
-      moData = mockManagedObj;
+  describe('createServiceAccount()', () => {
+    test('0: Method is implemented', async () => {
+      expect(ServiceAccount.createServiceAccount).toBeDefined();
     });
-    const payload = await ServiceAccount.createServiceAccount(
-      name,
-      description,
-      accountStatus,
-      scopes,
-      jwks
-    );
-    expect(isEqualJson(payload, moData)).toBeTruthy();
-    expect(payload).toBeTruthy();
-    expect(payload._id).toBe(moId);
-    expect(payload.name).toBe(name);
-    expect(payload.description).toBe(description);
-    expect(payload.scopes).toStrictEqual(scopes);
+
+    test('1: Create service account', async () => {
+      const name = 'sa';
+      const description = 'service account';
+      const accountStatus = 'Active';
+      const scopes = ['fr:am:*', 'fr:idm:*', 'fr:idc:esv:*'];
+      const jwk = await createJwkRsa();
+      const publicJwk = await getJwkRsaPublic(jwk);
+      const jwks = createJwks(publicJwk);
+      const response = await ServiceAccount.createServiceAccount(
+        name,
+        description,
+        accountStatus,
+        scopes,
+        jwks
+      );
+      expect(response).toMatchSnapshot();
+    });
   });
 });

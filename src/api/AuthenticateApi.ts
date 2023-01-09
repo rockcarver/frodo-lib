@@ -1,6 +1,7 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
 import * as state from '../shared/State';
+import { getRealmPath } from './utils/ApiUtils';
 
 const authenticateUrlTemplate = '%s/json%s/authenticate';
 const authenticateWithServiceUrlTemplate = `${authenticateUrlTemplate}?authIndexType=service&authIndexValue=%s`;
@@ -10,29 +11,51 @@ const getApiConfig = () => ({
   apiVersion,
 });
 
-const realmPathTemplate = '/realms/%s';
-
-export function getRealmUrl(realm) {
-  let localRealm = realm;
-  if (localRealm.startsWith('/') && localRealm.length > 1) {
-    localRealm = localRealm.substring(1);
+/**
+ * Fill callbacks from a map
+ * Just a start
+ * @param {object} response json response from a call to /authenticate
+ * @param {{ [k: string]: string | number | boolean | string[] }} map name/value map
+ * @returns filled response body so it can be used as input to another call to /authenticate
+ */
+export function fillCallbacks(
+  response: object,
+  map: { [k: string]: string | number | boolean | string[] }
+): object {
+  const body = JSON.parse(JSON.stringify(response));
+  for (const callback of body.callbacks) {
+    callback.input[0].value = map[callback.input[0].name];
   }
-  let realmPath = util.format(realmPathTemplate, 'root');
-  if (localRealm !== '/') {
-    realmPath += util.format(realmPathTemplate, localRealm);
-  }
-  return realmPath;
+  return body;
 }
 
-export async function step(body = {}, config = {}) {
-  const urlString = state.getAuthenticationService()
-    ? util.format(
-        authenticateWithServiceUrlTemplate,
-        state.getHost(),
-        getRealmUrl('/'),
-        state.getAuthenticationService()
-      )
-    : util.format(authenticateUrlTemplate, state.getHost(), getRealmUrl('/'));
+/**
+ *
+ * @param {any} body POST request body
+ * @param {any} config request config
+ * @param {string} realm realm
+ * @param {string} service name of authentication service/journey
+ * @returns Promise resolving to the authentication service response
+ */
+export async function step(
+  body = {},
+  config = {},
+  realm = '/',
+  service: string = undefined
+) {
+  const urlString =
+    service || state.getAuthenticationService()
+      ? util.format(
+          authenticateWithServiceUrlTemplate,
+          state.getHost(),
+          getRealmPath(realm),
+          service || state.getAuthenticationService()
+        )
+      : util.format(
+          authenticateUrlTemplate,
+          state.getHost(),
+          getRealmPath(realm)
+        );
   const { data } = await generateAmApi(getApiConfig()).post(
     urlString,
     body,

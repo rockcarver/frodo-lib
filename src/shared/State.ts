@@ -63,6 +63,40 @@ export interface StateInterface {
 
 const _state: StateInterface = {
   authenticationHeaderOverrides: {},
+  printHandler: (message: string | object) => {
+    if (!message) return;
+    if (typeof message === 'object') {
+      console.dir(message, { depth: 3 });
+    } else {
+      console.log(message);
+    }
+  },
+  verboseHandler: (message: string | object) => {
+    if (!message) return;
+    if (getVerbose()) {
+      if (typeof message === 'object') {
+        console.dir(message, { depth: 3 });
+      } else {
+        console.log(message);
+      }
+    }
+  },
+  debugHandler: (message: string | object) => {
+    if (!message) return;
+    if (getDebug()) {
+      if (typeof message === 'object') {
+        console.dir(message, { depth: 6 });
+      } else {
+        console.log(message);
+      }
+    }
+  },
+  curlirizeHandler: (message: string) => {
+    if (!message) return;
+    if (getDebug()) {
+      console.log(message);
+    }
+  },
 };
 
 export const setHost = (host: string) => (_state.host = host);
@@ -107,7 +141,8 @@ export const getAuthenticationHeaderOverrides = () =>
   _state.authenticationHeaderOverrides;
 export const setAuthenticationService = (service: string) =>
   (_state.authenticationService = service);
-export const getAuthenticationService = () => _state.authenticationService;
+export const getAuthenticationService = () =>
+  _state.authenticationService || process.env.FRODO_AUTHENTICATION_SERVICE;
 
 export const setServiceAccountId = (uuid: string) =>
   (_state.serviceAccountId = uuid);

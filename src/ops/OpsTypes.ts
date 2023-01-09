@@ -63,7 +63,7 @@ export interface SingleTreeExportInterface {
 }
 
 export interface MultiTreeExportInterface {
-  meta?: Record<string, ExportMetaData>;
+  meta?: ExportMetaData;
   trees: Record<string, SingleTreeExportInterface>;
 }
 

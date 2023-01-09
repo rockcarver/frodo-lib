@@ -1,1489 +1,909 @@
-import axios from 'axios';
-import MockAdapter from 'axios-mock-adapter';
-import { Agent, state } from '../index';
-import * as global from '../storage/StaticStorage';
-import { isEqualJson } from './utils/OpsUtils';
-import {
-  mockGetAgentsByType,
-  mockGetAgentByTypeAndId,
-  mockFindAgentById,
-  mockPutAgentByTypeAndId,
-  getAgent,
-  mockDeleteAgentByTypeAndId,
-  mockFindAgentByTypeAndId,
-} from '../test/mocks/ForgeRockApiMockEngine';
-import { AgentExportInterface } from './OpsTypes';
-
-const mock = new MockAdapter(axios);
-
-state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
-state.setRealm('alpha');
-state.setCookieName('cookieName');
-state.setCookieValue('cookieValue');
-state.setDeploymentType(global.CLOUD_DEPLOYMENT_TYPE_KEY);
-
-describe('AgentOps - createAgentExportTemplate()', () => {
-  test('createAgentExportTemplate() 0: Method is implemented', async () => {
-    expect(Agent.createAgentExportTemplate).toBeDefined();
-  });
-
-  test('createAgentExportTemplate() 1: Get all agent types', async () => {
-    const template: AgentExportInterface = { meta: {}, agents: {} };
-    const exportTemplate = Agent.createAgentExportTemplate();
-    console.dir(exportTemplate);
-    expect(exportTemplate).toBeTruthy();
-    expect(exportTemplate).toMatchObject<AgentExportInterface>(template);
-  });
-});
-
-describe('AgentOps - getAgents()', () => {
-  test('getAgents() 0: Method is implemented', async () => {
-    expect(Agent.getAgents).toBeDefined();
-  });
-
-  test('getAgents() 1: Get all agents', async () => {
-    const agentTypes = ['IdentityGatewayAgent', 'J2EEAgent', 'WebAgent'];
-    const agentIds = [
-      'ig_mytestrun_com',
-      'ig_chico',
-      'ajays_client',
-      'api_client',
-      'tomcatagent',
-      'javaAgent',
-      'apacheagent',
-      'webserver',
-    ];
-    mockGetAgentsByType(mock);
-    expect.assertions(21);
-    const agents = await Agent.getAgents();
-    expect(agents).toBeTruthy();
-    expect(agents.length).toBe(8);
-    for (const agent of agents) {
-      expect(agentTypes).toContain(agent._type._id);
-      expect(agentIds).toContain(agent._id);
-    }
-  });
-});
-
-describe('AgentOps - getAgent()', () => {
-  test('getAgent() 0: Method is implemented', async () => {
-    expect(Agent.getAgent).toBeDefined();
-  });
-
-  test('getAgent() 1: Get agent "ig_mytestrun_com" (gateway)', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_mytestrun_com';
-    mockFindAgentById(mock);
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(5);
-    const agent = await Agent.getAgent(agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('getAgent() 2: Get agent "tomcatagent" (java)', async () => {
-    const agentType = 'J2EEAgent';
-    const agentId = 'tomcatagent';
-    mockFindAgentById(mock);
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(5);
-    const agent = await Agent.getAgent(agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('getAgent() 3: Get agent "apacheagent" (web)', async () => {
-    const agentType = 'WebAgent';
-    const agentId = 'apacheagent';
-    mockFindAgentById(mock);
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(5);
-    const agent = await Agent.getAgent(agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-});
-
-describe('AgentOps - getAgentByTypeAndId()', () => {
-  test('getAgentByTypeAndId() 0: Method is implemented', async () => {
-    expect(Agent.getAgentByTypeAndId).toBeDefined();
-  });
-
-  test('getAgentByTypeAndId() 1: Get gateway agent "ig_mytestrun_com"', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_mytestrun_com';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(4);
-    const agent = await Agent.getAgentByTypeAndId(agentType, agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('getAgentByTypeAndId() 2: Get java agent "tomcatagent"', async () => {
-    const agentType = 'J2EEAgent';
-    const agentId = 'tomcatagent';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(4);
-    const agent = await Agent.getAgentByTypeAndId(agentType, agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('getAgentByTypeAndId() 3: Get web agent "apacheagent"', async () => {
-    const agentType = 'WebAgent';
-    const agentId = 'apacheagent';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(4);
-    const agent = await Agent.getAgentByTypeAndId(agentType, agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-});
-
-describe('AgentOps - getIdentityGatewayAgents()', () => {
-  test('getIdentityGatewayAgents() 0: Method is implemented', async () => {
-    expect(Agent.getIdentityGatewayAgents).toBeDefined();
-  });
-
-  test('getIdentityGatewayAgents() 1: Get gateway agents', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentIds = [
-      'ig_mytestrun_com',
-      'ig_chico',
-      'ajays_client',
-      'api_client',
-    ];
-    mockGetAgentsByType(mock);
-    expect.assertions(10);
-    const agents = await Agent.getIdentityGatewayAgents();
-    expect(agents).toBeTruthy();
-    for (const agent of agents) {
-      expect(agent._type._id).toBe(agentType);
-      expect(agentIds).toContain(agent._id);
-    }
-  });
-});
-
-describe('AgentOps - getIdentityGatewayAgent()', () => {
-  test('getIdentityGatewayAgent() 0: Method is implemented', async () => {
-    expect(Agent.getIdentityGatewayAgent).toBeDefined();
-  });
-
-  test('getIdentityGatewayAgent() 1: Get gateway agent "ig_mytestrun_com"', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_mytestrun_com';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(4);
-    const agent = await Agent.getIdentityGatewayAgent(agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('getIdentityGatewayAgent() 2: Get gateway agent "ig_chico"', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_chico';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(4);
-    const agent = await Agent.getIdentityGatewayAgent(agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('getIdentityGatewayAgent() 3: Get gateway agent "ajays_client"', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ajays_client';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(4);
-    const agent = await Agent.getIdentityGatewayAgent(agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('getIdentityGatewayAgent() 4: Get gateway agent "api_client"', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'api_client';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(4);
-    const agent = await Agent.getIdentityGatewayAgent(agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-});
-
-describe('AgentOps - putIdentityGatewayAgent()', () => {
-  test('putIdentityGatewayAgent() 0: Method is implemented', async () => {
-    expect(Agent.putIdentityGatewayAgent).toBeDefined();
-  });
-
-  test('putIdentityGatewayAgent() 1: Put gateway agent "ig_mytestrun_com"', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_mytestrun_com';
-    const agentData = getAgent(agentType, agentId);
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(5);
-    const agent = await Agent.putIdentityGatewayAgent(agentId, agentData);
-    expect(agent).toBeTruthy();
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('putIdentityGatewayAgent() 2: Put gateway agent "ig_chico"', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_chico';
-    const agentData = getAgent(agentType, agentId);
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(5);
-    const agent = await Agent.putIdentityGatewayAgent(agentId, agentData);
-    expect(agent).toBeTruthy();
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('putIdentityGatewayAgent() 3: Put gateway agent "ajays_client"', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ajays_client';
-    const agentData = getAgent(agentType, agentId);
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(5);
-    const agent = await Agent.putIdentityGatewayAgent(agentId, agentData);
-    expect(agent).toBeTruthy();
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('putIdentityGatewayAgent() 4: Put gateway agent "api_client"', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'api_client';
-    const agentData = getAgent(agentType, agentId);
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(5);
-    const agent = await Agent.putIdentityGatewayAgent(agentId, agentData);
-    expect(agent).toBeTruthy();
-    expect(agent._id).toBe(agentId);
-  });
-});
-
-describe('AgentOps - getJavaAgents()', () => {
-  test('getJavaAgents() 0: Method is implemented', async () => {
-    expect(Agent.getJavaAgents).toBeDefined();
-  });
-
-  test('getJavaAgents() 1: Get java agents', async () => {
-    const agentType = 'J2EEAgent';
-    const agentIds = ['tomcatagent', 'javaAgent'];
-    mockGetAgentsByType(mock);
-    expect.assertions(6);
-    const agents = await Agent.getJavaAgents();
-    expect(agents).toBeTruthy();
-    for (const agent of agents) {
-      expect(agent._type._id).toBe(agentType);
-      expect(agentIds).toContain(agent._id);
-    }
-  });
-});
-
-describe('AgentOps - getJavaAgent()', () => {
-  test('getJavaAgent() 0: Method is implemented', async () => {
-    expect(Agent.getJavaAgent).toBeDefined();
-  });
-
-  test('getJavaAgent() 1: Get java agent "tomcatagent"', async () => {
-    const agentType = 'J2EEAgent';
-    const agentId = 'tomcatagent';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(4);
-    const agent = await Agent.getJavaAgent(agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('getJavaAgent() 2: Get java agent "javaAgent"', async () => {
-    const agentType = 'J2EEAgent';
-    const agentId = 'javaAgent';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(4);
-    const agent = await Agent.getJavaAgent(agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-});
-
-describe('AgentOps - putJavaAgent()', () => {
-  test('putJavaAgent() 0: Method is implemented', async () => {
-    expect(Agent.putJavaAgent).toBeDefined();
-  });
-
-  test('putJavaAgent() 1: Put java agent "tomcatagent"', async () => {
-    const agentType = 'J2EEAgent';
-    const agentId = 'tomcatagent';
-    const agentData = getAgent(agentType, agentId);
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(5);
-    const agent = await Agent.putJavaAgent(agentId, agentData);
-    expect(agent).toBeTruthy();
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('putJavaAgent() 2: Put java agent "javaAgent"', async () => {
-    const agentType = 'J2EEAgent';
-    const agentId = 'javaAgent';
-    const agentData = getAgent(agentType, agentId);
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(5);
-    const agent = await Agent.putJavaAgent(agentId, agentData);
-    expect(agent).toBeTruthy();
-    expect(agent._id).toBe(agentId);
-  });
-});
-
-describe('AgentOps - getWebAgents()', () => {
-  test('getWebAgents() 0: Method is implemented', async () => {
-    expect(Agent.getWebAgents).toBeDefined();
-  });
-
-  test('getWebAgents() 1: Get web agents', async () => {
-    const agentType = 'WebAgent';
-    const agentIds = ['apacheagent', 'webserver'];
-    mockGetAgentsByType(mock);
-    expect.assertions(6);
-    const agents = await Agent.getWebAgents();
-    expect(agents).toBeTruthy();
-    for (const agent of agents) {
-      expect(agent._type._id).toBe(agentType);
-      expect(agentIds).toContain(agent._id);
-    }
-  });
-});
-
-describe('AgentOps - getWebAgent()', () => {
-  test('getWebAgent() 0: Method is implemented', async () => {
-    expect(Agent.getWebAgent).toBeDefined();
-  });
-
-  test('getWebAgent() 1: Get web agent "apacheagent"', async () => {
-    const agentType = 'WebAgent';
-    const agentId = 'apacheagent';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(4);
-    const agent = await Agent.getWebAgent(agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('getWebAgent() 2: Get web agent "webserver"', async () => {
-    const agentType = 'WebAgent';
-    const agentId = 'webserver';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(4);
-    const agent = await Agent.getWebAgent(agentId);
-    expect(agent).toBeTruthy();
-    expect(agent._type._id).toBe(agentType);
-    expect(agent._id).toBe(agentId);
-  });
-});
-
-describe('AgentOps - putWebAgent()', () => {
-  test('putWebAgent() 0: Method is implemented', async () => {
-    expect(Agent.putWebAgent).toBeDefined();
-  });
-
-  test('putWebAgent() 1: Put java agent "apacheagent"', async () => {
-    const agentType = 'WebAgent';
-    const agentId = 'apacheagent';
-    const agentData = getAgent(agentType, agentId);
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(5);
-    const agent = await Agent.putWebAgent(agentId, agentData);
-    expect(agent).toBeTruthy();
-    expect(agent._id).toBe(agentId);
-  });
-
-  test('putWebAgent() 2: Put web agent "webserver"', async () => {
-    const agentType = 'WebAgent';
-    const agentId = 'webserver';
-    const agentData = getAgent(agentType, agentId);
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(5);
-    const agent = await Agent.putWebAgent(agentId, agentData);
-    expect(agent).toBeTruthy();
-    expect(agent._id).toBe(agentId);
-  });
-});
-
-describe('AgentOps - exportAgents()', () => {
-  test('exportAgents() 0: Method is implemented', async () => {
-    expect(Agent.exportAgents).toBeDefined();
-  });
-
-  test('exportAgents() 1: Export all agents', async () => {
-    const agentTypes = ['IdentityGatewayAgent', 'J2EEAgent', 'WebAgent'];
-    const agentIds = [
-      'ig_mytestrun_com',
-      'ig_chico',
-      'ajays_client',
-      'api_client',
-      'tomcatagent',
-      'javaAgent',
-      'apacheagent',
-      'webserver',
-    ];
-    mockGetAgentsByType(mock);
-    expect.assertions(22);
-    const exportData = await Agent.exportAgents();
-    expect(exportData).toBeTruthy();
-    expect(exportData.agents).toBeTruthy();
-    expect(Object.keys(exportData.agents).length).toBe(8);
-    for (const agent of Object.values(exportData.agents)) {
-      expect(agentTypes).toContain(agent._type._id);
-      expect(agentIds).toContain(agent._id);
-    }
-  });
-});
-
-describe('AgentOps - exportIdentityGatewayAgents()', () => {
-  test('exportIdentityGatewayAgents() 0: Method is implemented', async () => {
-    expect(Agent.exportIdentityGatewayAgents).toBeDefined();
-  });
-
-  test('exportIdentityGatewayAgents() 1: Export gateway agents', async () => {
-    const agentTypes = ['IdentityGatewayAgent'];
-    const agentIds = [
-      'ig_mytestrun_com',
-      'ig_chico',
-      'ajays_client',
-      'api_client',
-    ];
-    mockGetAgentsByType(mock);
-    expect.assertions(12);
-    const exportData = await Agent.exportIdentityGatewayAgents();
-    expect(exportData).toBeTruthy();
-    expect(exportData.agents).toBeTruthy();
-    expect(Object.keys(exportData.agents).length).toBe(4);
-    for (const agent of Object.values(exportData.agents)) {
-      expect(agentTypes).toContain(agent._type._id);
-      expect(agentIds).toContain(agent._id);
-    }
-  });
-});
-
-describe('AgentOps - exportJavaAgents()', () => {
-  test('exportJavaAgents() 0: Method is implemented', async () => {
-    expect(Agent.exportJavaAgents).toBeDefined();
-  });
-
-  test('exportJavaAgents() 1: Export java agents', async () => {
-    const agentTypes = ['J2EEAgent'];
-    const agentIds = ['tomcatagent', 'javaAgent'];
-    mockGetAgentsByType(mock);
-    expect.assertions(8);
-    const exportData = await Agent.exportJavaAgents();
-    expect(exportData).toBeTruthy();
-    expect(exportData.agents).toBeTruthy();
-    expect(Object.keys(exportData.agents).length).toBe(2);
-    for (const agent of Object.values(exportData.agents)) {
-      expect(agentTypes).toContain(agent._type._id);
-      expect(agentIds).toContain(agent._id);
-    }
-  });
-});
-
-describe('AgentOps - exportWebAgents()', () => {
-  test('exportWebAgents() 0: Method is implemented', async () => {
-    expect(Agent.exportJavaAgents).toBeDefined();
-  });
-
-  test('exportWebAgents() 1: Export web agents', async () => {
-    const agentTypes = ['WebAgent'];
-    const agentIds = ['apacheagent', 'webserver'];
-    mockGetAgentsByType(mock);
-    expect.assertions(8);
-    const exportData = await Agent.exportWebAgents();
-    expect(exportData).toBeTruthy();
-    expect(exportData.agents).toBeTruthy();
-    expect(Object.keys(exportData.agents).length).toBe(2);
-    for (const agent of Object.values(exportData.agents)) {
-      expect(agentTypes).toContain(agent._type._id);
-      expect(agentIds).toContain(agent._id);
-    }
-  });
-});
-
-describe('AgentOps - exportAgent()', () => {
-  test('exportAgent() 0: Method is implemented', async () => {
-    expect(Agent.exportAgent).toBeDefined();
-  });
-
-  test('exportAgent() 1: Export agent "ig_mytestrun_com" (gateway)', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_mytestrun_com';
-    mockFindAgentById(mock);
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(7);
-    const exportData = await Agent.exportAgent(agentId);
-    expect(exportData).toBeTruthy();
-    expect(exportData.agents).toBeTruthy();
-    expect(Object.keys(exportData.agents).length).toBe(1);
-    for (const agent of Object.values(exportData.agents)) {
-      expect(agentType).toBe(agent._type._id);
-      expect(agentId).toBe(agent._id);
-    }
-  });
-
-  test('exportAgent() 2: Export agent "tomcatagent" (java)', async () => {
-    const agentType = 'J2EEAgent';
-    const agentId = 'tomcatagent';
-    mockFindAgentById(mock);
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(7);
-    const exportData = await Agent.exportAgent(agentId);
-    expect(exportData).toBeTruthy();
-    expect(exportData.agents).toBeTruthy();
-    expect(Object.keys(exportData.agents).length).toBe(1);
-    for (const agent of Object.values(exportData.agents)) {
-      expect(agentType).toBe(agent._type._id);
-      expect(agentId).toBe(agent._id);
-    }
-  });
-
-  test('exportAgent() 3: Export agent "apacheagent" (web)', async () => {
-    const agentType = 'WebAgent';
-    const agentId = 'apacheagent';
-    mockFindAgentById(mock);
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(7);
-    const exportData = await Agent.exportAgent(agentId);
-    expect(exportData).toBeTruthy();
-    expect(exportData.agents).toBeTruthy();
-    expect(Object.keys(exportData.agents).length).toBe(1);
-    for (const agent of Object.values(exportData.agents)) {
-      expect(agentType).toBe(agent._type._id);
-      expect(agentId).toBe(agent._id);
-    }
-  });
-});
-
-describe('AgentOps - exportIdentityGatewayAgent()', () => {
-  test('exportIdentityGatewayAgent() 0: Method is implemented', async () => {
-    expect(Agent.exportIdentityGatewayAgent).toBeDefined();
-  });
-
-  test('exportIdentityGatewayAgent() 1: Export gateway agent "ig_mytestrun_com"', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_mytestrun_com';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(6);
-    const exportData = await Agent.exportIdentityGatewayAgent(agentId);
-    expect(exportData).toBeTruthy();
-    expect(exportData.agents).toBeTruthy();
-    expect(Object.keys(exportData.agents).length).toBe(1);
-    for (const agent of Object.values(exportData.agents)) {
-      expect(agentType).toBe(agent._type._id);
-      expect(agentId).toBe(agent._id);
-    }
-  });
-});
-
-describe('AgentOps - exportJavaAgent()', () => {
-  test('exportJavaAgent() 0: Method is implemented', async () => {
-    expect(Agent.exportJavaAgent).toBeDefined();
-  });
-
-  test('exportJavaAgent() 2: Export java agent "tomcatagent"', async () => {
-    const agentType = 'J2EEAgent';
-    const agentId = 'tomcatagent';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(6);
-    const exportData = await Agent.exportJavaAgent(agentId);
-    expect(exportData).toBeTruthy();
-    expect(exportData.agents).toBeTruthy();
-    expect(Object.keys(exportData.agents).length).toBe(1);
-    for (const agent of Object.values(exportData.agents)) {
-      expect(agentType).toBe(agent._type._id);
-      expect(agentId).toBe(agent._id);
-    }
-  });
-});
-
-describe('AgentOps - exportWebAgent()', () => {
-  test('exportWebAgent() 0: Method is implemented', async () => {
-    expect(Agent.exportWebAgent).toBeDefined();
-  });
-
-  test('exportWebAgent() 3: Export web agent "apacheagent"', async () => {
-    const agentType = 'WebAgent';
-    const agentId = 'apacheagent';
-    mockGetAgentByTypeAndId(mock);
-    expect.assertions(6);
-    const exportData = await Agent.exportWebAgent(agentId);
-    expect(exportData).toBeTruthy();
-    expect(exportData.agents).toBeTruthy();
-    expect(Object.keys(exportData.agents).length).toBe(1);
-    for (const agent of Object.values(exportData.agents)) {
-      expect(agentType).toBe(agent._type._id);
-      expect(agentId).toBe(agent._id);
-    }
-  });
-});
-
-describe('AgentOps - importAgents()', () => {
-  test('importAgents() 0: Method is implemented', async () => {
-    expect(Agent.importAgents).toBeDefined();
-  });
-
-  test('importAgents() 1: Import all agents', async () => {
-    const agents = {
-      ig_mytestrun_com: 'IdentityGatewayAgent',
-      ig_chico: 'IdentityGatewayAgent',
-      ajays_client: 'IdentityGatewayAgent',
-      api_client: 'IdentityGatewayAgent',
-      tomcatagent: 'J2EEAgent',
-      javaAgent: 'J2EEAgent',
-      apacheagent: 'WebAgent',
-      webserver: 'WebAgent',
-    };
-    const exportData = Agent.createAgentExportTemplate();
-    for (const agentId of Object.keys(agents)) {
-      const agentType = agents[agentId];
-      const agentData = getAgent(agentType, agentId);
-      exportData.agents[agentId] = agentData;
-    }
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(Object.values(agents)).toContain(mockAgentType);
-        expect(Object.keys(agents)).toContain(mockAgentId);
-      }
-    );
-    expect.assertions(25);
-    await Agent.importAgents(exportData);
-    expect(true).toBeTruthy();
-  });
-});
-
-describe('AgentOps - importIdentityGatewayAgents()', () => {
-  test('importIdentityGatewayAgents() 0: Method is implemented', async () => {
-    expect(Agent.importIdentityGatewayAgents).toBeDefined();
-  });
-
-  test('importIdentityGatewayAgents() 1: Import all gateway agents', async () => {
-    const agents = {
-      ig_mytestrun_com: 'IdentityGatewayAgent',
-      ig_chico: 'IdentityGatewayAgent',
-      ajays_client: 'IdentityGatewayAgent',
-      api_client: 'IdentityGatewayAgent',
-    };
-    const exportData = Agent.createAgentExportTemplate();
-    for (const agentId of Object.keys(agents)) {
-      const agentType = agents[agentId];
-      const agentData = getAgent(agentType, agentId);
-      exportData.agents[agentId] = agentData;
-    }
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(Object.values(agents)).toContain(mockAgentType);
-        expect(Object.keys(agents)).toContain(mockAgentId);
-      }
-    );
-    expect.assertions(13);
-    await Agent.importIdentityGatewayAgents(exportData);
-    expect(true).toBeTruthy();
-  });
-
-  test('importIdentityGatewayAgents() 2: Import agents with wrong type', async () => {
-    const agents = {
-      tomcatagent: 'J2EEAgent',
-      javaAgent: 'J2EEAgent',
-    };
-    const exportData = Agent.createAgentExportTemplate();
-    for (const agentId of Object.keys(agents)) {
-      const agentType = agents[agentId];
-      const agentData = getAgent(agentType, agentId);
-      exportData.agents[agentId] = agentData;
-    }
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(Object.values(agents)).toContain(mockAgentType);
-        expect(Object.keys(agents)).toContain(mockAgentId);
-      }
-    );
-    expect.assertions(2);
-    try {
-      await Agent.importIdentityGatewayAgents(exportData);
-    } catch (error) {
-      expect(error).toBeTruthy();
-      expect(error.message).toBe(
-        "Wrong agent type! Expected 'IdentityGatewayAgent' but got 'J2EEAgent'."
+/**
+ * To record and update snapshots, you must perform 5 steps in order:
+ *
+ * 1. Record API responses & update ESM snapshots
+ *
+ *    This step breaks down into 4 phases:
+ *
+ *    Phase 1: Record Non-destructive tests
+ *    Phase 2: Record Group 1 of DESTRUCTIVE tests - Deletes by ID
+ *    Phase 3: Record Group 2 of DESTRUCTIVE tests - Deletes by type
+ *    Phase 4: Record Group 3 of DESTRUCTIVE tests - Delete all
+ *
+ *    Because destructive tests interfere with the recording of non-destructive
+ *    tests and also interfere among themselves, they have to be run in groups
+ *    of non-interfering tests.
+ *
+ *    To record and update ESM snapshots, you must call the test:record
+ *    script and override all the connection state variables required
+ *    to connect to the env to record from and also indicate the phase:
+ *
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=1 FRODO_HOST=frodo-dev npm run test:record AgentOps
+ *
+ *    THESE TESTS ARE DESTRUCTIVE!!! DO NOT RUN AGAINST AN ENV WITH ACTIVE AGENTS!!!
+ *
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=frodo-dev npm run test:record AgentOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=frodo-dev npm run test:record AgentOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=4 FRODO_HOST=frodo-dev npm run test:record AgentOps
+ *
+ *    The above command assumes that you have a connection profile for
+ *    'frodo-dev' on your development machine.
+ *
+ * 2. Update CJS snapshots
+ *
+ *    After recording, the ESM snapshots will already be updated as that happens
+ *    in one go, but you must manually update the CJS snapshots by running:
+ *
+ *        FRODO_DEBUG=1 npm run test:update AgentOps
+ *
+ * 3. Test your changes
+ *
+ *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
+ *    replay mode and make sure they all succeed as well:
+ *
+ *        npm run test:only AgentOps
+ *
+ * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
+ * in case things don't function as expected
+ */
+import { jest } from '@jest/globals';
+import { Agent, AgentRaw } from '../index';
+import { getAgent } from '../test/mocks/ForgeRockApiMockEngine';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+
+// Increase timeout for this test as pipeline keeps failing with error:
+// Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
+jest.setTimeout(30000);
+
+autoSetupPolly();
+
+async function stageAgent(agent: { id: string; type: string }, create = true) {
+  // delete if exists, then create
+  try {
+    await AgentRaw.getAgentByTypeAndId(agent.type, agent.id);
+    await AgentRaw.deleteAgentByTypeAndId(agent.type, agent.id);
+  } catch (error) {
+    // ignore
+  } finally {
+    if (create) {
+      await AgentRaw.putAgentByTypeAndId(
+        agent.type,
+        agent.id,
+        getAgent(agent.type, agent.id)
       );
     }
-  });
-});
+  }
+}
 
-describe('AgentOps - importJavaAgents()', () => {
-  test('importJavaAgents() 0: Method is implemented', async () => {
-    expect(Agent.importJavaAgents).toBeDefined();
-  });
+describe('AgentOps', () => {
+  const gateway1 = {
+    id: 'FrodoOpsTestGatewayAgent1',
+    type: 'IdentityGatewayAgent',
+  };
+  const gateway2 = {
+    id: 'FrodoOpsTestGatewayAgent2',
+    type: 'IdentityGatewayAgent',
+  };
+  const gateway3 = {
+    id: 'FrodoOpsTestGatewayAgent3',
+    type: 'IdentityGatewayAgent',
+  };
+  const gateway4 = {
+    id: 'FrodoOpsTestGatewayAgent4',
+    type: 'IdentityGatewayAgent',
+  };
+  const gateway5 = {
+    id: 'FrodoOpsTestGatewayAgent5',
+    type: 'IdentityGatewayAgent',
+  };
+  const gateway6 = {
+    id: 'FrodoOpsTestGatewayAgent6',
+    type: 'IdentityGatewayAgent',
+  };
+  const gateway7 = {
+    id: 'FrodoOpsTestGatewayAgent7',
+    type: 'IdentityGatewayAgent',
+  };
+  const gateway8 = {
+    id: 'FrodoOpsTestGatewayAgent8',
+    type: 'IdentityGatewayAgent',
+  };
+  const gateway9 = {
+    id: 'FrodoOpsTestGatewayAgent9',
+    type: 'IdentityGatewayAgent',
+  };
+  const java1 = {
+    id: 'FrodoOpsTestJavaAgent1',
+    type: 'J2EEAgent',
+  };
+  const java2 = {
+    id: 'FrodoOpsTestJavaAgent2',
+    type: 'J2EEAgent',
+  };
+  const java3 = {
+    id: 'FrodoOpsTestJavaAgent3',
+    type: 'J2EEAgent',
+  };
+  const java4 = {
+    id: 'FrodoOpsTestJavaAgent4',
+    type: 'J2EEAgent',
+  };
+  const java5 = {
+    id: 'FrodoOpsTestJavaAgent5',
+    type: 'J2EEAgent',
+  };
+  const java6 = {
+    id: 'FrodoOpsTestJavaAgent6',
+    type: 'J2EEAgent',
+  };
+  const java7 = {
+    id: 'FrodoOpsTestJavaAgent7',
+    type: 'J2EEAgent',
+  };
+  const java8 = {
+    id: 'FrodoOpsTestJavaAgent8',
+    type: 'J2EEAgent',
+  };
+  const java9 = {
+    id: 'FrodoOpsTestJavaAgent9',
+    type: 'J2EEAgent',
+  };
+  const web1 = {
+    id: 'FrodoOpsTestWebAgent1',
+    type: 'WebAgent',
+  };
+  const web2 = {
+    id: 'FrodoOpsTestWebAgent2',
+    type: 'WebAgent',
+  };
+  const web3 = {
+    id: 'FrodoOpsTestWebAgent3',
+    type: 'WebAgent',
+  };
+  const web4 = {
+    id: 'FrodoOpsTestWebAgent4',
+    type: 'WebAgent',
+  };
+  const web5 = {
+    id: 'FrodoOpsTestWebAgent5',
+    type: 'WebAgent',
+  };
+  const web6 = {
+    id: 'FrodoOpsTestWebAgent6',
+    type: 'WebAgent',
+  };
+  const web7 = {
+    id: 'FrodoOpsTestWebAgent7',
+    type: 'WebAgent',
+  };
+  const web8 = {
+    id: 'FrodoOpsTestWebAgent8',
+    type: 'WebAgent',
+  };
+  const web9 = {
+    id: 'FrodoOpsTestWebAgent9',
+    type: 'WebAgent',
+  };
+  // in recording mode, setup test data before recording
+  beforeAll(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      await stageAgent(gateway1);
+      await stageAgent(gateway2, false);
+      await stageAgent(gateway3, false);
+      await stageAgent(gateway4, false);
+      await stageAgent(gateway5, false);
+      await stageAgent(gateway6, false);
+      await stageAgent(gateway7);
+      await stageAgent(gateway8);
+      await stageAgent(gateway9);
 
-  test('importJavaAgents() 1: Import all java agents', async () => {
-    const agents = {
-      tomcatagent: 'J2EEAgent',
-      javaAgent: 'J2EEAgent',
-    };
-    const exportData = Agent.createAgentExportTemplate();
-    for (const agentId of Object.keys(agents)) {
-      const agentType = agents[agentId];
-      const agentData = getAgent(agentType, agentId);
-      exportData.agents[agentId] = agentData;
-    }
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(Object.values(agents)).toContain(mockAgentType);
-        expect(Object.keys(agents)).toContain(mockAgentId);
-      }
-    );
-    expect.assertions(7);
-    await Agent.importJavaAgents(exportData);
-    expect(true).toBeTruthy();
-  });
+      await stageAgent(java1);
+      await stageAgent(java2, false);
+      await stageAgent(java3, false);
+      await stageAgent(java4, false);
+      await stageAgent(java5, false);
+      await stageAgent(java6, false);
+      await stageAgent(java7);
+      await stageAgent(java8);
+      await stageAgent(java9);
 
-  test('importJavaAgents() 2: Import agents with wrong type', async () => {
-    const agents = {
-      apacheagent: 'WebAgent',
-      webserver: 'WebAgent',
-    };
-    const exportData = Agent.createAgentExportTemplate();
-    for (const agentId of Object.keys(agents)) {
-      const agentType = agents[agentId];
-      const agentData = getAgent(agentType, agentId);
-      exportData.agents[agentId] = agentData;
-    }
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(Object.values(agents)).toContain(mockAgentType);
-        expect(Object.keys(agents)).toContain(mockAgentId);
-      }
-    );
-    expect.assertions(2);
-    try {
-      await Agent.importJavaAgents(exportData);
-    } catch (error) {
-      expect(error).toBeTruthy();
-      expect(error.message).toBe(
-        "Wrong agent type! Expected 'J2EEAgent' but got 'WebAgent'."
-      );
-    }
-  });
-});
-
-describe('AgentOps - importWebAgents()', () => {
-  test('importWebAgents() 0: Method is implemented', async () => {
-    expect(Agent.importWebAgents).toBeDefined();
-  });
-
-  test('importWebAgents() 1: Import all web agents', async () => {
-    const agents = {
-      apacheagent: 'WebAgent',
-      webserver: 'WebAgent',
-    };
-    const exportData = Agent.createAgentExportTemplate();
-    for (const agentId of Object.keys(agents)) {
-      const agentType = agents[agentId];
-      const agentData = getAgent(agentType, agentId);
-      exportData.agents[agentId] = agentData;
-    }
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(Object.values(agents)).toContain(mockAgentType);
-        expect(Object.keys(agents)).toContain(mockAgentId);
-      }
-    );
-    expect.assertions(7);
-    await Agent.importWebAgents(exportData);
-    expect(true).toBeTruthy();
-  });
-
-  test('importWebAgents() 2: Import agents with wrong type', async () => {
-    const agents = {
-      ig_mytestrun_com: 'IdentityGatewayAgent',
-      ig_chico: 'IdentityGatewayAgent',
-      ajays_client: 'IdentityGatewayAgent',
-      api_client: 'IdentityGatewayAgent',
-    };
-    const exportData = Agent.createAgentExportTemplate();
-    for (const agentId of Object.keys(agents)) {
-      const agentType = agents[agentId];
-      const agentData = getAgent(agentType, agentId);
-      exportData.agents[agentId] = agentData;
-    }
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(Object.values(agents)).toContain(mockAgentType);
-        expect(Object.keys(agents)).toContain(mockAgentId);
-      }
-    );
-    expect.assertions(2);
-    try {
-      await Agent.importWebAgents(exportData);
-    } catch (error) {
-      expect(error).toBeTruthy();
-      expect(error.message).toBe(
-        "Wrong agent type! Expected 'WebAgent' but got 'IdentityGatewayAgent'."
-      );
-    }
-  });
-});
-
-describe('AgentOps - importAgent()', () => {
-  test('importAgent() 0: Method is implemented', async () => {
-    expect(Agent.importAgent).toBeDefined();
-  });
-
-  test('importAgent() 1: Import gateway agent', async () => {
-    const exportData = Agent.createAgentExportTemplate();
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_mytestrun_com';
-    const agentData = getAgent(agentType, agentId);
-    exportData.agents[agentId] = agentData;
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(4);
-    await Agent.importAgent(agentId, exportData);
-    expect(true).toBeTruthy();
-  });
-
-  test('importAgent() 2: Import java agent', async () => {
-    const exportData = Agent.createAgentExportTemplate();
-    const agentType = 'J2EEAgent';
-    const agentId = 'tomcatagent';
-    const agentData = getAgent(agentType, agentId);
-    exportData.agents[agentId] = agentData;
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(4);
-    await Agent.importAgent(agentId, exportData);
-    expect(true).toBeTruthy();
-  });
-
-  test('importAgent() 3: Import web agent', async () => {
-    const exportData = Agent.createAgentExportTemplate();
-    const agentType = 'WebAgent';
-    const agentId = 'apacheagent';
-    const agentData = getAgent(agentType, agentId);
-    exportData.agents[agentId] = agentData;
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(4);
-    await Agent.importAgent(agentId, exportData);
-    expect(true).toBeTruthy();
-  });
-});
-
-describe('AgentOps - importIdentityGatewayAgent()', () => {
-  test('importIdentityGatewayAgent() 0: Method is implemented', async () => {
-    expect(Agent.importIdentityGatewayAgent).toBeDefined();
-  });
-
-  test('importIdentityGatewayAgent() 1: Import gateway agent "ig_mytestrun_com"', async () => {
-    const exportData = Agent.createAgentExportTemplate();
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_mytestrun_com';
-    const agentData = getAgent(agentType, agentId);
-    exportData.agents[agentId] = agentData;
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(4);
-    await Agent.importIdentityGatewayAgent(agentId, exportData);
-    expect(true).toBeTruthy();
-  });
-
-  test('importIdentityGatewayAgent() 2: Import agent with wrong type', async () => {
-    const exportData = Agent.createAgentExportTemplate();
-    const agentType = 'J2EEAgent';
-    const agentId = 'tomcatagent';
-    const agentData = getAgent(agentType, agentId);
-    exportData.agents[agentId] = agentData;
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(2);
-    try {
-      await Agent.importIdentityGatewayAgent(agentId, exportData);
-    } catch (error) {
-      expect(error).toBeTruthy();
-      expect(error.message).toBe(
-        "Wrong agent type! Expected 'IdentityGatewayAgent' but got 'J2EEAgent'."
-      );
+      await stageAgent(web1);
+      await stageAgent(web2, false);
+      await stageAgent(web3, false);
+      await stageAgent(web4, false);
+      await stageAgent(web5, false);
+      await stageAgent(web6, false);
+      await stageAgent(web7);
+      await stageAgent(web8);
+      await stageAgent(web9);
     }
   });
-});
+  // in recording mode, remove test data after recording
+  afterAll(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      await stageAgent(gateway1, false);
+      await stageAgent(gateway2, false);
+      await stageAgent(gateway3, false);
+      await stageAgent(gateway4, false);
+      await stageAgent(gateway5, false);
+      await stageAgent(gateway6, false);
+      await stageAgent(gateway7, false);
+      await stageAgent(gateway8, false);
+      await stageAgent(gateway9, false);
 
-describe('AgentOps - importJavaAgent()', () => {
-  test('importJavaAgent() 0: Method is implemented', async () => {
-    expect(Agent.importJavaAgents).toBeDefined();
-  });
+      await stageAgent(java1, false);
+      await stageAgent(java2, false);
+      await stageAgent(java3, false);
+      await stageAgent(java4, false);
+      await stageAgent(java5, false);
+      await stageAgent(java6, false);
+      await stageAgent(java7, false);
+      await stageAgent(java8, false);
+      await stageAgent(java9, false);
 
-  test('importJavaAgent() 1: Import java agent "tomcatagent"', async () => {
-    const exportData = Agent.createAgentExportTemplate();
-    const agentType = 'J2EEAgent';
-    const agentId = 'tomcatagent';
-    const agentData = getAgent(agentType, agentId);
-    exportData.agents[agentId] = agentData;
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(4);
-    await Agent.importJavaAgent(agentId, exportData);
-    expect(true).toBeTruthy();
-  });
-
-  test('importJavaAgent() 2: Import agent with wrong type', async () => {
-    const exportData = Agent.createAgentExportTemplate();
-    const agentType = 'WebAgent';
-    const agentId = 'apacheagent';
-    const agentData = getAgent(agentType, agentId);
-    exportData.agents[agentId] = agentData;
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(2);
-    try {
-      await Agent.importJavaAgent(agentId, exportData);
-    } catch (error) {
-      expect(error).toBeTruthy();
-      expect(error.message).toBe(
-        "Wrong agent type! Expected 'J2EEAgent' but got 'WebAgent'."
-      );
-    }
-  });
-});
-
-describe('AgentOps - importWebAgent()', () => {
-  test('importWebAgent() 0: Method is implemented', async () => {
-    expect(Agent.importWebAgent).toBeDefined();
-  });
-
-  test('importWebAgent() 1: Import web agent "apacheagent"', async () => {
-    const exportData = Agent.createAgentExportTemplate();
-    const agentType = 'WebAgent';
-    const agentId = 'apacheagent';
-    const agentData = getAgent(agentType, agentId);
-    exportData.agents[agentId] = agentData;
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(4);
-    await Agent.importWebAgent(agentId, exportData);
-    expect(true).toBeTruthy();
-  });
-
-  test('importWebAgent() 2: Import agent with wrong type', async () => {
-    const exportData = Agent.createAgentExportTemplate();
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_mytestrun_com';
-    const agentData = getAgent(agentType, agentId);
-    exportData.agents[agentId] = agentData;
-    mockPutAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-        expect(isEqualJson(mockAgentObj, agentData, ['_rev'])).toBeTruthy();
-      }
-    );
-    expect.assertions(2);
-    try {
-      await Agent.importWebAgent(agentId, exportData);
-    } catch (error) {
-      expect(error).toBeTruthy();
-      expect(error.message).toBe(
-        "Wrong agent type! Expected 'WebAgent' but got 'IdentityGatewayAgent'."
-      );
-    }
-  });
-});
-
-describe('AgentOps - deleteAgents()', () => {
-  test('deleteAgents() 0: Method is implemented', async () => {
-    expect(Agent.deleteAgents).toBeDefined();
-  });
-
-  test('deleteAgents() 1: Delete all agents', async () => {
-    const agents = {
-      ig_mytestrun_com: 'IdentityGatewayAgent',
-      ig_chico: 'IdentityGatewayAgent',
-      ajays_client: 'IdentityGatewayAgent',
-      api_client: 'IdentityGatewayAgent',
-      tomcatagent: 'J2EEAgent',
-      javaAgent: 'J2EEAgent',
-      apacheagent: 'WebAgent',
-      webserver: 'WebAgent',
-    };
-    mockGetAgentsByType(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(Object.values(agents)).toContain(mockAgentType);
-        expect(Object.keys(agents)).toContain(mockAgentId);
-      }
-    );
-    expect.assertions(28);
-    await Agent.deleteAgents();
-    expect(true).toBeTruthy();
-  });
-});
-
-describe('AgentOps - deleteAgent()', () => {
-  test('deleteAgent() 0: Method is implemented', async () => {
-    expect(Agent.deleteAgent).toBeDefined();
-  });
-
-  test('deleteAgent() 1: Delete agent "ig_mytestrun_com" (gateway)', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_mytestrun_com';
-    mockFindAgentById(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-      }
-    );
-    expect.assertions(5);
-    await Agent.deleteAgent(agentId);
-    expect(true).toBeTruthy();
-  });
-
-  test('deleteAgent() 2: Delete agent "tomcatagent" (java)', async () => {
-    const agentType = 'J2EEAgent';
-    const agentId = 'tomcatagent';
-    mockFindAgentById(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-      }
-    );
-    expect.assertions(5);
-    await Agent.deleteAgent(agentId);
-    expect(true).toBeTruthy();
-  });
-
-  test('deleteAgent() 3: Delete agent "apacheagent" (web)', async () => {
-    const agentType = 'WebAgent';
-    const agentId = 'apacheagent';
-    mockFindAgentById(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-      }
-    );
-    expect.assertions(5);
-    await Agent.deleteAgent(agentId);
-    expect(true).toBeTruthy();
-  });
-});
-
-describe('AgentOps - deleteIdentityGatewayAgents()', () => {
-  test('deleteIdentityGatewayAgents() 0: Method is implemented', async () => {
-    expect(Agent.deleteIdentityGatewayAgents).toBeDefined();
-  });
-
-  test('deleteIdentityGatewayAgents() 1: Delete all gateway agents', async () => {
-    const agents = {
-      ig_mytestrun_com: 'IdentityGatewayAgent',
-      ig_chico: 'IdentityGatewayAgent',
-      ajays_client: 'IdentityGatewayAgent',
-      api_client: 'IdentityGatewayAgent',
-    };
-    mockGetAgentsByType(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(Object.values(agents)).toContain(mockAgentType);
-        expect(Object.keys(agents)).toContain(mockAgentId);
-      }
-    );
-    expect.assertions(14);
-    await Agent.deleteIdentityGatewayAgents();
-    expect(true).toBeTruthy();
-  });
-});
-
-describe('AgentOps - deleteIdentityGatewayAgent()', () => {
-  test('deleteIdentityGatewayAgent() 0: Method is implemented', async () => {
-    expect(Agent.deleteIdentityGatewayAgent).toBeDefined();
-  });
-
-  test('deleteIdentityGatewayAgent() 1: Delete gateway agent "ig_mytestrun_com"', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_mytestrun_com';
-    mockFindAgentByTypeAndId(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-      }
-    );
-    expect.assertions(5);
-    await Agent.deleteIdentityGatewayAgent(agentId);
-    expect(true).toBeTruthy();
-  });
-
-  test('deleteIdentityGatewayAgent() 2: Delete agent of wrong type "tomcatagent" (java)', async () => {
-    const agentType = 'J2EEAgent';
-    const agentId = 'tomcatagent';
-    mockFindAgentByTypeAndId(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-      }
-    );
-    expect.assertions(2);
-    try {
-      await Agent.deleteIdentityGatewayAgent(agentId);
-    } catch (error) {
-      expect(error).toBeTruthy();
-      expect(error.message).toBe(
-        `Identity gateway agent '${agentId}' not found!`
-      );
+      await stageAgent(web1, false);
+      await stageAgent(web2, false);
+      await stageAgent(web3, false);
+      await stageAgent(web4, false);
+      await stageAgent(web5, false);
+      await stageAgent(web6, false);
+      await stageAgent(web7, false);
+      await stageAgent(web8, false);
+      await stageAgent(web9, false);
     }
   });
 
-  test('deleteIdentityGatewayAgent() 3: Delete agent of wrong type "apacheagent" (web)', async () => {
-    const agentType = 'WebAgent';
-    const agentId = 'apacheagent';
-    mockFindAgentByTypeAndId(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-      }
-    );
-    expect.assertions(2);
-    try {
-      await Agent.deleteIdentityGatewayAgent(agentId);
-    } catch (error) {
-      expect(error).toBeTruthy();
-      expect(error.message).toBe(
-        `Identity gateway agent '${agentId}' not found!`
-      );
-    }
-  });
-});
+  // Phase 1
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '1')
+  ) {
+    describe('createAgentExportTemplate()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.createAgentExportTemplate).toBeDefined();
+      });
 
-describe('AgentOps - deleteJavaAgents()', () => {
-  test('deleteJavaAgents() 0: Method is implemented', async () => {
-    expect(Agent.deleteJavaAgents).toBeDefined();
-  });
+      test('1: Get all agent types', async () => {
+        const response = Agent.createAgentExportTemplate();
+        expect(response).toMatchSnapshot();
+      });
+    });
 
-  test('deleteJavaAgents() 1: Delete all java agents', async () => {
-    const agents = {
-      tomcatagent: 'J2EEAgent',
-      javaAgent: 'J2EEAgent',
-    };
-    mockGetAgentsByType(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(Object.values(agents)).toContain(mockAgentType);
-        expect(Object.keys(agents)).toContain(mockAgentId);
-      }
-    );
-    expect.assertions(8);
-    await Agent.deleteJavaAgents();
-    expect(true).toBeTruthy();
-  });
-});
+    describe('getAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.getAgents).toBeDefined();
+      });
 
-describe('AgentOps - deleteJavaAgent()', () => {
-  test('deleteJavaAgent() 0: Method is implemented', async () => {
-    expect(Agent.deleteJavaAgent).toBeDefined();
-  });
+      test('1: Get all agents', async () => {
+        const response = await Agent.getAgents();
+        expect(response).toMatchSnapshot();
+      });
+    });
 
-  test('deleteJavaAgent() 1: Delete java agent "tomcatagent"', async () => {
-    const agentType = 'J2EEAgent';
-    const agentId = 'tomcatagent';
-    mockFindAgentByTypeAndId(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-      }
-    );
-    expect.assertions(5);
-    await Agent.deleteJavaAgent(agentId);
-    expect(true).toBeTruthy();
-  });
+    describe('getAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.getAgent).toBeDefined();
+      });
 
-  test('deleteJavaAgent() 2: Delete agent of wrong type "ig_mytestrun_com" (gateway)', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_mytestrun_com';
-    mockFindAgentByTypeAndId(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-      }
-    );
-    expect.assertions(2);
-    try {
-      await Agent.deleteJavaAgent(agentId);
-    } catch (error) {
-      expect(error).toBeTruthy();
-      expect(error.message).toBe(`Java agent '${agentId}' not found!`);
-    }
-  });
+      test(`1: Get agent '${gateway1.id}' (${gateway1.type})`, async () => {
+        const response = await Agent.getAgent(gateway1.id);
+        expect(response).toMatchSnapshot();
+      });
 
-  test('deleteJavaAgent() 3: Delete agent of wrong type "apacheagent" (web)', async () => {
-    const agentType = 'WebAgent';
-    const agentId = 'apacheagent';
-    mockFindAgentByTypeAndId(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-      }
-    );
-    expect.assertions(2);
-    try {
-      await Agent.deleteJavaAgent(agentId);
-    } catch (error) {
-      expect(error).toBeTruthy();
-      expect(error.message).toBe(`Java agent '${agentId}' not found!`);
-    }
-  });
-});
+      test(`2: Get agent '${java1.id}' (${java1.type})`, async () => {
+        const response = await Agent.getAgent(java1.id);
+        expect(response).toMatchSnapshot();
+      });
 
-describe('AgentOps - deleteWebAgents()', () => {
-  test('deleteWebAgents() 0: Method is implemented', async () => {
-    expect(Agent.deleteWebAgents).toBeDefined();
-  });
+      test(`3: Get agent '${web1.id}' (${web1.type})`, async () => {
+        const response = await Agent.getAgent(web1.id);
+        expect(response).toMatchSnapshot();
+      });
+    });
 
-  test('deleteWebAgents() 1: Delete all web agents', async () => {
-    const agents = {
-      apacheagent: 'WebAgent',
-      webserver: 'WebAgent',
-    };
-    mockGetAgentsByType(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(Object.values(agents)).toContain(mockAgentType);
-        expect(Object.keys(agents)).toContain(mockAgentId);
-      }
-    );
-    expect.assertions(8);
-    await Agent.deleteWebAgents();
-    expect(true).toBeTruthy();
-  });
-});
+    describe('getAgentByTypeAndId()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.getAgentByTypeAndId).toBeDefined();
+      });
 
-describe('AgentOps - deleteWebAgent()', () => {
-  test('deleteWebAgent() 0: Method is implemented', async () => {
-    expect(Agent.deleteWebAgent).toBeDefined();
-  });
+      test(`1: Get agent by type '${gateway1.id}' (${gateway1.type})`, async () => {
+        const response = await Agent.getAgentByTypeAndId(
+          gateway1.type,
+          gateway1.id
+        );
+        expect(response).toMatchSnapshot();
+      });
 
-  test('deleteWebAgent() 1: Delete web agent "apacheagent"', async () => {
-    const agentType = 'WebAgent';
-    const agentId = 'apacheagent';
-    mockFindAgentByTypeAndId(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-      }
-    );
-    expect.assertions(5);
-    await Agent.deleteWebAgent(agentId);
-    expect(true).toBeTruthy();
-  });
+      test(`2: Get agent by type '${java1.id}' (${java1.type})`, async () => {
+        const response = await Agent.getAgentByTypeAndId(java1.type, java1.id);
+        expect(response).toMatchSnapshot();
+      });
 
-  test('deleteWebAgent() 2: Delete agent of wrong type "ig_mytestrun_com" (gateway)', async () => {
-    const agentType = 'IdentityGatewayAgent';
-    const agentId = 'ig_mytestrun_com';
-    mockFindAgentByTypeAndId(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-      }
-    );
-    expect.assertions(2);
-    try {
-      await Agent.deleteWebAgent(agentId);
-    } catch (error) {
-      expect(error).toBeTruthy();
-      expect(error.message).toBe(`Web agent '${agentId}' not found!`);
-    }
-  });
+      test(`3: Get agent by type '${web1.id}' (${web1.type})`, async () => {
+        const response = await Agent.getAgentByTypeAndId(web1.type, web1.id);
+        expect(response).toMatchSnapshot();
+      });
+    });
 
-  test('deleteWebAgent() 3: Delete agent of wrong type "tomcatagent" (java)', async () => {
-    const agentType = 'J2EEAgent';
-    const agentId = 'tomcatagent';
-    mockFindAgentByTypeAndId(mock);
-    mockDeleteAgentByTypeAndId(
-      mock,
-      (mockAgentType, mockAgentId, mockAgentObj) => {
-        expect(mockAgentObj).toBeTruthy();
-        expect(agentType).toBe(mockAgentType);
-        expect(agentId).toBe(mockAgentId);
-      }
-    );
-    expect.assertions(2);
-    try {
-      await Agent.deleteWebAgent(agentId);
-    } catch (error) {
-      expect(error).toBeTruthy();
-      expect(error.message).toBe(`Web agent '${agentId}' not found!`);
-    }
-  });
+    describe('getIdentityGatewayAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.getIdentityGatewayAgents).toBeDefined();
+      });
+
+      test('1: Get gateway agents', async () => {
+        const response = await Agent.getIdentityGatewayAgents();
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('getIdentityGatewayAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.getIdentityGatewayAgent).toBeDefined();
+      });
+
+      test(`1: Get ${gateway1.type} '${gateway1.id}'`, async () => {
+        const response = await Agent.getIdentityGatewayAgent(gateway1.id);
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('putIdentityGatewayAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.putIdentityGatewayAgent).toBeDefined();
+      });
+
+      test(`1: Put ${gateway2.type} '${gateway2.id}'`, async () => {
+        const response = await Agent.putIdentityGatewayAgent(
+          gateway2.id,
+          getAgent(gateway2.type, gateway2.id)
+        );
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('getJavaAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.getJavaAgents).toBeDefined();
+      });
+
+      test('1: Get java agents', async () => {
+        const response = await Agent.getJavaAgents();
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('getJavaAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.getJavaAgent).toBeDefined();
+      });
+
+      test(`1: Get ${java1.type} '${java1.id}'`, async () => {
+        const response = await Agent.getJavaAgent(java1.id);
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('putJavaAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.putJavaAgent).toBeDefined();
+      });
+
+      test(`1: Put ${java2.type} '${java2.id}'`, async () => {
+        const response = await Agent.putJavaAgent(
+          java2.id,
+          getAgent(java2.type, java2.id)
+        );
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('getWebAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.getWebAgents).toBeDefined();
+      });
+
+      test('1: Get web agents', async () => {
+        const response = await Agent.getWebAgents();
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('getWebAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.getWebAgent).toBeDefined();
+      });
+
+      test(`1: Get ${web1.type} '${web1.id}'`, async () => {
+        const response = await Agent.getWebAgent(web1.id);
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('putWebAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.putWebAgent).toBeDefined();
+      });
+
+      test(`1: Put ${web2.type} '${web2.id}'`, async () => {
+        const response = await Agent.putWebAgent(
+          web2.id,
+          getAgent(web2.type, web2.id)
+        );
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('exportAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.exportAgents).toBeDefined();
+      });
+
+      test('1: Export all agents', async () => {
+        const response = await Agent.exportAgents();
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('exportIdentityGatewayAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.exportIdentityGatewayAgents).toBeDefined();
+      });
+
+      test('1: Export gateway agents', async () => {
+        const response = await Agent.exportIdentityGatewayAgents();
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('exportJavaAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.exportJavaAgents).toBeDefined();
+      });
+
+      test('1: Export java agents', async () => {
+        const response = await Agent.exportJavaAgents();
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('exportWebAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.exportJavaAgents).toBeDefined();
+      });
+
+      test('1: Export web agents', async () => {
+        const response = await Agent.exportWebAgents();
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('exportAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.exportAgent).toBeDefined();
+      });
+
+      test(`1: Export agent '${gateway1.id}' (${gateway1.type})`, async () => {
+        const response = await Agent.exportAgent(gateway1.id);
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`2: Export agent '${java1.id}' (${java1.type})`, async () => {
+        const response = await Agent.exportAgent(java1.id);
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`3: Export agent '${web1.id}' (${web1.type})`, async () => {
+        const response = await Agent.exportAgent(web1.id);
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('exportIdentityGatewayAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.exportIdentityGatewayAgent).toBeDefined();
+      });
+
+      test(`1: Export ${gateway1.type} '${gateway1.id}'`, async () => {
+        const response = await Agent.exportIdentityGatewayAgent(gateway1.id);
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('exportJavaAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.exportJavaAgent).toBeDefined();
+      });
+
+      test(`1: Export ${java1.type} '${java1.id}'`, async () => {
+        const response = await Agent.exportJavaAgent(java1.id);
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('exportWebAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.exportWebAgent).toBeDefined();
+      });
+
+      test(`1: Export ${web1.type} '${web1.id}'`, async () => {
+        const response = await Agent.exportWebAgent(web1.id);
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('importAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.importAgents).toBeDefined();
+      });
+
+      test('1: Import all agents', async () => {
+        const agents = {
+          [gateway3.id]: gateway3.type,
+          [java3.id]: java3.type,
+          [web3.id]: web3.type,
+        };
+        const exportData = Agent.createAgentExportTemplate();
+        for (const agentId of Object.keys(agents)) {
+          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+        }
+        await Agent.importAgents(exportData);
+        expect(true).toBeTruthy();
+      });
+    });
+
+    describe('importIdentityGatewayAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.importIdentityGatewayAgents).toBeDefined();
+      });
+
+      test('1: Import all gateway agents', async () => {
+        const agents = {
+          [gateway4.id]: gateway4.type,
+          [gateway5.id]: gateway5.type,
+        };
+        const exportData = Agent.createAgentExportTemplate();
+        for (const agentId of Object.keys(agents)) {
+          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+        }
+        await Agent.importIdentityGatewayAgents(exportData);
+        expect(true).toBeTruthy();
+      });
+
+      test('2: Import gateway agents with wrong type', async () => {
+        const agents = {
+          [java4.id]: java4.type,
+          [web4.id]: web4.type,
+        };
+        const exportData = Agent.createAgentExportTemplate();
+        for (const agentId of Object.keys(agents)) {
+          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+        }
+        expect.assertions(1);
+        try {
+          await Agent.importIdentityGatewayAgents(exportData);
+        } catch (error) {
+          expect(error).toMatchSnapshot();
+        }
+      });
+    });
+
+    describe('importJavaAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.importJavaAgents).toBeDefined();
+      });
+
+      test('1: Import all java agents', async () => {
+        const agents = {
+          [java4.id]: java4.type,
+          [java5.id]: java5.type,
+        };
+        const exportData = Agent.createAgentExportTemplate();
+        for (const agentId of Object.keys(agents)) {
+          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+        }
+        await Agent.importJavaAgents(exportData);
+        expect(true).toBeTruthy();
+      });
+
+      test('2: Import java agents with wrong type', async () => {
+        const agents = {
+          [web4.id]: web4.type,
+          [gateway4.id]: gateway4.type,
+        };
+        const exportData = Agent.createAgentExportTemplate();
+        for (const agentId of Object.keys(agents)) {
+          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+        }
+        expect.assertions(1);
+        try {
+          await Agent.importJavaAgents(exportData);
+        } catch (error) {
+          expect(error).toMatchSnapshot();
+        }
+      });
+    });
+
+    describe('importWebAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.importWebAgents).toBeDefined();
+      });
+
+      test('1: Import all web agents', async () => {
+        const agents = {
+          [web4.id]: web4.type,
+          [web5.id]: web5.type,
+        };
+        const exportData = Agent.createAgentExportTemplate();
+        for (const agentId of Object.keys(agents)) {
+          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+        }
+        await Agent.importWebAgents(exportData);
+        expect(true).toBeTruthy();
+      });
+
+      test('2: Import web agents with wrong type', async () => {
+        const agents = {
+          [gateway4.id]: gateway4.type,
+          [java4.id]: java4.type,
+        };
+        const exportData = Agent.createAgentExportTemplate();
+        for (const agentId of Object.keys(agents)) {
+          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+        }
+        expect.assertions(1);
+        try {
+          await Agent.importWebAgents(exportData);
+        } catch (error) {
+          expect(error).toMatchSnapshot();
+        }
+      });
+    });
+
+    describe('importAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.importAgent).toBeDefined();
+      });
+
+      test('1: Import gateway agent', async () => {
+        const exportData = Agent.createAgentExportTemplate();
+        exportData.agents[gateway6.id] = getAgent(gateway6.type, gateway6.id);
+        await Agent.importAgent(gateway6.id, exportData);
+        expect(true).toBeTruthy();
+      });
+
+      test('2: Import java agent', async () => {
+        const exportData = Agent.createAgentExportTemplate();
+        exportData.agents[java6.id] = getAgent(java6.type, java6.id);
+        await Agent.importAgent(java6.id, exportData);
+        expect(true).toBeTruthy();
+      });
+
+      test('3: Import web agent', async () => {
+        const exportData = Agent.createAgentExportTemplate();
+        exportData.agents[web6.id] = getAgent(web6.type, web6.id);
+        await Agent.importAgent(web6.id, exportData);
+        expect(true).toBeTruthy();
+      });
+    });
+
+    describe('importIdentityGatewayAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.importIdentityGatewayAgent).toBeDefined();
+      });
+
+      test(`1: Import ${gateway7.type} '${gateway7.id}'`, async () => {
+        const exportData = Agent.createAgentExportTemplate();
+        exportData.agents[gateway7.id] = getAgent(gateway7.type, gateway7.id);
+        await Agent.importIdentityGatewayAgent(gateway7.id, exportData);
+        expect(true).toBeTruthy();
+      });
+
+      test('2: Import gateway agent with wrong type', async () => {
+        const exportData = Agent.createAgentExportTemplate();
+        exportData.agents[java7.id] = getAgent(java7.type, java7.id);
+        expect.assertions(1);
+        try {
+          await Agent.importIdentityGatewayAgent(java7.id, exportData);
+        } catch (error) {
+          expect(error.message).toMatchSnapshot();
+        }
+      });
+    });
+
+    describe('importJavaAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.importJavaAgents).toBeDefined();
+      });
+
+      test(`1: Import ${java7.type} '${java7.id}'`, async () => {
+        const exportData = Agent.createAgentExportTemplate();
+        exportData.agents[java7.id] = getAgent(java7.type, java7.id);
+        await Agent.importJavaAgent(java7.id, exportData);
+        expect(true).toBeTruthy();
+      });
+
+      test('2: Import java agent with wrong type', async () => {
+        const exportData = Agent.createAgentExportTemplate();
+        exportData.agents[web7.id] = getAgent(web7.type, web7.id);
+        expect.assertions(1);
+        try {
+          await Agent.importJavaAgent(web7.id, exportData);
+        } catch (error) {
+          expect(error.message).toMatchSnapshot();
+        }
+      });
+    });
+
+    describe('importWebAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.importWebAgent).toBeDefined();
+      });
+
+      test(`1: Import ${web7.type} '${web7.id}'`, async () => {
+        const exportData = Agent.createAgentExportTemplate();
+        exportData.agents[web7.id] = getAgent(web7.type, web7.id);
+        await Agent.importWebAgent(web7.id, exportData);
+        expect(true).toBeTruthy();
+      });
+
+      test('2: Import web agent with wrong type', async () => {
+        const exportData = Agent.createAgentExportTemplate();
+        exportData.agents[gateway7.id] = getAgent(gateway7.type, gateway7.id);
+        expect.assertions(1);
+        try {
+          await Agent.importWebAgent(gateway7.id, exportData);
+        } catch (error) {
+          expect(error.message).toMatchSnapshot();
+        }
+      });
+    });
+  }
+
+  // Phase 2
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '2')
+  ) {
+    describe('deleteAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.deleteAgent).toBeDefined();
+      });
+
+      test(`1: Delete agent '${gateway8.id}' (${gateway8.type})`, async () => {
+        await Agent.deleteAgent(gateway8.id);
+        expect(true).toBeTruthy();
+      });
+
+      test(`2: Delete agent '${java8.id}' (${java8.type})`, async () => {
+        await Agent.deleteAgent(java8.id);
+        expect(true).toBeTruthy();
+      });
+
+      test(`3: Delete agent '${web8.id}' (${web8.type})`, async () => {
+        await Agent.deleteAgent(web8.id);
+        expect(true).toBeTruthy();
+      });
+    });
+
+    describe('deleteIdentityGatewayAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.deleteIdentityGatewayAgent).toBeDefined();
+      });
+
+      test(`1: Delete ${gateway9.type} '${gateway9.id}'`, async () => {
+        await Agent.deleteIdentityGatewayAgent(gateway9.id);
+        expect(true).toBeTruthy();
+      });
+
+      test(`2: Delete agent of wrong type '${java9.id}' (${java9.type})`, async () => {
+        expect.assertions(1);
+        try {
+          await Agent.deleteIdentityGatewayAgent(java9.id);
+        } catch (error) {
+          expect(error.message).toMatchSnapshot();
+        }
+      });
+    });
+
+    describe('deleteJavaAgent()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.deleteJavaAgent).toBeDefined();
+      });
+
+      test(`1: Delete ${java9.type} '${java9.id}'`, async () => {
+        await Agent.deleteJavaAgent(java9.id);
+        expect(true).toBeTruthy();
+      });
+
+      test(`2: Delete agent of wrong type '${web9.id}' (${web9.type})`, async () => {
+        expect.assertions(1);
+        try {
+          await Agent.deleteJavaAgent(web9.id);
+        } catch (error) {
+          expect(error.message).toMatchSnapshot();
+        }
+      });
+    });
+
+    describe('deleteWebAgent()', () => {
+      test('deleteWebAgent() 0: Method is implemented', async () => {
+        expect(Agent.deleteWebAgent).toBeDefined();
+      });
+
+      test(`1: Delete ${web9.type} '${web9.id}'`, async () => {
+        await Agent.deleteWebAgent(web9.id);
+        expect(true).toBeTruthy();
+      });
+
+      test(`2: Delete agent of wrong type '${gateway9.id}' (${gateway9.type})`, async () => {
+        expect.assertions(1);
+        try {
+          await Agent.deleteWebAgent(gateway9.id);
+        } catch (error) {
+          expect(error.message).toMatchSnapshot();
+        }
+      });
+    });
+  }
+
+  // Phase 3
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '3')
+  ) {
+    describe('deleteIdentityGatewayAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.deleteIdentityGatewayAgents).toBeDefined();
+      });
+
+      test('1: Delete all gateway agents', async () => {
+        await Agent.deleteIdentityGatewayAgents();
+        expect(true).toBeTruthy();
+      });
+    });
+
+    describe('deleteJavaAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.deleteJavaAgents).toBeDefined();
+      });
+
+      test('1: Delete all java agents', async () => {
+        await Agent.deleteJavaAgents();
+        expect(true).toBeTruthy();
+      });
+    });
+
+    describe('deleteWebAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.deleteWebAgents).toBeDefined();
+      });
+
+      test('1: Delete all web agents', async () => {
+        await Agent.deleteWebAgents();
+        expect(true).toBeTruthy();
+      });
+    });
+  }
+
+  // Phase 4
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '4')
+  ) {
+    describe('deleteAgents()', () => {
+      test('0: Method is implemented', async () => {
+        expect(Agent.deleteAgents).toBeDefined();
+      });
+
+      test('1: Delete all agents', async () => {
+        expect.assertions(1);
+        await Agent.deleteAgents();
+        expect(true).toBeTruthy();
+      });
+    });
+  }
 });

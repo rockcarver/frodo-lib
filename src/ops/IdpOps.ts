@@ -1,17 +1,13 @@
-import fs from 'fs';
 import {
-  getSocialIdentityProviders,
-  putProviderByTypeAndId,
+  deleteProviderByTypeAndId,
+  getSocialIdentityProviders as _getSocialIdentityProviders,
+  putProviderByTypeAndId as _putProviderByTypeAndId,
 } from '../api/SocialIdentityProvidersApi';
 import { getScript } from '../api/ScriptApi';
-import { createOrUpdateScript } from './ScriptOps';
+import { putScript } from './ScriptOps';
 import {
   convertBase64TextToArray,
   convertTextArrayToBase64,
-  getRealmString,
-  getTypedFilename,
-  saveJsonToFile,
-  validateImport,
 } from './utils/ExportImportUtils';
 import {
   printMessage,
@@ -19,30 +15,37 @@ import {
   updateProgressIndicator,
   stopProgressIndicator,
 } from './utils/Console';
+import { ExportMetaData } from './OpsTypes';
+import { ScriptSkeleton, SocialIdpSkeleton } from '../api/ApiTypes';
+import { getMetadata } from './utils/ExportImportUtils';
+import * as state from '../shared/State';
+import { debugMessage } from './utils/Console';
 
-// use a function vs a template variable to avoid problems in loops
-function getFileDataTemplate() {
-  return {
-    meta: {},
-    script: {},
-    idp: {},
-  };
+export interface SocialProviderExportInterface {
+  meta?: ExportMetaData;
+  script: Record<string, ScriptSkeleton>;
+  idp: Record<string, SocialIdpSkeleton>;
 }
 
 /**
- * List providers
+ * Create an empty idp export template
+ * @returns {SocialProviderExportInterface} an empty idp export template
  */
-export async function listSocialProviders() {
-  try {
-    const providers = await getSocialIdentityProviders();
-    providers.result.sort((a, b) => a._id.localeCompare(b._id));
-    providers.result.forEach((socialIdentityProvider) => {
-      printMessage(`${socialIdentityProvider._id}`, 'data');
-    });
-  } catch (err) {
-    printMessage(`listSocialProviders ERROR: ${err.message}`, 'error');
-    printMessage(err, 'error');
-  }
+function createIdpExportTemplate(): SocialProviderExportInterface {
+  return {
+    meta: getMetadata(),
+    script: {},
+    idp: {},
+  } as SocialProviderExportInterface;
+}
+
+/**
+ * Get all social identity providers
+ * @returns {Promise} a promise that resolves to an object containing an array of social identity providers
+ */
+export async function getSocialIdentityProviders() {
+  const { result } = await _getSocialIdentityProviders();
+  return result;
 }
 
 /**
@@ -51,302 +54,217 @@ export async function listSocialProviders() {
  * @returns {Promise} a promise that resolves a social identity provider object
  */
 export async function getSocialProvider(providerId) {
-  return getSocialIdentityProviders().then((response) => {
-    const foundProviders = response.result.filter(
-      (provider) => provider._id === providerId
+  const response = await getSocialIdentityProviders();
+  const foundProviders = response.filter(
+    (provider) => provider._id === providerId
+  );
+  switch (foundProviders.length) {
+    case 1:
+      return foundProviders[0];
+    case 0:
+      throw new Error(`Provider '${providerId}' not found`);
+    default:
+      throw new Error(
+        `${foundProviders.length} providers '${providerId}' found`
+      );
+  }
+}
+
+export async function putProviderByTypeAndId(
+  providerType: string,
+  providerId: string,
+  providerData: object
+) {
+  debugMessage(`IdpOps.putProviderByTypeAndId: start`);
+  try {
+    const response = await _putProviderByTypeAndId(
+      providerType,
+      providerId,
+      providerData
     );
-    switch (foundProviders.length) {
-      case 1:
-        return foundProviders[0];
-      case 0:
-        throw new Error(`Provider '${providerId}' not found`);
-      default:
-        throw new Error(
-          `${foundProviders.length} providers '${providerId}' found`
-        );
+    debugMessage(`IdpOps.putProviderByTypeAndId: end`);
+    return response;
+  } catch (importError) {
+    if (
+      importError.response?.status === 400 &&
+      importError.response?.data?.message === 'Invalid attribute specified.'
+    ) {
+      const { validAttributes } = importError.response.data.detail;
+      validAttributes.push('_id', '_type');
+      for (const attribute of Object.keys(providerData)) {
+        if (!validAttributes.includes(attribute)) {
+          if (state.getVerbose())
+            printMessage(
+              `\nRemoving invalid attribute: ${attribute}`,
+              'warn',
+              false
+            );
+          delete providerData[attribute];
+        }
+      }
+      if (state.getVerbose()) printMessage('\n', 'warn', false);
+      const response = await _putProviderByTypeAndId(
+        providerType,
+        providerId,
+        providerData
+      );
+      debugMessage(`IdpOps.putProviderByTypeAndId: end (after retry)`);
+      return response;
+    } else {
+      // re-throw unhandleable error
+      throw importError;
     }
-  });
+  }
 }
 
 /**
- * Export provider by id
- * @param {String} providerId provider id/name
- * @param {String} file optional export file name
+ * Delete social identity provider by id
+ * @param {String} providerId social identity provider id/name
+ * @returns {Promise} a promise that resolves a social identity provider object
  */
-export async function exportSocialProviderToFile(providerId, file = '') {
-  let fileName = file;
-  if (!fileName) {
-    fileName = getTypedFilename(providerId, 'idp');
+export async function deleteSocialProvider(
+  providerId: string
+): Promise<unknown> {
+  const response = await getSocialIdentityProviders();
+  const foundProviders = response.filter(
+    (provider) => provider._id === providerId
+  );
+  switch (foundProviders.length) {
+    case 1:
+      return await deleteProviderByTypeAndId(
+        foundProviders[0]._type._id,
+        foundProviders[0]._id
+      );
+    case 0:
+      throw new Error(`Provider '${providerId}' not found`);
+    default:
+      throw new Error(
+        `${foundProviders.length} providers '${providerId}' found`
+      );
   }
-  createProgressIndicator(1, `Exporting ${providerId}`);
-  try {
-    const idpData = await getSocialProvider(providerId);
-    updateProgressIndicator(`Writing file ${fileName}`);
-    const fileData = getFileDataTemplate();
-    fileData.idp[idpData._id] = idpData;
-    if (idpData.transform) {
-      const scriptData = await getScript(idpData.transform);
-      scriptData.script = convertBase64TextToArray(scriptData.script);
-      fileData.script[idpData.transform] = scriptData;
-    }
-    saveJsonToFile(fileData, fileName);
-    stopProgressIndicator(
-      `Exported ${providerId['brightCyan']} to ${fileName['brightCyan']}.`
-    );
-  } catch (err) {
-    stopProgressIndicator(`${err}`);
-    printMessage(`${err}`, 'error');
+}
+
+/**
+ * Export social provider by id
+ * @param {string} providerId provider id/name
+ * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
+ */
+export async function exportSocialProvider(
+  providerId: string
+): Promise<SocialProviderExportInterface> {
+  debugMessage(`IdpOps.exportSocialProvider: start`);
+  const idpData = await getSocialProvider(providerId);
+  const exportData = createIdpExportTemplate();
+  exportData.idp[idpData._id] = idpData;
+  if (idpData.transform) {
+    const scriptData = await getScript(idpData.transform);
+    scriptData.script = convertBase64TextToArray(scriptData.script);
+    exportData.script[idpData.transform] = scriptData;
   }
+  debugMessage(`IdpOps.exportSocialProvider: end`);
+  return exportData;
 }
 
 /**
  * Export all providers
- * @param {String} file optional export file name
+ * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
  */
-export async function exportSocialProvidersToFile(file) {
-  let fileName = file;
-  if (!fileName) {
-    fileName = getTypedFilename(`all${getRealmString()}Providers`, 'idp');
-  }
-  const fileData = getFileDataTemplate();
-  const allIdpsData = (await getSocialIdentityProviders()).result;
+export async function exportSocialProviders(): Promise<SocialProviderExportInterface> {
+  const exportData = createIdpExportTemplate();
+  const allIdpsData = await getSocialIdentityProviders();
   createProgressIndicator(allIdpsData.length, 'Exporting providers');
   for (const idpData of allIdpsData) {
     updateProgressIndicator(`Exporting provider ${idpData._id}`);
-    fileData.idp[idpData._id] = idpData;
+    exportData.idp[idpData._id] = idpData;
     if (idpData.transform) {
       // eslint-disable-next-line no-await-in-loop
       const scriptData = await getScript(idpData.transform);
       scriptData.script = convertBase64TextToArray(scriptData.script);
-      fileData.script[idpData.transform] = scriptData;
+      exportData.script[idpData.transform] = scriptData;
     }
-  }
-  saveJsonToFile(fileData, fileName);
-  stopProgressIndicator(
-    `${allIdpsData.length} providers exported to ${fileName}.`
-  );
-}
-
-/**
- * Export all providers to individual files
- */
-export async function exportSocialProvidersToFiles() {
-  const allIdpsData = await (await getSocialIdentityProviders()).result;
-  // printMessage(allIdpsData, 'data');
-  createProgressIndicator(allIdpsData.length, 'Exporting providers');
-  for (const idpData of allIdpsData) {
-    updateProgressIndicator(`Writing provider ${idpData._id}`);
-    const fileName = getTypedFilename(idpData._id, 'idp');
-    const fileData = getFileDataTemplate();
-    fileData.idp[idpData._id] = idpData;
-    if (idpData.transform) {
-      // eslint-disable-next-line no-await-in-loop
-      const scriptData = await getScript(idpData.transform);
-      scriptData.script = convertBase64TextToArray(scriptData.script);
-      fileData.script[idpData.transform] = scriptData;
-    }
-    saveJsonToFile(fileData, fileName);
   }
   stopProgressIndicator(`${allIdpsData.length} providers exported.`);
+  return exportData;
 }
 
 /**
  * Import provider by id/name
- * @param {String} providerId provider id/name
- * @param {String} file import file name
+ * @param {string} providerId provider id/name
+ * @param {SocialProviderExportInterface} importData import data
  */
-export async function importSocialProviderFromFile(providerId, file) {
-  fs.readFile(file, 'utf8', async (err, data) => {
-    if (err) throw err;
-    const fileData = JSON.parse(data);
-    if (validateImport(fileData.meta)) {
-      createProgressIndicator(1, 'Importing provider...');
-      let found = false;
-      for (const idpId in fileData.idp) {
-        if ({}.hasOwnProperty.call(fileData.idp, idpId)) {
-          if (idpId === providerId) {
-            found = true;
-            updateProgressIndicator(`Importing ${fileData.idp[idpId]._id}`);
-            const scriptId = fileData.idp[idpId].transform;
-            const scriptData = fileData.script[scriptId];
-            if (scriptId && scriptData) {
-              scriptData.script = convertTextArrayToBase64(scriptData.script);
-              // eslint-disable-next-line no-await-in-loop
-              await createOrUpdateScript(
-                fileData.idp[idpId].transform,
-                fileData.script[fileData.idp[idpId].transform]
-              );
-            }
-            putProviderByTypeAndId(
-              fileData.idp[idpId]._type._id,
-              idpId,
-              fileData.idp[idpId]
-            )
-              .then(() => {
-                stopProgressIndicator(
-                  `Successfully imported provider ${providerId}.`
-                );
-              })
-              .catch((importProviderErr) => {
-                stopProgressIndicator(
-                  `Error importing provider ${fileData.idp[idpId]._id}`
-                );
-                printMessage(
-                  `\nError importing provider ${providerId}`,
-                  'error'
-                );
-                printMessage(importProviderErr.response.data, 'error');
-              });
-            break;
-          }
-        }
+export async function importSocialProvider(
+  providerId: string,
+  importData: SocialProviderExportInterface
+): Promise<boolean> {
+  for (const idpId of Object.keys(importData.idp)) {
+    if (idpId === providerId) {
+      const scriptId = importData.idp[idpId].transform as string;
+      const scriptData = importData.script[scriptId as string];
+      if (scriptId && scriptData) {
+        scriptData.script = convertTextArrayToBase64(scriptData.script);
+        await putScript(scriptId, scriptData);
       }
-      if (!found) {
-        stopProgressIndicator(
-          `Provider ${providerId.brightCyan} not found in ${file.brightCyan}!`
-        );
-      }
-    } else {
-      printMessage('Import validation failed...', 'error');
-    }
-  });
-}
-
-/**
- * Import first provider from file
- * @param {String} file import file name
- */
-export async function importFirstSocialProviderFromFile(file) {
-  fs.readFile(file, 'utf8', async (err, data) => {
-    if (err) throw err;
-    const fileData = JSON.parse(data);
-    if (validateImport(fileData.meta)) {
-      createProgressIndicator(1, 'Importing provider...');
-      for (const idpId in fileData.idp) {
-        if ({}.hasOwnProperty.call(fileData.idp, idpId)) {
-          updateProgressIndicator(`Importing ${fileData.idp[idpId]._id}`);
-          const scriptId = fileData.idp[idpId].transform;
-          const scriptData = fileData.script[scriptId];
-          if (scriptId && scriptData) {
-            scriptData.script = convertTextArrayToBase64(scriptData.script);
-            // eslint-disable-next-line no-await-in-loop
-            await createOrUpdateScript(
-              fileData.idp[idpId].transform,
-              fileData.script[fileData.idp[idpId].transform]
-            );
-          }
-          putProviderByTypeAndId(
-            fileData.idp[idpId]._type._id,
-            idpId,
-            fileData.idp[idpId]
-          ).then((result) => {
-            if (result == null) {
-              stopProgressIndicator(
-                `Error importing provider ${fileData.idp[idpId]._id}`
-              );
-              printMessage(
-                `Error importing provider ${fileData.idp[idpId]._id}`,
-                'error'
-              );
-            } else {
-              stopProgressIndicator(
-                `Successfully imported provider ${fileData.idp[idpId]._id}.`
-              );
-            }
-          });
-          break;
-        }
-      }
-    } else {
-      printMessage('Import validation failed...', 'error');
-    }
-  });
-}
-
-/**
- * Import all providers from file
- * @param {String} file import file name
- */
-export async function importSocialProvidersFromFile(file) {
-  fs.readFile(file, 'utf8', async (err, data) => {
-    if (err) throw err;
-    const fileData = JSON.parse(data);
-    if (validateImport(fileData.meta)) {
-      createProgressIndicator(
-        Object.keys(fileData.idp).length,
-        'Importing providers...'
+      await putProviderByTypeAndId(
+        importData.idp[idpId]._type._id,
+        idpId,
+        importData.idp[idpId]
       );
-      for (const idpId in fileData.idp) {
-        if ({}.hasOwnProperty.call(fileData.idp, idpId)) {
-          const scriptId = fileData.idp[idpId].transform;
-          const scriptData = fileData.script[scriptId];
-          if (scriptId && scriptData) {
-            scriptData.script = convertTextArrayToBase64(scriptData.script);
-            // eslint-disable-next-line no-await-in-loop
-            await createOrUpdateScript(
-              fileData.idp[idpId].transform,
-              fileData.script[fileData.idp[idpId].transform]
-            );
-          }
-          // eslint-disable-next-line no-await-in-loop
-          const result = await putProviderByTypeAndId(
-            fileData.idp[idpId]._type._id,
-            idpId,
-            fileData.idp[idpId]
-          );
-          if (!result) {
-            updateProgressIndicator(
-              `Successfully imported ${fileData.idp[idpId].name}`
-            );
-          }
-        }
-      }
-      stopProgressIndicator(`Providers imported.`);
-    } else {
-      printMessage('Import validation failed...', 'error');
-    }
-  });
-}
-
-/**
- * Import providers from *.idp.json files in current working directory
- */
-export async function importSocialProvidersFromFiles() {
-  const names = fs.readdirSync('.');
-  const jsonFiles = names.filter((name) =>
-    name.toLowerCase().endsWith('.idp.json')
-  );
-
-  createProgressIndicator(jsonFiles.length, 'Importing providers...');
-  let total = 0;
-  for (const file of jsonFiles) {
-    const data = fs.readFileSync(file, 'utf8');
-    const fileData = JSON.parse(data);
-    if (validateImport(fileData.meta)) {
-      const count = Object.keys(fileData.idp).length;
-      total += count;
-      for (const idpId in fileData.idp) {
-        if ({}.hasOwnProperty.call(fileData.idp, idpId)) {
-          // eslint-disable-next-line no-await-in-loop
-          const result = await putProviderByTypeAndId(
-            fileData.idp[idpId]._type._id,
-            idpId,
-            fileData.idp[idpId]
-          );
-          if (result == null) {
-            printMessage(
-              `Error importing ${count} providers from ${file}`,
-              'error'
-            );
-          }
-        }
-      }
-      updateProgressIndicator(`Imported ${count} provider(s) from ${file}`);
-    } else {
-      printMessage(`Validation of ${file} failed!`, 'error');
+      return true;
     }
   }
-  stopProgressIndicator(
-    `Finished importing ${total} provider(s) from ${jsonFiles.length} file(s).`
-  );
+  return false;
+}
+
+/**
+ * Import first provider
+ * @param {SocialProviderExportInterface} importData import data
+ */
+export async function importFirstSocialProvider(
+  importData: SocialProviderExportInterface
+): Promise<boolean> {
+  for (const idpId of Object.keys(importData.idp)) {
+    const scriptId = importData.idp[idpId].transform as string;
+    const scriptData = importData.script[scriptId as string];
+    if (scriptId && scriptData) {
+      scriptData.script = convertTextArrayToBase64(scriptData.script);
+      await putScript(scriptId, scriptData);
+    }
+    await putProviderByTypeAndId(
+      importData.idp[idpId]._type._id,
+      idpId,
+      importData.idp[idpId]
+    );
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Import all providers
+ * @param {SocialProviderExportInterface} importData import data
+ */
+export async function importSocialProviders(
+  importData: SocialProviderExportInterface
+): Promise<boolean> {
+  let outcome = true;
+  for (const idpId of Object.keys(importData.idp)) {
+    try {
+      const scriptId = importData.idp[idpId].transform as string;
+      const scriptData = { ...importData.script[scriptId as string] };
+      if (scriptId && scriptData) {
+        scriptData.script = convertTextArrayToBase64(scriptData.script);
+        await putScript(scriptId, scriptData);
+      }
+      await putProviderByTypeAndId(
+        importData.idp[idpId]._type._id,
+        idpId,
+        importData.idp[idpId]
+      );
+    } catch (error) {
+      printMessage(error.response?.data || error, 'error');
+      printMessage(`\nError importing provider ${idpId}`, 'error');
+      outcome = false;
+    }
+  }
+  return outcome;
 }
