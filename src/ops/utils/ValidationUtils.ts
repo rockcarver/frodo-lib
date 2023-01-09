@@ -57,12 +57,23 @@ export function validateScript(script: ScriptSkeleton): boolean {
   return true;
 }
 
-function isValidJs(javascriptSource: string) {
+export function validateScriptDecoded(scriptSkeleton: ScriptSkeleton): boolean {
+  if (!Array.isArray(scriptSkeleton.script)) {
+    return false;
+  }
+  if (scriptSkeleton.language === 'JAVASCRIPT') {
+    const script = scriptSkeleton.script.join('\n');
+    return isValidJs(script);
+  }
+  return true;
+}
+
+export function isValidJs(javascriptSource: string) {
   try {
     parseScript(javascriptSource);
     return true;
   } catch (e) {
-    printMessage(`Invalid JavaScript in script hook: ${e.message}`, 'error');
+    printMessage(`Invalid JavaScript: ${e.message}`, 'error');
 
     return false;
   }

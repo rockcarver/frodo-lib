@@ -21,7 +21,7 @@ import {
 } from './utils/ExportImportUtils';
 import { ScriptSkeleton } from '../api/ApiTypes';
 import { ExportMetaData } from '../ops/OpsTypes';
-import { validateScript } from './utils/ValidationUtils';
+import { validateScriptDecoded } from './utils/ValidationUtils';
 
 export interface ScriptExportInterface {
   meta?: ExportMetaData;
@@ -187,10 +187,6 @@ export async function importScripts(
 ): Promise<boolean> {
   let outcome = true;
   debugMessage(`ScriptOps.importScriptsFromFile: start`);
-  createProgressIndicator(
-    Object.keys(importData.script).length,
-    'Importing scripts...'
-  );
   for (const existingId of Object.keys(importData.script)) {
     const scriptSkeleton = importData.script[existingId];
     let newId = existingId;
@@ -208,7 +204,7 @@ export async function importScripts(
       scriptSkeleton.name = name;
     }
     if (shouldValidateScript) {
-      if (!validateScript(scriptSkeleton)) {
+      if (!validateScriptDecoded(scriptSkeleton)) {
         outcome = false;
         printMessage(
           `Error importing script '${scriptSkeleton.name}': Script is not valid`,
@@ -219,7 +215,6 @@ export async function importScripts(
     }
     try {
       await putScript(newId, scriptSkeleton);
-      updateProgressIndicator(`Imported ${scriptSkeleton.name}`);
     } catch (error) {
       outcome = false;
       printMessage(
@@ -230,7 +225,6 @@ export async function importScripts(
     }
     if (name) break;
   }
-  stopProgressIndicator('Done');
   debugMessage(`ScriptOps.importScriptsFromFile: end`);
   return outcome;
 }
