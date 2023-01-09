@@ -101,8 +101,8 @@ export async function deleteConfigEntity(entityId: string) {
  */
 export async function queryAllManagedObjectsByType(
   type: string,
-  fields: string[],
-  pageCookie: string
+  fields: string[] = [],
+  pageCookie: string = undefined
 ): Promise<{
   result: unknown[];
   resultCount: number;
