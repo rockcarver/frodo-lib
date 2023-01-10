@@ -1,8 +1,8 @@
 import util from 'util';
-import { encode } from './utils/Base64';
-import { getTenantURL, getCurrentRealmPath } from './utils/ApiUtils';
-import { generateESVApi } from './BaseApi';
-import * as state from '../shared/State';
+import { encode } from '../utils/Base64';
+import { getTenantURL, getCurrentRealmPath } from '../utils/ApiUtils';
+import { generateEnvApi } from '../BaseApi';
+import * as state from '../../shared/State';
 
 const variablesListURLTemplate = '%s/environment/variables';
 const variableURLTemplate = '%s/environment/variables/%s';
@@ -26,7 +26,7 @@ export async function getVariables() {
     variablesListURLTemplate,
     getTenantURL(state.getHost())
   );
-  const { data } = await generateESVApi(getApiConfig()).get(urlString, {
+  const { data } = await generateEnvApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
   return data;
@@ -43,7 +43,7 @@ export async function getVariable(variableId) {
     getTenantURL(state.getHost()),
     variableId
   );
-  const { data } = await generateESVApi(getApiConfig()).get(urlString, {
+  const { data } = await generateEnvApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
   return data;
@@ -65,7 +65,7 @@ export async function putVariable(variableId, value, description) {
     getTenantURL(state.getHost()),
     variableId
   );
-  const { data } = await generateESVApi(getApiConfig()).put(
+  const { data } = await generateEnvApi(getApiConfig()).put(
     urlString,
     variableData,
     {
@@ -87,7 +87,7 @@ export async function setVariableDescription(variableId, description) {
     getTenantURL(state.getHost()),
     variableId
   );
-  const { data } = await generateESVApi(getApiConfig()).post(
+  const { data } = await generateEnvApi(getApiConfig()).post(
     urlString,
     { description },
     { withCredentials: true }
@@ -106,7 +106,7 @@ export async function deleteVariable(variableId) {
     getTenantURL(state.getHost()),
     variableId
   );
-  const { data } = await generateESVApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateEnvApi(getApiConfig()).delete(urlString, {
     withCredentials: true,
   });
   return data;

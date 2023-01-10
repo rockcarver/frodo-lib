@@ -2,10 +2,14 @@ import {
   createProgressIndicator,
   updateProgressIndicator,
   stopProgressIndicator,
-} from './utils/Console';
-import { getSecrets } from '../api/SecretsApi';
-import { getStatus, initiateRestart, RestartStatus } from '../api/StartupApi';
-import { getVariables } from '../api/VariablesApi';
+} from '../utils/Console';
+import { getSecrets } from '../../api/cloud/SecretsApi';
+import {
+  getStatus,
+  initiateRestart,
+  RestartStatus,
+} from '../../api/cloud/StartupApi';
+import { getVariables } from '../../api/cloud/VariablesApi';
 
 /**
  * Updates that need to be applied.

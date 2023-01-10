@@ -1,10 +1,14 @@
-import { printMessage } from './utils/Console';
-import { getCurrentTimestamp } from './utils/ExportImportUtils';
-import { createAPIKeyAndSecret, getAPIKeys, getSources } from '../api/LogApi';
+import { printMessage } from '../utils/Console';
+import { getCurrentTimestamp } from '../utils/ExportImportUtils';
+import {
+  createAPIKeyAndSecret,
+  getAPIKeys,
+  getSources,
+} from '../../api/cloud/LogApi';
 
-import * as state from '../shared/State';
+import * as state from '../../shared/State';
 
-import * as LogApi from '../api/LogApi';
+import * as LogApi from '../../api/cloud/LogApi';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const unfilterableNoise = [

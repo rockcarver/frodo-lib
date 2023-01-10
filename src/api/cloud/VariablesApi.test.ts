@@ -30,8 +30,8 @@
  * in case things don't function as expected
  */
 import { jest } from '@jest/globals';
-import { VariablesRaw } from '../index';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { VariablesRaw } from '../../index';
+import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 
 // Increase timeout for this test as pipeline keeps failing with error:
 // Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.

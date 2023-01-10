@@ -9,7 +9,7 @@ import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
 import { isEqualJson, getRealmManagedUser } from './utils/OpsUtils';
 import { getRealmManagedOrganization } from './OrganizationOps';
 import { getOAuth2Provider } from '../api/OAuth2ProviderApi';
-import { putSecret } from '../api/SecretsApi';
+import { putSecret } from '../api/cloud/SecretsApi';
 import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
 import { printMessage } from './utils/Console';
 import path from 'path';

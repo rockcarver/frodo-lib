@@ -5,17 +5,17 @@ import {
   printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
-} from './utils/Console';
+} from '../utils/Console';
 import {
   deleteVariable,
   getVariable,
   getVariables,
   putVariable,
   setVariableDescription,
-} from '../api/VariablesApi';
-import wordwrap from './utils/Wordwrap';
-import { resolveUserName } from './ManagedObjectOps';
-import { decode } from '../api/utils/Base64';
+} from '../../api/cloud/VariablesApi';
+import wordwrap from '../utils/Wordwrap';
+import { resolveUserName } from '../ManagedObjectOps';
+import { decode } from '../../api/utils/Base64';
 
 /**
  * List variables

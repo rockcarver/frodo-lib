@@ -7,6 +7,9 @@
  *    override all the connection state variables required to connect to the
  *    env to record from:
  *
+ *    ATTENTION: For the recording to succeed, you MUST make sure to use a
+ *               user account, not a service account.
+ *
  *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record ServiceAccountOps
  *
  *    The above command assumes that you have a connection profile for
@@ -30,12 +33,12 @@
  * in case things don't function as expected
  */
 import { jest } from '@jest/globals';
-import { createJwkRsa, createJwks, getJwkRsaPublic } from './JoseOps';
+import { createJwkRsa, createJwks, getJwkRsaPublic } from '../JoseOps';
 import * as ServiceAccount from './ServiceAccountOps';
 import {
   autoSetupPolly,
   defaultMatchRequestsBy,
-} from '../utils/AutoSetupPolly';
+} from '../../utils/AutoSetupPolly';
 
 // Increase timeout for this test as pipeline keeps failing with error:
 // Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.

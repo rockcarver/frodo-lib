@@ -17,7 +17,7 @@ import { getManagedObject } from '../api/ManagedObjectApi';
 const adminClientPassword = 'doesnotmatter';
 const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
 
-const idmAdminScopes = 'fr:idm:* openid';
+const idmAdminScopes = 'fr:idm:* fr:idc:esv:*';
 const serviceAccountScopes = 'fr:am:* fr:idm:* fr:idc:esv:*';
 
 let adminClientId = 'idmAdminClient';
@@ -28,7 +28,7 @@ let adminClientId = 'idmAdminClient';
  */
 async function determineCookieName() {
   try {
-    const { data } = await getServerInfo();
+    const data = await getServerInfo();
     debugMessage(
       `AuthenticateOps.getCookieName: cookieName=${data.cookieName}`
     );
@@ -364,7 +364,7 @@ async function determineDeploymentTypeAndDefaultRealmAndVersion() {
     `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: realm=${state.getRealm()}, type=${state.getDeploymentType()}`
   );
 
-  const versionInfo = (await getServerVersionInfo()).data;
+  const versionInfo = await getServerVersionInfo();
 
   // https://github.com/rockcarver/frodo-cli/issues/109
   debugMessage(`Full version: ${versionInfo.fullVersion}`);
