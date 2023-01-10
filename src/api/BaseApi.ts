@@ -337,13 +337,13 @@ export function generateLogApi(requestOverride = {}) {
 }
 
 /**
- * Generates an ESV Axios API instance for Environment Secrets and Variables
+ * Generates an Axios instance for the Identity Cloud Environment API
  * @param {object} requestOverride Takes an object of AXIOS parameters that can be used to either add
  * on extra information or override default properties https://github.com/axios/axios#request-config
  *
  * @returns {AxiosInstance}
  */
-export function generateESVApi(resource, requestOverride = {}) {
+export function generateEnvApi(resource, requestOverride = {}) {
   const headers = {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',

@@ -5,7 +5,7 @@ import {
   printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
-} from './utils/Console';
+} from '../utils/Console';
 import {
   createNewVersionOfSecret,
   deleteSecret,
@@ -17,9 +17,9 @@ import {
   setSecretDescription,
   setStatusOfVersionOfSecret,
   VersionOfSecretStatus,
-} from '../api/SecretsApi';
-import wordwrap from './utils/Wordwrap';
-import { resolveUserName } from './ManagedObjectOps';
+} from '../../api/cloud/SecretsApi';
+import wordwrap from '../utils/Wordwrap';
+import { resolveUserName } from '../ManagedObjectOps';
 
 /**
  * List secrets

@@ -1,7 +1,7 @@
 import util from 'util';
-import { generateLogApi, generateLogKeysApi } from './BaseApi';
-import { getTenantURL } from './utils/ApiUtils';
-import * as state from '../shared/State';
+import { generateLogApi, generateLogKeysApi } from '../BaseApi';
+import { getTenantURL } from '../utils/ApiUtils';
+import * as state from '../../shared/State';
 
 const logsTailURLTemplate = '%s/monitoring/logs/tail?source=%s';
 const logsFetchURLTemplate =

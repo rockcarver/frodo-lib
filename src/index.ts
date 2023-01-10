@@ -10,12 +10,12 @@ export * as NodeRaw from './api/NodeApi';
 // use a public oauth2/oidc library. might be ok for now since there is only
 // one place where the cli needs to execute an oauth flow.
 export * as OAuth2OIDCApi from './api/OAuth2OIDCApi';
-export * as SecretsRaw from './api/SecretsApi';
+export * as SecretsRaw from './api/cloud/SecretsApi';
 export * as SocialIdentityProvidersRaw from './api/SocialIdentityProvidersApi';
-export * as StartupRaw from './api/StartupApi';
+export * as StartupRaw from './api/cloud/StartupApi';
 export * as TreeRaw from './api/TreeApi';
 export * as TypesRaw from './api/ApiTypes';
-export * as VariablesRaw from './api/VariablesApi';
+export * as VariablesRaw from './api/cloud/VariablesApi';
 export * as IdmConfigRaw from './api/IdmConfigApi';
 
 // Ops Layer
@@ -27,9 +27,10 @@ export * as ConnectionProfile from './ops/ConnectionProfileOps';
 export * as EmailTemplate from './ops/EmailTemplateOps';
 export * as Idp from './ops/IdpOps';
 export * as Idm from './ops/IdmOps';
+export * as Info from './ops/InfoOps';
 export * as Journey from './ops/JourneyOps';
 export * as Jose from './ops/JoseOps';
-export * as Log from './ops/LogOps';
+export * as Log from './ops/cloud/LogOps';
 export * as ManagedObject from './ops/ManagedObjectOps';
 export * as Node from './ops/NodeOps';
 export * as OAuth2Client from './ops/OAuth2ClientOps';
@@ -38,12 +39,12 @@ export * as Realm from './ops/RealmOps';
 export * as Saml2 from './ops/Saml2Ops';
 export * as Script from './ops/ScriptOps';
 export * as Service from './ops/ServiceOps';
-export * as Secrets from './ops/SecretsOps';
-export * as ServiceAccount from './ops/ServiceAccountOps';
-export * as Startup from './ops/StartupOps';
+export * as Secrets from './ops/cloud/SecretsOps';
+export * as ServiceAccount from './ops/cloud/ServiceAccountOps';
+export * as Startup from './ops/cloud/StartupOps';
 export * as Theme from './ops/ThemeOps';
 export * as Types from './ops/OpsTypes';
-export * as Variables from './ops/VariablesOps';
+export * as Variables from './ops/cloud/VariablesOps';
 // TODO: revisit if there are better ways
 export * as Utils from './ops/utils/OpsUtils';
 export * as ValidationUtils from './ops/utils/ValidationUtils';

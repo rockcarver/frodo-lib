@@ -1,12 +1,12 @@
-import { createManagedObject } from '../api/ManagedObjectApi';
-import { JwksInterface } from './JoseOps';
-import { ObjectSkeletonInterface } from '../api/ApiTypes';
-import { debugMessage } from './utils/Console';
-import { step } from '../api/AuthenticateApi';
+import { createManagedObject } from '../../api/ManagedObjectApi';
+import { JwksInterface } from '../JoseOps';
+import { ObjectSkeletonInterface } from '../../api/ApiTypes';
+import { debugMessage } from '../utils/Console';
+import { hasFeature } from './FeatureOps';
 
 const moType = 'svcacct';
 
-export interface SvcacctInterface {
+export interface ServiceAccountInterface {
   name: string;
   description: string;
   accountStatus: 'Active' | 'Inactive';
@@ -17,7 +17,7 @@ export interface SvcacctInterface {
 /**
  * Global flag indicating if service accounts are available
  */
-let serviceAccountsFeatureAvailable: boolean = undefined;
+let _featureAvailable: boolean = undefined;
 
 /**
  * Check if service accounts are available
@@ -26,25 +26,13 @@ let serviceAccountsFeatureAvailable: boolean = undefined;
 export async function isServiceAccountsFeatureAvailable(): Promise<boolean> {
   debugMessage(`ServiceAccountOps.isServiceAccountsFeatureAvailable: start`);
   // only perform check once
-  if (typeof serviceAccountsFeatureAvailable !== 'undefined')
-    return serviceAccountsFeatureAvailable;
+  if (typeof _featureAvailable !== 'undefined') return _featureAvailable;
 
-  serviceAccountsFeatureAvailable = true;
-  try {
-    await step({}, {}, '/', 'FRServiceAccountInternal');
-  } catch (error) {
-    debugMessage(error.response?.data);
-    if (
-      error.response?.status === 400 &&
-      error.response?.data?.message === 'No Configuration found'
-    ) {
-      serviceAccountsFeatureAvailable = false;
-    }
-  }
+  _featureAvailable = await hasFeature('service-accounts');
   debugMessage(
-    `ServiceAccountOps.isServiceAccountsFeatureAvailable: end, available=${serviceAccountsFeatureAvailable}`
+    `ServiceAccountOps.isServiceAccountsFeatureAvailable: end, available=${_featureAvailable}`
   );
-  return serviceAccountsFeatureAvailable;
+  return _featureAvailable;
 }
 
 /**
@@ -64,7 +52,7 @@ export async function createServiceAccount(
   jwks: JwksInterface
 ): Promise<ObjectSkeletonInterface> {
   debugMessage(`ServiceAccountOps.createServiceAccount: start`);
-  const payload: SvcacctInterface = {
+  const payload: ServiceAccountInterface = {
     name,
     description,
     accountStatus,

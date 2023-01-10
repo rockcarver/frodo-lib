@@ -1,7 +1,7 @@
 import util from 'util';
-import { getTenantURL } from './utils/ApiUtils';
-import { generateESVApi } from './BaseApi';
-import * as state from '../shared/State';
+import { getTenantURL } from '../utils/ApiUtils';
+import { generateEnvApi } from '../BaseApi';
+import * as state from '../../shared/State';
 
 const startupURLTemplate = '%s/environment/startup';
 const startupInitiateRestartURLTemplate = `${startupURLTemplate}?_action=restart`;
@@ -26,7 +26,7 @@ export async function getStatus(): Promise<RestartStatus> {
     startupURLTemplate,
     getTenantURL(state.getHost())
   );
-  const { data } = await generateESVApi(getApiConfig()).get(urlString, {
+  const { data } = await generateEnvApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
   return data.restartStatus;
@@ -43,7 +43,7 @@ export async function initiateRestart(): Promise<RestartStatus> {
       startupInitiateRestartURLTemplate,
       getTenantURL(state.getHost())
     );
-    const { data } = await generateESVApi(getApiConfig()).post(
+    const { data } = await generateEnvApi(getApiConfig()).post(
       urlString,
       null,
       {

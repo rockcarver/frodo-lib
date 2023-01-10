@@ -12,7 +12,7 @@ import {
 } from './utils/Console';
 import { FRODO_CONNECTION_PROFILES_PATH_KEY } from '../storage/StaticStorage';
 import { createJwkRsa, createJwks, getJwkRsaPublic, JwkRsa } from './JoseOps';
-import { createServiceAccount } from './ServiceAccountOps';
+import { createServiceAccount } from './cloud/ServiceAccountOps';
 import { ObjectSkeletonInterface } from '../api/ApiTypes';
 import { saveJsonToFile } from './utils/ExportImportUtils';
 import { isValidUrl } from './utils/OpsUtils';
