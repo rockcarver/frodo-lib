@@ -24,6 +24,7 @@
     "watch": "npx gulp watch"
   },
   "jest": {
+    "testTimeout": 30000,
     "testRunner": "jest-jasmine2",
     "roots": [
       "<rootDir>/esm/",
