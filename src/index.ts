@@ -54,7 +54,3 @@ export * as ExportImportUtils from './ops/utils/ExportImportUtils';
 // lib should be stateless, an aplication should own its state
 export * as state from './shared/State';
 export * as constants from './storage/StaticStorage';
-
-// Mock Engine
-export * as ForgeRockApiMockEngine from './test/mocks/ForgeRockApiMockEngine';
-export { FrodoMockAdapter } from './api/BaseApi';
