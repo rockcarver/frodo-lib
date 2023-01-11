@@ -29,13 +29,8 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { jest } from '@jest/globals';
 import { SecretsRaw } from '../../index';
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
-
-// Increase timeout for this test as pipeline keeps failing with error:
-// Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
-jest.setTimeout(30000);
 
 autoSetupPolly();
 
