@@ -1,13 +1,8 @@
-import { jest } from '@jest/globals';
 import * as Jose from './JoseOps';
 import { parseUrl } from '../api/utils/ApiUtils';
 import { v4 } from 'uuid';
 import { isEqualJson } from './utils/OpsUtils';
 import { decode } from '../api/utils/Base64';
-
-// Increase timeout for this test as pipeline keeps failing with error:
-// Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
-jest.setTimeout(30000);
 
 describe('JoseOps - createJWK()', () => {
   test('createJWK() 0: Method is implemented', async () => {
