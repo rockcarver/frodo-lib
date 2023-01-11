@@ -1,5 +1,4 @@
 import axios, { AxiosProxyConfig } from 'axios';
-import MockAdapter from 'axios-mock-adapter';
 import Agent from 'agentkeepalive';
 import axiosRetry from 'axios-retry';
 import HttpsProxyAgent from 'https-proxy-agent';
@@ -11,15 +10,11 @@ import { fileURLToPath } from 'url';
 import { curlirizeMessage, printMessage } from '../ops/utils/Console';
 import _curlirize from '../ext/axios-curlirize/curlirize';
 import { randomUUID } from 'crypto';
-import { mockAll } from '../test/mocks/ForgeRockApiMockEngine';
+import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
 
-// this has to be the first statement after the imports for mocking to work
-export const FrodoMockAdapter =
-  process.env.FRODO_MOCK || process.env.frodo_mock
-    ? new MockAdapter(axios)
-    : undefined;
-
-if (FrodoMockAdapter) mockAll(FrodoMockAdapter);
+if (process.env.FRODO_MOCK) {
+  setupPollyForFrodoLib();
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
