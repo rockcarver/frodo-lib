@@ -32,17 +32,12 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { jest } from '@jest/globals';
 import { createJwkRsa, createJwks, getJwkRsaPublic } from '../JoseOps';
 import * as ServiceAccount from './ServiceAccountOps';
 import {
   autoSetupPolly,
   defaultMatchRequestsBy,
 } from '../../utils/AutoSetupPolly';
-
-// Increase timeout for this test as pipeline keeps failing with error:
-// Timeout - Async callback was not invoked within the 5000 ms timeout specified by jest.setTimeout.
-jest.setTimeout(30000);
 
 // need to modify the default matching rules to allow the mocking to work for service account tests.
 const matchConfig = defaultMatchRequestsBy();
