@@ -5,6 +5,7 @@ import { MODES } from '@pollyjs/utils';
 import NodeHttpAdapter from '@pollyjs/adapter-node-http';
 import FSPersister from '@pollyjs/persister-fs';
 import { LogLevelDesc } from 'loglevel';
+import { debugMessage } from '../ops/utils/Console';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -125,7 +126,15 @@ export function setupPollyForFrodoLib(
     polly.server.any('/*').recordingName('npmjs');
   });
 
-  if (mode === MODES.RECORD) scheduleShutdown(polly, 60);
+  if (mode === MODES.RECORD) {
+    scheduleShutdown(polly, 60);
+  } else {
+    // only output debug messages if not recording as this polly instance is
+    // primarily used by frodo-cli e2e tests, which capture stdout in snapshots.
+    // debug messages falsify the snapshot recordings.
+    debugMessage(`Polly config:`);
+    debugMessage(polly.config);
+  }
 
   return polly;
 }
