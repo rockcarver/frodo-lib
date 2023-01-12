@@ -2,12 +2,14 @@
 .eslintrc
 .github/
 .prettierrc
-babel.config.cjs.json                                          
-babel.config.esm.json   
+babel.config.cjs.json
+babel.config.esm.json
 cjs/**/*.test.js
+cjs/test/
 CODE_OF_CONDUCT.md
 docs/
 esm/**/*.test.js
+esm/test/
 gulpfile.mjs
 jsconfig.json
 resources/
