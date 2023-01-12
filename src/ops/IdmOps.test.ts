@@ -182,11 +182,9 @@ describe('IdmOps', () => {
     });
 
     test(`1: Query managed objects of type 'alpha_user'`, async () => {
-      const response = await Idm.queryAllManagedObjectsByType(
-        'alpha_user',
-        ['*'],
-        null
-      );
+      const response = await Idm.queryAllManagedObjectsByType('alpha_user', [
+        '*',
+      ]);
       expect(response).toMatchSnapshot();
     });
   });
