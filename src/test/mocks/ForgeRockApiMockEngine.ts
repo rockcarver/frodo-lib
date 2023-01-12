@@ -16,7 +16,7 @@ export function readJsonFile(file: string) {
 
 /****
  **
- ** AM Mocks and Utils
+ ** AM Mocks and Mock Data
  **
  **/
 
@@ -64,28 +64,8 @@ export function mockAccessToken(mock: MockAdapter) {
 }
 
 /**
- * Tree Mocks
+ * Tree Mock Data
  */
-
-export function getTrees() {
-  const treeObjects = JSON.parse(
-    fs.readFileSync(
-      path.resolve(__dirname, './TreeApi/getTrees/trees.json'),
-      'utf8'
-    )
-  );
-  return treeObjects;
-}
-
-export function getTree(treeId: string) {
-  const treeObject = JSON.parse(
-    fs.readFileSync(
-      path.resolve(__dirname, `./TreeApi/getTree/${treeId}.json`),
-      'utf8'
-    )
-  );
-  return treeObject;
-}
 
 export function getJourney(journeyId: string) {
   const treeObject = JSON.parse(
@@ -101,21 +81,7 @@ export function getJourney(journeyId: string) {
 }
 
 /**
- * Script Mocks
- */
-
-export function getScript(scriptId: string) {
-  const treeObject = JSON.parse(
-    fs.readFileSync(
-      path.resolve(__dirname, `./ScriptApi/getScript/${scriptId}.json`),
-      'utf8'
-    )
-  );
-  return treeObject;
-}
-
-/**
- * SAML Mocks
+ * SAML Mock Data
  */
 export function getSaml2ProviderImportData(entityId: string) {
   const importData = JSON.parse(
@@ -147,48 +113,8 @@ export function getSaml2ProvidersImportData() {
   return importData;
 }
 
-export function getSaml2Providers() {
-  const providers = JSON.parse(
-    fs.readFileSync(
-      path.resolve(__dirname, './Saml2Api/getProviders/providers.json'),
-      'utf8'
-    )
-  );
-  return providers;
-}
-
-export function getCirclesOfTrust() {
-  const treeObjects = JSON.parse(
-    fs.readFileSync(
-      path.resolve(
-        __dirname,
-        './CirclesOfTrustApi/getCirclesOfTrust/cots.json'
-      ),
-      'utf8'
-    )
-  );
-  return treeObjects;
-}
-
 /**
- * Social Identity Provider Mocks
- */
-
-export function getSocialProviders() {
-  const objects = JSON.parse(
-    fs.readFileSync(
-      path.resolve(
-        __dirname,
-        './SocialIdentityProvidersApi/getSocialIdentityProviders/socialIdentityProviders.json'
-      ),
-      'utf8'
-    )
-  );
-  return objects;
-}
-
-/**
- * Agent test utils
+ * Agent Mock Data
  */
 
 export function getAgent(agentType, agentId) {
