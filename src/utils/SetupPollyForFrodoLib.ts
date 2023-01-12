@@ -20,7 +20,7 @@ let mode = MODES.REPLAY;
 // "/home/sandeepc/work/ForgeRock/sources/frodo-lib/src/test/recordings"
 const recordingsDir = __dirname.replace(
   /^(.*\/frodo-\w{3})(.*)$/gi,
-  '$1/src/test/mock-recordings/frodo-lib'
+  '$1/mocks'
 );
 
 if (process.env.FRODO_MOCK) {
