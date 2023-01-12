@@ -7,6 +7,7 @@ import NodeHttpAdapter from '@pollyjs/adapter-node-http';
 import FSPersister from '@pollyjs/persister-fs';
 import { getTokens } from '../ops/AuthenticateOps';
 import { state } from '../index';
+import { LogLevelDesc } from 'loglevel';
 
 const { setupPolly } = pollyJest;
 Polly.register(NodeHttpAdapter);
@@ -82,7 +83,7 @@ export function autoSetupPolly(matchRequestsBy = defaultMatchRequestsBy()) {
     mode,
     recordIfMissing,
     flushRequestsOnStop: true,
-    logLevel: 'warn',
+    logLevel: (process.env.FRODO_POLLY_LOG_LEVEL as LogLevelDesc) || 'warn',
     recordFailedRequests: true,
     persister: 'fs',
     persisterOptions: {
