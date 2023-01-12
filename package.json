@@ -16,7 +16,7 @@
     "test": "npx gulp && node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --silent",
     "test:only": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --silent",
     "test:debug": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false",
-    "test:record": "FRODO_POLLY_MODE=record node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false --updateSnapshot --testPathIgnorePatterns cjs --testPathPattern",
+    "test:record": "FRODO_POLLY_MODE=record node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false --runInBand --updateSnapshot --testPathIgnorePatterns cjs --testPathPattern",
     "test:record_noauth": "FRODO_POLLY_MODE=record_noauth node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false --updateSnapshot --testPathIgnorePatterns cjs --testPathPattern",
     "test:update": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false --updateSnapshot --testPathPattern",
     "lint": "npx eslint --ext .ts --ignore-path .gitignore .",
