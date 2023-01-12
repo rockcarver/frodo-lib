@@ -4,6 +4,7 @@ import { Polly } from '@pollyjs/core';
 import { MODES } from '@pollyjs/utils';
 import NodeHttpAdapter from '@pollyjs/adapter-node-http';
 import FSPersister from '@pollyjs/persister-fs';
+import { LogLevelDesc } from 'loglevel';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -89,7 +90,7 @@ export function setupPollyForFrodoLib(
     mode,
     recordIfMissing,
     flushRequestsOnStop: true,
-    logLevel: 'warn',
+    logLevel: (process.env.FRODO_POLLY_LOG_LEVEL as LogLevelDesc) || 'warn',
     recordFailedRequests: true,
     persister: 'fs',
     persisterOptions: {
