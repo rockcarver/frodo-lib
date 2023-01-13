@@ -2,6 +2,7 @@ import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 import * as state from '../shared/State';
+import { PagedResult, ScriptSkeleton } from './ApiTypes';
 
 const scriptURLTemplate = '%s/json%s/scripts/%s';
 const scriptListURLTemplate = '%s/json%s/scripts?_queryFilter=true';
@@ -19,13 +20,15 @@ const getApiConfig = () => {
  * Get all scripts
  * @returns {Promise} a promise that resolves to an object containing an array of script objects
  */
-export async function getScripts() {
+export async function getScripts(): Promise<PagedResult<ScriptSkeleton>> {
   const urlString = util.format(
     scriptListURLTemplate,
     state.getHost(),
     getCurrentRealmPath()
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get<
+    PagedResult<ScriptSkeleton>
+  >(urlString, {
     withCredentials: true,
   });
   return data;
@@ -36,14 +39,18 @@ export async function getScripts() {
  * @param {String} scriptName script name
  * @returns {Promise} a promise that resolves to an object containing a script object
  */
-export async function getScriptByName(scriptName) {
+export async function getScriptByName(
+  scriptName: string
+): Promise<PagedResult<ScriptSkeleton>> {
   const urlString = util.format(
     scriptQueryURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
     encodeURIComponent(scriptName)
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get<
+    PagedResult<ScriptSkeleton>
+  >(urlString, {
     withCredentials: true,
   });
   return data;

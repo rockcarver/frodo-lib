@@ -143,21 +143,6 @@ export function saveJsonToFile(data, filename, includeMeta = true): boolean {
 }
 
 /**
- * Save text data to file
- * @param {String} data text data
- * @param {String} filename file name
- */
-export function saveTextToFile(data, filename) {
-  fs.writeFile(filename, data, (err) => {
-    if (err) {
-      printMessage(`ERROR - can't save ${filename}`, 'error');
-      return false;
-    }
-    return true;
-  });
-}
-
-/**
  * Append text data to file
  * @param {String} data text data
  * @param {String} filename file name
