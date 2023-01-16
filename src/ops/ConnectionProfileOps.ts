@@ -98,25 +98,30 @@ export function listConnectionProfiles(long = false) {
   try {
     const data = fs.readFileSync(filename, 'utf8');
     const connectionsData = JSON.parse(data);
-    if (long) {
-      const table = createTable(['Host', 'Username', 'Log API Key']);
-      Object.keys(connectionsData).forEach((c) => {
-        table.push([
-          c,
-          connectionsData[c].username,
-          connectionsData[c].logApiKey,
-        ]);
-      });
-      printMessage(table.toString(), 'data');
+    if (Object.keys(connectionsData).length < 1) {
+      printMessage(`No connections defined yet in ${filename}`, 'info');
     } else {
-      Object.keys(connectionsData).forEach((c) => {
-        printMessage(`${c}`, 'data');
-      });
+      if (long) {
+        const table = createTable(['Host', 'Username', 'Log API Key']);
+        Object.keys(connectionsData).forEach((c) => {
+          table.push([
+            c,
+            connectionsData[c].username,
+            connectionsData[c].logApiKey,
+          ]);
+        });
+        printMessage(table.toString(), 'data');
+      } else {
+        Object.keys(connectionsData).forEach((c) => {
+          printMessage(`${c}`, 'data');
+        });
+        // getUniqueNames(5, Object.keys(connectionsData));
+      }
+      printMessage(
+        'Any unique substring of a saved host can be used as the value for host parameter in all commands',
+        'info'
+      );
     }
-    printMessage(
-      'Any unique substring of a saved host can be used as the value for host parameter in all commands',
-      'info'
-    );
   } catch (e) {
     printMessage(`No connections found in ${filename} (${e.message})`, 'error');
   }
@@ -127,12 +132,22 @@ export function listConnectionProfiles(long = false) {
  */
 function migrateFromLegacyProfile() {
   const legacyPath = `${os.homedir()}/.frodo/${legacyProfileFilename}`;
-  if (fs.existsSync(legacyPath)) {
-    fs.copyFileSync(legacyPath, `${os.homedir()}/.frodo/${newProfileFilename}`);
+  const newPath = `${os.homedir()}/.frodo/${newProfileFilename}`;
+  if (!fs.existsSync(legacyPath) && !fs.existsSync(newPath)) {
+    // no connections file (old or new), create empty new one
+    fs.writeFileSync(
+      newPath,
+      JSON.stringify({}, null, fileOptions.indentation)
+    );
+  } else if (fs.existsSync(legacyPath) && !fs.existsSync(newPath)) {
+    // old exists, new one does not - so copy old to new one
+    fs.copyFileSync(legacyPath, newPath);
     // for now, just add a "deprecated" suffix. May delete the old file
     // in a future release
     fs.renameSync(legacyPath, `${legacyPath}.deprecated`);
   }
+  // in other cases, where
+  // (both old and new exist) OR (only new one exists) don't do anything
 }
 
 /**
