@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.1] - 2023-01-20
+
 ### Changed
 
 -   Return service account name when calling `ConnectionProfile.getConnectionProfileByHost`.
@@ -71,11 +73,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -   Add support for additional environment variables:
 
-  - `FRODO_SA_ID`: Service account's uuid. If set, must also set `FRODO_SA_JWK`.
-  - `FRODO_SA_JWK`: Service account's java web key (jwk) as single-line string. Jwk must contain private key! If set, must also set `FRODO_SA_ID`.
-  - `FRODO_AUTHENTICATION_SERVICE=journey`: Specify a login journey for frodo to use.
-  - `FRODO_MOCK=1`: Enable mocking. If enabled, frodo-lib replays recorded API responses instead of connecting to a platform instance.
-  - `FRODO_POLLY_LOG_LEVEL=info`: Frodo mock engine log level (`trace`, `debug`, `info`, `warn`, `error`, `silent`). This is helpful for troubleshooting the mock capability, only.
+-   `FRODO_SA_ID`: Service account's uuid. If set, must also set `FRODO_SA_JWK`.
+
+-   `FRODO_SA_JWK`: Service account's java web key (jwk) as single-line string. Jwk must contain private key! If set, must also set `FRODO_SA_ID`.
+
+-   `FRODO_AUTHENTICATION_SERVICE=journey`: Specify a login journey for frodo to use.
+
+-   `FRODO_MOCK=1`: Enable mocking. If enabled, frodo-lib replays recorded API responses instead of connecting to a platform instance.
+
+-   `FRODO_POLLY_LOG_LEVEL=info`: Frodo mock engine log level (`trace`, `debug`, `info`, `warn`, `error`, `silent`). This is helpful for troubleshooting the mock capability, only.
 
     Environment variables added in 0.17.1:
 
@@ -1022,7 +1028,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.18.1-0...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.18.1...HEAD
+
+[0.18.1]: https://github.com/rockcarver/frodo-lib/compare/v0.18.1-0...v0.18.1
 
 [0.18.1-0]: https://github.com/rockcarver/frodo-lib/compare/v0.18.0...v0.18.1-0
 
