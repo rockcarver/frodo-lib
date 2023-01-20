@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+-   Return service account name when calling `ConnectionProfile.getConnectionProfileByHost`.
+-   Save missing service account name when calling `ConnectionProfileOps.saveConnectionProfile`.
+
 ## [0.18.1-0] - 2023-01-16
 
 ### Fixed
