@@ -11,19 +11,25 @@ const managedObjectQueryAllURLTemplate = `${managedObjectURLTemplate}?_queryFilt
 
 /**
  * Get managed object
- * @param {String} id managed object id
- * @returns {Promise} a promise that resolves to an object containing a managed object
+ * @param {string} type managed object type, e.g. alpha_user or user
+ * @param {string} id managed object id
+ * @param {string[]} id array of fields to include
+ * @returns {Promise<ObjectSkeletonInterface>} a promise that resolves to an ObjectSkeletonInterface
  */
-export async function getManagedObject(type, id, fields) {
-  const fieldsParam =
-    fields.length > 0 ? `_fields=${fields.join(',')}` : '_fields=*';
+export async function getManagedObject(
+  type: string,
+  id: string,
+  fields: string[] = ['*']
+): Promise<ObjectSkeletonInterface> {
+  const fieldsParam = `_fields=${fields.join(',')}`;
   const urlString = util.format(
     `${managedObjectByIdURLTemplate}?${fieldsParam}`,
     getTenantURL(state.getHost()),
     type,
     id
   );
-  return generateIdmApi().get(urlString);
+  const { data } = await generateIdmApi().get(urlString);
+  return data as ObjectSkeletonInterface;
 }
 
 /**

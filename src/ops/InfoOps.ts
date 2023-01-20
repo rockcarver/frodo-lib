@@ -3,8 +3,8 @@ import * as state from '../shared/State';
 import { EnvInfoInterface } from '../api/cloud/EnvInfoApi';
 import * as globalConfig from '../storage/StaticStorage';
 import { getServerVersionInfo } from '../api/ServerInfoApi';
-import { getManagedObject } from '../api/ManagedObjectApi';
 import { printMessage } from './utils/Console';
+import { getServiceAccount } from './cloud/ServiceAccountOps';
 
 export interface PlatformInfoInterface {
   host: string;
@@ -44,9 +44,7 @@ async function getAmVersion(): Promise<string> {
 async function getAuthenticatedSubject(): Promise<string> {
   let subjectString = `${state.getUsername()} (User)`;
   if (state.getUseBearerTokenForAmApis()) {
-    const name = (
-      await getManagedObject('svcacct', state.getServiceAccountId(), ['name'])
-    ).data.name;
+    const name = (await getServiceAccount(state.getServiceAccountId())).name;
     subjectString = `${name} [${state.getServiceAccountId()}] (Service Account)`;
   }
   return subjectString;
