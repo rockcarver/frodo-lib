@@ -1,4 +1,7 @@
-import { createManagedObject } from '../../api/ManagedObjectApi';
+import {
+  createManagedObject,
+  getManagedObject,
+} from '../../api/ManagedObjectApi';
 import { JwksInterface } from '../JoseOps';
 import { ObjectSkeletonInterface } from '../../api/ApiTypes';
 import { debugMessage } from '../utils/Console';
@@ -6,13 +9,16 @@ import { hasFeature } from './FeatureOps';
 
 const moType = 'svcacct';
 
-export interface ServiceAccountInterface {
+export interface ServiceAccountPayloadInterface {
   name: string;
   description: string;
   accountStatus: 'Active' | 'Inactive';
   scopes: string[];
   jwks: string;
 }
+
+export type ServiceAccount = ObjectSkeletonInterface &
+  ServiceAccountPayloadInterface;
 
 /**
  * Global flag indicating if service accounts are available
@@ -52,7 +58,7 @@ export async function createServiceAccount(
   jwks: JwksInterface
 ): Promise<ObjectSkeletonInterface> {
   debugMessage(`ServiceAccountOps.createServiceAccount: start`);
-  const payload: ServiceAccountInterface = {
+  const payload: ServiceAccountPayloadInterface = {
     name,
     description,
     accountStatus,
@@ -64,4 +70,9 @@ export async function createServiceAccount(
   const result = await createManagedObject(moType, payload);
   debugMessage(`ServiceAccountOps.createServiceAccount: end`);
   return result;
+}
+
+export async function getServiceAccount(serviceAccountId: string) {
+  const serviceAccount = await getManagedObject(moType, serviceAccountId);
+  return serviceAccount as ServiceAccount;
 }
