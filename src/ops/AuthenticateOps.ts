@@ -441,6 +441,7 @@ export async function getTokens(): Promise<boolean> {
         state.setUseBearerTokenForAmApis(true);
         await determineDeploymentTypeAndDefaultRealmAndVersion();
       } catch (saErr) {
+        debugMessage(saErr.response?.data);
         throw new Error(
           `Service account login error: ${
             saErr.response?.data?.error_description ||
