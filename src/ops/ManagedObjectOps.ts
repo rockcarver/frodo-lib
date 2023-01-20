@@ -8,7 +8,7 @@ import { getManagedObject } from '../api/ManagedObjectApi';
  */
 export async function resolveUserName(type, id) {
   try {
-    return (await getManagedObject(type, id, ['userName'])).data.userName;
+    return (await getManagedObject(type, id, ['userName'])).userName;
   } catch (error) {
     // eslint-disable-next-line no-empty
   }
@@ -23,9 +23,7 @@ export async function resolveUserName(type, id) {
  */
 export async function resolveFullName(type, id) {
   try {
-    const managedObject = (
-      await getManagedObject(type, id, ['givenName', 'sn'])
-    ).data;
+    const managedObject = await getManagedObject(type, id, ['givenName', 'sn']);
     return `${managedObject.givenName} ${managedObject.sn}`;
   } catch (error) {
     // eslint-disable-next-line no-empty
