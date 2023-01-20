@@ -5,7 +5,7 @@ import { MODES } from '@pollyjs/utils';
 import NodeHttpAdapter from '@pollyjs/adapter-node-http';
 import FSPersister from '@pollyjs/persister-fs';
 import { LogLevelDesc } from 'loglevel';
-import { debugMessage } from '../ops/utils/Console';
+import { debugMessage, printMessage } from '../ops/utils/Console';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -67,18 +67,63 @@ async function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// performs a specific (mathematical) operation every "ms" (milliseconds)
-async function countdown(i, ms) {
+async function countdown(ms) {
   await delay(ms);
-  return --i;
+  return --ttl;
 }
 
-async function scheduleShutdown(polly: Polly, i = 30) {
-  ++i;
-  while ((i = await countdown(i, 1000)))
-    console.log(`Polly stopping in ${i}s...`);
+const timeout = 15;
+let ttl = timeout;
+async function scheduleShutdown(polly: Polly) {
+  ++ttl;
+  while (await countdown(1000)) {
+    if (ttl < 4)
+      console.log(
+        `Polly instance '${getFrodoCommand()}' stopping in ${ttl}s...`
+      );
+  }
   await polly.stop();
-  console.log(`Polly stopped.`);
+  console.log(`Polly instance '${getFrodoCommand()}' stopped.`);
+}
+
+/*
+argv:
+[
+  '/Users/vscheuber/.nvm/versions/node/v18.7.0/bin/node',
+  '/usr/local/bin/frodo',
+  'journey',
+  'list',
+  '-l',
+  'https://openam-volker-dev.forgeblocks.com/am',
+  'alpha',
+  'volker.scheuber@forgerock.com',
+  'Sup3rS3cr3t!'
+]
+argv:
+[
+  '/Users/vscheuber/.nvm/versions/node/v18.7.0/bin/node',
+  '/Users/vscheuber/Projects/frodo-cli/esm/cli/journey/journey-list.js',
+  '-l',
+  'https://openam-volker-dev.forgeblocks.com/am',
+  'alpha',
+  'volker.scheuber@forgerock.com',
+  'Sup3rS3cr3t!'
+]
+*/
+function getFrodoCommand() {
+  try {
+    if (
+      !process.argv[1].endsWith('frodo') &&
+      !process.argv[1].endsWith('frodo.exe')
+    ) {
+      return path.parse(process.argv[1]).name.replace('-', '/');
+    }
+    return process.argv[2];
+  } catch (error) {
+    printMessage(`SetupPollyForFrodoLib.getFrodoCommand: ${error}`, 'error');
+    printMessage(process.argv, 'error');
+    return 'error';
+  }
 }
 
 export function setupPollyForFrodoLib(
@@ -107,27 +152,43 @@ export function setupPollyForFrodoLib(
     polly.server.host(host, () => {
       polly.server
         .any('/am/oauth2/*')
-        .recordingName('oauth2')
+        .recordingName(`${getFrodoCommand()}/oauth2`)
         .on('request', (req) => {
           req.configure({ matchRequestsBy: authenticationMatchRequestsBy() });
         });
-      polly.server.any('/am/json/*').recordingName('am');
-      polly.server.any('/openidm/*').recordingName('openidm');
-      polly.server.any('/environment/*').recordingName('environment');
-      polly.server.any('/monitoring/*').recordingName('monitoring');
-      polly.server.any('/feature').recordingName('feature');
-      polly.server.any('/dashboard/*').recordingName('dashboard');
+      polly.server.any('/am/json/*').recordingName(`${getFrodoCommand()}/am`);
+      polly.server
+        .any('/openidm/*')
+        .recordingName(`${getFrodoCommand()}/openidm`);
+      polly.server
+        .any('/environment/*')
+        .recordingName(`${getFrodoCommand()}/environment`);
+      polly.server
+        .any('/monitoring/*')
+        .recordingName(`${getFrodoCommand()}/monitoring`);
+      polly.server
+        .any('/feature')
+        .recordingName(`${getFrodoCommand()}/feature`);
+      polly.server
+        .any('/dashboard/*')
+        .recordingName(`${getFrodoCommand()}/dashboard`);
     });
   }
   polly.server.host('https://api.github.com', () => {
-    polly.server.any('/*').recordingName('github');
+    polly.server.any('/*').recordingName(`github`);
   });
   polly.server.host('https://registry.npmjs.org', () => {
-    polly.server.any('/*').recordingName('npmjs');
+    polly.server.any('/*').recordingName(`npmjs`);
+  });
+  polly.server.any().on('request', () => {
+    if (ttl < timeout) {
+      // console.log(`Reset polly stop ttl (${ttl}) to ${timeout}`);
+      ttl = timeout;
+    }
   });
 
   if (mode === MODES.RECORD) {
-    scheduleShutdown(polly, 60);
+    scheduleShutdown(polly);
   } else {
     // only output debug messages if not recording as this polly instance is
     // primarily used by frodo-cli e2e tests, which capture stdout in snapshots.

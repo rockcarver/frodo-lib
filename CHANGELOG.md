@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+-   Return service account name when calling `ConnectionProfile.getConnectionProfileByHost`.
+-   Save missing service account name when calling `ConnectionProfileOps.saveConnectionProfile`.
+
+### Fixed
+
+-   \#165: Frodo now properly lists saved connections in those circumstances where this wasn't the case.
+
 ## [0.18.1-0] - 2023-01-16
+
+### Fixed
+
+-   \#165: Frodo now properly lists saved connections in those circumstances where this wasn't the case. 
 
 ## [0.18.0] - 2023-01-13
 
@@ -58,9 +71,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -   Add support for additional environment variables:
 
-    -   `FRODO_AUTHENTICATION_SERVICE=journey`: Specify a journey for frodo to use
-    -   `FRODO_MOCK=1`: Enable mocking. If enabled, frodo-lib replays recorded API responses instead of connecting to a platform instance. 
-    -   `FRODO_POLLY_LOG_LEVEL=info`: Frodo mock engine log level (trace, debug, info, warn, error, silent). This is helpful for troubleshooting the mock capability, only.
+  - `FRODO_SA_ID`: Service account's uuid. If set, must also set `FRODO_SA_JWK`.
+  - `FRODO_SA_JWK`: Service account's java web key (jwk) as single-line string. Jwk must contain private key! If set, must also set `FRODO_SA_ID`.
+  - `FRODO_AUTHENTICATION_SERVICE=journey`: Specify a login journey for frodo to use.
+  - `FRODO_MOCK=1`: Enable mocking. If enabled, frodo-lib replays recorded API responses instead of connecting to a platform instance.
+  - `FRODO_POLLY_LOG_LEVEL=info`: Frodo mock engine log level (`trace`, `debug`, `info`, `warn`, `error`, `silent`). This is helpful for troubleshooting the mock capability, only.
 
     Environment variables added in 0.17.1:
 
@@ -73,6 +88,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     -   `FRODO_LOG_KEY`
     -   `FRODO_LOG_SECRET`
     -   `FRODO_DEBUG`
+
+-   Add new `InfoOps` module (exported as `Info`) to obtain details about the connected platform instance.
 
 -   Add support to delete IDM config entities
 
