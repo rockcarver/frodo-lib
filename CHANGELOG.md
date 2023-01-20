@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.18.1-0] - 2023-01-16
 
+### Fixed
+
+-   \#165: Frodo now properly lists saved connections in those circumstances where this wasn't the case. 
+
 ## [0.18.0] - 2023-01-13
 
 ### Added
