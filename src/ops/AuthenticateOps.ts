@@ -12,12 +12,12 @@ import { getConnectionProfile } from './ConnectionProfileOps';
 import { v4 } from 'uuid';
 import { parseUrl } from '../api/utils/ApiUtils';
 import { JwkRsa, createSignedJwtToken } from './JoseOps';
-import { getManagedObject } from '../api/ManagedObjectApi';
+import { getServiceAccount } from './cloud/ServiceAccountOps';
 
 const adminClientPassword = 'doesnotmatter';
 const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
 
-const idmAdminScopes = 'fr:idm:* openid';
+const idmAdminScopes = 'fr:idm:* fr:idc:esv:*';
 const serviceAccountScopes = 'fr:am:* fr:idm:* fr:idc:esv:*';
 
 let adminClientId = 'idmAdminClient';
@@ -28,7 +28,7 @@ let adminClientId = 'idmAdminClient';
  */
 async function determineCookieName() {
   try {
-    const { data } = await getServerInfo();
+    const data = await getServerInfo();
     debugMessage(
       `AuthenticateOps.getCookieName: cookieName=${data.cookieName}`
     );
@@ -364,7 +364,7 @@ async function determineDeploymentTypeAndDefaultRealmAndVersion() {
     `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: realm=${state.getRealm()}, type=${state.getDeploymentType()}`
   );
 
-  const versionInfo = (await getServerVersionInfo()).data;
+  const versionInfo = await getServerVersionInfo();
 
   // https://github.com/rockcarver/frodo-cli/issues/109
   debugMessage(`Full version: ${versionInfo.fullVersion}`);
@@ -379,9 +379,7 @@ async function determineDeploymentTypeAndDefaultRealmAndVersion() {
 async function getLoggedInSubject(): Promise<string> {
   let subjectString = `user ${state.getUsername()}`;
   if (state.getUseBearerTokenForAmApis()) {
-    const name = (
-      await getManagedObject('svcacct', state.getServiceAccountId(), ['name'])
-    ).data.name;
+    const name = (await getServiceAccount(state.getServiceAccountId())).name;
     subjectString = `service account ${name} [${state.getServiceAccountId()}]`;
   }
   return subjectString;
@@ -441,6 +439,7 @@ export async function getTokens(): Promise<boolean> {
         state.setUseBearerTokenForAmApis(true);
         await determineDeploymentTypeAndDefaultRealmAndVersion();
       } catch (saErr) {
+        debugMessage(saErr.response?.data);
         throw new Error(
           `Service account login error: ${
             saErr.response?.data?.error_description ||

@@ -7,6 +7,125 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.1] - 2023-01-20
+
+### Changed
+
+-   Return service account name when calling `ConnectionProfile.getConnectionProfileByHost`.
+-   Save missing service account name when calling `ConnectionProfileOps.saveConnectionProfile`.
+
+### Fixed
+
+-   \#165: Frodo now properly lists saved connections in those circumstances where this wasn't the case.
+
+## [0.18.1-0] - 2023-01-16
+
+### Fixed
+
+-   \#165: Frodo now properly lists saved connections in those circumstances where this wasn't the case. 
+
+## [0.18.0] - 2023-01-13
+
+### Added
+
+-   \#68: Support final implementation of Identity Cloud service accounts. Service accounts are the future way for applications to authenticate to Identity Cloud environments without using a personal tenant admin account. Tenant admins can create any number of service accounts and assign sets of privileges to each account. Frodo Library can create service accounts with the required privileges or can use existing service accounts.
+
+    To create a service account use the new ServiceAccount API:
+
+    ```js
+    import { createJwkRsa, createJwks, getJwkRsaPublic } from './JoseOps';
+    import { createServiceAccount, isServiceAccountsFeatureAvailable } from './ServiceAccountOps';
+
+    // check if the tenant supports service accounts
+    if (isServiceAccountsFeatureAvailable()) {
+        const name = 'sa';
+        const description = 'service account';
+        const accountStatus = 'Active';
+        const scopes = ['fr:am:*', 'fr:idm:*', 'fr:idc:esv:*'];
+        // create a java web key (JWK) using RSA
+        const jwk = await createJwkRsa();
+        // extract only the public key as a JWK from the full JWK
+        const publicJwk = await getJwkRsaPublic(jwk);
+        // create a java wek key set (JWKS) from the public JWK
+        const jwks = await createJwks(publicJwk);
+        // create service account
+        const payload = await ServiceAccount.createServiceAccount(
+            name,
+            description,
+            accountStatus,
+            scopes,
+            jwks
+        );
+        // uuid of new service account if creation succeeded
+        const saId = payload._id;
+    }
+    ```
+
+    To use a service account set the following state variables:
+
+    ```js
+    import { state } from '@rockcarver/frodo-lib';
+
+    // setting both, id and jwk, instruct the library to use the service account
+    state.setServiceAccountId(saId);
+    state.setServiceAccountJwk(jwk);
+    ```
+
+-   Add support for additional environment variables:
+
+-   `FRODO_SA_ID`: Service account's uuid. If set, must also set `FRODO_SA_JWK`.
+
+-   `FRODO_SA_JWK`: Service account's java web key (jwk) as single-line string. Jwk must contain private key! If set, must also set `FRODO_SA_ID`.
+
+-   `FRODO_AUTHENTICATION_SERVICE=journey`: Specify a login journey for frodo to use.
+
+-   `FRODO_MOCK=1`: Enable mocking. If enabled, frodo-lib replays recorded API responses instead of connecting to a platform instance.
+
+-   `FRODO_POLLY_LOG_LEVEL=info`: Frodo mock engine log level (`trace`, `debug`, `info`, `warn`, `error`, `silent`). This is helpful for troubleshooting the mock capability, only.
+
+    Environment variables added in 0.17.1:
+
+    -   `FRODO_HOST`
+    -   `FRODO_REALM`
+    -   `FRODO_USERNAME`
+    -   `FRODO_PASSWORD`
+    -   `FRODO_SA_ID`
+    -   `FRODO_SA_JWK`
+    -   `FRODO_LOG_KEY`
+    -   `FRODO_LOG_SECRET`
+    -   `FRODO_DEBUG`
+
+-   Add new `InfoOps` module (exported as `Info`) to obtain details about the connected platform instance.
+
+-   Add support to delete IDM config entities
+
+-   Add function to check RCS status
+
+-   Add mock mode for library to allow unit testing of clients using the library, like frodo-cli. This initial release contains minimal mock data. Enable mock mode using `FRODO_MOCK=1`.
+
+-   Updated list of contributors in package.json
+
+-   More automated tests
+
+### Changed
+
+-   Ongoing refactoring of code base:
+    -   Migrate automated tests from ForgeRockApiMockEngine to Polly.js and snapshots.
+
+### Fixed
+
+-   Bug fixes
+
+## [0.17.8-3] - 2023-01-12
+
+## [0.17.8-2] - 2023-01-12
+
+## [0.17.8-1] - 2023-01-12
+
+## [0.17.8-0] - 2023-01-11
+
+## [0.17.7] - 2023-01-11
+
 ## [0.17.6] - 2023-01-09
 
 ## [0.17.5] - 2023-01-07
@@ -909,7 +1028,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.17.6...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.18.1...HEAD
+
+[0.18.1]: https://github.com/rockcarver/frodo-lib/compare/v0.18.1-0...v0.18.1
+
+[0.18.1-0]: https://github.com/rockcarver/frodo-lib/compare/v0.18.0...v0.18.1-0
+
+[0.18.0]: https://github.com/rockcarver/frodo-lib/compare/v0.17.8-3...v0.18.0
+
+[0.17.8-3]: https://github.com/rockcarver/frodo-lib/compare/v0.17.8-2...v0.17.8-3
+
+[0.17.8-2]: https://github.com/rockcarver/frodo-lib/compare/v0.17.8-1...v0.17.8-2
+
+[0.17.8-1]: https://github.com/rockcarver/frodo-lib/compare/v0.17.8-0...v0.17.8-1
+
+[0.17.8-0]: https://github.com/rockcarver/frodo-lib/compare/v0.17.7...v0.17.8-0
+
+[0.17.7]: https://github.com/rockcarver/frodo-lib/compare/v0.17.6...v0.17.7
 
 [0.17.6]: https://github.com/rockcarver/frodo-lib/compare/v0.17.5...v0.17.6
 

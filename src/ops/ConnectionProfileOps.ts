@@ -12,7 +12,10 @@ import {
 } from './utils/Console';
 import { FRODO_CONNECTION_PROFILES_PATH_KEY } from '../storage/StaticStorage';
 import { createJwkRsa, createJwks, getJwkRsaPublic, JwkRsa } from './JoseOps';
-import { createServiceAccount } from './ServiceAccountOps';
+import {
+  createServiceAccount,
+  getServiceAccount,
+} from './cloud/ServiceAccountOps';
 import { ObjectSkeletonInterface } from '../api/ApiTypes';
 import { saveJsonToFile } from './utils/ExportImportUtils';
 import { isValidUrl } from './utils/OpsUtils';
@@ -98,25 +101,36 @@ export function listConnectionProfiles(long = false) {
   try {
     const data = fs.readFileSync(filename, 'utf8');
     const connectionsData = JSON.parse(data);
-    if (long) {
-      const table = createTable(['Host', 'Username', 'Log API Key']);
-      Object.keys(connectionsData).forEach((c) => {
-        table.push([
-          c,
-          connectionsData[c].username,
-          connectionsData[c].logApiKey,
-        ]);
-      });
-      printMessage(table.toString(), 'data');
+    if (Object.keys(connectionsData).length < 1) {
+      printMessage(`No connections defined yet in ${filename}`, 'info');
     } else {
-      Object.keys(connectionsData).forEach((c) => {
-        printMessage(`${c}`, 'data');
-      });
+      if (long) {
+        const table = createTable([
+          'Host',
+          'Service Account',
+          'Username',
+          'Log API Key',
+        ]);
+        Object.keys(connectionsData).forEach((c) => {
+          table.push([
+            c,
+            connectionsData[c].svcacctName || connectionsData[c].svcacctId,
+            connectionsData[c].username,
+            connectionsData[c].logApiKey,
+          ]);
+        });
+        printMessage(table.toString(), 'data');
+      } else {
+        Object.keys(connectionsData).forEach((c) => {
+          printMessage(`${c}`, 'data');
+        });
+        // getUniqueNames(5, Object.keys(connectionsData));
+      }
+      printMessage(
+        'Any unique substring of a saved host can be used as the value for host parameter in all commands',
+        'info'
+      );
     }
-    printMessage(
-      'Any unique substring of a saved host can be used as the value for host parameter in all commands',
-      'info'
-    );
   } catch (e) {
     printMessage(`No connections found in ${filename} (${e.message})`, 'error');
   }
@@ -127,12 +141,22 @@ export function listConnectionProfiles(long = false) {
  */
 function migrateFromLegacyProfile() {
   const legacyPath = `${os.homedir()}/.frodo/${legacyProfileFilename}`;
-  if (fs.existsSync(legacyPath)) {
-    fs.copyFileSync(legacyPath, `${os.homedir()}/.frodo/${newProfileFilename}`);
+  const newPath = `${os.homedir()}/.frodo/${newProfileFilename}`;
+  if (!fs.existsSync(legacyPath) && !fs.existsSync(newPath)) {
+    // no connections file (old or new), create empty new one
+    fs.writeFileSync(
+      newPath,
+      JSON.stringify({}, null, fileOptions.indentation)
+    );
+  } else if (fs.existsSync(legacyPath) && !fs.existsSync(newPath)) {
+    // old exists, new one does not - so copy old to new one
+    fs.copyFileSync(legacyPath, newPath);
     // for now, just add a "deprecated" suffix. May delete the old file
     // in a future release
     fs.renameSync(legacyPath, `${legacyPath}.deprecated`);
   }
+  // in other cases, where
+  // (both old and new exist) OR (only new one exists) don't do anything
 }
 
 /**
@@ -235,6 +259,7 @@ export async function getConnectionProfileByHost(
       authenticationHeaderOverrides: profiles[0].authenticationHeaderOverrides
         ? profiles[0].authenticationHeaderOverrides
         : {},
+      svcacctName: profiles[0].svcacctName ? profiles[0].svcacctName : null,
       svcacctId: profiles[0].svcacctId ? profiles[0].svcacctId : null,
       svcacctJwk: profiles[0].encodedSvcacctJwk
         ? await crypto.decrypt(profiles[0].encodedSvcacctJwk)
@@ -263,8 +288,9 @@ export async function getConnectionProfile(): Promise<ConnectionProfileInterface
  * @returns {Promise<boolean>} true if the operation succeeded, false otherwise
  */
 export async function saveConnectionProfile(host: string): Promise<boolean> {
+  debugMessage(`ConnectionProfileOps.saveConnectionProfile: start`);
   const filename = getConnectionProfilesPath();
-  verboseMessage(`Saving connection profile in ${filename}`);
+  debugMessage(`Saving connection profile in ${filename}`);
   let profiles: ConnectionsFileInterface = {};
   let profile: SecureConnectionProfileInterface = { tenant: '' };
   try {
@@ -280,23 +306,25 @@ export async function saveConnectionProfile(host: string): Promise<boolean> {
       profile = found[0];
       state.setHost(profile.tenant);
       verboseMessage(`Existing profile: ${profile.tenant}`);
+      debugMessage(profile);
     }
 
     // connection profile not found, validate host is a real URL
     if (found.length === 0) {
       if (isValidUrl(host)) {
         state.setHost(host);
-        verboseMessage(`New profile: ${host}`);
+        debugMessage(`New profile: ${host}`);
       } else {
         printMessage(
           `No existing profile found matching '${host}'. Provide a valid URL as the host argument to create a new profile.`,
           'error'
         );
+        debugMessage(`ConnectionProfileOps.saveConnectionProfile: end [false]`);
         return false;
       }
     }
   } catch (error) {
-    verboseMessage(`New profiles file ${filename} with new profile ${host}`);
+    debugMessage(`New profiles file ${filename} with new profile ${host}`);
   }
 
   // user account
@@ -310,12 +338,23 @@ export async function saveConnectionProfile(host: string): Promise<boolean> {
     profile.encodedLogApiSecret = await crypto.encrypt(state.getLogApiSecret());
 
   // service account
-  if (state.getServiceAccountId())
+  if (state.getServiceAccountId()) {
     profile.svcacctId = state.getServiceAccountId();
+    profile.svcacctName = (
+      await getServiceAccount(state.getServiceAccountId())
+    ).name;
+  }
   if (state.getServiceAccountJwk())
     profile.encodedSvcacctJwk = await crypto.encrypt(
       state.getServiceAccountJwk()
     );
+  // update existing service account profile
+  if (profile.svcacctId && !profile.svcacctName) {
+    profile.svcacctName = (await getServiceAccount(profile.svcacctId)).name;
+    debugMessage(
+      `ConnectionProfileOps.saveConnectionProfile: added missing service account name`
+    );
+  }
 
   // advanced settings
   if (state.getAuthenticationService()) {
@@ -353,6 +392,7 @@ export async function saveConnectionProfile(host: string): Promise<boolean> {
   // save profiles
   saveJsonToFile(orderedProfiles, filename, false);
   verboseMessage(`Saved connection profile ${state.getHost()} in ${filename}`);
+  debugMessage(`ConnectionProfileOps.saveConnectionProfile: end [true]`);
   return true;
 }
 
@@ -404,8 +444,10 @@ export async function describeConnectionProfile(
   host: string,
   showSecrets: boolean
 ) {
+  debugMessage(`ConnectionProfileOps.describeConnectionProfile: start`);
   const profile = await getConnectionProfileByHost(host);
   if (profile) {
+    debugMessage(profile);
     const present = '[present]';
     const jwk = profile.svcacctJwk;
     if (!showSecrets) {
@@ -424,6 +466,7 @@ export async function describeConnectionProfile(
     if (!profile.svcacctId) {
       delete profile.svcacctId;
       delete profile.svcacctJwk;
+      delete profile.svcacctName;
     }
     if (showSecrets && jwk) {
       (profile as unknown)['svcacctJwk'] = 'see below';
@@ -439,6 +482,7 @@ export async function describeConnectionProfile(
       logApiSecret: 'Log API Secret',
       authenticationService: 'Authentication Service',
       authenticationHeaderOverrides: 'Authentication Header Overrides',
+      svcacctName: 'Service Account Name',
       svcacctId: 'Service Account Id',
       svcacctJwk: 'Service Account JWK',
     };
@@ -450,6 +494,7 @@ export async function describeConnectionProfile(
   } else {
     printMessage(`No connection profile ${host} found`);
   }
+  debugMessage(`ConnectionProfileOps.describeConnectionProfile: end`);
 }
 
 /**
