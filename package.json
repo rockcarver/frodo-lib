@@ -1,6 +1,6 @@
 {
   "name": "@rockcarver/frodo-lib",
-  "version": "0.18.1",
+  "version": "0.18.2-0",
   "type": "commonjs",
   "main": "./cjs/index.js",
   "module": "./esm/index.mjs",
@@ -160,7 +160,7 @@
     "loglevel": "^1.8.1",
     "map-stream": "^0.0.7",
     "mock-fs": "^5.2.0",
-    "prettier": "^2.7.1",
+    "prettier": "^2.8.0",
     "setup-polly-jest": "^0.11.0",
     "typescript": "^4.9.3"
   }
