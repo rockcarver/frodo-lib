@@ -90,7 +90,7 @@ Frodo allows an administrator to easily connect to and manage any number of Iden
 
 For those who want to contribute or are just curious about the build process.
 
-- Make sure you have Node.js v18 (the version used by developers) or newer and npm.
+- Make sure you have Node.js v14 or newer and npm.
 - Clone this repo
   ```console
   git clone https://github.com/rockcarver/frodo-lib.git
