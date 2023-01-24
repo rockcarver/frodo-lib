@@ -21,6 +21,7 @@ import {
 } from './utils/ExportImportUtils';
 import { ScriptSkeleton } from '../api/ApiTypes';
 import { ExportMetaData } from '../ops/OpsTypes';
+import { validateScriptDecoded } from './utils/ValidationUtils';
 
 export interface ScriptExportInterface {
   meta?: ExportMetaData;
@@ -181,43 +182,49 @@ export async function exportScripts(): Promise<ScriptExportInterface> {
 export async function importScripts(
   name: string,
   importData: ScriptExportInterface,
-  reUuid = false
+  reUuid = false,
+  shouldValidateScript = false
 ): Promise<boolean> {
   let outcome = true;
   debugMessage(`ScriptOps.importScriptsFromFile: start`);
-  createProgressIndicator(
-    Object.keys(importData.script).length,
-    'Importing scripts...'
-  );
   for (const existingId of Object.keys(importData.script)) {
+    const scriptSkeleton = importData.script[existingId];
     let newId = existingId;
     if (reUuid) {
       newId = uuidv4();
       debugMessage(
-        `ScriptOps.importScriptsFromFile: Re-uuid-ing script ${importData.script[existingId].name} ${existingId} => ${newId}...`
+        `ScriptOps.importScriptsFromFile: Re-uuid-ing script ${scriptSkeleton.name} ${existingId} => ${newId}...`
       );
-      importData.script[existingId]._id = newId;
+      scriptSkeleton._id = newId;
     }
     if (name) {
       debugMessage(
-        `ScriptOps.importScriptsFromFile: Renaming script ${importData.script[existingId].name} => ${name}...`
+        `ScriptOps.importScriptsFromFile: Renaming script ${scriptSkeleton.name} => ${name}...`
       );
-      importData.script[existingId].name = name;
+      scriptSkeleton.name = name;
+    }
+    if (shouldValidateScript) {
+      if (!validateScriptDecoded(scriptSkeleton)) {
+        outcome = false;
+        printMessage(
+          `Error importing script '${scriptSkeleton.name}': Script is not valid`,
+          'error'
+        );
+        continue;
+      }
     }
     try {
-      await putScript(newId, importData.script[existingId]);
-      updateProgressIndicator(`Imported ${importData.script[existingId].name}`);
+      await putScript(newId, scriptSkeleton);
     } catch (error) {
       outcome = false;
       printMessage(
-        `Error importing script '${importData.script[existingId].name}': ${error.message}`,
+        `Error importing script '${scriptSkeleton.name}': ${error.message}`,
         'error'
       );
       debugMessage(error);
     }
     if (name) break;
   }
-  stopProgressIndicator('Done');
   debugMessage(`ScriptOps.importScriptsFromFile: end`);
   return outcome;
 }

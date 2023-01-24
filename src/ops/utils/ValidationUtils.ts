@@ -1,4 +1,6 @@
 import { parseScript } from 'esprima';
+import { ScriptSkeleton } from '../../api/ApiTypes';
+import { decode } from '../../api/utils/Base64';
 import { printMessage } from './Console';
 
 interface ScriptHook {
@@ -46,12 +48,32 @@ function findAllScriptHooks(
   return scriptHooksArray;
 }
 
-function isValidJs(javascriptSource: string) {
+export function validateScript(script: ScriptSkeleton): boolean {
+  const scriptRaw = decode(script.script);
+
+  if (script.language === 'JAVASCRIPT') {
+    return isValidJs(scriptRaw);
+  }
+  return true;
+}
+
+export function validateScriptDecoded(scriptSkeleton: ScriptSkeleton): boolean {
+  if (!Array.isArray(scriptSkeleton.script)) {
+    return false;
+  }
+  if (scriptSkeleton.language === 'JAVASCRIPT') {
+    const script = scriptSkeleton.script.join('\n');
+    return isValidJs(script);
+  }
+  return true;
+}
+
+export function isValidJs(javascriptSource: string) {
   try {
     parseScript(javascriptSource);
     return true;
   } catch (e) {
-    printMessage(`Invalid JavaScript in script hook: ${e.message}`, 'error');
+    printMessage(`Invalid JavaScript: ${e.message}`, 'error');
 
     return false;
   }
