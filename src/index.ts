@@ -47,6 +47,7 @@ export * as Types from './ops/OpsTypes';
 export * as Variables from './ops/cloud/VariablesOps';
 // TODO: revisit if there are better ways
 export * as Utils from './ops/utils/OpsUtils';
+export * as Base64 from './api/utils/Base64';
 export * as ValidationUtils from './ops/utils/ValidationUtils';
 export * as LibVersion from './ops/utils/Version';
 export * as ExportImportUtils from './ops/utils/ExportImportUtils';
