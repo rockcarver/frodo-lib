@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.2] - 2023-01-25
+
 ### Added
 
 -   rockcarver/frodo-cli#52: Library support for script extract and watch functionality
@@ -1038,7 +1040,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.18.2-0...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.18.2...HEAD
+
+[0.18.2]: https://github.com/rockcarver/frodo-lib/compare/v0.18.2-0...v0.18.2
 
 [0.18.2-0]: https://github.com/rockcarver/frodo-lib/compare/v0.18.1...v0.18.2-0
 
