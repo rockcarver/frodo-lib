@@ -6,6 +6,7 @@ import {
 } from '../api/ApiTypes';
 import {
   createProvider,
+  updateProvider,
   deleteRawProvider,
   findProviders,
   getProviderByLocationAndId as _getProviderByLocationAndId,
@@ -26,13 +27,7 @@ import {
 } from '../api/utils/Base64';
 import { MultiOpStatusInterface, Saml2ExportInterface } from './OpsTypes';
 import { putScript } from './ScriptOps';
-import {
-  createProgressIndicator,
-  debugMessage,
-  printMessage,
-  stopProgressIndicator,
-  updateProgressIndicator,
-} from './utils/Console';
+import { debugMessage, printMessage } from './utils/Console';
 import {
   convertBase64TextToArray,
   convertBase64UrlTextToArray,
@@ -322,6 +317,9 @@ export async function importSaml2Provider(
   debugMessage(`Saml2Ops.importSaml2Provider: start`);
   const entityId64 = encode(entityId, false);
   const location = getLocation(entityId64, importData);
+  debugMessage(
+    `Saml2Ops.importSaml2Provider: entityId=${entityId}, entityId64=${entityId64}, location=${location}`
+  );
   if (location) {
     const providerData = importData.saml[location][entityId64];
     await importDependencies(providerData, importData);
@@ -331,7 +329,11 @@ export async function importSaml2Provider(
         importData.saml.metadata[entityId64]
       );
     }
-    await createProvider(location, providerData, metaData);
+    try {
+      await createProvider(location, providerData, metaData);
+    } catch (error) {
+      await updateProvider(location, providerData);
+    }
   } else {
     throw new Error(`Provider ${entityId} not found in import data!`);
   }
@@ -359,7 +361,6 @@ export async function importSaml2Providers(
     const remoteIds = Object.keys(importData.saml.remote);
     const providerIds = hostedIds.concat(remoteIds);
     myStatus.total = providerIds.length;
-    createProgressIndicator(providerIds.length, 'Importing providers...');
     for (const entityId64 of providerIds) {
       debugMessage(
         `Saml2Ops.importSaml2Providers: entityId=${decodeBase64Url(entityId64)}`
@@ -388,15 +389,21 @@ export async function importSaml2Providers(
       try {
         await createProvider(location, providerData, metaData);
         myStatus.successes += 1;
-        updateProgressIndicator(`Imported ${entityId}`);
       } catch (createProviderErr) {
-        myStatus.failures += 1;
-        printMessage(`\nError importing provider ${entityId}`, 'error');
-        printMessage(createProviderErr, 'error');
+        try {
+          await updateProvider(location, providerData);
+          myStatus.successes += 1;
+        } catch (updateProviderError) {
+          myStatus.failures += 1;
+          printMessage(
+            `\nError importing provider ${entityId}: ${updateProviderError.message}`,
+            'error'
+          );
+          printMessage(updateProviderError.response?.data, 'error');
+        }
       }
     }
     myStatus.message = `${myStatus.successes}/${myStatus.total} providers imported.`;
-    stopProgressIndicator(myStatus.message);
   } catch (error) {
     myStatus.failures += 1;
     printMessage(`\nError importing providers ${error.message}`, 'error');
