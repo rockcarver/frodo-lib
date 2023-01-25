@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+-   rockcarver/frodo-cli#52: Library support for script extract and watch functionality
+
+### Fixed
+
+-   rockcarver/frodo-cli#190: Frodo now properly imports previously exported saml providers.
+
 ## [0.18.2-0] - 2023-01-24
 
 ## [0.18.1] - 2023-01-20
