@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+-   rockcarver/frodo-cli#192: Backend support for better error handling and reporting in frodo-cli
+
 ## [0.18.2] - 2023-01-25
 
 ### Added

@@ -111,7 +111,6 @@ async function exportDependencies(providerData, fileData) {
   if (attrMapperScriptId && attrMapperScriptId !== '[Empty]') {
     const scriptData = await getScript(attrMapperScriptId);
     scriptData.script = convertBase64TextToArray(scriptData.script);
-    // eslint-disable-next-line no-param-reassign
     fileData.script[attrMapperScriptId] = scriptData;
   }
   const idpAdapterScriptId = _.get(providerData, [
@@ -123,11 +122,16 @@ async function exportDependencies(providerData, fileData) {
   if (idpAdapterScriptId && idpAdapterScriptId !== '[Empty]') {
     const scriptData = await getScript(idpAdapterScriptId);
     scriptData.script = convertBase64TextToArray(scriptData.script);
-    // eslint-disable-next-line no-param-reassign
     fileData.script[idpAdapterScriptId] = scriptData;
   }
   const metaDataResponse = await getProviderMetadata(providerData.entityId);
-  // eslint-disable-next-line no-param-reassign
+  if (!metaDataResponse) {
+    throw new Error(
+      `Unable to obtain metadata from ${getProviderMetadataUrl(
+        providerData.entityId
+      )}`
+    );
+  }
   fileData.saml.metadata[providerData._id] = convertBase64UrlTextToArray(
     encodeBase64Url(metaDataResponse)
   );
@@ -225,7 +229,11 @@ export async function exportSaml2Provider(
   const id = stub._id;
   const providerData = await getProviderByLocationAndId(location, id);
   exportData.saml[stub.location][providerData._id] = providerData;
-  await exportDependencies(providerData, exportData);
+  try {
+    await exportDependencies(providerData, exportData);
+  } catch (error) {
+    printMessage(error.message, 'error');
+  }
   debugMessage(`Saml2Ops.exportSaml2Provider: end [entityId=${entityId}]`);
   return exportData;
 }
@@ -242,7 +250,11 @@ export async function exportSaml2Providers(): Promise<Saml2ExportInterface> {
       stub.location,
       stub._id
     );
-    await exportDependencies(providerData, fileData);
+    try {
+      await exportDependencies(providerData, fileData);
+    } catch (error) {
+      printMessage(error, 'error');
+    }
     fileData.saml[stub.location][providerData._id] = providerData;
   }
   return fileData;
