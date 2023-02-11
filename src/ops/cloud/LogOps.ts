@@ -1,4 +1,4 @@
-import { printMessage } from '../utils/Console';
+import { printMessage, verboseMessage } from '../utils/Console';
 import { getCurrentTimestamp } from '../utils/ExportImportUtils';
 import {
   createAPIKeyAndSecret,
@@ -323,42 +323,37 @@ export async function tailLogs(source, levels, txid, cookie, nf) {
 export async function provisionCreds() {
   try {
     let keyName = `frodo-${state.getUsername()}`;
-    return getAPIKeys()
-      .then((response) => {
-        response.data.result.forEach((k) => {
-          if (k.name === keyName) {
-            // append current timestamp to name if the named key already exists
-            keyName = `${keyName}-${getCurrentTimestamp()}`;
-          }
-        });
-        return createAPIKeyAndSecret(keyName)
-          .then((resp) => {
-            if (resp.data.name !== keyName) {
-              printMessage(
-                `create keys ERROR: could not create log API key ${keyName}`,
-                'error'
-              );
-              return null;
-            }
-            printMessage(
-              `Created a new log API key [${keyName}] in ${state.getHost()}`
-            );
-            return resp.data;
-          })
-          .catch((error) => {
-            printMessage(
-              `create keys ERROR: create keys call returned ${error}`,
-              'error'
-            );
-            return null;
-          });
-      })
-      .catch((error) => {
+    try {
+      const response = await getAPIKeys();
+      for (const k of response.result) {
+        if (k.name === keyName) {
+          // append current timestamp to name if the named key already exists
+          keyName = `${keyName}-${getCurrentTimestamp()}`;
+        }
+      }
+      try {
+        const resp = await createAPIKeyAndSecret(keyName);
+        if (resp.data.name !== keyName) {
+          printMessage(
+            `create keys ERROR: could not create log API key ${keyName}`,
+            'error'
+          );
+          return null;
+        }
+        verboseMessage(
+          `Created a new log API key [${keyName}] in ${state.getHost()}`
+        );
+        return resp.data;
+      } catch (error) {
         printMessage(
-          `get keys ERROR: get keys call returned ${error}`,
+          `create keys ERROR: create keys call returned ${error}`,
           'error'
         );
-      });
+        return null;
+      }
+    } catch (error) {
+      printMessage(`get keys ERROR: get keys call returned ${error}`, 'error');
+    }
   } catch (e) {
     printMessage(`create keys ERROR: create keys data error - ${e}`, 'error');
     return null;
