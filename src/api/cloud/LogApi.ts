@@ -10,24 +10,13 @@ const logsSourcesURLTemplate = '%s/monitoring/logs/sources';
 const logsCreateAPIKeyAndSecretURLTemplate = '%s/keys?_action=create';
 const logsGetAPIKeysURLTemplate = '%s/keys';
 
-export async function tail(source, cookie) {
-  let urlString = util.format(
-    logsTailURLTemplate,
-    getTenantURL(state.getHost()),
-    encodeURIComponent(source)
-  );
-  if (cookie) {
-    urlString += `&_pagedResultsCookie=${encodeURIComponent(cookie)}`;
-  }
-  return generateLogApi().get(urlString);
-}
-
 export async function getAPIKeys() {
   const urlString = util.format(
     logsGetAPIKeysURLTemplate,
     getTenantURL(state.getHost())
   );
-  return generateLogKeysApi().get(urlString);
+  const { data } = await generateLogKeysApi().get(urlString);
+  return data;
 }
 
 export async function getSources() {
@@ -44,6 +33,18 @@ export async function createAPIKeyAndSecret(keyName) {
     getTenantURL(state.getHost())
   );
   return generateLogKeysApi().post(urlString, { name: keyName });
+}
+
+export async function tail(source, cookie) {
+  let urlString = util.format(
+    logsTailURLTemplate,
+    getTenantURL(state.getHost()),
+    encodeURIComponent(source)
+  );
+  if (cookie) {
+    urlString += `&_pagedResultsCookie=${encodeURIComponent(cookie)}`;
+  }
+  return generateLogApi().get(urlString);
 }
 
 export async function fetch(source, startTs, endTs, cookie) {

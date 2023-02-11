@@ -17,7 +17,7 @@ import { getServiceAccount } from './cloud/ServiceAccountOps';
 const adminClientPassword = 'doesnotmatter';
 const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
 
-const idmAdminScopes = 'fr:idm:* fr:idc:esv:*';
+const idmAdminScopes = 'openid fr:idm:* fr:idc:esv:*';
 const serviceAccountScopes = 'fr:am:* fr:idm:* fr:idc:esv:*';
 
 let adminClientId = 'idmAdminClient';
@@ -387,10 +387,10 @@ async function getLoggedInSubject(): Promise<string> {
 
 /**
  * Get tokens
- * @param {boolean} save true to save a connection profile upon successful authentication, false otherwise
+ * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
  * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
  */
-export async function getTokens(): Promise<boolean> {
+export async function getTokens(forceLoginAsUser = false): Promise<boolean> {
   debugMessage(`AuthenticateOps.getTokens: start`);
   if (!state.getHost()) {
     printMessage(
@@ -426,7 +426,11 @@ export async function getTokens(): Promise<boolean> {
     state.setCookieName(await determineCookieName());
 
     // use service account to login?
-    if (state.getServiceAccountId() && state.getServiceAccountJwk()) {
+    if (
+      !forceLoginAsUser &&
+      state.getServiceAccountId() &&
+      state.getServiceAccountJwk()
+    ) {
       debugMessage(
         `AuthenticateOps.getTokens: Authenticating with service account ${state.getServiceAccountId()}`
       );
@@ -439,11 +443,12 @@ export async function getTokens(): Promise<boolean> {
         state.setUseBearerTokenForAmApis(true);
         await determineDeploymentTypeAndDefaultRealmAndVersion();
       } catch (saErr) {
-        debugMessage(saErr.response?.data);
+        debugMessage(saErr.response?.data || saErr);
         throw new Error(
           `Service account login error: ${
             saErr.response?.data?.error_description ||
-            saErr.response?.data?.message
+            saErr.response?.data?.message ||
+            saErr
           }`
         );
       }
