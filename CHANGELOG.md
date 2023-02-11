@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+-   rockcarver/frodo-cli#195: Backend support to fix issue: `Authenticate.getTokens` API now supports new `forceLoginAsUser` param to force logging in as a user even if a service account is available.
+
 ## [0.18.3] - 2023-01-27
 
 ### Changed
