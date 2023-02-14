@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--   rockcarver/frodo-cli#196: Frodo now properly detects Encore environments as ForgeOps environments and obtains an access token for IDM APIs.
+-   rockcarver/frodo-cli#196 and rockcarver/frodo-cli#197: Frodo now properly detects Encore environments as ForgeOps environments and obtains an access token for IDM APIs.
 
 ## [0.18.4] - 2023-02-11
 
