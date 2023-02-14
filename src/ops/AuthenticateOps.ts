@@ -17,7 +17,8 @@ import { getServiceAccount } from './cloud/ServiceAccountOps';
 const adminClientPassword = 'doesnotmatter';
 const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
 
-const idmAdminScopes = 'openid fr:idm:* fr:idc:esv:*';
+const cloudIdmAdminScopes = 'openid fr:idm:* fr:idc:esv:*';
+const forgeopsIdmAdminScopes = 'openid fr:idm:*';
 const serviceAccountScopes = 'fr:am:* fr:idm:* fr:idc:esv:*';
 
 let adminClientId = 'idmAdminClient';
@@ -132,7 +133,7 @@ async function determineDeploymentType(): Promise<string> {
       [state.getCookieName()]: state.getCookieValue(),
     },
   };
-  let bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+  let bodyFormData = `redirect_uri=${redirectURL}&scope=${cloudIdmAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
 
   let deploymentType = globalConfig.CLASSIC_DEPLOYMENT_TYPE_KEY;
   try {
@@ -147,7 +148,7 @@ async function determineDeploymentType(): Promise<string> {
       deploymentType = globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY;
     } else {
       try {
-        bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+        bodyFormData = `redirect_uri=${redirectURL}&scope=${forgeopsIdmAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
         await authorize(bodyFormData, config);
       } catch (ex) {
         if (
@@ -218,7 +219,11 @@ async function authenticate(
  */
 async function getAuthCode(redirectURL, codeChallenge, codeChallengeMethod) {
   try {
-    const bodyFormData = `redirect_uri=${redirectURL}&scope=${idmAdminScopes}&response_type=code&client_id=${adminClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
+    const bodyFormData = `redirect_uri=${redirectURL}&scope=${
+      state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY
+        ? cloudIdmAdminScopes
+        : forgeopsIdmAdminScopes
+    }&response_type=code&client_id=${adminClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
     const config = {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
