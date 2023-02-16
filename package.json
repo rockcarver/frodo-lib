@@ -114,7 +114,7 @@
     "fs-extra": "^10.0.0",
     "https-proxy-agent": "^5.0.1",
     "lodash": "^4.17.21",
-    "node-jose": "^2.1.1",
+    "node-jose": "^2.2.0",
     "properties-reader": "^2.2.0",
     "qs": "^6.10.3",
     "readline-sync": "^1.4.10",
