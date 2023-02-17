@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+-   Support for node 19.
+
 ## [0.18.7] - 2023-02-16
 
 ## [0.18.6] - 2023-02-16

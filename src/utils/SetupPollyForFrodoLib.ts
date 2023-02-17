@@ -112,9 +112,14 @@ argv:
 */
 function getFrodoCommand() {
   try {
+    if (mode !== MODES.RECORD)
+      debugMessage(
+        `SetupPollyForFrodoLib.getFrodoCommand: process.argv=${process.argv}`
+      );
     if (
       !process.argv[1].endsWith('frodo') &&
-      !process.argv[1].endsWith('frodo.exe')
+      !process.argv[1].endsWith('frodo.exe') &&
+      !process.argv[1].endsWith('app.js')
     ) {
       return path.parse(process.argv[1]).name.replace('-', '/');
     }
