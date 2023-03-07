@@ -278,7 +278,7 @@ export async function getLogSources() {
   return sources;
 }
 
-export async function tailLogs(source, levels, txid, cookie, nf, json = false) {
+export async function tailLogs(source, levels, txid, cookie, nf) {
   try {
     const response = await LogApi.tail(source, cookie);
     if (response.status < 200 || response.status > 399) {
@@ -307,22 +307,11 @@ export async function tailLogs(source, levels, txid, cookie, nf, json = false) {
     }
 
     filteredLogs.forEach((e) => {
-      if (json) {
-        printMessage(JSON.stringify(e), 'data');
-      } else {
-        printMessage(JSON.stringify(e.payload), 'data');
-      }
+      printMessage(JSON.stringify(e), 'data');
     });
 
     setTimeout(() => {
-      tailLogs(
-        source,
-        levels,
-        txid,
-        logsObject.result.pagedResultsCookie,
-        nf,
-        json
-      );
+      tailLogs(source, levels, txid, logsObject.result.pagedResultsCookie, nf);
     }, 5000);
     return null;
   } catch (e) {
