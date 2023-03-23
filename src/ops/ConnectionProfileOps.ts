@@ -83,7 +83,13 @@ function findConnectionProfiles(
 ): SecureConnectionProfileInterface[] {
   const profiles: SecureConnectionProfileInterface[] = [];
   for (const tenant in connectionProfiles) {
+    debugMessage(
+      `ConnectionProfileOps.findConnectionProfiles: tenant=${tenant}`
+    );
     if (tenant.includes(host)) {
+      debugMessage(
+        `ConnectionProfileOps.findConnectionProfiles: '${host}' identifies '${tenant}', including in result set`
+      );
       const foundProfile = { ...connectionProfiles[tenant] };
       foundProfile.tenant = tenant;
       profiles.push(foundProfile);
