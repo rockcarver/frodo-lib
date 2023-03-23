@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+-   rockcarver/frodo-cli#213: More debug logging for connection profile lookup by a unique substring. Use --debug to see the additional output. This is not yet a solution for rockcarver/frodo-cli#213 but should help identify the root cause.
+-   rockcarver/frodo-cli#216: More debug logging for the 2fa process and proper detection of unsupported webauthn factor.
+
 ## [0.18.8] - 2023-02-17
 
 ### Added
