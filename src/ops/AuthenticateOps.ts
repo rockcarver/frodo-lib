@@ -13,6 +13,7 @@ import { v4 } from 'uuid';
 import { parseUrl } from '../api/utils/ApiUtils';
 import { JwkRsa, createSignedJwtToken } from './JoseOps';
 import { getServiceAccount } from './cloud/ServiceAccountOps';
+import { isValidUrl } from './utils/OpsUtils';
 
 const adminClientPassword = 'doesnotmatter';
 const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
@@ -47,6 +48,8 @@ async function determineCookieName() {
  * @returns {Object} an object indicating if 2fa is required and the original payload
  */
 function checkAndHandle2FA(payload) {
+  debugMessage(`AuthenticateOps.checkAndHandle2FA: start`);
+  debugMessage(payload);
   // let skippable = false;
   if ('callbacks' in payload) {
     for (const element of payload.callbacks) {
@@ -54,8 +57,25 @@ function checkAndHandle2FA(payload) {
         if (element.input[0].value.includes('skip')) {
           // skippable = true;
           element.input[0].value = 'Skip';
+          debugMessage(
+            `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, skippable=true]`
+          );
           return {
             need2fa: true,
+            factor: 'None',
+            supported: true,
+            payload,
+          };
+        }
+        if (element.input[0].value.includes('webAuthnOutcome')) {
+          // webauthn!!!
+          debugMessage(
+            `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, unsupported factor: webauthn]`
+          );
+          return {
+            need2fa: true,
+            factor: 'WebAuthN',
+            supported: false,
             payload,
           };
         }
@@ -63,25 +83,37 @@ function checkAndHandle2FA(payload) {
       if (element.type === 'NameCallback') {
         if (element.output[0].value.includes('code')) {
           // skippable = false;
+          debugMessage(
+            `AuthenticateOps.checkAndHandle2FA: need2fa=true, skippable=false`
+          );
           printMessage('2FA is enabled and required for this user...');
           const code = readlineSync.question(`${element.output[0].value}: `);
           element.input[0].value = code;
+          debugMessage(
+            `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, skippable=false, factor=Code]`
+          );
           return {
             need2fa: true,
+            factor: 'Code',
+            supported: true,
             payload,
           };
         }
       }
     }
-    // console.info("NO2FA");
+    debugMessage(`AuthenticateOps.checkAndHandle2FA: end [need2fa=false]`);
     return {
       need2fa: false,
+      factor: 'None',
+      supported: true,
       payload,
     };
   }
-  // console.info("NO2FA");
+  debugMessage(`AuthenticateOps.checkAndHandle2FA: end [need2fa=false]`);
   return {
     need2fa: false,
+    factor: 'None',
+    supported: true,
     payload,
   };
 }
@@ -190,6 +222,7 @@ async function authenticate(
   username: string,
   password: string
 ): Promise<string> {
+  debugMessage(`AuthenticateOps.authenticate: start`);
   const config = {
     headers: {
       'X-OpenAM-Username': username,
@@ -198,6 +231,12 @@ async function authenticate(
   };
   const response1 = await step({}, config);
   const skip2FA = checkAndHandle2FA(response1);
+
+  // throw exception if 2fa required but factor not supported by frodo (e.g. WebAuthN)
+  if (!skip2FA.supported) {
+    throw new Error(`Unsupported 2FA factor: ${skip2FA.factor}`);
+  }
+
   let response2 = {};
   if (skip2FA.need2fa) {
     response2 = await step(skip2FA.payload);
@@ -205,8 +244,12 @@ async function authenticate(
     response2 = skip2FA.payload;
   }
   if ('tokenId' in response2) {
+    debugMessage(
+      `AuthenticateOps.authenticate: end [tokenId=${response2['tokenId']}]`
+    );
     return response2['tokenId'] as string;
   }
+  debugMessage(`AuthenticateOps.authenticate: end [no session]`);
   return null;
 }
 
@@ -427,6 +470,17 @@ export async function getTokens(forceLoginAsUser = false): Promise<boolean> {
         return false;
       }
     }
+
+    // if host is not a valid URL, try to locate a valid URL from connections.json
+    if (!isValidUrl(state.getHost())) {
+      const conn = await getConnectionProfile();
+      if (conn) {
+        state.setHost(conn.tenant);
+      } else {
+        return false;
+      }
+    }
+
     // now that we have the full tenant URL we can lookup the cookie name
     state.setCookieName(await determineCookieName());
 
