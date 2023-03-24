@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+-   rockcarver/frodo-cli#218: Frodo now allows 3 errors when polling for status during a `frodo esv apply` before aborting.
+
 ## [0.18.9-0] - 2023-03-23
 
 ### Added
