@@ -74,16 +74,33 @@ export async function applyUpdates(wait: boolean, timeout = 10 * 60 * 1000) {
     if (wait) {
       const start = new Date().getTime();
       let runtime = 0;
+      let errors = 0;
+      const maxErrors = 3;
       while (
         status !== RestartStatus.ready &&
         start + timeout > new Date().getTime()
       ) {
-        // eslint-disable-next-line no-await-in-loop, no-promise-executor-return
         await new Promise((resolve) => setTimeout(resolve, 5000));
-        // eslint-disable-next-line no-await-in-loop
-        status = await getStatus();
-        runtime = new Date().getTime() - start;
-        updateProgressIndicator(`${status} (${Math.round(runtime / 1000)}s)`);
+        try {
+          status = await getStatus();
+
+          // reset errors after successful status call
+          if (errors) errors = 0;
+
+          runtime = new Date().getTime() - start;
+          updateProgressIndicator(`${status} (${Math.round(runtime / 1000)}s)`);
+        } catch (error) {
+          errors++;
+          if (errors > maxErrors) {
+            throw error;
+          }
+          runtime = new Date().getTime() - start;
+          updateProgressIndicator(
+            `${error.message} - retry ${errors}/${maxErrors} (${Math.round(
+              runtime / 1000
+            )}s)`
+          );
+        }
       }
       if (runtime < timeout) {
         stopProgressIndicator(
