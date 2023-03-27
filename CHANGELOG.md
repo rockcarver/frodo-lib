@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.9-1] - 2023-03-27
+
 ### Fixed
 
 -   rockcarver/frodo-cli#218: Frodo now allows 3 errors when polling for status during a `frodo esv apply` before aborting.
@@ -1083,7 +1085,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-0...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-1...HEAD
+
+[0.18.9-1]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-0...v0.18.9-1
 
 [0.18.9-0]: https://github.com/rockcarver/frodo-lib/compare/v0.18.8...v0.18.9-0
 
