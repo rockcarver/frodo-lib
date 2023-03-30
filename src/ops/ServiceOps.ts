@@ -77,6 +77,7 @@ export async function getFullServices(
             'error'
           );
         }
+        throw error;
       }
     })
   );
@@ -157,6 +158,7 @@ async function putFullService(
           `Put descendent '${descendentId}' of service '${serviceId}': ${message}`,
           'error'
         );
+        throw error;
       }
       return result;
     })
@@ -180,6 +182,7 @@ async function putFullServices(
     `ServiceOps.putFullServices: start, globalConfig=${globalConfig}`
   );
   const results: AmServiceSkeleton[] = [];
+  const errors: string[] = [];
   for (const [id, data] of serviceEntries) {
     try {
       const result = await putFullService(id, data, clean, globalConfig);
@@ -188,12 +191,20 @@ async function putFullServices(
     } catch (error) {
       const message = error.response?.data?.message;
       const detail = error.response?.data?.detail;
-      printMessage(`Import service '${id}': ${message}`, 'error');
+      const errorMessage = `Import service '${id}': ${message}`;
+      printMessage(errorMessage, 'error');
+      errors.push(errorMessage);
       if (detail) {
         printMessage(`Details: ${JSON.stringify(detail)}`, 'error');
       }
     }
   }
+
+  if (errors.length) {
+    const errorMessages = errors.join('\n');
+    throw new Error(`Import service errors ${errorMessages}`);
+  }
+
   debugMessage(`ServiceOps.putFullServices: end`);
   return results;
 }

@@ -3,7 +3,8 @@ import { generateAmApi } from './BaseApi';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
 import * as state from '../shared/State';
 
-const oauth2ClientURLTemplate = '%s/json%s/realm-config/agents/OAuth2Client/%s';
+export const oauth2ClientURLTemplate =
+  '%s/json%s/realm-config/agents/OAuth2Client/%s';
 const oauth2ClientListURLTemplate =
   '%s/json%s/realm-config/agents/OAuth2Client?_queryFilter=true';
 const apiVersion = 'protocol=2.1,resource=1.0';
@@ -65,6 +66,7 @@ export async function putOAuth2Client(id, data) {
     getCurrentRealmPath(),
     id
   );
+
   return generateAmApi(getApiConfig()).put(urlString, client, {
     withCredentials: true,
   });

@@ -1,0 +1,5 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ServiceOps throws importService should throw when the API has failing descendents 1`] = `[AxiosError: Request failed with status code 400]`;
+
+exports[`ServiceOps throws importService should throw when the API is 400 1`] = `[AxiosError: Request failed with status code 400]`;

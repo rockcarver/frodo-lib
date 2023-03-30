@@ -136,7 +136,7 @@
     "@types/jest": "^29.2.3",
     "@types/lodash": "^4.14.189",
     "@types/mock-fs": "^4.13.1",
-    "@types/node": "^18.11.9",
+    "@types/node": "^18.15.10",
     "@types/properties-reader": "^2.1.1",
     "@types/uuid": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "^5.44.0",
@@ -160,6 +160,7 @@
     "loglevel": "^1.8.1",
     "map-stream": "^0.0.7",
     "mock-fs": "^5.2.0",
+    "msw": "^1.2.1",
     "prettier": "^2.8.0",
     "setup-polly-jest": "^0.11.0",
     "typescript": "^4.9.3"

@@ -1,0 +1,16 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`OAuth2ClientOps importOAuth2ClientsFromFile should throw when the API is down 1`] = `
+[Error: Import error:
+Request failed with status code 400]
+`;
+
+exports[`OAuth2ClientOps should throw when the API is down 1`] = `
+[Error: Import error:
+Request failed with status code 400]
+`;
+
+exports[`OAuth2ClientOps throws importOAuth2ClientsFromFile should throw when the API is down 1`] = `
+[Error: Import error:
+Request failed with status code 400]
+`;

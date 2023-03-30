@@ -1,4 +1,4 @@
-import fs from 'fs';
+import { promises as fs } from 'fs';
 import { createTable, printMessage } from './utils/Console';
 import {
   getTypedFilename,
@@ -68,6 +68,7 @@ export async function listOAuth2Clients(long = false) {
     }
   } catch (error) {
     printMessage(`Error listing applications - ${error}`, 'error');
+    throw error;
   }
 }
 
@@ -126,28 +127,37 @@ export async function exportOAuth2ClientsToFiles() {
  * Import OAuth2 clients from file
  * @param {String} file file name
  */
-export async function importOAuth2ClientsFromFile(file) {
-  fs.readFile(file, 'utf8', async (err, data) => {
-    if (err) throw err;
-    const applicationData = JSON.parse(data);
-    if (validateImport(applicationData.meta)) {
-      for (const id in applicationData.application) {
-        if (
-          Object.prototype.hasOwnProperty.call(applicationData.application, id)
-        ) {
-          delete applicationData.application[id]._provider;
-          delete applicationData.application[id]._rev;
-          try {
-            await putOAuth2Client(id, applicationData.application[id]);
-            printMessage(`Imported ${id}`);
-          } catch (error) {
-            printMessage(`${error.message}`, 'error');
+export async function importOAuth2ClientsFromFile(filePath: string) {
+  const data = await fs.readFile(filePath, { encoding: 'utf8' });
+
+  const applicationData = JSON.parse(data);
+  if (validateImport(applicationData.meta)) {
+    const errors = [];
+    for (const id in applicationData.application) {
+      if (
+        Object.prototype.hasOwnProperty.call(applicationData.application, id)
+      ) {
+        delete applicationData.application[id]._provider;
+        delete applicationData.application[id]._rev;
+        try {
+          await putOAuth2Client(id, applicationData.application[id]);
+          printMessage(`Imported ${id}`);
+        } catch (error) {
+          printMessage(`${error.message}`, 'error');
+          if (error.response) {
             printMessage(error.response.status, 'error');
           }
+          errors.push(error);
         }
       }
-    } else {
-      printMessage('Import validation failed...', 'error');
     }
-  });
+    if (errors.length) {
+      const errorMessages = errors.map((error) => error.message).join('\n');
+      throw new Error(`Import error:\n${errorMessages}`);
+    }
+  } else {
+    const validationErrorMessage = 'Import validation failed...';
+    printMessage(validationErrorMessage, 'error');
+    throw new Error(`Import error: ${validationErrorMessage}`);
+  }
 }

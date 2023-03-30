@@ -4,10 +4,11 @@ import { AmServiceSkeleton, PagedResult } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 
-const serviceURLTemplate = '%s/json%s/%s/services/%s';
+export const serviceURLTemplate = '%s/json%s/%s/services/%s';
 const serviceURLNextDescendentsTemplate =
   '%s/json%s/%s/services/%s?_action=nextdescendents';
-const serviceURLNextDescendentTemplate = '%s/json%s/%s/services/%s/%s/%s';
+export const serviceURLNextDescendentTemplate =
+  '%s/json%s/%s/services/%s/%s/%s';
 const serviceListURLTemplate = '%s/json%s/%s/services?_queryFilter=true';
 const apiVersion = 'protocol=2.0,resource=1.0';
 
