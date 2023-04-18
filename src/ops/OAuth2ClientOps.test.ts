@@ -2498,22 +2498,22 @@ describe('OAuth2ClientOps', () => {
 
     test(`1: Import oauth2 client ${import1.id} w/ dependencies`, async () => {
       expect.assertions(1);
-      const outcome = await OAuth2Client.importOAuth2Client(
+      const response = await OAuth2Client.importOAuth2Client(
         import1.id,
         import1.data as OAuth2Client.OAuth2ClientExportInterface,
         { deps: true }
       );
-      expect(outcome).toBeTruthy();
+      expect(response).toMatchSnapshot();
     });
 
     test(`2: Import oauth2 client ${import2.id} w/o dependencies`, async () => {
       expect.assertions(1);
-      const outcome = await OAuth2Client.importOAuth2Client(
+      const response = await OAuth2Client.importOAuth2Client(
         import2.id,
         import2.data as OAuth2Client.OAuth2ClientExportInterface,
         { deps: false }
       );
-      expect(outcome).toBeTruthy();
+      expect(response).toMatchSnapshot();
     });
   });
 
@@ -2528,7 +2528,7 @@ describe('OAuth2ClientOps', () => {
         importData1 as OAuth2Client.OAuth2ClientExportInterface,
         { deps: true }
       );
-      expect(outcome).toBeTruthy();
+      expect(outcome).toMatchSnapshot();
     });
 
     test(`2: Import first oauth2 client w/o dependencies`, async () => {
@@ -2537,7 +2537,7 @@ describe('OAuth2ClientOps', () => {
         importData2 as OAuth2Client.OAuth2ClientExportInterface,
         { deps: false }
       );
-      expect(outcome).toBeTruthy();
+      expect(outcome).toMatchSnapshot();
     });
   });
 
@@ -2553,7 +2553,7 @@ describe('OAuth2ClientOps', () => {
       importData3 as OAuth2Client.OAuth2ClientExportInterface,
       { deps: true }
     );
-    expect(outcome).toBeTruthy();
+    expect(outcome).toMatchSnapshot();
   });
 
   test(`1: Import all oauth2 clients w/o dependencies`, async () => {
@@ -2562,6 +2562,6 @@ describe('OAuth2ClientOps', () => {
       importData4 as OAuth2Client.OAuth2ClientExportInterface,
       { deps: false }
     );
-    expect(outcome).toBeTruthy();
+    expect(outcome).toMatchSnapshot();
   });
 });
