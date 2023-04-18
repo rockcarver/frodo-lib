@@ -307,7 +307,7 @@ export async function tailLogs(source, levels, txid, cookie, nf) {
     }
 
     filteredLogs.forEach((e) => {
-      printMessage(JSON.stringify(e.payload), 'data');
+      printMessage(JSON.stringify(e), 'data');
     });
 
     setTimeout(() => {
