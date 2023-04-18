@@ -72,9 +72,9 @@ export async function clientCredentialsGrant(clientId, clientSecret, scope) {
     grant_type: 'client_credentials',
     scope,
   };
-  return generateOauth2Api(getApiConfig(), requestOverride).post(
-    urlString,
-    qs.stringify(requestBody),
-    { withCredentials: true }
-  );
+  const { data } = await generateOauth2Api(
+    getApiConfig(),
+    requestOverride
+  ).post(urlString, qs.stringify(requestBody), { withCredentials: true });
+  return data;
 }
