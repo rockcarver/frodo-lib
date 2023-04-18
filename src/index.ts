@@ -34,6 +34,7 @@ export * as Log from './ops/cloud/LogOps';
 export * as ManagedObject from './ops/ManagedObjectOps';
 export * as Node from './ops/NodeOps';
 export * as OAuth2Client from './ops/OAuth2ClientOps';
+export * as OAuth2Provider from './ops/OAuth2ProviderOps';
 export * as Organization from './ops/OrganizationOps';
 export * as Realm from './ops/RealmOps';
 export * as Saml2 from './ops/Saml2Ops';

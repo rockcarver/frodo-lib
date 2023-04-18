@@ -4,11 +4,11 @@ import {
   getOAuth2Clients,
   getOAuth2Client,
   putOAuth2Client,
-} from '../api/OAuth2ClientApi';
+} from '../ops/OAuth2ClientOps';
 import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
 import { isEqualJson, getRealmManagedUser } from './utils/OpsUtils';
 import { getRealmManagedOrganization } from './OrganizationOps';
-import { getOAuth2Provider } from '../api/OAuth2ProviderApi';
+import { getOAuth2Provider } from '../ops/OAuth2ProviderOps';
 import { putSecret } from '../api/cloud/SecretsApi';
 import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
 import { printMessage } from './utils/Console';
@@ -85,7 +85,7 @@ const autoIdRoles = [
   }
  */
 export async function listOAuth2CustomClients() {
-  let clients = (await getOAuth2Clients()).data.result;
+  let clients = await getOAuth2Clients();
   clients = clients
     .map((client) => client._id)
     .filter((client) => !protectedClients.includes(client));
@@ -120,7 +120,7 @@ export async function listOAuth2CustomClients() {
   }
  */
 export async function listOAuth2AdminClients() {
-  let clients = (await getOAuth2Clients()).data.result;
+  let clients = await getOAuth2Clients();
   clients = clients
     .filter((client) => {
       let isPrivileged = false;
@@ -196,7 +196,7 @@ export async function listOAuth2AdminClients() {
   }
  */
 export async function listNonOAuth2AdminStaticUserMappings(showProtected) {
-  let clients = (await getOAuth2Clients()).data.result;
+  let clients = await getOAuth2Clients();
   clients = clients
     .map((client) => client._id)
     .filter((client) => !protectedClients.includes(client));
@@ -226,7 +226,7 @@ export async function listNonOAuth2AdminStaticUserMappings(showProtected) {
 }
 
 async function getDynamicClientRegistrationScope() {
-  const provider = (await getOAuth2Provider()).data;
+  const provider = await getOAuth2Provider();
   return provider.clientDynamicRegistrationConfig
     .dynamicClientRegistrationScope;
 }
@@ -439,7 +439,7 @@ export async function addAutoIdStaticUserMapping() {
 }
 
 export async function grantOAuth2ClientAdminPrivileges(clientId) {
-  let client = (await getOAuth2Client(clientId)).data;
+  let client = await getOAuth2Client(clientId);
   if (client.coreOAuth2ClientConfig.clientName.value.length === 0) {
     client.coreOAuth2ClientConfig.clientName.value = [clientId];
   }
@@ -577,7 +577,7 @@ async function removeAdminStaticUserMapping(name) {
 }
 
 export async function revokeOAuth2ClientAdminPrivileges(clientId) {
-  let client = (await getOAuth2Client(clientId)).data;
+  let client = await getOAuth2Client(clientId);
   if (client.coreOAuth2ClientConfig.clientName.value.length === 0) {
     client.coreOAuth2ClientConfig.clientName.value = [clientId];
   }
@@ -627,7 +627,7 @@ export async function createLongLivedToken(
   lifetime
 ) {
   // get oauth2 client
-  const client = (await getOAuth2Client(clientId)).data;
+  const client = await getOAuth2Client(clientId);
   client.userpassword = clientSecret;
   // remember current lifetime
   const rememberedLifetime =
@@ -635,8 +635,7 @@ export async function createLongLivedToken(
   // set long token lifetime
   client.coreOAuth2ClientConfig.accessTokenLifetime.value = lifetime;
   await putOAuth2Client(clientId, client);
-  const response = (await clientCredentialsGrant(clientId, clientSecret, scope))
-    .data;
+  const response = await clientCredentialsGrant(clientId, clientSecret, scope);
   const expires = new Date().getTime() + 1000 * response.expires_in;
   response.expires_on = new Date(expires).toLocaleString();
   // reset token lifetime

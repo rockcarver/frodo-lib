@@ -11,6 +11,16 @@ export interface ObjectSkeletonInterface {
     | null;
 }
 
+export interface PagedResults {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  result: any[];
+  resultCount: number;
+  pagedResultsCookie: string;
+  totalPagedResultsPolicy: string;
+  totalPagedResults: number;
+  remainingPagedResults: number;
+}
+
 export interface UiConfigInterface {
   categories: string;
 }
@@ -51,6 +61,41 @@ export type NodeSkeleton = ObjectSkeletonInterface & {
 export type SocialIdpSkeleton = ObjectSkeletonInterface & {
   _type: AmServiceType;
   enabled: boolean;
+};
+
+export type OAuth2ClientSkeleton = ObjectSkeletonInterface & {
+  overrideOAuth2ClientConfig?: {
+    [k: string]: string | number | boolean | string[] | object | null;
+  };
+  advancedOAuth2ClientConfig?: {
+    descriptions: {
+      inherited: boolean;
+      value: string[];
+    };
+    [k: string]: string | number | boolean | string[] | object | null;
+  };
+  signEncOAuth2ClientConfig?: {
+    [k: string]: string | number | boolean | string[] | object | null;
+  };
+  coreOpenIDClientConfig?: {
+    [k: string]: string | number | boolean | string[] | object | null;
+  };
+  coreOAuth2ClientConfig?: {
+    userpassword?: null;
+    clientName?: {
+      inherited: boolean;
+      value: string[];
+    };
+    accessTokenLifetime?: {
+      inherited: boolean;
+      value: number;
+    };
+    [k: string]: string | number | boolean | string[] | object | null;
+  };
+  coreUmaClientConfig?: {
+    [k: string]: string | number | boolean | string[] | object | null;
+  };
+  _type: AmServiceType;
 };
 
 export type AmServiceSkeleton = ObjectSkeletonInterface & {

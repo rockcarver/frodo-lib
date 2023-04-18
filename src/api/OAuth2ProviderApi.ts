@@ -17,7 +17,7 @@ const getApiConfig = () => {
 
 /**
  * Get OAuth2 Provider
- * @returns {Promise} a promise that resolves to an object containing an OAuth2Provider object
+ * @returns {Promise} a promise that resolves to an OAuth2Provider object
  */
 export async function getOAuth2Provider() {
   const urlString = util.format(
@@ -25,7 +25,8 @@ export async function getOAuth2Provider() {
     state.getHost(),
     getCurrentRealmPath()
   );
-  return generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
   });
+  return data;
 }
