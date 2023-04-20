@@ -49,30 +49,50 @@ async function determineCookieName() {
  */
 function checkAndHandle2FA(payload) {
   debugMessage(`AuthenticateOps.checkAndHandle2FA: start`);
-  debugMessage(payload);
   // let skippable = false;
   if ('callbacks' in payload) {
-    for (const element of payload.callbacks) {
-      if (element.type === 'HiddenValueCallback') {
-        if (element.input[0].value.includes('skip')) {
-          // skippable = true;
-          element.input[0].value = 'Skip';
-          debugMessage(
-            `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, skippable=true]`
-          );
-          return {
-            need2fa: true,
-            factor: 'None',
-            supported: true,
-            payload,
-          };
+    for (const callback of payload.callbacks) {
+      // select localAuthentication if Admin Federation is enabled
+      if (callback.type === 'SelectIdPCallback') {
+        debugMessage(
+          `AuthenticateOps.checkAndHandle2FA: Admin federation enabled. Allowed providers:`
+        );
+        let localAuth = false;
+        for (const value of callback.output[0].value) {
+          debugMessage(`${value.provider}`);
+          if (value.provider === 'localAuthentication') {
+            localAuth = true;
+          }
         }
-        if (element.input[0].value.includes('webAuthnOutcome')) {
+        if (localAuth) {
+          debugMessage(`local auth allowed`);
+          callback.input[0].value = 'localAuthentication';
+        } else {
+          debugMessage(`local auth NOT allowed`);
+        }
+      }
+      if (callback.type === 'HiddenValueCallback') {
+        if (callback.input[0].value.includes('skip')) {
+          // skippable = true;
+          callback.input[0].value = 'Skip';
+          // debugMessage(
+          //   `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, skippable=true]`
+          // );
+          // return {
+          //   nextStep: true,
+          //   need2fa: true,
+          //   factor: 'None',
+          //   supported: true,
+          //   payload,
+          // };
+        }
+        if (callback.input[0].value.includes('webAuthnOutcome')) {
           // webauthn!!!
           debugMessage(
             `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, unsupported factor: webauthn]`
           );
           return {
+            nextStep: false,
             need2fa: true,
             factor: 'WebAuthN',
             supported: false,
@@ -80,29 +100,39 @@ function checkAndHandle2FA(payload) {
           };
         }
       }
-      if (element.type === 'NameCallback') {
-        if (element.output[0].value.includes('code')) {
+      if (callback.type === 'NameCallback') {
+        if (callback.output[0].value.includes('code')) {
           // skippable = false;
           debugMessage(
             `AuthenticateOps.checkAndHandle2FA: need2fa=true, skippable=false`
           );
           printMessage('2FA is enabled and required for this user...');
-          const code = readlineSync.question(`${element.output[0].value}: `);
-          element.input[0].value = code;
+          const code = readlineSync.question(`${callback.output[0].value}: `);
+          callback.input[0].value = code;
           debugMessage(
             `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, skippable=false, factor=Code]`
           );
           return {
+            nextStep: true,
             need2fa: true,
             factor: 'Code',
             supported: true,
             payload,
           };
+        } else {
+          // answer callback
+          callback.input[0].value = state.getUsername();
         }
+      }
+      if (callback.type === 'PasswordCallback') {
+        // answer callback
+        callback.input[0].value = state.getPassword();
       }
     }
     debugMessage(`AuthenticateOps.checkAndHandle2FA: end [need2fa=false]`);
+    // debugMessage(payload);
     return {
+      nextStep: true,
       need2fa: false,
       factor: 'None',
       supported: true,
@@ -110,7 +140,9 @@ function checkAndHandle2FA(payload) {
     };
   }
   debugMessage(`AuthenticateOps.checkAndHandle2FA: end [need2fa=false]`);
+  // debugMessage(payload);
   return {
+    nextStep: false,
     need2fa: false,
     factor: 'None',
     supported: true,
@@ -229,26 +261,31 @@ async function authenticate(
       'X-OpenAM-Password': password,
     },
   };
-  const response1 = await step({}, config);
-  const skip2FA = checkAndHandle2FA(response1);
+  let response = await step({}, config);
 
-  // throw exception if 2fa required but factor not supported by frodo (e.g. WebAuthN)
-  if (!skip2FA.supported) {
-    throw new Error(`Unsupported 2FA factor: ${skip2FA.factor}`);
-  }
+  let skip2FA = null;
+  let steps = 0;
+  const maxSteps = 3;
+  do {
+    skip2FA = checkAndHandle2FA(response);
 
-  let response2 = {};
-  if (skip2FA.need2fa) {
-    response2 = await step(skip2FA.payload);
-  } else {
-    response2 = skip2FA.payload;
-  }
-  if ('tokenId' in response2) {
-    debugMessage(
-      `AuthenticateOps.authenticate: end [tokenId=${response2['tokenId']}]`
-    );
-    return response2['tokenId'] as string;
-  }
+    // throw exception if 2fa required but factor not supported by frodo (e.g. WebAuthN)
+    if (!skip2FA.supported) {
+      throw new Error(`Unsupported 2FA factor: ${skip2FA.factor}`);
+    }
+
+    if (skip2FA.nextStep) {
+      steps++;
+      response = await step(skip2FA.payload);
+    }
+
+    if ('tokenId' in response) {
+      debugMessage(
+        `AuthenticateOps.authenticate: end [tokenId=${response['tokenId']}]`
+      );
+      return response['tokenId'] as string;
+    }
+  } while (skip2FA.nextStep && steps < maxSteps);
   debugMessage(`AuthenticateOps.authenticate: end [no session]`);
   return null;
 }
