@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.9-4] - 2023-04-20
+
 ### Fixed
 
 -   \#236: Frodo now properly handles logging in as a tenant admin when admin federation is enabled.
@@ -1093,7 +1095,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-3...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-4...HEAD
+
+[0.18.9-4]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-3...v0.18.9-4
 
 [0.18.9-3]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-2...v0.18.9-3
 
