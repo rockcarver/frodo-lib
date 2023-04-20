@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+-   \#236: Frodo now properly handles logging in as a tenant admin when admin federation is enabled.
+
 ## [0.18.9-3] - 2023-04-18
 
 ## [0.18.9-2] - 2023-04-05
