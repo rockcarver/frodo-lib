@@ -27,18 +27,20 @@
     "testTimeout": 30000,
     "testRunner": "jest-jasmine2",
     "roots": [
-      "<rootDir>/esm/",
-      "<rootDir>/cjs/"
+      "<rootDir>/src/"
     ],
     "testMatch": [
-      "**/?(*.)(test).js",
-      "**/?(*.)(test).mjs"
+      "**/?(*.)(test).ts"
     ],
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/dist/"
     ],
-    "snapshotResolver": "<rootDir>/src/utils/snapshotResolve.ts",
+    "transform": {
+      "\\.[jt]sx?$": ["babel-jest", { "configFile": "./babel.config.esm.json" }]
+    },
+    "extensionsToTreatAsEsm": [".ts"],
+    "snapshotResolver": "<rootDir>/src/utils/snapshotResolve.js",
     "verbose": false
   },
   "description": "A library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.",
