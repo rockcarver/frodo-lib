@@ -3,7 +3,7 @@ name: 'Frodo Library Release Pipeline'
 on:
   pull_request:
     branches:
-      - 'main'
+      - trivir
     paths-ignore:
       - '**/CODE_OF_CONDUCT.md'
       - '**/CONTRIBUTE.md'
@@ -12,7 +12,7 @@ on:
       - 'docs/**'
   push:
     branches:
-      - 'main'
+      - trivir
     paths-ignore:
       - '**/CODE_OF_CONDUCT.md'
       - '**/CONTRIBUTE.md'
@@ -58,13 +58,14 @@ jobs:
         id: version-bump
         uses: 'phips28/gh-action-bump-version@master'
         with:
+          version-type: 'prerelease'
           major-wording: 'MAJOR RELEASE'
           minor-wording: 'MINOR RELEASE'
           patch-wording: 'PATCH RELEASE'
           rc-wording: ''
           tag-prefix: 'v'
           default: prerelease
-          preid: ''
+          preid: 'trivir'
           bump-policy: 'ignore'
           skip-commit: 'true'
           skip-tag: 'true'
@@ -205,7 +206,7 @@ jobs:
           npm audit --omit=dev --audit-level high
 
   npm-release:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/trivir'
     needs: [build, test]
     runs-on: ubuntu-latest
     steps:
@@ -243,10 +244,10 @@ jobs:
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_ACCESS_TOKEN }}" >> ~/.npmrc
           npm whoami
-          npm dist-tag add @rockcarver/frodo-lib@${{ needs.build.outputs.newVersion }} next
+          npm dist-tag add @trivir/frodo-lib@${{ needs.build.outputs.newVersion }} next
 
   release:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/trivir'
     needs: [build, npm-release]
     name: 'Release'
     runs-on: ubuntu-latest
