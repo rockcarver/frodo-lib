@@ -3,7 +3,7 @@ import {
   getManagedObject,
 } from '../../api/ManagedObjectApi';
 import { JwksInterface } from '../JoseOps';
-import { ObjectSkeletonInterface } from '../../api/ApiTypes';
+import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
 import { debugMessage } from '../utils/Console';
 import { hasFeature } from './FeatureOps';
 
@@ -17,7 +17,7 @@ export interface ServiceAccountPayloadInterface {
   jwks: string;
 }
 
-export type ServiceAccount = ObjectSkeletonInterface &
+export type ServiceAccount = IdObjectSkeletonInterface &
   ServiceAccountPayloadInterface;
 
 /**
@@ -48,7 +48,7 @@ export async function isServiceAccountsFeatureAvailable(): Promise<boolean> {
  * @param {'Active' | 'Inactive'} accountStatus Service account status
  * @param {string[]} scopes Scopes.
  * @param {JwksInterface} jwks Java Web Key Set
- * @returns {Promise<ObjectSkeletonInterface>} A promise resolving to a service account object
+ * @returns {Promise<IdObjectSkeletonInterface>} A promise resolving to a service account object
  */
 export async function createServiceAccount(
   name: string,
@@ -56,7 +56,7 @@ export async function createServiceAccount(
   accountStatus: 'Active' | 'Inactive',
   scopes: string[],
   jwks: JwksInterface
-): Promise<ObjectSkeletonInterface> {
+): Promise<IdObjectSkeletonInterface> {
   debugMessage(`ServiceAccountOps.createServiceAccount: start`);
   const payload: ServiceAccountPayloadInterface = {
     name,

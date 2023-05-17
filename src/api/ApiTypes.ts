@@ -1,14 +1,17 @@
-export interface ObjectSkeletonInterface {
-  _id: string;
+export interface NoIdObjectSkeletonInterface {
   _rev?: number;
   [k: string]:
     | string
     | number
     | boolean
     | string[]
-    | ObjectSkeletonInterface
+    | IdObjectSkeletonInterface
     | object
     | null;
+}
+
+export interface IdObjectSkeletonInterface extends NoIdObjectSkeletonInterface {
+  _id: string;
 }
 
 export interface PagedResults {
@@ -39,7 +42,7 @@ export interface InnerNodeRefSkeletonInterface {
   nodeType: string;
 }
 
-export type TreeSkeleton = ObjectSkeletonInterface & {
+export type TreeSkeleton = IdObjectSkeletonInterface & {
   entryNodeId: string;
   nodes: Record<string, NodeRefSkeletonInterface>;
   identityResource?: string;
@@ -47,23 +50,69 @@ export type TreeSkeleton = ObjectSkeletonInterface & {
   enabled?: boolean;
 };
 
-export type AmServiceType = ObjectSkeletonInterface & {
+export type AmServiceType = IdObjectSkeletonInterface & {
   name: string;
 };
 
-export type NodeSkeleton = ObjectSkeletonInterface & {
+export type NodeSkeleton = IdObjectSkeletonInterface & {
   _type: AmServiceType;
   nodes?: InnerNodeRefSkeletonInterface[];
   tree?: string;
   identityResource?: string;
 };
 
-export type SocialIdpSkeleton = ObjectSkeletonInterface & {
+export type SocialIdpSkeleton = IdObjectSkeletonInterface & {
   _type: AmServiceType;
   enabled: boolean;
 };
 
-export type OAuth2ClientSkeleton = ObjectSkeletonInterface & {
+export type PolicySetSkeleton = NoIdObjectSkeletonInterface & {
+  name: string;
+  resourceTypeUuids: string[];
+};
+
+export type ResourceTypeSkeleton = IdObjectSkeletonInterface & {
+  uuid: string;
+  name: string;
+};
+
+export enum PolicyConditionType {
+  Script = 'Script',
+  AMIdentityMembership = 'AMIdentityMembership',
+  IPv6 = 'IPv6',
+  IPv4 = 'IPv4',
+  SimpleTime = 'SimpleTime',
+  LEAuthLevel = 'LEAuthLevel',
+  LDAPFilter = 'LDAPFilter',
+  AuthScheme = 'AuthScheme',
+  Session = 'Session',
+  AND = 'AND',
+  AuthenticateToRealm = 'AuthenticateToRealm',
+  ResourceEnvIP = 'ResourceEnvIP',
+  Policy = 'Policy',
+  OAuth2Scope = 'OAuth2Scope',
+  SessionProperty = 'SessionProperty',
+  OR = 'OR',
+  Transaction = 'Transaction',
+  NOT = 'NOT',
+  AuthLevel = 'AuthLevel',
+  AuthenticateToService = 'AuthenticateToService',
+}
+
+export type PolicyCondition = {
+  type: keyof typeof PolicyConditionType;
+  condition?: PolicyCondition;
+  conditions?: PolicyCondition[];
+};
+
+export type PolicySkeleton = IdObjectSkeletonInterface & {
+  name: string;
+  applicationName: string;
+  condition: PolicyCondition;
+  resourceTypeUuid: string;
+};
+
+export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
   overrideOAuth2ClientConfig?: {
     [k: string]: string | number | boolean | string[] | object | null;
   };
@@ -98,17 +147,17 @@ export type OAuth2ClientSkeleton = ObjectSkeletonInterface & {
   _type: AmServiceType;
 };
 
-export type AmServiceSkeleton = ObjectSkeletonInterface & {
+export type AmServiceSkeleton = IdObjectSkeletonInterface & {
   _type: AmServiceType;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 };
 
-export type AgentSkeleton = ObjectSkeletonInterface & {
+export type AgentSkeleton = IdObjectSkeletonInterface & {
   _type: AmServiceType;
 };
 
-export type EmailTemplateSkeleton = ObjectSkeletonInterface & {
+export type EmailTemplateSkeleton = IdObjectSkeletonInterface & {
   defaultLocale?: string;
   displayName?: string;
   enabled?: boolean;
@@ -116,13 +165,13 @@ export type EmailTemplateSkeleton = ObjectSkeletonInterface & {
   subject: Record<string, string>;
 };
 
-export type ThemeSkeleton = ObjectSkeletonInterface & {
+export type ThemeSkeleton = IdObjectSkeletonInterface & {
   name: string;
   isDefault: boolean;
   linkedTrees: string[];
 };
 
-export type UiThemeRealmObject = ObjectSkeletonInterface & {
+export type UiThemeRealmObject = IdObjectSkeletonInterface & {
   name: string;
   realm: Map<string, ThemeSkeleton[]>;
 };
@@ -149,7 +198,7 @@ export enum ScriptContext {
   OAUTH2_MAY_ACT,
 }
 
-export type ScriptSkeleton = ObjectSkeletonInterface & {
+export type ScriptSkeleton = IdObjectSkeletonInterface & {
   name: string;
   description: string;
   default: boolean;
@@ -167,13 +216,13 @@ export enum Saml2ProiderLocation {
   REMOTE = 'remote',
 }
 
-export type Saml2ProviderStub = ObjectSkeletonInterface & {
+export type Saml2ProviderStub = IdObjectSkeletonInterface & {
   entityId: string;
   location: Saml2ProiderLocation;
   roles: string[];
 };
 
-export type Saml2ProviderSkeleton = ObjectSkeletonInterface & {
+export type Saml2ProviderSkeleton = IdObjectSkeletonInterface & {
   entityId: string;
   entityLocation: Saml2ProiderLocation;
   serviceProvider: unknown;
@@ -182,7 +231,7 @@ export type Saml2ProviderSkeleton = ObjectSkeletonInterface & {
   xacmlPolicyEnforcementPoint: unknown;
 };
 
-export type CircleOfTrustSkeleton = ObjectSkeletonInterface & {
+export type CircleOfTrustSkeleton = IdObjectSkeletonInterface & {
   _type: AmServiceType;
   status: string;
   trustedProviders: string[];
