@@ -267,12 +267,20 @@ describe('Saml2Ops', () => {
 
       test(`1: Get metadata url for hosted provider '${provider3.entityId}'`, async () => {
         const response = Saml2.getProviderMetadataUrl(provider3.entityId);
-        expect(response).toMatchSnapshot();
+        expect(response).toMatch(new RegExp(`^${process.env.FRODO_HOST}`));
+        const url = new URL(response);
+        expect(url.pathname).toMatch('/am/saml2/jsp/exportmetadata.jsp');
+        const searchParams = new URLSearchParams(url.search);
+        expect(searchParams.get('entityid')).toMatch(provider3.entityId);
       });
 
       test(`2: Get metadata url for remote provider '${provider4.entityId}'`, async () => {
         const response = Saml2.getProviderMetadataUrl(provider4.entityId);
-        expect(response).toMatchSnapshot();
+        expect(response).toMatch(new RegExp(`^${process.env.FRODO_HOST}`));
+        const url = new URL(response);
+        expect(url.pathname).toMatch('/am/saml2/jsp/exportmetadata.jsp');
+        const searchParams = new URLSearchParams(url.search);
+        expect(searchParams.get('entityid')).toMatch(provider4.entityId);
       });
     });
 
