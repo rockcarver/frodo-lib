@@ -2,7 +2,7 @@ import util from 'util';
 import { getTenantURL } from '../utils/ApiUtils';
 import { generateAmApi } from '../BaseApi';
 import * as state from '../../shared/State';
-import { ObjectSkeletonInterface } from '../../api/ApiTypes';
+import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
 
 const envInfoURLTemplate = '%s/feature?_queryFilter=true';
 
@@ -10,7 +10,7 @@ const getApiConfig = () => ({
   path: `/feature`,
 });
 
-export interface FeatureInterface extends ObjectSkeletonInterface {
+export interface FeatureInterface extends IdObjectSkeletonInterface {
   installedVersion: string;
   availableVersions: string[];
 }
