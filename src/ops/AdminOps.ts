@@ -620,11 +620,11 @@ export async function createOAuth2ClientWithAdminPrivileges(
 }
 
 export async function createLongLivedToken(
-  clientId,
-  clientSecret,
-  scope,
-  secret,
-  lifetime
+  clientId: string,
+  clientSecret: string,
+  scope: string,
+  secret: string | boolean,
+  lifetime: number
 ) {
   // get oauth2 client
   const client = await getOAuth2Client(clientId);
@@ -642,26 +642,28 @@ export async function createLongLivedToken(
   client.coreOAuth2ClientConfig.accessTokenLifetime.value = rememberedLifetime;
   await putOAuth2Client(clientId, client);
   // create secret with token as value
-  const description = 'Long-lived admin token';
-  try {
-    await putSecret(secret, response.access_token, description);
-    response.secret = secret;
-  } catch (error) {
-    if (
-      _.get(error, 'response.data.code') === 400 &&
-      _.get(error, 'response.data.message') ===
-        'Failed to create secret, the secret already exists'
-    ) {
-      const newSecret = `${secret}-${expires}`;
-      printMessage(
-        `esv '${secret}' already exists, using ${newSecret}`,
-        'warn'
-      );
-      await putSecret(newSecret, response.access_token, description);
-      response.secret = newSecret;
+  if (secret) {
+    const description = 'Long-lived admin token';
+    try {
+      await putSecret(secret, response.access_token, description);
+      response.secret = secret;
+    } catch (error) {
+      if (
+        _.get(error, 'response.data.code') === 400 &&
+        _.get(error, 'response.data.message') ===
+          'Failed to create secret, the secret already exists'
+      ) {
+        const newSecret = `${secret}-${expires}`;
+        printMessage(
+          `esv '${secret}' already exists, using ${newSecret}`,
+          'warn'
+        );
+        await putSecret(newSecret, response.access_token, description);
+        response.secret = newSecret;
+      }
     }
+    delete response.access_token;
   }
-  delete response.access_token;
   return response;
 }
 
