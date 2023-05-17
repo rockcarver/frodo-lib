@@ -2,7 +2,7 @@ import util from 'util';
 import { generateIdmApi } from './BaseApi';
 import { getTenantURL } from './utils/ApiUtils';
 import * as state from '../shared/State';
-import { ObjectSkeletonInterface } from './ApiTypes';
+import { IdObjectSkeletonInterface } from './ApiTypes';
 
 const managedObjectURLTemplate = '%s/openidm/managed/%s';
 const createManagedObjectURLTemplate = '%s/openidm/managed/%s?_action=create';
@@ -14,13 +14,13 @@ const managedObjectQueryAllURLTemplate = `${managedObjectURLTemplate}?_queryFilt
  * @param {string} type managed object type, e.g. alpha_user or user
  * @param {string} id managed object id
  * @param {string[]} id array of fields to include
- * @returns {Promise<ObjectSkeletonInterface>} a promise that resolves to an ObjectSkeletonInterface
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an ObjectSkeletonInterface
  */
 export async function getManagedObject(
   type: string,
   id: string,
   fields: string[] = ['*']
-): Promise<ObjectSkeletonInterface> {
+): Promise<IdObjectSkeletonInterface> {
   const fieldsParam = `_fields=${fields.join(',')}`;
   const urlString = util.format(
     `${managedObjectByIdURLTemplate}?${fieldsParam}`,
@@ -29,19 +29,19 @@ export async function getManagedObject(
     id
   );
   const { data } = await generateIdmApi().get(urlString);
-  return data as ObjectSkeletonInterface;
+  return data as IdObjectSkeletonInterface;
 }
 
 /**
  * Create managed object with server-generated id
  * @param {string} moType managed object type
  * @param {any} moData managed object data
- * @returns {Promise<ObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
  */
 export async function createManagedObject(
   moType: string,
   moData
-): Promise<ObjectSkeletonInterface> {
+): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     createManagedObjectURLTemplate,
     getTenantURL(state.getHost()),
