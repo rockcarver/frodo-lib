@@ -127,7 +127,7 @@ export async function deleteOAuth2Client(clientId: string) {
 /**
  * Helper function to export dependencies of an OAuth2 Client
  * @param {unknown} clientData oauth2 client data
- * @param {OAuth2ClientExportOptions} options import options
+ * @param {OAuth2ClientExportOptions} options export options
  * @param {OAuth2ClientExportInterface} exportData export data
  */
 async function exportOAuth2ClientDependencies(

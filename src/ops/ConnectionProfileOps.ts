@@ -16,7 +16,7 @@ import {
   createServiceAccount,
   getServiceAccount,
 } from './cloud/ServiceAccountOps';
-import { ObjectSkeletonInterface } from '../api/ApiTypes';
+import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import { saveJsonToFile } from './utils/ExportImportUtils';
 import { isValidUrl } from './utils/OpsUtils';
 
@@ -505,9 +505,9 @@ export async function describeConnectionProfile(
 
 /**
  * Create a new service account using auto-generated parameters
- * @returns {Promise<ObjectSkeletonInterface>} A promise resolving to a service account object
+ * @returns {Promise<IdObjectSkeletonInterface>} A promise resolving to a service account object
  */
-export async function addNewServiceAccount(): Promise<ObjectSkeletonInterface> {
+export async function addNewServiceAccount(): Promise<IdObjectSkeletonInterface> {
   debugMessage(`ConnectionProfileOps.addNewServiceAccount: start`);
   const name = `Frodo-SA-${new Date().getTime()}`;
   debugMessage(`ConnectionProfileOps.addNewServiceAccount: name=${name}...`);
