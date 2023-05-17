@@ -2599,10 +2599,6 @@ Ritpy6bwva8piGPKhVi/
 "
 `;
 
-exports[`Saml2Ops getProviderMetadataUrl() 1: Get metadata url for hosted provider 'https://idc.scheuber.io/am/saml2/IDPFedlet' 1`] = `"https://openam-frodo-dev.forgeblocks.com/am/saml2/jsp/exportmetadata.jsp?entityid=https%3A%2F%2Fidc.scheuber.io%2Fam%2Fsaml2%2FIDPFedlet&realm=alpha"`;
-
-exports[`Saml2Ops getProviderMetadataUrl() 2: Get metadata url for remote provider 'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/' 1`] = `"https://openam-frodo-dev.forgeblocks.com/am/saml2/jsp/exportmetadata.jsp?entityid=https%3A%2F%2Fsts.windows.net%2F711ffa9c-5972-4713-ace3-688c9732614a%2F&realm=alpha"`;
-
 exports[`Saml2Ops getSaml2Provider() 1: Get hosted provider 'iSPAzure' 1`] = `
 {
   "_id": "aVNQQXp1cmU",
