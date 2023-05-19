@@ -71,7 +71,7 @@ export type PolicySetSkeleton = NoIdObjectSkeletonInterface & {
   resourceTypeUuids: string[];
 };
 
-export type ResourceTypeSkeleton = IdObjectSkeletonInterface & {
+export type ResourceTypeSkeleton = NoIdObjectSkeletonInterface & {
   uuid: string;
   name: string;
 };
@@ -163,6 +163,8 @@ export type EmailTemplateSkeleton = IdObjectSkeletonInterface & {
   enabled?: boolean;
   from: string;
   subject: Record<string, string>;
+  message?: Record<string, string>;
+  html?: Record<string, string>;
 };
 
 export type ThemeSkeleton = IdObjectSkeletonInterface & {
