@@ -3,6 +3,7 @@ import { getCurrentRealmPath } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
 import * as state from '../shared/State';
 import { cloneDeep } from '../ops/utils/OpsUtils';
+import { PolicySetSkeleton } from './ApiTypes';
 
 const queryAllPolicySetURLTemplate =
   '%s/json%s/applications?_sortKeys=name&_queryFilter=name+eq+%22%5E(%3F!sunAMDelegationService%24).*%22';
@@ -33,15 +34,18 @@ export async function getPolicySets() {
 }
 
 /**
- * Get all policy set
- * @returns {Promise} a promise that resolves to an object containing an array of policy set objects
+ * Get policy set
+ * @param {string} policySetName policy set name
+ * @returns {Promise<PolicySetSkeleton>} a promise that resolves to an object containing an array of policy set objects
  */
-export async function getPolicySet(name: string) {
+export async function getPolicySet(
+  policySetName: string
+): Promise<PolicySetSkeleton> {
   const urlString = util.format(
     policySetURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
-    name
+    policySetName
   );
   const { data } = await generateAmApi(getApiConfig()).get(urlString, {
     withCredentials: true,
@@ -93,15 +97,15 @@ export async function updatePolicySet(policySetData) {
 
 /**
  * Delete policy set
- * @param {Object} policySetId policy set id/name
+ * @param {Object} policySetName policy set name
  * @returns {Promise} a promise that resolves to a policy set object
  */
-export async function deletePolicySet(policySetId: string) {
+export async function deletePolicySet(policySetName: string) {
   const urlString = util.format(
     policySetURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
-    policySetId
+    policySetName
   );
   const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
     withCredentials: true,
