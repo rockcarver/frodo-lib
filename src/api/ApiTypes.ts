@@ -108,7 +108,7 @@ export type PolicyCondition = {
 export type PolicySkeleton = IdObjectSkeletonInterface & {
   name: string;
   applicationName: string;
-  condition: PolicyCondition;
+  condition?: PolicyCondition;
   resourceTypeUuid: string;
 };
 
