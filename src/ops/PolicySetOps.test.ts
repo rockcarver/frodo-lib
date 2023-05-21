@@ -336,6 +336,7 @@ describe('PolicySetOps', () => {
       test(`1: Export existing policy set w/o deps [${set9.name}]`, async () => {
         const response = await PolicySetOps.exportPolicySet(set9.name, {
           deps: false,
+          prereqs: false,
           useStringArrays: true,
         });
         expect(response).toMatchSnapshot({
@@ -346,6 +347,7 @@ describe('PolicySetOps', () => {
       test(`2: Export existing policy set w/ deps [${set9.name}]`, async () => {
         const response = await PolicySetOps.exportPolicySet(set9.name, {
           deps: true,
+          prereqs: false,
           useStringArrays: true,
         });
         expect(response).toMatchSnapshot({
@@ -358,6 +360,7 @@ describe('PolicySetOps', () => {
         try {
           await PolicySetOps.exportPolicySet('DoesNotExist', {
             deps: false,
+            prereqs: false,
             useStringArrays: true,
           });
         } catch (error) {
@@ -374,6 +377,7 @@ describe('PolicySetOps', () => {
       test('1: Export all policy sets', async () => {
         const response = await PolicySetOps.exportPolicySets({
           deps: true,
+          prereqs: false,
           useStringArrays: true,
         });
         expect(response).toMatchSnapshot({
@@ -391,7 +395,7 @@ describe('PolicySetOps', () => {
         const response = await PolicySetOps.importPolicySet(
           set11.name,
           import1,
-          { deps: true }
+          { deps: true, prereqs: false }
         );
         expect(response).toMatchSnapshot();
       });
@@ -401,6 +405,7 @@ describe('PolicySetOps', () => {
         try {
           await PolicySetOps.importPolicySet('DoesNotExist', import1, {
             deps: true,
+            prereqs: false,
           });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
@@ -416,6 +421,7 @@ describe('PolicySetOps', () => {
       test('1: Import first policy set', async () => {
         const response = await PolicySetOps.importFirstPolicySet(import3, {
           deps: true,
+          prereqs: false,
         });
         expect(response).toMatchSnapshot();
       });
@@ -429,6 +435,7 @@ describe('PolicySetOps', () => {
       test('1: Import all policy sets', async () => {
         const response = await PolicySetOps.importPolicySets(import4, {
           deps: true,
+          prereqs: false,
         });
         expect(response).toMatchSnapshot();
       });
