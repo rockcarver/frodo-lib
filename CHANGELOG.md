@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+-   Support for authorization policies, policy sets, and resource types through new exported modules:
+    -   ResourceType
+    -   PolicySet
+    -   Policy
+
+### Changed
+
+-   Updated dependencies
+-   rockcarver/frodo-cli#213: More debug logging for connection profile lookup by a unique substring. Use --debug to see the additional output. This is not yet a solution for rockcarver/frodo-cli#213 but should help identify the root cause.
+-   rockcarver/frodo-cli#216: More debug logging for the 2fa process and proper detection of unsupported webauthn factor.
+
+### Fixed
+
+-   \#236: Frodo now properly handles logging in as a tenant admin when admin federation is enabled.
+-   \#225: Always output original log event JSON in tailLogs function (`frodo logs tail` command in the cli)
+-   rockcarver/frodo-cli#218: Frodo now allows 3 errors when polling for status during a `frodo esv apply` before aborting.
+
 ## [0.19.0] - 2023-05-21
 
 ### Added
