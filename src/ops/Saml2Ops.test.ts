@@ -267,7 +267,14 @@ describe('Saml2Ops', () => {
 
       test(`1: Get metadata url for hosted provider '${provider3.entityId}'`, async () => {
         const response = Saml2.getProviderMetadataUrl(provider3.entityId);
-        expect(response).toMatch(new RegExp(`^${process.env.FRODO_HOST}`));
+        expect(response).toMatch(
+          new RegExp(
+            `^${
+              process.env.FRODO_HOST ||
+              'https://openam-frodo-dev.forgeblocks.com'
+            }`
+          )
+        );
         const url = new URL(response);
         expect(url.pathname).toMatch('/am/saml2/jsp/exportmetadata.jsp');
         const searchParams = new URLSearchParams(url.search);
@@ -276,7 +283,14 @@ describe('Saml2Ops', () => {
 
       test(`2: Get metadata url for remote provider '${provider4.entityId}'`, async () => {
         const response = Saml2.getProviderMetadataUrl(provider4.entityId);
-        expect(response).toMatch(new RegExp(`^${process.env.FRODO_HOST}`));
+        expect(response).toMatch(
+          new RegExp(
+            `^${
+              process.env.FRODO_HOST ||
+              'https://openam-frodo-dev.forgeblocks.com'
+            }`
+          )
+        );
         const url = new URL(response);
         expect(url.pathname).toMatch('/am/saml2/jsp/exportmetadata.jsp');
         const searchParams = new URLSearchParams(url.search);
