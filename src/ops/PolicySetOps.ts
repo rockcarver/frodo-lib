@@ -37,13 +37,17 @@ export interface PolicySetExportInterface {
  */
 export interface PolicySetExportOptions {
   /**
-   * Use string arrays to store multi-line text in scripts.
-   */
-  useStringArrays: boolean;
-  /**
    * Include any dependencies (policies, scripts, resource types).
    */
   deps: boolean;
+  /**
+   * Include any prerequisites (policy sets, resource types).
+   */
+  prereqs: boolean;
+  /**
+   * Use string arrays to store multi-line text in scripts.
+   */
+  useStringArrays: boolean;
 }
 
 /**
@@ -54,6 +58,10 @@ export interface PolicySetImportOptions {
    * Include any dependencies (policies, scripts, resource types).
    */
   deps: boolean;
+  /**
+   * Include any prerequisites (policy sets, resource types).
+   */
+  prereqs: boolean;
 }
 
 /**
@@ -81,13 +89,13 @@ export async function getPolicySets(): Promise<PolicySetSkeleton[]> {
 
 /**
  * Get policy set
- * @param {string} policySetId policy set id/name
+ * @param {string} policySetName policy set name
  * @returns {Promise<PolicySetSkeleton>} a promise that resolves to a policy set object
  */
 export async function getPolicySet(
-  policySetId: string
+  policySetName: string
 ): Promise<PolicySetSkeleton> {
-  return _getPolicySet(policySetId);
+  return _getPolicySet(policySetName);
 }
 
 /**
@@ -114,28 +122,26 @@ export async function updatePolicySet(
 
 /**
  * Delete policy set
- * @param {string} policySetId policy set id/name
+ * @param {string} policySetName policy set name
  * @returns {Promise<PolicySetSkeleton>} Promise resolvig to a policy set object
  */
 export async function deletePolicySet(
-  policySetId: string
+  policySetName: string
 ): Promise<PolicySetSkeleton> {
-  return _deletePolicySet(policySetId);
+  return _deletePolicySet(policySetName);
 }
 
 /**
- * Helper function to export dependencies of a policy set
- * @param {unknown} policySetData policy set data
- * @param {PolicySetExportOptions} options export options
+ * Helper function to export prerequisites of a policy set
+ * @param {PolicySetSkeleton} policySetData policy set object
  * @param {PolicySetExportInterface} exportData export data
  */
-async function exportPolicySetDependencies(
+async function exportPolicySetPrerequisites(
   policySetData: PolicySetSkeleton,
-  options: PolicySetExportOptions,
   exportData: PolicySetExportInterface
 ) {
   debugMessage(
-    `PolicySetOps.exportPolicySetDependencies: start [policySet=${policySetData['name']}]`
+    `PolicySetOps.exportPolicySetPrerequisites: start [policySet=${policySetData['name']}]`
   );
   const errors = [];
   // resource types
@@ -148,6 +154,28 @@ async function exportPolicySetDependencies(
       errors.push(error);
     }
   }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Export dependencies error:\n${errorMessages}`);
+  }
+  debugMessage(`PolicySetOps.exportPolicySetPrerequisites: end`);
+}
+
+/**
+ * Helper function to export dependencies of a policy set
+ * @param {PolicySetSkeleton} policySetData policy set object
+ * @param {PolicySetExportOptions} options export options
+ * @param {PolicySetExportInterface} exportData export data
+ */
+async function exportPolicySetDependencies(
+  policySetData: PolicySetSkeleton,
+  options: PolicySetExportOptions,
+  exportData: PolicySetExportInterface
+) {
+  debugMessage(
+    `PolicySetOps.exportPolicySetDependencies: start [policySet=${policySetData['name']}]`
+  );
+  const errors = [];
   // policies
   try {
     const policies = await getPoliciesByPolicySet(policySetData.name);
@@ -179,22 +207,37 @@ async function exportPolicySetDependencies(
 
 /**
  * Export policy set
- * @param {string} policySetId policy set id
+ * @param {string} policySetName policy set name
  * @param {PolicySetExportOptions} options export options
  * @returns {Promise<PolicySetExportInterface>} a promise that resolves to an PolicySetExportInterface object
  */
 export async function exportPolicySet(
-  policySetId: string,
-  options: PolicySetExportOptions
+  policySetName: string,
+  options: PolicySetExportOptions = {
+    deps: true,
+    prereqs: false,
+    useStringArrays: true,
+  }
 ): Promise<PolicySetExportInterface> {
   debugMessage(`PolicySetOps.exportPolicySet: start`);
   const exportData = createPolicySetExportTemplate();
   const errors = [];
   try {
-    const policySetData = await getPolicySet(policySetId);
+    const policySetData = await getPolicySet(policySetName);
     exportData.policyset[policySetData.name] = policySetData;
+    if (options.prereqs) {
+      try {
+        await exportPolicySetPrerequisites(policySetData, exportData);
+      } catch (error) {
+        errors.push(error);
+      }
+    }
     if (options.deps) {
-      await exportPolicySetDependencies(policySetData, options, exportData);
+      try {
+        await exportPolicySetDependencies(policySetData, options, exportData);
+      } catch (error) {
+        errors.push(error);
+      }
     }
   } catch (error) {
     errors.push(error);
@@ -213,7 +256,11 @@ export async function exportPolicySet(
  * @returns {Promise<PolicySetExportInterface>} a promise that resolves to an PolicySetExportInterface object
  */
 export async function exportPolicySets(
-  options: PolicySetExportOptions
+  options: PolicySetExportOptions = {
+    deps: true,
+    prereqs: false,
+    useStringArrays: true,
+  }
 ): Promise<PolicySetExportInterface> {
   debugMessage(`PolicySetOps.exportPolicySet: start`);
   const exportData = createPolicySetExportTemplate();
@@ -222,6 +269,13 @@ export async function exportPolicySets(
     const policySets = await getPolicySets();
     for (const policySetData of policySets) {
       exportData.policyset[policySetData.name] = policySetData;
+      if (options.prereqs) {
+        try {
+          await exportPolicySetPrerequisites(policySetData, exportData);
+        } catch (error) {
+          errors.push(error);
+        }
+      }
       if (options.deps) {
         try {
           await exportPolicySetDependencies(policySetData, options, exportData);
@@ -242,11 +296,11 @@ export async function exportPolicySets(
 }
 
 /**
- * Helper function to import hard dependencies of a policy set
+ * Helper function to import prerequisites of a policy set (resource types)
  * @param {PolicySetSkeleton} policySetData policy set data
  * @param {PolicySetExportInterface} exportData export data
  */
-async function importPolicySetHardDependencies(
+async function importPolicySetPrerequisites(
   policySetData: PolicySetSkeleton,
   exportData: PolicySetExportInterface
 ) {
@@ -288,11 +342,11 @@ async function importPolicySetHardDependencies(
 }
 
 /**
- * Helper function to import soft dependencies of a policy set
+ * Helper function to import dependencies of a policy set (policies and scripts)
  * @param {PolicySetSkeleton} policySetData policy set data
  * @param {PolicySetExportInterface} exportData export data
  */
-async function importPolicySetSoftDependencies(
+async function importPolicySetDependencies(
   policySetData: PolicySetSkeleton,
   exportData: PolicySetExportInterface
 ) {
@@ -346,26 +400,26 @@ async function importPolicySetSoftDependencies(
 
 /**
  * Import policy set
- * @param {string} policySetId client id
+ * @param {string} policySetName policy set name
  * @param {PolicySetExportInterface} importData import data
  * @param {PolicySetImportOptions} options import options
  */
 export async function importPolicySet(
-  policySetId: string,
+  policySetName: string,
   importData: PolicySetExportInterface,
-  options: PolicySetImportOptions = { deps: true }
+  options: PolicySetImportOptions = { deps: true, prereqs: false }
 ) {
   let response = null;
   const errors = [];
   const imported = [];
   for (const id of Object.keys(importData.policyset)) {
-    if (id === policySetId) {
+    if (id === policySetName) {
       try {
         const policySetData = importData.policyset[id];
         delete policySetData._rev;
-        if (options.deps) {
+        if (options.prereqs) {
           try {
-            await importPolicySetHardDependencies(policySetData, importData);
+            await importPolicySetPrerequisites(policySetData, importData);
           } catch (error) {
             errors.push(error);
           }
@@ -381,7 +435,7 @@ export async function importPolicySet(
         }
         if (options.deps) {
           try {
-            await importPolicySetSoftDependencies(policySetData, importData);
+            await importPolicySetDependencies(policySetData, importData);
           } catch (error) {
             errors.push(error);
           }
@@ -396,7 +450,9 @@ export async function importPolicySet(
     throw new Error(`Import error:\n${errorMessages}`);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\n${policySetId} not found in import data!`);
+    throw new Error(
+      `Import error:\n${policySetName} not found in import data!`
+    );
   }
   return response;
 }
@@ -408,7 +464,7 @@ export async function importPolicySet(
  */
 export async function importFirstPolicySet(
   importData: PolicySetExportInterface,
-  options: PolicySetImportOptions = { deps: true }
+  options: PolicySetImportOptions = { deps: true, prereqs: false }
 ) {
   let response = null;
   const errors = [];
@@ -418,9 +474,9 @@ export async function importFirstPolicySet(
       const policySetData = importData.policyset[id];
       delete policySetData._provider;
       delete policySetData._rev;
-      if (options.deps) {
+      if (options.prereqs) {
         try {
-          await importPolicySetHardDependencies(policySetData, importData);
+          await importPolicySetPrerequisites(policySetData, importData);
         } catch (error) {
           errors.push(error);
         }
@@ -436,7 +492,7 @@ export async function importFirstPolicySet(
       }
       if (options.deps) {
         try {
-          await importPolicySetSoftDependencies(policySetData, importData);
+          await importPolicySetDependencies(policySetData, importData);
         } catch (error) {
           errors.push(error);
         }
@@ -463,7 +519,7 @@ export async function importFirstPolicySet(
  */
 export async function importPolicySets(
   importData: PolicySetExportInterface,
-  options: PolicySetImportOptions = { deps: true }
+  options: PolicySetImportOptions = { deps: true, prereqs: false }
 ) {
   let response = null;
   const errors = [];
@@ -472,9 +528,9 @@ export async function importPolicySets(
     try {
       const policySetData = importData.policyset[id];
       delete policySetData._rev;
-      if (options.deps) {
+      if (options.prereqs) {
         try {
-          await importPolicySetHardDependencies(policySetData, importData);
+          await importPolicySetPrerequisites(policySetData, importData);
         } catch (error) {
           errors.push(error);
         }
@@ -490,7 +546,7 @@ export async function importPolicySets(
       }
       if (options.deps) {
         try {
-          await importPolicySetSoftDependencies(policySetData, importData);
+          await importPolicySetDependencies(policySetData, importData);
         } catch (error) {
           errors.push(error);
         }
