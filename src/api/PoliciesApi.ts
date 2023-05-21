@@ -52,30 +52,12 @@ export async function getPoliciesByPolicySet(policySetId: string) {
   return data;
 }
 
-// /**
-//  * Get all policies by policy set/application
-//  * @param {string} policySet policy set/application
-//  * @returns {Promise} a promise that resolves to an object containing an array of node objects of the requested type
-//  */
-// export async function getPoliciesBySet(policySet: string) {
-//   const urlString = util.format(
-//     queryAllPoliciesByApplicationURLTemplate,
-//     state.getHost(),
-//     getCurrentRealmPath(),
-//     policySet
-//   );
-//   const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-//     withCredentials: true,
-//   });
-//   return data;
-// }
-
 /**
  * Get policy
  * @param {String} policyId policy id/name
- * @returns {Promise} a promise that resolves to a policy object
+ * @returns {Promise<PolicySkeleton>} a promise that resolves to a policy object
  */
-export async function getPolicy(policyId: string) {
+export async function getPolicy(policyId: string): Promise<PolicySkeleton> {
   const urlString = util.format(
     policyURLTemplate,
     state.getHost(),
@@ -94,7 +76,7 @@ export async function getPolicy(policyId: string) {
  * @param {Object} policyData policy object
  * @returns {Promise} a promise that resolves to a policy object
  */
-export async function putPolicy(policyId: string, policyData) {
+export async function putPolicy(policyId: string, policyData: PolicySkeleton) {
   const urlString = util.format(
     policyURLTemplate,
     state.getHost(),
