@@ -71,7 +71,7 @@ export type PolicySetSkeleton = NoIdObjectSkeletonInterface & {
   resourceTypeUuids: string[];
 };
 
-export type ResourceTypeSkeleton = IdObjectSkeletonInterface & {
+export type ResourceTypeSkeleton = NoIdObjectSkeletonInterface & {
   uuid: string;
   name: string;
 };
@@ -99,7 +99,7 @@ export enum PolicyConditionType {
   AuthenticateToService = 'AuthenticateToService',
 }
 
-export type PolicyCondition = {
+export type PolicyCondition = NoIdObjectSkeletonInterface & {
   type: keyof typeof PolicyConditionType;
   condition?: PolicyCondition;
   conditions?: PolicyCondition[];
@@ -108,7 +108,7 @@ export type PolicyCondition = {
 export type PolicySkeleton = IdObjectSkeletonInterface & {
   name: string;
   applicationName: string;
-  condition: PolicyCondition;
+  condition?: PolicyCondition;
   resourceTypeUuid: string;
 };
 
@@ -163,6 +163,8 @@ export type EmailTemplateSkeleton = IdObjectSkeletonInterface & {
   enabled?: boolean;
   from: string;
   subject: Record<string, string>;
+  message?: Record<string, string>;
+  html?: Record<string, string>;
 };
 
 export type ThemeSkeleton = IdObjectSkeletonInterface & {

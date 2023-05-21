@@ -5,7 +5,7 @@ import {
   putPolicy as _putPolicy,
   deletePolicy as _deletePolicy,
 } from '../api/PoliciesApi';
-import { getScript } from './ScriptOps';
+import { getScript, putScript } from './ScriptOps';
 import { convertBase64TextToArray } from './utils/ExportImportUtils';
 import { ExportMetaData } from './OpsTypes';
 import {
@@ -19,7 +19,8 @@ import {
 import { getMetadata } from './utils/ExportImportUtils';
 import { debugMessage } from './utils/Console';
 import { getResourceType } from '../api/ResourceTypesApi';
-import { getPolicySet } from './PolicySetOps';
+import { createPolicySet, getPolicySet, updatePolicySet } from './PolicySetOps';
+import { createResourceType, updateResourceType } from './ResourceTypeOps';
 
 export interface PolicyExportInterface {
   meta?: ExportMetaData;
@@ -98,15 +99,6 @@ export async function getPolicy(policyId: string): Promise<PolicySkeleton> {
 }
 
 /**
- * Delete policy
- * @param {string} policyId policy id/name
- * @returns {Promise<PolicySkeleton>} a promise that resolves to a policy object
- */
-export async function deletePolicy(policyId: string): Promise<PolicySkeleton> {
-  return _deletePolicy(policyId);
-}
-
-/**
  * Put policy
  * @param {string} policyId policy id/name
  * @param {PolicySkeleton} policyData policy object
@@ -117,6 +109,15 @@ export async function putPolicy(
   policyData: PolicySkeleton
 ): Promise<PolicySkeleton> {
   return _putPolicy(policyId, policyData);
+}
+
+/**
+ * Delete policy
+ * @param {string} policyId policy id/name
+ * @returns {Promise<PolicySkeleton>} a promise that resolves to a policy object
+ */
+export async function deletePolicy(policyId: string): Promise<PolicySkeleton> {
+  return _deletePolicy(policyId);
 }
 
 /**
@@ -182,7 +183,7 @@ export function findScriptUuids(condition: PolicyCondition): string[] {
       }
     }
   } else if (condition.type === PolicyConditionType.Script.toString()) {
-    scriptUuids.push(condition['scriptId']);
+    scriptUuids.push(condition.scriptId as string);
   }
   // de-duplicate
   scriptUuids = [...new Set(scriptUuids)];
@@ -350,16 +351,119 @@ export async function exportPoliciesByPolicySet(
 }
 
 /**
+ * Helper function to import hard dependencies of a policy
+ * @param {PolicySkeleton} policyData policy object
+ * @param {PolicyExportInterface} exportData export data
+ */
+async function importPolicyHardDependencies(
+  policyData: PolicySkeleton,
+  exportData: PolicyExportInterface
+) {
+  debugMessage(
+    `PolicyOps.importPolicyHardDependencies: start [policy=${policyData._id}]`
+  );
+  const errors = [];
+  try {
+    // resource type
+    if (exportData.resourcetype[policyData.resourceTypeUuid]) {
+      try {
+        debugMessage(`Importing resource type ${policyData.resourceTypeUuid}`);
+        await createResourceType(
+          exportData.resourcetype[policyData.resourceTypeUuid]
+        );
+      } catch (error) {
+        if (error.response?.status === 409)
+          await updateResourceType(
+            policyData.resourceTypeUuid,
+            exportData.resourcetype[policyData.resourceTypeUuid]
+          );
+        else throw error;
+      }
+    }
+    // policy set
+    if (exportData.policyset[policyData.applicationName]) {
+      try {
+        debugMessage(`Importing policy set ${policyData.applicationName}`);
+        await createPolicySet(exportData.policyset[policyData.applicationName]);
+      } catch (error) {
+        if (error.response?.status === 409)
+          await updatePolicySet(
+            exportData.policyset[policyData.applicationName]
+          );
+        else throw error;
+      }
+    }
+  } catch (error) {
+    error.message = `Error importing hard dependencies for policy ${
+      policyData._id
+    }: ${error.response?.data?.message || error.message}`;
+    errors.push(error);
+  }
+  if (errors.length) {
+    const errorMessages = errors
+      .map((error) => error.response?.data?.message || error.message)
+      .join('\n');
+    throw new Error(`Import hard dependencies error:\n${errorMessages}`);
+  }
+  debugMessage(`PolicyOps.importPolicyHardDependencies: end`);
+}
+
+/**
+ * Helper function to import soft dependencies of a policy
+ * @param {PolicySkeleton} policyData policy object
+ * @param {PolicyExportInterface} exportData export data
+ */
+async function importPolicySoftDependencies(
+  policyData: PolicySkeleton,
+  exportData: PolicyExportInterface
+) {
+  debugMessage(
+    `PolicyOps.importPolicySoftDependencies: start [policy=${policyData._id}]`
+  );
+  const errors = [];
+  try {
+    // scripts
+    const scriptUuids = findScriptUuids(policyData.condition);
+    for (const scriptUuid of scriptUuids) {
+      try {
+        const scriptData = exportData.script[scriptUuid];
+        debugMessage(`Importing script ${scriptUuid}`);
+        await putScript(scriptUuid, scriptData);
+      } catch (error) {
+        debugMessage(error.response?.data);
+        error.message = `Error importing script ${scriptUuid} for policy ${
+          policyData._id
+        }: ${error.response?.data?.message || error.message}`;
+        errors.push(error);
+      }
+    }
+  } catch (error) {
+    error.message = `Error importing soft dependencies for policy ${
+      policyData._id
+    }: ${error.response?.data?.message || error.message}`;
+    errors.push(error);
+  }
+  if (errors.length) {
+    const errorMessages = errors
+      .map((error) => error.response?.data?.message || error.message)
+      .join('\n');
+    throw new Error(`Import soft dependencies error:\n${errorMessages}`);
+  }
+  debugMessage(`PolicyOps.importPolicySoftDependencies: end`);
+}
+
+/**
  * Import policy by id
  * @param {string} name client id
  * @param {PolicyExportInterface} importData import data
  * @param {PolicyImportOptions} options import options
+ * @returns {Promise<PolicySkeleton>} imported policy object
  */
 export async function importPolicy(
   name: string,
   importData: PolicyExportInterface,
   options: PolicyImportOptions = { deps: true }
-) {
+): Promise<PolicySkeleton> {
   let response = null;
   const errors = [];
   const imported = [];
@@ -367,23 +471,149 @@ export async function importPolicy(
     if (id === name) {
       try {
         const policyData = importData.policy[id];
+        delete policyData._provider;
         delete policyData._rev;
         if (options.deps) {
-          // await importOAuth2ClientDependencies(clientData, importData);
+          try {
+            await importPolicyHardDependencies(policyData, importData);
+          } catch (error) {
+            errors.push(error);
+          }
         }
-        response = await _putPolicy(policyData._id, policyData);
-        imported.push(id);
+        try {
+          response = await putPolicy(policyData._id, policyData);
+          imported.push(id);
+        } catch (error) {
+          errors.push(error);
+        }
+        if (options.deps) {
+          try {
+            await importPolicySoftDependencies(policyData, importData);
+          } catch (error) {
+            errors.push(error);
+          }
+        }
       } catch (error) {
         errors.push(error);
       }
     }
   }
   if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
+    const errorMessages = errors
+      .map((error) => error.response?.data?.message || error.message)
+      .join('\n');
     throw new Error(`Import error:\n${errorMessages}`);
   }
   if (0 === imported.length) {
     throw new Error(`Import error:\n${name} not found in import data!`);
+  }
+  return response;
+}
+
+/**
+ * Import first policy
+ * @param {PolicyExportInterface} importData import data
+ * @param {PolicyImportOptions} options import options
+ * @returns {Promise<PolicySkeleton>} imported policy object
+ */
+export async function importFirstPolicy(
+  importData: PolicyExportInterface,
+  options: PolicyImportOptions = { deps: true }
+): Promise<PolicySkeleton> {
+  let response = null;
+  const errors = [];
+  const imported = [];
+  for (const id of Object.keys(importData.policy)) {
+    try {
+      const policyData = importData.policy[id];
+      delete policyData._provider;
+      delete policyData._rev;
+      if (options.deps) {
+        try {
+          await importPolicyHardDependencies(policyData, importData);
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+      try {
+        response = await putPolicy(policyData._id, policyData);
+        imported.push(id);
+      } catch (error) {
+        errors.push(error);
+      }
+      if (options.deps) {
+        try {
+          await importPolicySoftDependencies(policyData, importData);
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+    } catch (error) {
+      errors.push(error);
+    }
+    break;
+  }
+  if (errors.length) {
+    const errorMessages = errors
+      .map((error) => error.response?.data?.message || error.message)
+      .join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\nNo policy found in import data!`);
+  }
+  return response;
+}
+
+/**
+ * Import policies
+ * @param {PolicyExportInterface} importData import data
+ * @param {PolicyImportOptions} options import options
+ * @returns {Promise<PolicySkeleton[]>} array of imported policy objects
+ */
+export async function importPolicies(
+  importData: PolicyExportInterface,
+  options: PolicyImportOptions = { deps: true }
+): Promise<PolicySkeleton[]> {
+  const response = [];
+  const errors = [];
+  const imported = [];
+  for (const id of Object.keys(importData.policy)) {
+    try {
+      const policyData = importData.policy[id];
+      delete policyData._rev;
+      if (options.deps) {
+        try {
+          await importPolicyHardDependencies(policyData, importData);
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+      try {
+        response.push(await putPolicy(policyData._id, policyData));
+        imported.push(id);
+      } catch (error) {
+        errors.push(error);
+      }
+      if (options.deps) {
+        try {
+          await importPolicySoftDependencies(policyData, importData);
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length) {
+    const errorMessages = errors
+      .map((error) => error.response?.data?.message || error.message)
+      .join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\nNo policies found in import data!`);
   }
   return response;
 }
