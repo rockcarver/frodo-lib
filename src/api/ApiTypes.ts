@@ -99,7 +99,7 @@ export enum PolicyConditionType {
   AuthenticateToService = 'AuthenticateToService',
 }
 
-export type PolicyCondition = {
+export type PolicyCondition = NoIdObjectSkeletonInterface & {
   type: keyof typeof PolicyConditionType;
   condition?: PolicyCondition;
   conditions?: PolicyCondition[];
