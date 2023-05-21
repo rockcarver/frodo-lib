@@ -2,8 +2,8 @@ import {
   deletePolicySet as _deletePolicySet,
   getPolicySets as _getPolicySets,
   getPolicySet as _getPolicySet,
-  createPolicySet,
-  updatePolicySet,
+  createPolicySet as _createPolicySet,
+  updatePolicySet as _updatePolicySet,
 } from '../api/PolicySetApi';
 import { putScript } from './ScriptOps';
 import { convertBase64TextToArray } from './utils/ExportImportUtils';
@@ -88,6 +88,28 @@ export async function getPolicySet(
   policySetId: string
 ): Promise<PolicySetSkeleton> {
   return _getPolicySet(policySetId);
+}
+
+/**
+ * Create policy set
+ * @param {PolicySetSkeleton} policySetData policy set object
+ * @returns {Promise<PolicySetSkeleton>} a promise that resolves to a policy set object
+ */
+export async function createPolicySet(
+  policySetData: PolicySetSkeleton
+): Promise<PolicySetSkeleton> {
+  return _createPolicySet(policySetData);
+}
+
+/**
+ * Update policy set
+ * @param {PolicySetSkeleton} policySetData policy set object
+ * @returns {Promise<PolicySetSkeleton>} a promise that resolves to a policy set object
+ */
+export async function updatePolicySet(
+  policySetData: PolicySetSkeleton
+): Promise<PolicySetSkeleton> {
+  return _updatePolicySet(policySetData);
 }
 
 /**
@@ -221,8 +243,7 @@ export async function exportPolicySets(
 
 /**
  * Helper function to import hard dependencies of a policy set
- * @param {unknown} policySetData policy set data
- * @param {PolicySetExportOptions} options export options
+ * @param {PolicySetSkeleton} policySetData policy set data
  * @param {PolicySetExportInterface} exportData export data
  */
 async function importPolicySetHardDependencies(
@@ -268,8 +289,7 @@ async function importPolicySetHardDependencies(
 
 /**
  * Helper function to import soft dependencies of a policy set
- * @param {unknown} policySetData policy set data
- * @param {PolicySetExportOptions} options export options
+ * @param {PolicySetSkeleton} policySetData policy set data
  * @param {PolicySetExportInterface} exportData export data
  */
 async function importPolicySetSoftDependencies(
@@ -354,8 +374,10 @@ export async function importPolicySet(
           response = await createPolicySet(policySetData);
           imported.push(id);
         } catch (error) {
-          response = await updatePolicySet(policySetData);
-          imported.push(id);
+          if (error.response?.status === 409) {
+            response = await updatePolicySet(policySetData);
+            imported.push(id);
+          } else throw error;
         }
         if (options.deps) {
           try {
@@ -407,8 +429,10 @@ export async function importFirstPolicySet(
         response = await createPolicySet(policySetData);
         imported.push(id);
       } catch (error) {
-        response = await updatePolicySet(policySetData);
-        imported.push(id);
+        if (error.response?.status === 409) {
+          response = await updatePolicySet(policySetData);
+          imported.push(id);
+        } else throw error;
       }
       if (options.deps) {
         try {
@@ -459,8 +483,10 @@ export async function importPolicySets(
         response = await createPolicySet(policySetData);
         imported.push(id);
       } catch (error) {
-        response = await updatePolicySet(policySetData);
-        imported.push(id);
+        if (error.response?.status === 409) {
+          response = await updatePolicySet(policySetData);
+          imported.push(id);
+        } else throw error;
       }
       if (options.deps) {
         try {
