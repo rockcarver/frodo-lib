@@ -2,6 +2,7 @@ import util from 'util';
 import { generateLogApi, generateLogKeysApi } from '../BaseApi';
 import { getTenantURL } from '../utils/ApiUtils';
 import * as state from '../../shared/State';
+import { LogApiKey, LogEventSkeleton, PagedResult } from '../ApiTypes';
 
 const logsTailURLTemplate = '%s/monitoring/logs/tail?source=%s';
 const logsFetchURLTemplate =
@@ -10,7 +11,11 @@ const logsSourcesURLTemplate = '%s/monitoring/logs/sources';
 const logsCreateAPIKeyAndSecretURLTemplate = '%s/keys?_action=create';
 const logsGetAPIKeysURLTemplate = '%s/keys';
 
-export async function getAPIKeys() {
+/**
+ * Get available API keys
+ * @returns {Promise<PagedResult<LogApiKey>>} a promise resolving to a paged log api key results object
+ */
+export async function getAPIKeys(): Promise<PagedResult<LogApiKey>> {
   const urlString = util.format(
     logsGetAPIKeysURLTemplate,
     getTenantURL(state.getHost())
@@ -19,23 +24,40 @@ export async function getAPIKeys() {
   return data;
 }
 
-export async function getSources() {
+/**
+ * Get available log sources
+ * @returns {Promise<PagedResult<string>>} a promise resolving to a paged string results object
+ */
+export async function getSources(): Promise<PagedResult<string>> {
   const urlString = util.format(
     logsSourcesURLTemplate,
     getTenantURL(state.getHost())
   );
-  return generateLogApi().get(urlString);
+  const { data } = await generateLogApi().get(urlString);
+  return data;
 }
 
-export async function createAPIKeyAndSecret(keyName) {
+export async function createAPIKeyAndSecret(keyName: string) {
   const urlString = util.format(
     logsCreateAPIKeyAndSecretURLTemplate,
     getTenantURL(state.getHost())
   );
-  return generateLogKeysApi().post(urlString, { name: keyName });
+  const { data } = await generateLogKeysApi().post(urlString, {
+    name: keyName,
+  });
+  return data;
 }
 
-export async function tail(source, cookie) {
+/**
+ * Tail logs
+ * @param {string} source log source(s) to tail
+ * @param {string} cookie paged results cookie
+ * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+ */
+export async function tail(
+  source: string,
+  cookie: string
+): Promise<PagedResult<LogEventSkeleton>> {
   let urlString = util.format(
     logsTailURLTemplate,
     getTenantURL(state.getHost()),
@@ -44,10 +66,24 @@ export async function tail(source, cookie) {
   if (cookie) {
     urlString += `&_pagedResultsCookie=${encodeURIComponent(cookie)}`;
   }
-  return generateLogApi().get(urlString);
+  const { data } = await generateLogApi().get(urlString);
+  return data as PagedResult<LogEventSkeleton>;
 }
 
-export async function fetch(source, startTs, endTs, cookie) {
+/**
+ * Fetch logs
+ * @param {string} source log source(s) to tail
+ * @param {string} startTs start timestamp
+ * @param {string} endTs end timestamp
+ * @param {string} cookie paged results cookie
+ * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+ */
+export async function fetch(
+  source: string,
+  startTs: string,
+  endTs: string,
+  cookie: string
+): Promise<PagedResult<LogEventSkeleton>> {
   let urlString = util.format(
     logsFetchURLTemplate,
     getTenantURL(state.getHost()),
@@ -58,5 +94,6 @@ export async function fetch(source, startTs, endTs, cookie) {
   if (cookie) {
     urlString += `&_pagedResultsCookie=${encodeURIComponent(cookie)}`;
   }
-  return generateLogApi({ timeout: 60000 }).get(urlString);
+  const { data } = await generateLogApi({ timeout: 60000 }).get(urlString);
+  return data as PagedResult<LogEventSkeleton>;
 }
