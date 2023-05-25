@@ -247,3 +247,29 @@ export type PagedResult<Result> = {
   totalPagedResults: number;
   remainingPagedResults: number;
 };
+
+export type LogApiKey = {
+  name: string;
+  api_key_id: string;
+  created_at: string;
+};
+
+export type LogEventPayloadSkeleton = NoIdObjectSkeletonInterface & {
+  context: string;
+  level: string;
+  logger: string;
+  mdc: {
+    transactionId: string;
+  };
+  message: string;
+  thread: string;
+  timestamp: string;
+  transactionId: string;
+};
+
+export type LogEventSkeleton = NoIdObjectSkeletonInterface & {
+  payload: string | LogEventPayloadSkeleton;
+  timestamp: string;
+  type: string;
+  source: string;
+};

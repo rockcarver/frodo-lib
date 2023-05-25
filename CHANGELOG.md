@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+-   \#248: Frodo Library now exports all essential log api functions through the LogOps module export `Log`.
+
 ## [0.19.1] - 2023-05-21
 
 ### Added
