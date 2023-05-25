@@ -1,14 +1,15 @@
-import { printMessage, verboseMessage } from '../utils/Console';
-import { getCurrentTimestamp } from '../utils/ExportImportUtils';
+import {
+  LogApiKey,
+  LogEventPayloadSkeleton,
+  LogEventSkeleton,
+} from '../../api/ApiTypes';
 import {
   createAPIKeyAndSecret,
   getAPIKeys,
   getSources,
+  tail,
+  fetch,
 } from '../../api/cloud/LogApi';
-
-import * as state from '../../shared/State';
-
-import * as LogApi from '../../api/cloud/LogApi';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const unfilterableNoise = [
@@ -234,192 +235,60 @@ const logLevelMap = {
   ALL: ['ALL'],
 };
 
-export function defaultNoiseFilter() {
+/**
+ * Get default noise filter
+ * @returns {string[]} array of default event types and loggers to be filtered out
+ */
+export function getDefaultNoiseFilter(): string[] {
   return noise;
 }
 
-export function resolveLevel(level) {
-  //   const levels = ['FATAL', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE', 'ALL'];
-  //   levels.splice(levels.indexOf(levelName) + 1, levels.length);
-  if (Number.isNaN(parseInt(level, 10))) {
+/**
+ * Resolve log level to an array of effective log levels
+ * @param level string or numeric log level: 'FATAL', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE', 'ALL', 0, 1, 2, 3, 4
+ * @returns {string[]} array of effective log levels
+ */
+export function resolveLevel(level: string | number): string[] {
+  if (Number.isNaN(parseInt(level as string, 10))) {
     return logLevelMap[level];
   }
-  return logLevelMap[numLogLevelMap[level][0]];
+  return logLevelMap[numLogLevelMap[level as number][0]];
 }
 
-// It seems that the undesirable 'text/plain' logs start with a date, not a LEVEL
-// Therefore, for those, this function returns null, and thus filters out the undesirable
-export function resolvePayloadLevel(log) {
+/**
+ * Resolve a log event's level
+ * @param {object} log log event
+ * @returns {string} log level
+ */
+export function resolvePayloadLevel(log: LogEventSkeleton): string {
+  // It seems that the undesirable 'text/plain' logs start with a date, not a LEVEL
+  // Therefore, for those, this function returns null, and thus filters out the undesirable
   try {
     return log.type !== 'text/plain'
-      ? log.payload.level
-      : log.payload.match(/^([^:]*):/)[1];
+      ? (log.payload as LogEventPayloadSkeleton).level
+      : (log.payload as string).match(/^([^:]*):/)[1];
   } catch (e) {
     // Fail-safe for no group match
     return null;
   }
 }
 
+/**
+ * Get available log sources
+ * @returns {Promise<string[]>} promise resolving to an array of available log sources
+ */
 export async function getLogSources() {
-  const sources = [];
-  await getSources()
-    .then((response) => {
-      response.data.result.forEach((item) => {
-        sources.push(item);
-      });
-    })
-    .catch((error) => {
-      printMessage(
-        `getSources ERROR: get log sources call returned ${error}}`,
-        'error'
-      );
-      return [];
-    });
+  const sources = (await getSources()).result;
   return sources;
 }
 
-export async function tailLogs(source, levels, txid, cookie, nf) {
-  try {
-    const response = await LogApi.tail(source, cookie);
-    if (response.status < 200 || response.status > 399) {
-      printMessage(
-        `tail ERROR: tail call returned ${response.status}`,
-        'error'
-      );
-      return null;
-    }
-    // if (!cookie) {
-    //   await saveConnection();
-    // }
-    const logsObject = response.data;
-    let filteredLogs = [];
-    const noiseFilter = nf == null ? noise : nf;
-    if (Array.isArray(logsObject.result)) {
-      filteredLogs = logsObject.result.filter(
-        (el) =>
-          !noiseFilter.includes(el.payload.logger) &&
-          !noiseFilter.includes(el.type) &&
-          (levels[0] === 'ALL' || levels.includes(resolvePayloadLevel(el))) &&
-          (typeof txid === 'undefined' ||
-            txid === null ||
-            el.payload.transactionId?.includes(txid))
-      );
-    }
-
-    filteredLogs.forEach((e) => {
-      printMessage(JSON.stringify(e), 'data');
-    });
-
-    setTimeout(() => {
-      tailLogs(source, levels, txid, logsObject.result.pagedResultsCookie, nf);
-    }, 5000);
-    return null;
-  } catch (e) {
-    printMessage(`tail ERROR: tail data error - ${e}`, 'error');
-    return `tail ERROR: tail data error - ${e}`;
-  }
+/**
+ * Get log api keys
+ * @returns {Promise<LogApiKey[]>} promise resolving to an array of LogApiKey objects
+ */
+export async function getLogApiKeys(): Promise<LogApiKey[]> {
+  const keys = (await getAPIKeys()).result;
+  return keys;
 }
 
-export async function provisionCreds() {
-  try {
-    let keyName = `frodo-${state.getUsername()}`;
-    try {
-      const response = await getAPIKeys();
-      for (const k of response.result) {
-        if (k.name === keyName) {
-          // append current timestamp to name if the named key already exists
-          keyName = `${keyName}-${getCurrentTimestamp()}`;
-        }
-      }
-      try {
-        const resp = await createAPIKeyAndSecret(keyName);
-        if (resp.data.name !== keyName) {
-          printMessage(
-            `create keys ERROR: could not create log API key ${keyName}`,
-            'error'
-          );
-          return null;
-        }
-        verboseMessage(
-          `Created a new log API key [${keyName}] in ${state.getHost()}`
-        );
-        return resp.data;
-      } catch (error) {
-        printMessage(
-          `create keys ERROR: create keys call returned ${error}`,
-          'error'
-        );
-        return null;
-      }
-    } catch (error) {
-      printMessage(`get keys ERROR: get keys call returned ${error}`, 'error');
-    }
-  } catch (e) {
-    printMessage(`create keys ERROR: create keys data error - ${e}`, 'error');
-    return null;
-  }
-}
-
-export async function fetchLogs(
-  source,
-  startTs,
-  endTs,
-  levels,
-  txid,
-  ffString,
-  cookie,
-  nf
-) {
-  try {
-    // console.log(`startTs: ${startTs} endTs : ${endTs}`);
-    const response = await LogApi.fetch(source, startTs, endTs, cookie);
-    if (response.status < 200 || response.status > 399) {
-      printMessage(
-        `fetch ERROR: fetch call returned ${response.status}`,
-        'error'
-      );
-      return null;
-    }
-    const logsObject = response.data;
-    let filteredLogs = [];
-    const noiseFilter = nf == null ? noise : nf;
-    if (Array.isArray(logsObject.result)) {
-      filteredLogs = logsObject.result.filter(
-        (el) =>
-          !noiseFilter.includes(el.payload.logger) &&
-          !noiseFilter.includes(el.type) &&
-          (levels[0] === 'ALL' || levels.includes(resolvePayloadLevel(el))) &&
-          (typeof txid === 'undefined' ||
-            txid === null ||
-            el.payload.transactionId?.includes(txid))
-      );
-    }
-
-    filteredLogs.forEach((e) => {
-      const log = JSON.stringify(e, null, 2);
-      if (ffString) {
-        if (log.includes(ffString)) {
-          printMessage(log, 'data');
-        }
-      } else {
-        printMessage(log, 'data');
-      }
-    });
-    if (logsObject.pagedResultsCookie != null) {
-      await fetchLogs(
-        source,
-        startTs,
-        endTs,
-        levels,
-        txid,
-        ffString,
-        logsObject.pagedResultsCookie,
-        nf
-      );
-    }
-    return null;
-  } catch (e) {
-    printMessage(`fetch ERROR: fetch data error - ${e}`, 'error');
-    return `fetch ERROR: fetch data error - ${e}`;
-  }
-}
+export { tail, fetch, createAPIKeyAndSecret };
