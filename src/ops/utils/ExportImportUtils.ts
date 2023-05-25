@@ -13,17 +13,12 @@ import { FRODO_METADATA_ID } from '../../storage/StaticStorage';
 import { ExportMetaData } from '../OpsTypes';
 import { debugMessage, printMessage } from './Console';
 
-export function getCurrentTimestamp() {
-  const ts = new Date();
-  return ts.toISOString();
-}
-
 export function getMetadata(): ExportMetaData {
   const metadata: ExportMetaData = {
     origin: state.getHost(),
     originAmVersion: state.getAmVersion(),
     exportedBy: state.getUsername(),
-    exportDate: getCurrentTimestamp(),
+    exportDate: new Date().toISOString(),
     exportTool: FRODO_METADATA_ID,
     exportToolVersion: state.getFrodoVersion(),
   };
