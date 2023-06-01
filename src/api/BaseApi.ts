@@ -1,16 +1,16 @@
-import axios, { AxiosProxyConfig } from 'axios';
+import axios, { AxiosInstance, AxiosProxyConfig } from 'axios';
 import Agent from 'agentkeepalive';
 import axiosRetry from 'axios-retry';
 import HttpsProxyAgent from 'https-proxy-agent';
 import url from 'url';
 import fs from 'fs';
-import * as state from '../shared/State';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { curlirizeMessage, printMessage } from '../ops/utils/Console';
 import _curlirize from '../ext/axios-curlirize/curlirize';
 import { randomUUID } from 'crypto';
 import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
+import State from '../shared/State';
 
 if (process.env.FRODO_MOCK) {
   setupPollyForFrodoLib();
@@ -54,12 +54,12 @@ function getHttpAgent() {
 
 /**
  * Helper method to create properly configured httpsAgent
- * @returns {any} appropriate httpsAgent
+ * @returns {Agent.HttpsAgent} appropriate httpsAgent
  */
-function getHttpsAgent() {
+function getHttpsAgent(allowInsecureConnection: boolean): Agent.HttpsAgent {
   if (httpsAgent) return httpsAgent;
   const options = {
-    rejectUnauthorized: !state.getAllowInsecureConnection(),
+    rejectUnauthorized: !allowInsecureConnection,
   };
   const httpsProxy = process.env.HTTPS_PROXY || process.env.https_proxy;
   if (httpsProxy) {
@@ -69,7 +69,7 @@ function getHttpsAgent() {
     options['host'] = parsed.hostname;
     options['port'] = parsed.port;
     options['protocol'] = parsed.protocol;
-    options.rejectUnauthorized = !state.getAllowInsecureConnection();
+    options.rejectUnauthorized = !allowInsecureConnection;
     httpsAgent = HttpsProxyAgent(options);
     return httpsAgent;
   }
@@ -115,7 +115,15 @@ function curlirize(request) {
  *
  * @returns {AxiosInstance}
  */
-export function generateAmApi(resource, requestOverride = {}) {
+export function generateAmApi({
+  resource,
+  requestOverride = {},
+  state,
+}: {
+  resource;
+  requestOverride?;
+  state: State;
+}) {
   let headers = {
     'User-Agent': userAgent,
     'X-ForgeRock-TransactionId': transactionId,
@@ -150,7 +158,7 @@ export function generateAmApi(resource, requestOverride = {}) {
       ...state.getAuthenticationHeaderOverrides(),
     },
     httpAgent: getHttpAgent(),
-    httpsAgent: getHttpsAgent(),
+    httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
     proxy: getProxy(),
   };
 
@@ -172,7 +180,15 @@ export function generateAmApi(resource, requestOverride = {}) {
  *
  * @returns {AxiosInstance}
  */
-export function generateOauth2Api(resource, requestOverride = {}) {
+export function generateOauth2Api({
+  resource,
+  requestOverride = {},
+  state,
+}: {
+  resource;
+  requestOverride?;
+  state: State;
+}) {
   let headers = {
     'User-Agent': userAgent,
     'X-ForgeRock-TransactionId': transactionId,
@@ -206,7 +222,7 @@ export function generateOauth2Api(resource, requestOverride = {}) {
       ...state.getAuthenticationHeaderOverrides(),
     },
     httpAgent: getHttpAgent(),
-    httpsAgent: getHttpsAgent(),
+    httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
     proxy: getProxy(),
   };
 
@@ -227,7 +243,13 @@ export function generateOauth2Api(resource, requestOverride = {}) {
  *
  * @returns {AxiosInstance}
  */
-export function generateIdmApi(requestOverride = {}) {
+export function generateIdmApi({
+  requestOverride = {},
+  state,
+}: {
+  requestOverride?;
+  state: State;
+}) {
   const requestDetails = {
     // baseURL: getTenantURL(storage.session.getTenant()),
     timeout,
@@ -242,7 +264,7 @@ export function generateIdmApi(requestOverride = {}) {
     },
     ...requestOverride,
     httpAgent: getHttpAgent(),
-    httpsAgent: getHttpsAgent(),
+    httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
     proxy: getProxy(),
   };
 
@@ -269,7 +291,13 @@ export function generateIdmApi(requestOverride = {}) {
  *
  * @returns {AxiosInstance}
  */
-export function generateLogKeysApi(requestOverride = {}) {
+export function generateLogKeysApi({
+  requestOverride = {},
+  state,
+}: {
+  requestOverride?;
+  state: State;
+}) {
   const headers = {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
@@ -284,7 +312,7 @@ export function generateLogKeysApi(requestOverride = {}) {
     headers,
     ...requestOverride,
     httpAgent: getHttpAgent(),
-    httpsAgent: getHttpsAgent(),
+    httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
     proxy: getProxy(),
   };
 
@@ -305,7 +333,13 @@ export function generateLogKeysApi(requestOverride = {}) {
  *
  * @returns {AxiosInstance}
  */
-export function generateLogApi(requestOverride = {}) {
+export function generateLogApi({
+  requestOverride = {},
+  state,
+}: {
+  requestOverride?;
+  state: State;
+}) {
   const headers = {
     'User-Agent': userAgent,
     'X-API-Key': state.getLogApiKey(),
@@ -317,7 +351,7 @@ export function generateLogApi(requestOverride = {}) {
     headers,
     ...requestOverride,
     httpAgent: getHttpAgent(),
-    httpsAgent: getHttpsAgent(),
+    httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
     proxy: getProxy(),
   };
 
@@ -338,7 +372,15 @@ export function generateLogApi(requestOverride = {}) {
  *
  * @returns {AxiosInstance}
  */
-export function generateEnvApi(resource, requestOverride = {}) {
+export function generateEnvApi({
+  resource,
+  requestOverride = {},
+  state,
+}: {
+  resource: { apiVersion: string };
+  requestOverride?: object;
+  state: State;
+}): AxiosInstance {
   const headers = {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
@@ -355,7 +397,7 @@ export function generateEnvApi(resource, requestOverride = {}) {
     headers,
     ...requestOverride,
     httpAgent: getHttpAgent(),
-    httpsAgent: getHttpsAgent(),
+    httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
     proxy: getProxy(),
   };
 
@@ -376,7 +418,15 @@ export function generateEnvApi(resource, requestOverride = {}) {
  *
  * @returns {AxiosInstance}
  */
-export function generateReleaseApi(baseUrl, requestOverride = {}) {
+export function generateReleaseApi({
+  baseUrl,
+  requestOverride = {},
+  state,
+}: {
+  baseUrl: string;
+  requestOverride?: object;
+  state: State;
+}): AxiosInstance {
   const requestDetails = {
     baseURL: baseUrl,
     timeout,
@@ -386,7 +436,7 @@ export function generateReleaseApi(baseUrl, requestOverride = {}) {
     },
     ...requestOverride,
     httpAgent: getHttpAgent(),
-    httpsAgent: getHttpsAgent(),
+    httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
     proxy: getProxy(),
   };
 

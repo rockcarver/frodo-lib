@@ -10,7 +10,7 @@ import { getMetadata } from './utils/ExportImportUtils';
 import { debugMessage, printMessage } from './utils/Console';
 import { convertBase64TextToArray } from './utils/ExportImportUtils';
 import { getOAuth2Provider } from './OAuth2ProviderOps';
-import * as state from '../shared/State';
+import State from '../shared/State';
 import { getScript, putScript } from './ScriptOps';
 
 /**
@@ -47,9 +47,13 @@ export interface OAuth2ClientExportInterface {
  * Create an empty OAuth2 client export template
  * @returns {OAuth2ClientExportInterface} an empty OAuth2 client export template
  */
-function createOAuth2ClientExportTemplate(): OAuth2ClientExportInterface {
+function createOAuth2ClientExportTemplate({
+  state,
+}: {
+  state: State;
+}): OAuth2ClientExportInterface {
   return {
-    meta: getMetadata(),
+    meta: getMetadata({ state }),
     script: {},
     application: {},
   } as OAuth2ClientExportInterface;
@@ -59,8 +63,8 @@ function createOAuth2ClientExportTemplate(): OAuth2ClientExportInterface {
  * Get all OAuth2 clients
  * @returns {Promise<any[]>} a promise that resolves to an array of oauth2client objects
  */
-export async function getOAuth2Clients() {
-  const clients = (await _getOAuth2Clients()).result;
+export async function getOAuth2Clients({ state }: { state: State }) {
+  const clients = (await _getOAuth2Clients({ state })).result;
   return clients;
 }
 
@@ -69,8 +73,14 @@ export async function getOAuth2Clients() {
  * @param {string} clientId client id
  * @returns {Promise<any>} a promise that resolves to an oauth2client object
  */
-export async function getOAuth2Client(clientId: string) {
-  return _getOAuth2Client(clientId);
+export async function getOAuth2Client({
+  clientId,
+  state,
+}: {
+  clientId: string;
+  state: State;
+}) {
+  return _getOAuth2Client({ id: clientId, state });
 }
 
 /**
@@ -79,10 +89,22 @@ export async function getOAuth2Client(clientId: string) {
  * @param {any} clientData oauth2client object
  * @returns {Promise<any>} a promise that resolves to an oauth2client object
  */
-export async function putOAuth2Client(clientId: string, clientData) {
+export async function putOAuth2Client({
+  clientId,
+  clientData,
+  state,
+}: {
+  clientId: string;
+  clientData: OAuth2ClientSkeleton;
+  state: State;
+}) {
   debugMessage(`OAuth2ClientOps.putOAuth2Client: start`);
   try {
-    const response = await _putOAuth2Client(clientId, clientData);
+    const response = await _putOAuth2Client({
+      id: clientId,
+      clientData,
+      state,
+    });
     debugMessage(`OAuth2ClientOps.putOAuth2Client: end`);
     return response;
   } catch (error) {
@@ -106,7 +128,11 @@ export async function putOAuth2Client(clientId: string, clientData) {
           }
         }
       }
-      const response = await _putOAuth2Client(clientId, clientData);
+      const response = await _putOAuth2Client({
+        id: clientId,
+        clientData,
+        state,
+      });
       debugMessage(`OAuth2ClientOps.putOAuth2Client: end`);
       return response;
     } else {
@@ -120,8 +146,14 @@ export async function putOAuth2Client(clientId: string, clientData) {
  * @param {string} clientId client id
  * @returns {Promise<any>} a promise that resolves to an oauth2client object
  */
-export async function deleteOAuth2Client(clientId: string) {
-  return _deleteOAuth2Client(clientId);
+export async function deleteOAuth2Client({
+  clientId,
+  state,
+}: {
+  clientId: string;
+  state: State;
+}) {
+  return _deleteOAuth2Client({ id: clientId, state });
 }
 
 /**
@@ -145,9 +177,11 @@ async function exportOAuth2ClientDependencies(
         if (scriptId !== '[Empty]' && !exportData.script[scriptId]) {
           try {
             debugMessage(`- ${scriptId} referenced by ${clientData['_id']}`);
-            const scriptData = await getScript(scriptId);
+            const scriptData = await getScript({ scriptId });
             if (options.useStringArrays)
-              scriptData.script = convertBase64TextToArray(scriptData.script);
+              scriptData.script = convertBase64TextToArray(
+                scriptData.script as string
+              );
             exportData.script[scriptId] = scriptData;
           } catch (error) {
             if (
@@ -173,15 +207,19 @@ async function exportOAuth2ClientDependencies(
  * @param {OAuth2ClientExportOptions} options export options
  * @returns {OAuth2ClientExportInterface} export data
  */
-export async function exportOAuth2Clients(
-  options: OAuth2ClientExportOptions = { useStringArrays: true, deps: true }
-): Promise<OAuth2ClientExportInterface> {
+export async function exportOAuth2Clients({
+  options = { useStringArrays: true, deps: true },
+  state,
+}: {
+  options?: OAuth2ClientExportOptions;
+  state: State;
+}): Promise<OAuth2ClientExportInterface> {
   debugMessage(`OAuth2ClientOps.exportOAuth2Clients: start`);
-  const exportData = createOAuth2ClientExportTemplate();
+  const exportData = createOAuth2ClientExportTemplate({ state });
   const errors = [];
   try {
-    const provider = await getOAuth2Provider();
-    const clients = await getOAuth2Clients();
+    const provider = await getOAuth2Provider({ state });
+    const clients = await getOAuth2Clients({ state });
     for (const client of clients) {
       try {
         client._provider = provider;
@@ -210,16 +248,21 @@ export async function exportOAuth2Clients(
  * @param {OAuth2ClientExportOptions} options export options
  * @returns {OAuth2ClientExportInterface} export data
  */
-export async function exportOAuth2Client(
-  clientId: string,
-  options: OAuth2ClientExportOptions = { useStringArrays: true, deps: true }
-): Promise<OAuth2ClientExportInterface> {
+export async function exportOAuth2Client({
+  clientId,
+  options = { useStringArrays: true, deps: true },
+  state,
+}: {
+  clientId: string;
+  options?: OAuth2ClientExportOptions;
+  state: State;
+}): Promise<OAuth2ClientExportInterface> {
   debugMessage(`OAuth2ClientOps.exportOAuth2Client: start`);
-  const exportData = createOAuth2ClientExportTemplate();
+  const exportData = createOAuth2ClientExportTemplate({ state });
   const errors = [];
   try {
-    const clientData = await getOAuth2Client(clientId);
-    clientData._provider = await getOAuth2Provider();
+    const clientData = await getOAuth2Client({ clientId, state });
+    clientData._provider = await getOAuth2Provider({ state });
     exportData.application[clientData._id] = clientData;
     if (options.deps) {
       await exportOAuth2ClientDependencies(clientData, options, exportData);
@@ -249,7 +292,7 @@ async function importOAuth2ClientDependencies(
       const scriptId = clientData['overrideOAuth2ClientConfig'][key];
       if (scriptId !== '[Empty]' && importData.script[scriptId]) {
         const scriptData: ScriptSkeleton = importData.script[scriptId];
-        await putScript(scriptId, scriptData);
+        await putScript({ scriptId, scriptData });
       }
     }
   }
@@ -261,11 +304,17 @@ async function importOAuth2ClientDependencies(
  * @param {OAuth2ClientExportInterface} importData import data
  * @param {OAuth2ClientImportOptions} options import options
  */
-export async function importOAuth2Client(
-  clientId: string,
-  importData: OAuth2ClientExportInterface,
-  options: OAuth2ClientImportOptions = { deps: true }
-) {
+export async function importOAuth2Client({
+  clientId,
+  importData,
+  options = { deps: true },
+  state,
+}: {
+  clientId: string;
+  importData: OAuth2ClientExportInterface;
+  options?: OAuth2ClientImportOptions;
+  state: State;
+}) {
   let response = null;
   const errors = [];
   const imported = [];
@@ -278,7 +327,7 @@ export async function importOAuth2Client(
         if (options.deps) {
           await importOAuth2ClientDependencies(clientData, importData);
         }
-        response = await putOAuth2Client(id, clientData);
+        response = await putOAuth2Client({ clientId: id, clientData, state });
         imported.push(id);
       } catch (error) {
         errors.push(error);
@@ -300,10 +349,15 @@ export async function importOAuth2Client(
  * @param {OAuth2ClientExportInterface} importData import data
  * @param {OAuth2ClientImportOptions} options import options
  */
-export async function importFirstOAuth2Client(
-  importData: OAuth2ClientExportInterface,
-  options: OAuth2ClientImportOptions = { deps: true }
-) {
+export async function importFirstOAuth2Client({
+  importData,
+  options = { deps: true },
+  state,
+}: {
+  importData: OAuth2ClientExportInterface;
+  options?: OAuth2ClientImportOptions;
+  state: State;
+}) {
   let response = null;
   const errors = [];
   const imported = [];
@@ -315,7 +369,7 @@ export async function importFirstOAuth2Client(
       if (options.deps) {
         await importOAuth2ClientDependencies(clientData, importData);
       }
-      response = await putOAuth2Client(id, clientData);
+      response = await putOAuth2Client({ clientId: id, clientData, state });
       imported.push(id);
     } catch (error) {
       errors.push(error);
@@ -338,10 +392,15 @@ export async function importFirstOAuth2Client(
  * @param {OAuth2ClientImportOptions} options import options
  * @returns {Promise<unknown[]>} array of imported oauth2 clients
  */
-export async function importOAuth2Clients(
-  importData: OAuth2ClientExportInterface,
-  options: OAuth2ClientImportOptions = { deps: true }
-): Promise<unknown[]> {
+export async function importOAuth2Clients({
+  importData,
+  options = { deps: true },
+  state,
+}: {
+  importData: OAuth2ClientExportInterface;
+  options?: OAuth2ClientImportOptions;
+  state: State;
+}): Promise<unknown[]> {
   const response = [];
   const errors = [];
   const imported = [];
@@ -353,7 +412,7 @@ export async function importOAuth2Clients(
       if (options.deps) {
         await importOAuth2ClientDependencies(clientData, importData);
       }
-      response.push(await putOAuth2Client(id, clientData));
+      response.push(await putOAuth2Client({ clientId: id, clientData, state }));
       imported.push(id);
     } catch (error) {
       errors.push(error);

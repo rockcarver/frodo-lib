@@ -3,6 +3,7 @@ import path from 'path';
 import { generateReleaseApi } from '../../api/BaseApi';
 
 import { fileURLToPath } from 'url';
+import State from '../../shared/State';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -15,10 +16,18 @@ export function getVersion() {
   return `${pkg.version}`;
 }
 
-export async function getAllVersions(endpoints) {
+export async function getAllVersions({
+  endpoints,
+  state,
+}: {
+  endpoints;
+  state: State;
+}) {
   const reqPromises = [];
   endpoints.forEach((item) => {
-    reqPromises.push(generateReleaseApi(item.base).get(item.path));
+    reqPromises.push(
+      generateReleaseApi({ baseUrl: item.base, state }).get(item.path)
+    );
   });
   const result = await Promise.allSettled(reqPromises);
   return result;

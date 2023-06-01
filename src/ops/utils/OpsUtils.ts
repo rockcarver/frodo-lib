@@ -1,4 +1,4 @@
-import * as state from '../../shared/State';
+import State from '../../shared/State';
 import * as globalConfig from '../../storage/StaticStorage';
 import {
   getCurrentRealmName,
@@ -40,7 +40,7 @@ export function applyNameCollisionPolicy(name) {
  * Get the name of the managed user object for the current realm
  * @returns {String} the name of the managed user object for the current realm
  */
-export function getRealmManagedUser() {
+export function getRealmManagedUser({ state }: { state: State }) {
   let realmManagedUser = 'user';
   if (state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) {
     realmManagedUser = `${getCurrentRealmName()}_user`;

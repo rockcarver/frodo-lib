@@ -8,12 +8,12 @@ import {
   encode,
   encodeBase64Url,
 } from '../../api/utils/Base64';
-import * as state from '../../shared/State';
+import State from '../../shared/State';
 import { FRODO_METADATA_ID } from '../../storage/StaticStorage';
 import { ExportMetaData } from '../OpsTypes';
 import { debugMessage, printMessage } from './Console';
 
-export function getMetadata(): ExportMetaData {
+export function getMetadata({ state }: { state: State }): ExportMetaData {
   const metadata: ExportMetaData = {
     origin: state.getHost(),
     originAmVersion: state.getAmVersion(),
@@ -30,7 +30,7 @@ export function getMetadata(): ExportMetaData {
  *
  * e.g.: 'ALL UPPERCASE AND all lowercase' = 'All Uppercase And All Lowercase'
  */
-export function titleCase(input) {
+export function titleCase(input: string) {
   const str = input.toString();
   const splitStr = str.toLowerCase().split(' ');
   for (let i = 0; i < splitStr.length; i += 1) {
@@ -39,14 +39,14 @@ export function titleCase(input) {
   return splitStr.join(' ');
 }
 
-export function getRealmString() {
+export function getRealmString({ state }: { state: State }) {
   const realm = state.getRealm();
   return realm
     .split('/')
     .reduce((result, item) => `${result}${titleCase(item)}`, '');
 }
 
-export function convertBase64TextToArray(b64text) {
+export function convertBase64TextToArray(b64text: string) {
   let arrayOut = [];
   let plainText = decode(b64text);
   plainText = plainText.replace(/\t/g, '    ');
@@ -54,7 +54,7 @@ export function convertBase64TextToArray(b64text) {
   return arrayOut;
 }
 
-export function convertBase64UrlTextToArray(b64UTF8Text) {
+export function convertBase64UrlTextToArray(b64UTF8Text: string) {
   let arrayOut = [];
   let plainText = decodeBase64Url(b64UTF8Text);
   plainText = plainText.replace(/\t/g, '    ');
@@ -62,13 +62,13 @@ export function convertBase64UrlTextToArray(b64UTF8Text) {
   return arrayOut;
 }
 
-export function convertTextArrayToBase64(textArray) {
+export function convertTextArrayToBase64(textArray: string[]) {
   const joinedText = textArray.join('\n');
   const b64encodedScript = encode(joinedText);
   return b64encodedScript;
 }
 
-export function convertTextArrayToBase64Url(textArray) {
+export function convertTextArrayToBase64Url(textArray: string[]) {
   const joinedText = textArray.join('\n');
   const b64encodedScript = encodeBase64Url(joinedText);
   return b64encodedScript;
@@ -84,7 +84,7 @@ export function getTypedFilename(name: string, type: string, suffix = 'json') {
   return `${slug}.${type}.${suffix}`;
 }
 
-export function getWorkingDirectory() {
+export function getWorkingDirectory({ state }: { state: State }) {
   let wd = '.';
   if (state.getDirectory()) {
     wd = state.getDirectory().replace(/\/$/, '');
@@ -99,9 +99,21 @@ export function getWorkingDirectory() {
   return wd;
 }
 
-export function saveToFile(type, data, identifier, filename) {
+export function saveToFile({
+  type,
+  data,
+  identifier,
+  filename,
+  state,
+}: {
+  type: string;
+  data: object;
+  identifier: string;
+  filename: string;
+  state: State;
+}) {
   const exportData = {};
-  exportData['meta'] = getMetadata();
+  exportData['meta'] = getMetadata({ state });
   exportData[type] = {};
 
   if (Array.isArray(data)) {
@@ -125,9 +137,19 @@ export function saveToFile(type, data, identifier, filename) {
  * @param {String} filename file name
  * @return {boolean} true if successful, false otherwise
  */
-export function saveJsonToFile(data, filename, includeMeta = true): boolean {
+export function saveJsonToFile({
+  data,
+  filename,
+  includeMeta = true,
+  state,
+}: {
+  data: object;
+  filename: string;
+  includeMeta?: boolean;
+  state: State;
+}): boolean {
   const exportData = data;
-  if (includeMeta) exportData.meta = getMetadata();
+  if (includeMeta) exportData['meta'] = getMetadata({ state });
   try {
     fs.writeFileSync(filename, JSON.stringify(exportData, null, 2));
     return true;
@@ -142,7 +164,7 @@ export function saveJsonToFile(data, filename, includeMeta = true): boolean {
  * @param {String} data text data
  * @param {String} filename file name
  */
-export function appendTextToFile(data, filename) {
+export function appendTextToFile(data: string, filename: string) {
   try {
     fs.appendFileSync(filename, data);
   } catch (error) {
