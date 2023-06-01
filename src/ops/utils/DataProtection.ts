@@ -14,7 +14,6 @@ import crypto from 'crypto';
 import { homedir } from 'os';
 import { promisify } from 'util';
 import { printMessage } from './Console';
-import * as state from '../../shared/State';
 import {
   FRODO_MASTER_KEY_PATH_KEY,
   FRODO_MASTER_KEY_KEY,
@@ -29,9 +28,9 @@ const _key = new WeakMap();
 const _encrypt = new WeakMap();
 
 class DataProtection {
-  constructor() {
+  constructor(pathToMasterKey: string = null) {
     const masterKeyPath = () =>
-      state.getMasterKeyPath() ||
+      pathToMasterKey ||
       process.env[FRODO_MASTER_KEY_PATH_KEY] ||
       `${homedir()}/.frodo/masterkey.key`;
     // Generates a master key in base64 format. This master key will be used to derive the key for encryption. this key should be protected by an HSM or KMS

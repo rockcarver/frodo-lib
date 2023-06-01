@@ -18,7 +18,7 @@ import {
 import { ExportMetaData } from './OpsTypes';
 import { ScriptSkeleton, SocialIdpSkeleton } from '../api/ApiTypes';
 import { getMetadata } from './utils/ExportImportUtils';
-import * as state from '../shared/State';
+import State from '../shared/State';
 import { debugMessage } from './utils/Console';
 
 export interface SocialProviderExportInterface {
@@ -31,9 +31,13 @@ export interface SocialProviderExportInterface {
  * Create an empty idp export template
  * @returns {SocialProviderExportInterface} an empty idp export template
  */
-function createIdpExportTemplate(): SocialProviderExportInterface {
+function createIdpExportTemplate({
+  state,
+}: {
+  state: State;
+}): SocialProviderExportInterface {
   return {
-    meta: getMetadata(),
+    meta: getMetadata({ state }),
     script: {},
     idp: {},
   } as SocialProviderExportInterface;
@@ -43,8 +47,8 @@ function createIdpExportTemplate(): SocialProviderExportInterface {
  * Get all social identity providers
  * @returns {Promise} a promise that resolves to an object containing an array of social identity providers
  */
-export async function getSocialIdentityProviders() {
-  const { result } = await _getSocialIdentityProviders();
+export async function getSocialIdentityProviders({ state }: { state: State }) {
+  const { result } = await _getSocialIdentityProviders({ state });
   return result;
 }
 
@@ -53,8 +57,14 @@ export async function getSocialIdentityProviders() {
  * @param {String} providerId social identity provider id/name
  * @returns {Promise} a promise that resolves a social identity provider object
  */
-export async function getSocialProvider(providerId) {
-  const response = await getSocialIdentityProviders();
+export async function getSocialProvider({
+  providerId,
+  state,
+}: {
+  providerId: string;
+  state: State;
+}) {
+  const response = await getSocialIdentityProviders({ state });
   const foundProviders = response.filter(
     (provider) => provider._id === providerId
   );
@@ -70,18 +80,25 @@ export async function getSocialProvider(providerId) {
   }
 }
 
-export async function putProviderByTypeAndId(
-  providerType: string,
-  providerId: string,
-  providerData: object
-) {
+export async function putProviderByTypeAndId({
+  providerType,
+  providerId,
+  providerData,
+  state,
+}: {
+  providerType: string;
+  providerId: string;
+  providerData: SocialIdpSkeleton;
+  state: State;
+}) {
   debugMessage(`IdpOps.putProviderByTypeAndId: start`);
   try {
-    const response = await _putProviderByTypeAndId(
-      providerType,
-      providerId,
-      providerData
-    );
+    const response = await _putProviderByTypeAndId({
+      type: providerType,
+      id: providerId,
+      providerData,
+      state,
+    });
     debugMessage(`IdpOps.putProviderByTypeAndId: end`);
     return response;
   } catch (importError) {
@@ -103,11 +120,12 @@ export async function putProviderByTypeAndId(
         }
       }
       if (state.getVerbose()) printMessage('\n', 'warn', false);
-      const response = await _putProviderByTypeAndId(
-        providerType,
-        providerId,
-        providerData
-      );
+      const response = await _putProviderByTypeAndId({
+        type: providerType,
+        id: providerId,
+        providerData,
+        state,
+      });
       debugMessage(`IdpOps.putProviderByTypeAndId: end (after retry)`);
       return response;
     } else {
@@ -122,19 +140,24 @@ export async function putProviderByTypeAndId(
  * @param {String} providerId social identity provider id/name
  * @returns {Promise} a promise that resolves a social identity provider object
  */
-export async function deleteSocialProvider(
-  providerId: string
-): Promise<unknown> {
-  const response = await getSocialIdentityProviders();
+export async function deleteSocialProvider({
+  providerId,
+  state,
+}: {
+  providerId: string;
+  state: State;
+}): Promise<unknown> {
+  const response = await getSocialIdentityProviders({ state });
   const foundProviders = response.filter(
     (provider) => provider._id === providerId
   );
   switch (foundProviders.length) {
     case 1:
-      return await deleteProviderByTypeAndId(
-        foundProviders[0]._type._id,
-        foundProviders[0]._id
-      );
+      return await deleteProviderByTypeAndId({
+        type: foundProviders[0]._type._id,
+        providerId: foundProviders[0]._id,
+        state,
+      });
     case 0:
       throw new Error(`Provider '${providerId}' not found`);
     default:
@@ -149,15 +172,19 @@ export async function deleteSocialProvider(
  * @param {string} providerId provider id/name
  * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
  */
-export async function exportSocialProvider(
-  providerId: string
-): Promise<SocialProviderExportInterface> {
+export async function exportSocialProvider({
+  providerId,
+  state,
+}: {
+  providerId: string;
+  state: State;
+}): Promise<SocialProviderExportInterface> {
   debugMessage(`IdpOps.exportSocialProvider: start`);
-  const idpData = await getSocialProvider(providerId);
-  const exportData = createIdpExportTemplate();
+  const idpData = await getSocialProvider({ providerId, state });
+  const exportData = createIdpExportTemplate({ state });
   exportData.idp[idpData._id] = idpData;
   if (idpData.transform) {
-    const scriptData = await getScript(idpData.transform);
+    const scriptData = await getScript({ scriptId: idpData.transform, state });
     scriptData.script = convertBase64TextToArray(scriptData.script);
     exportData.script[idpData.transform] = scriptData;
   }
@@ -169,16 +196,22 @@ export async function exportSocialProvider(
  * Export all providers
  * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
  */
-export async function exportSocialProviders(): Promise<SocialProviderExportInterface> {
-  const exportData = createIdpExportTemplate();
-  const allIdpsData = await getSocialIdentityProviders();
+export async function exportSocialProviders({
+  state,
+}: {
+  state: State;
+}): Promise<SocialProviderExportInterface> {
+  const exportData = createIdpExportTemplate({ state });
+  const allIdpsData = await getSocialIdentityProviders({ state });
   createProgressIndicator(allIdpsData.length, 'Exporting providers');
   for (const idpData of allIdpsData) {
     updateProgressIndicator(`Exporting provider ${idpData._id}`);
     exportData.idp[idpData._id] = idpData;
     if (idpData.transform) {
-      // eslint-disable-next-line no-await-in-loop
-      const scriptData = await getScript(idpData.transform);
+      const scriptData = await getScript({
+        scriptId: idpData.transform,
+        state,
+      });
       scriptData.script = convertBase64TextToArray(scriptData.script);
       exportData.script[idpData.transform] = scriptData;
     }
@@ -192,23 +225,31 @@ export async function exportSocialProviders(): Promise<SocialProviderExportInter
  * @param {string} providerId provider id/name
  * @param {SocialProviderExportInterface} importData import data
  */
-export async function importSocialProvider(
-  providerId: string,
-  importData: SocialProviderExportInterface
-): Promise<boolean> {
+export async function importSocialProvider({
+  providerId,
+  importData,
+  state,
+}: {
+  providerId: string;
+  importData: SocialProviderExportInterface;
+  state: State;
+}): Promise<boolean> {
   for (const idpId of Object.keys(importData.idp)) {
     if (idpId === providerId) {
       const scriptId = importData.idp[idpId].transform as string;
       const scriptData = importData.script[scriptId as string];
       if (scriptId && scriptData) {
-        scriptData.script = convertTextArrayToBase64(scriptData.script);
-        await putScript(scriptId, scriptData);
+        scriptData.script = convertTextArrayToBase64(
+          scriptData.script as string[]
+        );
+        await putScript({ scriptId, scriptData, state });
       }
-      await putProviderByTypeAndId(
-        importData.idp[idpId]._type._id,
-        idpId,
-        importData.idp[idpId]
-      );
+      await putProviderByTypeAndId({
+        providerType: importData.idp[idpId]._type._id,
+        providerId: idpId,
+        providerData: importData.idp[idpId],
+        state,
+      });
       return true;
     }
   }
@@ -219,21 +260,28 @@ export async function importSocialProvider(
  * Import first provider
  * @param {SocialProviderExportInterface} importData import data
  */
-export async function importFirstSocialProvider(
-  importData: SocialProviderExportInterface
-): Promise<boolean> {
+export async function importFirstSocialProvider({
+  importData,
+  state,
+}: {
+  importData: SocialProviderExportInterface;
+  state: State;
+}): Promise<boolean> {
   for (const idpId of Object.keys(importData.idp)) {
     const scriptId = importData.idp[idpId].transform as string;
     const scriptData = importData.script[scriptId as string];
     if (scriptId && scriptData) {
-      scriptData.script = convertTextArrayToBase64(scriptData.script);
-      await putScript(scriptId, scriptData);
+      scriptData.script = convertTextArrayToBase64(
+        scriptData.script as string[]
+      );
+      await putScript({ scriptId, scriptData, state });
     }
-    await putProviderByTypeAndId(
-      importData.idp[idpId]._type._id,
-      idpId,
-      importData.idp[idpId]
-    );
+    await putProviderByTypeAndId({
+      providerType: importData.idp[idpId]._type._id,
+      providerId: idpId,
+      providerData: importData.idp[idpId],
+      state,
+    });
     return true;
   }
   return false;
@@ -243,23 +291,30 @@ export async function importFirstSocialProvider(
  * Import all providers
  * @param {SocialProviderExportInterface} importData import data
  */
-export async function importSocialProviders(
-  importData: SocialProviderExportInterface
-): Promise<boolean> {
+export async function importSocialProviders({
+  importData,
+  state,
+}: {
+  importData: SocialProviderExportInterface;
+  state: State;
+}): Promise<boolean> {
   let outcome = true;
   for (const idpId of Object.keys(importData.idp)) {
     try {
       const scriptId = importData.idp[idpId].transform as string;
       const scriptData = { ...importData.script[scriptId as string] };
       if (scriptId && scriptData) {
-        scriptData.script = convertTextArrayToBase64(scriptData.script);
-        await putScript(scriptId, scriptData);
+        scriptData.script = convertTextArrayToBase64(
+          scriptData.script as string[]
+        );
+        await putScript({ scriptId, scriptData, state });
       }
-      await putProviderByTypeAndId(
-        importData.idp[idpId]._type._id,
-        idpId,
-        importData.idp[idpId]
-      );
+      await putProviderByTypeAndId({
+        providerType: importData.idp[idpId]._type._id,
+        providerId: idpId,
+        providerData: importData.idp[idpId],
+        state,
+      });
     } catch (error) {
       printMessage(error.response?.data || error, 'error');
       printMessage(`\nError importing provider ${idpId}`, 'error');

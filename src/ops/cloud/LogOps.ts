@@ -2,6 +2,8 @@ import {
   LogApiKey,
   LogEventPayloadSkeleton,
   LogEventSkeleton,
+  NoIdObjectSkeletonInterface,
+  PagedResult,
 } from '../../api/ApiTypes';
 import {
   createAPIKeyAndSecret,
@@ -10,6 +12,106 @@ import {
   tail,
   fetch,
 } from '../../api/cloud/LogApi';
+import State from '../../shared/State';
+
+export default class LogOps {
+  state: State;
+  constructor(state: State) {
+    this.state = state;
+  }
+
+  /**
+   * Get default noise filter
+   * @returns {string[]} array of default event types and loggers to be filtered out
+   */
+  getDfaultNoiseFilter(): string[] {
+    return getDefaultNoiseFilter();
+  }
+
+  /**
+   * Resolve log level to an array of effective log levels
+   * @param level string or numeric log level: 'FATAL', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE', 'ALL', 0, 1, 2, 3, 4
+   * @returns {string[]} array of effective log levels
+   */
+  resolveLevel(level: string | number): string[] {
+    if (Number.isNaN(parseInt(level as string, 10))) {
+      return logLevelMap[level];
+    }
+    return logLevelMap[numLogLevelMap[level as number][0]];
+  }
+
+  /**
+   * Resolve a log event's level
+   * @param {object} log log event
+   * @returns {string} log level
+   */
+  resolvePayloadLevel(log: LogEventSkeleton): string {
+    // It seems that the undesirable 'text/plain' logs start with a date, not a LEVEL
+    // Therefore, for those, this function returns null, and thus filters out the undesirable
+    try {
+      return log.type !== 'text/plain'
+        ? (log.payload as LogEventPayloadSkeleton).level
+        : (log.payload as string).match(/^([^:]*):/)[1];
+    } catch (e) {
+      // Fail-safe for no group match
+      return null;
+    }
+  }
+
+  /**
+   * Get available log sources
+   * @returns {Promise<string[]>} promise resolving to an array of available log sources
+   */
+  async getLogSources() {
+    return getLogSources({ state: this.state });
+  }
+
+  /**
+   * Get log api keys
+   * @returns {Promise<LogApiKey[]>} promise resolving to an array of LogApiKey objects
+   */
+  async getLogApiKeys(): Promise<LogApiKey[]> {
+    return getLogApiKeys({ state: this.state });
+  }
+
+  /**
+   * Create log api key and secret
+   * @param {string} keyName key name
+   * @returns {Promise<NoIdObjectSkeletonInterface>} a promise resolving to an object containing the log api key and secret
+   */
+  async createLogApiKeyAndSecret(
+    keyName: string
+  ): Promise<NoIdObjectSkeletonInterface> {
+    return createAPIKeyAndSecret({ keyName, state: this.state });
+  }
+
+  /**
+   * Tail logs
+   * @param {string} source log source(s) to tail
+   * @param {string} cookie paged results cookie
+   * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+   */
+  tail(source: string, cookie: string): Promise<PagedResult<LogEventSkeleton>> {
+    return tail({ source, cookie, state: this.state });
+  }
+
+  /**
+   * Fetch logs
+   * @param {string} source log source(s) to tail
+   * @param {string} startTs start timestamp
+   * @param {string} endTs end timestamp
+   * @param {string} cookie paged results cookie
+   * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+   */
+  async fetch(
+    source: string,
+    startTs: string,
+    endTs: string,
+    cookie: string
+  ): Promise<PagedResult<LogEventSkeleton>> {
+    return fetch({ source, startTs, endTs, cookie, state: this.state });
+  }
+}
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const unfilterableNoise = [
@@ -277,8 +379,8 @@ export function resolvePayloadLevel(log: LogEventSkeleton): string {
  * Get available log sources
  * @returns {Promise<string[]>} promise resolving to an array of available log sources
  */
-export async function getLogSources() {
-  const sources = (await getSources()).result;
+export async function getLogSources({ state }: { state: State }) {
+  const sources = (await getSources({ state })).result;
   return sources;
 }
 
@@ -286,8 +388,12 @@ export async function getLogSources() {
  * Get log api keys
  * @returns {Promise<LogApiKey[]>} promise resolving to an array of LogApiKey objects
  */
-export async function getLogApiKeys(): Promise<LogApiKey[]> {
-  const keys = (await getAPIKeys()).result;
+export async function getLogApiKeys({
+  state,
+}: {
+  state: State;
+}): Promise<LogApiKey[]> {
+  const keys = (await getAPIKeys({ state })).result;
   return keys;
 }
 

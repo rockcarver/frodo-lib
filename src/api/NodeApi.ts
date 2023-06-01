@@ -1,7 +1,8 @@
 import util from 'util';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
-import * as state from '../shared/State';
+import State from '../shared/State';
+import { NodeSkeleton } from './ApiTypes';
 
 const queryAllNodeTypesURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/nodes?_action=getAllTypes';
@@ -25,13 +26,16 @@ const getNodeApiConfig = () => {
  * Get all node types
  * @returns {Promise} a promise that resolves to an array of node type objects
  */
-export async function getNodeTypes() {
+export async function getNodeTypes({ state }: { state: State }) {
   const urlString = util.format(
     queryAllNodeTypesURLTemplate,
     state.getHost(),
     getCurrentRealmPath()
   );
-  const { data } = await generateAmApi(getNodeApiConfig()).post(
+  const { data } = await generateAmApi({
+    resource: getNodeApiConfig(),
+    state,
+  }).post(
     urlString,
     {},
     {
@@ -46,13 +50,16 @@ export async function getNodeTypes() {
  * Get all nodes
  * @returns {Promise} a promise that resolves to an object containing an array of node objects
  */
-export async function getNodes() {
+export async function getNodes({ state }: { state: State }) {
   const urlString = util.format(
     queryAllNodesURLTemplate,
     state.getHost(),
     getCurrentRealmPath()
   );
-  const { data } = await generateAmApi(getNodeApiConfig()).post(
+  const { data } = await generateAmApi({
+    resource: getNodeApiConfig(),
+    state,
+  }).post(
     urlString,
     {},
     {
@@ -68,14 +75,23 @@ export async function getNodes() {
  * @param {string} nodeType node type
  * @returns {Promise} a promise that resolves to an object containing an array of node objects of the requested type
  */
-export async function getNodesByType(nodeType: string) {
+export async function getNodesByType({
+  nodeType,
+  state,
+}: {
+  nodeType: string;
+  state: State;
+}) {
   const urlString = util.format(
     queryAllNodesByTypeURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
     nodeType
   );
-  const { data } = await generateAmApi(getNodeApiConfig()).get(urlString, {
+  const { data } = await generateAmApi({
+    resource: getNodeApiConfig(),
+    state,
+  }).get(urlString, {
     withCredentials: true,
   });
   return data;
@@ -87,7 +103,15 @@ export async function getNodesByType(nodeType: string) {
  * @param {String} nodeType node type
  * @returns {Promise} a promise that resolves to a node object
  */
-export async function getNode(nodeId: string, nodeType: string) {
+export async function getNode({
+  nodeId,
+  nodeType,
+  state,
+}: {
+  nodeId: string;
+  nodeType: string;
+  state: State;
+}) {
   const urlString = util.format(
     nodeURLTemplate,
     state.getHost(),
@@ -95,7 +119,10 @@ export async function getNode(nodeId: string, nodeType: string) {
     nodeType,
     nodeId
   );
-  const { data } = await generateAmApi(getNodeApiConfig()).get(urlString, {
+  const { data } = await generateAmApi({
+    resource: getNodeApiConfig(),
+    state,
+  }).get(urlString, {
     withCredentials: true,
   });
   return data;
@@ -103,12 +130,22 @@ export async function getNode(nodeId: string, nodeType: string) {
 
 /**
  * Put node by uuid and type
- * @param {String} nodeId node uuid
- * @param {String} nodeType node type
- * @param {Object} nodeData node object
+ * @param {string} nodeId node uuid
+ * @param {string} nodeType node type
+ * @param {object} nodeData node object
  * @returns {Promise} a promise that resolves to an object containing a node object
  */
-export async function putNode(nodeId: string, nodeType: string, nodeData) {
+export async function putNode({
+  nodeId,
+  nodeType,
+  nodeData,
+  state,
+}: {
+  nodeId: string;
+  nodeType: string;
+  nodeData: NodeSkeleton;
+  state: State;
+}) {
   // until we figure out a way to use transport keys in Frodo,
   // we'll have to drop those encrypted attributes.
   const cleanData = deleteDeepByKey(nodeData, '-encrypted');
@@ -119,13 +156,12 @@ export async function putNode(nodeId: string, nodeType: string, nodeData) {
     nodeType,
     nodeId
   );
-  const { data } = await generateAmApi(getNodeApiConfig()).put(
-    urlString,
-    cleanData,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getNodeApiConfig(),
+    state,
+  }).put(urlString, cleanData, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -135,7 +171,15 @@ export async function putNode(nodeId: string, nodeType: string, nodeData) {
  * @param {String} nodeType node type
  * @returns {Promise} a promise that resolves to an object containing a node object
  */
-export async function deleteNode(nodeId: string, nodeType: string) {
+export async function deleteNode({
+  nodeId,
+  nodeType,
+  state,
+}: {
+  nodeId: string;
+  nodeType: string;
+  state: State;
+}) {
   const urlString = util.format(
     nodeURLTemplate,
     state.getHost(),
@@ -143,7 +187,10 @@ export async function deleteNode(nodeId: string, nodeType: string) {
     nodeType,
     nodeId
   );
-  const { data } = await generateAmApi(getNodeApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi({
+    resource: getNodeApiConfig(),
+    state,
+  }).delete(urlString, {
     withCredentials: true,
   });
   return data;

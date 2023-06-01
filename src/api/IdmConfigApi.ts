@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateIdmApi } from './BaseApi';
 import { getTenantURL } from './utils/ApiUtils';
-import * as state from '../shared/State';
+import State from '../shared/State';
 
 const idmAllConfigURLTemplate = '%s/openidm/config';
 const idmConfigURLTemplate = '%s/openidm/config/%s';
@@ -13,12 +13,12 @@ const idmManagedObjectURLTemplate =
  * Get all IDM config entities
  * @returns {Promise} a promise that resolves to all IDM config entities
  */
-export async function getAllConfigEntities() {
+export async function getAllConfigEntities({ state }: { state: State }) {
   const urlString = util.format(
     idmAllConfigURLTemplate,
     getTenantURL(state.getHost())
   );
-  const { data } = await generateIdmApi().get(urlString);
+  const { data } = await generateIdmApi({ state }).get(urlString);
   return data;
 }
 
@@ -27,13 +27,19 @@ export async function getAllConfigEntities() {
  * @param {string} type the desired type of config entity
  * @returns {Promise} a promise that resolves to an object containing all IDM config entities of the desired type
  */
-export async function getConfigEntitiesByType(type) {
+export async function getConfigEntitiesByType({
+  type,
+  state,
+}: {
+  type: string;
+  state: State;
+}) {
   const urlString = util.format(
     idmConfigEntityQueryTemplate,
     getTenantURL(state.getHost()),
     encodeURIComponent(`_id sw '${type}'`)
   );
-  const { data } = await generateIdmApi().get(urlString);
+  const { data } = await generateIdmApi({ state }).get(urlString);
   return data;
 }
 
@@ -42,13 +48,19 @@ export async function getConfigEntitiesByType(type) {
  * @param {string} entityId the desired config entity
  * @returns {Promise<unknown>} a promise that resolves to an IDM config entity
  */
-export async function getConfigEntity(entityId) {
+export async function getConfigEntity({
+  entityId,
+  state,
+}: {
+  entityId: string;
+  state: State;
+}) {
   const urlString = util.format(
     idmConfigURLTemplate,
     getTenantURL(state.getHost()),
     entityId
   );
-  const { data } = await generateIdmApi().get(urlString);
+  const { data } = await generateIdmApi({ state }).get(urlString);
   return data;
 }
 
@@ -58,17 +70,22 @@ export async function getConfigEntity(entityId) {
  * @param {string} entityData config entity object
  * @returns {Promise<unknown>} a promise that resolves to an IDM config entity
  */
-export async function putConfigEntity(
-  entityId: string,
-  entityData: string | object
-) {
+export async function putConfigEntity({
+  entityId,
+  entityData,
+  state,
+}: {
+  entityId: string;
+  entityData: string | object;
+  state: State;
+}) {
   const urlString = util.format(
     idmConfigURLTemplate,
     getTenantURL(state.getHost()),
     entityId
   );
   try {
-    const { data } = await generateIdmApi().put(urlString, entityData);
+    const { data } = await generateIdmApi({ state }).put(urlString, entityData);
     return data;
   } catch (error) {
     throw Error(`Could not put config entity ${entityId}: ${error}`);
@@ -80,13 +97,19 @@ export async function putConfigEntity(
  * @param {string} entityId config entity id
  * @returns {Promise<unknown>} a promise that resolves to an IDM config entity
  */
-export async function deleteConfigEntity(entityId: string) {
+export async function deleteConfigEntity({
+  entityId,
+  state,
+}: {
+  entityId: string;
+  state: State;
+}) {
   const urlString = util.format(
     idmConfigURLTemplate,
     getTenantURL(state.getHost()),
     entityId
   );
-  const { data } = await generateIdmApi().delete(urlString, {
+  const { data } = await generateIdmApi({ state }).delete(urlString, {
     withCredentials: true,
   });
   return data;
@@ -99,11 +122,17 @@ export async function deleteConfigEntity(entityId: string) {
  * @param {string} pageCookie paged results cookie
  * @returns {Promise<{result: any[]; resultCount: number; pagedResultsCookie: any; totalPagedResultsPolicy: string; totalPagedResults: number; remainingPagedResults: number;}>} a promise that resolves to managed objects of the desired type
  */
-export async function queryAllManagedObjectsByType(
-  type: string,
-  fields: string[] = [],
-  pageCookie: string = undefined
-): Promise<{
+export async function queryAllManagedObjectsByType({
+  type,
+  fields = [],
+  pageCookie = undefined,
+  state,
+}: {
+  type: string;
+  fields?: string[];
+  pageCookie?: string;
+  state: State;
+}): Promise<{
   result: unknown[];
   resultCount: number;
   pagedResultsCookie: string;
@@ -123,6 +152,6 @@ export async function queryAllManagedObjectsByType(
     getTenantURL(state.getHost()),
     type
   );
-  const { data } = await generateIdmApi().get(urlString);
+  const { data } = await generateIdmApi({ state }).get(urlString);
   return data;
 }

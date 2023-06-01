@@ -1,5 +1,5 @@
 import util from 'util';
-import * as state from '../shared/State';
+import State from '../shared/State';
 import { AmServiceSkeleton, PagedResult } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
@@ -81,16 +81,20 @@ function getConfigPath(globalConfig: boolean): string {
  * @param {boolean} globalConfig true if the global list of services is requested, false otherwise. Default: false.
  * @returns {Promise<ServiceListItem[]>} a promise resolving to an array of service list items.
  */
-export async function getListOfServices(
-  globalConfig = false
-): Promise<PagedResult<ServiceListItem>> {
+export async function getListOfServices({
+  globalConfig = false,
+  state,
+}: {
+  globalConfig: boolean;
+  state: State;
+}): Promise<PagedResult<ServiceListItem>> {
   const urlString = util.format(
     serviceListURLTemplate,
     state.getHost(),
     getRealmPath(globalConfig),
     getConfigPath(globalConfig)
   );
-  const { data } = await generateAmApi(getApiConfig()).get<
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get<
     PagedResult<ServiceListItem>
   >(urlString, {
     withCredentials: true,
@@ -104,10 +108,15 @@ export async function getListOfServices(
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AmService>} a promise resolving to a service object
  */
-export async function getService(
-  serviceId: string,
-  globalConfig = false
-): Promise<AmServiceSkeleton> {
+export async function getService({
+  serviceId,
+  globalConfig = false,
+  state,
+}: {
+  serviceId: string;
+  globalConfig?: boolean;
+  state: State;
+}): Promise<AmServiceSkeleton> {
   const urlString = util.format(
     serviceURLTemplate,
     state.getHost(),
@@ -115,12 +124,12 @@ export async function getService(
     getConfigPath(globalConfig),
     serviceId
   );
-  const { data } = await generateAmApi(getApiConfig()).get<AmServiceSkeleton>(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).get<AmServiceSkeleton>(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -130,10 +139,15 @@ export async function getService(
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<ServiceNextDescendent[]>} a promise resolving to an array of the service's next decendents
  */
-export async function getServiceDescendents(
-  serviceId: string,
-  globalConfig = false
-): Promise<ServiceNextDescendent[]> {
+export async function getServiceDescendents({
+  serviceId,
+  globalConfig = false,
+  state,
+}: {
+  serviceId: string;
+  globalConfig?: boolean;
+  state: State;
+}): Promise<ServiceNextDescendent[]> {
   const urlString = util.format(
     serviceURLNextDescendentsTemplate,
     state.getHost(),
@@ -141,9 +155,10 @@ export async function getServiceDescendents(
     getConfigPath(globalConfig),
     serviceId
   );
-  const { data } = await generateAmApi(
-    getApiConfig()
-  ).post<ServiceNextDescendentResponse>(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).post<ServiceNextDescendentResponse>(urlString, {
     withCredentials: true,
   });
   return data.result as ServiceNextDescendent[];
@@ -156,11 +171,17 @@ export async function getServiceDescendents(
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AmService>} a promise resolving to a service object
  */
-export async function putService(
-  serviceId: string,
-  serviceData: AmServiceSkeleton,
-  globalConfig = false
-): Promise<AmServiceSkeleton> {
+export async function putService({
+  serviceId,
+  serviceData,
+  globalConfig = false,
+  state,
+}: {
+  serviceId: string;
+  serviceData: AmServiceSkeleton;
+  globalConfig?: boolean;
+  state: State;
+}): Promise<AmServiceSkeleton> {
   const urlString = util.format(
     serviceURLTemplate,
     state.getHost(),
@@ -168,7 +189,7 @@ export async function putService(
     getConfigPath(globalConfig),
     serviceId
   );
-  const { data } = await generateAmApi(getApiConfig()).put(
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
     urlString,
     serviceData,
     {
@@ -187,13 +208,21 @@ export async function putService(
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<ServiceNextDescendent>} a promise resolving to a service next descendent
  */
-export async function putServiceNextDescendent(
-  serviceId: string,
-  serviceType: string,
-  serviceNextDescendentId: string,
-  serviceNextDescendentData: ServiceNextDescendent,
-  globalConfig = false
-): Promise<ServiceNextDescendent> {
+export async function putServiceNextDescendent({
+  serviceId,
+  serviceType,
+  serviceNextDescendentId,
+  serviceNextDescendentData,
+  globalConfig = false,
+  state,
+}: {
+  serviceId: string;
+  serviceType: string;
+  serviceNextDescendentId: string;
+  serviceNextDescendentData: ServiceNextDescendent;
+  globalConfig?: boolean;
+  state: State;
+}): Promise<ServiceNextDescendent> {
   const urlString = util.format(
     serviceURLNextDescendentTemplate,
     state.getHost(),
@@ -203,7 +232,7 @@ export async function putServiceNextDescendent(
     serviceType,
     serviceNextDescendentId
   );
-  const { data } = await generateAmApi(getApiConfig()).put(
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
     urlString,
     serviceNextDescendentData,
     {
@@ -219,10 +248,15 @@ export async function putServiceNextDescendent(
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AmService>} a promise resolving to a service object
  */
-export async function deleteService(
-  serviceId: string,
-  globalConfig = false
-): Promise<AmServiceSkeleton> {
+export async function deleteService({
+  serviceId,
+  globalConfig = false,
+  state,
+}: {
+  serviceId: string;
+  globalConfig?: boolean;
+  state: State;
+}): Promise<AmServiceSkeleton> {
   const urlString = util.format(
     serviceURLTemplate,
     state.getHost(),
@@ -230,7 +264,10 @@ export async function deleteService(
     getConfigPath(globalConfig),
     serviceId
   );
-  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).delete(urlString, {
     withCredentials: true,
   });
   return data;
@@ -244,12 +281,19 @@ export async function deleteService(
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<ServiceNextDescendent>} a promise resolving to a service next descendent
  */
-export async function deleteServiceNextDescendent(
-  serviceId: string,
-  serviceType: string,
-  serviceNextDescendentId: string,
-  globalConfig = false
-): Promise<ServiceNextDescendent> {
+export async function deleteServiceNextDescendent({
+  serviceId,
+  serviceType,
+  serviceNextDescendentId,
+  globalConfig = false,
+  state,
+}: {
+  serviceId: string;
+  serviceType: string;
+  serviceNextDescendentId: string;
+  globalConfig?: boolean;
+  state: State;
+}): Promise<ServiceNextDescendent> {
   const urlString = util.format(
     serviceURLNextDescendentTemplate,
     state.getHost(),
@@ -259,7 +303,10 @@ export async function deleteServiceNextDescendent(
     serviceType,
     serviceNextDescendentId
   );
-  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).delete(urlString, {
     withCredentials: true,
   });
   return data;
