@@ -121,6 +121,10 @@ export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
       inherited: boolean;
       value: string[];
     };
+    grantTypes?: {
+      value: string[];
+      [k: string]: string | number | boolean | string[] | object | null;
+    };
     [k: string]: string | number | boolean | string[] | object | null;
   };
   signEncOAuth2ClientConfig?: {
@@ -138,6 +142,14 @@ export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
     accessTokenLifetime?: {
       inherited: boolean;
       value: number;
+    };
+    scopes?: {
+      value: string[];
+      [k: string]: string | number | boolean | string[] | object | null;
+    };
+    defaultScopes?: {
+      value: string[];
+      [k: string]: string | number | boolean | string[] | object | null;
     };
     [k: string]: string | number | boolean | string[] | object | null;
   };

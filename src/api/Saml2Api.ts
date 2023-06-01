@@ -1,8 +1,9 @@
 import _ from 'lodash';
 import util from 'util';
-import * as state from '../shared/State';
+import State from '../shared/State';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
+import { Saml2ProviderSkeleton } from './ApiTypes';
 
 const providerByLocationAndIdURLTemplate = '%s/json%s/realm-config/saml2/%s/%s';
 const createHostedProviderURLTemplate =
@@ -32,15 +33,18 @@ const getApiConfig = () => {
  * Get all SAML2 entity providers
  * @returns {Promise} a promise that resolves to an array of saml2 entity stubs
  */
-export async function getProviders() {
+export async function getProviders({ state }: { state: State }) {
   const urlString = util.format(
     queryAllProvidersURLTemplate,
     state.getHost(),
     getCurrentRealmPath()
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -50,7 +54,15 @@ export async function getProviders() {
  * @param {string[]} fields array of field names to include in the response
  * @returns {Promise} a promise that resolves to an object containing an array of saml2 entities
  */
-export async function findProviders(filter = 'true', fields = ['*']) {
+export async function findProviders({
+  filter = 'true',
+  fields = ['*'],
+  state,
+}: {
+  filter?: string;
+  fields?: string[];
+  state: State;
+}) {
   const urlString = util.format(
     queryProvidersByEntityIdURLTemplate,
     state.getHost(),
@@ -58,9 +70,12 @@ export async function findProviders(filter = 'true', fields = ['*']) {
     encodeURIComponent(filter),
     fields.join(',')
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -70,10 +85,15 @@ export async function findProviders(filter = 'true', fields = ['*']) {
  * @param {string} entityId64 Base64-encoded provider entity id
  * @returns {Promise} a promise that resolves to a saml2 entity provider object
  */
-export async function getProviderByLocationAndId(
-  location: string,
-  entityId64: string
-) {
+export async function getProviderByLocationAndId({
+  location,
+  entityId64,
+  state,
+}: {
+  location: string;
+  entityId64: string;
+  state: State;
+}) {
   const urlString = util.format(
     providerByLocationAndIdURLTemplate,
     state.getHost(),
@@ -81,9 +101,12 @@ export async function getProviderByLocationAndId(
     location,
     entityId64
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -93,10 +116,15 @@ export async function getProviderByLocationAndId(
  * @param {string} entityId64 Base64-encoded provider entity id
  * @returns {Promise} a promise that resolves to a saml2 entity provider object
  */
-export async function deleteProviderByLocationAndId(
-  location: string,
-  entityId64: string
-) {
+export async function deleteProviderByLocationAndId({
+  location,
+  entityId64,
+  state,
+}: {
+  location: string;
+  entityId64: string;
+  state: State;
+}) {
   const urlString = util.format(
     providerByLocationAndIdURLTemplate,
     state.getHost(),
@@ -104,7 +132,10 @@ export async function deleteProviderByLocationAndId(
     location,
     entityId64
   );
-  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).delete(urlString, {
     withCredentials: true,
   });
   return data;
@@ -115,7 +146,13 @@ export async function deleteProviderByLocationAndId(
  * @param {string} entityId SAML2 entity id
  * @returns {string} the URL to get the metadata from
  */
-export function getProviderMetadataUrl(entityId: string): string {
+export function getProviderMetadataUrl({
+  entityId,
+  state,
+}: {
+  entityId: string;
+  state: State;
+}): string {
   return util.format(
     metadataByEntityIdURLTemplate,
     state.getHost(),
@@ -129,9 +166,15 @@ export function getProviderMetadataUrl(entityId: string): string {
  * @param {String} entityId SAML2 entity id
  * @returns {Promise} a promise that resolves to an object containing a SAML2 metadata
  */
-export async function getProviderMetadata(entityId) {
-  const { data } = await generateAmApi(getApiConfig()).get(
-    getProviderMetadataUrl(entityId),
+export async function getProviderMetadata({
+  entityId,
+  state,
+}: {
+  entityId: string;
+  state: State;
+}) {
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    getProviderMetadataUrl({ entityId, state }),
     {
       withCredentials: true,
     }
@@ -146,7 +189,17 @@ export async function getProviderMetadata(entityId) {
  * @param {String} metaData Base64-encoded metadata XML. Only required for remote providers
  * @returns {Promise} a promise that resolves to a saml2 entity provider object
  */
-export async function createProvider(location, providerData, metaData) {
+export async function createProvider({
+  location,
+  providerData,
+  metaData,
+  state,
+}: {
+  location: string;
+  providerData: Saml2ProviderSkeleton | object;
+  metaData: string;
+  state: State;
+}) {
   let postData = _.cloneDeep(providerData);
   let urlString = util.format(
     createHostedProviderURLTemplate,
@@ -168,13 +221,12 @@ export async function createProvider(location, providerData, metaData) {
     };
   }
 
-  const { data } = await generateAmApi(getApiConfig()).post(
-    urlString,
-    postData,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).post(urlString, postData, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -184,7 +236,15 @@ export async function createProvider(location, providerData, metaData) {
  * @param {Object} providerData Object representing a SAML entity provider
  * @returns {Promise} a promise that resolves to a saml2 entity provider object
  */
-export async function updateProvider(location, providerData) {
+export async function updateProvider({
+  location,
+  providerData,
+  state,
+}: {
+  location: string;
+  providerData: Saml2ProviderSkeleton;
+  state: State;
+}) {
   const urlString = util.format(
     providerByLocationAndIdURLTemplate,
     state.getHost(),
@@ -192,7 +252,7 @@ export async function updateProvider(location, providerData) {
     location,
     providerData._id
   );
-  const { data } = await generateAmApi(getApiConfig()).put(
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
     urlString,
     providerData,
     {
@@ -209,14 +269,23 @@ export async function updateProvider(location, providerData) {
  * @param {string} entityId Provider entity id
  * @returns {Promise} a promise that resolves to a provider object
  */
-export async function deleteRawProvider(entityId) {
+export async function deleteRawProvider({
+  entityId,
+  state,
+}: {
+  entityId: string;
+  state: State;
+}) {
   const urlString = util.format(
     samlApplicationByEntityIdURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
     entityId
   );
-  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).delete(urlString, {
     withCredentials: true,
   });
   return data;
@@ -226,15 +295,18 @@ export async function deleteRawProvider(entityId) {
  * Retrieves all entity providers using the legacy federation enpoints.
  * @returns {Promise} a promise that resolves to an object containing an array of providers
  */
-export async function getRawProviders() {
+export async function getRawProviders({ state }: { state: State }) {
   const urlString = util.format(
     samlApplicationQueryURLTemplateRaw,
     state.getHost(),
     getCurrentRealmPath()
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -243,16 +315,25 @@ export async function getRawProviders() {
  * @param {string} entityId The entity provider id
  * @returns Promise that when resolved includes the configuration and raw xml for a SAML entity provider
  */
-export async function getRawProvider(entityId: string) {
+export async function getRawProvider({
+  entityId,
+  state,
+}: {
+  entityId: string;
+  state: State;
+}) {
   const urlString = util.format(
     samlApplicationByEntityIdURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
     encodeURIComponent(entityId)
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -262,14 +343,22 @@ export async function getRawProvider(entityId: string) {
  * @param {string} entityData The actual data containing the entity provider configuration
  * @returns {Promise} Promise that resolves to a provider object
  */
-export async function putRawProvider(entityId: string, entityData) {
+export async function putRawProvider({
+  entityId,
+  entityData,
+  state,
+}: {
+  entityId: string;
+  entityData: Saml2ProviderSkeleton;
+  state: State;
+}) {
   const urlString = util.format(
     samlApplicationByEntityIdURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
     encodeURIComponent(entityId)
   );
-  const { data } = await generateAmApi(getApiConfig()).put(
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
     urlString,
     entityData,
     {

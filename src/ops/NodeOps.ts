@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import * as state from '../shared/State';
+import State from '../shared/State';
 import {
   getNode,
   deleteNode,
@@ -19,6 +19,12 @@ import {
 } from '../api/Saml2Api';
 import { encodeBase64Url } from '../api/utils/Base64';
 import { NodeClassification } from './OpsTypes';
+import {
+  CircleOfTrustSkeleton,
+  NodeSkeleton,
+  Saml2ProviderSkeleton,
+  Saml2ProviderStub,
+} from '../api/ApiTypes';
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
 
@@ -37,30 +43,39 @@ const emptyScriptPlaceholder = '[Empty]';
 /**
  * Helper to get all SAML2 dependencies for a given node object
  * @param {Object} nodeObject node object
- * @param {[Object]} allProviders array of all saml2 providers objects
- * @param {[Object]} allCirclesOfTrust array of all circle of trust objects
+ * @param {object[]} allProviders array of all saml2 providers objects
+ * @param {object[]} allCirclesOfTrust array of all circle of trust objects
  * @returns {Promise} a promise that resolves to an object containing a saml2 dependencies
  */
-async function getSaml2NodeDependencies(
+async function getSaml2NodeDependencies({
   nodeObject,
   allProviders,
-  allCirclesOfTrust
-) {
+  allCirclesOfTrust,
+  state,
+}: {
+  nodeObject: NodeSkeleton;
+  allProviders: Saml2ProviderStub[];
+  allCirclesOfTrust: CircleOfTrustSkeleton[];
+  state: State;
+}) {
   const samlProperties = ['metaAlias', 'idpEntityId'];
   const saml2EntityPromises = [];
   for (const samlProperty of samlProperties) {
     // In the following line nodeObject[samlProperty] will look like '/alpha/iSPAzure'.
     const entityId =
       samlProperty === 'metaAlias'
-        ? _.last(nodeObject[samlProperty].split('/'))
+        ? _.last(nodeObject[samlProperty] as string).split('/')
         : nodeObject[samlProperty];
-    const entity = _.find(allProviders, { entityId });
+    const entity = _.find(allProviders, {
+      entityId,
+    }) as Saml2ProviderStub;
     if (entity) {
       try {
-        const providerResponse = await getProviderByLocationAndId(
-          entity.location,
-          entity._id
-        );
+        const providerResponse = await getProviderByLocationAndId({
+          location: entity.location,
+          entityId64: entity._id,
+          state,
+        });
         /**
          * Adding entityLocation here to the entityResponse because the import tool
          * needs to know whether the saml2 entity is remote or not (this will be removed
@@ -71,9 +86,10 @@ async function getSaml2NodeDependencies(
 
         if (entity.location === 'remote') {
           // get the xml representation of this entity and add it to the entityResponse;
-          const metaDataResponse = await getProviderMetadata(
-            providerResponse.entityId
-          );
+          const metaDataResponse = await getProviderMetadata({
+            entityId: providerResponse.entityId,
+            state,
+          });
           providerResponse.base64EntityXML = encodeBase64Url(metaDataResponse);
         }
         saml2EntityPromises.push(providerResponse);
@@ -122,11 +138,15 @@ async function getSaml2NodeDependencies(
  * Find all node configuration objects that are no longer referenced by any tree
  * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
  */
-export async function findOrphanedNodes(): Promise<unknown[]> {
+export async function findOrphanedNodes({
+  state,
+}: {
+  state: State;
+}): Promise<unknown[]> {
   const allNodes = [];
   const orphanedNodes = [];
   let types = [];
-  const allJourneys = (await getTrees()).result;
+  const allJourneys = (await getTrees({ state })).result;
   let errorMessage = '';
   const errorTypes = [];
 
@@ -136,7 +156,7 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
     'indeterminate'
   );
   try {
-    types = (await getNodeTypes()).result;
+    types = (await getNodeTypes({ state })).result;
   } catch (error) {
     printMessage('Error retrieving all available node types:', 'error');
     printMessage(error.response.data, 'error');
@@ -145,7 +165,8 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
   for (const type of types) {
     try {
       // eslint-disable-next-line no-await-in-loop, no-loop-func
-      const nodes = (await getNodesByType(type._id)).result;
+      const nodes = (await getNodesByType({ nodeType: type._id, state }))
+        .result;
       for (const node of nodes) {
         allNodes.push(node);
         updateProgressIndicator(
@@ -180,7 +201,11 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
         updateProgressIndicator(`${activeNodes.length} active nodes`);
         const node = journey.nodes[nodeId];
         if (containerNodes.includes(node.nodeType)) {
-          const containerNode = await getNode(nodeId, node.nodeType);
+          const containerNode = await getNode({
+            nodeId,
+            nodeType: node.nodeType,
+            state,
+          });
           for (const innerNode of containerNode.nodes) {
             activeNodes.push(innerNode._id);
             updateProgressIndicator(`${activeNodes.length} active nodes`);
@@ -206,19 +231,26 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
 
 /**
  * Remove orphaned nodes
- * @param {[Object]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
- * @returns {Promise<unknown[]>} a promise that resolves to an array nodes that encountered errors deleting
+ * @param {NodeSkeleton[]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
+ * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array nodes that encountered errors deleting
  */
-export async function removeOrphanedNodes(
-  orphanedNodes: unknown[]
-): Promise<unknown[]> {
+export async function removeOrphanedNodes({
+  orphanedNodes,
+  state,
+}: {
+  orphanedNodes: NodeSkeleton[];
+  state: State;
+}): Promise<NodeSkeleton[]> {
   const errorNodes = [];
   createProgressIndicator(orphanedNodes.length, 'Removing orphaned nodes...');
   for (const node of orphanedNodes) {
     updateProgressIndicator(`Removing ${node['_id']}...`);
     try {
-      // eslint-disable-next-line no-await-in-loop
-      await deleteNode(node['_id'], node['_type']['_id']);
+      await deleteNode({
+        nodeId: node['_id'],
+        nodeType: node['_type']['_id'],
+        state,
+      });
     } catch (deleteError) {
       errorNodes.push(node);
       printMessage(` ${deleteError}`, 'error');
@@ -479,7 +511,13 @@ export function isCloudOnlyNode(nodeType: string): boolean {
  * @param {string} nodeType Node type
  * @returns {boolean} True if the node type is custom, false otherwise.
  */
-export function isCustomNode(nodeType: string): boolean {
+export function isCustomNode({
+  nodeType,
+  state,
+}: {
+  nodeType: string;
+  state: State;
+}): boolean {
   let ootbNodeTypes = [];
   switch (state.getAmVersion()) {
     case '7.1.0':
@@ -534,10 +572,16 @@ export function isCustomNode(nodeType: string): boolean {
  * @param {string} nodeType Node type
  * @returns {NodeClassification[]} an array of one or multiple classifications
  */
-export function getNodeClassification(nodeType: string): NodeClassification[] {
+export function getNodeClassification({
+  nodeType,
+  state,
+}: {
+  nodeType: string;
+  state: State;
+}): NodeClassification[] {
   const classifications: NodeClassification[] = [];
   const premium = isPremiumNode(nodeType);
-  const custom = isCustomNode(nodeType);
+  const custom = isCustomNode({ nodeType, state });
   const cloud = isCloudOnlyNode(nodeType);
   if (custom) {
     classifications.push(NodeClassification.CUSTOM);

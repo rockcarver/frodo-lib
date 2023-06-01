@@ -33,7 +33,7 @@ export function createServiceExportTemplate(): ServiceExportInterface {
  */
 export async function getListOfServices(globalConfig = false) {
   debugMessage(`ServiceOps.getListOfServices: start`);
-  const services = (await _getListOfServices(globalConfig)).result;
+  const services = (await _getListOfServices({ globalConfig })).result;
   debugMessage(`ServiceOps.getListOfServices: end`);
   return services;
 }
@@ -49,14 +49,14 @@ export async function getFullServices(
   debugMessage(
     `ServiceOps.getFullServices: start, globalConfig=${globalConfig}`
   );
-  const serviceList = (await _getListOfServices(globalConfig)).result;
+  const serviceList = (await _getListOfServices({ globalConfig })).result;
 
   const fullServiceData = await Promise.all(
     serviceList.map(async (listItem) => {
       try {
         const [service, nextDescendents] = await Promise.all([
-          getService(listItem._id, globalConfig),
-          getServiceDescendents(listItem._id, globalConfig),
+          getService({ serviceId: listItem._id, globalConfig }),
+          getServiceDescendents({ serviceId: listItem._id, globalConfig }),
         ]);
 
         return {
@@ -128,7 +128,11 @@ async function putFullService(
   }
 
   // create service first
-  const result = await putService(serviceId, fullServiceData, globalConfig);
+  const result = await putService({
+    serviceId,
+    serviceData: fullServiceData,
+    globalConfig,
+  });
 
   // return fast if no next descendents supplied
   if (nextDescendents.length === 0) {
@@ -144,13 +148,13 @@ async function putFullService(
       debugMessage(`ServiceOps.putFullService: descendentId=${descendentId}`);
       let result = undefined;
       try {
-        result = await putServiceNextDescendent(
+        result = await putServiceNextDescendent({
           serviceId,
-          type,
-          descendentId,
-          descendent,
-          globalConfig
-        );
+          serviceType: type,
+          serviceNextDescendentId: descendentId,
+          serviceNextDescendentData: descendent,
+          globalConfig,
+        });
       } catch (error) {
         const message = error.response?.data?.message;
         printMessage(
@@ -210,23 +214,23 @@ export async function deleteFullService(
   debugMessage(
     `ServiceOps.deleteFullService: start, globalConfig=${globalConfig}`
   );
-  const serviceNextDescendentData = await getServiceDescendents(
+  const serviceNextDescendentData = await getServiceDescendents({
     serviceId,
-    globalConfig
-  );
+    globalConfig,
+  });
 
   await Promise.all(
     serviceNextDescendentData.map((nextDescendent) =>
-      deleteServiceNextDescendent(
+      deleteServiceNextDescendent({
         serviceId,
-        nextDescendent._type._id,
-        nextDescendent._id,
-        globalConfig
-      )
+        serviceType: nextDescendent._type._id,
+        serviceNextDescendentId: nextDescendent._id,
+        globalConfig,
+      })
     )
   );
 
-  await deleteService(serviceId, globalConfig);
+  await deleteService({ serviceId, globalConfig });
   debugMessage(`ServiceOps.deleteFullService: end`);
 }
 
@@ -239,7 +243,7 @@ export async function deleteFullServices(globalConfig = false) {
     `ServiceOps.deleteFullServices: start, globalConfig=${globalConfig}`
   );
   try {
-    const serviceList = (await _getListOfServices(globalConfig)).result;
+    const serviceList = (await _getListOfServices({ globalConfig })).result;
 
     await Promise.all(
       serviceList.map(async (serviceListItem) => {
@@ -282,11 +286,11 @@ export async function exportService(
   debugMessage(`ServiceOps.exportService: start, globalConfig=${globalConfig}`);
   const exportData = createServiceExportTemplate();
   try {
-    const service = await getService(serviceId, globalConfig);
-    service.nextDescendents = await getServiceDescendents(
+    const service = await getService({ serviceId, globalConfig });
+    service.nextDescendents = await getServiceDescendents({
       serviceId,
-      globalConfig
-    );
+      globalConfig,
+    });
     exportData.service[serviceId] = service;
   } catch (error) {
     const message = error.response?.data?.message;
