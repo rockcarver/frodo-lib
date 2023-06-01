@@ -1,7 +1,7 @@
 import util from 'util';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
-import * as state from '../shared/State';
+import State from '../shared/State';
 import { PolicySkeleton } from './ApiTypes';
 
 // const queryAllPoliciesByApplicationURLTemplate =
@@ -22,15 +22,18 @@ const getApiConfig = () => {
  * Get all policies
  * @returns {Promise} a promise that resolves to an object containing an array of policy objects
  */
-export async function getPolicies() {
+export async function getPolicies({ state }: { state: State }) {
   const urlString = util.format(
     queryAllPoliciesURLTemplate,
     state.getHost(),
     getCurrentRealmPath()
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -39,16 +42,25 @@ export async function getPolicies() {
  * @param {string} policySetId policy set id/name
  * @returns {Promise} a promise that resolves to an object containing an array of policy objects
  */
-export async function getPoliciesByPolicySet(policySetId: string) {
+export async function getPoliciesByPolicySet({
+  policySetId,
+  state,
+}: {
+  policySetId: string;
+  state: State;
+}) {
   const urlString = util.format(
     queryPoliciesByPolicySetURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
     policySetId
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -57,16 +69,25 @@ export async function getPoliciesByPolicySet(policySetId: string) {
  * @param {String} policyId policy id/name
  * @returns {Promise<PolicySkeleton>} a promise that resolves to a policy object
  */
-export async function getPolicy(policyId: string): Promise<PolicySkeleton> {
+export async function getPolicy({
+  policyId,
+  state,
+}: {
+  policyId: string;
+  state: State;
+}): Promise<PolicySkeleton> {
   const urlString = util.format(
     policyURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
     policyId
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -76,14 +97,22 @@ export async function getPolicy(policyId: string): Promise<PolicySkeleton> {
  * @param {Object} policyData policy object
  * @returns {Promise} a promise that resolves to a policy object
  */
-export async function putPolicy(policyId: string, policyData: PolicySkeleton) {
+export async function putPolicy({
+  policyId,
+  policyData,
+  state,
+}: {
+  policyId: string;
+  policyData: PolicySkeleton;
+  state: State;
+}) {
   const urlString = util.format(
     policyURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
     policyId
   );
-  const { data } = await generateAmApi(getApiConfig()).put(
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
     urlString,
     policyData,
     {
@@ -98,14 +127,23 @@ export async function putPolicy(policyId: string, policyData: PolicySkeleton) {
  * @param {Object} policyId policy id/name
  * @returns {Promise} a promise that resolves to a policy object
  */
-export async function deletePolicy(policyId: string) {
+export async function deletePolicy({
+  policyId,
+  state,
+}: {
+  policyId: string;
+  state: State;
+}) {
   const urlString = util.format(
     policyURLTemplate,
     state.getHost(),
     getCurrentRealmPath(),
     policyId
   );
-  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).delete(urlString, {
     withCredentials: true,
   });
   return data;
