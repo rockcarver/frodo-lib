@@ -12,6 +12,142 @@ import { getMetadata } from './utils/ExportImportUtils';
 import { debugMessage } from './utils/Console';
 import State from '../shared/State';
 
+export default class ResourceTypeOps {
+  state: State;
+  constructor(state: State) {
+    this.state = state;
+  }
+
+  /**
+   * Get all resource types
+   * @returns {Promise} a promise that resolves to an array of resource type objects
+   */
+  async getResourceTypes({
+    state,
+  }: {
+    state: State;
+  }): Promise<ResourceTypeSkeleton[]> {
+    const { result } = await _getResourceTypes({ state });
+    return result;
+  }
+
+  /**
+   * Get resource type by name
+   * @param {string} resourceTypeName resource type name
+   * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
+   */
+  async getResourceTypeByName(
+    resourceTypeName: string
+  ): Promise<ResourceTypeSkeleton> {
+    return getResourceTypeByName({ resourceTypeName, state: this.state });
+  }
+
+  /**
+   * Update resource type
+   * @param {string} resourceTypeData resource type id
+   * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
+   */
+  async updateResourceType(
+    resourceTypeUuid: string,
+    resourceTypeData: ResourceTypeSkeleton
+  ): Promise<ResourceTypeSkeleton> {
+    return updateResourceType({
+      resourceTypeUuid,
+      resourceTypeData,
+      state: this.state,
+    });
+  }
+
+  /**
+   * Delete resource type by name
+   * @param {string} resourceTypeName resource type name
+   * @returns {Promise<ResourceTypeSkeleton>} Promise resolvig to a resource type object
+   */
+  async deleteResourceTypeByName(
+    resourceTypeName: string
+  ): Promise<ResourceTypeSkeleton> {
+    return deleteResourceTypeByName({ resourceTypeName, state: this.state });
+  }
+
+  /**
+   * Export resource type
+   * @param {string} resourceTypeUuid resource type uuid
+   * @returns {Promise<ResourceTypeExportInterface>} a promise that resolves to an ResourceTypeExportInterface object
+   */
+  async exportResourceType(
+    resourceTypeUuid: string
+  ): Promise<ResourceTypeExportInterface> {
+    return exportResourceType({ resourceTypeUuid, state: this.state });
+  }
+
+  /**
+   * Export resource type by name
+   * @param {string} resourceTypeName resource type name
+   * @returns {Promise<ResourceTypeExportInterface>} a promise that resolves to an ResourceTypeExportInterface object
+   */
+  async exportResourceTypeByName(
+    resourceTypeName: string
+  ): Promise<ResourceTypeExportInterface> {
+    return exportResourceTypeByName({ resourceTypeName, state: this.state });
+  }
+
+  /**
+   * Export resource types
+   * @returns {Promise<ResourceTypeExportInterface>} a promise that resolves to an ResourceTypeExportInterface object
+   */
+  async exportResourceTypes(): Promise<ResourceTypeExportInterface> {
+    return exportResourceTypes({ state: this.state });
+  }
+
+  /**
+   * Import resource type by uuid
+   * @param {string} resourceTypeUuid client uuid
+   * @param {ResourceTypeExportInterface} importData import data
+   */
+  async importResourceType(
+    resourceTypeUuid: string,
+    importData: ResourceTypeExportInterface
+  ) {
+    return importResourceType({
+      resourceTypeUuid,
+      importData,
+      state: this.state,
+    });
+  }
+
+  /**
+   * Import resource type by name
+   * @param {string} resourceTypeName client id
+   * @param {ResourceTypeExportInterface} importData import data
+   */
+  async importResourceTypeByName(
+    resourceTypeName: string,
+    importData: ResourceTypeExportInterface
+  ) {
+    return importResourceTypeByName({
+      resourceTypeName,
+      importData,
+      state: this.state,
+    });
+  }
+
+  /**
+   * Import first resource type
+   * @param {ResourceTypeExportInterface} importData import data
+   */
+  async importFirstResourceType(importData: ResourceTypeExportInterface) {
+    return importFirstResourceType({ importData, state: this.state });
+  }
+
+  /**
+   * Import resource types
+   * @param {ResourceTypeExportInterface} importData import data
+   */
+  async importResourceTypes(importData: ResourceTypeExportInterface) {
+    return importResourceTypes({ importData, state: this.state });
+  }
+}
+
 export interface ResourceTypeExportInterface {
   meta?: ExportMetaData;
   resourcetype: Record<string, ResourceTypeSkeleton>;

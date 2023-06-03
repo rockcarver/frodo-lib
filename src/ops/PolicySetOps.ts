@@ -25,6 +25,112 @@ import {
 } from './PolicyOps';
 import State from '../shared/State';
 
+export default class PolicySetOps {
+  state: State;
+  constructor(state: State) {
+    this.state = state;
+  }
+
+  /**
+   * Get all policy sets
+   * @returns {Promise} a promise that resolves to an array of policy set objects
+   */
+  async getPolicySets(): Promise<PolicySetSkeleton[]> {
+    return getPolicySets({ state: this.state });
+  }
+
+  async getPolicySet(policySetName: string) {
+    return getPolicySet({ policySetName, state: this.state });
+  }
+
+  async createPolicySet(policySetData: PolicySetSkeleton) {
+    return createPolicySet({ policySetData, state: this.state });
+  }
+
+  async updatePolicySet(policySetData: PolicySetSkeleton) {
+    return updatePolicySet({ policySetData, state: this.state });
+  }
+
+  async deletePolicySet(policySetName: string) {
+    return deletePolicySet({ policySetName, state: this.state });
+  }
+
+  /**
+   * Export policy set
+   * @param {string} policySetName policy set name
+   * @param {PolicySetExportOptions} options export options
+   * @returns {Promise<PolicySetExportInterface>} a promise that resolves to an PolicySetExportInterface object
+   */
+  async exportPolicySet(
+    policySetName: string,
+    options: PolicySetExportOptions = {
+      deps: true,
+      prereqs: false,
+      useStringArrays: true,
+    }
+  ): Promise<PolicySetExportInterface> {
+    return exportPolicySet({ policySetName, options, state: this.state });
+  }
+
+  /**
+   * Export policy sets
+   * @param {PolicySetExportOptions} options export options
+   * @returns {Promise<PolicySetExportInterface>} a promise that resolves to an PolicySetExportInterface object
+   */
+  async exportPolicySets(
+    options: PolicySetExportOptions = {
+      deps: true,
+      prereqs: false,
+      useStringArrays: true,
+    }
+  ): Promise<PolicySetExportInterface> {
+    return exportPolicySets({ options, state: this.state });
+  }
+
+  /**
+   * Import policy set
+   * @param {string} policySetName policy set name
+   * @param {PolicySetExportInterface} importData import data
+   * @param {PolicySetImportOptions} options import options
+   */
+  async importPolicySet(
+    policySetName: string,
+    importData: PolicySetExportInterface,
+    options: PolicySetImportOptions = { deps: true, prereqs: false }
+  ) {
+    return importPolicySet({
+      policySetName,
+      importData,
+      options,
+      state: this.state,
+    });
+  }
+
+  /**
+   * Import first policy set
+   * @param {PolicySetExportInterface} importData import data
+   * @param {PolicySetImportOptions} options import options
+   */
+  async importFirstPolicySet(
+    importData: PolicySetExportInterface,
+    options: PolicySetImportOptions = { deps: true, prereqs: false }
+  ) {
+    return importFirstPolicySet({ importData, options, state: this.state });
+  }
+
+  /**
+   * Import policy sets
+   * @param {PolicySetExportInterface} importData import data
+   * @param {PolicySetImportOptions} options import options
+   */
+  async importPolicySets(
+    importData: PolicySetExportInterface,
+    options: PolicySetImportOptions = { deps: true, prereqs: false }
+  ) {
+    return importPolicySets({ importData, options, state: this.state });
+  }
+}
+
 export interface PolicySetExportInterface {
   meta?: ExportMetaData;
   script: Record<string, ScriptSkeleton>;
