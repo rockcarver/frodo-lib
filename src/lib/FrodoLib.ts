@@ -1,9 +1,9 @@
 import State, { StateInterface } from '../shared/State';
 
-import * as Admin from '../ops/AdminOps';
-import * as Agent from '../ops/AgentOps';
+import AdminOps from '../ops/AdminOps';
+import AgentOps from '../ops/AgentOps';
 import AuthenticateOps from '../ops/AuthenticateOps';
-import * as CirclesOfTrust from '../ops/CirclesOfTrustOps';
+import CirclesOfTrustOps from '../ops/CirclesOfTrustOps';
 import ConnectionProfileOps from '../ops/ConnectionProfileOps';
 import FeatureOps from '../ops/cloud/FeatureOps';
 import * as EmailTemplate from '../ops/EmailTemplateOps';
@@ -18,11 +18,11 @@ import * as Node from '../ops/NodeOps';
 import * as OAuth2Client from '../ops/OAuth2ClientOps';
 import * as OAuth2Provider from '../ops/OAuth2ProviderOps';
 import * as Organization from '../ops/OrganizationOps';
-import * as Policy from '../ops/PolicyOps';
-import * as PolicySet from '../ops/PolicySetOps';
+import PolicyOps from '../ops/PolicyOps';
+import PolicySetOps from '../ops/PolicySetOps';
 import * as Realm from '../ops/RealmOps';
-import * as ResourceType from '../ops/ResourceTypeOps';
-import * as Saml2 from '../ops/Saml2Ops';
+import ResourceTypeOps from '../ops/ResourceTypeOps';
+import Saml2Ops from '../ops/Saml2Ops';
 import * as Script from '../ops/ScriptOps';
 import * as Service from '../ops/ServiceOps';
 import Secrets from '../ops/cloud/SecretsOps';
@@ -46,24 +46,35 @@ export class FrodoLib {
     this.state = new State(config);
 
     // initialize all the modules needing state
+    this.admin = new AdminOps(this.state);
+    this.agent = new AgentOps(this.state);
     this.authn = new AuthenticateOps(this.state);
+
+    this.authz.policy = new PolicyOps(this.state);
+    this.authz.policySet = new PolicySetOps(this.state);
+    this.authz.resourceType = new ResourceTypeOps(this.state);
+
     this.cloud.feature = new FeatureOps(this.state);
     this.cloud.log = new LogOps(this.state);
     this.cloud.secret = new Secrets(this.state);
     this.cloud.serviceAccount = new ServiceAccount(this.state);
     this.cloud.startup = new Startup(this.state);
     this.cloud.variable = new Variables(this.state);
+
     this.conn = new ConnectionProfileOps(this.state);
     this.info = new InfoOps(this.state);
+
+    this.saml2.circlesOfTrust = new CirclesOfTrustOps(this.state);
+    this.saml2.entityProvider = new Saml2Ops(this.state);
   }
 
-  Admin = Admin;
-  Agent = Agent;
+  admin: AdminOps;
+  agent: AgentOps;
   authn: AuthenticateOps;
-  authz = {
-    Policy: Policy,
-    PolicySet: PolicySet,
-    ResourceType: ResourceType,
+  authz: {
+    policy: PolicyOps;
+    policySet: PolicySetOps;
+    resourceType: ResourceTypeOps;
   };
   cloud: {
     feature: FeatureOps;
@@ -94,9 +105,9 @@ export class FrodoLib {
   OAuth2Provider = OAuth2Provider;
   Organization = Organization;
   Realm = Realm;
-  Saml2 = {
-    EntityProvider: Saml2,
-    CirclesOfTrust: CirclesOfTrust,
+  saml2: {
+    circlesOfTrust: CirclesOfTrustOps;
+    entityProvider: Saml2Ops;
   };
   Script = Script;
   Service = Service;
