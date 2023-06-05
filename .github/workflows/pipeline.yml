@@ -3,10 +3,10 @@ name: 'Frodo Library Release Pipeline'
 on:
   pull_request:
     branches:
-      - 'main'
+      - 'next'
   push:
     branches:
-      - 'main'
+      - 'next'
   workflow_dispatch:
 
 env:
@@ -94,7 +94,7 @@ jobs:
     needs: [build]
     strategy:
       matrix:
-        node-version: [18, 16, 14]
+        node-version: [20, 18, 16]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     # Service containers to run with `smoke-tests`
