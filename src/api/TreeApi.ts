@@ -11,9 +11,7 @@ const queryAllTreesURLTemplate =
 
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getTreeApiConfig = () => {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/authentication/authenticationtrees`,
     apiVersion,
   };
 };
@@ -26,7 +24,7 @@ export async function getTrees({ state }: { state: State }) {
   const urlString = util.format(
     queryAllTreesURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({
     resource: getTreeApiConfig(),
@@ -46,7 +44,7 @@ export async function getTree({ id, state }: { id: string; state: State }) {
   const urlString = util.format(
     treeByIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     id
   );
   const { data } = await generateAmApi({
@@ -76,7 +74,7 @@ export async function putTree({
   const urlString = util.format(
     treeByIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     treeId
   );
   const { data } = await generateAmApi({
@@ -103,7 +101,7 @@ export async function deleteTree({
   const urlString = util.format(
     treeByIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     treeId
   );
   const { data } = await generateAmApi({

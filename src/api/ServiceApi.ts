@@ -12,9 +12,7 @@ const serviceListURLTemplate = '%s/json%s/%s/services?_queryFilter=true';
 const apiVersion = 'protocol=2.0,resource=1.0';
 
 function getApiConfig() {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/realm-config/services`,
     apiVersion,
   };
 }
@@ -60,9 +58,9 @@ export interface ServiceNextDescendent {
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise.
  * @returns {string} The realm path to be used for the request
  */
-function getRealmPath(globalConfig: boolean): string {
+function getRealmPath(globalConfig: boolean, state: State): string {
   if (globalConfig) return '';
-  return getCurrentRealmPath();
+  return getCurrentRealmPath(state);
 }
 
 /**
@@ -91,7 +89,7 @@ export async function getListOfServices({
   const urlString = util.format(
     serviceListURLTemplate,
     state.getHost(),
-    getRealmPath(globalConfig),
+    getRealmPath(globalConfig, state),
     getConfigPath(globalConfig)
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get<
@@ -120,7 +118,7 @@ export async function getService({
   const urlString = util.format(
     serviceURLTemplate,
     state.getHost(),
-    getRealmPath(globalConfig),
+    getRealmPath(globalConfig, state),
     getConfigPath(globalConfig),
     serviceId
   );
@@ -151,7 +149,7 @@ export async function getServiceDescendents({
   const urlString = util.format(
     serviceURLNextDescendentsTemplate,
     state.getHost(),
-    getRealmPath(globalConfig),
+    getRealmPath(globalConfig, state),
     getConfigPath(globalConfig),
     serviceId
   );
@@ -185,7 +183,7 @@ export async function putService({
   const urlString = util.format(
     serviceURLTemplate,
     state.getHost(),
-    getRealmPath(globalConfig),
+    getRealmPath(globalConfig, state),
     getConfigPath(globalConfig),
     serviceId
   );
@@ -226,7 +224,7 @@ export async function putServiceNextDescendent({
   const urlString = util.format(
     serviceURLNextDescendentTemplate,
     state.getHost(),
-    getRealmPath(globalConfig),
+    getRealmPath(globalConfig, state),
     getConfigPath(globalConfig),
     serviceId,
     serviceType,
@@ -260,7 +258,7 @@ export async function deleteService({
   const urlString = util.format(
     serviceURLTemplate,
     state.getHost(),
-    getRealmPath(globalConfig),
+    getRealmPath(globalConfig, state),
     getConfigPath(globalConfig),
     serviceId
   );
@@ -297,7 +295,7 @@ export async function deleteServiceNextDescendent({
   const urlString = util.format(
     serviceURLNextDescendentTemplate,
     state.getHost(),
-    getRealmPath(globalConfig),
+    getRealmPath(globalConfig, state),
     getConfigPath(globalConfig),
     serviceId,
     serviceType,
