@@ -11,7 +11,6 @@ const scriptQueryURLTemplate =
 const apiVersion = 'protocol=2.0,resource=1.0';
 const getApiConfig = () => {
   return {
-    path: `/json${getCurrentRealmPath()}/scripts`,
     apiVersion,
   };
 };
@@ -28,7 +27,7 @@ export async function getScripts({
   const urlString = util.format(
     scriptListURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get<
     PagedResult<ScriptSkeleton>
@@ -53,7 +52,7 @@ export async function getScriptByName({
   const urlString = util.format(
     scriptQueryURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     encodeURIComponent(scriptName)
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get<
@@ -79,7 +78,7 @@ export async function getScript({
   const urlString = util.format(
     scriptURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     scriptId
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
@@ -109,7 +108,7 @@ export async function putScript({
   const urlString = util.format(
     scriptURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     scriptId
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
@@ -137,7 +136,7 @@ export async function deleteScript({
   const urlString = util.format(
     scriptURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     scriptId
   );
   const { data } = await generateAmApi({

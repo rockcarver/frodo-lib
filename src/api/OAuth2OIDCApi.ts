@@ -118,7 +118,7 @@ export async function clientCredentialsGrant({
   const urlString = util.format(
     accessTokenUrlTemplate,
     amBaseUrl,
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const requestOverride = {
     headers: {

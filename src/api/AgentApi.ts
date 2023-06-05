@@ -18,9 +18,7 @@ const agentListURLTemplate =
   '%s/json%s/realm-config/agents/%s?_queryFilter=true';
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/realm-config/agents`,
     apiVersion,
   };
 };
@@ -34,7 +32,7 @@ export async function getAgentTypes({ state }: { state: State }) {
   const urlString = util.format(
     getAgentTypesURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
@@ -66,7 +64,7 @@ export async function getAgentsByType({
   const urlString = util.format(
     agentListURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     agentType
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
@@ -88,7 +86,7 @@ export async function getAgents({ state }: { state: State }) {
   const urlString = util.format(
     getAllAgentsURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
@@ -120,7 +118,7 @@ export async function findAgentById({
   const urlString = util.format(
     queryAgentURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     agentId
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
@@ -152,7 +150,7 @@ export async function findAgentByTypeAndId({
   const urlString = util.format(
     queryAgentByTypeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     agentType,
     agentId
   );
@@ -185,7 +183,7 @@ export async function getAgentByTypeAndId({
   const urlString = util.format(
     agentURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     agentType,
     agentId
   );
@@ -226,7 +224,7 @@ export async function putAgentByTypeAndId({
   const urlString = util.format(
     agentURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     agentType,
     agentId
   );
@@ -260,7 +258,7 @@ export async function deleteAgentByTypeAndId({
   const urlString = util.format(
     agentURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     agentType,
     agentId
   );

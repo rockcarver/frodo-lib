@@ -8,9 +8,7 @@ const oauthProviderServiceURLTemplate =
 
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/authentication/authenticationtrees`,
     apiVersion,
   };
 };
@@ -23,7 +21,7 @@ export async function getOAuth2Provider({ state }: { state: State }) {
   const urlString = util.format(
     oauthProviderServiceURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
     urlString,

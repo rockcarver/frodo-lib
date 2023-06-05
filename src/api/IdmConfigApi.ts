@@ -2,6 +2,7 @@ import util from 'util';
 import { generateIdmApi } from './BaseApi';
 import { getTenantURL } from './utils/ApiUtils';
 import State from '../shared/State';
+import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
 
 const idmAllConfigURLTemplate = '%s/openidm/config';
 const idmConfigURLTemplate = '%s/openidm/config/%s';
@@ -132,14 +133,7 @@ export async function queryAllManagedObjectsByType({
   fields?: string[];
   pageCookie?: string;
   state: State;
-}): Promise<{
-  result: unknown[];
-  resultCount: number;
-  pagedResultsCookie: string;
-  totalPagedResultsPolicy: string;
-  totalPagedResults: number;
-  remainingPagedResults: number;
-}> {
+}): Promise<PagedResult<IdObjectSkeletonInterface>> {
   const fieldsParam =
     fields.length > 0 ? `&_fields=${fields.join(',')}` : '&_fields=_id';
   const urlTemplate = pageCookie

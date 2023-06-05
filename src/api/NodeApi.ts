@@ -15,9 +15,7 @@ const nodeURLTemplate =
 
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getNodeApiConfig = () => {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/authentication/authenticationtrees`,
     apiVersion,
   };
 };
@@ -30,7 +28,7 @@ export async function getNodeTypes({ state }: { state: State }) {
   const urlString = util.format(
     queryAllNodeTypesURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({
     resource: getNodeApiConfig(),
@@ -54,7 +52,7 @@ export async function getNodes({ state }: { state: State }) {
   const urlString = util.format(
     queryAllNodesURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({
     resource: getNodeApiConfig(),
@@ -85,7 +83,7 @@ export async function getNodesByType({
   const urlString = util.format(
     queryAllNodesByTypeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     nodeType
   );
   const { data } = await generateAmApi({
@@ -115,7 +113,7 @@ export async function getNode({
   const urlString = util.format(
     nodeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     nodeType,
     nodeId
   );
@@ -152,7 +150,7 @@ export async function putNode({
   const urlString = util.format(
     nodeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     nodeType,
     nodeId
   );
@@ -183,7 +181,7 @@ export async function deleteNode({
   const urlString = util.format(
     nodeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     nodeType,
     nodeId
   );
