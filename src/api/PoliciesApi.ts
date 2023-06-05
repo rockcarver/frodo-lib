@@ -26,7 +26,7 @@ export async function getPolicies({ state }: { state: State }) {
   const urlString = util.format(
     queryAllPoliciesURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
     urlString,
@@ -52,7 +52,7 @@ export async function getPoliciesByPolicySet({
   const urlString = util.format(
     queryPoliciesByPolicySetURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     policySetId
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
@@ -79,7 +79,7 @@ export async function getPolicy({
   const urlString = util.format(
     policyURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     policyId
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
@@ -109,7 +109,7 @@ export async function putPolicy({
   const urlString = util.format(
     policyURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     policyId
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
@@ -137,7 +137,7 @@ export async function deletePolicy({
   const urlString = util.format(
     policyURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     policyId
   );
   const { data } = await generateAmApi({

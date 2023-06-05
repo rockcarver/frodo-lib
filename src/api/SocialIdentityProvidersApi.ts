@@ -14,9 +14,7 @@ const getProvidersByTypeURLTemplate =
   '%s/json%s/realm-config/services/SocialIdentityProviders/%s?_queryFilter=true';
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/realm-config/services/SocialIdentityProviders`,
     apiVersion,
   };
 };
@@ -33,7 +31,7 @@ export async function getSocialIdentityProviderTypes({
   const urlString = util.format(
     getAllProviderTypesURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
     urlString,
@@ -59,7 +57,7 @@ export async function getSocialIdentityProvidersByType({
   const urlString = util.format(
     getProvidersByTypeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     type
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
@@ -79,7 +77,7 @@ export async function getSocialIdentityProviders({ state }: { state: State }) {
   const urlString = util.format(
     getAllProvidersURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
@@ -112,7 +110,7 @@ export async function getProviderByTypeAndId({
   const urlString = util.format(
     providerByTypeAndIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     type,
     id
   );
@@ -149,7 +147,7 @@ export async function putProviderByTypeAndId({
   const urlString = util.format(
     providerByTypeAndIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     type,
     id
   );
@@ -181,7 +179,7 @@ export async function deleteProviderByTypeAndId({
   const urlString = util.format(
     providerByTypeAndIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     type,
     providerId
   );

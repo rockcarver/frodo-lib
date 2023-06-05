@@ -2,8 +2,122 @@ import { ThemeSkeleton, UiThemeRealmObject } from '../api/ApiTypes';
 import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
 import { getCurrentRealmName } from '../api/utils/ApiUtils';
 import { debugMessage } from '../ops/utils/Console';
+import State from '../shared/State';
 
 export const THEMEREALM_ID = 'ui/themerealm';
+
+export default class ThemeOps {
+  state: State;
+  constructor(state: State) {
+    this.state = state;
+  }
+
+  /**
+   * Get all themes
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
+   */
+  async getThemes(): Promise<ThemeSkeleton[]> {
+    return getThemes({ state: this.state });
+  }
+
+  /**
+   * Get theme by id
+   * @param {string} themeId theme id
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+   */
+  async getTheme(themeId: string, realm: string): Promise<ThemeSkeleton> {
+    return getTheme({ themeId, realm, state: this.state });
+  }
+
+  /**
+   * Get theme by name
+   * @param {string} themeName theme name
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+   */
+  async getThemeByName(
+    themeName: string,
+    realm: string
+  ): Promise<ThemeSkeleton> {
+    return getThemeByName({ themeName, realm, state: this.state });
+  }
+
+  /**
+   * Put theme by id
+   * @param {string} themeId theme id
+   * @param {ThemeSkeleton} themeData theme object
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+   */
+  async putTheme(
+    themeId: string,
+    themeData: ThemeSkeleton,
+    realm: string
+  ): Promise<ThemeSkeleton> {
+    return putTheme({ themeId, themeData, realm, state: this.state });
+  }
+
+  /**
+   * Put theme by name
+   * @param {String} themeName theme name
+   * @param {ThemeSkeleton} themeData theme object
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+   */
+  async putThemeByName(
+    themeName: string,
+    themeData: ThemeSkeleton,
+    realm: string
+  ): Promise<ThemeSkeleton> {
+    return putThemeByName({ themeName, themeData, realm, state: this.state });
+  }
+
+  /**
+   * Put all themes
+   * @param {Map<string, ThemeSkeleton>} allThemesData themes object containing all themes for all realms
+   * @param {string} realm realm name
+   * @returns {Promise<Map<string, ThemeSkeleton>>} a promise that resolves to a themes object
+   */
+  async putThemes(
+    themeMap: Map<string, ThemeSkeleton>
+  ): Promise<Map<string, ThemeSkeleton>> {
+    return putThemes({ themeMap, state: this.state });
+  }
+
+  /**
+   * Delete theme by id
+   * @param {string} themeId theme id
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
+   */
+  async deleteTheme(themeId: string, realm: string): Promise<ThemeSkeleton> {
+    return deleteTheme({ themeId, realm, state: this.state });
+  }
+
+  /**
+   * Delete theme by name
+   * @param {string} themeName theme name
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
+   */
+  async deleteThemeByName(
+    themeName: string,
+    realm: string
+  ): Promise<ThemeSkeleton> {
+    return deleteThemeByName({ themeName, realm, state: this.state });
+  }
+
+  /**
+   * Delete all themes
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
+   */
+  async deleteThemes(realm: string): Promise<ThemeSkeleton[]> {
+    return deleteThemes({ realm, state: this.state });
+  }
+}
 
 /**
  * Get realm themes
@@ -11,10 +125,13 @@ export const THEMEREALM_ID = 'ui/themerealm';
  * @param {string} realm realm name
  * @returns {ThemeSkeleton[]} array of theme pertaining to the current realm
  */
-function getRealmThemes(
-  themes: UiThemeRealmObject,
-  realm: string = getCurrentRealmName()
-): ThemeSkeleton[] {
+function getRealmThemes({
+  themes,
+  realm,
+}: {
+  themes: UiThemeRealmObject;
+  realm: string;
+}): ThemeSkeleton[] {
   if (themes.realm && themes.realm[realm]) {
     return themes.realm[realm];
   }
@@ -26,11 +143,14 @@ function getRealmThemes(
  * @param {string} realm realm name
  * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
  */
-export async function getThemes(
-  realm: string = getCurrentRealmName()
-): Promise<ThemeSkeleton[]> {
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID });
-  return getRealmThemes(themes, realm);
+export async function getThemes({
+  state,
+}: {
+  state: State;
+}): Promise<ThemeSkeleton[]> {
+  const realm = getCurrentRealmName(state);
+  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+  return getRealmThemes({ themes, realm });
 }
 
 /**
@@ -39,12 +159,18 @@ export async function getThemes(
  * @param {string} realm realm name
  * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
  */
-export async function getTheme(
-  themeId: string,
-  realm: string = getCurrentRealmName()
-): Promise<ThemeSkeleton> {
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID });
-  const found = getRealmThemes(themes, realm).filter(
+export async function getTheme({
+  themeId,
+  realm,
+  state,
+}: {
+  themeId: string;
+  realm: string;
+  state: State;
+}): Promise<ThemeSkeleton> {
+  realm ? realm : getCurrentRealmName(state);
+  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+  const found = getRealmThemes({ themes, realm }).filter(
     (theme) => theme._id === themeId
   );
   if (found.length === 1) {
@@ -64,12 +190,18 @@ export async function getTheme(
  * @param {string} realm realm name
  * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
  */
-export async function getThemeByName(
-  themeName: string,
-  realm: string = getCurrentRealmName()
-): Promise<ThemeSkeleton> {
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID });
-  const found = getRealmThemes(themes, realm).filter(
+export async function getThemeByName({
+  themeName,
+  realm,
+  state,
+}: {
+  themeName: string;
+  realm: string;
+  state: State;
+}): Promise<ThemeSkeleton> {
+  realm ? realm : getCurrentRealmName(state);
+  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+  const found = getRealmThemes({ themes, realm }).filter(
     (theme) => theme.name === themeName
   );
   if (found.length === 1) {
@@ -90,16 +222,23 @@ export async function getThemeByName(
  * @param {string} realm realm name
  * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
  */
-export async function putTheme(
-  themeId: string,
-  themeData: ThemeSkeleton,
-  realm: string = getCurrentRealmName()
-): Promise<ThemeSkeleton> {
+export async function putTheme({
+  themeId,
+  themeData,
+  realm,
+  state,
+}: {
+  themeId: string;
+  themeData: ThemeSkeleton;
+  realm: string;
+  state: State;
+}): Promise<ThemeSkeleton> {
+  realm ? realm : getCurrentRealmName(state);
   const data = themeData;
   data._id = themeId;
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID });
+  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
   let isNew = true;
-  const realmThemes = getRealmThemes(themes, realm).map((theme) => {
+  const realmThemes = getRealmThemes({ themes, realm }).map((theme) => {
     if (theme._id === themeId) {
       isNew = false;
       return data;
@@ -111,10 +250,14 @@ export async function putTheme(
     realmThemes.push(data);
   }
   themes.realm[realm] = realmThemes;
-  const found = getRealmThemes(
-    await putConfigEntity({ entityId: THEMEREALM_ID, entityData: themes }),
-    realm
-  ).filter((theme) => theme._id === themeId);
+  const found = getRealmThemes({
+    themes: await putConfigEntity({
+      entityId: THEMEREALM_ID,
+      entityData: themes,
+      state,
+    }),
+    realm,
+  }).filter((theme) => theme._id === themeId);
   if (found.length === 1) {
     return found[0];
   }
@@ -133,16 +276,23 @@ export async function putTheme(
  * @param {string} realm realm name
  * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
  */
-export async function putThemeByName(
-  themeName: string,
-  themeData: ThemeSkeleton,
-  realm: string = getCurrentRealmName()
-): Promise<ThemeSkeleton> {
+export async function putThemeByName({
+  themeName,
+  themeData,
+  realm,
+  state,
+}: {
+  themeName: string;
+  themeData: ThemeSkeleton;
+  realm: string;
+  state: State;
+}): Promise<ThemeSkeleton> {
+  realm ? realm : getCurrentRealmName(state);
   const data = themeData;
   data.name = themeName;
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID });
+  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
   let isNew = true;
-  const realmThemes = getRealmThemes(themes, realm).map((theme) => {
+  const realmThemes = getRealmThemes({ themes, realm }).map((theme) => {
     if (theme.name === themeName) {
       isNew = false;
       return data;
@@ -154,10 +304,14 @@ export async function putThemeByName(
     realmThemes.push(data);
   }
   themes['realm'][realm] = realmThemes;
-  const found = getRealmThemes(
-    await putConfigEntity({ entityId: THEMEREALM_ID, entityData: themes }),
-    realm
-  ).filter((theme) => theme.name === themeName);
+  const found = getRealmThemes({
+    themes: await putConfigEntity({
+      entityId: THEMEREALM_ID,
+      entityData: themes,
+      state,
+    }),
+    realm,
+  }).filter((theme) => theme.name === themeName);
   if (found.length === 1) {
     return found[0];
   }
@@ -175,17 +329,21 @@ export async function putThemeByName(
  * @param {string} realm realm name
  * @returns {Promise<Map<string, ThemeSkeleton>>} a promise that resolves to a themes object
  */
-export async function putThemes(
-  themeMap: Map<string, ThemeSkeleton>,
-  realm: string = getCurrentRealmName()
-): Promise<Map<string, ThemeSkeleton>> {
+export async function putThemes({
+  themeMap,
+  state,
+}: {
+  themeMap: Map<string, ThemeSkeleton>;
+  state: State;
+}): Promise<Map<string, ThemeSkeleton>> {
   debugMessage(`ThemeApi.putThemes: start`);
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID });
+  const realm = getCurrentRealmName(state);
+  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
   const allThemeIDs = Object.keys(themeMap);
   const existingThemeIDs = [];
   let defaultThemeId = null;
   // update existing themes
-  let realmThemes = getRealmThemes(themes, realm).map((theme) => {
+  let realmThemes = getRealmThemes({ themes, realm }).map((theme) => {
     if (themeMap[theme._id]) {
       debugMessage(`Update theme: ${theme._id} - ${theme.name}`);
       existingThemeIDs.push(theme._id);
@@ -216,10 +374,14 @@ export async function putThemes(
   }
   themes.realm[realm] = realmThemes;
   const updatedThemes = new Map(
-    getRealmThemes(
-      await putConfigEntity({ entityId: THEMEREALM_ID, entityData: themes }),
-      realm
-    ).map((theme) => [theme._id, theme])
+    getRealmThemes({
+      themes: await putConfigEntity({
+        entityId: THEMEREALM_ID,
+        entityData: themes,
+        state,
+      }),
+      realm,
+    }).map((theme) => [theme._id, theme])
   );
   debugMessage(updatedThemes);
   debugMessage(`ThemeApi.putThemes: finished`);
@@ -232,12 +394,18 @@ export async function putThemes(
  * @param {string} realm realm name
  * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
  */
-export async function deleteTheme(
-  themeId: string,
-  realm: string = getCurrentRealmName()
-): Promise<ThemeSkeleton> {
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID });
-  const realmThemes = getRealmThemes(themes, realm);
+export async function deleteTheme({
+  themeId,
+  realm,
+  state,
+}: {
+  themeId: string;
+  realm: string;
+  state: State;
+}): Promise<ThemeSkeleton> {
+  realm ? realm : getCurrentRealmName(state);
+  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+  const realmThemes = getRealmThemes({ themes, realm });
   const deletedThemes: ThemeSkeleton[] = [];
   const finalThemes = realmThemes.filter((theme) => {
     if (theme._id !== themeId) {
@@ -249,10 +417,14 @@ export async function deleteTheme(
   if (realmThemes.length === finalThemes.length)
     throw new Error(`'${themeId}' not found in realm '${realm}'`);
   themes.realm[realm] = realmThemes;
-  const undeletedThemes = getRealmThemes(
-    await putConfigEntity({ entityId: THEMEREALM_ID, entityData: themes }),
-    realm
-  ).filter((theme) => deletedThemes.includes(theme));
+  const undeletedThemes = getRealmThemes({
+    themes: await putConfigEntity({
+      entityId: THEMEREALM_ID,
+      entityData: themes,
+      state,
+    }),
+    realm,
+  }).filter((theme) => deletedThemes.includes(theme));
   if (deletedThemes.length > 0 && undeletedThemes.length === 0) {
     return deletedThemes[0];
   }
@@ -269,12 +441,18 @@ export async function deleteTheme(
  * @param {string} realm realm name
  * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
  */
-export async function deleteThemeByName(
-  themeName: string,
-  realm: string = getCurrentRealmName()
-): Promise<ThemeSkeleton> {
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID });
-  const realmThemes = getRealmThemes(themes, realm);
+export async function deleteThemeByName({
+  themeName,
+  realm,
+  state,
+}: {
+  themeName: string;
+  realm: string;
+  state: State;
+}): Promise<ThemeSkeleton> {
+  realm ? realm : getCurrentRealmName(state);
+  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+  const realmThemes = getRealmThemes({ themes, realm });
   const deletedThemes: ThemeSkeleton[] = [];
   const finalThemes = realmThemes.filter((theme) => {
     if (theme.name !== themeName) {
@@ -286,10 +464,14 @@ export async function deleteThemeByName(
   if (realmThemes.length === finalThemes.length)
     throw new Error(`'${themeName}' not found in realm '${realm}'`);
   themes.realm[realm] = finalThemes;
-  const undeletedThemes = getRealmThemes(
-    await putConfigEntity({ entityId: THEMEREALM_ID, entityData: themes }),
-    realm
-  ).filter((theme) => deletedThemes.includes(theme));
+  const undeletedThemes = getRealmThemes({
+    themes: await putConfigEntity({
+      entityId: THEMEREALM_ID,
+      entityData: themes,
+      state,
+    }),
+    realm,
+  }).filter((theme) => deletedThemes.includes(theme));
   if (deletedThemes.length > 0 && undeletedThemes.length === 0) {
     return deletedThemes[0];
   }
@@ -305,10 +487,15 @@ export async function deleteThemeByName(
  * @param {string} realm realm name
  * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
  */
-export async function deleteThemes(
-  realm: string = getCurrentRealmName()
-): Promise<ThemeSkeleton[]> {
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID });
+export async function deleteThemes({
+  realm,
+  state,
+}: {
+  realm: string;
+  state: State;
+}): Promise<ThemeSkeleton[]> {
+  realm ? realm : getCurrentRealmName(state);
+  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
   const realmThemes = themes.realm[realm];
   if (!realmThemes)
     throw new Error(`No theme configuration found for realm '${realm}'`);
@@ -317,6 +504,6 @@ export async function deleteThemes(
     deletedThemes.push(theme);
   }
   themes.realm[realm] = [];
-  await putConfigEntity({ entityId: THEMEREALM_ID, entityData: themes });
+  await putConfigEntity({ entityId: THEMEREALM_ID, entityData: themes, state });
   return deletedThemes;
 }

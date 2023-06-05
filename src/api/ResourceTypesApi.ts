@@ -26,7 +26,7 @@ export async function getResourceTypes({ state }: { state: State }) {
   const urlString = util.format(
     queryAllResourceTypesURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
     urlString,
@@ -52,7 +52,7 @@ export async function getResourceType({
   const urlString = util.format(
     resourceTypeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     resourceTypeUuid
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
@@ -79,7 +79,7 @@ export async function getResourceTypeByName({
   const urlString = util.format(
     queryResourceTypeByNameURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     resourceTypeName
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
@@ -107,7 +107,7 @@ export async function createResourceType({
   const urlString = util.format(
     createResourceTypeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
@@ -136,7 +136,7 @@ export async function putResourceType({
   const urlString = util.format(
     resourceTypeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     resourceTypeUuid
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
@@ -164,7 +164,7 @@ export async function deleteResourceType({
   const urlString = util.format(
     resourceTypeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     resourceTypeUuid
   );
   const { data } = await generateAmApi({

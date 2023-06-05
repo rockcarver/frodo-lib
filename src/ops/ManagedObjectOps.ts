@@ -10,21 +10,21 @@ export default class ManagedObjectOps {
 
   /**
    * Resolve a managed object's uuid to a human readable username
-   * @param {String} type managed object type, e.g. teammember or alpha_user
-   * @param {String} id managed object _id
-   * @returns {String} resolved username or uuid if any error occurs during reslution
+   * @param {string} type managed object type, e.g. teammember or alpha_user
+   * @param {string} id managed object _id
+   * @returns {string} resolved username or uuid if any error occurs during reslution
    */
-  async resolveUserName(type, id) {
+  async resolveUserName(type: string, id: string) {
     return resolveUserName({ type, id, state: this.state });
   }
 
   /**
    * Resolve a managed object's uuid to a human readable full name
-   * @param {String} type managed object type, e.g. teammember or alpha_user
-   * @param {String} id managed object _id
-   * @returns {String} resolved full name or uuid if any error occurs during reslution
+   * @param {string} type managed object type, e.g. teammember or alpha_user
+   * @param {string} id managed object _id
+   * @returns {string} resolved full name or uuid if any error occurs during reslution
    */
-  async resolveFullName(type, id) {
+  async resolveFullName(type: string, id: string) {
     return resolveFullName({ type, id, state: this.state });
   }
 }

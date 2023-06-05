@@ -14,7 +14,6 @@ const queryAllCirclesOfTrustURLTemplate =
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => {
   return {
-    path: `/json${getCurrentRealmPath()}/realm-config/federation/circlesoftrust`,
     apiVersion,
   };
 };
@@ -27,7 +26,7 @@ export async function getCirclesOfTrust({ state }: { state: State }) {
   const urlString = util.format(
     queryAllCirclesOfTrustURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
     urlString,
@@ -53,7 +52,7 @@ export async function getCircleOfTrust({
   const urlString = util.format(
     circleOfTrustByIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     cotId
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
@@ -81,7 +80,7 @@ export async function createCircleOfTrust({
   const urlString = util.format(
     createCircleOfTrustURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
@@ -110,7 +109,7 @@ export async function updateCircleOfTrust({
   const urlString = util.format(
     circleOfTrustByIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     cotId
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(

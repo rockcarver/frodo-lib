@@ -27,7 +27,7 @@ export default class AuthenticateOps {
    * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
    */
   getTokens(forceLoginAsUser = false) {
-    return getTokens(forceLoginAsUser, this.state);
+    return getTokens({ forceLoginAsUser, state: this.state });
   }
 }
 
@@ -538,10 +538,13 @@ async function getLoggedInSubject(state: State): Promise<string> {
  * @param {State} state library state
  * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
  */
-export async function getTokens(
+export async function getTokens({
   forceLoginAsUser = false,
-  state: State
-): Promise<boolean> {
+  state,
+}: {
+  forceLoginAsUser: boolean;
+  state: State;
+}): Promise<boolean> {
   debugMessage(`AuthenticateOps.getTokens: start`);
   if (!state.getHost()) {
     printMessage(

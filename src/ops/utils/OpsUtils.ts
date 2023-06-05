@@ -43,7 +43,7 @@ export function applyNameCollisionPolicy(name) {
 export function getRealmManagedUser({ state }: { state: State }) {
   let realmManagedUser = 'user';
   if (state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) {
-    realmManagedUser = `${getCurrentRealmName()}_user`;
+    realmManagedUser = `${getCurrentRealmName(state)}_user`;
   }
   return realmManagedUser;
 }
