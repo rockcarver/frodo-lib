@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2023-06-05
+
 ### Changed
 
 -   Promote Frodo Library 0.19.2 to 1.0.0.
@@ -1153,7 +1155,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v0.19.2...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v1.0.0...HEAD
+
+[1.0.0]: https://github.com/rockcarver/frodo-lib/compare/v0.19.2...v1.0.0
 
 [0.19.2]: https://github.com/rockcarver/frodo-lib/compare/v0.19.1...v0.19.2
 
