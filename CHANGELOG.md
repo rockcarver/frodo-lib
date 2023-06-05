@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+-   Promote Frodo Library 0.19.2 to 1.0.0.
+
 ## [0.19.2] - 2023-05-25
 
 ### Changed
