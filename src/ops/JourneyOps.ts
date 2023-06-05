@@ -10,7 +10,7 @@ import {
   getMetadata,
 } from './utils/ExportImportUtils';
 import { getRealmManagedUser, replaceAll } from './utils/OpsUtils';
-import * as state from '../shared/State';
+import State from '../shared/State';
 import {
   getNode,
   putNode,
@@ -56,11 +56,12 @@ import {
 import { getThemes, putThemes } from './ThemeOps';
 import { putScript } from './ScriptOps';
 import { JourneyClassification, TreeExportResolverInterface } from './OpsTypes';
-import { ThemeSkeleton, TreeSkeleton } from '../api/ApiTypes';
 import {
   InnerNodeRefSkeletonInterface,
   NodeRefSkeletonInterface,
   NodeSkeleton,
+  ThemeSkeleton,
+  TreeSkeleton,
 } from '../api/ApiTypes';
 import {
   SingleTreeExportInterface,
@@ -69,6 +70,275 @@ import {
   TreeExportOptions,
   TreeImportOptions,
 } from './OpsTypes';
+
+export default class JourneyOps {
+  state: State;
+  constructor(state: State) {
+    this.state = state;
+  }
+
+  /**
+   * Create an empty single tree export template
+   * @returns {SingleTreeExportInterface} an empty single tree export template
+   */
+  createSingleTreeExportTemplate(): SingleTreeExportInterface {
+    return createSingleTreeExportTemplate({ state: this.state });
+  }
+
+  /**
+   * Create an empty multi tree export template
+   * @returns {MultiTreeExportInterface} an empty multi tree export template
+   */
+  createMultiTreeExportTemplate(): MultiTreeExportInterface {
+    return createMultiTreeExportTemplate({ state: this.state });
+  }
+
+  /**
+   * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
+   * @param {string} treeId tree id/name
+   * @param {TreeExportOptions} options export options
+   * @returns {Promise<SingleTreeExportInterface>} a promise that resolves to an object containing the tree and all its nodes and dependencies
+   */
+  async exportJourney(
+    treeId: string,
+    options: TreeExportOptions = {
+      useStringArrays: true,
+      deps: true,
+    }
+  ): Promise<SingleTreeExportInterface> {
+    return exportJourney({ treeId, options, state: this.state });
+  }
+
+  /**
+   * Get all the journeys/trees without all their nodes and dependencies.
+   * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of journey objects
+   */
+  async getJourneys(): Promise<TreeSkeleton[]> {
+    return getJourneys({ state: this.state });
+  }
+
+  /**
+   * Get a journey/tree without all its nodes and dependencies.
+   * @param {string} journeyId journey id/name
+   * @returns {Promise<TreeSkeleton>} a promise that resolves to a journey object
+   */
+  async getJourney(journeyId: string): Promise<TreeSkeleton> {
+    return getJourney({ journeyId, state: this.state });
+  }
+
+  /**
+   * Helper to import a tree with all dependencies from a `SingleTreeExportInterface` object (typically read from a file)
+   * @param {SingleTreeExportInterface} treeObject tree object containing tree and all its dependencies
+   * @param {TreeImportOptions} options import options
+   * @returns {Promise<boolean>} a promise that resolves to true if no errors occurred during import
+   */
+  async importJourney(
+    treeObject: SingleTreeExportInterface,
+    options: TreeImportOptions
+  ): Promise<boolean> {
+    return importJourney({ treeObject, options, state: this.state });
+  }
+
+  /**
+   * Resolve journey dependencies
+   * @param {Map} installedJorneys Map of installed journeys
+   * @param {Map} journeyMap Map of journeys to resolve dependencies for
+   * @param {string[]} unresolvedJourneys Map to hold the names of unresolved journeys and their dependencies
+   * @param {string[]} resolvedJourneys Array to hold the names of resolved journeys
+   * @param {int} index Depth of recursion
+   */
+  async resolveDependencies(
+    installedJorneys,
+    journeyMap,
+    unresolvedJourneys,
+    resolvedJourneys,
+    index = -1
+  ) {
+    return resolveDependencies(
+      installedJorneys,
+      journeyMap,
+      unresolvedJourneys,
+      resolvedJourneys,
+      index
+    );
+  }
+
+  /**
+   * Helper to import multiple trees from a tree map
+   * @param {MultiTreeExportInterface} treesMap map of trees object
+   * @param {TreeImportOptions} options import options
+   */
+  async importAllJourneys(
+    treesMap: MultiTreeExportInterface,
+    options: TreeImportOptions
+  ) {
+    return importAllJourneys({ treesMap, options, state: this.state });
+  }
+
+  /**
+   * Get the node reference obbject for a node object. Node reference objects
+   * are used in a tree flow definition and within page nodes to reference
+   * nodes. Among other things, node references contain all the non-configuration
+   * meta data that exists for readaility, like the x/y coordinates of the node
+   * and the display name chosen by the tree designer. The dislay name is the
+   * only intuitive link between the graphical representation of the tree and
+   * the node configurations that make up the tree.
+   * @param nodeObj node object to retrieve the node reference object for
+   * @param singleTreeExport tree export with or without dependencies
+   * @returns {NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface} node reference object
+   */
+  getNodeRef(
+    nodeObj: NodeSkeleton,
+    singleTreeExport: SingleTreeExportInterface
+  ): NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface {
+    return getNodeRef(nodeObj, singleTreeExport);
+  }
+
+  /**
+   * Default tree export resolver used to resolve a tree id/name to a full export
+   * w/o dependencies of that tree from a platform instance.
+   * @param {string} treeId id/name of the tree to resolve
+   * @returns {TreeExportResolverInterface} tree export
+   */
+  onlineTreeExportResolver: TreeExportResolverInterface =
+    onlineTreeExportResolver;
+
+  /**
+   * Tree export resolver used to resolve a tree id/name to a full export
+   * of that tree from individual `treename.journey.json` export files.
+   * @param {string} treeId id/name of the tree to resolve
+   * @returns {TreeExportResolverInterface} tree export
+   */
+  fileByIdTreeExportResolver: TreeExportResolverInterface =
+    fileByIdTreeExportResolver;
+
+  /**
+   * Factory that creates a tree export resolver used to resolve a tree id
+   * to a full export of that tree from a multi-tree export file.
+   * @param {string} file multi-tree export file
+   * @returns {TreeExportResolverInterface} tree export resolver
+   */
+  createFileParamTreeExportResolver(file: string): TreeExportResolverInterface {
+    return createFileParamTreeExportResolver(file, this.state);
+  }
+
+  /**
+   * Get tree dependencies (all descendent inner trees)
+   * @param {SingleTreeExportInterface} treeExport single tree export
+   * @param {string[]} resolvedTreeIds list of tree ids wich have already been resolved
+   * @param {TreeExportResolverInterface} resolveTreeExport tree export resolver callback function
+   * @returns {Promise<TreeDependencyMapInterface>} a promise that resolves to a tree dependency map
+   */
+  async getTreeDescendents(
+    treeExport: SingleTreeExportInterface,
+    resolveTreeExport: TreeExportResolverInterface,
+    resolvedTreeIds: string[] = []
+  ): Promise<TreeDependencyMapInterface> {
+    return getTreeDescendents({
+      treeExport,
+      resolveTreeExport,
+      resolvedTreeIds,
+      state: this.state,
+    });
+  }
+
+  /**
+   * Find all node configuration objects that are no longer referenced by any tree
+   * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
+   */
+  async findOrphanedNodes(): Promise<unknown[]> {
+    return findOrphanedNodes({ state: this.state });
+  }
+
+  /**
+   * Remove orphaned nodes
+   * @param {NodeSkeleton[]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
+   * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array nodes that encountered errors deleting
+   */
+  async removeOrphanedNodes(orphanedNodes: NodeSkeleton[]): Promise<unknown[]> {
+    return removeOrphanedNodes({ orphanedNodes, state: this.state });
+  }
+
+  /**
+   * Analyze if a journey contains any custom nodes considering the detected or the overridden version.
+   * @param {SingleTreeExportInterface} journey Journey/tree configuration object
+   * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
+   */
+  isCustomJourney(journey: SingleTreeExportInterface) {
+    return isCustomJourney({ journey, state: this.state });
+  }
+
+  /**
+   * Analyze if a journey contains any premium nodes considering the detected or the overridden version.
+   * @param {SingleTreeExportInterface} journey Journey/tree configuration object
+   * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
+   */
+  isPremiumJourney(journey: SingleTreeExportInterface) {
+    return isPremiumJourney(journey);
+  }
+
+  /**
+   * Analyze if a journey contains any cloud-only nodes considering the detected or the overridden version.
+   * @param {SingleTreeExportInterface} journey Journey/tree configuration object
+   * @returns {boolean} True if the journey/tree contains any cloud-only nodes, false otherwise.
+   */
+  isCloudOnlyJourney(journey: SingleTreeExportInterface) {
+    return isCloudOnlyJourney(journey);
+  }
+
+  /**
+   * Get a journey's classifications, which can be one or multiple of:
+   * - standard: can run on any instance of a ForgeRock platform
+   * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
+   * - premium: utilizes nodes, which come at a premium
+   * - custom: utilizes nodes not included in the ForgeRock platform release
+   * @param {SingleTreeExportInterface} journey journey export data
+   * @returns {JourneyClassification[]} an array of one or multiple classifications
+   */
+  getJourneyClassification(
+    journey: SingleTreeExportInterface
+  ): JourneyClassification[] {
+    return getJourneyClassification({ journey, state: this.state });
+  }
+
+  /**
+   * Delete a journey
+   * @param {string} journeyId journey id/name
+   * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
+   */
+  async deleteJourney(
+    journeyId: string,
+    options: { deep: boolean; verbose: boolean; progress?: boolean }
+  ) {
+    return deleteJourney({ journeyId, options, state: this.state });
+  }
+
+  /**
+   * Delete all journeys
+   * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
+   */
+  async deleteJourneys(options: { deep: boolean; verbose: boolean }) {
+    return deleteJourneys({ options, state: this.state });
+  }
+
+  /**
+   * Enable a journey
+   * @param journeyId journey id/name
+   * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+   */
+  async enableJourney(journeyId: string): Promise<boolean> {
+    return enableJourney({ journeyId, state: this.state });
+  }
+
+  /**
+   * Disable a journey
+   * @param journeyId journey id/name
+   * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+   */
+  async disableJourney(journeyId: string): Promise<boolean> {
+    return disableJourney({ journeyId, state: this.state });
+  }
+}
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
 
@@ -88,9 +358,13 @@ const emptyScriptPlaceholder = '[Empty]';
  * Create an empty single tree export template
  * @returns {SingleTreeExportInterface} an empty single tree export template
  */
-export function createSingleTreeExportTemplate(): SingleTreeExportInterface {
+function createSingleTreeExportTemplate({
+  state,
+}: {
+  state: State;
+}): SingleTreeExportInterface {
   return {
-    meta: getMetadata(),
+    meta: getMetadata({ state }),
     innerNodes: {},
     nodes: {},
     scripts: {},
@@ -107,9 +381,13 @@ export function createSingleTreeExportTemplate(): SingleTreeExportInterface {
  * Create an empty multi tree export template
  * @returns {MultiTreeExportInterface} an empty multi tree export template
  */
-export function createMultiTreeExportTemplate(): MultiTreeExportInterface {
+function createMultiTreeExportTemplate({
+  state,
+}: {
+  state: State;
+}): MultiTreeExportInterface {
   return {
-    meta: getMetadata(),
+    meta: getMetadata({ state }),
     trees: {},
   } as MultiTreeExportInterface;
 }
@@ -124,7 +402,8 @@ export function createMultiTreeExportTemplate(): MultiTreeExportInterface {
 async function getSaml2NodeDependencies(
   nodeObject,
   allProviders,
-  allCirclesOfTrust
+  allCirclesOfTrust,
+  state: State
 ) {
   const samlProperties = ['metaAlias', 'idpEntityId'];
   const saml2EntityPromises = [];
@@ -137,10 +416,11 @@ async function getSaml2NodeDependencies(
     const entity = _.find(allProviders, { entityId });
     if (entity) {
       try {
-        const providerResponse = await getProviderByLocationAndId(
-          entity.location,
-          entity._id
-        );
+        const providerResponse = await getProviderByLocationAndId({
+          location: entity.location,
+          entityId64: entity._id,
+          state,
+        });
         /**
          * Adding entityLocation here to the entityResponse because the import tool
          * needs to know whether the saml2 entity is remote or not (this will be removed
@@ -151,9 +431,10 @@ async function getSaml2NodeDependencies(
 
         if (entity.location === 'remote') {
           // get the xml representation of this entity and add it to the entityResponse;
-          const metaDataResponse = await getProviderMetadata(
-            providerResponse.entityId
-          );
+          const metaDataResponse = await getProviderMetadata({
+            entityId: providerResponse.entityId,
+            state,
+          });
           providerResponse.base64EntityXML = encodeBase64Url(metaDataResponse);
         }
         saml2EntityPromises.push(providerResponse);
@@ -204,16 +485,21 @@ async function getSaml2NodeDependencies(
  * @param {TreeExportOptions} options export options
  * @returns {Promise<SingleTreeExportInterface>} a promise that resolves to an object containing the tree and all its nodes and dependencies
  */
-export async function exportJourney(
-  treeId: string,
-  options: TreeExportOptions = {
+export async function exportJourney({
+  treeId,
+  options = {
     useStringArrays: true,
     deps: true,
-  }
-): Promise<SingleTreeExportInterface> {
-  const exportData = createSingleTreeExportTemplate();
+  },
+  state,
+}: {
+  treeId: string;
+  options?: TreeExportOptions;
+  state: State;
+}): Promise<SingleTreeExportInterface> {
+  const exportData = createSingleTreeExportTemplate({ state });
   try {
-    const treeObject = await getTree(treeId);
+    const treeObject = await getTree({ id: treeId, state });
     const { useStringArrays, deps } = options;
     const verbose = state.getDebug();
 
@@ -241,7 +527,7 @@ export async function exportJourney(
       state.getDeploymentType() !== globalConfig.CLASSIC_DEPLOYMENT_TYPE_KEY
     ) {
       try {
-        themePromise = getThemes();
+        themePromise = getThemes({ state });
       } catch (error) {
         printMessage(error, 'error');
       }
@@ -254,7 +540,9 @@ export async function exportJourney(
 
     // get all the nodes
     for (const [nodeId, nodeInfo] of Object.entries(treeObject.nodes)) {
-      nodePromises.push(getNode(nodeId, nodeInfo['nodeType']));
+      nodePromises.push(
+        getNode({ nodeId, nodeType: nodeInfo['nodeType'], state })
+      );
     }
     if (verbose && nodePromises.length > 0) printMessage('  - Nodes:');
     const nodeObjects = await Promise.all(nodePromises);
@@ -272,7 +560,7 @@ export async function exportJourney(
         scriptedNodes.includes(nodeType) &&
         nodeObject.script !== emptyScriptPlaceholder
       ) {
-        scriptPromises.push(getScript(nodeObject.script));
+        scriptPromises.push(getScript({ scriptId: nodeObject.script, state }));
       }
 
       // frodo supports email templates in platform deployments
@@ -284,9 +572,10 @@ export async function exportJourney(
       ) {
         if (emailTemplateNodes.includes(nodeType)) {
           try {
-            const emailTemplate = await getEmailTemplate(
-              nodeObject.emailTemplateName
-            );
+            const emailTemplate = await getEmailTemplate({
+              templateId: nodeObject.emailTemplateName,
+              state,
+            });
             emailTemplatePromises.push(emailTemplate);
           } catch (error) {
             let message = `${error}`;
@@ -305,17 +594,18 @@ export async function exportJourney(
       if (deps && nodeType === 'product-Saml2Node') {
         if (!allSaml2Providers) {
           // eslint-disable-next-line no-await-in-loop
-          allSaml2Providers = (await getProviders()).result;
+          allSaml2Providers = (await getProviders({ state })).result;
         }
         if (!allCirclesOfTrust) {
           // eslint-disable-next-line no-await-in-loop
-          allCirclesOfTrust = (await getCirclesOfTrust()).result;
+          allCirclesOfTrust = (await getCirclesOfTrust({ state })).result;
         }
         saml2ConfigPromises.push(
           getSaml2NodeDependencies(
             nodeObject,
             allSaml2Providers,
-            allCirclesOfTrust
+            allCirclesOfTrust,
+            state
           )
         );
       }
@@ -326,7 +616,7 @@ export async function exportJourney(
         !socialProviderPromise &&
         nodeType === 'SocialProviderHandlerNode'
       ) {
-        socialProviderPromise = getSocialIdentityProviders();
+        socialProviderPromise = getSocialIdentityProviders({ state });
       }
 
       // If this is a SelectIdPNode and filteredProviters is not already set to empty array set filteredSocialProviers.
@@ -342,7 +632,13 @@ export async function exportJourney(
       // get inner nodes (nodes inside container nodes)
       if (containerNodes.includes(nodeType)) {
         for (const innerNode of nodeObject.nodes) {
-          innerNodePromises.push(getNode(innerNode._id, innerNode.nodeType));
+          innerNodePromises.push(
+            getNode({
+              nodeId: innerNode._id,
+              nodeType: innerNode.nodeType,
+              state,
+            })
+          );
         }
         // frodo supports themes in platform deployments
         if (
@@ -388,7 +684,9 @@ export async function exportJourney(
 
       // handle script node types
       if (deps && scriptedNodes.includes(innerNodeType)) {
-        scriptPromises.push(getScript(innerNodeObject.script));
+        scriptPromises.push(
+          getScript({ scriptId: innerNodeObject.script, state })
+        );
       }
 
       // frodo supports email templates in platform deployments
@@ -400,9 +698,10 @@ export async function exportJourney(
       ) {
         if (emailTemplateNodes.includes(innerNodeType)) {
           try {
-            const emailTemplate = await getEmailTemplate(
-              innerNodeObject.emailTemplateName
-            );
+            const emailTemplate = await getEmailTemplate({
+              templateId: innerNodeObject.emailTemplateName,
+              state,
+            });
             emailTemplatePromises.push(emailTemplate);
           } catch (error) {
             let message = `${error}`;
@@ -422,17 +721,18 @@ export async function exportJourney(
         printMessage('SAML2 inner node', 'error');
         if (!allSaml2Providers) {
           // eslint-disable-next-line no-await-in-loop
-          allSaml2Providers = (await getProviders()).result;
+          allSaml2Providers = (await getProviders({ state })).result;
         }
         if (!allCirclesOfTrust) {
           // eslint-disable-next-line no-await-in-loop
-          allCirclesOfTrust = (await getCirclesOfTrust()).result;
+          allCirclesOfTrust = (await getCirclesOfTrust({ state })).result;
         }
         saml2ConfigPromises.push(
           getSaml2NodeDependencies(
             innerNodeObject,
             allSaml2Providers,
-            allCirclesOfTrust
+            allCirclesOfTrust,
+            state
           )
         );
       }
@@ -443,7 +743,7 @@ export async function exportJourney(
         !socialProviderPromise &&
         innerNodeType === 'SocialProviderHandlerNode'
       ) {
-        socialProviderPromise = getSocialIdentityProviders();
+        socialProviderPromise = getSocialIdentityProviders({ state });
       }
 
       // If this is a SelectIdPNode and filteredProviters is not already set to empty array set filteredSocialProviers.
@@ -520,7 +820,9 @@ export async function exportJourney(
             filteredSocialProviders.includes(socialProvider._id))
         ) {
           if (verbose) printMessage(`    - ${socialProvider._id}`, 'info');
-          scriptPromises.push(getScript(socialProvider.transform));
+          scriptPromises.push(
+            getScript({ scriptId: socialProvider.transform, state })
+          );
           exportData.socialIdentityProviders[socialProvider._id] =
             socialProvider;
         }
@@ -587,8 +889,12 @@ export async function exportJourney(
  * Get all the journeys/trees without all their nodes and dependencies.
  * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of journey objects
  */
-export async function getJourneys(): Promise<TreeSkeleton[]> {
-  const { result } = await getTrees();
+export async function getJourneys({
+  state,
+}: {
+  state: State;
+}): Promise<TreeSkeleton[]> {
+  const { result } = await getTrees({ state });
   result.sort((a, b) => a._id.localeCompare(b._id));
   return result;
 }
@@ -598,8 +904,14 @@ export async function getJourneys(): Promise<TreeSkeleton[]> {
  * @param {string} journeyId journey id/name
  * @returns {Promise<TreeSkeleton>} a promise that resolves to a journey object
  */
-export async function getJourney(journeyId: string): Promise<TreeSkeleton> {
-  const response = await getTree(journeyId);
+export async function getJourney({
+  journeyId,
+  state,
+}: {
+  journeyId: string;
+  state: State;
+}): Promise<TreeSkeleton> {
+  const response = await getTree({ id: journeyId, state });
   return response;
 }
 
@@ -609,10 +921,15 @@ export async function getJourney(journeyId: string): Promise<TreeSkeleton> {
  * @param {TreeImportOptions} options import options
  * @returns {Promise<boolean>} a promise that resolves to true if no errors occurred during import
  */
-export async function importJourney(
-  treeObject: SingleTreeExportInterface,
-  options: TreeImportOptions
-): Promise<boolean> {
+export async function importJourney({
+  treeObject,
+  options,
+  state,
+}: {
+  treeObject: SingleTreeExportInterface;
+  options: TreeImportOptions;
+  state: State;
+}): Promise<boolean> {
   const { reUuid, deps } = options;
   const verbose = state.getDebug();
   if (verbose) printMessage(`\n- ${treeObject.tree._id}\n`, 'info', false);
@@ -643,7 +960,7 @@ export async function importJourney(
         scriptObject['script'] = encode(JSON.parse(scriptObject['script']));
       }
       try {
-        await putScript(scriptId, scriptObject);
+        await putScript({ scriptId, scriptData: scriptObject, state });
       } catch (error) {
         throw new Error(
           `Error importing script ${scriptObject['name']} (${scriptId}) in journey ${treeId}: ${error.message}`
@@ -665,7 +982,7 @@ export async function importJourney(
     )) {
       if (verbose) printMessage(`    - ${templateId}`, 'info', false);
       try {
-        await putEmailTemplate(templateId, templateData);
+        await putEmailTemplate({ templateId, templateData, state });
       } catch (error) {
         printMessage(error.response.data, 'error');
         throw new Error(`Error importing email templates: ${error.message}`);
@@ -684,7 +1001,7 @@ export async function importJourney(
       themes[theme['_id']] = theme;
     }
     try {
-      await putThemes(themes);
+      await putThemes({ themeMap: themes, state });
     } catch (error) {
       throw new Error(`Error importing themes: ${error.message}`);
     }
@@ -702,11 +1019,12 @@ export async function importJourney(
     )) {
       if (verbose) printMessage(`    - ${providerId}`, 'info');
       try {
-        await putProviderByTypeAndId(
-          providerData['_type']['_id'],
-          providerId,
-          providerData
-        );
+        await putProviderByTypeAndId({
+          type: providerData['_type']['_id'],
+          id: providerId,
+          providerData,
+          state,
+        });
       } catch (importError) {
         if (
           importError.response?.status === 500 &&
@@ -715,11 +1033,12 @@ export async function importJourney(
         ) {
           providerData['redirectAfterFormPostURI'] = '';
           try {
-            await putProviderByTypeAndId(
-              providerData['_type']['_id'],
-              providerId,
-              providerData
-            );
+            await putProviderByTypeAndId({
+              type: providerData['_type']['_id'],
+              id: providerId,
+              providerData,
+              state,
+            });
           } catch (importError2) {
             printMessage(importError.response?.data || importError, 'error');
             throw new Error(
@@ -762,28 +1081,38 @@ export async function importJourney(
       delete providerData['base64EntityXML'];
       // create the provider if it doesn't already exist, or just update it
       if (
-        (await findProviders(`entityId eq '${entityId}'`, ['location']))
-          .resultCount === 0
+        (
+          await findProviders({
+            filter: `entityId eq '${entityId}'`,
+            fields: ['location'],
+            state,
+          })
+        ).resultCount === 0
       ) {
-        await createProvider(entityLocation, providerData, metaData).catch(
-          (createProviderErr) => {
-            printMessage(
-              createProviderErr.response?.data || createProviderErr,
-              'error'
-            );
-            throw new Error(`Error creating provider ${entityId}`);
-          }
-        );
+        await createProvider({
+          location: entityLocation,
+          providerData,
+          metaData,
+          state,
+        }).catch((createProviderErr) => {
+          printMessage(
+            createProviderErr.response?.data || createProviderErr,
+            'error'
+          );
+          throw new Error(`Error creating provider ${entityId}`);
+        });
       } else {
-        await updateProvider(entityLocation, providerData).catch(
-          (updateProviderErr) => {
-            printMessage(
-              updateProviderErr.response?.data || updateProviderErr,
-              'error'
-            );
-            throw new Error(`Error updating provider ${entityId}`);
-          }
-        );
+        await updateProvider({
+          location: entityLocation,
+          providerData,
+          state,
+        }).catch((updateProviderErr) => {
+          printMessage(
+            updateProviderErr.response?.data || updateProviderErr,
+            'error'
+          );
+          throw new Error(`Error updating provider ${entityId}`);
+        });
       }
     }
   }
@@ -799,14 +1128,14 @@ export async function importJourney(
       delete cotData['_rev'];
       if (verbose) printMessage(`    - ${cotId}`, 'info');
       try {
-        await createCircleOfTrust(cotData);
+        await createCircleOfTrust({ cotData, state });
       } catch (createCotErr) {
         if (
           createCotErr.response?.status === 409 ||
           createCotErr.response?.status === 500
         ) {
           try {
-            await updateCircleOfTrust(cotId, cotData);
+            await updateCircleOfTrust({ cotId, cotData, state });
           } catch (updateCotErr) {
             printMessage(createCotErr.response?.data || createCotErr, 'error');
             printMessage(updateCotErr.response?.data || updateCotErr, 'error');
@@ -864,7 +1193,9 @@ export async function importJourney(
         innerNodeData['identityResource'].endsWith('user') &&
         innerNodeData['identityResource'] === treeObject.tree.identityResource
       ) {
-        innerNodeData['identityResource'] = `managed/${getRealmManagedUser()}`;
+        innerNodeData['identityResource'] = `managed/${getRealmManagedUser({
+          state,
+        })}`;
         if (verbose)
           printMessage(
             `\n      - identityResource: ${innerNodeData['identityResource']}`,
@@ -873,7 +1204,12 @@ export async function importJourney(
           );
       }
       try {
-        await putNode(newUuid, nodeType, innerNodeData);
+        await putNode({
+          nodeId: newUuid,
+          nodeType,
+          nodeData: innerNodeData as NodeSkeleton,
+          state,
+        });
       } catch (nodeImportError) {
         if (
           nodeImportError.response.status === 400 &&
@@ -906,7 +1242,12 @@ export async function importJourney(
             }
           }
           try {
-            await putNode(newUuid, nodeType, innerNodeData);
+            await putNode({
+              nodeId: newUuid,
+              nodeType,
+              nodeData: innerNodeData as NodeSkeleton,
+              state,
+            });
           } catch (nodeImportError2) {
             printMessage(nodeImportError2.response.data, 'error');
             throw new Error(
@@ -968,7 +1309,9 @@ export async function importJourney(
         nodeData.identityResource.endsWith('user') &&
         nodeData.identityResource === treeObject.tree.identityResource
       ) {
-        nodeData['identityResource'] = `managed/${getRealmManagedUser()}`;
+        nodeData['identityResource'] = `managed/${getRealmManagedUser({
+          state,
+        })}`;
         if (verbose)
           printMessage(
             `\n      - identityResource: ${nodeData['identityResource']}`,
@@ -977,7 +1320,7 @@ export async function importJourney(
           );
       }
       try {
-        await putNode(newUuid, nodeType, nodeData);
+        await putNode({ nodeId: newUuid, nodeType, nodeData, state });
       } catch (nodeImportError) {
         if (
           nodeImportError.response.status === 400 &&
@@ -1008,7 +1351,7 @@ export async function importJourney(
             }
           }
           try {
-            await putNode(newUuid, nodeType, nodeData);
+            await putNode({ nodeId: newUuid, nodeType, nodeData, state });
           } catch (nodeImportError2) {
             printMessage(nodeImportError2.response.data, 'error');
             throw new Error(
@@ -1050,7 +1393,9 @@ export async function importJourney(
     state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY ||
     state.getDeploymentType() === globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY
   ) {
-    treeObject.tree.identityResource = `managed/${getRealmManagedUser()}`;
+    treeObject.tree.identityResource = `managed/${getRealmManagedUser({
+      state,
+    })}`;
     if (verbose)
       printMessage(
         `    - identityResource: ${treeObject.tree.identityResource}`,
@@ -1061,7 +1406,11 @@ export async function importJourney(
 
   delete treeObject.tree._rev;
   try {
-    await putTree(treeObject.tree._id as string, treeObject.tree);
+    await putTree({
+      treeId: treeObject.tree._id as string,
+      treeData: treeObject.tree,
+      state,
+    });
     if (verbose) printMessage(`\n    - Done`, 'info', true);
   } catch (importError) {
     if (
@@ -1082,7 +1431,11 @@ export async function importJourney(
         }
       }
       try {
-        await putTree(treeObject.tree._id as string, treeObject.tree);
+        await putTree({
+          treeId: treeObject.tree._id as string,
+          treeData: treeObject.tree,
+          state,
+        });
         if (verbose) printMessage(`\n    - Done`, 'info', true);
       } catch (importError2) {
         printMessage(importError2.response.data, 'error');
@@ -1177,11 +1530,18 @@ export async function resolveDependencies(
  * @param {Object} treesMap map of trees object
  * @param {TreeImportOptions} options import options
  */
-export async function importAllJourneys(
-  treesMap: MultiTreeExportInterface,
-  options: TreeImportOptions
-) {
-  const installedJourneys = (await getTrees()).result.map((x) => x._id);
+export async function importAllJourneys({
+  treesMap,
+  options,
+  state,
+}: {
+  treesMap: MultiTreeExportInterface;
+  options: TreeImportOptions;
+  state: State;
+}) {
+  const installedJourneys = (await getTrees({ state })).result.map(
+    (x) => x._id
+  );
   const unresolvedJourneys = {};
   const resolvedJourneys = [];
   createProgressIndicator(undefined, 'Resolving dependencies', 'indeterminate');
@@ -1211,7 +1571,7 @@ export async function importAllJourneys(
   for (const tree of resolvedJourneys) {
     try {
       // eslint-disable-next-line no-await-in-loop
-      await importJourney(treesMap[tree], options);
+      await importJourney({ treeObject: treesMap[tree], options, state });
       updateProgressIndicator(`${tree}`);
     } catch (error) {
       printMessage(`\n${error.message}`, 'error');
@@ -1259,11 +1619,15 @@ export function getNodeRef(
  * @returns {TreeExportResolverInterface} tree export
  */
 export const onlineTreeExportResolver: TreeExportResolverInterface =
-  async function (treeId: string) {
+  async function (treeId: string, state: State) {
     debugMessage(`onlineTreeExportResolver(${treeId})`);
-    return await exportJourney(treeId, {
-      deps: false,
-      useStringArrays: false,
+    return await exportJourney({
+      treeId,
+      options: {
+        deps: false,
+        useStringArrays: false,
+      },
+      state,
     });
   };
 
@@ -1274,9 +1638,9 @@ export const onlineTreeExportResolver: TreeExportResolverInterface =
  * @returns {TreeExportResolverInterface} tree export
  */
 export const fileByIdTreeExportResolver: TreeExportResolverInterface =
-  async function (treeId: string) {
+  async function (treeId: string, state: State) {
     debugMessage(`fileByIdTreeExportResolver(${treeId})`);
-    let treeExport = createSingleTreeExportTemplate();
+    let treeExport = createSingleTreeExportTemplate({ state });
     const files = findFilesByName(getTypedFilename(`${treeId}`, 'journey'));
     try {
       const file = files.pop();
@@ -1307,13 +1671,14 @@ export const fileByIdTreeExportResolver: TreeExportResolverInterface =
  * @returns {TreeExportResolverInterface} tree export resolver
  */
 export function createFileParamTreeExportResolver(
-  file: string
+  file: string,
+  state: State
 ): TreeExportResolverInterface {
   const fileParamTreeExportResolver: TreeExportResolverInterface =
     async function (treeId: string) {
       debugMessage(`fileParamTreeExportResolver(${treeId})`);
       let treeExport: SingleTreeExportInterface =
-        createSingleTreeExportTemplate();
+        createSingleTreeExportTemplate({ state });
       try {
         const jsonData = JSON.parse(fs.readFileSync(file, 'utf8'));
         // did we resolve the tree we were asked to resolved?
@@ -1326,7 +1691,7 @@ export function createFileParamTreeExportResolver(
         }
         // fall back to fileByIdTreeExportResolver
         else {
-          treeExport = await fileByIdTreeExportResolver(treeId);
+          treeExport = await fileByIdTreeExportResolver(treeId, state);
         }
       } catch (error) {
         //
@@ -1344,11 +1709,17 @@ export function createFileParamTreeExportResolver(
  * @param {TreeExportResolverInterface} resolveTreeExport tree export resolver callback function
  * @returns {Promise<TreeDependencyMapInterface>} a promise that resolves to a tree dependency map
  */
-export async function getTreeDescendents(
-  treeExport: SingleTreeExportInterface,
-  resolveTreeExport: TreeExportResolverInterface = onlineTreeExportResolver,
-  resolvedTreeIds: string[] = []
-): Promise<TreeDependencyMapInterface> {
+export async function getTreeDescendents({
+  treeExport,
+  resolveTreeExport = onlineTreeExportResolver,
+  resolvedTreeIds = [],
+  state,
+}: {
+  treeExport: SingleTreeExportInterface;
+  resolveTreeExport: TreeExportResolverInterface;
+  resolvedTreeIds: string[];
+  state: State;
+}): Promise<TreeDependencyMapInterface> {
   debugMessage(
     `getTreeDependencies(${treeExport.tree._id}, [${resolvedTreeIds.join(
       ', '
@@ -1367,15 +1738,16 @@ export async function getTreeDescendents(
       node.nodeType === 'InnerTreeEvaluatorNode' &&
       !resolvedTreeIds.includes(innerTreeId)
     ) {
-      const innerTreeExport = await resolveTreeExport(innerTreeId);
+      const innerTreeExport = await resolveTreeExport(innerTreeId, state);
       debugMessage(`resolved inner tree: ${innerTreeExport.tree._id}`);
       // resolvedTreeIds.push(innerTreeId);
       dependencies.push(
-        await getTreeDescendents(
-          innerTreeExport,
+        await getTreeDescendents({
+          treeExport: innerTreeExport,
           resolveTreeExport,
-          resolvedTreeIds
-        )
+          resolvedTreeIds,
+          state,
+        })
       );
     }
   }
@@ -1387,11 +1759,15 @@ export async function getTreeDescendents(
  * Find all node configuration objects that are no longer referenced by any tree
  * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
  */
-export async function findOrphanedNodes(): Promise<unknown[]> {
+export async function findOrphanedNodes({
+  state,
+}: {
+  state: State;
+}): Promise<unknown[]> {
   const allNodes = [];
   const orphanedNodes = [];
   let types = [];
-  const allJourneys = (await getTrees()).result;
+  const allJourneys = (await getTrees({ state })).result;
   let errorMessage = '';
   const errorTypes = [];
 
@@ -1401,7 +1777,7 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
     'indeterminate'
   );
   try {
-    types = (await getNodeTypes()).result;
+    types = (await getNodeTypes({ state })).result;
   } catch (error) {
     printMessage('Error retrieving all available node types:', 'error');
     printMessage(error.response.data, 'error');
@@ -1410,7 +1786,8 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
   for (const type of types) {
     try {
       // eslint-disable-next-line no-await-in-loop, no-loop-func
-      const nodes = (await getNodesByType(type._id)).result;
+      const nodes = (await getNodesByType({ nodeType: type._id, state }))
+        .result;
       for (const node of nodes) {
         allNodes.push(node);
         updateProgressIndicator(
@@ -1445,7 +1822,11 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
         updateProgressIndicator(`${activeNodes.length} active nodes`);
         const node = journey.nodes[nodeId];
         if (containerNodes.includes(node.nodeType)) {
-          const containerNode = await getNode(nodeId, node.nodeType);
+          const containerNode = await getNode({
+            nodeId,
+            nodeType: node.nodeType,
+            state,
+          });
           for (const innerNode of containerNode.nodes) {
             activeNodes.push(innerNode._id);
             updateProgressIndicator(`${activeNodes.length} active nodes`);
@@ -1471,19 +1852,27 @@ export async function findOrphanedNodes(): Promise<unknown[]> {
 
 /**
  * Remove orphaned nodes
- * @param {[Object]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
- * @returns {Promise<unknown[]>} a promise that resolves to an array nodes that encountered errors deleting
+ * @param {NodeSkeleton[]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
+ * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array nodes that encountered errors deleting
  */
-export async function removeOrphanedNodes(
-  orphanedNodes: unknown[]
-): Promise<unknown[]> {
+export async function removeOrphanedNodes({
+  orphanedNodes,
+  state,
+}: {
+  orphanedNodes: NodeSkeleton[];
+  state: State;
+}): Promise<NodeSkeleton[]> {
   const errorNodes = [];
   createProgressIndicator(orphanedNodes.length, 'Removing orphaned nodes...');
   for (const node of orphanedNodes) {
     updateProgressIndicator(`Removing ${node['_id']}...`);
     try {
       // eslint-disable-next-line no-await-in-loop
-      await deleteNode(node['_id'], node['_type']['_id']);
+      await deleteNode({
+        nodeId: node['_id'],
+        nodeType: node['_type']['_id'],
+        state,
+      });
     } catch (deleteError) {
       errorNodes.push(node);
       printMessage(` ${deleteError}`, 'error');
@@ -1498,12 +1887,18 @@ export async function removeOrphanedNodes(
  * @param {SingleTreeExportInterface} journey Journey/tree configuration object
  * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
  */
-export function isCustomJourney(journey: SingleTreeExportInterface) {
+export function isCustomJourney({
+  journey,
+  state,
+}: {
+  journey: SingleTreeExportInterface;
+  state: State;
+}) {
   const nodeList = Object.values(journey.nodes).concat(
     Object.values(journey.innerNodes)
   );
   for (const node of nodeList) {
-    if (isCustomNode(node['_type']['_id'])) {
+    if (isCustomNode({ nodeType: node['_type']['_id'], state })) {
       return true;
     }
   }
@@ -1553,12 +1948,16 @@ export function isCloudOnlyJourney(journey: SingleTreeExportInterface) {
  * @param {SingleTreeExportInterface} journey journey export data
  * @returns {JourneyClassification[]} an array of one or multiple classifications
  */
-export function getJourneyClassification(
-  journey: SingleTreeExportInterface
-): JourneyClassification[] {
+export function getJourneyClassification({
+  journey,
+  state,
+}: {
+  journey: SingleTreeExportInterface;
+  state: State;
+}): JourneyClassification[] {
   const classifications: JourneyClassification[] = [];
   const premium = isPremiumJourney(journey);
-  const custom = isCustomJourney(journey);
+  const custom = isCustomJourney({ journey, state });
   const cloud = isCloudOnlyJourney(journey);
   if (custom) {
     classifications.push(JourneyClassification.CUSTOM);
@@ -1576,10 +1975,15 @@ export function getJourneyClassification(
  * @param {string} journeyId journey id/name
  * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
  */
-export async function deleteJourney(
-  journeyId: string,
-  options: { deep: boolean; verbose: boolean; progress?: boolean }
-) {
+export async function deleteJourney({
+  journeyId,
+  options,
+  state,
+}: {
+  journeyId: string;
+  options: { deep: boolean; verbose: boolean; progress?: boolean };
+  state: State;
+}) {
   const { deep, verbose } = options;
   const progress = !('progress' in options) ? true : options.progress;
   const status = { nodes: {} };
@@ -1590,7 +1994,7 @@ export async function deleteJourney(
       'indeterminate'
     );
   if (progress && verbose) stopProgressIndicator();
-  return deleteTree(journeyId)
+  return deleteTree({ treeId: journeyId, state })
     .then(async (deleteTreeResponse) => {
       status['status'] = 'success';
       const nodePromises = [];
@@ -1603,10 +2007,11 @@ export async function deleteJourney(
           if (containerNodes.includes(nodeObject['nodeType'])) {
             try {
               // eslint-disable-next-line no-await-in-loop
-              const containerNode = await getNode(
+              const containerNode = await getNode({
                 nodeId,
-                nodeObject['nodeType']
-              );
+                nodeType: nodeObject['nodeType'],
+                state,
+              });
               if (verbose)
                 printMessage(
                   `Read ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
@@ -1614,7 +2019,11 @@ export async function deleteJourney(
                 );
               for (const innerNodeObject of containerNode.nodes) {
                 nodePromises.push(
-                  deleteNode(innerNodeObject._id, innerNodeObject.nodeType)
+                  deleteNode({
+                    nodeId: innerNodeObject._id,
+                    nodeType: innerNodeObject.nodeType,
+                    state,
+                  })
                     .then((response2) => {
                       status.nodes[innerNodeObject._id] = { status: 'success' };
                       if (verbose)
@@ -1639,7 +2048,11 @@ export async function deleteJourney(
               }
               // finally delete the container node
               nodePromises.push(
-                deleteNode(containerNode._id, containerNode['_type']['_id'])
+                deleteNode({
+                  nodeId: containerNode._id,
+                  nodeType: containerNode['_type']['_id'],
+                  state,
+                })
                   .then((response2) => {
                     status.nodes[containerNode._id] = { status: 'success' };
                     if (verbose)
@@ -1684,7 +2097,7 @@ export async function deleteJourney(
           } else {
             // delete the node
             nodePromises.push(
-              deleteNode(nodeId, nodeObject['nodeType'])
+              deleteNode({ nodeId, nodeType: nodeObject['nodeType'], state })
                 .then((response) => {
                   status.nodes[nodeId] = { status: 'success' };
                   if (verbose)
@@ -1749,18 +2162,28 @@ export async function deleteJourney(
  * Delete all journeys
  * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
  */
-export async function deleteJourneys(options: {
-  deep: boolean;
-  verbose: boolean;
+export async function deleteJourneys({
+  options,
+  state,
+}: {
+  options?: {
+    deep: boolean;
+    verbose: boolean;
+  };
+  state: State;
 }) {
   const { verbose } = options;
   const status = {};
-  const trees = (await getTrees()).result;
+  const trees = (await getTrees({ state })).result;
   createProgressIndicator(trees.length, 'Deleting journeys...');
   for (const tree of trees) {
     if (verbose) printMessage('');
     options['progress'] = false;
-    status[tree._id] = await deleteJourney(tree._id, options);
+    status[tree._id] = await deleteJourney({
+      journeyId: tree._id,
+      options,
+      state,
+    });
     updateProgressIndicator(`${tree._id}`);
     // introduce a 100ms wait to allow the progress bar to update before the next verbose message prints from the async function
     if (verbose)
@@ -1794,12 +2217,22 @@ export async function deleteJourneys(options: {
  * @param journeyId journey id/name
  * @returns {Promise<boolean>} true if the operation was successful, false otherwise
  */
-export async function enableJourney(journeyId: string): Promise<boolean> {
+export async function enableJourney({
+  journeyId,
+  state,
+}: {
+  journeyId: string;
+  state: State;
+}): Promise<boolean> {
   try {
-    const treeObject = await getTree(journeyId);
+    const treeObject = await getTree({ id: journeyId, state });
     treeObject['enabled'] = true;
     delete treeObject._rev;
-    const newTreeObject = await putTree(journeyId, treeObject);
+    const newTreeObject = await putTree({
+      treeId: journeyId,
+      treeData: treeObject,
+      state,
+    });
     return newTreeObject['enabled'] === true;
   } catch (error) {
     printMessage(error.response.data, 'error');
@@ -1812,12 +2245,22 @@ export async function enableJourney(journeyId: string): Promise<boolean> {
  * @param journeyId journey id/name
  * @returns {Promise<boolean>} true if the operation was successful, false otherwise
  */
-export async function disableJourney(journeyId: string): Promise<boolean> {
+export async function disableJourney({
+  journeyId,
+  state,
+}: {
+  journeyId: string;
+  state: State;
+}): Promise<boolean> {
   try {
-    const treeObject = await getTree(journeyId);
+    const treeObject = await getTree({ id: journeyId, state });
     treeObject['enabled'] = false;
     delete treeObject._rev;
-    const newTreeObject = await putTree(journeyId, treeObject);
+    const newTreeObject = await putTree({
+      treeId: journeyId,
+      treeData: treeObject,
+      state,
+    });
     return newTreeObject['enabled'] === false;
   } catch (error) {
     printMessage(error.response.data, 'error');

@@ -2,18 +2,34 @@ import url from 'url';
 import { createHash, randomBytes } from 'crypto';
 import readlineSync from 'readline-sync';
 import { encodeBase64Url } from '../api/utils/Base64';
-import * as state from '../shared/State';
+import State from '../shared/State';
 import * as globalConfig from '../storage/StaticStorage';
-import { debugMessage, printMessage, verboseMessage } from './utils/Console';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
 import { step } from '../api/AuthenticateApi';
 import { accessToken, authorize } from '../api/OAuth2OIDCApi';
 import { getConnectionProfile } from './ConnectionProfileOps';
 import { v4 } from 'uuid';
 import { parseUrl } from '../api/utils/ApiUtils';
-import { JwkRsa, createSignedJwtToken } from './JoseOps';
+import { createSignedJwtToken } from './JoseOps';
 import { getServiceAccount } from './cloud/ServiceAccountOps';
 import { isValidUrl } from './utils/OpsUtils';
+import { debugMessage, printMessage, verboseMessage } from './utils/Console';
+
+export default class AuthenticateOps {
+  state: State;
+  constructor(state: State) {
+    this.state = state;
+  }
+
+  /**
+   * Get tokens
+   * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
+   * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
+   */
+  getTokens(forceLoginAsUser = false) {
+    return getTokens({ forceLoginAsUser, state: this.state });
+  }
+}
 
 const adminClientPassword = 'doesnotmatter';
 const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
@@ -26,28 +42,24 @@ let adminClientId = 'idmAdminClient';
 
 /**
  * Helper function to get cookie name
- * @returns {String} cookie name
+ * @param {State} state library state
+ * @returns {string} cookie name
  */
-async function determineCookieName() {
-  try {
-    const data = await getServerInfo();
-    debugMessage(
-      `AuthenticateOps.getCookieName: cookieName=${data.cookieName}`
-    );
-    return data.cookieName;
-  } catch (error) {
-    printMessage(`Error getting cookie name: ${error}`, 'error');
-    debugMessage(error.stack);
-    return null;
-  }
+async function determineCookieName(state: State) {
+  const data = await getServerInfo({ state });
+  debugMessage(
+    `AuthenticateOps.determineCookieName: cookieName=${data.cookieName}`
+  );
+  return data.cookieName;
 }
 
 /**
  * Helper function to determine if this is a setup mfa prompt in the ID Cloud tenant admin login journey
  * @param {Object} payload response from the previous authentication journey step
+ * @param {State} state library state
  * @returns {Object} an object indicating if 2fa is required and the original payload
  */
-function checkAndHandle2FA(payload) {
+function checkAndHandle2FA(payload, state: State) {
   debugMessage(`AuthenticateOps.checkAndHandle2FA: start`);
   // let skippable = false;
   if ('callbacks' in payload) {
@@ -152,30 +164,26 @@ function checkAndHandle2FA(payload) {
 
 /**
  * Helper function to set the default realm by deployment type
- * @param {string} deploymentType deployment type
+ * @param {State} state library state
  */
-function determineDefaultRealm(deploymentType: string) {
+function determineDefaultRealm(state: State) {
   if (
     !state.getRealm() ||
     state.getRealm() === globalConfig.DEFAULT_REALM_KEY
   ) {
-    state.setRealm(globalConfig.DEPLOYMENT_TYPE_REALM_MAP[deploymentType]);
+    state.setRealm(
+      globalConfig.DEPLOYMENT_TYPE_REALM_MAP[state.getDeploymentType()]
+    );
   }
 }
 
 /**
  * Helper function to determine the deployment type
+ * @param {State} state library state
  * @returns {Promise<string>} deployment type
  */
-async function determineDeploymentType(): Promise<string> {
+async function determineDeploymentType(state: State): Promise<string> {
   const cookieValue = state.getCookieValue();
-  // https://bugster.forgerock.org/jira/browse/FRAAS-13018
-  // There is a chance that this will be blocked due to security concerns and thus is probably best not to keep active
-  // if (!cookieValue && getUseBearerTokenForAmApis()) {
-  //   const token = await getTokenInfo();
-  //   cookieValue = token.sessionToken;
-  //   setCookieValue(cookieValue);
-  // }
 
   // if we are using a service account, we know it's cloud
   if (state.getUseBearerTokenForAmApis())
@@ -201,7 +209,12 @@ async function determineDeploymentType(): Promise<string> {
 
   let deploymentType = globalConfig.CLASSIC_DEPLOYMENT_TYPE_KEY;
   try {
-    await authorize(bodyFormData, config);
+    await authorize({
+      amBaseUrl: state.getHost(),
+      data: bodyFormData,
+      config,
+      state,
+    });
   } catch (e) {
     // debugMessage(e.response);
     if (
@@ -213,7 +226,12 @@ async function determineDeploymentType(): Promise<string> {
     } else {
       try {
         bodyFormData = `redirect_uri=${redirectURL}&scope=${forgeopsIdmAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
-        await authorize(bodyFormData, config);
+        await authorize({
+          amBaseUrl: state.getHost(),
+          data: bodyFormData,
+          config,
+          state,
+        });
       } catch (ex) {
         if (
           ex.response?.status === 302 &&
@@ -236,7 +254,7 @@ async function determineDeploymentType(): Promise<string> {
  * @param {Object} versionInfo version info object
  * @returns {String} semantic version
  */
-async function getSemanticVersion(versionInfo) {
+function getSemanticVersion(versionInfo) {
   if ('version' in versionInfo) {
     const versionString = versionInfo.version;
     const rx = /([\d]\.[\d]\.[\d](\.[\d])*)/g;
@@ -248,26 +266,24 @@ async function getSemanticVersion(versionInfo) {
 
 /**
  * Helper function to authenticate and obtain and store session cookie
+ * @param {State} state library state
  * @returns {string} Session token or null
  */
-async function authenticate(
-  username: string,
-  password: string
-): Promise<string> {
+async function authenticate(state: State): Promise<string> {
   debugMessage(`AuthenticateOps.authenticate: start`);
   const config = {
     headers: {
-      'X-OpenAM-Username': username,
-      'X-OpenAM-Password': password,
+      'X-OpenAM-Username': state.getUsername(),
+      'X-OpenAM-Password': state.getPassword(),
     },
   };
-  let response = await step({}, config);
+  let response = await step({ body: {}, config, state });
 
   let skip2FA = null;
   let steps = 0;
   const maxSteps = 3;
   do {
-    skip2FA = checkAndHandle2FA(response);
+    skip2FA = checkAndHandle2FA(response, state);
 
     // throw exception if 2fa required but factor not supported by frodo (e.g. WebAuthN)
     if (!skip2FA.supported) {
@@ -276,7 +292,7 @@ async function authenticate(
 
     if (skip2FA.nextStep) {
       steps++;
-      response = await step(skip2FA.payload);
+      response = await step({ body: skip2FA.payload, state });
     }
 
     if ('tokenId' in response) {
@@ -295,9 +311,15 @@ async function authenticate(
  * @param {string} redirectURL oauth2 redirect uri
  * @param {string} codeChallenge PKCE code challenge
  * @param {string} codeChallengeMethod PKCE code challenge method
+ * @param {State} state library state
  * @returns {string} oauth2 authorization code or null
  */
-async function getAuthCode(redirectURL, codeChallenge, codeChallengeMethod) {
+async function getAuthCode(
+  redirectURL: string,
+  codeChallenge: string,
+  codeChallengeMethod: string,
+  state: State
+) {
   try {
     const bodyFormData = `redirect_uri=${redirectURL}&scope=${
       state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY
@@ -312,7 +334,12 @@ async function getAuthCode(redirectURL, codeChallenge, codeChallengeMethod) {
     };
     let response = undefined;
     try {
-      response = await authorize(bodyFormData, config);
+      response = await authorize({
+        amBaseUrl: state.getHost(),
+        data: bodyFormData,
+        config,
+        state,
+      });
     } catch (error) {
       response = error.response;
     }
@@ -341,9 +368,10 @@ async function getAuthCode(redirectURL, codeChallenge, codeChallengeMethod) {
 
 /**
  * Helper function to obtain oauth2 access token
+ * @param {State} state library state
  * @returns {Promise<string | null>} access token or null
  */
-async function getAccessTokenForUser(): Promise<string | null> {
+async function getAccessTokenForUser(state: State): Promise<string | null> {
   debugMessage(`AuthenticateOps.getAccessTokenForUser: start`);
   try {
     const verifier = encodeBase64Url(randomBytes(32));
@@ -352,7 +380,12 @@ async function getAccessTokenForUser(): Promise<string | null> {
     );
     const challengeMethod = 'S256';
     const redirectURL = url.resolve(state.getHost(), redirectUrlTemplate);
-    const authCode = await getAuthCode(redirectURL, challenge, challengeMethod);
+    const authCode = await getAuthCode(
+      redirectURL,
+      challenge,
+      challengeMethod,
+      state
+    );
     if (authCode == null) {
       printMessage('error getting auth code', 'error');
       return null;
@@ -366,10 +399,20 @@ async function getAccessTokenForUser(): Promise<string | null> {
         },
       };
       const bodyFormData = `redirect_uri=${redirectURL}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
-      response = await accessToken(bodyFormData, config);
+      response = await accessToken({
+        amBaseUrl: state.getHost(),
+        data: bodyFormData,
+        config,
+        state,
+      });
     } else {
       const bodyFormData = `client_id=${adminClientId}&redirect_uri=${redirectURL}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
-      response = await accessToken(bodyFormData);
+      response = await accessToken({
+        amBaseUrl: state.getHost(),
+        data: bodyFormData,
+        config: {},
+        state,
+      });
     }
     if ('access_token' in response.data) {
       debugMessage(`AuthenticateOps.getAccessTokenForUser: end with token`);
@@ -384,8 +427,8 @@ async function getAccessTokenForUser(): Promise<string | null> {
   return null;
 }
 
-function createPayload(serviceAccountId: string) {
-  const u = parseUrl(state.getHost());
+function createPayload(serviceAccountId: string, host: string) {
+  const u = parseUrl(host);
   const aud = `${u.origin}:${
     u.port ? u.port : u.protocol === 'https' ? '443' : '80'
   }${u.pathname}/oauth2/access_token`;
@@ -407,23 +450,26 @@ function createPayload(serviceAccountId: string) {
 
 /**
  * Get access token for service account
- * @param {string} serviceAccountId UUID of service account
- * @param {JwkRsa} jwk Java Wek Key
+ * @param {State} state library state
  * @returns {string | null} Access token or null
  */
 export async function getAccessTokenForServiceAccount(
-  serviceAccountId: string,
-  jwk: JwkRsa
+  state: State
 ): Promise<string | null> {
   debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: start`);
-  const payload = createPayload(serviceAccountId);
+  const payload = createPayload(state.getServiceAccountId(), state.getHost());
   debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: payload:`);
   debugMessage(payload);
-  const jwt = await createSignedJwtToken(payload, jwk);
+  const jwt = await createSignedJwtToken(payload, state.getServiceAccountJwk());
   debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: jwt:`);
   debugMessage(jwt);
   const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${serviceAccountScopes}`;
-  const response = await accessToken(bodyFormData);
+  const response = await accessToken({
+    amBaseUrl: state.getHost(),
+    data: bodyFormData,
+    config: {},
+    state,
+  });
   if ('access_token' in response.data) {
     debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: token:`);
     debugMessage(response.data.access_token);
@@ -437,19 +483,25 @@ export async function getAccessTokenForServiceAccount(
   return null;
 }
 
-async function determineDeploymentTypeAndDefaultRealmAndVersion() {
+/**
+ * Helper function to determine deployment type, default realm, and version and update library state
+ * @param state library state
+ */
+async function determineDeploymentTypeAndDefaultRealmAndVersion(
+  state: State
+): Promise<void> {
   debugMessage(
     `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: start`
   );
   if (!state.getDeploymentType()) {
-    state.setDeploymentType(await determineDeploymentType());
+    state.setDeploymentType(await determineDeploymentType(state));
   }
-  determineDefaultRealm(state.getDeploymentType());
+  determineDefaultRealm(state);
   debugMessage(
     `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: realm=${state.getRealm()}, type=${state.getDeploymentType()}`
   );
 
-  const versionInfo = await getServerVersionInfo();
+  const versionInfo = await getServerVersionInfo({ state });
 
   // https://github.com/rockcarver/frodo-cli/issues/109
   debugMessage(`Full version: ${versionInfo.fullVersion}`);
@@ -461,10 +513,20 @@ async function determineDeploymentTypeAndDefaultRealmAndVersion() {
   );
 }
 
-async function getLoggedInSubject(): Promise<string> {
+/**
+ * Get logged-in subject
+ * @param {State} state library state
+ * @returns {string} a string identifying subject type and id
+ */
+async function getLoggedInSubject(state: State): Promise<string> {
   let subjectString = `user ${state.getUsername()}`;
   if (state.getUseBearerTokenForAmApis()) {
-    const name = (await getServiceAccount(state.getServiceAccountId())).name;
+    const name = (
+      await getServiceAccount({
+        serviceAccountId: state.getServiceAccountId(),
+        state,
+      })
+    ).name;
     subjectString = `service account ${name} [${state.getServiceAccountId()}]`;
   }
   return subjectString;
@@ -473,9 +535,16 @@ async function getLoggedInSubject(): Promise<string> {
 /**
  * Get tokens
  * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
+ * @param {State} state library state
  * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
  */
-export async function getTokens(forceLoginAsUser = false): Promise<boolean> {
+export async function getTokens({
+  forceLoginAsUser = false,
+  state,
+}: {
+  forceLoginAsUser: boolean;
+  state: State;
+}): Promise<boolean> {
   debugMessage(`AuthenticateOps.getTokens: start`);
   if (!state.getHost()) {
     printMessage(
@@ -492,7 +561,7 @@ export async function getTokens(forceLoginAsUser = false): Promise<boolean> {
       !state.getServiceAccountId() &&
       !state.getServiceAccountJwk()
     ) {
-      const conn = await getConnectionProfile();
+      const conn = await getConnectionProfile(state);
       if (conn) {
         state.setHost(conn.tenant);
         state.setUsername(conn.username);
@@ -510,7 +579,7 @@ export async function getTokens(forceLoginAsUser = false): Promise<boolean> {
 
     // if host is not a valid URL, try to locate a valid URL from connections.json
     if (!isValidUrl(state.getHost())) {
-      const conn = await getConnectionProfile();
+      const conn = await getConnectionProfile(state);
       if (conn) {
         state.setHost(conn.tenant);
       } else {
@@ -519,7 +588,7 @@ export async function getTokens(forceLoginAsUser = false): Promise<boolean> {
     }
 
     // now that we have the full tenant URL we can lookup the cookie name
-    state.setCookieName(await determineCookieName());
+    state.setCookieName(await determineCookieName(state));
 
     // use service account to login?
     if (
@@ -531,15 +600,13 @@ export async function getTokens(forceLoginAsUser = false): Promise<boolean> {
         `AuthenticateOps.getTokens: Authenticating with service account ${state.getServiceAccountId()}`
       );
       try {
-        const token = await getAccessTokenForServiceAccount(
-          state.getServiceAccountId(),
-          state.getServiceAccountJwk()
-        );
+        const token = await getAccessTokenForServiceAccount(state);
         state.setBearerToken(token);
         state.setUseBearerTokenForAmApis(true);
-        await determineDeploymentTypeAndDefaultRealmAndVersion();
+        await determineDeploymentTypeAndDefaultRealmAndVersion(state);
       } catch (saErr) {
         debugMessage(saErr.response?.data || saErr);
+        debugMessage(state);
         throw new Error(
           `Service account login error: ${
             saErr.response?.data?.error_description ||
@@ -554,12 +621,9 @@ export async function getTokens(forceLoginAsUser = false): Promise<boolean> {
       debugMessage(
         `AuthenticateOps.getTokens: Authenticating with user account ${state.getUsername()}`
       );
-      const token = await authenticate(
-        state.getUsername(),
-        state.getPassword()
-      );
+      const token = await authenticate(state);
       if (token) state.setCookieValue(token);
-      await determineDeploymentTypeAndDefaultRealmAndVersion();
+      await determineDeploymentTypeAndDefaultRealmAndVersion(state);
       if (
         state.getCookieValue() &&
         !state.getBearerToken() &&
@@ -567,7 +631,7 @@ export async function getTokens(forceLoginAsUser = false): Promise<boolean> {
           state.getDeploymentType() ===
             globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY)
       ) {
-        const accessToken = await getAccessTokenForUser();
+        const accessToken = await getAccessTokenForUser(state);
         if (accessToken) state.setBearerToken(accessToken);
       }
     }
@@ -584,7 +648,7 @@ export async function getTokens(forceLoginAsUser = false): Promise<boolean> {
       printMessage(
         `Connected to ${state.getHost()} [${
           state.getRealm() ? state.getRealm() : 'root'
-        }] as ${await getLoggedInSubject()}`,
+        }] as ${await getLoggedInSubject(state)}`,
         'info'
       );
       debugMessage(`AuthenticateOps.getTokens: end with tokens`);
