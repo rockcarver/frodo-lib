@@ -1,12 +1,35 @@
 import { queryAllManagedObjectsByType } from '../api/IdmConfigApi';
-import * as state from '../shared/State';
+import State from '../shared/State';
 import { printMessage } from './utils/Console';
+
+export default class OrganizationOps {
+  state: State;
+  constructor(state: State) {
+    this.state = state;
+  }
+
+  /**
+   * Get organization managed object type
+   * @returns {String} organization managed object type in this realm
+   */
+  getRealmManagedOrganization() {
+    return getRealmManagedOrganization({ state: this.state });
+  }
+
+  /**
+   * Get organizations
+   * @returns {Promise} promise resolving to an object containing an array of organization objects
+   */
+  async getOrganizations() {
+    return getOrganizations({ state: this.state });
+  }
+}
 
 /**
  * Get organization managed object type
  * @returns {String} organization managed object type in this realm
  */
-export function getRealmManagedOrganization() {
+export function getRealmManagedOrganization({ state }: { state: State }) {
   let realmManagedOrg = 'organization';
   if (state.getDeploymentType() === global.CLOUD_DEPLOYMENT_TYPE_KEY) {
     realmManagedOrg = `${state.getRealm()}_organization`;
@@ -18,7 +41,7 @@ export function getRealmManagedOrganization() {
  * Get organizations
  * @returns {Promise} promise resolving to an object containing an array of organization objects
  */
-export async function getOrganizations() {
+export async function getOrganizations({ state }: { state: State }) {
   const orgs = [];
   let result = {
     result: [],
@@ -32,15 +55,18 @@ export async function getOrganizations() {
     do {
       try {
         // eslint-disable-next-line no-await-in-loop
-        result = await queryAllManagedObjectsByType(
-          getRealmManagedOrganization(),
-          ['name', 'parent/*/name', 'children/*/name'],
-          result.pagedResultsCookie
-        );
+        result = await queryAllManagedObjectsByType({
+          type: getRealmManagedOrganization({ state }),
+          fields: ['name', 'parent/*/name', 'children/*/name'],
+          pageCookie: result.pagedResultsCookie,
+          state,
+        });
       } catch (queryAllManagedObjectsByTypeError) {
         printMessage(queryAllManagedObjectsByTypeError, 'error');
         printMessage(
-          `Error querying ${getRealmManagedOrganization()} objects: ${queryAllManagedObjectsByTypeError}`,
+          `Error querying ${getRealmManagedOrganization({
+            state,
+          })} objects: ${queryAllManagedObjectsByTypeError}`,
           'error'
         );
       }
@@ -55,7 +81,7 @@ export async function getOrganizations() {
 }
 
 // unfinished work
-export async function listOrganizationsTopDown() {
+export async function listOrganizationsTopDown({ state }: { state: State }) {
   const orgs = [];
   let result = {
     result: [],
@@ -68,15 +94,18 @@ export async function listOrganizationsTopDown() {
   do {
     try {
       // eslint-disable-next-line no-await-in-loop
-      result = await queryAllManagedObjectsByType(
-        getRealmManagedOrganization(),
-        ['name', 'parent/*/name', 'children/*/name'],
-        result.pagedResultsCookie
-      );
+      result = await queryAllManagedObjectsByType({
+        type: getRealmManagedOrganization({ state }),
+        fields: ['name', 'parent/*/name', 'children/*/name'],
+        pageCookie: result.pagedResultsCookie,
+        state,
+      });
     } catch (queryAllManagedObjectsByTypeError) {
       printMessage(queryAllManagedObjectsByTypeError, 'error');
       printMessage(
-        `Error querying ${getRealmManagedOrganization()} objects: ${queryAllManagedObjectsByTypeError}`,
+        `Error querying ${getRealmManagedOrganization({
+          state,
+        })} objects: ${queryAllManagedObjectsByTypeError}`,
         'error'
       );
     }

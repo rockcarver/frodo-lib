@@ -10,6 +10,36 @@ import {
   RestartStatus,
 } from '../../api/cloud/StartupApi';
 import { getVariables } from '../../api/cloud/VariablesApi';
+import State from '../../shared/State';
+
+export default class StartupOps {
+  state: State;
+  constructor(state: State) {
+    this.state = state;
+  }
+
+  /**
+   * Check for updates that need applying
+   * @returns {Promise<Updates>} true if there are updates that need to be applied, false otherwise
+   */
+  async checkForUpdates(): Promise<Updates> {
+    return checkForUpdates({ state: this.state });
+  }
+
+  /**
+   * Apply updates
+   * @param {boolean} wait wait for the operation to complete or not
+   * @param {number} timeout timeout in milliseconds
+   * @returns {Promise<boolean>} true if successful, false otherwise
+   */
+  async applyUpdates(wait: boolean, timeout: number = 10 * 60 * 1000) {
+    return applyUpdates({
+      wait,
+      timeout,
+      state: this.state,
+    });
+  }
+}
 
 /**
  * Updates that need to be applied.
@@ -29,7 +59,11 @@ export interface Updates {
  * Check for updates that need applying
  * @returns {Promise<boolean>} true if there are updates that need to be applied, false otherwise
  */
-export async function checkForUpdates(): Promise<Updates> {
+export async function checkForUpdates({
+  state,
+}: {
+  state: State;
+}): Promise<Updates> {
   const updates: Updates = { secrets: [], variables: [] };
   createProgressIndicator(
     undefined,
@@ -37,10 +71,10 @@ export async function checkForUpdates(): Promise<Updates> {
     'indeterminate'
   );
   try {
-    updates.secrets = (await getSecrets()).result.filter(
+    updates.secrets = (await getSecrets({ state })).result.filter(
       (secret: { loaded: unknown }) => !secret.loaded
     );
-    updates.variables = (await getVariables()).result.filter(
+    updates.variables = (await getVariables({ state })).result.filter(
       (variable: { loaded: unknown }) => !variable.loaded
     );
   } catch (error) {
@@ -67,10 +101,18 @@ export async function checkForUpdates(): Promise<Updates> {
  * @param {number} timeout timeout in milliseconds
  * @returns {Promise<boolean>} true if successful, false otherwise
  */
-export async function applyUpdates(wait: boolean, timeout = 10 * 60 * 1000) {
+export async function applyUpdates({
+  wait,
+  timeout = 10 * 60 * 1000,
+  state,
+}: {
+  wait: boolean;
+  timeout?: number;
+  state: State;
+}) {
   createProgressIndicator(undefined, `Applying updates...`, 'indeterminate');
   try {
-    let status = await initiateRestart();
+    let status = await initiateRestart({ state });
     if (wait) {
       const start = new Date().getTime();
       let runtime = 0;
@@ -82,7 +124,7 @@ export async function applyUpdates(wait: boolean, timeout = 10 * 60 * 1000) {
       ) {
         await new Promise((resolve) => setTimeout(resolve, 5000));
         try {
-          status = await getStatus();
+          status = await getStatus({ state });
 
           // reset errors after successful status call
           if (errors) errors = 0;

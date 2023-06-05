@@ -1,6 +1,4 @@
-import Color from 'colors';
-
-Color.enable();
+export { frodo, globalState as state, FrodoLib } from './lib/FrodoLib';
 
 // Api Layer
 export * as AgentRaw from './api/AgentApi';
@@ -52,10 +50,10 @@ export * as Variables from './ops/cloud/VariablesOps';
 // TODO: revisit if there are better ways
 export * as Utils from './ops/utils/OpsUtils';
 export * as Base64 from './api/utils/Base64';
-export * as ValidationUtils from './ops/utils/ValidationUtils';
+export * as ValidationUtils from './ops/utils/ScriptValidationUtils';
 export * as LibVersion from './ops/utils/Version';
 export * as ExportImportUtils from './ops/utils/ExportImportUtils';
 // TODO: reconsider the aproach to pass in state from client
 // lib should be stateless, an aplication should own its state
-export * as state from './shared/State';
+// export * as state from './shared/State';
 export * as constants from './storage/StaticStorage';
