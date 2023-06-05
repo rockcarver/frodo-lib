@@ -22,9 +22,7 @@ const samlApplicationByEntityIdURLTemplate =
   '%s/json%s/realm-config/federation/entityproviders/saml2/%s';
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/realm-config/saml2`,
     apiVersion,
   };
 };
@@ -37,7 +35,7 @@ export async function getProviders({ state }: { state: State }) {
   const urlString = util.format(
     queryAllProvidersURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
     urlString,
@@ -66,7 +64,7 @@ export async function findProviders({
   const urlString = util.format(
     queryProvidersByEntityIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     encodeURIComponent(filter),
     fields.join(',')
   );
@@ -97,7 +95,7 @@ export async function getProviderByLocationAndId({
   const urlString = util.format(
     providerByLocationAndIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     location,
     entityId64
   );
@@ -128,7 +126,7 @@ export async function deleteProviderByLocationAndId({
   const urlString = util.format(
     providerByLocationAndIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     location,
     entityId64
   );
@@ -204,7 +202,7 @@ export async function createProvider({
   let urlString = util.format(
     createHostedProviderURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
 
   if (location === 'remote') {
@@ -214,7 +212,7 @@ export async function createProvider({
     urlString = util.format(
       createRemoteProviderURLTemplate,
       state.getHost(),
-      getCurrentRealmPath()
+      getCurrentRealmPath(state)
     );
     postData = {
       standardMetadata: metaData,
@@ -248,7 +246,7 @@ export async function updateProvider({
   const urlString = util.format(
     providerByLocationAndIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     location,
     providerData._id
   );
@@ -279,7 +277,7 @@ export async function deleteRawProvider({
   const urlString = util.format(
     samlApplicationByEntityIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     entityId
   );
   const { data } = await generateAmApi({
@@ -299,7 +297,7 @@ export async function getRawProviders({ state }: { state: State }) {
   const urlString = util.format(
     samlApplicationQueryURLTemplateRaw,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
     urlString,
@@ -325,7 +323,7 @@ export async function getRawProvider({
   const urlString = util.format(
     samlApplicationByEntityIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     encodeURIComponent(entityId)
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
@@ -355,7 +353,7 @@ export async function putRawProvider({
   const urlString = util.format(
     samlApplicationByEntityIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     encodeURIComponent(entityId)
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(

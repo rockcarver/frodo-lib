@@ -2,6 +2,29 @@ import { queryAllManagedObjectsByType } from '../api/IdmConfigApi';
 import State from '../shared/State';
 import { printMessage } from './utils/Console';
 
+export default class OrganizationOps {
+  state: State;
+  constructor(state: State) {
+    this.state = state;
+  }
+
+  /**
+   * Get organization managed object type
+   * @returns {String} organization managed object type in this realm
+   */
+  getRealmManagedOrganization() {
+    return getRealmManagedOrganization({ state: this.state });
+  }
+
+  /**
+   * Get organizations
+   * @returns {Promise} promise resolving to an object containing an array of organization objects
+   */
+  async getOrganizations() {
+    return getOrganizations({ state: this.state });
+  }
+}
+
 /**
  * Get organization managed object type
  * @returns {String} organization managed object type in this realm

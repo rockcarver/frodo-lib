@@ -1,6 +1,6 @@
 import util from 'util';
 import { encode } from '../utils/Base64';
-import { getTenantURL, getCurrentRealmPath } from '../utils/ApiUtils';
+import { getTenantURL } from '../utils/ApiUtils';
 import { generateEnvApi } from '../BaseApi';
 import State from '../../shared/State';
 
@@ -10,9 +10,7 @@ const variableSetDescriptionURLTemplate = `${variableURLTemplate}?_action=setDes
 
 const apiVersion = 'protocol=1.0,resource=1.0';
 const getApiConfig = () => {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/environment/secrets`,
     apiVersion,
   };
 };

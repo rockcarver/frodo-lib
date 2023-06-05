@@ -9,9 +9,7 @@ const oauth2ClientListURLTemplate =
   '%s/json%s/realm-config/agents/OAuth2Client?_queryFilter=true';
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/realm-config/agents/OAuth2Client`,
     apiVersion,
   };
 };
@@ -28,7 +26,7 @@ export async function getOAuth2Clients({
   const urlString = util.format(
     oauth2ClientListURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
     urlString,
@@ -54,7 +52,7 @@ export async function getOAuth2Client({
   const urlString = util.format(
     oauth2ClientURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     id
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
@@ -89,7 +87,7 @@ export async function putOAuth2Client({
   const urlString = util.format(
     oauth2ClientURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     id
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
@@ -117,7 +115,7 @@ export async function deleteOAuth2Client({
   const urlString = util.format(
     oauth2ClientURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     id
   );
   const { data } = await generateAmApi({

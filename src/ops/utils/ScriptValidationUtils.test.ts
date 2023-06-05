@@ -1,4 +1,4 @@
-import { validateScriptHooks } from './ValidationUtils';
+import { validateScriptHooks } from './ScriptValidationUtils';
 
 describe('validateScriptHooks', () => {
   it('should return false when there is an invalid script', () => {
