@@ -1,5 +1,5 @@
+// instantiable modules
 import State, { StateInterface } from '../shared/State';
-
 import AdminOps from '../ops/AdminOps';
 import AgentOps from '../ops/AgentOps';
 import AuthenticateOps from '../ops/AuthenticateOps';
@@ -29,7 +29,8 @@ import ServiceAccountOps from '../ops/cloud/ServiceAccountOps';
 import StartupOps from '../ops/cloud/StartupOps';
 import ThemeOps from '../ops/ThemeOps';
 import VariablesOps from '../ops/cloud/VariablesOps';
-// TODO: revisit if there are better ways
+
+// non-instantiable modules
 import * as JoseOps from '../ops/JoseOps';
 import * as OpsUtils from '../ops/utils/OpsUtils';
 import * as Base64 from '../api/utils/Base64';
@@ -101,7 +102,6 @@ export class FrodoLib {
   constructor(config: StateInterface = {}) {
     this.state = new State(config);
 
-    // initialize all the modules needing state
     this.admin = new AdminOps(this.state);
     this.agent = new AgentOps(this.state);
 
@@ -148,9 +148,3 @@ export class FrodoLib {
 
 export const frodo = new FrodoLib();
 export const globalState = frodo.state;
-// frodo.Admin.repairOrgModel(false, true, true);
-// frodo.Cloud.Log.tail('', '');
-// frodo.Info.getInfo();
-// frodo.Saml2.EntityProvider.deleteRawSaml2Provider('');
-// frodo.Authz.Policy.exportPolicy('');
-// frodo.authn.getTokens();
