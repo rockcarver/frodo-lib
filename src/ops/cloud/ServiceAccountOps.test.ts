@@ -27,13 +27,14 @@
  *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
  *    replay mode and make sure they all succeed as well:
  *
- *        npm run test:only ServiceAccountOps
+ *        FRODO_DEBUG=1 npm run test:only ServiceAccountOps
  *
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
+import { state } from '../../index';
+import * as ServiceAccountOps from './ServiceAccountOps';
 import { createJwkRsa, createJwks, getJwkRsaPublic } from '../JoseOps';
-import * as ServiceAccount from './ServiceAccountOps';
 import {
   autoSetupPolly,
   defaultMatchRequestsBy,
@@ -48,11 +49,14 @@ autoSetupPolly(matchConfig);
 describe.only('ServiceAccountOps', () => {
   describe('isServiceAccountsFeatureAvailable()', () => {
     test('0: Method is implemented', async () => {
-      expect(ServiceAccount.isServiceAccountsFeatureAvailable).toBeDefined();
+      expect(ServiceAccountOps.isServiceAccountsFeatureAvailable).toBeDefined();
     });
 
     test('1: Check tenant supporting service accounts', async () => {
-      const response = await ServiceAccount.isServiceAccountsFeatureAvailable();
+      const response =
+        await ServiceAccountOps.isServiceAccountsFeatureAvailable({
+          state,
+        });
       expect(response).toBeTruthy();
     });
 
@@ -70,7 +74,7 @@ describe.only('ServiceAccountOps', () => {
 
   describe('createServiceAccount()', () => {
     test('0: Method is implemented', async () => {
-      expect(ServiceAccount.createServiceAccount).toBeDefined();
+      expect(ServiceAccountOps.createServiceAccount).toBeDefined();
     });
 
     test('1: Create service account', async () => {
@@ -81,13 +85,14 @@ describe.only('ServiceAccountOps', () => {
       const jwk = await createJwkRsa();
       const publicJwk = await getJwkRsaPublic(jwk);
       const jwks = createJwks(publicJwk);
-      const response = await ServiceAccount.createServiceAccount(
+      const response = await ServiceAccountOps.createServiceAccount({
         name,
         description,
         accountStatus,
         scopes,
-        jwks
-      );
+        jwks,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });

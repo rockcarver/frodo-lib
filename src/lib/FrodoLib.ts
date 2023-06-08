@@ -40,6 +40,63 @@ import * as constants from '../storage/StaticStorage';
 
 export class FrodoLib {
   state: State;
+  admin: AdminOps;
+  agent: AgentOps;
+  authn: {
+    journey: JourneyOps;
+    node: NodeOps;
+  } = { journey: undefined, node: undefined };
+  authz: {
+    policy: PolicyOps;
+    policySet: PolicySetOps;
+    resourceType: ResourceTypeOps;
+  } = { policy: undefined, policySet: undefined, resourceType: undefined };
+  cloud: {
+    feature: FeatureOps;
+    log: LogOps;
+    secret: SecretsOps;
+    serviceAccount: ServiceAccountOps;
+    startup: StartupOps;
+    variable: VariablesOps;
+  } = {
+    feature: undefined,
+    log: undefined,
+    secret: undefined,
+    serviceAccount: undefined,
+    startup: undefined,
+    variable: undefined,
+  };
+  conn: ConnectionProfileOps;
+  email: { template: EmailTemplateOps } = { template: undefined };
+  helpers = {
+    jose: JoseOps,
+    utils: OpsUtils,
+    base64: Base64,
+    script: ScriptValidationUtils,
+    version: Version,
+    exportImportUtils: ExportImportUtils,
+    constants: constants,
+  };
+  idm: {
+    config: IdmOps;
+    managed: ManagedObjectOps;
+    organization: OrganizationOps;
+  } = { config: undefined, managed: undefined, organization: undefined };
+  info: InfoOps;
+  login: AuthenticateOps = null;
+  oauth2oidc: {
+    client: OAuth2ClientOps;
+    external: IdpOps;
+    provider: OAuth2ProviderOps;
+  } = { client: undefined, external: undefined, provider: undefined };
+  realm: RealmOps;
+  saml2: {
+    circlesOfTrust: CirclesOfTrustOps;
+    entityProvider: Saml2Ops;
+  } = { circlesOfTrust: undefined, entityProvider: undefined };
+  script: ScriptOps;
+  service: ServiceOps;
+  theme: ThemeOps;
 
   constructor(config: StateInterface = {}) {
     this.state = new State(config);
@@ -87,57 +144,6 @@ export class FrodoLib {
 
     this.theme = new ThemeOps(this.state);
   }
-
-  admin: AdminOps;
-  agent: AgentOps;
-  authn: {
-    journey: JourneyOps;
-    node: NodeOps;
-  };
-  authz: {
-    policy: PolicyOps;
-    policySet: PolicySetOps;
-    resourceType: ResourceTypeOps;
-  };
-  cloud: {
-    feature: FeatureOps;
-    log: LogOps;
-    secret: SecretsOps;
-    serviceAccount: ServiceAccountOps;
-    startup: StartupOps;
-    variable: VariablesOps;
-  };
-  conn: ConnectionProfileOps;
-  email: { template: EmailTemplateOps };
-  helpers = {
-    jose: JoseOps,
-    utils: OpsUtils,
-    base64: Base64,
-    script: ScriptValidationUtils,
-    version: Version,
-    exportImportUtils: ExportImportUtils,
-    constants: constants,
-  };
-  idm: {
-    config: IdmOps;
-    managed: ManagedObjectOps;
-    organization: OrganizationOps;
-  };
-  info: InfoOps;
-  login: AuthenticateOps;
-  oauth2oidc: {
-    client: OAuth2ClientOps;
-    external: IdpOps;
-    provider: OAuth2ProviderOps;
-  };
-  realm: RealmOps;
-  saml2: {
-    circlesOfTrust: CirclesOfTrustOps;
-    entityProvider: Saml2Ops;
-  };
-  script: ScriptOps;
-  service: ServiceOps;
-  theme: ThemeOps;
 }
 
 export const frodo = new FrodoLib();

@@ -16,10 +16,6 @@ const queryProvidersByEntityIdURLTemplate =
   '%s/json%s/realm-config/saml2?_queryFilter=%s&_fields=%s';
 const metadataByEntityIdURLTemplate =
   '%s/saml2/jsp/exportmetadata.jsp?entityid=%s&realm=%s';
-const samlApplicationQueryURLTemplateRaw =
-  '%s/json%s/realm-config/federation/entityproviders/saml2?_queryFilter=true';
-const samlApplicationByEntityIdURLTemplate =
-  '%s/json%s/realm-config/federation/entityproviders/saml2/%s';
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => {
   return {
@@ -253,112 +249,6 @@ export async function updateProvider({
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
     urlString,
     providerData,
-    {
-      withCredentials: true,
-    }
-  );
-  return data;
-}
-
-// Contributions using legacy APIs. Need to investigate if those will be deprecated in the future
-
-/**
- * Deletes a SAML2 entity provider by entity id
- * @param {string} entityId Provider entity id
- * @returns {Promise} a promise that resolves to a provider object
- */
-export async function deleteRawProvider({
-  entityId,
-  state,
-}: {
-  entityId: string;
-  state: State;
-}) {
-  const urlString = util.format(
-    samlApplicationByEntityIdURLTemplate,
-    state.getHost(),
-    getCurrentRealmPath(state),
-    entityId
-  );
-  const { data } = await generateAmApi({
-    resource: getApiConfig(),
-    state,
-  }).delete(urlString, {
-    withCredentials: true,
-  });
-  return data;
-}
-
-/**
- * Retrieves all entity providers using the legacy federation enpoints.
- * @returns {Promise} a promise that resolves to an object containing an array of providers
- */
-export async function getRawProviders({ state }: { state: State }) {
-  const urlString = util.format(
-    samlApplicationQueryURLTemplateRaw,
-    state.getHost(),
-    getCurrentRealmPath(state)
-  );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
-  return data;
-}
-
-/**
- * Gets the data for an entity provider including the raw XML.
- * @param {string} entityId The entity provider id
- * @returns Promise that when resolved includes the configuration and raw xml for a SAML entity provider
- */
-export async function getRawProvider({
-  entityId,
-  state,
-}: {
-  entityId: string;
-  state: State;
-}) {
-  const urlString = util.format(
-    samlApplicationByEntityIdURLTemplate,
-    state.getHost(),
-    getCurrentRealmPath(state),
-    encodeURIComponent(entityId)
-  );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
-  return data;
-}
-
-/**
- * Stores a new SAML2 entity provider
- * @param {string} entityId The entity provider id
- * @param {string} entityData The actual data containing the entity provider configuration
- * @returns {Promise} Promise that resolves to a provider object
- */
-export async function putRawProvider({
-  entityId,
-  entityData,
-  state,
-}: {
-  entityId: string;
-  entityData: Saml2ProviderSkeleton;
-  state: State;
-}) {
-  const urlString = util.format(
-    samlApplicationByEntityIdURLTemplate,
-    state.getHost(),
-    getCurrentRealmPath(state),
-    encodeURIComponent(entityId)
-  );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
-    urlString,
-    entityData,
     {
       withCredentials: true,
     }

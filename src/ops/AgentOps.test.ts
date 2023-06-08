@@ -46,7 +46,9 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { Agent, AgentRaw } from '../index';
+import { state } from '../index';
+import * as AgentApi from '../api/AgentApi';
+import * as AgentOps from './AgentOps';
 import { getAgent } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
@@ -55,17 +57,26 @@ autoSetupPolly();
 async function stageAgent(agent: { id: string; type: string }, create = true) {
   // delete if exists, then create
   try {
-    await AgentRaw.getAgentByTypeAndId(agent.type, agent.id);
-    await AgentRaw.deleteAgentByTypeAndId(agent.type, agent.id);
+    await AgentApi.getAgentByTypeAndId({
+      agentType: agent.type,
+      agentId: agent.id,
+      state,
+    });
+    await AgentApi.deleteAgentByTypeAndId({
+      agentType: agent.type,
+      agentId: agent.id,
+      state,
+    });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await AgentRaw.putAgentByTypeAndId(
-        agent.type,
-        agent.id,
-        getAgent(agent.type, agent.id)
-      );
+      await AgentApi.putAgentByTypeAndId({
+        agentType: agent.type,
+        agentId: agent.id,
+        agentData: getAgent(agent.type, agent.id),
+        state,
+      });
     }
   }
 }
@@ -256,280 +267,322 @@ describe('AgentOps', () => {
   ) {
     describe('createAgentExportTemplate()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.createAgentExportTemplate).toBeDefined();
+        expect(AgentOps.createAgentExportTemplate).toBeDefined();
       });
 
       test('1: Get all agent types', async () => {
-        const response = Agent.createAgentExportTemplate();
+        const response = AgentOps.createAgentExportTemplate();
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('getAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.getAgents).toBeDefined();
+        expect(AgentOps.getAgents).toBeDefined();
       });
 
       test('1: Get all agents', async () => {
-        const response = await Agent.getAgents();
+        const response = await AgentOps.getAgents({ state });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('getAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.getAgent).toBeDefined();
+        expect(AgentOps.getAgent).toBeDefined();
       });
 
       test(`1: Get agent '${gateway1.id}' (${gateway1.type})`, async () => {
-        const response = await Agent.getAgent(gateway1.id);
+        const response = await AgentOps.getAgent({
+          agentId: gateway1.id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test(`2: Get agent '${java1.id}' (${java1.type})`, async () => {
-        const response = await Agent.getAgent(java1.id);
+        const response = await AgentOps.getAgent({ agentId: java1.id, state });
         expect(response).toMatchSnapshot();
       });
 
       test(`3: Get agent '${web1.id}' (${web1.type})`, async () => {
-        const response = await Agent.getAgent(web1.id);
+        const response = await AgentOps.getAgent({ agentId: web1.id, state });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('getAgentByTypeAndId()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.getAgentByTypeAndId).toBeDefined();
+        expect(AgentOps.getAgentByTypeAndId).toBeDefined();
       });
 
       test(`1: Get agent by type '${gateway1.id}' (${gateway1.type})`, async () => {
-        const response = await Agent.getAgentByTypeAndId(
-          gateway1.type,
-          gateway1.id
-        );
+        const response = await AgentOps.getAgentByTypeAndId({
+          agentType: gateway1.type,
+          agentId: gateway1.id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test(`2: Get agent by type '${java1.id}' (${java1.type})`, async () => {
-        const response = await Agent.getAgentByTypeAndId(java1.type, java1.id);
+        const response = await AgentOps.getAgentByTypeAndId({
+          agentType: java1.type,
+          agentId: java1.id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test(`3: Get agent by type '${web1.id}' (${web1.type})`, async () => {
-        const response = await Agent.getAgentByTypeAndId(web1.type, web1.id);
+        const response = await AgentOps.getAgentByTypeAndId({
+          agentType: web1.type,
+          agentId: web1.id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('getIdentityGatewayAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.getIdentityGatewayAgents).toBeDefined();
+        expect(AgentOps.getIdentityGatewayAgents).toBeDefined();
       });
 
       test('1: Get gateway agents', async () => {
-        const response = await Agent.getIdentityGatewayAgents();
+        const response = await AgentOps.getIdentityGatewayAgents({ state });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('getIdentityGatewayAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.getIdentityGatewayAgent).toBeDefined();
+        expect(AgentOps.getIdentityGatewayAgent).toBeDefined();
       });
 
       test(`1: Get ${gateway1.type} '${gateway1.id}'`, async () => {
-        const response = await Agent.getIdentityGatewayAgent(gateway1.id);
+        const response = await AgentOps.getIdentityGatewayAgent({
+          gatewayId: gateway1.id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('putIdentityGatewayAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.putIdentityGatewayAgent).toBeDefined();
+        expect(AgentOps.putIdentityGatewayAgent).toBeDefined();
       });
 
       test(`1: Put ${gateway2.type} '${gateway2.id}'`, async () => {
-        const response = await Agent.putIdentityGatewayAgent(
-          gateway2.id,
-          getAgent(gateway2.type, gateway2.id)
-        );
+        const response = await AgentOps.putIdentityGatewayAgent({
+          gatewayId: gateway2.id,
+          gatewayData: getAgent(gateway2.type, gateway2.id),
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('getJavaAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.getJavaAgents).toBeDefined();
+        expect(AgentOps.getJavaAgents).toBeDefined();
       });
 
       test('1: Get java agents', async () => {
-        const response = await Agent.getJavaAgents();
+        const response = await AgentOps.getJavaAgents({ state });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('getJavaAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.getJavaAgent).toBeDefined();
+        expect(AgentOps.getJavaAgent).toBeDefined();
       });
 
       test(`1: Get ${java1.type} '${java1.id}'`, async () => {
-        const response = await Agent.getJavaAgent(java1.id);
+        const response = await AgentOps.getJavaAgent({
+          agentId: java1.id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('putJavaAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.putJavaAgent).toBeDefined();
+        expect(AgentOps.putJavaAgent).toBeDefined();
       });
 
       test(`1: Put ${java2.type} '${java2.id}'`, async () => {
-        const response = await Agent.putJavaAgent(
-          java2.id,
-          getAgent(java2.type, java2.id)
-        );
+        const response = await AgentOps.putJavaAgent({
+          agentId: java2.id,
+          agentData: getAgent(java2.type, java2.id),
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('getWebAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.getWebAgents).toBeDefined();
+        expect(AgentOps.getWebAgents).toBeDefined();
       });
 
       test('1: Get web agents', async () => {
-        const response = await Agent.getWebAgents();
+        const response = await AgentOps.getWebAgents({ state });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('getWebAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.getWebAgent).toBeDefined();
+        expect(AgentOps.getWebAgent).toBeDefined();
       });
 
       test(`1: Get ${web1.type} '${web1.id}'`, async () => {
-        const response = await Agent.getWebAgent(web1.id);
+        const response = await AgentOps.getWebAgent({
+          agentId: web1.id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('putWebAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.putWebAgent).toBeDefined();
+        expect(AgentOps.putWebAgent).toBeDefined();
       });
 
       test(`1: Put ${web2.type} '${web2.id}'`, async () => {
-        const response = await Agent.putWebAgent(
-          web2.id,
-          getAgent(web2.type, web2.id)
-        );
+        const response = await AgentOps.putWebAgent({
+          agentId: web2.id,
+          agentData: getAgent(web2.type, web2.id),
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('exportAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.exportAgents).toBeDefined();
+        expect(AgentOps.exportAgents).toBeDefined();
       });
 
       test('1: Export all agents', async () => {
-        const response = await Agent.exportAgents();
+        const response = await AgentOps.exportAgents({ state });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('exportIdentityGatewayAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.exportIdentityGatewayAgents).toBeDefined();
+        expect(AgentOps.exportIdentityGatewayAgents).toBeDefined();
       });
 
       test('1: Export gateway agents', async () => {
-        const response = await Agent.exportIdentityGatewayAgents();
+        const response = await AgentOps.exportIdentityGatewayAgents({ state });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('exportJavaAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.exportJavaAgents).toBeDefined();
+        expect(AgentOps.exportJavaAgents).toBeDefined();
       });
 
       test('1: Export java agents', async () => {
-        const response = await Agent.exportJavaAgents();
+        const response = await AgentOps.exportJavaAgents({ state });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('exportWebAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.exportJavaAgents).toBeDefined();
+        expect(AgentOps.exportJavaAgents).toBeDefined();
       });
 
       test('1: Export web agents', async () => {
-        const response = await Agent.exportWebAgents();
+        const response = await AgentOps.exportWebAgents({ state });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('exportAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.exportAgent).toBeDefined();
+        expect(AgentOps.exportAgent).toBeDefined();
       });
 
       test(`1: Export agent '${gateway1.id}' (${gateway1.type})`, async () => {
-        const response = await Agent.exportAgent(gateway1.id);
+        const response = await AgentOps.exportAgent({
+          agentId: gateway1.id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test(`2: Export agent '${java1.id}' (${java1.type})`, async () => {
-        const response = await Agent.exportAgent(java1.id);
+        const response = await AgentOps.exportAgent({
+          agentId: java1.id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test(`3: Export agent '${web1.id}' (${web1.type})`, async () => {
-        const response = await Agent.exportAgent(web1.id);
+        const response = await AgentOps.exportAgent({
+          agentId: web1.id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('exportIdentityGatewayAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.exportIdentityGatewayAgent).toBeDefined();
+        expect(AgentOps.exportIdentityGatewayAgent).toBeDefined();
       });
 
       test(`1: Export ${gateway1.type} '${gateway1.id}'`, async () => {
-        const response = await Agent.exportIdentityGatewayAgent(gateway1.id);
+        const response = await AgentOps.exportIdentityGatewayAgent({
+          agentId: gateway1.id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('exportJavaAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.exportJavaAgent).toBeDefined();
+        expect(AgentOps.exportJavaAgent).toBeDefined();
       });
 
       test(`1: Export ${java1.type} '${java1.id}'`, async () => {
-        const response = await Agent.exportJavaAgent(java1.id);
+        const response = await AgentOps.exportJavaAgent({
+          agentId: java1.id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('exportWebAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.exportWebAgent).toBeDefined();
+        expect(AgentOps.exportWebAgent).toBeDefined();
       });
 
       test(`1: Export ${web1.type} '${web1.id}'`, async () => {
-        const response = await Agent.exportWebAgent(web1.id);
+        const response = await AgentOps.exportWebAgent({
+          agentId: web1.id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
 
     describe('importAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.importAgents).toBeDefined();
+        expect(AgentOps.importAgents).toBeDefined();
       });
 
       test('1: Import all agents', async () => {
@@ -538,18 +591,18 @@ describe('AgentOps', () => {
           [java3.id]: java3.type,
           [web3.id]: web3.type,
         };
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
-        await Agent.importAgents(exportData);
+        await AgentOps.importAgents({ importData: exportData, state });
         expect(true).toBeTruthy();
       });
     });
 
     describe('importIdentityGatewayAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.importIdentityGatewayAgents).toBeDefined();
+        expect(AgentOps.importIdentityGatewayAgents).toBeDefined();
       });
 
       test('1: Import all gateway agents', async () => {
@@ -557,11 +610,14 @@ describe('AgentOps', () => {
           [gateway4.id]: gateway4.type,
           [gateway5.id]: gateway5.type,
         };
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
-        await Agent.importIdentityGatewayAgents(exportData);
+        await AgentOps.importIdentityGatewayAgents({
+          importData: exportData,
+          state,
+        });
         expect(true).toBeTruthy();
       });
 
@@ -570,13 +626,16 @@ describe('AgentOps', () => {
           [java4.id]: java4.type,
           [web4.id]: web4.type,
         };
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
         expect.assertions(1);
         try {
-          await Agent.importIdentityGatewayAgents(exportData);
+          await AgentOps.importIdentityGatewayAgents({
+            importData: exportData,
+            state,
+          });
         } catch (error) {
           expect(error).toMatchSnapshot();
         }
@@ -585,7 +644,7 @@ describe('AgentOps', () => {
 
     describe('importJavaAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.importJavaAgents).toBeDefined();
+        expect(AgentOps.importJavaAgents).toBeDefined();
       });
 
       test('1: Import all java agents', async () => {
@@ -593,11 +652,11 @@ describe('AgentOps', () => {
           [java4.id]: java4.type,
           [java5.id]: java5.type,
         };
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
-        await Agent.importJavaAgents(exportData);
+        await AgentOps.importJavaAgents({ importData: exportData, state });
         expect(true).toBeTruthy();
       });
 
@@ -606,13 +665,13 @@ describe('AgentOps', () => {
           [web4.id]: web4.type,
           [gateway4.id]: gateway4.type,
         };
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
         expect.assertions(1);
         try {
-          await Agent.importJavaAgents(exportData);
+          await AgentOps.importJavaAgents({ importData: exportData, state });
         } catch (error) {
           expect(error).toMatchSnapshot();
         }
@@ -621,7 +680,7 @@ describe('AgentOps', () => {
 
     describe('importWebAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.importWebAgents).toBeDefined();
+        expect(AgentOps.importWebAgents).toBeDefined();
       });
 
       test('1: Import all web agents', async () => {
@@ -629,11 +688,11 @@ describe('AgentOps', () => {
           [web4.id]: web4.type,
           [web5.id]: web5.type,
         };
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
-        await Agent.importWebAgents(exportData);
+        await AgentOps.importWebAgents({ importData: exportData, state });
         expect(true).toBeTruthy();
       });
 
@@ -642,13 +701,13 @@ describe('AgentOps', () => {
           [gateway4.id]: gateway4.type,
           [java4.id]: java4.type,
         };
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
         expect.assertions(1);
         try {
-          await Agent.importWebAgents(exportData);
+          await AgentOps.importWebAgents({ importData: exportData, state });
         } catch (error) {
           expect(error).toMatchSnapshot();
         }
@@ -657,49 +716,69 @@ describe('AgentOps', () => {
 
     describe('importAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.importAgent).toBeDefined();
+        expect(AgentOps.importAgent).toBeDefined();
       });
 
       test('1: Import gateway agent', async () => {
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         exportData.agents[gateway6.id] = getAgent(gateway6.type, gateway6.id);
-        await Agent.importAgent(gateway6.id, exportData);
+        await AgentOps.importAgent({
+          agentId: gateway6.id,
+          importData: exportData,
+          state,
+        });
         expect(true).toBeTruthy();
       });
 
       test('2: Import java agent', async () => {
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         exportData.agents[java6.id] = getAgent(java6.type, java6.id);
-        await Agent.importAgent(java6.id, exportData);
+        await AgentOps.importAgent({
+          agentId: java6.id,
+          importData: exportData,
+          state,
+        });
         expect(true).toBeTruthy();
       });
 
       test('3: Import web agent', async () => {
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         exportData.agents[web6.id] = getAgent(web6.type, web6.id);
-        await Agent.importAgent(web6.id, exportData);
+        await AgentOps.importAgent({
+          agentId: web6.id,
+          importData: exportData,
+          state,
+        });
         expect(true).toBeTruthy();
       });
     });
 
     describe('importIdentityGatewayAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.importIdentityGatewayAgent).toBeDefined();
+        expect(AgentOps.importIdentityGatewayAgent).toBeDefined();
       });
 
       test(`1: Import ${gateway7.type} '${gateway7.id}'`, async () => {
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         exportData.agents[gateway7.id] = getAgent(gateway7.type, gateway7.id);
-        await Agent.importIdentityGatewayAgent(gateway7.id, exportData);
+        await AgentOps.importIdentityGatewayAgent({
+          agentId: gateway7.id,
+          importData: exportData,
+          state,
+        });
         expect(true).toBeTruthy();
       });
 
       test('2: Import gateway agent with wrong type', async () => {
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         exportData.agents[java7.id] = getAgent(java7.type, java7.id);
         expect.assertions(1);
         try {
-          await Agent.importIdentityGatewayAgent(java7.id, exportData);
+          await AgentOps.importIdentityGatewayAgent({
+            agentId: java7.id,
+            importData: exportData,
+            state,
+          });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
         }
@@ -708,22 +787,30 @@ describe('AgentOps', () => {
 
     describe('importJavaAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.importJavaAgents).toBeDefined();
+        expect(AgentOps.importJavaAgents).toBeDefined();
       });
 
       test(`1: Import ${java7.type} '${java7.id}'`, async () => {
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         exportData.agents[java7.id] = getAgent(java7.type, java7.id);
-        await Agent.importJavaAgent(java7.id, exportData);
+        await AgentOps.importJavaAgent({
+          agentId: java7.id,
+          importData: exportData,
+          state,
+        });
         expect(true).toBeTruthy();
       });
 
       test('2: Import java agent with wrong type', async () => {
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         exportData.agents[web7.id] = getAgent(web7.type, web7.id);
         expect.assertions(1);
         try {
-          await Agent.importJavaAgent(web7.id, exportData);
+          await AgentOps.importJavaAgent({
+            agentId: web7.id,
+            importData: exportData,
+            state,
+          });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
         }
@@ -732,22 +819,30 @@ describe('AgentOps', () => {
 
     describe('importWebAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.importWebAgent).toBeDefined();
+        expect(AgentOps.importWebAgent).toBeDefined();
       });
 
       test(`1: Import ${web7.type} '${web7.id}'`, async () => {
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         exportData.agents[web7.id] = getAgent(web7.type, web7.id);
-        await Agent.importWebAgent(web7.id, exportData);
+        await AgentOps.importWebAgent({
+          agentId: web7.id,
+          importData: exportData,
+          state,
+        });
         expect(true).toBeTruthy();
       });
 
       test('2: Import web agent with wrong type', async () => {
-        const exportData = Agent.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate();
         exportData.agents[gateway7.id] = getAgent(gateway7.type, gateway7.id);
         expect.assertions(1);
         try {
-          await Agent.importWebAgent(gateway7.id, exportData);
+          await AgentOps.importWebAgent({
+            agentId: gateway7.id,
+            importData: exportData,
+            state,
+          });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
         }
@@ -763,39 +858,45 @@ describe('AgentOps', () => {
   ) {
     describe('deleteAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.deleteAgent).toBeDefined();
+        expect(AgentOps.deleteAgent).toBeDefined();
       });
 
       test(`1: Delete agent '${gateway8.id}' (${gateway8.type})`, async () => {
-        await Agent.deleteAgent(gateway8.id);
+        await AgentOps.deleteAgent({ agentId: gateway8.id, state });
         expect(true).toBeTruthy();
       });
 
       test(`2: Delete agent '${java8.id}' (${java8.type})`, async () => {
-        await Agent.deleteAgent(java8.id);
+        await AgentOps.deleteAgent({ agentId: java8.id, state });
         expect(true).toBeTruthy();
       });
 
       test(`3: Delete agent '${web8.id}' (${web8.type})`, async () => {
-        await Agent.deleteAgent(web8.id);
+        await AgentOps.deleteAgent({ agentId: web8.id, state });
         expect(true).toBeTruthy();
       });
     });
 
     describe('deleteIdentityGatewayAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.deleteIdentityGatewayAgent).toBeDefined();
+        expect(AgentOps.deleteIdentityGatewayAgent).toBeDefined();
       });
 
       test(`1: Delete ${gateway9.type} '${gateway9.id}'`, async () => {
-        await Agent.deleteIdentityGatewayAgent(gateway9.id);
+        await AgentOps.deleteIdentityGatewayAgent({
+          agentId: gateway9.id,
+          state,
+        });
         expect(true).toBeTruthy();
       });
 
       test(`2: Delete agent of wrong type '${java9.id}' (${java9.type})`, async () => {
         expect.assertions(1);
         try {
-          await Agent.deleteIdentityGatewayAgent(java9.id);
+          await AgentOps.deleteIdentityGatewayAgent({
+            agentId: java9.id,
+            state,
+          });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
         }
@@ -804,18 +905,18 @@ describe('AgentOps', () => {
 
     describe('deleteJavaAgent()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.deleteJavaAgent).toBeDefined();
+        expect(AgentOps.deleteJavaAgent).toBeDefined();
       });
 
       test(`1: Delete ${java9.type} '${java9.id}'`, async () => {
-        await Agent.deleteJavaAgent(java9.id);
+        await AgentOps.deleteJavaAgent({ agentId: java9.id, state });
         expect(true).toBeTruthy();
       });
 
       test(`2: Delete agent of wrong type '${web9.id}' (${web9.type})`, async () => {
         expect.assertions(1);
         try {
-          await Agent.deleteJavaAgent(web9.id);
+          await AgentOps.deleteJavaAgent({ agentId: web9.id, state });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
         }
@@ -824,18 +925,18 @@ describe('AgentOps', () => {
 
     describe('deleteWebAgent()', () => {
       test('deleteWebAgent() 0: Method is implemented', async () => {
-        expect(Agent.deleteWebAgent).toBeDefined();
+        expect(AgentOps.deleteWebAgent).toBeDefined();
       });
 
       test(`1: Delete ${web9.type} '${web9.id}'`, async () => {
-        await Agent.deleteWebAgent(web9.id);
+        await AgentOps.deleteWebAgent({ agentId: web9.id, state });
         expect(true).toBeTruthy();
       });
 
       test(`2: Delete agent of wrong type '${gateway9.id}' (${gateway9.type})`, async () => {
         expect.assertions(1);
         try {
-          await Agent.deleteWebAgent(gateway9.id);
+          await AgentOps.deleteWebAgent({ agentId: gateway9.id, state });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
         }
@@ -851,33 +952,33 @@ describe('AgentOps', () => {
   ) {
     describe('deleteIdentityGatewayAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.deleteIdentityGatewayAgents).toBeDefined();
+        expect(AgentOps.deleteIdentityGatewayAgents).toBeDefined();
       });
 
       test('1: Delete all gateway agents', async () => {
-        await Agent.deleteIdentityGatewayAgents();
+        await AgentOps.deleteIdentityGatewayAgents({ state });
         expect(true).toBeTruthy();
       });
     });
 
     describe('deleteJavaAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.deleteJavaAgents).toBeDefined();
+        expect(AgentOps.deleteJavaAgents).toBeDefined();
       });
 
       test('1: Delete all java agents', async () => {
-        await Agent.deleteJavaAgents();
+        await AgentOps.deleteJavaAgents({ state });
         expect(true).toBeTruthy();
       });
     });
 
     describe('deleteWebAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.deleteWebAgents).toBeDefined();
+        expect(AgentOps.deleteWebAgents).toBeDefined();
       });
 
       test('1: Delete all web agents', async () => {
-        await Agent.deleteWebAgents();
+        await AgentOps.deleteWebAgents({ state });
         expect(true).toBeTruthy();
       });
     });
@@ -891,12 +992,12 @@ describe('AgentOps', () => {
   ) {
     describe('deleteAgents()', () => {
       test('0: Method is implemented', async () => {
-        expect(Agent.deleteAgents).toBeDefined();
+        expect(AgentOps.deleteAgents).toBeDefined();
       });
 
       test('1: Delete all agents', async () => {
         expect.assertions(1);
-        await Agent.deleteAgents();
+        await AgentOps.deleteAgents({ state });
         expect(true).toBeTruthy();
       });
     });

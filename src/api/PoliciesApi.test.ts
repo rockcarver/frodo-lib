@@ -34,19 +34,23 @@ import * as PoliciesApi from './PoliciesApi';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { PolicySetSkeleton, PolicySkeleton } from './ApiTypes';
 import { cloneDeep } from '../ops/utils/OpsUtils';
+import { state } from '../index';
 
 autoSetupPolly();
 
 async function stagePolicySet(policySet: PolicySetSkeleton, create = true) {
   // delete if exists, then create
   try {
-    await PolicySetApi.getPolicySet(policySet.name);
-    await PolicySetApi.deletePolicySet(policySet.name);
+    await PolicySetApi.getPolicySet({ policySetName: policySet.name, state });
+    await PolicySetApi.deletePolicySet({
+      policySetName: policySet.name,
+      state,
+    });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await PolicySetApi.createPolicySet(policySet);
+      await PolicySetApi.createPolicySet({ policySetData: policySet, state });
     }
   }
 }
@@ -54,13 +58,17 @@ async function stagePolicySet(policySet: PolicySetSkeleton, create = true) {
 async function stagePolicy(policy: PolicySkeleton, create = true) {
   // delete if exists, then create
   try {
-    await PoliciesApi.getPolicy(policy._id);
-    await PoliciesApi.deletePolicy(policy._id);
+    await PoliciesApi.getPolicy({ policyId: policy._id, state });
+    await PoliciesApi.deletePolicy({ policyId: policy._id, state });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await PoliciesApi.putPolicy(policy._id, policy);
+      await PoliciesApi.putPolicy({
+        policyId: policy._id,
+        policyData: policy,
+        state,
+      });
     }
   }
 }
@@ -167,7 +175,7 @@ describe('PoliciesApi', () => {
     });
 
     test('1: Get all policies', async () => {
-      const response = await PoliciesApi.getPolicies();
+      const response = await PoliciesApi.getPolicies({ state });
       expect(response).toMatchSnapshot();
     });
   });
@@ -178,12 +186,18 @@ describe('PoliciesApi', () => {
     });
 
     test(`1: Get policies in existing policy set [${set1.name}]`, async () => {
-      const response = await PoliciesApi.getPoliciesByPolicySet(set1.name);
+      const response = await PoliciesApi.getPoliciesByPolicySet({
+        policySetId: set1.name,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Get policies in non-existing policy set [DoesNotExist]', async () => {
-      const response = await PoliciesApi.getPoliciesByPolicySet('DoesNotExist');
+      const response = await PoliciesApi.getPoliciesByPolicySet({
+        policySetId: 'DoesNotExist',
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
@@ -194,14 +208,17 @@ describe('PoliciesApi', () => {
     });
 
     test(`1: Get existing policy [${policy1._id}]`, async () => {
-      const response = await PoliciesApi.getPolicy(policy1._id);
+      const response = await PoliciesApi.getPolicy({
+        policyId: policy1._id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Get non-existing policy [DoesNotExist]', async () => {
       expect.assertions(1);
       try {
-        await PoliciesApi.getPolicy('DoesNotExist');
+        await PoliciesApi.getPolicy({ policyId: 'DoesNotExist', state });
       } catch (error) {
         expect(error.response.data).toMatchSnapshot();
       }
@@ -214,12 +231,20 @@ describe('PoliciesApi', () => {
     });
 
     test(`1: Update existing policy [${policy2._id}]`, async () => {
-      const response = await PoliciesApi.putPolicy(policy2._id, policy2);
+      const response = await PoliciesApi.putPolicy({
+        policyId: policy2._id,
+        policyData: policy2,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test(`2: Create non-existing policy [${policy3._id}]`, async () => {
-      const response = await PoliciesApi.putPolicy(policy3._id, policy3);
+      const response = await PoliciesApi.putPolicy({
+        policyId: policy3._id,
+        policyData: policy3,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
@@ -230,14 +255,17 @@ describe('PoliciesApi', () => {
     });
 
     test(`1: Delete existing policy [${policy4.name}]`, async () => {
-      const node = await PoliciesApi.deletePolicy(policy4.name);
+      const node = await PoliciesApi.deletePolicy({
+        policyId: policy4.name,
+        state,
+      });
       expect(node).toMatchSnapshot();
     });
 
     test('2: Delete non-existing policy [DoesNotExist]', async () => {
       expect.assertions(1);
       try {
-        await PoliciesApi.deletePolicy('DoesNotExist');
+        await PoliciesApi.deletePolicy({ policyId: 'DoesNotExist', state });
       } catch (error) {
         expect(error.response.data).toMatchSnapshot();
       }

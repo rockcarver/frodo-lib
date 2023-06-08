@@ -1,6 +1,15 @@
+/**
+ * Run tests
+ *
+ *        npm run test:only ConnectionProfileOps
+ *
+ * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
+ * in case things don't function as expected
+ */
 import fs from 'fs';
 import { homedir } from 'os';
-import { ConnectionProfile, state } from '../index';
+import { state } from '../index';
+import * as ConnectionProfileOps from './ConnectionProfileOps';
 import {
   FRODO_CONNECTION_PROFILES_PATH_KEY,
   FRODO_MASTER_KEY_PATH_KEY,
@@ -60,7 +69,7 @@ describe('ConnectionProfileOps', () => {
       state.setUsername(user);
       state.setPassword(password);
       state.setConnectionProfilesPath(connectionProfilePath1);
-      await ConnectionProfile.saveConnectionProfile(host);
+      await ConnectionProfileOps.saveConnectionProfile({ host, state });
       expect(fs.existsSync(connectionProfilePath1)).toBeTruthy();
       const connections = JSON.parse(
         fs.readFileSync(connectionProfilePath1, 'utf8')
@@ -82,8 +91,8 @@ describe('ConnectionProfileOps', () => {
       state.setUsername(user);
       state.setPassword(password);
       state.setConnectionProfilesPath('');
-      await ConnectionProfile.saveConnectionProfile(host);
-      expect(ConnectionProfile.getConnectionProfilesPath()).toEqual(
+      await ConnectionProfileOps.saveConnectionProfile({ host, state });
+      expect(ConnectionProfileOps.getConnectionProfilesPath({ state })).toEqual(
         connectionProfilePath2
       );
       expect(fs.existsSync(connectionProfilePath2)).toBeTruthy();
@@ -108,7 +117,7 @@ describe('ConnectionProfileOps', () => {
       state.setUsername(user);
       state.setPassword(password);
       state.setConnectionProfilesPath(connectionProfilePath3);
-      await ConnectionProfile.saveConnectionProfile(host);
+      await ConnectionProfileOps.saveConnectionProfile({ host, state });
       expect(fs.existsSync(connectionProfilePath3)).toBeTruthy();
       const connections = JSON.parse(
         fs.readFileSync(connectionProfilePath3, 'utf8')

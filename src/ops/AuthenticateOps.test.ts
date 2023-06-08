@@ -23,12 +23,13 @@
  *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
  *    replay mode and make sure they all succeed as well:
  *
- *        npm run test AuthenticateOps
+ *        FRODO_DEBUG=1 npm run test:only AuthenticateOps
  *
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { Authenticate, state } from '../index';
+import { state } from '../index';
+import * as AuthenticateOps from './AuthenticateOps';
 import {
   autoSetupPolly,
   defaultMatchRequestsBy,
@@ -44,7 +45,7 @@ autoSetupPolly(matchConfig);
 describe('AuthenticateOps', () => {
   describe('getTokens()', () => {
     test('0: Method is implemented', async () => {
-      expect(Authenticate.getTokens).toBeDefined();
+      expect(AuthenticateOps.getTokens).toBeDefined();
     });
 
     test('1: Authenticate successfully as user', async () => {
@@ -54,7 +55,7 @@ describe('AuthenticateOps', () => {
       state.setRealm(process.env.FRODO_REALM || 'alpha');
       state.setUsername(process.env.FRODO_USERNAME || 'mockUser');
       state.setPassword(process.env.FRODO_PASSWORD || 'mockPassword');
-      const result = await Authenticate.getTokens();
+      const result = await AuthenticateOps.getTokens({ state });
       expect(result).toBe(true);
       expect(state.getDeploymentType()).toEqual('cloud');
       expect(state.getCookieName()).toBeTruthy();

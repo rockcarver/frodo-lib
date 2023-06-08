@@ -35,6 +35,7 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
+import { state } from '../index';
 import * as ResourceTypeOps from './ResourceTypeOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { ResourceTypeSkeleton } from '../api/ApiTypes';
@@ -44,13 +45,22 @@ autoSetupPolly();
 async function stageResourceType(type: ResourceTypeSkeleton, create = true) {
   // delete if exists, then create
   try {
-    await ResourceTypeOps.getResourceType(type.uuid);
-    await ResourceTypeOps.deleteResourceType(type.uuid);
+    await ResourceTypeOps.getResourceType({
+      resourceTypeUuid: type.uuid,
+      state,
+    });
+    await ResourceTypeOps.deleteResourceType({
+      resourceTypeUuid: type.uuid,
+      state,
+    });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await ResourceTypeOps.createResourceType(type);
+      await ResourceTypeOps.createResourceType({
+        resourceTypeData: type,
+        state,
+      });
     }
   }
 }
@@ -298,7 +308,7 @@ describe('ResourceTypeOps', () => {
       });
 
       test('1: Get all resource types', async () => {
-        const response = await ResourceTypeOps.getResourceTypes();
+        const response = await ResourceTypeOps.getResourceTypes({ state });
         expect(response).toMatchSnapshot();
       });
     });
@@ -309,16 +319,20 @@ describe('ResourceTypeOps', () => {
       });
 
       test(`1: Get existing resource type by uuid [${type1.uuid} - ${type1.name}]`, async () => {
-        const response = await ResourceTypeOps.getResourceType(type1.uuid);
+        const response = await ResourceTypeOps.getResourceType({
+          resourceTypeUuid: type1.uuid,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test('2: Get non-existing resource type by uuid [00000000-0000-0000-0000-000000000000]', async () => {
         expect.assertions(1);
         try {
-          await ResourceTypeOps.getResourceType(
-            '00000000-0000-0000-0000-000000000000'
-          );
+          await ResourceTypeOps.getResourceType({
+            resourceTypeUuid: '00000000-0000-0000-0000-000000000000',
+            state,
+          });
         } catch (error) {
           expect(error.response.data).toMatchSnapshot();
         }
@@ -331,16 +345,20 @@ describe('ResourceTypeOps', () => {
       });
 
       test(`1: Get existing resource type by name [${type2.name} - ${type2.uuid}]`, async () => {
-        const response = await ResourceTypeOps.getResourceTypeByName(
-          type2.name
-        );
+        const response = await ResourceTypeOps.getResourceTypeByName({
+          resourceTypeName: type2.name,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test('2: Get non-existing resource type by name [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await ResourceTypeOps.getResourceTypeByName('DoesNotExist');
+          await ResourceTypeOps.getResourceTypeByName({
+            resourceTypeName: 'DoesNotExist',
+            state,
+          });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
         }
@@ -353,14 +371,20 @@ describe('ResourceTypeOps', () => {
       });
 
       test(`1: Create non-existing resource type [${type3.uuid} - ${type3.name}]`, async () => {
-        const response = await ResourceTypeOps.createResourceType(type3);
+        const response = await ResourceTypeOps.createResourceType({
+          resourceTypeData: type3,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test(`2: Create existing resource type [${type4.uuid} - ${type4.name}]`, async () => {
         expect.assertions(1);
         try {
-          await ResourceTypeOps.createResourceType(type4);
+          await ResourceTypeOps.createResourceType({
+            resourceTypeData: type4,
+            state,
+          });
         } catch (error) {
           expect(error.response.data).toMatchSnapshot();
         }
@@ -373,17 +397,22 @@ describe('ResourceTypeOps', () => {
       });
 
       test(`1: Update existing resource type [${type5.uuid} - ${type5.name}]`, async () => {
-        const response = await ResourceTypeOps.updateResourceType(
-          type5.uuid,
-          type5
-        );
+        const response = await ResourceTypeOps.updateResourceType({
+          resourceTypeUuid: type5.uuid,
+          resourceTypeData: type5,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test(`2: Update non-existing resource type [${type6.uuid} - ${type6.name}]`, async () => {
         expect.assertions(1);
         try {
-          await ResourceTypeOps.updateResourceType(type6.uuid, type6);
+          await ResourceTypeOps.updateResourceType({
+            resourceTypeUuid: type6.uuid,
+            resourceTypeData: type6,
+            state,
+          });
         } catch (error) {
           expect(error.response.data).toMatchSnapshot();
         }
@@ -396,7 +425,10 @@ describe('ResourceTypeOps', () => {
       });
 
       test(`1: Export existing resource type by uuid [${type9.uuid} - ${type9.name}]`, async () => {
-        const response = await ResourceTypeOps.exportResourceType(type9.uuid);
+        const response = await ResourceTypeOps.exportResourceType({
+          resourceTypeUuid: type9.uuid,
+          state,
+        });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
@@ -405,9 +437,10 @@ describe('ResourceTypeOps', () => {
       test('2: Export non-existing resource type by uuid [00000000-0000-0000-0000-000000000000]', async () => {
         expect.assertions(1);
         try {
-          await ResourceTypeOps.exportResourceType(
-            '00000000-0000-0000-0000-000000000000'
-          );
+          await ResourceTypeOps.exportResourceType({
+            resourceTypeUuid: '00000000-0000-0000-0000-000000000000',
+            state,
+          });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
         }
@@ -420,9 +453,10 @@ describe('ResourceTypeOps', () => {
       });
 
       test(`1: Export existing resource type by name [${type10.name} - ${type10.uuid}]`, async () => {
-        const response = await ResourceTypeOps.exportResourceTypeByName(
-          type10.name
-        );
+        const response = await ResourceTypeOps.exportResourceTypeByName({
+          resourceTypeName: type10.name,
+          state,
+        });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
@@ -431,7 +465,10 @@ describe('ResourceTypeOps', () => {
       test('2: Export non-existing resource type by name [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await ResourceTypeOps.exportResourceTypeByName('DoesNotExist');
+          await ResourceTypeOps.exportResourceTypeByName({
+            resourceTypeName: 'DoesNotExist',
+            state,
+          });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
         }
@@ -444,7 +481,7 @@ describe('ResourceTypeOps', () => {
       });
 
       test('1: Export all resource types', async () => {
-        const response = await ResourceTypeOps.exportResourceTypes();
+        const response = await ResourceTypeOps.exportResourceTypes({ state });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
@@ -457,20 +494,24 @@ describe('ResourceTypeOps', () => {
       });
 
       test(`1: Import existing resource type by uuid [${import1.uuid} - ${import1.name}]`, async () => {
-        const response = await ResourceTypeOps.importResourceType(
-          import1.uuid,
-          import1.type as ResourceTypeOps.ResourceTypeExportInterface
-        );
+        const response = await ResourceTypeOps.importResourceType({
+          resourceTypeUuid: import1.uuid,
+          importData:
+            import1.type as ResourceTypeOps.ResourceTypeExportInterface,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test('2: Import non-existing resource type by uuid [00000000-0000-0000-0000-000000000000]', async () => {
         expect.assertions(1);
         try {
-          await ResourceTypeOps.importResourceType(
-            '00000000-0000-0000-0000-000000000000',
-            import1.type as ResourceTypeOps.ResourceTypeExportInterface
-          );
+          await ResourceTypeOps.importResourceType({
+            resourceTypeUuid: '00000000-0000-0000-0000-000000000000',
+            importData:
+              import1.type as ResourceTypeOps.ResourceTypeExportInterface,
+            state,
+          });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
         }
@@ -483,20 +524,24 @@ describe('ResourceTypeOps', () => {
       });
 
       test(`1: Export existing resource type by name [${import2.name} - ${import2.uuid}]`, async () => {
-        const response = await ResourceTypeOps.importResourceTypeByName(
-          import2.name,
-          import2.type as ResourceTypeOps.ResourceTypeExportInterface
-        );
+        const response = await ResourceTypeOps.importResourceTypeByName({
+          resourceTypeName: import2.name,
+          importData:
+            import2.type as ResourceTypeOps.ResourceTypeExportInterface,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test('2: Export non-existing resource type by name [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await ResourceTypeOps.importResourceTypeByName(
-            'DoesNotExist',
-            import2.type as ResourceTypeOps.ResourceTypeExportInterface
-          );
+          await ResourceTypeOps.importResourceTypeByName({
+            resourceTypeName: 'DoesNotExist',
+            importData:
+              import2.type as ResourceTypeOps.ResourceTypeExportInterface,
+            state,
+          });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
         }
@@ -509,9 +554,11 @@ describe('ResourceTypeOps', () => {
       });
 
       test('1: Import first resource type', async () => {
-        const response = await ResourceTypeOps.importFirstResourceType(
-          import3.type as ResourceTypeOps.ResourceTypeExportInterface
-        );
+        const response = await ResourceTypeOps.importFirstResourceType({
+          importData:
+            import3.type as ResourceTypeOps.ResourceTypeExportInterface,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
@@ -522,9 +569,11 @@ describe('ResourceTypeOps', () => {
       });
 
       test('1: Import all resource types', async () => {
-        const response = await ResourceTypeOps.importResourceTypes(
-          import4.type as ResourceTypeOps.ResourceTypeExportInterface
-        );
+        const response = await ResourceTypeOps.importResourceTypes({
+          importData:
+            import4.type as ResourceTypeOps.ResourceTypeExportInterface,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
@@ -542,16 +591,20 @@ describe('ResourceTypeOps', () => {
       });
 
       test(`1: Delete existing resource type [${type7.uuid} - ${type7.name}]`, async () => {
-        const response = await ResourceTypeOps.deleteResourceType(type7.uuid);
+        const response = await ResourceTypeOps.deleteResourceType({
+          resourceTypeUuid: type7.uuid,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test('2: Delete non-existing resource type [00000000-0000-0000-0000-000000000000]', async () => {
         expect.assertions(1);
         try {
-          await ResourceTypeOps.deleteResourceType(
-            '00000000-0000-0000-0000-000000000000'
-          );
+          await ResourceTypeOps.deleteResourceType({
+            resourceTypeUuid: '00000000-0000-0000-0000-000000000000',
+            state,
+          });
         } catch (error) {
           expect(error.response.data).toMatchSnapshot();
         }
@@ -564,16 +617,20 @@ describe('ResourceTypeOps', () => {
       });
 
       test(`1: Delete existing resource type by name [${type8.name} - ${type8.uuid}]`, async () => {
-        const response = await ResourceTypeOps.deleteResourceTypeByName(
-          type8.name
-        );
+        const response = await ResourceTypeOps.deleteResourceTypeByName({
+          resourceTypeName: type8.name,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test('2: Delete non-existing resource type by name [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await ResourceTypeOps.deleteResourceTypeByName('DoesNotExist');
+          await ResourceTypeOps.deleteResourceTypeByName({
+            resourceTypeName: 'DoesNotExist',
+            state,
+          });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
         }

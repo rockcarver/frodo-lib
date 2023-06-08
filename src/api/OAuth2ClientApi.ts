@@ -2,7 +2,11 @@ import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
 import State from '../shared/State';
-import { OAuth2ClientSkeleton, PagedResults } from './ApiTypes';
+import {
+  NoIdObjectSkeletonInterface,
+  OAuth2ClientSkeleton,
+  PagedResults,
+} from './ApiTypes';
 
 const oauth2ClientURLTemplate = '%s/json%s/realm-config/agents/OAuth2Client/%s';
 const oauth2ClientListURLTemplate =
@@ -76,7 +80,7 @@ export async function putOAuth2Client({
   state,
 }: {
   id: string;
-  clientData: OAuth2ClientSkeleton;
+  clientData: OAuth2ClientSkeleton | NoIdObjectSkeletonInterface;
   state: State;
 }): Promise<OAuth2ClientSkeleton> {
   // until we figure out a way to use transport keys in Frodo,
