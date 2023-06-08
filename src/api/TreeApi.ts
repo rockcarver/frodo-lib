@@ -2,7 +2,7 @@ import util from 'util';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
 import State from '../shared/State';
-import { TreeSkeleton } from './ApiTypes';
+import { NoIdObjectSkeletonInterface, TreeSkeleton } from './ApiTypes';
 
 const treeByIdURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/trees/%s';
@@ -68,7 +68,7 @@ export async function putTree({
   state,
 }: {
   treeId: string;
-  treeData: TreeSkeleton;
+  treeData: TreeSkeleton | NoIdObjectSkeletonInterface;
   state: State;
 }) {
   const urlString = util.format(

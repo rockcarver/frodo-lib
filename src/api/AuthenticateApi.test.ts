@@ -32,7 +32,8 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { AuthenticateRaw, state } from '../index';
+import * as AuthenticateApi from './AuthenticateApi';
+import { state } from '../index';
 import {
   autoSetupPolly,
   defaultMatchRequestsBy,
@@ -48,7 +49,7 @@ autoSetupPolly(matchConfig);
 describe('AuthenticateApi', () => {
   describe('step()', () => {
     test('0: Method is implemented', async () => {
-      expect(AuthenticateRaw.step).toBeDefined();
+      expect(AuthenticateApi.step).toBeDefined();
     });
 
     test("1: Single step login journey 'PasswordGrant'", async () => {
@@ -67,11 +68,12 @@ describe('AuthenticateApi', () => {
           'X-OpenAM-Password': state.getPassword(),
         },
       };
-      const response1 = await AuthenticateRaw.step(
-        {},
+      const response1 = await AuthenticateApi.step({
+        body: {},
         config,
-        state.getRealm()
-      );
+        realm: state.getRealm(),
+        state,
+      });
       expect(response1).toMatchSnapshot();
     });
 
@@ -85,13 +87,26 @@ describe('AuthenticateApi', () => {
       state.setAuthenticationService(
         process.env.FRODO_AUTHENTICATION_SERVICE || 'PasswordGrant'
       );
-      const response1 = await AuthenticateRaw.step({}, {}, state.getRealm());
-      expect(response1).toMatchSnapshot();
-      const body = AuthenticateRaw.fillCallbacks(response1, {
-        IDToken1: state.getUsername() as string,
-        IDToken2: state.getPassword() as string,
+      const response1 = await AuthenticateApi.step({
+        body: {},
+        config: {},
+        realm: state.getRealm(),
+        state,
       });
-      const response2 = await AuthenticateRaw.step(body, {}, state.getRealm());
+      expect(response1).toMatchSnapshot();
+      const body = AuthenticateApi.fillCallbacks({
+        response: response1,
+        map: {
+          IDToken1: state.getUsername() as string,
+          IDToken2: state.getPassword() as string,
+        },
+      });
+      const response2 = await AuthenticateApi.step({
+        body,
+        config: {},
+        realm: state.getRealm(),
+        state,
+      });
       expect(response2).toMatchSnapshot();
     });
   });

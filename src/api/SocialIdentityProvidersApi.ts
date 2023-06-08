@@ -2,7 +2,7 @@ import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
 import State from '../shared/State';
-import { SocialIdpSkeleton } from './ApiTypes';
+import { NoIdObjectSkeletonInterface, SocialIdpSkeleton } from './ApiTypes';
 
 const getAllProviderTypesURLTemplate =
   '%s/json%s/realm-config/services/SocialIdentityProviders?_action=getAllTypes';
@@ -138,7 +138,7 @@ export async function putProviderByTypeAndId({
 }: {
   type: string;
   id: string;
-  providerData: SocialIdpSkeleton;
+  providerData: SocialIdpSkeleton | NoIdObjectSkeletonInterface;
   state: State;
 }) {
   // until we figure out a way to use transport keys in Frodo,

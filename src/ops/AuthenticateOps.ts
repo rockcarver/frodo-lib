@@ -542,7 +542,7 @@ export async function getTokens({
   forceLoginAsUser = false,
   state,
 }: {
-  forceLoginAsUser: boolean;
+  forceLoginAsUser?: boolean;
   state: State;
 }): Promise<boolean> {
   debugMessage(`AuthenticateOps.getTokens: start`);
@@ -561,7 +561,7 @@ export async function getTokens({
       !state.getServiceAccountId() &&
       !state.getServiceAccountJwk()
     ) {
-      const conn = await getConnectionProfile(state);
+      const conn = await getConnectionProfile({ state });
       if (conn) {
         state.setHost(conn.tenant);
         state.setUsername(conn.username);
@@ -579,7 +579,7 @@ export async function getTokens({
 
     // if host is not a valid URL, try to locate a valid URL from connections.json
     if (!isValidUrl(state.getHost())) {
-      const conn = await getConnectionProfile(state);
+      const conn = await getConnectionProfile({ state });
       if (conn) {
         state.setHost(conn.tenant);
       } else {
