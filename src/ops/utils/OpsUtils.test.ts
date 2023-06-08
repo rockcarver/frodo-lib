@@ -1,5 +1,13 @@
+/**
+ * Run tests
+ *
+ *        npm run test:only OpsUtils
+ *
+ * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
+ * in case things don't function as expected
+ */
 import * as OpsUtils from './OpsUtils';
-import * as state from '../../shared/State';
+import { state } from '../../index';
 import {
   CLOUD_DEPLOYMENT_TYPE_KEY,
   FORGEOPS_DEPLOYMENT_TYPE_KEY,
@@ -18,7 +26,7 @@ describe('OpsUtils - getRealmManagedUser()', () => {
     state.setRealm(REALM);
     state.setDeploymentType(DEPLOYMENT_TYPE);
     // Act
-    const testString = OpsUtils.getRealmManagedUser();
+    const testString = OpsUtils.getRealmManagedUser({ state });
     // Assert
     expect(testString).toBe('alpha_user');
   });
@@ -30,7 +38,7 @@ describe('OpsUtils - getRealmManagedUser()', () => {
     state.setRealm(REALM);
     state.setDeploymentType(DEPLOYMENT_TYPE);
     // Act
-    const testString = OpsUtils.getRealmManagedUser();
+    const testString = OpsUtils.getRealmManagedUser({ state });
     // Assert
     expect(testString).toBe('alpha_user');
   });
@@ -42,7 +50,7 @@ describe('OpsUtils - getRealmManagedUser()', () => {
     state.setRealm(REALM);
     state.setDeploymentType(DEPLOYMENT_TYPE);
     // Act
-    const testString = OpsUtils.getRealmManagedUser();
+    const testString = OpsUtils.getRealmManagedUser({ state });
     // Assert
     expect(testString).toBe('user');
   });
@@ -54,7 +62,7 @@ describe('OpsUtils - getRealmManagedUser()', () => {
     state.setRealm(REALM);
     state.setDeploymentType(DEPLOYMENT_TYPE);
     // Act
-    const testString = OpsUtils.getRealmManagedUser();
+    const testString = OpsUtils.getRealmManagedUser({ state });
     // Assert
     expect(testString).toBe('user');
   });

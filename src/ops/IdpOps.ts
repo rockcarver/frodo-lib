@@ -16,7 +16,11 @@ import {
   stopProgressIndicator,
 } from './utils/Console';
 import { ExportMetaData } from './OpsTypes';
-import { ScriptSkeleton, SocialIdpSkeleton } from '../api/ApiTypes';
+import {
+  NoIdObjectSkeletonInterface,
+  ScriptSkeleton,
+  SocialIdpSkeleton,
+} from '../api/ApiTypes';
 import { getMetadata } from './utils/ExportImportUtils';
 import State from '../shared/State';
 import { debugMessage } from './utils/Console';
@@ -185,7 +189,7 @@ export async function putProviderByTypeAndId({
 }: {
   providerType: string;
   providerId: string;
-  providerData: SocialIdpSkeleton;
+  providerData: SocialIdpSkeleton | NoIdObjectSkeletonInterface;
   state: State;
 }) {
   debugMessage(`IdpOps.putProviderByTypeAndId: start`);

@@ -1,4 +1,7 @@
-import { EmailTemplateSkeleton } from '../api/ApiTypes';
+import {
+  EmailTemplateSkeleton,
+  NoIdObjectSkeletonInterface,
+} from '../api/ApiTypes';
 import {
   getConfigEntitiesByType,
   getConfigEntity,
@@ -86,7 +89,7 @@ export async function putEmailTemplate({
   state,
 }: {
   templateId: string;
-  templateData: EmailTemplateSkeleton;
+  templateData: EmailTemplateSkeleton | NoIdObjectSkeletonInterface;
   state: State;
 }) {
   return putConfigEntity({

@@ -1,3 +1,11 @@
+/**
+ * Run tests
+ *
+ *        npm run test:only JoseOps
+ *
+ * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
+ * in case things don't function as expected
+ */
 import * as Jose from './JoseOps';
 import { parseUrl } from '../api/utils/ApiUtils';
 import { v4 } from 'uuid';

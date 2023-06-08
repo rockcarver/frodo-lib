@@ -5,7 +5,11 @@ import {
   deleteOAuth2Client as _deleteOAuth2Client,
 } from '../api/OAuth2ClientApi';
 import { ExportMetaData } from './OpsTypes';
-import { OAuth2ClientSkeleton, ScriptSkeleton } from '../api/ApiTypes';
+import {
+  NoIdObjectSkeletonInterface,
+  OAuth2ClientSkeleton,
+  ScriptSkeleton,
+} from '../api/ApiTypes';
 import { getMetadata } from './utils/ExportImportUtils';
 import { debugMessage, printMessage } from './utils/Console';
 import { convertBase64TextToArray } from './utils/ExportImportUtils';
@@ -206,7 +210,7 @@ export async function putOAuth2Client({
   state,
 }: {
   clientId: string;
-  clientData: OAuth2ClientSkeleton;
+  clientData: OAuth2ClientSkeleton | NoIdObjectSkeletonInterface;
   state: State;
 }) {
   debugMessage(`OAuth2ClientOps.putOAuth2Client: start`);
