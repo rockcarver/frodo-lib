@@ -144,11 +144,13 @@ function getRealmThemes({
  * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
  */
 export async function getThemes({
+  realm = null,
   state,
 }: {
+  realm?: string;
   state: State;
 }): Promise<ThemeSkeleton[]> {
-  const realm = getCurrentRealmName(state);
+  realm = realm ? realm : getCurrentRealmName(state);
   const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
   return getRealmThemes({ themes, realm });
 }
@@ -331,13 +333,15 @@ export async function putThemeByName({
  */
 export async function putThemes({
   themeMap,
+  realm = null,
   state,
 }: {
   themeMap: Map<string, ThemeSkeleton>;
+  realm?: string;
   state: State;
 }): Promise<Map<string, ThemeSkeleton>> {
   debugMessage(`ThemeApi.putThemes: start`);
-  const realm = getCurrentRealmName(state);
+  realm = realm ? realm : getCurrentRealmName(state);
   const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
   const allThemeIDs = Object.keys(themeMap);
   const existingThemeIDs = [];

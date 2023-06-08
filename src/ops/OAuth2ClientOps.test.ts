@@ -29,31 +29,43 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { OAuth2Client } from '../index';
+import { state } from '../index';
+import * as OAuth2ClientOps from './OAuth2ClientOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { cloneDeep } from './utils/OpsUtils';
+import {
+  NoIdObjectSkeletonInterface,
+  OAuth2ClientSkeleton,
+} from '../api/ApiTypes';
 
 autoSetupPolly();
 
 async function stageOAuth2Client(
-  client: { id: string; data: object },
+  client: {
+    id: string;
+    data: OAuth2ClientSkeleton | NoIdObjectSkeletonInterface;
+  },
   create = true
 ) {
   // delete if exists, then create
   try {
-    await OAuth2Client.getOAuth2Client(client.id);
-    await OAuth2Client.deleteOAuth2Client(client.id);
+    await OAuth2ClientOps.getOAuth2Client({ clientId: client.id, state });
+    await OAuth2ClientOps.deleteOAuth2Client({ clientId: client.id, state });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await OAuth2Client.putOAuth2Client(client.id, client.data);
+      await OAuth2ClientOps.putOAuth2Client({
+        clientId: client.id,
+        clientData: client.data,
+        state,
+      });
     }
   }
 }
 
 function applyOAuth2ClientImportTemplate(template, ids: string[]) {
-  const configured: OAuth2Client.OAuth2ClientExportInterface =
+  const configured: OAuth2ClientOps.OAuth2ClientExportInterface =
     cloneDeep(template);
   const key = cloneDeep(Object.keys(configured.application)[0]);
   const clientData = configured.application[key];
@@ -2431,11 +2443,14 @@ describe('OAuth2ClientOps', () => {
 
   describe('exportOAuth2Client()', () => {
     test('0: Method is implemented', async () => {
-      expect(OAuth2Client.exportOAuth2Client).toBeDefined();
+      expect(OAuth2ClientOps.exportOAuth2Client).toBeDefined();
     });
 
     test(`1: Export oauth2 client ${client1.id}`, async () => {
-      const response = await OAuth2Client.exportOAuth2Client(client1.id);
+      const response = await OAuth2ClientOps.exportOAuth2Client({
+        clientId: client1.id,
+        state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -2444,11 +2459,11 @@ describe('OAuth2ClientOps', () => {
 
   describe('exportOAuth2Clients()', () => {
     test('0: Method is implemented', async () => {
-      expect(OAuth2Client.exportOAuth2Clients).toBeDefined();
+      expect(OAuth2ClientOps.exportOAuth2Clients).toBeDefined();
     });
 
     test('1: Export all oauth2 clients', async () => {
-      const response = await OAuth2Client.exportOAuth2Clients();
+      const response = await OAuth2ClientOps.exportOAuth2Clients({ state });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -2457,111 +2472,121 @@ describe('OAuth2ClientOps', () => {
 
   describe('getOAuth2Clients()', () => {
     test('0: Method is implemented', async () => {
-      expect(OAuth2Client.getOAuth2Clients).toBeDefined();
+      expect(OAuth2ClientOps.getOAuth2Clients).toBeDefined();
     });
 
     test(`1: Get oauth2 clients`, async () => {
-      const response = await OAuth2Client.getOAuth2Clients();
+      const response = await OAuth2ClientOps.getOAuth2Clients({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('getOAuth2Client()', () => {
     test('0: Method is implemented', async () => {
-      expect(OAuth2Client.getOAuth2Client).toBeDefined();
+      expect(OAuth2ClientOps.getOAuth2Client).toBeDefined();
     });
 
     test(`1: Get oauth2 client ${client1.id}`, async () => {
-      const response = await OAuth2Client.getOAuth2Client(client1.id);
+      const response = await OAuth2ClientOps.getOAuth2Client({
+        clientId: client1.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('putOAuth2Client()', () => {
     test('0: Method is implemented', async () => {
-      expect(OAuth2Client.putOAuth2Client).toBeDefined();
+      expect(OAuth2ClientOps.putOAuth2Client).toBeDefined();
     });
 
     test(`1: Put oauth2 client ${client3.id}`, async () => {
-      const response = await OAuth2Client.putOAuth2Client(
-        client3.id,
-        client3.data
-      );
+      const response = await OAuth2ClientOps.putOAuth2Client({
+        clientId: client3.id,
+        clientData: client3.data,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('importOAuth2Client()', () => {
     test('0: Method is implemented', async () => {
-      expect(OAuth2Client.importOAuth2Client).toBeDefined();
+      expect(OAuth2ClientOps.importOAuth2Client).toBeDefined();
     });
 
     test(`1: Import oauth2 client ${import1.id} w/ dependencies`, async () => {
       expect.assertions(1);
-      const response = await OAuth2Client.importOAuth2Client(
-        import1.id,
-        import1.data as OAuth2Client.OAuth2ClientExportInterface,
-        { deps: true }
-      );
+      const response = await OAuth2ClientOps.importOAuth2Client({
+        clientId: import1.id,
+        importData: import1.data as OAuth2ClientOps.OAuth2ClientExportInterface,
+        options: { deps: true },
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test(`2: Import oauth2 client ${import2.id} w/o dependencies`, async () => {
       expect.assertions(1);
-      const response = await OAuth2Client.importOAuth2Client(
-        import2.id,
-        import2.data as OAuth2Client.OAuth2ClientExportInterface,
-        { deps: false }
-      );
+      const response = await OAuth2ClientOps.importOAuth2Client({
+        clientId: import2.id,
+        importData: import2.data as OAuth2ClientOps.OAuth2ClientExportInterface,
+        options: { deps: false },
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('importFirstOAuth2Client()', () => {
     test('0: Method is implemented', async () => {
-      expect(OAuth2Client.importFirstOAuth2Client).toBeDefined();
+      expect(OAuth2ClientOps.importFirstOAuth2Client).toBeDefined();
     });
 
     test(`1: Import first oauth2 client w/ dependencies`, async () => {
       expect.assertions(1);
-      const outcome = await OAuth2Client.importFirstOAuth2Client(
-        importData1 as OAuth2Client.OAuth2ClientExportInterface,
-        { deps: true }
-      );
+      const outcome = await OAuth2ClientOps.importFirstOAuth2Client({
+        importData: importData1 as OAuth2ClientOps.OAuth2ClientExportInterface,
+        options: { deps: true },
+        state,
+      });
       expect(outcome).toMatchSnapshot();
     });
 
     test(`2: Import first oauth2 client w/o dependencies`, async () => {
       expect.assertions(1);
-      const outcome = await OAuth2Client.importFirstOAuth2Client(
-        importData2 as OAuth2Client.OAuth2ClientExportInterface,
-        { deps: false }
-      );
+      const outcome = await OAuth2ClientOps.importFirstOAuth2Client({
+        importData: importData2 as OAuth2ClientOps.OAuth2ClientExportInterface,
+        options: { deps: false },
+        state,
+      });
       expect(outcome).toMatchSnapshot();
     });
   });
 
   describe('importOAuth2Clients()', () => {
     test('0: Method is implemented', async () => {
-      expect(OAuth2Client.importOAuth2Clients).toBeDefined();
+      expect(OAuth2ClientOps.importOAuth2Clients).toBeDefined();
     });
   });
 
   test(`1: Import all oauth2 clients w/ dependencies`, async () => {
     expect.assertions(1);
-    const outcome = await OAuth2Client.importOAuth2Clients(
-      importData3 as OAuth2Client.OAuth2ClientExportInterface,
-      { deps: true }
-    );
+    const outcome = await OAuth2ClientOps.importOAuth2Clients({
+      importData: importData3 as OAuth2ClientOps.OAuth2ClientExportInterface,
+      options: { deps: true },
+      state,
+    });
     expect(outcome).toMatchSnapshot();
   });
 
   test(`1: Import all oauth2 clients w/o dependencies`, async () => {
     expect.assertions(1);
-    const outcome = await OAuth2Client.importOAuth2Clients(
-      importData4 as OAuth2Client.OAuth2ClientExportInterface,
-      { deps: false }
-    );
+    const outcome = await OAuth2ClientOps.importOAuth2Clients({
+      importData: importData4 as OAuth2ClientOps.OAuth2ClientExportInterface,
+      options: { deps: false },
+      state,
+    });
     expect(outcome).toMatchSnapshot();
   });
 });

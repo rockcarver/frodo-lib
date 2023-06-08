@@ -7,15 +7,11 @@ import {
 import {
   createProvider,
   updateProvider,
-  deleteRawProvider,
   findProviders,
   getProviderByLocationAndId as _getProviderByLocationAndId,
   getProviderMetadata as _getProviderMetadata,
   getProviderMetadataUrl as _getProviderMetadataUrl,
-  getRawProvider,
   getProviders,
-  getRawProviders,
-  putRawProvider,
   deleteProviderByLocationAndId,
 } from '../api/Saml2Api';
 import { getScript } from '../api/ScriptApi';
@@ -640,52 +636,3 @@ export async function importSaml2Providers({
   debugMessage(`Saml2Ops.importSaml2Providers: end`);
   return myStatus;
 }
-
-// Contributions using legacy APIs. Need to investigate if those will be deprecated in the future
-
-/**
- * Deletes entity provider
- * @param {string} entityId The entity id for the entity to be deleted
- * @returns {Promise<Saml2ProviderSkeleton>} Promise resolving to a Saml2ExportInterface object.
- */
-export async function deleteRawSaml2Provider({
-  entityId,
-  state,
-}: {
-  entityId: string;
-  state: State;
-}): Promise<Saml2ProviderSkeleton> {
-  debugMessage(`Saml2Ops.deleteSaml2Provider: start [entityId=${entityId}]`);
-  const response = await deleteRawProvider({ entityId, state });
-  debugMessage(`Saml2Ops.deleteSaml2Provider: end [entityId=${entityId}]`);
-  return response;
-}
-
-/**
- * Deletes all entity providers.
- */
-export async function deleteRawSaml2Providers({
-  state,
-}: {
-  state: State;
-}): Promise<Saml2ProviderSkeleton[]> {
-  const applicationList = (await getRawProviders({ state })).result;
-  const deleteApplicationPromises = [];
-  applicationList.forEach((item) => {
-    printMessage(`Deleting Application ${item._id}`, 'error');
-    deleteApplicationPromises.push(
-      deleteRawProvider({ entityId: item._id, state })
-    );
-  });
-  const deleteApplicationResult = await Promise.all(deleteApplicationPromises);
-  if (deleteApplicationResult.length == applicationList.length) {
-    printMessage('SAML Entity cleanup done', 'info');
-  }
-  return deleteApplicationResult;
-}
-
-export {
-  getRawProvider as getRawSaml2Provider,
-  getRawProviders as getRawSaml2Providers,
-  putRawProvider as putRawSaml2Provider,
-};
