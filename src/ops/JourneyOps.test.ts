@@ -46,7 +46,8 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { Journey, state } from '../index';
+import { state } from '../index';
+import * as JourneyOps from './JourneyOps';
 import { getJourney } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import * as globalConfig from '../storage/StaticStorage';
@@ -58,19 +59,27 @@ state.setDeploymentType(globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY);
 async function stageJourney(journey: { id: string }, create = true) {
   // delete if exists, then create
   try {
-    await Journey.getJourney(journey.id);
-    await Journey.deleteJourney(journey.id, {
-      deep: true,
-      verbose: false,
-      progress: false,
+    await JourneyOps.getJourney({ journeyId: journey.id, state });
+    await JourneyOps.deleteJourney({
+      journeyId: journey.id,
+      options: {
+        deep: true,
+        verbose: false,
+        progress: false,
+      },
+      state,
     });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await Journey.importJourney(getJourney(journey.id), {
-        reUuid: false,
-        deps: true,
+      await JourneyOps.importJourney({
+        treeObject: getJourney(journey.id),
+        options: {
+          reUuid: false,
+          deps: true,
+        },
+        state,
       });
     }
   }
@@ -140,24 +149,28 @@ describe('JourneyOps', () => {
   ) {
     describe('getJourneys()', () => {
       test('0: Method is implemented', async () => {
-        expect(Journey.getJourneys).toBeDefined();
+        expect(JourneyOps.getJourneys).toBeDefined();
       });
 
       test('1: Get all journeys', async () => {
-        const journeys = await Journey.getJourneys();
+        const journeys = await JourneyOps.getJourneys({ state });
         expect(journeys).toMatchSnapshot();
       });
     });
 
     describe('exportJourney()', () => {
       test('0: Method is implemented', async () => {
-        expect(Journey.exportJourney).toBeDefined();
+        expect(JourneyOps.exportJourney).toBeDefined();
       });
 
       test(`1: Export journey '${journey3.id}' w/o dependencies`, async () => {
-        const response = await Journey.exportJourney(journey3.id, {
-          useStringArrays: false,
-          deps: false,
+        const response = await JourneyOps.exportJourney({
+          treeId: journey3.id,
+          options: {
+            useStringArrays: false,
+            deps: false,
+          },
+          state,
         });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
@@ -165,9 +178,13 @@ describe('JourneyOps', () => {
       });
 
       test(`2: Export journey '${journey3.id}' w/ dependencies`, async () => {
-        const response = await Journey.exportJourney(journey3.id, {
-          useStringArrays: false,
-          deps: true,
+        const response = await JourneyOps.exportJourney({
+          treeId: journey3.id,
+          options: {
+            useStringArrays: false,
+            deps: true,
+          },
+          state,
         });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
@@ -177,15 +194,19 @@ describe('JourneyOps', () => {
 
     describe('importJourney()', () => {
       test('0: Method is implemented', async () => {
-        expect(Journey.importJourney).toBeDefined();
+        expect(JourneyOps.importJourney).toBeDefined();
       });
 
       test(`1: Import journey '${journey4.id}' w/o dependencies`, async () => {
         const journeyExport = getJourney(journey4.id);
         expect.assertions(1);
-        const response = await Journey.importJourney(journeyExport, {
-          reUuid: false,
-          deps: false,
+        const response = await JourneyOps.importJourney({
+          treeObject: journeyExport,
+          options: {
+            reUuid: false,
+            deps: false,
+          },
+          state,
         });
         expect(response).toBeTruthy();
       });
@@ -193,9 +214,13 @@ describe('JourneyOps', () => {
       test(`2: Import journey '${journey5.id}' w/ dependencies`, async () => {
         const journeyExport = getJourney(journey5.id);
         expect.assertions(1);
-        const response = await Journey.importJourney(journeyExport, {
-          reUuid: false,
-          deps: true,
+        const response = await JourneyOps.importJourney({
+          treeObject: journeyExport,
+          options: {
+            reUuid: false,
+            deps: true,
+          },
+          state,
         });
         expect(response).toBeTruthy();
       });
@@ -203,36 +228,48 @@ describe('JourneyOps', () => {
 
     describe('enableJourney()', () => {
       test('0: Method is implemented', async () => {
-        expect(Journey.enableJourney).toBeDefined();
+        expect(JourneyOps.enableJourney).toBeDefined();
       });
 
       test(`1: Enable disabled journey '${journey6.id}'`, async () => {
         expect.assertions(1);
-        const result = await Journey.enableJourney(journey6.id);
+        const result = await JourneyOps.enableJourney({
+          journeyId: journey6.id,
+          state,
+        });
         expect(result).toBeTruthy();
       });
 
       test(`2: Enable already enabled journey '${journey7.id}'`, async () => {
         expect.assertions(1);
-        const result = await Journey.enableJourney(journey7.id);
+        const result = await JourneyOps.enableJourney({
+          journeyId: journey7.id,
+          state,
+        });
         expect(result).toBeTruthy();
       });
     });
 
     describe('disableJourney()', () => {
       test('0: Method is implemented', async () => {
-        expect(Journey.disableJourney).toBeDefined();
+        expect(JourneyOps.disableJourney).toBeDefined();
       });
 
       test(`1: Disable enabled journey '${journey8.id}'`, async () => {
         expect.assertions(1);
-        const result = await Journey.disableJourney(journey8.id);
+        const result = await JourneyOps.disableJourney({
+          journeyId: journey8.id,
+          state,
+        });
         expect(result).toBeTruthy();
       });
 
       test(`2: Disable already disabled journey '${journey9.id}'`, async () => {
         expect.assertions(1);
-        const result = await Journey.disableJourney(journey9.id);
+        const result = await JourneyOps.disableJourney({
+          journeyId: journey9.id,
+          state,
+        });
         expect(result).toBeTruthy();
       });
     });

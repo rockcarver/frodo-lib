@@ -29,7 +29,8 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { TreeRaw } from '../index';
+import * as TreeApi from './TreeApi';
+import { state } from '../index';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
 autoSetupPolly();
@@ -148,35 +149,47 @@ describe('TreeApi', () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
       // setup tree1 - delete if exists, then create
       try {
-        await TreeRaw.getTree(tree1.name);
-        await TreeRaw.deleteTree(tree1.name);
+        await TreeApi.getTree({ id: tree1.name, state });
+        await TreeApi.deleteTree({ treeId: tree1.name, state });
       } catch (error) {
         // ignore
       } finally {
-        await TreeRaw.putTree(tree1.name, tree1.tree);
+        await TreeApi.putTree({
+          treeId: tree1.name,
+          treeData: tree1.tree,
+          state,
+        });
       }
       // setup tree2 - delete if exists, then create
       try {
-        await TreeRaw.getTree(tree2.name);
-        await TreeRaw.deleteTree(tree2.name);
+        await TreeApi.getTree({ id: tree2.name, state });
+        await TreeApi.deleteTree({ treeId: tree2.name, state });
       } catch (error) {
         // ignore
       } finally {
-        await TreeRaw.putTree(tree2.name, tree2.tree);
+        await TreeApi.putTree({
+          treeId: tree2.name,
+          treeData: tree2.tree,
+          state,
+        });
       }
       // setup tree3 - delete if exists, then create
       try {
-        await TreeRaw.getTree(tree3.name);
-        await TreeRaw.deleteTree(tree3.name);
+        await TreeApi.getTree({ id: tree3.name, state });
+        await TreeApi.deleteTree({ treeId: tree3.name, state });
       } catch (error) {
         // ignore
       } finally {
-        await TreeRaw.putTree(tree3.name, tree3.tree);
+        await TreeApi.putTree({
+          treeId: tree3.name,
+          treeData: tree3.tree,
+          state,
+        });
       }
       // setup tree4 - delete if exists
       try {
-        await TreeRaw.getTree(tree4.name);
-        await TreeRaw.deleteTree(tree4.name);
+        await TreeApi.getTree({ id: tree4.name, state });
+        await TreeApi.deleteTree({ treeId: tree4.name, state });
       } catch (error) {
         // ignore
       }
@@ -186,26 +199,26 @@ describe('TreeApi', () => {
   afterAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
       try {
-        await TreeRaw.getTree(tree1.name);
-        await TreeRaw.deleteTree(tree1.name);
+        await TreeApi.getTree({ id: tree1.name, state });
+        await TreeApi.deleteTree({ treeId: tree1.name, state });
       } catch (error) {
         // ignore
       }
       try {
-        await TreeRaw.getTree(tree2.name);
-        await TreeRaw.deleteTree(tree2.name);
+        await TreeApi.getTree({ id: tree2.name, state });
+        await TreeApi.deleteTree({ treeId: tree2.name, state });
       } catch (error) {
         // ignore
       }
       try {
-        await TreeRaw.getTree(tree3.name);
-        await TreeRaw.deleteTree(tree3.name);
+        await TreeApi.getTree({ id: tree3.name, state });
+        await TreeApi.deleteTree({ treeId: tree3.name, state });
       } catch (error) {
         // ignore
       }
       try {
-        await TreeRaw.getTree(tree4.name);
-        await TreeRaw.deleteTree(tree4.name);
+        await TreeApi.getTree({ id: tree4.name, state });
+        await TreeApi.deleteTree({ treeId: tree4.name, state });
       } catch (error) {
         // ignore
       }
@@ -214,29 +227,29 @@ describe('TreeApi', () => {
 
   describe('getTrees()', () => {
     test('0: Method is implemented', async () => {
-      expect(TreeRaw.getTrees).toBeDefined();
+      expect(TreeApi.getTrees).toBeDefined();
     });
 
     test('1: Get all trees', async () => {
-      const response = await TreeRaw.getTrees();
+      const response = await TreeApi.getTrees({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('getTree()', () => {
     test('0: Method is implemented', async () => {
-      expect(TreeRaw.getTree).toBeDefined();
+      expect(TreeApi.getTree).toBeDefined();
     });
 
     test(`1: Get existing tree ${tree1.name}`, async () => {
-      const response = await TreeRaw.getTree(tree1.name);
+      const response = await TreeApi.getTree({ id: tree1.name, state });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Get non-existing tree DoesNotExist', async () => {
       expect.assertions(1);
       try {
-        await TreeRaw.getTree('DoesNotExist');
+        await TreeApi.getTree({ id: 'DoesNotExist', state });
       } catch (error) {
         expect(error.response.data).toMatchSnapshot();
       }
@@ -245,11 +258,15 @@ describe('TreeApi', () => {
 
   describe('putTree()', () => {
     test('0: Method is implemented', async () => {
-      expect(TreeRaw.putTree).toBeDefined();
+      expect(TreeApi.putTree).toBeDefined();
     });
 
     test(`1: Put valid tree ${tree4.name}`, async () => {
-      const response = await TreeRaw.putTree(tree4.name, tree4.tree);
+      const response = await TreeApi.putTree({
+        treeId: tree4.name,
+        treeData: tree4.tree,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
@@ -267,7 +284,7 @@ describe('TreeApi', () => {
           },
         }) + '\ntrailing data';
       try {
-        await TreeRaw.putTree('Invalid', treeData);
+        await TreeApi.putTree({ treeId: 'Invalid', treeData, state });
       } catch (error) {
         expect(error.response.data).toMatchSnapshot();
       }
@@ -288,7 +305,7 @@ describe('TreeApi', () => {
         })
       );
       try {
-        await TreeRaw.putTree('Invalid', treeData);
+        await TreeApi.putTree({ treeId: 'Invalid', treeData, state });
       } catch (error) {
         expect(error.response.data).toMatchSnapshot();
       }
@@ -308,7 +325,7 @@ describe('TreeApi', () => {
         })
       );
       try {
-        await TreeRaw.putTree('Invalid', treeData);
+        await TreeApi.putTree({ treeId: 'Invalid', treeData, state });
       } catch (error) {
         expect(error.response.data).toMatchSnapshot();
       }
@@ -331,7 +348,7 @@ describe('TreeApi', () => {
         })
       );
       try {
-        await TreeRaw.putTree('Invalid', treeData);
+        await TreeApi.putTree({ treeId: 'Invalid', treeData, state });
       } catch (error) {
         expect(error.response.data).toMatchSnapshot();
       }
@@ -340,18 +357,18 @@ describe('TreeApi', () => {
 
   describe('deleteTree()', () => {
     test('0: Method is implemented', async () => {
-      expect(TreeRaw.deleteTree).toBeDefined();
+      expect(TreeApi.deleteTree).toBeDefined();
     });
 
     test(`1: Delete existing tree ${tree2.name}`, async () => {
-      const response = await TreeRaw.deleteTree(tree2.name);
+      const response = await TreeApi.deleteTree({ treeId: tree2.name, state });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Delete non-existing tree DoesNotExist', async () => {
       expect.assertions(1);
       try {
-        await TreeRaw.deleteTree('DoesNotExist');
+        await TreeApi.deleteTree({ treeId: 'DoesNotExist', state });
       } catch (error) {
         expect(error.response.data).toMatchSnapshot();
       }

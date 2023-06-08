@@ -35,6 +35,7 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
+import { state } from '../index';
 import * as PolicySetApi from '../api/PolicySetApi';
 import * as PolicySetOps from './PolicySetOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
@@ -47,13 +48,16 @@ autoSetupPolly();
 async function stagePolicySet(policySet: PolicySetSkeleton, create = true) {
   // delete if exists, then create
   try {
-    await PolicySetApi.getPolicySet(policySet.name);
-    await PolicySetApi.deletePolicySet(policySet.name);
+    await PolicySetApi.getPolicySet({ policySetName: policySet.name, state });
+    await PolicySetApi.deletePolicySet({
+      policySetName: policySet.name,
+      state,
+    });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await PolicySetApi.createPolicySet(policySet);
+      await PolicySetApi.createPolicySet({ policySetData: policySet, state });
     }
   }
 }
@@ -263,7 +267,7 @@ describe('PolicySetOps', () => {
       });
 
       test('1: Get all policy sets', async () => {
-        const response = await PolicySetOps.getPolicySets();
+        const response = await PolicySetOps.getPolicySets({ state });
         expect(response).toMatchSnapshot();
       });
     });
@@ -274,14 +278,20 @@ describe('PolicySetOps', () => {
       });
 
       test(`1: Get existing policy set [${set1.name}]`, async () => {
-        const response = await PolicySetOps.getPolicySet(set1.name);
+        const response = await PolicySetOps.getPolicySet({
+          policySetName: set1.name,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test('2: Get non-existing policy set [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await PolicySetOps.getPolicySet('DoesNotExist');
+          await PolicySetOps.getPolicySet({
+            policySetName: 'DoesNotExist',
+            state,
+          });
         } catch (error) {
           expect(error.response.data).toMatchSnapshot();
         }
@@ -294,14 +304,17 @@ describe('PolicySetOps', () => {
       });
 
       test(`1: Create non-existing policy set [${set3.name}]`, async () => {
-        const response = await PolicySetOps.createPolicySet(set3);
+        const response = await PolicySetOps.createPolicySet({
+          policySetData: set3,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test(`2: Create existing policy set [${set4.name}]`, async () => {
         expect.assertions(1);
         try {
-          await PolicySetOps.createPolicySet(set4);
+          await PolicySetOps.createPolicySet({ policySetData: set4, state });
         } catch (error) {
           expect(error.response.data).toMatchSnapshot();
         }
@@ -314,14 +327,17 @@ describe('PolicySetOps', () => {
       });
 
       test(`1: Update existing policy set [${set5.name}]`, async () => {
-        const response = await PolicySetOps.updatePolicySet(set5);
+        const response = await PolicySetOps.updatePolicySet({
+          policySetData: set5,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test(`2: Update non-existing policy set [${set6.name}]`, async () => {
         expect.assertions(1);
         try {
-          await PolicySetOps.updatePolicySet(set6);
+          await PolicySetOps.updatePolicySet({ policySetData: set6, state });
         } catch (error) {
           expect(error.response.data).toMatchSnapshot();
         }
@@ -334,10 +350,14 @@ describe('PolicySetOps', () => {
       });
 
       test(`1: Export existing policy set w/o deps [${set9.name}]`, async () => {
-        const response = await PolicySetOps.exportPolicySet(set9.name, {
-          deps: false,
-          prereqs: false,
-          useStringArrays: true,
+        const response = await PolicySetOps.exportPolicySet({
+          policySetName: set9.name,
+          options: {
+            deps: false,
+            prereqs: false,
+            useStringArrays: true,
+          },
+          state,
         });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
@@ -345,10 +365,14 @@ describe('PolicySetOps', () => {
       });
 
       test(`2: Export existing policy set w/ deps [${set9.name}]`, async () => {
-        const response = await PolicySetOps.exportPolicySet(set9.name, {
-          deps: true,
-          prereqs: false,
-          useStringArrays: true,
+        const response = await PolicySetOps.exportPolicySet({
+          policySetName: set9.name,
+          options: {
+            deps: true,
+            prereqs: false,
+            useStringArrays: true,
+          },
+          state,
         });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
@@ -358,10 +382,14 @@ describe('PolicySetOps', () => {
       test('3: Export non-existing policy set [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await PolicySetOps.exportPolicySet('DoesNotExist', {
-            deps: false,
-            prereqs: false,
-            useStringArrays: true,
+          await PolicySetOps.exportPolicySet({
+            policySetName: 'DoesNotExist',
+            options: {
+              deps: false,
+              prereqs: false,
+              useStringArrays: true,
+            },
+            state,
           });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
@@ -376,9 +404,12 @@ describe('PolicySetOps', () => {
 
       test('1: Export all policy sets', async () => {
         const response = await PolicySetOps.exportPolicySets({
-          deps: true,
-          prereqs: false,
-          useStringArrays: true,
+          options: {
+            deps: true,
+            prereqs: false,
+            useStringArrays: true,
+          },
+          state,
         });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
@@ -392,20 +423,26 @@ describe('PolicySetOps', () => {
       });
 
       test(`1: Import existing policy set [${set11.name}]`, async () => {
-        const response = await PolicySetOps.importPolicySet(
-          set11.name,
-          import1,
-          { deps: true, prereqs: false }
-        );
+        const response = await PolicySetOps.importPolicySet({
+          policySetName: set11.name,
+          importData: import1,
+          options: { deps: true, prereqs: false },
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test('2: Import non-existing policy set [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await PolicySetOps.importPolicySet('DoesNotExist', import1, {
-            deps: true,
-            prereqs: false,
+          await PolicySetOps.importPolicySet({
+            policySetName: 'DoesNotExist',
+            importData: import1,
+            options: {
+              deps: true,
+              prereqs: false,
+            },
+            state,
           });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
@@ -419,9 +456,13 @@ describe('PolicySetOps', () => {
       });
 
       test('1: Import first policy set', async () => {
-        const response = await PolicySetOps.importFirstPolicySet(import3, {
-          deps: true,
-          prereqs: false,
+        const response = await PolicySetOps.importFirstPolicySet({
+          importData: import3,
+          options: {
+            deps: true,
+            prereqs: false,
+          },
+          state,
         });
         expect(response).toMatchSnapshot();
       });
@@ -433,9 +474,13 @@ describe('PolicySetOps', () => {
       });
 
       test('1: Import all policy sets', async () => {
-        const response = await PolicySetOps.importPolicySets(import4, {
-          deps: true,
-          prereqs: false,
+        const response = await PolicySetOps.importPolicySets({
+          importData: import4,
+          options: {
+            deps: true,
+            prereqs: false,
+          },
+          state,
         });
         expect(response).toMatchSnapshot();
       });
@@ -454,14 +499,20 @@ describe('PolicySetOps', () => {
       });
 
       test(`1: Delete existing policy set [${set7.name}]`, async () => {
-        const response = await PolicySetOps.deletePolicySet(set7.name);
+        const response = await PolicySetOps.deletePolicySet({
+          policySetName: set7.name,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test('2: Delete non-existing policy set [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await PolicySetOps.deletePolicySet('DoesNotExist');
+          await PolicySetOps.deletePolicySet({
+            policySetName: 'DoesNotExist',
+            state,
+          });
         } catch (error) {
           expect(error.response.data).toMatchSnapshot();
         }
