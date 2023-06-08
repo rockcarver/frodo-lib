@@ -29,12 +29,14 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { EmailTemplate, IdmConfigRaw } from '../index';
+import { state } from '../index';
+import * as IdmConfigApi from '../api/IdmConfigApi';
+import * as EmailTemplateOps from './EmailTemplateOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
 autoSetupPolly();
 
-const { EMAIL_TEMPLATE_TYPE } = EmailTemplate;
+const { EMAIL_TEMPLATE_TYPE } = EmailTemplateOps;
 
 async function stageTemplate(
   template: { id: string; data: object },
@@ -42,18 +44,23 @@ async function stageTemplate(
 ) {
   // delete if exists, then create
   try {
-    await IdmConfigRaw.getConfigEntity(`${EMAIL_TEMPLATE_TYPE}/${template.id}`);
-    await IdmConfigRaw.deleteConfigEntity(
-      `${EMAIL_TEMPLATE_TYPE}/${template.id}`
-    );
+    await IdmConfigApi.getConfigEntity({
+      entityId: `${EMAIL_TEMPLATE_TYPE}/${template.id}`,
+      state,
+    });
+    await IdmConfigApi.deleteConfigEntity({
+      entityId: `${EMAIL_TEMPLATE_TYPE}/${template.id}`,
+      state,
+    });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await IdmConfigRaw.putConfigEntity(
-        `${EMAIL_TEMPLATE_TYPE}/${template.id}`,
-        template.data
-      );
+      await IdmConfigApi.putConfigEntity({
+        entityId: `${EMAIL_TEMPLATE_TYPE}/${template.id}`,
+        entityData: template.data,
+        state,
+      });
     }
   }
 }
@@ -128,36 +135,40 @@ describe('EmailTemplateOps', () => {
 
   describe('getEmailTemplate()', () => {
     test('0: Method is implemented', async () => {
-      expect(EmailTemplate.getEmailTemplate).toBeDefined();
+      expect(EmailTemplateOps.getEmailTemplate).toBeDefined();
     });
 
     test(`1: Get email template '${template1.id}'`, async () => {
-      const response = await EmailTemplate.getEmailTemplate(template1.id);
+      const response = await EmailTemplateOps.getEmailTemplate({
+        templateId: template1.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('getEmailTemplates()', () => {
     test('0: Method is implemented', async () => {
-      expect(EmailTemplate.getEmailTemplates).toBeDefined();
+      expect(EmailTemplateOps.getEmailTemplates).toBeDefined();
     });
 
     test('1: Get all email templates', async () => {
-      const response = await EmailTemplate.getEmailTemplates();
+      const response = await EmailTemplateOps.getEmailTemplates({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('putEmailTemplate()', () => {
     test('0: Method is implemented', async () => {
-      expect(EmailTemplate.putEmailTemplate).toBeDefined();
+      expect(EmailTemplateOps.putEmailTemplate).toBeDefined();
     });
 
     test(`1: Create email template '${template3.id}'`, async () => {
-      const response = await EmailTemplate.putEmailTemplate(
-        template3.id,
-        template3.data
-      );
+      const response = await EmailTemplateOps.putEmailTemplate({
+        templateId: template3.id,
+        templateData: template3.data,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });

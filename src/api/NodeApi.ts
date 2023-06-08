@@ -2,7 +2,7 @@ import util from 'util';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
 import State from '../shared/State';
-import { NodeSkeleton } from './ApiTypes';
+import { NoIdObjectSkeletonInterface, NodeSkeleton } from './ApiTypes';
 
 const queryAllNodeTypesURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/nodes?_action=getAllTypes';
@@ -141,7 +141,7 @@ export async function putNode({
 }: {
   nodeId: string;
   nodeType: string;
-  nodeData: NodeSkeleton;
+  nodeData: NodeSkeleton | NoIdObjectSkeletonInterface;
   state: State;
 }) {
   // until we figure out a way to use transport keys in Frodo,

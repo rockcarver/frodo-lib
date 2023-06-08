@@ -296,8 +296,8 @@ export async function importScripts({
 }: {
   scriptName: string;
   importData: ScriptExportInterface;
-  reUuid: boolean;
-  validate: boolean;
+  reUuid?: boolean;
+  validate?: boolean;
   state: State;
 }): Promise<boolean> {
   let outcome = true;
