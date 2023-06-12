@@ -12,7 +12,7 @@ export default class Version {
   }
 
   getVersion() {
-    return getVersion();
+    return getVersion({ state: this.state });
   }
 
   async getAllVersions(endpoints: { base: string; path: string }[]) {
@@ -25,10 +25,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, '../../../package.json'), 'utf8')
 );
-// const userAgent = `${pkg.name}/${pkg.version}`;
 
-export function getVersion() {
-  return `${pkg.version}`;
+export function getVersion({ state }: { state: State }) {
+  // must initialize state to avoid library initialization issues
+  if (state) return `${pkg.version}`;
 }
 
 export async function getAllVersions({

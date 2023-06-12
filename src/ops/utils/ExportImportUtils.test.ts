@@ -1,3 +1,4 @@
+import { state } from '../../index';
 import { resolve } from 'path';
 import { rmSync, existsSync, readFileSync } from 'fs';
 import {
@@ -78,7 +79,13 @@ describe.skip('file system based tests', () => {
       },
     };
     // Act
-    saveToFile('lotr', data, 'id', PATH_TO_ARTIFACT);
+    saveToFile({
+      type: 'lotr',
+      data,
+      identifier: 'id',
+      filename: PATH_TO_ARTIFACT,
+      state,
+    });
     const resultingJSON = JSON.parse(readFileSync(PATH_TO_ARTIFACT, 'utf8'));
     // Assert
     expect(resultingJSON.lotr).toEqual(expected.lotr);
@@ -96,7 +103,13 @@ describe.skip('file system based tests', () => {
       },
     ];
     // Act
-    saveToFile('lotr', data, 'id', PATH_TO_ARTIFACT);
+    saveToFile({
+      type: 'lotr',
+      data,
+      identifier: 'id',
+      filename: PATH_TO_ARTIFACT,
+      state,
+    });
     const resultingJSON = JSON.parse(readFileSync(PATH_TO_ARTIFACT, 'utf8'));
     // Assert
     expect(Object.keys(resultingJSON.meta)).toEqual([
