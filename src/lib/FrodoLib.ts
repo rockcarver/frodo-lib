@@ -6,6 +6,7 @@ import AuthenticateOps from '../ops/AuthenticateOps';
 import CirclesOfTrustOps from '../ops/CirclesOfTrustOps';
 import ConnectionProfileOps from '../ops/ConnectionProfileOps';
 import EmailTemplateOps from '../ops/EmailTemplateOps';
+import ExportImportUtils from '../ops/utils/ExportImportUtils';
 import FeatureOps from '../ops/cloud/FeatureOps';
 import IdmOps from '../ops/IdmOps';
 import IdpOps from '../ops/IdpOps';
@@ -15,6 +16,7 @@ import LogOps from '../ops/cloud/LogOps';
 import ManagedObjectOps from '../ops/ManagedObjectOps';
 import NodeOps from '../ops/NodeOps';
 import OAuth2ClientOps from '../ops/OAuth2ClientOps';
+import OAuth2OidcOps from '../ops/OAuth2OidcOps';
 import OAuth2ProviderOps from '../ops/OAuth2ProviderOps';
 import OrganizationOps from '../ops/OrganizationOps';
 import PolicyOps from '../ops/PolicyOps';
@@ -29,14 +31,13 @@ import ServiceAccountOps from '../ops/cloud/ServiceAccountOps';
 import StartupOps from '../ops/cloud/StartupOps';
 import ThemeOps from '../ops/ThemeOps';
 import VariablesOps from '../ops/cloud/VariablesOps';
+import Version from '../ops/utils/Version';
 
 // non-instantiable modules
 import * as JoseOps from '../ops/JoseOps';
 import * as OpsUtils from '../ops/utils/OpsUtils';
 import * as Base64 from '../api/utils/Base64';
 import * as ScriptValidationUtils from '../ops/utils/ScriptValidationUtils';
-import * as Version from '../ops/utils/Version';
-import * as ExportImportUtils from '../ops/utils/ExportImportUtils';
 import * as constants from '../storage/StaticStorage';
 
 export class FrodoLib {
@@ -69,14 +70,12 @@ export class FrodoLib {
   };
   conn: ConnectionProfileOps;
   email: { template: EmailTemplateOps } = { template: undefined };
-  helpers = {
-    jose: JoseOps,
-    utils: OpsUtils,
+  helper = {
     base64: Base64,
-    script: ScriptValidationUtils,
-    version: Version,
-    exportImportUtils: ExportImportUtils,
     constants: constants,
+    jose: JoseOps,
+    script: ScriptValidationUtils,
+    utils: OpsUtils,
   };
   idm: {
     config: IdmOps;
@@ -87,9 +86,15 @@ export class FrodoLib {
   login: AuthenticateOps = null;
   oauth2oidc: {
     client: OAuth2ClientOps;
+    endpoint: OAuth2OidcOps;
     external: IdpOps;
     provider: OAuth2ProviderOps;
-  } = { client: undefined, external: undefined, provider: undefined };
+  } = {
+    client: undefined,
+    endpoint: undefined,
+    external: undefined,
+    provider: undefined,
+  };
   realm: RealmOps;
   saml2: {
     circlesOfTrust: CirclesOfTrustOps;
@@ -98,6 +103,10 @@ export class FrodoLib {
   script: ScriptOps;
   service: ServiceOps;
   theme: ThemeOps;
+  utils: {
+    impex: ExportImportUtils;
+    version: Version;
+  } = { impex: undefined, version: undefined };
 
   constructor(config: StateInterface = {}) {
     this.state = new State(config);
@@ -131,6 +140,7 @@ export class FrodoLib {
     this.login = new AuthenticateOps(this.state);
 
     this.oauth2oidc.client = new OAuth2ClientOps(this.state);
+    this.oauth2oidc.endpoint = new OAuth2OidcOps(this.state);
     this.oauth2oidc.external = new IdpOps(this.state);
     this.oauth2oidc.provider = new OAuth2ProviderOps(this.state);
 
@@ -143,8 +153,11 @@ export class FrodoLib {
     this.service = new ServiceOps(this.state);
 
     this.theme = new ThemeOps(this.state);
+
+    this.utils.impex = new ExportImportUtils(this.state);
+    this.utils.version = new Version(this.state);
   }
 }
 
 export const frodo = new FrodoLib();
-export const globalState = frodo.state;
+export const state = frodo.state;
