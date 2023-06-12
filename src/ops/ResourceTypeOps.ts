@@ -18,16 +18,16 @@ export default class ResourceTypeOps {
     this.state = state;
   }
 
+  async getResourceType(resourceTypeUuid: string) {
+    return getResourceType({ resourceTypeUuid, state: this.state });
+  }
+
   /**
    * Get all resource types
    * @returns {Promise} a promise that resolves to an array of resource type objects
    */
-  async getResourceTypes({
-    state,
-  }: {
-    state: State;
-  }): Promise<ResourceTypeSkeleton[]> {
-    const { result } = await _getResourceTypes({ state });
+  async getResourceTypes(): Promise<ResourceTypeSkeleton[]> {
+    const { result } = await _getResourceTypes({ state: this.state });
     return result;
   }
 
@@ -56,6 +56,10 @@ export default class ResourceTypeOps {
       resourceTypeData,
       state: this.state,
     });
+  }
+
+  async deleteResourceType(resourceTypeUuid: string) {
+    return deleteResourceType({ resourceTypeUuid, state: this.state });
   }
 
   /**

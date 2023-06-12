@@ -246,7 +246,7 @@ export default class JourneyOps {
    * Find all node configuration objects that are no longer referenced by any tree
    * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
    */
-  async findOrphanedNodes(): Promise<unknown[]> {
+  async findOrphanedNodes(): Promise<NodeSkeleton[]> {
     return findOrphanedNodes({ state: this.state });
   }
 
@@ -1763,7 +1763,7 @@ export async function findOrphanedNodes({
   state,
 }: {
   state: State;
-}): Promise<unknown[]> {
+}): Promise<NodeSkeleton[]> {
   const allNodes = [];
   const orphanedNodes = [];
   let types = [];
