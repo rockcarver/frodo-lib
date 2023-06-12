@@ -1,3 +1,4 @@
+import { state } from '../../index';
 import fs from 'fs';
 import path from 'path';
 import { getVersion } from './Version';
@@ -11,7 +12,7 @@ const pkg = JSON.parse(
 
 describe('index', () => {
   test('get library version', () => {
-    const result = getVersion();
+    const result = getVersion({ state });
     expect(result).toEqual(`${pkg.version}`);
   });
 });
