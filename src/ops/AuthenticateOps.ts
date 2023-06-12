@@ -10,7 +10,7 @@ import { accessToken, authorize } from '../api/OAuth2OIDCApi';
 import { getConnectionProfile } from './ConnectionProfileOps';
 import { v4 } from 'uuid';
 import { parseUrl } from '../api/utils/ApiUtils';
-import { createSignedJwtToken } from './JoseOps';
+import { JwkRsa, createSignedJwtToken } from './JoseOps';
 import { getServiceAccount } from './cloud/ServiceAccountOps';
 import { isValidUrl } from './utils/OpsUtils';
 import { debugMessage, printMessage, verboseMessage } from './utils/Console';
@@ -19,6 +19,17 @@ export default class AuthenticateOps {
   state: State;
   constructor(state: State) {
     this.state = state;
+  }
+
+  /**
+   * Get access token for service account
+   * @returns {string | null} Access token or null
+   */
+  async getAccessTokenForServiceAccount(
+    saId: string = undefined,
+    saJwk: JwkRsa = undefined
+  ): Promise<string | null> {
+    return getAccessTokenForServiceAccount({ saId, saJwk, state: this.state });
   }
 
   /**
@@ -453,14 +464,22 @@ function createPayload(serviceAccountId: string, host: string) {
  * @param {State} state library state
  * @returns {string | null} Access token or null
  */
-export async function getAccessTokenForServiceAccount(
-  state: State
-): Promise<string | null> {
+export async function getAccessTokenForServiceAccount({
+  saId = undefined,
+  saJwk = undefined,
+  state,
+}: {
+  saId?: string;
+  saJwk?: JwkRsa;
+  state: State;
+}): Promise<string | null> {
+  saId = saId ? saId : state.getServiceAccountId();
+  saJwk = saJwk ? saJwk : state.getServiceAccountJwk();
   debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: start`);
-  const payload = createPayload(state.getServiceAccountId(), state.getHost());
+  const payload = createPayload(saId, state.getHost());
   debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: payload:`);
   debugMessage(payload);
-  const jwt = await createSignedJwtToken(payload, state.getServiceAccountJwk());
+  const jwt = await createSignedJwtToken(payload, saJwk);
   debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: jwt:`);
   debugMessage(jwt);
   const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${serviceAccountScopes}`;
@@ -600,7 +619,7 @@ export async function getTokens({
         `AuthenticateOps.getTokens: Authenticating with service account ${state.getServiceAccountId()}`
       );
       try {
-        const token = await getAccessTokenForServiceAccount(state);
+        const token = await getAccessTokenForServiceAccount({ state });
         state.setBearerToken(token);
         state.setUseBearerTokenForAmApis(true);
         await determineDeploymentTypeAndDefaultRealmAndVersion(state);

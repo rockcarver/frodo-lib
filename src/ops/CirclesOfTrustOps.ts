@@ -8,11 +8,20 @@ import {
 import { getMetadata } from './utils/ExportImportUtils';
 import State from '../shared/State';
 import { CirclesOfTrustExportInterface } from './OpsTypes';
+import { CircleOfTrustSkeleton } from '../api/ApiTypes';
 
 export default class CirclesOfTrustOps {
   state: State;
   constructor(state: State) {
     this.state = state;
+  }
+
+  /**
+   * Create an empty agent export template
+   * @returns {CirclesOfTrustExportInterface} an empty agent export template
+   */
+  createCirclesOfTrustExportTemplate() {
+    return createCirclesOfTrustExportTemplate({ state: this.state });
   }
 
   /**
@@ -28,6 +37,10 @@ export default class CirclesOfTrustOps {
    */
   async getCirclesOfTrust() {
     return getCirclesOfTrust({ state: this.state });
+  }
+
+  async createCircleOfTrust(cotData: CircleOfTrustSkeleton) {
+    return createCircleOfTrust({ cotData, state: this.state });
   }
 
   /**
@@ -78,7 +91,11 @@ export default class CirclesOfTrustOps {
  * Create an empty agent export template
  * @returns {CirclesOfTrustExportInterface} an empty agent export template
  */
-function createCirclesOfTrustExportTemplate({ state }: { state: State }) {
+export function createCirclesOfTrustExportTemplate({
+  state,
+}: {
+  state: State;
+}) {
   return {
     meta: getMetadata({ state }),
     script: {},
@@ -91,7 +108,7 @@ function createCirclesOfTrustExportTemplate({ state }: { state: State }) {
   } as CirclesOfTrustExportInterface;
 }
 
-export { getCircleOfTrust };
+export { getCircleOfTrust, createCircleOfTrust };
 
 /**
  * Get circles of trust
