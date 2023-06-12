@@ -27,7 +27,10 @@ export default class ThemeOps {
    * @param {string} realm realm name
    * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
    */
-  async getTheme(themeId: string, realm: string): Promise<ThemeSkeleton> {
+  async getTheme(
+    themeId: string,
+    realm: string = this.state.getRealm()
+  ): Promise<ThemeSkeleton> {
     return getTheme({ themeId, realm, state: this.state });
   }
 
@@ -39,7 +42,7 @@ export default class ThemeOps {
    */
   async getThemeByName(
     themeName: string,
-    realm: string
+    realm: string = this.state.getRealm()
   ): Promise<ThemeSkeleton> {
     return getThemeByName({ themeName, realm, state: this.state });
   }
@@ -54,7 +57,7 @@ export default class ThemeOps {
   async putTheme(
     themeId: string,
     themeData: ThemeSkeleton,
-    realm: string
+    realm: string = this.state.getRealm()
   ): Promise<ThemeSkeleton> {
     return putTheme({ themeId, themeData, realm, state: this.state });
   }
@@ -69,7 +72,7 @@ export default class ThemeOps {
   async putThemeByName(
     themeName: string,
     themeData: ThemeSkeleton,
-    realm: string
+    realm: string = this.state.getRealm()
   ): Promise<ThemeSkeleton> {
     return putThemeByName({ themeName, themeData, realm, state: this.state });
   }
@@ -92,7 +95,10 @@ export default class ThemeOps {
    * @param {string} realm realm name
    * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
    */
-  async deleteTheme(themeId: string, realm: string): Promise<ThemeSkeleton> {
+  async deleteTheme(
+    themeId: string,
+    realm: string = this.state.getRealm()
+  ): Promise<ThemeSkeleton> {
     return deleteTheme({ themeId, realm, state: this.state });
   }
 
@@ -104,7 +110,7 @@ export default class ThemeOps {
    */
   async deleteThemeByName(
     themeName: string,
-    realm: string
+    realm: string = this.state.getRealm()
   ): Promise<ThemeSkeleton> {
     return deleteThemeByName({ themeName, realm, state: this.state });
   }
@@ -114,7 +120,9 @@ export default class ThemeOps {
    * @param {string} realm realm name
    * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
    */
-  async deleteThemes(realm: string): Promise<ThemeSkeleton[]> {
+  async deleteThemes(
+    realm: string = this.state.getRealm()
+  ): Promise<ThemeSkeleton[]> {
     return deleteThemes({ realm, state: this.state });
   }
 }
@@ -167,7 +175,7 @@ export async function getTheme({
   state,
 }: {
   themeId: string;
-  realm: string;
+  realm?: string;
   state: State;
 }): Promise<ThemeSkeleton> {
   realm ? realm : getCurrentRealmName(state);
@@ -198,7 +206,7 @@ export async function getThemeByName({
   state,
 }: {
   themeName: string;
-  realm: string;
+  realm?: string;
   state: State;
 }): Promise<ThemeSkeleton> {
   realm ? realm : getCurrentRealmName(state);
@@ -232,7 +240,7 @@ export async function putTheme({
 }: {
   themeId: string;
   themeData: ThemeSkeleton;
-  realm: string;
+  realm?: string;
   state: State;
 }): Promise<ThemeSkeleton> {
   realm ? realm : getCurrentRealmName(state);
@@ -286,7 +294,7 @@ export async function putThemeByName({
 }: {
   themeName: string;
   themeData: ThemeSkeleton;
-  realm: string;
+  realm?: string;
   state: State;
 }): Promise<ThemeSkeleton> {
   realm ? realm : getCurrentRealmName(state);
@@ -404,7 +412,7 @@ export async function deleteTheme({
   state,
 }: {
   themeId: string;
-  realm: string;
+  realm?: string;
   state: State;
 }): Promise<ThemeSkeleton> {
   realm ? realm : getCurrentRealmName(state);
@@ -451,7 +459,7 @@ export async function deleteThemeByName({
   state,
 }: {
   themeName: string;
-  realm: string;
+  realm?: string;
   state: State;
 }): Promise<ThemeSkeleton> {
   realm ? realm : getCurrentRealmName(state);
@@ -495,7 +503,7 @@ export async function deleteThemes({
   realm,
   state,
 }: {
-  realm: string;
+  realm?: string;
   state: State;
 }): Promise<ThemeSkeleton[]> {
   realm ? realm : getCurrentRealmName(state);

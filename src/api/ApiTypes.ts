@@ -7,7 +7,7 @@ export interface NoIdObjectSkeletonInterface {
     | string[]
     | IdObjectSkeletonInterface
     | object
-    | null;
+    | undefined;
 }
 
 export interface IdObjectSkeletonInterface extends NoIdObjectSkeletonInterface {
@@ -114,7 +114,7 @@ export type PolicySkeleton = IdObjectSkeletonInterface & {
 
 export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
   overrideOAuth2ClientConfig?: {
-    [k: string]: string | number | boolean | string[] | object | null;
+    [k: string]: string | number | boolean | string[] | object | undefined;
   };
   advancedOAuth2ClientConfig?: {
     descriptions: {
@@ -123,18 +123,18 @@ export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
     };
     grantTypes?: {
       value: string[];
-      [k: string]: string | number | boolean | string[] | object | null;
+      [k: string]: string | number | boolean | string[] | object | undefined;
     };
-    [k: string]: string | number | boolean | string[] | object | null;
+    [k: string]: string | number | boolean | string[] | object | undefined;
   };
   signEncOAuth2ClientConfig?: {
-    [k: string]: string | number | boolean | string[] | object | null;
+    [k: string]: string | number | boolean | string[] | object | undefined;
   };
   coreOpenIDClientConfig?: {
-    [k: string]: string | number | boolean | string[] | object | null;
+    [k: string]: string | number | boolean | string[] | object | undefined;
   };
   coreOAuth2ClientConfig?: {
-    userpassword?: null;
+    userpassword?: string;
     clientName?: {
       inherited: boolean;
       value: string[];
@@ -145,16 +145,16 @@ export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
     };
     scopes?: {
       value: string[];
-      [k: string]: string | number | boolean | string[] | object | null;
+      [k: string]: string | number | boolean | string[] | object | undefined;
     };
     defaultScopes?: {
       value: string[];
-      [k: string]: string | number | boolean | string[] | object | null;
+      [k: string]: string | number | boolean | string[] | object | undefined;
     };
-    [k: string]: string | number | boolean | string[] | object | null;
+    [k: string]: string | number | boolean | string[] | object | undefined;
   };
   coreUmaClientConfig?: {
-    [k: string]: string | number | boolean | string[] | object | null;
+    [k: string]: string | number | boolean | string[] | object | undefined;
   };
   _type: AmServiceType;
 };

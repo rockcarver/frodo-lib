@@ -1,5 +1,5 @@
 import Table from 'cli-table3';
-import { globalState } from '../../lib/FrodoLib';
+import { state } from '../../lib/FrodoLib';
 
 /**
  * Handles data / messages output. The caller decides and implements how
@@ -18,7 +18,7 @@ export function printMessage(
   type = 'text',
   newline = true
 ) {
-  const handler = globalState.getPrintHandler();
+  const handler = state.getPrintHandler();
   if (handler) {
     handler(message, type, newline);
   }
@@ -32,7 +32,7 @@ export function printMessage(
  * @param {string | unknown} message The verbose output message
  */
 export function verboseMessage(message: string | object) {
-  const handler = globalState.getVerboseHandler();
+  const handler = state.getVerboseHandler();
   if (handler) {
     handler(message);
   }
@@ -46,7 +46,7 @@ export function verboseMessage(message: string | object) {
  * @param {string | object} message The debug output message
  */
 export function debugMessage(message: string | object) {
-  const handler = globalState.getDebugHandler();
+  const handler = state.getDebugHandler();
   if (handler) {
     handler(message);
   }
@@ -73,7 +73,7 @@ function maskPasswordHeader(curlCommand: string) {
  * @param {string} message The curlirize output message
  */
 export function curlirizeMessage(message: string) {
-  const handler = globalState.getCurlirizeHandler();
+  const handler = state.getCurlirizeHandler();
   if (handler) {
     handler(maskPasswordHeader(message));
   }
@@ -102,7 +102,7 @@ export function createProgressIndicator(
   message: string = null,
   type = 'determinate'
 ) {
-  const handler = globalState.getCreateProgressHandler();
+  const handler = state.getCreateProgressHandler();
   if (handler) {
     handler(type, total, message);
   }
@@ -114,7 +114,7 @@ export function createProgressIndicator(
  *
  */
 export function updateProgressIndicator(message: string = null) {
-  const handler = globalState.getUpdateProgressHandler();
+  const handler = state.getUpdateProgressHandler();
   if (handler) {
     handler(message);
   }
@@ -126,7 +126,7 @@ export function updateProgressIndicator(message: string = null) {
  * @param {string} status one of 'none', 'success', 'warn', 'fail'
  */
 export function stopProgressIndicator(message: string = null, status = 'none') {
-  const handler = globalState.getStopProgressHandler();
+  const handler = state.getStopProgressHandler();
   if (handler) {
     handler(message, status);
   }

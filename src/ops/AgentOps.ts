@@ -23,6 +23,14 @@ export default class AgentOps {
   }
 
   /**
+   * Create an empty agent export template
+   * @returns {AgentExportInterface} an empty agent export template
+   */
+  createAgentExportTemplate(): AgentExportInterface {
+    return createAgentExportTemplate();
+  }
+
+  /**
    * Get all agents. Results are sorted aphabetically.
    * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of agent objects
    */

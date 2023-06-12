@@ -19,6 +19,10 @@ export default class ServiceOps {
     this.state = state;
   }
 
+  createServiceExportTemplate(): ServiceExportInterface {
+    return createServiceExportTemplate();
+  }
+
   /**
    * Get list of services
    * @param {boolean} globalConfig true if the list of global services is requested, false otherwise. Default: false.
