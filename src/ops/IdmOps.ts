@@ -34,7 +34,10 @@ export default class IdmOps {
     return getConfigEntity({ entityId, state: this.state });
   }
 
-  putConfigEntity(entityId: string, entityData: NoIdObjectSkeletonInterface) {
+  putConfigEntity(
+    entityId: string,
+    entityData: NoIdObjectSkeletonInterface | string
+  ) {
     return putConfigEntity({ entityId, entityData, state: this.state });
   }
 

@@ -107,8 +107,6 @@ export default class State {
 
   constructor(initialState: StateInterface) {
     this.state = { ...this.state, ...initialState };
-    console.log(`state:`);
-    console.dir(this.state);
   }
 
   setHost(host: string) {
