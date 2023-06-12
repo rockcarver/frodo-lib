@@ -2,13 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import DataProtection from './utils/DataProtection';
-import {
-  createObjectTable,
-  createTable,
-  debugMessage,
-  printMessage,
-  verboseMessage,
-} from './utils/Console';
+import { debugMessage, printMessage, verboseMessage } from './utils/Console';
 import { FRODO_CONNECTION_PROFILES_PATH_KEY } from '../storage/StaticStorage';
 import { createJwkRsa, createJwks, getJwkRsaPublic, JwkRsa } from './JoseOps';
 import {
@@ -181,57 +175,6 @@ function findConnectionProfiles({
     }
   }
   return profiles;
-}
-
-/**
- * List connection profiles
- * @param {boolean} long Long list format with details
- * @param {State} state library state
- */
-export function listConnectionProfiles({
-  long = false,
-  state,
-}: {
-  long?: boolean;
-  state: State;
-}) {
-  const filename = getConnectionProfilesPath({ state });
-  try {
-    const data = fs.readFileSync(filename, 'utf8');
-    const connectionsData = JSON.parse(data);
-    if (Object.keys(connectionsData).length < 1) {
-      printMessage(`No connections defined yet in ${filename}`, 'info');
-    } else {
-      if (long) {
-        const table = createTable([
-          'Host',
-          'Service Account',
-          'Username',
-          'Log API Key',
-        ]);
-        Object.keys(connectionsData).forEach((c) => {
-          table.push([
-            c,
-            connectionsData[c].svcacctName || connectionsData[c].svcacctId,
-            connectionsData[c].username,
-            connectionsData[c].logApiKey,
-          ]);
-        });
-        printMessage(table.toString(), 'data');
-      } else {
-        Object.keys(connectionsData).forEach((c) => {
-          printMessage(`${c}`, 'data');
-        });
-        // getUniqueNames(5, Object.keys(connectionsData));
-      }
-      printMessage(
-        'Any unique substring of a saved host can be used as the value for host parameter in all commands',
-        'info'
-      );
-    }
-  } catch (e) {
-    printMessage(`No connections found in ${filename} (${e.message})`, 'error');
-  }
 }
 
 /**
@@ -576,73 +519,6 @@ export function deleteConnectionProfile({
       );
     }
   });
-}
-
-/**
- * Describe connection profile
- * @param {string} host Host URL or unique substring
- * @param {boolean} showSecrets Whether secrets should be shown in clear text or not
- */
-export async function describeConnectionProfile({
-  host,
-  showSecrets,
-  state,
-}: {
-  host: string;
-  showSecrets: boolean;
-  state: State;
-}) {
-  debugMessage(`ConnectionProfileOps.describeConnectionProfile: start`);
-  const profile = await getConnectionProfileByHost({ host, state });
-  if (profile) {
-    debugMessage(profile);
-    const present = '[present]';
-    const jwk = profile.svcacctJwk;
-    if (!showSecrets) {
-      if (profile.password) profile.password = present;
-      if (profile.logApiSecret) profile.logApiSecret = present;
-      if (profile.svcacctJwk) (profile as unknown)['svcacctJwk'] = present;
-    }
-    if (!profile.username) {
-      delete profile.username;
-      delete profile.password;
-    }
-    if (!profile.logApiKey) {
-      delete profile.logApiKey;
-      delete profile.logApiSecret;
-    }
-    if (!profile.svcacctId) {
-      delete profile.svcacctId;
-      delete profile.svcacctJwk;
-      delete profile.svcacctName;
-    }
-    if (showSecrets && jwk) {
-      (profile as unknown)['svcacctJwk'] = 'see below';
-    }
-    if (!profile.authenticationService) {
-      delete profile.authenticationService;
-    }
-    const keyMap = {
-      tenant: 'Host',
-      username: 'Username',
-      password: 'Password',
-      logApiKey: 'Log API Key',
-      logApiSecret: 'Log API Secret',
-      authenticationService: 'Authentication Service',
-      authenticationHeaderOverrides: 'Authentication Header Overrides',
-      svcacctName: 'Service Account Name',
-      svcacctId: 'Service Account Id',
-      svcacctJwk: 'Service Account JWK',
-    };
-    const table = createObjectTable(profile, keyMap);
-    printMessage(table.toString(), 'data');
-    if (showSecrets && jwk) {
-      printMessage(jwk, 'data');
-    }
-  } else {
-    printMessage(`No connection profile ${host} found`);
-  }
-  debugMessage(`ConnectionProfileOps.describeConnectionProfile: end`);
 }
 
 /**

@@ -24,7 +24,7 @@ export default class LogOps {
    * Get default noise filter
    * @returns {string[]} array of default event types and loggers to be filtered out
    */
-  getDfaultNoiseFilter(): string[] {
+  getDefaultNoiseFilter(): string[] {
     return getDefaultNoiseFilter();
   }
 
@@ -34,10 +34,7 @@ export default class LogOps {
    * @returns {string[]} array of effective log levels
    */
   resolveLevel(level: string | number): string[] {
-    if (Number.isNaN(parseInt(level as string, 10))) {
-      return logLevelMap[level];
-    }
-    return logLevelMap[numLogLevelMap[level as number][0]];
+    return resolveLevel(level);
   }
 
   /**
@@ -46,16 +43,7 @@ export default class LogOps {
    * @returns {string} log level
    */
   resolvePayloadLevel(log: LogEventSkeleton): string {
-    // It seems that the undesirable 'text/plain' logs start with a date, not a LEVEL
-    // Therefore, for those, this function returns null, and thus filters out the undesirable
-    try {
-      return log.type !== 'text/plain'
-        ? (log.payload as LogEventPayloadSkeleton).level
-        : (log.payload as string).match(/^([^:]*):/)[1];
-    } catch (e) {
-      // Fail-safe for no group match
-      return null;
-    }
+    return resolvePayloadLevel(log);
   }
 
   /**
