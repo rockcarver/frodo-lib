@@ -154,13 +154,6 @@ export default class Saml2Ops {
   }
 }
 
-export const roleMap = {
-  identityProvider: 'IDP',
-  serviceProvider: 'SP',
-  attributeQueryProvider: 'AttrQuery',
-  xacmlPolicyEnforcementPoint: 'XACML PEP',
-};
-
 // use a function vs a template variable to avoid problems in loops
 export function createSaml2ExportTemplate({
   state,
