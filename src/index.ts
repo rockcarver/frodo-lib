@@ -1,1 +1,1 @@
-export { frodo, state } from './lib/FrodoLib';
+export { frodo, state, FrodoLib } from './lib/FrodoLib';
