@@ -540,13 +540,17 @@ async function determineDeploymentTypeAndDefaultRealmAndVersion(
 async function getLoggedInSubject(state: State): Promise<string> {
   let subjectString = `user ${state.getUsername()}`;
   if (state.getUseBearerTokenForAmApis()) {
-    const name = (
-      await getServiceAccount({
-        serviceAccountId: state.getServiceAccountId(),
-        state,
-      })
-    ).name;
-    subjectString = `service account ${name} [${state.getServiceAccountId()}]`;
+    try {
+      const name = (
+        await getServiceAccount({
+          serviceAccountId: state.getServiceAccountId(),
+          state,
+        })
+      ).name;
+      subjectString = `service account ${name} [${state.getServiceAccountId()}]`;
+    } catch (error) {
+      subjectString = `service account ${state.getServiceAccountId()}`;
+    }
   }
   return subjectString;
 }
