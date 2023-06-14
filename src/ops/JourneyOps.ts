@@ -1,3 +1,4 @@
+import State from '../shared/State';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import _ from 'lodash';
@@ -10,7 +11,6 @@ import {
   getMetadata,
 } from './utils/ExportImportUtils';
 import { getRealmManagedUser, replaceAll } from './utils/OpsUtils';
-import State from '../shared/State';
 import {
   getNode,
   putNode,
@@ -55,7 +55,6 @@ import {
 } from '../api/SocialIdentityProvidersApi';
 import { getThemes, putThemes } from './ThemeOps';
 import { putScript } from './ScriptOps';
-import { JourneyClassification, TreeExportResolverInterface } from './OpsTypes';
 import {
   InnerNodeRefSkeletonInterface,
   NodeRefSkeletonInterface,
@@ -64,6 +63,8 @@ import {
   TreeSkeleton,
 } from '../api/ApiTypes';
 import {
+  JourneyClassification,
+  TreeExportResolverInterface,
   SingleTreeExportInterface,
   MultiTreeExportInterface,
   TreeDependencyMapInterface,
