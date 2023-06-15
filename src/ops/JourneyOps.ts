@@ -63,7 +63,7 @@ import {
   TreeSkeleton,
 } from '../api/ApiTypes';
 import {
-  JourneyClassification,
+  JourneyClassificationType,
   TreeExportResolverInterface,
   SingleTreeExportInterface,
   MultiTreeExportInterface,
@@ -294,11 +294,11 @@ export default class JourneyOps {
    * - premium: utilizes nodes, which come at a premium
    * - custom: utilizes nodes not included in the ForgeRock platform release
    * @param {SingleTreeExportInterface} journey journey export data
-   * @returns {JourneyClassification[]} an array of one or multiple classifications
+   * @returns {JourneyClassificationType[]} an array of one or multiple classifications
    */
   getJourneyClassification(
     journey: SingleTreeExportInterface
-  ): JourneyClassification[] {
+  ): JourneyClassificationType[] {
     return getJourneyClassification({ journey, state: this.state });
   }
 
@@ -339,6 +339,13 @@ export default class JourneyOps {
   async disableJourney(journeyId: string): Promise<boolean> {
     return disableJourney({ journeyId, state: this.state });
   }
+}
+
+export enum JourneyClassification {
+  STANDARD = 'standard',
+  CUSTOM = 'custom',
+  CLOUD = 'cloud',
+  PREMIUM = 'premium',
 }
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
@@ -1955,7 +1962,7 @@ export function getJourneyClassification({
 }: {
   journey: SingleTreeExportInterface;
   state: State;
-}): JourneyClassification[] {
+}): JourneyClassificationType[] {
   const classifications: JourneyClassification[] = [];
   const premium = isPremiumJourney(journey);
   const custom = isCustomJourney({ journey, state });

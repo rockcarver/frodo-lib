@@ -86,31 +86,30 @@ export type ResourceTypeSkeleton = NoIdObjectSkeletonInterface & {
   name: string;
 };
 
-export enum PolicyConditionType {
-  Script = 'Script',
-  AMIdentityMembership = 'AMIdentityMembership',
-  IPv6 = 'IPv6',
-  IPv4 = 'IPv4',
-  SimpleTime = 'SimpleTime',
-  LEAuthLevel = 'LEAuthLevel',
-  LDAPFilter = 'LDAPFilter',
-  AuthScheme = 'AuthScheme',
-  Session = 'Session',
-  AND = 'AND',
-  AuthenticateToRealm = 'AuthenticateToRealm',
-  ResourceEnvIP = 'ResourceEnvIP',
-  Policy = 'Policy',
-  OAuth2Scope = 'OAuth2Scope',
-  SessionProperty = 'SessionProperty',
-  OR = 'OR',
-  Transaction = 'Transaction',
-  NOT = 'NOT',
-  AuthLevel = 'AuthLevel',
-  AuthenticateToService = 'AuthenticateToService',
-}
+export type PolicyConditionType =
+  | 'Script'
+  | 'AMIdentityMembership'
+  | 'IPv6'
+  | 'IPv4'
+  | 'SimpleTime'
+  | 'LEAuthLevel'
+  | 'LDAPFilter'
+  | 'AuthScheme'
+  | 'Session'
+  | 'AND'
+  | 'AuthenticateToRealm'
+  | 'ResourceEnvIP'
+  | 'Policy'
+  | 'OAuth2Scope'
+  | 'SessionProperty'
+  | 'OR'
+  | 'Transaction'
+  | 'NOT'
+  | 'AuthLevel'
+  | 'AuthenticateToService';
 
 export type PolicyCondition = NoIdObjectSkeletonInterface & {
-  type: keyof typeof PolicyConditionType;
+  type: PolicyConditionType;
   condition?: PolicyCondition;
   conditions?: PolicyCondition[];
 };
@@ -200,45 +199,38 @@ export type UiThemeRealmObject = IdObjectSkeletonInterface & {
   realm: Map<string, ThemeSkeleton[]>;
 };
 
-export enum ScriptLanguage {
-  GROOVY,
-  JAVASCRIPT,
-}
+export type ScriptLanguage = 'GROOVY' | 'JAVASCRIPT';
 
-export enum ScriptContext {
-  OAUTH2_ACCESS_TOKEN_MODIFICATION,
-  AUTHENTICATION_CLIENT_SIDE,
-  AUTHENTICATION_TREE_DECISION_NODE,
-  AUTHENTICATION_SERVER_SIDE,
-  SOCIAL_IDP_PROFILE_TRANSFORMATION,
-  OAUTH2_VALIDATE_SCOPE,
-  CONFIG_PROVIDER_NODE,
-  OAUTH2_AUTHORIZE_ENDPOINT_DATA_PROVIDER,
-  OAUTH2_EVALUATE_SCOPE,
-  POLICY_CONDITION,
-  OIDC_CLAIMS,
-  SAML2_IDP_ADAPTER,
-  SAML2_IDP_ATTRIBUTE_MAPPER,
-  OAUTH2_MAY_ACT,
-}
+export type ScriptContext =
+  | 'OAUTH2_ACCESS_TOKEN_MODIFICATION'
+  | 'AUTHENTICATION_CLIENT_SIDE'
+  | 'AUTHENTICATION_TREE_DECISION_NODE'
+  | 'AUTHENTICATION_SERVER_SIDE'
+  | 'SOCIAL_IDP_PROFILE_TRANSFORMATION'
+  | 'OAUTH2_VALIDATE_SCOPE'
+  | 'CONFIG_PROVIDER_NODE'
+  | 'OAUTH2_AUTHORIZE_ENDPOINT_DATA_PROVIDER'
+  | 'OAUTH2_EVALUATE_SCOPE'
+  | 'POLICY_CONDITION'
+  | 'OIDC_CLAIMS'
+  | 'SAML2_IDP_ADAPTER'
+  | 'SAML2_IDP_ATTRIBUTE_MAPPER'
+  | 'OAUTH2_MAY_ACT';
 
 export type ScriptSkeleton = IdObjectSkeletonInterface & {
   name: string;
   description: string;
   default: boolean;
   script: string | string[];
-  language: keyof typeof ScriptLanguage;
-  context: keyof typeof ScriptContext;
+  language: ScriptLanguage;
+  context: ScriptContext;
   createdBy: string;
   creationDate: number;
   lastModifiedBy: string;
   lastModifiedDate: number;
 };
 
-export enum Saml2ProiderLocation {
-  HOSTED = 'hosted',
-  REMOTE = 'remote',
-}
+export type Saml2ProiderLocation = 'hosted' | 'remote';
 
 export type Saml2ProviderStub = IdObjectSkeletonInterface & {
   entityId: string;
