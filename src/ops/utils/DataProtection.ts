@@ -18,6 +18,7 @@ import {
   FRODO_MASTER_KEY_PATH_KEY,
   FRODO_MASTER_KEY_KEY,
 } from '../../storage/StaticStorage';
+import State from '../../shared/State';
 
 const scrypt = promisify(crypto.scrypt);
 // using WeakMaps for added security since  it gets garbage collected
@@ -28,7 +29,13 @@ const _key = new WeakMap();
 const _encrypt = new WeakMap();
 
 class DataProtection {
-  constructor(pathToMasterKey: string = null) {
+  constructor({
+    pathToMasterKey = undefined,
+    state,
+  }: {
+    pathToMasterKey?: string;
+    state: State;
+  }) {
     const masterKeyPath = () =>
       pathToMasterKey ||
       process.env[FRODO_MASTER_KEY_PATH_KEY] ||
@@ -44,7 +51,7 @@ class DataProtection {
         }
         return await fsp.readFile(masterKeyPath(), 'utf8');
       } catch (err) {
-        printMessage(err.message, 'error');
+        printMessage({ message: err.message, type: 'error', state });
         return '';
       }
     });

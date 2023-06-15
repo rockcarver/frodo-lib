@@ -93,56 +93,61 @@ async function stageProvider(provider: { entityId: string }, create = true) {
 }
 
 describe('Saml2Ops', () => {
-  const provider1 = {
+  type SamlProvider = {
+    entityId: string;
+    location: Saml2ProiderLocation;
+    entityId64: string;
+  };
+  const provider1: SamlProvider = {
     entityId: 'iSPAzure',
-    location: Saml2ProiderLocation.HOSTED,
+    location: 'hosted',
     entityId64: encodeBase64Url('iSPAzure'),
   };
-  const provider2 = {
+  const provider2: SamlProvider = {
     entityId: 'urn:federation:MicrosoftOnline',
-    location: Saml2ProiderLocation.REMOTE,
+    location: 'remote',
     entityId64: encodeBase64Url('urn:federation:MicrosoftOnline'),
   };
-  const provider3 = {
+  const provider3: SamlProvider = {
     entityId: 'https://idc.scheuber.io/am/saml2/IDPFedlet',
-    location: Saml2ProiderLocation.HOSTED,
+    location: 'hosted',
     entityId64: encodeBase64Url('https://idc.scheuber.io/am/saml2/IDPFedlet'),
   };
-  const provider4 = {
+  const provider4: SamlProvider = {
     entityId: 'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/',
-    location: Saml2ProiderLocation.REMOTE,
+    location: 'remote',
     entityId64: encodeBase64Url(
       'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/'
     ),
   };
-  const provider5 = {
+  const provider5: SamlProvider = {
     entityId: 'https://idc.scheuber.io/am/saml2/IDPAzure',
-    location: Saml2ProiderLocation.HOSTED,
+    location: 'hosted',
     entityId64: encodeBase64Url('https://idc.scheuber.io/am/saml2/IDPAzure'),
   };
-  const provider6 = {
+  const provider6: SamlProvider = {
     entityId: 'https://idc.scheuber.io/am/saml2/IDPBroadcom',
-    location: Saml2ProiderLocation.HOSTED,
+    location: 'hosted',
     entityId64: encodeBase64Url('https://idc.scheuber.io/am/saml2/IDPBroadcom'),
   };
-  const provider7 = {
+  const provider7: SamlProvider = {
     entityId: 'idp',
-    location: Saml2ProiderLocation.REMOTE,
+    location: 'remote',
     entityId64: encodeBase64Url('idp'),
   };
-  const provider8 = {
+  const provider8: SamlProvider = {
     entityId: 'SPAzure',
-    location: Saml2ProiderLocation.HOSTED,
+    location: 'hosted',
     entityId64: encodeBase64Url('SPAzure'),
   };
-  const provider9 = {
+  const provider9: SamlProvider = {
     entityId: 'volkerDevSP',
-    location: Saml2ProiderLocation.HOSTED,
+    location: 'hosted',
     entityId64: encodeBase64Url('volkerDevSP'),
   };
-  const provider10 = {
+  const provider10: SamlProvider = {
     entityId: 'https://saml.mytestrun.com/sp',
-    location: Saml2ProiderLocation.REMOTE,
+    location: 'remote',
     entityId64: encodeBase64Url('https://saml.mytestrun.com/sp'),
   };
   // in recording mode, setup test data before recording

@@ -348,7 +348,7 @@ export async function putThemes({
   realm?: string;
   state: State;
 }): Promise<Map<string, ThemeSkeleton>> {
-  debugMessage(`ThemeApi.putThemes: start`);
+  debugMessage({ message: `ThemeApi.putThemes: start`, state });
   realm = realm ? realm : getCurrentRealmName(state);
   const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
   const allThemeIDs = Object.keys(themeMap);
@@ -357,7 +357,10 @@ export async function putThemes({
   // update existing themes
   let realmThemes = getRealmThemes({ themes, realm }).map((theme) => {
     if (themeMap[theme._id]) {
-      debugMessage(`Update theme: ${theme._id} - ${theme.name}`);
+      debugMessage({
+        message: `Update theme: ${theme._id} - ${theme.name}`,
+        state,
+      });
       existingThemeIDs.push(theme._id);
       // remember the id of the last default theme
       if (themeMap[theme._id].isDefault) defaultThemeId = theme._id;
@@ -370,9 +373,10 @@ export async function putThemes({
   );
   // add new themes
   newThemeIDs.forEach((themeId) => {
-    debugMessage(
-      `Add theme: ${themeMap[themeId]._id} - ${themeMap[themeId].name}`
-    );
+    debugMessage({
+      message: `Add theme: ${themeMap[themeId]._id} - ${themeMap[themeId].name}`,
+      state,
+    });
     // remember the id of the last default theme
     if (themeMap[themeId].isDefault) defaultThemeId = themeId;
     realmThemes.push(themeMap[themeId]);
@@ -395,8 +399,8 @@ export async function putThemes({
       realm,
     }).map((theme) => [theme._id, theme])
   );
-  debugMessage(updatedThemes);
-  debugMessage(`ThemeApi.putThemes: finished`);
+  debugMessage({ message: updatedThemes, state });
+  debugMessage({ message: `ThemeApi.putThemes: finished`, state });
   return updatedThemes;
 }
 

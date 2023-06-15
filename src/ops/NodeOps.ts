@@ -12,7 +12,7 @@ import {
   updateProgressIndicator,
   stopProgressIndicator,
 } from './utils/Console';
-import { NodeClassification } from './OpsTypes';
+import { NodeClassificationType } from './OpsTypes';
 import { NodeSkeleton } from '../api/ApiTypes';
 
 export default class NodeOps {
@@ -73,11 +73,18 @@ export default class NodeOps {
    * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
    * - premium: utilizes nodes, which come at a premium
    * @param {string} nodeType Node type
-   * @returns {NodeClassification[]} an array of one or multiple classifications
+   * @returns {NodeClassificationType[]} an array of one or multiple classifications
    */
-  getNodeClassification(nodeType: string): NodeClassification[] {
+  getNodeClassification(nodeType: string): NodeClassificationType[] {
     return getNodeClassification({ nodeType, state: this.state });
   }
+}
+
+export enum NodeClassification {
+  STANDARD = 'standard',
+  CUSTOM = 'custom',
+  CLOUD = 'cloud',
+  PREMIUM = 'premium',
 }
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
@@ -98,16 +105,21 @@ export async function findOrphanedNodes({
   let errorMessage = '';
   const errorTypes = [];
 
-  createProgressIndicator(
-    undefined,
-    `Counting total nodes...`,
-    'indeterminate'
-  );
+  createProgressIndicator({
+    total: undefined,
+    message: `Counting total nodes...`,
+    type: 'indeterminate',
+    state,
+  });
   try {
     types = (await getNodeTypes({ state })).result;
   } catch (error) {
-    printMessage('Error retrieving all available node types:', 'error');
-    printMessage(error.response.data, 'error');
+    printMessage({
+      message: 'Error retrieving all available node types:',
+      type: 'error',
+      state,
+    });
+    printMessage({ message: error.response.data, type: 'error', state });
     return [];
   }
   for (const type of types) {
@@ -117,36 +129,49 @@ export async function findOrphanedNodes({
         .result;
       for (const node of nodes) {
         allNodes.push(node);
-        updateProgressIndicator(
-          `${allNodes.length} total nodes${errorMessage}`
-        );
+        updateProgressIndicator({
+          message: `${allNodes.length} total nodes${errorMessage}`,
+          state,
+        });
       }
     } catch (error) {
       errorTypes.push(type._id);
       errorMessage = ` (Skipped type(s): ${errorTypes})`['yellow'];
-      updateProgressIndicator(`${allNodes.length} total nodes${errorMessage}`);
+      updateProgressIndicator({
+        message: `${allNodes.length} total nodes${errorMessage}`,
+        state,
+      });
     }
   }
   if (errorTypes.length > 0) {
-    stopProgressIndicator(
-      `${allNodes.length} total nodes${errorMessage}`,
-      'warn'
-    );
+    stopProgressIndicator({
+      message: `${allNodes.length} total nodes${errorMessage}`,
+      state,
+      status: 'warn',
+    });
   } else {
-    stopProgressIndicator(`${allNodes.length} total nodes`, 'success');
+    stopProgressIndicator({
+      message: `${allNodes.length} total nodes`,
+      status: 'success',
+      state,
+    });
   }
 
-  createProgressIndicator(
-    undefined,
-    'Counting active nodes...',
-    'indeterminate'
-  );
+  createProgressIndicator({
+    total: undefined,
+    message: 'Counting active nodes...',
+    type: 'indeterminate',
+    state,
+  });
   const activeNodes = [];
   for (const journey of allJourneys) {
     for (const nodeId in journey.nodes) {
       if ({}.hasOwnProperty.call(journey.nodes, nodeId)) {
         activeNodes.push(nodeId);
-        updateProgressIndicator(`${activeNodes.length} active nodes`);
+        updateProgressIndicator({
+          message: `${activeNodes.length} active nodes`,
+          state,
+        });
         const node = journey.nodes[nodeId];
         if (containerNodes.includes(node.nodeType)) {
           const containerNode = await getNode({
@@ -156,24 +181,36 @@ export async function findOrphanedNodes({
           });
           for (const innerNode of containerNode.nodes) {
             activeNodes.push(innerNode._id);
-            updateProgressIndicator(`${activeNodes.length} active nodes`);
+            updateProgressIndicator({
+              message: `${activeNodes.length} active nodes`,
+              state,
+            });
           }
         }
       }
     }
   }
-  stopProgressIndicator(`${activeNodes.length} active nodes`, 'success');
+  stopProgressIndicator({
+    message: `${activeNodes.length} active nodes`,
+    status: 'success',
+    state,
+  });
 
-  createProgressIndicator(
-    undefined,
-    'Calculating orphaned nodes...',
-    'indeterminate'
-  );
+  createProgressIndicator({
+    total: undefined,
+    message: 'Calculating orphaned nodes...',
+    type: 'indeterminate',
+    state,
+  });
   const diff = allNodes.filter((x) => !activeNodes.includes(x._id));
   for (const orphanedNode of diff) {
     orphanedNodes.push(orphanedNode);
   }
-  stopProgressIndicator(`${orphanedNodes.length} orphaned nodes`, 'success');
+  stopProgressIndicator({
+    message: `${orphanedNodes.length} orphaned nodes`,
+    status: 'success',
+    state,
+  });
   return orphanedNodes;
 }
 
@@ -190,9 +227,13 @@ export async function removeOrphanedNodes({
   state: State;
 }): Promise<NodeSkeleton[]> {
   const errorNodes = [];
-  createProgressIndicator(orphanedNodes.length, 'Removing orphaned nodes...');
+  createProgressIndicator({
+    total: orphanedNodes.length,
+    message: 'Removing orphaned nodes...',
+    state,
+  });
   for (const node of orphanedNodes) {
-    updateProgressIndicator(`Removing ${node['_id']}...`);
+    updateProgressIndicator({ message: `Removing ${node['_id']}...`, state });
     try {
       await deleteNode({
         nodeId: node['_id'],
@@ -201,10 +242,13 @@ export async function removeOrphanedNodes({
       });
     } catch (deleteError) {
       errorNodes.push(node);
-      printMessage(` ${deleteError}`, 'error');
+      printMessage({ message: ` ${deleteError}`, type: 'error', state });
     }
   }
-  stopProgressIndicator(`Removed ${orphanedNodes.length} orphaned nodes.`);
+  stopProgressIndicator({
+    message: `Removed ${orphanedNodes.length} orphaned nodes.`,
+    state,
+  });
   return errorNodes;
 }
 
@@ -526,8 +570,8 @@ export function getNodeClassification({
 }: {
   nodeType: string;
   state: State;
-}): NodeClassification[] {
-  const classifications: NodeClassification[] = [];
+}): NodeClassificationType[] {
+  const classifications: NodeClassificationType[] = [];
   const premium = isPremiumNode(nodeType);
   const custom = isCustomNode({ nodeType, state });
   const cloud = isCloudOnlyNode(nodeType);

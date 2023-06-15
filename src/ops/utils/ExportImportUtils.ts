@@ -186,9 +186,10 @@ export function getWorkingDirectory({ state }: { state: State }) {
     wd = state.getDirectory().replace(/\/$/, '');
     // create directory if it doesn't exist
     if (!fs.existsSync(wd)) {
-      debugMessage(
-        `ExportImportUtils.getWorkingDirectory: creating directory '${wd}'`
-      );
+      debugMessage({
+        message: `ExportImportUtils.getWorkingDirectory: creating directory '${wd}'`,
+        state,
+      });
       fs.mkdirSync(wd, { recursive: true });
     }
   }
@@ -221,7 +222,11 @@ export function saveToFile({
   }
   fs.writeFile(filename, JSON.stringify(exportData, null, 2), (err) => {
     if (err) {
-      return printMessage(`ERROR - can't save ${type} to file`, 'error');
+      return printMessage({
+        message: `ERROR - can't save ${type} to file`,
+        state,
+        type: 'error',
+      });
     }
     return '';
   });
@@ -250,7 +255,11 @@ export function saveJsonToFile({
     fs.writeFileSync(filename, JSON.stringify(exportData, null, 2));
     return true;
   } catch (err) {
-    printMessage(`ERROR - can't save ${filename}`, 'error');
+    printMessage({
+      message: `ERROR - can't save ${filename}`,
+      type: 'error',
+      state,
+    });
     return false;
   }
 }
@@ -261,11 +270,7 @@ export function saveJsonToFile({
  * @param {String} filename file name
  */
 export function appendTextToFile(data: string, filename: string) {
-  try {
-    fs.appendFileSync(filename, data);
-  } catch (error) {
-    printMessage(`${error.message}`, 'error');
-  }
+  fs.appendFileSync(filename, data);
 }
 
 /**
