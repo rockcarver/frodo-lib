@@ -213,14 +213,14 @@ export async function putOAuth2Client({
   clientData: OAuth2ClientSkeleton | NoIdObjectSkeletonInterface;
   state: State;
 }) {
-  debugMessage(`OAuth2ClientOps.putOAuth2Client: start`);
+  debugMessage({ message: `OAuth2ClientOps.putOAuth2Client: start`, state });
   try {
     const response = await _putOAuth2Client({
       id: clientId,
       clientData,
       state,
     });
-    debugMessage(`OAuth2ClientOps.putOAuth2Client: end`);
+    debugMessage({ message: `OAuth2ClientOps.putOAuth2Client: end`, state });
     return response;
   } catch (error) {
     if (
@@ -234,10 +234,11 @@ export async function putOAuth2Client({
           for (const attribute of Object.keys(clientData[key])) {
             if (!validAttributes.includes(attribute)) {
               if (state.getVerbose())
-                printMessage(
-                  `\n- Removing invalid attribute: ${key}.${attribute}`,
-                  'warn'
-                );
+                printMessage({
+                  message: `\n- Removing invalid attribute: ${key}.${attribute}`,
+                  type: 'warn',
+                  state,
+                });
               delete clientData[key][attribute];
             }
           }
@@ -248,7 +249,7 @@ export async function putOAuth2Client({
         clientData,
         state,
       });
-      debugMessage(`OAuth2ClientOps.putOAuth2Client: end`);
+      debugMessage({ message: `OAuth2ClientOps.putOAuth2Client: end`, state });
       return response;
     } else {
       throw error;
@@ -283,16 +284,20 @@ async function exportOAuth2ClientDependencies(
   exportData: OAuth2ClientExportInterface,
   state: State
 ) {
-  debugMessage(
-    `OAuth2ClientOps.exportOAuth2ClientDependencies: start [client=${clientData['_id']}]`
-  );
+  debugMessage({
+    message: `OAuth2ClientOps.exportOAuth2ClientDependencies: start [client=${clientData['_id']}]`,
+    state,
+  });
   if (clientData['overrideOAuth2ClientConfig']) {
     for (const key of Object.keys(clientData['overrideOAuth2ClientConfig'])) {
       if (key.endsWith('Script')) {
         const scriptId = clientData['overrideOAuth2ClientConfig'][key];
         if (scriptId !== '[Empty]' && !exportData.script[scriptId]) {
           try {
-            debugMessage(`- ${scriptId} referenced by ${clientData['_id']}`);
+            debugMessage({
+              message: `- ${scriptId} referenced by ${clientData['_id']}`,
+              state,
+            });
             const scriptData = await getScript({ scriptId, state });
             if (options.useStringArrays)
               scriptData.script = convertBase64TextToArray(
@@ -315,7 +320,10 @@ async function exportOAuth2ClientDependencies(
       }
     }
   }
-  debugMessage(`OAuth2ClientOps.exportOAuth2ClientDependencies: end`);
+  debugMessage({
+    message: `OAuth2ClientOps.exportOAuth2ClientDependencies: end`,
+    state,
+  });
 }
 
 /**
@@ -330,7 +338,10 @@ export async function exportOAuth2Clients({
   options?: OAuth2ClientExportOptions;
   state: State;
 }): Promise<OAuth2ClientExportInterface> {
-  debugMessage(`OAuth2ClientOps.exportOAuth2Clients: start`);
+  debugMessage({
+    message: `OAuth2ClientOps.exportOAuth2Clients: start`,
+    state,
+  });
   const exportData = createOAuth2ClientExportTemplate({ state });
   const errors = [];
   try {
@@ -359,7 +370,7 @@ export async function exportOAuth2Clients({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Export error:\n${errorMessages}`);
   }
-  debugMessage(`OAuth2ClientOps.exportOAuth2Clients: end`);
+  debugMessage({ message: `OAuth2ClientOps.exportOAuth2Clients: end`, state });
   return exportData;
 }
 
@@ -378,7 +389,7 @@ export async function exportOAuth2Client({
   options?: OAuth2ClientExportOptions;
   state: State;
 }): Promise<OAuth2ClientExportInterface> {
-  debugMessage(`OAuth2ClientOps.exportOAuth2Client: start`);
+  debugMessage({ message: `OAuth2ClientOps.exportOAuth2Client: start`, state });
   const exportData = createOAuth2ClientExportTemplate({ state });
   const errors = [];
   try {
@@ -400,7 +411,7 @@ export async function exportOAuth2Client({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Export error:\n${errorMessages}`);
   }
-  debugMessage(`OAuth2ClientOps.exportOAuth2Client: end`);
+  debugMessage({ message: `OAuth2ClientOps.exportOAuth2Client: end`, state });
   return exportData;
 }
 

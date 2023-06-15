@@ -13,7 +13,7 @@ import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
 import State from '../shared/State';
 
 if (process.env.FRODO_MOCK) {
-  setupPollyForFrodoLib();
+  setupPollyForFrodoLib({ state: new State({}) });
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -96,13 +96,13 @@ function getProxy(): AxiosProxyConfig | false {
  * Customize curlirize output
  * @param request axios request object
  */
-function curlirize(request) {
+function curlirize(request, state: State) {
   _curlirize(request, (result, err) => {
     const { command } = result;
     if (err) {
-      printMessage(err, 'error');
+      printMessage({ message: err, type: 'error', state });
     } else {
-      curlirizeMessage(command);
+      curlirizeMessage({ message: command, state });
     }
   });
 }
@@ -166,7 +166,7 @@ export function generateAmApi({
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
-    curlirize(request);
+    curlirize(request, state);
   }
 
   return request;
@@ -230,7 +230,7 @@ export function generateOauth2Api({
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
-    curlirize(request);
+    curlirize(request, state);
   }
 
   return request;
@@ -278,7 +278,7 @@ export function generateIdmApi({
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
-    curlirize(request);
+    curlirize(request, state);
   }
 
   return request;
@@ -320,7 +320,7 @@ export function generateLogKeysApi({
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
-    curlirize(request);
+    curlirize(request, state);
   }
 
   return request;
@@ -359,7 +359,7 @@ export function generateLogApi({
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
-    curlirize(request);
+    curlirize(request, state);
   }
 
   return request;
@@ -405,7 +405,7 @@ export function generateEnvApi({
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
-    curlirize(request);
+    curlirize(request, state);
   }
 
   return request;
@@ -444,7 +444,7 @@ export function generateReleaseApi({
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
-    curlirize(request);
+    curlirize(request, state);
   }
 
   return request;

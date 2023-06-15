@@ -326,12 +326,15 @@ export async function getScripts({
   policyData: PolicySkeleton;
   state: State;
 }): Promise<ScriptSkeleton[]> {
-  debugMessage(`PolicyOps.getScripts: start [policy=${policyData['name']}]`);
+  debugMessage({
+    message: `PolicyOps.getScripts: start [policy=${policyData['name']}]`,
+    state,
+  });
   const errors = [];
   const scripts = [];
   try {
     const scriptUuids = findScriptUuids(policyData.condition);
-    debugMessage(`found scripts: ${scriptUuids}`);
+    debugMessage({ message: `found scripts: ${scriptUuids}`, state });
     for (const scriptUuid of scriptUuids) {
       try {
         const script = await getScript({ scriptId: scriptUuid, state });
@@ -349,7 +352,7 @@ export async function getScripts({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Export error:\n${errorMessages}`);
   }
-  debugMessage(`PolicySetOps.getScripts: end`);
+  debugMessage({ message: `PolicySetOps.getScripts: end`, state });
   return scripts;
 }
 
@@ -367,9 +370,10 @@ async function exportPolicyPrerequisites({
   exportData: PolicyExportInterface;
   state: State;
 }) {
-  debugMessage(
-    `PolicyOps.exportPolicyPrerequisites: start [policy=${policyData['name']}]`
-  );
+  debugMessage({
+    message: `PolicyOps.exportPolicyPrerequisites: start [policy=${policyData['name']}]`,
+    state,
+  });
   // resource types
   if (policyData.resourceTypeUuid) {
     const resourceType = await getResourceType({
@@ -386,7 +390,10 @@ async function exportPolicyPrerequisites({
     });
     exportData.policyset[policyData.applicationName] = policySet;
   }
-  debugMessage(`PolicySetOps.exportPolicyPrerequisites: end`);
+  debugMessage({
+    message: `PolicySetOps.exportPolicyPrerequisites: end`,
+    state,
+  });
 }
 
 /**
@@ -406,9 +413,10 @@ async function exportPolicyDependencies({
   exportData: PolicyExportInterface;
   state: State;
 }) {
-  debugMessage(
-    `PolicyOps.exportPolicyDependencies: start [policy=${policyData['name']}]`
-  );
+  debugMessage({
+    message: `PolicyOps.exportPolicyDependencies: start [policy=${policyData['name']}]`,
+    state,
+  });
   // scripts
   const scripts = await getScripts({ policyData, state });
   for (const scriptData of scripts) {
@@ -417,7 +425,10 @@ async function exportPolicyDependencies({
     }
     exportData.script[scriptData._id] = scriptData;
   }
-  debugMessage(`PolicySetOps.exportPolicySetDependencies: end`);
+  debugMessage({
+    message: `PolicySetOps.exportPolicySetDependencies: end`,
+    state,
+  });
 }
 
 /**
@@ -438,7 +449,7 @@ export async function exportPolicy({
   options?: PolicyExportOptions;
   state: State;
 }): Promise<PolicyExportInterface> {
-  debugMessage(`PolicyOps.exportPolicy: start`);
+  debugMessage({ message: `PolicyOps.exportPolicy: start`, state });
   const policyData = await getPolicy({ policyId, state });
   const exportData = createPolicyExportTemplate({ state });
   exportData.policy[policyData._id] = policyData;
@@ -448,7 +459,7 @@ export async function exportPolicy({
   if (options.deps) {
     await exportPolicyDependencies({ policyData, options, exportData, state });
   }
-  debugMessage(`PolicyOps.exportPolicy: end`);
+  debugMessage({ message: `PolicyOps.exportPolicy: end`, state });
   return exportData;
 }
 
@@ -468,7 +479,7 @@ export async function exportPolicies({
   options?: PolicyExportOptions;
   state: State;
 }): Promise<PolicyExportInterface> {
-  debugMessage(`PolicyOps.exportPolicies: start`);
+  debugMessage({ message: `PolicyOps.exportPolicies: start`, state });
   const exportData = createPolicyExportTemplate({ state });
   const errors = [];
   try {
@@ -502,7 +513,7 @@ export async function exportPolicies({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Export error:\n${errorMessages}`);
   }
-  debugMessage(`PolicyOps.exportPolicies: end`);
+  debugMessage({ message: `PolicyOps.exportPolicies: end`, state });
   return exportData;
 }
 
@@ -525,7 +536,7 @@ export async function exportPoliciesByPolicySet({
   options?: PolicyExportOptions;
   state: State;
 }): Promise<PolicyExportInterface> {
-  debugMessage(`PolicyOps.exportPolicies: start`);
+  debugMessage({ message: `PolicyOps.exportPolicies: start`, state });
   const exportData = createPolicyExportTemplate({ state });
   const errors = [];
   try {
@@ -562,7 +573,7 @@ export async function exportPoliciesByPolicySet({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Export error:\n${errorMessages}`);
   }
-  debugMessage(`PolicyOps.exportPolicies: end`);
+  debugMessage({ message: `PolicyOps.exportPolicies: end`, state });
   return exportData;
 }
 
@@ -580,15 +591,19 @@ async function importPolicyPrerequisites({
   exportData: PolicyExportInterface;
   state: State;
 }) {
-  debugMessage(
-    `PolicyOps.importPolicyHardDependencies: start [policy=${policyData._id}]`
-  );
+  debugMessage({
+    message: `PolicyOps.importPolicyHardDependencies: start [policy=${policyData._id}]`,
+    state,
+  });
   const errors = [];
   try {
     // resource type
     if (exportData.resourcetype[policyData.resourceTypeUuid]) {
       try {
-        debugMessage(`Importing resource type ${policyData.resourceTypeUuid}`);
+        debugMessage({
+          message: `Importing resource type ${policyData.resourceTypeUuid}`,
+          state,
+        });
         await createResourceType({
           resourceTypeData:
             exportData.resourcetype[policyData.resourceTypeUuid],
@@ -608,7 +623,10 @@ async function importPolicyPrerequisites({
     // policy set
     if (exportData.policyset[policyData.applicationName]) {
       try {
-        debugMessage(`Importing policy set ${policyData.applicationName}`);
+        debugMessage({
+          message: `Importing policy set ${policyData.applicationName}`,
+          state,
+        });
         await createPolicySet({
           policySetData: exportData.policyset[policyData.applicationName],
           state,
@@ -634,7 +652,10 @@ async function importPolicyPrerequisites({
       .join('\n');
     throw new Error(`Import hard dependencies error:\n${errorMessages}`);
   }
-  debugMessage(`PolicyOps.importPolicyHardDependencies: end`);
+  debugMessage({
+    message: `PolicyOps.importPolicyHardDependencies: end`,
+    state,
+  });
 }
 
 /**
@@ -651,9 +672,10 @@ async function importPolicyDependencies({
   exportData: PolicyExportInterface;
   state: State;
 }) {
-  debugMessage(
-    `PolicyOps.importPolicySoftDependencies: start [policy=${policyData._id}]`
-  );
+  debugMessage({
+    message: `PolicyOps.importPolicySoftDependencies: start [policy=${policyData._id}]`,
+    state,
+  });
   const errors = [];
   try {
     // scripts
@@ -661,10 +683,10 @@ async function importPolicyDependencies({
     for (const scriptUuid of scriptUuids) {
       try {
         const scriptData = exportData.script[scriptUuid];
-        debugMessage(`Importing script ${scriptUuid}`);
+        debugMessage({ message: `Importing script ${scriptUuid}`, state });
         await putScript({ scriptId: scriptUuid, scriptData, state });
       } catch (error) {
-        debugMessage(error.response?.data);
+        debugMessage({ message: error.response?.data, state });
         error.message = `Error importing script ${scriptUuid} for policy ${
           policyData._id
         }: ${error.response?.data?.message || error.message}`;
@@ -683,7 +705,10 @@ async function importPolicyDependencies({
       .join('\n');
     throw new Error(`Import soft dependencies error:\n${errorMessages}`);
   }
-  debugMessage(`PolicyOps.importPolicySoftDependencies: end`);
+  debugMessage({
+    message: `PolicyOps.importPolicySoftDependencies: end`,
+    state,
+  });
 }
 
 /**

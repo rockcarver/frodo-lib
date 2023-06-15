@@ -192,7 +192,7 @@ export async function putProviderByTypeAndId({
   providerData: SocialIdpSkeleton | NoIdObjectSkeletonInterface;
   state: State;
 }) {
-  debugMessage(`IdpOps.putProviderByTypeAndId: start`);
+  debugMessage({ message: `IdpOps.putProviderByTypeAndId: start`, state });
   try {
     const response = await _putProviderByTypeAndId({
       type: providerType,
@@ -200,7 +200,7 @@ export async function putProviderByTypeAndId({
       providerData,
       state,
     });
-    debugMessage(`IdpOps.putProviderByTypeAndId: end`);
+    debugMessage({ message: `IdpOps.putProviderByTypeAndId: end`, state });
     return response;
   } catch (importError) {
     if (
@@ -212,22 +212,27 @@ export async function putProviderByTypeAndId({
       for (const attribute of Object.keys(providerData)) {
         if (!validAttributes.includes(attribute)) {
           if (state.getVerbose())
-            printMessage(
-              `\nRemoving invalid attribute: ${attribute}`,
-              'warn',
-              false
-            );
+            printMessage({
+              message: `\nRemoving invalid attribute: ${attribute}`,
+              type: 'warn',
+              newline: false,
+              state,
+            });
           delete providerData[attribute];
         }
       }
-      if (state.getVerbose()) printMessage('\n', 'warn', false);
+      if (state.getVerbose())
+        printMessage({ message: '\n', type: 'warn', newline: false, state });
       const response = await _putProviderByTypeAndId({
         type: providerType,
         id: providerId,
         providerData,
         state,
       });
-      debugMessage(`IdpOps.putProviderByTypeAndId: end (after retry)`);
+      debugMessage({
+        message: `IdpOps.putProviderByTypeAndId: end (after retry)`,
+        state,
+      });
       return response;
     } else {
       // re-throw unhandleable error
@@ -280,7 +285,7 @@ export async function exportSocialProvider({
   providerId: string;
   state: State;
 }): Promise<SocialProviderExportInterface> {
-  debugMessage(`IdpOps.exportSocialProvider: start`);
+  debugMessage({ message: `IdpOps.exportSocialProvider: start`, state });
   const idpData = await getSocialProvider({ providerId, state });
   const exportData = createIdpExportTemplate({ state });
   exportData.idp[idpData._id] = idpData;
@@ -289,7 +294,7 @@ export async function exportSocialProvider({
     scriptData.script = convertBase64TextToArray(scriptData.script);
     exportData.script[idpData.transform] = scriptData;
   }
-  debugMessage(`IdpOps.exportSocialProvider: end`);
+  debugMessage({ message: `IdpOps.exportSocialProvider: end`, state });
   return exportData;
 }
 
@@ -304,9 +309,16 @@ export async function exportSocialProviders({
 }): Promise<SocialProviderExportInterface> {
   const exportData = createIdpExportTemplate({ state });
   const allIdpsData = await getSocialIdentityProviders({ state });
-  createProgressIndicator(allIdpsData.length, 'Exporting providers');
+  createProgressIndicator({
+    total: allIdpsData.length,
+    message: 'Exporting providers',
+    state,
+  });
   for (const idpData of allIdpsData) {
-    updateProgressIndicator(`Exporting provider ${idpData._id}`);
+    updateProgressIndicator({
+      message: `Exporting provider ${idpData._id}`,
+      state,
+    });
     exportData.idp[idpData._id] = idpData;
     if (idpData.transform) {
       const scriptData = await getScript({
@@ -317,7 +329,10 @@ export async function exportSocialProviders({
       exportData.script[idpData.transform] = scriptData;
     }
   }
-  stopProgressIndicator(`${allIdpsData.length} providers exported.`);
+  stopProgressIndicator({
+    message: `${allIdpsData.length} providers exported.`,
+    state,
+  });
   return exportData;
 }
 
@@ -417,8 +432,16 @@ export async function importSocialProviders({
         state,
       });
     } catch (error) {
-      printMessage(error.response?.data || error, 'error');
-      printMessage(`\nError importing provider ${idpId}`, 'error');
+      printMessage({
+        message: error.response?.data || error,
+        type: 'error',
+        state,
+      });
+      printMessage({
+        message: `\nError importing provider ${idpId}`,
+        type: 'error',
+        state,
+      });
       outcome = false;
     }
   }
