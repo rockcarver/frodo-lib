@@ -1,4 +1,7 @@
+import State from '../../shared/State';
 import { validateScriptHooks } from './ScriptValidationUtils';
+
+const state: State = new State({});
 
 describe('validateScriptHooks', () => {
   it('should return false when there is an invalid script', () => {
@@ -8,7 +11,7 @@ describe('validateScriptHooks', () => {
         source: 'invalid javascript',
       },
     };
-    expect(validateScriptHooks(jsonData)).toBe(false);
+    expect(validateScriptHooks({ jsonData, state })).toBe(false);
   });
 
   it('should return true when there is a valid script', () => {
@@ -18,7 +21,7 @@ describe('validateScriptHooks', () => {
         source: 'console.log("Hello World");',
       },
     };
-    expect(validateScriptHooks(jsonData)).toBe(true);
+    expect(validateScriptHooks({ jsonData, state })).toBe(true);
   });
 
   it('should return true when there is no script', () => {
@@ -27,6 +30,6 @@ describe('validateScriptHooks', () => {
         type: 'text/javascript',
       },
     };
-    expect(validateScriptHooks(jsonData)).toBe(true);
+    expect(validateScriptHooks({ jsonData, state })).toBe(true);
   });
 });

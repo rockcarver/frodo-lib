@@ -262,7 +262,7 @@ export async function exportResourceType({
   resourceTypeUuid: string;
   state: State;
 }): Promise<ResourceTypeExportInterface> {
-  debugMessage(`ResourceTypeOps.exportResourceType: start`);
+  debugMessage({ message: `ResourceTypeOps.exportResourceType: start`, state });
   const exportData = createResourceTypeExportTemplate({ state });
   const errors = [];
   try {
@@ -286,7 +286,7 @@ export async function exportResourceType({
       .join('\n');
     throw new Error(`Export error:\n${errorMessages}`);
   }
-  debugMessage(`ResourceTypeOps.exportResourceType: end`);
+  debugMessage({ message: `ResourceTypeOps.exportResourceType: end`, state });
   return exportData;
 }
 
@@ -302,7 +302,10 @@ export async function exportResourceTypeByName({
   resourceTypeName: string;
   state: State;
 }): Promise<ResourceTypeExportInterface> {
-  debugMessage(`ResourceTypeOps.exportResourceTypeByName: start`);
+  debugMessage({
+    message: `ResourceTypeOps.exportResourceTypeByName: start`,
+    state,
+  });
   const exportData = createResourceTypeExportTemplate({ state });
   const errors = [];
   try {
@@ -318,7 +321,10 @@ export async function exportResourceTypeByName({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Export error:\n${errorMessages}`);
   }
-  debugMessage(`ResourceTypeOps.exportResourceTypeByName: end`);
+  debugMessage({
+    message: `ResourceTypeOps.exportResourceTypeByName: end`,
+    state,
+  });
   return exportData;
 }
 
@@ -331,7 +337,7 @@ export async function exportResourceTypes({
 }: {
   state: State;
 }): Promise<ResourceTypeExportInterface> {
-  debugMessage(`ResourceTypeOps.exportResourceType: start`);
+  debugMessage({ message: `ResourceTypeOps.exportResourceType: start`, state });
   const exportData = createResourceTypeExportTemplate({ state });
   const errors = [];
   try {
@@ -346,7 +352,7 @@ export async function exportResourceTypes({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Export error:\n${errorMessages}`);
   }
-  debugMessage(`ResourceTypeOps.exportResourceType: end`);
+  debugMessage({ message: `ResourceTypeOps.exportResourceType: end`, state });
   return exportData;
 }
 

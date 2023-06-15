@@ -196,14 +196,19 @@ export async function putScript({
     return result;
   } catch (error) {
     if (error.response?.status === 409) {
-      printMessage(
-        `createOrUpdateScript WARNING: script with name ${scriptData.name} already exists, using renaming policy... <name> => <name - imported (n)>`,
-        'warn'
-      );
+      printMessage({
+        message: `createOrUpdateScript WARNING: script with name ${scriptData.name} already exists, using renaming policy... <name> => <name - imported (n)>`,
+        type: 'warn',
+        state,
+      });
       const newName = applyNameCollisionPolicy(scriptData.name);
       scriptData.name = newName;
       const result = await putScript({ scriptId, scriptData, state });
-      printMessage(`Saved script as ${newName}`, 'warn');
+      printMessage({
+        message: `Saved script as ${newName}`,
+        type: 'warn',
+        state,
+      });
       return result;
     }
     throw error;
@@ -222,12 +227,12 @@ export async function exportScript({
   scriptId: string;
   state: State;
 }): Promise<ScriptExportInterface> {
-  debugMessage(`ScriptOps.exportScriptById: start`);
+  debugMessage({ message: `ScriptOps.exportScriptById: start`, state });
   const scriptData = await getScript({ scriptId, state });
   scriptData.script = convertBase64TextToArray(scriptData.script);
   const exportData = createScriptExportTemplate({ state });
   exportData.script[scriptData._id] = scriptData;
-  debugMessage(`ScriptOps.exportScriptById: end`);
+  debugMessage({ message: `ScriptOps.exportScriptById: end`, state });
   return exportData;
 }
 
@@ -243,12 +248,12 @@ export async function exportScriptByName({
   scriptName: string;
   state: State;
 }): Promise<ScriptExportInterface> {
-  debugMessage(`ScriptOps.exportScriptByName: start`);
+  debugMessage({ message: `ScriptOps.exportScriptByName: start`, state });
   const scriptData = await getScriptByName({ scriptName, state });
   scriptData.script = convertBase64TextToArray(scriptData.script as string);
   const exportData = createScriptExportTemplate({ state });
   exportData.script[scriptData._id] = scriptData;
-  debugMessage(`ScriptOps.exportScriptByName: end`);
+  debugMessage({ message: `ScriptOps.exportScriptByName: end`, state });
   return exportData;
 }
 
@@ -263,12 +268,16 @@ export async function exportScripts({
 }): Promise<ScriptExportInterface> {
   const scriptList = await getScripts({ state });
   const exportData = createScriptExportTemplate({ state });
-  createProgressIndicator(
-    scriptList.length,
-    `Exporting ${scriptList.length} scripts...`
-  );
+  createProgressIndicator({
+    total: scriptList.length,
+    message: `Exporting ${scriptList.length} scripts...`,
+    state,
+  });
   for (const script of scriptList) {
-    updateProgressIndicator(`Reading script ${script.name}`);
+    updateProgressIndicator({
+      message: `Reading script ${script.name}`,
+      state,
+    });
     const scriptData = await getScriptByName({
       scriptName: script.name,
       state,
@@ -276,7 +285,10 @@ export async function exportScripts({
     scriptData.script = convertBase64TextToArray(scriptData.script as string);
     exportData.script[scriptData._id] = scriptData;
   }
-  stopProgressIndicator(`Exported ${scriptList.length} scripts.`);
+  stopProgressIndicator({
+    message: `Exported ${scriptList.length} scripts.`,
+    state,
+  });
   return exportData;
 }
 
@@ -301,30 +313,33 @@ export async function importScripts({
   state: State;
 }): Promise<boolean> {
   let outcome = true;
-  debugMessage(`ScriptOps.importScripts: start`);
+  debugMessage({ message: `ScriptOps.importScripts: start`, state });
   for (const existingId of Object.keys(importData.script)) {
     const scriptSkeleton = importData.script[existingId];
     let newId = existingId;
     if (reUuid) {
       newId = uuidv4();
-      debugMessage(
-        `ScriptOps.importScripts: Re-uuid-ing script ${scriptSkeleton.name} ${existingId} => ${newId}...`
-      );
+      debugMessage({
+        message: `ScriptOps.importScripts: Re-uuid-ing script ${scriptSkeleton.name} ${existingId} => ${newId}...`,
+        state,
+      });
       scriptSkeleton._id = newId;
     }
     if (scriptName) {
-      debugMessage(
-        `ScriptOps.importScripts: Renaming script ${scriptSkeleton.name} => ${scriptName}...`
-      );
+      debugMessage({
+        message: `ScriptOps.importScripts: Renaming script ${scriptSkeleton.name} => ${scriptName}...`,
+        state,
+      });
       scriptSkeleton.name = scriptName;
     }
     if (validate) {
-      if (!validateScriptDecoded(scriptSkeleton)) {
+      if (!validateScriptDecoded({ scriptSkeleton, state })) {
         outcome = false;
-        printMessage(
-          `Error importing script '${scriptSkeleton.name}': Script is not valid`,
-          'error'
-        );
+        printMessage({
+          message: `Error importing script '${scriptSkeleton.name}': Script is not valid`,
+          type: 'error',
+          state,
+        });
         continue;
       }
     }
@@ -332,15 +347,16 @@ export async function importScripts({
       await putScript({ scriptId: newId, scriptData: scriptSkeleton, state });
     } catch (error) {
       outcome = false;
-      printMessage(
-        `Error importing script '${scriptSkeleton.name}': ${error.message}`,
-        'error'
-      );
-      debugMessage(error);
+      printMessage({
+        message: `Error importing script '${scriptSkeleton.name}': ${error.message}`,
+        type: 'error',
+        state,
+      });
+      debugMessage({ message: error, state });
     }
     if (scriptName) break;
   }
-  debugMessage(`ScriptOps.importScripts: end`);
+  debugMessage({ message: `ScriptOps.importScripts: end`, state });
   return outcome;
 }
 

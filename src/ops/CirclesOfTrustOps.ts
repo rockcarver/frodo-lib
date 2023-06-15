@@ -130,7 +130,10 @@ export async function exportCircleOfTrust({
   cotId: string;
   state: State;
 }): Promise<CirclesOfTrustExportInterface> {
-  debugMessage(`CirclesOfTrustOps.exportCircleOfTrust: start`);
+  debugMessage({
+    message: `CirclesOfTrustOps.exportCircleOfTrust: start`,
+    state,
+  });
   const exportData = createCirclesOfTrustExportTemplate({ state });
   const errors = [];
   try {
@@ -154,7 +157,10 @@ export async function exportCircleOfTrust({
       .join('\n');
     throw new Error(`Export error:\n${errorMessages}`);
   }
-  debugMessage(`CirclesOfTrustOps.exportCircleOfTrust: end`);
+  debugMessage({
+    message: `CirclesOfTrustOps.exportCircleOfTrust: end`,
+    state,
+  });
   return exportData;
 }
 
@@ -167,7 +173,10 @@ export async function exportCirclesOfTrust({
 }: {
   state: State;
 }): Promise<CirclesOfTrustExportInterface> {
-  debugMessage(`CirclesOfTrustOps.exportCirclesOfTrust: start`);
+  debugMessage({
+    message: `CirclesOfTrustOps.exportCirclesOfTrust: start`,
+    state,
+  });
   const exportData = createCirclesOfTrustExportTemplate({ state });
   const errors = [];
   try {
@@ -182,7 +191,10 @@ export async function exportCirclesOfTrust({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Export error:\n${errorMessages}`);
   }
-  debugMessage(`CirclesOfTrustOps.exportCirclesOfTrust: end`);
+  debugMessage({
+    message: `CirclesOfTrustOps.exportCirclesOfTrust: end`,
+    state,
+  });
   return exportData;
 }
 

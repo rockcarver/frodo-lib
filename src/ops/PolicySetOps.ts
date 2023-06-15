@@ -218,9 +218,10 @@ async function exportPolicySetPrerequisites({
   exportData: PolicySetExportInterface;
   state: State;
 }) {
-  debugMessage(
-    `PolicySetOps.exportPolicySetPrerequisites: start [policySet=${policySetData['name']}]`
-  );
+  debugMessage({
+    message: `PolicySetOps.exportPolicySetPrerequisites: start [policySet=${policySetData['name']}]`,
+    state,
+  });
   const errors = [];
   // resource types
   for (const resourceTypeUuid of policySetData.resourceTypeUuids) {
@@ -236,7 +237,10 @@ async function exportPolicySetPrerequisites({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Export dependencies error:\n${errorMessages}`);
   }
-  debugMessage(`PolicySetOps.exportPolicySetPrerequisites: end`);
+  debugMessage({
+    message: `PolicySetOps.exportPolicySetPrerequisites: end`,
+    state,
+  });
 }
 
 /**
@@ -256,9 +260,10 @@ async function exportPolicySetDependencies({
   exportData: PolicySetExportInterface;
   state: State;
 }) {
-  debugMessage(
-    `PolicySetOps.exportPolicySetDependencies: start [policySet=${policySetData['name']}]`
-  );
+  debugMessage({
+    message: `PolicySetOps.exportPolicySetDependencies: start [policySet=${policySetData['name']}]`,
+    state,
+  });
   const errors = [];
   // policies
   try {
@@ -291,7 +296,10 @@ async function exportPolicySetDependencies({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Export dependencies error:\n${errorMessages}`);
   }
-  debugMessage(`PolicySetOps.exportPolicySetDependencies: end`);
+  debugMessage({
+    message: `PolicySetOps.exportPolicySetDependencies: end`,
+    state,
+  });
 }
 
 /**
@@ -313,7 +321,7 @@ export async function exportPolicySet({
   options?: PolicySetExportOptions;
   state: State;
 }): Promise<PolicySetExportInterface> {
-  debugMessage(`PolicySetOps.exportPolicySet: start`);
+  debugMessage({ message: `PolicySetOps.exportPolicySet: start`, state });
   const exportData = createPolicySetExportTemplate({ state });
   const errors = [];
   try {
@@ -349,7 +357,7 @@ export async function exportPolicySet({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Export error:\n${errorMessages}`);
   }
-  debugMessage(`PolicySetOps.exportPolicySet: end`);
+  debugMessage({ message: `PolicySetOps.exportPolicySet: end`, state });
   return exportData;
 }
 
@@ -369,7 +377,7 @@ export async function exportPolicySets({
   options: PolicySetExportOptions;
   state: State;
 }): Promise<PolicySetExportInterface> {
-  debugMessage(`PolicySetOps.exportPolicySet: start`);
+  debugMessage({ message: `PolicySetOps.exportPolicySet: start`, state });
   const exportData = createPolicySetExportTemplate({ state });
   const errors = [];
   try {
@@ -407,7 +415,7 @@ export async function exportPolicySets({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Export error:\n${errorMessages}`);
   }
-  debugMessage(`PolicySetOps.exportPolicySet: end`);
+  debugMessage({ message: `PolicySetOps.exportPolicySet: end`, state });
   return exportData;
 }
 
@@ -425,23 +433,27 @@ async function importPolicySetPrerequisites({
   exportData: PolicySetExportInterface;
   state: State;
 }) {
-  debugMessage(
-    `PolicySetOps.importPolicySetHardDependencies: start [policySet=${policySetData['name']}]`
-  );
+  debugMessage({
+    message: `PolicySetOps.importPolicySetHardDependencies: start [policySet=${policySetData['name']}]`,
+    state,
+  });
   const errors = [];
   try {
     // resource types
     for (const resourceTypeUuid of policySetData.resourceTypeUuids) {
       if (exportData.resourcetype[resourceTypeUuid]) {
         try {
-          debugMessage(`Importing resource type ${resourceTypeUuid}`);
+          debugMessage({
+            message: `Importing resource type ${resourceTypeUuid}`,
+            state,
+          });
           await putResourceType({
             resourceTypeUuid,
             resourceTypeData: exportData.resourcetype[resourceTypeUuid],
             state,
           });
         } catch (error) {
-          debugMessage(error.response?.data);
+          debugMessage({ message: error.response?.data, state });
           errors.push(error);
         }
       } else {
@@ -460,7 +472,10 @@ async function importPolicySetPrerequisites({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Import hard dependencies error:\n${errorMessages}`);
   }
-  debugMessage(`PolicySetOps.importPolicySetHardDependencies: end`);
+  debugMessage({
+    message: `PolicySetOps.importPolicySetHardDependencies: end`,
+    state,
+  });
 }
 
 /**
@@ -477,9 +492,10 @@ async function importPolicySetDependencies({
   exportData: PolicySetExportInterface;
   state: State;
 }) {
-  debugMessage(
-    `PolicySetOps.importPolicySetSoftDependencies: start [policySet=${policySetData['name']}]`
-  );
+  debugMessage({
+    message: `PolicySetOps.importPolicySetSoftDependencies: start [policySet=${policySetData['name']}]`,
+    state,
+  });
   const errors = [];
   try {
     // policies
@@ -489,10 +505,13 @@ async function importPolicySetDependencies({
       );
       for (const policyData of policies) {
         try {
-          debugMessage(`Importing policy ${policyData._id}`);
+          debugMessage({
+            message: `Importing policy ${policyData._id}`,
+            state,
+          });
           await putPolicy({ policyId: policyData._id, policyData, state });
         } catch (error) {
-          debugMessage(error.response?.data);
+          debugMessage({ message: error.response?.data, state });
           error.message = `Error importing policy ${policyData._id} in policy set ${policySetData.name}: ${error.message}`;
           errors.push(error);
         }
@@ -501,10 +520,10 @@ async function importPolicySetDependencies({
         for (const scriptUuid of scriptUuids) {
           try {
             const scriptData = exportData.script[scriptUuid];
-            debugMessage(`Importing script ${scriptUuid}`);
+            debugMessage({ message: `Importing script ${scriptUuid}`, state });
             await putScript({ scriptId: scriptUuid, scriptData, state });
           } catch (error) {
-            debugMessage(error.response?.data);
+            debugMessage({ message: error.response?.data, state });
             error.message = `Error importing script ${scriptUuid} for policy ${policyData._id} in policy set ${policySetData.name}: ${error.message}`;
             errors.push(error);
           }
@@ -522,7 +541,10 @@ async function importPolicySetDependencies({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Import soft dependencies error:\n${errorMessages}`);
   }
-  debugMessage(`PolicySetOps.importPolicySetSoftDependencies: end`);
+  debugMessage({
+    message: `PolicySetOps.importPolicySetSoftDependencies: end`,
+    state,
+  });
 }
 
 /**
