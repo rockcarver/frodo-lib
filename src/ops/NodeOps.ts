@@ -363,6 +363,8 @@ const OOTB_NODE_TYPES_7_2 = [
 
 const OOTB_NODE_TYPES_7_3 = [].concat(OOTB_NODE_TYPES_7_2);
 
+const OOTB_NODE_TYPES_7_4 = [].concat(OOTB_NODE_TYPES_7_3);
+
 const OOTB_NODE_TYPES_6_5 = [
   'AbstractSocialAuthLoginNode',
   'AccountLockoutNode',
@@ -520,6 +522,9 @@ export function isCustomNode({
       break;
     case '7.3.0':
       ootbNodeTypes = OOTB_NODE_TYPES_7_3.slice(0);
+      break;
+    case '7.4.0':
+      ootbNodeTypes = OOTB_NODE_TYPES_7_4.slice(0);
       break;
     case '7.0.0':
     case '7.0.1':

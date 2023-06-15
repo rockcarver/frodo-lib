@@ -2115,14 +2115,20 @@ export function isCustomJourney({
   journey: SingleTreeExportInterface;
   state: State;
 }) {
+  debugMessage({ message: `JourneyOps.isCustomJourney: start`, state });
   const nodeList = Object.values(journey.nodes).concat(
     Object.values(journey.innerNodes)
   );
   for (const node of nodeList) {
     if (isCustomNode({ nodeType: node['_type']['_id'], state })) {
+      debugMessage({
+        message: `JourneyOps.isCustomJourney: Custom node: ${node['_type']['_id']}`,
+        state,
+      });
       return true;
     }
   }
+  debugMessage({ message: `JourneyOps.isCustomJourney: end [false]`, state });
   return false;
 }
 
