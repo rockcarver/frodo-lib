@@ -10,7 +10,6 @@ import { convertBase64TextToArray } from './utils/ExportImportUtils';
 import { ExportMetaData } from './OpsTypes';
 import {
   PolicyCondition,
-  PolicyConditionType,
   PolicySetSkeleton,
   PolicySkeleton,
   ResourceTypeSkeleton,
@@ -293,9 +292,9 @@ export function findScriptUuids(condition: PolicyCondition): string[] {
   let scriptUuids: string[] = [];
   if (!condition) return scriptUuids;
   if (
-    condition.type === PolicyConditionType.AND.toString() ||
-    condition.type === PolicyConditionType.OR.toString() ||
-    condition.type === PolicyConditionType.NOT.toString()
+    condition.type === 'AND' ||
+    condition.type === 'OR' ||
+    condition.type === 'NOT'
   ) {
     // single condition
     if (condition.condition) {
@@ -307,7 +306,7 @@ export function findScriptUuids(condition: PolicyCondition): string[] {
         scriptUuids.push(...findScriptUuids(cond));
       }
     }
-  } else if (condition.type === PolicyConditionType.Script.toString()) {
+  } else if (condition.type === 'Script') {
     scriptUuids.push(condition.scriptId as string);
   }
   // de-duplicate

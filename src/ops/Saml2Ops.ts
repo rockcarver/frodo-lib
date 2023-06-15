@@ -506,10 +506,10 @@ function getLocation(
   data: Saml2ExportInterface
 ): Saml2ProiderLocation {
   if (data.saml.hosted[entityId64]) {
-    return Saml2ProiderLocation.HOSTED;
+    return 'hosted';
   }
   if (data.saml.remote[entityId64]) {
-    return Saml2ProiderLocation.REMOTE;
+    return 'remote';
   }
   return undefined;
 }
@@ -538,7 +538,7 @@ export async function importSaml2Provider({
     const providerData = importData.saml[location][entityId64];
     await importDependencies({ providerData, fileData: importData, state });
     let metaData = null;
-    if (location === Saml2ProiderLocation.REMOTE) {
+    if (location === 'remote') {
       metaData = convertTextArrayToBase64Url(
         importData.saml.metadata[entityId64]
       );
@@ -583,9 +583,9 @@ export async function importSaml2Providers({
       debugMessage(
         `Saml2Ops.importSaml2Providers: entityId=${decodeBase64Url(entityId64)}`
       );
-      const location = hostedIds.includes(entityId64)
-        ? Saml2ProiderLocation.HOSTED
-        : Saml2ProiderLocation.REMOTE;
+      const location: Saml2ProiderLocation = hostedIds.includes(entityId64)
+        ? 'hosted'
+        : 'remote';
       const entityId = decode(entityId64);
       const providerData = importData.saml[location][entityId64];
       try {
@@ -599,7 +599,7 @@ export async function importSaml2Providers({
         printMessage(importDependenciesErr.response.data, 'error');
       }
       let metaData = null;
-      if (location === Saml2ProiderLocation.REMOTE) {
+      if (location === 'remote') {
         metaData = convertTextArrayToBase64Url(
           importData.saml.metadata[entityId64]
         );
