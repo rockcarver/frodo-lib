@@ -38,7 +38,11 @@ export default class ConnectionProfileOps {
     connectionProfiles: ConnectionsFileInterface,
     host: string
   ): SecureConnectionProfileInterface[] {
-    return findConnectionProfiles({ connectionProfiles, host });
+    return findConnectionProfiles({
+      connectionProfiles,
+      host,
+      state: this.state,
+    });
   }
 
   /**
@@ -156,19 +160,23 @@ export function getConnectionProfilesPath({ state }: { state: State }): string {
 function findConnectionProfiles({
   connectionProfiles,
   host,
+  state,
 }: {
   connectionProfiles: ConnectionsFileInterface;
   host: string;
+  state: State;
 }): SecureConnectionProfileInterface[] {
   const profiles: SecureConnectionProfileInterface[] = [];
   for (const tenant in connectionProfiles) {
-    debugMessage(
-      `ConnectionProfileOps.findConnectionProfiles: tenant=${tenant}`
-    );
+    debugMessage({
+      message: `ConnectionProfileOps.findConnectionProfiles: tenant=${tenant}`,
+      state,
+    });
     if (tenant.includes(host)) {
-      debugMessage(
-        `ConnectionProfileOps.findConnectionProfiles: '${host}' identifies '${tenant}', including in result set`
-      );
+      debugMessage({
+        message: `ConnectionProfileOps.findConnectionProfiles: '${host}' identifies '${tenant}', including in result set`,
+        state,
+      });
       const foundProfile = { ...connectionProfiles[tenant] };
       foundProfile.tenant = tenant;
       profiles.push(foundProfile);
@@ -208,7 +216,10 @@ function migrateFromLegacyProfile() {
  * @param {State} state library state
  */
 export async function initConnectionProfiles({ state }: { state: State }) {
-  const dataProtection = new DataProtection(state.getMasterKeyPath());
+  const dataProtection = new DataProtection({
+    pathToMasterKey: state.getMasterKeyPath(),
+    state,
+  });
   // create connections.json file if it doesn't exist
   const filename = getConnectionProfilesPath({ state });
   const folderName = path.dirname(filename);
@@ -272,26 +283,39 @@ export async function getConnectionProfileByHost({
   state: State;
 }): Promise<ConnectionProfileInterface> {
   try {
-    const dataProtection = new DataProtection(state.getMasterKeyPath());
+    const dataProtection = new DataProtection({
+      pathToMasterKey: state.getMasterKeyPath(),
+      state,
+    });
     const filename = getConnectionProfilesPath({ state });
     const connectionsData = JSON.parse(fs.readFileSync(filename, 'utf8'));
     const profiles = findConnectionProfiles({
       connectionProfiles: connectionsData,
       host,
+      state,
     });
     if (profiles.length == 0) {
-      printMessage(
-        `Profile for ${host} not found. Please specify credentials on command line`,
-        'error'
-      );
+      printMessage({
+        message: `Profile for ${host} not found. Please specify credentials on command line`,
+        type: 'error',
+        state,
+      });
       return null;
     }
     if (profiles.length > 1) {
-      printMessage(`Multiple matching profiles found.`, 'error');
-      profiles.forEach((p) => {
-        printMessage(`- ${p.tenant}`, 'error');
+      printMessage({
+        message: `Multiple matching profiles found.`,
+        type: 'error',
+        state,
       });
-      printMessage(`Please specify a unique sub-string`, 'error');
+      profiles.forEach((p) => {
+        printMessage({ message: `- ${p.tenant}`, type: 'error', state });
+      });
+      printMessage({
+        message: `Please specify a unique sub-string`,
+        type: 'error',
+        state,
+      });
       return null;
     }
     return {
@@ -317,10 +341,11 @@ export async function getConnectionProfileByHost({
         : null,
     };
   } catch (e) {
-    printMessage(
-      `Can not read saved connection info, please specify credentials on command line: ${e}`,
-      'error'
-    );
+    printMessage({
+      message: `Can not read saved connection info, please specify credentials on command line: ${e}`,
+      type: 'error',
+      state,
+    });
     return null;
   }
 }
@@ -349,10 +374,16 @@ export async function saveConnectionProfile({
   host: string;
   state: State;
 }): Promise<boolean> {
-  debugMessage(`ConnectionProfileOps.saveConnectionProfile: start`);
-  const dataProtection = new DataProtection(state.getMasterKeyPath());
+  debugMessage({
+    message: `ConnectionProfileOps.saveConnectionProfile: start`,
+    state,
+  });
+  const dataProtection = new DataProtection({
+    pathToMasterKey: state.getMasterKeyPath(),
+    state,
+  });
   const filename = getConnectionProfilesPath({ state });
-  debugMessage(`Saving connection profile in ${filename}`);
+  debugMessage({ message: `Saving connection profile in ${filename}`, state });
   let profiles: ConnectionsFileInterface = {};
   let profile: SecureConnectionProfileInterface = { tenant: '' };
   try {
@@ -364,32 +395,40 @@ export async function saveConnectionProfile({
     const found = findConnectionProfiles({
       connectionProfiles: profiles,
       host,
+      state,
     });
 
     // replace tenant in session with real tenant url if necessary
     if (found.length === 1) {
       profile = found[0];
       state.setHost(profile.tenant);
-      verboseMessage(`Existing profile: ${profile.tenant}`);
-      debugMessage(profile);
+      verboseMessage({ message: `Existing profile: ${profile.tenant}`, state });
+      debugMessage({ message: profile, state });
     }
 
     // connection profile not found, validate host is a real URL
     if (found.length === 0) {
       if (isValidUrl(host)) {
         state.setHost(host);
-        debugMessage(`New profile: ${host}`);
+        debugMessage({ message: `New profile: ${host}`, state });
       } else {
-        printMessage(
-          `No existing profile found matching '${host}'. Provide a valid URL as the host argument to create a new profile.`,
-          'error'
-        );
-        debugMessage(`ConnectionProfileOps.saveConnectionProfile: end [false]`);
+        printMessage({
+          message: `No existing profile found matching '${host}'. Provide a valid URL as the host argument to create a new profile.`,
+          type: 'error',
+          state,
+        });
+        debugMessage({
+          message: `ConnectionProfileOps.saveConnectionProfile: end [false]`,
+          state,
+        });
         return false;
       }
     }
   } catch (error) {
-    debugMessage(`New profiles file ${filename} with new profile ${host}`);
+    debugMessage({
+      message: `New profiles file ${filename} with new profile ${host}`,
+      state,
+    });
   }
 
   // user account
@@ -423,19 +462,22 @@ export async function saveConnectionProfile({
     profile.svcacctName = (
       await getServiceAccount({ serviceAccountId: profile.svcacctId, state })
     ).name;
-    debugMessage(
-      `ConnectionProfileOps.saveConnectionProfile: added missing service account name`
-    );
+    debugMessage({
+      message: `ConnectionProfileOps.saveConnectionProfile: added missing service account name`,
+      state,
+    });
   }
 
   // advanced settings
   if (state.getAuthenticationService()) {
     profile.authenticationService = state.getAuthenticationService();
-    printMessage(
-      'Advanced setting: Authentication Service: ' +
+    printMessage({
+      message:
+        'Advanced setting: Authentication Service: ' +
         state.getAuthenticationService(),
-      'info'
-    );
+      type: 'info',
+      state,
+    });
   }
   if (
     state.getAuthenticationHeaderOverrides() &&
@@ -443,8 +485,16 @@ export async function saveConnectionProfile({
   ) {
     profile.authenticationHeaderOverrides =
       state.getAuthenticationHeaderOverrides();
-    printMessage('Advanced setting: Authentication Header Overrides: ', 'info');
-    printMessage(state.getAuthenticationHeaderOverrides(), 'info');
+    printMessage({
+      message: 'Advanced setting: Authentication Header Overrides: ',
+      type: 'info',
+      state,
+    });
+    printMessage({
+      message: state.getAuthenticationHeaderOverrides(),
+      type: 'info',
+      state,
+    });
   }
 
   // remove the helper key 'tenant'
@@ -468,8 +518,14 @@ export async function saveConnectionProfile({
     includeMeta: false,
     state,
   });
-  verboseMessage(`Saved connection profile ${state.getHost()} in ${filename}`);
-  debugMessage(`ConnectionProfileOps.saveConnectionProfile: end [true]`);
+  verboseMessage({
+    message: `Saved connection profile ${state.getHost()} in ${filename}`,
+    state,
+  });
+  debugMessage({
+    message: `ConnectionProfileOps.saveConnectionProfile: end [true]`,
+    state,
+  });
   return true;
 }
 
@@ -493,30 +549,49 @@ export function deleteConnectionProfile({
       const profiles = findConnectionProfiles({
         connectionProfiles: connectionsData,
         host,
+        state,
       });
       if (profiles.length == 1) {
         delete connectionsData[profiles[0].tenant];
         fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
-        printMessage(`Deleted connection profile ${profiles[0].tenant}`);
+        printMessage({
+          message: `Deleted connection profile ${profiles[0].tenant}`,
+          state,
+        });
       } else {
         if (profiles.length > 1) {
-          printMessage(`Multiple matching profiles found.`, 'error');
-          profiles.forEach((p) => {
-            printMessage(`- ${p.tenant}`, 'error');
+          printMessage({
+            message: `Multiple matching profiles found.`,
+            type: 'error',
+            state,
           });
-          printMessage(`Please specify a unique sub-string`, 'error');
+          profiles.forEach((p) => {
+            printMessage({ message: `- ${p.tenant}`, type: 'error', state });
+          });
+          printMessage({
+            message: `Please specify a unique sub-string`,
+            type: 'error',
+            state,
+          });
           return null;
         } else {
-          printMessage(`No connection profile ${host} found`);
+          printMessage({
+            message: `No connection profile ${host} found`,
+            state,
+          });
         }
       }
     } else if (err.code === 'ENOENT') {
-      printMessage(`Connection profile file ${filename} not found`);
+      printMessage({
+        message: `Connection profile file ${filename} not found`,
+        state,
+      });
     } else {
-      printMessage(
-        `Error in deleting connection profile: ${err.code}`,
-        'error'
-      );
+      printMessage({
+        message: `Error in deleting connection profile: ${err.code}`,
+        type: 'error',
+        state,
+      });
     }
   });
 }
@@ -530,9 +605,15 @@ export async function addNewServiceAccount({
 }: {
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  debugMessage(`ConnectionProfileOps.addNewServiceAccount: start`);
+  debugMessage({
+    message: `ConnectionProfileOps.addNewServiceAccount: start`,
+    state,
+  });
   const name = `Frodo-SA-${new Date().getTime()}`;
-  debugMessage(`ConnectionProfileOps.addNewServiceAccount: name=${name}...`);
+  debugMessage({
+    message: `ConnectionProfileOps.addNewServiceAccount: name=${name}...`,
+    state,
+  });
   const description = `${state.getUsername()}'s Frodo Service Account`;
   const scope = ['fr:am:*', 'fr:idm:*', 'fr:idc:esv:*'];
   const jwkPrivate = await createJwkRsa();
@@ -546,9 +627,15 @@ export async function addNewServiceAccount({
     jwks,
     state,
   });
-  debugMessage(`ConnectionProfileOps.addNewServiceAccount: id=${sa._id}`);
+  debugMessage({
+    message: `ConnectionProfileOps.addNewServiceAccount: id=${sa._id}`,
+    state,
+  });
   state.setServiceAccountId(sa._id);
   state.setServiceAccountJwk(jwkPrivate);
-  debugMessage(`ConnectionProfileOps.addNewServiceAccount: end`);
+  debugMessage({
+    message: `ConnectionProfileOps.addNewServiceAccount: end`,
+    state,
+  });
   return sa;
 }

@@ -6,6 +6,7 @@ import NodeHttpAdapter from '@pollyjs/adapter-node-http';
 import FSPersister from '@pollyjs/persister-fs';
 import { LogLevelDesc } from 'loglevel';
 import { debugMessage, printMessage } from '../ops/utils/Console';
+import State from '../shared/State';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -74,16 +75,22 @@ async function countdown(ms) {
 
 const timeout = 15;
 let ttl = timeout;
-async function scheduleShutdown(polly: Polly) {
+async function scheduleShutdown({
+  polly,
+  state,
+}: {
+  polly: Polly;
+  state: State;
+}) {
   ++ttl;
   while (await countdown(1000)) {
     if (ttl < 4)
       console.log(
-        `Polly instance '${getFrodoCommand()}' stopping in ${ttl}s...`
+        `Polly instance '${getFrodoCommand({ state })}' stopping in ${ttl}s...`
       );
   }
   await polly.stop();
-  console.log(`Polly instance '${getFrodoCommand()}' stopped.`);
+  console.log(`Polly instance '${getFrodoCommand({ state })}' stopped.`);
 }
 
 /*
@@ -110,12 +117,13 @@ argv:
   'Sup3rS3cr3t!'
 ]
 */
-function getFrodoCommand() {
+function getFrodoCommand({ state }: { state: State }) {
   try {
     if (mode !== MODES.RECORD)
-      debugMessage(
-        `SetupPollyForFrodoLib.getFrodoCommand: process.argv=${process.argv}`
-      );
+      debugMessage({
+        message: `SetupPollyForFrodoLib.getFrodoCommand: process.argv=${process.argv}`,
+        state,
+      });
     if (
       !process.argv[1].endsWith('frodo') &&
       !process.argv[1].endsWith('frodo.exe') &&
@@ -125,15 +133,23 @@ function getFrodoCommand() {
     }
     return process.argv[2];
   } catch (error) {
-    printMessage(`SetupPollyForFrodoLib.getFrodoCommand: ${error}`, 'error');
-    printMessage(process.argv, 'error');
+    printMessage({
+      message: `SetupPollyForFrodoLib.getFrodoCommand: ${error}`,
+      type: 'error',
+      state,
+    });
+    printMessage({ message: process.argv, type: 'error', state });
     return 'error';
   }
 }
 
-export function setupPollyForFrodoLib(
-  matchRequestsBy = defaultMatchRequestsBy()
-): Polly {
+export function setupPollyForFrodoLib({
+  matchRequestsBy = defaultMatchRequestsBy(),
+  state,
+}: {
+  matchRequestsBy?: any;
+  state: State;
+}): Polly {
   const polly = new Polly('default');
 
   polly.configure({
@@ -157,26 +173,28 @@ export function setupPollyForFrodoLib(
     polly.server.host(host, () => {
       polly.server
         .any('/am/oauth2/*')
-        .recordingName(`${getFrodoCommand()}/oauth2`)
+        .recordingName(`${getFrodoCommand({ state })}/oauth2`)
         .on('request', (req) => {
           req.configure({ matchRequestsBy: authenticationMatchRequestsBy() });
         });
-      polly.server.any('/am/json/*').recordingName(`${getFrodoCommand()}/am`);
+      polly.server
+        .any('/am/json/*')
+        .recordingName(`${getFrodoCommand({ state })}/am`);
       polly.server
         .any('/openidm/*')
-        .recordingName(`${getFrodoCommand()}/openidm`);
+        .recordingName(`${getFrodoCommand({ state })}/openidm`);
       polly.server
         .any('/environment/*')
-        .recordingName(`${getFrodoCommand()}/environment`);
+        .recordingName(`${getFrodoCommand({ state })}/environment`);
       polly.server
         .any('/monitoring/*')
-        .recordingName(`${getFrodoCommand()}/monitoring`);
+        .recordingName(`${getFrodoCommand({ state })}/monitoring`);
       polly.server
         .any('/feature')
-        .recordingName(`${getFrodoCommand()}/feature`);
+        .recordingName(`${getFrodoCommand({ state })}/feature`);
       polly.server
         .any('/dashboard/*')
-        .recordingName(`${getFrodoCommand()}/dashboard`);
+        .recordingName(`${getFrodoCommand({ state })}/dashboard`);
     });
   }
   polly.server.host('https://api.github.com', () => {
@@ -193,13 +211,13 @@ export function setupPollyForFrodoLib(
   });
 
   if (mode === MODES.RECORD) {
-    scheduleShutdown(polly);
+    scheduleShutdown({ polly, state });
   } else {
     // only output debug messages if not recording as this polly instance is
     // primarily used by frodo-cli e2e tests, which capture stdout in snapshots.
     // debug messages falsify the snapshot recordings.
-    debugMessage(`Polly config:`);
-    debugMessage(polly.config);
+    debugMessage({ message: `Polly config:`, state });
+    debugMessage({ message: polly.config, state });
   }
 
   return polly;
