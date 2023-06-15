@@ -43,7 +43,7 @@ export async function getFeatures({
     const { result } = await _getFeatures({ state });
     state.setFeatures(JSON.parse(JSON.stringify(result)));
   } catch (error) {
-    debugMessage(error.response?.data);
+    debugMessage({ message: error.response?.data, state });
     state.setFeatures([]);
   }
   return state.getFeatures();

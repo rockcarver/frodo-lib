@@ -1,3 +1,4 @@
+import { VersionOfSecretStatus } from '../../api/ApiTypes';
 import {
   createNewVersionOfSecret,
   deleteSecret,
@@ -11,7 +12,6 @@ import {
   setStatusOfVersionOfSecret,
 } from '../../api/cloud/SecretsApi';
 import State from '../../shared/State';
-import { VersionOfSecretStatus } from '../../api/cloud/SecretsApi';
 
 export default class SecretsOps {
   state: State;

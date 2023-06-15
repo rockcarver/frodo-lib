@@ -3,7 +3,7 @@ import { generateAmApi } from './BaseApi';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
 import State from '../shared/State';
 import { debugMessage } from '../ops/utils/Console';
-import { AgentSkeleton } from './ApiTypes';
+import { AgentSkeleton, AgentType } from './ApiTypes';
 
 const getAgentTypesURLTemplate =
   '%s/json%s/realm-config/agents?_action=getAllTypes';
@@ -28,7 +28,7 @@ const getApiConfig = () => {
  * @returns {Promise} a promise that resolves to an object containing an array of agent types
  */
 export async function getAgentTypes({ state }: { state: State }) {
-  debugMessage(`AgentApi.getAgentTypes: start`);
+  debugMessage({ message: `AgentApi.getAgentTypes: start`, state });
   const urlString = util.format(
     getAgentTypesURLTemplate,
     state.getHost(),
@@ -44,7 +44,7 @@ export async function getAgentTypes({ state }: { state: State }) {
       withCredentials: true,
     }
   );
-  debugMessage(`AgentApi.getAgentTypes: end`);
+  debugMessage({ message: `AgentApi.getAgentTypes: end`, state });
   return data;
 }
 
@@ -57,10 +57,10 @@ export async function getAgentsByType({
   agentType,
   state,
 }: {
-  agentType: string;
+  agentType: AgentType;
   state: State;
 }) {
-  debugMessage(`AgentApi.getAgentsByType: start`);
+  debugMessage({ message: `AgentApi.getAgentsByType: start`, state });
   const urlString = util.format(
     agentListURLTemplate,
     state.getHost(),
@@ -73,7 +73,7 @@ export async function getAgentsByType({
       withCredentials: true,
     }
   );
-  debugMessage(`AgentApi.getAgentsByType: end`);
+  debugMessage({ message: `AgentApi.getAgentsByType: end`, state });
   return data;
 }
 
@@ -82,7 +82,7 @@ export async function getAgentsByType({
  * @returns {Promise} a promise that resolves to an object containing an array of agent objects
  */
 export async function getAgents({ state }: { state: State }) {
-  debugMessage(`AgentApi.getAgents: start`);
+  debugMessage({ message: `AgentApi.getAgents: start`, state });
   const urlString = util.format(
     getAllAgentsURLTemplate,
     state.getHost(),
@@ -98,7 +98,7 @@ export async function getAgents({ state }: { state: State }) {
       withCredentials: true,
     }
   );
-  debugMessage(`AgentApi.getAgents: end`);
+  debugMessage({ message: `AgentApi.getAgents: end`, state });
   return data;
 }
 
@@ -114,7 +114,7 @@ export async function findAgentById({
   agentId: string;
   state: State;
 }) {
-  debugMessage(`AgentApi.findAgentById: start`);
+  debugMessage({ message: `AgentApi.findAgentById: start`, state });
   const urlString = util.format(
     queryAgentURLTemplate,
     state.getHost(),
@@ -127,7 +127,7 @@ export async function findAgentById({
       withCredentials: true,
     }
   );
-  debugMessage(`AgentApi.findAgentById: end`);
+  debugMessage({ message: `AgentApi.findAgentById: end`, state });
   return data.result;
 }
 
@@ -142,11 +142,11 @@ export async function findAgentByTypeAndId({
   agentId,
   state,
 }: {
-  agentType: string;
+  agentType: AgentType;
   agentId: string;
   state: State;
 }) {
-  debugMessage(`AgentApi.findAgentById: start`);
+  debugMessage({ message: `AgentApi.findAgentById: start`, state });
   const urlString = util.format(
     queryAgentByTypeURLTemplate,
     state.getHost(),
@@ -160,7 +160,7 @@ export async function findAgentByTypeAndId({
       withCredentials: true,
     }
   );
-  debugMessage(`AgentApi.findAgentById: end`);
+  debugMessage({ message: `AgentApi.findAgentById: end`, state });
   return data.result;
 }
 
@@ -175,11 +175,11 @@ export async function getAgentByTypeAndId({
   agentId,
   state,
 }: {
-  agentType: string;
+  agentType: AgentType;
   agentId: string;
   state: State;
 }) {
-  debugMessage(`AgentApi.getAgentByTypeAndId: start`);
+  debugMessage({ message: `AgentApi.getAgentByTypeAndId: start`, state });
   const urlString = util.format(
     agentURLTemplate,
     state.getHost(),
@@ -193,7 +193,7 @@ export async function getAgentByTypeAndId({
       withCredentials: true,
     }
   );
-  debugMessage(`AgentApi.getAgentByTypeAndId: end`);
+  debugMessage({ message: `AgentApi.getAgentByTypeAndId: end`, state });
   return data;
 }
 
@@ -210,12 +210,12 @@ export async function putAgentByTypeAndId({
   agentData,
   state,
 }: {
-  agentType: string;
+  agentType: AgentType;
   agentId: string;
   agentData: AgentSkeleton;
   state: State;
 }) {
-  debugMessage(`AgentApi.putAgentByTypeAndId: start`);
+  debugMessage({ message: `AgentApi.putAgentByTypeAndId: start`, state });
   // until we figure out a way to use transport keys in Frodo,
   // we'll have to drop those encrypted attributes.
   const agent = deleteDeepByKey(agentData, '-encrypted');
@@ -235,7 +235,7 @@ export async function putAgentByTypeAndId({
       withCredentials: true,
     }
   );
-  debugMessage(`AgentApi.putAgentByTypeAndId: end`);
+  debugMessage({ message: `AgentApi.putAgentByTypeAndId: end`, state });
   return data;
 }
 
@@ -250,11 +250,11 @@ export async function deleteAgentByTypeAndId({
   agentId,
   state,
 }: {
-  agentType: string;
+  agentType: AgentType;
   agentId: string;
   state: State;
 }) {
-  debugMessage(`AgentApi.deleteAgentByTypeAndId: start`);
+  debugMessage({ message: `AgentApi.deleteAgentByTypeAndId: start`, state });
   const urlString = util.format(
     agentURLTemplate,
     state.getHost(),
@@ -268,6 +268,6 @@ export async function deleteAgentByTypeAndId({
   }).delete(urlString, {
     withCredentials: true,
   });
-  debugMessage(`AgentApi.deleteAgentByTypeAndId: end`);
+  debugMessage({ message: `AgentApi.deleteAgentByTypeAndId: end`, state });
   return data;
 }

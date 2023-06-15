@@ -2,13 +2,20 @@ import { parseScript } from 'esprima';
 import { ScriptSkeleton } from '../../api/ApiTypes';
 import { decode } from '../../api/utils/Base64';
 import { printMessage } from './Console';
+import State from '../../shared/State';
 
 interface ScriptHook {
   type: 'text/javascript';
   source?: string;
 }
 
-export function validateScriptHooks(jsonData: object): boolean {
+export function validateScriptHooks({
+  jsonData,
+  state,
+}: {
+  jsonData: object;
+  state: State;
+}): boolean {
   const scriptHooks = findAllScriptHooks(jsonData);
 
   for (const scriptHook of scriptHooks) {
@@ -16,7 +23,7 @@ export function validateScriptHooks(jsonData: object): boolean {
       continue;
     }
 
-    if (!isValidJs(scriptHook.source)) {
+    if (!isValidJs({ javascriptSource: scriptHook.source, state })) {
       return false;
     }
   }
@@ -48,32 +55,48 @@ function findAllScriptHooks(
   return scriptHooksArray;
 }
 
-export function validateScript(script: ScriptSkeleton): boolean {
+export function validateScript(script: ScriptSkeleton, state: State): boolean {
   const scriptRaw = decode(script.script);
 
   if (script.language === 'JAVASCRIPT') {
-    return isValidJs(scriptRaw);
+    return isValidJs({ javascriptSource: scriptRaw, state });
   }
   return true;
 }
 
-export function validateScriptDecoded(scriptSkeleton: ScriptSkeleton): boolean {
+export function validateScriptDecoded({
+  scriptSkeleton,
+  state,
+}: {
+  scriptSkeleton: ScriptSkeleton;
+  state: State;
+}): boolean {
   if (!Array.isArray(scriptSkeleton.script)) {
     return false;
   }
   if (scriptSkeleton.language === 'JAVASCRIPT') {
     const script = scriptSkeleton.script.join('\n');
-    return isValidJs(script);
+    return isValidJs({ javascriptSource: script, state });
   }
   return true;
 }
 
-export function isValidJs(javascriptSource: string) {
+export function isValidJs({
+  javascriptSource,
+  state,
+}: {
+  javascriptSource: string;
+  state: State;
+}) {
   try {
     parseScript(javascriptSource);
     return true;
   } catch (e) {
-    printMessage(`Invalid JavaScript: ${e.message}`, 'error');
+    printMessage({
+      message: `Invalid JavaScript: ${e.message}`,
+      type: 'error',
+      state,
+    });
 
     return false;
   }
