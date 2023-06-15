@@ -3,6 +3,7 @@ import { encode } from '../utils/Base64';
 import { getTenantURL } from '../utils/ApiUtils';
 import { generateEnvApi } from '../BaseApi';
 import State from '../../shared/State';
+import { VersionOfSecretStatus } from '../ApiTypes';
 
 const secretsListURLTemplate = '%s/environment/secrets';
 const secretListVersionsURLTemplate = '%s/environment/secrets/%s/versions';
@@ -242,11 +243,6 @@ export async function getVersionOfSecret({
     withCredentials: true,
   });
   return data;
-}
-
-export enum VersionOfSecretStatus {
-  DISABLED = 'DISABLED',
-  ENABLED = 'ENABLED',
 }
 
 /**

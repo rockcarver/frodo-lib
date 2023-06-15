@@ -87,7 +87,7 @@ describe('SecretsApi', () => {
         await SecretsApi.setStatusOfVersionOfSecret({
           secretId: secret1.name,
           version: '2',
-          status: SecretsApi.VersionOfSecretStatus.DISABLED,
+          status: 'DISABLED',
           state,
         });
       }
@@ -344,7 +344,7 @@ describe('SecretsApi', () => {
       const response = await SecretsApi.setStatusOfVersionOfSecret({
         secretId: secret2.name,
         version: '2',
-        status: SecretsApi.VersionOfSecretStatus.DISABLED,
+        status: 'DISABLED',
         state,
       });
       expect(response).toMatchSnapshot();
@@ -356,7 +356,7 @@ describe('SecretsApi', () => {
         await SecretsApi.setStatusOfVersionOfSecret({
           secretId: 'esv-does-not-exist',
           version: '2',
-          status: SecretsApi.VersionOfSecretStatus.DISABLED,
+          status: 'DISABLED',
           state,
         });
       } catch (error) {

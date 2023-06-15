@@ -81,14 +81,18 @@ export async function isServiceAccountsFeatureAvailable({
 }: {
   state: State;
 }): Promise<boolean> {
-  debugMessage(`ServiceAccountOps.isServiceAccountsFeatureAvailable: start`);
+  debugMessage({
+    message: `ServiceAccountOps.isServiceAccountsFeatureAvailable: start`,
+    state,
+  });
   const featureAvailable = await hasFeature({
     featureId: 'service-accounts',
     state,
   });
-  debugMessage(
-    `ServiceAccountOps.isServiceAccountsFeatureAvailable: end, available=${featureAvailable}`
-  );
+  debugMessage({
+    message: `ServiceAccountOps.isServiceAccountsFeatureAvailable: end, available=${featureAvailable}`,
+    state,
+  });
   return featureAvailable;
 }
 
@@ -117,7 +121,10 @@ export async function createServiceAccount({
   jwks: JwksInterface;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  debugMessage(`ServiceAccountOps.createServiceAccount: start`);
+  debugMessage({
+    message: `ServiceAccountOps.createServiceAccount: start`,
+    state,
+  });
   const payload: ServiceAccountPayloadInterface = {
     name,
     description,
@@ -125,15 +132,21 @@ export async function createServiceAccount({
     scopes,
     jwks: JSON.stringify(jwks),
   };
-  debugMessage(`ServiceAccountOps: createServiceAccount: payload:`);
-  debugMessage(payload);
+  debugMessage({
+    message: `ServiceAccountOps: createServiceAccount: payload:`,
+    state,
+  });
+  debugMessage({ message: payload, state });
   const result = await createManagedObject(
     getTenantURL(state.getHost()),
     moType,
     payload,
     state
   );
-  debugMessage(`ServiceAccountOps.createServiceAccount: end`);
+  debugMessage({
+    message: `ServiceAccountOps.createServiceAccount: end`,
+    state,
+  });
   return result;
 }
 

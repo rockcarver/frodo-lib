@@ -121,6 +121,8 @@ export type PolicySkeleton = IdObjectSkeletonInterface & {
   resourceTypeUuid: string;
 };
 
+export type VersionOfSecretStatus = 'DISABLED' | 'ENABLED';
+
 export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
   overrideOAuth2ClientConfig?: {
     [k: string]: string | number | boolean | string[] | object | undefined;
@@ -173,6 +175,11 @@ export type AmServiceSkeleton = IdObjectSkeletonInterface & {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 };
+
+export type GatewayAgentType = 'IdentityGatewayAgent';
+export type JavaAgentType = 'J2EEAgent';
+export type WebAgentType = 'WebAgent';
+export type AgentType = GatewayAgentType | JavaAgentType | WebAgentType;
 
 export type AgentSkeleton = IdObjectSkeletonInterface & {
   _type: AmServiceType;

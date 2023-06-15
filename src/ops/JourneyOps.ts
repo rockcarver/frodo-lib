@@ -447,7 +447,7 @@ async function getSaml2NodeDependencies(
         }
         saml2EntityPromises.push(providerResponse);
       } catch (error) {
-        printMessage(error.message, 'error');
+        printMessage({ message: error.message, type: 'error', state });
       }
     }
   }
@@ -478,7 +478,7 @@ async function getSaml2NodeDependencies(
     };
     return saml2NodeDependencies;
   } catch (error) {
-    printMessage(error.message, 'error');
+    printMessage({ message: error.message, type: 'error', state });
     const saml2NodeDependencies = {
       saml2Entities: [],
       circlesOfTrust: [],
@@ -511,17 +511,24 @@ export async function exportJourney({
     const { useStringArrays, deps } = options;
     const verbose = state.getDebug();
 
-    if (verbose) printMessage(`\n- ${treeObject._id}\n`, 'info', false);
+    if (verbose)
+      printMessage({
+        message: `\n- ${treeObject._id}\n`,
+        type: 'info',
+        newline: false,
+        state,
+      });
 
     // Process tree
-    if (verbose) printMessage('  - Flow');
+    if (verbose) printMessage({ message: '  - Flow', state });
     exportData.tree = treeObject;
     if (verbose && treeObject.identityResource)
-      printMessage(
-        `    - identityResource: ${treeObject.identityResource}`,
-        'info'
-      );
-    if (verbose) printMessage(`    - Done`, 'info');
+      printMessage({
+        message: `    - identityResource: ${treeObject.identityResource}`,
+        state,
+        type: 'info',
+      });
+    if (verbose) printMessage({ message: `    - Done`, type: 'info', state });
 
     const nodePromises = [];
     const scriptPromises = [];
@@ -537,7 +544,7 @@ export async function exportJourney({
       try {
         themePromise = getThemes({ state });
       } catch (error) {
-        printMessage(error, 'error');
+        printMessage({ message: error, type: 'error', state });
       }
     }
 
@@ -552,14 +559,21 @@ export async function exportJourney({
         getNode({ nodeId, nodeType: nodeInfo['nodeType'], state })
       );
     }
-    if (verbose && nodePromises.length > 0) printMessage('  - Nodes:');
+    if (verbose && nodePromises.length > 0)
+      printMessage({ message: '  - Nodes:', state });
     const nodeObjects = await Promise.all(nodePromises);
 
     // iterate over every node in tree
     for (const nodeObject of nodeObjects) {
       const nodeId = nodeObject._id;
       const nodeType = nodeObject._type._id;
-      if (verbose) printMessage(`    - ${nodeId} (${nodeType})`, 'info', true);
+      if (verbose)
+        printMessage({
+          message: `    - ${nodeId} (${nodeType})`,
+          type: 'info',
+          newline: true,
+          state,
+        });
       exportData.nodes[nodeObject._id] = nodeObject;
 
       // handle script node types
@@ -590,10 +604,11 @@ export async function exportJourney({
             if (error.isAxiosError && error.response.status) {
               message = error.response.statusText;
             }
-            printMessage(
-              `\n${message}: Email Template "${nodeObject.emailTemplateName}"`,
-              'error'
-            );
+            printMessage({
+              message: `\n${message}: Email Template "${nodeObject.emailTemplateName}"`,
+              type: 'error',
+              state,
+            });
           }
         }
       }
@@ -681,13 +696,18 @@ export async function exportJourney({
 
     // Process inner nodes
     if (verbose && innerNodePromises.length > 0)
-      printMessage('  - Inner nodes:');
+      printMessage({ message: '  - Inner nodes:', state });
     const innerNodeDataResults = await Promise.all(innerNodePromises);
     for (const innerNodeObject of innerNodeDataResults) {
       const innerNodeId = innerNodeObject._id;
       const innerNodeType = innerNodeObject._type._id;
       if (verbose)
-        printMessage(`    - ${innerNodeId} (${innerNodeType})`, 'info', true);
+        printMessage({
+          message: `    - ${innerNodeId} (${innerNodeType})`,
+          type: 'info',
+          newline: true,
+          state,
+        });
       exportData.innerNodes[innerNodeId] = innerNodeObject;
 
       // handle script node types
@@ -716,17 +736,18 @@ export async function exportJourney({
             if (error.isAxiosError && error.response.status) {
               message = error.response.statusText;
             }
-            printMessage(
-              `\n${message}: Email Template "${innerNodeObject.emailTemplateName}"`,
-              'error'
-            );
+            printMessage({
+              message: `\n${message}: Email Template "${innerNodeObject.emailTemplateName}"`,
+              type: 'error',
+              state,
+            });
           }
         }
       }
 
       // handle SAML2 node dependencies
       if (deps && innerNodeType === 'product-Saml2Node') {
-        printMessage('SAML2 inner node', 'error');
+        printMessage({ message: 'SAML2 inner node', type: 'error', state });
         if (!allSaml2Providers) {
           // eslint-disable-next-line no-await-in-loop
           allSaml2Providers = (await getProviders({ state })).result;
@@ -772,22 +793,23 @@ export async function exportJourney({
 
     // Process email templates
     if (verbose && emailTemplatePromises.length > 0)
-      printMessage('  - Email templates:');
+      printMessage({ message: '  - Email templates:', state });
     const settledEmailTemplatePromises = await Promise.allSettled(
       emailTemplatePromises
     );
     for (const settledPromise of settledEmailTemplatePromises) {
       if (settledPromise.status === 'fulfilled' && settledPromise.value) {
         if (verbose)
-          printMessage(
-            `    - ${settledPromise.value._id.split('/')[1]}${
+          printMessage({
+            message: `    - ${settledPromise.value._id.split('/')[1]}${
               settledPromise.value.displayName
                 ? ` (${settledPromise.value.displayName})`
                 : ''
             }`,
-            'info',
-            true
-          );
+            type: 'info',
+            newline: true,
+            state,
+          });
         exportData.emailTemplates[settledPromise.value._id.split('/')[1]] =
           settledPromise.value;
       }
@@ -797,18 +819,26 @@ export async function exportJourney({
     const saml2NodeDependencies = await Promise.all(saml2ConfigPromises);
     for (const saml2NodeDependency of saml2NodeDependencies) {
       if (saml2NodeDependency) {
-        if (verbose) printMessage('  - SAML2 entity providers:');
+        if (verbose)
+          printMessage({ message: '  - SAML2 entity providers:', state });
         for (const saml2Entity of saml2NodeDependency.saml2Entities) {
           if (verbose)
-            printMessage(
-              `    - ${saml2Entity.entityLocation} ${saml2Entity.entityId}`,
-              'info'
-            );
+            printMessage({
+              message: `    - ${saml2Entity.entityLocation} ${saml2Entity.entityId}`,
+              type: 'info',
+              state,
+            });
           exportData.saml2Entities[saml2Entity._id] = saml2Entity;
         }
-        if (verbose) printMessage('  - SAML2 circles of trust:');
+        if (verbose)
+          printMessage({ message: '  - SAML2 circles of trust:', state });
         for (const circleOfTrust of saml2NodeDependency.circlesOfTrust) {
-          if (verbose) printMessage(`    - ${circleOfTrust._id}`, 'info');
+          if (verbose)
+            printMessage({
+              message: `    - ${circleOfTrust._id}`,
+              type: 'info',
+              state,
+            });
           exportData.circlesOfTrust[circleOfTrust._id] = circleOfTrust;
         }
       }
@@ -817,7 +847,11 @@ export async function exportJourney({
     // Process socialIdentityProviders
     const socialProviders = await Promise.resolve(socialProviderPromise);
     if (socialProviders) {
-      if (verbose) printMessage('  - OAuth2/OIDC (social) identity providers:');
+      if (verbose)
+        printMessage({
+          message: '  - OAuth2/OIDC (social) identity providers:',
+          state,
+        });
       for (const socialProvider of socialProviders.result) {
         // If the list of socialIdentityProviders needs to be filtered based on the
         // filteredProviders property of a SelectIdPNode do it here.
@@ -827,7 +861,12 @@ export async function exportJourney({
             filteredSocialProviders.length === 0 ||
             filteredSocialProviders.includes(socialProvider._id))
         ) {
-          if (verbose) printMessage(`    - ${socialProvider._id}`, 'info');
+          if (verbose)
+            printMessage({
+              message: `    - ${socialProvider._id}`,
+              type: 'info',
+              state,
+            });
           scriptPromises.push(
             getScript({ scriptId: socialProvider.transform, state })
           );
@@ -838,16 +877,18 @@ export async function exportJourney({
     }
 
     // Process scripts
-    if (verbose && scriptPromises.length > 0) printMessage('  - Scripts:');
+    if (verbose && scriptPromises.length > 0)
+      printMessage({ message: '  - Scripts:', state });
     const scriptObjects = await Promise.all(scriptPromises);
     for (const scriptObject of scriptObjects) {
       if (scriptObject) {
         if (verbose)
-          printMessage(
-            `    - ${scriptObject._id} (${scriptObject.name})`,
-            'info',
-            true
-          );
+          printMessage({
+            message: `    - ${scriptObject._id} (${scriptObject.name})`,
+            type: 'info',
+            newline: true,
+            state,
+          });
         scriptObject.script = useStringArrays
           ? convertBase64TextToArray(scriptObject.script)
           : JSON.stringify(decode(scriptObject.script));
@@ -857,7 +898,7 @@ export async function exportJourney({
 
     // Process themes
     if (themePromise) {
-      if (verbose) printMessage('  - Themes:');
+      if (verbose) printMessage({ message: '  - Themes:', state });
       try {
         const themePromiseResults = await Promise.resolve(themePromise);
         for (const themeObject of themePromiseResults) {
@@ -870,24 +911,30 @@ export async function exportJourney({
               themeObject.linkedTrees?.includes(treeObject._id))
           ) {
             if (verbose)
-              printMessage(
-                `    - ${themeObject._id} (${themeObject.name})`,
-                'info'
-              );
+              printMessage({
+                message: `    - ${themeObject._id} (${themeObject.name})`,
+                type: 'info',
+                state,
+              });
             exportData.themes.push(themeObject);
           }
         }
       } catch (error) {
-        printMessage(error.response.data, 'error');
-        printMessage('Error handling themes: ' + error.message, 'error');
+        printMessage({ message: error.response.data, type: 'error', state });
+        printMessage({
+          message: 'Error handling themes: ' + error.message,
+          type: 'error',
+          state,
+        });
       }
     }
   } catch (error) {
-    printMessage(error.response.data, 'error');
-    printMessage(
-      'Error exporting tree: ' + treeId + ' - ' + error.message,
-      'error'
-    );
+    printMessage({ message: error.response.data, type: 'error', state });
+    printMessage({
+      message: 'Error exporting tree: ' + treeId + ' - ' + error.message,
+      type: 'error',
+      state,
+    });
   }
 
   return exportData;
@@ -940,7 +987,13 @@ export async function importJourney({
 }): Promise<boolean> {
   const { reUuid, deps } = options;
   const verbose = state.getDebug();
-  if (verbose) printMessage(`\n- ${treeObject.tree._id}\n`, 'info', false);
+  if (verbose)
+    printMessage({
+      message: `\n- ${treeObject.tree._id}\n`,
+      type: 'info',
+      newline: false,
+      state,
+    });
   let newUuid = '';
   const uuidMap = {};
   const treeId = treeObject.tree._id;
@@ -951,14 +1004,15 @@ export async function importJourney({
     treeObject.scripts &&
     Object.entries(treeObject.scripts).length > 0
   ) {
-    if (verbose) printMessage('  - Scripts:');
+    if (verbose) printMessage({ message: '  - Scripts:', state });
     for (const [scriptId, scriptObject] of Object.entries(treeObject.scripts)) {
       if (verbose)
-        printMessage(
-          `    - ${scriptId} (${scriptObject['name']})`,
-          'info',
-          false
-        );
+        printMessage({
+          message: `    - ${scriptId} (${scriptObject['name']})`,
+          type: 'info',
+          newline: false,
+          state,
+        });
       // is the script stored as an array of strings or just b64 blob?
       if (Array.isArray(scriptObject['script'])) {
         scriptObject['script'] = convertTextArrayToBase64(
@@ -974,7 +1028,7 @@ export async function importJourney({
           `Error importing script ${scriptObject['name']} (${scriptId}) in journey ${treeId}: ${error.message}`
         );
       }
-      if (verbose) printMessage('');
+      if (verbose) printMessage({ message: '', state });
     }
   }
 
@@ -984,28 +1038,38 @@ export async function importJourney({
     treeObject.emailTemplates &&
     Object.entries(treeObject.emailTemplates).length > 0
   ) {
-    if (verbose) printMessage('  - Email templates:');
+    if (verbose) printMessage({ message: '  - Email templates:', state });
     for (const [templateId, templateData] of Object.entries(
       treeObject.emailTemplates
     )) {
-      if (verbose) printMessage(`    - ${templateId}`, 'info', false);
+      if (verbose)
+        printMessage({
+          message: `    - ${templateId}`,
+          type: 'info',
+          newline: false,
+          state,
+        });
       try {
         await putEmailTemplate({ templateId, templateData, state });
       } catch (error) {
-        printMessage(error.response.data, 'error');
+        printMessage({ message: error.response.data, type: 'error', state });
         throw new Error(`Error importing email templates: ${error.message}`);
       }
-      if (verbose) printMessage('');
+      if (verbose) printMessage({ message: '', state });
     }
   }
 
   // Process themes
   if (deps && treeObject.themes && treeObject.themes.length > 0) {
-    if (verbose) printMessage('  - Themes:');
+    if (verbose) printMessage({ message: '  - Themes:', state });
     const themes: Map<string, ThemeSkeleton> = new Map<string, ThemeSkeleton>();
     for (const theme of treeObject.themes) {
       if (verbose)
-        printMessage(`    - ${theme['_id']} (${theme['name']})`, 'info');
+        printMessage({
+          message: `    - ${theme['_id']} (${theme['name']})`,
+          type: 'info',
+          state,
+        });
       themes[theme['_id']] = theme;
     }
     try {
@@ -1021,11 +1085,16 @@ export async function importJourney({
     treeObject.socialIdentityProviders &&
     Object.entries(treeObject.socialIdentityProviders).length > 0
   ) {
-    if (verbose) printMessage('  - OAuth2/OIDC (social) identity providers:');
+    if (verbose)
+      printMessage({
+        message: '  - OAuth2/OIDC (social) identity providers:',
+        state,
+      });
     for (const [providerId, providerData] of Object.entries(
       treeObject.socialIdentityProviders
     )) {
-      if (verbose) printMessage(`    - ${providerId}`, 'info');
+      if (verbose)
+        printMessage({ message: `    - ${providerId}`, type: 'info', state });
       try {
         await putProviderByTypeAndId({
           type: providerData['_type']['_id'],
@@ -1048,13 +1117,21 @@ export async function importJourney({
               state,
             });
           } catch (importError2) {
-            printMessage(importError.response?.data || importError, 'error');
+            printMessage({
+              message: importError.response?.data || importError,
+              type: 'error',
+              state,
+            });
             throw new Error(
               `Error importing provider ${providerId} in journey ${treeId}: ${importError}`
             );
           }
         } else {
-          printMessage(importError.response?.data || importError, 'error');
+          printMessage({
+            message: importError.response?.data || importError,
+            type: 'error',
+            state,
+          });
           throw new Error(
             `\nError importing provider ${providerId} in journey ${treeId}: ${importError}`
           );
@@ -1069,12 +1146,18 @@ export async function importJourney({
     treeObject.saml2Entities &&
     Object.entries(treeObject.saml2Entities).length > 0
   ) {
-    if (verbose) printMessage('  - SAML2 entity providers:');
+    if (verbose)
+      printMessage({ message: '  - SAML2 entity providers:', state });
     for (const [, providerData] of Object.entries(treeObject.saml2Entities)) {
       delete providerData['_rev'];
       const entityId = providerData['entityId'];
       const entityLocation = providerData['entityLocation'];
-      if (verbose) printMessage(`    - ${entityLocation} ${entityId}`, 'info');
+      if (verbose)
+        printMessage({
+          message: `    - ${entityLocation} ${entityId}`,
+          type: 'info',
+          state,
+        });
       let metaData = null;
       if (entityLocation === 'remote') {
         if (Array.isArray(providerData['base64EntityXML'])) {
@@ -1103,10 +1186,11 @@ export async function importJourney({
           metaData,
           state,
         }).catch((createProviderErr) => {
-          printMessage(
-            createProviderErr.response?.data || createProviderErr,
-            'error'
-          );
+          printMessage({
+            message: createProviderErr.response?.data || createProviderErr,
+            type: 'error',
+            state,
+          });
           throw new Error(`Error creating provider ${entityId}`);
         });
       } else {
@@ -1115,10 +1199,11 @@ export async function importJourney({
           providerData,
           state,
         }).catch((updateProviderErr) => {
-          printMessage(
-            updateProviderErr.response?.data || updateProviderErr,
-            'error'
-          );
+          printMessage({
+            message: updateProviderErr.response?.data || updateProviderErr,
+            type: 'error',
+            state,
+          });
           throw new Error(`Error updating provider ${entityId}`);
         });
       }
@@ -1131,10 +1216,12 @@ export async function importJourney({
     treeObject.circlesOfTrust &&
     Object.entries(treeObject.circlesOfTrust).length > 0
   ) {
-    if (verbose) printMessage('  - SAML2 circles of trust:');
+    if (verbose)
+      printMessage({ message: '  - SAML2 circles of trust:', state });
     for (const [cotId, cotData] of Object.entries(treeObject.circlesOfTrust)) {
       delete cotData['_rev'];
-      if (verbose) printMessage(`    - ${cotId}`, 'info');
+      if (verbose)
+        printMessage({ message: `    - ${cotId}`, type: 'info', state });
       try {
         await createCircleOfTrust({ cotData, state });
       } catch (createCotErr) {
@@ -1145,12 +1232,24 @@ export async function importJourney({
           try {
             await updateCircleOfTrust({ cotId, cotData, state });
           } catch (updateCotErr) {
-            printMessage(createCotErr.response?.data || createCotErr, 'error');
-            printMessage(updateCotErr.response?.data || updateCotErr, 'error');
+            printMessage({
+              message: createCotErr.response?.data || createCotErr,
+              type: 'error',
+              state,
+            });
+            printMessage({
+              message: updateCotErr.response?.data || updateCotErr,
+              type: 'error',
+              state,
+            });
             throw new Error(`Error creating/updating circle of trust ${cotId}`);
           }
         } else {
-          printMessage(createCotErr.response?.data || createCotErr, 'error');
+          printMessage({
+            message: createCotErr.response?.data || createCotErr,
+            type: 'error',
+            state,
+          });
           throw new Error(`Error creating circle of trust ${cotId}`);
         }
       }
@@ -1173,7 +1272,13 @@ export async function importJourney({
     innerNodes = treeObject.innernodes;
   }
   if (Object.entries(innerNodes).length > 0) {
-    if (verbose) printMessage('  - Inner nodes:', 'text', true);
+    if (verbose)
+      printMessage({
+        message: '  - Inner nodes:',
+        type: 'text',
+        newline: true,
+        state,
+      });
     for (const [innerNodeId, innerNodeData] of Object.entries(innerNodes)) {
       delete innerNodeData['_rev'];
       const nodeType = innerNodeData['_type']['_id'];
@@ -1186,11 +1291,12 @@ export async function importJourney({
       innerNodeData['_id'] = newUuid;
 
       if (verbose)
-        printMessage(
-          `    - ${newUuid}${reUuid ? '*' : ''} (${nodeType})`,
-          'info',
-          false
-        );
+        printMessage({
+          message: `    - ${newUuid}${reUuid ? '*' : ''} (${nodeType})`,
+          type: 'info',
+          newline: false,
+          state,
+        });
 
       // If the node has an identityResource config setting
       // and the identityResource ends in 'user'
@@ -1205,11 +1311,12 @@ export async function importJourney({
           state,
         })}`;
         if (verbose)
-          printMessage(
-            `\n      - identityResource: ${innerNodeData['identityResource']}`,
-            'info',
-            false
-          );
+          printMessage({
+            message: `\n      - identityResource: ${innerNodeData['identityResource']}`,
+            type: 'info',
+            newline: false,
+            state,
+          });
       }
       try {
         await putNode({
@@ -1241,11 +1348,12 @@ export async function importJourney({
           for (const attribute of Object.keys(innerNodeData)) {
             if (!validAttributes.includes(attribute)) {
               if (verbose)
-                printMessage(
-                  `\n      - Removing invalid attribute: ${attribute}`,
-                  'warn',
-                  false
-                );
+                printMessage({
+                  message: `\n      - Removing invalid attribute: ${attribute}`,
+                  type: 'warn',
+                  newline: false,
+                  state,
+                });
               delete innerNodeData[attribute];
             }
           }
@@ -1257,7 +1365,11 @@ export async function importJourney({
               state,
             });
           } catch (nodeImportError2) {
-            printMessage(nodeImportError2.response.data, 'error');
+            printMessage({
+              message: nodeImportError2.response.data,
+              type: 'error',
+              state,
+            });
             throw new Error(
               `Error importing node ${innerNodeId}${
                 innerNodeId === newUuid ? '' : ` [${newUuid}]`
@@ -1265,7 +1377,11 @@ export async function importJourney({
             );
           }
         } else {
-          printMessage(nodeImportError.response.data, 'error');
+          printMessage({
+            message: nodeImportError.response.data,
+            type: 'error',
+            state,
+          });
           throw new Error(
             `Error importing inner node ${innerNodeId}${
               innerNodeId === newUuid ? '' : ` [${newUuid}]`
@@ -1273,13 +1389,13 @@ export async function importJourney({
           );
         }
       }
-      if (verbose) printMessage('');
+      if (verbose) printMessage({ message: '', state });
     }
   }
 
   // Process nodes
   if (treeObject.nodes && Object.entries(treeObject.nodes).length > 0) {
-    if (verbose) printMessage('  - Nodes:');
+    if (verbose) printMessage({ message: '  - Nodes:', state });
     // eslint-disable-next-line prefer-const
     for (let [nodeId, nodeData] of Object.entries(treeObject.nodes)) {
       delete nodeData['_rev'];
@@ -1302,11 +1418,12 @@ export async function importJourney({
       }
 
       if (verbose)
-        printMessage(
-          `    - ${newUuid}${reUuid ? '*' : ''} (${nodeType})`,
-          'info',
-          false
-        );
+        printMessage({
+          message: `    - ${newUuid}${reUuid ? '*' : ''} (${nodeType})`,
+          type: 'info',
+          newline: false,
+          state,
+        });
 
       // If the node has an identityResource config setting
       // and the identityResource ends in 'user'
@@ -1321,11 +1438,12 @@ export async function importJourney({
           state,
         })}`;
         if (verbose)
-          printMessage(
-            `\n      - identityResource: ${nodeData['identityResource']}`,
-            'info',
-            false
-          );
+          printMessage({
+            message: `\n      - identityResource: ${nodeData['identityResource']}`,
+            type: 'info',
+            newline: false,
+            state,
+          });
       }
       try {
         await putNode({ nodeId: newUuid, nodeType, nodeData, state });
@@ -1350,18 +1468,23 @@ export async function importJourney({
           for (const attribute of Object.keys(nodeData)) {
             if (!validAttributes.includes(attribute)) {
               if (verbose)
-                printMessage(
-                  `\n      - Removing invalid attribute: ${attribute}`,
-                  'warn',
-                  false
-                );
+                printMessage({
+                  message: `\n      - Removing invalid attribute: ${attribute}`,
+                  type: 'warn',
+                  newline: false,
+                  state,
+                });
               delete nodeData[attribute];
             }
           }
           try {
             await putNode({ nodeId: newUuid, nodeType, nodeData, state });
           } catch (nodeImportError2) {
-            printMessage(nodeImportError2.response.data, 'error');
+            printMessage({
+              message: nodeImportError2.response.data,
+              type: 'error',
+              state,
+            });
             throw new Error(
               `Error importing node ${nodeId}${
                 nodeId === newUuid ? '' : ` [${newUuid}]`
@@ -1369,7 +1492,11 @@ export async function importJourney({
             );
           }
         } else {
-          printMessage(nodeImportError.response.data, 'error');
+          printMessage({
+            message: nodeImportError.response.data,
+            type: 'error',
+            state,
+          });
           throw new Error(
             `Error importing node ${nodeId}${
               nodeId === newUuid ? '' : ` [${newUuid}]`
@@ -1377,12 +1504,12 @@ export async function importJourney({
           );
         }
       }
-      if (verbose) printMessage('');
+      if (verbose) printMessage({ message: '', state });
     }
   }
 
   // Process tree
-  if (verbose) printMessage('  - Flow');
+  if (verbose) printMessage({ message: '  - Flow', state });
 
   if (reUuid) {
     let journeyText = JSON.stringify(treeObject.tree, null, 2);
@@ -1405,11 +1532,12 @@ export async function importJourney({
       state,
     })}`;
     if (verbose)
-      printMessage(
-        `    - identityResource: ${treeObject.tree.identityResource}`,
-        'info',
-        false
-      );
+      printMessage({
+        message: `    - identityResource: ${treeObject.tree.identityResource}`,
+        type: 'info',
+        newline: false,
+        state,
+      });
   }
 
   delete treeObject.tree._rev;
@@ -1419,7 +1547,13 @@ export async function importJourney({
       treeData: treeObject.tree,
       state,
     });
-    if (verbose) printMessage(`\n    - Done`, 'info', true);
+    if (verbose)
+      printMessage({
+        message: `\n    - Done`,
+        type: 'info',
+        newline: true,
+        state,
+      });
   } catch (importError) {
     if (
       importError.response?.status === 400 &&
@@ -1430,11 +1564,12 @@ export async function importJourney({
       for (const attribute of Object.keys(treeObject.tree)) {
         if (!validAttributes.includes(attribute)) {
           if (verbose)
-            printMessage(
-              `\n    - Removing invalid attribute: ${attribute}`,
-              'warn',
-              false
-            );
+            printMessage({
+              message: `\n    - Removing invalid attribute: ${attribute}`,
+              type: 'warn',
+              newline: false,
+              state,
+            });
           delete treeObject.tree[attribute];
         }
       }
@@ -1444,14 +1579,31 @@ export async function importJourney({
           treeData: treeObject.tree,
           state,
         });
-        if (verbose) printMessage(`\n    - Done`, 'info', true);
+        if (verbose)
+          printMessage({
+            message: `\n    - Done`,
+            type: 'info',
+            newline: true,
+            state,
+          });
       } catch (importError2) {
-        printMessage(importError2.response.data, 'error');
+        printMessage({
+          message: importError2.response.data,
+          type: 'error',
+          state,
+        });
         throw new Error(`Error importing journey flow ${treeId}`);
       }
     } else {
-      printMessage(importError.response?.data || importError, 'error');
-      debugMessage(importError.response?.data || importError);
+      printMessage({
+        message: importError.response?.data || importError,
+        type: 'error',
+        state,
+      });
+      debugMessage({
+        message: importError.response?.data || importError,
+        state,
+      });
       throw new Error(`\nError importing journey flow ${treeId}`);
     }
   }
@@ -1552,7 +1704,12 @@ export async function importAllJourneys({
   );
   const unresolvedJourneys = {};
   const resolvedJourneys = [];
-  createProgressIndicator(undefined, 'Resolving dependencies', 'indeterminate');
+  createProgressIndicator({
+    total: undefined,
+    message: 'Resolving dependencies',
+    type: 'indeterminate',
+    state,
+  });
   await resolveDependencies(
     installedJourneys,
     treesMap,
@@ -1560,32 +1717,42 @@ export async function importAllJourneys({
     resolvedJourneys
   );
   if (Object.keys(unresolvedJourneys).length === 0) {
-    stopProgressIndicator(`Resolved all dependencies.`, 'success');
+    stopProgressIndicator({
+      message: `Resolved all dependencies.`,
+      status: 'success',
+      state,
+    });
   } else {
-    stopProgressIndicator(
-      `${
+    stopProgressIndicator({
+      message: `${
         Object.keys(unresolvedJourneys).length
       } journeys with unresolved dependencies:`,
-      'fail'
-    );
+      status: 'fail',
+      state,
+    });
     for (const journey of Object.keys(unresolvedJourneys)) {
-      printMessage(
-        `  - ${journey} requires ${unresolvedJourneys[journey]}`,
-        'info'
-      );
+      printMessage({
+        message: `  - ${journey} requires ${unresolvedJourneys[journey]}`,
+        type: 'info',
+        state,
+      });
     }
   }
-  createProgressIndicator(resolvedJourneys.length, 'Importing');
+  createProgressIndicator({
+    total: resolvedJourneys.length,
+    message: 'Importing',
+    state,
+  });
   for (const tree of resolvedJourneys) {
     try {
       // eslint-disable-next-line no-await-in-loop
       await importJourney({ treeObject: treesMap[tree], options, state });
-      updateProgressIndicator(`${tree}`);
+      updateProgressIndicator({ message: `${tree}`, state });
     } catch (error) {
-      printMessage(`\n${error.message}`, 'error');
+      printMessage({ message: `\n${error.message}`, type: 'error', state });
     }
   }
-  stopProgressIndicator('Done');
+  stopProgressIndicator({ message: 'Done', state });
 }
 
 /**
@@ -1628,7 +1795,7 @@ export function getNodeRef(
  */
 export const onlineTreeExportResolver: TreeExportResolverInterface =
   async function (treeId: string, state: State) {
-    debugMessage(`onlineTreeExportResolver(${treeId})`);
+    debugMessage({ message: `onlineTreeExportResolver(${treeId})`, state });
     return await exportJourney({
       treeId,
       options: {
@@ -1647,15 +1814,16 @@ export const onlineTreeExportResolver: TreeExportResolverInterface =
  */
 export const fileByIdTreeExportResolver: TreeExportResolverInterface =
   async function (treeId: string, state: State) {
-    debugMessage(`fileByIdTreeExportResolver(${treeId})`);
+    debugMessage({ message: `fileByIdTreeExportResolver(${treeId})`, state });
     let treeExport = createSingleTreeExportTemplate({ state });
     const files = findFilesByName(getTypedFilename(`${treeId}`, 'journey'));
     try {
       const file = files.pop();
       const jsonData = JSON.parse(fs.readFileSync(file, 'utf8'));
-      debugMessage(
-        `fileByIdTreeExportResolver: resolved '${treeId}' to ${file}`
-      );
+      debugMessage({
+        message: `fileByIdTreeExportResolver: resolved '${treeId}' to ${file}`,
+        state,
+      });
       // did we resolve the tree we were asked to resolved?
       if (jsonData.tree?._id === treeId) {
         treeExport = jsonData;
@@ -1665,9 +1833,10 @@ export const fileByIdTreeExportResolver: TreeExportResolverInterface =
         treeExport = jsonData.trees[treeId];
       }
     } catch (error) {
-      debugMessage(
-        `fileByIdTreeExportResolver: unable to resolve '${treeId}' to a file.`
-      );
+      debugMessage({
+        message: `fileByIdTreeExportResolver: unable to resolve '${treeId}' to a file.`,
+        state,
+      });
     }
     return treeExport;
   };
@@ -1684,7 +1853,10 @@ export function createFileParamTreeExportResolver(
 ): TreeExportResolverInterface {
   const fileParamTreeExportResolver: TreeExportResolverInterface =
     async function (treeId: string) {
-      debugMessage(`fileParamTreeExportResolver(${treeId})`);
+      debugMessage({
+        message: `fileParamTreeExportResolver(${treeId})`,
+        state,
+      });
       let treeExport: SingleTreeExportInterface =
         createSingleTreeExportTemplate({ state });
       try {
@@ -1706,7 +1878,7 @@ export function createFileParamTreeExportResolver(
       }
       return treeExport;
     };
-  debugMessage(`fileParamTreeExportResolver: file=${file}`);
+  debugMessage({ message: `fileParamTreeExportResolver: file=${file}`, state });
   return fileParamTreeExportResolver;
 }
 
@@ -1728,11 +1900,12 @@ export async function getTreeDescendents({
   resolvedTreeIds: string[];
   state: State;
 }): Promise<TreeDependencyMapInterface> {
-  debugMessage(
-    `getTreeDependencies(${treeExport.tree._id}, [${resolvedTreeIds.join(
-      ', '
-    )}])`
-  );
+  debugMessage({
+    message: `getTreeDependencies(${
+      treeExport.tree._id
+    }, [${resolvedTreeIds.join(', ')}])`,
+    state,
+  });
   if (!resolvedTreeIds.includes(treeExport.tree._id)) {
     resolvedTreeIds.push(treeExport.tree._id);
   }
@@ -1747,7 +1920,10 @@ export async function getTreeDescendents({
       !resolvedTreeIds.includes(innerTreeId)
     ) {
       const innerTreeExport = await resolveTreeExport(innerTreeId, state);
-      debugMessage(`resolved inner tree: ${innerTreeExport.tree._id}`);
+      debugMessage({
+        message: `resolved inner tree: ${innerTreeExport.tree._id}`,
+        state,
+      });
       // resolvedTreeIds.push(innerTreeId);
       dependencies.push(
         await getTreeDescendents({
@@ -1779,16 +1955,21 @@ export async function findOrphanedNodes({
   let errorMessage = '';
   const errorTypes = [];
 
-  createProgressIndicator(
-    undefined,
-    `Counting total nodes...`,
-    'indeterminate'
-  );
+  createProgressIndicator({
+    total: undefined,
+    message: `Counting total nodes...`,
+    type: 'indeterminate',
+    state,
+  });
   try {
     types = (await getNodeTypes({ state })).result;
   } catch (error) {
-    printMessage('Error retrieving all available node types:', 'error');
-    printMessage(error.response.data, 'error');
+    printMessage({
+      message: 'Error retrieving all available node types:',
+      type: 'error',
+      state,
+    });
+    printMessage({ message: error.response.data, type: 'error', state });
     return [];
   }
   for (const type of types) {
@@ -1798,36 +1979,49 @@ export async function findOrphanedNodes({
         .result;
       for (const node of nodes) {
         allNodes.push(node);
-        updateProgressIndicator(
-          `${allNodes.length} total nodes${errorMessage}`
-        );
+        updateProgressIndicator({
+          message: `${allNodes.length} total nodes${errorMessage}`,
+          state,
+        });
       }
     } catch (error) {
       errorTypes.push(type._id);
       errorMessage = ` (Skipped type(s): ${errorTypes})`['yellow'];
-      updateProgressIndicator(`${allNodes.length} total nodes${errorMessage}`);
+      updateProgressIndicator({
+        message: `${allNodes.length} total nodes${errorMessage}`,
+        state,
+      });
     }
   }
   if (errorTypes.length > 0) {
-    stopProgressIndicator(
-      `${allNodes.length} total nodes${errorMessage}`,
-      'warn'
-    );
+    stopProgressIndicator({
+      message: `${allNodes.length} total nodes${errorMessage}`,
+      state,
+      status: 'warn',
+    });
   } else {
-    stopProgressIndicator(`${allNodes.length} total nodes`, 'success');
+    stopProgressIndicator({
+      message: `${allNodes.length} total nodes`,
+      status: 'success',
+      state,
+    });
   }
 
-  createProgressIndicator(
-    undefined,
-    'Counting active nodes...',
-    'indeterminate'
-  );
+  createProgressIndicator({
+    total: undefined,
+    message: 'Counting active nodes...',
+    type: 'indeterminate',
+    state,
+  });
   const activeNodes = [];
   for (const journey of allJourneys) {
     for (const nodeId in journey.nodes) {
       if ({}.hasOwnProperty.call(journey.nodes, nodeId)) {
         activeNodes.push(nodeId);
-        updateProgressIndicator(`${activeNodes.length} active nodes`);
+        updateProgressIndicator({
+          message: `${activeNodes.length} active nodes`,
+          state,
+        });
         const node = journey.nodes[nodeId];
         if (containerNodes.includes(node.nodeType)) {
           const containerNode = await getNode({
@@ -1837,24 +2031,36 @@ export async function findOrphanedNodes({
           });
           for (const innerNode of containerNode.nodes) {
             activeNodes.push(innerNode._id);
-            updateProgressIndicator(`${activeNodes.length} active nodes`);
+            updateProgressIndicator({
+              message: `${activeNodes.length} active nodes`,
+              state,
+            });
           }
         }
       }
     }
   }
-  stopProgressIndicator(`${activeNodes.length} active nodes`, 'success');
+  stopProgressIndicator({
+    message: `${activeNodes.length} active nodes`,
+    status: 'success',
+    state,
+  });
 
-  createProgressIndicator(
-    undefined,
-    'Calculating orphaned nodes...',
-    'indeterminate'
-  );
+  createProgressIndicator({
+    total: undefined,
+    message: 'Calculating orphaned nodes...',
+    type: 'indeterminate',
+    state,
+  });
   const diff = allNodes.filter((x) => !activeNodes.includes(x._id));
   for (const orphanedNode of diff) {
     orphanedNodes.push(orphanedNode);
   }
-  stopProgressIndicator(`${orphanedNodes.length} orphaned nodes`, 'success');
+  stopProgressIndicator({
+    message: `${orphanedNodes.length} orphaned nodes`,
+    status: 'success',
+    state,
+  });
   return orphanedNodes;
 }
 
@@ -1871,9 +2077,13 @@ export async function removeOrphanedNodes({
   state: State;
 }): Promise<NodeSkeleton[]> {
   const errorNodes = [];
-  createProgressIndicator(orphanedNodes.length, 'Removing orphaned nodes...');
+  createProgressIndicator({
+    total: orphanedNodes.length,
+    message: 'Removing orphaned nodes...',
+    state,
+  });
   for (const node of orphanedNodes) {
-    updateProgressIndicator(`Removing ${node['_id']}...`);
+    updateProgressIndicator({ message: `Removing ${node['_id']}...`, state });
     try {
       // eslint-disable-next-line no-await-in-loop
       await deleteNode({
@@ -1883,10 +2093,13 @@ export async function removeOrphanedNodes({
       });
     } catch (deleteError) {
       errorNodes.push(node);
-      printMessage(` ${deleteError}`, 'error');
+      printMessage({ message: ` ${deleteError}`, type: 'error', state });
     }
   }
-  stopProgressIndicator(`Removed ${orphanedNodes.length} orphaned nodes.`);
+  stopProgressIndicator({
+    message: `Removed ${orphanedNodes.length} orphaned nodes.`,
+    state,
+  });
   return errorNodes;
 }
 
@@ -1996,17 +2209,23 @@ export async function deleteJourney({
   const progress = !('progress' in options) ? true : options.progress;
   const status = { nodes: {} };
   if (progress)
-    createProgressIndicator(
-      undefined,
-      `Deleting ${journeyId}...`,
-      'indeterminate'
-    );
-  if (progress && verbose) stopProgressIndicator();
+    createProgressIndicator({
+      total: undefined,
+      message: `Deleting ${journeyId}...`,
+      type: 'indeterminate',
+      state,
+    });
+  if (progress && verbose) stopProgressIndicator({ state });
   return deleteTree({ treeId: journeyId, state })
     .then(async (deleteTreeResponse) => {
       status['status'] = 'success';
       const nodePromises = [];
-      if (verbose) printMessage(`Deleted ${journeyId} (tree)`, 'info');
+      if (verbose)
+        printMessage({
+          message: `Deleted ${journeyId} (tree)`,
+          type: 'info',
+          state,
+        });
       if (deep) {
         for (const [nodeId, nodeObject] of Object.entries(
           deleteTreeResponse.nodes
@@ -2021,10 +2240,11 @@ export async function deleteJourney({
                 state,
               });
               if (verbose)
-                printMessage(
-                  `Read ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
-                  'info'
-                );
+                printMessage({
+                  message: `Read ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
+                  type: 'info',
+                  state,
+                });
               for (const innerNodeObject of containerNode.nodes) {
                 nodePromises.push(
                   deleteNode({
@@ -2035,10 +2255,11 @@ export async function deleteJourney({
                     .then((response2) => {
                       status.nodes[innerNodeObject._id] = { status: 'success' };
                       if (verbose)
-                        printMessage(
-                          `Deleted ${innerNodeObject._id} (${innerNodeObject.nodeType}) from ${journeyId}`,
-                          'info'
-                        );
+                        printMessage({
+                          message: `Deleted ${innerNodeObject._id} (${innerNodeObject.nodeType}) from ${journeyId}`,
+                          type: 'info',
+                          state,
+                        });
                       return response2;
                     })
                     .catch((error) => {
@@ -2047,10 +2268,11 @@ export async function deleteJourney({
                         error,
                       };
                       if (verbose)
-                        printMessage(
-                          `Error deleting inner node ${innerNodeObject._id} (${innerNodeObject.nodeType}) from ${journeyId}: ${error}`,
-                          'error'
-                        );
+                        printMessage({
+                          message: `Error deleting inner node ${innerNodeObject._id} (${innerNodeObject.nodeType}) from ${journeyId}: ${error}`,
+                          type: 'error',
+                          state,
+                        });
                     })
                 );
               }
@@ -2064,10 +2286,11 @@ export async function deleteJourney({
                   .then((response2) => {
                     status.nodes[containerNode._id] = { status: 'success' };
                     if (verbose)
-                      printMessage(
-                        `Deleted ${containerNode._id} (${containerNode['_type']['_id']}) from ${journeyId}`,
-                        'info'
-                      );
+                      printMessage({
+                        message: `Deleted ${containerNode._id} (${containerNode['_type']['_id']}) from ${journeyId}`,
+                        type: 'info',
+                        state,
+                      });
                     return response2;
                   })
                   .catch((error) => {
@@ -2078,29 +2301,32 @@ export async function deleteJourney({
                     ) {
                       status.nodes[containerNode._id] = { status: 'success' };
                       if (verbose)
-                        printMessage(
-                          `Deleted ${containerNode._id} (${containerNode['_type']['_id']}) from ${journeyId}`,
-                          'info'
-                        );
+                        printMessage({
+                          message: `Deleted ${containerNode._id} (${containerNode['_type']['_id']}) from ${journeyId}`,
+                          type: 'info',
+                          state,
+                        });
                     } else {
                       status.nodes[containerNode._id] = {
                         status: 'error',
                         error,
                       };
                       if (verbose)
-                        printMessage(
-                          `Error deleting container node ${containerNode._id} (${containerNode['_type']['_id']}) from ${journeyId}: ${error.response.data.message}`,
-                          'error'
-                        );
+                        printMessage({
+                          message: `Error deleting container node ${containerNode._id} (${containerNode['_type']['_id']}) from ${journeyId}: ${error.response.data.message}`,
+                          type: 'error',
+                          state,
+                        });
                     }
                   })
               );
             } catch (error) {
               if (verbose)
-                printMessage(
-                  `Error getting container node ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}: ${error}`,
-                  'error'
-                );
+                printMessage({
+                  message: `Error getting container node ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}: ${error}`,
+                  type: 'error',
+                  state,
+                });
             }
           } else {
             // delete the node
@@ -2109,19 +2335,21 @@ export async function deleteJourney({
                 .then((response) => {
                   status.nodes[nodeId] = { status: 'success' };
                   if (verbose)
-                    printMessage(
-                      `Deleted ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
-                      'info'
-                    );
+                    printMessage({
+                      message: `Deleted ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
+                      type: 'info',
+                      state,
+                    });
                   return response;
                 })
                 .catch((error) => {
                   status.nodes[nodeId] = { status: 'error', error };
                   if (verbose)
-                    printMessage(
-                      `Error deleting node ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}: ${error}`,
-                      'error'
-                    );
+                    printMessage({
+                      message: `Error deleting node ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}: ${error}`,
+                      type: 'error',
+                      state,
+                    });
                 })
             );
           }
@@ -2139,19 +2367,21 @@ export async function deleteJourney({
           if (status.nodes[node].status === 'error') errorCount += 1;
         }
         if (errorCount === 0) {
-          stopProgressIndicator(
-            `Deleted ${journeyId} and ${
+          stopProgressIndicator({
+            message: `Deleted ${journeyId} and ${
               nodeCount - errorCount
             }/${nodeCount} nodes.`,
-            'success'
-          );
+            status: 'success',
+            state,
+          });
         } else {
-          stopProgressIndicator(
-            `Deleted ${journeyId} and ${
+          stopProgressIndicator({
+            message: `Deleted ${journeyId} and ${
               nodeCount - errorCount
             }/${nodeCount} nodes.`,
-            'fail'
-          );
+            status: 'fail',
+            state,
+          });
         }
       }
       return status;
@@ -2159,9 +2389,17 @@ export async function deleteJourney({
     .catch((error) => {
       status['status'] = 'error';
       status['error'] = error;
-      stopProgressIndicator(`Error deleting ${journeyId}.`, 'fail');
+      stopProgressIndicator({
+        message: `Error deleting ${journeyId}.`,
+        status: 'fail',
+        state,
+      });
       if (verbose)
-        printMessage(`Error deleting tree ${journeyId}: ${error}`, 'error');
+        printMessage({
+          message: `Error deleting tree ${journeyId}: ${error}`,
+          type: 'error',
+          state,
+        });
       return status;
     });
 }
@@ -2183,16 +2421,20 @@ export async function deleteJourneys({
   const { verbose } = options;
   const status = {};
   const trees = (await getTrees({ state })).result;
-  createProgressIndicator(trees.length, 'Deleting journeys...');
+  createProgressIndicator({
+    total: trees.length,
+    message: 'Deleting journeys...',
+    state,
+  });
   for (const tree of trees) {
-    if (verbose) printMessage('');
+    if (verbose) printMessage({ message: '', state });
     options['progress'] = false;
     status[tree._id] = await deleteJourney({
       journeyId: tree._id,
       options,
       state,
     });
-    updateProgressIndicator(`${tree._id}`);
+    updateProgressIndicator({ message: `${tree._id}`, state });
     // introduce a 100ms wait to allow the progress bar to update before the next verbose message prints from the async function
     if (verbose)
       // eslint-disable-next-line no-await-in-loop
@@ -2212,11 +2454,14 @@ export async function deleteJourneys({
       if (status[journey].nodes[node].status === 'error') nodeErrorCount += 1;
     }
   }
-  stopProgressIndicator(
-    `Deleted ${journeyCount - journeyErrorCount}/${journeyCount} journeys and ${
+  stopProgressIndicator({
+    message: `Deleted ${
+      journeyCount - journeyErrorCount
+    }/${journeyCount} journeys and ${
       nodeCount - nodeErrorCount
-    }/${nodeCount} nodes.`
-  );
+    }/${nodeCount} nodes.`,
+    state,
+  });
   return status;
 }
 
@@ -2243,7 +2488,7 @@ export async function enableJourney({
     });
     return newTreeObject['enabled'] === true;
   } catch (error) {
-    printMessage(error.response.data, 'error');
+    printMessage({ message: error.response.data, type: 'error', state });
     return false;
   }
 }
@@ -2271,7 +2516,7 @@ export async function disableJourney({
     });
     return newTreeObject['enabled'] === false;
   } catch (error) {
-    printMessage(error.response.data, 'error');
+    printMessage({ message: error.response.data, type: 'error', state });
     return false;
   }
 }

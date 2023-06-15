@@ -65,11 +65,12 @@ export async function checkForUpdates({
   state: State;
 }): Promise<Updates> {
   const updates: Updates = { secrets: [], variables: [] };
-  createProgressIndicator(
-    undefined,
-    `Checking for updates to apply...`,
-    'indeterminate'
-  );
+  createProgressIndicator({
+    total: undefined,
+    message: `Checking for updates to apply...`,
+    type: 'indeterminate',
+    state,
+  });
   try {
     updates.secrets = (await getSecrets({ state })).result.filter(
       (secret: { loaded: unknown }) => !secret.loaded
@@ -78,19 +79,25 @@ export async function checkForUpdates({
       (variable: { loaded: unknown }) => !variable.loaded
     );
   } catch (error) {
-    stopProgressIndicator(
-      `Error: ${error.response.data.code} - ${error.response.data.message}`,
-      'fail'
-    );
+    stopProgressIndicator({
+      message: `Error: ${error.response.data.code} - ${error.response.data.message}`,
+      status: 'fail',
+      state,
+    });
   }
   const updateCount = updates.secrets?.length + updates.variables?.length || 0;
   if (updateCount > 0) {
-    stopProgressIndicator(
-      `${updateCount} update(s) need to be applied`,
-      'success'
-    );
+    stopProgressIndicator({
+      message: `${updateCount} update(s) need to be applied`,
+      status: 'success',
+      state,
+    });
   } else {
-    stopProgressIndicator(`No updates need to be applied`, 'success');
+    stopProgressIndicator({
+      message: `No updates need to be applied`,
+      status: 'success',
+      state,
+    });
   }
   return updates;
 }
@@ -110,7 +117,12 @@ export async function applyUpdates({
   timeout?: number;
   state: State;
 }) {
-  createProgressIndicator(undefined, `Applying updates...`, 'indeterminate');
+  createProgressIndicator({
+    total: undefined,
+    message: `Applying updates...`,
+    type: 'indeterminate',
+    state,
+  });
   try {
     let status = await initiateRestart({ state });
     if (wait) {
@@ -130,51 +142,59 @@ export async function applyUpdates({
           if (errors) errors = 0;
 
           runtime = new Date().getTime() - start;
-          updateProgressIndicator(`${status} (${Math.round(runtime / 1000)}s)`);
+          updateProgressIndicator({
+            message: `${status} (${Math.round(runtime / 1000)}s)`,
+            state,
+          });
         } catch (error) {
           errors++;
           if (errors > maxErrors) {
             throw error;
           }
           runtime = new Date().getTime() - start;
-          updateProgressIndicator(
-            `${error.message} - retry ${errors}/${maxErrors} (${Math.round(
-              runtime / 1000
-            )}s)`
-          );
+          updateProgressIndicator({
+            message: `${
+              error.message
+            } - retry ${errors}/${maxErrors} (${Math.round(runtime / 1000)}s)`,
+            state,
+          });
         }
       }
       if (runtime < timeout) {
-        stopProgressIndicator(
-          `Updates applied in ${Math.round(
+        stopProgressIndicator({
+          message: `Updates applied in ${Math.round(
             runtime / 1000
           )}s with final status: ${status}`,
-          'success'
-        );
+          status: 'success',
+          state,
+        });
         return true;
       } else {
-        stopProgressIndicator(
-          `Updates timed out after ${Math.round(
+        stopProgressIndicator({
+          message: `Updates timed out after ${Math.round(
             runtime / 1000
           )}s with final status: ${status}`,
-          'warn'
-        );
+          status: 'warn',
+          state,
+        });
         return false;
       }
     } else {
-      stopProgressIndicator(
-        `Updates are being applied. Changes may take up to 10 minutes to propagate, during which time you will not be able to make further updates.`,
-        'success'
-      );
+      stopProgressIndicator({
+        message: `Updates are being applied. Changes may take up to 10 minutes to propagate, during which time you will not be able to make further updates.`,
+        status: 'success',
+        state,
+      });
       return true;
     }
   } catch (error) {
-    stopProgressIndicator(
-      `Error: ${error.response?.data?.code || error} - ${
+    stopProgressIndicator({
+      message: `Error: ${error.response?.data?.code || error} - ${
         error.response?.data?.message
       }`,
-      'fail'
-    );
+      status: 'fail',
+      state,
+    });
     return false;
   }
 }

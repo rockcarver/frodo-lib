@@ -62,20 +62,29 @@ export async function getOrganizations({ state }: { state: State }) {
           state,
         });
       } catch (queryAllManagedObjectsByTypeError) {
-        printMessage(queryAllManagedObjectsByTypeError, 'error');
-        printMessage(
-          `Error querying ${getRealmManagedOrganization({
+        printMessage({
+          message: queryAllManagedObjectsByTypeError,
+          type: 'error',
+          state,
+        });
+        printMessage({
+          message: `Error querying ${getRealmManagedOrganization({
             state,
           })} objects: ${queryAllManagedObjectsByTypeError}`,
-          'error'
-        );
+          type: 'error',
+          state,
+        });
       }
       orgs.concat(result.result);
-      printMessage('.', 'text', false);
+      printMessage({ message: '.', type: 'text', newline: false, state });
     } while (result.pagedResultsCookie);
   } catch (error) {
-    printMessage(error.response.data, 'error');
-    printMessage(`Error retrieving all organizations: ${error}`, 'error');
+    printMessage({ message: error.response.data, type: 'error', state });
+    printMessage({
+      message: `Error retrieving all organizations: ${error}`,
+      type: 'error',
+      state,
+    });
   }
   return orgs;
 }
@@ -101,16 +110,21 @@ export async function listOrganizationsTopDown({ state }: { state: State }) {
         state,
       });
     } catch (queryAllManagedObjectsByTypeError) {
-      printMessage(queryAllManagedObjectsByTypeError, 'error');
-      printMessage(
-        `Error querying ${getRealmManagedOrganization({
+      printMessage({
+        message: queryAllManagedObjectsByTypeError,
+        type: 'error',
+        state,
+      });
+      printMessage({
+        message: `Error querying ${getRealmManagedOrganization({
           state,
         })} objects: ${queryAllManagedObjectsByTypeError}`,
-        'error'
-      );
+        type: 'error',
+        state,
+      });
     }
     orgs.concat(result.result);
-    printMessage('.', 'text', false);
+    printMessage({ message: '.', type: 'text', newline: false, state });
   } while (result.pagedResultsCookie);
   return orgs;
 }
