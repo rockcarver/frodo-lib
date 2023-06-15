@@ -16,6 +16,11 @@ export default class EmailTemplateOps {
   }
 
   /**
+   * Email template type key used to build the IDM id: 'emailTemplate/<id>'
+   */
+  EMAIL_TEMPLATE_TYPE = EMAIL_TEMPLATE_TYPE;
+
+  /**
    * Get all email templates
    * @returns {Promise} a promise that resolves to an array of email template objects
    */
