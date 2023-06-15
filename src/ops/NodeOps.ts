@@ -12,7 +12,7 @@ import {
   updateProgressIndicator,
   stopProgressIndicator,
 } from './utils/Console';
-import { NodeClassification } from './OpsTypes';
+import { NodeClassificationType } from './OpsTypes';
 import { NodeSkeleton } from '../api/ApiTypes';
 
 export default class NodeOps {
@@ -73,11 +73,18 @@ export default class NodeOps {
    * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
    * - premium: utilizes nodes, which come at a premium
    * @param {string} nodeType Node type
-   * @returns {NodeClassification[]} an array of one or multiple classifications
+   * @returns {NodeClassificationType[]} an array of one or multiple classifications
    */
-  getNodeClassification(nodeType: string): NodeClassification[] {
+  getNodeClassification(nodeType: string): NodeClassificationType[] {
     return getNodeClassification({ nodeType, state: this.state });
   }
+}
+
+export enum NodeClassification {
+  STANDARD = 'standard',
+  CUSTOM = 'custom',
+  CLOUD = 'cloud',
+  PREMIUM = 'premium',
 }
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
@@ -526,8 +533,8 @@ export function getNodeClassification({
 }: {
   nodeType: string;
   state: State;
-}): NodeClassification[] {
-  const classifications: NodeClassification[] = [];
+}): NodeClassificationType[] {
+  const classifications: NodeClassificationType[] = [];
   const premium = isPremiumNode(nodeType);
   const custom = isCustomNode({ nodeType, state });
   const cloud = isCloudOnlyNode(nodeType);

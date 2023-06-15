@@ -112,19 +112,17 @@ export interface ScriptExportInterface {
   script: Record<string, ScriptSkeleton>;
 }
 
-export enum NodeClassification {
-  STANDARD = 'standard',
-  CUSTOM = 'custom',
-  CLOUD = 'cloud',
-  PREMIUM = 'premium',
-}
+export type NodeClassificationType =
+  | 'standard'
+  | 'custom'
+  | 'cloud'
+  | 'premium';
 
-export enum JourneyClassification {
-  STANDARD = 'standard',
-  CUSTOM = 'custom',
-  CLOUD = 'cloud',
-  PREMIUM = 'premium',
-}
+export type JourneyClassificationType =
+  | 'standard'
+  | 'custom'
+  | 'cloud'
+  | 'premium';
 
 export interface MultiOpStatusInterface {
   total: number;
