@@ -2,12 +2,7 @@ import util from 'util';
 import { generateLogApi, generateLogKeysApi } from '../BaseApi';
 import { getTenantURL } from '../utils/ApiUtils';
 import State from '../../shared/State';
-import {
-  LogApiKey,
-  LogEventSkeleton,
-  NoIdObjectSkeletonInterface,
-  PagedResult,
-} from '../ApiTypes';
+import { LogApiKey, LogEventSkeleton, PagedResult } from '../ApiTypes';
 
 const logsTailURLTemplate = '%s/monitoring/logs/tail?source=%s';
 const logsFetchURLTemplate =
@@ -15,12 +10,33 @@ const logsFetchURLTemplate =
 const logsSourcesURLTemplate = '%s/monitoring/logs/sources';
 const logsCreateAPIKeyAndSecretURLTemplate = '%s/keys?_action=create';
 const logsGetAPIKeysURLTemplate = '%s/keys';
+const logsAPIKeyURLTemplate = '%s/keys/%s';
+
+/**
+ * Get log API key
+ * @returns {Promise<PagedResult<LogApiKey>>} a promise resolving to a log api key object
+ */
+export async function getLogApiKey({
+  keyId,
+  state,
+}: {
+  keyId: string;
+  state: State;
+}): Promise<LogApiKey> {
+  const urlString = util.format(
+    logsAPIKeyURLTemplate,
+    getTenantURL(state.getHost()),
+    keyId
+  );
+  const { data } = await generateLogKeysApi({ state }).get(urlString);
+  return data;
+}
 
 /**
  * Get available API keys
  * @returns {Promise<PagedResult<LogApiKey>>} a promise resolving to a paged log api key results object
  */
-export async function getAPIKeys({
+export async function getLogApiKeys({
   state,
 }: {
   state: State;
@@ -50,19 +66,47 @@ export async function getSources({
   return data;
 }
 
-export async function createAPIKeyAndSecret({
+/**
+ * Create API key
+ * @param {keyName: string, state: State} params keyName, state
+ * @returns {Promise<LogApiKey>} new API key and secret
+ */
+export async function createLogApiKey({
   keyName,
   state,
 }: {
   keyName: string;
   state: State;
-}): Promise<NoIdObjectSkeletonInterface> {
+}): Promise<LogApiKey> {
   const urlString = util.format(
     logsCreateAPIKeyAndSecretURLTemplate,
     getTenantURL(state.getHost())
   );
   const { data } = await generateLogKeysApi({ state }).post(urlString, {
     name: keyName,
+  });
+  return data;
+}
+
+/**
+ * Delete log API key
+ * @param {string} keyId key id
+ * @returns {Promise<unknown>} a promise that resolves to a log api key object
+ */
+export async function deleteLogApiKey({
+  keyId,
+  state,
+}: {
+  keyId: string;
+  state: State;
+}): Promise<unknown> {
+  const urlString = util.format(
+    logsAPIKeyURLTemplate,
+    getTenantURL(state.getHost()),
+    keyId
+  );
+  const { data } = await generateLogKeysApi({ state }).delete(urlString, {
+    withCredentials: true,
   });
   return data;
 }
