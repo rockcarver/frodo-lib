@@ -103,6 +103,9 @@ function getFrodoArgsId({ start, state }: { start: number; state: State }) {
       if (v.startsWith('--')) {
         params.push(v.replace('--', ''));
         expectValue = true;
+      } else if (v.startsWith('-')) {
+        params.push(v.replace('-', ''));
+        expectValue = true;
       } else if (expectValue) {
         expectValue = false;
       } else {
