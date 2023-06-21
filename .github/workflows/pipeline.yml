@@ -4,9 +4,17 @@ on:
   pull_request:
     branches:
       - 'next'
+    paths-ignore:
+      - '**/README.md'
+      - '**/CODE_OF_CONDUCT.md'
+      - 'docs/**'
   push:
     branches:
       - 'next'
+    paths-ignore:
+      - '**/README.md'
+      - '**/CODE_OF_CONDUCT.md'
+      - 'docs/**'
   workflow_dispatch:
 
 env:
