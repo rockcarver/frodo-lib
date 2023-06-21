@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - 'next'
+    paths-ignore:
+      - '**/README.md'
+      - '**/CODE_OF_CONDUCT.md'
+      - 'docs/**'
 
 jobs:
   smoke-tests:
