@@ -262,6 +262,7 @@ export type PagedResult<Result> = {
 export type LogApiKey = {
   name: string;
   api_key_id: string;
+  api_key_secret?: string;
   created_at: string;
 };
 

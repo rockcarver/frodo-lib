@@ -12,7 +12,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const FRODO_MOCK_HOSTS = [
   'https://openam-frodo-dev.forgeblocks.com',
-  'https://openam-service-accounts.forgeblocks.com',
   'https://openam-volker-dev.forgeblocks.com',
 ];
 
@@ -93,6 +92,39 @@ async function scheduleShutdown({
   console.log(`Polly instance '${getFrodoCommand({ state })}' stopped.`);
 }
 
+function getFrodoArgsId({ start, state }: { start: number; state: State }) {
+  const result: string[] = [];
+  const args: string[] = [];
+  const params: string[] = [];
+  let expectValue = false;
+  process.argv
+    .filter((_v, i) => i >= start)
+    .map((v) => {
+      if (v.startsWith('--')) {
+        params.push(v.replace('--', ''));
+        expectValue = true;
+      } else if (v.startsWith('-')) {
+        params.push(v.replace('-', ''));
+        expectValue = true;
+      } else if (expectValue) {
+        expectValue = false;
+      } else {
+        args.push(v);
+      }
+      return v;
+    });
+  result.push(`${args.length}`);
+  const paramsId = params.join('_');
+  if (paramsId) result.push(paramsId);
+  const argsId = result.join('_');
+  if (mode !== MODES.RECORD)
+    debugMessage({
+      message: `SetupPollyForFrodoLib.getFrodoArgsId: argsId=${argsId}`,
+      state,
+    });
+  return argsId;
+}
+
 /*
 argv:
 [
@@ -118,6 +150,7 @@ argv:
 ]
 */
 function getFrodoCommand({ state }: { state: State }) {
+  let cmd = 'unknown';
   try {
     if (mode !== MODES.RECORD)
       debugMessage({
@@ -129,9 +162,13 @@ function getFrodoCommand({ state }: { state: State }) {
       !process.argv[1].endsWith('frodo.exe') &&
       !process.argv[1].endsWith('app.js')
     ) {
-      return path.parse(process.argv[1]).name.replace('-', '/');
+      cmd =
+        path.parse(process.argv[1]).name.replace('-', '/') +
+        '/' +
+        getFrodoArgsId({ start: 2, state });
+    } else {
+      cmd = process.argv[2] + '/' + getFrodoArgsId({ start: 3, state });
     }
-    return process.argv[2];
   } catch (error) {
     printMessage({
       message: `SetupPollyForFrodoLib.getFrodoCommand: ${error}`,
@@ -139,8 +176,14 @@ function getFrodoCommand({ state }: { state: State }) {
       state,
     });
     printMessage({ message: process.argv, type: 'error', state });
-    return 'error';
+    cmd = 'error';
   }
+  if (mode !== MODES.RECORD)
+    debugMessage({
+      message: `SetupPollyForFrodoLib.getFrodoCommand: cmd=${cmd}`,
+      state,
+    });
+  return cmd;
 }
 
 export function setupPollyForFrodoLib({
@@ -181,11 +224,23 @@ export function setupPollyForFrodoLib({
         .any('/am/json/*')
         .recordingName(`${getFrodoCommand({ state })}/am`);
       polly.server
+        .any('/openidm/managed/svcacct')
+        .recordingName(`${getFrodoCommand({ state })}/openidm/managed/svcacct`)
+        .on('request', (req) => {
+          req.configure({ matchRequestsBy: authenticationMatchRequestsBy() });
+        });
+      polly.server
         .any('/openidm/*')
         .recordingName(`${getFrodoCommand({ state })}/openidm`);
       polly.server
         .any('/environment/*')
         .recordingName(`${getFrodoCommand({ state })}/environment`);
+      polly.server
+        .any('/keys')
+        .recordingName(`${getFrodoCommand({ state })}/keys`)
+        .on('request', (req) => {
+          req.configure({ matchRequestsBy: authenticationMatchRequestsBy() });
+        });
       polly.server
         .any('/monitoring/*')
         .recordingName(`${getFrodoCommand({ state })}/monitoring`);

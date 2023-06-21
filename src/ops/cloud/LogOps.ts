@@ -2,15 +2,16 @@ import {
   LogApiKey,
   LogEventPayloadSkeleton,
   LogEventSkeleton,
-  NoIdObjectSkeletonInterface,
   PagedResult,
 } from '../../api/ApiTypes';
 import {
-  createAPIKeyAndSecret,
-  getAPIKeys,
+  createLogApiKey,
+  deleteLogApiKey as _deleteLogApiKey,
+  getLogApiKeys as _getLogApiKeys,
   getSources,
   tail,
   fetch,
+  getLogApiKey,
 } from '../../api/cloud/LogApi';
 import State from '../../shared/State';
 
@@ -55,6 +56,14 @@ export default class LogOps {
   }
 
   /**
+   * Get log api key
+   * @returns {Promise<LogApiKey>} promise resolving to a LogApiKey objects
+   */
+  async getLogApiKey(keyId: string): Promise<LogApiKey> {
+    return getLogApiKey({ keyId, state: this.state });
+  }
+
+  /**
    * Get log api keys
    * @returns {Promise<LogApiKey[]>} promise resolving to an array of LogApiKey objects
    */
@@ -63,14 +72,29 @@ export default class LogOps {
   }
 
   /**
-   * Create log api key and secret
-   * @param {string} keyName key name
-   * @returns {Promise<NoIdObjectSkeletonInterface>} a promise resolving to an object containing the log api key and secret
+   * Create log api key
+   * @param {string} keyName human-readable key name
+   * @returns {Promise<LogApiKey>} a promise resolving to an object containing the log api key and secret
    */
-  async createLogApiKeyAndSecret(
-    keyName: string
-  ): Promise<NoIdObjectSkeletonInterface> {
-    return createAPIKeyAndSecret({ keyName, state: this.state });
+  async createLogApiKey(keyName: string): Promise<LogApiKey> {
+    return createLogApiKey({ keyName, state: this.state });
+  }
+
+  /**
+   * Delete log api key
+   * @param {string} keyId key id
+   * @returns {Promise<LogApiKey>} a promise resolving to an object containing the log api key
+   */
+  async deleteLogApiKey(keyId: string): Promise<LogApiKey> {
+    return deleteLogApiKey({ keyId, state: this.state });
+  }
+
+  /**
+   * Delete all log api keys
+   * @returns {Promise<LogApiKey>} a promise resolving to an array of log api key objects
+   */
+  async deleteLogApiKeys(): Promise<LogApiKey[]> {
+    return deleteLogApiKeys({ state: this.state });
   }
 
   /**
@@ -381,8 +405,56 @@ export async function getLogApiKeys({
 }: {
   state: State;
 }): Promise<LogApiKey[]> {
-  const keys = (await getAPIKeys({ state })).result;
+  const keys = (await _getLogApiKeys({ state })).result;
   return keys;
 }
 
-export { tail, fetch, createAPIKeyAndSecret };
+/**
+ * Delete all keys
+ */
+export async function deleteLogApiKey({
+  keyId,
+  state,
+}: {
+  keyId: string;
+  state: State;
+}): Promise<LogApiKey> {
+  const key = await getLogApiKey({ keyId, state });
+  await _deleteLogApiKey({ keyId, state });
+  return key;
+}
+
+/**
+ * Delete all keys
+ */
+export async function deleteLogApiKeys({
+  state,
+}: {
+  state: State;
+}): Promise<LogApiKey[]> {
+  const responses = [];
+  const errors = [];
+  try {
+    const keys = await getLogApiKeys({ state });
+    for (const key of keys) {
+      try {
+        await deleteLogApiKey({
+          keyId: key.api_key_id,
+          state,
+        });
+        responses.push(key);
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+  } catch (error) {
+    errors.push(error);
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Export error:\n${errorMessages}`);
+  }
+  return responses;
+}
+
+export { tail, fetch, createLogApiKey };

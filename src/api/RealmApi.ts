@@ -1,5 +1,5 @@
 import util from 'util';
-import { getTenantURL, getRealmName } from './utils/ApiUtils';
+import { getTenantURL } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
 import State from '../shared/State';
 
@@ -47,29 +47,6 @@ export async function getRealm({
       withCredentials: true,
     }
   );
-  return data;
-}
-
-/**
- * Get realm by name
- * @param {String} realmName realm name
- * @returns {Promise} a promise that resolves to a realm object
- */
-export async function getRealmByName({
-  realmName,
-  state,
-}: {
-  realmName: string;
-  state: State;
-}) {
-  const { data } = await getRealms({ state }).then((realms) => {
-    for (const realm of realms.data.result) {
-      if (getRealmName(realmName) === realm.name) {
-        return realm;
-      }
-    }
-    throw new Error(`Realm ${realmName} not found!`);
-  });
   return data;
 }
 
