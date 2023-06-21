@@ -1,5 +1,6 @@
-import { getRealmByName, getRealms, putRealm } from '../api/RealmApi';
+import { getRealms as _getRealms, putRealm } from '../api/RealmApi';
 import State from '../shared/State';
+import { getRealmName } from './utils/OpsUtils';
 
 export default class RealmOps {
   state: State;
@@ -7,12 +8,12 @@ export default class RealmOps {
     this.state = state;
   }
 
-  getRealmByName(realmName: string) {
-    return getRealmByName({ realmName, state: this.state });
-  }
-
   getRealms() {
     return getRealms({ state: this.state });
+  }
+
+  getRealmByName(realmName: string) {
+    return getRealmByName({ realmName, state: this.state });
   }
 
   putRealm(realmId: string, realmData: object) {
@@ -36,6 +37,36 @@ export default class RealmOps {
   async removeCustomDomain(realmName: string, domain: string) {
     return removeCustomDomain({ realmName, domain, state: this.state });
   }
+}
+
+/**
+ * Get all realms
+ * @returns {Promise} a promise that resolves to an object containing an array of realm objects
+ */
+export async function getRealms({ state }: { state: State }) {
+  const { result } = await _getRealms({ state });
+  return result;
+}
+
+/**
+ * Get realm by name
+ * @param {String} realmName realm name
+ * @returns {Promise} a promise that resolves to a realm object
+ */
+export async function getRealmByName({
+  realmName,
+  state,
+}: {
+  realmName: string;
+  state: State;
+}) {
+  const realms = await getRealms({ state });
+  for (const realm of realms) {
+    if (getRealmName(realmName) === realm.name) {
+      return realm;
+    }
+  }
+  throw new Error(`Realm ${realmName} not found!`);
 }
 
 /**
@@ -119,4 +150,4 @@ export async function removeCustomDomain({
   }
 }
 
-export { getRealmByName, getRealms, putRealm };
+export { putRealm };
