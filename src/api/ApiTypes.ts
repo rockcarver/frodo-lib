@@ -14,15 +14,15 @@ export interface IdObjectSkeletonInterface extends NoIdObjectSkeletonInterface {
   _id: string;
 }
 
-export interface PagedResults {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  result: any[];
-  resultCount: number;
-  pagedResultsCookie: string;
-  totalPagedResultsPolicy: string;
-  totalPagedResults: number;
-  remainingPagedResults: number;
-}
+// export interface PagedResults {
+//   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//   result: any[];
+//   resultCount: number;
+//   pagedResultsCookie: string;
+//   totalPagedResultsPolicy: string;
+//   totalPagedResults: number;
+//   remainingPagedResults: number;
+// }
 
 export interface UiConfigInterface {
   categories: string;

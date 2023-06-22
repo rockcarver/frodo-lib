@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+-   rockcarver/frodo-cli#251: Support for Identity Cloud admin federation configuration through new module `AdminFederation`.
+
 ## [2.0.0-6] - 2023-06-21
 
 ## [2.0.0-5] - 2023-06-16
