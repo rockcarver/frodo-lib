@@ -123,9 +123,9 @@ export type PolicySkeleton = IdObjectSkeletonInterface & {
 
 export type VersionOfSecretStatus = 'DISABLED' | 'ENABLED';
 
-export type ReadableScopes = string[];
+export type ReadableStrings = string[];
 
-export type WritableScopes = {
+export type WritableStrings = {
   inherited: boolean;
   value: string[];
 };
@@ -139,10 +139,7 @@ export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
       inherited: boolean;
       value: string[];
     };
-    grantTypes?: {
-      value: string[];
-      [k: string]: string | number | boolean | string[] | object | undefined;
-    };
+    grantTypes?: ReadableStrings | WritableStrings;
     [k: string]: string | number | boolean | string[] | object | undefined;
   };
   signEncOAuth2ClientConfig?: {
@@ -161,7 +158,7 @@ export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
       inherited: boolean;
       value: number;
     };
-    scopes?: ReadableScopes | WritableScopes;
+    scopes?: ReadableStrings | WritableStrings;
     defaultScopes?: {
       value: string[];
       [k: string]: string | number | boolean | string[] | object | undefined;
