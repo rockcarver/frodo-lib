@@ -20,6 +20,7 @@ export * as IdmConfigRaw from './api/IdmConfigApi';
 
 // Ops Layer
 export * as Admin from './ops/AdminOps';
+export * as AdminFederation from './ops/cloud/AdminFederationOps';
 export * as Agent from './ops/AgentOps';
 export * as Authenticate from './ops/AuthenticateOps';
 export * as CirclesOfTrust from './ops/CirclesOfTrustOps';
