@@ -17,8 +17,8 @@ import { fileURLToPath } from 'url';
 import State from '../shared/State';
 import {
   OAuth2ClientSkeleton,
-  ReadableScopes,
-  WritableScopes,
+  ReadableStrings,
+  WritableStrings,
 } from '../api/ApiTypes';
 
 export default class AdminOps {
@@ -347,7 +347,7 @@ export async function listOAuth2AdminClients({ state }: { state: State }) {
       // printMessage({ message: client, type: 'error', state });
       let isPrivileged = false;
       if (client.coreOAuth2ClientConfig.scopes) {
-        (client.coreOAuth2ClientConfig.scopes as ReadableScopes).forEach(
+        (client.coreOAuth2ClientConfig.scopes as ReadableStrings).forEach(
           (scope) => {
             if (privilegedScopes.includes(scope)) {
               isPrivileged = true;
@@ -485,24 +485,24 @@ async function addAdminScopes({
   let addScopes = [];
   if (
     modClient.coreOAuth2ClientConfig.scopes &&
-    (modClient.coreOAuth2ClientConfig.scopes as WritableScopes).value
+    (modClient.coreOAuth2ClientConfig.scopes as WritableStrings).value
   ) {
     addScopes = allAdminScopes.filter((scope) => {
       let add = false;
       if (
         !(
-          modClient.coreOAuth2ClientConfig.scopes as WritableScopes
+          modClient.coreOAuth2ClientConfig.scopes as WritableStrings
         ).value.includes(scope)
       ) {
         add = true;
       }
       return add;
     });
-    (modClient.coreOAuth2ClientConfig.scopes as WritableScopes).value = (
-      modClient.coreOAuth2ClientConfig.scopes as WritableScopes
+    (modClient.coreOAuth2ClientConfig.scopes as WritableStrings).value = (
+      modClient.coreOAuth2ClientConfig.scopes as WritableStrings
     ).value.concat(addScopes);
   } else {
-    (modClient.coreOAuth2ClientConfig.scopes as WritableScopes).value =
+    (modClient.coreOAuth2ClientConfig.scopes as WritableStrings).value =
       allAdminScopes;
   }
   let addDefaultScope = false;
@@ -547,24 +547,25 @@ function addClientCredentialsGrantType({
   let modified = false;
   if (
     modClient.advancedOAuth2ClientConfig.grantTypes &&
-    modClient.advancedOAuth2ClientConfig.grantTypes.value
+    (modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings).value
   ) {
     if (
-      !modClient.advancedOAuth2ClientConfig.grantTypes.value.includes(
-        'client_credentials'
-      )
+      !(
+        modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings
+      ).value.includes('client_credentials')
     ) {
       modified = true;
-      modClient.advancedOAuth2ClientConfig.grantTypes.value.push(
-        'client_credentials'
-      );
+      (
+        modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings
+      ).value.push('client_credentials');
     }
   } else {
-    modClient.advancedOAuth2ClientConfig.grantTypes.value = [
-      'client_credentials',
-    ];
+    (modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings).value =
+      ['client_credentials'];
   }
-  modClient.advancedOAuth2ClientConfig.grantTypes.inherited = false;
+  (
+    modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings
+  ).inherited = false;
   if (modified) {
     printMessage({
       message: `Adding client credentials grant type to client "${clientId}"...`,
@@ -792,21 +793,21 @@ async function removeAdminScopes({
   let finalScopes = [];
   if (
     modClient.coreOAuth2ClientConfig.scopes &&
-    (modClient.coreOAuth2ClientConfig.scopes as WritableScopes).value
+    (modClient.coreOAuth2ClientConfig.scopes as WritableStrings).value
   ) {
     finalScopes = (
-      modClient.coreOAuth2ClientConfig.scopes as WritableScopes
+      modClient.coreOAuth2ClientConfig.scopes as WritableStrings
     ).value.filter((scope) => !allAdminScopes.includes(scope));
   }
   if (
-    (modClient.coreOAuth2ClientConfig.scopes as WritableScopes).value.length >
+    (modClient.coreOAuth2ClientConfig.scopes as WritableStrings).value.length >
     finalScopes.length
   ) {
     printMessage({
       message: `Removing admin scopes from client "${name}"...`,
       state,
     });
-    (modClient.coreOAuth2ClientConfig.scopes as WritableScopes).value =
+    (modClient.coreOAuth2ClientConfig.scopes as WritableStrings).value =
       finalScopes;
   } else {
     printMessage({ message: `Client "${name}" has no admin scopes.`, state });
@@ -853,22 +854,22 @@ function removeClientCredentialsGrantType({
   let finalGrantTypes = [];
   if (
     modClient.advancedOAuth2ClientConfig.grantTypes &&
-    modClient.advancedOAuth2ClientConfig.grantTypes.value
+    (modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings).value
   ) {
-    finalGrantTypes =
-      modClient.advancedOAuth2ClientConfig.grantTypes.value.filter(
-        (grantType) => grantType !== 'client_credentials'
-      );
+    finalGrantTypes = (
+      modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings
+    ).value.filter((grantType) => grantType !== 'client_credentials');
     modified =
-      modClient.advancedOAuth2ClientConfig.grantTypes.value.length >
-      finalGrantTypes.length;
+      (modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings).value
+        .length > finalGrantTypes.length;
   }
   if (modified) {
     printMessage({
       message: `Removing client credentials grant type from client "${clientId}"...`,
       state,
     });
-    modClient.advancedOAuth2ClientConfig.grantTypes.value = finalGrantTypes;
+    (modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings).value =
+      finalGrantTypes;
   } else {
     printMessage({
       message: `Client "${clientId}" does not allow client credentials grant type.`,
