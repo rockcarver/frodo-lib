@@ -5,7 +5,7 @@ import State from '../shared/State';
 import {
   NoIdObjectSkeletonInterface,
   OAuth2ClientSkeleton,
-  PagedResults,
+  PagedResult,
 } from './ApiTypes';
 
 const oauth2ClientURLTemplate = '%s/json%s/realm-config/agents/OAuth2Client/%s';
@@ -20,13 +20,13 @@ const getApiConfig = () => {
 
 /**
  * Get OAuth2 Clients
- * @returns {Promise<PagedResults>} a promise that resolves to a PagedResults object containing an array of oauth2client objects
+ * @returns {Promise<PagedResult>} a promise that resolves to a PagedResults object containing an array of oauth2client objects
  */
 export async function getOAuth2Clients({
   state,
 }: {
   state: State;
-}): Promise<PagedResults> {
+}): Promise<PagedResult<OAuth2ClientSkeleton>> {
   const urlString = util.format(
     oauth2ClientListURLTemplate,
     state.getHost(),
