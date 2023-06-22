@@ -123,6 +123,13 @@ export type PolicySkeleton = IdObjectSkeletonInterface & {
 
 export type VersionOfSecretStatus = 'DISABLED' | 'ENABLED';
 
+export type ReadableScopes = string[];
+
+export type WritableScopes = {
+  inherited: boolean;
+  value: string[];
+};
+
 export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
   overrideOAuth2ClientConfig?: {
     [k: string]: string | number | boolean | string[] | object | undefined;
@@ -154,10 +161,7 @@ export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
       inherited: boolean;
       value: number;
     };
-    scopes?: {
-      value: string[];
-      [k: string]: string | number | boolean | string[] | object | undefined;
-    };
+    scopes?: ReadableScopes | WritableScopes;
     defaultScopes?: {
       value: string[];
       [k: string]: string | number | boolean | string[] | object | undefined;
