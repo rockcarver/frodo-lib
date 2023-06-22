@@ -15,7 +15,11 @@ import { printMessage } from './utils/Console';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import State from '../shared/State';
-import { OAuth2ClientSkeleton } from '../api/ApiTypes';
+import {
+  OAuth2ClientSkeleton,
+  ReadableScopes,
+  WritableScopes,
+} from '../api/ApiTypes';
 
 export default class AdminOps {
   state: State;
@@ -297,8 +301,8 @@ const autoIdRoles = [
   }
  */
 export async function listOAuth2CustomClients({ state }: { state: State }) {
-  let clients = await getOAuth2Clients({ state });
-  clients = clients
+  const clients = await getOAuth2Clients({ state });
+  const clientIds = clients
     .map((client) => client._id)
     .filter((client) => !protectedClients.includes(client));
   const authentication = await getConfigEntity({
@@ -308,7 +312,9 @@ export async function listOAuth2CustomClients({ state }: { state: State }) {
   const subjects = authentication.rsFilter.staticUserMapping
     .map((mapping) => mapping.subject)
     .filter((subject) => !protectedSubjects.includes(subject));
-  const adminClients = subjects.filter((subject) => clients.includes(subject));
+  const adminClients = subjects.filter((subject) =>
+    clientIds.includes(subject)
+  );
   return adminClients;
 }
 
@@ -335,21 +341,24 @@ export async function listOAuth2CustomClients({ state }: { state: State }) {
   }
  */
 export async function listOAuth2AdminClients({ state }: { state: State }) {
-  let clients = await getOAuth2Clients({ state });
-  clients = clients
+  const clients = await getOAuth2Clients({ state });
+  const clientIds = clients
     .filter((client) => {
+      // printMessage({ message: client, type: 'error', state });
       let isPrivileged = false;
       if (client.coreOAuth2ClientConfig.scopes) {
-        client.coreOAuth2ClientConfig.scopes.forEach((scope) => {
-          if (privilegedScopes.includes(scope)) {
-            isPrivileged = true;
+        (client.coreOAuth2ClientConfig.scopes as ReadableScopes).forEach(
+          (scope) => {
+            if (privilegedScopes.includes(scope)) {
+              isPrivileged = true;
+            }
           }
-        });
+        );
       }
       return isPrivileged;
     })
     .map((client) => client._id)
-    .filter((client) => !protectedClients.includes(client));
+    .filter((clientId) => !protectedClients.includes(clientId));
   const authentication = await getConfigEntity({
     entityId: 'authentication',
     state,
@@ -368,7 +377,9 @@ export async function listOAuth2AdminClients({ state }: { state: State }) {
     })
     .map((mapping) => mapping.subject)
     .filter((subject) => !protectedSubjects.includes(subject));
-  const adminClients = subjects.filter((subject) => clients.includes(subject));
+  const adminClients = subjects.filter((subject) =>
+    clientIds.includes(subject)
+  );
   return adminClients;
 }
 
@@ -420,8 +431,8 @@ export async function listNonOAuth2AdminStaticUserMappings({
   showProtected: boolean;
   state: State;
 }) {
-  let clients = await getOAuth2Clients({ state });
-  clients = clients
+  const clients = await getOAuth2Clients({ state });
+  const clientIds = clients
     .map((client) => client._id)
     .filter((client) => !protectedClients.includes(client));
   const authentication = await getConfigEntity({
@@ -447,7 +458,7 @@ export async function listNonOAuth2AdminStaticUserMappings({
     );
   }
   const adminSubjects = subjects.filter(
-    (subject) => !clients.includes(subject)
+    (subject) => !clientIds.includes(subject)
   );
   return adminSubjects;
 }
@@ -474,19 +485,25 @@ async function addAdminScopes({
   let addScopes = [];
   if (
     modClient.coreOAuth2ClientConfig.scopes &&
-    modClient.coreOAuth2ClientConfig.scopes.value
+    (modClient.coreOAuth2ClientConfig.scopes as WritableScopes).value
   ) {
     addScopes = allAdminScopes.filter((scope) => {
       let add = false;
-      if (!modClient.coreOAuth2ClientConfig.scopes.value.includes(scope)) {
+      if (
+        !(
+          modClient.coreOAuth2ClientConfig.scopes as WritableScopes
+        ).value.includes(scope)
+      ) {
         add = true;
       }
       return add;
     });
-    modClient.coreOAuth2ClientConfig.scopes.value =
-      modClient.coreOAuth2ClientConfig.scopes.value.concat(addScopes);
+    (modClient.coreOAuth2ClientConfig.scopes as WritableScopes).value = (
+      modClient.coreOAuth2ClientConfig.scopes as WritableScopes
+    ).value.concat(addScopes);
   } else {
-    modClient.coreOAuth2ClientConfig.scopes.value = allAdminScopes;
+    (modClient.coreOAuth2ClientConfig.scopes as WritableScopes).value =
+      allAdminScopes;
   }
   let addDefaultScope = false;
   if (
@@ -775,20 +792,22 @@ async function removeAdminScopes({
   let finalScopes = [];
   if (
     modClient.coreOAuth2ClientConfig.scopes &&
-    modClient.coreOAuth2ClientConfig.scopes.value
+    (modClient.coreOAuth2ClientConfig.scopes as WritableScopes).value
   ) {
-    finalScopes = modClient.coreOAuth2ClientConfig.scopes.value.filter(
-      (scope) => !allAdminScopes.includes(scope)
-    );
+    finalScopes = (
+      modClient.coreOAuth2ClientConfig.scopes as WritableScopes
+    ).value.filter((scope) => !allAdminScopes.includes(scope));
   }
   if (
-    modClient.coreOAuth2ClientConfig.scopes.value.length > finalScopes.length
+    (modClient.coreOAuth2ClientConfig.scopes as WritableScopes).value.length >
+    finalScopes.length
   ) {
     printMessage({
       message: `Removing admin scopes from client "${name}"...`,
       state,
     });
-    modClient.coreOAuth2ClientConfig.scopes.value = finalScopes;
+    (modClient.coreOAuth2ClientConfig.scopes as WritableScopes).value =
+      finalScopes;
   } else {
     printMessage({ message: `Client "${name}" has no admin scopes.`, state });
   }
