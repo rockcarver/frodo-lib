@@ -39,6 +39,7 @@ import * as OpsUtils from '../ops/utils/OpsUtils';
 import * as Base64 from '../api/utils/Base64';
 import * as ScriptValidationUtils from '../ops/utils/ScriptValidationUtils';
 import * as constants from '../storage/StaticStorage';
+import AdminFederationOps from '../ops/cloud/AdminFederationOps';
 
 export class FrodoLib {
   state: State;
@@ -54,6 +55,7 @@ export class FrodoLib {
     resourceType: ResourceTypeOps;
   } = { policy: undefined, policySet: undefined, resourceType: undefined };
   cloud: {
+    adminFed: AdminFederationOps;
     feature: FeatureOps;
     log: LogOps;
     secret: SecretsOps;
@@ -61,6 +63,7 @@ export class FrodoLib {
     startup: StartupOps;
     variable: VariablesOps;
   } = {
+    adminFed: undefined,
     feature: undefined,
     log: undefined,
     secret: undefined,
@@ -121,6 +124,7 @@ export class FrodoLib {
     this.authz.policySet = new PolicySetOps(this.state);
     this.authz.resourceType = new ResourceTypeOps(this.state);
 
+    this.cloud.adminFed = new AdminFederationOps(this.state);
     this.cloud.feature = new FeatureOps(this.state);
     this.cloud.log = new LogOps(this.state);
     this.cloud.secret = new SecretsOps(this.state);
