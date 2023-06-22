@@ -28,6 +28,16 @@ export interface UiConfigInterface {
   categories: string;
 }
 
+export type AdminFederationConfigSkeleton = IdObjectSkeletonInterface & {
+  groups: {
+    claim: string;
+    mappings: {
+      'super-admins': string[];
+      'tenant-admins': string[];
+    };
+  };
+};
+
 export interface NodeRefSkeletonInterface {
   connections: Record<string, string>;
   displayName: string;
