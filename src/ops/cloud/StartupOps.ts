@@ -12,34 +12,31 @@ import {
 import { getVariables } from '../../api/cloud/VariablesApi';
 import State from '../../shared/State';
 
-export default class StartupOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Check for updates that need applying
+     * @returns {Promise<Updates>} true if there are updates that need to be applied, false otherwise
+     */
+    async checkForUpdates(): Promise<Updates> {
+      return checkForUpdates({ state });
+    },
 
-  /**
-   * Check for updates that need applying
-   * @returns {Promise<Updates>} true if there are updates that need to be applied, false otherwise
-   */
-  async checkForUpdates(): Promise<Updates> {
-    return checkForUpdates({ state: this.state });
-  }
-
-  /**
-   * Apply updates
-   * @param {boolean} wait wait for the operation to complete or not
-   * @param {number} timeout timeout in milliseconds
-   * @returns {Promise<boolean>} true if successful, false otherwise
-   */
-  async applyUpdates(wait: boolean, timeout: number = 10 * 60 * 1000) {
-    return applyUpdates({
-      wait,
-      timeout,
-      state: this.state,
-    });
-  }
-}
+    /**
+     * Apply updates
+     * @param {boolean} wait wait for the operation to complete or not
+     * @param {number} timeout timeout in milliseconds
+     * @returns {Promise<boolean>} true if successful, false otherwise
+     */
+    async applyUpdates(wait: boolean, timeout: number = 10 * 60 * 1000) {
+      return applyUpdates({
+        wait,
+        timeout,
+        state,
+      });
+    },
+  };
+};
 
 /**
  * Updates that need to be applied.

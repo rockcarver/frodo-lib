@@ -2,42 +2,39 @@ import { getRealms as _getRealms, putRealm } from '../api/RealmApi';
 import State from '../shared/State';
 import { getRealmName } from './utils/OpsUtils';
 
-export default class RealmOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    getRealms() {
+      return getRealms({ state });
+    },
 
-  getRealms() {
-    return getRealms({ state: this.state });
-  }
+    getRealmByName(realmName: string) {
+      return getRealmByName({ realmName, state });
+    },
 
-  getRealmByName(realmName: string) {
-    return getRealmByName({ realmName, state: this.state });
-  }
+    putRealm(realmId: string, realmData: object) {
+      return putRealm({ realmId, realmData, state });
+    },
 
-  putRealm(realmId: string, realmData: object) {
-    return putRealm({ realmId, realmData, state: this.state });
-  }
+    /**
+     * Add custom DNS domain name (realm DNS alias)
+     * @param {string} realm realm name
+     * @param {string} domain domain name
+     */
+    async addCustomDomain(realmName: string, domain: string) {
+      return addCustomDomain({ realmName, domain, state });
+    },
 
-  /**
-   * Add custom DNS domain name (realm DNS alias)
-   * @param {string} realm realm name
-   * @param {string} domain domain name
-   */
-  async addCustomDomain(realmName: string, domain: string) {
-    return addCustomDomain({ realmName, domain, state: this.state });
-  }
-
-  /**
-   * Remove custom DNS domain name (realm DNS alias)
-   * @param {String} realm realm name
-   * @param {String} domain domain name
-   */
-  async removeCustomDomain(realmName: string, domain: string) {
-    return removeCustomDomain({ realmName, domain, state: this.state });
-  }
-}
+    /**
+     * Remove custom DNS domain name (realm DNS alias)
+     * @param {String} realm realm name
+     * @param {String} domain domain name
+     */
+    async removeCustomDomain(realmName: string, domain: string) {
+      return removeCustomDomain({ realmName, domain, state });
+    },
+  };
+};
 
 /**
  * Get all realms

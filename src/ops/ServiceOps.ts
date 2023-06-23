@@ -1,4 +1,4 @@
-import { AmServiceSkeleton } from '../api/ApiTypes';
+import { AmServiceSkeleton, FullService } from '../api/ApiTypes';
 import {
   deleteService,
   deleteServiceNextDescendent,
@@ -7,123 +7,117 @@ import {
   getServiceDescendents,
   putService,
   putServiceNextDescendent,
-  ServiceNextDescendent,
 } from '../api/ServiceApi';
 import State from '../shared/State';
 import { ServiceExportInterface } from './OpsTypes';
 import { debugMessage, printMessage } from './utils/Console';
 
-export default class ServiceOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    createServiceExportTemplate(): ServiceExportInterface {
+      return createServiceExportTemplate();
+    },
 
-  createServiceExportTemplate(): ServiceExportInterface {
-    return createServiceExportTemplate();
-  }
+    /**
+     * Get list of services
+     * @param {boolean} globalConfig true if the list of global services is requested, false otherwise. Default: false.
+     */
+    async getListOfServices(globalConfig = false) {
+      return getListOfServices({ globalConfig, state });
+    },
 
-  /**
-   * Get list of services
-   * @param {boolean} globalConfig true if the list of global services is requested, false otherwise. Default: false.
-   */
-  async getListOfServices(globalConfig = false) {
-    return getListOfServices({ globalConfig, state: this.state });
-  }
+    /**
+     * Get all services including their descendents.
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     * @returns Promise resolving to an array of services with their descendants
+     */
+    async getFullServices(globalConfig = false): Promise<FullService[]> {
+      return getFullServices({ globalConfig, state });
+    },
 
-  /**
-   * Get all services including their descendents.
-   * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
-   * @returns Promise resolving to an array of services with their descendants
-   */
-  async getFullServices(globalConfig = false): Promise<FullService[]> {
-    return getFullServices({ globalConfig, state: this.state });
-  }
+    /**
+     * Deletes the specified service
+     * @param {string} serviceId The service to delete
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     */
+    async deleteFullService(serviceId: string, globalConfig = false) {
+      return deleteFullService({ serviceId, globalConfig, state });
+    },
 
-  /**
-   * Deletes the specified service
-   * @param {string} serviceId The service to delete
-   * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
-   */
-  async deleteFullService(serviceId: string, globalConfig = false) {
-    return deleteFullService({ serviceId, globalConfig, state: this.state });
-  }
+    /**
+     * Deletes all services
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     */
+    async deleteFullServices(globalConfig = false) {
+      return deleteFullServices({ globalConfig, state });
+    },
 
-  /**
-   * Deletes all services
-   * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
-   */
-  async deleteFullServices(globalConfig = false) {
-    return deleteFullServices({ globalConfig, state: this.state });
-  }
+    /**
+     * Export service. The response can be saved to file as is.
+     * @param serviceId service id/name
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     * @returns {Promise<ServiceExportInterface>} Promise resolving to a ServiceExportInterface object.
+     */
+    async exportService(
+      serviceId: string,
+      globalConfig = false
+    ): Promise<ServiceExportInterface> {
+      return exportService({ serviceId, globalConfig, state });
+    },
 
-  /**
-   * Export service. The response can be saved to file as is.
-   * @param serviceId service id/name
-   * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
-   * @returns {Promise<ServiceExportInterface>} Promise resolving to a ServiceExportInterface object.
-   */
-  async exportService(
-    serviceId: string,
-    globalConfig = false
-  ): Promise<ServiceExportInterface> {
-    return exportService({ serviceId, globalConfig, state: this.state });
-  }
+    /**
+     * Export all services
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     */
+    async exportServices(
+      globalConfig = false
+    ): Promise<ServiceExportInterface> {
+      return exportServices({ globalConfig, state });
+    },
 
-  /**
-   * Export all services
-   * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
-   */
-  async exportServices(globalConfig = false): Promise<ServiceExportInterface> {
-    return exportServices({ globalConfig, state: this.state });
-  }
+    /**
+     * Imports a single service using a reference to the service and a file to read the data from. Optionally clean (remove) an existing service first
+     * @param {string} serviceId The service id/name to add
+     * @param {ServiceExportInterface} importData The service configuration export data to import
+     * @param {boolean} clean Indicates whether to remove a possible existing service with the same id first.
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     * @returns Promise resolving when the service has been imported
+     */
+    async importService(
+      serviceId: string,
+      importData: ServiceExportInterface,
+      clean: boolean,
+      globalConfig = false
+    ): Promise<AmServiceSkeleton> {
+      return importService({
+        serviceId,
+        importData,
+        clean,
+        globalConfig,
+        state,
+      });
+    },
 
-  /**
-   * Imports a single service using a reference to the service and a file to read the data from. Optionally clean (remove) an existing service first
-   * @param {string} serviceId The service id/name to add
-   * @param {ServiceExportInterface} importData The service configuration export data to import
-   * @param {boolean} clean Indicates whether to remove a possible existing service with the same id first.
-   * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
-   * @returns Promise resolving when the service has been imported
-   */
-  async importService(
-    serviceId: string,
-    importData: ServiceExportInterface,
-    clean: boolean,
-    globalConfig = false
-  ): Promise<AmServiceSkeleton> {
-    return importService({
-      serviceId,
-      importData,
-      clean,
-      globalConfig,
-      state: this.state,
-    });
-  }
-
-  /**
-   * Imports multiple services from the same file. Optionally clean (remove) existing services first
-   * @param {ServiceExportInterface} importData The service configuration export data to import
-   * @param {boolean} clean Indicates whether to remove possible existing services first
-   * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
-   */
-  async importServices(
-    importData: ServiceExportInterface,
-    clean: boolean,
-    globalConfig = false
-  ) {
-    return importServices({
-      importData,
-      clean,
-      globalConfig,
-      state: this.state,
-    });
-  }
-}
-
-interface FullService extends AmServiceSkeleton {
-  nextDescendents?: ServiceNextDescendent[];
-}
+    /**
+     * Imports multiple services from the same file. Optionally clean (remove) existing services first
+     * @param {ServiceExportInterface} importData The service configuration export data to import
+     * @param {boolean} clean Indicates whether to remove possible existing services first
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     */
+    async importServices(
+      importData: ServiceExportInterface,
+      clean: boolean,
+      globalConfig = false
+    ) {
+      return importServices({
+        importData,
+        clean,
+        globalConfig,
+        state,
+      });
+    },
+  };
+};
 
 /**
  * Create an empty service export template

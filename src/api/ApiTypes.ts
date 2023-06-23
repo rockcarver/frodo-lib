@@ -177,6 +177,19 @@ export type AmServiceSkeleton = IdObjectSkeletonInterface & {
   [key: string]: any;
 };
 
+export interface ServiceNextDescendentResponse {
+  result: ServiceNextDescendent;
+}
+
+export interface ServiceNextDescendent {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+}
+
+export interface FullService extends AmServiceSkeleton {
+  nextDescendents?: ServiceNextDescendent[];
+}
+
 export type GatewayAgentType = 'IdentityGatewayAgent';
 export type JavaAgentType = 'J2EEAgent';
 export type WebAgentType = 'WebAgent';
