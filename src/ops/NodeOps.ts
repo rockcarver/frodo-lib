@@ -15,70 +15,67 @@ import {
 import { NodeClassificationType } from './OpsTypes';
 import { NodeSkeleton } from '../api/ApiTypes';
 
-export default class NodeOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Find all node configuration objects that are no longer referenced by any tree
+     * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
+     */
+    async findOrphanedNodes(): Promise<unknown[]> {
+      return findOrphanedNodes({ state });
+    },
 
-  /**
-   * Find all node configuration objects that are no longer referenced by any tree
-   * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
-   */
-  async findOrphanedNodes(): Promise<unknown[]> {
-    return findOrphanedNodes({ state: this.state });
-  }
+    /**
+     * Remove orphaned nodes
+     * @param {NodeSkeleton[]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
+     * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array nodes that encountered errors deleting
+     */
+    async removeOrphanedNodes(
+      orphanedNodes: NodeSkeleton[]
+    ): Promise<NodeSkeleton[]> {
+      return removeOrphanedNodes({ orphanedNodes, state });
+    },
 
-  /**
-   * Remove orphaned nodes
-   * @param {NodeSkeleton[]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
-   * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array nodes that encountered errors deleting
-   */
-  async removeOrphanedNodes(
-    orphanedNodes: NodeSkeleton[]
-  ): Promise<NodeSkeleton[]> {
-    return removeOrphanedNodes({ orphanedNodes, state: this.state });
-  }
+    /**
+     * Analyze if a node is a premium node.
+     * @param {string} nodeType Node type
+     * @returns {boolean} True if the node type is premium, false otherwise.
+     */
+    isPremiumNode(nodeType: string): boolean {
+      return isPremiumNode(nodeType);
+    },
 
-  /**
-   * Analyze if a node is a premium node.
-   * @param {string} nodeType Node type
-   * @returns {boolean} True if the node type is premium, false otherwise.
-   */
-  isPremiumNode(nodeType: string): boolean {
-    return isPremiumNode(nodeType);
-  }
+    /**
+     * Analyze if a node is a cloud-only node.
+     * @param {string} nodeType Node type
+     * @returns {boolean} True if the node type is cloud-only, false otherwise.
+     */
+    isCloudOnlyNode(nodeType: string): boolean {
+      return isCloudOnlyNode(nodeType);
+    },
 
-  /**
-   * Analyze if a node is a cloud-only node.
-   * @param {string} nodeType Node type
-   * @returns {boolean} True if the node type is cloud-only, false otherwise.
-   */
-  isCloudOnlyNode(nodeType: string): boolean {
-    return isCloudOnlyNode(nodeType);
-  }
+    /**
+     * Analyze if a node is custom.
+     * @param {string} nodeType Node type
+     * @returns {boolean} True if the node type is custom, false otherwise.
+     */
+    isCustomNode(nodeType: string): boolean {
+      return isCustomNode({ nodeType, state });
+    },
 
-  /**
-   * Analyze if a node is custom.
-   * @param {string} nodeType Node type
-   * @returns {boolean} True if the node type is custom, false otherwise.
-   */
-  isCustomNode(nodeType: string): boolean {
-    return isCustomNode({ nodeType, state: this.state });
-  }
-
-  /**
-   * Get a node's classifications, which can be one or multiple of:
-   * - standard: can run on any instance of a ForgeRock platform
-   * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
-   * - premium: utilizes nodes, which come at a premium
-   * @param {string} nodeType Node type
-   * @returns {NodeClassificationType[]} an array of one or multiple classifications
-   */
-  getNodeClassification(nodeType: string): NodeClassificationType[] {
-    return getNodeClassification({ nodeType, state: this.state });
-  }
-}
+    /**
+     * Get a node's classifications, which can be one or multiple of:
+     * - standard: can run on any instance of a ForgeRock platform
+     * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
+     * - premium: utilizes nodes, which come at a premium
+     * @param {string} nodeType Node type
+     * @returns {NodeClassificationType[]} an array of one or multiple classifications
+     */
+    getNodeClassification(nodeType: string): NodeClassificationType[] {
+      return getNodeClassification({ nodeType, state });
+    },
+  };
+};
 
 export enum NodeClassification {
   STANDARD = 'standard',

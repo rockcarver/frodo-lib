@@ -22,134 +22,133 @@ import { createPolicySet, getPolicySet, updatePolicySet } from './PolicySetOps';
 import { createResourceType, updateResourceType } from './ResourceTypeOps';
 import State from '../shared/State';
 
-export default class PolicyOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Get all policies
+     * @returns {Promise<PolicySkeleton>} a promise that resolves to an array of policy set objects
+     */
+    async getPolicies(): Promise<PolicySkeleton[]> {
+      return getPolicies({ state });
+    },
 
-  /**
-   * Get all policies
-   * @returns {Promise<PolicySkeleton>} a promise that resolves to an array of policy set objects
-   */
-  async getPolicies(): Promise<PolicySkeleton[]> {
-    return getPolicies({ state: this.state });
-  }
+    /**
+     * Get policies by policy set
+     * @param {string} policySetId policy set id/name
+     * @returns {Promise<PolicySkeleton[]>} a promise resolving to an array of policy objects
+     */
+    async getPoliciesByPolicySet(
+      policySetId: string
+    ): Promise<PolicySkeleton[]> {
+      return getPoliciesByPolicySet({ policySetId, state });
+    },
 
-  /**
-   * Get policies by policy set
-   * @param {string} policySetId policy set id/name
-   * @returns {Promise<PolicySkeleton[]>} a promise resolving to an array of policy objects
-   */
-  async getPoliciesByPolicySet(policySetId: string): Promise<PolicySkeleton[]> {
-    return getPoliciesByPolicySet({ policySetId, state: this.state });
-  }
+    async getPolicy(policyId: string) {
+      return getPolicy({ policyId, state });
+    },
 
-  async getPolicy(policyId: string) {
-    return getPolicy({ policyId, state: this.state });
-  }
+    async putPolicy(policyId: string, policyData: PolicySkeleton) {
+      return putPolicy({ policyId, policyData, state });
+    },
 
-  async putPolicy(policyId: string, policyData: PolicySkeleton) {
-    return putPolicy({ policyId, policyData, state: this.state });
-  }
+    async deletePolicy(policyId: string) {
+      return deletePolicy({ policyId, state });
+    },
 
-  async deletePolicy(policyId: string) {
-    return deletePolicy({ policyId, state: this.state });
-  }
+    /**
+     * Export policy
+     * @param {string} policyId policy id/name
+     * @returns {Promise<PolicyExportInterface>} a promise that resolves to a PolicyExportInterface object
+     */
+    async exportPolicy(
+      policyId: string,
+      options: PolicyExportOptions = {
+        deps: true,
+        prereqs: false,
+        useStringArrays: true,
+      }
+    ): Promise<PolicyExportInterface> {
+      return exportPolicy({ policyId, options, state });
+    },
 
-  /**
-   * Export policy
-   * @param {string} policyId policy id/name
-   * @returns {Promise<PolicyExportInterface>} a promise that resolves to a PolicyExportInterface object
-   */
-  async exportPolicy(
-    policyId: string,
-    options: PolicyExportOptions = {
-      deps: true,
-      prereqs: false,
-      useStringArrays: true,
-    }
-  ): Promise<PolicyExportInterface> {
-    return exportPolicy({ policyId, options, state: this.state });
-  }
+    /**
+     * Export policies
+     * @param {PolicyExportOptions} options export options
+     * @returns {Promise<PolicyExportInterface>} a promise that resolves to an PolicyExportInterface object
+     */
+    async exportPolicies(
+      options: PolicyExportOptions = {
+        deps: true,
+        prereqs: false,
+        useStringArrays: true,
+      }
+    ): Promise<PolicyExportInterface> {
+      return exportPolicies({ options, state });
+    },
 
-  /**
-   * Export policies
-   * @param {PolicyExportOptions} options export options
-   * @returns {Promise<PolicyExportInterface>} a promise that resolves to an PolicyExportInterface object
-   */
-  async exportPolicies(
-    options: PolicyExportOptions = {
-      deps: true,
-      prereqs: false,
-      useStringArrays: true,
-    }
-  ): Promise<PolicyExportInterface> {
-    return exportPolicies({ options, state: this.state });
-  }
+    /**
+     * Export policies by policy set
+     * @param {string} policySetName policy set id/name
+     * @param {PolicyExportOptions} options export options
+     * @returns {Promise<PolicyExportInterface>} a promise that resolves to an PolicyExportInterface object
+     */
+    async exportPoliciesByPolicySet(
+      policySetName: string,
+      options: PolicyExportOptions = {
+        deps: true,
+        prereqs: false,
+        useStringArrays: true,
+      }
+    ): Promise<PolicyExportInterface> {
+      return exportPoliciesByPolicySet({
+        policySetName,
+        options,
+        state,
+      });
+    },
 
-  /**
-   * Export policies by policy set
-   * @param {string} policySetName policy set id/name
-   * @param {PolicyExportOptions} options export options
-   * @returns {Promise<PolicyExportInterface>} a promise that resolves to an PolicyExportInterface object
-   */
-  async exportPoliciesByPolicySet(
-    policySetName: string,
-    options: PolicyExportOptions = {
-      deps: true,
-      prereqs: false,
-      useStringArrays: true,
-    }
-  ): Promise<PolicyExportInterface> {
-    return exportPoliciesByPolicySet({
-      policySetName,
-      options,
-      state: this.state,
-    });
-  }
+    /**
+     * Import policy by id
+     * @param {string} policyId policy id
+     * @param {PolicyExportInterface} importData import data
+     * @param {PolicyImportOptions} options import options
+     * @returns {Promise<PolicySkeleton>} imported policy object
+     */
+    async importPolicy(
+      policyId: string,
+      importData: PolicyExportInterface,
+      options: PolicyImportOptions = { deps: true, prereqs: false }
+    ): Promise<PolicySkeleton> {
+      return importPolicy({ policyId, importData, options, state });
+    },
 
-  /**
-   * Import policy by id
-   * @param {string} policyId policy id
-   * @param {PolicyExportInterface} importData import data
-   * @param {PolicyImportOptions} options import options
-   * @returns {Promise<PolicySkeleton>} imported policy object
-   */
-  async importPolicy(
-    policyId: string,
-    importData: PolicyExportInterface,
-    options: PolicyImportOptions = { deps: true, prereqs: false }
-  ): Promise<PolicySkeleton> {
-    return importPolicy({ policyId, importData, options, state: this.state });
-  }
+    /**
+     * Import first policy
+     * @param {PolicyExportInterface} importData import data
+     * @param {PolicyImportOptions} options import options
+     * @returns {Promise<PolicySkeleton>} imported policy object
+     */
+    async importFirstPolicy(
+      importData: PolicyExportInterface,
+      options: PolicyImportOptions = { deps: true, prereqs: false }
+    ): Promise<PolicySkeleton> {
+      return importFirstPolicy({ importData, options, state });
+    },
 
-  /**
-   * Import first policy
-   * @param {PolicyExportInterface} importData import data
-   * @param {PolicyImportOptions} options import options
-   * @returns {Promise<PolicySkeleton>} imported policy object
-   */
-  async importFirstPolicy(
-    importData: PolicyExportInterface,
-    options: PolicyImportOptions = { deps: true, prereqs: false }
-  ): Promise<PolicySkeleton> {
-    return importFirstPolicy({ importData, options, state: this.state });
-  }
-
-  /**
-   * Import policies
-   * @param {PolicyExportInterface} importData import data
-   * @param {PolicyImportOptions} options import options
-   * @returns {Promise<PolicySkeleton[]>} array of imported policy objects
-   */
-  async importPolicies(
-    importData: PolicyExportInterface,
-    options: PolicyImportOptions = { deps: true, prereqs: false }
-  ): Promise<PolicySkeleton[]> {
-    return importPolicies({ importData, options, state: this.state });
-  }
-}
+    /**
+     * Import policies
+     * @param {PolicyExportInterface} importData import data
+     * @param {PolicyImportOptions} options import options
+     * @returns {Promise<PolicySkeleton[]>} array of imported policy objects
+     */
+    async importPolicies(
+      importData: PolicyExportInterface,
+      options: PolicyImportOptions = { deps: true, prereqs: false }
+    ): Promise<PolicySkeleton[]> {
+      return importPolicies({ importData, options, state });
+    },
+  };
+};
 
 export interface PolicyExportInterface {
   meta?: ExportMetaData;

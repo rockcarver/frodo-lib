@@ -21,13 +21,9 @@ import {
   WritableStrings,
 } from '../api/ApiTypes';
 
-export default class AdminOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
-
-  /*
+export default (state: State) => {
+  return {
+    /*
    * List all oauth2 clients, which have a corresponding staticUserMapping
    * in the IDM authentication.json:
     {
@@ -52,11 +48,11 @@ export default class AdminOps {
       }
     }
    */
-  async listOAuth2CustomClients() {
-    return listOAuth2CustomClients({ state: this.state });
-  }
+    async listOAuth2CustomClients() {
+      return listOAuth2CustomClients({ state });
+    },
 
-  /*
+    /*
    * List all oauth2 clients, which have the fr:idm:* scope and a 
    * corresponding staticUserMapping in the IDM authentication.json
    * and are assigned admin privileges:
@@ -78,11 +74,11 @@ export default class AdminOps {
       }
     }
    */
-  async listOAuth2AdminClients() {
-    return listOAuth2AdminClients({ state: this.state });
-  }
+    async listOAuth2AdminClients() {
+      return listOAuth2AdminClients({ state });
+    },
 
-  /*
+    /*
    * List all static user mappings that are not oauth2 clients in authentication.json
    * and are assigned admin privileges:
     {
@@ -123,14 +119,14 @@ export default class AdminOps {
       }
     }
    */
-  async listNonOAuth2AdminStaticUserMappings(showProtected: boolean) {
-    return listNonOAuth2AdminStaticUserMappings({
-      showProtected,
-      state: this.state,
-    });
-  }
+    async listNonOAuth2AdminStaticUserMappings(showProtected: boolean) {
+      return listNonOAuth2AdminStaticUserMappings({
+        showProtected,
+        state,
+      });
+    },
 
-  /*
+    /*
    * Add AutoId static user mapping to authentication.json to enable dashboards and other AutoId-based functionality.
     {
       "_id": "authentication",
@@ -151,85 +147,86 @@ export default class AdminOps {
       }
     }
    */
-  async addAutoIdStaticUserMapping() {
-    return addAutoIdStaticUserMapping({ state: this.state });
-  }
+    async addAutoIdStaticUserMapping() {
+      return addAutoIdStaticUserMapping({ state });
+    },
 
-  async grantOAuth2ClientAdminPrivileges(clientId: string) {
-    return grantOAuth2ClientAdminPrivileges({ clientId, state: this.state });
-  }
+    async grantOAuth2ClientAdminPrivileges(clientId: string) {
+      return grantOAuth2ClientAdminPrivileges({ clientId, state });
+    },
 
-  async revokeOAuth2ClientAdminPrivileges(clientId: string) {
-    return revokeOAuth2ClientAdminPrivileges({ clientId, state: this.state });
-  }
+    async revokeOAuth2ClientAdminPrivileges(clientId: string) {
+      return revokeOAuth2ClientAdminPrivileges({ clientId, state });
+    },
 
-  async createOAuth2ClientWithAdminPrivileges(
-    clientId: string,
-    clientSecret: string
-  ) {
-    return createOAuth2ClientWithAdminPrivileges({
-      clientId,
-      clientSecret,
-      state: this.state,
-    });
-  }
+    async createOAuth2ClientWithAdminPrivileges(
+      clientId: string,
+      clientSecret: string
+    ) {
+      return createOAuth2ClientWithAdminPrivileges({
+        clientId,
+        clientSecret,
+        state,
+      });
+    },
 
-  async createLongLivedToken(
-    clientId: string,
-    clientSecret: string,
-    scope: string,
-    secret: string | boolean,
-    lifetime: number
-  ) {
-    return createLongLivedToken({
-      clientId,
-      clientSecret,
-      scope,
-      secret,
-      lifetime,
-      state: this.state,
-    });
-  }
+    async createLongLivedToken(
+      clientId: string,
+      clientSecret: string,
+      scope: string,
+      secret: string | boolean,
+      lifetime: number
+    ) {
+      return createLongLivedToken({
+        clientId,
+        clientSecret,
+        scope,
+        secret,
+        lifetime,
+        state,
+      });
+    },
 
-  async removeStaticUserMapping(subject: string) {
-    return removeStaticUserMapping({ subject, state: this.state });
-  }
+    async removeStaticUserMapping(subject: string) {
+      return removeStaticUserMapping({ subject, state });
+    },
 
-  async hideGenericExtensionAttributes(
-    includeCustomized: boolean,
-    dryRun: boolean
-  ) {
-    return hideGenericExtensionAttributes({
-      includeCustomized,
-      dryRun,
-      state: this.state,
-    });
-  }
+    async hideGenericExtensionAttributes(
+      includeCustomized: boolean,
+      dryRun: boolean
+    ) {
+      return hideGenericExtensionAttributes({
+        includeCustomized,
+        dryRun,
+        state,
+      });
+    },
 
-  async showGenericExtensionAttributes(
-    includeCustomized: boolean,
-    dryRun: boolean
-  ) {
-    return showGenericExtensionAttributes({
-      includeCustomized,
-      dryRun,
-      state: this.state,
-    });
-  }
+    async showGenericExtensionAttributes(
+      includeCustomized: boolean,
+      dryRun: boolean
+    ) {
+      return showGenericExtensionAttributes({
+        includeCustomized,
+        dryRun,
+        state,
+      });
+    },
 
-  async repairOrgModel(
-    excludeCustomized: boolean,
-    extendPermissions: boolean,
-    dryRun: boolean
-  ) {
-    return repairOrgModel({
-      excludeCustomized,
-      extendPermissions,
-      dryRun,
-      state: this.state,
-    });
-  }
-}
+    async repairOrgModel(
+      excludeCustomized: boolean,
+      extendPermissions: boolean,
+      dryRun: boolean
+    ) {
+      return repairOrgModel({
+        excludeCustomized,
+        extendPermissions,
+        dryRun,
+        state,
+      });
+    },
+  };
+};
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

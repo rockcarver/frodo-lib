@@ -10,47 +10,44 @@ import {
 } from '../api/IdmConfigApi';
 import State from '../shared/State';
 
-export default class EmailTemplateOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Email template type key used to build the IDM id: 'emailTemplate/<id>'
+     */
+    EMAIL_TEMPLATE_TYPE,
 
-  /**
-   * Email template type key used to build the IDM id: 'emailTemplate/<id>'
-   */
-  EMAIL_TEMPLATE_TYPE = EMAIL_TEMPLATE_TYPE;
+    /**
+     * Get all email templates
+     * @returns {Promise} a promise that resolves to an array of email template objects
+     */
+    async getEmailTemplates() {
+      return getEmailTemplates({ state });
+    },
 
-  /**
-   * Get all email templates
-   * @returns {Promise} a promise that resolves to an array of email template objects
-   */
-  async getEmailTemplates() {
-    return getEmailTemplates({ state: this.state });
-  }
+    /**
+     * Get email template
+     * @param {string} templateId id/name of the email template without the type prefix
+     * @returns {Promise} a promise that resolves an email template object
+     */
+    async getEmailTemplate(templateId: string) {
+      return getEmailTemplate({ templateId, state });
+    },
 
-  /**
-   * Get email template
-   * @param {string} templateId id/name of the email template without the type prefix
-   * @returns {Promise} a promise that resolves an email template object
-   */
-  async getEmailTemplate(templateId: string) {
-    return getEmailTemplate({ templateId, state: this.state });
-  }
-
-  /**
-   * Put email template
-   * @param {string} templateId id/name of the email template without the type prefix
-   * @param {Object} templateData email template object
-   * @returns {Promise} a promise that resolves to an email template object
-   */
-  async putEmailTemplate(
-    templateId: string,
-    templateData: EmailTemplateSkeleton
-  ) {
-    return putEmailTemplate({ templateId, templateData, state: this.state });
-  }
-}
+    /**
+     * Put email template
+     * @param {string} templateId id/name of the email template without the type prefix
+     * @param {Object} templateData email template object
+     * @returns {Promise} a promise that resolves to an email template object
+     */
+    async putEmailTemplate(
+      templateId: string,
+      templateData: EmailTemplateSkeleton
+    ) {
+      return putEmailTemplate({ templateId, templateData, state });
+    },
+  };
+};
 
 /**
  * Email template type key used to build the IDM id: 'emailTemplate/<id>'

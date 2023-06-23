@@ -2,32 +2,29 @@ import { getManagedObject } from '../api/ManagedObjectApi';
 import { getTenantURL } from '../api/utils/ApiUtils';
 import State from '../shared/State';
 
-export default class ManagedObjectOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Resolve a managed object's uuid to a human readable username
+     * @param {string} type managed object type, e.g. teammember or alpha_user
+     * @param {string} id managed object _id
+     * @returns {string} resolved username or uuid if any error occurs during reslution
+     */
+    async resolveUserName(type: string, id: string) {
+      return resolveUserName({ type, id, state });
+    },
 
-  /**
-   * Resolve a managed object's uuid to a human readable username
-   * @param {string} type managed object type, e.g. teammember or alpha_user
-   * @param {string} id managed object _id
-   * @returns {string} resolved username or uuid if any error occurs during reslution
-   */
-  async resolveUserName(type: string, id: string) {
-    return resolveUserName({ type, id, state: this.state });
-  }
-
-  /**
-   * Resolve a managed object's uuid to a human readable full name
-   * @param {string} type managed object type, e.g. teammember or alpha_user
-   * @param {string} id managed object _id
-   * @returns {string} resolved full name or uuid if any error occurs during reslution
-   */
-  async resolveFullName(type: string, id: string) {
-    return resolveFullName({ type, id, state: this.state });
-  }
-}
+    /**
+     * Resolve a managed object's uuid to a human readable full name
+     * @param {string} type managed object type, e.g. teammember or alpha_user
+     * @param {string} id managed object _id
+     * @returns {string} resolved full name or uuid if any error occurs during reslution
+     */
+    async resolveFullName(type: string, id: string) {
+      return resolveFullName({ type, id, state });
+    },
+  };
+};
 
 /**
  * Resolve a managed object's uuid to a human readable username
