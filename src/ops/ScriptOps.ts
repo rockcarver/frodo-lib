@@ -24,98 +24,97 @@ import { ExportMetaData } from '../ops/OpsTypes';
 import { validateScriptDecoded } from './utils/ScriptValidationUtils';
 import State from '../shared/State';
 
-export default class ScriptOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Get all scripts
+     * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
+     */
+    async getScripts(): Promise<ScriptSkeleton[]> {
+      return getScripts({ state });
+    },
 
-  /**
-   * Get all scripts
-   * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
-   */
-  async getScripts(): Promise<ScriptSkeleton[]> {
-    return getScripts({ state: this.state });
-  }
+    /**
+     * Get script by name
+     * @param {string} name name of the script
+     * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
+     */
+    async getScriptByName(scriptName: string): Promise<ScriptSkeleton> {
+      return getScriptByName({ scriptName, state });
+    },
 
-  /**
-   * Get script by name
-   * @param {string} name name of the script
-   * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
-   */
-  async getScriptByName(scriptName: string): Promise<ScriptSkeleton> {
-    return getScriptByName({ scriptName, state: this.state });
-  }
+    /**
+     * Create or update script
+     * @param {string} scriptId script uuid
+     * @param {ScriptSkeleton} scriptData script object
+     * @returns {Promise<boolean>} a status object
+     */
+    async putScript(
+      scriptId: string,
+      scriptData: ScriptSkeleton
+    ): Promise<boolean> {
+      return putScript({ scriptId, scriptData, state });
+    },
 
-  /**
-   * Create or update script
-   * @param {string} scriptId script uuid
-   * @param {ScriptSkeleton} scriptData script object
-   * @returns {Promise<boolean>} a status object
-   */
-  async putScript(
-    scriptId: string,
-    scriptData: ScriptSkeleton
-  ): Promise<boolean> {
-    return putScript({ scriptId, scriptData, state: this.state });
-  }
+    /**
+     * Export script by id
+     * @param {string} scriptId script uuid
+     * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
+     */
+    async exportScript(scriptId: string): Promise<ScriptExportInterface> {
+      return exportScript({ scriptId, state });
+    },
 
-  /**
-   * Export script by id
-   * @param {string} scriptId script uuid
-   * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
-   */
-  async exportScript(scriptId: string): Promise<ScriptExportInterface> {
-    return exportScript({ scriptId, state: this.state });
-  }
+    /**
+     * Export script by name
+     * @param {string} name script name
+     * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
+     */
+    async exportScriptByName(
+      scriptName: string
+    ): Promise<ScriptExportInterface> {
+      return exportScriptByName({ scriptName, state });
+    },
 
-  /**
-   * Export script by name
-   * @param {string} name script name
-   * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
-   */
-  async exportScriptByName(scriptName: string): Promise<ScriptExportInterface> {
-    return exportScriptByName({ scriptName, state: this.state });
-  }
+    /**
+     * Export all scripts
+     * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
+     */
+    async exportScripts(): Promise<ScriptExportInterface> {
+      return exportScripts({ state });
+    },
 
-  /**
-   * Export all scripts
-   * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
-   */
-  async exportScripts(): Promise<ScriptExportInterface> {
-    return exportScripts({ state: this.state });
-  }
+    /**
+     * Import scripts
+     * @param {string} scriptName Optional name of script. If supplied, only the script of that name is imported
+     * @param {ScriptExportInterface} importData Script import data
+     * @param {boolean} reUuid true to generate a new uuid for each script on import, false otherwise
+     * @returns {Promise<boolean>} true if no errors occurred during import, false otherwise
+     */
+    async importScripts(
+      scriptName: string,
+      importData: ScriptExportInterface,
+      reUuid = false,
+      validate = false
+    ): Promise<boolean> {
+      return importScripts({
+        scriptName,
+        importData,
+        reUuid,
+        validate,
+        state,
+      });
+    },
 
-  /**
-   * Import scripts
-   * @param {string} scriptName Optional name of script. If supplied, only the script of that name is imported
-   * @param {ScriptExportInterface} importData Script import data
-   * @param {boolean} reUuid true to generate a new uuid for each script on import, false otherwise
-   * @returns {Promise<boolean>} true if no errors occurred during import, false otherwise
-   */
-  async importScripts(
-    scriptName: string,
-    importData: ScriptExportInterface,
-    reUuid = false,
-    validate = false
-  ): Promise<boolean> {
-    return importScripts({
-      scriptName,
-      importData,
-      reUuid,
-      validate,
-      state: this.state,
-    });
-  }
+    getScript(scriptId: string) {
+      return getScript({ scriptId, state });
+    },
 
-  getScript(scriptId: string) {
-    return getScript({ scriptId, state: this.state });
-  }
-
-  deleteScript(scriptId: string) {
-    return deleteScript({ scriptId, state: this.state });
-  }
-}
+    deleteScript(scriptId: string) {
+      return deleteScript({ scriptId, state });
+    },
+  };
+};
 
 export interface ScriptExportInterface {
   meta?: ExportMetaData;

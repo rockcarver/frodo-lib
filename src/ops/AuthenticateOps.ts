@@ -15,32 +15,29 @@ import { getServiceAccount } from './cloud/ServiceAccountOps';
 import { isValidUrl } from './utils/OpsUtils';
 import { debugMessage, printMessage, verboseMessage } from './utils/Console';
 
-export default class AuthenticateOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Get access token for service account
+     * @returns {string | null} Access token or null
+     */
+    async getAccessTokenForServiceAccount(
+      saId: string = undefined,
+      saJwk: JwkRsa = undefined
+    ): Promise<string | null> {
+      return getAccessTokenForServiceAccount({ saId, saJwk, state });
+    },
 
-  /**
-   * Get access token for service account
-   * @returns {string | null} Access token or null
-   */
-  async getAccessTokenForServiceAccount(
-    saId: string = undefined,
-    saJwk: JwkRsa = undefined
-  ): Promise<string | null> {
-    return getAccessTokenForServiceAccount({ saId, saJwk, state: this.state });
-  }
-
-  /**
-   * Get tokens
-   * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
-   * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
-   */
-  getTokens(forceLoginAsUser = false) {
-    return getTokens({ forceLoginAsUser, state: this.state });
-  }
-}
+    /**
+     * Get tokens
+     * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
+     * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
+     */
+    getTokens(forceLoginAsUser = false) {
+      return getTokens({ forceLoginAsUser, state });
+    },
+  };
+};
 
 const adminClientPassword = 'doesnotmatter';
 const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';

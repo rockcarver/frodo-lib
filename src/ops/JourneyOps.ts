@@ -72,274 +72,273 @@ import {
   TreeImportOptions,
 } from './OpsTypes';
 
-export default class JourneyOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Create an empty single tree export template
+     * @returns {SingleTreeExportInterface} an empty single tree export template
+     */
+    createSingleTreeExportTemplate(): SingleTreeExportInterface {
+      return createSingleTreeExportTemplate({ state });
+    },
 
-  /**
-   * Create an empty single tree export template
-   * @returns {SingleTreeExportInterface} an empty single tree export template
-   */
-  createSingleTreeExportTemplate(): SingleTreeExportInterface {
-    return createSingleTreeExportTemplate({ state: this.state });
-  }
+    /**
+     * Create an empty multi tree export template
+     * @returns {MultiTreeExportInterface} an empty multi tree export template
+     */
+    createMultiTreeExportTemplate(): MultiTreeExportInterface {
+      return createMultiTreeExportTemplate({ state });
+    },
 
-  /**
-   * Create an empty multi tree export template
-   * @returns {MultiTreeExportInterface} an empty multi tree export template
-   */
-  createMultiTreeExportTemplate(): MultiTreeExportInterface {
-    return createMultiTreeExportTemplate({ state: this.state });
-  }
+    /**
+     * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
+     * @param {string} treeId tree id/name
+     * @param {TreeExportOptions} options export options
+     * @returns {Promise<SingleTreeExportInterface>} a promise that resolves to an object containing the tree and all its nodes and dependencies
+     */
+    async exportJourney(
+      treeId: string,
+      options: TreeExportOptions = {
+        useStringArrays: true,
+        deps: true,
+      }
+    ): Promise<SingleTreeExportInterface> {
+      return exportJourney({ treeId, options, state });
+    },
 
-  /**
-   * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
-   * @param {string} treeId tree id/name
-   * @param {TreeExportOptions} options export options
-   * @returns {Promise<SingleTreeExportInterface>} a promise that resolves to an object containing the tree and all its nodes and dependencies
-   */
-  async exportJourney(
-    treeId: string,
-    options: TreeExportOptions = {
-      useStringArrays: true,
-      deps: true,
-    }
-  ): Promise<SingleTreeExportInterface> {
-    return exportJourney({ treeId, options, state: this.state });
-  }
+    /**
+     * Get all the journeys/trees without all their nodes and dependencies.
+     * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of journey objects
+     */
+    async getJourneys(): Promise<TreeSkeleton[]> {
+      return getJourneys({ state });
+    },
 
-  /**
-   * Get all the journeys/trees without all their nodes and dependencies.
-   * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of journey objects
-   */
-  async getJourneys(): Promise<TreeSkeleton[]> {
-    return getJourneys({ state: this.state });
-  }
+    /**
+     * Get a journey/tree without all its nodes and dependencies.
+     * @param {string} journeyId journey id/name
+     * @returns {Promise<TreeSkeleton>} a promise that resolves to a journey object
+     */
+    async getJourney(journeyId: string): Promise<TreeSkeleton> {
+      return getJourney({ journeyId, state });
+    },
 
-  /**
-   * Get a journey/tree without all its nodes and dependencies.
-   * @param {string} journeyId journey id/name
-   * @returns {Promise<TreeSkeleton>} a promise that resolves to a journey object
-   */
-  async getJourney(journeyId: string): Promise<TreeSkeleton> {
-    return getJourney({ journeyId, state: this.state });
-  }
+    /**
+     * Helper to import a tree with all dependencies from a `SingleTreeExportInterface` object (typically read from a file)
+     * @param {SingleTreeExportInterface} treeObject tree object containing tree and all its dependencies
+     * @param {TreeImportOptions} options import options
+     * @returns {Promise<boolean>} a promise that resolves to true if no errors occurred during import
+     */
+    async importJourney(
+      treeObject: SingleTreeExportInterface,
+      options: TreeImportOptions
+    ): Promise<boolean> {
+      return importJourney({ treeObject, options, state });
+    },
 
-  /**
-   * Helper to import a tree with all dependencies from a `SingleTreeExportInterface` object (typically read from a file)
-   * @param {SingleTreeExportInterface} treeObject tree object containing tree and all its dependencies
-   * @param {TreeImportOptions} options import options
-   * @returns {Promise<boolean>} a promise that resolves to true if no errors occurred during import
-   */
-  async importJourney(
-    treeObject: SingleTreeExportInterface,
-    options: TreeImportOptions
-  ): Promise<boolean> {
-    return importJourney({ treeObject, options, state: this.state });
-  }
-
-  /**
-   * Resolve journey dependencies
-   * @param {Map} installedJorneys Map of installed journeys
-   * @param {Map} journeyMap Map of journeys to resolve dependencies for
-   * @param {string[]} unresolvedJourneys Map to hold the names of unresolved journeys and their dependencies
-   * @param {string[]} resolvedJourneys Array to hold the names of resolved journeys
-   * @param {int} index Depth of recursion
-   */
-  async resolveDependencies(
-    installedJorneys,
-    journeyMap,
-    unresolvedJourneys,
-    resolvedJourneys,
-    index = -1
-  ) {
-    return resolveDependencies(
+    /**
+     * Resolve journey dependencies
+     * @param {Map} installedJorneys Map of installed journeys
+     * @param {Map} journeyMap Map of journeys to resolve dependencies for
+     * @param {string[]} unresolvedJourneys Map to hold the names of unresolved journeys and their dependencies
+     * @param {string[]} resolvedJourneys Array to hold the names of resolved journeys
+     * @param {int} index Depth of recursion
+     */
+    async resolveDependencies(
       installedJorneys,
       journeyMap,
       unresolvedJourneys,
       resolvedJourneys,
-      index
-    );
-  }
+      index = -1
+    ) {
+      return resolveDependencies(
+        installedJorneys,
+        journeyMap,
+        unresolvedJourneys,
+        resolvedJourneys,
+        index
+      );
+    },
 
-  /**
-   * Helper to import multiple trees from a tree map
-   * @param {MultiTreeExportInterface} treesMap map of trees object
-   * @param {TreeImportOptions} options import options
-   */
-  async importAllJourneys(
-    treesMap: MultiTreeExportInterface,
-    options: TreeImportOptions
-  ) {
-    return importAllJourneys({ treesMap, options, state: this.state });
-  }
+    /**
+     * Helper to import multiple trees from a tree map
+     * @param {MultiTreeExportInterface} treesMap map of trees object
+     * @param {TreeImportOptions} options import options
+     */
+    async importAllJourneys(
+      treesMap: MultiTreeExportInterface,
+      options: TreeImportOptions
+    ) {
+      return importAllJourneys({ treesMap, options, state });
+    },
 
-  /**
-   * Get the node reference obbject for a node object. Node reference objects
-   * are used in a tree flow definition and within page nodes to reference
-   * nodes. Among other things, node references contain all the non-configuration
-   * meta data that exists for readaility, like the x/y coordinates of the node
-   * and the display name chosen by the tree designer. The dislay name is the
-   * only intuitive link between the graphical representation of the tree and
-   * the node configurations that make up the tree.
-   * @param nodeObj node object to retrieve the node reference object for
-   * @param singleTreeExport tree export with or without dependencies
-   * @returns {NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface} node reference object
-   */
-  getNodeRef(
-    nodeObj: NodeSkeleton,
-    singleTreeExport: SingleTreeExportInterface
-  ): NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface {
-    return getNodeRef(nodeObj, singleTreeExport);
-  }
+    /**
+     * Get the node reference obbject for a node object. Node reference objects
+     * are used in a tree flow definition and within page nodes to reference
+     * nodes. Among other things, node references contain all the non-configuration
+     * meta data that exists for readaility, like the x/y coordinates of the node
+     * and the display name chosen by the tree designer. The dislay name is the
+     * only intuitive link between the graphical representation of the tree and
+     * the node configurations that make up the tree.
+     * @param nodeObj node object to retrieve the node reference object for
+     * @param singleTreeExport tree export with or without dependencies
+     * @returns {NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface} node reference object
+     */
+    getNodeRef(
+      nodeObj: NodeSkeleton,
+      singleTreeExport: SingleTreeExportInterface
+    ): NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface {
+      return getNodeRef(nodeObj, singleTreeExport);
+    },
 
-  /**
-   * Default tree export resolver used to resolve a tree id/name to a full export
-   * w/o dependencies of that tree from a platform instance.
-   * @param {string} treeId id/name of the tree to resolve
-   * @returns {TreeExportResolverInterface} tree export
-   */
-  onlineTreeExportResolver: TreeExportResolverInterface =
-    onlineTreeExportResolver;
+    /**
+     * Default tree export resolver used to resolve a tree id/name to a full export
+     * w/o dependencies of that tree from a platform instance.
+     * @param {string} treeId id/name of the tree to resolve
+     * @returns {TreeExportResolverInterface} tree export
+     */
+    onlineTreeExportResolver,
 
-  /**
-   * Tree export resolver used to resolve a tree id/name to a full export
-   * of that tree from individual `treename.journey.json` export files.
-   * @param {string} treeId id/name of the tree to resolve
-   * @returns {TreeExportResolverInterface} tree export
-   */
-  fileByIdTreeExportResolver: TreeExportResolverInterface =
-    fileByIdTreeExportResolver;
+    /**
+     * Tree export resolver used to resolve a tree id/name to a full export
+     * of that tree from individual `treename.journey.json` export files.
+     * @param {string} treeId id/name of the tree to resolve
+     * @returns {TreeExportResolverInterface} tree export
+     */
+    fileByIdTreeExportResolver,
 
-  /**
-   * Factory that creates a tree export resolver used to resolve a tree id
-   * to a full export of that tree from a multi-tree export file.
-   * @param {string} file multi-tree export file
-   * @returns {TreeExportResolverInterface} tree export resolver
-   */
-  createFileParamTreeExportResolver(file: string): TreeExportResolverInterface {
-    return createFileParamTreeExportResolver(file, this.state);
-  }
+    /**
+     * Factory that creates a tree export resolver used to resolve a tree id
+     * to a full export of that tree from a multi-tree export file.
+     * @param {string} file multi-tree export file
+     * @returns {TreeExportResolverInterface} tree export resolver
+     */
+    createFileParamTreeExportResolver(
+      file: string
+    ): TreeExportResolverInterface {
+      return createFileParamTreeExportResolver(file, state);
+    },
 
-  /**
-   * Get tree dependencies (all descendent inner trees)
-   * @param {SingleTreeExportInterface} treeExport single tree export
-   * @param {string[]} resolvedTreeIds list of tree ids wich have already been resolved
-   * @param {TreeExportResolverInterface} resolveTreeExport tree export resolver callback function
-   * @returns {Promise<TreeDependencyMapInterface>} a promise that resolves to a tree dependency map
-   */
-  async getTreeDescendents(
-    treeExport: SingleTreeExportInterface,
-    resolveTreeExport: TreeExportResolverInterface,
-    resolvedTreeIds: string[] = []
-  ): Promise<TreeDependencyMapInterface> {
-    return getTreeDescendents({
-      treeExport,
-      resolveTreeExport,
-      resolvedTreeIds,
-      state: this.state,
-    });
-  }
+    /**
+     * Get tree dependencies (all descendent inner trees)
+     * @param {SingleTreeExportInterface} treeExport single tree export
+     * @param {string[]} resolvedTreeIds list of tree ids wich have already been resolved
+     * @param {TreeExportResolverInterface} resolveTreeExport tree export resolver callback function
+     * @returns {Promise<TreeDependencyMapInterface>} a promise that resolves to a tree dependency map
+     */
+    async getTreeDescendents(
+      treeExport: SingleTreeExportInterface,
+      resolveTreeExport: TreeExportResolverInterface,
+      resolvedTreeIds: string[] = []
+    ): Promise<TreeDependencyMapInterface> {
+      return getTreeDescendents({
+        treeExport,
+        resolveTreeExport,
+        resolvedTreeIds,
+        state,
+      });
+    },
 
-  /**
-   * Find all node configuration objects that are no longer referenced by any tree
-   * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
-   */
-  async findOrphanedNodes(): Promise<NodeSkeleton[]> {
-    return findOrphanedNodes({ state: this.state });
-  }
+    /**
+     * Find all node configuration objects that are no longer referenced by any tree
+     * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
+     */
+    async findOrphanedNodes(): Promise<NodeSkeleton[]> {
+      return findOrphanedNodes({ state });
+    },
 
-  /**
-   * Remove orphaned nodes
-   * @param {NodeSkeleton[]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
-   * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array nodes that encountered errors deleting
-   */
-  async removeOrphanedNodes(orphanedNodes: NodeSkeleton[]): Promise<unknown[]> {
-    return removeOrphanedNodes({ orphanedNodes, state: this.state });
-  }
+    /**
+     * Remove orphaned nodes
+     * @param {NodeSkeleton[]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
+     * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array nodes that encountered errors deleting
+     */
+    async removeOrphanedNodes(
+      orphanedNodes: NodeSkeleton[]
+    ): Promise<unknown[]> {
+      return removeOrphanedNodes({ orphanedNodes, state });
+    },
 
-  /**
-   * Analyze if a journey contains any custom nodes considering the detected or the overridden version.
-   * @param {SingleTreeExportInterface} journey Journey/tree configuration object
-   * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
-   */
-  isCustomJourney(journey: SingleTreeExportInterface) {
-    return isCustomJourney({ journey, state: this.state });
-  }
+    /**
+     * Analyze if a journey contains any custom nodes considering the detected or the overridden version.
+     * @param {SingleTreeExportInterface} journey Journey/tree configuration object
+     * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
+     */
+    isCustomJourney(journey: SingleTreeExportInterface) {
+      return isCustomJourney({ journey, state });
+    },
 
-  /**
-   * Analyze if a journey contains any premium nodes considering the detected or the overridden version.
-   * @param {SingleTreeExportInterface} journey Journey/tree configuration object
-   * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
-   */
-  isPremiumJourney(journey: SingleTreeExportInterface) {
-    return isPremiumJourney(journey);
-  }
+    /**
+     * Analyze if a journey contains any premium nodes considering the detected or the overridden version.
+     * @param {SingleTreeExportInterface} journey Journey/tree configuration object
+     * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
+     */
+    isPremiumJourney(journey: SingleTreeExportInterface) {
+      return isPremiumJourney(journey);
+    },
 
-  /**
-   * Analyze if a journey contains any cloud-only nodes considering the detected or the overridden version.
-   * @param {SingleTreeExportInterface} journey Journey/tree configuration object
-   * @returns {boolean} True if the journey/tree contains any cloud-only nodes, false otherwise.
-   */
-  isCloudOnlyJourney(journey: SingleTreeExportInterface) {
-    return isCloudOnlyJourney(journey);
-  }
+    /**
+     * Analyze if a journey contains any cloud-only nodes considering the detected or the overridden version.
+     * @param {SingleTreeExportInterface} journey Journey/tree configuration object
+     * @returns {boolean} True if the journey/tree contains any cloud-only nodes, false otherwise.
+     */
+    isCloudOnlyJourney(journey: SingleTreeExportInterface) {
+      return isCloudOnlyJourney(journey);
+    },
 
-  /**
-   * Get a journey's classifications, which can be one or multiple of:
-   * - standard: can run on any instance of a ForgeRock platform
-   * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
-   * - premium: utilizes nodes, which come at a premium
-   * - custom: utilizes nodes not included in the ForgeRock platform release
-   * @param {SingleTreeExportInterface} journey journey export data
-   * @returns {JourneyClassificationType[]} an array of one or multiple classifications
-   */
-  getJourneyClassification(
-    journey: SingleTreeExportInterface
-  ): JourneyClassificationType[] {
-    return getJourneyClassification({ journey, state: this.state });
-  }
+    /**
+     * Get a journey's classifications, which can be one or multiple of:
+     * - standard: can run on any instance of a ForgeRock platform
+     * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
+     * - premium: utilizes nodes, which come at a premium
+     * - custom: utilizes nodes not included in the ForgeRock platform release
+     * @param {SingleTreeExportInterface} journey journey export data
+     * @returns {JourneyClassificationType[]} an array of one or multiple classifications
+     */
+    getJourneyClassification(
+      journey: SingleTreeExportInterface
+    ): JourneyClassificationType[] {
+      return getJourneyClassification({ journey, state });
+    },
 
-  /**
-   * Delete a journey
-   * @param {string} journeyId journey id/name
-   * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
-   */
-  async deleteJourney(
-    journeyId: string,
-    options: { deep: boolean; verbose: boolean; progress?: boolean }
-  ) {
-    return deleteJourney({ journeyId, options, state: this.state });
-  }
+    /**
+     * Delete a journey
+     * @param {string} journeyId journey id/name
+     * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
+     */
+    async deleteJourney(
+      journeyId: string,
+      options: { deep: boolean; verbose: boolean; progress?: boolean }
+    ) {
+      return deleteJourney({ journeyId, options, state });
+    },
 
-  /**
-   * Delete all journeys
-   * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
-   */
-  async deleteJourneys(options: { deep: boolean; verbose: boolean }) {
-    return deleteJourneys({ options, state: this.state });
-  }
+    /**
+     * Delete all journeys
+     * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
+     */
+    async deleteJourneys(options: { deep: boolean; verbose: boolean }) {
+      return deleteJourneys({ options, state });
+    },
 
-  /**
-   * Enable a journey
-   * @param journeyId journey id/name
-   * @returns {Promise<boolean>} true if the operation was successful, false otherwise
-   */
-  async enableJourney(journeyId: string): Promise<boolean> {
-    return enableJourney({ journeyId, state: this.state });
-  }
+    /**
+     * Enable a journey
+     * @param journeyId journey id/name
+     * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+     */
+    async enableJourney(journeyId: string): Promise<boolean> {
+      return enableJourney({ journeyId, state });
+    },
 
-  /**
-   * Disable a journey
-   * @param journeyId journey id/name
-   * @returns {Promise<boolean>} true if the operation was successful, false otherwise
-   */
-  async disableJourney(journeyId: string): Promise<boolean> {
-    return disableJourney({ journeyId, state: this.state });
-  }
-}
+    /**
+     * Disable a journey
+     * @param journeyId journey id/name
+     * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+     */
+    async disableJourney(journeyId: string): Promise<boolean> {
+      return disableJourney({ journeyId, state });
+    },
+  };
+};
 
 export enum JourneyClassification {
   STANDARD = 'standard',

@@ -9,55 +9,52 @@ import { hasFeature } from './FeatureOps';
 import { getTenantURL } from '../../api/utils/ApiUtils';
 import State from '../../shared/State';
 
-export default class ServiceAccountOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Check if service accounts are available
+     * @returns {Promise<boolean>} true if service accounts are available, false otherwise
+     */
+    async isServiceAccountsFeatureAvailable(): Promise<boolean> {
+      return isServiceAccountsFeatureAvailable({ state });
+    },
 
-  /**
-   * Check if service accounts are available
-   * @returns {Promise<boolean>} true if service accounts are available, false otherwise
-   */
-  async isServiceAccountsFeatureAvailable(): Promise<boolean> {
-    return isServiceAccountsFeatureAvailable({ state: this.state });
-  }
+    /**
+     * Create service account
+     * @param {string} name Human-readable name of service account
+     * @param {string} description Description of service account
+     * @param {'Active' | 'Inactive'} accountStatus Service account status
+     * @param {string[]} scopes Scopes.
+     * @param {JwksInterface} jwks Java Web Key Set
+     * @returns {Promise<IdObjectSkeletonInterface>} A promise resolving to a service account object
+     */
+    async createServiceAccount(
+      name: string,
+      description: string,
+      accountStatus: 'Active' | 'Inactive',
+      scopes: string[],
+      jwks: JwksInterface
+    ): Promise<IdObjectSkeletonInterface> {
+      return createServiceAccount({
+        name,
+        description,
+        accountStatus,
+        scopes,
+        jwks,
+        state,
+      });
+    },
 
-  /**
-   * Create service account
-   * @param {string} name Human-readable name of service account
-   * @param {string} description Description of service account
-   * @param {'Active' | 'Inactive'} accountStatus Service account status
-   * @param {string[]} scopes Scopes.
-   * @param {JwksInterface} jwks Java Web Key Set
-   * @returns {Promise<IdObjectSkeletonInterface>} A promise resolving to a service account object
-   */
-  async createServiceAccount(
-    name: string,
-    description: string,
-    accountStatus: 'Active' | 'Inactive',
-    scopes: string[],
-    jwks: JwksInterface
-  ): Promise<IdObjectSkeletonInterface> {
-    return createServiceAccount({
-      name,
-      description,
-      accountStatus,
-      scopes,
-      jwks,
-      state: this.state,
-    });
-  }
-
-  /**
-   * Get service account
-   * @param {string} serviceAccountId service account id
-   * @returns {Promise<ServiceAccount>} a promise resolving to a service account object
-   */
-  async getServiceAccount(serviceAccountId: string) {
-    return getServiceAccount({ serviceAccountId, state: this.state });
-  }
-}
+    /**
+     * Get service account
+     * @param {string} serviceAccountId service account id
+     * @returns {Promise<ServiceAccount>} a promise resolving to a service account object
+     */
+    async getServiceAccount(serviceAccountId: string) {
+      return getServiceAccount({ serviceAccountId, state });
+    },
+  };
+};
 
 const moType = 'svcacct';
 
