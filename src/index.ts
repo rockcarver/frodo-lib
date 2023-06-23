@@ -1,1 +1,6 @@
-export { frodo, state, FrodoLib } from './lib/FrodoLib';
+import FrodoLib from './lib/FrodoLib';
+
+const frodo = FrodoLib();
+const state = frodo.state;
+
+export { frodo, state, FrodoLib };

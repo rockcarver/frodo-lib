@@ -1,6 +1,11 @@
 import util from 'util';
 import State from '../shared/State';
-import { AmServiceSkeleton, PagedResult } from './ApiTypes';
+import {
+  AmServiceSkeleton,
+  PagedResult,
+  ServiceNextDescendent,
+  ServiceNextDescendentResponse,
+} from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 
@@ -42,15 +47,6 @@ export interface ServiceListItem {
 //   };
 //   [key: string]: any;
 // }
-
-export interface ServiceNextDescendentResponse {
-  result: ServiceNextDescendent;
-}
-
-export interface ServiceNextDescendent {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-}
 
 /**
  * Helper function to get the realm path required for the API call considering if the request

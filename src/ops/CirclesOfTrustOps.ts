@@ -10,82 +10,79 @@ import State from '../shared/State';
 import { CirclesOfTrustExportInterface } from './OpsTypes';
 import { CircleOfTrustSkeleton } from '../api/ApiTypes';
 
-export default class CirclesOfTrustOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Create an empty agent export template
+     * @returns {CirclesOfTrustExportInterface} an empty agent export template
+     */
+    createCirclesOfTrustExportTemplate() {
+      return createCirclesOfTrustExportTemplate({ state });
+    },
 
-  /**
-   * Create an empty agent export template
-   * @returns {CirclesOfTrustExportInterface} an empty agent export template
-   */
-  createCirclesOfTrustExportTemplate() {
-    return createCirclesOfTrustExportTemplate({ state: this.state });
-  }
+    /**
+     * Get SAML circle of trust
+     * @param {String} cotId circle of trust id/name
+     */
+    async getCircleOfTrust(cotId: string) {
+      return getCircleOfTrust({ cotId, state });
+    },
 
-  /**
-   * Get SAML circle of trust
-   * @param {String} cotId circle of trust id/name
-   */
-  async getCircleOfTrust(cotId: string) {
-    return getCircleOfTrust({ cotId, state: this.state });
-  }
+    /**
+     * Get SAML circles of trust
+     */
+    async getCirclesOfTrust() {
+      return getCirclesOfTrust({ state });
+    },
 
-  /**
-   * Get SAML circles of trust
-   */
-  async getCirclesOfTrust() {
-    return getCirclesOfTrust({ state: this.state });
-  }
+    async createCircleOfTrust(cotData: CircleOfTrustSkeleton) {
+      return createCircleOfTrust({ cotData, state });
+    },
 
-  async createCircleOfTrust(cotData: CircleOfTrustSkeleton) {
-    return createCircleOfTrust({ cotData, state: this.state });
-  }
+    /**
+     * Export SAML circle of trust
+     * @param {String} cotId circle of trust id/name
+     */
+    async exportCircleOfTrust(cotId: string) {
+      return exportCircleOfTrust({ cotId, state });
+    },
 
-  /**
-   * Export SAML circle of trust
-   * @param {String} cotId circle of trust id/name
-   */
-  async exportCircleOfTrust(cotId: string) {
-    return exportCircleOfTrust({ cotId, state: this.state });
-  }
+    /**
+     * Export all SAML circles of trust
+     */
+    async exportCirclesOfTrust() {
+      return exportCirclesOfTrust({ state });
+    },
 
-  /**
-   * Export all SAML circles of trust
-   */
-  async exportCirclesOfTrust() {
-    return exportCirclesOfTrust({ state: this.state });
-  }
+    /**
+     * Import a SAML circle of trust by id/name from file
+     * @param {String} cotId Circle of trust id/name
+     * @param {CirclesOfTrustExportInterface} importData Import data
+     */
+    async importCircleOfTrust(
+      cotId: string,
+      importData: CirclesOfTrustExportInterface
+    ) {
+      return importCircleOfTrust({ cotId, importData, state });
+    },
 
-  /**
-   * Import a SAML circle of trust by id/name from file
-   * @param {String} cotId Circle of trust id/name
-   * @param {CirclesOfTrustExportInterface} importData Import data
-   */
-  async importCircleOfTrust(
-    cotId: string,
-    importData: CirclesOfTrustExportInterface
-  ) {
-    return importCircleOfTrust({ cotId, importData, state: this.state });
-  }
+    /**
+     * Import first SAML circle of trust
+     * @param {CirclesOfTrustExportInterface} importData Import data
+     */
+    async importFirstCircleOfTrust(importData: CirclesOfTrustExportInterface) {
+      return importFirstCircleOfTrust({ importData, state });
+    },
 
-  /**
-   * Import first SAML circle of trust
-   * @param {CirclesOfTrustExportInterface} importData Import data
-   */
-  async importFirstCircleOfTrust(importData: CirclesOfTrustExportInterface) {
-    return importFirstCircleOfTrust({ importData, state: this.state });
-  }
-
-  /**
-   * Import all SAML circles of trust
-   * @param {CirclesOfTrustExportInterface} importData Import file name
-   */
-  async importCirclesOfTrust(importData: CirclesOfTrustExportInterface) {
-    return importCirclesOfTrust({ importData, state: this.state });
-  }
-}
+    /**
+     * Import all SAML circles of trust
+     * @param {CirclesOfTrustExportInterface} importData Import file name
+     */
+    async importCirclesOfTrust(importData: CirclesOfTrustExportInterface) {
+      return importCirclesOfTrust({ importData, state });
+    },
+  };
+};
 
 /**
  * Create an empty agent export template

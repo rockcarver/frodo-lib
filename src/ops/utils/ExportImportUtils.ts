@@ -13,101 +13,113 @@ import { FRODO_METADATA_ID } from '../../storage/StaticStorage';
 import { ExportMetaData } from '../OpsTypes';
 import { debugMessage, printMessage } from './Console';
 
-export default class ExportImportUtils {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    getMetadata(): ExportMetaData {
+      return getMetadata({ state });
+    },
 
-  getMetadata(): ExportMetaData {
-    return getMetadata({ state: this.state });
-  }
+    /*
+     * Output str in title case
+     *
+     * e.g.: 'ALL UPPERCASE AND all lowercase' = 'All Uppercase And All Lowercase'
+     */
+    titleCase(input: string) {
+      return titleCase(input);
+    },
 
-  /*
-   * Output str in title case
-   *
-   * e.g.: 'ALL UPPERCASE AND all lowercase' = 'All Uppercase And All Lowercase'
-   */
-  titleCase(input: string) {
-    return titleCase(input);
-  }
+    getRealmString() {
+      return getRealmString({ state });
+    },
 
-  getRealmString() {
-    return getRealmString({ state: this.state });
-  }
+    convertBase64TextToArray(b64text: string) {
+      return convertBase64TextToArray(b64text);
+    },
 
-  convertBase64TextToArray(b64text: string) {
-    return convertBase64TextToArray(b64text);
-  }
+    convertBase64UrlTextToArray(b64UTF8Text: string) {
+      return convertBase64UrlTextToArray(b64UTF8Text);
+    },
 
-  convertBase64UrlTextToArray(b64UTF8Text: string) {
-    return convertBase64UrlTextToArray(b64UTF8Text);
-  }
+    convertTextArrayToBase64(textArray: string[]) {
+      return convertTextArrayToBase64(textArray);
+    },
 
-  convertTextArrayToBase64(textArray: string[]) {
-    return convertTextArrayToBase64(textArray);
-  }
+    convertTextArrayToBase64Url(textArray: string[]) {
+      return convertTextArrayToBase64Url(textArray);
+    },
 
-  convertTextArrayToBase64Url(textArray: string[]) {
-    return convertTextArrayToBase64Url(textArray);
-  }
+    validateImport(metadata): boolean {
+      return validateImport(metadata);
+    },
 
-  validateImport(metadata): boolean {
-    return validateImport(metadata);
-  }
+    getTypedFilename(name: string, type: string, suffix = 'json') {
+      return getTypedFilename(name, type, suffix);
+    },
 
-  getTypedFilename(name: string, type: string, suffix = 'json') {
-    return getTypedFilename(name, type, suffix);
-  }
+    getWorkingDirectory() {
+      return getWorkingDirectory({ state });
+    },
 
-  getWorkingDirectory() {
-    return getWorkingDirectory({ state: this.state });
-  }
+    saveToFile(
+      type: string,
+      data: object,
+      identifier: string,
+      filename: string
+    ) {
+      return saveToFile({
+        type,
+        data,
+        identifier,
+        filename,
+        state,
+      });
+    },
 
-  saveToFile(type: string, data: object, identifier: string, filename: string) {
-    return saveToFile({ type, data, identifier, filename, state: this.state });
-  }
+    /**
+     * Save JSON object to file
+     * @param {Object} data data object
+     * @param {String} filename file name
+     * @return {boolean} true if successful, false otherwise
+     */
+    saveJsonToFile(
+      data: object,
+      filename: string,
+      includeMeta = true
+    ): boolean {
+      return saveJsonToFile({ data, filename, includeMeta, state });
+    },
 
-  /**
-   * Save JSON object to file
-   * @param {Object} data data object
-   * @param {String} filename file name
-   * @return {boolean} true if successful, false otherwise
-   */
-  saveJsonToFile(data: object, filename: string, includeMeta = true): boolean {
-    return saveJsonToFile({ data, filename, includeMeta, state: this.state });
-  }
+    /**
+     * Append text data to file
+     * @param {String} data text data
+     * @param {String} filename file name
+     */
+    appendTextToFile(data: string, filename: string) {
+      return appendTextToFile(data, filename);
+    },
 
-  /**
-   * Append text data to file
-   * @param {String} data text data
-   * @param {String} filename file name
-   */
-  appendTextToFile(data: string, filename: string) {
-    return appendTextToFile(data, filename);
-  }
+    /**
+     * Find files by name
+     * @param {string} fileName file name to search for
+     * @param {boolean} fast return first result and stop search
+     * @param {string} path path to directory where to start the search
+     * @returns {string[]} array of found file paths relative to starting directory
+     */
+    findFilesByName(fileName: string, fast = true, path = './'): string[] {
+      return findFilesByName(fileName, fast, path);
+    },
 
-  /**
-   * Find files by name
-   * @param {string} fileName file name to search for
-   * @param {boolean} fast return first result and stop search
-   * @param {string} path path to directory where to start the search
-   * @returns {string[]} array of found file paths relative to starting directory
-   */
-  findFilesByName(fileName: string, fast = true, path = './'): string[] {
-    return findFilesByName(fileName, fast, path);
-  }
-
-  /**
-   * find all (nested) files in a directory
-   *
-   * @param directory directory to search
-   * @returns list of files
-   */
-  async readFilesRecursive(directory: string): Promise<string[]> {
-    return readFilesRecursive(directory);
-  }
-}
+    /**
+     * find all (nested) files in a directory
+     *
+     * @param directory directory to search
+     * @returns list of files
+     */
+    async readFilesRecursive(directory: string): Promise<string[]> {
+      return readFilesRecursive(directory);
+    },
+  };
+};
 
 export function getMetadata({ state }: { state: State }): ExportMetaData {
   const metadata: ExportMetaData = {

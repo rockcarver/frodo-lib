@@ -6,126 +6,123 @@ import State from '../shared/State';
 
 export const THEMEREALM_ID = 'ui/themerealm';
 
-export default class ThemeOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Get all themes
+     * @param {string} realm realm name
+     * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
+     */
+    async getThemes(): Promise<ThemeSkeleton[]> {
+      return getThemes({ state });
+    },
 
-  /**
-   * Get all themes
-   * @param {string} realm realm name
-   * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
-   */
-  async getThemes(): Promise<ThemeSkeleton[]> {
-    return getThemes({ state: this.state });
-  }
+    /**
+     * Get theme by id
+     * @param {string} themeId theme id
+     * @param {string} realm realm name
+     * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+     */
+    async getTheme(
+      themeId: string,
+      realm: string = state.getRealm()
+    ): Promise<ThemeSkeleton> {
+      return getTheme({ themeId, realm, state });
+    },
 
-  /**
-   * Get theme by id
-   * @param {string} themeId theme id
-   * @param {string} realm realm name
-   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
-   */
-  async getTheme(
-    themeId: string,
-    realm: string = this.state.getRealm()
-  ): Promise<ThemeSkeleton> {
-    return getTheme({ themeId, realm, state: this.state });
-  }
+    /**
+     * Get theme by name
+     * @param {string} themeName theme name
+     * @param {string} realm realm name
+     * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+     */
+    async getThemeByName(
+      themeName: string,
+      realm: string = state.getRealm()
+    ): Promise<ThemeSkeleton> {
+      return getThemeByName({ themeName, realm, state });
+    },
 
-  /**
-   * Get theme by name
-   * @param {string} themeName theme name
-   * @param {string} realm realm name
-   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
-   */
-  async getThemeByName(
-    themeName: string,
-    realm: string = this.state.getRealm()
-  ): Promise<ThemeSkeleton> {
-    return getThemeByName({ themeName, realm, state: this.state });
-  }
+    /**
+     * Put theme by id
+     * @param {string} themeId theme id
+     * @param {ThemeSkeleton} themeData theme object
+     * @param {string} realm realm name
+     * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+     */
+    async putTheme(
+      themeId: string,
+      themeData: ThemeSkeleton,
+      realm: string = state.getRealm()
+    ): Promise<ThemeSkeleton> {
+      return putTheme({ themeId, themeData, realm, state });
+    },
 
-  /**
-   * Put theme by id
-   * @param {string} themeId theme id
-   * @param {ThemeSkeleton} themeData theme object
-   * @param {string} realm realm name
-   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
-   */
-  async putTheme(
-    themeId: string,
-    themeData: ThemeSkeleton,
-    realm: string = this.state.getRealm()
-  ): Promise<ThemeSkeleton> {
-    return putTheme({ themeId, themeData, realm, state: this.state });
-  }
+    /**
+     * Put theme by name
+     * @param {String} themeName theme name
+     * @param {ThemeSkeleton} themeData theme object
+     * @param {string} realm realm name
+     * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+     */
+    async putThemeByName(
+      themeName: string,
+      themeData: ThemeSkeleton,
+      realm: string = state.getRealm()
+    ): Promise<ThemeSkeleton> {
+      return putThemeByName({ themeName, themeData, realm, state });
+    },
 
-  /**
-   * Put theme by name
-   * @param {String} themeName theme name
-   * @param {ThemeSkeleton} themeData theme object
-   * @param {string} realm realm name
-   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
-   */
-  async putThemeByName(
-    themeName: string,
-    themeData: ThemeSkeleton,
-    realm: string = this.state.getRealm()
-  ): Promise<ThemeSkeleton> {
-    return putThemeByName({ themeName, themeData, realm, state: this.state });
-  }
+    /**
+     * Put all themes
+     * @param {Map<string, ThemeSkeleton>} allThemesData themes object containing all themes for all realms
+     * @param {string} realm realm name
+     * @returns {Promise<Map<string, ThemeSkeleton>>} a promise that resolves to a themes object
+     */
+    async putThemes(
+      themeMap: Map<string, ThemeSkeleton>
+    ): Promise<Map<string, ThemeSkeleton>> {
+      return putThemes({ themeMap, state });
+    },
 
-  /**
-   * Put all themes
-   * @param {Map<string, ThemeSkeleton>} allThemesData themes object containing all themes for all realms
-   * @param {string} realm realm name
-   * @returns {Promise<Map<string, ThemeSkeleton>>} a promise that resolves to a themes object
-   */
-  async putThemes(
-    themeMap: Map<string, ThemeSkeleton>
-  ): Promise<Map<string, ThemeSkeleton>> {
-    return putThemes({ themeMap, state: this.state });
-  }
+    /**
+     * Delete theme by id
+     * @param {string} themeId theme id
+     * @param {string} realm realm name
+     * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
+     */
+    async deleteTheme(
+      themeId: string,
+      realm: string = state.getRealm()
+    ): Promise<ThemeSkeleton> {
+      return deleteTheme({ themeId, realm, state });
+    },
 
-  /**
-   * Delete theme by id
-   * @param {string} themeId theme id
-   * @param {string} realm realm name
-   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
-   */
-  async deleteTheme(
-    themeId: string,
-    realm: string = this.state.getRealm()
-  ): Promise<ThemeSkeleton> {
-    return deleteTheme({ themeId, realm, state: this.state });
-  }
+    /**
+     * Delete theme by name
+     * @param {string} themeName theme name
+     * @param {string} realm realm name
+     * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
+     */
+    async deleteThemeByName(
+      themeName: string,
+      realm: string = state.getRealm()
+    ): Promise<ThemeSkeleton> {
+      return deleteThemeByName({ themeName, realm, state });
+    },
 
-  /**
-   * Delete theme by name
-   * @param {string} themeName theme name
-   * @param {string} realm realm name
-   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
-   */
-  async deleteThemeByName(
-    themeName: string,
-    realm: string = this.state.getRealm()
-  ): Promise<ThemeSkeleton> {
-    return deleteThemeByName({ themeName, realm, state: this.state });
-  }
-
-  /**
-   * Delete all themes
-   * @param {string} realm realm name
-   * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
-   */
-  async deleteThemes(
-    realm: string = this.state.getRealm()
-  ): Promise<ThemeSkeleton[]> {
-    return deleteThemes({ realm, state: this.state });
-  }
-}
+    /**
+     * Delete all themes
+     * @param {string} realm realm name
+     * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
+     */
+    async deleteThemes(
+      realm: string = state.getRealm()
+    ): Promise<ThemeSkeleton[]> {
+      return deleteThemes({ realm, state });
+    },
+  };
+};
 
 /**
  * Get realm themes
