@@ -25,102 +25,99 @@ import { getMetadata } from './utils/ExportImportUtils';
 import State from '../shared/State';
 import { debugMessage } from './utils/Console';
 
-export default class IdpOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Get all social identity providers
+     * @returns {Promise} a promise that resolves to an object containing an array of social identity providers
+     */
+    async getSocialIdentityProviders() {
+      return getSocialIdentityProviders({ state });
+    },
 
-  /**
-   * Get all social identity providers
-   * @returns {Promise} a promise that resolves to an object containing an array of social identity providers
-   */
-  async getSocialIdentityProviders() {
-    return getSocialIdentityProviders({ state: this.state });
-  }
+    /**
+     * Get social identity provider by id
+     * @param {String} providerId social identity provider id/name
+     * @returns {Promise} a promise that resolves a social identity provider object
+     */
+    async getSocialProvider(providerId: string) {
+      return getSocialProvider({ providerId, state });
+    },
 
-  /**
-   * Get social identity provider by id
-   * @param {String} providerId social identity provider id/name
-   * @returns {Promise} a promise that resolves a social identity provider object
-   */
-  async getSocialProvider(providerId: string) {
-    return getSocialProvider({ providerId, state: this.state });
-  }
+    async putProviderByTypeAndId(
+      providerType: string,
+      providerId: string,
+      providerData: SocialIdpSkeleton
+    ) {
+      return putProviderByTypeAndId({
+        providerType,
+        providerId,
+        providerData,
+        state,
+      });
+    },
 
-  async putProviderByTypeAndId(
-    providerType: string,
-    providerId: string,
-    providerData: SocialIdpSkeleton
-  ) {
-    return putProviderByTypeAndId({
-      providerType,
-      providerId,
-      providerData,
-      state: this.state,
-    });
-  }
+    /**
+     * Delete social identity provider by id
+     * @param {String} providerId social identity provider id/name
+     * @returns {Promise} a promise that resolves a social identity provider object
+     */
+    async deleteSocialProvider(providerId: string): Promise<unknown> {
+      return deleteSocialProvider({ providerId, state });
+    },
 
-  /**
-   * Delete social identity provider by id
-   * @param {String} providerId social identity provider id/name
-   * @returns {Promise} a promise that resolves a social identity provider object
-   */
-  async deleteSocialProvider(providerId: string): Promise<unknown> {
-    return deleteSocialProvider({ providerId, state: this.state });
-  }
+    /**
+     * Export social provider by id
+     * @param {string} providerId provider id/name
+     * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
+     */
+    async exportSocialProvider(
+      providerId: string
+    ): Promise<SocialProviderExportInterface> {
+      return exportSocialProvider({ providerId, state });
+    },
 
-  /**
-   * Export social provider by id
-   * @param {string} providerId provider id/name
-   * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
-   */
-  async exportSocialProvider(
-    providerId: string
-  ): Promise<SocialProviderExportInterface> {
-    return exportSocialProvider({ providerId, state: this.state });
-  }
+    /**
+     * Export all providers
+     * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
+     */
+    async exportSocialProviders(): Promise<SocialProviderExportInterface> {
+      return exportSocialProviders({ state });
+    },
 
-  /**
-   * Export all providers
-   * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
-   */
-  async exportSocialProviders(): Promise<SocialProviderExportInterface> {
-    return exportSocialProviders({ state: this.state });
-  }
+    /**
+     * Import provider by id/name
+     * @param {string} providerId provider id/name
+     * @param {SocialProviderExportInterface} importData import data
+     */
+    async importSocialProvider(
+      providerId: string,
+      importData: SocialProviderExportInterface
+    ): Promise<boolean> {
+      return importSocialProvider({ providerId, importData, state });
+    },
 
-  /**
-   * Import provider by id/name
-   * @param {string} providerId provider id/name
-   * @param {SocialProviderExportInterface} importData import data
-   */
-  async importSocialProvider(
-    providerId: string,
-    importData: SocialProviderExportInterface
-  ): Promise<boolean> {
-    return importSocialProvider({ providerId, importData, state: this.state });
-  }
+    /**
+     * Import first provider
+     * @param {SocialProviderExportInterface} importData import data
+     */
+    async importFirstSocialProvider(
+      importData: SocialProviderExportInterface
+    ): Promise<boolean> {
+      return importFirstSocialProvider({ importData, state });
+    },
 
-  /**
-   * Import first provider
-   * @param {SocialProviderExportInterface} importData import data
-   */
-  async importFirstSocialProvider(
-    importData: SocialProviderExportInterface
-  ): Promise<boolean> {
-    return importFirstSocialProvider({ importData, state: this.state });
-  }
-
-  /**
-   * Import all providers
-   * @param {SocialProviderExportInterface} importData import data
-   */
-  async importSocialProviders(
-    importData: SocialProviderExportInterface
-  ): Promise<boolean> {
-    return importSocialProviders({ importData, state: this.state });
-  }
-}
+    /**
+     * Import all providers
+     * @param {SocialProviderExportInterface} importData import data
+     */
+    async importSocialProviders(
+      importData: SocialProviderExportInterface
+    ): Promise<boolean> {
+      return importSocialProviders({ importData, state });
+    },
+  };
+};
 
 export interface SocialProviderExportInterface {
   meta?: ExportMetaData;

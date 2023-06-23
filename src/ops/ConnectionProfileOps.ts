@@ -14,91 +14,88 @@ import { saveJsonToFile } from './utils/ExportImportUtils';
 import { isValidUrl } from './utils/OpsUtils';
 import State from '../shared/State';
 
-export default class ConnectionProfileOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Get connection profiles file name
+     * @returns {string} connection profiles file name
+     */
+    getConnectionProfilesPath(): string {
+      return getConnectionProfilesPath({ state });
+    },
 
-  /**
-   * Get connection profiles file name
-   * @returns {string} connection profiles file name
-   */
-  getConnectionProfilesPath(): string {
-    return getConnectionProfilesPath({ state: this.state });
-  }
+    /**
+     * Find connection profiles
+     * @param {ConnectionsFileInterface} connectionProfiles connection profile object
+     * @param {string} host host url or unique substring
+     * @returns {SecureConnectionProfileInterface[]} Array of connection profiles
+     */
+    findConnectionProfiles(
+      connectionProfiles: ConnectionsFileInterface,
+      host: string
+    ): SecureConnectionProfileInterface[] {
+      return findConnectionProfiles({
+        connectionProfiles,
+        host,
+        state,
+      });
+    },
 
-  /**
-   * Find connection profiles
-   * @param {ConnectionsFileInterface} connectionProfiles connection profile object
-   * @param {string} host host url or unique substring
-   * @returns {SecureConnectionProfileInterface[]} Array of connection profiles
-   */
-  findConnectionProfiles(
-    connectionProfiles: ConnectionsFileInterface,
-    host: string
-  ): SecureConnectionProfileInterface[] {
-    return findConnectionProfiles({
-      connectionProfiles,
-      host,
-      state: this.state,
-    });
-  }
+    /**
+     * Initialize connection profiles
+     *
+     * This method is called from app.ts and runs before any of the message handlers are registered.
+     * Therefore none of the Console message functions will produce any output.
+     */
+    async initConnectionProfiles() {
+      initConnectionProfiles({ state });
+    },
 
-  /**
-   * Initialize connection profiles
-   *
-   * This method is called from app.ts and runs before any of the message handlers are registered.
-   * Therefore none of the Console message functions will produce any output.
-   */
-  async initConnectionProfiles() {
-    initConnectionProfiles({ state: this.state });
-  }
+    /**
+     * Get connection profile by host
+     * @param {String} host host tenant host url or unique substring
+     * @returns {Object} connection profile or null
+     */
+    async getConnectionProfileByHost(
+      host: string
+    ): Promise<ConnectionProfileInterface> {
+      return getConnectionProfileByHost({ host, state });
+    },
 
-  /**
-   * Get connection profile by host
-   * @param {String} host host tenant host url or unique substring
-   * @returns {Object} connection profile or null
-   */
-  async getConnectionProfileByHost(
-    host: string
-  ): Promise<ConnectionProfileInterface> {
-    return getConnectionProfileByHost({ host, state: this.state });
-  }
+    /**
+     * Get connection profile
+     * @returns {Object} connection profile or null
+     */
+    async getConnectionProfile(): Promise<ConnectionProfileInterface> {
+      return getConnectionProfile({ state });
+    },
 
-  /**
-   * Get connection profile
-   * @returns {Object} connection profile or null
-   */
-  async getConnectionProfile(): Promise<ConnectionProfileInterface> {
-    return getConnectionProfile({ state: this.state });
-  }
+    /**
+     * Save connection profile
+     * @param {string} host host url for new profiles or unique substring for existing profiles
+     * @returns {Promise<boolean>} true if the operation succeeded, false otherwise
+     */
+    async saveConnectionProfile(host: string): Promise<boolean> {
+      return saveConnectionProfile({ host, state });
+    },
 
-  /**
-   * Save connection profile
-   * @param {string} host host url for new profiles or unique substring for existing profiles
-   * @returns {Promise<boolean>} true if the operation succeeded, false otherwise
-   */
-  async saveConnectionProfile(host: string): Promise<boolean> {
-    return saveConnectionProfile({ host, state: this.state });
-  }
+    /**
+     * Delete connection profile
+     * @param {string} host host tenant host url or unique substring
+     */
+    deleteConnectionProfile(host: string): void {
+      deleteConnectionProfile({ host, state });
+    },
 
-  /**
-   * Delete connection profile
-   * @param {string} host host tenant host url or unique substring
-   */
-  deleteConnectionProfile(host: string): void {
-    deleteConnectionProfile({ host, state: this.state });
-  }
-
-  /**
-   * Create a new service account using auto-generated parameters
-   * @returns {Promise<IdObjectSkeletonInterface>} A promise resolving to a service account object
-   */
-  async addNewServiceAccount(): Promise<IdObjectSkeletonInterface> {
-    return addNewServiceAccount({ state: this.state });
-  }
-}
+    /**
+     * Create a new service account using auto-generated parameters
+     * @returns {Promise<IdObjectSkeletonInterface>} A promise resolving to a service account object
+     */
+    async addNewServiceAccount(): Promise<IdObjectSkeletonInterface> {
+      return addNewServiceAccount({ state });
+    },
+  };
+};
 
 const fileOptions = {
   indentation: 4,

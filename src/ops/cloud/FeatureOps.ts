@@ -5,29 +5,26 @@ import {
 import State from '../../shared/State';
 import { debugMessage } from '../utils/Console';
 
-export default class FeatureOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    /**
+     * Get all features
+     * @returns {Promise<FeatureInterface[]>} a promise that resolves to an array of feature objects
+     */
+    async getFeatures(): Promise<FeatureInterface[]> {
+      return getFeatures({ state });
+    },
 
-  /**
-   * Get all features
-   * @returns {Promise<FeatureInterface[]>} a promise that resolves to an array of feature objects
-   */
-  async getFeatures(): Promise<FeatureInterface[]> {
-    return getFeatures({ state: this.state });
-  }
-
-  /**
-   * Check if feature is available
-   * @param {string} featureId feature id (e.g. 'service-accounts')
-   * @returns {Promise<boolean>} a promise that resolves to true if the feature is available and to false otherwise
-   */
-  async hasFeature(featureId: string): Promise<boolean> {
-    return hasFeature({ featureId, state: this.state });
-  }
-}
+    /**
+     * Check if feature is available
+     * @param {string} featureId feature id (e.g. 'service-accounts')
+     * @returns {Promise<boolean>} a promise that resolves to true if the feature is available and to false otherwise
+     */
+    async hasFeature(featureId: string): Promise<boolean> {
+      return hasFeature({ featureId, state });
+    },
+  };
+};
 
 /**
  * Get all features

@@ -5,20 +5,17 @@ import { generateReleaseApi } from '../../api/BaseApi';
 import { fileURLToPath } from 'url';
 import State from '../../shared/State';
 
-export default class Version {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
+export default (state: State) => {
+  return {
+    getVersion() {
+      return getVersion({ state });
+    },
 
-  getVersion() {
-    return getVersion({ state: this.state });
-  }
-
-  async getAllVersions(endpoints: { base: string; path: string }[]) {
-    return getAllVersions({ endpoints, state: this.state });
-  }
-}
+    async getAllVersions(endpoints: { base: string; path: string }[]) {
+      return getAllVersions({ endpoints, state });
+    },
+  };
+};
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

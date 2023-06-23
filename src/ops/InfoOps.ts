@@ -4,20 +4,17 @@ import { getServerVersionInfo } from '../api/ServerInfoApi';
 import { getServiceAccount } from './cloud/ServiceAccountOps';
 import State from '../shared/State';
 
-export default class InfoOps {
-  state: State;
-  constructor(state: State) {
-    this.state = state;
-  }
-
-  /**
-   * Get info about the platform instance
-   * @returns {Promise<PlatformInfo>} a promise that resolves to a json blob with information about the instance and tokens
-   */
-  getInfo(): Promise<PlatformInfo> {
-    return getInfo(this.state);
-  }
-}
+export default (state: State) => {
+  return {
+    /**
+     * Get info about the platform instance
+     * @returns {Promise<PlatformInfo>} a promise that resolves to a json blob with information about the instance and tokens
+     */
+    getInfo(): Promise<PlatformInfo> {
+      return getInfo(state);
+    },
+  };
+};
 
 export interface PlatformInfoInterface {
   host: string;
