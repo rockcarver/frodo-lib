@@ -10,7 +10,8 @@ CODE_OF_CONDUCT.md
 docs/
 esm/**/*.test.js
 esm/test/
-gulpfile.mjs
+jest.config.cjs.json
+jest.config.esm.json
 jsconfig.json
 resources/
 src/*
