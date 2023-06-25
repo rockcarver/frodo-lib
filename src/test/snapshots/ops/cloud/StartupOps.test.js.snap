@@ -1,0 +1,58 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`StartupOps applyUpdates() 1: Apply updates without waiting 1`] = `true`;
+
+exports[`StartupOps applyUpdates() 2: Apply updates during tenant restart 1`] = `false`;
+
+exports[`StartupOps checkForUpdates() 1: Check for updates 1`] = `
+{
+  "secrets": [
+    {
+      "_id": "esv-frodo-test-secret-1",
+      "activeVersion": "1",
+      "description": "description1",
+      "encoding": "generic",
+      "lastChangeDate": "2026-04-22T16:12:09.189314Z",
+      "lastChangedBy": "Frodo-SA-1773261131370",
+      "loaded": false,
+      "loadedVersion": "",
+      "useInPlaceholders": true,
+    },
+    {
+      "_id": "esv-frodo-test-secret-2",
+      "activeVersion": "1",
+      "description": "description2",
+      "encoding": "generic",
+      "lastChangeDate": "2026-04-22T16:12:10.841436Z",
+      "lastChangedBy": "Frodo-SA-1773261131370",
+      "loaded": false,
+      "loadedVersion": "",
+      "useInPlaceholders": true,
+    },
+  ],
+  "variables": [
+    {
+      "_id": "esv-frodo-test-variable-1",
+      "description": "description1",
+      "expressionType": "string",
+      "lastChangeDate": "2026-04-22T16:12:06.780996Z",
+      "lastChangedBy": "Frodo-SA-1773261131370",
+      "loaded": false,
+      "value": "value1",
+    },
+    {
+      "_id": "esv-frodo-test-variable-2",
+      "description": "description2",
+      "expressionType": "int",
+      "lastChangeDate": "2026-04-22T16:12:08.089454Z",
+      "lastChangedBy": "Frodo-SA-1773261131370",
+      "loaded": false,
+      "value": "42",
+    },
+  ],
+}
+`;
+
+exports[`StartupOps getStatus() 1: Get restart status 1`] = `"ready"`;
+
+exports[`StartupOps applyUpdates() 1: Apply updates and wait for completion 1`] = `true`;
