@@ -15,6 +15,8 @@
   "scripts": {
     "test": "npm run build && npm run test:only",
     "test:only": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --silent",
+    "test:cjs": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --silent --config jest.config.cjs.json",
+    "test:esm": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --silent --config jest.config.esm.json",
     "test:debug": "node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false",
     "test:record": "FRODO_POLLY_MODE=record node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false --runInBand --updateSnapshot --testPathIgnorePatterns cjs --testPathPattern",
     "test:record_noauth": "FRODO_POLLY_MODE=record_noauth node --no-warnings --experimental-vm-modules --experimental-specifier-resolution=node node_modules/jest/bin/jest.js --verbose=true --silent=false --updateSnapshot --testPathIgnorePatterns cjs --testPathPattern",
