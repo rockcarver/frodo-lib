@@ -1,0 +1,19 @@
+{
+  "testTimeout": 30000,
+  "testRunner": "jest-jasmine2",
+  "roots": [
+    "<rootDir>/src/"
+  ],
+  "testMatch": [
+    "**/?(*.)(test).ts"
+  ],
+  "testPathIgnorePatterns": [
+    "/node_modules/"
+  ],
+  "transform": {
+    "\\.ts$": ["babel-jest", { "configFile": "./babel.config.esm.json" }]
+  },
+  "extensionsToTreatAsEsm": [".ts"],
+  "snapshotResolver": "<rootDir>/snapshotResolve.js",
+  "verbose": false
+}
