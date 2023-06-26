@@ -35,8 +35,9 @@
     "testTimeout": 30000,
     "testRunner": "jest-jasmine2",
     "roots": [
+      "<rootDir>/cjs/",
       "<rootDir>/esm/",
-      "<rootDir>/cjs/"
+      "<rootDir>/src/"
     ],
     "testMatch": [
       "**/?(*.)(test).js"
