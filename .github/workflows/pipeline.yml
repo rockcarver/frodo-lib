@@ -44,7 +44,7 @@ jobs:
         id: version-bump
         uses: 'phips28/gh-action-bump-version@master'
         with:
-          major-wording: 'NO MAJOR RELEASES IN THIS BRANCH! Capped at 1.x to avoid version collisions.'
+          major-wording: 'MAJOR RELEASE.'
           minor-wording: 'MINOR RELEASE'
           patch-wording: 'PATCH RELEASE'
           rc-wording: ''
@@ -170,7 +170,7 @@ jobs:
           npm audit --omit=dev
 
   npm-release:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/next'
     needs: [build, smoke-tests]
     runs-on: ubuntu-latest
     steps:
@@ -212,7 +212,7 @@ jobs:
           npm dist-tag add @rockcarver/frodo-lib@${{ needs.build.outputs.newVersion }} next
 
   release:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/next'
     needs: [build, npm-release]
     name: 'Release'
     runs-on: ubuntu-latest
