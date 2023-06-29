@@ -1,4 +1,3 @@
-import { EmailTemplateSkeleton } from '../api/ApiTypes';
 import {
   EmailTemplateSkeleton,
   NoIdObjectSkeletonInterface,
