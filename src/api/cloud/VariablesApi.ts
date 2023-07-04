@@ -9,7 +9,12 @@ const variableURLTemplate = '%s/environment/variables/%s';
 const variableSetDescriptionURLTemplate = `${variableURLTemplate}?_action=setDescription`;
 
 const apiVersion = 'protocol=1.0,resource=1.0';
-const getApiConfig = () => {
+
+/**
+ * Get the API config for secrets - exported to allow external calls into variable APIs
+ * @returns the API config for secrets
+ */
+export const getApiConfig = () => {
   const configPath = getCurrentRealmPath();
   return {
     path: `${configPath}/environment/secrets`,
@@ -49,17 +54,49 @@ export async function getVariable(variableId) {
   return data;
 }
 
+export type ExpressionType =
+  | 'string'
+  | 'list'
+  | 'array'
+  | 'object'
+  | 'bool'
+  | 'int'
+  | 'number'
+  | 'base64encodedinlined'
+  | 'keyvaluelist';
+
+export type PutVariableRequest = {
+  variableId: string;
+  value?: string;
+  description?: string;
+  expressionType?: ExpressionType;
+};
+
 /**
- * Put variable by id/name
- * @param {string} variableId variable id/name
- * @param {string} value variable value
- * @param {string} description variable description
+ * Put variable by request
+ * @param {PutVariableRequest} request with the chosen parameters
  * @returns {Promise<unknown>} a promise that resolves to a variable object
  */
-export async function putVariable(variableId, value, description) {
-  const variableData = {};
-  if (value) variableData['valueBase64'] = encode(value);
-  if (description) variableData['description'] = description;
+export async function putVariableByRequest({
+  variableId,
+  value,
+  description,
+  expressionType,
+}: PutVariableRequest) {
+  const variableData: {
+    valueBase64?: string;
+    description?: string;
+    expressionType?: string;
+  } = {};
+  if (value) {
+    variableData.valueBase64 = encode(value);
+  }
+  if (description) {
+    variableData.description = description;
+  }
+  if (expressionType) {
+    variableData.expressionType = expressionType;
+  }
   const urlString = util.format(
     variableURLTemplate,
     getTenantURL(state.getHost()),
@@ -73,6 +110,22 @@ export async function putVariable(variableId, value, description) {
     }
   );
   return data;
+}
+
+/**
+ * Put variable by id/name
+ * @deprecated use putVariableByRequest and provide an expression type
+ * @param {string} variableId variable id/name
+ * @param {string} value variable value
+ * @param {string} description variable description
+ * @returns {Promise<unknown>} a promise that resolves to a variable object
+ */
+export async function putVariable(
+  variableId: string,
+  value?: string,
+  description?: string
+) {
+  return putVariableByRequest({ variableId, value, description });
 }
 
 /**

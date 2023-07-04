@@ -60,3 +60,6 @@ export * as ExportImportUtils from './ops/utils/ExportImportUtils';
 // lib should be stateless, an aplication should own its state
 export * as state from './shared/State';
 export * as constants from './storage/StaticStorage';
+// as an escape hatch for those using the FRODO library
+// to call APIs directly
+export * as BaseApiRaw from './api/BaseApi';
