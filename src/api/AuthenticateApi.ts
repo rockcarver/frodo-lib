@@ -1,6 +1,6 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
-import * as state from '../shared/State';
+import State from '../shared/State';
 import { getRealmPath } from './utils/ApiUtils';
 
 const authenticateUrlTemplate = '%s/json%s/authenticate';
@@ -18,10 +18,13 @@ const getApiConfig = () => ({
  * @param {{ [k: string]: string | number | boolean | string[] }} map name/value map
  * @returns filled response body so it can be used as input to another call to /authenticate
  */
-export function fillCallbacks(
-  response: object,
-  map: { [k: string]: string | number | boolean | string[] }
-): object {
+export function fillCallbacks({
+  response,
+  map,
+}: {
+  response: object;
+  map: { [k: string]: string | number | boolean | string[] };
+}): object {
   const body = JSON.parse(JSON.stringify(response));
   for (const callback of body.callbacks) {
     callback.input[0].value = map[callback.input[0].name];
@@ -37,12 +40,19 @@ export function fillCallbacks(
  * @param {string} service name of authentication service/journey
  * @returns Promise resolving to the authentication service response
  */
-export async function step(
+export async function step({
   body = {},
   config = {},
   realm = '/',
-  service: string = undefined
-) {
+  service = undefined,
+  state,
+}: {
+  body?: object;
+  config?: object;
+  realm?: string;
+  service?: string;
+  state: State;
+}) {
   const urlString =
     service || state.getAuthenticationService()
       ? util.format(
@@ -56,10 +66,9 @@ export async function step(
           state.getHost(),
           getRealmPath(realm)
         );
-  const { data } = await generateAmApi(getApiConfig()).post(
-    urlString,
-    body,
-    config
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).post(urlString, body, config);
   return data;
 }

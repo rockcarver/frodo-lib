@@ -4,9 +4,18 @@ on:
   pull_request:
     branches:
       - 'main'
+    paths-ignore:
+      - '**/README.md'
+      - '**/CODE_OF_CONDUCT.md'
+      - 'docs/**'
   push:
     branches:
       - 'main'
+    paths-ignore:
+      - '**/pipeline.yml'
+      - '**/README.md'
+      - '**/CODE_OF_CONDUCT.md'
+      - 'docs/**'
   workflow_dispatch:
 
 env:
@@ -36,7 +45,7 @@ jobs:
         id: version-bump
         uses: 'phips28/gh-action-bump-version@master'
         with:
-          major-wording: 'NO MAJOR RELEASES IN THIS BRANCH! Capped at 1.x to avoid version collisions.'
+          major-wording: 'MAJOR RELEASE.'
           minor-wording: 'MINOR RELEASE'
           patch-wording: 'PATCH RELEASE'
           rc-wording: ''
@@ -94,7 +103,7 @@ jobs:
     needs: [build]
     strategy:
       matrix:
-        node-version: [18, 16, 14]
+        node-version: [20, 18, 16]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     # Service containers to run with `smoke-tests`

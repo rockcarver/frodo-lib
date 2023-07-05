@@ -10,6 +10,7 @@ import {
   ThemeSkeleton,
   TreeSkeleton,
 } from '../api/ApiTypes';
+import State from '../shared/State';
 
 /**
  * Tree export options
@@ -72,6 +73,17 @@ export interface AgentExportInterface {
   agents: Record<string, AgentSkeleton>;
 }
 
+export interface CirclesOfTrustExportInterface {
+  meta?: ExportMetaData;
+  script: Record<string, ScriptSkeleton>;
+  saml: {
+    hosted: Record<string, Saml2ProviderSkeleton>;
+    remote: Record<string, Saml2ProviderSkeleton>;
+    metadata: Record<string, string[]>;
+    cot: Record<string, CircleOfTrustSkeleton>;
+  };
+}
+
 export interface Saml2ExportInterface {
   meta?: ExportMetaData;
   script: Record<string, ScriptSkeleton>;
@@ -92,7 +104,7 @@ export interface TreeDependencyMapInterface {
 }
 
 export interface TreeExportResolverInterface {
-  (treeId: string): Promise<SingleTreeExportInterface>;
+  (treeId: string, state: State): Promise<SingleTreeExportInterface>;
 }
 
 export interface ScriptExportInterface {
@@ -100,19 +112,17 @@ export interface ScriptExportInterface {
   script: Record<string, ScriptSkeleton>;
 }
 
-export enum NodeClassification {
-  STANDARD = 'standard',
-  CUSTOM = 'custom',
-  CLOUD = 'cloud',
-  PREMIUM = 'premium',
-}
+export type NodeClassificationType =
+  | 'standard'
+  | 'custom'
+  | 'cloud'
+  | 'premium';
 
-export enum JourneyClassification {
-  STANDARD = 'standard',
-  CUSTOM = 'custom',
-  CLOUD = 'cloud',
-  PREMIUM = 'premium',
-}
+export type JourneyClassificationType =
+  | 'standard'
+  | 'custom'
+  | 'cloud'
+  | 'premium';
 
 export interface MultiOpStatusInterface {
   total: number;

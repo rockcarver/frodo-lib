@@ -1,4 +1,4 @@
-import { AmServiceSkeleton } from '../api/ApiTypes';
+import { AmServiceSkeleton, FullService } from '../api/ApiTypes';
 import {
   deleteService,
   deleteServiceNextDescendent,
@@ -7,14 +7,117 @@ import {
   getServiceDescendents,
   putService,
   putServiceNextDescendent,
-  ServiceNextDescendent,
 } from '../api/ServiceApi';
+import State from '../shared/State';
 import { ServiceExportInterface } from './OpsTypes';
 import { debugMessage, printMessage } from './utils/Console';
 
-interface FullService extends AmServiceSkeleton {
-  nextDescendents?: ServiceNextDescendent[];
-}
+export default (state: State) => {
+  return {
+    createServiceExportTemplate(): ServiceExportInterface {
+      return createServiceExportTemplate();
+    },
+
+    /**
+     * Get list of services
+     * @param {boolean} globalConfig true if the list of global services is requested, false otherwise. Default: false.
+     */
+    async getListOfServices(globalConfig = false) {
+      return getListOfServices({ globalConfig, state });
+    },
+
+    /**
+     * Get all services including their descendents.
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     * @returns Promise resolving to an array of services with their descendants
+     */
+    async getFullServices(globalConfig = false): Promise<FullService[]> {
+      return getFullServices({ globalConfig, state });
+    },
+
+    /**
+     * Deletes the specified service
+     * @param {string} serviceId The service to delete
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     */
+    async deleteFullService(serviceId: string, globalConfig = false) {
+      return deleteFullService({ serviceId, globalConfig, state });
+    },
+
+    /**
+     * Deletes all services
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     */
+    async deleteFullServices(globalConfig = false) {
+      return deleteFullServices({ globalConfig, state });
+    },
+
+    /**
+     * Export service. The response can be saved to file as is.
+     * @param serviceId service id/name
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     * @returns {Promise<ServiceExportInterface>} Promise resolving to a ServiceExportInterface object.
+     */
+    async exportService(
+      serviceId: string,
+      globalConfig = false
+    ): Promise<ServiceExportInterface> {
+      return exportService({ serviceId, globalConfig, state });
+    },
+
+    /**
+     * Export all services
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     */
+    async exportServices(
+      globalConfig = false
+    ): Promise<ServiceExportInterface> {
+      return exportServices({ globalConfig, state });
+    },
+
+    /**
+     * Imports a single service using a reference to the service and a file to read the data from. Optionally clean (remove) an existing service first
+     * @param {string} serviceId The service id/name to add
+     * @param {ServiceExportInterface} importData The service configuration export data to import
+     * @param {boolean} clean Indicates whether to remove a possible existing service with the same id first.
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     * @returns Promise resolving when the service has been imported
+     */
+    async importService(
+      serviceId: string,
+      importData: ServiceExportInterface,
+      clean: boolean,
+      globalConfig = false
+    ): Promise<AmServiceSkeleton> {
+      return importService({
+        serviceId,
+        importData,
+        clean,
+        globalConfig,
+        state,
+      });
+    },
+
+    /**
+     * Imports multiple services from the same file. Optionally clean (remove) existing services first
+     * @param {ServiceExportInterface} importData The service configuration export data to import
+     * @param {boolean} clean Indicates whether to remove possible existing services first
+     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     */
+    async importServices(
+      importData: ServiceExportInterface,
+      clean: boolean,
+      globalConfig = false
+    ) {
+      return importServices({
+        importData,
+        clean,
+        globalConfig,
+        state,
+      });
+    },
+  };
+};
 
 /**
  * Create an empty service export template
@@ -31,10 +134,16 @@ export function createServiceExportTemplate(): ServiceExportInterface {
  * Get list of services
  * @param {boolean} globalConfig true if the list of global services is requested, false otherwise. Default: false.
  */
-export async function getListOfServices(globalConfig = false) {
-  debugMessage(`ServiceOps.getListOfServices: start`);
-  const services = (await _getListOfServices(globalConfig)).result;
-  debugMessage(`ServiceOps.getListOfServices: end`);
+export async function getListOfServices({
+  globalConfig = false,
+  state,
+}: {
+  globalConfig: boolean;
+  state: State;
+}) {
+  debugMessage({ message: `ServiceOps.getListOfServices: start`, state });
+  const services = (await _getListOfServices({ globalConfig, state })).result;
+  debugMessage({ message: `ServiceOps.getListOfServices: end`, state });
   return services;
 }
 
@@ -43,20 +152,30 @@ export async function getListOfServices(globalConfig = false) {
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns Promise resolving to an array of services with their descendants
  */
-export async function getFullServices(
-  globalConfig = false
-): Promise<FullService[]> {
-  debugMessage(
-    `ServiceOps.getFullServices: start, globalConfig=${globalConfig}`
-  );
-  const serviceList = (await _getListOfServices(globalConfig)).result;
+export async function getFullServices({
+  globalConfig = false,
+  state,
+}: {
+  globalConfig: boolean;
+  state: State;
+}): Promise<FullService[]> {
+  debugMessage({
+    message: `ServiceOps.getFullServices: start, globalConfig=${globalConfig}`,
+    state,
+  });
+  const serviceList = (await _getListOfServices({ globalConfig, state }))
+    .result;
 
   const fullServiceData = await Promise.all(
     serviceList.map(async (listItem) => {
       try {
         const [service, nextDescendents] = await Promise.all([
-          getService(listItem._id, globalConfig),
-          getServiceDescendents(listItem._id, globalConfig),
+          getService({ serviceId: listItem._id, globalConfig, state }),
+          getServiceDescendents({
+            serviceId: listItem._id,
+            globalConfig,
+            state,
+          }),
         ]);
 
         return {
@@ -72,16 +191,17 @@ export async function getFullServices(
           )
         ) {
           const message = error.response?.data?.message;
-          printMessage(
-            `Unable to retrieve data for ${listItem._id} with error: ${message}`,
-            'error'
-          );
+          printMessage({
+            message: `Unable to retrieve data for ${listItem._id} with error: ${message}`,
+            type: 'error',
+            state,
+          });
         }
       }
     })
   );
 
-  debugMessage(`ServiceOps.getFullServices: end`);
+  debugMessage({ message: `ServiceOps.getFullServices: end`, state });
   return fullServiceData.filter((data) => !!data); // make sure to filter out any undefined objects
 }
 
@@ -92,15 +212,23 @@ export async function getFullServices(
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns promise resolving to a service object
  */
-async function putFullService(
-  serviceId: string,
-  fullServiceData: FullService,
-  clean: boolean,
-  globalConfig = false
-): Promise<AmServiceSkeleton> {
-  debugMessage(
-    `ServiceOps.putFullService: start, serviceId=${serviceId}, globalConfig=${globalConfig}`
-  );
+async function putFullService({
+  serviceId,
+  fullServiceData,
+  clean,
+  globalConfig = false,
+  state,
+}: {
+  serviceId: string;
+  fullServiceData: FullService;
+  clean: boolean;
+  globalConfig: boolean;
+  state: State;
+}): Promise<AmServiceSkeleton> {
+  debugMessage({
+    message: `ServiceOps.putFullService: start, serviceId=${serviceId}, globalConfig=${globalConfig}`,
+    state,
+  });
   const nextDescendents = fullServiceData.nextDescendents;
 
   delete fullServiceData.nextDescendents;
@@ -109,8 +237,8 @@ async function putFullService(
 
   if (clean) {
     try {
-      debugMessage(`ServiceOps.putFullService: clean`);
-      await deleteFullService(serviceId, globalConfig);
+      debugMessage({ message: `ServiceOps.putFullService: clean`, state });
+      await deleteFullService({ serviceId, globalConfig, state });
     } catch (error) {
       if (
         !(
@@ -119,20 +247,29 @@ async function putFullService(
         )
       ) {
         const message = error.response?.data?.message;
-        printMessage(
-          `Error deleting service '${serviceId}' before import: ${message}`,
-          'error'
-        );
+        printMessage({
+          message: `Error deleting service '${serviceId}' before import: ${message}`,
+          type: 'error',
+          state,
+        });
       }
     }
   }
 
   // create service first
-  const result = await putService(serviceId, fullServiceData, globalConfig);
+  const result = await putService({
+    serviceId,
+    serviceData: fullServiceData,
+    globalConfig,
+    state,
+  });
 
   // return fast if no next descendents supplied
   if (nextDescendents.length === 0) {
-    debugMessage(`ServiceOps.putFullService: end (w/o descendents)`);
+    debugMessage({
+      message: `ServiceOps.putFullService: end (w/o descendents)`,
+      state,
+    });
     return result;
   }
 
@@ -141,27 +278,35 @@ async function putFullService(
     nextDescendents.map(async (descendent) => {
       const type = descendent._type._id;
       const descendentId = descendent._id;
-      debugMessage(`ServiceOps.putFullService: descendentId=${descendentId}`);
+      debugMessage({
+        message: `ServiceOps.putFullService: descendentId=${descendentId}`,
+        state,
+      });
       let result = undefined;
       try {
-        result = await putServiceNextDescendent(
+        result = await putServiceNextDescendent({
           serviceId,
-          type,
-          descendentId,
-          descendent,
-          globalConfig
-        );
+          serviceType: type,
+          serviceNextDescendentId: descendentId,
+          serviceNextDescendentData: descendent,
+          globalConfig,
+          state,
+        });
       } catch (error) {
         const message = error.response?.data?.message;
-        printMessage(
-          `Put descendent '${descendentId}' of service '${serviceId}': ${message}`,
-          'error'
-        );
+        printMessage({
+          message: `Put descendent '${descendentId}' of service '${serviceId}': ${message}`,
+          type: 'error',
+          state,
+        });
       }
       return result;
     })
   );
-  debugMessage(`ServiceOps.putFullService: end (w/ descendents)`);
+  debugMessage({
+    message: `ServiceOps.putFullService: end (w/ descendents)`,
+    state,
+  });
 }
 
 /**
@@ -171,30 +316,51 @@ async function putFullService(
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AmService[]>} promise resolving to an array of service objects
  */
-async function putFullServices(
-  serviceEntries: [string, FullService][],
-  clean: boolean,
-  globalConfig = false
-): Promise<AmServiceSkeleton[]> {
-  debugMessage(
-    `ServiceOps.putFullServices: start, globalConfig=${globalConfig}`
-  );
+async function putFullServices({
+  serviceEntries,
+  clean,
+  globalConfig = false,
+  state,
+}: {
+  serviceEntries: [string, FullService][];
+  clean: boolean;
+  globalConfig: boolean;
+  state: State;
+}): Promise<AmServiceSkeleton[]> {
+  debugMessage({
+    message: `ServiceOps.putFullServices: start, globalConfig=${globalConfig}`,
+    state,
+  });
   const results: AmServiceSkeleton[] = [];
   for (const [id, data] of serviceEntries) {
     try {
-      const result = await putFullService(id, data, clean, globalConfig);
+      const result = await putFullService({
+        serviceId: id,
+        fullServiceData: data,
+        clean,
+        globalConfig,
+        state,
+      });
       results.push(result);
-      printMessage(`Imported: ${id}`, 'info');
+      printMessage({ message: `Imported: ${id}`, type: 'info', state });
     } catch (error) {
       const message = error.response?.data?.message;
       const detail = error.response?.data?.detail;
-      printMessage(`Import service '${id}': ${message}`, 'error');
+      printMessage({
+        message: `Import service '${id}': ${message}`,
+        type: 'error',
+        state,
+      });
       if (detail) {
-        printMessage(`Details: ${JSON.stringify(detail)}`, 'error');
+        printMessage({
+          message: `Details: ${JSON.stringify(detail)}`,
+          type: 'error',
+          state,
+        });
       }
     }
   }
-  debugMessage(`ServiceOps.putFullServices: end`);
+  debugMessage({ message: `ServiceOps.putFullServices: end`, state });
   return results;
 }
 
@@ -203,48 +369,68 @@ async function putFullServices(
  * @param {string} serviceId The service to delete
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  */
-export async function deleteFullService(
-  serviceId: string,
-  globalConfig = false
-) {
-  debugMessage(
-    `ServiceOps.deleteFullService: start, globalConfig=${globalConfig}`
-  );
-  const serviceNextDescendentData = await getServiceDescendents(
+export async function deleteFullService({
+  serviceId,
+  globalConfig = false,
+  state,
+}: {
+  serviceId: string;
+  globalConfig: boolean;
+  state: State;
+}) {
+  debugMessage({
+    message: `ServiceOps.deleteFullService: start, globalConfig=${globalConfig}`,
+    state,
+  });
+  const serviceNextDescendentData = await getServiceDescendents({
     serviceId,
-    globalConfig
-  );
+    globalConfig,
+    state,
+  });
 
   await Promise.all(
     serviceNextDescendentData.map((nextDescendent) =>
-      deleteServiceNextDescendent(
+      deleteServiceNextDescendent({
         serviceId,
-        nextDescendent._type._id,
-        nextDescendent._id,
-        globalConfig
-      )
+        serviceType: nextDescendent._type._id,
+        serviceNextDescendentId: nextDescendent._id,
+        globalConfig,
+        state,
+      })
     )
   );
 
-  await deleteService(serviceId, globalConfig);
-  debugMessage(`ServiceOps.deleteFullService: end`);
+  await deleteService({ serviceId, globalConfig, state });
+  debugMessage({ message: `ServiceOps.deleteFullService: end`, state });
 }
 
 /**
  * Deletes all services
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  */
-export async function deleteFullServices(globalConfig = false) {
-  debugMessage(
-    `ServiceOps.deleteFullServices: start, globalConfig=${globalConfig}`
-  );
+export async function deleteFullServices({
+  globalConfig = false,
+  state,
+}: {
+  globalConfig: boolean;
+  state: State;
+}) {
+  debugMessage({
+    message: `ServiceOps.deleteFullServices: start, globalConfig=${globalConfig}`,
+    state,
+  });
   try {
-    const serviceList = (await _getListOfServices(globalConfig)).result;
+    const serviceList = (await _getListOfServices({ globalConfig, state }))
+      .result;
 
     await Promise.all(
       serviceList.map(async (serviceListItem) => {
         try {
-          await deleteFullService(serviceListItem._id, globalConfig);
+          await deleteFullService({
+            serviceId: serviceListItem._id,
+            globalConfig,
+            state,
+          });
         } catch (error) {
           if (
             !(
@@ -254,19 +440,24 @@ export async function deleteFullServices(globalConfig = false) {
             )
           ) {
             const message = error.response?.data?.message;
-            printMessage(
-              `Delete service '${serviceListItem._id}': ${message}`,
-              'error'
-            );
+            printMessage({
+              message: `Delete service '${serviceListItem._id}': ${message}`,
+              state,
+              type: 'error',
+            });
           }
         }
       })
     );
   } catch (error) {
     const message = error.response?.data?.message;
-    printMessage(`Delete services: ${message}`, 'error');
+    printMessage({
+      message: `Delete services: ${message}`,
+      type: 'error',
+      state,
+    });
   }
-  debugMessage(`ServiceOps.deleteFullServices: end`);
+  debugMessage({ message: `ServiceOps.deleteFullServices: end`, state });
 }
 
 /**
@@ -275,24 +466,37 @@ export async function deleteFullServices(globalConfig = false) {
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<ServiceExportInterface>} Promise resolving to a ServiceExportInterface object.
  */
-export async function exportService(
-  serviceId: string,
-  globalConfig = false
-): Promise<ServiceExportInterface> {
-  debugMessage(`ServiceOps.exportService: start, globalConfig=${globalConfig}`);
+export async function exportService({
+  serviceId,
+  globalConfig = false,
+  state,
+}: {
+  serviceId: string;
+  globalConfig: boolean;
+  state: State;
+}): Promise<ServiceExportInterface> {
+  debugMessage({
+    message: `ServiceOps.exportService: start, globalConfig=${globalConfig}`,
+    state,
+  });
   const exportData = createServiceExportTemplate();
   try {
-    const service = await getService(serviceId, globalConfig);
-    service.nextDescendents = await getServiceDescendents(
+    const service = await getService({ serviceId, globalConfig, state });
+    service.nextDescendents = await getServiceDescendents({
       serviceId,
-      globalConfig
-    );
+      globalConfig,
+      state,
+    });
     exportData.service[serviceId] = service;
   } catch (error) {
     const message = error.response?.data?.message;
-    printMessage(`Export service '${serviceId}': ${message}`, 'error');
+    printMessage({
+      message: `Export service '${serviceId}': ${message}`,
+      type: 'error',
+      state,
+    });
   }
-  debugMessage(`ServiceOps.exportService: end`);
+  debugMessage({ message: `ServiceOps.exportService: end`, state });
   return exportData;
 }
 
@@ -300,23 +504,32 @@ export async function exportService(
  * Export all services
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  */
-export async function exportServices(
-  globalConfig = false
-): Promise<ServiceExportInterface> {
-  debugMessage(
-    `ServiceOps.exportServices: start, globalConfig=${globalConfig}`
-  );
+export async function exportServices({
+  globalConfig = false,
+  state,
+}: {
+  globalConfig: boolean;
+  state: State;
+}): Promise<ServiceExportInterface> {
+  debugMessage({
+    message: `ServiceOps.exportServices: start, globalConfig=${globalConfig}`,
+    state,
+  });
   const exportData = createServiceExportTemplate();
   try {
-    const services = await getFullServices(globalConfig);
+    const services = await getFullServices({ globalConfig, state });
     for (const service of services) {
       exportData.service[service._type._id] = service;
     }
   } catch (error) {
     const message = error.response?.data?.message;
-    printMessage(`Export servics: ${message}`, 'error');
+    printMessage({
+      message: `Export servics: ${message}`,
+      type: 'error',
+      state,
+    });
   }
-  debugMessage(`ServiceOps.exportServices: end`);
+  debugMessage({ message: `ServiceOps.exportServices: end`, state });
   return exportData;
 }
 
@@ -328,21 +541,32 @@ export async function exportServices(
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns Promise resolving when the service has been imported
  */
-export async function importService(
-  serviceId: string,
-  importData: ServiceExportInterface,
-  clean: boolean,
-  globalConfig = false
-): Promise<AmServiceSkeleton> {
-  debugMessage(`ServiceOps.importService: start, globalConfig=${globalConfig}`);
+export async function importService({
+  serviceId,
+  importData,
+  clean,
+  globalConfig = false,
+  state,
+}: {
+  serviceId: string;
+  importData: ServiceExportInterface;
+  clean: boolean;
+  globalConfig: boolean;
+  state: State;
+}): Promise<AmServiceSkeleton> {
+  debugMessage({
+    message: `ServiceOps.importService: start, globalConfig=${globalConfig}`,
+    state,
+  });
   const serviceData = importData.service[serviceId];
-  const result = await putFullService(
+  const result = await putFullService({
     serviceId,
-    serviceData,
+    fullServiceData: serviceData,
     clean,
-    globalConfig
-  );
-  debugMessage(`ServiceOps.importService: end`);
+    globalConfig,
+    state,
+  });
+  debugMessage({ message: `ServiceOps.importService: end`, state });
   return result;
 }
 
@@ -352,28 +576,44 @@ export async function importService(
  * @param {boolean} clean Indicates whether to remove possible existing services first
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  */
-export async function importServices(
-  importData: ServiceExportInterface,
-  clean: boolean,
-  globalConfig = false
-) {
-  debugMessage(
-    `ServiceOps.importServices: start, globalConfig=${globalConfig}`
-  );
+export async function importServices({
+  importData,
+  clean,
+  globalConfig = false,
+  state,
+}: {
+  importData: ServiceExportInterface;
+  clean: boolean;
+  globalConfig: boolean;
+  state: State;
+}) {
+  debugMessage({
+    message: `ServiceOps.importServices: start, globalConfig=${globalConfig}`,
+    state,
+  });
   try {
-    const result = await putFullServices(
-      Object.entries(importData.service),
+    const result = await putFullServices({
+      serviceEntries: Object.entries(importData.service),
       clean,
-      globalConfig
-    );
-    debugMessage(`ServiceOps.importServices: end`);
+      globalConfig,
+      state,
+    });
+    debugMessage({ message: `ServiceOps.importServices: end`, state });
     return result;
   } catch (error) {
     const message = error.response?.data?.message;
     const detail = error.response?.data?.detail;
-    printMessage(`Unable to import services: error: ${message}`, 'error');
+    printMessage({
+      message: `Unable to import services: error: ${message}`,
+      type: 'error',
+      state,
+    });
     if (detail) {
-      printMessage(`Details: ${JSON.stringify(detail)}`, 'error');
+      printMessage({
+        message: `Details: ${JSON.stringify(detail)}`,
+        type: 'error',
+        state,
+      });
     }
     throw error;
   }

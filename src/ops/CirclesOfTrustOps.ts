@@ -1,28 +1,100 @@
-import fs from 'fs';
-import _ from 'lodash';
+import { debugMessage } from './utils/Console';
 import {
-  createTable,
-  printMessage,
-  createProgressIndicator,
-  updateProgressIndicator,
-  stopProgressIndicator,
-} from './utils/Console';
-import {
-  getCirclesOfTrust,
+  getCirclesOfTrust as _getCirclesOfTrust,
   getCircleOfTrust,
   createCircleOfTrust,
+  updateCircleOfTrust,
 } from '../api/CirclesOfTrustApi';
-import {
-  getRealmString,
-  getTypedFilename,
-  saveJsonToFile,
-  validateImport,
-} from './utils/ExportImportUtils';
+import { getMetadata } from './utils/ExportImportUtils';
+import State from '../shared/State';
+import { CirclesOfTrustExportInterface } from './OpsTypes';
+import { CircleOfTrustSkeleton } from '../api/ApiTypes';
 
-// use a function vs a template variable to avoid problems in loops
-function getFileDataTemplate() {
+export default (state: State) => {
   return {
-    meta: {},
+    /**
+     * Create an empty agent export template
+     * @returns {CirclesOfTrustExportInterface} an empty agent export template
+     */
+    createCirclesOfTrustExportTemplate() {
+      return createCirclesOfTrustExportTemplate({ state });
+    },
+
+    /**
+     * Get SAML circle of trust
+     * @param {String} cotId circle of trust id/name
+     */
+    async getCircleOfTrust(cotId: string) {
+      return getCircleOfTrust({ cotId, state });
+    },
+
+    /**
+     * Get SAML circles of trust
+     */
+    async getCirclesOfTrust() {
+      return getCirclesOfTrust({ state });
+    },
+
+    async createCircleOfTrust(cotData: CircleOfTrustSkeleton) {
+      return createCircleOfTrust({ cotData, state });
+    },
+
+    /**
+     * Export SAML circle of trust
+     * @param {String} cotId circle of trust id/name
+     */
+    async exportCircleOfTrust(cotId: string) {
+      return exportCircleOfTrust({ cotId, state });
+    },
+
+    /**
+     * Export all SAML circles of trust
+     */
+    async exportCirclesOfTrust() {
+      return exportCirclesOfTrust({ state });
+    },
+
+    /**
+     * Import a SAML circle of trust by id/name from file
+     * @param {String} cotId Circle of trust id/name
+     * @param {CirclesOfTrustExportInterface} importData Import data
+     */
+    async importCircleOfTrust(
+      cotId: string,
+      importData: CirclesOfTrustExportInterface
+    ) {
+      return importCircleOfTrust({ cotId, importData, state });
+    },
+
+    /**
+     * Import first SAML circle of trust
+     * @param {CirclesOfTrustExportInterface} importData Import data
+     */
+    async importFirstCircleOfTrust(importData: CirclesOfTrustExportInterface) {
+      return importFirstCircleOfTrust({ importData, state });
+    },
+
+    /**
+     * Import all SAML circles of trust
+     * @param {CirclesOfTrustExportInterface} importData Import file name
+     */
+    async importCirclesOfTrust(importData: CirclesOfTrustExportInterface) {
+      return importCirclesOfTrust({ importData, state });
+    },
+  };
+};
+
+/**
+ * Create an empty agent export template
+ * @returns {CirclesOfTrustExportInterface} an empty agent export template
+ */
+export function createCirclesOfTrustExportTemplate({
+  state,
+}: {
+  state: State;
+}) {
+  return {
+    meta: getMetadata({ state }),
     script: {},
     saml: {
       hosted: {},
@@ -30,302 +102,241 @@ function getFileDataTemplate() {
       metadata: {},
       cot: {},
     },
-  };
+  } as CirclesOfTrustExportInterface;
+}
+
+export { getCircleOfTrust, createCircleOfTrust };
+
+/**
+ * Get circles of trust
+ */
+export async function getCirclesOfTrust({ state }: { state: State }) {
+  const { result } = await _getCirclesOfTrust({ state });
+  return result;
 }
 
 /**
- * List entity providers
- * @param {String} long Long list format with details
+ * Export circle of trust
+ * @param {string} cotId circle of trust id/name
+ * @returns {Promise<CirclesOfTrustExportInterface>} a promise that resolves to an CirclesOfTrustExportInterface object
  */
-export async function listCirclesOfTrust(long = false) {
-  let cotList = [];
+export async function exportCircleOfTrust({
+  cotId,
+  state,
+}: {
+  cotId: string;
+  state: State;
+}): Promise<CirclesOfTrustExportInterface> {
+  debugMessage({
+    message: `CirclesOfTrustOps.exportCircleOfTrust: start`,
+    state,
+  });
+  const exportData = createCirclesOfTrustExportTemplate({ state });
+  const errors = [];
   try {
-    cotList = (await getCirclesOfTrust()).result;
-  } catch (error) {
-    printMessage(`getCirclesOfTrust ERROR: ${error}`, 'error');
-    printMessage(error, 'data');
-  }
-  cotList.sort((a, b) => a._id.localeCompare(b._id));
-  if (!long) {
-    cotList.forEach((cot) => {
-      printMessage(`${cot._id}`, 'data');
+    const cotData = await getCircleOfTrust({
+      cotId,
+      state,
     });
-  } else {
-    const table = createTable([
-      'Name'['brightCyan'],
-      'Description'['brightCyan'],
-      'Status'['brightCyan'],
-      'Trusted Providers'['brightCyan'],
-    ]);
-    cotList.forEach((cot) => {
-      table.push([
-        cot._id,
-        cot.description,
-        cot.status,
-        cot.trustedProviders
-          .map((provider) => provider.split('|')[0])
-          .join('\n'),
-      ]);
-    });
-    printMessage(table.toString());
-  }
-}
-
-/**
- * Include dependencies in the export file
- * @param {Object} cotData Object representing a SAML circle of trust
- * @param {Object} fileData File data object to add dependencies to
- */
-async function exportDependencies(cotData, fileData) {
-  // TODO: Export dependencies
-  return [cotData, fileData];
-}
-
-/**
- * Export a single circle of trust to file
- * @param {String} cotId circle of trust id/name
- * @param {String} file Optional filename
- */
-export async function exportCircleOfTrust(cotId, file = null) {
-  let fileName = file;
-  if (!fileName) {
-    fileName = getTypedFilename(cotId, 'cot.saml');
-  }
-  createProgressIndicator(1, `Exporting circle of trust ${cotId}`);
-  try {
-    const cotData = _.cloneDeep(getCircleOfTrust(cotId));
-    delete cotData['_rev'];
-    updateProgressIndicator(`Exporting ${cotId}`);
-    const fileData = getFileDataTemplate();
-    fileData.saml.cot[cotId] = cotData;
-    await exportDependencies(cotData, fileData);
-    saveJsonToFile(fileData, fileName);
-    stopProgressIndicator(
-      `Exported ${cotId.brightCyan} to ${fileName.brightCyan}.`
-    );
-  } catch (err) {
-    stopProgressIndicator(`${err}`);
-    printMessage(err, 'error');
-  }
-}
-
-/**
- * Export all circles of trust to one file
- * @param {String} file Optional filename
- */
-export async function exportCirclesOfTrustToFile(file = null) {
-  let fileName = file;
-  if (!fileName) {
-    fileName = getTypedFilename(
-      `all${getRealmString()}CirclesOfTrust`,
-      'cot.saml'
-    );
-  }
-  const fileData = getFileDataTemplate();
-  let allCotData = [];
-  try {
-    allCotData = _.cloneDeep((await getCirclesOfTrust()).result);
-    createProgressIndicator(allCotData.length, 'Exporting circles of trust');
-    for (const cotData of allCotData) {
-      delete cotData._rev;
-      updateProgressIndicator(`Exporting circle of trust ${cotData._id}`);
-      // eslint-disable-next-line no-await-in-loop
-      await exportDependencies(cotData, fileData);
-      fileData.saml.cot[cotData._id] = cotData;
-    }
-    saveJsonToFile(fileData, fileName);
-    stopProgressIndicator(
-      `${allCotData.length} circle(s) of trust exported to ${fileName}.`
-    );
+    exportData.saml.cot[cotData._id] = cotData;
   } catch (error) {
-    printMessage(`getCirclesOfTrust ERROR: ${error}`, 'error');
-    printMessage(error, 'data');
+    errors.push(error);
   }
+  if (errors.length) {
+    const errorMessages = errors
+      .map((error) => {
+        if (error.response?.status === 404) {
+          return `Circle of trust ${cotId} does not exist in realm ${state.getRealm()}`;
+        } else {
+          return error.response?.data?.message || error.message;
+        }
+      })
+      .join('\n');
+    throw new Error(`Export error:\n${errorMessages}`);
+  }
+  debugMessage({
+    message: `CirclesOfTrustOps.exportCircleOfTrust: end`,
+    state,
+  });
+  return exportData;
 }
 
 /**
- * Export all circles of trust to individual files
+ * Export circles of trust
+ * @returns {Promise<CirclesOfTrustExportInterface>} a promise that resolves to an CirclesOfTrustExportInterface object
  */
-export async function exportCirclesOfTrustToFiles() {
-  let allCotData = [];
+export async function exportCirclesOfTrust({
+  state,
+}: {
+  state: State;
+}): Promise<CirclesOfTrustExportInterface> {
+  debugMessage({
+    message: `CirclesOfTrustOps.exportCirclesOfTrust: start`,
+    state,
+  });
+  const exportData = createCirclesOfTrustExportTemplate({ state });
+  const errors = [];
   try {
-    allCotData = _.cloneDeep((await getCirclesOfTrust()).result);
-    createProgressIndicator(allCotData.length, 'Exporting circles of trust');
-    for (const cotData of allCotData) {
-      delete cotData._rev;
-      updateProgressIndicator(`Exporting circle of trust ${cotData._id}`);
-      const fileName = getTypedFilename(cotData._id, 'cot.saml');
-      const fileData = getFileDataTemplate();
-      // eslint-disable-next-line no-await-in-loop
-      await exportDependencies(cotData, fileData);
-      fileData.saml.cot[cotData._id] = cotData;
-      saveJsonToFile(fileData, fileName);
+    const cots = await getCirclesOfTrust({ state });
+    for (const cot of cots) {
+      exportData.saml.cot[cot._id] = cot;
     }
-    stopProgressIndicator(`${allCotData.length} providers exported.`);
   } catch (error) {
-    printMessage(`getCirclesOfTrust ERROR: ${error}`, 'error');
-    printMessage(error, 'data');
+    errors.push(error);
   }
-}
-
-/**
- * Include dependencies from the import file
- * @param {Object} cotData Object representing a SAML circle of trust
- * @param {Object} fileData File data object to read dependencies from
- */
-async function importDependencies(cotData, fileData) {
-  // TODO: Import dependencies
-  return [cotData, fileData];
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Export error:\n${errorMessages}`);
+  }
+  debugMessage({
+    message: `CirclesOfTrustOps.exportCirclesOfTrust: end`,
+    state,
+  });
+  return exportData;
 }
 
 /**
  * Import a SAML circle of trust by id/name from file
  * @param {String} cotId Circle of trust id/name
- * @param {String} file Import file name
+ * @param {CirclesOfTrustExportInterface} importData import data
  */
-export async function importCircleOfTrust(cotId, file) {
-  fs.readFile(file, 'utf8', async (err, data) => {
-    if (err) throw err;
-    const fileData = JSON.parse(data);
-    if (validateImport(fileData.meta)) {
-      createProgressIndicator(1, 'Importing circle of trust...');
-      const cotData = _.get(fileData, ['saml', 'cot', cotId]);
-      if (cotData) {
-        updateProgressIndicator(`Importing ${cotId}`);
-        await importDependencies(cotData, fileData);
+export async function importCircleOfTrust({
+  cotId,
+  importData,
+  state,
+}: {
+  cotId: string;
+  importData: CirclesOfTrustExportInterface;
+  state: State;
+}) {
+  let response = null;
+  const errors = [];
+  const imported = [];
+  for (const id of Object.keys(importData.saml.cot)) {
+    if (id === cotId) {
+      try {
+        const cotData = importData.saml.cot[id];
+        delete cotData._rev;
         try {
-          await createCircleOfTrust(cotData);
-          stopProgressIndicator(`Successfully imported ${cotId}.`);
-        } catch (createProviderErr) {
-          stopProgressIndicator(`Error importing ${cotId}.`);
-          printMessage(`Error importing ${cotId}`, 'error');
-          printMessage(createProviderErr.response.data, 'error');
+          response = await createCircleOfTrust({ cotData, state });
+        } catch (createError) {
+          if (createError.response?.status === 409)
+            response = await updateCircleOfTrust({
+              cotId: id,
+              cotData,
+              state,
+            });
+          else throw createError;
         }
-      } else {
-        stopProgressIndicator(
-          `Circle of trust ${cotId.brightCyan} not found in ${file.brightCyan}!`
-        );
+        imported.push(id);
+      } catch (error) {
+        errors.push(error);
       }
-    } else {
-      printMessage('Import validation failed...', 'error');
-    }
-  });
-}
-
-/**
- * Import first SAML circle of trust from file
- * @param {String} file Import file name
- */
-export async function importFirstCircleOfTrust(file) {
-  fs.readFile(file, 'utf8', async (err, data) => {
-    if (err) throw err;
-    const fileData = JSON.parse(data);
-    if (validateImport(fileData.meta)) {
-      createProgressIndicator(1, 'Importing circle of trust...');
-      for (const cotId in fileData.saml.cot) {
-        if ({}.hasOwnProperty.call(fileData.saml.cot, cotId)) {
-          const cotData = _.cloneDeep(fileData.saml.cot[cotId]);
-          updateProgressIndicator(`Importing ${cotId}`);
-          // eslint-disable-next-line no-await-in-loop
-          await importDependencies(cotData, fileData);
-          try {
-            await createCircleOfTrust(cotData);
-            stopProgressIndicator(`Successfully imported ${cotId}.`);
-          } catch (createCircleOfTrustErr) {
-            stopProgressIndicator(`Error importing ${cotId}.`);
-            printMessage(`Error importing ${cotId}`, 'error');
-            printMessage(createCircleOfTrustErr.response.data, 'error');
-          }
-          break;
-        }
-      }
-    } else {
-      printMessage('Import validation failed...', 'error');
-    }
-  });
-}
-
-/**
- * Import all SAML circles of trust from file
- * @param {String} file Import file name
- */
-export async function importCirclesOfTrustFromFile(file) {
-  fs.readFile(file, 'utf8', async (err, data) => {
-    if (err) throw err;
-    const fileData = JSON.parse(data);
-    if (validateImport(fileData.meta)) {
-      createProgressIndicator(
-        Object.keys(fileData.saml.cot).length,
-        'Importing circles of trust...'
-      );
-      for (const cotId in fileData.saml.cot) {
-        if ({}.hasOwnProperty.call(fileData.saml.cot, cotId)) {
-          const cotData = _.cloneDeep(fileData.saml.cot[cotId]);
-          // eslint-disable-next-line no-await-in-loop
-          await importDependencies(cotData, fileData);
-          try {
-            // eslint-disable-next-line no-await-in-loop
-            await createCircleOfTrust(cotData);
-            updateProgressIndicator(`Imported ${cotId}`);
-          } catch (createCircleOfTrustErr) {
-            printMessage(`\nError importing ${cotId}`, 'error');
-            printMessage(createCircleOfTrustErr.response.data, 'error');
-          }
-        }
-      }
-      stopProgressIndicator(`Circles of trust imported.`);
-    } else {
-      printMessage('Import validation failed...', 'error');
-    }
-  });
-}
-
-/**
- * Import all SAML circles of trust from all *.cot.saml.json files in the current directory
- */
-export async function importCirclesOfTrustFromFiles() {
-  const names = fs.readdirSync('.');
-  const jsonFiles = names.filter((name) =>
-    name.toLowerCase().endsWith('.cot.saml.json')
-  );
-  createProgressIndicator(jsonFiles.length, 'Importing circles or trust...');
-  let total = 0;
-  let totalErrors = 0;
-  for (const file of jsonFiles) {
-    const data = fs.readFileSync(file, 'utf8');
-    const fileData = JSON.parse(data);
-    if (validateImport(fileData.meta)) {
-      total += _.keys(fileData.saml.cot).length;
-      let errors = 0;
-      for (const cotId in fileData.saml.cot) {
-        if ({}.hasOwnProperty.call(fileData.saml.cot, cotId)) {
-          const cotData = _.cloneDeep(fileData.saml.cot[cotId]);
-          // eslint-disable-next-line no-await-in-loop
-          await importDependencies(cotData, fileData);
-          try {
-            // eslint-disable-next-line no-await-in-loop
-            await createCircleOfTrust(cotData);
-            // updateProgressIndicator(`Imported ${cotId}`);
-          } catch (createCircleOfTrustErr) {
-            errors += 1;
-            printMessage(`\nError importing ${cotId}`, 'error');
-            printMessage(createCircleOfTrustErr.response.data, 'error');
-          }
-        }
-      }
-      totalErrors += errors;
-      updateProgressIndicator(
-        `Imported ${
-          _.keys(fileData.saml.cot).length - errors
-        } circle(s) of trust from ${file}`
-      );
-    } else {
-      printMessage(`Validation of ${file} failed!`, 'error');
     }
   }
-  stopProgressIndicator(
-    `Imported ${total - totalErrors} of ${total} circle(s) of trust from ${
-      jsonFiles.length
-    } file(s).`
-  );
+  if (errors.length) {
+    const errorMessages = errors
+      .map((error) => error.response?.data?.message || error.message)
+      .join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\n${cotId} not found in import data!`);
+  }
+  return response;
+}
+
+/**
+ * Import first SAML circle of trust
+ * @param {CirclesOfTrustExportInterface} importData import data
+ */
+export async function importFirstCircleOfTrust({
+  importData,
+  state,
+}: {
+  importData: CirclesOfTrustExportInterface;
+  state: State;
+}) {
+  let response = null;
+  const errors = [];
+  const imported = [];
+  for (const id of Object.keys(importData.saml.cot)) {
+    try {
+      const cotData = importData.saml.cot[id];
+      delete cotData._rev;
+      try {
+        response = await createCircleOfTrust({ cotData, state });
+      } catch (createError) {
+        if (createError.response?.status === 409)
+          response = await updateCircleOfTrust({
+            cotId: id,
+            cotData,
+            state,
+          });
+        else throw createError;
+      }
+      imported.push(id);
+    } catch (error) {
+      errors.push(error);
+    }
+    break;
+  }
+  if (errors.length) {
+    const errorMessages = errors
+      .map((error) => error.response?.data?.message || error.message)
+      .join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\nNo circles of trust found in import data!`);
+  }
+  return response;
+}
+
+/**
+ * Import SAML circles of trust
+ * @param {CirclesOfTrustExportInterface} importData import data
+ */
+export async function importCirclesOfTrust({
+  importData,
+  state,
+}: {
+  importData: CirclesOfTrustExportInterface;
+  state: State;
+}) {
+  const response = [];
+  const errors = [];
+  const imported = [];
+  for (const id of Object.keys(importData.saml.cot)) {
+    try {
+      const cotData = importData.saml.cot[id];
+      delete cotData._rev;
+      try {
+        response.push(await createCircleOfTrust({ cotData, state }));
+      } catch (createError) {
+        if (createError.response?.status === 409)
+          response.push(
+            await updateCircleOfTrust({
+              cotId: id,
+              cotData,
+              state,
+            })
+          );
+        else throw createError;
+      }
+      imported.push(id);
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length) {
+    const errorMessages = errors
+      .map((error) => error.response?.data?.message || error.message)
+      .join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\nNo circles of trust found in import data!`);
+  }
+  return response;
 }
