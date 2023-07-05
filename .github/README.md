@@ -1,6 +1,6 @@
 <!-- README.md for GitHub; the one for NPM is ../README.md. -->
 
-# Frodo Library - @rockcarver/frodo-lib
+# Frodo Library 2.x :new: - @rockcarver/frodo-lib
 
 ForgeROck DO library, frodo-lib, a library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.
 
@@ -8,6 +8,7 @@ Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the comma
 
 ## Quick Nav
 
+- [New In 2.x](#new-in-2x)
 - [Features](#features)
 - [Limitations](#limitations)
 - [Installing](#installing)
@@ -15,13 +16,13 @@ Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the comma
 - [Contributing](#contributing)
 - [Maintaining](#maintaining)
 
+## New In 2.x
+
+2.x introduces breaking changes to support multiple instances of the library to run concurrently and communicating with multiple different ForgeRock Identity Platform instances. 1.x would operate using a global singleton, making it impossible to connect to more than one platform instance at a time.
+
 ## Features
 
 Frodo allows an administrator to easily connect to and manage any number of Identity Cloud tenants, ForgeOps deployment instances, or classic deployment instances from the command line. The following tasks are currently supported:
-
-- User mode
-
-  Install and run pre-compiled single binaries without any dependencies for MacOS, Windows, and Linux.
 
 - Manage journeys/trees.
 
