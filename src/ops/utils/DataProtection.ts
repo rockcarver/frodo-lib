@@ -14,11 +14,11 @@ import crypto from 'crypto';
 import { homedir } from 'os';
 import { promisify } from 'util';
 import { printMessage } from './Console';
-import * as state from '../../shared/State';
 import {
   FRODO_MASTER_KEY_PATH_KEY,
   FRODO_MASTER_KEY_KEY,
 } from '../../storage/StaticStorage';
+import State from '../../shared/State';
 
 const scrypt = promisify(crypto.scrypt);
 // using WeakMaps for added security since  it gets garbage collected
@@ -29,9 +29,15 @@ const _key = new WeakMap();
 const _encrypt = new WeakMap();
 
 class DataProtection {
-  constructor() {
+  constructor({
+    pathToMasterKey = undefined,
+    state,
+  }: {
+    pathToMasterKey?: string;
+    state: State;
+  }) {
     const masterKeyPath = () =>
-      state.getMasterKeyPath() ||
+      pathToMasterKey ||
       process.env[FRODO_MASTER_KEY_PATH_KEY] ||
       `${homedir()}/.frodo/masterkey.key`;
     // Generates a master key in base64 format. This master key will be used to derive the key for encryption. this key should be protected by an HSM or KMS
@@ -45,7 +51,7 @@ class DataProtection {
         }
         return await fsp.readFile(masterKeyPath(), 'utf8');
       } catch (err) {
-        printMessage(err.message, 'error');
+        printMessage({ message: err.message, type: 'error', state });
         return '';
       }
     });

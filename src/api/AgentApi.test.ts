@@ -29,7 +29,8 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { AgentRaw } from '../index';
+import * as AgentApi from './AgentApi';
+import { state } from '../index';
 import { getAgent } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
@@ -77,104 +78,182 @@ describe('AgentApi', () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
       // setup gateway1 - delete if exists, then create
       try {
-        await AgentRaw.getAgentByTypeAndId(gateway1.type, gateway1.id);
-        await AgentRaw.deleteAgentByTypeAndId(gateway1.type, gateway1.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: gateway1.type,
+          agentId: gateway1.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: gateway1.type,
+          agentId: gateway1.id,
+          state,
+        });
       } catch (error) {
         // ignore
       } finally {
-        await AgentRaw.putAgentByTypeAndId(
-          gateway1.type,
-          gateway1.id,
-          getAgent(gateway1.type, gateway1.id)
-        );
+        await AgentApi.putAgentByTypeAndId({
+          agentType: gateway1.type,
+          agentId: gateway1.id,
+          agentData: getAgent(gateway1.type, gateway1.id),
+          state,
+        });
       }
       // setup gateway2 - delete if exists
       try {
-        await AgentRaw.getAgentByTypeAndId(gateway2.type, gateway2.id);
-        await AgentRaw.deleteAgentByTypeAndId(gateway2.type, gateway2.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: gateway2.type,
+          agentId: gateway2.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: gateway2.type,
+          agentId: gateway2.id,
+          state,
+        });
       } catch (error) {
         // ignore
       }
       // setup gateway3 - delete if exists, then create
       try {
-        await AgentRaw.getAgentByTypeAndId(gateway3.type, gateway3.id);
-        await AgentRaw.deleteAgentByTypeAndId(gateway3.type, gateway3.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: gateway3.type,
+          agentId: gateway3.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: gateway3.type,
+          agentId: gateway3.id,
+          state,
+        });
       } catch (error) {
         // ignore
       } finally {
-        await AgentRaw.putAgentByTypeAndId(
-          gateway3.type,
-          gateway3.id,
-          getAgent(gateway3.type, gateway3.id)
-        );
+        await AgentApi.putAgentByTypeAndId({
+          agentType: gateway3.type,
+          agentId: gateway3.id,
+          agentData: getAgent(gateway3.type, gateway3.id),
+          state,
+        });
       }
 
       // setup java1 - delete if exists, then create
       try {
-        await AgentRaw.getAgentByTypeAndId(java1.type, java1.id);
-        await AgentRaw.deleteAgentByTypeAndId(java1.type, java1.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: java1.type,
+          agentId: java1.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: java1.type,
+          agentId: java1.id,
+          state,
+        });
       } catch (error) {
         // ignore
       } finally {
-        await AgentRaw.putAgentByTypeAndId(
-          java1.type,
-          java1.id,
-          getAgent(java1.type, java1.id)
-        );
+        await AgentApi.putAgentByTypeAndId({
+          agentType: java1.type,
+          agentId: java1.id,
+          agentData: getAgent(java1.type, java1.id),
+          state,
+        });
       }
       // setup java2 - delete if exists
       try {
-        await AgentRaw.getAgentByTypeAndId(java2.type, java2.id);
-        await AgentRaw.deleteAgentByTypeAndId(java2.type, java2.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: java2.type,
+          agentId: java2.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: java2.type,
+          agentId: java2.id,
+          state,
+        });
       } catch (error) {
         // ignore
       }
       // setup java3 - delete if exists, then create
       try {
-        await AgentRaw.getAgentByTypeAndId(java3.type, java3.id);
-        await AgentRaw.deleteAgentByTypeAndId(java3.type, java3.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: java3.type,
+          agentId: java3.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: java3.type,
+          agentId: java3.id,
+          state,
+        });
       } catch (error) {
         // ignore
       } finally {
-        await AgentRaw.putAgentByTypeAndId(
-          java3.type,
-          java3.id,
-          getAgent(java3.type, java3.id)
-        );
+        await AgentApi.putAgentByTypeAndId({
+          agentType: java3.type,
+          agentId: java3.id,
+          agentData: getAgent(java3.type, java3.id),
+          state,
+        });
       }
 
       // setup web1 - delete if exists, then create
       try {
-        await AgentRaw.getAgentByTypeAndId(web1.type, web1.id);
-        await AgentRaw.deleteAgentByTypeAndId(web1.type, web1.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: web1.type,
+          agentId: web1.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: web1.type,
+          agentId: web1.id,
+          state,
+        });
       } catch (error) {
         // ignore
       } finally {
-        await AgentRaw.putAgentByTypeAndId(
-          web1.type,
-          web1.id,
-          getAgent(web1.type, web1.id)
-        );
+        await AgentApi.putAgentByTypeAndId({
+          agentType: web1.type,
+          agentId: web1.id,
+          agentData: getAgent(web1.type, web1.id),
+          state,
+        });
       }
       // setup web2 - delete if exists
       try {
-        await AgentRaw.getAgentByTypeAndId(web2.type, web2.id);
-        await AgentRaw.deleteAgentByTypeAndId(web2.type, web2.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: web2.type,
+          agentId: web2.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: web2.type,
+          agentId: web2.id,
+          state,
+        });
       } catch (error) {
         // ignore
       }
       // setup web3 - delete if exists, then create
       try {
-        await AgentRaw.getAgentByTypeAndId(web3.type, web3.id);
-        await AgentRaw.deleteAgentByTypeAndId(web3.type, web3.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: web3.type,
+          agentId: web3.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: web3.type,
+          agentId: web3.id,
+          state,
+        });
       } catch (error) {
         // ignore
       } finally {
-        await AgentRaw.putAgentByTypeAndId(
-          web3.type,
-          web3.id,
-          getAgent(web3.type, web3.id)
-        );
+        await AgentApi.putAgentByTypeAndId({
+          agentType: web3.type,
+          agentId: web3.id,
+          agentData: getAgent(web3.type, web3.id),
+          state,
+        });
       }
     }
   });
@@ -182,58 +261,130 @@ describe('AgentApi', () => {
   afterAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
       try {
-        await AgentRaw.getAgentByTypeAndId(gateway1.type, gateway1.id);
-        await AgentRaw.deleteAgentByTypeAndId(gateway1.type, gateway1.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: gateway1.type,
+          agentId: gateway1.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: gateway1.type,
+          agentId: gateway1.id,
+          state,
+        });
       } catch (error) {
         // ignore
       }
       try {
-        await AgentRaw.getAgentByTypeAndId(gateway2.type, gateway2.id);
-        await AgentRaw.deleteAgentByTypeAndId(gateway2.type, gateway2.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: gateway2.type,
+          agentId: gateway2.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: gateway2.type,
+          agentId: gateway2.id,
+          state,
+        });
       } catch (error) {
         // ignore
       }
       try {
-        await AgentRaw.getAgentByTypeAndId(gateway3.type, gateway3.id);
-        await AgentRaw.deleteAgentByTypeAndId(gateway3.type, gateway3.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: gateway3.type,
+          agentId: gateway3.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: gateway3.type,
+          agentId: gateway3.id,
+          state,
+        });
       } catch (error) {
         // ignore
       }
 
       try {
-        await AgentRaw.getAgentByTypeAndId(java1.type, java1.id);
-        await AgentRaw.deleteAgentByTypeAndId(java1.type, java1.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: java1.type,
+          agentId: java1.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: java1.type,
+          agentId: java1.id,
+          state,
+        });
       } catch (error) {
         // ignore
       }
       try {
-        await AgentRaw.getAgentByTypeAndId(java2.type, java2.id);
-        await AgentRaw.deleteAgentByTypeAndId(java2.type, java2.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: java2.type,
+          agentId: java2.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: java2.type,
+          agentId: java2.id,
+          state,
+        });
       } catch (error) {
         // ignore
       }
       try {
-        await AgentRaw.getAgentByTypeAndId(java3.type, java3.id);
-        await AgentRaw.deleteAgentByTypeAndId(java3.type, java3.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: java3.type,
+          agentId: java3.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: java3.type,
+          agentId: java3.id,
+          state,
+        });
       } catch (error) {
         // ignore
       }
 
       try {
-        await AgentRaw.getAgentByTypeAndId(web1.type, web1.id);
-        await AgentRaw.deleteAgentByTypeAndId(web1.type, web1.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: web1.type,
+          agentId: web1.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: web1.type,
+          agentId: web1.id,
+          state,
+        });
       } catch (error) {
         // ignore
       }
       try {
-        await AgentRaw.getAgentByTypeAndId(web2.type, web2.id);
-        await AgentRaw.deleteAgentByTypeAndId(web2.type, web2.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: web2.type,
+          agentId: web2.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: web2.type,
+          agentId: web2.id,
+          state,
+        });
       } catch (error) {
         // ignore
       }
       try {
-        await AgentRaw.getAgentByTypeAndId(web3.type, web3.id);
-        await AgentRaw.deleteAgentByTypeAndId(web3.type, web3.id);
+        await AgentApi.getAgentByTypeAndId({
+          agentType: web3.type,
+          agentId: web3.id,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: web3.type,
+          agentId: web3.id,
+          state,
+        });
       } catch (error) {
         // ignore
       }
@@ -242,181 +393,211 @@ describe('AgentApi', () => {
 
   describe('getAgentTypes()', () => {
     test('0: Method is implemented', async () => {
-      expect(AgentRaw.getAgentTypes).toBeDefined();
+      expect(AgentApi.getAgentTypes).toBeDefined();
     });
 
     test('1: Get all agent types', async () => {
-      const response = await AgentRaw.getAgentTypes();
+      const response = await AgentApi.getAgentTypes({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('getAgentsByType()', () => {
     test('0: Method is implemented', async () => {
-      expect(AgentRaw.getAgentsByType).toBeDefined();
+      expect(AgentApi.getAgentsByType).toBeDefined();
     });
 
     test('1: Get all gateway agents', async () => {
       const agentType = 'IdentityGatewayAgent';
-      const response = await AgentRaw.getAgentsByType(agentType);
+      const response = await AgentApi.getAgentsByType({ agentType, state });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Get all java agents', async () => {
       const agentType = 'J2EEAgent';
-      const response = await AgentRaw.getAgentsByType(agentType);
+      const response = await AgentApi.getAgentsByType({ agentType, state });
       expect(response).toMatchSnapshot();
     });
 
     test('3: Get all web agents', async () => {
       const agentType = 'WebAgent';
-      const response = await AgentRaw.getAgentsByType(agentType);
+      const response = await AgentApi.getAgentsByType({ agentType, state });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('getAgents()', () => {
     test('0: Method is implemented', async () => {
-      expect(AgentRaw.getAgents).toBeDefined();
+      expect(AgentApi.getAgents).toBeDefined();
     });
 
     test('1: Get all agents', async () => {
-      const response = await AgentRaw.getAgents();
+      const response = await AgentApi.getAgents({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('findAgentById()', () => {
     test('0: Method is implemented', async () => {
-      expect(AgentRaw.findAgentById).toBeDefined();
+      expect(AgentApi.findAgentById).toBeDefined();
     });
 
     test(`1: Find agent '${gateway1.id}'`, async () => {
-      const response = await AgentRaw.findAgentById(gateway1.id);
+      const response = await AgentApi.findAgentById({
+        agentId: gateway1.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test(`2: Find agent '${java1.id}'`, async () => {
-      const response = await AgentRaw.findAgentById(java1.id);
+      const response = await AgentApi.findAgentById({
+        agentId: java1.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test(`3: Find agent '${web1.id}'`, async () => {
-      const response = await AgentRaw.findAgentById(web1.id);
+      const response = await AgentApi.findAgentById({
+        agentId: web1.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('findAgentByTypeAndId()', () => {
     test('0: Method is implemented', async () => {
-      expect(AgentRaw.findAgentByTypeAndId).toBeDefined();
+      expect(AgentApi.findAgentByTypeAndId).toBeDefined();
     });
 
     test(`1: Find ${gateway1.type} '${gateway1.id}'`, async () => {
-      const response = await AgentRaw.findAgentByTypeAndId(
-        gateway1.type,
-        gateway1.id
-      );
+      const response = await AgentApi.findAgentByTypeAndId({
+        agentType: gateway1.type,
+        agentId: gateway1.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test(`2: Find ${java1.type} '${java1.id}'`, async () => {
-      const response = await AgentRaw.findAgentByTypeAndId(
-        java1.type,
-        java1.id
-      );
+      const response = await AgentApi.findAgentByTypeAndId({
+        agentType: java1.type,
+        agentId: java1.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test(`3: Find ${web1.type} '${web1.id}'`, async () => {
-      const response = await AgentRaw.findAgentByTypeAndId(web1.type, web1.id);
+      const response = await AgentApi.findAgentByTypeAndId({
+        agentType: web1.type,
+        agentId: web1.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('getAgentByTypeAndId()', () => {
     test('0: Method is implemented', async () => {
-      expect(AgentRaw.getAgentByTypeAndId).toBeDefined();
+      expect(AgentApi.getAgentByTypeAndId).toBeDefined();
     });
 
     test(`1: Get ${gateway1.type} '${gateway1.id}'`, async () => {
-      const response = await AgentRaw.getAgentByTypeAndId(
-        gateway1.type,
-        gateway1.id
-      );
+      const response = await AgentApi.getAgentByTypeAndId({
+        agentType: gateway1.type,
+        agentId: gateway1.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test(`2: Get ${java1.type} '${java1.id}'`, async () => {
-      const response = await AgentRaw.getAgentByTypeAndId(java1.type, java1.id);
+      const response = await AgentApi.getAgentByTypeAndId({
+        agentType: java1.type,
+        agentId: java1.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test(`3: Get ${web1.type} '${web1.id}'`, async () => {
-      const response = await AgentRaw.getAgentByTypeAndId(web1.type, web1.id);
+      const response = await AgentApi.getAgentByTypeAndId({
+        agentType: web1.type,
+        agentId: web1.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('putAgentByTypeAndId()', () => {
     test('0: Method is implemented', async () => {
-      expect(AgentRaw.putAgentByTypeAndId).toBeDefined();
+      expect(AgentApi.putAgentByTypeAndId).toBeDefined();
     });
 
     test(`1: Put ${gateway2.type} '${gateway2.id}'`, async () => {
-      const response = await AgentRaw.putAgentByTypeAndId(
-        gateway2.type,
-        gateway2.id,
-        getAgent(gateway2.type, gateway2.id)
-      );
+      const response = await AgentApi.putAgentByTypeAndId({
+        agentType: gateway2.type,
+        agentId: gateway2.id,
+        agentData: getAgent(gateway2.type, gateway2.id),
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test(`2: Put ${java2.type} '${java2.id}'`, async () => {
-      const response = await AgentRaw.putAgentByTypeAndId(
-        java2.type,
-        java2.id,
-        getAgent(java2.type, java2.id)
-      );
+      const response = await AgentApi.putAgentByTypeAndId({
+        agentType: java2.type,
+        agentId: java2.id,
+        agentData: getAgent(java2.type, java2.id),
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test(`3: Put ${web2.type} '${web2.id}'`, async () => {
-      const response = await AgentRaw.putAgentByTypeAndId(
-        web2.type,
-        web2.id,
-        getAgent(web2.type, web2.id)
-      );
+      const response = await AgentApi.putAgentByTypeAndId({
+        agentType: web2.type,
+        agentId: web2.id,
+        agentData: getAgent(web2.type, web2.id),
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('deleteAgentByTypeAndId()', () => {
     test('0: Method is implemented', async () => {
-      expect(AgentRaw.deleteAgentByTypeAndId).toBeDefined();
+      expect(AgentApi.deleteAgentByTypeAndId).toBeDefined();
     });
 
     test(`1: Delete ${gateway3.type} '${gateway3.id}'`, async () => {
-      const response = await AgentRaw.deleteAgentByTypeAndId(
-        gateway3.type,
-        gateway3.id
-      );
+      const response = await AgentApi.deleteAgentByTypeAndId({
+        agentType: gateway3.type,
+        agentId: gateway3.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test(`2: Delete ${java3.type} '${java3.id}'`, async () => {
-      const response = await AgentRaw.deleteAgentByTypeAndId(
-        java3.type,
-        java3.id
-      );
+      const response = await AgentApi.deleteAgentByTypeAndId({
+        agentType: java3.type,
+        agentId: java3.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test(`3: Delete ${web3.type} '${web3.id}'`, async () => {
-      const response = await AgentRaw.deleteAgentByTypeAndId(
-        web3.type,
-        web3.id
-      );
+      const response = await AgentApi.deleteAgentByTypeAndId({
+        agentType: web3.type,
+        agentId: web3.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
