@@ -1,5 +1,13 @@
+/**
+ * Run tests
+ *
+ *        npm run test ApiUtils
+ *
+ * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
+ * in case things don't function as expected
+ */
 import { getRealmPath, getCurrentRealmPath, getTenantURL } from './ApiUtils';
-import * as state from '../../shared/State';
+import { state } from '../../index';
 
 describe.only('ApiUtils', () => {
   describe.only('getRealmPath()', () => {
@@ -38,35 +46,35 @@ describe.only('ApiUtils', () => {
     test("Should prepend realm path to specified realm 'alpha'", () => {
       const realm = 'alpha';
       state.setRealm(realm);
-      const testString = getCurrentRealmPath();
+      const testString = getCurrentRealmPath(state);
       expect(testString).toBe('/realms/root/realms/alpha');
     });
 
     test('Should prepend realmPath to specified realm with leading slash', () => {
       const realm = '/alpha';
       state.setRealm(realm);
-      const testString = getCurrentRealmPath();
+      const testString = getCurrentRealmPath(state);
       expect(testString).toBe('/realms/root/realms/alpha');
     });
 
     test("'/' should resolve to root", () => {
       const realm = '/';
       state.setRealm(realm);
-      const testString = getCurrentRealmPath();
+      const testString = getCurrentRealmPath(state);
       expect(testString).toBe('/realms/root');
     });
 
     test('Should handle multiple leading slashes', () => {
       const realm = '//alpha';
       state.setRealm(realm);
-      const testString = getCurrentRealmPath();
+      const testString = getCurrentRealmPath(state);
       expect(testString).toBe('/realms/root/realms/alpha');
     });
 
     test('Should handle nested realms', () => {
       const realm = '/parent/child';
       state.setRealm(realm);
-      const testString = getCurrentRealmPath();
+      const testString = getCurrentRealmPath(state);
       expect(testString).toBe('/realms/root/realms/parent/realms/child');
     });
   });

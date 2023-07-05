@@ -29,7 +29,8 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { Script } from '../index';
+import { state } from '../index';
+import * as ScriptOps from './ScriptOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { ScriptSkeleton } from '../../types/api/ApiTypes';
 
@@ -41,13 +42,17 @@ async function stageScript(
 ) {
   // delete if exists, then create
   try {
-    await Script.getScript(script.id);
-    await Script.deleteScript(script.id);
+    await ScriptOps.getScript({ scriptId: script.id, state });
+    await ScriptOps.deleteScript({ scriptId: script.id, state });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await Script.putScript(script.id, script.data);
+      await ScriptOps.putScript({
+        scriptId: script.id,
+        scriptData: script.data,
+        state,
+      });
     }
   }
 }
@@ -248,7 +253,7 @@ describe('ScriptOps', () => {
       lastModifiedDate: 0,
     } as ScriptSkeleton,
   };
-  const import1: { name: string; data: Script.ScriptExportInterface } = {
+  const import1: { name: string; data: ScriptOps.ScriptExportInterface } = {
     name: 'FrodoTestScript5',
     data: {
       meta: {
@@ -321,11 +326,11 @@ describe('ScriptOps', () => {
 
   describe('createScriptExportTemplate()', () => {
     test('0: Method is implemented', async () => {
-      expect(Script.createScriptExportTemplate).toBeDefined();
+      expect(ScriptOps.createScriptExportTemplate).toBeDefined();
     });
 
     test(`1: Create script export template`, async () => {
-      const response = Script.createScriptExportTemplate();
+      const response = ScriptOps.createScriptExportTemplate({ state });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -334,55 +339,68 @@ describe('ScriptOps', () => {
 
   describe('getScripts()', () => {
     test('0: Method is implemented', async () => {
-      expect(Script.getScripts).toBeDefined();
+      expect(ScriptOps.getScripts).toBeDefined();
     });
 
     test(`1: Get scripts`, async () => {
-      const response = await Script.getScripts();
+      const response = await ScriptOps.getScripts({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('getScript()', () => {
     test('0: Method is implemented', async () => {
-      expect(Script.getScript).toBeDefined();
+      expect(ScriptOps.getScript).toBeDefined();
     });
 
     test(`1: Get script by id '${script1.id}'`, async () => {
-      const response = await Script.getScript(script1.id);
+      const response = await ScriptOps.getScript({
+        scriptId: script1.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('getScriptByName()', () => {
     test('0: Method is implemented', async () => {
-      expect(Script.getScriptByName).toBeDefined();
+      expect(ScriptOps.getScriptByName).toBeDefined();
     });
 
     test(`1: Get script by name '${script1.name}'`, async () => {
-      const response = await Script.getScriptByName(script1.name);
+      const response = await ScriptOps.getScriptByName({
+        scriptName: script1.name,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('putScript()', () => {
     test('0: Method is implemented', async () => {
-      expect(Script.putScript).toBeDefined();
+      expect(ScriptOps.putScript).toBeDefined();
     });
 
     test(`1: Put script '${script3.id}'`, async () => {
-      const response = await Script.putScript(script3.id, script3.data);
+      const response = await ScriptOps.putScript({
+        scriptId: script3.id,
+        scriptData: script3.data,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('exportScript()', () => {
     test('0: Method is implemented', async () => {
-      expect(Script.exportScript).toBeDefined();
+      expect(ScriptOps.exportScript).toBeDefined();
     });
 
     test(`1: Export script by id ${script1.id}`, async () => {
-      const response = await Script.exportScript(script1.id);
+      const response = await ScriptOps.exportScript({
+        scriptId: script1.id,
+        state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -391,11 +409,14 @@ describe('ScriptOps', () => {
 
   describe('exportScriptByName()', () => {
     test('0: Method is implemented', async () => {
-      expect(Script.exportScriptByName).toBeDefined();
+      expect(ScriptOps.exportScriptByName).toBeDefined();
     });
 
     test(`1: Export script by name ${script1.name}`, async () => {
-      const response = await Script.exportScriptByName(script1.name);
+      const response = await ScriptOps.exportScriptByName({
+        scriptName: script1.name,
+        state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -404,11 +425,11 @@ describe('ScriptOps', () => {
 
   describe('exportScripts()', () => {
     test('0: Method is implemented', async () => {
-      expect(Script.exportScripts).toBeDefined();
+      expect(ScriptOps.exportScripts).toBeDefined();
     });
 
     test('1: Export all scripts', async () => {
-      const response = await Script.exportScripts();
+      const response = await ScriptOps.exportScripts({ state });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -417,18 +438,26 @@ describe('ScriptOps', () => {
 
   describe('importScripts()', () => {
     test('0: Method is implemented', async () => {
-      expect(Script.importScripts).toBeDefined();
+      expect(ScriptOps.importScripts).toBeDefined();
     });
 
     test(`1: Import all scripts`, async () => {
       expect.assertions(1);
-      const outcome = await Script.importScripts('', import1.data);
+      const outcome = await ScriptOps.importScripts({
+        scriptName: '',
+        importData: import1.data,
+        state,
+      });
       expect(outcome).toBeTruthy();
     });
 
     test(`2: Import script by name`, async () => {
       expect.assertions(1);
-      const outcome = await Script.importScripts(import1.name, import1.data);
+      const outcome = await ScriptOps.importScripts({
+        scriptName: import1.name,
+        importData: import1.data,
+        state,
+      });
       expect(outcome).toBeTruthy();
     });
   });

@@ -29,7 +29,9 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { Idm, IdmConfigRaw } from '../index';
+import { state } from '../index';
+import * as IdmConfigApi from '../api/IdmConfigApi';
+import * as IdmOps from './IdmOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
 autoSetupPolly();
@@ -40,13 +42,17 @@ async function stageConfigEntity(
 ) {
   // delete if exists, then create
   try {
-    await IdmConfigRaw.getConfigEntity(configEntity.id);
-    await IdmConfigRaw.deleteConfigEntity(configEntity.id);
+    await IdmConfigApi.getConfigEntity({ entityId: configEntity.id, state });
+    await IdmConfigApi.deleteConfigEntity({ entityId: configEntity.id, state });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await IdmConfigRaw.putConfigEntity(configEntity.id, configEntity.data);
+      await IdmConfigApi.putConfigEntity({
+        entityId: configEntity.id,
+        entityData: configEntity.data,
+        state,
+      });
     }
   }
 }
@@ -121,81 +127,96 @@ describe('IdmOps', () => {
 
   describe('getAllConfigEntities()', () => {
     test('0: Method is implemented', async () => {
-      expect(Idm.getAllConfigEntities).toBeDefined();
+      expect(IdmOps.getAllConfigEntities).toBeDefined();
     });
 
     test('1: get all config entities', async () => {
-      const response = await Idm.getAllConfigEntities();
+      const response = await IdmOps.getAllConfigEntities({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('getConfigEntitiesByType()', () => {
     test('0: Method is implemented', async () => {
-      expect(Idm.getConfigEntitiesByType).toBeDefined();
+      expect(IdmOps.getConfigEntitiesByType).toBeDefined();
     });
 
     test('1: Get config entity by type (emailTemplate)', async () => {
-      const response = await Idm.getConfigEntitiesByType('emailTemplate');
+      const response = await IdmOps.getConfigEntitiesByType({
+        type: 'emailTemplate',
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Get config entity by type (managed)', async () => {
-      const response = await Idm.getConfigEntitiesByType('managed');
+      const response = await IdmOps.getConfigEntitiesByType({
+        type: 'managed',
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('getConfigEntity()', () => {
     test('0: Method is implemented', async () => {
-      expect(Idm.getConfigEntity).toBeDefined();
+      expect(IdmOps.getConfigEntity).toBeDefined();
     });
 
     test(`1: Get config entity '${configEntity1.id}'`, async () => {
-      const response = await Idm.getConfigEntity(configEntity1.id);
+      const response = await IdmOps.getConfigEntity({
+        entityId: configEntity1.id,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test("2: Get config entity 'managed'", async () => {
-      const response = await Idm.getConfigEntity('managed');
+      const response = await IdmOps.getConfigEntity({
+        entityId: 'managed',
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('putConfigEntity()', () => {
     test('0: Method is implemented', async () => {
-      expect(Idm.putConfigEntity).toBeDefined();
+      expect(IdmOps.putConfigEntity).toBeDefined();
     });
 
     test(`1: Put a config entity '${configEntity3.id}'`, async () => {
-      const response = await Idm.putConfigEntity(
-        configEntity3.id,
-        configEntity3.data
-      );
+      const response = await IdmOps.putConfigEntity({
+        entityId: configEntity3.id,
+        entityData: configEntity3.data,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('queryAllManagedObjectsByType()', () => {
     test('0: Method is implemented', async () => {
-      expect(Idm.queryAllManagedObjectsByType).toBeDefined();
+      expect(IdmOps.queryAllManagedObjectsByType).toBeDefined();
     });
 
     test(`1: Query managed objects of type 'alpha_user'`, async () => {
-      const response = await Idm.queryAllManagedObjectsByType('alpha_user', [
-        '*',
-      ]);
+      const response = await IdmOps.queryAllManagedObjectsByType({
+        type: 'alpha_user',
+        fields: ['*'],
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('testConnectorServers()', () => {
     test('0: Method is implemented', async () => {
-      expect(Idm.testConnectorServers).toBeDefined();
+      expect(IdmOps.testConnectorServers).toBeDefined();
     });
 
     test(`1: Test connector servers`, async () => {
-      const response = await Idm.testConnectorServers();
+      const response = await IdmOps.testConnectorServers({ state });
       expect(response).toMatchSnapshot();
     });
   });

@@ -1,6 +1,15 @@
+/**
+ * Run tests
+ *
+ *        npm run test StartupApi
+ *
+ * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
+ * in case things don't function as expected
+ */
 import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
-import { StartupRaw, state } from '../../index';
+import * as StartupApi from './StartupApi';
+import { state } from '../../index';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -28,9 +37,9 @@ describe('StartupApi - getStatus()', () => {
     mock
       .onGet('https://openam-frodo-dev.forgeblocks.com/environment/startup')
       .reply(200, response);
-    const status = await StartupRaw.getStatus();
-    expect(status in StartupRaw.RestartStatus).toBeTruthy();
-    expect(status).toBe(StartupRaw.RestartStatus.ready);
+    const status = await StartupApi.getStatus({ state });
+    expect(status in StartupApi.RestartStatus).toBeTruthy();
+    expect(status).toBe(StartupApi.RestartStatus.ready);
   });
 
   test('getStatus() 2: Get restart status - expect "restarting"', async () => {
@@ -46,9 +55,9 @@ describe('StartupApi - getStatus()', () => {
     mock
       .onGet('https://openam-frodo-dev.forgeblocks.com/environment/startup')
       .reply(200, response);
-    const status = await StartupRaw.getStatus();
-    expect(status in StartupRaw.RestartStatus).toBeTruthy();
-    expect(status).toBe(StartupRaw.RestartStatus.restarting);
+    const status = await StartupApi.getStatus({ state });
+    expect(status in StartupApi.RestartStatus).toBeTruthy();
+    expect(status).toBe(StartupApi.RestartStatus.restarting);
   });
 });
 
@@ -80,9 +89,9 @@ describe('StartupApi - initiateRestart()', () => {
         'https://openam-frodo-dev.forgeblocks.com/environment/startup?_action=restart'
       )
       .reply(200, response2);
-    const status = await StartupRaw.initiateRestart();
-    expect(status in StartupRaw.RestartStatus).toBeTruthy();
-    expect(status).toBe(StartupRaw.RestartStatus.restarting);
+    const status = await StartupApi.initiateRestart({ state });
+    expect(status in StartupApi.RestartStatus).toBeTruthy();
+    expect(status).toBe(StartupApi.RestartStatus.restarting);
   });
 
   test('initiateRestart() 2: Initiate restart - expect "restarting" -> exception', async () => {
@@ -114,7 +123,7 @@ describe('StartupApi - initiateRestart()', () => {
       .reply(200, response2);
     expect.assertions(2);
     try {
-      await StartupRaw.initiateRestart();
+      await StartupApi.initiateRestart({ state });
     } catch (error) {
       expect(error).toBeTruthy();
       expect(error.message).toBe('Not ready! Current status: restarting');

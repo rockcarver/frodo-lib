@@ -1,9 +1,12 @@
-import { getOAuth2Provider as _getOAuth2Provider } from '../api/OAuth2ProviderApi';
+import { getOAuth2Provider } from '../api/OAuth2ProviderApi';
+import State from '../shared/State';
 
-/**
- * Get OAuth2 provider
- * @returns {Promise<any>} a promise that resolves to an oauth2 provider object
- */
-export async function getOAuth2Provider() {
-  return _getOAuth2Provider();
-}
+export default (state: State) => {
+  return {
+    async getOAuth2Provider() {
+      return getOAuth2Provider({ state });
+    },
+  };
+};
+
+export { getOAuth2Provider };

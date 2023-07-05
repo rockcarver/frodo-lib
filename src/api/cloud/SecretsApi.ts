@@ -2,7 +2,8 @@ import util from 'util';
 import { encode } from '../utils/Base64';
 import { getTenantURL } from '../utils/ApiUtils';
 import { generateEnvApi } from '../BaseApi';
-import * as state from '../../shared/State';
+import State from '../../shared/State';
+import { VersionOfSecretStatus } from '../ApiTypes';
 
 const secretsListURLTemplate = '%s/environment/secrets';
 const secretListVersionsURLTemplate = '%s/environment/secrets/%s/versions';
@@ -22,12 +23,15 @@ const getApiConfig = () => ({
  * Get all secrets
  * @returns {Promise<unknown[]>} a promise that resolves to an array of secrets
  */
-export async function getSecrets() {
+export async function getSecrets({ state }: { state: State }) {
   const urlString = util.format(
     secretsListURLTemplate,
     getTenantURL(state.getHost())
   );
-  const { data } = await generateEnvApi(getApiConfig()).get(urlString, {
+  const { data } = await generateEnvApi({
+    resource: getApiConfig(),
+    state,
+  }).get(urlString, {
     withCredentials: true,
   });
   return data;
@@ -38,13 +42,22 @@ export async function getSecrets() {
  * @param secretId secret id/name
  * @returns {Promise<unknown>} a promise that resolves to a secret
  */
-export async function getSecret(secretId) {
+export async function getSecret({
+  secretId,
+  state,
+}: {
+  secretId: string;
+  state: State;
+}) {
   const urlString = util.format(
     secretURLTemplate,
     getTenantURL(state.getHost()),
     secretId
   );
-  const { data } = await generateEnvApi(getApiConfig()).get(urlString, {
+  const { data } = await generateEnvApi({
+    resource: getApiConfig(),
+    state,
+  }).get(urlString, {
     withCredentials: true,
   });
   return data;
@@ -59,13 +72,21 @@ export async function getSecret(secretId) {
  * @param {boolean} useInPlaceholders flag indicating if the secret can be used in placeholders
  * @returns {Promise<unknown>} a promise that resolves to a secret
  */
-export async function putSecret(
+export async function putSecret({
   secretId,
   value,
   description,
   encoding = 'generic',
-  useInPlaceholders = true
-) {
+  useInPlaceholders = true,
+  state,
+}: {
+  secretId: string;
+  value: string;
+  description: string;
+  encoding?: string;
+  useInPlaceholders?: boolean;
+  state: State;
+}) {
   if (encoding !== 'generic')
     throw new Error(`Unsupported encoding: ${encoding}`);
   const secretData = {
@@ -79,13 +100,12 @@ export async function putSecret(
     getTenantURL(state.getHost()),
     secretId
   );
-  const { data } = await generateEnvApi(getApiConfig()).put(
-    urlString,
-    secretData,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateEnvApi({
+    resource: getApiConfig(),
+    state,
+  }).put(urlString, secretData, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -95,17 +115,24 @@ export async function putSecret(
  * @param {string} description secret description
  * @returns {Promise<unknown>} a promise that resolves to a status object
  */
-export async function setSecretDescription(secretId, description) {
+export async function setSecretDescription({
+  secretId,
+  description,
+  state,
+}: {
+  secretId: string;
+  description: string;
+  state: State;
+}) {
   const urlString = util.format(
     secretSetDescriptionURLTemplate,
     getTenantURL(state.getHost()),
     secretId
   );
-  const { data } = await generateEnvApi(getApiConfig()).post(
-    urlString,
-    { description },
-    { withCredentials: true }
-  );
+  const { data } = await generateEnvApi({
+    resource: getApiConfig(),
+    state,
+  }).post(urlString, { description }, { withCredentials: true });
   return data;
 }
 
@@ -114,13 +141,22 @@ export async function setSecretDescription(secretId, description) {
  * @param {string} secretId secret id/name
  * @returns {Promise<unknown>} a promise that resolves to a secret object
  */
-export async function deleteSecret(secretId) {
+export async function deleteSecret({
+  secretId,
+  state,
+}: {
+  secretId: string;
+  state: State;
+}) {
   const urlString = util.format(
     secretURLTemplate,
     getTenantURL(state.getHost()),
     secretId
   );
-  const { data } = await generateEnvApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateEnvApi({
+    resource: getApiConfig(),
+    state,
+  }).delete(urlString, {
     withCredentials: true,
   });
   return data;
@@ -131,13 +167,22 @@ export async function deleteSecret(secretId) {
  * @param {string} secretId secret id/name
  * @returns {Promise<unknown>} a promise that resolves to an array of secret versions
  */
-export async function getSecretVersions(secretId) {
+export async function getSecretVersions({
+  secretId,
+  state,
+}: {
+  secretId: string;
+  state: State;
+}) {
   const urlString = util.format(
     secretListVersionsURLTemplate,
     getTenantURL(state.getHost()),
     secretId
   );
-  const { data } = await generateEnvApi(getApiConfig()).get(urlString, {
+  const { data } = await generateEnvApi({
+    resource: getApiConfig(),
+    state,
+  }).get(urlString, {
     withCredentials: true,
   });
   return data;
@@ -149,17 +194,24 @@ export async function getSecretVersions(secretId) {
  * @param {string} value secret value
  * @returns {Promise<unknown>} a promise that resolves to a version object
  */
-export async function createNewVersionOfSecret(secretId, value) {
+export async function createNewVersionOfSecret({
+  secretId,
+  value,
+  state,
+}: {
+  secretId: string;
+  value: string;
+  state: State;
+}) {
   const urlString = util.format(
     secretCreateNewVersionURLTemplate,
     getTenantURL(state.getHost()),
     secretId
   );
-  const { data } = await generateEnvApi(getApiConfig()).post(
-    urlString,
-    { valueBase64: encode(value) },
-    { withCredentials: true }
-  );
+  const { data } = await generateEnvApi({
+    resource: getApiConfig(),
+    state,
+  }).post(urlString, { valueBase64: encode(value) }, { withCredentials: true });
   return data;
 }
 
@@ -169,22 +221,28 @@ export async function createNewVersionOfSecret(secretId, value) {
  * @param {string} version secret version
  * @returns {Promise<unknown>} a promise that resolves to a version object
  */
-export async function getVersionOfSecret(secretId, version) {
+export async function getVersionOfSecret({
+  secretId,
+  version,
+  state,
+}: {
+  secretId: string;
+  version: string;
+  state: State;
+}) {
   const urlString = util.format(
     secretGetVersionURLTemplate,
     getTenantURL(state.getHost()),
     secretId,
     version
   );
-  const { data } = await generateEnvApi(getApiConfig()).get(urlString, {
+  const { data } = await generateEnvApi({
+    resource: getApiConfig(),
+    state,
+  }).get(urlString, {
     withCredentials: true,
   });
   return data;
-}
-
-export enum VersionOfSecretStatus {
-  DISABLED = 'DISABLED',
-  ENABLED = 'ENABLED',
 }
 
 /**
@@ -194,22 +252,27 @@ export enum VersionOfSecretStatus {
  * @param {VersionOfSecretStatus} status status
  * @returns {Promise<unknown>} a promise that resolves to a status object
  */
-export async function setStatusOfVersionOfSecret(
-  secretId: string,
-  version: string,
-  status: VersionOfSecretStatus
-) {
+export async function setStatusOfVersionOfSecret({
+  secretId,
+  version,
+  status,
+  state,
+}: {
+  secretId: string;
+  version: string;
+  status: VersionOfSecretStatus;
+  state: State;
+}) {
   const urlString = util.format(
     secretVersionStatusURLTemplate,
     getTenantURL(state.getHost()),
     secretId,
     version
   );
-  const { data } = await generateEnvApi(getApiConfig()).post(
-    urlString,
-    { status },
-    { withCredentials: true }
-  );
+  const { data } = await generateEnvApi({
+    resource: getApiConfig(),
+    state,
+  }).post(urlString, { status }, { withCredentials: true });
   return data;
 }
 
@@ -219,14 +282,25 @@ export async function setStatusOfVersionOfSecret(
  * @param {string} version secret version
  * @returns {Promise<unknown>} a promise that resolves to a version object
  */
-export async function deleteVersionOfSecret(secretId, version) {
+export async function deleteVersionOfSecret({
+  secretId,
+  version,
+  state,
+}: {
+  secretId: string;
+  version: string;
+  state: State;
+}) {
   const urlString = util.format(
     secretGetVersionURLTemplate,
     getTenantURL(state.getHost()),
     secretId,
     version
   );
-  const { data } = await generateEnvApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateEnvApi({
+    resource: getApiConfig(),
+    state,
+  }).delete(urlString, {
     withCredentials: true,
   });
   return data;

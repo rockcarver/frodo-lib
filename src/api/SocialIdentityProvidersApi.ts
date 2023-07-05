@@ -1,7 +1,8 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
-import * as state from '../shared/State';
+import State from '../shared/State';
+import { NoIdObjectSkeletonInterface, SocialIdpSkeleton } from './ApiTypes';
 
 const getAllProviderTypesURLTemplate =
   '%s/json%s/realm-config/services/SocialIdentityProviders?_action=getAllTypes';
@@ -13,9 +14,7 @@ const getProvidersByTypeURLTemplate =
   '%s/json%s/realm-config/services/SocialIdentityProviders/%s?_queryFilter=true';
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/realm-config/services/SocialIdentityProviders`,
     apiVersion,
   };
 };
@@ -24,15 +23,22 @@ const getApiConfig = () => {
  * Get social identity provider types
  * @returns {Promise} a promise that resolves to an object containing an array of social identity provider types
  */
-export async function getSocialIdentityProviderTypes() {
+export async function getSocialIdentityProviderTypes({
+  state,
+}: {
+  state: State;
+}) {
   const urlString = util.format(
     getAllProviderTypesURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -41,16 +47,25 @@ export async function getSocialIdentityProviderTypes() {
  * @param {String} type social identity provider type
  * @returns {Promise} a promise that resolves to an object containing an array of social identity providers of the requested type
  */
-export async function getSocialIdentityProvidersByType(type) {
+export async function getSocialIdentityProvidersByType({
+  type,
+  state,
+}: {
+  type: string;
+  state: State;
+}) {
   const urlString = util.format(
     getProvidersByTypeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     type
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -58,13 +73,16 @@ export async function getSocialIdentityProvidersByType(type) {
  * Get all social identity providers
  * @returns {Promise} a promise that resolves to an object containing an array of social identity providers
  */
-export async function getSocialIdentityProviders() {
+export async function getSocialIdentityProviders({ state }: { state: State }) {
   const urlString = util.format(
     getAllProvidersURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
-  const { data } = await generateAmApi(getApiConfig()).post(
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).post(
     urlString,
     {},
     {
@@ -76,21 +94,32 @@ export async function getSocialIdentityProviders() {
 
 /**
  * Get social identity provider by type and id
- * @param {*} type social identity provider type
- * @param {*} id social identity provider id/name
+ * @param {string} type social identity provider type
+ * @param {string} id social identity provider id/name
  * @returns {Promise} a promise that resolves to an object containing a social identity provider
  */
-export async function getProviderByTypeAndId(type, id) {
+export async function getProviderByTypeAndId({
+  type,
+  id,
+  state,
+}: {
+  type: string;
+  id: string;
+  state: State;
+}) {
   const urlString = util.format(
     providerByTypeAndIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     type,
     id
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -101,18 +130,28 @@ export async function getProviderByTypeAndId(type, id) {
  * @param {Object} providerData a social identity provider object
  * @returns {Promise} a promise that resolves to an object containing a social identity provider
  */
-export async function putProviderByTypeAndId(type, id, providerData) {
+export async function putProviderByTypeAndId({
+  type,
+  id,
+  providerData,
+  state,
+}: {
+  type: string;
+  id: string;
+  providerData: SocialIdpSkeleton | NoIdObjectSkeletonInterface;
+  state: State;
+}) {
   // until we figure out a way to use transport keys in Frodo,
   // we'll have to drop those encrypted attributes.
   const cleanData = deleteDeepByKey(providerData, '-encrypted');
   const urlString = util.format(
     providerByTypeAndIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     type,
     id
   );
-  const { data } = await generateAmApi(getApiConfig()).put(
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
     urlString,
     cleanData,
     {
@@ -128,18 +167,26 @@ export async function putProviderByTypeAndId(type, id, providerData) {
  * @param {string} providerId provider id
  * @returns {Promise<unknown>} a promise that resolves to a social identity provider
  */
-export async function deleteProviderByTypeAndId(
-  type: string,
-  providerId: string
-) {
+export async function deleteProviderByTypeAndId({
+  type,
+  providerId,
+  state,
+}: {
+  type: string;
+  providerId: string;
+  state: State;
+}) {
   const urlString = util.format(
     providerByTypeAndIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     type,
     providerId
   );
-  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).delete(urlString, {
     withCredentials: true,
   });
   return data;

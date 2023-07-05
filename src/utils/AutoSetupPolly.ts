@@ -32,7 +32,7 @@ switch (process.env.FRODO_POLLY_MODE) {
       process.env.FRODO_HOST || 'https://openam-frodo-dev.forgeblocks.com/am'
     );
     state.setRealm(process.env.FRODO_REALM || 'alpha');
-    if (!(await getTokens()))
+    if (!(await getTokens({ forceLoginAsUser: false, state })))
       throw new Error(
         `Unable to record mock responses from '${state.getHost()}'`
       );

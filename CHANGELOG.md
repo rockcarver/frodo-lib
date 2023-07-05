@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-11] - 2023-07-05
+
+## [2.0.0-10] - 2023-06-29
+
+## [2.0.0-9] - 2023-06-23
+
+## [2.0.0-8] - 2023-06-22
+
+## [2.0.0-7] - 2023-06-22
+
+### Added
+
+-   rockcarver/frodo-cli#251: Support for Identity Cloud admin federation configuration through new module `AdminFederation`.
+
+## [2.0.0-6] - 2023-06-21
+
+## [2.0.0-5] - 2023-06-16
+
+## [2.0.0-4] - 2023-06-15
+
+## [2.0.0-3] - 2023-06-14
+
+## [2.0.0-2] - 2023-06-12
+
+## [2.0.0-1] - 2023-06-08
+
 ## [1.1.0] - 2023-06-30
 
 ### Added
@@ -1169,7 +1195,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-11...HEAD
+
+[2.0.0-11]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-10...v2.0.0-11
+
+[2.0.0-10]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-9...v2.0.0-10
+
+[2.0.0-9]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-8...v2.0.0-9
+
+[2.0.0-8]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-7...v2.0.0-8
+
+[2.0.0-7]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-6...v2.0.0-7
+
+[2.0.0-6]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-5...v2.0.0-6
+
+[2.0.0-5]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-4...v2.0.0-5
+
+[2.0.0-4]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-3...v2.0.0-4
+
+[2.0.0-3]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-2...v2.0.0-3
+
+[2.0.0-2]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-1...v2.0.0-2
+
+[2.0.0-1]: https://github.com/rockcarver/frodo-lib/compare/v0.19.2...v2.0.0-1
 
 [1.1.0]: https://github.com/rockcarver/frodo-lib/compare/v1.0.1-1...v1.1.0
 

@@ -1,8 +1,9 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
-import * as state from '../shared/State';
+import State from '../shared/State';
 import { debugMessage } from '../ops/utils/Console';
+import { AgentSkeleton, AgentType } from './ApiTypes';
 
 const getAgentTypesURLTemplate =
   '%s/json%s/realm-config/agents?_action=getAllTypes';
@@ -17,9 +18,7 @@ const agentListURLTemplate =
   '%s/json%s/realm-config/agents/%s?_queryFilter=true';
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/realm-config/agents`,
     apiVersion,
   };
 };
@@ -28,21 +27,24 @@ const getApiConfig = () => {
  * Get agent types
  * @returns {Promise} a promise that resolves to an object containing an array of agent types
  */
-export async function getAgentTypes() {
-  debugMessage(`AgentApi.getAgentTypes: start`);
+export async function getAgentTypes({ state }: { state: State }) {
+  debugMessage({ message: `AgentApi.getAgentTypes: start`, state });
   const urlString = util.format(
     getAgentTypesURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
-  const { data } = await generateAmApi(getApiConfig()).post(
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).post(
     urlString,
     {},
     {
       withCredentials: true,
     }
   );
-  debugMessage(`AgentApi.getAgentTypes: end`);
+  debugMessage({ message: `AgentApi.getAgentTypes: end`, state });
   return data;
 }
 
@@ -51,18 +53,27 @@ export async function getAgentTypes() {
  * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
  * @returns {Promise} a promise that resolves to an object containing an array of agent objects of the specified type
  */
-export async function getAgentsByType(agentType: string) {
-  debugMessage(`AgentApi.getAgentsByType: start`);
+export async function getAgentsByType({
+  agentType,
+  state,
+}: {
+  agentType: AgentType;
+  state: State;
+}) {
+  debugMessage({ message: `AgentApi.getAgentsByType: start`, state });
   const urlString = util.format(
     agentListURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     agentType
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
-  debugMessage(`AgentApi.getAgentsByType: end`);
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
+  debugMessage({ message: `AgentApi.getAgentsByType: end`, state });
   return data;
 }
 
@@ -70,21 +81,24 @@ export async function getAgentsByType(agentType: string) {
  * Get all agents
  * @returns {Promise} a promise that resolves to an object containing an array of agent objects
  */
-export async function getAgents() {
-  debugMessage(`AgentApi.getAgents: start`);
+export async function getAgents({ state }: { state: State }) {
+  debugMessage({ message: `AgentApi.getAgents: start`, state });
   const urlString = util.format(
     getAllAgentsURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
-  const { data } = await generateAmApi(getApiConfig()).post(
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).post(
     urlString,
     {},
     {
       withCredentials: true,
     }
   );
-  debugMessage(`AgentApi.getAgents: end`);
+  debugMessage({ message: `AgentApi.getAgents: end`, state });
   return data;
 }
 
@@ -93,18 +107,27 @@ export async function getAgents() {
  * @param {string} agentId agent id
  * @returns {Promise} a promise that resolves to an array with one or zero agent objects
  */
-export async function findAgentById(agentId: string) {
-  debugMessage(`AgentApi.findAgentById: start`);
+export async function findAgentById({
+  agentId,
+  state,
+}: {
+  agentId: string;
+  state: State;
+}) {
+  debugMessage({ message: `AgentApi.findAgentById: start`, state });
   const urlString = util.format(
     queryAgentURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     agentId
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
-  debugMessage(`AgentApi.findAgentById: end`);
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
+  debugMessage({ message: `AgentApi.findAgentById: end`, state });
   return data.result;
 }
 
@@ -114,19 +137,30 @@ export async function findAgentById(agentId: string) {
  * @param {string} agentId agent id
  * @returns {Promise} a promise that resolves to an array with one or zero agent objects
  */
-export async function findAgentByTypeAndId(agentType: string, agentId: string) {
-  debugMessage(`AgentApi.findAgentById: start`);
+export async function findAgentByTypeAndId({
+  agentType,
+  agentId,
+  state,
+}: {
+  agentType: AgentType;
+  agentId: string;
+  state: State;
+}) {
+  debugMessage({ message: `AgentApi.findAgentById: start`, state });
   const urlString = util.format(
     queryAgentByTypeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     agentType,
     agentId
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
-  debugMessage(`AgentApi.findAgentById: end`);
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
+  debugMessage({ message: `AgentApi.findAgentById: end`, state });
   return data.result;
 }
 
@@ -136,19 +170,30 @@ export async function findAgentByTypeAndId(agentType: string, agentId: string) {
  * @param {string} agentId agent id
  * @returns {Promise} a promise that resolves to an object containing an agent object of the specified type
  */
-export async function getAgentByTypeAndId(agentType: string, agentId: string) {
-  debugMessage(`AgentApi.getAgentByTypeAndId: start`);
+export async function getAgentByTypeAndId({
+  agentType,
+  agentId,
+  state,
+}: {
+  agentType: AgentType;
+  agentId: string;
+  state: State;
+}) {
+  debugMessage({ message: `AgentApi.getAgentByTypeAndId: start`, state });
   const urlString = util.format(
     agentURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     agentType,
     agentId
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
-  debugMessage(`AgentApi.getAgentByTypeAndId: end`);
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
+  debugMessage({ message: `AgentApi.getAgentByTypeAndId: end`, state });
   return data;
 }
 
@@ -159,12 +204,18 @@ export async function getAgentByTypeAndId(agentType: string, agentId: string) {
  * @param {Object} agentData agent object
  * @returns {Promise} a promise that resolves to an object containing an agent object
  */
-export async function putAgentByTypeAndId(
-  agentType: string,
-  agentId: string,
-  agentData
-) {
-  debugMessage(`AgentApi.putAgentByTypeAndId: start`);
+export async function putAgentByTypeAndId({
+  agentType,
+  agentId,
+  agentData,
+  state,
+}: {
+  agentType: AgentType;
+  agentId: string;
+  agentData: AgentSkeleton;
+  state: State;
+}) {
+  debugMessage({ message: `AgentApi.putAgentByTypeAndId: start`, state });
   // until we figure out a way to use transport keys in Frodo,
   // we'll have to drop those encrypted attributes.
   const agent = deleteDeepByKey(agentData, '-encrypted');
@@ -173,14 +224,18 @@ export async function putAgentByTypeAndId(
   const urlString = util.format(
     agentURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     agentType,
     agentId
   );
-  const { data } = await generateAmApi(getApiConfig()).put(urlString, agent, {
-    withCredentials: true,
-  });
-  debugMessage(`AgentApi.putAgentByTypeAndId: end`);
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
+    urlString,
+    agent,
+    {
+      withCredentials: true,
+    }
+  );
+  debugMessage({ message: `AgentApi.putAgentByTypeAndId: end`, state });
   return data;
 }
 
@@ -190,21 +245,29 @@ export async function putAgentByTypeAndId(
  * @param agentId agent id
  * @returns a promise that resolves to an object containing an agent object
  */
-export async function deleteAgentByTypeAndId(
-  agentType: string,
-  agentId: string
-) {
-  debugMessage(`AgentApi.deleteAgentByTypeAndId: start`);
+export async function deleteAgentByTypeAndId({
+  agentType,
+  agentId,
+  state,
+}: {
+  agentType: AgentType;
+  agentId: string;
+  state: State;
+}) {
+  debugMessage({ message: `AgentApi.deleteAgentByTypeAndId: start`, state });
   const urlString = util.format(
     agentURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     agentType,
     agentId
   );
-  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).delete(urlString, {
     withCredentials: true,
   });
-  debugMessage(`AgentApi.deleteAgentByTypeAndId: end`);
+  debugMessage({ message: `AgentApi.deleteAgentByTypeAndId: end`, state });
   return data;
 }

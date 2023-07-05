@@ -7,22 +7,22 @@ export interface NoIdObjectSkeletonInterface {
     | string[]
     | IdObjectSkeletonInterface
     | object
-    | null;
+    | undefined;
 }
 
 export interface IdObjectSkeletonInterface extends NoIdObjectSkeletonInterface {
   _id: string;
 }
 
-export interface PagedResults {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  result: any[];
-  resultCount: number;
-  pagedResultsCookie: string;
-  totalPagedResultsPolicy: string;
-  totalPagedResults: number;
-  remainingPagedResults: number;
-}
+// export interface PagedResults {
+//   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//   result: any[];
+//   resultCount: number;
+//   pagedResultsCookie: string;
+//   totalPagedResultsPolicy: string;
+//   totalPagedResults: number;
+//   remainingPagedResults: number;
+// }
 
 export interface UiConfigInterface {
   categories: string;
@@ -86,31 +86,30 @@ export type ResourceTypeSkeleton = NoIdObjectSkeletonInterface & {
   name: string;
 };
 
-export enum PolicyConditionType {
-  Script = 'Script',
-  AMIdentityMembership = 'AMIdentityMembership',
-  IPv6 = 'IPv6',
-  IPv4 = 'IPv4',
-  SimpleTime = 'SimpleTime',
-  LEAuthLevel = 'LEAuthLevel',
-  LDAPFilter = 'LDAPFilter',
-  AuthScheme = 'AuthScheme',
-  Session = 'Session',
-  AND = 'AND',
-  AuthenticateToRealm = 'AuthenticateToRealm',
-  ResourceEnvIP = 'ResourceEnvIP',
-  Policy = 'Policy',
-  OAuth2Scope = 'OAuth2Scope',
-  SessionProperty = 'SessionProperty',
-  OR = 'OR',
-  Transaction = 'Transaction',
-  NOT = 'NOT',
-  AuthLevel = 'AuthLevel',
-  AuthenticateToService = 'AuthenticateToService',
-}
+export type PolicyConditionType =
+  | 'Script'
+  | 'AMIdentityMembership'
+  | 'IPv6'
+  | 'IPv4'
+  | 'SimpleTime'
+  | 'LEAuthLevel'
+  | 'LDAPFilter'
+  | 'AuthScheme'
+  | 'Session'
+  | 'AND'
+  | 'AuthenticateToRealm'
+  | 'ResourceEnvIP'
+  | 'Policy'
+  | 'OAuth2Scope'
+  | 'SessionProperty'
+  | 'OR'
+  | 'Transaction'
+  | 'NOT'
+  | 'AuthLevel'
+  | 'AuthenticateToService';
 
 export type PolicyCondition = NoIdObjectSkeletonInterface & {
-  type: keyof typeof PolicyConditionType;
+  type: PolicyConditionType;
   condition?: PolicyCondition;
   conditions?: PolicyCondition[];
 };
@@ -122,25 +121,35 @@ export type PolicySkeleton = IdObjectSkeletonInterface & {
   resourceTypeUuid: string;
 };
 
+export type VersionOfSecretStatus = 'DISABLED' | 'ENABLED';
+
+export type ReadableStrings = string[];
+
+export type WritableStrings = {
+  inherited: boolean;
+  value: string[];
+};
+
 export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
   overrideOAuth2ClientConfig?: {
-    [k: string]: string | number | boolean | string[] | object | null;
+    [k: string]: string | number | boolean | string[] | object | undefined;
   };
   advancedOAuth2ClientConfig?: {
     descriptions: {
       inherited: boolean;
       value: string[];
     };
-    [k: string]: string | number | boolean | string[] | object | null;
+    grantTypes?: ReadableStrings | WritableStrings;
+    [k: string]: string | number | boolean | string[] | object | undefined;
   };
   signEncOAuth2ClientConfig?: {
-    [k: string]: string | number | boolean | string[] | object | null;
+    [k: string]: string | number | boolean | string[] | object | undefined;
   };
   coreOpenIDClientConfig?: {
-    [k: string]: string | number | boolean | string[] | object | null;
+    [k: string]: string | number | boolean | string[] | object | undefined;
   };
   coreOAuth2ClientConfig?: {
-    userpassword?: null;
+    userpassword?: string;
     clientName?: {
       inherited: boolean;
       value: string[];
@@ -149,10 +158,15 @@ export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
       inherited: boolean;
       value: number;
     };
-    [k: string]: string | number | boolean | string[] | object | null;
+    scopes?: ReadableStrings | WritableStrings;
+    defaultScopes?: {
+      value: string[];
+      [k: string]: string | number | boolean | string[] | object | undefined;
+    };
+    [k: string]: string | number | boolean | string[] | object | undefined;
   };
   coreUmaClientConfig?: {
-    [k: string]: string | number | boolean | string[] | object | null;
+    [k: string]: string | number | boolean | string[] | object | undefined;
   };
   _type: AmServiceType;
 };
@@ -162,6 +176,24 @@ export type AmServiceSkeleton = IdObjectSkeletonInterface & {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 };
+
+export interface ServiceNextDescendentResponse {
+  result: ServiceNextDescendent;
+}
+
+export interface ServiceNextDescendent {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+}
+
+export interface FullService extends AmServiceSkeleton {
+  nextDescendents?: ServiceNextDescendent[];
+}
+
+export type GatewayAgentType = 'IdentityGatewayAgent';
+export type JavaAgentType = 'J2EEAgent';
+export type WebAgentType = 'WebAgent';
+export type AgentType = GatewayAgentType | JavaAgentType | WebAgentType;
 
 export type AgentSkeleton = IdObjectSkeletonInterface & {
   _type: AmServiceType;
@@ -188,45 +220,38 @@ export type UiThemeRealmObject = IdObjectSkeletonInterface & {
   realm: Map<string, ThemeSkeleton[]>;
 };
 
-export enum ScriptLanguage {
-  GROOVY,
-  JAVASCRIPT,
-}
+export type ScriptLanguage = 'GROOVY' | 'JAVASCRIPT';
 
-export enum ScriptContext {
-  OAUTH2_ACCESS_TOKEN_MODIFICATION,
-  AUTHENTICATION_CLIENT_SIDE,
-  AUTHENTICATION_TREE_DECISION_NODE,
-  AUTHENTICATION_SERVER_SIDE,
-  SOCIAL_IDP_PROFILE_TRANSFORMATION,
-  OAUTH2_VALIDATE_SCOPE,
-  CONFIG_PROVIDER_NODE,
-  OAUTH2_AUTHORIZE_ENDPOINT_DATA_PROVIDER,
-  OAUTH2_EVALUATE_SCOPE,
-  POLICY_CONDITION,
-  OIDC_CLAIMS,
-  SAML2_IDP_ADAPTER,
-  SAML2_IDP_ATTRIBUTE_MAPPER,
-  OAUTH2_MAY_ACT,
-}
+export type ScriptContext =
+  | 'OAUTH2_ACCESS_TOKEN_MODIFICATION'
+  | 'AUTHENTICATION_CLIENT_SIDE'
+  | 'AUTHENTICATION_TREE_DECISION_NODE'
+  | 'AUTHENTICATION_SERVER_SIDE'
+  | 'SOCIAL_IDP_PROFILE_TRANSFORMATION'
+  | 'OAUTH2_VALIDATE_SCOPE'
+  | 'CONFIG_PROVIDER_NODE'
+  | 'OAUTH2_AUTHORIZE_ENDPOINT_DATA_PROVIDER'
+  | 'OAUTH2_EVALUATE_SCOPE'
+  | 'POLICY_CONDITION'
+  | 'OIDC_CLAIMS'
+  | 'SAML2_IDP_ADAPTER'
+  | 'SAML2_IDP_ATTRIBUTE_MAPPER'
+  | 'OAUTH2_MAY_ACT';
 
 export type ScriptSkeleton = IdObjectSkeletonInterface & {
   name: string;
   description: string;
   default: boolean;
   script: string | string[];
-  language: keyof typeof ScriptLanguage;
-  context: keyof typeof ScriptContext;
+  language: ScriptLanguage;
+  context: ScriptContext;
   createdBy: string;
   creationDate: number;
   lastModifiedBy: string;
   lastModifiedDate: number;
 };
 
-export enum Saml2ProiderLocation {
-  HOSTED = 'hosted',
-  REMOTE = 'remote',
-}
+export type Saml2ProiderLocation = 'hosted' | 'remote';
 
 export type Saml2ProviderStub = IdObjectSkeletonInterface & {
   entityId: string;
@@ -261,6 +286,7 @@ export type PagedResult<Result> = {
 export type LogApiKey = {
   name: string;
   api_key_id: string;
+  api_key_secret?: string;
   created_at: string;
 };
 
