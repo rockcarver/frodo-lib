@@ -3,15 +3,16 @@ name: 'Frodo Library Release Pipeline'
 on:
   pull_request:
     branches:
-      - 'next'
+      - 'main'
     paths-ignore:
       - '**/README.md'
       - '**/CODE_OF_CONDUCT.md'
       - 'docs/**'
   push:
     branches:
-      - 'next'
+      - 'main'
     paths-ignore:
+      - '**/pipeline.yml'
       - '**/README.md'
       - '**/CODE_OF_CONDUCT.md'
       - 'docs/**'
@@ -170,7 +171,7 @@ jobs:
           npm audit --omit=dev
 
   npm-release:
-    if: github.ref == 'refs/heads/next'
+    if: github.ref == 'refs/heads/main'
     needs: [build, smoke-tests]
     runs-on: ubuntu-latest
     steps:
@@ -212,7 +213,7 @@ jobs:
           npm dist-tag add @rockcarver/frodo-lib@${{ needs.build.outputs.newVersion }} next
 
   release:
-    if: github.ref == 'refs/heads/next'
+    if: github.ref == 'refs/heads/main'
     needs: [build, npm-release]
     name: 'Release'
     runs-on: ubuntu-latest
