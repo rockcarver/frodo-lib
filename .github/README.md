@@ -18,7 +18,7 @@ Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the comma
 
 ## New In 2.x
 
-2.x introduces breaking changes to support multiple instances of the library to run concurrently and communicating with multiple different ForgeRock Identity Platform instances. 1.x would operate using a global singleton, making it impossible to connect to more than one platform instance at a time.
+2.x introduces breaking changes to support multiple instances of the library to run concurrently and communicate with multiple different ForgeRock Identity Platform instances at the same time. 1.x would operate using a global singleton, making it impossible to connect to more than one platform instance at a time.
 
 ## Features
 
