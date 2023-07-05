@@ -1,4 +1,4 @@
-import * as state from '../../shared/State';
+import State from '../../shared/State';
 
 /**
  * Get realm path
@@ -20,7 +20,7 @@ export function getRealmPath(realm: string) {
  * Get current realm path
  * @returns {string} a CREST-compliant realm path, e.g. /realms/root/realms/alpha
  */
-export function getCurrentRealmPath() {
+export function getCurrentRealmPath(state: State) {
   return getRealmPath(state.getRealm());
 }
 
@@ -28,7 +28,7 @@ export function getCurrentRealmPath() {
  * Get current realm name
  * @returns {String} name of the current realm. /alpha -> alpha
  */
-export function getCurrentRealmName() {
+export function getCurrentRealmName(state: State) {
   const realm = state.getRealm();
   const components = realm.split('/');
   let realmName = '/';

@@ -35,6 +35,7 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
+import { state } from '../index';
 import * as PolicySetApi from '../api/PolicySetApi';
 import * as PoliciesApi from '../api/PoliciesApi';
 import * as ScriptOps from './ScriptOps';
@@ -54,13 +55,16 @@ autoSetupPolly();
 async function stagePolicySet(policySet: PolicySetSkeleton, create = true) {
   // delete if exists, then create
   try {
-    await PolicySetApi.getPolicySet(policySet.name);
-    await PolicySetApi.deletePolicySet(policySet.name);
+    await PolicySetApi.getPolicySet({ policySetName: policySet.name, state });
+    await PolicySetApi.deletePolicySet({
+      policySetName: policySet.name,
+      state,
+    });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await PolicySetApi.createPolicySet(policySet);
+      await PolicySetApi.createPolicySet({ policySetData: policySet, state });
     }
   }
 }
@@ -68,13 +72,17 @@ async function stagePolicySet(policySet: PolicySetSkeleton, create = true) {
 async function stageScript(script: ScriptSkeleton, create = true) {
   // delete if exists, then create
   try {
-    await ScriptOps.getScript(script._id);
-    await ScriptOps.deleteScript(script._id);
+    await ScriptOps.getScript({ scriptId: script._id, state });
+    await ScriptOps.deleteScript({ scriptId: script._id, state });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await ScriptOps.putScript(script._id, script);
+      await ScriptOps.putScript({
+        scriptId: script._id,
+        scriptData: script,
+        state,
+      });
     }
   }
 }
@@ -82,13 +90,17 @@ async function stageScript(script: ScriptSkeleton, create = true) {
 async function stagePolicy(policy: PolicySkeleton, create = true) {
   // delete if exists, then create
   try {
-    await PoliciesApi.getPolicy(policy._id);
-    await PoliciesApi.deletePolicy(policy._id);
+    await PoliciesApi.getPolicy({ policyId: policy._id, state });
+    await PoliciesApi.deletePolicy({ policyId: policy._id, state });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await PoliciesApi.putPolicy(policy._id, policy);
+      await PoliciesApi.putPolicy({
+        policyId: policy._id,
+        policyData: policy,
+        state,
+      });
     }
   }
 }
@@ -756,7 +768,7 @@ describe('PolicyOps', () => {
       });
 
       test('1: Get all policies', async () => {
-        const response = await PolicyOps.getPolicies();
+        const response = await PolicyOps.getPolicies({ state });
         expect(response).toMatchSnapshot();
       });
     });
@@ -767,7 +779,10 @@ describe('PolicyOps', () => {
       });
 
       test(`1: Get all policies in policy set [${set1.name}]`, async () => {
-        const response = await PolicyOps.getPoliciesByPolicySet(set1.name);
+        const response = await PolicyOps.getPoliciesByPolicySet({
+          policySetId: set1.name,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
@@ -778,14 +793,17 @@ describe('PolicyOps', () => {
       });
 
       test(`1: Get existing policy [${policy1._id}]`, async () => {
-        const response = await PolicyOps.getPolicy(policy1._id);
+        const response = await PolicyOps.getPolicy({
+          policyId: policy1._id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test('2: Get non-existing policy [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await PolicyOps.getPolicy('DoesNotExist');
+          await PolicyOps.getPolicy({ policyId: 'DoesNotExist', state });
         } catch (error) {
           expect(error.response.data).toMatchSnapshot();
         }
@@ -798,12 +816,20 @@ describe('PolicyOps', () => {
       });
 
       test(`1: Create non-existing policy [${policy3.name}]`, async () => {
-        const response = await PolicyOps.putPolicy(policy3._id, policy3);
+        const response = await PolicyOps.putPolicy({
+          policyId: policy3._id,
+          policyData: policy3,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test(`2: Update existing policy [${policy4.name}]`, async () => {
-        const response = await PolicyOps.putPolicy(policy4._id, policy4);
+        const response = await PolicyOps.putPolicy({
+          policyId: policy4._id,
+          policyData: policy4,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
@@ -827,7 +853,10 @@ describe('PolicyOps', () => {
       });
 
       test(`1: Find scripts for policy [${policy6.name}]`, async () => {
-        const response = await PolicyOps.getScripts(policy6);
+        const response = await PolicyOps.getScripts({
+          policyData: policy6,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
@@ -838,10 +867,14 @@ describe('PolicyOps', () => {
       });
 
       test(`1: Export existing policy w/o deps [${policy9._id}]`, async () => {
-        const response = await PolicyOps.exportPolicy(policy9._id, {
-          deps: false,
-          prereqs: false,
-          useStringArrays: true,
+        const response = await PolicyOps.exportPolicy({
+          policyId: policy9._id,
+          options: {
+            deps: false,
+            prereqs: false,
+            useStringArrays: true,
+          },
+          state,
         });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
@@ -849,10 +882,14 @@ describe('PolicyOps', () => {
       });
 
       test(`2: Export existing policy w/ deps [${policy9._id}]`, async () => {
-        const response = await PolicyOps.exportPolicy(policy9._id, {
-          deps: true,
-          prereqs: false,
-          useStringArrays: true,
+        const response = await PolicyOps.exportPolicy({
+          policyId: policy9._id,
+          options: {
+            deps: true,
+            prereqs: false,
+            useStringArrays: true,
+          },
+          state,
         });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
@@ -862,10 +899,14 @@ describe('PolicyOps', () => {
       test('3: Export non-existing policy [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await PolicyOps.exportPolicy('DoesNotExist', {
-            deps: false,
-            prereqs: false,
-            useStringArrays: true,
+          await PolicyOps.exportPolicy({
+            policyId: 'DoesNotExist',
+            options: {
+              deps: false,
+              prereqs: false,
+              useStringArrays: true,
+            },
+            state,
           });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
@@ -880,9 +921,12 @@ describe('PolicyOps', () => {
 
       test('1: Export all policies w/o deps', async () => {
         const response = await PolicyOps.exportPolicies({
-          deps: false,
-          prereqs: false,
-          useStringArrays: true,
+          options: {
+            deps: false,
+            prereqs: false,
+            useStringArrays: true,
+          },
+          state,
         });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
@@ -891,9 +935,12 @@ describe('PolicyOps', () => {
 
       test('2: Export all policies w/ deps', async () => {
         const response = await PolicyOps.exportPolicies({
-          deps: true,
-          prereqs: false,
-          useStringArrays: true,
+          options: {
+            deps: true,
+            prereqs: false,
+            useStringArrays: true,
+          },
+          state,
         });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
@@ -907,10 +954,14 @@ describe('PolicyOps', () => {
       });
 
       test(`1: Export all policies in policy set ${set1.name} w/o deps`, async () => {
-        const response = await PolicyOps.exportPoliciesByPolicySet(set1.name, {
-          deps: false,
-          prereqs: false,
-          useStringArrays: true,
+        const response = await PolicyOps.exportPoliciesByPolicySet({
+          policySetName: set1.name,
+          options: {
+            deps: false,
+            prereqs: false,
+            useStringArrays: true,
+          },
+          state,
         });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
@@ -918,10 +969,14 @@ describe('PolicyOps', () => {
       });
 
       test(`2: Export all policies in policy set ${set1.name} w/ deps`, async () => {
-        const response = await PolicyOps.exportPoliciesByPolicySet(set1.name, {
-          deps: true,
-          prereqs: false,
-          useStringArrays: true,
+        const response = await PolicyOps.exportPoliciesByPolicySet({
+          policySetName: set1.name,
+          options: {
+            deps: true,
+            prereqs: false,
+            useStringArrays: true,
+          },
+          state,
         });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
@@ -935,17 +990,27 @@ describe('PolicyOps', () => {
       });
 
       test(`1: Import policy [${policy11._id}] w/o deps`, async () => {
-        const response = await PolicyOps.importPolicy(policy11._id, import1, {
-          deps: false,
-          prereqs: false,
+        const response = await PolicyOps.importPolicy({
+          policyId: policy11._id,
+          importData: import1,
+          options: {
+            deps: false,
+            prereqs: false,
+          },
+          state,
         });
         expect(response).toMatchSnapshot();
       });
 
       test(`2: Import policy [${policy12._id}] w/ deps`, async () => {
-        const response = await PolicyOps.importPolicy(policy12._id, import2, {
-          deps: true,
-          prereqs: false,
+        const response = await PolicyOps.importPolicy({
+          policyId: policy12._id,
+          importData: import2,
+          options: {
+            deps: true,
+            prereqs: false,
+          },
+          state,
         });
         expect(response).toMatchSnapshot();
       });
@@ -953,9 +1018,14 @@ describe('PolicyOps', () => {
       test('3: Import non-existing policy [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await PolicyOps.importPolicy('DoesNotExist', import1, {
-            deps: false,
-            prereqs: false,
+          await PolicyOps.importPolicy({
+            policyId: 'DoesNotExist',
+            importData: import1,
+            options: {
+              deps: false,
+              prereqs: false,
+            },
+            state,
           });
         } catch (error) {
           expect(error.message).toMatchSnapshot();
@@ -969,17 +1039,25 @@ describe('PolicyOps', () => {
       });
 
       test('1: Import first policy w/o deps', async () => {
-        const response = await PolicyOps.importFirstPolicy(import3, {
-          deps: false,
-          prereqs: false,
+        const response = await PolicyOps.importFirstPolicy({
+          importData: import3,
+          options: {
+            deps: false,
+            prereqs: false,
+          },
+          state,
         });
         expect(response).toMatchSnapshot();
       });
 
       test('2: Import first policy w/ deps', async () => {
-        const response = await PolicyOps.importFirstPolicy(import4, {
-          deps: true,
-          prereqs: false,
+        const response = await PolicyOps.importFirstPolicy({
+          importData: import4,
+          options: {
+            deps: true,
+            prereqs: false,
+          },
+          state,
         });
         expect(response).toMatchSnapshot();
       });
@@ -991,17 +1069,25 @@ describe('PolicyOps', () => {
       });
 
       test('1: Import all policies w/o deps', async () => {
-        const response = await PolicyOps.importPolicies(import5, {
-          deps: false,
-          prereqs: false,
+        const response = await PolicyOps.importPolicies({
+          importData: import5,
+          options: {
+            deps: false,
+            prereqs: false,
+          },
+          state,
         });
         expect(response).toMatchSnapshot();
       });
 
       test('2: Import all policies w/ deps', async () => {
-        const response = await PolicyOps.importPolicies(import6, {
-          deps: true,
-          prereqs: false,
+        const response = await PolicyOps.importPolicies({
+          importData: import6,
+          options: {
+            deps: true,
+            prereqs: false,
+          },
+          state,
         });
         expect(response).toMatchSnapshot();
       });
@@ -1020,14 +1106,17 @@ describe('PolicyOps', () => {
       });
 
       test(`1: Delete existing policy [${policy7._id}]`, async () => {
-        const response = await PolicyOps.deletePolicy(policy7._id);
+        const response = await PolicyOps.deletePolicy({
+          policyId: policy7._id,
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
 
       test('2: Delete non-existing policy [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await PolicyOps.deletePolicy('DoesNotExist');
+          await PolicyOps.deletePolicy({ policyId: 'DoesNotExist', state });
         } catch (error) {
           expect(error.response.data).toMatchSnapshot();
         }

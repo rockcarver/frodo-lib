@@ -1,7 +1,7 @@
 import util from 'util';
 import { getTenantURL } from '../utils/ApiUtils';
 import { generateAmApi } from '../BaseApi';
-import * as state from '../../shared/State';
+import State from '../../shared/State';
 
 const envInfoURLTemplate = '%s/environment/info';
 
@@ -29,12 +29,20 @@ export interface EnvInfoInterface {
  * Get info about the environment
  * @returns {Promise<EnvInfoInterface>} a promise that resolves to an environment info object
  */
-export async function getEnvInfo(): Promise<EnvInfoInterface> {
+export async function getEnvInfo({
+  state,
+}: {
+  state: State;
+}): Promise<EnvInfoInterface> {
   const urlString = util.format(
     envInfoURLTemplate,
     getTenantURL(state.getHost())
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requestOverride: {},
+    state,
+  }).get(urlString, {
     withCredentials: true,
   });
   return data as EnvInfoInterface;

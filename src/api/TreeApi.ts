@@ -1,7 +1,8 @@
 import util from 'util';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
-import * as state from '../shared/State';
+import State from '../shared/State';
+import { NoIdObjectSkeletonInterface, TreeSkeleton } from './ApiTypes';
 
 const treeByIdURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/trees/%s';
@@ -10,9 +11,7 @@ const queryAllTreesURLTemplate =
 
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getTreeApiConfig = () => {
-  const configPath = getCurrentRealmPath();
   return {
-    path: `${configPath}/authentication/authenticationtrees`,
     apiVersion,
   };
 };
@@ -21,13 +20,16 @@ const getTreeApiConfig = () => {
  * Get all trees
  * @returns {Promise<unknown[]>} a promise that resolves to an array of tree objects
  */
-export async function getTrees() {
+export async function getTrees({ state }: { state: State }) {
   const urlString = util.format(
     queryAllTreesURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
-  const { data } = await generateAmApi(getTreeApiConfig()).get(urlString, {
+  const { data } = await generateAmApi({
+    resource: getTreeApiConfig(),
+    state,
+  }).get(urlString, {
     withCredentials: true,
   });
   return data;
@@ -38,14 +40,17 @@ export async function getTrees() {
  * @param {String} id tree id/name
  * @returns {Promise} a promise that resolves to a tree object
  */
-export async function getTree(id) {
+export async function getTree({ id, state }: { id: string; state: State }) {
   const urlString = util.format(
     treeByIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     id
   );
-  const { data } = await generateAmApi(getTreeApiConfig()).get(urlString, {
+  const { data } = await generateAmApi({
+    resource: getTreeApiConfig(),
+    state,
+  }).get(urlString, {
     withCredentials: true,
   });
   return data;
@@ -57,20 +62,27 @@ export async function getTree(id) {
  * @param {Object} treeData tree object
  * @returns {Promise} a promise that resolves to a tree object
  */
-export async function putTree(treeId: string, treeData) {
+export async function putTree({
+  treeId,
+  treeData,
+  state,
+}: {
+  treeId: string;
+  treeData: TreeSkeleton | NoIdObjectSkeletonInterface;
+  state: State;
+}) {
   const urlString = util.format(
     treeByIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     treeId
   );
-  const { data } = await generateAmApi(getTreeApiConfig()).put(
-    urlString,
-    treeData,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getTreeApiConfig(),
+    state,
+  }).put(urlString, treeData, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -79,14 +91,23 @@ export async function putTree(treeId: string, treeData) {
  * @param {String} treeId tree id/name
  * @returns {Promise} a promise that resolves to a tree object
  */
-export async function deleteTree(treeId) {
+export async function deleteTree({
+  treeId,
+  state,
+}: {
+  treeId: string;
+  state: State;
+}) {
   const urlString = util.format(
     treeByIdURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     treeId
   );
-  const { data } = await generateAmApi(getTreeApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi({
+    resource: getTreeApiConfig(),
+    state,
+  }).delete(urlString, {
     withCredentials: true,
   });
   return data;

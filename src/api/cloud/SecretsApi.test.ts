@@ -29,8 +29,9 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { SecretsRaw } from '../../index';
+import * as SecretsApi from './SecretsApi';
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
+import { state } from '../../index';
 
 autoSetupPolly();
 
@@ -62,68 +63,76 @@ describe('SecretsApi', () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
       // setup secret1 - delete if exists, then create
       try {
-        await SecretsRaw.getSecret(secret1.name);
-        await SecretsRaw.deleteSecret(secret1.name);
+        await SecretsApi.getSecret({ secretId: secret1.name, state });
+        await SecretsApi.deleteSecret({ secretId: secret1.name, state });
       } catch (error) {
         // ignore
       } finally {
-        await SecretsRaw.putSecret(
-          secret1.name,
-          secret1.value,
-          secret1.description
-        );
-        await SecretsRaw.createNewVersionOfSecret(
-          secret1.name,
-          secret1.value + ' Version 2'
-        );
-        await SecretsRaw.createNewVersionOfSecret(
-          secret1.name,
-          secret1.value + ' Version 3'
-        );
-        await SecretsRaw.setStatusOfVersionOfSecret(
-          secret1.name,
-          '2',
-          SecretsRaw.VersionOfSecretStatus.DISABLED
-        );
+        await SecretsApi.putSecret({
+          secretId: secret1.name,
+          value: secret1.value,
+          description: secret1.description,
+          state,
+        });
+        await SecretsApi.createNewVersionOfSecret({
+          secretId: secret1.name,
+          value: secret1.value + ' Version 2',
+          state,
+        });
+        await SecretsApi.createNewVersionOfSecret({
+          secretId: secret1.name,
+          value: secret1.value + ' Version 3',
+          state,
+        });
+        await SecretsApi.setStatusOfVersionOfSecret({
+          secretId: secret1.name,
+          version: '2',
+          status: 'DISABLED',
+          state,
+        });
       }
       // setup secret2 - delete if exists, then create
       try {
-        await SecretsRaw.getSecret(secret2.name);
-        await SecretsRaw.deleteSecret(secret2.name);
+        await SecretsApi.getSecret({ secretId: secret2.name, state });
+        await SecretsApi.deleteSecret({ secretId: secret2.name, state });
       } catch (error) {
         // ignore
       } finally {
-        await SecretsRaw.putSecret(
-          secret2.name,
-          secret2.value,
-          secret2.description
-        );
-        await SecretsRaw.createNewVersionOfSecret(
-          secret2.name,
-          secret2.value + ' Version 2'
-        );
-        await SecretsRaw.createNewVersionOfSecret(
-          secret2.name,
-          secret2.value + ' Version 3'
-        );
+        await SecretsApi.putSecret({
+          secretId: secret2.name,
+          value: secret2.value,
+          description: secret2.description,
+          state,
+        });
+        await SecretsApi.createNewVersionOfSecret({
+          secretId: secret2.name,
+          value: secret2.value + ' Version 2',
+          state,
+        });
+        await SecretsApi.createNewVersionOfSecret({
+          secretId: secret2.name,
+          value: secret2.value + ' Version 3',
+          state,
+        });
       }
       // setup secret3 - delete if exists, then create
       try {
-        await SecretsRaw.getSecret(secret3.name);
-        await SecretsRaw.deleteSecret(secret3.name);
+        await SecretsApi.getSecret({ secretId: secret3.name, state });
+        await SecretsApi.deleteSecret({ secretId: secret3.name, state });
       } catch (error) {
         // ignore
       } finally {
-        await SecretsRaw.putSecret(
-          secret3.name,
-          secret3.value,
-          secret3.description
-        );
+        await SecretsApi.putSecret({
+          secretId: secret3.name,
+          value: secret3.value,
+          description: secret3.description,
+          state,
+        });
       }
       // setup secret4 - delete if exists
       try {
-        await SecretsRaw.getSecret(secret4.name);
-        await SecretsRaw.deleteSecret(secret4.name);
+        await SecretsApi.getSecret({ secretId: secret4.name, state });
+        await SecretsApi.deleteSecret({ secretId: secret4.name, state });
       } catch (error) {
         // ignore
       }
@@ -133,26 +142,26 @@ describe('SecretsApi', () => {
   afterAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
       try {
-        await SecretsRaw.getSecret(secret1.name);
-        await SecretsRaw.deleteSecret(secret1.name);
+        await SecretsApi.getSecret({ secretId: secret1.name, state });
+        await SecretsApi.deleteSecret({ secretId: secret1.name, state });
       } catch (error) {
         // ignore
       }
       try {
-        await SecretsRaw.getSecret(secret2.name);
-        await SecretsRaw.deleteSecret(secret2.name);
+        await SecretsApi.getSecret({ secretId: secret2.name, state });
+        await SecretsApi.deleteSecret({ secretId: secret2.name, state });
       } catch (error) {
         // ignore
       }
       try {
-        await SecretsRaw.getSecret(secret3.name);
-        await SecretsRaw.deleteSecret(secret3.name);
+        await SecretsApi.getSecret({ secretId: secret3.name, state });
+        await SecretsApi.deleteSecret({ secretId: secret3.name, state });
       } catch (error) {
         // ignore
       }
       try {
-        await SecretsRaw.getSecret(secret4.name);
-        await SecretsRaw.deleteSecret(secret4.name);
+        await SecretsApi.getSecret({ secretId: secret4.name, state });
+        await SecretsApi.deleteSecret({ secretId: secret4.name, state });
       } catch (error) {
         // ignore
       }
@@ -161,29 +170,35 @@ describe('SecretsApi', () => {
 
   describe('getSecrets()', () => {
     test('0: Method is implemented', async () => {
-      expect(SecretsRaw.getSecrets).toBeDefined();
+      expect(SecretsApi.getSecrets).toBeDefined();
     });
 
     test('1: Get all secrets - success', async () => {
-      const response = await SecretsRaw.getSecrets();
+      const response = await SecretsApi.getSecrets({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('getSecret()', () => {
     test('0: Method is implemented', async () => {
-      expect(SecretsRaw.getSecret).toBeDefined();
+      expect(SecretsApi.getSecret).toBeDefined();
     });
 
     test(`1: Get existing secret: ${secret1.name}`, async () => {
-      const response = await SecretsRaw.getSecret(secret1.name);
+      const response = await SecretsApi.getSecret({
+        secretId: secret1.name,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Get non-existing secret: esv-does-not-exist', async () => {
       expect.assertions(1);
       try {
-        await SecretsRaw.getSecret('esv-does-not-exist');
+        await SecretsApi.getSecret({
+          secretId: 'esv-does-not-exist',
+          state,
+        });
       } catch (error) {
         expect(error).toMatchSnapshot();
       }
@@ -192,60 +207,71 @@ describe('SecretsApi', () => {
 
   describe('putSecret()', () => {
     test('0: Method is implemented', async () => {
-      expect(SecretsRaw.putSecret).toBeDefined();
+      expect(SecretsApi.putSecret).toBeDefined();
     });
 
     test(`1: Create secret: ${secret4.name} - success`, async () => {
-      const response = await SecretsRaw.putSecret(
-        secret4.name,
-        secret4.value,
-        secret4.description,
-        secret4.encoding,
-        secret4.placeholders
-      );
+      const response = await SecretsApi.putSecret({
+        secretId: secret4.name,
+        value: secret4.value,
+        description: secret4.description,
+        encoding: secret4.encoding,
+        useInPlaceholders: secret4.placeholders,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('setSecretDescription()', () => {
     test('0: Method is implemented', async () => {
-      expect(SecretsRaw.setSecretDescription).toBeDefined();
+      expect(SecretsApi.setSecretDescription).toBeDefined();
     });
 
     test(`1: Set existing secret's description: ${secret2.name} - success`, async () => {
-      const response = await SecretsRaw.setSecretDescription(
-        secret2.name,
-        'Updated Frodo Test Secret Two Description'
-      );
+      const response = await SecretsApi.setSecretDescription({
+        secretId: secret2.name,
+        description: 'Updated Frodo Test Secret Two Description',
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('deleteSecret()', () => {
     test('0: Method is implemented', async () => {
-      expect(SecretsRaw.deleteSecret).toBeDefined();
+      expect(SecretsApi.deleteSecret).toBeDefined();
     });
 
     test(`1: Delete existing secret: ${secret3.name} - success`, async () => {
-      const response = await SecretsRaw.deleteSecret(secret3.name);
+      const response = await SecretsApi.deleteSecret({
+        secretId: secret3.name,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('getSecretVersions()', () => {
     test('0: Method is implemented', async () => {
-      expect(SecretsRaw.getSecretVersions).toBeDefined();
+      expect(SecretsApi.getSecretVersions).toBeDefined();
     });
 
     test(`1: Get versions of existing secret: ${secret1.name}`, async () => {
-      const response = await SecretsRaw.getSecretVersions(secret1.name);
+      const response = await SecretsApi.getSecretVersions({
+        secretId: secret1.name,
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Get versions of non-existing secret: esv-does-not-exist', async () => {
       expect.assertions(1);
       try {
-        await SecretsRaw.getSecretVersions('esv-does-not-exist');
+        await SecretsApi.getSecretVersions({
+          secretId: 'esv-does-not-exist',
+          state,
+        });
       } catch (error) {
         expect(error).toMatchSnapshot();
       }
@@ -254,18 +280,26 @@ describe('SecretsApi', () => {
 
   describe('getVersionOfSecret()', () => {
     test('0: Method is implemented', async () => {
-      expect(SecretsRaw.getVersionOfSecret).toBeDefined();
+      expect(SecretsApi.getVersionOfSecret).toBeDefined();
     });
 
     test(`1: Get version 2 of existing secret: ${secret1.name}`, async () => {
-      const response = await SecretsRaw.getVersionOfSecret(secret1.name, '2');
+      const response = await SecretsApi.getVersionOfSecret({
+        secretId: secret1.name,
+        version: '2',
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Get version 2 of non-existing secret: esv-does-not-exist', async () => {
       expect.assertions(1);
       try {
-        await SecretsRaw.getVersionOfSecret('esv-does-not-exist', '2');
+        await SecretsApi.getVersionOfSecret({
+          secretId: 'esv-does-not-exist',
+          version: '2',
+          state,
+        });
       } catch (error) {
         expect(error).toMatchSnapshot();
       }
@@ -274,24 +308,26 @@ describe('SecretsApi', () => {
 
   describe('createNewVersionOfSecret()', () => {
     test('0: Method is implemented', async () => {
-      expect(SecretsRaw.createNewVersionOfSecret).toBeDefined();
+      expect(SecretsApi.createNewVersionOfSecret).toBeDefined();
     });
 
     test(`1: Create new version of existing secret: ${secret2.name} - success`, async () => {
-      const response = await SecretsRaw.createNewVersionOfSecret(
-        secret2.name,
-        secret2.value + ' Version 4'
-      );
+      const response = await SecretsApi.createNewVersionOfSecret({
+        secretId: secret2.name,
+        value: secret2.value + ' Version 4',
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Create new version of non-existing secret: esv-does-not-exist - error', async () => {
       expect.assertions(1);
       try {
-        await SecretsRaw.createNewVersionOfSecret(
-          'esv-does-not-exist',
-          'Frodo Non-Existing Test Secret Value Version 2'
-        );
+        await SecretsApi.createNewVersionOfSecret({
+          secretId: 'esv-does-not-exist',
+          value: 'Frodo Non-Existing Test Secret Value Version 2',
+          state,
+        });
       } catch (error) {
         expect(error).toMatchSnapshot();
       }
@@ -300,27 +336,29 @@ describe('SecretsApi', () => {
 
   describe('setStatusOfVersionOfSecret()', () => {
     test('0: Method is implemented', async () => {
-      expect(SecretsRaw.setStatusOfVersionOfSecret).toBeDefined();
+      expect(SecretsApi.setStatusOfVersionOfSecret).toBeDefined();
     });
 
     test(`1: Disable version 2 of existing secret: ${secret2.name} - success`, async () => {
       expect.assertions(1);
-      const response = await SecretsRaw.setStatusOfVersionOfSecret(
-        secret2.name,
-        '2',
-        SecretsRaw.VersionOfSecretStatus.DISABLED
-      );
+      const response = await SecretsApi.setStatusOfVersionOfSecret({
+        secretId: secret2.name,
+        version: '2',
+        status: 'DISABLED',
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
 
     test('2: Disable version 2 of non-existing secret: esv-does-not-exist - error', async () => {
       expect.assertions(1);
       try {
-        await SecretsRaw.setStatusOfVersionOfSecret(
-          'esv-does-not-exist',
-          '2',
-          SecretsRaw.VersionOfSecretStatus.DISABLED
-        );
+        await SecretsApi.setStatusOfVersionOfSecret({
+          secretId: 'esv-does-not-exist',
+          version: '2',
+          status: 'DISABLED',
+          state,
+        });
       } catch (error) {
         expect(error).toMatchSnapshot();
       }
@@ -329,14 +367,15 @@ describe('SecretsApi', () => {
 
   describe('deleteVersionOfSecret()', () => {
     test('0: Method is implemented', async () => {
-      expect(SecretsRaw.deleteVersionOfSecret).toBeDefined();
+      expect(SecretsApi.deleteVersionOfSecret).toBeDefined();
     });
 
     test(`1: Delete version 1 of secret: ${secret2.name} - success`, async () => {
-      const response = await SecretsRaw.deleteVersionOfSecret(
-        secret2.name,
-        '1'
-      );
+      const response = await SecretsApi.deleteVersionOfSecret({
+        secretId: secret2.name,
+        version: '1',
+        state,
+      });
       expect(response).toMatchSnapshot();
     });
   });

@@ -2,10 +2,18 @@
  * Don't convert this to Polly. Once MFA is enforced for tenant admins in ID Cloud,
  * it will be very cumbersome to use Polly for OAuth API calls, as they require an
  * admin user session, not a service account bearer token.
+ *
+ * Run tests
+ *
+ *        npm run test OAuth2OIDCApi
+ *
+ * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
+ * in case things don't function as expected
  */
 import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
-import { OAuth2OIDCApi, state } from '../index';
+import * as OAuth2OIDCApi from './OAuth2OIDCApi';
+import { state } from '../index';
 import * as global from '../storage/StaticStorage';
 import {
   mockAuthorize,
@@ -39,7 +47,12 @@ describe('OAuth2OIDCApi', () => {
           return status === 302;
         },
       };
-      const response = await OAuth2OIDCApi.authorize(bodyFormData, config);
+      const response = await OAuth2OIDCApi.authorize({
+        amBaseUrl: state.getHost() as string,
+        data: bodyFormData,
+        config,
+        state,
+      });
       const redirectLocationURL = response.headers['location'];
       const parsed = parseUrl(redirectLocationURL);
       expect(response.status).toBe(302);
@@ -60,7 +73,12 @@ describe('OAuth2OIDCApi', () => {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       };
-      const response = await OAuth2OIDCApi.accessToken(bodyFormData, config);
+      const response = await OAuth2OIDCApi.accessToken({
+        amBaseUrl: state.getHost() as string,
+        data: bodyFormData,
+        config,
+        state,
+      });
       expect(response.status).toBe(200);
       expect(response.data.access_token).toBeTruthy();
     });

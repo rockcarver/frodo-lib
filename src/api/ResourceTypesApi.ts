@@ -1,7 +1,7 @@
 import util from 'util';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
-import * as state from '../shared/State';
+import State from '../shared/State';
 import { ResourceTypeSkeleton } from './ApiTypes';
 
 const queryAllResourceTypesURLTemplate =
@@ -22,15 +22,18 @@ const getApiConfig = () => {
  * Get all resource types
  * @returns {Promise} a promise that resolves to an object containing an array of resource type objects
  */
-export async function getResourceTypes() {
+export async function getResourceTypes({ state }: { state: State }) {
   const urlString = util.format(
     queryAllResourceTypesURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -39,16 +42,25 @@ export async function getResourceTypes() {
  * @param {String} resourceTypeUuid resource type uuid
  * @returns {Promise} a promise that resolves to a node object
  */
-export async function getResourceType(resourceTypeUuid: string) {
+export async function getResourceType({
+  resourceTypeUuid,
+  state,
+}: {
+  resourceTypeUuid: string;
+  state: State;
+}) {
   const urlString = util.format(
     resourceTypeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     resourceTypeUuid
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -57,16 +69,25 @@ export async function getResourceType(resourceTypeUuid: string) {
  * @param {string} resourceTypeName resource type name
  * @returns {Promise} a promise that resolves to a node object
  */
-export async function getResourceTypeByName(resourceTypeName: string) {
+export async function getResourceTypeByName({
+  resourceTypeName,
+  state,
+}: {
+  resourceTypeName: string;
+  state: State;
+}) {
   const urlString = util.format(
     queryResourceTypeByNameURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     resourceTypeName
   );
-  const { data } = await generateAmApi(getApiConfig()).get(urlString, {
-    withCredentials: true,
-  });
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
+    urlString,
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
 
@@ -76,41 +97,49 @@ export async function getResourceTypeByName(resourceTypeName: string) {
  * @param {Object} resourceTypeData resource type object
  * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
  */
-export async function createResourceType(
-  resourceTypeData: ResourceTypeSkeleton
-): Promise<ResourceTypeSkeleton> {
+export async function createResourceType({
+  resourceTypeData,
+  state,
+}: {
+  resourceTypeData: ResourceTypeSkeleton;
+  state: State;
+}): Promise<ResourceTypeSkeleton> {
   const urlString = util.format(
     createResourceTypeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath()
+    getCurrentRealmPath(state)
   );
-  const { data } = await generateAmApi(getApiConfig()).post(
-    urlString,
-    resourceTypeData,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).post(urlString, resourceTypeData, {
+    withCredentials: true,
+  });
   return data;
 }
 
 /**
  * Update resource type by uuid
- * @param {String} resourceTypeUuid resource type uuid
- * @param {Object} resourceTypeData resource type object
+ * @param {string} resourceTypeUuid resource type uuid
+ * @param {ResourceTypeSkeleton} resourceTypeData resource type object
  * @returns {Promise} a promise that resolves to a resource type object
  */
-export async function putResourceType(
-  resourceTypeUuid: string,
-  resourceTypeData
-) {
+export async function putResourceType({
+  resourceTypeUuid,
+  resourceTypeData,
+  state,
+}: {
+  resourceTypeUuid: string;
+  resourceTypeData: ResourceTypeSkeleton;
+  state: State;
+}) {
   const urlString = util.format(
     resourceTypeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     resourceTypeUuid
   );
-  const { data } = await generateAmApi(getApiConfig()).put(
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
     urlString,
     resourceTypeData,
     {
@@ -125,14 +154,23 @@ export async function putResourceType(
  * @param {String} resourceTypeUuid resource type uuid
  * @returns {Promise} a promise that resolves to an object containing a resource type object
  */
-export async function deleteResourceType(resourceTypeUuid: string) {
+export async function deleteResourceType({
+  resourceTypeUuid,
+  state,
+}: {
+  resourceTypeUuid: string;
+  state: State;
+}) {
   const urlString = util.format(
     resourceTypeURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(),
+    getCurrentRealmPath(state),
     resourceTypeUuid
   );
-  const { data } = await generateAmApi(getApiConfig()).delete(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).delete(urlString, {
     withCredentials: true,
   });
   return data;

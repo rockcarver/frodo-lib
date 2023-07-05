@@ -1,5 +1,5 @@
 import Table from 'cli-table3';
-import * as state from '../../shared/State';
+import State from '../../shared/State';
 
 /**
  * Handles data / messages output. The caller decides and implements how
@@ -13,11 +13,17 @@ import * as state from '../../shared/State';
  * @param {boolean} [newline=true] Whether to add a newline at the end of message
  * messages returned
  */
-export function printMessage(
-  message: string | object,
+export function printMessage({
+  message,
   type = 'text',
-  newline = true
-) {
+  newline = true,
+  state,
+}: {
+  message: string | object;
+  type?: string;
+  newline?: boolean;
+  state: State;
+}) {
   const handler = state.getPrintHandler();
   if (handler) {
     handler(message, type, newline);
@@ -31,7 +37,13 @@ export function printMessage(
  *
  * @param {string | unknown} message The verbose output message
  */
-export function verboseMessage(message: string | object) {
+export function verboseMessage({
+  message,
+  state,
+}: {
+  message: string | object;
+  state: State;
+}) {
   const handler = state.getVerboseHandler();
   if (handler) {
     handler(message);
@@ -45,7 +57,13 @@ export function verboseMessage(message: string | object) {
  *
  * @param {string | object} message The debug output message
  */
-export function debugMessage(message: string | object) {
+export function debugMessage({
+  message,
+  state,
+}: {
+  message: string | object;
+  state: State;
+}) {
   const handler = state.getDebugHandler();
   if (handler) {
     handler(message);
@@ -55,6 +73,7 @@ export function debugMessage(message: string | object) {
 /**
  * Helper function to mask password header in curl command
  * @param curlCommand curl command to mask
+ * @param {State} state library state
  * @returns masked curl command
  */
 function maskPasswordHeader(curlCommand: string) {
@@ -71,7 +90,13 @@ function maskPasswordHeader(curlCommand: string) {
  *
  * @param {string} message The curlirize output message
  */
-export function curlirizeMessage(message: string) {
+export function curlirizeMessage({
+  message,
+  state,
+}: {
+  message: string;
+  state: State;
+}) {
   const handler = state.getCurlirizeHandler();
   if (handler) {
     handler(maskPasswordHeader(message));
@@ -96,11 +121,17 @@ export function curlirizeMessage(message: string) {
  * @param {String} type optional type of progress indicator. default is 'determinate'
  *
  */
-export function createProgressIndicator(
+export function createProgressIndicator({
   total,
-  message: string = null,
-  type = 'determinate'
-) {
+  message = undefined,
+  type = 'determinate',
+  state,
+}: {
+  total: number;
+  message?: string;
+  type?: string;
+  state: State;
+}) {
   const handler = state.getCreateProgressHandler();
   if (handler) {
     handler(type, total, message);
@@ -112,7 +143,13 @@ export function createProgressIndicator(
  * @param {string} message optional message to show with the indicator
  *
  */
-export function updateProgressIndicator(message: string = null) {
+export function updateProgressIndicator({
+  message = undefined,
+  state,
+}: {
+  message?: string;
+  state: State;
+}) {
   const handler = state.getUpdateProgressHandler();
   if (handler) {
     handler(message);
@@ -124,7 +161,15 @@ export function updateProgressIndicator(message: string = null) {
  * @param {string} message optional message to show with the indicator
  * @param {string} status one of 'none', 'success', 'warn', 'fail'
  */
-export function stopProgressIndicator(message: string = null, status = 'none') {
+export function stopProgressIndicator({
+  message = null,
+  status = 'none',
+  state,
+}: {
+  message?: string;
+  status?: string;
+  state: State;
+}) {
   const handler = state.getStopProgressHandler();
   if (handler) {
     handler(message, status);
