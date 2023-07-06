@@ -1,6 +1,6 @@
 {
   "name": "@trivir/frodo-lib",
-  "version": "2.0.0-12",
+  "version": "2.0.0-trivir.0",
   "type": "commonjs",
   "main": "./cjs/index.js",
   "module": "./esm/index.js",
