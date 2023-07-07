@@ -3,12 +3,15 @@
     [
       "@babel/preset-env",
       {
-        "targets": { "node": "14", "esmodules": true },
+        "targets": { "node": "16", "esmodules": true },
         "modules": "cjs",
         "exclude": ["proposal-dynamic-import"]
       }
     ],
     "@babel/preset-typescript"
   ],
-  "plugins": [["babel-plugin-transform-import-meta"]]
+  "plugins": [
+    ["babel-plugin-transform-import-meta"],
+    ["babel-plugin-add-import-extension"]
+  ]
 }
