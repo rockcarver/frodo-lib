@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2023-07-08
+
 ### Changed
 
 -   Fix import/require resolution issues for library users. Developers using the library can now:
+
     -   ESM:
 
         Member/default style import any other modules from the library:
+
         ```javascript
         import { state, Authenticate } from '@rockcarver/frodo-lib';
         import ConnectionProfile from '@rockcarver/frodo-lib/ConnectionProfile';
@@ -20,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     -   CJS:
 
         Member/default style require any other modules from the library"
+
         ```javascript
         const { state, Authenticate } = require('@rockcarver/frodo-lib');
         const ConnectionProfile = require('@rockcarver/frodo-lib/ConnectionProfile');
@@ -1187,7 +1192,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v1.1.1...HEAD
+
+[1.1.1]: https://github.com/rockcarver/frodo-lib/compare/v1.1.0...v1.1.1
 
 [1.1.0]: https://github.com/rockcarver/frodo-lib/compare/v1.0.1-1...v1.1.0
 
