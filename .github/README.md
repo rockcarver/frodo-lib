@@ -2,23 +2,24 @@
 
 # Frodo Library 2.x :new: - @rockcarver/frodo-lib
 
-ForgeROck DO library, frodo-lib, a library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.
+ForgeROck DO library, frodo-lib, a hybrid (ESM and CJS) library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.
 
 Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the command line tool to manage ForgeRock deployments.
 
 ## Quick Nav
 
-- [New In 2.x](#new-in-2x)
+- [New in 2.x](#new-in-2x)
 - [Features](#features)
 - [Limitations](#limitations)
 - [Installing](#installing)
+- [Using the library](#using-the-library)
 - [Request features or report issues](#feature-requests)
 - [Contributing](#contributing)
 - [Maintaining](#maintaining)
 
 ## New In 2.x
 
-2.x introduces breaking changes to support multiple instances of the library to run concurrently and conect to multiple different ForgeRock Identity Platform instances at the same time. [1.x](https://github.com/rockcarver/frodo-lib/tree/1.x) operates using a global singleton, making it impossible to connect to more than one platform instance at a time.
+2.x introduces breaking changes to support multiple instances of the library to run concurrently and connect to multiple different ForgeRock Identity Platform instances at the same time. [1.x](https://github.com/rockcarver/frodo-lib/tree/1.x) operates using a global singleton, making it impossible to connect to more than one platform instance at a time.
 
 ## Features
 
@@ -91,7 +92,7 @@ Frodo allows an administrator to easily connect to and manage any number of Iden
 
 For those who want to contribute or are just curious about the build process.
 
-- Make sure you have Node.js v14 or newer and npm.
+- Make sure you have Node.js v16 or newer (v18 or v19 preferred) and npm.
 - Clone this repo
   ```console
   git clone https://github.com/rockcarver/frodo-lib.git
@@ -114,6 +115,103 @@ If you are a node developer and want to use frodo-lib as a library for your own 
   ```console
   npm i @rockcarver/frodo-lib@next
   ```
+
+## Using the library
+
+Import the library members:
+```javascript
+import {
+  // default instance
+  frodo,
+  // default state
+  state,
+  // factory function to create new instances
+  FrodoLib,
+  // factory helper function to create new instances ready to login with a service account
+  createInstanceWithAdminAccount,
+  // factory helper function to create new instances ready to login with an admin user account
+  createInstanceWithServiceAccount,
+} from '@rockcarver/frodo-lib';
+```
+
+create a new instance using factory helper function and login as admin user:
+```javascript
+async function newFactoryHelperAdminLogin() {
+  const myFrodo1 = createInstanceWithAdminAccount(host1, user1, pass1);
+
+  // destructure default instance for easier use of library functions
+  const { getTokens } = myFrodo1.login;
+  const { getInfo } = myFrodo1.info;
+
+  // login and obtain tokens
+  if (await getTokens()) {
+    // obtain and print information about the instance you are connected to
+    const info = await getInfo();
+    console.log(`newFactoryHelperAdminLogin: Logged in to: ${info.host}`);
+    console.log(`newFactoryHelperAdminLogin: Logged in as: ${info.authenticatedSubject}`);
+    console.log(`newFactoryHelperAdminLogin: Using bearer token: \n${info.bearerToken}`);
+  } else {
+    console.log('error getting tokens');
+  }
+}
+newFactoryHelperAdminLogin();
+```
+
+Create a new instance using factory function and login as admin user
+```javascript
+async function newFactoryAdminLogin() {
+  const myFrodo2 = FrodoLib({
+    host: host2,
+    username: user2,
+    password: pass2,
+  });
+
+  // destructure default instance for easier use of library functions
+  const { getTokens } = myFrodo2.login;
+  const { getInfo } = myFrodo2.info;
+
+  // login and obtain tokens
+  if (await getTokens()) {
+    // obtain and print information about the instance you are connected to
+    const info = await getInfo();
+    console.log(`newFactoryAdminLogin: Logged in to: ${info.host}`);
+    console.log(`newFactoryAdminLogin: Logged in as: ${info.authenticatedSubject}`);
+    console.log(`newFactoryAdminLogin: Using bearer token: \n${info.bearerToken}`);
+  } else {
+    console.log('error getting tokens');
+  }
+}
+newFactoryAdminLogin();
+```
+Use default instance and state:
+```javascript
+// destructure default instance for easier use of library functions
+const { getTokens } = frodo.login;
+const { getInfo } = frodo.info;
+
+async function defaultAdminLogin() {
+  // this has to be the base URL of your AM service, not just the host hame
+  state.setHost(host0);
+  // username of an admin user
+  state.setUsername(user0);
+  // password of the admin user
+  state.setPassword(pass0);
+
+  // login and obtain tokens
+  if (await getTokens()) {
+    // obtain and print information about the instance you are connected to
+    const info = await getInfo();
+    console.log(`defaultAdminLogin: Logged in to: ${info.host}`);
+    console.log(`defaultAdminLogin: Logged in as: ${info.authenticatedSubject}`);
+    console.log(`defaultAdminLogin: Using bearer token: \n${info.bearerToken}`);
+  } else {
+    console.log('error getting tokens');
+  }
+}
+defaultAdminLogin();
+```
+
+Check out all the examples in `/path/to/frodo-lib/examples`.
 
 ## Feature requests
 
