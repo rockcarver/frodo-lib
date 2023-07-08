@@ -15,19 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
     -   ESM:
 
-        Member/default style import any other modules from the library:
+        Member style import any other modules from the library:
 
         ```javascript
-        import { state, Authenticate } from '@rockcarver/frodo-lib';
-        import ConnectionProfile from '@rockcarver/frodo-lib/ConnectionProfile';
+        import { state, Authenticate, ConnectionProfile } from '@rockcarver/frodo-lib';
         ```
     -   CJS:
 
-        Member/default style require any other modules from the library"
+        Member style require any other modules from the library"
 
         ```javascript
-        const { state, Authenticate } = require('@rockcarver/frodo-lib');
-        const ConnectionProfile = require('@rockcarver/frodo-lib/ConnectionProfile');
+        const { state, Authenticate, ConnectionProfile } = require('@rockcarver/frodo-lib');
         ```
 
 ## [1.1.0] - 2023-06-30
