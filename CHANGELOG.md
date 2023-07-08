@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+-   Usage examples in /path/to/frodo-lib/examples
+    -   ESM - Sample code is using ECMAScript modules
+    -   CJS - Sample code is using CommonJS modules
+
+### Changed
+
+-   Fix import/require resolution issues for library users. Developers using the library can now:
+
+    -   ESM:
+
+        Member style import any other modules from the library:
+
+        ```javascript
+        import { frodo, state, FrodoLib } from '@rockcarver/frodo-lib';
+        ```
+    -   CJS:
+
+        Member style require any other modules from the library"
+
+        ```javascript
+        const { frodo, state, FrodoLib } = require('@rockcarver/frodo-lib');
+        ```
+
 ## [2.0.0-12] - 2023-07-05
 
 ## [2.0.0-11] - 2023-07-05

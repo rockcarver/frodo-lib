@@ -1,8 +1,8 @@
 # built commonjs
-build/
-cjs/
-esm/
-types/
+/build/*
+/cjs/*
+/esm/*
+/types/*
 
 # test artifacts
 iSPAzure.metadata.xml
