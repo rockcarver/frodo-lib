@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         ```
     -   CJS:
 
-        Member style require any other modules from the library"
+        Member style require any other modules from the library:
 
         ```javascript
         const { state, Authenticate, ConnectionProfile } = require('@rockcarver/frodo-lib');
