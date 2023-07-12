@@ -122,7 +122,8 @@
     },
 
     // plugins and params
-    "plugin": ["typedoc-plugin-missing-exports", "typedoc-plugin-markdown"],
+    // "plugin": ["typedoc-plugin-missing-exports", "typedoc-plugin-markdown"],
+    "plugin": ["typedoc-plugin-missing-exports"],
     "internalModule": "Reference"
   }
 }
