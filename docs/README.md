@@ -1,3 +1,5 @@
+Frodo Library / [Exports](modules.md)
+
 <!-- README.md for GitHub; the one for NPM is ../README.md. -->
 
 # Frodo Library 2.x :new: - @rockcarver/frodo-lib
