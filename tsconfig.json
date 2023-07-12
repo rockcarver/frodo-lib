@@ -115,6 +115,11 @@
     "includeVersion": true,
     "disableSources": false,
     "hideGenerator": true,
+    "searchInComments": true,
+    // "titleLink": "https://github.com/rockcarver/frodo-lib",
+    "navigationLinks": {
+      "Project Home": "https://github.com/rockcarver/frodo-lib"
+    },
 
     // plugins and params
     "plugin": "typedoc-plugin-missing-exports",

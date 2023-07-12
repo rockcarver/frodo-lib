@@ -8,11 +8,12 @@ Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the comma
 
 ## Quick Nav
 
-- [New in 2.x](#new-in-2x)
+- :new: [New in 2.x](#new-in-2x)
 - [Features](#features)
 - [Limitations](#limitations)
 - [Installing](#installing)
-- [Using the library](#using-the-library)
+- :new: [Using the library](#using-the-library)
+- :new: [Library API docs](#library-api-docs)
 - [Request features or report issues](#feature-requests)
 - [Contributing](#contributing)
 - [Maintaining](#maintaining)
@@ -212,6 +213,9 @@ defaultAdminLogin();
 ```
 
 Check out all the examples in `/path/to/frodo-lib/examples`.
+
+## Library API docs
+[Latest library API docs](https://github.com/rockcarver/frodo-lib/docs/ts-doc/index.html)
 
 ## Feature requests
 
