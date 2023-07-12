@@ -11,7 +11,7 @@ import {
 import { getMetadata } from '../utils/ExportImportUtils';
 import { debugMessage } from '../utils/Console';
 import { getConfigEntity, putConfigEntity } from '../../api/IdmConfigApi';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 
 export type AdminFederation = {
   /**

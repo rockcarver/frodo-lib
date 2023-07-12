@@ -1,7 +1,7 @@
 import util from 'util';
 import { getTenantURL } from '../utils/ApiUtils';
 import { generateEnvApi } from '../BaseApi';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 
 const startupURLTemplate = '%s/environment/startup';
 const startupInitiateRestartURLTemplate = `${startupURLTemplate}?_action=restart`;

@@ -11,7 +11,7 @@ import {
   setSecretDescription,
   setStatusOfVersionOfSecret,
 } from '../../api/cloud/SecretsApi';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 
 export type Secret = {
   /**

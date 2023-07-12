@@ -1,5 +1,5 @@
-import State from '../../shared/State';
-import * as Constants from '../../shared/Constants';
+import { State } from '../../shared/State';
+import Constants from '../../shared/Constants';
 import {
   getCurrentRealmName,
   getRealmName as _getRealmName,

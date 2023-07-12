@@ -8,8 +8,8 @@ import {
   encode,
   encodeBase64Url,
 } from '../../api/utils/Base64';
-import State from '../../shared/State';
-import { FRODO_METADATA_ID } from '../../shared/Constants';
+import { State } from '../../shared/State';
+import Constants from '../../shared/Constants';
 import { ExportMetaData } from '../OpsTypes';
 import { debugMessage, printMessage } from './Console';
 
@@ -178,7 +178,7 @@ export function getMetadata({ state }: { state: State }): ExportMetaData {
     originAmVersion: state.getAmVersion(),
     exportedBy: state.getUsername(),
     exportDate: new Date().toISOString(),
-    exportTool: FRODO_METADATA_ID,
+    exportTool: Constants.FRODO_METADATA_ID,
     exportToolVersion: state.getFrodoVersion(),
   };
   return metadata;

@@ -22,7 +22,7 @@ import {
   SocialIdpSkeleton,
 } from '../api/ApiTypes';
 import { getMetadata } from './utils/ExportImportUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import { debugMessage } from './utils/Console';
 
 export type Idp = {

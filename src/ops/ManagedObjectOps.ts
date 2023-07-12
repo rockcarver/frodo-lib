@@ -1,6 +1,6 @@
 import { getManagedObject } from '../api/ManagedObjectApi';
 import { getTenantURL } from '../api/utils/ApiUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 export type ManagedObject = {
   /**

@@ -1,5 +1,5 @@
 // instantiable modules
-import State, { StateInterface } from '../shared/State';
+import StateImpl, { State, StateInterface } from '../shared/State';
 import AdminFederationOps, {
   AdminFederation,
 } from '../ops/cloud/AdminFederationOps';
@@ -48,7 +48,7 @@ import VariablesOps, { Variable } from '../ops/cloud/VariablesOps';
 import VersionUtils, { Version } from '../ops/utils/VersionUtils';
 
 // non-instantiable modules
-import * as Constants from '../shared/Constants';
+import ConstantsImpl, { Constants } from '../shared/Constants';
 
 export type Frodo = {
   state: State;
@@ -111,7 +111,7 @@ export type Frodo = {
   theme: Theme;
 
   utils: Utils & {
-    constants: typeof Constants;
+    constants: Constants;
     impex: ExportImport;
     jose: Jose;
     script: ScriptValidation;
@@ -120,7 +120,7 @@ export type Frodo = {
 };
 
 export default (config: StateInterface = {}): Frodo => {
-  const state = new State(config);
+  const state = StateImpl(config);
   return {
     state: state,
     admin: AdminOps(state),
@@ -183,7 +183,7 @@ export default (config: StateInterface = {}): Frodo => {
 
     utils: {
       ...OpsUtils(state),
-      constants: Constants,
+      constants: ConstantsImpl,
       impex: ExportImportUtils(state),
       jose: JoseOps(state),
       script: ScriptValidationUtils(state),

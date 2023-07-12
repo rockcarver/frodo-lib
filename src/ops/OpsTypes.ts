@@ -10,7 +10,7 @@ import {
   ThemeSkeleton,
   TreeSkeleton,
 } from '../api/ApiTypes';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 /**
  * Tree export options

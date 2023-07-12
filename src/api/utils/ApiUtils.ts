@@ -1,4 +1,4 @@
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 
 /**
  * Get realm path

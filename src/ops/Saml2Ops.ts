@@ -31,7 +31,7 @@ import {
   convertTextArrayToBase64Url,
   getMetadata,
 } from './utils/ExportImportUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 export type Saml2 = {
   /**

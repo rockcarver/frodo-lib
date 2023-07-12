@@ -6,7 +6,7 @@ import {
   updateCircleOfTrust,
 } from '../api/CirclesOfTrustApi';
 import { getMetadata } from './utils/ExportImportUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import { CirclesOfTrustExportInterface } from './OpsTypes';
 import { CircleOfTrustSkeleton } from '../api/ApiTypes';
 

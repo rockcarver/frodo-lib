@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import DataProtection from './utils/DataProtection';
 import { debugMessage, printMessage, verboseMessage } from './utils/Console';
-import { FRODO_CONNECTION_PROFILES_PATH_KEY } from '../shared/Constants';
+import Constants from '../shared/Constants';
 import { createJwkRsa, createJwks, getJwkRsaPublic, JwkRsa } from './JoseOps';
 import {
   createServiceAccount,
@@ -12,7 +12,7 @@ import {
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import { saveJsonToFile } from './utils/ExportImportUtils';
 import { isValidUrl } from './utils/OpsUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 export type ConnectionProfile = {
   /**
@@ -194,7 +194,7 @@ const newProfileFilename = 'Connections.json';
 export function getConnectionProfilesPath({ state }: { state: State }): string {
   return (
     state.getConnectionProfilesPath() ||
-    process.env[FRODO_CONNECTION_PROFILES_PATH_KEY] ||
+    process.env[Constants.FRODO_CONNECTION_PROFILES_PATH_KEY] ||
     `${os.homedir()}/.frodo/${newProfileFilename}`
   );
 }

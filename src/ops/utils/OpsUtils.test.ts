@@ -8,7 +8,7 @@
  */
 import * as OpsUtils from './OpsUtils';
 import { state } from '../../index';
-import * as Constants from '../../shared/Constants';
+import Constants from '../../shared/Constants';
 
 describe('OpsUtils - getRealmManagedUser()', () => {
   test('getRealmManagedUser() 0: Method is implemented', async () => {

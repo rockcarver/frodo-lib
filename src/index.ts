@@ -1,5 +1,7 @@
 // Import types
 import type { Frodo } from './lib/FrodoLib';
+import type { State } from './shared/State';
+import type { Constants } from './shared/Constants';
 import type { Admin } from './ops/AdminOps';
 import type { AdminFederation } from './ops/cloud/AdminFederationOps';
 import type { Agent } from './ops/AgentOps';
@@ -33,7 +35,6 @@ import type { OAuth2Oidc } from './ops/OAuth2OidcOps';
 import type { OAuth2Provider } from './ops/OAuth2ProviderOps';
 import type { CirclesOfTrust } from './ops/CirclesOfTrustOps';
 import type { ExportImport } from './ops/utils/ExportImportUtils';
-import type { StateInterface } from './shared/State';
 
 // Main library exports
 export * from './lib/Frodo';
@@ -42,40 +43,41 @@ export * from './lib/Frodo';
 // export * from './api/ApiTypes';
 // export * from './ops/OpsTypes';
 export {
-  Frodo,
   Admin,
-  Agent,
-  Journey,
-  Node,
-  Policy,
-  PolicySet,
-  ResourceType,
   AdminFederation,
-  Feature,
-  Log,
-  Secret,
-  ServiceAccount,
-  Startup,
-  StateInterface,
-  Variable,
-  ConnectionProfile,
-  EmailTemplate,
-  Idm,
-  ManagedObject,
-  Organization,
-  Info,
+  Agent,
   Authenticate,
+  CirclesOfTrust,
+  ConnectionProfile,
+  Constants,
+  EmailTemplate,
+  ExportImport,
+  Feature,
+  Frodo,
+  Idm,
+  Idp,
+  Info,
+  Journey,
+  Log,
+  ManagedObject,
+  Node,
   OAuth2Client,
   OAuth2Oidc,
-  Idp,
   OAuth2Provider,
+  Organization,
+  Policy,
+  PolicySet,
   Realm,
-  CirclesOfTrust,
+  ResourceType,
   Saml2,
   Script,
+  Secret,
   Service,
+  ServiceAccount,
+  Startup,
+  State,
   Theme,
-  ExportImport,
+  Variable,
   Version,
 };
 //   helper: {

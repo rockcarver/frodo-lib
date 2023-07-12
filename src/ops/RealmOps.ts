@@ -1,5 +1,5 @@
 import { getRealms as _getRealms, putRealm } from '../api/RealmApi';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import { getRealmName } from './utils/OpsUtils';
 
 export type Realm = {

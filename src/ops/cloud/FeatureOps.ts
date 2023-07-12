@@ -2,7 +2,7 @@ import {
   getFeatures as _getFeatures,
   FeatureInterface,
 } from '../../api/cloud/FeatureApi';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 import { debugMessage } from '../utils/Console';
 
 export type Feature = {

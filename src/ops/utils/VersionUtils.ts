@@ -3,7 +3,7 @@ import path from 'path';
 import { generateReleaseApi } from '../../api/BaseApi';
 
 import { fileURLToPath } from 'url';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 
 export type Version = {
   getVersion(): string;

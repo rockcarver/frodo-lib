@@ -4,7 +4,7 @@ import { generateOauth2Api } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 import { encode } from './utils/Base64';
 import { AxiosRequestConfig } from 'axios';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 const authorizeUrlTemplate = '%s/oauth2%s/authorize';
 const accessTokenUrlTemplate = '%s/oauth2%s/access_token';

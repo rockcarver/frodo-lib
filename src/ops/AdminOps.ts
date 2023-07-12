@@ -14,7 +14,7 @@ import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
 import { printMessage } from './utils/Console';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import {
   OAuth2ClientSkeleton,
   ReadableStrings,

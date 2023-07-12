@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateLogApi, generateLogKeysApi } from '../BaseApi';
 import { getTenantURL } from '../utils/ApiUtils';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 import { LogApiKey, LogEventSkeleton, PagedResult } from '../ApiTypes';
 
 const logsTailURLTemplate = '%s/monitoring/logs/tail?source=%s';

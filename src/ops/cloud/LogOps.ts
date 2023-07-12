@@ -13,7 +13,7 @@ import {
   fetch,
   getLogApiKey,
 } from '../../api/cloud/LogApi';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 
 export type Log = {
   /**

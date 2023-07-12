@@ -49,7 +49,7 @@
  */
 import { state } from '../index';
 import * as Saml2Ops from './Saml2Ops';
-import * as Constants from '../shared/Constants';
+import Constants from '../shared/Constants';
 import { Saml2ProiderLocation } from '../api/ApiTypes';
 import {
   getSaml2ProviderImportData,

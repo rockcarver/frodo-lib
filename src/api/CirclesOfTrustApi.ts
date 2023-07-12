@@ -2,7 +2,7 @@ import util from 'util';
 import _ from 'lodash';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import { CircleOfTrustSkeleton } from './ApiTypes';
 
 const circleOfTrustByIdURLTemplate =

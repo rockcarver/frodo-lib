@@ -1,5 +1,5 @@
 import Table from 'cli-table3';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 
 /**
  * Handles data / messages output. The caller decides and implements how

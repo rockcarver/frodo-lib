@@ -14,7 +14,7 @@ import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import * as OAuth2OIDCApi from './OAuth2OIDCApi';
 import { state } from '../index';
-import * as Constants from '../shared/Constants';
+import Constants from '../shared/Constants';
 import {
   mockAuthorize,
   mockAccessToken,

@@ -8,7 +8,7 @@ import {
   putService,
   putServiceNextDescendent,
 } from '../api/ServiceApi';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import { ServiceExportInterface } from './OpsTypes';
 import { debugMessage, printMessage } from './utils/Console';
 

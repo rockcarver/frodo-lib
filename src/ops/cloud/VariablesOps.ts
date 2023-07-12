@@ -5,7 +5,7 @@ import {
   putVariable,
   setVariableDescription,
 } from '../../api/cloud/VariablesApi';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 
 export type Variable = {
   /**

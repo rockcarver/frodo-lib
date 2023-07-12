@@ -20,7 +20,7 @@ import { debugMessage } from './utils/Console';
 import { getResourceType } from '../api/ResourceTypesApi';
 import { createPolicySet, getPolicySet, updatePolicySet } from './PolicySetOps';
 import { createResourceType, updateResourceType } from './ResourceTypeOps';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 export type Policy = {
   /**

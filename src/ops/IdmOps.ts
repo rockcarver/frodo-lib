@@ -14,7 +14,7 @@ import {
   testConnectorServers as _testConnectorServers,
   ConnectorServerStatusInterface,
 } from '../api/IdmSystemApi';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 export type Idm = {
   getAllConfigEntities(): Promise<any>;

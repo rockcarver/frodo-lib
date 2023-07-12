@@ -1,5 +1,5 @@
 import { getOAuth2Provider } from '../api/OAuth2ProviderApi';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 export type OAuth2Provider = {
   getOAuth2Provider(): Promise<any>;

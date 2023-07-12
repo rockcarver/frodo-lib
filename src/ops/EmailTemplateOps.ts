@@ -7,7 +7,7 @@ import {
   getConfigEntity,
   putConfigEntity,
 } from '../api/IdmConfigApi';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 export type EmailTemplate = {
   /**

@@ -1,4 +1,4 @@
-import State from '../shared/State';
+import { State } from '../shared/State';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import _ from 'lodash';
@@ -22,7 +22,7 @@ import { isCloudOnlyNode, isCustomNode, isPremiumNode } from './NodeOps';
 import { getTrees, getTree, putTree, deleteTree } from '../api/TreeApi';
 import { getEmailTemplate, putEmailTemplate } from './EmailTemplateOps';
 import { getScript } from '../api/ScriptApi';
-import * as Constants from '../shared/Constants';
+import Constants from '../shared/Constants';
 import {
   printMessage,
   createProgressIndicator,

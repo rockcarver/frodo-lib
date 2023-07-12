@@ -7,7 +7,7 @@ import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
 import { debugMessage } from '../utils/Console';
 import { hasFeature } from './FeatureOps';
 import { getTenantURL } from '../../api/utils/ApiUtils';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 
 export type ServiceAccount = {
   /**

@@ -50,7 +50,7 @@ import { state } from '../index';
 import * as JourneyOps from './JourneyOps';
 import { getJourney } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import * as Constants from '../shared/Constants';
+import Constants from '../shared/Constants';
 
 autoSetupPolly();
 

@@ -22,7 +22,7 @@ import {
 import { ScriptSkeleton } from '../api/ApiTypes';
 import { ExportMetaData } from '../ops/OpsTypes';
 import { validateScriptDecoded } from './utils/ScriptValidationUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 export type Script = {
   /**

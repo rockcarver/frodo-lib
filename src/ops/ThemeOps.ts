@@ -2,7 +2,7 @@ import { ThemeSkeleton, UiThemeRealmObject } from '../api/ApiTypes';
 import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
 import { getCurrentRealmName } from '../api/utils/ApiUtils';
 import { debugMessage } from '../ops/utils/Console';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 export const THEMEREALM_ID = 'ui/themerealm';
 

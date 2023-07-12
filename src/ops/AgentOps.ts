@@ -10,7 +10,7 @@ import {
 import { AgentSkeleton, AgentType } from '../api/ApiTypes';
 import { AgentExportInterface } from './OpsTypes';
 import { validateImport } from './utils/ExportImportUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 export type Agent = {
   /**

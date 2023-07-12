@@ -109,8 +109,9 @@
     "entryPointStrategy": "resolve",
     "out": "docs/ts-doc",
     "readme": ".github/README.md",
-    "excludeNotDocumented": true,
-    "excludeNotDocumentedKinds": ["Class"], // "Property", "Interface", "TypeAlias"
+    "excludeExternals": true,
+    // "excludeNotDocumented": true,
+    // "excludeNotDocumentedKinds": ["Namespace"], // "Property", "Interface", "TypeAlias"
     "includeVersion": true,
     "disableSources": false,
     "hideGenerator": true,

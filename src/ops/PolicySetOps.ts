@@ -23,7 +23,7 @@ import {
   getScripts,
   putPolicy,
 } from './PolicyOps';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 export type PolicySet = {
   /**
