@@ -1,6 +1,6 @@
 <!-- README.md for GitHub; the one for NPM is ../README.md. -->
 
-# Frodo Library 2.x :new: - @rockcarver/frodo-lib
+# Frodo Library 2.x - @rockcarver/frodo-lib
 
 ForgeROck DO library, frodo-lib, a hybrid (ESM and CJS) library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.
 
@@ -8,12 +8,12 @@ Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the comma
 
 ## Quick Nav
 
-- :new: [New in 2.x](#new-in-2x)
+- [New in 2.x](#new-in-2x)
 - [Features](#features)
 - [Limitations](#limitations)
 - [Installing](#installing)
-- :new: [Using the library](#using-the-library)
-- :new: [Library API docs](#library-api-docs)
+- [Using the library](#using-the-library)
+- [Library API docs](#library-api-docs)
 - [Request features or report issues](#feature-requests)
 - [Contributing](#contributing)
 - [Maintaining](#maintaining)
@@ -215,7 +215,7 @@ defaultAdminLogin();
 Check out all the examples in `/path/to/frodo-lib/examples`.
 
 ## Library API docs
-[Latest library API docs](https://github.com/rockcarver/frodo-lib/docs/ts-doc/index.html)
+[Latest library API docs](https://rockcarver.github.io/frodo-lib/)
 
 ## Feature requests
 
@@ -223,8 +223,8 @@ Please use the repository's [issues](https://github.com/rockcarver/frodo-lib/iss
 
 ## Contributing
 
-If you would like to contribute to frodo, please refer to the [contributing instructions](../CONTRIBUTE.md).
+If you would like to contribute to frodo, please refer to the [contributing instructions](https://github.com/rockcarver/frodo-lib/CONTRIBUTE.md).
 
 ## Maintaining
 
-If you are a maintainer of this repository, please refer to the [pipeline and release process instructions](../PIPELINE.md).
+If you are a maintainer of this repository, please refer to the [pipeline and release process instructions](https://github.com/rockcarver/frodo-lib/PIPELINE.md).

@@ -14,15 +14,15 @@
 <h2>Frodo Library - v2.0.0-13</h2></div>
 <div class="tsd-panel tsd-typography"><!-- README.md for GitHub; the one for NPM is ../README.md. -->
 
-<a id="md:frodo-library-2x-new---rockcarverfrodo-lib" class="tsd-anchor"></a><h1><a href="#md:frodo-library-2x-new---rockcarverfrodo-lib">Frodo Library 2.x :new: - @rockcarver/frodo-lib</a></h1><p>ForgeROck DO library, frodo-lib, a hybrid (ESM and CJS) library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.</p>
+<a id="md:frodo-library-2x---rockcarverfrodo-lib" class="tsd-anchor"></a><h1><a href="#md:frodo-library-2x---rockcarverfrodo-lib">Frodo Library 2.x - @rockcarver/frodo-lib</a></h1><p>ForgeROck DO library, frodo-lib, a hybrid (ESM and CJS) library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.</p>
 <p>Frodo-lib powers <a href="https://github.com/rockcarver/frodo-cli">frodo-cli</a>, the command line tool to manage ForgeRock deployments.</p>
 <a id="md:quick-nav" class="tsd-anchor"></a><h2><a href="#md:quick-nav">Quick Nav</a></h2><ul>
-<li>:new: <a href="#new-in-2x">New in 2.x</a></li>
+<li><a href="#new-in-2x">New in 2.x</a></li>
 <li><a href="#features">Features</a></li>
 <li><a href="#limitations">Limitations</a></li>
 <li><a href="#installing">Installing</a></li>
-<li>:new: <a href="#using-the-library">Using the library</a></li>
-<li>:new: <a href="#library-api-docs">Library API docs</a></li>
+<li><a href="#using-the-library">Using the library</a></li>
+<li><a href="#library-api-docs">Library API docs</a></li>
 <li><a href="#feature-requests">Request features or report issues</a></li>
 <li><a href="#contributing">Contributing</a></li>
 <li><a href="#maintaining">Maintaining</a></li>
@@ -111,10 +111,10 @@
 <pre><code class="language-javascript"><span class="hl-5">// destructure default instance for easier use of library functions</span><br/><span class="hl-3">const</span><span class="hl-1"> { </span><span class="hl-7">getTokens</span><span class="hl-1"> } = </span><span class="hl-6">frodo</span><span class="hl-1">.</span><span class="hl-6">login</span><span class="hl-1">;</span><br/><span class="hl-3">const</span><span class="hl-1"> { </span><span class="hl-7">getInfo</span><span class="hl-1"> } = </span><span class="hl-6">frodo</span><span class="hl-1">.</span><span class="hl-6">info</span><span class="hl-1">;</span><br/><br/><span class="hl-3">async</span><span class="hl-1"> </span><span class="hl-3">function</span><span class="hl-1"> </span><span class="hl-0">defaultAdminLogin</span><span class="hl-1">() {</span><br/><span class="hl-1">  </span><span class="hl-5">// this has to be the base URL of your AM service, not just the host hame</span><br/><span class="hl-1">  </span><span class="hl-6">state</span><span class="hl-1">.</span><span class="hl-0">setHost</span><span class="hl-1">(</span><span class="hl-6">host0</span><span class="hl-1">);</span><br/><span class="hl-1">  </span><span class="hl-5">// username of an admin user</span><br/><span class="hl-1">  </span><span class="hl-6">state</span><span class="hl-1">.</span><span class="hl-0">setUsername</span><span class="hl-1">(</span><span class="hl-6">user0</span><span class="hl-1">);</span><br/><span class="hl-1">  </span><span class="hl-5">// password of the admin user</span><br/><span class="hl-1">  </span><span class="hl-6">state</span><span class="hl-1">.</span><span class="hl-0">setPassword</span><span class="hl-1">(</span><span class="hl-6">pass0</span><span class="hl-1">);</span><br/><br/><span class="hl-1">  </span><span class="hl-5">// login and obtain tokens</span><br/><span class="hl-1">  </span><span class="hl-4">if</span><span class="hl-1"> (</span><span class="hl-4">await</span><span class="hl-1"> </span><span class="hl-0">getTokens</span><span class="hl-1">()) {</span><br/><span class="hl-1">    </span><span class="hl-5">// obtain and print information about the instance you are connected to</span><br/><span class="hl-1">    </span><span class="hl-3">const</span><span class="hl-1"> </span><span class="hl-7">info</span><span class="hl-1"> = </span><span class="hl-4">await</span><span class="hl-1"> </span><span class="hl-0">getInfo</span><span class="hl-1">();</span><br/><span class="hl-1">    </span><span class="hl-6">console</span><span class="hl-1">.</span><span class="hl-0">log</span><span class="hl-1">(</span><span class="hl-2">`defaultAdminLogin: Logged in to: </span><span class="hl-3">${</span><span class="hl-6">info</span><span class="hl-8">.</span><span class="hl-6">host</span><span class="hl-3">}</span><span class="hl-2">`</span><span class="hl-1">);</span><br/><span class="hl-1">    </span><span class="hl-6">console</span><span class="hl-1">.</span><span class="hl-0">log</span><span class="hl-1">(</span><span class="hl-2">`defaultAdminLogin: Logged in as: </span><span class="hl-3">${</span><span class="hl-6">info</span><span class="hl-8">.</span><span class="hl-6">authenticatedSubject</span><span class="hl-3">}</span><span class="hl-2">`</span><span class="hl-1">);</span><br/><span class="hl-1">    </span><span class="hl-6">console</span><span class="hl-1">.</span><span class="hl-0">log</span><span class="hl-1">(</span><span class="hl-2">`defaultAdminLogin: Using bearer token: </span><span class="hl-9">\n</span><span class="hl-3">${</span><span class="hl-6">info</span><span class="hl-8">.</span><span class="hl-6">bearerToken</span><span class="hl-3">}</span><span class="hl-2">`</span><span class="hl-1">);</span><br/><span class="hl-1">  } </span><span class="hl-4">else</span><span class="hl-1"> {</span><br/><span class="hl-1">    </span><span class="hl-6">console</span><span class="hl-1">.</span><span class="hl-0">log</span><span class="hl-1">(</span><span class="hl-2">&#39;error getting tokens&#39;</span><span class="hl-1">);</span><br/><span class="hl-1">  }</span><br/><span class="hl-1">}</span><br/><span class="hl-0">defaultAdminLogin</span><span class="hl-1">();</span>
 </code><button>Copy</button></pre>
 <p>Check out all the examples in <code>/path/to/frodo-lib/examples</code>.</p>
-<a id="md:library-api-docs" class="tsd-anchor"></a><h2><a href="#md:library-api-docs">Library API docs</a></h2><p><a href="https://github.com/rockcarver/frodo-lib/docs/ts-doc/index.html">Latest library API docs</a></p>
+<a id="md:library-api-docs" class="tsd-anchor"></a><h2><a href="#md:library-api-docs">Library API docs</a></h2><p><a href="https://rockcarver.github.io/frodo-lib/">Latest library API docs</a></p>
 <a id="md:feature-requests" class="tsd-anchor"></a><h2><a href="#md:feature-requests">Feature requests</a></h2><p>Please use the repository&#39;s <a href="https://github.com/rockcarver/frodo-lib/issues">issues</a> to request new features/enhancements or report bugs/issues.</p>
-<a id="md:contributing" class="tsd-anchor"></a><h2><a href="#md:contributing">Contributing</a></h2><p>If you would like to contribute to frodo, please refer to the <a href="../CONTRIBUTE.md">contributing instructions</a>.</p>
-<a id="md:maintaining" class="tsd-anchor"></a><h2><a href="#md:maintaining">Maintaining</a></h2><p>If you are a maintainer of this repository, please refer to the <a href="../PIPELINE.md">pipeline and release process instructions</a>.</p>
+<a id="md:contributing" class="tsd-anchor"></a><h2><a href="#md:contributing">Contributing</a></h2><p>If you would like to contribute to frodo, please refer to the <a href="https://github.com/rockcarver/frodo-lib/CONTRIBUTE.md">contributing instructions</a>.</p>
+<a id="md:maintaining" class="tsd-anchor"></a><h2><a href="#md:maintaining">Maintaining</a></h2><p>If you are a maintainer of this repository, please refer to the <a href="https://github.com/rockcarver/frodo-lib/PIPELINE.md">pipeline and release process instructions</a>.</p>
 </div></div>
 <div class="col-sidebar">
 <div class="page-menu">
@@ -136,7 +136,7 @@
 <ul>
 <li>
 <ul>
-<li><a href="#md:frodo-library-2x-new---rockcarverfrodo-lib"><span>Frodo <wbr/>Library 2.x :new: -<wbr/> @rockcarver/frodo-<wbr/>lib</span></a></li>
+<li><a href="#md:frodo-library-2x---rockcarverfrodo-lib"><span>Frodo <wbr/>Library 2.x -<wbr/> @rockcarver/frodo-<wbr/>lib</span></a></li>
 <li>
 <ul>
 <li><a href="#md:quick-nav"><span>Quick <wbr/>Nav</span></a></li>
