@@ -31,9 +31,89 @@ import {
   convertTextArrayToBase64Url,
   getMetadata,
 } from './utils/ExportImportUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
-export default (state: State) => {
+export type Saml2 = {
+  /**
+   * Get SAML2 entity provider stubs
+   * @returns {Promise<Saml2ProviderStub[]>} a promise that resolves to an array of saml2 entity stubs
+   */
+  getSaml2ProviderStubs(): Promise<Saml2ProviderStub[]>;
+  /**
+   * Geta SAML2 entity provider by location and id
+   * @param {string} location Entity provider location (hosted or remote)
+   * @param {string} entityId64 Base64-encoded-without-padding provider entity id
+   * @returns {Promise} a promise that resolves to a saml2 entity provider object
+   */
+  getProviderByLocationAndId(
+    location: string,
+    entityId64: string
+  ): Promise<any>;
+  /**
+   * Get a SAML2 entity provider's metadata URL by entity id
+   * @param {string} entityId SAML2 entity id
+   * @returns {string} the URL to get the metadata from
+   */
+  getProviderMetadataUrl(entityId: string): string;
+  /**
+   * Get a SAML2 entity provider's metadata by entity id
+   * @param {string} entityId SAML2 entity id
+   * @returns {Promise<object>} a promise that resolves to an object containing a SAML2 metadata
+   */
+  getProviderMetadata(entityId: string): Promise<any>;
+  /**
+   *
+   * @param {string} entityId Provider entity id
+   * @returns {Promise<Saml2ProviderStub>} Promise resolving to a Saml2ExportInterface object.
+   */
+  getSaml2ProviderStub(entityId: string): Promise<Saml2ProviderStub>;
+  /**
+   * Export a single entity provider. The response can be saved to file as is.
+   * @param {string} entityId Provider entity id
+   * @returns {Promise<Saml2ProviderSkeleton>} Promise resolving to a Saml2ExportInterface object.
+   */
+  getSaml2Provider(entityId: string): Promise<Saml2ProviderSkeleton>;
+  /**
+   * Delete an entity provider. The response can be saved to file as is.
+   * @param {string} entityId Provider entity id
+   * @returns {Promise<Saml2ProviderSkeleton>} Promise resolving to a Saml2ExportInterface object.
+   */
+  deleteSaml2Provider(entityId: string): Promise<Saml2ProviderSkeleton>;
+  /**
+   * Delete all entity providers.
+   * @returns {Promise<Saml2ProviderSkeleton[]>} Promise resolving to an array of Saml2ProviderSkeleton objects.
+   */
+  deleteSaml2Providers(): Promise<Saml2ProviderSkeleton[]>;
+  /**
+   * Export a single entity provider. The response can be saved to file as is.
+   * @param {string} entityId Provider entity id
+   * @returns {Promise<Saml2ExportInterface>} Promise resolving to a Saml2ExportInterface object.
+   */
+  exportSaml2Provider(entityId: string): Promise<Saml2ExportInterface>;
+  /**
+   * Export all entity providers. The response can be saved to file as is.
+   * @returns {Promise<Saml2ExportInterface>} Promise resolving to a Saml2ExportInterface object.
+   */
+  exportSaml2Providers(): Promise<Saml2ExportInterface>;
+  /**
+   * Import a SAML entity provider
+   * @param {string} entityId Provider entity id
+   * @param {Saml2ExportInterface} importData Import data
+   */
+  importSaml2Provider(
+    entityId: string,
+    importData: Saml2ExportInterface
+  ): Promise<boolean>;
+  /**
+   * Import SAML entity providers
+   * @param {Saml2ExportInterface} importData Import data
+   */
+  importSaml2Providers(
+    importData: Saml2ExportInterface
+  ): Promise<MultiOpStatusInterface>;
+};
+
+export default (state: State): Saml2 => {
   return {
     /**
      * Get SAML2 entity provider stubs

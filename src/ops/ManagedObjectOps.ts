@@ -1,8 +1,28 @@
 import { getManagedObject } from '../api/ManagedObjectApi';
 import { getTenantURL } from '../api/utils/ApiUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
-export default (state: State) => {
+export type ManagedObject = {
+  /**
+   * Resolve a managed object's uuid to a human readable username
+   * @param {string} type managed object type, e.g. teammember or alpha_user
+   * @param {string} id managed object _id
+   * @returns {string} resolved username or uuid if any error occurs during reslution
+   */
+  resolveUserName(
+    type: string,
+    id: string
+  ): Promise<string | number | boolean | object>;
+  /**
+   * Resolve a managed object's uuid to a human readable full name
+   * @param {string} type managed object type, e.g. teammember or alpha_user
+   * @param {string} id managed object _id
+   * @returns {string} resolved full name or uuid if any error occurs during reslution
+   */
+  resolveFullName(type: string, id: string): Promise<string>;
+};
+
+export default (state: State): ManagedObject => {
   return {
     /**
      * Resolve a managed object's uuid to a human readable username

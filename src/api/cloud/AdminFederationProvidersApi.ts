@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateAmApi } from '../BaseApi';
 import { deleteDeepByKey, getRealmPath } from '../utils/ApiUtils';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 import { AmServiceType, PagedResult, SocialIdpSkeleton } from '../ApiTypes';
 
 const getAllProviderTypesURLTemplate =

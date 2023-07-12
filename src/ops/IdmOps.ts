@@ -14,9 +14,36 @@ import {
   testConnectorServers as _testConnectorServers,
   ConnectorServerStatusInterface,
 } from '../api/IdmSystemApi';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
-export default (state: State) => {
+export type Idm = {
+  getAllConfigEntities(): Promise<any>;
+  getConfigEntitiesByType(type: string): Promise<any>;
+  getConfigEntity(entityId: string): Promise<any>;
+  putConfigEntity(
+    entityId: string,
+    entityData: NoIdObjectSkeletonInterface | string
+  ): Promise<any>;
+  /**
+   * Query managed objects
+   * @param {string} type managed object type
+   * @param {string[]} fields fields to retrieve
+   * @param {string} pageCookie paged results cookie
+   * @returns {Promise<PagedResult<IdObjectSkeletonInterface>>} a promise that resolves to managed objects of the desired type
+   */
+  queryAllManagedObjectsByType(
+    type: string,
+    fields: string[],
+    pageCookie: string
+  ): Promise<PagedResult<IdObjectSkeletonInterface>>;
+  /**
+   * Test connector servers
+   * @returns {Promise<ConnectorServerStatusInterface[]>} a promise that resolves to an array of ConnectorServerStatusInterface objects
+   */
+  testConnectorServers(): Promise<ConnectorServerStatusInterface[]>;
+};
+
+export default (state: State): Idm => {
   return {
     getAllConfigEntities() {
       return getAllConfigEntities({ state });

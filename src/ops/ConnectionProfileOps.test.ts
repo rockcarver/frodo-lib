@@ -10,11 +10,7 @@ import fs from 'fs';
 import { homedir } from 'os';
 import { state } from '../index';
 import * as ConnectionProfileOps from './ConnectionProfileOps';
-import {
-  FRODO_CONNECTION_PROFILES_PATH_KEY,
-  FRODO_MASTER_KEY_PATH_KEY,
-  FRODO_MASTER_KEY_KEY,
-} from '../storage/StaticStorage';
+import Constants from '../shared/Constants';
 
 describe('ConnectionProfileOps', () => {
   const connectionProfilePath1 = `${homedir()}/connections1.json`;
@@ -80,12 +76,13 @@ describe('ConnectionProfileOps', () => {
       expect(connections[host].encodedPassword).toBeTruthy();
     });
 
-    test(`2: Create connection profiles in location from env ${FRODO_MASTER_KEY_PATH_KEY}`, async () => {
+    test(`2: Create connection profiles in location from env ${Constants.FRODO_MASTER_KEY_PATH_KEY}`, async () => {
       const host = 'https://openam-tenant-name.forgeblocks.com/am';
       const user = 'frodo.baggins@shire.me';
       const password = 'G@nd@lfTheW153';
       // set the hard-coded master key
-      process.env[FRODO_CONNECTION_PROFILES_PATH_KEY] = connectionProfilePath2;
+      process.env[Constants.FRODO_CONNECTION_PROFILES_PATH_KEY] =
+        connectionProfilePath2;
 
       state.setHost(host);
       state.setUsername(user);
@@ -105,13 +102,13 @@ describe('ConnectionProfileOps', () => {
       expect(connections[host].encodedPassword).toBeTruthy();
     });
 
-    test(`3: Use Master Key from env ${FRODO_MASTER_KEY_KEY}`, async () => {
+    test(`3: Use Master Key from env ${Constants.FRODO_MASTER_KEY_KEY}`, async () => {
       const host = 'https://openam-tenant-name.forgeblocks.com/am';
       const user = 'frodo.baggins@shire.me';
       const password = 'G@nd@lfTheW153';
       const masterKey = 'bxnQlhcU5VfyDs+BBPhRhK09yHaNtdIIk85HUMKBnqg=';
       // set the hard-coded master key
-      process.env[FRODO_MASTER_KEY_KEY] = masterKey;
+      process.env[Constants.FRODO_MASTER_KEY_KEY] = masterKey;
 
       state.setHost(host);
       state.setUsername(user);

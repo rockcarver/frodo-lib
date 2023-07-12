@@ -23,9 +23,68 @@ import {
   getScripts,
   putPolicy,
 } from './PolicyOps';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
-export default (state: State) => {
+export type PolicySet = {
+  /**
+   * Get all policy sets
+   * @returns {Promise} a promise that resolves to an array of policy set objects
+   */
+  getPolicySets(): Promise<PolicySetSkeleton[]>;
+  getPolicySet(policySetName: string): Promise<PolicySetSkeleton>;
+  createPolicySet(policySetData: PolicySetSkeleton): Promise<any>;
+  updatePolicySet(policySetData: PolicySetSkeleton): Promise<any>;
+  deletePolicySet(policySetName: string): Promise<any>;
+  /**
+   * Export policy set
+   * @param {string} policySetName policy set name
+   * @param {PolicySetExportOptions} options export options
+   * @returns {Promise<PolicySetExportInterface>} a promise that resolves to an PolicySetExportInterface object
+   */
+  exportPolicySet(
+    policySetName: string,
+    options?: PolicySetExportOptions
+  ): Promise<PolicySetExportInterface>;
+  /**
+   * Export policy sets
+   * @param {PolicySetExportOptions} options export options
+   * @returns {Promise<PolicySetExportInterface>} a promise that resolves to an PolicySetExportInterface object
+   */
+  exportPolicySets(
+    options?: PolicySetExportOptions
+  ): Promise<PolicySetExportInterface>;
+  /**
+   * Import policy set
+   * @param {string} policySetName policy set name
+   * @param {PolicySetExportInterface} importData import data
+   * @param {PolicySetImportOptions} options import options
+   */
+  importPolicySet(
+    policySetName: string,
+    importData: PolicySetExportInterface,
+    options?: PolicySetImportOptions
+  ): Promise<any>;
+  /**
+   * Import first policy set
+   * @param {PolicySetExportInterface} importData import data
+   * @param {PolicySetImportOptions} options import options
+   */
+  importFirstPolicySet(
+    importData: PolicySetExportInterface,
+    options?: PolicySetImportOptions
+  ): Promise<any>;
+  /**
+   * Import policy sets
+   * @param {PolicySetExportInterface} importData import data
+   * @param {PolicySetImportOptions} options import options
+   */
+  importPolicySets(
+    importData: PolicySetExportInterface,
+    options?: PolicySetImportOptions
+  ): Promise<any>;
+};
+
+export default (state: State): PolicySet => {
   return {
     /**
      * Get all policy sets

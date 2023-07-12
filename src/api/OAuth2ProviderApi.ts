@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 const oauthProviderServiceURLTemplate =
   '%s/json%s/realm-config/services/oauth-oidc';

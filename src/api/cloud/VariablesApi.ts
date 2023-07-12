@@ -2,7 +2,7 @@ import util from 'util';
 import { encode } from '../utils/Base64';
 import { getTenantURL } from '../utils/ApiUtils';
 import { generateEnvApi } from '../BaseApi';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 
 const variablesListURLTemplate = '%s/environment/variables';
 const variableURLTemplate = '%s/environment/variables/%s';

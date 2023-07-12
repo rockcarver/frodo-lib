@@ -1,7 +1,14 @@
-import FrodoLib from './FrodoLib';
+import FrodoLib, { Frodo } from './FrodoLib';
 import { StateInterface } from '../shared/State';
 
-const frodo = FrodoLib();
+/**
+ * Default FrodoLib instance
+ */
+const frodo: Frodo = FrodoLib();
+
+/**
+ * Default State instance
+ */
 const state = frodo.state;
 
 /**
@@ -14,7 +21,7 @@ const state = frodo.state;
  * @param {boolean} allowInsecureConnection (optional) allow insecure connection
  * @param {boolean} debug (optional) enable debug output
  * @param {boolean} curlirize (optional) enable output of all library REST calls as curl commands
- * @returns FrodoLib instance
+ * @returns {Frodo} FrodoLib instance
  */
 function createInstanceWithServiceAccount(
   host: string,
@@ -50,7 +57,7 @@ function createInstanceWithServiceAccount(
  * @param {boolean} allowInsecureConnection (optional) allow insecure connection
  * @param {boolean} debug (optional) enable debug output
  * @param {boolean} curlirize (optional) enable output of all library REST calls as curl commands
- * @returns FrodoLib instance
+ * @returns {Frodo} FrodoLib instance
  */
 function createInstanceWithAdminAccount(
   host: string,

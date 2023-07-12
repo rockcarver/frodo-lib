@@ -1,7 +1,7 @@
-import State from '../../shared/State';
+import StateImpl, { type State } from '../../shared/State';
 import DataProtection from './DataProtection';
 
-const state: State = new State({});
+const state: State = StateImpl({});
 
 test('DataProtection to encrypt', async () => {
   // Note this test checks that encyption happned not that encryption is correct

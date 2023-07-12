@@ -13,9 +13,82 @@ import {
   fetch,
   getLogApiKey,
 } from '../../api/cloud/LogApi';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 
-export default (state: State) => {
+export type Log = {
+  /**
+   * Get default noise filter
+   * @returns {string[]} array of default event types and loggers to be filtered out
+   */
+  getDefaultNoiseFilter(): string[];
+  /**
+   * Resolve log level to an array of effective log levels
+   * @param level string or numeric log level: 'FATAL', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE', 'ALL', 0, 1, 2, 3, 4
+   * @returns {string[]} array of effective log levels
+   */
+  resolveLevel(level: string | number): string[];
+  /**
+   * Resolve a log event's level
+   * @param {object} log log event
+   * @returns {string} log level
+   */
+  resolvePayloadLevel(log: LogEventSkeleton): string;
+  /**
+   * Get available log sources
+   * @returns {Promise<string[]>} promise resolving to an array of available log sources
+   */
+  getLogSources(): Promise<string[]>;
+  /**
+   * Get log api key
+   * @returns {Promise<LogApiKey>} promise resolving to a LogApiKey objects
+   */
+  getLogApiKey(keyId: string): Promise<LogApiKey>;
+  /**
+   * Get log api keys
+   * @returns {Promise<LogApiKey[]>} promise resolving to an array of LogApiKey objects
+   */
+  getLogApiKeys(): Promise<LogApiKey[]>;
+  /**
+   * Create log api key
+   * @param {string} keyName human-readable key name
+   * @returns {Promise<LogApiKey>} a promise resolving to an object containing the log api key and secret
+   */
+  createLogApiKey(keyName: string): Promise<LogApiKey>;
+  /**
+   * Delete log api key
+   * @param {string} keyId key id
+   * @returns {Promise<LogApiKey>} a promise resolving to an object containing the log api key
+   */
+  deleteLogApiKey(keyId: string): Promise<LogApiKey>;
+  /**
+   * Delete all log api keys
+   * @returns {Promise<LogApiKey>} a promise resolving to an array of log api key objects
+   */
+  deleteLogApiKeys(): Promise<LogApiKey[]>;
+  /**
+   * Tail logs
+   * @param {string} source log source(s) to tail
+   * @param {string} cookie paged results cookie
+   * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+   */
+  tail(source: string, cookie: string): Promise<PagedResult<LogEventSkeleton>>;
+  /**
+   * Fetch logs
+   * @param {string} source log source(s) to tail
+   * @param {string} startTs start timestamp
+   * @param {string} endTs end timestamp
+   * @param {string} cookie paged results cookie
+   * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+   */
+  fetch(
+    source: string,
+    startTs: string,
+    endTs: string,
+    cookie: string
+  ): Promise<PagedResult<LogEventSkeleton>>;
+};
+
+export default (state: State): Log => {
   return {
     /**
      * Get default noise filter

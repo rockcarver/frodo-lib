@@ -10,6 +10,359 @@ const pkg = JSON.parse(
   fs.readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8')
 );
 
+export type State = {
+  setHost(host: string): void;
+  getHost(): string;
+  /**
+   * @deprecated since v0.17.0 use `setHost(host: string)` instead
+   */
+  setTenant(tenant: string): void;
+  /**
+   * @deprecated since v0.17.0 use `getHost` instead
+   */
+  getTenant(): string;
+  setUsername(username: string): void;
+  getUsername(): string;
+  setPassword(password: string): void;
+  getPassword(): string;
+  setRealm(realm: string): void;
+  getRealm(): string;
+  setDeploymentType(type: string): void;
+  getDeploymentType(): string;
+  setAllowInsecureConnection(allowInsecureConnection: boolean): void;
+  getAllowInsecureConnection(): boolean;
+  setCookieName(name: string): void;
+  getCookieName(): string;
+  setCookieValue(value: string): void;
+  getCookieValue(): string;
+  setFeatures(features: FeatureInterface[]): void;
+  getFeatures(): FeatureInterface[];
+  setAuthenticationHeaderOverrides(overrides: Record<string, string>): void;
+  getAuthenticationHeaderOverrides(): Record<string, string>;
+  setAuthenticationService(service: string): void;
+  getAuthenticationService(): string;
+  setServiceAccountId(uuid: string): void;
+  getServiceAccountId(): string;
+  setServiceAccountJwk(jwk: JwkRsa): void;
+  getServiceAccountJwk(): JwkRsa;
+  setUseBearerTokenForAmApis(useBearerTokenForAmApis: boolean): void;
+  getUseBearerTokenForAmApis(): boolean;
+  setBearerToken(token: string): void;
+  getBearerToken(): string;
+  setLogApiKey(key: string): void;
+  getLogApiKey(): string;
+  setLogApiSecret(secret: string): void;
+  getLogApiSecret(): string;
+  setAmVersion(version: string): void;
+  getAmVersion(): string;
+  setFrodoVersion(version: string): void;
+  getFrodoVersion(): string;
+  setConnectionProfilesPath(path: string): void;
+  getConnectionProfilesPath(): string;
+  setMasterKeyPath(path: string): void;
+  getMasterKeyPath(): string;
+  setOutputFile(file: string): void;
+  getOutputFile(): string;
+  setDirectory(directory: string): void;
+  getDirectory(): string;
+  setCurlirizeHandler(handler: (message: string) => void): void;
+  getCurlirizeHandler(): (message: string) => void;
+  setCurlirize(curlirize: boolean): void;
+  getCurlirize(): boolean;
+  setCreateProgressHandler(
+    handler: (type: string, total?: number, message?: string) => void
+  ): void;
+  getCreateProgressHandler(): (
+    type: string,
+    total?: number,
+    message?: string
+  ) => void;
+  setUpdateProgressHandler(handler: (message: string) => void): void;
+  getUpdateProgressHandler(): (message: string) => void;
+  setStopProgressHandler(
+    handler: (message: string, status?: string) => void
+  ): void;
+  getStopProgressHandler(): (message: string, status?: string) => void;
+  setPrintHandler(
+    handler: (
+      message: string | object,
+      type?: string,
+      newline?: boolean
+    ) => void
+  ): void;
+  getPrintHandler(): (
+    message: string | object,
+    type?: string,
+    newline?: boolean
+  ) => void;
+  setVerboseHandler(handler: (message: string | object) => void): void;
+  getVerboseHandler(): (message: string | object) => void;
+  setVerbose(verbose: boolean): void;
+  getVerbose(): boolean;
+  setDebugHandler(handler: (message: string | object) => void): void;
+  getDebugHandler(): (message: string | object) => void;
+  setDebug(debug: boolean): void;
+  getDebug(): boolean;
+};
+
+export default (initialState: StateInterface): State => {
+  const state: StateInterface = { ...globalState, ...initialState };
+  return {
+    setHost(host: string) {
+      state.host = host;
+    },
+    getHost() {
+      return state.host || process.env.FRODO_HOST;
+    },
+
+    /**
+     * @deprecated since v0.17.0 use `setHost(host: string)` instead
+     */
+    setTenant(tenant: string) {
+      this.setHost(tenant);
+    },
+    /**
+     * @deprecated since v0.17.0 use `getHost` instead
+     */
+    getTenant() {
+      return this.getHost();
+    },
+
+    setUsername(username: string) {
+      state.username = username;
+    },
+    getUsername() {
+      return state.username || process.env.FRODO_USERNAME;
+    },
+
+    setPassword(password: string) {
+      state.password = password;
+    },
+    getPassword() {
+      return state.password || process.env.FRODO_PASSWORD;
+    },
+
+    setRealm(realm: string) {
+      state.realm = realm;
+    },
+    getRealm() {
+      return state.realm || process.env.FRODO_REALM;
+    },
+
+    setDeploymentType(type: string) {
+      state.deploymentType = type;
+    },
+    getDeploymentType() {
+      return state.deploymentType;
+    },
+
+    setAllowInsecureConnection(allowInsecureConnection: boolean) {
+      state.allowInsecureConnection = allowInsecureConnection;
+    },
+    getAllowInsecureConnection() {
+      return state.allowInsecureConnection;
+    },
+
+    setCookieName(name: string) {
+      state.cookieName = name;
+    },
+    getCookieName() {
+      return state.cookieName;
+    },
+    setCookieValue(value: string) {
+      state.cookieValue = value;
+    },
+    getCookieValue() {
+      return state.cookieValue;
+    },
+
+    setFeatures(features: FeatureInterface[]) {
+      state.features = features;
+    },
+    getFeatures() {
+      return state.features;
+    },
+
+    setAuthenticationHeaderOverrides(overrides: Record<string, string>) {
+      state.authenticationHeaderOverrides = overrides;
+    },
+    getAuthenticationHeaderOverrides() {
+      return state.authenticationHeaderOverrides;
+    },
+    setAuthenticationService(service: string) {
+      state.authenticationService = service;
+    },
+    getAuthenticationService() {
+      return (
+        state.authenticationService || process.env.FRODO_AUTHENTICATION_SERVICE
+      );
+    },
+
+    setServiceAccountId(uuid: string) {
+      state.serviceAccountId = uuid;
+    },
+    getServiceAccountId(): string {
+      return state.serviceAccountId || process.env.FRODO_SA_ID;
+    },
+    setServiceAccountJwk(jwk: JwkRsa) {
+      state.serviceAccountJwk = { ...jwk };
+    },
+    getServiceAccountJwk(): JwkRsa {
+      return (
+        state.serviceAccountJwk ||
+        (process.env.FRODO_SA_JWK
+          ? JSON.parse(process.env.FRODO_SA_JWK)
+          : undefined)
+      );
+    },
+
+    setUseBearerTokenForAmApis(useBearerTokenForAmApis: boolean) {
+      state.useBearerTokenForAmApis = useBearerTokenForAmApis;
+    },
+    getUseBearerTokenForAmApis() {
+      return state.useBearerTokenForAmApis;
+    },
+    setBearerToken(token: string) {
+      state.bearerToken = token;
+    },
+    getBearerToken() {
+      return state.bearerToken;
+    },
+
+    setLogApiKey(key: string) {
+      state.logApiKey = key;
+    },
+    getLogApiKey() {
+      return state.logApiKey || process.env.FRODO_LOG_KEY;
+    },
+    setLogApiSecret(secret: string) {
+      state.logApiSecret = secret;
+    },
+    getLogApiSecret() {
+      return state.logApiSecret || process.env.FRODO_LOG_SECRET;
+    },
+
+    setAmVersion(version: string) {
+      state.amVersion = version;
+    },
+    getAmVersion() {
+      return state.amVersion;
+    },
+
+    setFrodoVersion(version: string) {
+      state.frodoVersion = version;
+    },
+    getFrodoVersion() {
+      return state.frodoVersion || `v${pkg.version} [${process.version}]`;
+    },
+
+    setConnectionProfilesPath(path: string) {
+      state.connectionProfilesPath = path;
+    },
+    getConnectionProfilesPath() {
+      return state.connectionProfilesPath;
+    },
+
+    setMasterKeyPath(path: string) {
+      state.masterKeyPath = path;
+    },
+    getMasterKeyPath() {
+      return state.masterKeyPath;
+    },
+
+    setOutputFile(file: string) {
+      state.outputFile = file;
+    },
+    getOutputFile() {
+      return state.outputFile;
+    },
+
+    setDirectory(directory: string) {
+      state.directory = directory;
+    },
+    getDirectory() {
+      return state.directory;
+    },
+
+    setCurlirizeHandler(handler: (message: string) => void) {
+      state.curlirizeHandler = handler;
+    },
+    getCurlirizeHandler() {
+      return state.curlirizeHandler;
+    },
+    setCurlirize(curlirize: boolean) {
+      state.curlirize = curlirize;
+    },
+    getCurlirize(): boolean {
+      return state.curlirize;
+    },
+
+    setCreateProgressHandler(
+      handler: (type: string, total?: number, message?: string) => void
+    ) {
+      state.createProgressHandler = handler;
+    },
+    getCreateProgressHandler() {
+      return state.createProgressHandler;
+    },
+    setUpdateProgressHandler(handler: (message: string) => void) {
+      state.updateProgressHandler = handler;
+    },
+    getUpdateProgressHandler() {
+      return state.updateProgressHandler;
+    },
+    setStopProgressHandler(
+      handler: (message: string, status?: string) => void
+    ) {
+      state.stopProgressHandler = handler;
+    },
+    getStopProgressHandler() {
+      return state.stopProgressHandler;
+    },
+
+    // global state
+
+    setPrintHandler(
+      handler: (
+        message: string | object,
+        type?: string,
+        newline?: boolean
+      ) => void
+    ) {
+      globalState.printHandler = handler;
+    },
+    getPrintHandler() {
+      return globalState.printHandler;
+    },
+
+    setVerboseHandler(handler: (message: string | object) => void) {
+      globalState.verboseHandler = handler;
+    },
+    getVerboseHandler() {
+      return globalState.verboseHandler;
+    },
+    setVerbose(verbose: boolean) {
+      globalState.verbose = verbose;
+    },
+    getVerbose(): boolean {
+      return globalState.verbose;
+    },
+
+    setDebugHandler(handler: (message: string | object) => void) {
+      globalState.debugHandler = handler;
+    },
+    getDebugHandler() {
+      return globalState.debugHandler;
+    },
+    setDebug(debug: boolean) {
+      globalState.debug = debug;
+    },
+    getDebug(): boolean {
+      return globalState.debug || process.env.FRODO_DEBUG !== undefined;
+    },
+  };
+};
+
 export interface StateInterface {
   // connection settings
   host?: string;
@@ -102,265 +455,265 @@ const globalState: StateInterface = {
   },
 };
 
-export default class State {
-  state: StateInterface = { ...globalState };
+// export default class State {
+//   state: StateInterface = { ...globalState };
 
-  constructor(initialState: StateInterface) {
-    this.state = { ...this.state, ...initialState };
-  }
+//   constructor(initialState: StateInterface) {
+//     this.state = { ...this.state, ...initialState };
+//   }
 
-  setHost(host: string) {
-    this.state.host = host;
-  }
-  getHost() {
-    return this.state.host || process.env.FRODO_HOST;
-  }
+//   setHost(host: string) {
+//     this.state.host = host;
+//   }
+//   getHost() {
+//     return this.state.host || process.env.FRODO_HOST;
+//   }
 
-  /**
-   * @deprecated since v0.17.0 use `setHost(host: string)` instead
-   */
-  setTenant(tenant: string) {
-    this.setHost(tenant);
-  }
-  /**
-   * @deprecated since v0.17.0 use `getHost` instead
-   */
-  getTenant() {
-    return this.getHost();
-  }
+//   /**
+//    * @deprecated since v0.17.0 use `setHost(host: string)` instead
+//    */
+//   setTenant(tenant: string) {
+//     this.setHost(tenant);
+//   }
+//   /**
+//    * @deprecated since v0.17.0 use `getHost` instead
+//    */
+//   getTenant() {
+//     return this.getHost();
+//   }
 
-  setUsername(username: string) {
-    this.state.username = username;
-  }
-  getUsername() {
-    return this.state.username || process.env.FRODO_USERNAME;
-  }
+//   setUsername(username: string) {
+//     this.state.username = username;
+//   }
+//   getUsername() {
+//     return this.state.username || process.env.FRODO_USERNAME;
+//   }
 
-  setPassword(password: string) {
-    this.state.password = password;
-  }
-  getPassword() {
-    return this.state.password || process.env.FRODO_PASSWORD;
-  }
+//   setPassword(password: string) {
+//     this.state.password = password;
+//   }
+//   getPassword() {
+//     return this.state.password || process.env.FRODO_PASSWORD;
+//   }
 
-  setRealm(realm: string) {
-    this.state.realm = realm;
-  }
-  getRealm() {
-    return this.state.realm || process.env.FRODO_REALM;
-  }
+//   setRealm(realm: string) {
+//     this.state.realm = realm;
+//   }
+//   getRealm() {
+//     return this.state.realm || process.env.FRODO_REALM;
+//   }
 
-  setDeploymentType(type: string) {
-    this.state.deploymentType = type;
-  }
-  getDeploymentType() {
-    return this.state.deploymentType;
-  }
+//   setDeploymentType(type: string) {
+//     this.state.deploymentType = type;
+//   }
+//   getDeploymentType() {
+//     return this.state.deploymentType;
+//   }
 
-  setAllowInsecureConnection(allowInsecureConnection: boolean) {
-    this.state.allowInsecureConnection = allowInsecureConnection;
-  }
-  getAllowInsecureConnection() {
-    return this.state.allowInsecureConnection;
-  }
+//   setAllowInsecureConnection(allowInsecureConnection: boolean) {
+//     this.state.allowInsecureConnection = allowInsecureConnection;
+//   }
+//   getAllowInsecureConnection() {
+//     return this.state.allowInsecureConnection;
+//   }
 
-  setCookieName(name: string) {
-    this.state.cookieName = name;
-  }
-  getCookieName() {
-    return this.state.cookieName;
-  }
-  setCookieValue(value: string) {
-    this.state.cookieValue = value;
-  }
-  getCookieValue() {
-    return this.state.cookieValue;
-  }
+//   setCookieName(name: string) {
+//     this.state.cookieName = name;
+//   }
+//   getCookieName() {
+//     return this.state.cookieName;
+//   }
+//   setCookieValue(value: string) {
+//     this.state.cookieValue = value;
+//   }
+//   getCookieValue() {
+//     return this.state.cookieValue;
+//   }
 
-  setFeatures(features: FeatureInterface[]) {
-    this.state.features = features;
-  }
-  getFeatures() {
-    return this.state.features;
-  }
+//   setFeatures(features: FeatureInterface[]) {
+//     this.state.features = features;
+//   }
+//   getFeatures() {
+//     return this.state.features;
+//   }
 
-  setAuthenticationHeaderOverrides(overrides: Record<string, string>) {
-    this.state.authenticationHeaderOverrides = overrides;
-  }
-  getAuthenticationHeaderOverrides() {
-    return this.state.authenticationHeaderOverrides;
-  }
-  setAuthenticationService(service: string) {
-    this.state.authenticationService = service;
-  }
-  getAuthenticationService() {
-    return (
-      this.state.authenticationService ||
-      process.env.FRODO_AUTHENTICATION_SERVICE
-    );
-  }
+//   setAuthenticationHeaderOverrides(overrides: Record<string, string>) {
+//     this.state.authenticationHeaderOverrides = overrides;
+//   }
+//   getAuthenticationHeaderOverrides() {
+//     return this.state.authenticationHeaderOverrides;
+//   }
+//   setAuthenticationService(service: string) {
+//     this.state.authenticationService = service;
+//   }
+//   getAuthenticationService() {
+//     return (
+//       this.state.authenticationService ||
+//       process.env.FRODO_AUTHENTICATION_SERVICE
+//     );
+//   }
 
-  setServiceAccountId(uuid: string) {
-    this.state.serviceAccountId = uuid;
-  }
-  getServiceAccountId(): string {
-    return this.state.serviceAccountId || process.env.FRODO_SA_ID;
-  }
-  setServiceAccountJwk(jwk: JwkRsa) {
-    this.state.serviceAccountJwk = { ...jwk };
-  }
-  getServiceAccountJwk(): JwkRsa {
-    return (
-      this.state.serviceAccountJwk ||
-      (process.env.FRODO_SA_JWK
-        ? JSON.parse(process.env.FRODO_SA_JWK)
-        : undefined)
-    );
-  }
+//   setServiceAccountId(uuid: string) {
+//     this.state.serviceAccountId = uuid;
+//   }
+//   getServiceAccountId(): string {
+//     return this.state.serviceAccountId || process.env.FRODO_SA_ID;
+//   }
+//   setServiceAccountJwk(jwk: JwkRsa) {
+//     this.state.serviceAccountJwk = { ...jwk };
+//   }
+//   getServiceAccountJwk(): JwkRsa {
+//     return (
+//       this.state.serviceAccountJwk ||
+//       (process.env.FRODO_SA_JWK
+//         ? JSON.parse(process.env.FRODO_SA_JWK)
+//         : undefined)
+//     );
+//   }
 
-  setUseBearerTokenForAmApis(useBearerTokenForAmApis: boolean) {
-    this.state.useBearerTokenForAmApis = useBearerTokenForAmApis;
-  }
-  getUseBearerTokenForAmApis() {
-    return this.state.useBearerTokenForAmApis;
-  }
-  setBearerToken(token: string) {
-    this.state.bearerToken = token;
-  }
-  getBearerToken() {
-    return this.state.bearerToken;
-  }
+//   setUseBearerTokenForAmApis(useBearerTokenForAmApis: boolean) {
+//     this.state.useBearerTokenForAmApis = useBearerTokenForAmApis;
+//   }
+//   getUseBearerTokenForAmApis() {
+//     return this.state.useBearerTokenForAmApis;
+//   }
+//   setBearerToken(token: string) {
+//     this.state.bearerToken = token;
+//   }
+//   getBearerToken() {
+//     return this.state.bearerToken;
+//   }
 
-  setLogApiKey(key: string) {
-    this.state.logApiKey = key;
-  }
-  getLogApiKey() {
-    return this.state.logApiKey || process.env.FRODO_LOG_KEY;
-  }
-  setLogApiSecret(secret: string) {
-    this.state.logApiSecret = secret;
-  }
-  getLogApiSecret() {
-    return this.state.logApiSecret || process.env.FRODO_LOG_SECRET;
-  }
+//   setLogApiKey(key: string) {
+//     this.state.logApiKey = key;
+//   }
+//   getLogApiKey() {
+//     return this.state.logApiKey || process.env.FRODO_LOG_KEY;
+//   }
+//   setLogApiSecret(secret: string) {
+//     this.state.logApiSecret = secret;
+//   }
+//   getLogApiSecret() {
+//     return this.state.logApiSecret || process.env.FRODO_LOG_SECRET;
+//   }
 
-  setAmVersion(version: string) {
-    this.state.amVersion = version;
-  }
-  getAmVersion() {
-    return this.state.amVersion;
-  }
+//   setAmVersion(version: string) {
+//     this.state.amVersion = version;
+//   }
+//   getAmVersion() {
+//     return this.state.amVersion;
+//   }
 
-  setFrodoVersion(version: string) {
-    this.state.frodoVersion = version;
-  }
-  getFrodoVersion() {
-    return this.state.frodoVersion || `v${pkg.version} [${process.version}]`;
-  }
+//   setFrodoVersion(version: string) {
+//     this.state.frodoVersion = version;
+//   }
+//   getFrodoVersion() {
+//     return this.state.frodoVersion || `v${pkg.version} [${process.version}]`;
+//   }
 
-  setConnectionProfilesPath(path: string) {
-    this.state.connectionProfilesPath = path;
-  }
-  getConnectionProfilesPath() {
-    return this.state.connectionProfilesPath;
-  }
+//   setConnectionProfilesPath(path: string) {
+//     this.state.connectionProfilesPath = path;
+//   }
+//   getConnectionProfilesPath() {
+//     return this.state.connectionProfilesPath;
+//   }
 
-  setMasterKeyPath(path: string) {
-    this.state.masterKeyPath = path;
-  }
-  getMasterKeyPath() {
-    return this.state.masterKeyPath;
-  }
+//   setMasterKeyPath(path: string) {
+//     this.state.masterKeyPath = path;
+//   }
+//   getMasterKeyPath() {
+//     return this.state.masterKeyPath;
+//   }
 
-  setOutputFile(file: string) {
-    this.state.outputFile = file;
-  }
-  getOutputFile() {
-    return this.state.outputFile;
-  }
+//   setOutputFile(file: string) {
+//     this.state.outputFile = file;
+//   }
+//   getOutputFile() {
+//     return this.state.outputFile;
+//   }
 
-  setDirectory(directory: string) {
-    this.state.directory = directory;
-  }
-  getDirectory() {
-    return this.state.directory;
-  }
+//   setDirectory(directory: string) {
+//     this.state.directory = directory;
+//   }
+//   getDirectory() {
+//     return this.state.directory;
+//   }
 
-  setCurlirizeHandler(handler: (message: string) => void) {
-    this.state.curlirizeHandler = handler;
-  }
-  getCurlirizeHandler() {
-    return this.state.curlirizeHandler;
-  }
-  setCurlirize(curlirize: boolean) {
-    this.state.curlirize = curlirize;
-  }
-  getCurlirize(): boolean {
-    return this.state.curlirize;
-  }
+//   setCurlirizeHandler(handler: (message: string) => void) {
+//     this.state.curlirizeHandler = handler;
+//   }
+//   getCurlirizeHandler() {
+//     return this.state.curlirizeHandler;
+//   }
+//   setCurlirize(curlirize: boolean) {
+//     this.state.curlirize = curlirize;
+//   }
+//   getCurlirize(): boolean {
+//     return this.state.curlirize;
+//   }
 
-  setCreateProgressHandler(
-    handler: (type: string, total?: number, message?: string) => void
-  ) {
-    this.state.createProgressHandler = handler;
-  }
-  getCreateProgressHandler() {
-    return this.state.createProgressHandler;
-  }
-  setUpdateProgressHandler(handler: (message: string) => void) {
-    this.state.updateProgressHandler = handler;
-  }
-  getUpdateProgressHandler() {
-    return this.state.updateProgressHandler;
-  }
-  setStopProgressHandler(handler: (message: string, status?: string) => void) {
-    this.state.stopProgressHandler = handler;
-  }
-  getStopProgressHandler() {
-    return this.state.stopProgressHandler;
-  }
+//   setCreateProgressHandler(
+//     handler: (type: string, total?: number, message?: string) => void
+//   ) {
+//     this.state.createProgressHandler = handler;
+//   }
+//   getCreateProgressHandler() {
+//     return this.state.createProgressHandler;
+//   }
+//   setUpdateProgressHandler(handler: (message: string) => void) {
+//     this.state.updateProgressHandler = handler;
+//   }
+//   getUpdateProgressHandler() {
+//     return this.state.updateProgressHandler;
+//   }
+//   setStopProgressHandler(handler: (message: string, status?: string) => void) {
+//     this.state.stopProgressHandler = handler;
+//   }
+//   getStopProgressHandler() {
+//     return this.state.stopProgressHandler;
+//   }
 
-  // global state
+//   // global state
 
-  setPrintHandler(
-    handler: (
-      message: string | object,
-      type?: string,
-      newline?: boolean
-    ) => void
-  ) {
-    globalState.printHandler = handler;
-  }
-  getPrintHandler() {
-    return globalState.printHandler;
-  }
+//   setPrintHandler(
+//     handler: (
+//       message: string | object,
+//       type?: string,
+//       newline?: boolean
+//     ) => void
+//   ) {
+//     globalState.printHandler = handler;
+//   }
+//   getPrintHandler() {
+//     return globalState.printHandler;
+//   }
 
-  setVerboseHandler(handler: (message: string | object) => void) {
-    globalState.verboseHandler = handler;
-  }
-  getVerboseHandler() {
-    return globalState.verboseHandler;
-  }
-  setVerbose(verbose: boolean) {
-    globalState.verbose = verbose;
-  }
-  getVerbose(): boolean {
-    return globalState.verbose;
-  }
+//   setVerboseHandler(handler: (message: string | object) => void) {
+//     globalState.verboseHandler = handler;
+//   }
+//   getVerboseHandler() {
+//     return globalState.verboseHandler;
+//   }
+//   setVerbose(verbose: boolean) {
+//     globalState.verbose = verbose;
+//   }
+//   getVerbose(): boolean {
+//     return globalState.verbose;
+//   }
 
-  setDebugHandler(handler: (message: string | object) => void) {
-    globalState.debugHandler = handler;
-  }
-  getDebugHandler() {
-    return globalState.debugHandler;
-  }
-  setDebug(debug: boolean) {
-    globalState.debug = debug;
-  }
-  getDebug(): boolean {
-    return globalState.debug || process.env.FRODO_DEBUG !== undefined;
-  }
-}
+//   setDebugHandler(handler: (message: string | object) => void) {
+//     globalState.debugHandler = handler;
+//   }
+//   getDebugHandler() {
+//     return globalState.debugHandler;
+//   }
+//   setDebug(debug: boolean) {
+//     globalState.debug = debug;
+//   }
+//   getDebug(): boolean {
+//     return globalState.debug || process.env.FRODO_DEBUG !== undefined;
+//   }
+// }
 
 // export const setHost = (host: string) => (globalState.host = host);
 // export const getHost = () => globalState.host || process.env.FRODO_HOST;

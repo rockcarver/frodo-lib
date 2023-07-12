@@ -1,4 +1,4 @@
-import State from '../shared/State';
+import { State } from '../shared/State';
 import {
   accessToken,
   authorize,
@@ -7,6 +7,26 @@ import {
 } from '../api/OAuth2OIDCApi';
 import { AxiosRequestConfig } from 'axios';
 
+export type OAuth2Oidc = {
+  authorize(
+    amBaseUrl: string,
+    data: string,
+    config: AxiosRequestConfig
+  ): Promise<import('axios').AxiosResponse<any, any>>;
+  accessToken(
+    amBaseUrl: string,
+    data: any,
+    config: AxiosRequestConfig
+  ): Promise<import('axios').AxiosResponse<any, any>>;
+  getTokenInfo(amBaseUrl: string, config: AxiosRequestConfig): Promise<any>;
+  clientCredentialsGrant(
+    amBaseUrl: string,
+    clientId: string,
+    clientSecret: string,
+    scope: string
+  ): Promise<any>;
+};
+
 export {
   accessToken,
   authorize,
@@ -14,7 +34,7 @@ export {
   getTokenInfo,
 } from '../api/OAuth2OIDCApi';
 
-export default (state: State) => {
+export default (state: State): OAuth2Oidc => {
   return {
     async authorize(
       amBaseUrl: string,

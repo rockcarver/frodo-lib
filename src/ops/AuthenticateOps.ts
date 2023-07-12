@@ -2,8 +2,8 @@ import url from 'url';
 import { createHash, randomBytes } from 'crypto';
 import readlineSync from 'readline-sync';
 import { encodeBase64Url } from '../api/utils/Base64';
-import State from '../shared/State';
-import * as globalConfig from '../storage/StaticStorage';
+import { State } from '../shared/State';
+import Constants from '../shared/Constants';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
 import { step } from '../api/AuthenticateApi';
 import { accessToken, authorize } from '../api/OAuth2OIDCApi';
@@ -15,7 +15,24 @@ import { getServiceAccount } from './cloud/ServiceAccountOps';
 import { isValidUrl } from './utils/OpsUtils';
 import { debugMessage, printMessage, verboseMessage } from './utils/Console';
 
-export default (state: State) => {
+export type Authenticate = {
+  /**
+   * Get access token for service account
+   * @returns {string | null} Access token or null
+   */
+  getAccessTokenForServiceAccount(
+    saId?: string,
+    saJwk?: JwkRsa
+  ): Promise<string | null>;
+  /**
+   * Get tokens
+   * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
+   * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
+   */
+  getTokens(forceLoginAsUser?: boolean): Promise<boolean>;
+};
+
+export default (state: State): Authenticate => {
   return {
     /**
      * Get access token for service account
@@ -189,12 +206,9 @@ function checkAndHandle2FA(payload, state: State) {
  * @param {State} state library state
  */
 function determineDefaultRealm(state: State) {
-  if (
-    !state.getRealm() ||
-    state.getRealm() === globalConfig.DEFAULT_REALM_KEY
-  ) {
+  if (!state.getRealm() || state.getRealm() === Constants.DEFAULT_REALM_KEY) {
     state.setRealm(
-      globalConfig.DEPLOYMENT_TYPE_REALM_MAP[state.getDeploymentType()]
+      Constants.DEPLOYMENT_TYPE_REALM_MAP[state.getDeploymentType()]
     );
   }
 }
@@ -209,7 +223,7 @@ async function determineDeploymentType(state: State): Promise<string> {
 
   // if we are using a service account, we know it's cloud
   if (state.getUseBearerTokenForAmApis())
-    return globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY;
+    return Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
 
   const fidcClientId = 'idmAdminClient';
   const forgeopsClientId = 'idm-admin-ui';
@@ -229,7 +243,7 @@ async function determineDeploymentType(state: State): Promise<string> {
   };
   let bodyFormData = `redirect_uri=${redirectURL}&scope=${cloudIdmAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
 
-  let deploymentType = globalConfig.CLASSIC_DEPLOYMENT_TYPE_KEY;
+  let deploymentType = Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
   try {
     await authorize({
       amBaseUrl: state.getHost(),
@@ -247,7 +261,7 @@ async function determineDeploymentType(state: State): Promise<string> {
         message: `ForgeRock Identity Cloud`['brightCyan'] + ` detected.`,
         state,
       });
-      deploymentType = globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY;
+      deploymentType = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
     } else {
       try {
         bodyFormData = `redirect_uri=${redirectURL}&scope=${forgeopsIdmAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
@@ -267,7 +281,7 @@ async function determineDeploymentType(state: State): Promise<string> {
             message: `ForgeOps deployment`['brightCyan'] + ` detected.`,
             state,
           });
-          deploymentType = globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY;
+          deploymentType = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
         } else {
           verboseMessage({
             message: `Classic deployment`['brightCyan'] + ` detected.`,
@@ -357,7 +371,7 @@ async function getAuthCode(
 ) {
   try {
     const bodyFormData = `redirect_uri=${redirectURL}&scope=${
-      state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY
+      state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY
         ? cloudIdmAdminScopes
         : forgeopsIdmAdminScopes
     }&response_type=code&client_id=${adminClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
@@ -442,7 +456,7 @@ async function getAccessTokenForUser(state: State): Promise<string | null> {
       return null;
     }
     let response = null;
-    if (state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) {
+    if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
       const config = {
         auth: {
           username: adminClientId,
@@ -728,9 +742,8 @@ export async function getTokens({
       if (
         state.getCookieValue() &&
         !state.getBearerToken() &&
-        (state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY ||
-          state.getDeploymentType() ===
-            globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY)
+        (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+          state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY)
       ) {
         const accessToken = await getAccessTokenForUser(state);
         if (accessToken) state.setBearerToken(accessToken);

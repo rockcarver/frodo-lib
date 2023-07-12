@@ -14,14 +14,48 @@ import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
 import { printMessage } from './utils/Console';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import {
   OAuth2ClientSkeleton,
   ReadableStrings,
   WritableStrings,
 } from '../api/ApiTypes';
 
-export default (state: State) => {
+export type Admin = {
+  listOAuth2CustomClients(): Promise<any>;
+  listOAuth2AdminClients(): Promise<any>;
+  listNonOAuth2AdminStaticUserMappings(showProtected: boolean): Promise<any>;
+  addAutoIdStaticUserMapping(): Promise<void>;
+  grantOAuth2ClientAdminPrivileges(clientId: string): Promise<void>;
+  revokeOAuth2ClientAdminPrivileges(clientId: string): Promise<void>;
+  createOAuth2ClientWithAdminPrivileges(
+    clientId: string,
+    clientSecret: string
+  ): Promise<void>;
+  createLongLivedToken(
+    clientId: string,
+    clientSecret: string,
+    scope: string,
+    secret: string | boolean,
+    lifetime: number
+  ): Promise<any>;
+  removeStaticUserMapping(subject: string): Promise<void>;
+  hideGenericExtensionAttributes(
+    includeCustomized: boolean,
+    dryRun: boolean
+  ): Promise<void>;
+  showGenericExtensionAttributes(
+    includeCustomized: boolean,
+    dryRun: boolean
+  ): Promise<void>;
+  repairOrgModel(
+    excludeCustomized: boolean,
+    extendPermissions: boolean,
+    dryRun: boolean
+  ): Promise<void>;
+};
+
+export default (state: State): Admin => {
   return {
     /*
    * List all oauth2 clients, which have a corresponding staticUserMapping

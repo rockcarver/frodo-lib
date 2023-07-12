@@ -22,9 +22,62 @@ import {
 import { ScriptSkeleton } from '../api/ApiTypes';
 import { ExportMetaData } from '../ops/OpsTypes';
 import { validateScriptDecoded } from './utils/ScriptValidationUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
-export default (state: State) => {
+export type Script = {
+  /**
+   * Get all scripts
+   * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
+   */
+  getScripts(): Promise<ScriptSkeleton[]>;
+  /**
+   * Get script by name
+   * @param {string} name name of the script
+   * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
+   */
+  getScriptByName(scriptName: string): Promise<ScriptSkeleton>;
+  /**
+   * Create or update script
+   * @param {string} scriptId script uuid
+   * @param {ScriptSkeleton} scriptData script object
+   * @returns {Promise<boolean>} a status object
+   */
+  putScript(scriptId: string, scriptData: ScriptSkeleton): Promise<boolean>;
+  /**
+   * Export script by id
+   * @param {string} scriptId script uuid
+   * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
+   */
+  exportScript(scriptId: string): Promise<ScriptExportInterface>;
+  /**
+   * Export script by name
+   * @param {string} name script name
+   * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
+   */
+  exportScriptByName(scriptName: string): Promise<ScriptExportInterface>;
+  /**
+   * Export all scripts
+   * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
+   */
+  exportScripts(): Promise<ScriptExportInterface>;
+  /**
+   * Import scripts
+   * @param {string} scriptName Optional name of script. If supplied, only the script of that name is imported
+   * @param {ScriptExportInterface} importData Script import data
+   * @param {boolean} reUuid true to generate a new uuid for each script on import, false otherwise
+   * @returns {Promise<boolean>} true if no errors occurred during import, false otherwise
+   */
+  importScripts(
+    scriptName: string,
+    importData: ScriptExportInterface,
+    reUuid?: boolean,
+    validate?: boolean
+  ): Promise<boolean>;
+  getScript(scriptId: string): Promise<any>;
+  deleteScript(scriptId: string): Promise<any>;
+};
+
+export default (state: State): Script => {
   return {
     /**
      * Get all scripts

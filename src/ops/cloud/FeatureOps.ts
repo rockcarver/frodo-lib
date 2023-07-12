@@ -2,10 +2,24 @@ import {
   getFeatures as _getFeatures,
   FeatureInterface,
 } from '../../api/cloud/FeatureApi';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 import { debugMessage } from '../utils/Console';
 
-export default (state: State) => {
+export type Feature = {
+  /**
+   * Get all features
+   * @returns {Promise<FeatureInterface[]>} a promise that resolves to an array of feature objects
+   */
+  getFeatures(): Promise<FeatureInterface[]>;
+  /**
+   * Check if feature is available
+   * @param {string} featureId feature id (e.g. 'service-accounts')
+   * @returns {Promise<boolean>} a promise that resolves to true if the feature is available and to false otherwise
+   */
+  hasFeature(featureId: string): Promise<boolean>;
+};
+
+export default (state: State): Feature => {
   return {
     /**
      * Get all features

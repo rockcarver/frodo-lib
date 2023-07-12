@@ -22,10 +22,71 @@ import {
   SocialIdpSkeleton,
 } from '../api/ApiTypes';
 import { getMetadata } from './utils/ExportImportUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import { debugMessage } from './utils/Console';
 
-export default (state: State) => {
+export type Idp = {
+  /**
+   * Get all social identity providers
+   * @returns {Promise} a promise that resolves to an object containing an array of social identity providers
+   */
+  getSocialIdentityProviders(): Promise<any>;
+  /**
+   * Get social identity provider by id
+   * @param {String} providerId social identity provider id/name
+   * @returns {Promise} a promise that resolves a social identity provider object
+   */
+  getSocialProvider(providerId: string): Promise<any>;
+  putProviderByTypeAndId(
+    providerType: string,
+    providerId: string,
+    providerData: SocialIdpSkeleton
+  ): Promise<any>;
+  /**
+   * Delete social identity provider by id
+   * @param {String} providerId social identity provider id/name
+   * @returns {Promise} a promise that resolves a social identity provider object
+   */
+  deleteSocialProvider(providerId: string): Promise<unknown>;
+  /**
+   * Export social provider by id
+   * @param {string} providerId provider id/name
+   * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
+   */
+  exportSocialProvider(
+    providerId: string
+  ): Promise<SocialProviderExportInterface>;
+  /**
+   * Export all providers
+   * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
+   */
+  exportSocialProviders(): Promise<SocialProviderExportInterface>;
+  /**
+   * Import provider by id/name
+   * @param {string} providerId provider id/name
+   * @param {SocialProviderExportInterface} importData import data
+   */
+  importSocialProvider(
+    providerId: string,
+    importData: SocialProviderExportInterface
+  ): Promise<boolean>;
+  /**
+   * Import first provider
+   * @param {SocialProviderExportInterface} importData import data
+   */
+  importFirstSocialProvider(
+    importData: SocialProviderExportInterface
+  ): Promise<boolean>;
+  /**
+   * Import all providers
+   * @param {SocialProviderExportInterface} importData import data
+   */
+  importSocialProviders(
+    importData: SocialProviderExportInterface
+  ): Promise<boolean>;
+};
+
+export default (state: State): Idp => {
   return {
     /**
      * Get all social identity providers
