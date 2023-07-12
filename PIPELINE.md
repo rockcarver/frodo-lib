@@ -2,7 +2,7 @@
 
 The Frodo project uses a fully automated release [pipeline](../.github/workflows/pipeline.yml) based on GitHub workflows:
 
-![Frodo Release Pipeline Workflow](images/release_pipeline.png)
+![Frodo Release Pipeline Workflow](resources/images/release_pipeline.png)
 
 ## Releasing Frodo
 
@@ -44,7 +44,7 @@ Maintainers must use an appropriate trigger phrase (see: [Every Push Triggers A 
 ❗❗❗ IMPORTANT ❗❗❗<br>
 Maintainers must adhere to the [guidelines set forth by the npm project](https://docs.npmjs.com/about-semantic-versioning#incrementing-semantic-versions-in-published-packages) to determine the appropriate release type:
 
-![NPM Versioning Guidelines](images/npm_versioning_guidelines.png)
+![NPM Versioning Guidelines](resources/images/npm_versioning_guidelines.png)
 
 Frodo is currently in a pre-1.0.0 phase. We are striving to release 1.0.0 very soon.
 
