@@ -219,11 +219,11 @@ Check out all the examples in `/path/to/frodo-lib/examples`.
 
 ## Feature requests
 
-Please use the repository's [issues](https://github.com/rockcarver/frodo-lib/issues) to request new features/enhancements or report bugs/issues.
+Please use the repository's [issues](https://github.com/rockcarver/frodo-lib/blob/main/issues) to request new features/enhancements or report bugs/issues.
 
 ## Contributing
 
-If you would like to contribute to frodo, please refer to the [contributing instructions](https://github.com/rockcarver/frodo-lib/CONTRIBUTE.md).
+If you would like to contribute to frodo, please refer to the [contributing instructions](https://github.com/rockcarver/frodo-lib/blob/main/CONTRIBUTE.md).
 
 ## Maintaining
 
