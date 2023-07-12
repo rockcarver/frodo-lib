@@ -17,7 +17,7 @@ import { printMessage } from './Console';
 import {
   FRODO_MASTER_KEY_PATH_KEY,
   FRODO_MASTER_KEY_KEY,
-} from '../../storage/StaticStorage';
+} from '../../shared/Constants';
 import State from '../../shared/State';
 
 const scrypt = promisify(crypto.scrypt);

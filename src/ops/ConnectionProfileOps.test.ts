@@ -14,7 +14,7 @@ import {
   FRODO_CONNECTION_PROFILES_PATH_KEY,
   FRODO_MASTER_KEY_PATH_KEY,
   FRODO_MASTER_KEY_KEY,
-} from '../storage/StaticStorage';
+} from '../shared/Constants';
 
 describe('ConnectionProfileOps', () => {
   const connectionProfilePath1 = `${homedir()}/connections1.json`;

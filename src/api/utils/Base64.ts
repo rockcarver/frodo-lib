@@ -15,11 +15,11 @@ export function isBase64Encoded(input) {
 
 /**
  * Base64-encode a string
- * @param {String} input String to base64-encode
+ * @param {string} input String to base64-encode
  * @param {boolean} padding add padding
- * @returns {String} Base64-encoded input string
+ * @returns {string} Base64-encoded input string
  */
-export function encode(input, padding = true) {
+export function encode(input: string, padding = true): string {
   if (padding) {
     return Buffer.from(input).toString('base64');
   }
@@ -28,10 +28,10 @@ export function encode(input, padding = true) {
 
 /**
  * Base64-decode a string
- * @param {String} input
- * @returns {String} Base64-decoded input string
+ * @param {string} input
+ * @returns {string} Base64-decoded input string
  */
-export function decode(input) {
+export function decode(input: string): string {
   // eslint-disable-next-line no-param-reassign
   if (input.length % 4 !== 0) input += '='.repeat(4 - (input.length % 4));
   return Buffer.from(input, 'base64').toString();

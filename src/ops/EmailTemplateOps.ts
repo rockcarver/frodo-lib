@@ -9,7 +9,35 @@ import {
 } from '../api/IdmConfigApi';
 import State from '../shared/State';
 
-export default (state: State) => {
+export type EmailTemplate = {
+  /**
+   * Email template type key used to build the IDM id: 'emailTemplate/<id>'
+   */
+  EMAIL_TEMPLATE_TYPE: string;
+  /**
+   * Get all email templates
+   * @returns {Promise} a promise that resolves to an array of email template objects
+   */
+  getEmailTemplates(): Promise<any>;
+  /**
+   * Get email template
+   * @param {string} templateId id/name of the email template without the type prefix
+   * @returns {Promise} a promise that resolves an email template object
+   */
+  getEmailTemplate(templateId: string): Promise<any>;
+  /**
+   * Put email template
+   * @param {string} templateId id/name of the email template without the type prefix
+   * @param {Object} templateData email template object
+   * @returns {Promise} a promise that resolves to an email template object
+   */
+  putEmailTemplate(
+    templateId: string,
+    templateData: EmailTemplateSkeleton
+  ): Promise<any>;
+};
+
+export default (state: State): EmailTemplate => {
   return {
     /**
      * Email template type key used to build the IDM id: 'emailTemplate/<id>'

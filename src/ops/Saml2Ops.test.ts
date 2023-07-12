@@ -49,7 +49,7 @@
  */
 import { state } from '../index';
 import * as Saml2Ops from './Saml2Ops';
-import * as globalConfig from '../storage/StaticStorage';
+import * as Constants from '../shared/Constants';
 import { Saml2ProiderLocation } from '../api/ApiTypes';
 import {
   getSaml2ProviderImportData,
@@ -60,7 +60,7 @@ import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
 autoSetupPolly();
 
-state.setDeploymentType(globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY);
+state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 
 async function stageProvider(provider: { entityId: string }, create = true) {
   // delete if exists, then create

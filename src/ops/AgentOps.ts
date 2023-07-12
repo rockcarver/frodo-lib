@@ -12,7 +12,227 @@ import { AgentExportInterface } from './OpsTypes';
 import { validateImport } from './utils/ExportImportUtils';
 import State from '../shared/State';
 
-export default (state: State) => {
+export type Agent = {
+  /**
+   * Create an empty agent export template
+   * @returns {AgentExportInterface} an empty agent export template
+   */
+  createAgentExportTemplate(): AgentExportInterface;
+  /**
+   * Get all agents. Results are sorted aphabetically.
+   * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of agent objects
+   */
+  getAgents(): Promise<AgentSkeleton[]>;
+  /**
+   * Get agent
+   * @param {string} agentId agent id/name
+   * @returns {Promise} a promise that resolves to an agent object
+   */
+  getAgent(agentId: string): Promise<any>;
+  /**
+   * Get agent by type and id
+   * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
+   * @param {string} agentId agent id/name
+   * @returns {Promise} a promise that resolves to an agent object
+   */
+  getAgentByTypeAndId(agentType: AgentType, agentId: string): Promise<any>;
+  /**
+   * Get identity gateway agents
+   * @returns {Promise} a promise that resolves to an array of IdentityGatewayAgent objects
+   */
+  getIdentityGatewayAgents(): Promise<any>;
+  /**
+   * Get identity gateway agent
+   * @param {string} gatewayId gateway id
+   * @returns {Promise} a promise that resolves to an object containing an IdentityGatewayAgent object
+   */
+  getIdentityGatewayAgent(gatewayId: string): Promise<any>;
+  /**
+   * Put identity gateway agent
+   * @param {string} gatewayId gateway id
+   * @param {Object} gatewayData IdentityGatewayAgent object
+   * @returns {Promise} a promise that resolves to an object containing an IdentityGatewayAgent object
+   */
+  putIdentityGatewayAgent(
+    gatewayId: string,
+    gatewayData: AgentSkeleton
+  ): Promise<any>;
+  /**
+   * Get java agents
+   * @returns {Promise} a promise that resolves to an array of J2EEAgent objects
+   */
+  getJavaAgents(): Promise<any>;
+  /**
+   * Get java agent
+   * @param {string} agentId java agent id
+   * @returns {Promise} a promise that resolves to an object containing an J2EEAgent object
+   */
+  getJavaAgent(agentId: string): Promise<any>;
+  /**
+   * Put java agent
+   * @param {string} agentId java agent id
+   * @param {Object} agentData java agent object
+   * @returns {Promise} a promise that resolves to an object containing an java agent object
+   */
+  putJavaAgent(agentId: string, agentData: AgentSkeleton): Promise<any>;
+  /**
+   * Get web agents
+   * @returns {Promise} a promise that resolves to an array of WebAgent objects
+   */
+  getWebAgents(): Promise<any>;
+  /**
+   * Get web agent
+   * @param {string} agentId web agent id
+   * @returns {Promise} a promise that resolves to an object containing an WebAgent object
+   */
+  getWebAgent(agentId: string): Promise<any>;
+  /**
+   * Put web agent
+   * @param {string} agentId web agent id
+   * @param {Object} agentData WebAgent object
+   * @returns {Promise} a promise that resolves to an object containing an WebAgent object
+   */
+  putWebAgent(agentId: string, agentData: AgentSkeleton): Promise<any>;
+  /**
+   * Export all agents. The response can be saved to file as is.
+   * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
+   */
+  exportAgents(): Promise<AgentExportInterface>;
+  /**
+   * Export all identity gateway agents. The response can be saved to file as is.
+   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   */
+  exportIdentityGatewayAgents(): Promise<AgentExportInterface>;
+  /**
+   * Export all java agents. The response can be saved to file as is.
+   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   */
+  exportJavaAgents(): Promise<AgentExportInterface>;
+  /**
+   * Export all web agents. The response can be saved to file as is.
+   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   */
+  exportWebAgents(): Promise<AgentExportInterface>;
+  /**
+   * Export agent. The response can be saved to file as is.
+   * @param agentId agent id/name
+   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   */
+  exportAgent(agentId: string): Promise<AgentExportInterface>;
+  /**
+   * Export identity gateway agent. The response can be saved to file as is.
+   * @param agentId agent id/name
+   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   */
+  exportIdentityGatewayAgent(agentId: string): Promise<AgentExportInterface>;
+  /**
+   * Export java agent. The response can be saved to file as is.
+   * @param agentId agent id/name
+   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   */
+  exportJavaAgent(agentId: string): Promise<AgentExportInterface>;
+  /**
+   * Export web agent. The response can be saved to file as is.
+   * @param agentId agent id/name
+   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   */
+  exportWebAgent(agentId: string): Promise<AgentExportInterface>;
+  /**
+   * Import agents. The import data is usually read from an agent export file.
+   * @param {AgentExportInterface} importData agent import data.
+   */
+  importAgents(importData: AgentExportInterface): Promise<void>;
+  /**
+   * Import identity gateway agents. The import data is usually read from an agent export file.
+   * @param {AgentExportInterface} importData agent import data.
+   */
+  importIdentityGatewayAgents(importData: AgentExportInterface): Promise<void>;
+  /**
+   * Import java agents. The import data is usually read from an agent export file.
+   * @param {AgentExportInterface} importData agent import data.
+   */
+  importJavaAgents(importData: AgentExportInterface): Promise<void>;
+  /**
+   * Import web agents. The import data is usually read from an agent export file.
+   * @param {AgentExportInterface} importData agent import data.
+   */
+  importWebAgents(importData: AgentExportInterface): Promise<void>;
+  /**
+   * Import agent. The import data is usually read from an agent export file.
+   * @param {string} agentId agent id/name
+   * @param {AgentExportInterface} importData agent import data.
+   * @returns {Promise} Promise resolving to an agent object.
+   */
+  importAgent(agentId: string, importData: AgentExportInterface): Promise<any>;
+  /**
+   * Import identity gateway agent. The import data is usually read from an agent export file.
+   * @param {string} agentId agent id/name
+   * @param {AgentExportInterface} importData agent import data.
+   * @returns {Promise} Promise resolving to an agent object.
+   */
+  importIdentityGatewayAgent(
+    agentId: string,
+    importData: AgentExportInterface
+  ): Promise<any>;
+  /**
+   * Import java agent. The import data is usually read from an agent export file.
+   * @param {string} agentId agent id/name
+   * @param {AgentExportInterface} importData agent import data.
+   * @returns {Promise} Promise resolving to an agent object.
+   */
+  importJavaAgent(
+    agentId: string,
+    importData: AgentExportInterface
+  ): Promise<any>;
+  /**
+   * Import java agent. The import data is usually read from an agent export file.
+   * @param {string} agentId agent id/name
+   * @param {AgentExportInterface} importData agent import data.
+   * @returns {Promise} Promise resolving to an agent object.
+   */
+  importWebAgent(
+    agentId: string,
+    importData: AgentExportInterface
+  ): Promise<any>;
+  /**
+   * Delete all agents
+   */
+  deleteAgents(): Promise<void>;
+  /**
+   * Delete agent
+   * @param agentId agent id/name
+   */
+  deleteAgent(agentId: string): Promise<void>;
+  /**
+   * Delete all identity gateway agents
+   */
+  deleteIdentityGatewayAgents(): Promise<void>;
+  /**
+   * Delete identity gateway agent
+   * @param agentId agent id/name
+   */
+  deleteIdentityGatewayAgent(agentId: string): Promise<void>;
+  /**
+   * Delete all java agents
+   */
+  deleteJavaAgents(): Promise<void>;
+  /**
+   * Delete java agent
+   * @param agentId agent id/name
+   */
+  deleteJavaAgent(agentId: string): Promise<void>;
+  /**
+   * Delete all web agents
+   */
+  deleteWebAgents(): Promise<void>;
+  /**
+   * Delete web agent
+   * @param agentId agent id/name
+   */
+  deleteWebAgent(agentId: string): Promise<void>;
+};
+
+export default (state: State): Agent => {
   return {
     /**
      * Create an empty agent export template

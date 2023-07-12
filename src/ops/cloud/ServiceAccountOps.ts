@@ -9,7 +9,37 @@ import { hasFeature } from './FeatureOps';
 import { getTenantURL } from '../../api/utils/ApiUtils';
 import State from '../../shared/State';
 
-export default (state: State) => {
+export type ServiceAccount = {
+  /**
+   * Check if service accounts are available
+   * @returns {Promise<boolean>} true if service accounts are available, false otherwise
+   */
+  isServiceAccountsFeatureAvailable(): Promise<boolean>;
+  /**
+   * Create service account
+   * @param {string} name Human-readable name of service account
+   * @param {string} description Description of service account
+   * @param {'Active' | 'Inactive'} accountStatus Service account status
+   * @param {string[]} scopes Scopes.
+   * @param {JwksInterface} jwks Java Web Key Set
+   * @returns {Promise<IdObjectSkeletonInterface>} A promise resolving to a service account object
+   */
+  createServiceAccount(
+    name: string,
+    description: string,
+    accountStatus: 'Active' | 'Inactive',
+    scopes: string[],
+    jwks: JwksInterface
+  ): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Get service account
+   * @param {string} serviceAccountId service account id
+   * @returns {Promise<ServiceAccountType>} a promise resolving to a service account object
+   */
+  getServiceAccount(serviceAccountId: string): Promise<ServiceAccountType>;
+};
+
+export default (state: State): ServiceAccount => {
   return {
     /**
      * Check if service accounts are available
@@ -48,7 +78,7 @@ export default (state: State) => {
     /**
      * Get service account
      * @param {string} serviceAccountId service account id
-     * @returns {Promise<ServiceAccount>} a promise resolving to a service account object
+     * @returns {Promise<ServiceAccountType>} a promise resolving to a service account object
      */
     async getServiceAccount(serviceAccountId: string) {
       return getServiceAccount({ serviceAccountId, state });
@@ -66,7 +96,7 @@ export interface ServiceAccountPayloadInterface {
   jwks: string;
 }
 
-export type ServiceAccount = IdObjectSkeletonInterface &
+export type ServiceAccountType = IdObjectSkeletonInterface &
   ServiceAccountPayloadInterface;
 
 /**
@@ -167,5 +197,5 @@ export async function getServiceAccount({
     fields: ['*'],
     state,
   });
-  return serviceAccount as ServiceAccount;
+  return serviceAccount as ServiceAccountType;
 }

@@ -13,7 +13,89 @@ import {
 } from '../../api/cloud/SecretsApi';
 import State from '../../shared/State';
 
-export default (state: State) => {
+export type Secret = {
+  /**
+   * Get all secrets
+   * @returns {Promise<unknown[]>} a promise that resolves to an array of secrets
+   */
+  getSecrets(): Promise<any>;
+  /**
+   * Get secret
+   * @param secretId secret id/name
+   * @returns {Promise<unknown>} a promise that resolves to a secret
+   */
+  getSecret(secretId: string): Promise<any>;
+  /**
+   * Create secret
+   * @param {string} secretId secret id/name
+   * @param {string} value secret value
+   * @param {string} description secret description
+   * @param {string} encoding secret encoding (only `generic` is supported)
+   * @param {boolean} useInPlaceholders flag indicating if the secret can be used in placeholders
+   * @returns {Promise<unknown>} a promise that resolves to a secret
+   */
+  putSecret(
+    secretId: string,
+    value: string,
+    description: string,
+    encoding?: string,
+    useInPlaceholders?: boolean
+  ): Promise<any>;
+  /**
+   * Set secret description
+   * @param {string} secretId secret id/name
+   * @param {string} description secret description
+   * @returns {Promise<unknown>} a promise that resolves to a status object
+   */
+  setSecretDescription(secretId: string, description: string): Promise<any>;
+  /**
+   * Delete secret
+   * @param {string} secretId secret id/name
+   * @returns {Promise<unknown>} a promise that resolves to a secret object
+   */
+  deleteSecret(secretId: string): Promise<any>;
+  /**
+   * Get secret versions
+   * @param {string} secretId secret id/name
+   * @returns {Promise<unknown>} a promise that resolves to an array of secret versions
+   */
+  getSecretVersions(secretId: string): Promise<any>;
+  /**
+   * Create new secret version
+   * @param {string} secretId secret id/name
+   * @param {string} value secret value
+   * @returns {Promise<unknown>} a promise that resolves to a version object
+   */
+  createNewVersionOfSecret(secretId: string, value: string): Promise<any>;
+  /**
+   * Get version of secret
+   * @param {string} secretId secret id/name
+   * @param {string} version secret version
+   * @returns {Promise<unknown>} a promise that resolves to a version object
+   */
+  getVersionOfSecret(secretId: string, version: string): Promise<any>;
+  /**
+   * Update the status of a version of a secret
+   * @param {string} secretId secret id/name
+   * @param {string} version secret version
+   * @param {VersionOfSecretStatus} status status
+   * @returns {Promise<unknown>} a promise that resolves to a status object
+   */
+  setStatusOfVersionOfSecret(
+    secretId: string,
+    version: string,
+    status: VersionOfSecretStatus
+  ): Promise<any>;
+  /**
+   * Delete version of secret
+   * @param {string} secretId secret id/name
+   * @param {string} version secret version
+   * @returns {Promise<unknown>} a promise that resolves to a version object
+   */
+  deleteVersionOfSecret(secretId: string, version: string): Promise<any>;
+};
+
+export default (state: State): Secret => {
   return {
     /**
      * Get all secrets

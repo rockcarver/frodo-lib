@@ -2,7 +2,25 @@ import { getRealms as _getRealms, putRealm } from '../api/RealmApi';
 import State from '../shared/State';
 import { getRealmName } from './utils/OpsUtils';
 
-export default (state: State) => {
+export type Realm = {
+  getRealms(): Promise<any>;
+  getRealmByName(realmName: string): Promise<any>;
+  putRealm(realmId: string, realmData: object): Promise<any>;
+  /**
+   * Add custom DNS domain name (realm DNS alias)
+   * @param {string} realm realm name
+   * @param {string} domain domain name
+   */
+  addCustomDomain(realmName: string, domain: string): Promise<any>;
+  /**
+   * Remove custom DNS domain name (realm DNS alias)
+   * @param {String} realm realm name
+   * @param {String} domain domain name
+   */
+  removeCustomDomain(realmName: string, domain: string): Promise<any>;
+};
+
+export default (state: State): Realm => {
   return {
     getRealms() {
       return getRealms({ state });

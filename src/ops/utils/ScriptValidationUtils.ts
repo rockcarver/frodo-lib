@@ -4,7 +4,45 @@ import { decode } from '../../api/utils/Base64';
 import { printMessage } from './Console';
 import State from '../../shared/State';
 
-interface ScriptHook {
+export type ScriptValidation = {
+  validateScriptHooks(jsonData: object): boolean;
+  findAllScriptHooks(
+    jsonData: object,
+    scriptHooksArray?: ScriptHook[]
+  ): ScriptHook[];
+  validateScript(script: ScriptSkeleton): boolean;
+  validateScriptDecoded(scriptSkeleton: ScriptSkeleton): boolean;
+  isValidJs(javascriptSource: string): boolean;
+};
+
+export default (state: State) => {
+  return {
+    validateScriptHooks(jsonData: object): boolean {
+      return validateScriptHooks({ jsonData, state });
+    },
+
+    findAllScriptHooks(
+      jsonData: object,
+      scriptHooksArray: ScriptHook[] = []
+    ): ScriptHook[] {
+      return findAllScriptHooks(jsonData, scriptHooksArray);
+    },
+
+    validateScript(script: ScriptSkeleton): boolean {
+      return validateScript(script, state);
+    },
+
+    validateScriptDecoded(scriptSkeleton: ScriptSkeleton): boolean {
+      return validateScriptDecoded({ scriptSkeleton, state });
+    },
+
+    isValidJs(javascriptSource: string) {
+      return isValidJs({ javascriptSource, state });
+    },
+  };
+};
+
+export interface ScriptHook {
   type: 'text/javascript';
   source?: string;
 }
@@ -56,7 +94,7 @@ function findAllScriptHooks(
 }
 
 export function validateScript(script: ScriptSkeleton, state: State): boolean {
-  const scriptRaw = decode(script.script);
+  const scriptRaw = decode(script.script as string);
 
   if (script.language === 'JAVASCRIPT') {
     return isValidJs({ javascriptSource: scriptRaw, state });

@@ -12,7 +12,22 @@ import {
 import { getVariables } from '../../api/cloud/VariablesApi';
 import State from '../../shared/State';
 
-export default (state: State) => {
+export type Startup = {
+  /**
+   * Check for updates that need applying
+   * @returns {Promise<Updates>} true if there are updates that need to be applied, false otherwise
+   */
+  checkForUpdates(): Promise<Updates>;
+  /**
+   * Apply updates
+   * @param {boolean} wait wait for the operation to complete or not
+   * @param {number} timeout timeout in milliseconds
+   * @returns {Promise<boolean>} true if successful, false otherwise
+   */
+  applyUpdates(wait: boolean, timeout?: number): Promise<boolean>;
+};
+
+export default (state: State): Startup => {
   return {
     /**
      * Check for updates that need applying

@@ -1,10 +1,18 @@
 import { getEnvInfo, EnvInfoInterface } from '../api/cloud/EnvInfoApi';
-import * as globalConfig from '../storage/StaticStorage';
+import * as Constants from '../shared/Constants';
 import { getServerVersionInfo } from '../api/ServerInfoApi';
 import { getServiceAccount } from './cloud/ServiceAccountOps';
 import State from '../shared/State';
 
-export default (state: State) => {
+export type Info = {
+  /**
+   * Get info about the platform instance
+   * @returns {Promise<PlatformInfo>} a promise that resolves to a json blob with information about the instance and tokens
+   */
+  getInfo(): Promise<PlatformInfo>;
+};
+
+export default (state: State): Info => {
   return {
     /**
      * Get info about the platform instance
@@ -76,7 +84,7 @@ export async function getInfo(state: State): Promise<PlatformInfo> {
     // only add bearerToken if we have it
     ...(state.getBearerToken() && { bearerToken: state.getBearerToken() }),
     // only add cloud env info if deployment type is cloud
-    ...(state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY &&
+    ...(state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
       (await getCloudInfo(state))),
   };
   return info;

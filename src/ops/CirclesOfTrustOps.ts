@@ -10,7 +10,57 @@ import State from '../shared/State';
 import { CirclesOfTrustExportInterface } from './OpsTypes';
 import { CircleOfTrustSkeleton } from '../api/ApiTypes';
 
-export default (state: State) => {
+export type CirclesOfTrust = {
+  /**
+   * Create an empty agent export template
+   * @returns {CirclesOfTrustExportInterface} an empty agent export template
+   */
+  createCirclesOfTrustExportTemplate(): CirclesOfTrustExportInterface;
+  /**
+   * Get SAML circle of trust
+   * @param {String} cotId circle of trust id/name
+   */
+  getCircleOfTrust(cotId: string): Promise<any>;
+  /**
+   * Get SAML circles of trust
+   */
+  getCirclesOfTrust(): Promise<any>;
+  createCircleOfTrust(cotData: CircleOfTrustSkeleton): Promise<any>;
+  /**
+   * Export SAML circle of trust
+   * @param {String} cotId circle of trust id/name
+   */
+  exportCircleOfTrust(cotId: string): Promise<CirclesOfTrustExportInterface>;
+  /**
+   * Export all SAML circles of trust
+   */
+  exportCirclesOfTrust(): Promise<CirclesOfTrustExportInterface>;
+  /**
+   * Import a SAML circle of trust by id/name from file
+   * @param {String} cotId Circle of trust id/name
+   * @param {CirclesOfTrustExportInterface} importData Import data
+   */
+  importCircleOfTrust(
+    cotId: string,
+    importData: CirclesOfTrustExportInterface
+  ): Promise<any>;
+  /**
+   * Import first SAML circle of trust
+   * @param {CirclesOfTrustExportInterface} importData Import data
+   */
+  importFirstCircleOfTrust(
+    importData: CirclesOfTrustExportInterface
+  ): Promise<any>;
+  /**
+   * Import all SAML circles of trust
+   * @param {CirclesOfTrustExportInterface} importData Import file name
+   */
+  importCirclesOfTrust(
+    importData: CirclesOfTrustExportInterface
+  ): Promise<any[]>;
+};
+
+export default (state: State): CirclesOfTrust => {
   return {
     /**
      * Create an empty agent export template

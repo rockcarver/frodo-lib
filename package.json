@@ -29,7 +29,8 @@
     "clean-types": "rimraf types",
     "generate-types": "tsc",
     "build": "npm run clean-esm && npm run transpile-esm && npm run resources-esm && npm run clean-cjs && npm run transpile-cjs && npm run resources-cjs && npm run clean-types && npm run generate-types",
-    "watch": "babel --watch --out-dir esm --extensions \".ts\" --source-maps --config-file ./babel.config.esm.json src"
+    "watch": "babel --watch --out-dir esm --extensions \".ts\" --source-maps --config-file ./babel.config.esm.json src",
+    "doc": "npx typedoc"
   },
   "jest": {
     "testTimeout": 30000,
@@ -168,6 +169,8 @@
     "prettier": "^2.8.0",
     "rimraf": "^5.0.1",
     "setup-polly-jest": "^0.11.0",
+    "typedoc": "^0.24.8",
+    "typedoc-plugin-missing-exports": "^2.0.0",
     "typescript": "^4.9.3"
   }
 }

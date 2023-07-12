@@ -8,11 +8,7 @@
  */
 import * as OpsUtils from './OpsUtils';
 import { state } from '../../index';
-import {
-  CLOUD_DEPLOYMENT_TYPE_KEY,
-  FORGEOPS_DEPLOYMENT_TYPE_KEY,
-  CLASSIC_DEPLOYMENT_TYPE_KEY,
-} from '../../storage/StaticStorage';
+import * as Constants from '../../shared/Constants';
 
 describe('OpsUtils - getRealmManagedUser()', () => {
   test('getRealmManagedUser() 0: Method is implemented', async () => {
@@ -22,7 +18,7 @@ describe('OpsUtils - getRealmManagedUser()', () => {
   test('getRealmManagedUser() 1: should prepend realm to managed user type in identity cloud', () => {
     // Arrange
     const REALM = 'alpha';
-    const DEPLOYMENT_TYPE = CLOUD_DEPLOYMENT_TYPE_KEY;
+    const DEPLOYMENT_TYPE = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
     state.setRealm(REALM);
     state.setDeploymentType(DEPLOYMENT_TYPE);
     // Act
@@ -34,7 +30,7 @@ describe('OpsUtils - getRealmManagedUser()', () => {
   test('getRealmManagedUser() 2: should prepend realm without leading slash to managed user type in identity cloud', () => {
     // Arrange
     const REALM = '/alpha';
-    const DEPLOYMENT_TYPE = CLOUD_DEPLOYMENT_TYPE_KEY;
+    const DEPLOYMENT_TYPE = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
     state.setRealm(REALM);
     state.setDeploymentType(DEPLOYMENT_TYPE);
     // Act
@@ -46,7 +42,7 @@ describe('OpsUtils - getRealmManagedUser()', () => {
   test('getRealmManagedUser() 3: should not prepend realm to managed user type in forgeops deployments', () => {
     // Arrange
     const REALM = 'alpha';
-    const DEPLOYMENT_TYPE = FORGEOPS_DEPLOYMENT_TYPE_KEY;
+    const DEPLOYMENT_TYPE = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
     state.setRealm(REALM);
     state.setDeploymentType(DEPLOYMENT_TYPE);
     // Act
@@ -58,7 +54,7 @@ describe('OpsUtils - getRealmManagedUser()', () => {
   test('getRealmManagedUser() 4: should not prepend realm to managed user type in classic deployments', () => {
     // Arrange
     const REALM = 'alpha';
-    const DEPLOYMENT_TYPE = CLASSIC_DEPLOYMENT_TYPE_KEY;
+    const DEPLOYMENT_TYPE = Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
     state.setRealm(REALM);
     state.setDeploymentType(DEPLOYMENT_TYPE);
     // Act

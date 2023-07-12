@@ -102,5 +102,21 @@
   },
   "files": ["src/index.ts"],
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test_.ts"]
+  "exclude": ["src/**/*.test.ts", "src/**/*.test_.ts"],
+  "typedocOptions": {
+    "name": "Frodo Library",
+    "entryPoints": ["./src"],
+    "entryPointStrategy": "resolve",
+    "out": "docs/ts-doc",
+    "readme": ".github/README.md",
+    "excludeNotDocumented": true,
+    "excludeNotDocumentedKinds": ["Class"], // "Property", "Interface", "TypeAlias"
+    "includeVersion": true,
+    "disableSources": false,
+    "hideGenerator": true,
+
+    // plugins and params
+    "plugin": "typedoc-plugin-missing-exports",
+    "internalModule": "Reference"
+  }
 }

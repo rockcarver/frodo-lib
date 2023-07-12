@@ -22,7 +22,81 @@ import { createPolicySet, getPolicySet, updatePolicySet } from './PolicySetOps';
 import { createResourceType, updateResourceType } from './ResourceTypeOps';
 import State from '../shared/State';
 
-export default (state: State) => {
+export type Policy = {
+  /**
+   * Get all policies
+   * @returns {Promise<PolicySkeleton>} a promise that resolves to an array of policy set objects
+   */
+  getPolicies(): Promise<PolicySkeleton[]>;
+  /**
+   * Get policies by policy set
+   * @param {string} policySetId policy set id/name
+   * @returns {Promise<PolicySkeleton[]>} a promise resolving to an array of policy objects
+   */
+  getPoliciesByPolicySet(policySetId: string): Promise<PolicySkeleton[]>;
+  getPolicy(policyId: string): Promise<PolicySkeleton>;
+  putPolicy(policyId: string, policyData: PolicySkeleton): Promise<any>;
+  deletePolicy(policyId: string): Promise<any>;
+  /**
+   * Export policy
+   * @param {string} policyId policy id/name
+   * @returns {Promise<PolicyExportInterface>} a promise that resolves to a PolicyExportInterface object
+   */
+  exportPolicy(
+    policyId: string,
+    options?: PolicyExportOptions
+  ): Promise<PolicyExportInterface>;
+  /**
+   * Export policies
+   * @param {PolicyExportOptions} options export options
+   * @returns {Promise<PolicyExportInterface>} a promise that resolves to an PolicyExportInterface object
+   */
+  exportPolicies(options?: PolicyExportOptions): Promise<PolicyExportInterface>;
+  /**
+   * Export policies by policy set
+   * @param {string} policySetName policy set id/name
+   * @param {PolicyExportOptions} options export options
+   * @returns {Promise<PolicyExportInterface>} a promise that resolves to an PolicyExportInterface object
+   */
+  exportPoliciesByPolicySet(
+    policySetName: string,
+    options?: PolicyExportOptions
+  ): Promise<PolicyExportInterface>;
+  /**
+   * Import policy by id
+   * @param {string} policyId policy id
+   * @param {PolicyExportInterface} importData import data
+   * @param {PolicyImportOptions} options import options
+   * @returns {Promise<PolicySkeleton>} imported policy object
+   */
+  importPolicy(
+    policyId: string,
+    importData: PolicyExportInterface,
+    options?: PolicyImportOptions
+  ): Promise<PolicySkeleton>;
+  /**
+   * Import first policy
+   * @param {PolicyExportInterface} importData import data
+   * @param {PolicyImportOptions} options import options
+   * @returns {Promise<PolicySkeleton>} imported policy object
+   */
+  importFirstPolicy(
+    importData: PolicyExportInterface,
+    options?: PolicyImportOptions
+  ): Promise<PolicySkeleton>;
+  /**
+   * Import policies
+   * @param {PolicyExportInterface} importData import data
+   * @param {PolicyImportOptions} options import options
+   * @returns {Promise<PolicySkeleton[]>} array of imported policy objects
+   */
+  importPolicies(
+    importData: PolicyExportInterface,
+    options?: PolicyImportOptions
+  ): Promise<PolicySkeleton[]>;
+};
+
+export default (state: State): Policy => {
   return {
     /**
      * Get all policies

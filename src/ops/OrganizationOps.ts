@@ -2,7 +2,20 @@ import { queryAllManagedObjectsByType } from '../api/IdmConfigApi';
 import State from '../shared/State';
 import { printMessage } from './utils/Console';
 
-export default (state: State) => {
+export type Organization = {
+  /**
+   * Get organization managed object type
+   * @returns {String} organization managed object type in this realm
+   */
+  getRealmManagedOrganization(): string;
+  /**
+   * Get organizations
+   * @returns {Promise} promise resolving to an object containing an array of organization objects
+   */
+  getOrganizations(): Promise<any[]>;
+};
+
+export default (state: State): Organization => {
   return {
     /**
      * Get organization managed object type

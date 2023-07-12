@@ -10,7 +10,7 @@ import {
   findFilesByName,
   getMetadata,
 } from './utils/ExportImportUtils';
-import { getRealmManagedUser, replaceAll } from './utils/OpsUtils';
+import { getRealmManagedUser } from './utils/OpsUtils';
 import {
   getNode,
   putNode,
@@ -22,7 +22,7 @@ import { isCloudOnlyNode, isCustomNode, isPremiumNode } from './NodeOps';
 import { getTrees, getTree, putTree, deleteTree } from '../api/TreeApi';
 import { getEmailTemplate, putEmailTemplate } from './EmailTemplateOps';
 import { getScript } from '../api/ScriptApi';
-import * as globalConfig from '../storage/StaticStorage';
+import * as Constants from '../shared/Constants';
 import {
   printMessage,
   createProgressIndicator,
@@ -72,7 +72,198 @@ import {
   TreeImportOptions,
 } from './OpsTypes';
 
-export default (state: State) => {
+export type Journey = {
+  /**
+   * Create an empty single tree export template
+   * @returns {SingleTreeExportInterface} an empty single tree export template
+   */
+  createSingleTreeExportTemplate(): SingleTreeExportInterface;
+  /**
+   * Create an empty multi tree export template
+   * @returns {MultiTreeExportInterface} an empty multi tree export template
+   */
+  createMultiTreeExportTemplate(): MultiTreeExportInterface;
+  /**
+   * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
+   * @param {string} treeId tree id/name
+   * @param {TreeExportOptions} options export options
+   * @returns {Promise<SingleTreeExportInterface>} a promise that resolves to an object containing the tree and all its nodes and dependencies
+   */
+  exportJourney(
+    treeId: string,
+    options?: TreeExportOptions
+  ): Promise<SingleTreeExportInterface>;
+  /**
+   * Get all the journeys/trees without all their nodes and dependencies.
+   * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of journey objects
+   */
+  getJourneys(): Promise<TreeSkeleton[]>;
+  /**
+   * Get a journey/tree without all its nodes and dependencies.
+   * @param {string} journeyId journey id/name
+   * @returns {Promise<TreeSkeleton>} a promise that resolves to a journey object
+   */
+  getJourney(journeyId: string): Promise<TreeSkeleton>;
+  /**
+   * Helper to import a tree with all dependencies from a `SingleTreeExportInterface` object (typically read from a file)
+   * @param {SingleTreeExportInterface} treeObject tree object containing tree and all its dependencies
+   * @param {TreeImportOptions} options import options
+   * @returns {Promise<boolean>} a promise that resolves to true if no errors occurred during import
+   */
+  importJourney(
+    treeObject: SingleTreeExportInterface,
+    options: TreeImportOptions
+  ): Promise<boolean>;
+  /**
+   * Resolve journey dependencies
+   * @param {Map} installedJorneys Map of installed journeys
+   * @param {Map} journeyMap Map of journeys to resolve dependencies for
+   * @param {string[]} unresolvedJourneys Map to hold the names of unresolved journeys and their dependencies
+   * @param {string[]} resolvedJourneys Array to hold the names of resolved journeys
+   * @param {int} index Depth of recursion
+   */
+  resolveDependencies(
+    installedJorneys: any,
+    journeyMap: any,
+    unresolvedJourneys: any,
+    resolvedJourneys: any,
+    index?: number
+  ): Promise<void>;
+  /**
+   * Helper to import multiple trees from a tree map
+   * @param {MultiTreeExportInterface} treesMap map of trees object
+   * @param {TreeImportOptions} options import options
+   */
+  importAllJourneys(
+    treesMap: MultiTreeExportInterface,
+    options: TreeImportOptions
+  ): Promise<void>;
+  /**
+   * Get the node reference obbject for a node object. Node reference objects
+   * are used in a tree flow definition and within page nodes to reference
+   * nodes. Among other things, node references contain all the non-configuration
+   * meta data that exists for readaility, like the x/y coordinates of the node
+   * and the display name chosen by the tree designer. The dislay name is the
+   * only intuitive link between the graphical representation of the tree and
+   * the node configurations that make up the tree.
+   * @param nodeObj node object to retrieve the node reference object for
+   * @param singleTreeExport tree export with or without dependencies
+   * @returns {NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface} node reference object
+   */
+  getNodeRef(
+    nodeObj: NodeSkeleton,
+    singleTreeExport: SingleTreeExportInterface
+  ): NodeRefSkeletonInterface | InnerNodeRefSkeletonInterface;
+  /**
+   * Default tree export resolver used to resolve a tree id/name to a full export
+   * w/o dependencies of that tree from a platform instance.
+   * @param {string} treeId id/name of the tree to resolve
+   * @returns {TreeExportResolverInterface} tree export
+   */
+  onlineTreeExportResolver: TreeExportResolverInterface;
+  /**
+   * Tree export resolver used to resolve a tree id/name to a full export
+   * of that tree from individual `treename.journey.json` export files.
+   * @param {string} treeId id/name of the tree to resolve
+   * @returns {TreeExportResolverInterface} tree export
+   */
+  fileByIdTreeExportResolver: TreeExportResolverInterface;
+  /**
+   * Factory that creates a tree export resolver used to resolve a tree id
+   * to a full export of that tree from a multi-tree export file.
+   * @param {string} file multi-tree export file
+   * @returns {TreeExportResolverInterface} tree export resolver
+   */
+  createFileParamTreeExportResolver(file: string): TreeExportResolverInterface;
+  /**
+   * Get tree dependencies (all descendent inner trees)
+   * @param {SingleTreeExportInterface} treeExport single tree export
+   * @param {string[]} resolvedTreeIds list of tree ids wich have already been resolved
+   * @param {TreeExportResolverInterface} resolveTreeExport tree export resolver callback function
+   * @returns {Promise<TreeDependencyMapInterface>} a promise that resolves to a tree dependency map
+   */
+  getTreeDescendents(
+    treeExport: SingleTreeExportInterface,
+    resolveTreeExport: TreeExportResolverInterface,
+    resolvedTreeIds?: string[]
+  ): Promise<TreeDependencyMapInterface>;
+  /**
+   * Find all node configuration objects that are no longer referenced by any tree
+   * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
+   */
+  findOrphanedNodes(): Promise<NodeSkeleton[]>;
+  /**
+   * Remove orphaned nodes
+   * @param {NodeSkeleton[]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
+   * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array nodes that encountered errors deleting
+   */
+  removeOrphanedNodes(orphanedNodes: NodeSkeleton[]): Promise<unknown[]>;
+  /**
+   * Analyze if a journey contains any custom nodes considering the detected or the overridden version.
+   * @param {SingleTreeExportInterface} journey Journey/tree configuration object
+   * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
+   */
+  isCustomJourney(journey: SingleTreeExportInterface): boolean;
+  /**
+   * Analyze if a journey contains any premium nodes considering the detected or the overridden version.
+   * @param {SingleTreeExportInterface} journey Journey/tree configuration object
+   * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
+   */
+  isPremiumJourney(journey: SingleTreeExportInterface): boolean;
+  /**
+   * Analyze if a journey contains any cloud-only nodes considering the detected or the overridden version.
+   * @param {SingleTreeExportInterface} journey Journey/tree configuration object
+   * @returns {boolean} True if the journey/tree contains any cloud-only nodes, false otherwise.
+   */
+  isCloudOnlyJourney(journey: SingleTreeExportInterface): boolean;
+  /**
+   * Get a journey's classifications, which can be one or multiple of:
+   * - standard: can run on any instance of a ForgeRock platform
+   * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
+   * - premium: utilizes nodes, which come at a premium
+   * - custom: utilizes nodes not included in the ForgeRock platform release
+   * @param {SingleTreeExportInterface} journey journey export data
+   * @returns {JourneyClassificationType[]} an array of one or multiple classifications
+   */
+  getJourneyClassification(
+    journey: SingleTreeExportInterface
+  ): JourneyClassificationType[];
+  /**
+   * Delete a journey
+   * @param {string} journeyId journey id/name
+   * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
+   */
+  deleteJourney(
+    journeyId: string,
+    options: {
+      deep: boolean;
+      verbose: boolean;
+      progress?: boolean;
+    }
+  ): Promise<DeleteJourneyStatus>;
+  /**
+   * Delete all journeys
+   * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
+   */
+  deleteJourneys(options: {
+    deep: boolean;
+    verbose: boolean;
+  }): Promise<DeleteJourneysStatus>;
+  /**
+   * Enable a journey
+   * @param journeyId journey id/name
+   * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+   */
+  enableJourney(journeyId: string): Promise<boolean>;
+  /**
+   * Disable a journey
+   * @param journeyId journey id/name
+   * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+   */
+  disableJourney(journeyId: string): Promise<boolean>;
+};
+
+export default (state: State): Journey => {
   return {
     /**
      * Create an empty single tree export template
@@ -538,7 +729,7 @@ export async function exportJourney({
     let themePromise = null;
     if (
       deps &&
-      state.getDeploymentType() !== globalConfig.CLASSIC_DEPLOYMENT_TYPE_KEY
+      state.getDeploymentType() !== Constants.CLASSIC_DEPLOYMENT_TYPE_KEY
     ) {
       try {
         themePromise = getThemes({ state });
@@ -587,9 +778,8 @@ export async function exportJourney({
       // frodo supports email templates in platform deployments
       if (
         (deps &&
-          state.getDeploymentType() ===
-            globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) ||
-        state.getDeploymentType() === globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY
+          state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) ||
+        state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
       ) {
         if (emailTemplateNodes.includes(nodeType)) {
           try {
@@ -666,9 +856,8 @@ export async function exportJourney({
         if (
           (deps &&
             state.getDeploymentType() ===
-              globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) ||
-          state.getDeploymentType() ===
-            globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY
+              Constants.CLOUD_DEPLOYMENT_TYPE_KEY) ||
+          state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
         ) {
           let themeId = false;
 
@@ -719,9 +908,8 @@ export async function exportJourney({
       // frodo supports email templates in platform deployments
       if (
         (deps &&
-          state.getDeploymentType() ===
-            globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) ||
-        state.getDeploymentType() === globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY
+          state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) ||
+        state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
       ) {
         if (emailTemplateNodes.includes(innerNodeType)) {
           try {
@@ -994,7 +1182,7 @@ export async function importJourney({
       state,
     });
   let newUuid = '';
-  const uuidMap = {};
+  const uuidMap: { [k: string]: string } = {};
   const treeId = treeObject.tree._id;
 
   // Process scripts
@@ -1411,7 +1599,7 @@ export async function importJourney({
         for (const [, inPageNodeData] of Object.entries(nodeData['nodes'])) {
           const currentId = inPageNodeData['_id'];
           nodeData = JSON.parse(
-            replaceAll(JSON.stringify(nodeData), currentId, uuidMap[currentId])
+            JSON.stringify(nodeData).replaceAll(currentId, uuidMap[currentId])
           );
         }
       }
@@ -1513,7 +1701,7 @@ export async function importJourney({
   if (reUuid) {
     let journeyText = JSON.stringify(treeObject.tree, null, 2);
     for (const [oldId, newId] of Object.entries(uuidMap)) {
-      journeyText = replaceAll(journeyText, oldId, newId);
+      journeyText = journeyText.replaceAll(oldId, newId);
     }
     treeObject.tree = JSON.parse(journeyText);
   }
@@ -1524,8 +1712,8 @@ export async function importJourney({
   if (
     (treeObject.tree.identityResource &&
       (treeObject.tree['identityResource'] as string).endsWith('user')) ||
-    state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY ||
-    state.getDeploymentType() === globalConfig.FORGEOPS_DEPLOYMENT_TYPE_KEY
+    state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+    state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
   ) {
     treeObject.tree.identityResource = `managed/${getRealmManagedUser({
       state,
@@ -2196,6 +2384,11 @@ export function getJourneyClassification({
   return classifications;
 }
 
+export type DeleteJourneyStatus = {
+  status: string;
+  nodes: { status?: string };
+};
+
 /**
  * Delete a journey
  * @param {string} journeyId journey id/name
@@ -2209,10 +2402,10 @@ export async function deleteJourney({
   journeyId: string;
   options: { deep: boolean; verbose: boolean; progress?: boolean };
   state: State;
-}) {
+}): Promise<DeleteJourneyStatus> {
   const { deep, verbose } = options;
   const progress = !('progress' in options) ? true : options.progress;
-  const status = { nodes: {} };
+  const status: DeleteJourneyStatus = { status: 'unknown', nodes: {} };
   if (progress)
     createProgressIndicator({
       total: undefined,
@@ -2409,6 +2602,10 @@ export async function deleteJourney({
     });
 }
 
+export type DeleteJourneysStatus = {
+  [k: string]: DeleteJourneyStatus;
+};
+
 /**
  * Delete all journeys
  * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
@@ -2424,7 +2621,7 @@ export async function deleteJourneys({
   state: State;
 }) {
   const { verbose } = options;
-  const status = {};
+  const status: DeleteJourneysStatus = {};
   const trees = (await getTrees({ state })).result;
   createProgressIndicator({
     total: trees.length,

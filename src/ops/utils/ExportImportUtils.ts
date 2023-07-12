@@ -9,11 +9,62 @@ import {
   encodeBase64Url,
 } from '../../api/utils/Base64';
 import State from '../../shared/State';
-import { FRODO_METADATA_ID } from '../../storage/StaticStorage';
+import { FRODO_METADATA_ID } from '../../shared/Constants';
 import { ExportMetaData } from '../OpsTypes';
 import { debugMessage, printMessage } from './Console';
 
-export default (state: State) => {
+export type ExportImport = {
+  getMetadata(): ExportMetaData;
+  titleCase(input: string): string;
+  getRealmString(): string;
+  convertBase64TextToArray(b64text: string): any[];
+  convertBase64UrlTextToArray(b64UTF8Text: string): any[];
+  convertTextArrayToBase64(textArray: string[]): string;
+  convertTextArrayToBase64Url(textArray: string[]): any;
+  validateImport(metadata: any): boolean;
+  getTypedFilename(name: string, type: string, suffix?: string): string;
+  getWorkingDirectory(): string;
+  saveToFile(
+    type: string,
+    data: object,
+    identifier: string,
+    filename: string
+  ): void;
+  /**
+   * Save JSON object to file
+   * @param {Object} data data object
+   * @param {String} filename file name
+   * @return {boolean} true if successful, false otherwise
+   */
+  saveJsonToFile(
+    data: object,
+    filename: string,
+    includeMeta?: boolean
+  ): boolean;
+  /**
+   * Append text data to file
+   * @param {String} data text data
+   * @param {String} filename file name
+   */
+  appendTextToFile(data: string, filename: string): void;
+  /**
+   * Find files by name
+   * @param {string} fileName file name to search for
+   * @param {boolean} fast return first result and stop search
+   * @param {string} path path to directory where to start the search
+   * @returns {string[]} array of found file paths relative to starting directory
+   */
+  findFilesByName(fileName: string, fast?: boolean, path?: string): string[];
+  /**
+   * find all (nested) files in a directory
+   *
+   * @param directory directory to search
+   * @returns list of files
+   */
+  readFilesRecursive(directory: string): Promise<string[]>;
+};
+
+export default (state: State): ExportImport => {
   return {
     getMetadata(): ExportMetaData {
       return getMetadata({ state });
