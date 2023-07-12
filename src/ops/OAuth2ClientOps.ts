@@ -14,10 +14,88 @@ import { getMetadata } from './utils/ExportImportUtils';
 import { debugMessage, printMessage } from './utils/Console';
 import { convertBase64TextToArray } from './utils/ExportImportUtils';
 import { getOAuth2Provider } from './OAuth2ProviderOps';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import { getScript, putScript } from './ScriptOps';
 
-export default (state: State) => {
+export type OAuth2Client = {
+  /**
+   * Get all OAuth2 clients
+   * @returns {Promise<any[]>} a promise that resolves to an array of oauth2client objects
+   */
+  getOAuth2Clients(): Promise<OAuth2ClientSkeleton[]>;
+  /**
+   * Get OAuth2 client
+   * @param {string} clientId client id
+   * @returns {Promise<any>} a promise that resolves to an oauth2client object
+   */
+  getOAuth2Client(clientId: string): Promise<OAuth2ClientSkeleton>;
+  /**
+   * Put OAuth2 client
+   * @param {string} clientId client id
+   * @param {any} clientData oauth2client object
+   * @returns {Promise<any>} a promise that resolves to an oauth2client object
+   */
+  putOAuth2Client(
+    clientId: string,
+    clientData: OAuth2ClientSkeleton
+  ): Promise<OAuth2ClientSkeleton>;
+  /**
+   * Delete OAuth2 client
+   * @param {string} clientId client id
+   * @returns {Promise<any>} a promise that resolves to an oauth2client object
+   */
+  deleteOAuth2Client(clientId: string): Promise<OAuth2ClientSkeleton>;
+  /**
+   * Export all OAuth2 clients
+   * @param {OAuth2ClientExportOptions} options export options
+   * @returns {OAuth2ClientExportInterface} export data
+   */
+  exportOAuth2Clients(
+    options?: OAuth2ClientExportOptions
+  ): Promise<OAuth2ClientExportInterface>;
+  /**
+   * Export OAuth2 client by ID
+   * @param {string} clientId oauth2 client id
+   * @param {OAuth2ClientExportOptions} options export options
+   * @returns {OAuth2ClientExportInterface} export data
+   */
+  exportOAuth2Client(
+    clientId: string,
+    options?: OAuth2ClientExportOptions
+  ): Promise<OAuth2ClientExportInterface>;
+  /**
+   * Import OAuth2 Client by ID
+   * @param {string} clientId client id
+   * @param {OAuth2ClientExportInterface} importData import data
+   * @param {OAuth2ClientImportOptions} options import options
+   */
+  importOAuth2Client(
+    clientId: string,
+    importData: OAuth2ClientExportInterface,
+    options?: OAuth2ClientImportOptions
+  ): Promise<any>;
+  /**
+   * Import first OAuth2 Client
+   * @param {OAuth2ClientExportInterface} importData import data
+   * @param {OAuth2ClientImportOptions} options import options
+   */
+  importFirstOAuth2Client(
+    importData: OAuth2ClientExportInterface,
+    options?: OAuth2ClientImportOptions
+  ): Promise<any>;
+  /**
+   * Import OAuth2 Clients
+   * @param {OAuth2ClientExportInterface} importData import data
+   * @param {OAuth2ClientImportOptions} options import options
+   * @returns {Promise<unknown[]>} array of imported oauth2 clients
+   */
+  importOAuth2Clients(
+    importData: OAuth2ClientExportInterface,
+    options?: OAuth2ClientImportOptions
+  ): Promise<unknown[]>;
+};
+
+export default (state: State): OAuth2Client => {
   return {
     /**
      * Get all OAuth2 clients

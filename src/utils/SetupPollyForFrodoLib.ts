@@ -6,7 +6,7 @@ import NodeHttpAdapter from '@pollyjs/adapter-node-http';
 import FSPersister from '@pollyjs/persister-fs';
 import { LogLevelDesc } from 'loglevel';
 import { debugMessage, printMessage } from '../ops/utils/Console';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

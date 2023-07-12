@@ -1,7 +1,7 @@
-import State from '../../shared/State';
+import StateImpl, { State } from '../../shared/State';
 import { validateScriptHooks } from './ScriptValidationUtils';
 
-const state: State = new State({});
+const state: State = StateImpl({});
 
 describe('validateScriptHooks', () => {
   it('should return false when there is an invalid script', () => {

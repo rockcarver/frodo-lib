@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import DataProtection from './utils/DataProtection';
 import { debugMessage, printMessage, verboseMessage } from './utils/Console';
-import { FRODO_CONNECTION_PROFILES_PATH_KEY } from '../storage/StaticStorage';
+import Constants from '../shared/Constants';
 import { createJwkRsa, createJwks, getJwkRsaPublic, JwkRsa } from './JoseOps';
 import {
   createServiceAccount,
@@ -12,9 +12,61 @@ import {
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import { saveJsonToFile } from './utils/ExportImportUtils';
 import { isValidUrl } from './utils/OpsUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
-export default (state: State) => {
+export type ConnectionProfile = {
+  /**
+   * Get connection profiles file name
+   * @returns {string} connection profiles file name
+   */
+  getConnectionProfilesPath(): string;
+  /**
+   * Find connection profiles
+   * @param {ConnectionsFileInterface} connectionProfiles connection profile object
+   * @param {string} host host url or unique substring
+   * @returns {SecureConnectionProfileInterface[]} Array of connection profiles
+   */
+  findConnectionProfiles(
+    connectionProfiles: ConnectionsFileInterface,
+    host: string
+  ): SecureConnectionProfileInterface[];
+  /**
+   * Initialize connection profiles
+   *
+   * This method is called from app.ts and runs before any of the message handlers are registered.
+   * Therefore none of the Console message functions will produce any output.
+   */
+  initConnectionProfiles(): Promise<void>;
+  /**
+   * Get connection profile by host
+   * @param {String} host host tenant host url or unique substring
+   * @returns {Object} connection profile or null
+   */
+  getConnectionProfileByHost(host: string): Promise<ConnectionProfileInterface>;
+  /**
+   * Get connection profile
+   * @returns {Object} connection profile or null
+   */
+  getConnectionProfile(): Promise<ConnectionProfileInterface>;
+  /**
+   * Save connection profile
+   * @param {string} host host url for new profiles or unique substring for existing profiles
+   * @returns {Promise<boolean>} true if the operation succeeded, false otherwise
+   */
+  saveConnectionProfile(host: string): Promise<boolean>;
+  /**
+   * Delete connection profile
+   * @param {string} host host tenant host url or unique substring
+   */
+  deleteConnectionProfile(host: string): void;
+  /**
+   * Create a new service account using auto-generated parameters
+   * @returns {Promise<IdObjectSkeletonInterface>} A promise resolving to a service account object
+   */
+  addNewServiceAccount(): Promise<IdObjectSkeletonInterface>;
+};
+
+export default (state: State): ConnectionProfile => {
   return {
     /**
      * Get connection profiles file name
@@ -142,7 +194,7 @@ const newProfileFilename = 'Connections.json';
 export function getConnectionProfilesPath({ state }: { state: State }): string {
   return (
     state.getConnectionProfilesPath() ||
-    process.env[FRODO_CONNECTION_PROFILES_PATH_KEY] ||
+    process.env[Constants.FRODO_CONNECTION_PROFILES_PATH_KEY] ||
     `${os.homedir()}/.frodo/${newProfileFilename}`
   );
 }

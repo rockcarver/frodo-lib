@@ -1,5 +1,5 @@
 import util from 'util';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import {
   AmServiceSkeleton,
   PagedResult,

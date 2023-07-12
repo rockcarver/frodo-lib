@@ -50,11 +50,11 @@ import { state } from '../index';
 import * as JourneyOps from './JourneyOps';
 import { getJourney } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import * as globalConfig from '../storage/StaticStorage';
+import Constants from '../shared/Constants';
 
 autoSetupPolly();
 
-state.setDeploymentType(globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY);
+state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 
 async function stageJourney(journey: { id: string }, create = true) {
   // delete if exists, then create

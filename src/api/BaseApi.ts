@@ -10,10 +10,10 @@ import { curlirizeMessage, printMessage } from '../ops/utils/Console';
 import _curlirize from '../ext/axios-curlirize/curlirize';
 import { randomUUID } from 'crypto';
 import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
-import State from '../shared/State';
+import StateImpl, { State } from '../shared/State';
 
 if (process.env.FRODO_MOCK) {
-  setupPollyForFrodoLib({ state: new State({}) });
+  setupPollyForFrodoLib({ state: StateImpl({}) });
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

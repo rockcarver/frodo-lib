@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import {
   NoIdObjectSkeletonInterface,
   OAuth2ClientSkeleton,

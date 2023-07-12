@@ -1,5 +1,5 @@
-import State from '../../shared/State';
-import * as globalConfig from '../../storage/StaticStorage';
+import { State } from '../../shared/State';
+import Constants from '../../shared/Constants';
 import {
   getCurrentRealmName,
   getRealmName as _getRealmName,
@@ -8,23 +8,182 @@ import { lstat, readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import { Reader } from 'properties-reader';
 import replaceall from 'replaceall';
+import * as Base64 from '../../api/utils/Base64';
 
-// TODO: do we really need this? if yes: document
-export function escapeRegExp(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
-}
+export type Utils = {
+  encodeB64(input: string, padding: boolean): string;
+  decodeB64(input: string): string;
+  encodeB64Url(input: string): string;
+  decodeB64Url(input: string): string;
+  /**
+   * Get new name when names collide
+   * @param {string} name to apply policy to
+   * @returns {string} new name according to policy
+   */
+  applyNameCollisionPolicy(name: string): string;
+  /**
+   * Get the name of the managed user object for the current realm
+   * @returns {string} the name of the managed user object for the current realm
+   */
+  getRealmManagedUser(): string;
+  /**
+   * Compare two json objects
+   * @param {object} obj1 object 1
+   * @param {object} obj2 object 2
+   * @param {string[]} ignoreKeys array of keys to ignore in comparison
+   * @returns {boolean} true if the two json objects have the same length and all the properties have the same value
+   */
+  isEqualJson(obj1: object, obj2: object, ignoreKeys?: string[]): boolean;
+  /**
+   * Get current realm name
+   * @param {string} realm realm
+   * @returns {string} name of the realm. /alpha -> alpha
+   */
+  getRealmName(realm: string): string;
+  /**
+   * find all (nested) files in a directory
+   *
+   * @param baseDirectory directory to search
+   * @param childDirectory subdirectory to search
+   * @returns list of files
+   */
+  readFiles(
+    baseDirectory: string,
+    childDirectory?: string
+  ): Promise<
+    {
+      path: string;
+      content: string;
+    }[]
+  >;
+  substituteEnvParams(input: string, reader: Reader): string;
+  unSubstituteEnvParams(input: string, reader: Reader): string;
+  /**
+   * Check if a string is a valid URL
+   * @param {string} urlString input string to be evaluated
+   * @returns {boolean} true if a valid URL, false otherwise
+   */
+  isValidUrl(urlString: string): boolean;
+  /**
+   * Deep clone object
+   * @param {object} obj object to deep clone
+   * @returns {object} new object cloned from obj
+   */
+  cloneDeep(obj: object): object;
+};
 
-// TODO: do we really need this? if yes: document
-export function replaceAll(str, find, replace) {
-  return str.replace(new RegExp(escapeRegExp(find), 'g'), replace);
-}
+export default (state: State): Utils => {
+  return {
+    encodeB64(input: string, padding = true): string {
+      return Base64.encode(input, padding);
+    },
+
+    decodeB64(input: string): string {
+      return Base64.decode(input);
+    },
+
+    encodeB64Url(input: string): string {
+      return Base64.encodeBase64Url(input);
+    },
+
+    decodeB64Url(input: string): string {
+      return Base64.decodeBase64Url(input);
+    },
+
+    /**
+     * Get new name when names collide
+     * @param {string} name to apply policy to
+     * @returns {string} new name according to policy
+     */
+    applyNameCollisionPolicy(name: string): string {
+      return applyNameCollisionPolicy(name);
+    },
+
+    /**
+     * Get the name of the managed user object for the current realm
+     * @returns {string} the name of the managed user object for the current realm
+     */
+    getRealmManagedUser(): string {
+      return getRealmManagedUser({ state });
+    },
+
+    /**
+     * Compare two json objects
+     * @param {object} obj1 object 1
+     * @param {object} obj2 object 2
+     * @param {string[]} ignoreKeys array of keys to ignore in comparison
+     * @returns {boolean} true if the two json objects have the same length and all the properties have the same value
+     */
+    isEqualJson(
+      obj1: object,
+      obj2: object,
+      ignoreKeys: string[] = []
+    ): boolean {
+      return isEqualJson(obj1, obj2, ignoreKeys);
+    },
+
+    /**
+     * Get current realm name
+     * @param {string} realm realm
+     * @returns {string} name of the realm. /alpha -> alpha
+     */
+    getRealmName(realm: string): string {
+      return getRealmName(realm);
+    },
+
+    /**
+     * find all (nested) files in a directory
+     *
+     * @param baseDirectory directory to search
+     * @param childDirectory subdirectory to search
+     * @returns list of files
+     */
+    async readFiles(
+      baseDirectory: string,
+      childDirectory = ''
+    ): Promise<
+      {
+        path: string;
+        content: string;
+      }[]
+    > {
+      return readFiles(baseDirectory, childDirectory);
+    },
+
+    substituteEnvParams(input: string, reader: Reader) {
+      return substituteEnvParams(input, reader);
+    },
+
+    unSubstituteEnvParams(input: string, reader: Reader) {
+      return unSubstituteEnvParams(input, reader);
+    },
+
+    /**
+     * Check if a string is a valid URL
+     * @param {string} urlString input string to be evaluated
+     * @returns {boolean} true if a valid URL, false otherwise
+     */
+    isValidUrl(urlString: string): boolean {
+      return isValidUrl(urlString);
+    },
+
+    /**
+     * Deep clone object
+     * @param {object} obj object to deep clone
+     * @returns {object} new object cloned from obj
+     */
+    cloneDeep(obj: object): object {
+      return cloneDeep(obj);
+    },
+  };
+};
 
 /**
  * Get new name when names collide
- * @param {String} name to apply policy to
- * @returns {String} new name according to policy
+ * @param {string} name to apply policy to
+ * @returns {string} new name according to policy
  */
-export function applyNameCollisionPolicy(name) {
+export function applyNameCollisionPolicy(name: string): string {
   const capturingRegex = /(.* - imported) \(([0-9]+)\)/;
   const found = name.match(capturingRegex);
   if (found && found.length > 0 && found.length === 3) {
@@ -38,11 +197,11 @@ export function applyNameCollisionPolicy(name) {
 
 /**
  * Get the name of the managed user object for the current realm
- * @returns {String} the name of the managed user object for the current realm
+ * @returns {string} the name of the managed user object for the current realm
  */
-export function getRealmManagedUser({ state }: { state: State }) {
+export function getRealmManagedUser({ state }: { state: State }): string {
   let realmManagedUser = 'user';
-  if (state.getDeploymentType() === globalConfig.CLOUD_DEPLOYMENT_TYPE_KEY) {
+  if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
     realmManagedUser = `${getCurrentRealmName(state)}_user`;
   }
   return realmManagedUser;
@@ -50,12 +209,16 @@ export function getRealmManagedUser({ state }: { state: State }) {
 
 /**
  * Compare two json objects
- * @param {Object} obj1 object 1
- * @param {Object} obj2 object 2
- * @param {[String]} ignoreKeys array of keys to ignore in comparison
+ * @param {object} obj1 object 1
+ * @param {object} obj2 object 2
+ * @param {string[]} ignoreKeys array of keys to ignore in comparison
  * @returns {boolean} true if the two json objects have the same length and all the properties have the same value
  */
-export function isEqualJson(obj1, obj2, ignoreKeys: string[] = []) {
+export function isEqualJson(
+  obj1: object,
+  obj2: object,
+  ignoreKeys: string[] = []
+): boolean {
   const obj1Keys = Object.keys(obj1).filter((key) => !ignoreKeys.includes(key));
   const obj2Keys = Object.keys(obj2).filter((key) => !ignoreKeys.includes(key));
 
@@ -83,10 +246,10 @@ export function isEqualJson(obj1, obj2, ignoreKeys: string[] = []) {
 
 /**
  * Get current realm name
- * @param {String} realm realm
- * @returns {String} name of the realm. /alpha -> alpha
+ * @param {string} realm realm
+ * @returns {string} name of the realm. /alpha -> alpha
  */
-export function getRealmName(realm) {
+export function getRealmName(realm: string): string {
   return _getRealmName(realm);
 }
 
@@ -148,7 +311,7 @@ export function unSubstituteEnvParams(input: string, reader: Reader) {
  * @param {string} urlString input string to be evaluated
  * @returns {boolean} true if a valid URL, false otherwise
  */
-export function isValidUrl(urlString: string) {
+export function isValidUrl(urlString: string): boolean {
   try {
     return Boolean(new URL(urlString));
   } catch (error) {
@@ -158,9 +321,9 @@ export function isValidUrl(urlString: string) {
 
 /**
  * Deep clone object
- * @param {any} obj object to deep clone
- * @returns {any} new object cloned from obj
+ * @param {object} obj object to deep clone
+ * @returns {object} new object cloned from obj
  */
-export function cloneDeep(obj) {
+export function cloneDeep(obj: object): object {
   return JSON.parse(JSON.stringify(obj));
 }

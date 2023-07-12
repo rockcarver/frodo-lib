@@ -1,7 +1,7 @@
 import util from 'util';
 import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import { NoIdObjectSkeletonInterface, NodeSkeleton } from './ApiTypes';
 
 const queryAllNodeTypesURLTemplate =

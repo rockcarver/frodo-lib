@@ -1,4 +1,38 @@
 import jose from 'node-jose';
+import { State } from '../shared/State';
+
+export type Jose = {
+  createJwkRsa(): Promise<JwkRsa>;
+  getJwkRsaPublic(jwkJson: JwkRsa): Promise<JwkRsaPublic>;
+  createJwks(...keys: JwkInterface[]): JwksInterface;
+  createSignedJwtToken(payload: string | object, jwkJson: JwkRsa): Promise<any>;
+  verifySignedJwtToken(jwt: string, jwkJson: JwkRsaPublic): Promise<any>;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default (_state: State) => {
+  return {
+    async createJwkRsa(): Promise<JwkRsa> {
+      return createJwkRsa();
+    },
+
+    async getJwkRsaPublic(jwkJson: JwkRsa): Promise<JwkRsaPublic> {
+      return getJwkRsaPublic(jwkJson);
+    },
+
+    createJwks(...keys: JwkInterface[]): JwksInterface {
+      return createJwks(...keys);
+    },
+
+    async createSignedJwtToken(payload: string | object, jwkJson: JwkRsa) {
+      return createSignedJwtToken(payload, jwkJson);
+    },
+
+    async verifySignedJwtToken(jwt: string, jwkJson: JwkRsaPublic) {
+      return verifySignedJwtToken(jwt, jwkJson);
+    },
+  };
+};
 
 export interface JwkInterface {
   kty: string;
@@ -50,7 +84,10 @@ export function createJwks(...keys: JwkInterface[]): JwksInterface {
   };
 }
 
-export async function createSignedJwtToken(payload, jwkJson: JwkRsa) {
+export async function createSignedJwtToken(
+  payload: string | object,
+  jwkJson: JwkRsa
+) {
   const key = await jose.JWK.asKey(jwkJson);
   if (typeof payload === 'object') {
     payload = JSON.stringify(payload);

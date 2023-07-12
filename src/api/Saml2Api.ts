@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import util from 'util';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 import { Saml2ProviderSkeleton } from './ApiTypes';

@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateIdmApi } from './BaseApi';
 import { IdObjectSkeletonInterface } from './ApiTypes';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 const managedObjectURLTemplate = '%s/openidm/managed/%s';
 const createManagedObjectURLTemplate = '%s/openidm/managed/%s?_action=create';

@@ -102,5 +102,27 @@
   },
   "files": ["src/index.ts"],
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test_.ts"]
+  "exclude": ["src/**/*.test.ts", "src/**/*.test_.ts"],
+  "typedocOptions": {
+    "name": "Frodo Library",
+    "entryPoints": ["./src"],
+    "entryPointStrategy": "resolve",
+    "out": "./docs",
+    "readme": ".github/README.md",
+    "excludeExternals": true,
+    // "excludeNotDocumented": true,
+    // "excludeNotDocumentedKinds": ["Namespace"], // "Property", "Interface", "TypeAlias"
+    "includeVersion": true,
+    "disableSources": false,
+    "hideGenerator": true,
+    "searchInComments": true,
+    // "titleLink": "https://github.com/rockcarver/frodo-lib",
+    "navigationLinks": {
+      "Project Home": "https://github.com/rockcarver/frodo-lib"
+    },
+
+    // plugins and params
+    "plugin": ["typedoc-plugin-missing-exports"],
+    "internalModule": "Reference"
+  }
 }

@@ -1,7 +1,7 @@
 import util from 'util';
 import { generateIdmApi } from './BaseApi';
 import { getTenantURL } from './utils/ApiUtils';
-import State from '../shared/State';
+import { State } from '../shared/State';
 
 const testConnectorServersURLTemplate =
   '%s/openidm/system?_action=testConnectorServers';

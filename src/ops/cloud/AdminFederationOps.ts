@@ -11,9 +11,75 @@ import {
 import { getMetadata } from '../utils/ExportImportUtils';
 import { debugMessage } from '../utils/Console';
 import { getConfigEntity, putConfigEntity } from '../../api/IdmConfigApi';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 
-export default (state: State) => {
+export type AdminFederation = {
+  /**
+   * Create an empty idp export template
+   * @returns {AdminFederationExportInterface} an empty idp export template
+   */
+  createAdminFederationExportTemplate(): AdminFederationExportInterface;
+  /**
+   * Get all admin federation providers
+   * @returns {Promise} a promise that resolves to an object containing an array of admin federation providers
+   */
+  getAdminFederationProviders(): Promise<SocialIdpSkeleton[]>;
+  /**
+   * Get admin federation provider by id
+   * @param {String} providerId social identity provider id/name
+   * @returns {Promise} a promise that resolves a social admin federation object
+   */
+  getAdminFederationProvider(providerId: string): Promise<SocialIdpSkeleton>;
+  putProviderByTypeAndId(
+    providerType: string,
+    providerId: string,
+    providerData: SocialIdpSkeleton
+  ): Promise<SocialIdpSkeleton>;
+  /**
+   * Delete admin federation provider by id
+   * @param {String} providerId admin federation provider id/name
+   * @returns {Promise} a promise that resolves to an admin federation provider object
+   */
+  deleteAdminFederationProvider(providerId: string): Promise<SocialIdpSkeleton>;
+  /**
+   * Export admin federation provider by id
+   * @param {string} providerId provider id/name
+   * @returns {Promise<AdminFederationExportInterface>} a promise that resolves to a SocialProviderExportInterface object
+   */
+  exportAdminFederationProvider(
+    providerId: string
+  ): Promise<AdminFederationExportInterface>;
+  /**
+   * Export all providers
+   * @returns {Promise<AdminFederationExportInterface>} a promise that resolves to a SocialProviderExportInterface object
+   */
+  exportAdminFederationProviders(): Promise<AdminFederationExportInterface>;
+  /**
+   * Import admin federation provider by id/name
+   * @param {string} providerId provider id/name
+   * @param {AdminFederationExportInterface} importData import data
+   */
+  importAdminFederationProvider(
+    providerId: string,
+    importData: AdminFederationExportInterface
+  ): Promise<SocialIdpSkeleton>;
+  /**
+   * Import first provider
+   * @param {AdminFederationExportInterface} importData import data
+   */
+  importFirstAdminFederationProvider(
+    importData: AdminFederationExportInterface
+  ): Promise<SocialIdpSkeleton>;
+  /**
+   * Import all providers
+   * @param {AdminFederationExportInterface} importData import data
+   */
+  importAdminFederationProviders(
+    importData: AdminFederationExportInterface
+  ): Promise<SocialIdpSkeleton[]>;
+};
+
+export default (state: State): AdminFederation => {
   return {
     /**
      * Create an empty idp export template

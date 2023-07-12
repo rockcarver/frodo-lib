@@ -1,7 +1,7 @@
 import util from 'util';
 import { getCurrentRealmPath } from './utils/ApiUtils';
 import { generateAmApi } from './BaseApi';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import { ResourceTypeSkeleton } from './ApiTypes';
 
 const queryAllResourceTypesURLTemplate =

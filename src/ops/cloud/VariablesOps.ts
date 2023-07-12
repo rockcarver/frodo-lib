@@ -5,9 +5,48 @@ import {
   putVariable,
   setVariableDescription,
 } from '../../api/cloud/VariablesApi';
-import State from '../../shared/State';
+import { State } from '../../shared/State';
 
-export default (state: State) => {
+export type Variable = {
+  /**
+   * Delete variable by id/name
+   * @param {string} variableId variable id/name
+   * @returns {Promise<unknown>} a promise that resolves to a variable object
+   */
+  deleteVariable(variableId: string): Promise<any>;
+  /**
+   * Get variable by id/name
+   * @param {string} variableId variable id/name
+   * @returns {Promise<unknown>} a promise that resolves to a variable object
+   */
+  getVariable(variableId: string): Promise<any>;
+  /**
+   * Get all variables
+   * @returns {Promise<unknown[]>} a promise that resolves to an array of variable objects
+   */
+  getVariables(): Promise<any>;
+  /**
+   * Put variable by id/name
+   * @param {string} variableId variable id/name
+   * @param {string} value variable value
+   * @param {string} description variable description
+   * @returns {Promise<unknown>} a promise that resolves to a variable object
+   */
+  putVariable(
+    variableId: string,
+    value: string,
+    description: string
+  ): Promise<any>;
+  /**
+   * Set variable description
+   * @param {string} variableId variable id/name
+   * @param {string} description variable description
+   * @returns {Promise<unknown>} a promise that resolves to a status object
+   */
+  setVariableDescription(variableId: string, description: string): Promise<any>;
+};
+
+export default (state: State): Variable => {
   return {
     /**
      * Delete variable by id/name

@@ -14,7 +14,7 @@ import axios from 'axios';
 import MockAdapter from 'axios-mock-adapter';
 import * as OAuth2OIDCApi from './OAuth2OIDCApi';
 import { state } from '../index';
-import * as global from '../storage/StaticStorage';
+import Constants from '../shared/Constants';
 import {
   mockAuthorize,
   mockAccessToken,
@@ -27,7 +27,7 @@ state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
 state.setRealm('alpha');
 state.setCookieName('cookieName');
 state.setCookieValue('cookieValue');
-state.setDeploymentType(global.CLOUD_DEPLOYMENT_TYPE_KEY);
+state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 
 describe('OAuth2OIDCApi', () => {
   describe('authorize()', () => {

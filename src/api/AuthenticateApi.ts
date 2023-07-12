@@ -1,6 +1,6 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
-import State from '../shared/State';
+import { State } from '../shared/State';
 import { getRealmPath } from './utils/ApiUtils';
 
 const authenticateUrlTemplate = '%s/json%s/authenticate';
