@@ -110,6 +110,7 @@
     "out": "./docs",
     "readme": ".github/README.md",
     "excludeExternals": true,
+    "hideParameterTypesInTitle": false,
     // "excludeNotDocumented": true,
     // "excludeNotDocumentedKinds": ["Namespace"], // "Property", "Interface", "TypeAlias"
     "includeVersion": true,

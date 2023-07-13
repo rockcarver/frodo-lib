@@ -50,6 +50,9 @@ import VersionUtils, { Version } from '../ops/utils/VersionUtils';
 // non-instantiable modules
 import ConstantsImpl, { Constants } from '../shared/Constants';
 
+/**
+ * Frodo Library
+ */
 export type Frodo = {
   state: State;
   admin: Admin;
@@ -117,9 +120,67 @@ export type Frodo = {
     script: ScriptValidation;
     version: Version;
   };
+
+  /**
+   * Create a new frodo instance
+   * @param {StateInterface} config Initial state configuration to use with the new instance
+   * @returns {Frodo} frodo instance
+   */
+  createInstance(config: StateInterface): Frodo;
+
+  /**
+   * Factory helper to create a frodo instance ready for logging in with an admin user account
+   * @param {string} host host base URL, e.g. 'https://openam-my-tenant.forgeblocks.com/am'
+   * @param {string} username admin account username
+   * @param {string} password admin account password
+   * @param {string} realm (optional) override default realm
+   * @param {string} deploymentType (optional) override deployment type ('cloud', 'forgeops', or 'classic')
+   * @param {boolean} allowInsecureConnection (optional) allow insecure connection
+   * @param {boolean} debug (optional) enable debug output
+   * @param {boolean} curlirize (optional) enable output of all library REST calls as curl commands
+   * @returns {Frodo} frodo instance
+   */
+  createInstanceWithAdminAccount(
+    host: string,
+    serviceAccountId: string,
+    serviceAccountJwkStr: string,
+    realm?: string,
+    deploymentType?: string,
+    allowInsecureConnection?: boolean,
+    debug?: boolean,
+    curlirize?: boolean
+  ): Frodo;
+
+  /**
+   * Factory helper to create a frodo instance ready for logging in with a service account
+   * @param {string} host host base URL, e.g. 'https://openam-my-tenant.forgeblocks.com/am'
+   * @param {string} serviceAccountId service account uuid
+   * @param {string} serviceAccountJwkStr service account JWK as stringified JSON
+   * @param {string} realm (optional) override default realm
+   * @param {string} deploymentType (optional) override deployment type ('cloud', 'forgeops', or 'classic')
+   * @param {boolean} allowInsecureConnection (optional) allow insecure connection
+   * @param {boolean} debug (optional) enable debug output
+   * @param {boolean} curlirize (optional) enable output of all library REST calls as curl commands
+   * @returns {Frodo} frodo instance
+   */
+  createInstanceWithServiceAccount(
+    host: string,
+    serviceAccountId: string,
+    serviceAccountJwkStr: string,
+    realm?: string,
+    deploymentType?: string,
+    allowInsecureConnection?: boolean,
+    debug?: boolean,
+    curlirize?: boolean
+  ): Frodo;
 };
 
-export default (config: StateInterface = {}): Frodo => {
+/**
+ * Create a new frodo instance
+ * @param {StateInterface} config Initial state configuration to use with the new instance
+ * @returns {Frodo} frodo instance
+ */
+const FrodoLib = (config: StateInterface = {}): Frodo => {
   const state = StateImpl(config);
   return {
     state: state,
@@ -189,5 +250,170 @@ export default (config: StateInterface = {}): Frodo => {
       script: ScriptValidationUtils(state),
       version: VersionUtils(state),
     },
+
+    createInstance,
+    createInstanceWithAdminAccount,
+    createInstanceWithServiceAccount,
   };
 };
+
+function createInstance(config: StateInterface): Frodo {
+  const frodo = FrodoLib(config);
+  return frodo;
+}
+
+function createInstanceWithServiceAccount(
+  host: string,
+  serviceAccountId: string,
+  serviceAccountJwkStr: string,
+  realm: string = undefined,
+  deploymentType: string = undefined,
+  allowInsecureConnection = false,
+  debug = false,
+  curlirize = false
+): Frodo {
+  const config: StateInterface = {
+    host,
+    serviceAccountId,
+    serviceAccountJwk: JSON.parse(serviceAccountJwkStr),
+    realm,
+    deploymentType,
+    allowInsecureConnection,
+    debug,
+    curlirize,
+  };
+  const frodo = FrodoLib(config);
+  return frodo;
+}
+
+function createInstanceWithAdminAccount(
+  host: string,
+  username: string,
+  password: string,
+  realm: string = undefined,
+  deploymentType: string = undefined,
+  allowInsecureConnection = false,
+  debug = false,
+  curlirize = false
+): Frodo {
+  const config: StateInterface = {
+    host,
+    username,
+    password,
+    realm,
+    deploymentType,
+    allowInsecureConnection,
+    debug,
+    curlirize,
+  };
+  const frodo = FrodoLib(config);
+  return frodo;
+}
+
+/**
+ * Default frodo instance
+ *
+ * @remarks
+ *
+ * If your application requires a single connection to a ForgeRock Identity Platform
+ * instance at a time, then this default instance is all you need:
+ *
+ * In order to use the default {@link Frodo | frodo} instance, you must populate its {@link State | state} with the
+ * minimum required information to login to your ForgeRock Identity Platform instance:
+ *
+ * ```javascript
+ * // configure the state before invoking any library functions that require credentials
+ * state.setHost('https://instance0/am');
+ * state.setUsername('admin');
+ * state.setPassword('p@ssw0rd!');
+ *
+ * // now the library can login
+ * frodo.login.getTokens();
+ *
+ * // and perform operations
+ * frodo.authn.journey.exportJourney('Login');
+ * ```
+ *
+ * If your application needs to connect to multiple ForgeRock Identity Platform instances
+ * simultaneously, then you will want to create additional frodo instances using any of
+ * the available factory methods accessible from the default instance:
+ *
+ * {@link frodo.createInstance}
+ * ```javascript
+ * // use factory method to create a new Frodo instance
+ * const instance1 = frodo.createInstance({
+ *    host: 'https://instance1/am',
+ * });
+ *
+ * // now the instance can login
+ * instance1.login.getTokens();
+ *
+ * // and perform operations
+ * instance1.authn.journey.exportJourney('Login');
+ * ```
+ *
+ * {@link frodo.createInstanceWithAdminAccount}
+ * ```javascript
+ * // use factory method to create a new Frodo instance ready to login with an admin user account
+ * const instance2 = frodo.createInstanceWithAdminAccount(
+ *   'https://instance2/am',
+ *   'admin',
+ *   'p@ssw0rd!'
+ * );
+ *
+ * // now the instance can login
+ * instance2.login.getTokens();
+ *
+ * // and perform operations
+ * instance2.authn.journey.exportJourney('Login');
+ * ```
+ *
+ * {@link frodo.createInstanceWithServiceAccount}
+ * ```javascript
+ * // use factory method to create a new Frodo instance ready to login with a service account
+ * const instance3 = frodo.createInstanceWithServiceAccount(
+ *   'https://instance3/am',
+ *   'serviceAccount',
+ *   '{"k":"jwk"}'
+ * );
+ *
+ * // now the instance can login
+ * instance3.login.getTokens();
+ *
+ * // and perform operations
+ * instance3.authn.journey.exportJourney('Login');
+ * ```
+ */
+const frodo = FrodoLib();
+
+/**
+ * Default state instance
+ *
+ * @remarks
+ *
+ * {@link Frodo} maintains a {@link State | state} for each instance. The state is where Frodo gets configuration
+ * information from like host to connecto to, username and password to use, whether to
+ * allow insecure connections or not, etc. As the library operates, it updates its state.
+ *
+ * The default frodo instance contains an empty state instance by default. In order to
+ * use the default frodo instance, you must populate its state with the minimum required
+ * information to login to your ForgeRock Identity Platform instance:
+ *
+ * ```javascript
+ * // configure the state before invoking any library functions that require credentials
+ * state.setHost('https://instance0/am');
+ * state.setUsername('admin');
+ * state.setPassword('p@ssw0rd!');
+ *
+ * // now the library can login
+ * frodo.login.getTokens();
+ *
+ * // and perform operations
+ * frodo.authn.journey.exportJourney('Login');
+ * ```
+ */
+const state = frodo.state;
+
+export { frodo, state, FrodoLib };
+
+export default FrodoLib;

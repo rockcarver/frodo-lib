@@ -1,10 +1,4 @@
-import {
-  frodo as instance0,
-  state as state0,
-  FrodoLib,
-  createInstanceWithAdminAccount,
-  createInstanceWithServiceAccount,
-} from '../index';
+import { frodo, frodo as instance0, state as state0 } from '../index';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
 autoSetupPolly();
@@ -14,12 +8,12 @@ const host1 = 'https://instance1/am';
 const host2 = 'https://instance2/am';
 
 describe('FrodoLib', () => {
-  test(`FrodoLib(): FrodoLib is instantiable using factory function`, async () => {
+  test(`frodo.createInstance(): FrodoLib is instantiable using factory function`, async () => {
     state0.setHost('https://instance0/am');
-    const instance1 = FrodoLib({
+    const instance1 = frodo.createInstance({
       host: 'https://instance1/am',
     });
-    const instance2 = FrodoLib({
+    const instance2 = frodo.createInstance({
       host: 'https://instance2/am',
     });
     expect(instance0.state.getHost()).toEqual(host0);
@@ -27,14 +21,14 @@ describe('FrodoLib', () => {
     expect(instance2.state.getHost()).toEqual(host2);
   });
 
-  test(`createInstanceWithAdminAccount(): FrodoLib is instantiable using factory helper`, async () => {
+  test(`frodo.createInstanceWithAdminAccount(): FrodoLib is instantiable using factory helper`, async () => {
     state0.setHost('https://instance0/am');
-    const instance1 = createInstanceWithAdminAccount(
+    const instance1 = frodo.createInstanceWithAdminAccount(
       'https://instance1/am',
       'admin1',
       'password1'
     );
-    const instance2 = createInstanceWithAdminAccount(
+    const instance2 = frodo.createInstanceWithAdminAccount(
       'https://instance2/am',
       'admin2',
       'password2'
@@ -48,14 +42,14 @@ describe('FrodoLib', () => {
     expect(instance2.state.getPassword()).toEqual('password2');
   });
 
-  test(`createInstanceWithServiceAccount(): FrodoLib is instantiable using factory helper`, async () => {
+  test(`frodo.createInstanceWithServiceAccount(): FrodoLib is instantiable using factory helper`, async () => {
     state0.setHost('https://instance0/am');
-    const instance1 = createInstanceWithServiceAccount(
+    const instance1 = frodo.createInstanceWithServiceAccount(
       'https://instance1/am',
       'serviceAccount1',
       '{"k":"jwk1"}'
     );
-    const instance2 = createInstanceWithServiceAccount(
+    const instance2 = frodo.createInstanceWithServiceAccount(
       'https://instance2/am',
       'serviceAccount2',
       '{"k":"jwk2"}'
