@@ -1,6 +1,6 @@
 {
   "name": "@rockcarver/frodo-lib",
-  "version": "2.0.0-14",
+  "version": "2.0.0-15",
   "type": "commonjs",
   "main": "./cjs/index.js",
   "module": "./esm/index.js",
