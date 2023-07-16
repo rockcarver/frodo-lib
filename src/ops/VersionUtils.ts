@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { generateReleaseApi } from '../../api/BaseApi';
+import { generateReleaseApi } from '../api/BaseApi';
 
 import { fileURLToPath } from 'url';
-import { State } from '../../shared/State';
+import { State } from '../shared/State';
 
 export type Version = {
   getVersion(): string;
@@ -30,7 +30,7 @@ export default (state: State): Version => {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const pkg = JSON.parse(
-  fs.readFileSync(path.resolve(__dirname, '../../../package.json'), 'utf8')
+  fs.readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8')
 );
 
 export function getVersion({ state }: { state: State }) {

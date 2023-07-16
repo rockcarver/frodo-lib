@@ -10,7 +10,7 @@ import {
 } from '../api/ServiceApi';
 import { State } from '../shared/State';
 import { ServiceExportInterface } from './OpsTypes';
-import { debugMessage, printMessage } from './utils/Console';
+import { debugMessage, printMessage } from '../utils/Console';
 
 export type Service = {
   createServiceExportTemplate(): ServiceExportInterface;

@@ -1,6 +1,6 @@
 import util from 'util';
-import { encode } from '../utils/Base64';
-import { getTenantURL } from '../utils/ApiUtils';
+import { encode } from '../../utils/Base64';
+import { getTenantURL } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 import { State } from '../../shared/State';
 import { VersionOfSecretStatus } from '../ApiTypes';

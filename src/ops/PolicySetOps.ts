@@ -6,7 +6,7 @@ import {
   updatePolicySet,
 } from '../api/PolicySetApi';
 import { putScript } from './ScriptOps';
-import { convertBase64TextToArray } from './utils/ExportImportUtils';
+import { convertBase64TextToArray } from '../utils/ExportImportUtils';
 import { ExportMetaData } from './OpsTypes';
 import {
   PolicySetSkeleton,
@@ -14,8 +14,8 @@ import {
   ResourceTypeSkeleton,
   ScriptSkeleton,
 } from '../api/ApiTypes';
-import { getMetadata } from './utils/ExportImportUtils';
-import { debugMessage } from './utils/Console';
+import { getMetadata } from '../utils/ExportImportUtils';
+import { debugMessage } from '../utils/Console';
 import { getResourceType, putResourceType } from '../api/ResourceTypesApi';
 import {
   findScriptUuids,

@@ -1,4 +1,4 @@
-import { state } from '../../index';
+import { state } from '../index';
 import { resolve } from 'path';
 import { rmSync, existsSync, readFileSync } from 'fs';
 import {

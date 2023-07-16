@@ -1,4 +1,4 @@
-import StateImpl, { State } from '../../shared/State';
+import StateImpl, { State } from '../shared/State';
 import { validateScriptHooks } from './ScriptValidationUtils';
 
 const state: State = StateImpl({});

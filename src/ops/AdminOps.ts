@@ -6,12 +6,13 @@ import {
   putOAuth2Client,
 } from '../ops/OAuth2ClientOps';
 import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
-import { isEqualJson, getRealmManagedUser } from './utils/OpsUtils';
+import { isEqualJson } from '../utils/JsonUtils';
+import { getRealmManagedUser } from '../utils/ForgeRockUtils';
 import { getRealmManagedOrganization } from './OrganizationOps';
 import { getOAuth2Provider } from '../ops/OAuth2ProviderOps';
 import { putSecret } from '../api/cloud/SecretsApi';
 import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
-import { printMessage } from './utils/Console';
+import { printMessage } from '../utils/Console';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { State } from '../shared/State';

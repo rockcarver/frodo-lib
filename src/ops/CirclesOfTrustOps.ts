@@ -1,11 +1,11 @@
-import { debugMessage } from './utils/Console';
+import { debugMessage } from '../utils/Console';
 import {
   getCirclesOfTrust as _getCirclesOfTrust,
   getCircleOfTrust,
   createCircleOfTrust,
   updateCircleOfTrust,
 } from '../api/CirclesOfTrustApi';
-import { getMetadata } from './utils/ExportImportUtils';
+import { getMetadata } from '../utils/ExportImportUtils';
 import { State } from '../shared/State';
 import { CirclesOfTrustExportInterface } from './OpsTypes';
 import { CircleOfTrustSkeleton } from '../api/ApiTypes';

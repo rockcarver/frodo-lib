@@ -1,6 +1,6 @@
 import { queryAllManagedObjectsByType } from '../api/IdmConfigApi';
 import { State } from '../shared/State';
-import { printMessage } from './utils/Console';
+import { printMessage } from '../utils/Console';
 
 export type Organization = {
   /**

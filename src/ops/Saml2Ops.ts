@@ -20,17 +20,17 @@ import {
   decodeBase64Url,
   encode,
   encodeBase64Url,
-} from '../api/utils/Base64';
+} from '../utils/Base64';
 import { MultiOpStatusInterface, Saml2ExportInterface } from './OpsTypes';
 import { putScript } from './ScriptOps';
-import { debugMessage, printMessage } from './utils/Console';
+import { debugMessage, printMessage } from '../utils/Console';
 import {
   convertBase64TextToArray,
   convertBase64UrlTextToArray,
   convertTextArrayToBase64,
   convertTextArrayToBase64Url,
   getMetadata,
-} from './utils/ExportImportUtils';
+} from '../utils/ExportImportUtils';
 import { State } from '../shared/State';
 
 export type Saml2 = {

@@ -40,7 +40,7 @@ import * as PolicySetApi from '../api/PolicySetApi';
 import * as PolicySetOps from './PolicySetOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { PolicySetSkeleton } from '../api/ApiTypes';
-import { cloneDeep } from './utils/OpsUtils';
+import { cloneDeep } from '../utils/JsonUtils';
 import { PolicySetExportInterface } from '../../types/ops/PolicySetOps';
 
 autoSetupPolly();

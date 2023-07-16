@@ -1,8 +1,8 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import DataProtection from './utils/DataProtection';
-import { debugMessage, printMessage, verboseMessage } from './utils/Console';
+import DataProtection from '../utils/DataProtection';
+import { debugMessage, printMessage, verboseMessage } from '../utils/Console';
 import Constants from '../shared/Constants';
 import { createJwkRsa, createJwks, getJwkRsaPublic, JwkRsa } from './JoseOps';
 import {
@@ -10,8 +10,8 @@ import {
   getServiceAccount,
 } from './cloud/ServiceAccountOps';
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
-import { saveJsonToFile } from './utils/ExportImportUtils';
-import { isValidUrl } from './utils/OpsUtils';
+import { saveJsonToFile } from '../utils/ExportImportUtils';
+import { isValidUrl } from '../utils/MiscUtils';
 import { State } from '../shared/State';
 
 export type ConnectionProfile = {

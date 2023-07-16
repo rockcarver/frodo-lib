@@ -1,6 +1,7 @@
 import util from 'util';
 import { generateAmApi } from '../BaseApi';
-import { deleteDeepByKey, getRealmPath } from '../utils/ApiUtils';
+import { getRealmPath } from '../../utils/ForgeRockUtils';
+import { deleteDeepByKey } from '../../utils/JsonUtils';
 import { State } from '../../shared/State';
 import { AmServiceType, PagedResult, SocialIdpSkeleton } from '../ApiTypes';
 
