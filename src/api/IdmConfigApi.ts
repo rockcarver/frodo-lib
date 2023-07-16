@@ -1,6 +1,6 @@
 import util from 'util';
 import { generateIdmApi } from './BaseApi';
-import { getTenantURL } from './utils/ApiUtils';
+import { getTenantURL } from '../utils/ForgeRockUtils';
 import { State } from '../shared/State';
 import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
 

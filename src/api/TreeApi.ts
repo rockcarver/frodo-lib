@@ -1,5 +1,5 @@
 import util from 'util';
-import { getCurrentRealmPath } from './utils/ApiUtils';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { generateAmApi } from './BaseApi';
 import { State } from '../shared/State';
 import { NoIdObjectSkeletonInterface, TreeSkeleton } from './ApiTypes';

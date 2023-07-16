@@ -1,7 +1,7 @@
 import util from 'util';
 import _ from 'lodash';
 import { generateAmApi } from './BaseApi';
-import { getCurrentRealmPath } from './utils/ApiUtils';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { State } from '../shared/State';
 import { CircleOfTrustSkeleton } from './ApiTypes';
 

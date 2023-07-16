@@ -1,7 +1,6 @@
 import { State } from '../shared/State';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import _ from 'lodash';
 import {
   convertBase64TextToArray,
   getTypedFilename,
@@ -9,8 +8,8 @@ import {
   convertTextArrayToBase64Url,
   findFilesByName,
   getMetadata,
-} from './utils/ExportImportUtils';
-import { getRealmManagedUser } from './utils/OpsUtils';
+} from '../utils/ExportImportUtils';
+import { getRealmManagedUser } from '../utils/ForgeRockUtils';
 import {
   getNode,
   putNode,
@@ -29,7 +28,7 @@ import {
   updateProgressIndicator,
   stopProgressIndicator,
   debugMessage,
-} from './utils/Console';
+} from '../utils/Console';
 import {
   getProviderByLocationAndId,
   getProviders,
@@ -48,7 +47,7 @@ import {
   encode,
   encodeBase64Url,
   isBase64Encoded,
-} from '../api/utils/Base64';
+} from '../utils/Base64';
 import {
   getSocialIdentityProviders,
   putProviderByTypeAndId,
@@ -71,6 +70,7 @@ import {
   TreeExportOptions,
   TreeImportOptions,
 } from './OpsTypes';
+import { findInArray } from '../utils/JsonUtils';
 
 export type Journey = {
   /**
@@ -598,9 +598,9 @@ function createMultiTreeExportTemplate({
  * @returns {Promise} a promise that resolves to an object containing a saml2 dependencies
  */
 async function getSaml2NodeDependencies(
-  nodeObject,
-  allProviders,
-  allCirclesOfTrust,
+  nodeObject: any,
+  allProviders: any[],
+  allCirclesOfTrust: any[],
   state: State
 ) {
   const samlProperties = ['metaAlias', 'idpEntityId'];
@@ -609,9 +609,9 @@ async function getSaml2NodeDependencies(
     // In the following line nodeObject[samlProperty] will look like '/alpha/iSPAzure'.
     const entityId =
       samlProperty === 'metaAlias'
-        ? _.last(nodeObject[samlProperty].split('/'))
+        ? nodeObject[samlProperty].split('/').pop()
         : nodeObject[samlProperty];
-    const entity = _.find(allProviders, { entityId });
+    const entity = findInArray(allProviders, { entityId });
     if (entity) {
       try {
         const providerResponse = await getProviderByLocationAndId({
@@ -649,11 +649,10 @@ async function getSaml2NodeDependencies(
         saml2Entities.push(saml2Entity);
       }
     }
-    const samlEntityIds = _.map(
-      saml2Entities,
+    const samlEntityIds = saml2Entities.map(
       (saml2EntityConfig) => `${saml2EntityConfig.entityId}|saml2`
     );
-    const circlesOfTrust = _.filter(allCirclesOfTrust, (circleOfTrust) => {
+    const circlesOfTrust = allCirclesOfTrust.filter((circleOfTrust) => {
       let hasEntityId = false;
       for (const trustedProvider of circleOfTrust.trustedProviders) {
         if (!hasEntityId && samlEntityIds.includes(trustedProvider)) {

@@ -3,7 +3,7 @@ import {
   FeatureInterface,
 } from '../../api/cloud/FeatureApi';
 import { State } from '../../shared/State';
-import { debugMessage } from '../utils/Console';
+import { debugMessage } from '../../utils/Console';
 
 export type Feature = {
   /**

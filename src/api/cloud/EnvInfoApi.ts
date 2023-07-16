@@ -1,5 +1,5 @@
 import util from 'util';
-import { getTenantURL } from '../utils/ApiUtils';
+import { getTenantURL } from '../../utils/ForgeRockUtils';
 import { generateAmApi } from '../BaseApi';
 import { State } from '../../shared/State';
 

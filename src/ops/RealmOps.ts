@@ -1,6 +1,6 @@
 import { getRealms as _getRealms, putRealm } from '../api/RealmApi';
 import { State } from '../shared/State';
-import { getRealmName } from './utils/OpsUtils';
+import { getRealmName } from '../utils/ForgeRockUtils';
 
 export type Realm = {
   getRealms(): Promise<any>;

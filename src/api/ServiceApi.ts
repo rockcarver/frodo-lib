@@ -7,7 +7,7 @@ import {
   ServiceNextDescendentResponse,
 } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
-import { getCurrentRealmPath } from './utils/ApiUtils';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 
 const serviceURLTemplate = '%s/json%s/%s/services/%s';
 const serviceURLNextDescendentsTemplate =

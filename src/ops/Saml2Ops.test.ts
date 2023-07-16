@@ -55,7 +55,7 @@ import {
   getSaml2ProviderImportData,
   getSaml2ProvidersImportData,
 } from '../test/mocks/ForgeRockApiMockEngine';
-import { encodeBase64Url } from '../api/utils/Base64';
+import { encodeBase64Url } from '../utils/Base64';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
 autoSetupPolly();

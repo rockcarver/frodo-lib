@@ -1,5 +1,5 @@
 import { getManagedObject } from '../api/ManagedObjectApi';
-import { getTenantURL } from '../api/utils/ApiUtils';
+import { getTenantURL } from '../utils/ForgeRockUtils';
 import { State } from '../shared/State';
 
 export type ManagedObject = {

@@ -33,7 +33,7 @@ import * as PolicySetApi from './PolicySetApi';
 import { state } from '../index';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { PolicySetSkeleton } from './ApiTypes';
-import { cloneDeep } from '../ops/utils/OpsUtils';
+import { cloneDeep } from '../utils/JsonUtils';
 
 autoSetupPolly();
 

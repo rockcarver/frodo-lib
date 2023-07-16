@@ -4,9 +4,9 @@ import {
 } from '../../api/ManagedObjectApi';
 import { JwksInterface } from '../JoseOps';
 import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
-import { debugMessage } from '../utils/Console';
+import { debugMessage } from '../../utils/Console';
 import { hasFeature } from './FeatureOps';
-import { getTenantURL } from '../../api/utils/ApiUtils';
+import { getTenantURL } from '../../utils/ForgeRockUtils';
 import { State } from '../../shared/State';
 
 export type ServiceAccount = {

@@ -8,8 +8,8 @@ import {
 } from '../api/ResourceTypesApi';
 import { ExportMetaData } from './OpsTypes';
 import { ResourceTypeSkeleton } from '../api/ApiTypes';
-import { getMetadata } from './utils/ExportImportUtils';
-import { debugMessage } from './utils/Console';
+import { getMetadata } from '../utils/ExportImportUtils';
+import { debugMessage } from '../utils/Console';
 import { State } from '../shared/State';
 
 export type ResourceType = {

@@ -10,9 +10,9 @@ import {
   OAuth2ClientSkeleton,
   ScriptSkeleton,
 } from '../api/ApiTypes';
-import { getMetadata } from './utils/ExportImportUtils';
-import { debugMessage, printMessage } from './utils/Console';
-import { convertBase64TextToArray } from './utils/ExportImportUtils';
+import { getMetadata } from '../utils/ExportImportUtils';
+import { debugMessage, printMessage } from '../utils/Console';
+import { convertBase64TextToArray } from '../utils/ExportImportUtils';
 import { getOAuth2Provider } from './OAuth2ProviderOps';
 import { State } from '../shared/State';
 import { getScript, putScript } from './ScriptOps';

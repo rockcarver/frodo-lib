@@ -11,7 +11,7 @@ import {
   createProgressIndicator,
   updateProgressIndicator,
   stopProgressIndicator,
-} from './utils/Console';
+} from '../utils/Console';
 import { NodeClassificationType } from './OpsTypes';
 import { NodeSkeleton } from '../api/ApiTypes';
 

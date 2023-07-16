@@ -1,8 +1,8 @@
-import _ from 'lodash';
 import util from 'util';
 import { State } from '../shared/State';
 import { generateAmApi } from './BaseApi';
-import { getCurrentRealmPath } from './utils/ApiUtils';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
+import { cloneDeep } from '../utils/JsonUtils';
 import { Saml2ProviderSkeleton } from './ApiTypes';
 
 const providerByLocationAndIdURLTemplate = '%s/json%s/realm-config/saml2/%s/%s';
@@ -194,7 +194,7 @@ export async function createProvider({
   metaData: string;
   state: State;
 }) {
-  let postData = _.cloneDeep(providerData);
+  let postData = cloneDeep(providerData);
   let urlString = util.format(
     createHostedProviderURLTemplate,
     state.getHost(),

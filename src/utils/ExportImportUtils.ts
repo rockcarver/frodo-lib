@@ -7,11 +7,13 @@ import {
   decodeBase64Url,
   encode,
   encodeBase64Url,
-} from '../../api/utils/Base64';
-import { State } from '../../shared/State';
-import Constants from '../../shared/Constants';
-import { ExportMetaData } from '../OpsTypes';
+} from '../utils/Base64';
+import { State } from '../shared/State';
+import Constants from '../shared/Constants';
+import { ExportMetaData } from '../ops/OpsTypes';
 import { debugMessage, printMessage } from './Console';
+import { Reader } from 'properties-reader';
+import replaceall from 'replaceall';
 
 export type ExportImport = {
   getMetadata(): ExportMetaData;
@@ -392,4 +394,18 @@ export async function readFilesRecursive(directory: string): Promise<string[]> {
   );
 
   return filePathsNested.flat();
+}
+
+export function substituteEnvParams(input: string, reader: Reader) {
+  reader.each((key, value) => {
+    input = replaceall(value, `\${${key}}`, input);
+  });
+  return input;
+}
+
+export function unSubstituteEnvParams(input: string, reader: Reader) {
+  reader.each((key, value) => {
+    input = replaceall(`\${${key}}`, value, input);
+  });
+  return input;
 }

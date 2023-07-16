@@ -11,9 +11,7 @@ import ConnectionProfileOps, {
   ConnectionProfile,
 } from '../ops/ConnectionProfileOps';
 import EmailTemplateOps, { EmailTemplate } from '../ops/EmailTemplateOps';
-import ExportImportUtils, {
-  ExportImport,
-} from '../ops/utils/ExportImportUtils';
+import ExportImportUtils, { ExportImport } from '../utils/ExportImportUtils';
 import FeatureOps, { Feature } from '../ops/cloud/FeatureOps';
 import IdmOps, { Idm } from '../ops/IdmOps';
 import IdpOps, { Idp } from '../ops/IdpOps';
@@ -26,7 +24,6 @@ import NodeOps, { Node } from '../ops/NodeOps';
 import OAuth2ClientOps, { OAuth2Client } from '../ops/OAuth2ClientOps';
 import OAuth2OidcOps, { OAuth2Oidc } from '../ops/OAuth2OidcOps';
 import OAuth2ProviderOps, { OAuth2Provider } from '../ops/OAuth2ProviderOps';
-import OpsUtils, { Utils } from '../ops/utils/OpsUtils';
 import OrganizationOps, { Organization } from '../ops/OrganizationOps';
 import PolicyOps, { Policy } from '../ops/PolicyOps';
 import PolicySetOps, { PolicySet } from '../ops/PolicySetOps';
@@ -36,7 +33,7 @@ import Saml2Ops, { Saml2 } from '../ops/Saml2Ops';
 import ScriptOps, { Script } from '../ops/ScriptOps';
 import ScriptValidationUtils, {
   ScriptValidation,
-} from '../ops/utils/ScriptValidationUtils';
+} from '../utils/ScriptValidationUtils';
 import ServiceOps, { Service } from '../ops/ServiceOps';
 import SecretsOps, { Secret } from '../ops/cloud/SecretsOps';
 import ServiceAccountOps, {
@@ -45,7 +42,7 @@ import ServiceAccountOps, {
 import StartupOps, { Startup } from '../ops/cloud/StartupOps';
 import ThemeOps, { Theme } from '../ops/ThemeOps';
 import VariablesOps, { Variable } from '../ops/cloud/VariablesOps';
-import VersionUtils, { Version } from '../ops/utils/VersionUtils';
+import VersionUtils, { Version } from '../ops/VersionUtils';
 
 // non-instantiable modules
 import ConstantsImpl, { Constants } from '../shared/Constants';
@@ -113,7 +110,8 @@ export type Frodo = {
 
   theme: Theme;
 
-  utils: Utils & {
+  // utils: Utils & {
+  utils: {
     constants: Constants;
     impex: ExportImport;
     jose: Jose;
@@ -243,7 +241,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     theme: ThemeOps(state),
 
     utils: {
-      ...OpsUtils(state),
+      // ...OpsUtils(state),
       constants: ConstantsImpl,
       impex: ExportImportUtils(state),
       jose: JoseOps(state),
@@ -343,6 +341,8 @@ function createInstanceWithAdminAccount(
  * // use factory method to create a new Frodo instance
  * const instance1 = frodo.createInstance({
  *    host: 'https://instance1/am',
+ *    username: 'admin',
+ *    password: 'p@ssw0rd!',
  * });
  *
  * // now the instance can login

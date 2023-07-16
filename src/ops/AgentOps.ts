@@ -1,4 +1,4 @@
-import { debugMessage, printMessage } from './utils/Console';
+import { debugMessage, printMessage } from '../utils/Console';
 import {
   getAgentsByType,
   getAgentByTypeAndId as _getAgentByTypeAndId,
@@ -9,7 +9,7 @@ import {
 } from '../api/AgentApi';
 import { AgentSkeleton, AgentType } from '../api/ApiTypes';
 import { AgentExportInterface } from './OpsTypes';
-import { validateImport } from './utils/ExportImportUtils';
+import { validateImport } from '../utils/ExportImportUtils';
 import { State } from '../shared/State';
 
 export type Agent = {
