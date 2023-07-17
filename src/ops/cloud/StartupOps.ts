@@ -2,7 +2,7 @@ import {
   createProgressIndicator,
   updateProgressIndicator,
   stopProgressIndicator,
-} from '../utils/Console';
+} from '../../utils/Console';
 import { getSecrets } from '../../api/cloud/SecretsApi';
 import {
   getStatus,

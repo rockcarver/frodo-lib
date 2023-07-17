@@ -1,5 +1,5 @@
 import util from 'util';
-import { getTenantURL } from './utils/ApiUtils';
+import { getHostBaseUrl } from '../utils/ForgeRockUtils';
 import { generateAmApi } from './BaseApi';
 import { State } from '../shared/State';
 
@@ -90,7 +90,7 @@ export async function deleteRealm({
 }) {
   const urlString = util.format(
     realmURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     realmId
   );
   const { data } = await generateAmApi({

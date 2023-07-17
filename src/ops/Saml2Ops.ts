@@ -1,10 +1,7 @@
-import _ from 'lodash';
 import {
   Saml2ProiderLocation,
   Saml2ProviderSkeleton,
   Saml2ProviderStub,
-} from '../api/ApiTypes';
-import {
   createProvider,
   updateProvider,
   findProviders,
@@ -20,18 +17,19 @@ import {
   decodeBase64Url,
   encode,
   encodeBase64Url,
-} from '../api/utils/Base64';
+} from '../utils/Base64Utils';
 import { MultiOpStatusInterface, Saml2ExportInterface } from './OpsTypes';
 import { putScript } from './ScriptOps';
-import { debugMessage, printMessage } from './utils/Console';
+import { debugMessage, printMessage } from '../utils/Console';
 import {
   convertBase64TextToArray,
   convertBase64UrlTextToArray,
   convertTextArrayToBase64,
   convertTextArrayToBase64Url,
   getMetadata,
-} from './utils/ExportImportUtils';
+} from '../utils/ExportImportUtils';
 import { State } from '../shared/State';
+import { get } from '../utils/JsonUtils';
 
 export type Saml2 = {
   /**
@@ -325,7 +323,7 @@ async function exportDependencies({
   fileData: Saml2ExportInterface;
   state: State;
 }) {
-  const attrMapperScriptId = _.get(providerData, [
+  const attrMapperScriptId = get(providerData, [
     'identityProvider',
     'assertionProcessing',
     'attributeMapper',
@@ -336,7 +334,7 @@ async function exportDependencies({
     scriptData.script = convertBase64TextToArray(scriptData.script);
     fileData.script[attrMapperScriptId] = scriptData;
   }
-  const idpAdapterScriptId = _.get(providerData, [
+  const idpAdapterScriptId = get(providerData, [
     'identityProvider',
     'advanced',
     'idpAdapter',
@@ -568,7 +566,7 @@ async function importDependencies({
   state: State;
 }) {
   debugMessage({ message: `Saml2Ops.importDependencies: start`, state });
-  const attrMapperScriptId = _.get(providerData, [
+  const attrMapperScriptId = get(providerData, [
     'identityProvider',
     'assertionProcessing',
     'attributeMapper',
@@ -579,11 +577,11 @@ async function importDependencies({
       message: `Saml2Ops.importDependencies: attributeMapperScript=${attrMapperScriptId}`,
       state,
     });
-    const scriptData = _.get(fileData, ['script', attrMapperScriptId]);
+    const scriptData = get(fileData, ['script', attrMapperScriptId]);
     scriptData.script = convertTextArrayToBase64(scriptData.script as string[]);
     await putScript({ scriptId: attrMapperScriptId, scriptData, state });
   }
-  const idpAdapterScriptId = _.get(providerData, [
+  const idpAdapterScriptId = get(providerData, [
     'identityProvider',
     'advanced',
     'idpAdapter',
@@ -594,7 +592,7 @@ async function importDependencies({
       message: `Saml2Ops.importDependencies: idpAdapterScript=${idpAdapterScriptId}`,
       state,
     });
-    const scriptData = _.get(fileData, ['script', idpAdapterScriptId]);
+    const scriptData = get(fileData, ['script', idpAdapterScriptId]);
     scriptData.script = convertTextArrayToBase64(scriptData.script as string[]);
     await putScript({ scriptId: idpAdapterScriptId, scriptData, state });
   }

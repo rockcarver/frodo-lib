@@ -1,8 +1,9 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
-import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
+import { deleteDeepByKey } from '../utils/JsonUtils';
 import { State } from '../shared/State';
-import { debugMessage } from '../ops/utils/Console';
+import { debugMessage } from '../utils/Console';
 import { AgentSkeleton, AgentType } from './ApiTypes';
 
 const getAgentTypesURLTemplate =

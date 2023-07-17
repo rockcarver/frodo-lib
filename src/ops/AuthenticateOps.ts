@@ -1,7 +1,7 @@
 import url from 'url';
 import { createHash, randomBytes } from 'crypto';
 import readlineSync from 'readline-sync';
-import { encodeBase64Url } from '../api/utils/Base64';
+import { encodeBase64Url } from '../utils/Base64Utils';
 import { State } from '../shared/State';
 import Constants from '../shared/Constants';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
@@ -9,11 +9,11 @@ import { step } from '../api/AuthenticateApi';
 import { accessToken, authorize } from '../api/OAuth2OIDCApi';
 import { getConnectionProfile } from './ConnectionProfileOps';
 import { v4 } from 'uuid';
-import { parseUrl } from '../api/utils/ApiUtils';
+import { parseUrl } from '../utils/MiscUtils';
 import { JwkRsa, createSignedJwtToken } from './JoseOps';
 import { getServiceAccount } from './cloud/ServiceAccountOps';
-import { isValidUrl } from './utils/OpsUtils';
-import { debugMessage, printMessage, verboseMessage } from './utils/Console';
+import { isValidUrl } from '../utils/MiscUtils';
+import { debugMessage, printMessage, verboseMessage } from '../utils/Console';
 
 export type Authenticate = {
   /**

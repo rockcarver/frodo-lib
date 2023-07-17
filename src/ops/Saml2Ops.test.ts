@@ -50,12 +50,12 @@
 import { state } from '../index';
 import * as Saml2Ops from './Saml2Ops';
 import Constants from '../shared/Constants';
-import { Saml2ProiderLocation } from '../api/ApiTypes';
+import { Saml2ProiderLocation } from '../api/Saml2Api';
 import {
   getSaml2ProviderImportData,
   getSaml2ProvidersImportData,
 } from '../test/mocks/ForgeRockApiMockEngine';
-import { encodeBase64Url } from '../api/utils/Base64';
+import { encodeBase64Url } from '../utils/Base64Utils';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 
 autoSetupPolly();

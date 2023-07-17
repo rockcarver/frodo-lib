@@ -1,9 +1,9 @@
 import util from 'util';
-import { getCurrentRealmPath } from './utils/ApiUtils';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { generateAmApi } from './BaseApi';
 import { State } from '../shared/State';
-import { cloneDeep } from '../ops/utils/OpsUtils';
 import { PolicySetSkeleton } from './ApiTypes';
+import { cloneDeep } from '../utils/JsonUtils';
 
 const queryAllPolicySetURLTemplate =
   '%s/json%s/applications?_sortKeys=name&_queryFilter=name+eq+%22%5E(%3F!sunAMDelegationService%24).*%22';

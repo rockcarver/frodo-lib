@@ -1,3 +1,35 @@
+export type Base64 = {
+  isBase64Encoded(input: any): boolean;
+  encodeBase64(input: string, padding?: boolean): string;
+  decodeBase64(input: string): string;
+  decodeBase64Url(input: string): string;
+  encodeBase64Url(input: string): string;
+};
+
+export default (): Base64 => {
+  return {
+    isBase64Encoded(input) {
+      return isBase64Encoded(input);
+    },
+
+    encodeBase64(input: string, padding = true): string {
+      return encode(input, padding);
+    },
+
+    decodeBase64(input: string): string {
+      return decode(input);
+    },
+
+    decodeBase64Url(input: string): string {
+      return decodeBase64Url(input);
+    },
+
+    encodeBase64Url(input: string): string {
+      return encodeBase64Url(input);
+    },
+  };
+};
+
 /**
  * Regex to determine if a string is Base64-encoded
  */

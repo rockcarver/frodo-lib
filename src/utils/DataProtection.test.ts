@@ -1,4 +1,4 @@
-import StateImpl, { type State } from '../../shared/State';
+import StateImpl, { type State } from '../shared/State';
 import DataProtection from './DataProtection';
 
 const state: State = StateImpl({});

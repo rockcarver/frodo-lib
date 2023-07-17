@@ -47,7 +47,7 @@ import {
   PolicySkeleton,
   ScriptSkeleton,
 } from '../api/ApiTypes';
-import { cloneDeep } from './utils/OpsUtils';
+import { cloneDeep } from '../utils/JsonUtils';
 import { PolicyExportInterface } from '../../types/ops/PolicyOps';
 
 autoSetupPolly();

@@ -1,6 +1,7 @@
 import util from 'util';
 import { generateAmApi } from './BaseApi';
-import { deleteDeepByKey, getCurrentRealmPath } from './utils/ApiUtils';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
+import { deleteDeepByKey } from '../utils/JsonUtils';
 import { State } from '../shared/State';
 import { NoIdObjectSkeletonInterface, SocialIdpSkeleton } from './ApiTypes';
 

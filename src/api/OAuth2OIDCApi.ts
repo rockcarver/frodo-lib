@@ -1,8 +1,8 @@
 import util from 'util';
 import qs from 'qs';
 import { generateOauth2Api } from './BaseApi';
-import { getCurrentRealmPath } from './utils/ApiUtils';
-import { encode } from './utils/Base64';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
+import { encode } from '../utils/Base64Utils';
 import { AxiosRequestConfig } from 'axios';
 import { State } from '../shared/State';
 

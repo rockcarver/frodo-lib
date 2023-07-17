@@ -1,6 +1,6 @@
 import util from 'util';
-import { encode } from '../utils/Base64';
-import { getTenantURL } from '../utils/ApiUtils';
+import { encode } from '../../utils/Base64Utils';
+import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 import { State } from '../../shared/State';
 import { VersionOfSecretStatus } from '../ApiTypes';
@@ -26,7 +26,7 @@ const getApiConfig = () => ({
 export async function getSecrets({ state }: { state: State }) {
   const urlString = util.format(
     secretsListURLTemplate,
-    getTenantURL(state.getHost())
+    getHostBaseUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -51,7 +51,7 @@ export async function getSecret({
 }) {
   const urlString = util.format(
     secretURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     secretId
   );
   const { data } = await generateEnvApi({
@@ -97,7 +97,7 @@ export async function putSecret({
   };
   const urlString = util.format(
     secretURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     secretId
   );
   const { data } = await generateEnvApi({
@@ -126,7 +126,7 @@ export async function setSecretDescription({
 }) {
   const urlString = util.format(
     secretSetDescriptionURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     secretId
   );
   const { data } = await generateEnvApi({
@@ -150,7 +150,7 @@ export async function deleteSecret({
 }) {
   const urlString = util.format(
     secretURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     secretId
   );
   const { data } = await generateEnvApi({
@@ -176,7 +176,7 @@ export async function getSecretVersions({
 }) {
   const urlString = util.format(
     secretListVersionsURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     secretId
   );
   const { data } = await generateEnvApi({
@@ -205,7 +205,7 @@ export async function createNewVersionOfSecret({
 }) {
   const urlString = util.format(
     secretCreateNewVersionURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     secretId
   );
   const { data } = await generateEnvApi({
@@ -232,7 +232,7 @@ export async function getVersionOfSecret({
 }) {
   const urlString = util.format(
     secretGetVersionURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     secretId,
     version
   );
@@ -265,7 +265,7 @@ export async function setStatusOfVersionOfSecret({
 }) {
   const urlString = util.format(
     secretVersionStatusURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     secretId,
     version
   );
@@ -293,7 +293,7 @@ export async function deleteVersionOfSecret({
 }) {
   const urlString = util.format(
     secretGetVersionURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     secretId,
     version
   );

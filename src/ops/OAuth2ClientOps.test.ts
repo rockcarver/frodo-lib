@@ -32,7 +32,7 @@
 import { state } from '../index';
 import * as OAuth2ClientOps from './OAuth2ClientOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { cloneDeep } from './utils/OpsUtils';
+import { cloneDeep } from '../utils/JsonUtils';
 import {
   NoIdObjectSkeletonInterface,
   OAuth2ClientSkeleton,
