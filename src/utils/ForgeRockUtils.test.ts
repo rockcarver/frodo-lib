@@ -1,16 +1,22 @@
 /**
  * Run tests
  *
- *        npm run test ApiUtils
+ *        npm run test ForgeRockUtils
  *
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { getRealmPath, getCurrentRealmPath, getTenantURL } from './ApiUtils';
-import { state } from '../../index';
+import {
+  getRealmPath,
+  getCurrentRealmPath,
+  getHostBaseUrl,
+  getCurrentRealmManagedUser,
+} from './ForgeRockUtils';
+import { state } from '../index';
+import Constants from '../shared/Constants';
 
-describe.only('ApiUtils', () => {
-  describe.only('getRealmPath()', () => {
+describe('ForgeRockUtils', () => {
+  describe('getRealmPath()', () => {
     test("Should prepend realm path to specified realm 'alpha'", () => {
       const realm = 'alpha';
       const testString = getRealmPath(realm);
@@ -42,7 +48,7 @@ describe.only('ApiUtils', () => {
     });
   });
 
-  describe.only('getCurrentRealmPath()', () => {
+  describe('getCurrentRealmPath()', () => {
     test("Should prepend realm path to specified realm 'alpha'", () => {
       const realm = 'alpha';
       state.setRealm(realm);
@@ -79,12 +85,12 @@ describe.only('ApiUtils', () => {
     });
   });
 
-  describe.only('getTenantURL()', () => {
+  describe('getTenantURL()', () => {
     test('Should parse the https protocol and the hostname', () => {
       const URL_WITH_TENANT =
         'https://example.frodo.com/am/ui-admin/#realms/%2Falpha/dashboard';
 
-      const parsed = getTenantURL(URL_WITH_TENANT);
+      const parsed = getHostBaseUrl(URL_WITH_TENANT);
 
       expect(parsed).toBe('https://example.frodo.com');
     });
@@ -92,7 +98,7 @@ describe.only('ApiUtils', () => {
     test('Should not validate protocol', () => {
       const URL_WITH_TENANT =
         'ftp://example.frodo.com/am/ui-admin/#realms/%2Falpha/dashboard';
-      const parsed = getTenantURL(URL_WITH_TENANT);
+      const parsed = getHostBaseUrl(URL_WITH_TENANT);
       expect(parsed).toBe('ftp://example.frodo.com');
     });
 
@@ -100,9 +106,63 @@ describe.only('ApiUtils', () => {
       const URL_WITH_TENANT =
         '//:example.frodo.com/am/ui-admin/#realms/%2Falpha/dashboard';
       const trap = () => {
-        getTenantURL(URL_WITH_TENANT);
+        getHostBaseUrl(URL_WITH_TENANT);
       };
       expect(trap).toThrow('Invalid URL');
+    });
+  });
+
+  describe('OpsUtils - getRealmManagedUser()', () => {
+    test('getRealmManagedUser() 0: Method is implemented', async () => {
+      expect(getCurrentRealmManagedUser).toBeDefined();
+    });
+
+    test('getRealmManagedUser() 1: should prepend realm to managed user type in identity cloud', () => {
+      // Arrange
+      const REALM = 'alpha';
+      const DEPLOYMENT_TYPE = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
+      state.setRealm(REALM);
+      state.setDeploymentType(DEPLOYMENT_TYPE);
+      // Act
+      const testString = getCurrentRealmManagedUser({ state });
+      // Assert
+      expect(testString).toBe('alpha_user');
+    });
+
+    test('getRealmManagedUser() 2: should prepend realm without leading slash to managed user type in identity cloud', () => {
+      // Arrange
+      const REALM = '/alpha';
+      const DEPLOYMENT_TYPE = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
+      state.setRealm(REALM);
+      state.setDeploymentType(DEPLOYMENT_TYPE);
+      // Act
+      const testString = getCurrentRealmManagedUser({ state });
+      // Assert
+      expect(testString).toBe('alpha_user');
+    });
+
+    test('getRealmManagedUser() 3: should not prepend realm to managed user type in forgeops deployments', () => {
+      // Arrange
+      const REALM = 'alpha';
+      const DEPLOYMENT_TYPE = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
+      state.setRealm(REALM);
+      state.setDeploymentType(DEPLOYMENT_TYPE);
+      // Act
+      const testString = getCurrentRealmManagedUser({ state });
+      // Assert
+      expect(testString).toBe('user');
+    });
+
+    test('getRealmManagedUser() 4: should not prepend realm to managed user type in classic deployments', () => {
+      // Arrange
+      const REALM = 'alpha';
+      const DEPLOYMENT_TYPE = Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
+      state.setRealm(REALM);
+      state.setDeploymentType(DEPLOYMENT_TYPE);
+      // Act
+      const testString = getCurrentRealmManagedUser({ state });
+      // Assert
+      expect(testString).toBe('user');
     });
   });
 });

@@ -6,7 +6,7 @@ import {
   deletePolicy,
 } from '../api/PoliciesApi';
 import { getScript, putScript } from './ScriptOps';
-import { convertBase64TextToArray } from './utils/ExportImportUtils';
+import { convertBase64TextToArray } from '../utils/ExportImportUtils';
 import { ExportMetaData } from './OpsTypes';
 import {
   PolicyCondition,
@@ -15,8 +15,8 @@ import {
   ResourceTypeSkeleton,
   ScriptSkeleton,
 } from '../api/ApiTypes';
-import { getMetadata } from './utils/ExportImportUtils';
-import { debugMessage } from './utils/Console';
+import { getMetadata } from '../utils/ExportImportUtils';
+import { debugMessage } from '../utils/Console';
 import { getResourceType } from '../api/ResourceTypesApi';
 import { createPolicySet, getPolicySet, updatePolicySet } from './PolicySetOps';
 import { createResourceType, updateResourceType } from './ResourceTypeOps';

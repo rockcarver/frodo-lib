@@ -6,7 +6,7 @@ import url from 'url';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { curlirizeMessage, printMessage } from '../ops/utils/Console';
+import { curlirizeMessage, printMessage } from '../utils/Console';
 import _curlirize from '../ext/axios-curlirize/curlirize';
 import { randomUUID } from 'crypto';
 import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';

@@ -1,6 +1,6 @@
 import util from 'util';
 import { generateIdmApi } from './BaseApi';
-import { getTenantURL } from './utils/ApiUtils';
+import { getHostBaseUrl } from '../utils/ForgeRockUtils';
 import { State } from '../shared/State';
 import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
 
@@ -17,7 +17,7 @@ const idmManagedObjectURLTemplate =
 export async function getAllConfigEntities({ state }: { state: State }) {
   const urlString = util.format(
     idmAllConfigURLTemplate,
-    getTenantURL(state.getHost())
+    getHostBaseUrl(state.getHost())
   );
   const { data } = await generateIdmApi({ state }).get(urlString);
   return data;
@@ -37,7 +37,7 @@ export async function getConfigEntitiesByType({
 }) {
   const urlString = util.format(
     idmConfigEntityQueryTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     encodeURIComponent(`_id sw '${type}'`)
   );
   const { data } = await generateIdmApi({ state }).get(urlString);
@@ -58,7 +58,7 @@ export async function getConfigEntity({
 }) {
   const urlString = util.format(
     idmConfigURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     entityId
   );
   const { data } = await generateIdmApi({ state }).get(urlString);
@@ -82,7 +82,7 @@ export async function putConfigEntity({
 }) {
   const urlString = util.format(
     idmConfigURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     entityId
   );
   try {
@@ -107,7 +107,7 @@ export async function deleteConfigEntity({
 }) {
   const urlString = util.format(
     idmConfigURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     entityId
   );
   const { data } = await generateIdmApi({ state }).delete(urlString, {
@@ -143,7 +143,7 @@ export async function queryAllManagedObjectsByType({
     : `${idmManagedObjectURLTemplate}${fieldsParam}`;
   const urlString = util.format(
     urlTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     type
   );
   const { data } = await generateIdmApi({ state }).get(urlString);

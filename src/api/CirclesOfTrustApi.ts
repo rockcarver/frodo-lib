@@ -1,9 +1,9 @@
 import util from 'util';
-import _ from 'lodash';
 import { generateAmApi } from './BaseApi';
-import { getCurrentRealmPath } from './utils/ApiUtils';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { State } from '../shared/State';
 import { CircleOfTrustSkeleton } from './ApiTypes';
+import { cloneDeep } from '../utils/JsonUtils';
 
 const circleOfTrustByIdURLTemplate =
   '%s/json%s/realm-config/federation/circlesoftrust/%s';
@@ -76,7 +76,7 @@ export async function createCircleOfTrust({
   cotData: CircleOfTrustSkeleton;
   state: State;
 }) {
-  const postData = _.cloneDeep(cotData);
+  const postData = cloneDeep(cotData);
   const urlString = util.format(
     createCircleOfTrustURLTemplate,
     state.getHost(),

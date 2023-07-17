@@ -4,9 +4,9 @@ import {
 } from '../../api/ManagedObjectApi';
 import { JwksInterface } from '../JoseOps';
 import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
-import { debugMessage } from '../utils/Console';
+import { debugMessage } from '../../utils/Console';
 import { hasFeature } from './FeatureOps';
-import { getTenantURL } from '../../api/utils/ApiUtils';
+import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { State } from '../../shared/State';
 
 export type ServiceAccount = {
@@ -165,7 +165,7 @@ export async function createServiceAccount({
   });
   debugMessage({ message: payload, state });
   const result = await createManagedObject(
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     moType,
     payload,
     state
@@ -191,7 +191,7 @@ export async function getServiceAccount({
   state: State;
 }) {
   const serviceAccount = await getManagedObject({
-    baseUrl: getTenantURL(state.getHost()),
+    baseUrl: getHostBaseUrl(state.getHost()),
     type: moType,
     id: serviceAccountId,
     fields: ['*'],

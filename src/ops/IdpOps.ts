@@ -8,22 +8,22 @@ import { putScript } from './ScriptOps';
 import {
   convertBase64TextToArray,
   convertTextArrayToBase64,
-} from './utils/ExportImportUtils';
+} from '../utils/ExportImportUtils';
 import {
   printMessage,
   createProgressIndicator,
   updateProgressIndicator,
   stopProgressIndicator,
-} from './utils/Console';
+} from '../utils/Console';
 import { ExportMetaData } from './OpsTypes';
 import {
   NoIdObjectSkeletonInterface,
   ScriptSkeleton,
   SocialIdpSkeleton,
 } from '../api/ApiTypes';
-import { getMetadata } from './utils/ExportImportUtils';
+import { getMetadata } from '../utils/ExportImportUtils';
 import { State } from '../shared/State';
-import { debugMessage } from './utils/Console';
+import { debugMessage } from '../utils/Console';
 
 export type Idp = {
   /**

@@ -14,8 +14,8 @@ import crypto from 'crypto';
 import { homedir } from 'os';
 import { promisify } from 'util';
 import { printMessage } from './Console';
-import Constants from '../../shared/Constants';
-import { State } from '../../shared/State';
+import Constants from '../shared/Constants';
+import { State } from '../shared/State';
 
 const scrypt = promisify(crypto.scrypt);
 // using WeakMaps for added security since  it gets garbage collected

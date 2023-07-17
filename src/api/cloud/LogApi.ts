@@ -1,6 +1,6 @@
 import util from 'util';
 import { generateLogApi, generateLogKeysApi } from '../BaseApi';
-import { getTenantURL } from '../utils/ApiUtils';
+import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { State } from '../../shared/State';
 import { LogApiKey, LogEventSkeleton, PagedResult } from '../ApiTypes';
 
@@ -25,7 +25,7 @@ export async function getLogApiKey({
 }): Promise<LogApiKey> {
   const urlString = util.format(
     logsAPIKeyURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     keyId
   );
   const { data } = await generateLogKeysApi({ state }).get(urlString);
@@ -43,7 +43,7 @@ export async function getLogApiKeys({
 }): Promise<PagedResult<LogApiKey>> {
   const urlString = util.format(
     logsGetAPIKeysURLTemplate,
-    getTenantURL(state.getHost())
+    getHostBaseUrl(state.getHost())
   );
   const { data } = await generateLogKeysApi({ state }).get(urlString);
   return data;
@@ -60,7 +60,7 @@ export async function getSources({
 }): Promise<PagedResult<string>> {
   const urlString = util.format(
     logsSourcesURLTemplate,
-    getTenantURL(state.getHost())
+    getHostBaseUrl(state.getHost())
   );
   const { data } = await generateLogApi({ state }).get(urlString);
   return data;
@@ -80,7 +80,7 @@ export async function createLogApiKey({
 }): Promise<LogApiKey> {
   const urlString = util.format(
     logsCreateAPIKeyAndSecretURLTemplate,
-    getTenantURL(state.getHost())
+    getHostBaseUrl(state.getHost())
   );
   const { data } = await generateLogKeysApi({ state }).post(urlString, {
     name: keyName,
@@ -102,7 +102,7 @@ export async function deleteLogApiKey({
 }): Promise<unknown> {
   const urlString = util.format(
     logsAPIKeyURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     keyId
   );
   const { data } = await generateLogKeysApi({ state }).delete(urlString, {
@@ -128,7 +128,7 @@ export async function tail({
 }): Promise<PagedResult<LogEventSkeleton>> {
   let urlString = util.format(
     logsTailURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     encodeURIComponent(source)
   );
   if (cookie) {
@@ -161,7 +161,7 @@ export async function fetch({
 }): Promise<PagedResult<LogEventSkeleton>> {
   let urlString = util.format(
     logsFetchURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     encodeURIComponent(source),
     startTs,
     endTs
