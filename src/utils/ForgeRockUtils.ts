@@ -1,6 +1,48 @@
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 
+export type FRUtils = {
+  applyNameCollisionPolicy(name: string): string;
+  getRealmPath(realm: string): string;
+  getCurrentRealmPath(): string;
+  getCurrentRealmName(): string;
+  getCurrentRealmManagedUser(): string;
+  getRealmName(realm: string): string;
+  getHostBaseUrl(url: string): string;
+};
+
+export default (state: State): FRUtils => {
+  return {
+    applyNameCollisionPolicy(name: string): string {
+      return applyNameCollisionPolicy(name);
+    },
+
+    getRealmPath(realm: string): string {
+      return getRealmPath(realm);
+    },
+
+    getCurrentRealmPath(): string {
+      return getCurrentRealmPath(state);
+    },
+
+    getCurrentRealmName(): string {
+      return getCurrentRealmName(state);
+    },
+
+    getCurrentRealmManagedUser(): string {
+      return getCurrentRealmManagedUser({ state });
+    },
+
+    getRealmName(realm: string): string {
+      return getRealmName(realm);
+    },
+
+    getHostBaseUrl(url: string): string {
+      return getHostBaseUrl(url);
+    },
+  };
+};
+
 /**
  * Get new name when names collide
  * @param {string} name to apply policy to
@@ -23,7 +65,7 @@ export function applyNameCollisionPolicy(name: string): string {
  * @param {string} realm realm
  * @returns {string} a CREST-compliant realm path, e.g. /realms/root/realms/alpha
  */
-export function getRealmPath(realm: string) {
+export function getRealmPath(realm: string): string {
   if (realm.startsWith('/')) {
     realm = realm.substring(1);
   }
@@ -38,15 +80,15 @@ export function getRealmPath(realm: string) {
  * Get current realm path
  * @returns {string} a CREST-compliant realm path, e.g. /realms/root/realms/alpha
  */
-export function getCurrentRealmPath(state: State) {
+export function getCurrentRealmPath(state: State): string {
   return getRealmPath(state.getRealm());
 }
 
 /**
  * Get current realm name
- * @returns {String} name of the current realm. /alpha -> alpha
+ * @returns {string} name of the current realm. /alpha -> alpha
  */
-export function getCurrentRealmName(state: State) {
+export function getCurrentRealmName(state: State): string {
   const realm = state.getRealm();
   const components = realm.split('/');
   let realmName = '/';
@@ -60,7 +102,11 @@ export function getCurrentRealmName(state: State) {
  * Get the name of the managed user object for the current realm
  * @returns {string} the name of the managed user object for the current realm
  */
-export function getRealmManagedUser({ state }: { state: State }): string {
+export function getCurrentRealmManagedUser({
+  state,
+}: {
+  state: State;
+}): string {
   let realmManagedUser = 'user';
   if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
     realmManagedUser = `${getCurrentRealmName(state)}_user`;
@@ -70,10 +116,10 @@ export function getRealmManagedUser({ state }: { state: State }): string {
 
 /**
  * Get current realm name
- * @param {String} realm realm
- * @returns {String} name of the realm. /alpha -> alpha
+ * @param {string} realm realm
+ * @returns {string} name of the realm. /alpha -> alpha
  */
-export function getRealmName(realm) {
+export function getRealmName(realm: string): string {
   const components = realm.split('/');
   let realmName = '/';
   if (components.length > 0 && realmName !== realm) {
@@ -84,10 +130,10 @@ export function getRealmName(realm) {
 
 /**
  * Get tenant base URL
- * @param {String} tenant tenant URL with path and query params
- * @returns {String} tenant base URL without path and query params
+ * @param {string} url tenant URL with path and query params
+ * @returns {string} tenant base URL without path and query params
  */
-export function getTenantURL(tenant) {
-  const parsedUrl = new URL(tenant);
+export function getHostBaseUrl(url: string): string {
+  const parsedUrl = new URL(url);
   return `${parsedUrl.protocol}//${parsedUrl.host}`;
 }

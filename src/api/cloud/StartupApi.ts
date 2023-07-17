@@ -1,5 +1,5 @@
 import util from 'util';
-import { getTenantURL } from '../../utils/ForgeRockUtils';
+import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 import { State } from '../../shared/State';
 
@@ -28,7 +28,7 @@ export async function getStatus({
 }): Promise<RestartStatus> {
   const urlString = util.format(
     startupURLTemplate,
-    getTenantURL(state.getHost())
+    getHostBaseUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -52,7 +52,7 @@ export async function initiateRestart({
   if (restartStatus === RestartStatus.ready) {
     const urlString = util.format(
       startupInitiateRestartURLTemplate,
-      getTenantURL(state.getHost())
+      getHostBaseUrl(state.getHost())
     );
     const { data } = await generateEnvApi({
       resource: getApiConfig(),

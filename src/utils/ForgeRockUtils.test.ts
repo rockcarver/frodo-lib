@@ -9,8 +9,8 @@
 import {
   getRealmPath,
   getCurrentRealmPath,
-  getTenantURL,
-  getRealmManagedUser,
+  getHostBaseUrl,
+  getCurrentRealmManagedUser,
 } from './ForgeRockUtils';
 import { state } from '../index';
 import Constants from '../shared/Constants';
@@ -90,7 +90,7 @@ describe('ForgeRockUtils', () => {
       const URL_WITH_TENANT =
         'https://example.frodo.com/am/ui-admin/#realms/%2Falpha/dashboard';
 
-      const parsed = getTenantURL(URL_WITH_TENANT);
+      const parsed = getHostBaseUrl(URL_WITH_TENANT);
 
       expect(parsed).toBe('https://example.frodo.com');
     });
@@ -98,7 +98,7 @@ describe('ForgeRockUtils', () => {
     test('Should not validate protocol', () => {
       const URL_WITH_TENANT =
         'ftp://example.frodo.com/am/ui-admin/#realms/%2Falpha/dashboard';
-      const parsed = getTenantURL(URL_WITH_TENANT);
+      const parsed = getHostBaseUrl(URL_WITH_TENANT);
       expect(parsed).toBe('ftp://example.frodo.com');
     });
 
@@ -106,7 +106,7 @@ describe('ForgeRockUtils', () => {
       const URL_WITH_TENANT =
         '//:example.frodo.com/am/ui-admin/#realms/%2Falpha/dashboard';
       const trap = () => {
-        getTenantURL(URL_WITH_TENANT);
+        getHostBaseUrl(URL_WITH_TENANT);
       };
       expect(trap).toThrow('Invalid URL');
     });
@@ -114,7 +114,7 @@ describe('ForgeRockUtils', () => {
 
   describe('OpsUtils - getRealmManagedUser()', () => {
     test('getRealmManagedUser() 0: Method is implemented', async () => {
-      expect(getRealmManagedUser).toBeDefined();
+      expect(getCurrentRealmManagedUser).toBeDefined();
     });
 
     test('getRealmManagedUser() 1: should prepend realm to managed user type in identity cloud', () => {
@@ -124,7 +124,7 @@ describe('ForgeRockUtils', () => {
       state.setRealm(REALM);
       state.setDeploymentType(DEPLOYMENT_TYPE);
       // Act
-      const testString = getRealmManagedUser({ state });
+      const testString = getCurrentRealmManagedUser({ state });
       // Assert
       expect(testString).toBe('alpha_user');
     });
@@ -136,7 +136,7 @@ describe('ForgeRockUtils', () => {
       state.setRealm(REALM);
       state.setDeploymentType(DEPLOYMENT_TYPE);
       // Act
-      const testString = getRealmManagedUser({ state });
+      const testString = getCurrentRealmManagedUser({ state });
       // Assert
       expect(testString).toBe('alpha_user');
     });
@@ -148,7 +148,7 @@ describe('ForgeRockUtils', () => {
       state.setRealm(REALM);
       state.setDeploymentType(DEPLOYMENT_TYPE);
       // Act
-      const testString = getRealmManagedUser({ state });
+      const testString = getCurrentRealmManagedUser({ state });
       // Assert
       expect(testString).toBe('user');
     });
@@ -160,7 +160,7 @@ describe('ForgeRockUtils', () => {
       state.setRealm(REALM);
       state.setDeploymentType(DEPLOYMENT_TYPE);
       // Act
-      const testString = getRealmManagedUser({ state });
+      const testString = getCurrentRealmManagedUser({ state });
       // Assert
       expect(testString).toBe('user');
     });

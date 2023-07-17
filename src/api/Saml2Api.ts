@@ -3,7 +3,7 @@ import { State } from '../shared/State';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
-import { Saml2ProviderSkeleton } from './ApiTypes';
+import { IdObjectSkeletonInterface } from './ApiTypes';
 
 const providerByLocationAndIdURLTemplate = '%s/json%s/realm-config/saml2/%s/%s';
 const createHostedProviderURLTemplate =
@@ -21,6 +21,34 @@ const getApiConfig = () => {
   return {
     apiVersion,
   };
+};
+
+export type Saml2ProiderLocation = 'hosted' | 'remote';
+
+export type Saml2ProviderStub = IdObjectSkeletonInterface & {
+  entityId: string;
+  location: Saml2ProiderLocation;
+  roles: string[];
+};
+
+export type Saml2ProviderSkeleton = IdObjectSkeletonInterface & {
+  entityId: string;
+  entityLocation: Saml2ProiderLocation;
+  serviceProvider: unknown;
+  identityProvider: {
+    assertionProcessing?: {
+      attributeMapper?: {
+        attributeMapperScript?: string;
+      };
+    };
+    advanced?: {
+      idpAdapter?: {
+        idpAdapterScript?: string;
+      };
+    };
+  };
+  attributeQueryProvider: unknown;
+  xacmlPolicyEnforcementPoint: unknown;
 };
 
 /**

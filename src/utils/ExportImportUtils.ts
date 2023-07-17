@@ -7,7 +7,7 @@ import {
   decodeBase64Url,
   encode,
   encodeBase64Url,
-} from '../utils/Base64';
+} from './Base64Utils';
 import { State } from '../shared/State';
 import Constants from '../shared/Constants';
 import { ExportMetaData } from '../ops/OpsTypes';
@@ -64,6 +64,10 @@ export type ExportImport = {
    * @returns list of files
    */
   readFilesRecursive(directory: string): Promise<string[]>;
+
+  substituteEnvParams(input: string, reader: Reader): string;
+
+  unSubstituteEnvParams(input: string, reader: Reader): string;
 };
 
 export default (state: State): ExportImport => {
@@ -170,6 +174,14 @@ export default (state: State): ExportImport => {
      */
     async readFilesRecursive(directory: string): Promise<string[]> {
       return readFilesRecursive(directory);
+    },
+
+    substituteEnvParams(input: string, reader: Reader): string {
+      return substituteEnvParams(input, reader);
+    },
+
+    unSubstituteEnvParams(input: string, reader: Reader): string {
+      return unSubstituteEnvParams(input, reader);
     },
   };
 };
@@ -396,14 +408,14 @@ export async function readFilesRecursive(directory: string): Promise<string[]> {
   return filePathsNested.flat();
 }
 
-export function substituteEnvParams(input: string, reader: Reader) {
+export function substituteEnvParams(input: string, reader: Reader): string {
   reader.each((key, value) => {
     input = replaceall(value, `\${${key}}`, input);
   });
   return input;
 }
 
-export function unSubstituteEnvParams(input: string, reader: Reader) {
+export function unSubstituteEnvParams(input: string, reader: Reader): string {
   reader.each((key, value) => {
     input = replaceall(`\${${key}}`, value, input);
   });

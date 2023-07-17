@@ -46,6 +46,8 @@ import VersionUtils, { Version } from '../ops/VersionUtils';
 
 // non-instantiable modules
 import ConstantsImpl, { Constants } from '../shared/Constants';
+import ForgeRockUtils, { FRUtils } from '../utils/ForgeRockUtils';
+import Base64Utils, { Base64 } from '../utils/Base64Utils';
 
 /**
  * Frodo Library
@@ -110,14 +112,14 @@ export type Frodo = {
 
   theme: Theme;
 
-  // utils: Utils & {
-  utils: {
-    constants: Constants;
-    impex: ExportImport;
-    jose: Jose;
-    script: ScriptValidation;
-    version: Version;
-  };
+  utils: FRUtils &
+    ScriptValidation &
+    ExportImport &
+    Base64 & {
+      constants: Constants;
+      jose: Jose;
+      version: Version;
+    };
 
   /**
    * Create a new frodo instance
@@ -241,11 +243,12 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     theme: ThemeOps(state),
 
     utils: {
-      // ...OpsUtils(state),
+      ...ForgeRockUtils(state),
+      ...ScriptValidationUtils(state),
+      ...ExportImportUtils(state),
+      ...Base64Utils(),
       constants: ConstantsImpl,
-      impex: ExportImportUtils(state),
       jose: JoseOps(state),
-      script: ScriptValidationUtils(state),
       version: VersionUtils(state),
     },
 

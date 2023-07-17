@@ -1,6 +1,6 @@
 import { parseScript } from 'esprima';
 import { ScriptSkeleton } from '../api/ApiTypes';
-import { decode } from './Base64';
+import { decode } from './Base64Utils';
 import { printMessage } from './Console';
 import { State } from '../shared/State';
 
