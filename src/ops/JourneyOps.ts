@@ -9,7 +9,7 @@ import {
   findFilesByName,
   getMetadata,
 } from '../utils/ExportImportUtils';
-import { getRealmManagedUser } from '../utils/ForgeRockUtils';
+import { getCurrentRealmManagedUser } from '../utils/ForgeRockUtils';
 import {
   getNode,
   putNode,
@@ -47,7 +47,7 @@ import {
   encode,
   encodeBase64Url,
   isBase64Encoded,
-} from '../utils/Base64';
+} from '../utils/Base64Utils';
 import {
   getSocialIdentityProviders,
   putProviderByTypeAndId,
@@ -1493,7 +1493,9 @@ export async function importJourney({
         innerNodeData['identityResource'].endsWith('user') &&
         innerNodeData['identityResource'] === treeObject.tree.identityResource
       ) {
-        innerNodeData['identityResource'] = `managed/${getRealmManagedUser({
+        innerNodeData[
+          'identityResource'
+        ] = `managed/${getCurrentRealmManagedUser({
           state,
         })}`;
         if (verbose)
@@ -1620,7 +1622,7 @@ export async function importJourney({
         nodeData.identityResource.endsWith('user') &&
         nodeData.identityResource === treeObject.tree.identityResource
       ) {
-        nodeData['identityResource'] = `managed/${getRealmManagedUser({
+        nodeData['identityResource'] = `managed/${getCurrentRealmManagedUser({
           state,
         })}`;
         if (verbose)
@@ -1714,7 +1716,7 @@ export async function importJourney({
     state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
     state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
   ) {
-    treeObject.tree.identityResource = `managed/${getRealmManagedUser({
+    treeObject.tree.identityResource = `managed/${getCurrentRealmManagedUser({
       state,
     })}`;
     if (verbose)

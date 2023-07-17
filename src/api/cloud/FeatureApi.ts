@@ -1,5 +1,5 @@
 import util from 'util';
-import { getTenantURL } from '../../utils/ForgeRockUtils';
+import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { generateAmApi } from '../BaseApi';
 import { State } from '../../shared/State';
 import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
@@ -24,7 +24,7 @@ export async function getFeatures({ state }: { state: State }): Promise<{
 }> {
   const urlString = util.format(
     envInfoURLTemplate,
-    getTenantURL(state.getHost())
+    getHostBaseUrl(state.getHost())
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
     urlString,

@@ -1,7 +1,7 @@
 import url from 'url';
 import { createHash, randomBytes } from 'crypto';
 import readlineSync from 'readline-sync';
-import { encodeBase64Url } from '../utils/Base64';
+import { encodeBase64Url } from '../utils/Base64Utils';
 import { State } from '../shared/State';
 import Constants from '../shared/Constants';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';

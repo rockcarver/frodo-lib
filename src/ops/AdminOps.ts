@@ -1,13 +1,12 @@
 import fs from 'fs';
-import _ from 'lodash';
 import {
   getOAuth2Clients,
   getOAuth2Client,
   putOAuth2Client,
 } from '../ops/OAuth2ClientOps';
 import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
-import { isEqualJson } from '../utils/JsonUtils';
-import { getRealmManagedUser } from '../utils/ForgeRockUtils';
+import { get, isEqualJson } from '../utils/JsonUtils';
+import { getCurrentRealmManagedUser } from '../utils/ForgeRockUtils';
 import { getRealmManagedOrganization } from './OrganizationOps';
 import { getOAuth2Provider } from '../ops/OAuth2ProviderOps';
 import { putSecret } from '../api/cloud/SecretsApi';
@@ -1081,8 +1080,8 @@ export async function createLongLivedToken({
       response.secret = secret;
     } catch (error) {
       if (
-        _.get(error, 'response.data.code') === 400 &&
-        _.get(error, 'response.data.message') ===
+        get(error, ['response', 'data', 'code']) === 400 &&
+        get(error, ['response', 'data', 'message']) ===
           'Failed to create secret, the secret already exists'
       ) {
         const newSecret = `${secret}-${expires}`;
@@ -1168,7 +1167,7 @@ export async function hideGenericExtensionAttributes({
   const propertyNames = Object.keys(GENERIC_EXTENSION_ATTRIBUTES);
   const updatedObjects = managed.objects.map((object) => {
     // ignore all other objects
-    if (object.name !== getRealmManagedUser({ state })) {
+    if (object.name !== getCurrentRealmManagedUser({ state })) {
       return object;
     }
     propertyNames.forEach((name) => {
@@ -1227,7 +1226,7 @@ export async function showGenericExtensionAttributes({
   const propertyNames = Object.keys(GENERIC_EXTENSION_ATTRIBUTES);
   const updatedObjects = managed.objects.map((object) => {
     // ignore all other objects
-    if (object.name !== getRealmManagedUser({ state })) {
+    if (object.name !== getCurrentRealmManagedUser({ state })) {
       return object;
     }
     propertyNames.forEach((name) => {
@@ -1285,7 +1284,7 @@ async function repairOrgModelUser({
   let repairData = false;
   const updatedObjects = managed.objects.map((object) => {
     // ignore all other objects
-    if (object.name !== getRealmManagedUser({ state })) {
+    if (object.name !== getCurrentRealmManagedUser({ state })) {
       return object;
     }
     printMessage({ message: `${object.name}: checking...`, state });

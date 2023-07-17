@@ -10,7 +10,7 @@ import * as Jose from './JoseOps';
 import { parseUrl } from '../utils/MiscUtils';
 import { v4 } from 'uuid';
 import { isEqualJson } from '../utils/JsonUtils';
-import { decode } from '../utils/Base64';
+import { decode } from '../utils/Base64Utils';
 
 describe('JoseOps - createJWK()', () => {
   test('createJWK() 0: Method is implemented', async () => {

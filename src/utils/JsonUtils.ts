@@ -74,3 +74,16 @@ export function findInArray(objs: any[], predicate: any): any {
   if (results.length > 0) return results[0];
   return undefined;
 }
+
+export function get(
+  obj: any,
+  path: string[],
+  defaultValue: any = undefined
+): any {
+  let result = obj;
+  for (const element of path) {
+    result = result[element];
+    if (!result) return defaultValue;
+  }
+  return result;
+}

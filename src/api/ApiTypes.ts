@@ -251,23 +251,6 @@ export type ScriptSkeleton = IdObjectSkeletonInterface & {
   lastModifiedDate: number;
 };
 
-export type Saml2ProiderLocation = 'hosted' | 'remote';
-
-export type Saml2ProviderStub = IdObjectSkeletonInterface & {
-  entityId: string;
-  location: Saml2ProiderLocation;
-  roles: string[];
-};
-
-export type Saml2ProviderSkeleton = IdObjectSkeletonInterface & {
-  entityId: string;
-  entityLocation: Saml2ProiderLocation;
-  serviceProvider: unknown;
-  identityProvider: unknown;
-  attributeQueryProvider: unknown;
-  xacmlPolicyEnforcementPoint: unknown;
-};
-
 export type CircleOfTrustSkeleton = IdObjectSkeletonInterface & {
   _type: AmServiceType;
   status: string;

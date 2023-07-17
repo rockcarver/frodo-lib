@@ -1,5 +1,5 @@
 import { getManagedObject } from '../api/ManagedObjectApi';
-import { getTenantURL } from '../utils/ForgeRockUtils';
+import { getHostBaseUrl } from '../utils/ForgeRockUtils';
 import { State } from '../shared/State';
 
 export type ManagedObject = {
@@ -65,7 +65,7 @@ export async function resolveUserName({
   try {
     return (
       await getManagedObject({
-        baseUrl: getTenantURL(state.getHost()),
+        baseUrl: getHostBaseUrl(state.getHost()),
         type,
         id,
         fields: ['userName'],
@@ -96,7 +96,7 @@ export async function resolveFullName({
 }) {
   try {
     const managedObject = await getManagedObject({
-      baseUrl: getTenantURL(state.getHost()),
+      baseUrl: getHostBaseUrl(state.getHost()),
       type,
       id,
       fields: ['givenName', 'sn'],

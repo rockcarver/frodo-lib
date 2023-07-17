@@ -1,6 +1,6 @@
 import util from 'util';
-import { encode } from '../../utils/Base64';
-import { getTenantURL } from '../../utils/ForgeRockUtils';
+import { encode } from '../../utils/Base64Utils';
+import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 import { State } from '../../shared/State';
 
@@ -22,7 +22,7 @@ const getApiConfig = () => {
 export async function getVariables({ state }: { state: State }) {
   const urlString = util.format(
     variablesListURLTemplate,
-    getTenantURL(state.getHost())
+    getHostBaseUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -47,7 +47,7 @@ export async function getVariable({
 }) {
   const urlString = util.format(
     variableURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     variableId
   );
   const { data } = await generateEnvApi({
@@ -82,7 +82,7 @@ export async function putVariable({
   if (description) variableData['description'] = description;
   const urlString = util.format(
     variableURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     variableId
   );
   const { data } = await generateEnvApi({
@@ -111,7 +111,7 @@ export async function setVariableDescription({
 }) {
   const urlString = util.format(
     variableSetDescriptionURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     variableId
   );
   const { data } = await generateEnvApi({
@@ -135,7 +135,7 @@ export async function deleteVariable({
 }) {
   const urlString = util.format(
     variableURLTemplate,
-    getTenantURL(state.getHost()),
+    getHostBaseUrl(state.getHost()),
     variableId
   );
   const { data } = await generateEnvApi({

@@ -1,6 +1,6 @@
 import util from 'util';
 import { generateIdmApi } from './BaseApi';
-import { getTenantURL } from '../utils/ForgeRockUtils';
+import { getHostBaseUrl } from '../utils/ForgeRockUtils';
 import { State } from '../shared/State';
 
 const testConnectorServersURLTemplate =
@@ -27,7 +27,7 @@ export async function testConnectorServers({
 }): Promise<TestConnectorServersInterface> {
   const urlString = util.format(
     testConnectorServersURLTemplate,
-    getTenantURL(state.getHost())
+    getHostBaseUrl(state.getHost())
   );
   const { data } = await generateIdmApi({ state, requestOverride: {} }).post(
     urlString
