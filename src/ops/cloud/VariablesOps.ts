@@ -39,7 +39,7 @@ export type Variable = {
     variableId: string,
     value: string,
     description: string,
-    expressionType: VariableExpressionType
+    expressionType?: VariableExpressionType
   ): Promise<VariableSkeleton>;
   /**
    * Set variable description
@@ -65,7 +65,7 @@ export default (state: State): Variable => {
       variableId: string,
       value: string,
       description: string,
-      expressionType: VariableExpressionType
+      expressionType: VariableExpressionType = 'string'
     ) {
       return putVariable({
         variableId,
