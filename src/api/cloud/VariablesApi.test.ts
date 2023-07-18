@@ -7,7 +7,7 @@
  *    script and override all the connection state variables required
  *    to connect to the env to record from:
  *
- *        FRODO_DEBUG=1 FRODO_HOST=volker-dev npm run test:record VariablesApi
+ *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record VariablesApi
  *
  *    The above command assumes that you have a connection profile for
  *    'volker-dev' on your development machine.
@@ -35,108 +35,156 @@ import { state } from '../../index';
 
 autoSetupPolly();
 
+type TestVariable = {
+  name: string;
+  value: string;
+  description: string;
+  type: VariablesApi.VariableExpressionType;
+};
+
+async function stageVariable(variable: TestVariable, create = true) {
+  // delete if exists, then create
+  try {
+    await VariablesApi.getVariable({
+      variableId: variable.name,
+      state,
+    });
+    await VariablesApi.deleteVariable({
+      variableId: variable.name,
+      state,
+    });
+  } catch (error) {
+    // ignore
+  } finally {
+    if (create) {
+      try {
+        await VariablesApi.putVariable({
+          variableId: variable.name,
+          value: variable.value,
+          description: variable.description,
+          expressionType: variable.type,
+          state,
+        });
+      } catch (error) {
+        // ignore
+      }
+    }
+  }
+}
+
 describe('VariablesApi', () => {
-  const var1 = {
+  const var1: TestVariable = {
     name: 'esv-frodo-test-variable1',
     value: 'Frodo Test Variable One Value',
     description: 'Frodo Test Variable One Description',
+    type: 'string',
   };
-  const var2 = {
+  const var2: TestVariable = {
     name: 'esv-frodo-test-variable2',
     value: 'Frodo Test Variable Two Value',
     description: 'Frodo Test Variable Two Description',
+    type: 'string',
   };
-  const var3 = {
+  const var3: TestVariable = {
     name: 'esv-frodo-test-variable3',
     value: 'Frodo Test Variable Three Value',
     description: 'Frodo Test Variable Three Description',
+    type: 'string',
   };
-  const var4 = {
+  const var4: TestVariable = {
     name: 'esv-frodo-test-variable4',
     value: 'Frodo Test Variable Four Value',
     description: 'Frodo Test Variable Four Description',
+    type: 'string',
+  };
+  const var5: TestVariable = {
+    name: 'esv-frodo-test-variable5',
+    value: 'Frodo Test Variable Five Value',
+    description: 'Frodo Test Variable Five (string) Description',
+    type: 'string',
+  };
+  const var6: TestVariable = {
+    name: 'esv-frodo-test-variable6',
+    value: '["one","two","three","four","five",6,7,8,9,10]',
+    description: 'Frodo Test Variable Six (array) Description',
+    type: 'array',
+  };
+  // const var7: TestVariable = {
+  //   name: 'esv-frodo-test-variable7',
+  //   value: '',
+  //   description: 'Frodo Test Variable Seven (base64encodedinlined) Description',
+  //   type: 'base64encodedinlined',
+  // };
+  const var8: TestVariable = {
+    name: 'esv-frodo-test-variable8',
+    value: 'false',
+    description: 'Frodo Test Variable Eight (bool) Description',
+    type: 'bool',
+  };
+  const var9: TestVariable = {
+    name: 'esv-frodo-test-variable9',
+    value: '12345',
+    description: 'Frodo Test Variable Nine (int) Description',
+    type: 'int',
+  };
+  const var10: TestVariable = {
+    name: 'esv-frodo-test-variable10',
+    value: '{"k1":"v1","k2":"v2","k3":"v3"}',
+    description: 'Frodo Test Variable Ten (keyvaluelist) Description',
+    type: 'keyvaluelist',
+  };
+  const var11: TestVariable = {
+    name: 'esv-frodo-test-variable11',
+    value: 'one,two,three,four,five,6,7,8,9,10',
+    description: 'Frodo Test Variable Eleven (list) Description',
+    type: 'list',
+  };
+  const var12: TestVariable = {
+    name: 'esv-frodo-test-variable12',
+    value: '123.45',
+    description: 'Frodo Test Variable Twelve (number) Description',
+    type: 'number',
+  };
+  const var13: TestVariable = {
+    name: 'esv-frodo-test-variable13',
+    value: '{ "a": [{ "b": { "c": 3 } }] }',
+    description: 'Frodo Test Variable Thirteen (object) Description',
+    type: 'object',
   };
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
-      // setup var1 - delete if exists, then create
-      try {
-        await VariablesApi.getVariable({ variableId: var1.name, state });
-        await VariablesApi.deleteVariable({ variableId: var1.name, state });
-      } catch (error) {
-        // ignore
-      } finally {
-        await VariablesApi.putVariable({
-          variableId: var1.name,
-          value: var1.value,
-          description: var1.description,
-          state,
-        });
-      }
-      // setup var2 - delete if exists, then create
-      try {
-        await VariablesApi.getVariable({ variableId: var2.name, state });
-        await VariablesApi.deleteVariable({ variableId: var2.name, state });
-      } catch (error) {
-        // ignore
-      } finally {
-        await VariablesApi.putVariable({
-          variableId: var2.name,
-          value: var2.value,
-          description: var2.description,
-          state,
-        });
-      }
-      // setup var3 - delete if exists, then create
-      try {
-        await VariablesApi.getVariable({ variableId: var3.name, state });
-        await VariablesApi.deleteVariable({ variableId: var3.name, state });
-      } catch (error) {
-        // ignore
-      } finally {
-        await VariablesApi.putVariable({
-          variableId: var3.name,
-          value: var3.value,
-          description: var3.description,
-          state,
-        });
-      }
-      // setup var4 - delete if exists
-      try {
-        await VariablesApi.getVariable({ variableId: var4.name, state });
-        await VariablesApi.deleteVariable({ variableId: var4.name, state });
-      } catch (error) {
-        // ignore
-      }
+      await stageVariable(var1, true);
+      await stageVariable(var2, true);
+      await stageVariable(var3, true);
+      await stageVariable(var4, false);
+      await stageVariable(var5, false);
+      await stageVariable(var6, false);
+      // await stageVariable(var7, false);
+      await stageVariable(var8, false);
+      await stageVariable(var9, false);
+      await stageVariable(var10, false);
+      await stageVariable(var11, false);
+      await stageVariable(var12, false);
+      await stageVariable(var13, false);
     }
   });
   // in recording mode, remove test data after recording
   afterAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
-      try {
-        await VariablesApi.getVariable({ variableId: var1.name, state });
-        await VariablesApi.deleteVariable({ variableId: var1.name, state });
-      } catch (error) {
-        // ignore
-      }
-      try {
-        await VariablesApi.getVariable({ variableId: var2.name, state });
-        await VariablesApi.deleteVariable({ variableId: var2.name, state });
-      } catch (error) {
-        // ignore
-      }
-      try {
-        await VariablesApi.getVariable({ variableId: var3.name, state });
-        await VariablesApi.deleteVariable({ variableId: var3.name, state });
-      } catch (error) {
-        // ignore
-      }
-      try {
-        await VariablesApi.getVariable({ variableId: var4.name, state });
-        await VariablesApi.deleteVariable({ variableId: var4.name, state });
-      } catch (error) {
-        // ignore
-      }
+      await stageVariable(var1, false);
+      await stageVariable(var2, false);
+      await stageVariable(var3, false);
+      await stageVariable(var4, false);
+      await stageVariable(var5, false);
+      await stageVariable(var6, false);
+      // await stageVariable(var7, false);
+      await stageVariable(var8, false);
+      await stageVariable(var9, false);
+      await stageVariable(var10, false);
+      await stageVariable(var11, false);
+      await stageVariable(var12, false);
+      await stageVariable(var13, false);
     }
   });
 
@@ -182,11 +230,111 @@ describe('VariablesApi', () => {
       expect(VariablesApi.putVariable).toBeDefined();
     });
 
-    test(`2: Create new variable: ${var4.name} - success`, async () => {
+    test(`1: Create new variable with default type (string): ${var4.name} - success`, async () => {
       const response = await VariablesApi.putVariable({
         variableId: var4.name,
         value: var4.value,
         description: var4.description,
+        expressionType: var4.type,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`2: Create new string variable (explicit type): ${var5.name} - success`, async () => {
+      const response = await VariablesApi.putVariable({
+        variableId: var5.name,
+        value: var5.value,
+        description: var5.description,
+        expressionType: var5.type,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`3: Create new array variable: ${var6.name} - success`, async () => {
+      const response = await VariablesApi.putVariable({
+        variableId: var6.name,
+        value: var6.value,
+        description: var6.description,
+        expressionType: var6.type,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    // test(`4: Create new base64encodedinlined variable: ${var7.name} - success`, async () => {
+    //   const response = await VariablesApi.putVariable({
+    //     variableId: var7.name,
+    //     value: var7.value,
+    //     description: var7.description,
+    //     expressionType: var7.type,
+    //     state,
+    //   });
+    //   expect(response).toMatchSnapshot();
+    // });
+
+    test(`5: Create new bool variable: ${var8.name} - success`, async () => {
+      const response = await VariablesApi.putVariable({
+        variableId: var8.name,
+        value: var8.value,
+        description: var8.description,
+        expressionType: var8.type,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`6: Create new int variable: ${var9.name} - success`, async () => {
+      const response = await VariablesApi.putVariable({
+        variableId: var9.name,
+        value: var9.value,
+        description: var9.description,
+        expressionType: var9.type,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`7: Create new keyvaluelist variable: ${var10.name} - success`, async () => {
+      const response = await VariablesApi.putVariable({
+        variableId: var10.name,
+        value: var10.value,
+        description: var10.description,
+        expressionType: var10.type,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`8: Create new list variable: ${var11.name} - success`, async () => {
+      const response = await VariablesApi.putVariable({
+        variableId: var11.name,
+        value: var11.value,
+        description: var11.description,
+        expressionType: var11.type,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`9: Create new number variable: ${var12.name} - success`, async () => {
+      const response = await VariablesApi.putVariable({
+        variableId: var12.name,
+        value: var12.value,
+        description: var12.description,
+        expressionType: var12.type,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`10: Create new object variable: ${var13.name} - success`, async () => {
+      const response = await VariablesApi.putVariable({
+        variableId: var13.name,
+        value: var13.value,
+        description: var13.description,
+        expressionType: var13.type,
         state,
       });
       expect(response).toMatchSnapshot();
