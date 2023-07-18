@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+-   \#272: Frodo now supports the `expressionType` property when creating ESV variables in Identity Cloud.
+
 ## [2.0.0-17] - 2023-07-18
 
 ## [2.0.0-16] - 2023-07-17
