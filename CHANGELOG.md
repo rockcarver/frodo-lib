@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-18] - 2023-07-18
+
 ### Fixed
 
 -   \#272: Frodo now supports the `expressionType` property when creating ESV variables in Identity Cloud.
@@ -1236,7 +1238,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-17...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-18...HEAD
+
+[2.0.0-18]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-17...v2.0.0-18
 
 [2.0.0-17]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-16...v2.0.0-17
 
