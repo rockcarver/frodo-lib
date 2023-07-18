@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="default" lang="en"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>ResourceTypeSkeleton | Frodo Library - v2.0.0-17</title><meta name="description" content="Documentation for Frodo Library"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/search.js" id="tsd-search-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os"</script><header class="tsd-page-toolbar">
+<!DOCTYPE html><html class="default" lang="en"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>VariableExpressionType | Frodo Library - v2.0.0-17</title><meta name="description" content="Documentation for Frodo Library"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/search.js" id="tsd-search-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os"</script><header class="tsd-page-toolbar">
 <div class="tsd-toolbar-contents container">
 <div class="table-cell" id="tsd-search" data-base="..">
 <div class="field"><label for="tsd-search-field" class="tsd-widget tsd-toolbar-icon search no-caption"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M15.7824 13.833L12.6666 10.7177C12.5259 10.5771 12.3353 10.499 12.1353 10.499H11.6259C12.4884 9.39596 13.001 8.00859 13.001 6.49937C13.001 2.90909 10.0914 0 6.50048 0C2.90959 0 0 2.90909 0 6.49937C0 10.0896 2.90959 12.9987 6.50048 12.9987C8.00996 12.9987 9.39756 12.4863 10.5008 11.6239V12.1332C10.5008 12.3332 10.5789 12.5238 10.7195 12.6644L13.8354 15.7797C14.1292 16.0734 14.6042 16.0734 14.8948 15.7797L15.7793 14.8954C16.0731 14.6017 16.0731 14.1267 15.7824 13.833ZM6.50048 10.499C4.29094 10.499 2.50018 8.71165 2.50018 6.49937C2.50018 4.29021 4.28781 2.49976 6.50048 2.49976C8.71001 2.49976 10.5008 4.28708 10.5008 6.49937C10.5008 8.70852 8.71314 10.499 6.50048 10.499Z" fill="var(--color-text)"></path></svg></label><input type="text" id="tsd-search-field" aria-label="Search"/></div>
@@ -14,18 +14,27 @@
 <ul class="tsd-breadcrumb">
 <li><a href="../modules.html">Frodo Library</a></li>
 <li><a href="../modules/Reference.html">Reference</a></li>
-<li><a href="Reference.ResourceTypeSkeleton.html">ResourceTypeSkeleton</a></li></ul>
-<h1>Type alias ResourceTypeSkeleton</h1></div>
-<div class="tsd-signature"><span class="tsd-kind-type-alias">Resource<wbr/>Type<wbr/>Skeleton</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/Reference.NoIdObjectSkeletonInterface.html" class="tsd-signature-type tsd-kind-interface">NoIdObjectSkeletonInterface</a><span class="tsd-signature-symbol"> &amp; </span><span class="tsd-signature-symbol">{ </span><br/><span>    </span><span class="tsd-kind-property">name</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">; </span><br/><span>    </span><span class="tsd-kind-property">uuid</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">; </span><br/><span class="tsd-signature-symbol">}</span></div>
-<div class="tsd-type-declaration">
-<h4>Type declaration</h4>
-<ul class="tsd-parameters">
-<li class="tsd-parameter">
-<h5><span class="tsd-kind-property">name</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5></li>
-<li class="tsd-parameter">
-<h5><span class="tsd-kind-property">uuid</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5></li></ul></div><aside class="tsd-sources">
+<li><a href="Reference.VariableExpressionType.html">VariableExpressionType</a></li></ul>
+<h1>Type alias VariableExpressionType</h1></div>
+<div class="tsd-signature"><span class="tsd-kind-type-alias">Variable<wbr/>Expression<wbr/>Type</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">&quot;array&quot;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;base64encodedinlined&quot;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;bool&quot;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;int&quot;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;keyvaluelist&quot;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;list&quot;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;number&quot;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;object&quot;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">&quot;string&quot;</span></div>
+<div class="tsd-comment tsd-typography"><p>Variable types</p>
+</div>
+<div class="tsd-comment tsd-typography">
+<h4>Summary</h4><p>You can use the expressionType parameter to set a type when you create an ESV variable.
+This lets Identity Cloud correctly transform the value of the ESV
+to match the configuration property type when substituting it into configuration.</p>
+<p>The type is set when the ESV is created, and cannot be modified after creation.
+If you do not specify a type, it will default to string.</p>
+<p>Before the expressionType parameter was introduced, it was only possible to set types
+from within configuration, using expression level syntax; for example,
+{&quot;$int&quot;: &quot;&amp;{esv.journey.ldap.port|1389}&quot;}.
+The expressionType parameter supplements this expression level syntax and allows the
+ESV type to be identified without inspecting configuration.</p>
+
+<h4>See</h4><p><a href="https://backstage.forgerock.com/docs/idcloud/latest/tenants/esvs.html#variable_types">ForgeRock Documentation</a></p>
+</div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/8140c40/src/api/ApiTypes.ts#L84">api/ApiTypes.ts:84</a></li></ul></aside></div>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/8140c40/src/api/cloud/VariablesApi.ts#L39">api/cloud/VariablesApi.ts:39</a></li></ul></aside></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -149,7 +158,7 @@
 <li><a href="Reference.ReadableStrings.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Readable<wbr/>Strings</span></a></li>
 <li><a href="Reference.Realm.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Realm</span></a></li>
 <li><a href="Reference.ResourceType.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Resource<wbr/>Type</span></a></li>
-<li><a href="Reference.ResourceTypeSkeleton.html" class="current"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Resource<wbr/>Type<wbr/>Skeleton</span></a></li>
+<li><a href="Reference.ResourceTypeSkeleton.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Resource<wbr/>Type<wbr/>Skeleton</span></a></li>
 <li><a href="Reference.Saml2.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Saml2</span></a></li>
 <li><a href="Reference.Saml2ProiderLocation.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Saml2<wbr/>Proider<wbr/>Location</span></a></li>
 <li><a href="Reference.Saml2ProviderSkeleton.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Saml2<wbr/>Provider<wbr/>Skeleton</span></a></li>
@@ -170,7 +179,7 @@
 <li><a href="Reference.ThemeSkeleton.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Theme<wbr/>Skeleton</span></a></li>
 <li><a href="Reference.TreeSkeleton.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Tree<wbr/>Skeleton</span></a></li>
 <li><a href="Reference.Variable.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Variable</span></a></li>
-<li><a href="Reference.VariableExpressionType.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Variable<wbr/>Expression<wbr/>Type</span></a></li>
+<li><a href="Reference.VariableExpressionType.html" class="current"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Variable<wbr/>Expression<wbr/>Type</span></a></li>
 <li><a href="Reference.VariableSkeleton.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Variable<wbr/>Skeleton</span></a></li>
 <li><a href="Reference.Version.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Version</span></a></li>
 <li><a href="Reference.VersionOfSecretStatus.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-4194304"></use></svg><span>Version<wbr/>Of<wbr/>Secret<wbr/>Status</span></a></li>
