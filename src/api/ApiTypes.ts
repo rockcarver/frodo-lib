@@ -11,7 +11,7 @@ export interface NoIdObjectSkeletonInterface {
 }
 
 export interface IdObjectSkeletonInterface extends NoIdObjectSkeletonInterface {
-  _id: string;
+  _id?: string;
 }
 
 // export interface PagedResults {

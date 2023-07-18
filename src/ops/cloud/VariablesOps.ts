@@ -1,4 +1,6 @@
 import {
+  VariableExpressionType,
+  VariableSkeleton,
   deleteVariable,
   getVariable,
   getVariables,
@@ -30,13 +32,15 @@ export type Variable = {
    * @param {string} variableId variable id/name
    * @param {string} value variable value
    * @param {string} description variable description
-   * @returns {Promise<unknown>} a promise that resolves to a variable object
+   * @param {VariableExpressionType} expressionType type of the value
+   * @returns {Promise<VariableSkeleton>} a promise that resolves to a variable object
    */
   putVariable(
     variableId: string,
     value: string,
-    description: string
-  ): Promise<any>;
+    description: string,
+    expressionType: VariableExpressionType
+  ): Promise<VariableSkeleton>;
   /**
    * Set variable description
    * @param {string} variableId variable id/name
@@ -48,49 +52,29 @@ export type Variable = {
 
 export default (state: State): Variable => {
   return {
-    /**
-     * Delete variable by id/name
-     * @param {string} variableId variable id/name
-     * @returns {Promise<unknown>} a promise that resolves to a variable object
-     */
     deleteVariable(variableId: string) {
       return deleteVariable({ variableId, state });
     },
-
-    /**
-     * Get variable by id/name
-     * @param {string} variableId variable id/name
-     * @returns {Promise<unknown>} a promise that resolves to a variable object
-     */
     getVariable(variableId: string) {
       return getVariable({ variableId, state });
     },
-
-    /**
-     * Get all variables
-     * @returns {Promise<unknown[]>} a promise that resolves to an array of variable objects
-     */
     getVariables() {
       return getVariables({ state });
     },
-
-    /**
-     * Put variable by id/name
-     * @param {string} variableId variable id/name
-     * @param {string} value variable value
-     * @param {string} description variable description
-     * @returns {Promise<unknown>} a promise that resolves to a variable object
-     */
-    putVariable(variableId: string, value: string, description: string) {
-      return putVariable({ variableId, value, description, state });
+    putVariable(
+      variableId: string,
+      value: string,
+      description: string,
+      expressionType: VariableExpressionType
+    ) {
+      return putVariable({
+        variableId,
+        value,
+        description,
+        expressionType,
+        state,
+      });
     },
-
-    /**
-     * Set variable description
-     * @param {string} variableId variable id/name
-     * @param {string} description variable description
-     * @returns {Promise<unknown>} a promise that resolves to a status object
-     */
     setVariableDescription(variableId: string, description: string) {
       return setVariableDescription({
         variableId,
