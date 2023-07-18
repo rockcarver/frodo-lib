@@ -3,6 +3,7 @@ import { encode } from '../../utils/Base64Utils';
 import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 import { State } from '../../shared/State';
+import { IdObjectSkeletonInterface } from '../ApiTypes';
 
 const variablesListURLTemplate = '%s/environment/variables';
 const variableURLTemplate = '%s/environment/variables/%s';
@@ -13,6 +14,49 @@ const getApiConfig = () => {
   return {
     apiVersion,
   };
+};
+
+/**
+ * Variable types
+ *
+ * @summary
+ * You can use the expressionType parameter to set a type when you create an ESV variable.
+ * This lets Identity Cloud correctly transform the value of the ESV
+ * to match the configuration property type when substituting it into configuration.
+ *
+ * The type is set when the ESV is created, and cannot be modified after creation.
+ * If you do not specify a type, it will default to string.
+ *
+ * Before the expressionType parameter was introduced, it was only possible to set types
+ * from within configuration, using expression level syntax; for example,
+ * {"$int": "&{esv.journey.ldap.port|1389}"}.
+ * The expressionType parameter supplements this expression level syntax and allows the
+ * ESV type to be identified without inspecting configuration.
+ *
+ * @see
+ * {@link https://backstage.forgerock.com/docs/idcloud/latest/tenants/esvs.html#variable_types | ForgeRock Documentation}
+ */
+export type VariableExpressionType =
+  | 'array'
+  | 'base64encodedinlined'
+  | 'bool'
+  | 'int'
+  | 'keyvaluelist'
+  | 'list'
+  | 'number'
+  | 'object'
+  | 'string';
+
+/**
+ * Variable object skeleton
+ */
+export type VariableSkeleton = IdObjectSkeletonInterface & {
+  valueBase64: string;
+  description?: string;
+  loaded?: boolean;
+  lastChangedBy?: string;
+  lastChangeDate?: string;
+  expressionType?: VariableExpressionType;
 };
 
 /**
@@ -69,17 +113,21 @@ export async function getVariable({
 export async function putVariable({
   variableId,
   value,
-  description,
+  description = '',
+  expressionType = 'string',
   state,
 }: {
   variableId: string;
   value: string;
-  description: string;
+  description?: string;
+  expressionType?: VariableExpressionType;
   state: State;
-}) {
-  const variableData = {};
-  if (value) variableData['valueBase64'] = encode(value);
-  if (description) variableData['description'] = description;
+}): Promise<VariableSkeleton> {
+  const variableData: VariableSkeleton = {
+    valueBase64: encode(value),
+    description,
+    expressionType,
+  };
   const urlString = util.format(
     variableURLTemplate,
     getHostBaseUrl(state.getHost()),
