@@ -20,7 +20,7 @@ const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
 
 const cloudIdmAdminScopes = 'openid fr:idm:* fr:idc:esv:*';
 const forgeopsIdmAdminScopes = 'openid fr:idm:*';
-const serviceAccountScopes = 'fr:am:* fr:idm:* fr:idc:esv:*';
+const serviceAccountScopes = 'fr:am:* fr:idm:* fr:idc:esv:* fr:idc:promotion:*';
 
 let adminClientId = 'idmAdminClient';
 
