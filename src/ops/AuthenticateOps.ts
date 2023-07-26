@@ -20,7 +20,21 @@ const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
 
 const cloudIdmAdminScopes = 'openid fr:idm:* fr:idc:esv:*';
 const forgeopsIdmAdminScopes = 'openid fr:idm:*';
-const serviceAccountScopes = 'fr:am:* fr:idm:* fr:idc:esv:* fr:idc:promotion:*';
+
+export const SCOPE_FR_AM = 'fr:am:*';
+export const SCOPE_FR_IDM = 'fr:idm:*';
+export const SCOPE_FR_IDC_ESV = 'fr:idc:esv:*';
+export const SCOPE_FR_IDC_PROMOTION = 'fr:idc:promotion:*';
+export const SCOPES_FRIDC_COMMON = [
+  SCOPE_FR_AM,
+  SCOPE_FR_IDM,
+  SCOPE_FR_IDC_ESV,
+];
+
+export const SCOPES_FRIDC_ALL = [
+  ...SCOPES_FRIDC_COMMON,
+  SCOPE_FR_IDC_PROMOTION,
+];
 
 let adminClientId = 'idmAdminClient';
 
@@ -413,8 +427,11 @@ function createPayload(serviceAccountId: string) {
  */
 export async function getAccessTokenForServiceAccount(
   serviceAccountId: string,
-  jwk: JwkRsa
+  jwk: JwkRsa,
+  serviceAccountScopes: string[] = SCOPES_FRIDC_COMMON
 ): Promise<string | null> {
+  const serviceAccountScopesString = serviceAccountScopes.join(' ');
+  debugMessage(`Requested login scopes: ${serviceAccountScopesString}`);
   debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: start`);
   const payload = createPayload(serviceAccountId);
   debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: payload:`);
@@ -422,7 +439,7 @@ export async function getAccessTokenForServiceAccount(
   const jwt = await createSignedJwtToken(payload, jwk);
   debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: jwt:`);
   debugMessage(jwt);
-  const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${serviceAccountScopes}`;
+  const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${serviceAccountScopesString}`;
   const response = await accessToken(bodyFormData);
   if ('access_token' in response.data) {
     debugMessage(`AuthenticateOps.getAccessTokenForServiceAccount: token:`);
