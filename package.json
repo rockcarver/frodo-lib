@@ -30,6 +30,7 @@
     "generate-types": "tsc",
     "build": "npm run clean-esm && npm run transpile-esm && npm run resources-esm && npm run clean-cjs && npm run transpile-cjs && npm run resources-cjs && npm run clean-types && npm run generate-types",
     "watch": "babel --watch --out-dir esm --extensions \".ts\" --source-maps --config-file ./babel.config.esm.json src",
+    "watch-cjs": "babel --watch --out-dir cjs --extensions \".ts\" --source-maps --config-file ./babel.config.cjs.json src",
     "doc": "npx typedoc"
   },
   "jest": {

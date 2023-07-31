@@ -1,5 +1,5 @@
-import { queryAllManagedObjectsByType } from '../api/IdmConfigApi';
 import { State } from '../shared/State';
+import { queryAllManagedObjectsByType } from '../api/ManagedObjectApi';
 import { printMessage } from '../utils/Console';
 
 export type Organization = {
@@ -52,7 +52,7 @@ export function getRealmManagedOrganization({ state }: { state: State }) {
  * @returns {Promise} promise resolving to an object containing an array of organization objects
  */
 export async function getOrganizations({ state }: { state: State }) {
-  const orgs = [];
+  let orgs = [];
   let result = {
     result: [],
     resultCount: 0,
@@ -64,28 +64,27 @@ export async function getOrganizations({ state }: { state: State }) {
   try {
     do {
       try {
-        // eslint-disable-next-line no-await-in-loop
         result = await queryAllManagedObjectsByType({
           type: getRealmManagedOrganization({ state }),
           fields: ['name', 'parent/*/name', 'children/*/name'],
           pageCookie: result.pagedResultsCookie,
           state,
         });
-      } catch (queryAllManagedObjectsByTypeError) {
+      } catch (error) {
         printMessage({
-          message: queryAllManagedObjectsByTypeError,
+          message: error,
           type: 'error',
           state,
         });
         printMessage({
           message: `Error querying ${getRealmManagedOrganization({
             state,
-          })} objects: ${queryAllManagedObjectsByTypeError}`,
+          })} objects: ${error}`,
           type: 'error',
           state,
         });
       }
-      orgs.concat(result.result);
+      orgs = orgs.concat(result.result);
       printMessage({ message: '.', type: 'text', newline: false, state });
     } while (result.pagedResultsCookie);
   } catch (error) {
@@ -112,7 +111,6 @@ export async function listOrganizationsTopDown({ state }: { state: State }) {
   };
   do {
     try {
-      // eslint-disable-next-line no-await-in-loop
       result = await queryAllManagedObjectsByType({
         type: getRealmManagedOrganization({ state }),
         fields: ['name', 'parent/*/name', 'children/*/name'],

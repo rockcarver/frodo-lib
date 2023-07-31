@@ -160,8 +160,38 @@ export { getCircleOfTrust, createCircleOfTrust };
 /**
  * Get circles of trust
  */
-export async function getCirclesOfTrust({ state }: { state: State }) {
-  const { result } = await _getCirclesOfTrust({ state });
+export async function getCirclesOfTrust({
+  entityProviders = [],
+  state,
+}: {
+  entityProviders?: string[];
+  state: State;
+}): Promise<CircleOfTrustSkeleton[]> {
+  debugMessage({
+    message: `CirclesOfTrustOps.getCirclesOfTrust: start`,
+    state,
+  });
+  let { result } = await _getCirclesOfTrust({ state });
+  if (entityProviders.length > 0) {
+    debugMessage({
+      message: `CirclesOfTrustOps.getCirclesOfTrust: filtering results to entity providers: ${entityProviders}`,
+      state,
+    });
+    entityProviders = entityProviders.map((id) => `${id}|saml2`);
+    result = result.filter((circleOfTrust) => {
+      let hasEntityId = false;
+      for (const trustedProvider of circleOfTrust.trustedProviders) {
+        if (!hasEntityId && entityProviders.includes(trustedProvider)) {
+          hasEntityId = true;
+        }
+      }
+      return hasEntityId;
+    });
+  }
+  debugMessage({
+    message: `CirclesOfTrustOps.getCirclesOfTrust: end`,
+    state,
+  });
   return result;
 }
 
@@ -216,8 +246,10 @@ export async function exportCircleOfTrust({
  * @returns {Promise<CirclesOfTrustExportInterface>} a promise that resolves to an CirclesOfTrustExportInterface object
  */
 export async function exportCirclesOfTrust({
+  entityProviders = [],
   state,
 }: {
+  entityProviders?: string[];
   state: State;
 }): Promise<CirclesOfTrustExportInterface> {
   debugMessage({
@@ -227,7 +259,7 @@ export async function exportCirclesOfTrust({
   const exportData = createCirclesOfTrustExportTemplate({ state });
   const errors = [];
   try {
-    const cots = await getCirclesOfTrust({ state });
+    const cots = await getCirclesOfTrust({ entityProviders, state });
     for (const cot of cots) {
       exportData.saml.cot[cot._id] = cot;
     }
