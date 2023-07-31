@@ -8,12 +8,12 @@ import {
   getConfigEntity,
   putConfigEntity,
   getConfigEntitiesByType,
-  queryAllManagedObjectsByType,
 } from '../api/IdmConfigApi';
 import {
   testConnectorServers as _testConnectorServers,
   ConnectorServerStatusInterface,
 } from '../api/IdmSystemApi';
+import { queryAllManagedObjectsByType } from '../api/ManagedObjectApi';
 import { State } from '../shared/State';
 
 export type Idm = {

@@ -2,7 +2,7 @@ import util from 'util';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { State } from '../shared/State';
-import { CircleOfTrustSkeleton } from './ApiTypes';
+import { CircleOfTrustSkeleton, PagedResult } from './ApiTypes';
 import { cloneDeep } from '../utils/JsonUtils';
 
 const circleOfTrustByIdURLTemplate =
@@ -22,7 +22,11 @@ const getApiConfig = () => {
  * Get all SAML2 circles of trust
  * @returns {Promise} a promise that resolves to an array of circles of trust objects
  */
-export async function getCirclesOfTrust({ state }: { state: State }) {
+export async function getCirclesOfTrust({
+  state,
+}: {
+  state: State;
+}): Promise<PagedResult<CircleOfTrustSkeleton>> {
   const urlString = util.format(
     queryAllCirclesOfTrustURLTemplate,
     state.getHost(),

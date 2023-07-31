@@ -5,6 +5,7 @@ import AdminFederationOps, {
 } from '../ops/cloud/AdminFederationOps';
 import AdminOps, { Admin } from '../ops/AdminOps';
 import AgentOps, { Agent } from '../ops/AgentOps';
+import ApplicationOps, { Application } from '../ops/ApplicationOps';
 import AuthenticateOps, { Authenticate } from '../ops/AuthenticateOps';
 import CirclesOfTrustOps, { CirclesOfTrust } from '../ops/CirclesOfTrustOps';
 import ConnectionProfileOps, {
@@ -48,6 +49,7 @@ import VersionUtils, { Version } from '../ops/VersionUtils';
 import ConstantsImpl, { Constants } from '../shared/Constants';
 import ForgeRockUtils, { FRUtils } from '../utils/ForgeRockUtils';
 import Base64Utils, { Base64 } from '../utils/Base64Utils';
+import JsonUtils, { Json } from '../utils/JsonUtils';
 
 /**
  * Frodo Library
@@ -56,6 +58,7 @@ export type Frodo = {
   state: State;
   admin: Admin;
   agent: Agent;
+  app: Application;
 
   authn: {
     journey: Journey;
@@ -118,6 +121,7 @@ export type Frodo = {
     Base64 & {
       constants: Constants;
       jose: Jose;
+      json: Json;
       version: Version;
     };
 
@@ -186,6 +190,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     state: state,
     admin: AdminOps(state),
     agent: AgentOps(state),
+    app: ApplicationOps(state),
 
     authn: {
       journey: JourneyOps(state),
@@ -249,6 +254,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       ...Base64Utils(),
       constants: ConstantsImpl,
       jose: JoseOps(state),
+      json: JsonUtils(),
       version: VersionUtils(state),
     },
 
