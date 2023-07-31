@@ -2,13 +2,10 @@ import util from 'util';
 import { generateIdmApi } from './BaseApi';
 import { getHostBaseUrl } from '../utils/ForgeRockUtils';
 import { State } from '../shared/State';
-import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
 
 const idmAllConfigURLTemplate = '%s/openidm/config';
 const idmConfigURLTemplate = '%s/openidm/config/%s';
 const idmConfigEntityQueryTemplate = '%s/openidm/config?_queryFilter=%s';
-const idmManagedObjectURLTemplate =
-  '%s/openidm/managed/%s?_queryFilter=true&_pageSize=10000';
 
 /**
  * Get all IDM config entities
@@ -113,39 +110,5 @@ export async function deleteConfigEntity({
   const { data } = await generateIdmApi({ state }).delete(urlString, {
     withCredentials: true,
   });
-  return data;
-}
-
-/**
- * Query managed objects
- * @param {string} type managed object type
- * @param {string[]} fields fields to retrieve
- * @param {string} pageCookie paged results cookie
- * @returns {Promise<{result: any[]; resultCount: number; pagedResultsCookie: any; totalPagedResultsPolicy: string; totalPagedResults: number; remainingPagedResults: number;}>} a promise that resolves to managed objects of the desired type
- */
-export async function queryAllManagedObjectsByType({
-  type,
-  fields = [],
-  pageCookie = undefined,
-  state,
-}: {
-  type: string;
-  fields?: string[];
-  pageCookie?: string;
-  state: State;
-}): Promise<PagedResult<IdObjectSkeletonInterface>> {
-  const fieldsParam =
-    fields.length > 0 ? `&_fields=${fields.join(',')}` : '&_fields=_id';
-  const urlTemplate = pageCookie
-    ? `${idmManagedObjectURLTemplate}${fieldsParam}&_pagedResultsCookie=${encodeURIComponent(
-        pageCookie
-      )}`
-    : `${idmManagedObjectURLTemplate}${fieldsParam}`;
-  const urlString = util.format(
-    urlTemplate,
-    getHostBaseUrl(state.getHost()),
-    type
-  );
-  const { data } = await generateIdmApi({ state }).get(urlString);
   return data;
 }
