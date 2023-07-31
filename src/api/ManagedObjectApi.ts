@@ -1,16 +1,16 @@
 import util from 'util';
 import { generateIdmApi } from './BaseApi';
-import { IdObjectSkeletonInterface } from './ApiTypes';
+import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
 import { State } from '../shared/State';
+import { getHostBaseUrl } from '../utils/ForgeRockUtils';
 
-const managedObjectURLTemplate = '%s/openidm/managed/%s';
 const createManagedObjectURLTemplate = '%s/openidm/managed/%s?_action=create';
 const managedObjectByIdURLTemplate = '%s/openidm/managed/%s/%s';
-const managedObjectQueryAllURLTemplate = `${managedObjectURLTemplate}?_queryFilter=true&_pageSize=10000`;
+const managedObjectQueryAllURLTemplate = `%s/openidm/managed/%s?_queryFilter=true&_pageSize=10000`;
+const findManagedObjectURLTemplate = `%s/openidm/managed/%s?_queryFilter=%s&_pageSize=10000`;
 
 /**
  * Get managed object
- * @param {string} baseUrl tenant base URL
  * @param {string} type managed object type, e.g. alpha_user or user
  * @param {string} id managed object id
  * @param {string[]} id array of fields to include
@@ -18,13 +18,11 @@ const managedObjectQueryAllURLTemplate = `${managedObjectURLTemplate}?_queryFilt
  * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an ObjectSkeletonInterface
  */
 export async function getManagedObject({
-  baseUrl,
   type,
   id,
   fields = ['*'],
   state,
 }: {
-  baseUrl: string;
   type: string;
   id: string;
   fields: string[];
@@ -33,7 +31,7 @@ export async function getManagedObject({
   const fieldsParam = `_fields=${fields.join(',')}`;
   const urlString = util.format(
     `${managedObjectByIdURLTemplate}?${fieldsParam}`,
-    baseUrl,
+    getHostBaseUrl(state.getHost()),
     type,
     id
   );
@@ -45,21 +43,23 @@ export async function getManagedObject({
 
 /**
  * Create managed object with server-generated id
- * @param {string} baseUrl tenant base URL
  * @param {string} moType managed object type
  * @param {any} moData managed object data
  * @param {State} state library state
  * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
  */
-export async function createManagedObject(
-  baseUrl: string,
-  moType: string,
+export async function createManagedObject({
+  moType,
   moData,
-  state: State
-): Promise<IdObjectSkeletonInterface> {
+  state,
+}: {
+  moType: string;
+  moData: IdObjectSkeletonInterface;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     createManagedObjectURLTemplate,
-    baseUrl,
+    getHostBaseUrl(state.getHost()),
     moType
   );
   const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
@@ -71,22 +71,25 @@ export async function createManagedObject(
 
 /**
  * Create or update managed object
- * @param {string} baseUrl tenant base URL
  * @param {string} id managed object id
  * @param {string} moData managed object
  * @param {State} state library state
  * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
  */
-export async function putManagedObject(
-  baseUrl: string,
-  type: string,
-  id: string,
-  moData: IdObjectSkeletonInterface,
-  state: State
-): Promise<IdObjectSkeletonInterface> {
+export async function putManagedObject({
+  type,
+  id,
+  moData,
+  state,
+}: {
+  type: string;
+  id: string;
+  moData: IdObjectSkeletonInterface;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     managedObjectByIdURLTemplate,
-    baseUrl,
+    getHostBaseUrl(state.getHost()),
     type,
     id
   );
@@ -94,26 +97,91 @@ export async function putManagedObject(
 }
 
 /**
- * Query managed objects
- * @param {string} baseUrl tenant base URL
- * @param {string} type managed object type
- * @param {string} fields fields to retrieve
- * @param {string} pageCookie paged results cookie
+ * Find managed object
+ * @param {string} type managed object type, e.g. alpha_user or user
+ * @param {string} filter CREST search filter
+ * @param {string[]} id array of fields to include
  * @param {State} state library state
- * @returns {Promise} a promise that resolves to an object containing managed objects of the desired type
+ * @returns {Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an ObjectSkeletonInterface
  */
-export async function queryAllManagedObjectsByType(
-  baseUrl: string,
-  type: string,
-  fields: string[],
-  pageCookie: string,
-  state: State
-) {
+export async function findManagedObjects({
+  type,
+  filter,
+  fields = ['*'],
+  state,
+}: {
+  type: string;
+  filter: string;
+  fields: string[];
+  state: State;
+}): Promise<PagedResult<IdObjectSkeletonInterface>> {
+  const fieldsParam = `_fields=${fields.join(',')}`;
+  const urlString = util.format(
+    `${findManagedObjectURLTemplate}&${fieldsParam}`,
+    getHostBaseUrl(state.getHost()),
+    type,
+    filter
+  );
+  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
+    urlString
+  );
+  return data as PagedResult<IdObjectSkeletonInterface>;
+}
+
+/**
+ * Query managed objects
+ * @param {string} type managed object type
+ * @param {string[]} fields fields to retrieve
+ * @param {string} pageCookie paged results cookie
+ * @returns {Promise<{result: any[]; resultCount: number; pagedResultsCookie: any; totalPagedResultsPolicy: string; totalPagedResults: number; remainingPagedResults: number;}>} a promise that resolves to managed objects of the desired type
+ */
+export async function queryAllManagedObjectsByType({
+  type,
+  fields = [],
+  pageCookie = undefined,
+  state,
+}: {
+  type: string;
+  fields?: string[];
+  pageCookie?: string;
+  state: State;
+}): Promise<PagedResult<IdObjectSkeletonInterface>> {
   const fieldsParam =
     fields.length > 0 ? `&_fields=${fields.join(',')}` : '&_fields=_id';
   const urlTemplate = pageCookie
-    ? `${managedObjectQueryAllURLTemplate}${fieldsParam}&_pagedResultsCookie=${pageCookie}`
+    ? `${managedObjectQueryAllURLTemplate}${fieldsParam}&_pagedResultsCookie=${encodeURIComponent(
+        pageCookie
+      )}`
     : `${managedObjectQueryAllURLTemplate}${fieldsParam}`;
-  const urlString = util.format(urlTemplate, baseUrl, type);
-  return generateIdmApi({ requestOverride: {}, state }).get(urlString);
+  const urlString = util.format(
+    urlTemplate,
+    getHostBaseUrl(state.getHost()),
+    type
+  );
+  const { data } = await generateIdmApi({ state }).get(urlString);
+  return data;
+}
+
+/**
+ * Delete managed object
+ * @param {string} id managed object id
+ * @param {State} state library state
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
+ */
+export async function deleteManagedObject({
+  type,
+  id,
+  state,
+}: {
+  type: string;
+  id: string;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
+  const urlString = util.format(
+    managedObjectByIdURLTemplate,
+    getHostBaseUrl(state.getHost()),
+    type,
+    id
+  );
+  return generateIdmApi({ requestOverride: {}, state }).delete(urlString);
 }

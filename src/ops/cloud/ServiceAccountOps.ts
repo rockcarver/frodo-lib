@@ -6,7 +6,6 @@ import { JwksInterface } from '../JoseOps';
 import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
 import { debugMessage } from '../../utils/Console';
 import { hasFeature } from './FeatureOps';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { State } from '../../shared/State';
 
 export type ServiceAccount = {
@@ -88,16 +87,13 @@ export default (state: State): ServiceAccount => {
 
 const moType = 'svcacct';
 
-export interface ServiceAccountPayloadInterface {
+export type ServiceAccountType = IdObjectSkeletonInterface & {
   name: string;
   description: string;
   accountStatus: 'Active' | 'Inactive';
   scopes: string[];
   jwks: string;
-}
-
-export type ServiceAccountType = IdObjectSkeletonInterface &
-  ServiceAccountPayloadInterface;
+};
 
 /**
  * Check if service accounts are available
@@ -131,7 +127,7 @@ export async function isServiceAccountsFeatureAvailable({
  * @param {string[]} scopes Scopes.
  * @param {JwksInterface} jwks Java Web Key Set
  * @param {State} state library state
- * @returns {Promise<IdObjectSkeletonInterface>} A promise resolving to a service account object
+ * @returns {Promise<ServiceAccountType>} A promise resolving to a service account object
  */
 export async function createServiceAccount({
   name,
@@ -147,12 +143,12 @@ export async function createServiceAccount({
   scopes: string[];
   jwks: JwksInterface;
   state: State;
-}): Promise<IdObjectSkeletonInterface> {
+}): Promise<ServiceAccountType> {
   debugMessage({
     message: `ServiceAccountOps.createServiceAccount: start`,
     state,
   });
-  const payload: ServiceAccountPayloadInterface = {
+  const payload: ServiceAccountType = {
     name,
     description,
     accountStatus,
@@ -164,17 +160,12 @@ export async function createServiceAccount({
     state,
   });
   debugMessage({ message: payload, state });
-  const result = await createManagedObject(
-    getHostBaseUrl(state.getHost()),
-    moType,
-    payload,
-    state
-  );
+  const result = await createManagedObject({ moType, moData: payload, state });
   debugMessage({
     message: `ServiceAccountOps.createServiceAccount: end`,
     state,
   });
-  return result;
+  return result as ServiceAccountType;
 }
 
 /**
@@ -191,7 +182,6 @@ export async function getServiceAccount({
   state: State;
 }) {
   const serviceAccount = await getManagedObject({
-    baseUrl: getHostBaseUrl(state.getHost()),
     type: moType,
     id: serviceAccountId,
     fields: ['*'],
