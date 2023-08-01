@@ -153,7 +153,6 @@
     "babel-jest": "^29.3.1",
     "babel-plugin-add-import-extension": "^1.6.0",
     "babel-plugin-transform-import-meta": "^2.1.1",
-    "cli-table3": "^0.6.3",
     "copyfiles": "^2.4.1",
     "del": "6.1.1",
     "eslint": "^8.28.0",
