@@ -24,6 +24,10 @@ export interface TreeExportOptions {
    * Include any dependencies (scripts, email templates, SAML entity providers and circles of trust, social identity providers, themes).
    */
   deps: boolean;
+  /**
+   * Include x and y coordinate positions of the journey/tree nodes.
+   */
+  coords: boolean;
 }
 
 /**
