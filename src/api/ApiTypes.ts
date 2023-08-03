@@ -46,6 +46,11 @@ export interface NodeRefSkeletonInterface {
   y: number;
 }
 
+export interface StaticNodeRefSkeletonInterface {
+  x: number;
+  y: number;
+}
+
 export interface InnerNodeRefSkeletonInterface {
   _id: string;
   displayName: string;
@@ -58,6 +63,7 @@ export type TreeSkeleton = IdObjectSkeletonInterface & {
   identityResource?: string;
   uiConfig?: UiConfigInterface;
   enabled?: boolean;
+  staticNodes: Record<string, StaticNodeRefSkeletonInterface>
 };
 
 export type AmServiceType = IdObjectSkeletonInterface & {
