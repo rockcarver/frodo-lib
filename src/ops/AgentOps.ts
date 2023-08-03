@@ -19,80 +19,119 @@ export type Agent = {
    */
   createAgentExportTemplate(): AgentExportInterface;
   /**
-   * Get all agents. Results are sorted aphabetically.
+   * Read all agents.
    * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of agent objects
    */
-  getAgents(): Promise<AgentSkeleton[]>;
+  readAgents(): Promise<AgentSkeleton[]>;
   /**
-   * Get agent
+   * Read agent
    * @param {string} agentId agent id/name
-   * @returns {Promise} a promise that resolves to an agent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an agent object
    */
-  getAgent(agentId: string): Promise<any>;
+  readAgent(agentId: string): Promise<AgentSkeleton>;
   /**
-   * Get agent by type and id
+   * Read agent by type and id
    * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
    * @param {string} agentId agent id/name
-   * @returns {Promise} a promise that resolves to an agent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an agent object
    */
-  getAgentByTypeAndId(agentType: AgentType, agentId: string): Promise<any>;
+  readAgentByTypeAndId(
+    agentType: AgentType,
+    agentId: string
+  ): Promise<AgentSkeleton>;
   /**
-   * Get identity gateway agents
-   * @returns {Promise} a promise that resolves to an array of IdentityGatewayAgent objects
+   * Read identity gateway agents
+   * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array of IdentityGatewayAgent objects
    */
-  getIdentityGatewayAgents(): Promise<any>;
+  readIdentityGatewayAgents(): Promise<AgentSkeleton[]>;
   /**
-   * Get identity gateway agent
+   * Read identity gateway agent
    * @param {string} gatewayId gateway id
-   * @returns {Promise} a promise that resolves to an object containing an IdentityGatewayAgent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an IdentityGatewayAgent object
    */
-  getIdentityGatewayAgent(gatewayId: string): Promise<any>;
+  readIdentityGatewayAgent(gatewayId: string): Promise<AgentSkeleton>;
   /**
-   * Put identity gateway agent
+   * Create identity gateway agent
    * @param {string} gatewayId gateway id
-   * @param {Object} gatewayData IdentityGatewayAgent object
-   * @returns {Promise} a promise that resolves to an object containing an IdentityGatewayAgent object
+   * @param {AgentSkeleton} gatewayData IdentityGatewayAgent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an IdentityGatewayAgent object
    */
-  putIdentityGatewayAgent(
+  createIdentityGatewayAgent(
     gatewayId: string,
     gatewayData: AgentSkeleton
-  ): Promise<any>;
+  ): Promise<AgentSkeleton>;
   /**
-   * Get java agents
-   * @returns {Promise} a promise that resolves to an array of J2EEAgent objects
+   * Update or create identity gateway agent
+   * @param {string} gatewayId gateway id
+   * @param {AgentSkeleton} gatewayData IdentityGatewayAgent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an IdentityGatewayAgent object
    */
-  getJavaAgents(): Promise<any>;
+  updateIdentityGatewayAgent(
+    gatewayId: string,
+    gatewayData: AgentSkeleton
+  ): Promise<AgentSkeleton>;
   /**
-   * Get java agent
+   * Read java agents
+   * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array of J2EEAgent objects
+   */
+  readJavaAgents(): Promise<AgentSkeleton[]>;
+  /**
+   * Read java agent
    * @param {string} agentId java agent id
-   * @returns {Promise} a promise that resolves to an object containing an J2EEAgent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an J2EEAgent object
    */
-  getJavaAgent(agentId: string): Promise<any>;
+  readJavaAgent(agentId: string): Promise<AgentSkeleton>;
   /**
    * Put java agent
    * @param {string} agentId java agent id
-   * @param {Object} agentData java agent object
-   * @returns {Promise} a promise that resolves to an object containing an java agent object
+   * @param {AgentSkeleton} agentData java agent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an java agent object
    */
-  putJavaAgent(agentId: string, agentData: AgentSkeleton): Promise<any>;
+  createJavaAgent(
+    agentId: string,
+    agentData: AgentSkeleton
+  ): Promise<AgentSkeleton>;
   /**
-   * Get web agents
-   * @returns {Promise} a promise that resolves to an array of WebAgent objects
+   * Put java agent
+   * @param {string} agentId java agent id
+   * @param {AgentSkeleton} agentData java agent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an java agent object
    */
-  getWebAgents(): Promise<any>;
+  updateJavaAgent(
+    agentId: string,
+    agentData: AgentSkeleton
+  ): Promise<AgentSkeleton>;
   /**
-   * Get web agent
+   * Read web agents
+   * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array of WebAgent objects
+   */
+  readWebAgents(): Promise<AgentSkeleton[]>;
+  /**
+   * Read web agent
    * @param {string} agentId web agent id
-   * @returns {Promise} a promise that resolves to an object containing an WebAgent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an WebAgent object
    */
-  getWebAgent(agentId: string): Promise<any>;
+  readWebAgent(agentId: string): Promise<AgentSkeleton>;
   /**
-   * Put web agent
+   * Create web agent
    * @param {string} agentId web agent id
-   * @param {Object} agentData WebAgent object
-   * @returns {Promise} a promise that resolves to an object containing an WebAgent object
+   * @param {AgentSkeleton} agentData WebAgent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an WebAgent object
    */
-  putWebAgent(agentId: string, agentData: AgentSkeleton): Promise<any>;
+  createWebAgent(
+    agentId: string,
+    agentData: AgentSkeleton
+  ): Promise<AgentSkeleton>;
+  /**
+   * Update or create web agent
+   * @param {string} agentId web agent id
+   * @param {AgentSkeleton} agentData WebAgent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an WebAgent object
+   */
+  updateWebAgent(
+    agentId: string,
+    agentData: AgentSkeleton
+  ): Promise<AgentSkeleton>;
   /**
    * Export all agents. The response can be saved to file as is.
    * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
@@ -230,253 +269,280 @@ export type Agent = {
    * @param agentId agent id/name
    */
   deleteWebAgent(agentId: string): Promise<void>;
+
+  // Deprecated
+
+  /**
+   * Get all agents.
+   * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of agent objects
+   * @deprecated since v2.0.0 use {@link Agent.readAgents | readAgents} instead
+   * ```javascript
+   * readAgents(): Promise<AgentSkeleton[]>
+   * ```
+   * @group Deprecated
+   */
+  getAgents(): Promise<AgentSkeleton[]>;
+  /**
+   * Get agent
+   * @param {string} agentId agent id/name
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an agent object
+   * @deprecated since v2.0.0 use {@link Agent.readAgent | readAgent} instead
+   * ```javascript
+   * readAgent(agentId: string): Promise<AgentSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  getAgent(agentId: string): Promise<AgentSkeleton>;
+  /**
+   * Get agent by type and id
+   * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
+   * @param {string} agentId agent id/name
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an agent object
+   * @deprecated since v2.0.0 use {@link Agent.readAgentByTypeAndId | readAgentByTypeAndId} instead
+   * ```javascript
+   * readAgentByTypeAndId(agentType: AgentType, agentId: string): Promise<AgentSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  getAgentByTypeAndId(
+    agentType: AgentType,
+    agentId: string
+  ): Promise<AgentSkeleton>;
+  /**
+   * Get identity gateway agents
+   * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array of IdentityGatewayAgent objects
+   * @deprecated since v2.0.0 use {@link Agent.readIdentityGatewayAgents | readIdentityGatewayAgents} instead
+   * ```javascript
+   * readIdentityGatewayAgents(): Promise<AgentSkeleton[]>
+   * ```
+   * @group Deprecated
+   */
+  getIdentityGatewayAgents(): Promise<AgentSkeleton[]>;
+  /**
+   * Get identity gateway agent
+   * @param {string} gatewayId gateway id
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an IdentityGatewayAgent object
+   * @deprecated since v2.0.0 use {@link Agent.readIdentityGatewayAgent | readIdentityGatewayAgent} instead
+   * ```javascript
+   * readIdentityGatewayAgent(gatewayId: string): Promise<AgentSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  getIdentityGatewayAgent(gatewayId: string): Promise<AgentSkeleton>;
+  /**
+   * Update or create identity gateway agent
+   * @param {string} gatewayId gateway id
+   * @param {AgentSkeleton} gatewayData IdentityGatewayAgent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an IdentityGatewayAgent object
+   * @deprecated since v2.0.0 use {@link Agent.updateIdentityGatewayAgent | updateIdentityGatewayAgent} or {@link Agent.createIdentityGatewayAgent | createIdentityGatewayAgent} instead
+   * ```javascript
+   * updateIdentityGatewayAgent(gatewayId: string, gatewayData: AgentSkeleton): Promise<AgentSkeleton>
+   * createIdentityGatewayAgent(gatewayId: string, gatewayData: AgentSkeleton): Promise<AgentSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  putIdentityGatewayAgent(
+    gatewayId: string,
+    gatewayData: AgentSkeleton
+  ): Promise<AgentSkeleton>;
+  /**
+   * Get java agents
+   * @returns {romise<AgentSkeleton[]>} a promise that resolves to an array of J2EEAgent objects
+   * @deprecated since v2.0.0 use {@link Agent.readJavaAgents | readJavaAgents} instead
+   * ```javascript
+   * readJavaAgents(): Promise<AgentSkeleton[]>
+   * ```
+   * @group Deprecated
+   */
+  getJavaAgents(): Promise<AgentSkeleton[]>;
+  /**
+   * Get java agent
+   * @param {string} agentId java agent id
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an J2EEAgent object
+   * @deprecated since v2.0.0 use {@link Agent.readJavaAgent | readJavaAgent} instead
+   * ```javascript
+   * readJavaAgent(agentId: string): Promise<AgentSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  getJavaAgent(agentId: string): Promise<AgentSkeleton>;
+  /**
+   * Update or create java agent
+   * @param {string} agentId java agent id
+   * @param {AgentSkeleton} agentData java agent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an java agent object
+   * @deprecated since v2.0.0 use {@link Agent.updateJavaAgent | updateJavaAgent} or {@link Agent.createJavaAgent | createJavaAgent} instead
+   * ```javascript
+   * updateJavaAgent(agentId: string, agentData: AgentSkeleton): Promise<AgentSkeleton>
+   * createJavaAgent(agentId: string, agentData: AgentSkeleton): Promise<AgentSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  putJavaAgent(
+    agentId: string,
+    agentData: AgentSkeleton
+  ): Promise<AgentSkeleton>;
+  /**
+   * Get web agents
+   * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array of WebAgent objects
+   * @deprecated since v2.0.0 use {@link Agent.readWebAgents | readWebAgents} instead
+   * ```javascript
+   * readWebAgents(): Promise<AgentSkeleton[]>
+   * ```
+   * @group Deprecated
+   */
+  getWebAgents(): Promise<AgentSkeleton[]>;
+  /**
+   * Get web agent
+   * @param {string} agentId web agent id
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an WebAgent object
+   * @deprecated since v2.0.0 use {@link Agent.readWebAgent | readWebAgent} instead
+   * ```javascript
+   * readWebAgent(agentId: string): Promise<AgentSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  getWebAgent(agentId: string): Promise<AgentSkeleton>;
+  /**
+   * Update or create web agent
+   * @param {string} agentId web agent id
+   * @param {AgentSkeleton} agentData WebAgent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an WebAgent object
+   * @deprecated since v2.0.0 use {@link Agent.updateWebAgent | updateWebAgent} or {@link Agent.createWebAgent | createWebAgent} instead
+   * ```javascript
+   * updateWebAgent(agentId: string, agentData: AgentSkeleton): Promise<AgentSkeleton>
+   * createWebAgent(agentId: string, agentData: AgentSkeleton): Promise<AgentSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  putWebAgent(
+    agentId: string,
+    agentData: AgentSkeleton
+  ): Promise<AgentSkeleton>;
 };
 
 export default (state: State): Agent => {
   return {
-    /**
-     * Create an empty agent export template
-     * @returns {AgentExportInterface} an empty agent export template
-     */
     createAgentExportTemplate(): AgentExportInterface {
       return createAgentExportTemplate();
     },
-
-    /**
-     * Get all agents. Results are sorted aphabetically.
-     * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of agent objects
-     */
-    async getAgents(): Promise<AgentSkeleton[]> {
-      return getAgents({ state });
+    async readAgents(): Promise<AgentSkeleton[]> {
+      return readAgents({ state });
     },
-
-    /**
-     * Get agent
-     * @param {string} agentId agent id/name
-     * @returns {Promise} a promise that resolves to an agent object
-     */
-    async getAgent(agentId: string) {
-      return getAgent({ agentId, state });
+    async readAgent(agentId: string): Promise<AgentSkeleton> {
+      return readAgent({ agentId, state });
     },
-
-    /**
-     * Get agent by type and id
-     * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
-     * @param {string} agentId agent id/name
-     * @returns {Promise} a promise that resolves to an agent object
-     */
-    async getAgentByTypeAndId(agentType: AgentType, agentId: string) {
-      return getAgentByTypeAndId({ agentType, agentId, state });
+    async readAgentByTypeAndId(
+      agentType: AgentType,
+      agentId: string
+    ): Promise<AgentSkeleton> {
+      return readAgentByTypeAndId({ agentType, agentId, state });
     },
-
-    /**
-     * Get identity gateway agents
-     * @returns {Promise} a promise that resolves to an array of IdentityGatewayAgent objects
-     */
-    async getIdentityGatewayAgents() {
-      return getIdentityGatewayAgents({ state });
+    async readIdentityGatewayAgents(): Promise<AgentSkeleton[]> {
+      return readIdentityGatewayAgents({ state });
     },
-
-    /**
-     * Get identity gateway agent
-     * @param {string} gatewayId gateway id
-     * @returns {Promise} a promise that resolves to an object containing an IdentityGatewayAgent object
-     */
-    async getIdentityGatewayAgent(gatewayId: string) {
-      return getIdentityGatewayAgent({ gatewayId, state });
+    async readIdentityGatewayAgent(gatewayId: string): Promise<AgentSkeleton> {
+      return readIdentityGatewayAgent({ gatewayId, state });
     },
-
-    /**
-     * Put identity gateway agent
-     * @param {string} gatewayId gateway id
-     * @param {Object} gatewayData IdentityGatewayAgent object
-     * @returns {Promise} a promise that resolves to an object containing an IdentityGatewayAgent object
-     */
-    async putIdentityGatewayAgent(
+    async createIdentityGatewayAgent(
       gatewayId: string,
       gatewayData: AgentSkeleton
-    ) {
-      return putIdentityGatewayAgent({
+    ): Promise<AgentSkeleton> {
+      return createIdentityGatewayAgent({
         gatewayId,
         gatewayData,
         state,
       });
     },
-
-    /**
-     * Get java agents
-     * @returns {Promise} a promise that resolves to an array of J2EEAgent objects
-     */
-    async getJavaAgents() {
-      return getJavaAgents({ state });
+    async updateIdentityGatewayAgent(
+      gatewayId: string,
+      gatewayData: AgentSkeleton
+    ): Promise<AgentSkeleton> {
+      return updateIdentityGatewayAgent({
+        gatewayId,
+        gatewayData,
+        state,
+      });
     },
-
-    /**
-     * Get java agent
-     * @param {string} agentId java agent id
-     * @returns {Promise} a promise that resolves to an object containing an J2EEAgent object
-     */
-    async getJavaAgent(agentId: string) {
-      return getJavaAgent({ agentId, state });
+    async readJavaAgents(): Promise<AgentSkeleton[]> {
+      return readJavaAgents({ state });
     },
-
-    /**
-     * Put java agent
-     * @param {string} agentId java agent id
-     * @param {Object} agentData java agent object
-     * @returns {Promise} a promise that resolves to an object containing an java agent object
-     */
-    async putJavaAgent(agentId: string, agentData: AgentSkeleton) {
-      return putJavaAgent({ agentId, agentData, state });
+    async readJavaAgent(agentId: string): Promise<AgentSkeleton> {
+      return readJavaAgent({ agentId, state });
     },
-
-    /**
-     * Get web agents
-     * @returns {Promise} a promise that resolves to an array of WebAgent objects
-     */
-    async getWebAgents() {
-      return getWebAgents({ state });
+    async createJavaAgent(
+      agentId: string,
+      agentData: AgentSkeleton
+    ): Promise<AgentSkeleton> {
+      return createJavaAgent({ agentId, agentData, state });
     },
-
-    /**
-     * Get web agent
-     * @param {string} agentId web agent id
-     * @returns {Promise} a promise that resolves to an object containing an WebAgent object
-     */
-    async getWebAgent(agentId: string) {
-      return getWebAgent({ agentId, state });
+    async updateJavaAgent(
+      agentId: string,
+      agentData: AgentSkeleton
+    ): Promise<AgentSkeleton> {
+      return updateJavaAgent({ agentId, agentData, state });
     },
-
-    /**
-     * Put web agent
-     * @param {string} agentId web agent id
-     * @param {Object} agentData WebAgent object
-     * @returns {Promise} a promise that resolves to an object containing an WebAgent object
-     */
-    async putWebAgent(agentId: string, agentData: AgentSkeleton) {
-      return putWebAgent({ agentId, agentData, state });
+    async readWebAgents(): Promise<AgentSkeleton[]> {
+      return readWebAgents({ state });
     },
-
-    /**
-     * Export all agents. The response can be saved to file as is.
-     * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
-     */
+    async readWebAgent(agentId: string): Promise<AgentSkeleton> {
+      return readWebAgent({ agentId, state });
+    },
+    async createWebAgent(
+      agentId: string,
+      agentData: AgentSkeleton
+    ): Promise<AgentSkeleton> {
+      return createWebAgent({ agentId, agentData, state });
+    },
+    async updateWebAgent(
+      agentId: string,
+      agentData: AgentSkeleton
+    ): Promise<AgentSkeleton> {
+      return updateWebAgent({ agentId, agentData, state });
+    },
     async exportAgents(): Promise<AgentExportInterface> {
       return exportAgents({ state });
     },
-
-    /**
-     * Export all identity gateway agents. The response can be saved to file as is.
-     * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
-     */
     async exportIdentityGatewayAgents(): Promise<AgentExportInterface> {
       return exportIdentityGatewayAgents({ state });
     },
-
-    /**
-     * Export all java agents. The response can be saved to file as is.
-     * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
-     */
     async exportJavaAgents(): Promise<AgentExportInterface> {
       return exportJavaAgents({ state });
     },
-
-    /**
-     * Export all web agents. The response can be saved to file as is.
-     * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
-     */
     async exportWebAgents(): Promise<AgentExportInterface> {
       return exportWebAgents({ state });
     },
-
-    /**
-     * Export agent. The response can be saved to file as is.
-     * @param agentId agent id/name
-     * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
-     */
     async exportAgent(agentId: string): Promise<AgentExportInterface> {
       return exportAgent({ agentId, state });
     },
-
-    /**
-     * Export identity gateway agent. The response can be saved to file as is.
-     * @param agentId agent id/name
-     * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
-     */
     async exportIdentityGatewayAgent(
       agentId: string
     ): Promise<AgentExportInterface> {
       return exportIdentityGatewayAgent({ agentId, state });
     },
-
-    /**
-     * Export java agent. The response can be saved to file as is.
-     * @param agentId agent id/name
-     * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
-     */
     async exportJavaAgent(agentId: string): Promise<AgentExportInterface> {
       return exportJavaAgent({ agentId, state });
     },
-
-    /**
-     * Export web agent. The response can be saved to file as is.
-     * @param agentId agent id/name
-     * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
-     */
     async exportWebAgent(agentId: string): Promise<AgentExportInterface> {
       return exportWebAgent({ agentId, state });
     },
-
-    /**
-     * Import agents. The import data is usually read from an agent export file.
-     * @param {AgentExportInterface} importData agent import data.
-     */
     async importAgents(importData: AgentExportInterface): Promise<void> {
       return importAgents({ importData, state });
     },
-
-    /**
-     * Import identity gateway agents. The import data is usually read from an agent export file.
-     * @param {AgentExportInterface} importData agent import data.
-     */
     async importIdentityGatewayAgents(
       importData: AgentExportInterface
     ): Promise<void> {
       return importIdentityGatewayAgents({ importData, state });
     },
-
-    /**
-     * Import java agents. The import data is usually read from an agent export file.
-     * @param {AgentExportInterface} importData agent import data.
-     */
     async importJavaAgents(importData: AgentExportInterface): Promise<void> {
       return importJavaAgents({ importData, state });
     },
-
-    /**
-     * Import web agents. The import data is usually read from an agent export file.
-     * @param {AgentExportInterface} importData agent import data.
-     */
     async importWebAgents(importData: AgentExportInterface): Promise<void> {
       return importWebAgents({ importData, state });
     },
-
-    /**
-     * Import agent. The import data is usually read from an agent export file.
-     * @param {string} agentId agent id/name
-     * @param {AgentExportInterface} importData agent import data.
-     * @returns {Promise} Promise resolving to an agent object.
-     */
     async importAgent(agentId: string, importData: AgentExportInterface) {
       return importAgent({ agentId, importData, state });
     },
-
-    /**
-     * Import identity gateway agent. The import data is usually read from an agent export file.
-     * @param {string} agentId agent id/name
-     * @param {AgentExportInterface} importData agent import data.
-     * @returns {Promise} Promise resolving to an agent object.
-     */
     async importIdentityGatewayAgent(
       agentId: string,
       importData: AgentExportInterface
@@ -487,85 +553,87 @@ export default (state: State): Agent => {
         state,
       });
     },
-
-    /**
-     * Import java agent. The import data is usually read from an agent export file.
-     * @param {string} agentId agent id/name
-     * @param {AgentExportInterface} importData agent import data.
-     * @returns {Promise} Promise resolving to an agent object.
-     */
     async importJavaAgent(agentId: string, importData: AgentExportInterface) {
       return importJavaAgent({ agentId, importData, state });
     },
-
-    /**
-     * Import java agent. The import data is usually read from an agent export file.
-     * @param {string} agentId agent id/name
-     * @param {AgentExportInterface} importData agent import data.
-     * @returns {Promise} Promise resolving to an agent object.
-     */
     async importWebAgent(agentId: string, importData: AgentExportInterface) {
       return importWebAgent({ agentId, importData, state });
     },
-
-    /**
-     * Delete all agents
-     */
     async deleteAgents() {
       return deleteAgents({ state });
     },
-
-    /**
-     * Delete agent
-     * @param agentId agent id/name
-     */
     async deleteAgent(agentId: string) {
       return deleteAgent({ agentId, state });
     },
-
-    /**
-     * Delete all identity gateway agents
-     */
     async deleteIdentityGatewayAgents() {
       return deleteIdentityGatewayAgents({ state });
     },
-
-    /**
-     * Delete identity gateway agent
-     * @param agentId agent id/name
-     */
     async deleteIdentityGatewayAgent(agentId: string) {
       return deleteIdentityGatewayAgent({ agentId, state });
     },
-
-    /**
-     * Delete all java agents
-     */
     async deleteJavaAgents() {
       return deleteJavaAgents({ state });
     },
-
-    /**
-     * Delete java agent
-     * @param agentId agent id/name
-     */
     async deleteJavaAgent(agentId: string) {
       return deleteJavaAgent({ agentId, state });
     },
-
-    /**
-     * Delete all web agents
-     */
     async deleteWebAgents() {
       return deleteWebAgents({ state });
     },
-
-    /**
-     * Delete web agent
-     * @param agentId agent id/name
-     */
     async deleteWebAgent(agentId: string) {
       return deleteWebAgent({ agentId, state });
+    },
+
+    // Deprecated
+
+    async getAgents(): Promise<AgentSkeleton[]> {
+      return readAgents({ state });
+    },
+    async getAgent(agentId: string) {
+      return readAgent({ agentId, state });
+    },
+    async getAgentByTypeAndId(agentType: AgentType, agentId: string) {
+      return readAgentByTypeAndId({ agentType, agentId, state });
+    },
+    async getIdentityGatewayAgents() {
+      return readIdentityGatewayAgents({ state });
+    },
+    async getIdentityGatewayAgent(gatewayId: string) {
+      return readIdentityGatewayAgent({ gatewayId, state });
+    },
+    async putIdentityGatewayAgent(
+      gatewayId: string,
+      gatewayData: AgentSkeleton
+    ) {
+      return updateIdentityGatewayAgent({
+        gatewayId,
+        gatewayData,
+        state,
+      });
+    },
+    async getJavaAgents() {
+      return readJavaAgents({ state });
+    },
+    async getJavaAgent(agentId: string) {
+      return readJavaAgent({ agentId, state });
+    },
+    async putJavaAgent(
+      agentId: string,
+      agentData: AgentSkeleton
+    ): Promise<AgentSkeleton> {
+      return updateJavaAgent({ agentId, agentData, state });
+    },
+    async getWebAgents(): Promise<AgentSkeleton[]> {
+      return readWebAgents({ state });
+    },
+    async getWebAgent(agentId: string): Promise<AgentSkeleton> {
+      return readWebAgent({ agentId, state });
+    },
+    async putWebAgent(
+      agentId: string,
+      agentData: AgentSkeleton
+    ): Promise<AgentSkeleton> {
+      return updateWebAgent({ agentId, agentData, state });
     },
   };
 };
@@ -585,7 +653,7 @@ export function createAgentExportTemplate(): AgentExportInterface {
  * Get all agents. Results are sorted aphabetically.
  * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of agent objects
  */
-export async function getAgents({
+export async function readAgents({
   state,
 }: {
   state: State;
@@ -613,15 +681,15 @@ export async function getAgents({
 /**
  * Get agent
  * @param {string} agentId agent id/name
- * @returns {Promise} a promise that resolves to an agent object
+ * @returns {Promise<AgentSkeleton>} a promise that resolves to an agent object
  */
-export async function getAgent({
+export async function readAgent({
   agentId,
   state,
 }: {
   agentId: string;
   state: State;
-}) {
+}): Promise<AgentSkeleton> {
   debugMessage({ message: `AgentOps.getAgent: start`, state });
   const agents = await findAgentById({ agentId, state });
   if (agents.length === 1) {
@@ -641,11 +709,11 @@ export async function getAgent({
 
 /**
  * Get agent by type and id
- * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
+ * @param {AgentType} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
  * @param {string} agentId agent id/name
- * @returns {Promise} a promise that resolves to an agent object
+ * @returns {Promise<AgentSkeleton>} a promise that resolves to an agent object
  */
-export async function getAgentByTypeAndId({
+export async function readAgentByTypeAndId({
   agentType,
   agentId,
   state,
@@ -653,7 +721,7 @@ export async function getAgentByTypeAndId({
   agentType: AgentType;
   agentId: string;
   state: State;
-}) {
+}): Promise<AgentSkeleton> {
   debugMessage({ message: `AgentOps.getAgentByTypeAndId: start`, state });
   const result = await _getAgentByTypeAndId({ agentType, agentId, state });
   debugMessage({ message: `AgentOps.getAgentByTypeAndId: start`, state });
@@ -662,9 +730,13 @@ export async function getAgentByTypeAndId({
 
 /**
  * Get identity gateway agents
- * @returns {Promise} a promise that resolves to an array of IdentityGatewayAgent objects
+ * @returns {: Promise<AgentSkeleton[]>} a promise that resolves to an array of IdentityGatewayAgent objects
  */
-export async function getIdentityGatewayAgents({ state }: { state: State }) {
+export async function readIdentityGatewayAgents({
+  state,
+}: {
+  state: State;
+}): Promise<AgentSkeleton[]> {
   debugMessage({ message: `AgentOps.getIdentityGatewayAgents: start`, state });
   const { result } = await getAgentsByType({
     agentType: 'IdentityGatewayAgent',
@@ -677,17 +749,17 @@ export async function getIdentityGatewayAgents({ state }: { state: State }) {
 /**
  * Get identity gateway agent
  * @param {string} gatewayId gateway id
- * @returns {Promise} a promise that resolves to an object containing an IdentityGatewayAgent object
+ * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an IdentityGatewayAgent object
  */
-export async function getIdentityGatewayAgent({
+export async function readIdentityGatewayAgent({
   gatewayId,
   state,
 }: {
   gatewayId: string;
   state: State;
-}) {
+}): Promise<AgentSkeleton> {
   debugMessage({ message: `AgentOps.getIdentityGatewayAgent: start`, state });
-  const result = await getAgentByTypeAndId({
+  const result = await readAgentByTypeAndId({
     agentType: 'IdentityGatewayAgent',
     agentId: gatewayId,
     state,
@@ -697,12 +769,12 @@ export async function getIdentityGatewayAgent({
 }
 
 /**
- * Put identity gateway agent
+ * Create identity gateway agent
  * @param {string} gatewayId gateway id
- * @param {Object} gatewayData IdentityGatewayAgent object
- * @returns {Promise} a promise that resolves to an object containing an IdentityGatewayAgent object
+ * @param {AgentSkeleton} gatewayData IdentityGatewayAgent object
+ * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an IdentityGatewayAgent object
  */
-export async function putIdentityGatewayAgent({
+export async function createIdentityGatewayAgent({
   gatewayId,
   gatewayData,
   state,
@@ -710,7 +782,48 @@ export async function putIdentityGatewayAgent({
   gatewayId: string;
   gatewayData: AgentSkeleton;
   state: State;
-}) {
+}): Promise<AgentSkeleton> {
+  debugMessage({
+    message: `AgentOps.createIdentityGatewayAgent: start`,
+    state,
+  });
+  try {
+    await readIdentityGatewayAgent({ gatewayId, state });
+  } catch (error) {
+    const result = await putAgentByTypeAndId({
+      agentType: 'IdentityGatewayAgent',
+      agentId: gatewayId,
+      agentData: gatewayData,
+      state,
+    });
+    debugMessage({
+      message: `AgentOps.createIdentityGatewayAgent: end`,
+      state,
+    });
+    return result;
+  }
+  debugMessage({
+    message: `AgentOps.createIdentityGatewayAgent: error`,
+    state,
+  });
+  throw new Error(`Agent ${gatewayId} already exists!`);
+}
+
+/**
+ * Update or create identity gateway agent
+ * @param {string} gatewayId gateway id
+ * @param {AgentSkeleton} gatewayData IdentityGatewayAgent object
+ * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an IdentityGatewayAgent object
+ */
+export async function updateIdentityGatewayAgent({
+  gatewayId,
+  gatewayData,
+  state,
+}: {
+  gatewayId: string;
+  gatewayData: AgentSkeleton;
+  state: State;
+}): Promise<AgentSkeleton> {
   debugMessage({ message: `AgentOps.putIdentityGatewayAgent: start`, state });
   const result = await putAgentByTypeAndId({
     agentType: 'IdentityGatewayAgent',
@@ -724,9 +837,13 @@ export async function putIdentityGatewayAgent({
 
 /**
  * Get java agents
- * @returns {Promise} a promise that resolves to an array of J2EEAgent objects
+ * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array of J2EEAgent objects
  */
-export async function getJavaAgents({ state }: { state: State }) {
+export async function readJavaAgents({
+  state,
+}: {
+  state: State;
+}): Promise<AgentSkeleton[]> {
   debugMessage({ message: `AgentOps.getJavaAgents: start`, state });
   const { result } = await getAgentsByType({
     agentType: 'J2EEAgent',
@@ -741,15 +858,15 @@ export async function getJavaAgents({ state }: { state: State }) {
  * @param {string} agentId java agent id
  * @returns {Promise} a promise that resolves to an object containing an J2EEAgent object
  */
-export async function getJavaAgent({
+export async function readJavaAgent({
   agentId,
   state,
 }: {
   agentId: string;
   state: State;
-}) {
+}): Promise<AgentSkeleton> {
   debugMessage({ message: `AgentOps.getJavaAgent: start`, state });
-  const result = await getAgentByTypeAndId({
+  const result = await readAgentByTypeAndId({
     agentType: 'J2EEAgent',
     agentId,
     state,
@@ -759,12 +876,12 @@ export async function getJavaAgent({
 }
 
 /**
- * Put java agent
+ * Create java agent
  * @param {string} agentId java agent id
  * @param {Object} agentData java agent object
  * @returns {Promise} a promise that resolves to an object containing an java agent object
  */
-export async function putJavaAgent({
+export async function createJavaAgent({
   agentId,
   agentData,
   state,
@@ -772,7 +889,45 @@ export async function putJavaAgent({
   agentId: string;
   agentData: AgentSkeleton;
   state: State;
-}) {
+}): Promise<AgentSkeleton> {
+  debugMessage({ message: `AgentOps.createJavaAgent: start`, state });
+  try {
+    await readJavaAgent({ agentId, state });
+  } catch (error) {
+    const result = await putAgentByTypeAndId({
+      agentType: 'J2EEAgent',
+      agentId,
+      agentData,
+      state,
+    });
+    debugMessage({
+      message: `AgentOps.createJavaAgent: end`,
+      state,
+    });
+    return result;
+  }
+  debugMessage({
+    message: `AgentOps.createJavaAgent: error`,
+    state,
+  });
+  throw new Error(`Agent ${agentId} already exists!`);
+}
+
+/**
+ * Update or create java agent
+ * @param {string} agentId java agent id
+ * @param {Object} agentData java agent object
+ * @returns {Promise} a promise that resolves to an object containing an java agent object
+ */
+export async function updateJavaAgent({
+  agentId,
+  agentData,
+  state,
+}: {
+  agentId: string;
+  agentData: AgentSkeleton;
+  state: State;
+}): Promise<AgentSkeleton> {
   debugMessage({ message: `AgentOps.putJavaAgent: start`, state });
   const result = await putAgentByTypeAndId({
     agentType: 'J2EEAgent',
@@ -788,7 +943,7 @@ export async function putJavaAgent({
  * Get web agents
  * @returns {Promise} a promise that resolves to an array of WebAgent objects
  */
-export async function getWebAgents({ state }: { state: State }) {
+export async function readWebAgents({ state }: { state: State }) {
   debugMessage({ message: `AgentOps.getWebAgents: start`, state });
   const { result } = await getAgentsByType({
     agentType: 'WebAgent',
@@ -803,7 +958,7 @@ export async function getWebAgents({ state }: { state: State }) {
  * @param {string} agentId web agent id
  * @returns {Promise} a promise that resolves to an object containing an WebAgent object
  */
-export async function getWebAgent({
+export async function readWebAgent({
   agentId,
   state,
 }: {
@@ -811,7 +966,7 @@ export async function getWebAgent({
   state: State;
 }) {
   debugMessage({ message: `AgentOps.getWebAgent: start`, state });
-  const result = await getAgentByTypeAndId({
+  const result = await readAgentByTypeAndId({
     agentType: 'WebAgent',
     agentId,
     state,
@@ -821,12 +976,50 @@ export async function getWebAgent({
 }
 
 /**
- * Put web agent
+ * Create web agent
+ * @param {string} agentId java agent id
+ * @param {Object} agentData java agent object
+ * @returns {Promise} a promise that resolves to an object containing an java agent object
+ */
+export async function createWebAgent({
+  agentId,
+  agentData,
+  state,
+}: {
+  agentId: string;
+  agentData: AgentSkeleton;
+  state: State;
+}): Promise<AgentSkeleton> {
+  debugMessage({ message: `AgentOps.createWebAgent: start`, state });
+  try {
+    await readWebAgent({ agentId, state });
+  } catch (error) {
+    const result = await putAgentByTypeAndId({
+      agentType: 'WebAgent',
+      agentId,
+      agentData,
+      state,
+    });
+    debugMessage({
+      message: `AgentOps.createWebAgent: end`,
+      state,
+    });
+    return result;
+  }
+  debugMessage({
+    message: `AgentOps.createWebAgent: error`,
+    state,
+  });
+  throw new Error(`Agent ${agentId} already exists!`);
+}
+
+/**
+ * Update or create web agent
  * @param {string} agentId web agent id
  * @param {Object} agentData WebAgent object
  * @returns {Promise} a promise that resolves to an object containing an WebAgent object
  */
-export async function putWebAgent({
+export async function updateWebAgent({
   agentId,
   agentData,
   state,
@@ -857,7 +1050,7 @@ export async function exportAgents({
 }): Promise<AgentExportInterface> {
   debugMessage({ message: `AgentOps.exportAgents: start`, state });
   const exportData = createAgentExportTemplate();
-  const agents = await getAgents({ state });
+  const agents = await readAgents({ state });
   for (const agent of agents) {
     exportData.agents[agent._id] = agent;
   }
@@ -879,7 +1072,7 @@ export async function exportIdentityGatewayAgents({
     state,
   });
   const exportData = createAgentExportTemplate();
-  const agents = await getIdentityGatewayAgents({ state });
+  const agents = await readIdentityGatewayAgents({ state });
   for (const agent of agents) {
     exportData.agents[agent._id] = agent;
   }
@@ -898,7 +1091,7 @@ export async function exportJavaAgents({
 }): Promise<AgentExportInterface> {
   debugMessage({ message: `AgentOps.exportJavaAgents: start`, state });
   const exportData = createAgentExportTemplate();
-  const agents = await getJavaAgents({ state });
+  const agents = await readJavaAgents({ state });
   for (const agent of agents) {
     exportData.agents[agent._id] = agent;
   }
@@ -917,7 +1110,7 @@ export async function exportWebAgents({
 }): Promise<AgentExportInterface> {
   debugMessage({ message: `AgentOps.exportWebAgents: start`, state });
   const exportData = createAgentExportTemplate();
-  const agents = await getWebAgents({ state });
+  const agents = await readWebAgents({ state });
   for (const agent of agents) {
     exportData.agents[agent._id] = agent;
   }
@@ -939,7 +1132,7 @@ export async function exportAgent({
 }): Promise<AgentExportInterface> {
   debugMessage({ message: `AgentOps.exportAgent: start`, state });
   const exportData = createAgentExportTemplate();
-  const agentObject = await getAgent({ agentId, state });
+  const agentObject = await readAgent({ agentId, state });
   exportData.agents[agentId] = agentObject;
   debugMessage({ message: `AgentOps.exportAgent: end`, state });
   return exportData;
@@ -962,7 +1155,7 @@ export async function exportIdentityGatewayAgent({
     state,
   });
   const exportData = createAgentExportTemplate();
-  const agentObject = await getIdentityGatewayAgent({
+  const agentObject = await readIdentityGatewayAgent({
     gatewayId: agentId,
     state,
   });
@@ -985,7 +1178,7 @@ export async function exportJavaAgent({
 }): Promise<AgentExportInterface> {
   debugMessage({ message: `AgentOps.exportJavaAgent: start`, state });
   const exportData = createAgentExportTemplate();
-  const agentObject = await getJavaAgent({ agentId, state });
+  const agentObject = await readJavaAgent({ agentId, state });
   exportData.agents[agentId] = agentObject;
   debugMessage({ message: `AgentOps.exportJavaAgent: end`, state });
   return exportData;
@@ -1005,7 +1198,7 @@ export async function exportWebAgent({
 }): Promise<AgentExportInterface> {
   debugMessage({ message: `AgentOps.exportWebAgent: start`, state });
   const exportData = createAgentExportTemplate();
-  const agentObject = await getWebAgent({ agentId, state });
+  const agentObject = await readWebAgent({ agentId, state });
   exportData.agents[agentId] = agentObject;
   debugMessage({ message: `AgentOps.exportWebAgent: end`, state });
   return exportData;
@@ -1289,7 +1482,7 @@ export async function importWebAgent({
  */
 export async function deleteAgents({ state }: { state: State }) {
   debugMessage({ message: `AgentOps.deleteAgents: start`, state });
-  const agents = await getAgents({ state });
+  const agents = await readAgents({ state });
   for (const agent of agents) {
     debugMessage({ message: `AgentOps.deleteAgent: '${agent['_id']}'`, state });
     await deleteAgentByTypeAndId({
@@ -1340,14 +1533,14 @@ export async function deleteIdentityGatewayAgents({ state }: { state: State }) {
     message: `AgentOps.deleteIdentityGatewayAgents: start`,
     state,
   });
-  const agents = await getIdentityGatewayAgents({ state });
+  const agents = await readIdentityGatewayAgents({ state });
   for (const agent of agents) {
     debugMessage({
       message: `AgentOps.deleteIdentityGatewayAgent: '${agent['_id']}'`,
       state,
     });
     await deleteAgentByTypeAndId({
-      agentType: agent['_type']['_id'],
+      agentType: agent['_type']['_id'] as AgentType,
       agentId: agent['_id'],
       state,
     });
@@ -1398,14 +1591,14 @@ export async function deleteIdentityGatewayAgent({
  */
 export async function deleteJavaAgents({ state }: { state: State }) {
   debugMessage({ message: `AgentOps.deleteJavaAgents: start`, state });
-  const agents = await getJavaAgents({ state });
+  const agents = await readJavaAgents({ state });
   for (const agent of agents) {
     debugMessage({
       message: `AgentOps.deleteJavaAgent: '${agent['_id']}'`,
       state,
     });
     await deleteAgentByTypeAndId({
-      agentType: agent['_type']['_id'],
+      agentType: agent['_type']['_id'] as AgentType,
       agentId: agent['_id'],
       state,
     });
@@ -1453,7 +1646,7 @@ export async function deleteJavaAgent({
  */
 export async function deleteWebAgents({ state }: { state: State }) {
   debugMessage({ message: `AgentOps.deleteWebAgents: start`, state });
-  const agents = await getWebAgents({ state });
+  const agents = await readWebAgents({ state });
   for (const agent of agents) {
     debugMessage({
       message: `AgentOps.deleteWebAgent: '${agent['_id']}'`,
