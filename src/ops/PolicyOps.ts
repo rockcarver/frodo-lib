@@ -18,7 +18,11 @@ import {
 import { getMetadata } from '../utils/ExportImportUtils';
 import { debugMessage } from '../utils/Console';
 import { getResourceType } from '../api/ResourceTypesApi';
-import { createPolicySet, getPolicySet, updatePolicySet } from './PolicySetOps';
+import {
+  createPolicySet,
+  readPolicySet,
+  updatePolicySet,
+} from './PolicySetOps';
 import {
   createResourceType as _createResourceType,
   updateResourceType,
@@ -552,7 +556,7 @@ async function exportPolicyPrerequisites({
   }
   // policy set
   if (policyData.applicationName) {
-    const policySet = await getPolicySet({
+    const policySet = await readPolicySet({
       policySetName: policyData.applicationName,
       state,
     });
