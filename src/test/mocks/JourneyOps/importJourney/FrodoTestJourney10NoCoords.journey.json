@@ -1,0 +1,26 @@
+{
+  "tree": {
+    "_id": "FrodoTestJourney10",
+    "_rev": "-747434609",
+    "enabled": true,
+    "entryNodeId": "node1",
+    "identityResource": "managed/alpha_user",
+    "uiConfig": {},
+    "nodes": {
+      "node1": {
+        "connections": {},
+        "displayName": "name1",
+        "nodeType": "type1"
+      },
+      "node2": {
+        "connections": {},
+        "displayName": "name2",
+        "nodeType": "type2"
+      }
+    },
+    "staticNodes": {
+      "node3": {},
+      "node4": {}
+    }
+  }
+}
