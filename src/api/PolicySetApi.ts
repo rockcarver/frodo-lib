@@ -97,18 +97,21 @@ export async function createPolicySet({
  * @returns {Promise} a promise that resolves to a policy set object
  */
 export async function updatePolicySet({
+  policySetName = undefined,
   policySetData,
   state,
 }: {
+  policySetName?: string;
   policySetData: PolicySetSkeleton;
   state: State;
 }) {
   const appData = cloneDeep(policySetData);
+  if (policySetName) appData.name = policySetName;
   const urlString = util.format(
     policySetURLTemplate,
     state.getHost(),
     getCurrentRealmPath(state),
-    policySetData.name
+    appData.name
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
     urlString,
