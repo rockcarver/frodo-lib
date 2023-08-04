@@ -802,10 +802,6 @@ export async function createIdentityGatewayAgent({
     });
     return result;
   }
-  debugMessage({
-    message: `AgentOps.createIdentityGatewayAgent: error`,
-    state,
-  });
   throw new Error(`Agent ${gatewayId} already exists!`);
 }
 
@@ -906,10 +902,6 @@ export async function createJavaAgent({
     });
     return result;
   }
-  debugMessage({
-    message: `AgentOps.createJavaAgent: error`,
-    state,
-  });
   throw new Error(`Agent ${agentId} already exists!`);
 }
 
@@ -1006,10 +998,6 @@ export async function createWebAgent({
     });
     return result;
   }
-  debugMessage({
-    message: `AgentOps.createWebAgent: error`,
-    state,
-  });
   throw new Error(`Agent ${agentId} already exists!`);
 }
 
