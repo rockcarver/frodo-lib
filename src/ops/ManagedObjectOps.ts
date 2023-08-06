@@ -155,7 +155,8 @@ export async function createManagedObject({
   moData: IdObjectSkeletonInterface;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  if (id) return _putManagedObject({ type, id, moData, state });
+  if (id)
+    return _putManagedObject({ type, id, moData, failIfExists: true, state });
   return _createManagedObject({ moType: type, moData, state });
 }
 

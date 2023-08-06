@@ -274,9 +274,9 @@ export async function getFullServices({
 }
 
 /**
- * Saves a service using the provide id and data, including descendents
+ * Saves a service including descendents
  * @param {string} serviceId the service id / name
- * @param {string} fullServiceData service object including descendants
+ * @param {FullService} fullServiceData service object including descendants
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns promise resolving to a service object
  */

@@ -122,30 +122,35 @@ export async function createResourceType({
  * Update resource type by uuid
  * @param {string} resourceTypeUuid resource type uuid
  * @param {ResourceTypeSkeleton} resourceTypeData resource type object
- * @returns {Promise} a promise that resolves to a resource type object
+ * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
  */
 export async function putResourceType({
   resourceTypeUuid,
   resourceTypeData,
+  failIfExists = false,
   state,
 }: {
   resourceTypeUuid: string;
   resourceTypeData: ResourceTypeSkeleton;
+  failIfExists?: boolean;
   state: State;
-}) {
+}): Promise<ResourceTypeSkeleton> {
   const urlString = util.format(
     resourceTypeURLTemplate,
     state.getHost(),
     getCurrentRealmPath(state),
     resourceTypeUuid
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
-    urlString,
-    resourceTypeData,
-    {
-      withCredentials: true,
-    }
-  );
+  const requestOverride = failIfExists
+    ? { headers: { 'If-None-Match': '*' } }
+    : {};
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requestOverride,
+    state,
+  }).put(urlString, resourceTypeData, {
+    withCredentials: true,
+  });
   return data;
 }
 

@@ -104,7 +104,7 @@ export async function getVariable({
 }
 
 /**
- * Put variable by id/name
+ * Create or update variable by id/name
  * @param {string} variableId variable id/name
  * @param {string} value variable value
  * @param {string} description variable description

@@ -45,7 +45,7 @@ autoSetupPolly();
 async function stageResourceType(type: ResourceTypeSkeleton, create = true) {
   // delete if exists, then create
   try {
-    await ResourceTypeOps.getResourceType({
+    await ResourceTypeOps.readResourceType({
       resourceTypeUuid: type.uuid,
       state,
     });
@@ -302,24 +302,24 @@ describe('ResourceTypeOps', () => {
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '1')
   ) {
-    describe('getResourceTypes()', () => {
+    describe('readResourceTypes()', () => {
       test('0: Method is implemented', async () => {
-        expect(ResourceTypeOps.getResourceTypes).toBeDefined();
+        expect(ResourceTypeOps.readResourceTypes).toBeDefined();
       });
 
       test('1: Get all resource types', async () => {
-        const response = await ResourceTypeOps.getResourceTypes({ state });
+        const response = await ResourceTypeOps.readResourceTypes({ state });
         expect(response).toMatchSnapshot();
       });
     });
 
-    describe('getResourceType()', () => {
+    describe('readResourceType()', () => {
       test('0: Method is implemented', async () => {
-        expect(ResourceTypeOps.getResourceType).toBeDefined();
+        expect(ResourceTypeOps.readResourceType).toBeDefined();
       });
 
       test(`1: Get existing resource type by uuid [${type1.uuid} - ${type1.name}]`, async () => {
-        const response = await ResourceTypeOps.getResourceType({
+        const response = await ResourceTypeOps.readResourceType({
           resourceTypeUuid: type1.uuid,
           state,
         });
@@ -329,7 +329,7 @@ describe('ResourceTypeOps', () => {
       test('2: Get non-existing resource type by uuid [00000000-0000-0000-0000-000000000000]', async () => {
         expect.assertions(1);
         try {
-          await ResourceTypeOps.getResourceType({
+          await ResourceTypeOps.readResourceType({
             resourceTypeUuid: '00000000-0000-0000-0000-000000000000',
             state,
           });
@@ -339,13 +339,13 @@ describe('ResourceTypeOps', () => {
       });
     });
 
-    describe('getResourceTypeByName()', () => {
+    describe('readResourceTypeByName()', () => {
       test('0: Method is implemented', async () => {
-        expect(ResourceTypeOps.getResourceTypeByName).toBeDefined();
+        expect(ResourceTypeOps.readResourceTypeByName).toBeDefined();
       });
 
       test(`1: Get existing resource type by name [${type2.name} - ${type2.uuid}]`, async () => {
-        const response = await ResourceTypeOps.getResourceTypeByName({
+        const response = await ResourceTypeOps.readResourceTypeByName({
           resourceTypeName: type2.name,
           state,
         });
@@ -355,7 +355,7 @@ describe('ResourceTypeOps', () => {
       test('2: Get non-existing resource type by name [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await ResourceTypeOps.getResourceTypeByName({
+          await ResourceTypeOps.readResourceTypeByName({
             resourceTypeName: 'DoesNotExist',
             state,
           });

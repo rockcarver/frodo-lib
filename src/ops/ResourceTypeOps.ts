@@ -1,10 +1,10 @@
 import {
-  deleteResourceType,
+  deleteResourceType as _deleteResourceType,
   getResourceTypes as _getResourceTypes,
-  getResourceType,
+  getResourceType as _getResourceType,
   getResourceTypeByName as _getResourceTypeByName,
-  createResourceType,
-  putResourceType,
+  createResourceType as _createResourceType,
+  putResourceType as _putResourceType,
 } from '../api/ResourceTypesApi';
 import { ExportMetaData } from './OpsTypes';
 import { ResourceTypeSkeleton } from '../api/ApiTypes';
@@ -13,30 +13,50 @@ import { debugMessage } from '../utils/Console';
 import { State } from '../shared/State';
 
 export type ResourceType = {
-  getResourceType(resourceTypeUuid: string): Promise<any>;
   /**
-   * Get all resource types
-   * @returns {Promise} a promise that resolves to an array of resource type objects
+   * Read resource type
+   * @param resourceTypeUuid resource type uuid
+   * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
    */
-  getResourceTypes(): Promise<ResourceTypeSkeleton[]>;
+  readResourceType(resourceTypeUuid: string): Promise<ResourceTypeSkeleton>;
   /**
-   * Get resource type by name
+   * Read all resource types
+   * @returns {Promise<ResourceTypeSkeleton[]>} a promise that resolves to an array of resource type objects
+   */
+  readResourceTypes(): Promise<ResourceTypeSkeleton[]>;
+  /**
+   * Read resource type by name
    * @param {string} resourceTypeName resource type name
    * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
    */
-  getResourceTypeByName(
+  readResourceTypeByName(
     resourceTypeName: string
   ): Promise<ResourceTypeSkeleton>;
   /**
+   * Create resource type
+   * @param resourceTypeData resource type data
+   * @param resourceTypeUuid resource type uuid
+   * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
+   */
+  createResourceType(
+    resourceTypeData: ResourceTypeSkeleton,
+    resourceTypeUuid?: string
+  ): Promise<ResourceTypeSkeleton>;
+  /**
    * Update resource type
-   * @param {string} resourceTypeData resource type id
+   * @param {string} resourceTypeData resource type data
    * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
    */
   updateResourceType(
     resourceTypeUuid: string,
     resourceTypeData: ResourceTypeSkeleton
   ): Promise<ResourceTypeSkeleton>;
-  deleteResourceType(resourceTypeUuid: string): Promise<any>;
+  /**
+   * Delete resource type
+   * @param {string} resourceTypeUuid resource type uuid
+   * @returns {Promise<ResourceTypeSkeleton>} Promise resolvig to a resource type object
+   */
+  deleteResourceType(resourceTypeUuid: string): Promise<ResourceTypeSkeleton>;
   /**
    * Delete resource type by name
    * @param {string} resourceTypeName resource type name
@@ -96,39 +116,64 @@ export type ResourceType = {
    * @param {ResourceTypeExportInterface} importData import data
    */
   importResourceTypes(importData: ResourceTypeExportInterface): Promise<any[]>;
+
+  // Deprecated
+
+  /**
+   * Get resource type
+   * @param resourceTypeUuid resource type uuid
+   * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
+   * @deprecated since v2.0.0 use {@link Agent.readResourceType | readResourceType} instead
+   * ```javascript
+   * readResourceType(resourceTypeUuid: string): Promise<ResourceTypeSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  getResourceType(resourceTypeUuid: string): Promise<ResourceTypeSkeleton>;
+  /**
+   * Get all resource types
+   * @returns {Promise<ResourceTypeSkeleton[]>} a promise that resolves to an array of resource type objects
+   * @deprecated since v2.0.0 use {@link Agent.readResourceTypes | readResourceTypes} instead
+   * ```javascript
+   * readResourceTypes(): Promise<ResourceTypeSkeleton[]>
+   * ```
+   * @group Deprecated
+   */
+  getResourceTypes(): Promise<ResourceTypeSkeleton[]>;
+  /**
+   * Get resource type by name
+   * @param {string} resourceTypeName resource type name
+   * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
+   * @deprecated since v2.0.0 use {@link Agent.readResourceTypeByName | readResourceTypeByName} instead
+   * ```javascript
+   * readResourceTypeByName(resourceTypeName: string): Promise<ResourceTypeSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  getResourceTypeByName(
+    resourceTypeName: string
+  ): Promise<ResourceTypeSkeleton>;
 };
 
 export default (state: State): ResourceType => {
   return {
-    async getResourceType(resourceTypeUuid: string) {
-      return getResourceType({ resourceTypeUuid, state });
+    async readResourceType(resourceTypeUuid: string) {
+      return readResourceType({ resourceTypeUuid, state });
     },
-
-    /**
-     * Get all resource types
-     * @returns {Promise} a promise that resolves to an array of resource type objects
-     */
-    async getResourceTypes(): Promise<ResourceTypeSkeleton[]> {
-      const { result } = await _getResourceTypes({ state });
-      return result;
+    async readResourceTypes(): Promise<ResourceTypeSkeleton[]> {
+      return readResourceTypes({ state });
     },
-
-    /**
-     * Get resource type by name
-     * @param {string} resourceTypeName resource type name
-     * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
-     */
-    async getResourceTypeByName(
+    async readResourceTypeByName(
       resourceTypeName: string
     ): Promise<ResourceTypeSkeleton> {
-      return getResourceTypeByName({ resourceTypeName, state });
+      return readResourceTypeByName({ resourceTypeName, state });
     },
-
-    /**
-     * Update resource type
-     * @param {string} resourceTypeData resource type id
-     * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
-     */
+    async createResourceType(
+      resourceTypeData: ResourceTypeSkeleton,
+      resourceTypeUuid: string = undefined
+    ): Promise<ResourceTypeSkeleton> {
+      return createResourceType({ resourceTypeData, resourceTypeUuid, state });
+    },
     async updateResourceType(
       resourceTypeUuid: string,
       resourceTypeData: ResourceTypeSkeleton
@@ -139,57 +184,27 @@ export default (state: State): ResourceType => {
         state,
       });
     },
-
     async deleteResourceType(resourceTypeUuid: string) {
       return deleteResourceType({ resourceTypeUuid, state });
     },
-
-    /**
-     * Delete resource type by name
-     * @param {string} resourceTypeName resource type name
-     * @returns {Promise<ResourceTypeSkeleton>} Promise resolvig to a resource type object
-     */
     async deleteResourceTypeByName(
       resourceTypeName: string
     ): Promise<ResourceTypeSkeleton> {
       return deleteResourceTypeByName({ resourceTypeName, state });
     },
-
-    /**
-     * Export resource type
-     * @param {string} resourceTypeUuid resource type uuid
-     * @returns {Promise<ResourceTypeExportInterface>} a promise that resolves to an ResourceTypeExportInterface object
-     */
     async exportResourceType(
       resourceTypeUuid: string
     ): Promise<ResourceTypeExportInterface> {
       return exportResourceType({ resourceTypeUuid, state });
     },
-
-    /**
-     * Export resource type by name
-     * @param {string} resourceTypeName resource type name
-     * @returns {Promise<ResourceTypeExportInterface>} a promise that resolves to an ResourceTypeExportInterface object
-     */
     async exportResourceTypeByName(
       resourceTypeName: string
     ): Promise<ResourceTypeExportInterface> {
       return exportResourceTypeByName({ resourceTypeName, state });
     },
-
-    /**
-     * Export resource types
-     * @returns {Promise<ResourceTypeExportInterface>} a promise that resolves to an ResourceTypeExportInterface object
-     */
     async exportResourceTypes(): Promise<ResourceTypeExportInterface> {
       return exportResourceTypes({ state });
     },
-
-    /**
-     * Import resource type by uuid
-     * @param {string} resourceTypeUuid client uuid
-     * @param {ResourceTypeExportInterface} importData import data
-     */
     async importResourceType(
       resourceTypeUuid: string,
       importData: ResourceTypeExportInterface
@@ -200,12 +215,6 @@ export default (state: State): ResourceType => {
         state,
       });
     },
-
-    /**
-     * Import resource type by name
-     * @param {string} resourceTypeName client id
-     * @param {ResourceTypeExportInterface} importData import data
-     */
     async importResourceTypeByName(
       resourceTypeName: string,
       importData: ResourceTypeExportInterface
@@ -216,21 +225,25 @@ export default (state: State): ResourceType => {
         state,
       });
     },
-
-    /**
-     * Import first resource type
-     * @param {ResourceTypeExportInterface} importData import data
-     */
     async importFirstResourceType(importData: ResourceTypeExportInterface) {
       return importFirstResourceType({ importData, state });
     },
-
-    /**
-     * Import resource types
-     * @param {ResourceTypeExportInterface} importData import data
-     */
     async importResourceTypes(importData: ResourceTypeExportInterface) {
       return importResourceTypes({ importData, state });
+    },
+
+    // Deprecated
+
+    async getResourceType(resourceTypeUuid: string) {
+      return readResourceType({ resourceTypeUuid, state });
+    },
+    async getResourceTypes(): Promise<ResourceTypeSkeleton[]> {
+      return readResourceTypes({ state });
+    },
+    async getResourceTypeByName(
+      resourceTypeName: string
+    ): Promise<ResourceTypeSkeleton> {
+      return readResourceTypeByName({ resourceTypeName, state });
     },
   };
 };
@@ -244,7 +257,7 @@ export interface ResourceTypeExportInterface {
  * Create an empty export template
  * @returns {ResourceTypeExportInterface} an empty export template
  */
-function createResourceTypeExportTemplate({
+export function createResourceTypeExportTemplate({
   state,
 }: {
   state: State;
@@ -258,11 +271,21 @@ function createResourceTypeExportTemplate({
   } as ResourceTypeExportInterface;
 }
 
+export async function readResourceType({
+  resourceTypeUuid,
+  state,
+}: {
+  resourceTypeUuid: string;
+  state: State;
+}) {
+  return _getResourceType({ resourceTypeUuid, state });
+}
+
 /**
  * Get all resource types
  * @returns {Promise} a promise that resolves to an array of resource type objects
  */
-export async function getResourceTypes({
+export async function readResourceTypes({
   state,
 }: {
   state: State;
@@ -276,7 +299,7 @@ export async function getResourceTypes({
  * @param {string} resourceTypeName resource type name
  * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
  */
-export async function getResourceTypeByName({
+export async function readResourceTypeByName({
   resourceTypeName,
   state,
 }: {
@@ -312,7 +335,17 @@ export async function updateResourceType({
   resourceTypeData: ResourceTypeSkeleton;
   state: State;
 }): Promise<ResourceTypeSkeleton> {
-  return putResourceType({ resourceTypeUuid, resourceTypeData, state });
+  return _putResourceType({ resourceTypeUuid, resourceTypeData, state });
+}
+
+export async function deleteResourceType({
+  resourceTypeUuid,
+  state,
+}: {
+  resourceTypeUuid: string;
+  state: State;
+}) {
+  return _deleteResourceType({ resourceTypeUuid, state });
 }
 
 /**
@@ -328,9 +361,9 @@ export async function deleteResourceTypeByName({
   state: State;
 }): Promise<ResourceTypeSkeleton> {
   const resourceTypeUuid = (
-    await getResourceTypeByName({ resourceTypeName, state })
+    await readResourceTypeByName({ resourceTypeName, state })
   ).uuid;
-  return deleteResourceType({ resourceTypeUuid, state });
+  return _deleteResourceType({ resourceTypeUuid, state });
 }
 
 /**
@@ -349,7 +382,7 @@ export async function exportResourceType({
   const exportData = createResourceTypeExportTemplate({ state });
   const errors = [];
   try {
-    const resourceTypeData = await getResourceType({
+    const resourceTypeData = await _getResourceType({
       resourceTypeUuid,
       state,
     });
@@ -392,7 +425,7 @@ export async function exportResourceTypeByName({
   const exportData = createResourceTypeExportTemplate({ state });
   const errors = [];
   try {
-    const resourceTypeData = await getResourceTypeByName({
+    const resourceTypeData = await readResourceTypeByName({
       resourceTypeName,
       state,
     });
@@ -424,7 +457,7 @@ export async function exportResourceTypes({
   const exportData = createResourceTypeExportTemplate({ state });
   const errors = [];
   try {
-    const resourceTypes = await getResourceTypes({ state });
+    const resourceTypes = await readResourceTypes({ state });
     for (const resourceTypeData of resourceTypes) {
       exportData.resourcetype[resourceTypeData.uuid] = resourceTypeData;
     }
@@ -462,10 +495,10 @@ export async function importResourceType({
         const resourceTypeData = importData.resourcetype[id];
         delete resourceTypeData._rev;
         try {
-          response = await createResourceType({ resourceTypeData, state });
+          response = await _createResourceType({ resourceTypeData, state });
         } catch (createError) {
           if (createError.response?.status === 409)
-            response = await putResourceType({
+            response = await _putResourceType({
               resourceTypeUuid: id,
               resourceTypeData,
               state,
@@ -515,10 +548,10 @@ export async function importResourceTypeByName({
         const resourceTypeData = importData.resourcetype[id];
         delete resourceTypeData._rev;
         try {
-          response = await createResourceType({ resourceTypeData, state });
+          response = await _createResourceType({ resourceTypeData, state });
         } catch (createError) {
           if (createError.response?.status === 409)
-            response = await putResourceType({
+            response = await _putResourceType({
               resourceTypeUuid: id,
               resourceTypeData,
               state,
@@ -565,10 +598,10 @@ export async function importFirstResourceType({
       delete resourceTypeData._provider;
       delete resourceTypeData._rev;
       try {
-        response = await createResourceType({ resourceTypeData, state });
+        response = await _createResourceType({ resourceTypeData, state });
       } catch (createError) {
         if (createError.response?.status === 409)
-          response = await putResourceType({
+          response = await _putResourceType({
             resourceTypeUuid: id,
             resourceTypeData,
             state,
@@ -612,11 +645,11 @@ export async function importResourceTypes({
       const resourceTypeData = importData.resourcetype[id];
       delete resourceTypeData._rev;
       try {
-        response.push(await createResourceType({ resourceTypeData, state }));
+        response.push(await _createResourceType({ resourceTypeData, state }));
       } catch (createError) {
         if (createError.response?.status === 409)
           response.push(
-            await putResourceType({
+            await _putResourceType({
               resourceTypeUuid: id,
               resourceTypeData,
               state,
@@ -641,4 +674,21 @@ export async function importResourceTypes({
   return response;
 }
 
-export { getResourceType, createResourceType, deleteResourceType };
+export async function createResourceType({
+  resourceTypeData,
+  resourceTypeUuid,
+  state,
+}: {
+  resourceTypeData: ResourceTypeSkeleton;
+  resourceTypeUuid?: string;
+  state: State;
+}): Promise<ResourceTypeSkeleton> {
+  if (resourceTypeUuid)
+    return _putResourceType({
+      resourceTypeUuid,
+      resourceTypeData,
+      failIfExists: true,
+      state,
+    });
+  return _createResourceType({ resourceTypeData, state });
+}
