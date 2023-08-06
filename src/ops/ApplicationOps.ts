@@ -13,7 +13,7 @@ import {
   readManagedObjects,
   updateManagedObject,
   deleteManagedObject,
-  findManagedObjects,
+  queryManagedObjects,
 } from './ManagedObjectOps';
 import { exportOAuth2Client } from './OAuth2ClientOps';
 import { ExportMetaData } from './OpsTypes';
@@ -92,11 +92,11 @@ export type Application = {
    */
   deleteApplications(): Promise<ApplicationSkeleton[]>;
   /**
-   * Find applications
+   * Query applications
    * @param filter CREST search filter
    * @param fields array of fields to return
    */
-  findApplications(
+  queryApplications(
     filter: string,
     fields?: string[]
   ): Promise<ApplicationSkeleton[]>;
@@ -169,11 +169,11 @@ export default (state: State): Application => {
     async deleteApplications(): Promise<ApplicationSkeleton[]> {
       return deleteApplications({ state });
     },
-    async findApplications(
+    async queryApplications(
       filter: string,
       fields: string[] = defaultFields
     ): Promise<ApplicationSkeleton[]> {
-      return findApplications({ filter, fields, state });
+      return queryApplications({ filter, fields, state });
     },
     async exportApplication(
       applicationId: string,
@@ -376,7 +376,7 @@ export async function deleteApplications({
   return deleted;
 }
 
-export async function findApplications({
+export async function queryApplications({
   filter,
   fields = defaultFields,
   state,
@@ -385,7 +385,7 @@ export async function findApplications({
   fields?: string[];
   state: State;
 }): Promise<ApplicationSkeleton[]> {
-  const application = await findManagedObjects({
+  const application = await queryManagedObjects({
     type: getRealmManagedApplication({ state }),
     filter,
     fields,
