@@ -244,30 +244,6 @@ describe('Saml2Ops', () => {
       });
     });
 
-    describe('getProviderByLocationAndId()', () => {
-      test('0: Method is implemented', async () => {
-        expect(Saml2Ops.getProviderByLocationAndId).toBeDefined();
-      });
-
-      test(`1: Get hosted provider '${provider1.entityId}'`, async () => {
-        const response = await Saml2Ops.getProviderByLocationAndId({
-          location: provider1.location,
-          entityId64: provider1.entityId64,
-          state,
-        });
-        expect(response).toMatchSnapshot();
-      });
-
-      test(`2: Get remote provider '${provider2.entityId}'`, async () => {
-        const response = await Saml2Ops.getProviderByLocationAndId({
-          location: provider2.location,
-          entityId64: provider2.entityId64,
-          state,
-        });
-        expect(response).toMatchSnapshot();
-      });
-    });
-
     describe('getProviderMetadataUrl()', () => {
       test('0: Method is implemented', async () => {
         expect(Saml2Ops.getProviderMetadataUrl).toBeDefined();
