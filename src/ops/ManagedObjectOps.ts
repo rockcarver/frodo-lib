@@ -4,7 +4,7 @@ import {
   createManagedObject as _createManagedObject,
   putManagedObject as _putManagedObject,
   deleteManagedObject as _deleteManagedObject,
-  findManagedObjects as _findManagedObjects,
+  queryManagedObjects as _queryManagedObjects,
   queryAllManagedObjectsByType,
 } from '../api/ManagedObjectApi';
 import { State } from '../shared/State';
@@ -66,13 +66,13 @@ export type ManagedObject = {
     id: string
   ): Promise<IdObjectSkeletonInterface>;
   /**
-   * Find managed objects
+   * Query managed objects
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} filter CREST search filter
    * @param {string[]} fields array of fields to return
    * @return {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of managed objects
    */
-  findManagedObjects(
+  queryManagedObjects(
     type: string,
     filter: string,
     fields: string[]
@@ -128,12 +128,12 @@ export default (state: State): ManagedObject => {
     ): Promise<IdObjectSkeletonInterface> {
       return deleteManagedObject({ type, id, state });
     },
-    async findManagedObjects(
+    async queryManagedObjects(
       type: string,
       filter: string,
       fields: string[]
     ): Promise<IdObjectSkeletonInterface[]> {
-      return findManagedObjects({ type, filter, fields, state });
+      return queryManagedObjects({ type, filter, fields, state });
     },
     async resolveUserName(type: string, id: string) {
       return resolveUserName({ type, id, state });
@@ -230,7 +230,7 @@ export async function deleteManagedObject({
   return _deleteManagedObject({ type, id, state });
 }
 
-export async function findManagedObjects({
+export async function queryManagedObjects({
   type,
   filter,
   fields,
@@ -241,7 +241,12 @@ export async function findManagedObjects({
   fields: string[];
   state: State;
 }): Promise<IdObjectSkeletonInterface[]> {
-  const { result } = await _findManagedObjects({ type, filter, fields, state });
+  const { result } = await _queryManagedObjects({
+    type,
+    filter,
+    fields,
+    state,
+  });
   return result;
 }
 

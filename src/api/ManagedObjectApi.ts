@@ -106,14 +106,14 @@ export async function putManagedObject({
 }
 
 /**
- * Find managed object
+ * Query managed object
  * @param {string} type managed object type, e.g. alpha_user or user
  * @param {string} filter CREST search filter
  * @param {string[]} id array of fields to include
  * @param {State} state library state
  * @returns {Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an ObjectSkeletonInterface
  */
-export async function findManagedObjects({
+export async function queryManagedObjects({
   type,
   filter,
   fields = ['*'],
