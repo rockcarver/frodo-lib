@@ -80,11 +80,13 @@ export async function putManagedObject({
   type,
   id,
   moData,
+  failIfExists = false,
   state,
 }: {
   type: string;
   id: string;
   moData: IdObjectSkeletonInterface;
+  failIfExists?: boolean;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
@@ -93,7 +95,14 @@ export async function putManagedObject({
     type,
     id
   );
-  return generateIdmApi({ requestOverride: {}, state }).put(urlString, moData);
+  const requestOverride = failIfExists
+    ? { headers: { 'If-None-Match': '*' } }
+    : {};
+  const { data } = await generateIdmApi({ requestOverride, state }).put(
+    urlString,
+    moData
+  );
+  return data;
 }
 
 /**

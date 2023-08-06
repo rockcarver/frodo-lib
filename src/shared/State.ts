@@ -13,14 +13,6 @@ const pkg = JSON.parse(
 export type State = {
   setHost(host: string): void;
   getHost(): string;
-  /**
-   * @deprecated since v0.17.0 use `setHost(host: string)` instead
-   */
-  setTenant(tenant: string): void;
-  /**
-   * @deprecated since v0.17.0 use `getHost` instead
-   */
-  getTenant(): string;
   setUsername(username: string): void;
   getUsername(): string;
   setPassword(password: string): void;
@@ -103,6 +95,17 @@ export type State = {
   getDebugHandler(): (message: string | object) => void;
   setDebug(debug: boolean): void;
   getDebug(): boolean;
+
+  // Deprecated
+
+  /**
+   * @deprecated since v0.17.0 use `setHost(host: string)` instead
+   */
+  setTenant(tenant: string): void;
+  /**
+   * @deprecated since v0.17.0 use `getHost` instead
+   */
+  getTenant(): string;
 };
 
 export default (initialState: StateInterface): State => {
@@ -113,19 +116,6 @@ export default (initialState: StateInterface): State => {
     },
     getHost() {
       return state.host || process.env.FRODO_HOST;
-    },
-
-    /**
-     * @deprecated since v0.17.0 use `setHost(host: string)` instead
-     */
-    setTenant(tenant: string) {
-      this.setHost(tenant);
-    },
-    /**
-     * @deprecated since v0.17.0 use `getHost` instead
-     */
-    getTenant() {
-      return this.getHost();
     },
 
     setUsername(username: string) {
@@ -359,6 +349,15 @@ export default (initialState: StateInterface): State => {
     },
     getDebug(): boolean {
       return globalState.debug || process.env.FRODO_DEBUG !== undefined;
+    },
+
+    // Deprecated
+
+    setTenant(tenant: string) {
+      this.setHost(tenant);
+    },
+    getTenant() {
+      return this.getHost();
     },
   };
 };
