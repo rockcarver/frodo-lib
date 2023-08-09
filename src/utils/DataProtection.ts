@@ -89,10 +89,10 @@ class DataProtection {
 
   async decrypt(data) {
     const buffer = Buffer.from(data.toString(), 'base64');
-    const salt = buffer.slice(0, 64);
-    const nonce = buffer.slice(64, 80);
-    const tag = buffer.slice(80, 96);
-    const encrypted = buffer.slice(96);
+    const salt = buffer.subarray(0, 64);
+    const nonce = buffer.subarray(64, 80);
+    const tag = buffer.subarray(80, 96);
+    const encrypted = buffer.subarray(96);
     const masterKey = await _masterKey.get(this)();
     const key = await _key.get(this)(masterKey, salt);
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, nonce);
