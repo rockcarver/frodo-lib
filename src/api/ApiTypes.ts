@@ -121,8 +121,6 @@ export type PolicySkeleton = IdObjectSkeletonInterface & {
   resourceTypeUuid: string;
 };
 
-export type VersionOfSecretStatus = 'DISABLED' | 'ENABLED';
-
 export type ReadableStrings = string[];
 
 export type WritableStrings = {

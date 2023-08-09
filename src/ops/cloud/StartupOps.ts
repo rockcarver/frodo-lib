@@ -3,14 +3,14 @@ import {
   updateProgressIndicator,
   stopProgressIndicator,
 } from '../../utils/Console';
-import { getSecrets } from '../../api/cloud/SecretsApi';
 import {
   getStatus,
   initiateRestart,
   RestartStatus,
 } from '../../api/cloud/StartupApi';
-import { getVariables } from '../../api/cloud/VariablesApi';
 import { State } from '../../shared/State';
+import { readSecrets } from './SecretsOps';
+import { readVariables } from './VariablesOps';
 
 export type Startup = {
   /**
@@ -84,11 +84,11 @@ export async function checkForUpdates({
     state,
   });
   try {
-    updates.secrets = (await getSecrets({ state })).result.filter(
-      (secret: { loaded: unknown }) => !secret.loaded
+    updates.secrets = (await readSecrets({ state })).filter(
+      (secret) => !secret.loaded
     );
-    updates.variables = (await getVariables({ state })).result.filter(
-      (variable: { loaded: unknown }) => !variable.loaded
+    updates.variables = (await readVariables({ state })).filter(
+      (variable) => !variable.loaded
     );
   } catch (error) {
     stopProgressIndicator({

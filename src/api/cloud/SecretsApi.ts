@@ -3,7 +3,7 @@ import { encode } from '../../utils/Base64Utils';
 import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 import { State } from '../../shared/State';
-import { VersionOfSecretStatus } from '../ApiTypes';
+import { IdObjectSkeletonInterface, PagedResult } from '../ApiTypes';
 
 const secretsListURLTemplate = '%s/environment/secrets';
 const secretListVersionsURLTemplate = '%s/environment/secrets/%s/versions';
@@ -20,10 +20,69 @@ const getApiConfig = () => ({
 });
 
 /**
- * Get all secrets
- * @returns {Promise<unknown[]>} a promise that resolves to an array of secrets
+ * Secret encoding
+ *
+ * @summary
+ * You can use the encoding parameter to set an encoding format when you create an ESV secret.
+ * You can only choose an encoding format using the API. The UI currently creates secrets only
+ * with the generic encoding format.
+ *
+ * @see
+ * {@link https://backstage.forgerock.com/docs/idcloud/latest/tenants/esvs.html#encoding_format | ForgeRock Documentation}
  */
-export async function getSecrets({ state }: { state: State }) {
+export type SecretEncodingType = 'generic' | 'pem' | 'base64hmac';
+
+/**
+ * Secret object skeleton
+ */
+export type SecretSkeleton = IdObjectSkeletonInterface & {
+  description: string;
+  encoding: SecretEncodingType;
+  lastChangedBy?: string;
+  lastChangeDate?: string;
+  useInPlaceholders: boolean;
+  loaded?: boolean;
+  loadedVersion?: string;
+  activeVersion?: string;
+};
+
+export type VersionOfSecretStatus = 'DISABLED' | 'ENABLED' | 'DESTROYED';
+
+/**
+ * Secret version skeleton
+ */
+export type VersionOfSecretSkeleton = IdObjectSkeletonInterface & {
+  /**
+   * Base64-encoded value. Only used when creating a new version of a secret
+   */
+  valueBase64?: string;
+  /**
+   * Version string. Returned when reading a version of a secret
+   */
+  version?: string;
+  /**
+   * Date string. Returned when reading a version of a secret
+   */
+  createDate?: string;
+  /**
+   * True if loaded, false otherwise. Returned when reading a version of a secret
+   */
+  loaded?: boolean;
+  /**
+   * Status string. Returned when reading a version of a secret
+   */
+  status?: VersionOfSecretStatus;
+};
+
+/**
+ * Get all secrets
+ * @returns {Promise<PagedResult<SecretSkeleton>>} a promise that resolves to an array of secrets
+ */
+export async function getSecrets({
+  state,
+}: {
+  state: State;
+}): Promise<PagedResult<SecretSkeleton>> {
   const urlString = util.format(
     secretsListURLTemplate,
     getHostBaseUrl(state.getHost())
@@ -40,7 +99,7 @@ export async function getSecrets({ state }: { state: State }) {
 /**
  * Get secret
  * @param secretId secret id/name
- * @returns {Promise<unknown>} a promise that resolves to a secret
+ * @returns {Promise<SecretSkeleton>} a promise that resolves to a secret
  */
 export async function getSecret({
   secretId,
@@ -48,7 +107,7 @@ export async function getSecret({
 }: {
   secretId: string;
   state: State;
-}) {
+}): Promise<SecretSkeleton> {
   const urlString = util.format(
     secretURLTemplate,
     getHostBaseUrl(state.getHost()),
@@ -70,7 +129,7 @@ export async function getSecret({
  * @param {string} description secret description
  * @param {string} encoding secret encoding (only `generic` is supported)
  * @param {boolean} useInPlaceholders flag indicating if the secret can be used in placeholders
- * @returns {Promise<unknown>} a promise that resolves to a secret
+ * @returns {Promise<SecretSkeleton>} a promise that resolves to a secret
  */
 export async function putSecret({
   secretId,
@@ -86,7 +145,7 @@ export async function putSecret({
   encoding?: string;
   useInPlaceholders?: boolean;
   state: State;
-}) {
+}): Promise<SecretSkeleton> {
   if (encoding !== 'generic')
     throw new Error(`Unsupported encoding: ${encoding}`);
   const secretData = {
@@ -113,7 +172,7 @@ export async function putSecret({
  * Set secret description
  * @param {string} secretId secret id/name
  * @param {string} description secret description
- * @returns {Promise<unknown>} a promise that resolves to a status object
+ * @returns {Promise<any>} a promise that resolves to an empty string
  */
 export async function setSecretDescription({
   secretId,
@@ -123,7 +182,7 @@ export async function setSecretDescription({
   secretId: string;
   description: string;
   state: State;
-}) {
+}): Promise<any> {
   const urlString = util.format(
     secretSetDescriptionURLTemplate,
     getHostBaseUrl(state.getHost()),
@@ -165,7 +224,7 @@ export async function deleteSecret({
 /**
  * Get secret versions
  * @param {string} secretId secret id/name
- * @returns {Promise<unknown>} a promise that resolves to an array of secret versions
+ * @returns {Promise<VersionOfSecretSkeleton[]>} a promise that resolves to an array of secret versions
  */
 export async function getSecretVersions({
   secretId,
@@ -173,7 +232,7 @@ export async function getSecretVersions({
 }: {
   secretId: string;
   state: State;
-}) {
+}): Promise<VersionOfSecretSkeleton[]> {
   const urlString = util.format(
     secretListVersionsURLTemplate,
     getHostBaseUrl(state.getHost()),
@@ -192,7 +251,7 @@ export async function getSecretVersions({
  * Create new secret version
  * @param {string} secretId secret id/name
  * @param {string} value secret value
- * @returns {Promise<unknown>} a promise that resolves to a version object
+ * @returns {Promise<VersionOfSecretSkeleton>} a promise that resolves to a version object
  */
 export async function createNewVersionOfSecret({
   secretId,
@@ -202,7 +261,7 @@ export async function createNewVersionOfSecret({
   secretId: string;
   value: string;
   state: State;
-}) {
+}): Promise<VersionOfSecretSkeleton> {
   const urlString = util.format(
     secretCreateNewVersionURLTemplate,
     getHostBaseUrl(state.getHost()),
@@ -219,7 +278,7 @@ export async function createNewVersionOfSecret({
  * Get version of secret
  * @param {string} secretId secret id/name
  * @param {string} version secret version
- * @returns {Promise<unknown>} a promise that resolves to a version object
+ * @returns {Promise<VersionOfSecretSkeleton>} a promise that resolves to a version object
  */
 export async function getVersionOfSecret({
   secretId,
@@ -229,7 +288,7 @@ export async function getVersionOfSecret({
   secretId: string;
   version: string;
   state: State;
-}) {
+}): Promise<VersionOfSecretSkeleton> {
   const urlString = util.format(
     secretGetVersionURLTemplate,
     getHostBaseUrl(state.getHost()),
@@ -250,7 +309,7 @@ export async function getVersionOfSecret({
  * @param {string} secretId secret id/name
  * @param {string} version secret version
  * @param {VersionOfSecretStatus} status status
- * @returns {Promise<unknown>} a promise that resolves to a status object
+ * @returns {Promise<VersionOfSecretSkeleton>} a promise that resolves to a status object
  */
 export async function setStatusOfVersionOfSecret({
   secretId,
@@ -262,7 +321,7 @@ export async function setStatusOfVersionOfSecret({
   version: string;
   status: VersionOfSecretStatus;
   state: State;
-}) {
+}): Promise<VersionOfSecretSkeleton> {
   const urlString = util.format(
     secretVersionStatusURLTemplate,
     getHostBaseUrl(state.getHost()),
@@ -280,7 +339,7 @@ export async function setStatusOfVersionOfSecret({
  * Delete version of secret
  * @param {string} secretId secret id/name
  * @param {string} version secret version
- * @returns {Promise<unknown>} a promise that resolves to a version object
+ * @returns {Promise<VersionOfSecretSkeleton>} a promise that resolves to a version object
  */
 export async function deleteVersionOfSecret({
   secretId,
@@ -290,7 +349,7 @@ export async function deleteVersionOfSecret({
   secretId: string;
   version: string;
   state: State;
-}) {
+}): Promise<VersionOfSecretSkeleton> {
   const urlString = util.format(
     secretGetVersionURLTemplate,
     getHostBaseUrl(state.getHost()),
