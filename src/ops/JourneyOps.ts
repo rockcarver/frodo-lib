@@ -19,7 +19,7 @@ import {
 } from '../api/NodeApi';
 import { isCloudOnlyNode, isCustomNode, isPremiumNode } from './NodeOps';
 import { getTrees, getTree, putTree, deleteTree } from '../api/TreeApi';
-import { getEmailTemplate, putEmailTemplate } from './EmailTemplateOps';
+import { readEmailTemplate, updateEmailTemplate } from './EmailTemplateOps';
 import { getScript } from '../api/ScriptApi';
 import Constants from '../shared/Constants';
 import {
@@ -782,7 +782,7 @@ export async function exportJourney({
       ) {
         if (emailTemplateNodes.includes(nodeType)) {
           try {
-            const emailTemplate = await getEmailTemplate({
+            const emailTemplate = await readEmailTemplate({
               templateId: nodeObject.emailTemplateName,
               state,
             });
@@ -912,7 +912,7 @@ export async function exportJourney({
       ) {
         if (emailTemplateNodes.includes(innerNodeType)) {
           try {
-            const emailTemplate = await getEmailTemplate({
+            const emailTemplate = await readEmailTemplate({
               templateId: innerNodeObject.emailTemplateName,
               state,
             });
@@ -1236,7 +1236,7 @@ export async function importJourney({
           state,
         });
       try {
-        await putEmailTemplate({ templateId, templateData, state });
+        await updateEmailTemplate({ templateId, templateData, state });
       } catch (error) {
         printMessage({ message: error.response.data, type: 'error', state });
         throw new Error(`Error importing email templates: ${error.message}`);

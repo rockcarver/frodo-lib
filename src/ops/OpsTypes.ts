@@ -2,7 +2,6 @@ import {
   AgentSkeleton,
   AmServiceSkeleton,
   CircleOfTrustSkeleton,
-  EmailTemplateSkeleton,
   NodeSkeleton,
   ScriptSkeleton,
   SocialIdpSkeleton,
@@ -11,6 +10,7 @@ import {
 } from '../api/ApiTypes';
 import { Saml2ProviderSkeleton } from '../api/Saml2Api';
 import { State } from '../shared/State';
+import { EmailTemplateSkeleton } from './EmailTemplateOps';
 
 /**
  * Tree export options

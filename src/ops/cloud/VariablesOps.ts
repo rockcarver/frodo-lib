@@ -75,7 +75,7 @@ export type Variable = {
    * @returns {Promise<VariableSkeleton>} a promise that resolves to a variable object
    * @deprecated since v2.0.0 use {@link Variable.readVariable | readVariable} instead
    * ```javascript
-   * readVariable(variableId: string): Promise<any>
+   * readVariable(variableId: string): Promise<VariableSkeleton>
    * ```
    * @group Deprecated
    */
@@ -85,7 +85,7 @@ export type Variable = {
    * @returns {Promise<VariableSkeleton[]>} a promise that resolves to an array of variable objects
    * @deprecated since v2.0.0 use {@link Variable.readVariables | readVariables} instead
    * ```javascript
-   * readVariables(): Promise<any[]>
+   * readVariables(): Promise<VariableSkeleton[]>
    * ```
    * @group Deprecated
    */

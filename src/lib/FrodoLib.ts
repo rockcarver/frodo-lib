@@ -14,7 +14,7 @@ import ConnectionProfileOps, {
 import EmailTemplateOps, { EmailTemplate } from '../ops/EmailTemplateOps';
 import ExportImportUtils, { ExportImport } from '../utils/ExportImportUtils';
 import FeatureOps, { Feature } from '../ops/cloud/FeatureOps';
-import IdmOps, { Idm } from '../ops/IdmOps';
+import IdmConfigOps, { IdmConfig } from '../ops/IdmConfigOps';
 import IdpOps, { Idp } from '../ops/IdpOps';
 import InfoOps, { Info } from '../ops/InfoOps';
 import JoseOps, { Jose } from '../ops/JoseOps';
@@ -88,7 +88,7 @@ export type Frodo = {
   };
 
   idm: {
-    config: Idm;
+    config: IdmConfig;
     managed: ManagedObject;
     organization: Organization;
   };
@@ -220,7 +220,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     },
 
     idm: {
-      config: IdmOps(state),
+      config: IdmConfigOps(state),
       managed: ManagedObjectOps(state),
       organization: OrganizationOps(state),
     },

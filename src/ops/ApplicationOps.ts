@@ -52,12 +52,12 @@ export type Application = {
   /**
    * Create application
    * @param {string} applicationId application id/name
-   * @param {ApplicationSkeleton} moData application data
+   * @param {ApplicationSkeleton} applicationData application data
    * @returns {Promise<ApplicationSkeleton>} a promise that resolves to an application object
    */
   createApplication(
     applicationId: string,
-    moData: ApplicationSkeleton
+    applicationData: ApplicationSkeleton
   ): Promise<ApplicationSkeleton>;
   /**
    * Read application
@@ -73,12 +73,12 @@ export type Application = {
   /**
    * Update application
    * @param {string} applicationId application uuid
-   * @param {ApplicationSkeleton} moData application data
+   * @param {ApplicationSkeleton} applicationData application data
    * @returns {Promise<ApplicationSkeleton>} a promise that resolves to an application object
    */
   updateApplication(
     applicationId: string,
-    moData: IdObjectSkeletonInterface
+    applicationData: ApplicationSkeleton
   ): Promise<ApplicationSkeleton>;
   /**
    * Delete application
@@ -142,9 +142,13 @@ export default (state: State): Application => {
     },
     async createApplication(
       applicationId: string,
-      moData: IdObjectSkeletonInterface
+      applicationData: ApplicationSkeleton
     ): Promise<ApplicationSkeleton> {
-      return createApplication({ applicationId, moData, state });
+      return createApplication({
+        applicationId,
+        applicationData,
+        state,
+      });
     },
     async readApplication(
       applicationId: string,
@@ -159,7 +163,11 @@ export default (state: State): Application => {
       applicationId: string,
       moData: IdObjectSkeletonInterface
     ): Promise<ApplicationSkeleton> {
-      return updateApplication({ applicationId, moData, state });
+      return updateApplication({
+        applicationId,
+        applicationData: moData,
+        state,
+      });
     },
     async deleteApplication(
       applicationId: string
@@ -259,17 +267,17 @@ export function getRealmManagedApplication({ state }: { state: State }) {
 
 export async function createApplication({
   applicationId,
-  moData,
+  applicationData,
   state,
 }: {
   applicationId: string;
-  moData: IdObjectSkeletonInterface;
+  applicationData: ApplicationSkeleton;
   state: State;
 }): Promise<ApplicationSkeleton> {
   const application = await createManagedObject({
     type: getRealmManagedApplication({ state }),
     id: applicationId,
-    moData,
+    moData: applicationData,
     state,
   });
   return application as ApplicationSkeleton;
@@ -310,17 +318,17 @@ export async function readApplications({
 
 export async function updateApplication({
   applicationId,
-  moData,
+  applicationData,
   state,
 }: {
   applicationId: string;
-  moData: IdObjectSkeletonInterface;
+  applicationData: IdObjectSkeletonInterface;
   state: State;
 }): Promise<ApplicationSkeleton> {
   const application = await updateManagedObject({
     type: getRealmManagedApplication({ state }),
     id: applicationId,
-    moData,
+    moData: applicationData,
     state,
   });
   return application as ApplicationSkeleton;
