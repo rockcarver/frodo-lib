@@ -44,7 +44,7 @@ export async function getManagedObject({
 /**
  * Create managed object with server-generated id
  * @param {string} moType managed object type
- * @param {any} moData managed object data
+ * @param {IdObjectSkeletonInterface} moData managed object data
  * @param {State} state library state
  * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
  */
@@ -72,7 +72,8 @@ export async function createManagedObject({
 /**
  * Create or update managed object
  * @param {string} id managed object id
- * @param {string} moData managed object
+ * @param {IdObjectSkeletonInterface} moData managed object
+ * @param {boolean} failIfExists fail if exists
  * @param {State} state library state
  * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
  */

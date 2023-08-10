@@ -31,13 +31,14 @@
  */
 import { state } from '../index';
 import * as IdmConfigApi from '../api/IdmConfigApi';
-import * as IdmOps from './IdmOps';
+import * as IdmConfigOps from './IdmConfigOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 
 autoSetupPolly();
 
 async function stageConfigEntity(
-  configEntity: { id: string; data: object },
+  configEntity: { id: string; data: IdObjectSkeletonInterface },
   create = true
 ) {
   // delete if exists, then create
@@ -57,7 +58,7 @@ async function stageConfigEntity(
   }
 }
 
-describe('IdmOps', () => {
+describe('IdmConfigOps', () => {
   const configEntity1 = {
     id: 'emailTemplate/FrodoTestConfigEntity1',
     data: {
@@ -127,22 +128,22 @@ describe('IdmOps', () => {
 
   describe('getAllConfigEntities()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdmOps.getAllConfigEntities).toBeDefined();
+      expect(IdmConfigOps.getAllConfigEntities).toBeDefined();
     });
 
     test('1: get all config entities', async () => {
-      const response = await IdmOps.getAllConfigEntities({ state });
+      const response = await IdmConfigOps.getAllConfigEntities({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
   describe('getConfigEntitiesByType()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdmOps.getConfigEntitiesByType).toBeDefined();
+      expect(IdmConfigOps.readConfigEntitiesByType).toBeDefined();
     });
 
     test('1: Get config entity by type (emailTemplate)', async () => {
-      const response = await IdmOps.getConfigEntitiesByType({
+      const response = await IdmConfigOps.readConfigEntitiesByType({
         type: 'emailTemplate',
         state,
       });
@@ -150,7 +151,7 @@ describe('IdmOps', () => {
     });
 
     test('2: Get config entity by type (managed)', async () => {
-      const response = await IdmOps.getConfigEntitiesByType({
+      const response = await IdmConfigOps.readConfigEntitiesByType({
         type: 'managed',
         state,
       });
@@ -160,11 +161,11 @@ describe('IdmOps', () => {
 
   describe('getConfigEntity()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdmOps.getConfigEntity).toBeDefined();
+      expect(IdmConfigOps.getConfigEntity).toBeDefined();
     });
 
     test(`1: Get config entity '${configEntity1.id}'`, async () => {
-      const response = await IdmOps.getConfigEntity({
+      const response = await IdmConfigOps.getConfigEntity({
         entityId: configEntity1.id,
         state,
       });
@@ -172,7 +173,7 @@ describe('IdmOps', () => {
     });
 
     test("2: Get config entity 'managed'", async () => {
-      const response = await IdmOps.getConfigEntity({
+      const response = await IdmConfigOps.getConfigEntity({
         entityId: 'managed',
         state,
       });
@@ -182,11 +183,11 @@ describe('IdmOps', () => {
 
   describe('putConfigEntity()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdmOps.putConfigEntity).toBeDefined();
+      expect(IdmConfigOps.putConfigEntity).toBeDefined();
     });
 
     test(`1: Put a config entity '${configEntity3.id}'`, async () => {
-      const response = await IdmOps.putConfigEntity({
+      const response = await IdmConfigOps.putConfigEntity({
         entityId: configEntity3.id,
         entityData: configEntity3.data,
         state,
@@ -195,28 +196,13 @@ describe('IdmOps', () => {
     });
   });
 
-  describe('queryAllManagedObjectsByType()', () => {
-    test('0: Method is implemented', async () => {
-      expect(IdmOps.queryAllManagedObjectsByType).toBeDefined();
-    });
-
-    test(`1: Query managed objects of type 'alpha_user'`, async () => {
-      const response = await IdmOps.queryAllManagedObjectsByType({
-        type: 'alpha_user',
-        fields: ['*'],
-        state,
-      });
-      expect(response).toMatchSnapshot();
-    });
-  });
-
   describe('testConnectorServers()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdmOps.testConnectorServers).toBeDefined();
+      expect(IdmConfigOps.testConnectorServers).toBeDefined();
     });
 
     test(`1: Test connector servers`, async () => {
-      const response = await IdmOps.testConnectorServers({ state });
+      const response = await IdmConfigOps.testConnectorServers({ state });
       expect(response).toMatchSnapshot();
     });
   });

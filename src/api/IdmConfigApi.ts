@@ -2,19 +2,57 @@ import util from 'util';
 import { generateIdmApi } from './BaseApi';
 import { getHostBaseUrl } from '../utils/ForgeRockUtils';
 import { State } from '../shared/State';
+import {
+  IdObjectSkeletonInterface,
+  NoIdObjectSkeletonInterface,
+  PagedResult,
+} from './ApiTypes';
 
 const idmAllConfigURLTemplate = '%s/openidm/config';
 const idmConfigURLTemplate = '%s/openidm/config/%s';
 const idmConfigEntityQueryTemplate = '%s/openidm/config?_queryFilter=%s';
 
+export type IdmConfigStub = IdObjectSkeletonInterface & {
+  _id: string;
+  pid: string;
+  factoryPid: string | null;
+};
+
+export type IdmConfigStubs = IdObjectSkeletonInterface & {
+  _id: '';
+  configurations: IdmConfigStub[];
+};
+
+/**
+ * Get all IDM configuration stubs
+ * @returns {Promise} a promise that resolves to all IDM configuration stubs
+ */
+export async function getConfigStubs({
+  state,
+}: {
+  state: State;
+}): Promise<IdmConfigStubs> {
+  const urlString = util.format(
+    idmAllConfigURLTemplate,
+    getHostBaseUrl(state.getHost())
+  );
+  const { data } = await generateIdmApi({ state }).get(urlString);
+  return data;
+}
+
 /**
  * Get all IDM config entities
  * @returns {Promise} a promise that resolves to all IDM config entities
  */
-export async function getAllConfigEntities({ state }: { state: State }) {
+export async function getConfigEntities({
+  state,
+}: {
+  state: State;
+}): Promise<PagedResult<IdObjectSkeletonInterface>> {
   const urlString = util.format(
-    idmAllConfigURLTemplate,
-    getHostBaseUrl(state.getHost())
+    idmConfigEntityQueryTemplate,
+    getHostBaseUrl(state.getHost()),
+    'true'
   );
   const { data } = await generateIdmApi({ state }).get(urlString);
   return data;
@@ -31,7 +69,7 @@ export async function getConfigEntitiesByType({
 }: {
   type: string;
   state: State;
-}) {
+}): Promise<PagedResult<NoIdObjectSkeletonInterface>> {
   const urlString = util.format(
     idmConfigEntityQueryTemplate,
     getHostBaseUrl(state.getHost()),
@@ -66,6 +104,7 @@ export async function getConfigEntity({
  * Put IDM config entity
  * @param {string} entityId config entity id
  * @param {string} entityData config entity object
+ * @param {boolean} failIfExists fail if exists
  * @returns {Promise<unknown>} a promise that resolves to an IDM config entity
  */
 export async function putConfigEntity({
@@ -74,7 +113,7 @@ export async function putConfigEntity({
   state,
 }: {
   entityId: string;
-  entityData: string | object;
+  entityData: string | IdObjectSkeletonInterface;
   state: State;
 }) {
   const urlString = util.format(
@@ -86,7 +125,7 @@ export async function putConfigEntity({
     const { data } = await generateIdmApi({ state }).put(urlString, entityData);
     return data;
   } catch (error) {
-    throw Error(`Could not put config entity ${entityId}: ${error}`);
+    throw Error(`Error on config entity ${entityId}: ${error}`);
   }
 }
 

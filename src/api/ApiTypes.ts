@@ -197,16 +197,6 @@ export type AgentSkeleton = IdObjectSkeletonInterface & {
   _type: AmServiceType;
 };
 
-export type EmailTemplateSkeleton = IdObjectSkeletonInterface & {
-  defaultLocale?: string;
-  displayName?: string;
-  enabled?: boolean;
-  from: string;
-  subject: Record<string, string>;
-  message?: Record<string, string>;
-  html?: Record<string, string>;
-};
-
 export type ThemeSkeleton = IdObjectSkeletonInterface & {
   name: string;
   isDefault: boolean;
