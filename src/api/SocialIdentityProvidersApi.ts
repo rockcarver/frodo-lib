@@ -3,7 +3,12 @@ import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../utils/JsonUtils';
 import { State } from '../shared/State';
-import { NoIdObjectSkeletonInterface, SocialIdpSkeleton } from './ApiTypes';
+import {
+  AmServiceType,
+  IdObjectSkeletonInterface,
+  NoIdObjectSkeletonInterface,
+  PagedResult,
+} from './ApiTypes';
 
 const getAllProviderTypesURLTemplate =
   '%s/json%s/realm-config/services/SocialIdentityProviders?_action=getAllTypes';
@@ -18,6 +23,12 @@ const getApiConfig = () => {
   return {
     apiVersion,
   };
+};
+
+export type SocialIdpSkeleton = IdObjectSkeletonInterface & {
+  _type: AmServiceType;
+  enabled: boolean;
+  transform: string;
 };
 
 /**
@@ -72,9 +83,13 @@ export async function getSocialIdentityProvidersByType({
 
 /**
  * Get all social identity providers
- * @returns {Promise} a promise that resolves to an object containing an array of social identity providers
+ * @returns {Promise<PagedResult<SocialIdpSkeleton>>} a promise that resolves to an object containing an array of social identity providers
  */
-export async function getSocialIdentityProviders({ state }: { state: State }) {
+export async function getSocialIdentityProviders({
+  state,
+}: {
+  state: State;
+}): Promise<PagedResult<SocialIdpSkeleton>> {
   const urlString = util.format(
     getAllProvidersURLTemplate,
     state.getHost(),

@@ -4,14 +4,12 @@ import {
   putProviderByTypeAndId as _putProviderByTypeAndId,
 } from '../../api/cloud/AdminFederationProvidersApi';
 import { ExportMetaData } from '../OpsTypes';
-import {
-  AdminFederationConfigSkeleton,
-  SocialIdpSkeleton,
-} from '../../api/ApiTypes';
+import { AdminFederationConfigSkeleton } from '../../api/ApiTypes';
 import { getMetadata } from '../../utils/ExportImportUtils';
 import { debugMessage } from '../../utils/Console';
 import { getConfigEntity, putConfigEntity } from '../../api/IdmConfigApi';
 import { State } from '../../shared/State';
+import { SocialIdpSkeleton } from '../../api/SocialIdentityProvidersApi';
 
 export type AdminFederation = {
   /**

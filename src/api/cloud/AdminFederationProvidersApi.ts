@@ -3,7 +3,8 @@ import { generateAmApi } from '../BaseApi';
 import { getRealmPath } from '../../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../../utils/JsonUtils';
 import { State } from '../../shared/State';
-import { AmServiceType, PagedResult, SocialIdpSkeleton } from '../ApiTypes';
+import { AmServiceType, PagedResult } from '../ApiTypes';
+import { SocialIdpSkeleton } from '../SocialIdentityProvidersApi';
 
 const getAllProviderTypesURLTemplate =
   '%s/json%s/realm-config/services/SocialIdentityProviders?_action=getAllTypes';
