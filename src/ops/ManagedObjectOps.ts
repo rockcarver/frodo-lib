@@ -232,13 +232,13 @@ export async function deleteManagedObject({
 
 export async function queryManagedObjects({
   type,
-  filter,
-  fields,
+  filter = 'true',
+  fields = ['*'],
   state,
 }: {
   type: string;
-  filter: string;
-  fields: string[];
+  filter?: string;
+  fields?: string[];
   state: State;
 }): Promise<IdObjectSkeletonInterface[]> {
   const { result } = await _queryManagedObjects({

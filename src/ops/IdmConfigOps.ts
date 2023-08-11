@@ -282,7 +282,19 @@ export async function createConfigEntity({
   entityData: IdObjectSkeletonInterface;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _putConfigEntity({ entityId, entityData, state });
+  debugMessage({ message: `IdmConfigOps.createConfigEntity: start`, state });
+  try {
+    await readConfigEntity({ entityId, state });
+  } catch (error) {
+    const result = await updateConfigEntity({
+      entityId,
+      entityData,
+      state,
+    });
+    debugMessage({ message: `IdmConfigOps.createConfigEntity: end`, state });
+    return result;
+  }
+  throw new Error(`Config entity ${entityId} already exists!`);
 }
 
 export async function updateConfigEntity({
@@ -307,18 +319,31 @@ export async function deleteConfigEntities({
     state,
   });
   const result: IdObjectSkeletonInterface[] = [];
-  const configEntityStubs = await readConfigEntityStubs({ state });
-  for (const configEntityStub of configEntityStubs) {
-    debugMessage({
-      message: `IdmConfigOps.deleteConfigEntities: '${configEntityStub['_id']}'`,
-      state,
-    });
-    result.push(
-      await _deleteConfigEntity({
-        entityId: configEntityStub['_id'],
-        state,
-      })
-    );
+  const errors = [];
+  try {
+    const configEntityStubs = await readConfigEntityStubs({ state });
+    for (const configEntityStub of configEntityStubs) {
+      try {
+        debugMessage({
+          message: `IdmConfigOps.deleteConfigEntities: '${configEntityStub['_id']}'`,
+          state,
+        });
+        result.push(
+          await _deleteConfigEntity({
+            entityId: configEntityStub['_id'],
+            state,
+          })
+        );
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+  } catch (error) {
+    errors.push(error);
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Delete error:\n${errorMessages}`);
   }
   debugMessage({
     message: `IdmConfigOps.deleteConfigEntities: end`,
