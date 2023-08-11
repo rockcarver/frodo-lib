@@ -4,11 +4,11 @@ import {
   CircleOfTrustSkeleton,
   NodeSkeleton,
   ScriptSkeleton,
-  SocialIdpSkeleton,
   ThemeSkeleton,
   TreeSkeleton,
 } from '../api/ApiTypes';
 import { Saml2ProviderSkeleton } from '../api/Saml2Api';
+import { SocialIdpSkeleton } from '../api/SocialIdentityProvidersApi';
 import { State } from '../shared/State';
 import { EmailTemplateSkeleton } from './EmailTemplateOps';
 

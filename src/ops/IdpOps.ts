@@ -2,6 +2,7 @@ import {
   deleteProviderByTypeAndId,
   getSocialIdentityProviders as _getSocialIdentityProviders,
   putProviderByTypeAndId as _putProviderByTypeAndId,
+  SocialIdpSkeleton,
 } from '../api/SocialIdentityProvidersApi';
 import { getScript } from '../api/ScriptApi';
 import { putScript } from './ScriptOps';
@@ -16,70 +17,204 @@ import {
   stopProgressIndicator,
 } from '../utils/Console';
 import { ExportMetaData } from './OpsTypes';
-import {
-  NoIdObjectSkeletonInterface,
-  ScriptSkeleton,
-  SocialIdpSkeleton,
-} from '../api/ApiTypes';
+import { NoIdObjectSkeletonInterface, ScriptSkeleton } from '../api/ApiTypes';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 
 export type Idp = {
   /**
-   * Get all social identity providers
-   * @returns {Promise} a promise that resolves to an object containing an array of social identity providers
+   * Read all social identity providers
+   * @returns {Promise<SocialIdpSkeleton[]>} a promise that resolves to an array of social identity providers
    */
-  getSocialIdentityProviders(): Promise<any>;
+  readSocialIdentityProviders(): Promise<SocialIdpSkeleton[]>;
+  /**
+   * Read social identity provider
+   * @param {string} providerId identity provider id/name
+   * @returns {Promise<SocialIdpSkeleton>} a promise that resolves a social identity provider object
+   */
+  readSocialIdentityProvider(providerId: string): Promise<SocialIdpSkeleton>;
+  /**
+   * Create social identity provider
+   * @param {string} providerType identity provider type
+   * @param {string} providerId identity provider id/name
+   * @param {SocialIdpSkeleton} providerData identity provider data
+   * @returns {Promise<SocialIdpSkeleton>} a promise that resolves a social identity provider object
+   */
+  createSocialIdentityProvider(
+    providerType: string,
+    providerId: string,
+    providerData: SocialIdpSkeleton
+  ): Promise<SocialIdpSkeleton>;
+  /**
+   * Update or create social identity provider
+   * @param {string} providerType identity provider type
+   * @param {string} providerId identity provider id/name
+   * @param {SocialIdpSkeleton} providerData identity provider data
+   * @returns {Promise<SocialIdpSkeleton>} a promise that resolves a social identity provider object
+   */
+  updateSocialIdentityProvider(
+    providerType: string,
+    providerId: string,
+    providerData: SocialIdpSkeleton
+  ): Promise<SocialIdpSkeleton>;
+  /**
+   * Delete all social identity providers
+   * @returns {Promise<SocialIdpSkeleton[]>} a promise that resolves to an array of social identity provider objects
+   */
+  deleteSocialIdentityProviders(): Promise<SocialIdpSkeleton[]>;
+  /**
+   * Delete social identity provider
+   * @param {string} providerId social identity provider id/name
+   * @returns {Promise<SocialIdpSkeleton>} a promise that resolves a social identity provider object
+   */
+  deleteSocialIdentityProvider(providerId: string): Promise<SocialIdpSkeleton>;
+  /**
+   * Export social identity provider
+   * @param {string} providerId provider id/name
+   * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
+   */
+  exportSocialIdentityProvider(
+    providerId: string
+  ): Promise<SocialProviderExportInterface>;
+  /**
+   * Export all social identity providers
+   * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
+   */
+  exportSocialIdentityProviders(): Promise<SocialProviderExportInterface>;
+  /**
+   * Import social identity provider
+   * @param {string} providerId provider id/name
+   * @param {SocialProviderExportInterface} importData import data
+   */
+  importSocialIdentityProvider(
+    providerId: string,
+    importData: SocialProviderExportInterface
+  ): Promise<SocialIdpSkeleton>;
+  /**
+   * Import first social identity provider
+   * @param {SocialProviderExportInterface} importData import data
+   */
+  importFirstSocialIdentityProvider(
+    importData: SocialProviderExportInterface
+  ): Promise<SocialIdpSkeleton>;
+  /**
+   * Import all social identity providers
+   * @param {SocialProviderExportInterface} importData import data
+   */
+  importSocialIdentityProviders(
+    importData: SocialProviderExportInterface
+  ): Promise<SocialIdpSkeleton[]>;
+
+  // Deprecated
+
+  /**
+   * Get all social identity providers
+   * @returns {Promise<SocialIdpSkeleton[]>} a promise that resolves to an array of social identity providers
+   * @deprecated since v2.0.0 use {@link Idp.readSocialIdentityProviders | readSocialIdentityProviders} instead
+   * ```javascript
+   * readSocialIdentityProviders(): Promise<SocialIdpSkeleton[]>
+   * ```
+   * @group Deprecated
+   */
+  getSocialIdentityProviders(): Promise<SocialIdpSkeleton[]>;
   /**
    * Get social identity provider by id
-   * @param {String} providerId social identity provider id/name
-   * @returns {Promise} a promise that resolves a social identity provider object
+   * @param {string} providerId identity provider id/name
+   * @returns {Promise<SocialIdpSkeleton>} a promise that resolves a social identity provider object
+   * @deprecated since v2.0.0 use {@link Idp.readSocialIdentityProvider | readSocialIdentityProvider} instead
+   * ```javascript
+   * readSocialIdentityProvider(providerId: string): Promise<SocialIdpSkeleton>
+   * ```
+   * @group Deprecated
    */
-  getSocialProvider(providerId: string): Promise<any>;
+  getSocialProvider(providerId: string): Promise<SocialIdpSkeleton>;
+  /**
+   * Update or create identity provider
+   * @param {string} providerType identity provider type
+   * @param {string} providerId identity provider id/name
+   * @param {SocialIdpSkeleton} providerData identity provider data
+   * @returns {Promise<SocialIdpSkeleton>} a promise that resolves a social identity provider object
+   * @deprecated since v2.0.0 use {@link Idp.updateSocialIdentityProvider | updateSocialIdentityProvider} or {@link Idp.createSocialIdentityProvider | createSocialIdentityProvider} instead
+   * ```javascript
+   * updateSocialIdentityProvider(providerType: string, providerId: string, providerData: SocialIdpSkeleton): Promise<SocialIdpSkeleton>
+   * createSocialIdentityProvider(providerType: string, providerId: string, providerData: SocialIdpSkeleton): Promise<SocialIdpSkeleton>
+   * ```
+   * @group Deprecated
+   */
   putProviderByTypeAndId(
     providerType: string,
     providerId: string,
     providerData: SocialIdpSkeleton
-  ): Promise<any>;
+  ): Promise<SocialIdpSkeleton>;
   /**
-   * Delete social identity provider by id
-   * @param {String} providerId social identity provider id/name
-   * @returns {Promise} a promise that resolves a social identity provider object
+   * Delete social identity provider
+   * @param {string} providerId social identity provider id/name
+   * @returns {Promise<SocialIdpSkeleton>} a promise that resolves to a social identity provider object
+   * @deprecated since v2.0.0 use {@link Idp.deleteSocialIdentityProvider | deleteSocialIdentityProvider} instead
+   * ```javascript
+   * deleteSocialIdentityProvider(providerId: string): Promise<SocialIdpSkeleton>
+   * ```
+   * @group Deprecated
    */
-  deleteSocialProvider(providerId: string): Promise<unknown>;
+  deleteSocialProvider(providerId: string): Promise<SocialIdpSkeleton>;
   /**
-   * Export social provider by id
+   * Export social identity provider
    * @param {string} providerId provider id/name
    * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
+   * @deprecated since v2.0.0 use {@link Idp.exportSocialIdentityProvider | exportSocialIdentityProvider} instead
+   * ```javascript
+   * exportSocialIdentityProvider(providerId: string): Promise<SocialProviderExportInterface>
+   * ```
+   * @group Deprecated
    */
   exportSocialProvider(
     providerId: string
   ): Promise<SocialProviderExportInterface>;
   /**
-   * Export all providers
+   * Export all social identity providers
    * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
+   * @deprecated since v2.0.0 use {@link Idp.exportSocialIdentityProviders | exportSocialIdentityProviders} instead
+   * ```javascript
+   * exportSocialIdentityProviders(): Promise<SocialProviderExportInterface[]>
+   * ```
+   * @group Deprecated
    */
   exportSocialProviders(): Promise<SocialProviderExportInterface>;
   /**
-   * Import provider by id/name
+   * Import social identity provider
    * @param {string} providerId provider id/name
    * @param {SocialProviderExportInterface} importData import data
+   * @deprecated since v2.0.0 use {@link Idp.importSocialIdentityProvider | importSocialIdentityProvider} instead
+   * ```javascript
+   * importSocialIdentityProvider(providerId: string, importData: SocialProviderExportInterface): Promise<SocialIdpSkeleton>
+   * ```
+   * @group Deprecated
    */
   importSocialProvider(
     providerId: string,
     importData: SocialProviderExportInterface
   ): Promise<boolean>;
   /**
-   * Import first provider
+   * Import first social identity provider
    * @param {SocialProviderExportInterface} importData import data
+   * @deprecated since v2.0.0 use {@link Idp.importFirstSocialIdentityProvider | importFirstSocialIdentityProvider} instead
+   * ```javascript
+   * importFirstSocialIdentityProvider(importData: SocialProviderExportInterface): Promise<SocialIdpSkeleton>
+   * ```
+   * @group Deprecated
    */
   importFirstSocialProvider(
     importData: SocialProviderExportInterface
   ): Promise<boolean>;
   /**
-   * Import all providers
+   * Import all social identity providers
    * @param {SocialProviderExportInterface} importData import data
+   * @deprecated since v2.0.0 use {@link Idp.importFirstSocialIdentityProviders | importFirstSocialIdentityProviders} instead
+   * ```javascript
+   * importFirstSocialIdentityProviders(importData: SocialProviderExportInterface): Promise<SocialIdpSkeleton[]>
+   * ```
+   * @group Deprecated
    */
   importSocialProviders(
     importData: SocialProviderExportInterface
@@ -88,90 +223,111 @@ export type Idp = {
 
 export default (state: State): Idp => {
   return {
-    /**
-     * Get all social identity providers
-     * @returns {Promise} a promise that resolves to an object containing an array of social identity providers
-     */
-    async getSocialIdentityProviders() {
-      return getSocialIdentityProviders({ state });
+    async readSocialIdentityProviders() {
+      return readSocialIdentityProviders({ state });
     },
-
-    /**
-     * Get social identity provider by id
-     * @param {String} providerId social identity provider id/name
-     * @returns {Promise} a promise that resolves a social identity provider object
-     */
-    async getSocialProvider(providerId: string) {
-      return getSocialProvider({ providerId, state });
+    async readSocialIdentityProvider(providerId: string) {
+      return readSocialIdentityProvider({ providerId, state });
     },
-
-    async putProviderByTypeAndId(
+    async createSocialIdentityProvider(
       providerType: string,
       providerId: string,
       providerData: SocialIdpSkeleton
     ) {
-      return putProviderByTypeAndId({
+      return createSocialIdentityProvider({
         providerType,
         providerId,
         providerData,
         state,
       });
     },
-
-    /**
-     * Delete social identity provider by id
-     * @param {String} providerId social identity provider id/name
-     * @returns {Promise} a promise that resolves a social identity provider object
-     */
-    async deleteSocialProvider(providerId: string): Promise<unknown> {
-      return deleteSocialProvider({ providerId, state });
+    async updateSocialIdentityProvider(
+      providerType: string,
+      providerId: string,
+      providerData: SocialIdpSkeleton
+    ) {
+      return updateSocialIdentityProvider({
+        providerType,
+        providerId,
+        providerData,
+        state,
+      });
+    },
+    async deleteSocialIdentityProviders(): Promise<SocialIdpSkeleton[]> {
+      return deleteSocialIdentityProviders({ state });
+    },
+    async deleteSocialIdentityProvider(
+      providerId: string
+    ): Promise<SocialIdpSkeleton> {
+      return deleteSocialIdentityProvider({ providerId, state });
+    },
+    async exportSocialIdentityProvider(
+      providerId: string
+    ): Promise<SocialProviderExportInterface> {
+      return exportSocialProvider({ providerId, state });
+    },
+    async exportSocialIdentityProviders(): Promise<SocialProviderExportInterface> {
+      return exportSocialProviders({ state });
+    },
+    async importSocialIdentityProvider(
+      providerId: string,
+      importData: SocialProviderExportInterface
+    ): Promise<SocialIdpSkeleton> {
+      return importSocialIdentityProvider({ providerId, importData, state });
+    },
+    async importFirstSocialIdentityProvider(
+      importData: SocialProviderExportInterface
+    ): Promise<SocialIdpSkeleton> {
+      return importFirstSocialIdentityProvider({ importData, state });
+    },
+    async importSocialIdentityProviders(
+      importData: SocialProviderExportInterface
+    ): Promise<SocialIdpSkeleton[]> {
+      return importSocialIdentityProviders({ importData, state });
     },
 
-    /**
-     * Export social provider by id
-     * @param {string} providerId provider id/name
-     * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
-     */
+    // Deprecated
+
+    async getSocialIdentityProviders() {
+      return readSocialIdentityProviders({ state });
+    },
+    async getSocialProvider(providerId: string) {
+      return readSocialIdentityProvider({ providerId, state });
+    },
+    async putProviderByTypeAndId(
+      providerType: string,
+      providerId: string,
+      providerData: SocialIdpSkeleton
+    ) {
+      return updateSocialIdentityProvider({
+        providerType,
+        providerId,
+        providerData,
+        state,
+      });
+    },
+    async deleteSocialProvider(providerId: string): Promise<SocialIdpSkeleton> {
+      return deleteSocialIdentityProvider({ providerId, state });
+    },
     async exportSocialProvider(
       providerId: string
     ): Promise<SocialProviderExportInterface> {
       return exportSocialProvider({ providerId, state });
     },
-
-    /**
-     * Export all providers
-     * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
-     */
     async exportSocialProviders(): Promise<SocialProviderExportInterface> {
       return exportSocialProviders({ state });
     },
-
-    /**
-     * Import provider by id/name
-     * @param {string} providerId provider id/name
-     * @param {SocialProviderExportInterface} importData import data
-     */
     async importSocialProvider(
       providerId: string,
       importData: SocialProviderExportInterface
     ): Promise<boolean> {
       return importSocialProvider({ providerId, importData, state });
     },
-
-    /**
-     * Import first provider
-     * @param {SocialProviderExportInterface} importData import data
-     */
     async importFirstSocialProvider(
       importData: SocialProviderExportInterface
     ): Promise<boolean> {
       return importFirstSocialProvider({ importData, state });
     },
-
-    /**
-     * Import all providers
-     * @param {SocialProviderExportInterface} importData import data
-     */
     async importSocialProviders(
       importData: SocialProviderExportInterface
     ): Promise<boolean> {
@@ -179,6 +335,30 @@ export default (state: State): Idp => {
     },
   };
 };
+
+/**
+ * Social identity provider export options
+ */
+export interface SocialIdentityProviderExportOptions {
+  /**
+   * Use string arrays to store multi-line text in scripts.
+   */
+  useStringArrays: boolean;
+  /**
+   * Include any dependencies (scripts).
+   */
+  deps: boolean;
+}
+
+/**
+ * Social identity provider import options
+ */
+export interface SocialIdentityProviderImportOptions {
+  /**
+   * Include any dependencies (scripts).
+   */
+  deps: boolean;
+}
 
 export interface SocialProviderExportInterface {
   meta?: ExportMetaData;
@@ -206,24 +386,28 @@ function createIdpExportTemplate({
  * Get all social identity providers
  * @returns {Promise} a promise that resolves to an object containing an array of social identity providers
  */
-export async function getSocialIdentityProviders({ state }: { state: State }) {
+export async function readSocialIdentityProviders({
+  state,
+}: {
+  state: State;
+}): Promise<SocialIdpSkeleton[]> {
   const { result } = await _getSocialIdentityProviders({ state });
   return result;
 }
 
 /**
- * Get social identity provider by id
- * @param {String} providerId social identity provider id/name
- * @returns {Promise} a promise that resolves a social identity provider object
+ * Read social identity provider
+ * @param {string} providerId social identity provider id/name
+ * @returns {Promise<SocialIdpSkeleton>} a promise that resolves a social identity provider object
  */
-export async function getSocialProvider({
+export async function readSocialIdentityProvider({
   providerId,
   state,
 }: {
   providerId: string;
   state: State;
-}) {
-  const response = await getSocialIdentityProviders({ state });
+}): Promise<SocialIdpSkeleton> {
+  const response = await readSocialIdentityProviders({ state });
   const foundProviders = response.filter(
     (provider) => provider._id === providerId
   );
@@ -239,7 +423,7 @@ export async function getSocialProvider({
   }
 }
 
-export async function putProviderByTypeAndId({
+export async function createSocialIdentityProvider({
   providerType,
   providerId,
   providerData,
@@ -249,8 +433,44 @@ export async function putProviderByTypeAndId({
   providerId: string;
   providerData: SocialIdpSkeleton | NoIdObjectSkeletonInterface;
   state: State;
-}) {
-  debugMessage({ message: `IdpOps.putProviderByTypeAndId: start`, state });
+}): Promise<SocialIdpSkeleton> {
+  debugMessage({
+    message: `IdpOps.createSocialIdentityProvider: start`,
+    state,
+  });
+  try {
+    await readSocialIdentityProvider({ providerId, state });
+  } catch (error) {
+    const result = await updateSocialIdentityProvider({
+      providerType,
+      providerId,
+      providerData,
+      state,
+    });
+    debugMessage({
+      message: `IdpOps.createSocialIdentityProvider: end`,
+      state,
+    });
+    return result;
+  }
+  throw new Error(`Provider ${providerId} already exists!`);
+}
+
+export async function updateSocialIdentityProvider({
+  providerType,
+  providerId,
+  providerData,
+  state,
+}: {
+  providerType: string;
+  providerId: string;
+  providerData: SocialIdpSkeleton | NoIdObjectSkeletonInterface;
+  state: State;
+}): Promise<SocialIdpSkeleton> {
+  debugMessage({
+    message: `IdpOps.updateSocialIdentityProvider: start`,
+    state,
+  });
   try {
     const response = await _putProviderByTypeAndId({
       type: providerType,
@@ -258,7 +478,10 @@ export async function putProviderByTypeAndId({
       providerData,
       state,
     });
-    debugMessage({ message: `IdpOps.putProviderByTypeAndId: end`, state });
+    debugMessage({
+      message: `IdpOps.updateSocialIdentityProvider: end`,
+      state,
+    });
     return response;
   } catch (importError) {
     if (
@@ -288,7 +511,7 @@ export async function putProviderByTypeAndId({
         state,
       });
       debugMessage({
-        message: `IdpOps.putProviderByTypeAndId: end (after retry)`,
+        message: `IdpOps.updateSocialIdentityProvider: end (after retry)`,
         state,
       });
       return response;
@@ -300,18 +523,65 @@ export async function putProviderByTypeAndId({
 }
 
 /**
+ * Delete all social identity providers
+ * @returns {Promise<SocialIdpSkeleton[]>} a promise that resolves to an array of social identity provider objects
+ */
+export async function deleteSocialIdentityProviders({
+  state,
+}: {
+  state: State;
+}): Promise<SocialIdpSkeleton[]> {
+  debugMessage({
+    message: `IdpOps.deleteSocialProviders: start`,
+    state,
+  });
+  const result: SocialIdpSkeleton[] = [];
+  const errors = [];
+  try {
+    const providers = await readSocialIdentityProviders({ state });
+    for (const provider of providers) {
+      try {
+        debugMessage({
+          message: `IdpOps.deleteSocialProviders: '${provider._id}'`,
+          state,
+        });
+        result.push(
+          await deleteSocialIdentityProvider({
+            providerId: provider._id,
+            state,
+          })
+        );
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+  } catch (error) {
+    errors.push(error);
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Delete error:\n${errorMessages}`);
+  }
+  debugMessage({
+    message: `IdpOps.deleteSocialProviders: end`,
+    state,
+  });
+  return result;
+}
+
+/**
  * Delete social identity provider by id
  * @param {String} providerId social identity provider id/name
  * @returns {Promise} a promise that resolves a social identity provider object
  */
-export async function deleteSocialProvider({
+export async function deleteSocialIdentityProvider({
   providerId,
   state,
 }: {
   providerId: string;
   state: State;
-}): Promise<unknown> {
-  const response = await getSocialIdentityProviders({ state });
+}): Promise<SocialIdpSkeleton> {
+  const response = await readSocialIdentityProviders({ state });
   const foundProviders = response.filter(
     (provider) => provider._id === providerId
   );
@@ -344,7 +614,7 @@ export async function exportSocialProvider({
   state: State;
 }): Promise<SocialProviderExportInterface> {
   debugMessage({ message: `IdpOps.exportSocialProvider: start`, state });
-  const idpData = await getSocialProvider({ providerId, state });
+  const idpData = await readSocialIdentityProvider({ providerId, state });
   const exportData = createIdpExportTemplate({ state });
   exportData.idp[idpData._id] = idpData;
   if (idpData.transform) {
@@ -366,7 +636,7 @@ export async function exportSocialProviders({
   state: State;
 }): Promise<SocialProviderExportInterface> {
   const exportData = createIdpExportTemplate({ state });
-  const allIdpsData = await getSocialIdentityProviders({ state });
+  const allIdpsData = await readSocialIdentityProviders({ state });
   createProgressIndicator({
     total: allIdpsData.length,
     message: 'Exporting providers',
@@ -395,6 +665,169 @@ export async function exportSocialProviders({
 }
 
 /**
+ * Import social identity provider
+ * @param {string} providerId provider id/name
+ * @param {SocialProviderExportInterface} importData import data
+ * @param {SocialIdentityProviderImportOptions} options import options
+ * @returns {Promise<SocialIdpSkeleton>} a promise resolving to a social identity provider object
+ */
+export async function importSocialIdentityProvider({
+  providerId,
+  importData,
+  options = { deps: true },
+  state,
+}: {
+  providerId: string;
+  importData: SocialProviderExportInterface;
+  options?: SocialIdentityProviderImportOptions;
+  state: State;
+}): Promise<SocialIdpSkeleton> {
+  let response = null;
+  const errors = [];
+  const imported = [];
+  for (const idpId of Object.keys(importData.idp)) {
+    if (idpId === providerId) {
+      try {
+        if (options.deps) {
+          const scriptId = importData.idp[idpId].transform as string;
+          const scriptData = importData.script[scriptId as string];
+          if (scriptId && scriptData) {
+            scriptData.script = convertTextArrayToBase64(
+              scriptData.script as string[]
+            );
+            await putScript({ scriptId, scriptData, state });
+          }
+        }
+        response = await updateSocialIdentityProvider({
+          providerType: importData.idp[idpId]._type._id,
+          providerId: idpId,
+          providerData: importData.idp[idpId],
+          state,
+        });
+        imported.push(idpId);
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\n${providerId} not found in import data!`);
+  }
+  return response;
+}
+
+/**
+ * Import first social identity provider
+ * @param {SocialProviderExportInterface} importData import data
+ * @param {SocialIdentityProviderImportOptions} options import options
+ * @returns {Promise<SocialIdpSkeleton>} a promise resolving to a social identity provider object
+ */
+export async function importFirstSocialIdentityProvider({
+  importData,
+  options = { deps: true },
+  state,
+}: {
+  importData: SocialProviderExportInterface;
+  options?: SocialIdentityProviderImportOptions;
+  state: State;
+}): Promise<SocialIdpSkeleton> {
+  let response = null;
+  const errors = [];
+  const imported = [];
+  for (const idpId of Object.keys(importData.idp)) {
+    try {
+      if (options.deps) {
+        const scriptId = importData.idp[idpId].transform as string;
+        const scriptData = importData.script[scriptId as string];
+        if (scriptId && scriptData) {
+          scriptData.script = convertTextArrayToBase64(
+            scriptData.script as string[]
+          );
+          await putScript({ scriptId, scriptData, state });
+        }
+      }
+      response = await updateSocialIdentityProvider({
+        providerType: importData.idp[idpId]._type._id,
+        providerId: idpId,
+        providerData: importData.idp[idpId],
+        state,
+      });
+      imported.push(idpId);
+    } catch (error) {
+      errors.push(error);
+    }
+    break;
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\nNo providers found in import data!`);
+  }
+  return response;
+}
+
+/**
+ * Import all social identity providers
+ * @param {SocialProviderExportInterface} importData import data
+ * @param {SocialIdentityProviderImportOptions} options import options
+ * @returns {Promise<SocialIdpSkeleton[]>} a promise resolving to an array of social identity provider objects
+ */
+export async function importSocialIdentityProviders({
+  importData,
+  options = { deps: true },
+  state,
+}: {
+  importData: SocialProviderExportInterface;
+  options?: SocialIdentityProviderImportOptions;
+  state: State;
+}): Promise<SocialIdpSkeleton[]> {
+  const response = [];
+  const errors = [];
+  const imported = [];
+  for (const idpId of Object.keys(importData.idp)) {
+    try {
+      if (options.deps) {
+        const scriptId = importData.idp[idpId].transform as string;
+        const scriptData = { ...importData.script[scriptId as string] };
+        if (scriptId && scriptData) {
+          scriptData.script = convertTextArrayToBase64(
+            scriptData.script as string[]
+          );
+          await putScript({ scriptId, scriptData, state });
+        }
+      }
+      response.push(
+        await updateSocialIdentityProvider({
+          providerType: importData.idp[idpId]._type._id,
+          providerId: idpId,
+          providerData: importData.idp[idpId],
+          state,
+        })
+      );
+      imported.push(idpId);
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\nNo providers found in import data!`);
+  }
+  return response;
+}
+
+// Deprecated
+
+/**
  * Import provider by id/name
  * @param {string} providerId provider id/name
  * @param {SocialProviderExportInterface} importData import data
@@ -418,7 +851,7 @@ export async function importSocialProvider({
         );
         await putScript({ scriptId, scriptData, state });
       }
-      await putProviderByTypeAndId({
+      await updateSocialIdentityProvider({
         providerType: importData.idp[idpId]._type._id,
         providerId: idpId,
         providerData: importData.idp[idpId],
@@ -450,7 +883,7 @@ export async function importFirstSocialProvider({
       );
       await putScript({ scriptId, scriptData, state });
     }
-    await putProviderByTypeAndId({
+    await updateSocialIdentityProvider({
       providerType: importData.idp[idpId]._type._id,
       providerId: idpId,
       providerData: importData.idp[idpId],
@@ -483,7 +916,7 @@ export async function importSocialProviders({
         );
         await putScript({ scriptId, scriptData, state });
       }
-      await putProviderByTypeAndId({
+      await updateSocialIdentityProvider({
         providerType: importData.idp[idpId]._type._id,
         providerId: idpId,
         providerData: importData.idp[idpId],

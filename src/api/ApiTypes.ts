@@ -71,11 +71,6 @@ export type NodeSkeleton = IdObjectSkeletonInterface & {
   identityResource?: string;
 };
 
-export type SocialIdpSkeleton = IdObjectSkeletonInterface & {
-  _type: AmServiceType;
-  enabled: boolean;
-};
-
 export type PolicySetSkeleton = NoIdObjectSkeletonInterface & {
   name: string;
   resourceTypeUuids: string[];
