@@ -195,7 +195,7 @@ const providerTemplate: OAuth2ProviderSkeleton = {
 };
 
 /**
- * Put OAuth2 provider
+ * Create OAuth2 provider
  * @param {OAuth2ProviderSkeleton} providerData (optional) oauth2 provider object
  * @returns {Promise<OAuth2ProviderSkeleton>} a promise that resolves to an oauth2 provider object
  */

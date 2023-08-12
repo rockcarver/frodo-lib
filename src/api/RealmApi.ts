@@ -2,9 +2,11 @@ import util from 'util';
 import { getHostBaseUrl } from '../utils/ForgeRockUtils';
 import { generateAmApi } from './BaseApi';
 import { State } from '../shared/State';
+import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
 
 const realmsListURLTemplate = '%s/json/global-config/realms/?_queryFilter=true';
 const realmURLTemplate = '%s/json/global-config/realms/%s';
+const createRealmURLTemplate = '%s/json/global-config/realms?_action=create';
 
 const apiVersion = 'protocol=2.0,resource=1.0';
 const getApiConfig = () => {
@@ -13,11 +15,22 @@ const getApiConfig = () => {
   };
 };
 
+export type RealmSkeleton = IdObjectSkeletonInterface & {
+  parentPath: string;
+  active: boolean;
+  name: string;
+  aliases: string[];
+};
+
 /**
  * Get all realms
- * @returns {Promise} a promise that resolves to an object containing an array of realm objects
+ * @returns {Promise<PagedResult<RealmSkeleton>>} a promise that resolves to an object containing an array of realm objects
  */
-export async function getRealms({ state }: { state: State }) {
+export async function getRealms({
+  state,
+}: {
+  state: State;
+}): Promise<PagedResult<RealmSkeleton>> {
   const urlString = util.format(realmsListURLTemplate, state.getHost());
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
     urlString,
@@ -30,7 +43,7 @@ export async function getRealms({ state }: { state: State }) {
 
 /**
  * Get realm by id
- * @param {String} realmId realm id
+ * @param {string} realmId realm id
  * @returns {Promise} a promise that resolves to an object containing a realm object
  */
 export async function getRealm({
@@ -39,7 +52,7 @@ export async function getRealm({
 }: {
   realmId: string;
   state: State;
-}) {
+}): Promise<RealmSkeleton> {
   const urlString = util.format(realmURLTemplate, state.getHost(), realmId);
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
     urlString,
@@ -50,11 +63,43 @@ export async function getRealm({
   return data;
 }
 
+const realmTemplate: RealmSkeleton = {
+  name: '',
+  active: true,
+  parentPath: '/',
+  aliases: [],
+};
+
+/**
+ * Create realm
+ * @param {RealmSkeleton} realmData (optional) realm data
+ * @returns {Promise<RealmSkeleton>} a promise that resolves to a realm object
+ */
+export async function createRealm({
+  realmName,
+  realmData = realmTemplate,
+  state,
+}: {
+  realmName: string;
+  realmData?: RealmSkeleton;
+  state: State;
+}): Promise<RealmSkeleton> {
+  realmData.name = realmName;
+  const urlString = util.format(createRealmURLTemplate, state.getHost());
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).post(urlString, realmData, {
+    withCredentials: true,
+  });
+  return data;
+}
+
 /**
  * Put realm
  * @param {string} realmId realm id
- * @param {object} realmData realm config object
- * @returns {Promise} a promise that resolves to an object containing a realm object
+ * @param {RealmSkeleton} realmData realm config object
+ * @returns {Promise<RealmSkeleton>} a promise that resolves to a realm object
  */
 export async function putRealm({
   realmId,
@@ -62,9 +107,9 @@ export async function putRealm({
   state,
 }: {
   realmId: string;
-  realmData: object;
+  realmData: RealmSkeleton;
   state: State;
-}) {
+}): Promise<RealmSkeleton> {
   const urlString = util.format(realmURLTemplate, state.getHost(), realmId);
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
     urlString,
@@ -78,8 +123,8 @@ export async function putRealm({
 
 /**
  * Delete realm
- * @param {String} realmId realm id
- * @returns {Promise} a promise that resolves to an object containing a realm object
+ * @param {string} realmId realm id
+ * @returns {Promise<RealmSkeleton>} a promise that resolves to an object containing a realm object
  */
 export async function deleteRealm({
   realmId,
@@ -87,7 +132,7 @@ export async function deleteRealm({
 }: {
   realmId: string;
   state: State;
-}) {
+}): Promise<RealmSkeleton> {
   const urlString = util.format(
     realmURLTemplate,
     getHostBaseUrl(state.getHost()),
