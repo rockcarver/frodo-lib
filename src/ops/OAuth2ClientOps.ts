@@ -13,7 +13,7 @@ import {
 import { getMetadata } from '../utils/ExportImportUtils';
 import { debugMessage, printMessage } from '../utils/Console';
 import { convertBase64TextToArray } from '../utils/ExportImportUtils';
-import { getOAuth2Provider } from './OAuth2ProviderOps';
+import { readOAuth2Provider } from './OAuth2ProviderOps';
 import { State } from '../shared/State';
 import { getScript, putScript } from './ScriptOps';
 
@@ -538,7 +538,7 @@ export async function exportOAuth2Clients({
   const exportData = createOAuth2ClientExportTemplate({ state });
   const errors = [];
   try {
-    const provider = await getOAuth2Provider({ state });
+    const provider = await readOAuth2Provider({ state });
     const clients = await readOAuth2Clients({ state });
     for (const client of clients) {
       try {
@@ -587,7 +587,7 @@ export async function exportOAuth2Client({
   const errors = [];
   try {
     const clientData = await readOAuth2Client({ clientId, state });
-    clientData._provider = await getOAuth2Provider({ state });
+    clientData._provider = await readOAuth2Provider({ state });
     exportData.application[clientData._id] = clientData;
     if (options.deps) {
       await exportOAuth2ClientDependencies(

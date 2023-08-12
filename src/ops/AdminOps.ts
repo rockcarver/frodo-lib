@@ -8,7 +8,7 @@ import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
 import { get, isEqualJson } from '../utils/JsonUtils';
 import { getCurrentRealmManagedUser } from '../utils/ForgeRockUtils';
 import { getRealmManagedOrganization } from './OrganizationOps';
-import { getOAuth2Provider } from '../ops/OAuth2ProviderOps';
+import { readOAuth2Provider } from '../ops/OAuth2ProviderOps';
 import { putSecret } from '../api/cloud/SecretsApi';
 import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
 import { printMessage } from '../utils/Console';
@@ -495,7 +495,7 @@ export async function listNonOAuth2AdminStaticUserMappings({
 }
 
 async function getDynamicClientRegistrationScope({ state }: { state: State }) {
-  const provider = await getOAuth2Provider({ state });
+  const provider = await readOAuth2Provider({ state });
   return provider.clientDynamicRegistrationConfig
     .dynamicClientRegistrationScope;
 }
