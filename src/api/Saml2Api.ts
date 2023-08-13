@@ -3,7 +3,7 @@ import { State } from '../shared/State';
 import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
-import { IdObjectSkeletonInterface } from './ApiTypes';
+import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
 
 const providerByLocationAndIdURLTemplate = '%s/json%s/realm-config/saml2/%s/%s';
 const createHostedProviderURLTemplate =
@@ -53,9 +53,13 @@ export type Saml2ProviderSkeleton = IdObjectSkeletonInterface & {
 
 /**
  * Get all SAML2 entity providers
- * @returns {Promise} a promise that resolves to an array of saml2 entity stubs
+ * @returns {Promise<PagedResult<Saml2ProviderStub>>} a promise that resolves to an array of saml2 entity stubs
  */
-export async function getProviders({ state }: { state: State }) {
+export async function getProviderStubs({
+  state,
+}: {
+  state: State;
+}): Promise<PagedResult<Saml2ProviderStub>> {
   const urlString = util.format(
     queryAllProvidersURLTemplate,
     state.getHost(),
@@ -71,12 +75,12 @@ export async function getProviders({ state }: { state: State }) {
 }
 
 /**
- * Find all providers matching the filter and return the requested fields
+ * Query providers matching the filter and return the requested fields
  * @param {string} filter CREST filter string, eg "entityId+eq+'${entityId}'" or "true" for all providers
  * @param {string[]} fields array of field names to include in the response
- * @returns {Promise} a promise that resolves to an object containing an array of saml2 entities
+ * @returns {Promise<PagedResult<Saml2ProviderStub>>} a promise that resolves to an object containing an array of saml2 entities
  */
-export async function findProviders({
+export async function queryProviderStubs({
   filter = 'true',
   fields = ['*'],
   state,
@@ -84,7 +88,7 @@ export async function findProviders({
   filter?: string;
   fields?: string[];
   state: State;
-}) {
+}): Promise<PagedResult<Saml2ProviderStub>> {
   const urlString = util.format(
     queryProvidersByEntityIdURLTemplate,
     state.getHost(),
@@ -103,19 +107,19 @@ export async function findProviders({
 
 /**
  * Geta SAML2 entity provider by location and id
- * @param {string} location Entity provider location (hosted or remote)
- * @param {string} entityId64 Base64-encoded provider entity id
- * @returns {Promise} a promise that resolves to a saml2 entity provider object
+ * @param {Saml2ProiderLocation} location Entity provider location
+ * @param {string} entityId64 Base64-encoded, unpadded provider entity id
+ * @returns {Promise<Saml2ProviderSkeleton>} a promise that resolves to a saml2 entity provider object
  */
-export async function getProviderByLocationAndId({
+export async function getProvider({
   location,
   entityId64,
   state,
 }: {
-  location: string;
+  location: Saml2ProiderLocation;
   entityId64: string;
   state: State;
-}) {
+}): Promise<Saml2ProviderSkeleton> {
   const urlString = util.format(
     providerByLocationAndIdURLTemplate,
     state.getHost(),
@@ -134,19 +138,19 @@ export async function getProviderByLocationAndId({
 
 /**
  * Geta SAML2 entity provider by location and id
- * @param {string} location Entity provider location (hosted or remote)
+ * @param {Saml2ProiderLocation} location Entity provider location (hosted or remote)
  * @param {string} entityId64 Base64-encoded provider entity id
- * @returns {Promise} a promise that resolves to a saml2 entity provider object
+ * @returns {Promise<Saml2ProviderSkeleton>} a promise that resolves to a saml2 entity provider object
  */
-export async function deleteProviderByLocationAndId({
+export async function deleteProvider({
   location,
   entityId64,
   state,
 }: {
-  location: string;
+  location: Saml2ProiderLocation;
   entityId64: string;
   state: State;
-}) {
+}): Promise<Saml2ProviderSkeleton> {
   const urlString = util.format(
     providerByLocationAndIdURLTemplate,
     state.getHost(),
@@ -185,8 +189,8 @@ export function getProviderMetadataUrl({
 
 /**
  * Get a SAML2 entity provider's metadata by entity id
- * @param {String} entityId SAML2 entity id
- * @returns {Promise} a promise that resolves to an object containing a SAML2 metadata
+ * @param {string} entityId SAML2 entity id
+ * @returns {Promise<string>} a promise that resolves to an object containing a SAML2 metadata
  */
 export async function getProviderMetadata({
   entityId,
@@ -194,7 +198,7 @@ export async function getProviderMetadata({
 }: {
   entityId: string;
   state: State;
-}) {
+}): Promise<string> {
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
     getProviderMetadataUrl({ entityId, state }),
     {
@@ -206,10 +210,10 @@ export async function getProviderMetadata({
 
 /**
  * Create a SAML2 entity provider
- * @param {String} location 'hosted' or 'remote'
- * @param {Object} providerData Object representing a SAML entity provider
- * @param {String} metaData Base64-encoded metadata XML. Only required for remote providers
- * @returns {Promise} a promise that resolves to a saml2 entity provider object
+ * @param {Saml2ProiderLocation} location 'hosted' or 'remote'
+ * @param {Saml2ProviderSkeleton} providerData Object representing a SAML entity provider
+ * @param {string} metaData Base64-encoded metadata XML. Only required for remote providers
+ * @returns {Promise<Saml2ProviderSkeleton>} a promise that resolves to a saml2 entity provider object
  */
 export async function createProvider({
   location,
@@ -217,11 +221,11 @@ export async function createProvider({
   metaData,
   state,
 }: {
-  location: string;
-  providerData: Saml2ProviderSkeleton | object;
-  metaData: string;
+  location: Saml2ProiderLocation;
+  providerData: Saml2ProviderSkeleton;
+  metaData?: string;
   state: State;
-}) {
+}): Promise<Saml2ProviderSkeleton> {
   let postData = cloneDeep(providerData);
   let urlString = util.format(
     createHostedProviderURLTemplate,
@@ -229,10 +233,12 @@ export async function createProvider({
     getCurrentRealmPath(state)
   );
 
+  /**
+   * Remote entity providers must be created using XML metadata
+   */
   if (location === 'remote') {
-    /**
-     * Remote entity providers must be created using XML metadata
-     */
+    if (!metaData)
+      throw new Error(`Missing metadata for remote entity provider.`);
     urlString = util.format(
       createRemoteProviderURLTemplate,
       state.getHost(),
@@ -254,25 +260,28 @@ export async function createProvider({
 
 /**
  * Update SAML2 entity provider
- * @param {String} location Entity provider location (hosted or remote)
- * @param {Object} providerData Object representing a SAML entity provider
- * @returns {Promise} a promise that resolves to a saml2 entity provider object
+ * @param {Saml2ProiderLocation} location Entity provider location (hosted or remote)
+ * @param {string} entityId SAML2 entity id
+ * @param {Saml2ProviderSkeleton} providerData Object representing a SAML entity provider
+ * @returns {Promise<Saml2ProviderSkeleton>} a promise that resolves to a saml2 entity provider object
  */
 export async function updateProvider({
   location,
+  entityId = undefined,
   providerData,
   state,
 }: {
-  location: string;
+  location: Saml2ProiderLocation;
+  entityId?: string;
   providerData: Saml2ProviderSkeleton;
   state: State;
-}) {
+}): Promise<Saml2ProviderSkeleton> {
   const urlString = util.format(
     providerByLocationAndIdURLTemplate,
     state.getHost(),
     getCurrentRealmPath(state),
     location,
-    providerData._id
+    entityId || providerData._id
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
     urlString,

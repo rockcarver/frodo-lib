@@ -86,11 +86,23 @@ export type CirclesOfTrust = {
 
   /**
    * Get all circles of trust
+   * @returns {Promise<CircleOfTrustSkeleton[]>} a promise resolving to an array of circle of trust objects
+   * @deprecated since v2.0.0 use {@link CirclesOfTrust.readCirclesOfTrust | readCirclesOfTrust} instead
+   * ```javascript
+   * readCirclesOfTrust(): Promise<CircleOfTrustSkeleton[]>
+   * ```
+   * @group Deprecated
    */
   getCirclesOfTrust(): Promise<CircleOfTrustSkeleton[]>;
   /**
    * Get circle of trust
    * @param {string} cotId circle of trust id/name
+   * @returns {Promise<CircleOfTrustSkeleton>} a promise resolving to a circle of trust object
+   * @deprecated since v2.0.0 use {@link CirclesOfTrust.readCircleOfTrust | readCircleOfTrust} instead
+   * ```javascript
+   * readCircleOfTrust(cotId: string): Promise<CircleOfTrustSkeleton>
+   * ```
+   * @group Deprecated
    */
   getCircleOfTrust(cotId: string): Promise<CircleOfTrustSkeleton>;
 };
