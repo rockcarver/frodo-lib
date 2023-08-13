@@ -18,7 +18,7 @@ import {
   encode,
   encodeBase64Url,
 } from '../utils/Base64Utils';
-import { MultiOpStatusInterface, Saml2ExportInterface } from './OpsTypes';
+import { Saml2ExportInterface } from './OpsTypes';
 import { putScript } from './ScriptOps';
 import { debugMessage, printMessage } from '../utils/Console';
 import {
@@ -115,14 +115,14 @@ export type Saml2 = {
   importSaml2Provider(
     entityId: string,
     importData: Saml2ExportInterface
-  ): Promise<boolean>;
+  ): Promise<Saml2ProviderSkeleton>;
   /**
    * Import SAML entity providers
    * @param {Saml2ExportInterface} importData Import data
    */
   importSaml2Providers(
     importData: Saml2ExportInterface
-  ): Promise<MultiOpStatusInterface>;
+  ): Promise<Saml2ProviderSkeleton[]>;
 
   // Deprecated
 
@@ -230,12 +230,12 @@ export default (state: State): Saml2 => {
     async importSaml2Provider(
       entityId: string,
       importData: Saml2ExportInterface
-    ): Promise<boolean> {
+    ): Promise<Saml2ProviderSkeleton> {
       return importSaml2Provider({ entityId, importData, state });
     },
     async importSaml2Providers(
       importData: Saml2ExportInterface
-    ): Promise<MultiOpStatusInterface> {
+    ): Promise<Saml2ProviderSkeleton[]> {
       return importSaml2Providers({ importData, state });
     },
 
@@ -674,6 +674,7 @@ function getLocation(
  * Import a SAML entity provider
  * @param {string} entityId Provider entity id
  * @param {Saml2ExportInterface} importData Import data
+ * @returns {Promise<Saml2ProviderSkeleton>} a promise resolving to a provider object
  */
 export async function importSaml2Provider({
   entityId,
@@ -683,38 +684,62 @@ export async function importSaml2Provider({
   entityId: string;
   importData: Saml2ExportInterface;
   state: State;
-}): Promise<boolean> {
+}): Promise<Saml2ProviderSkeleton> {
   debugMessage({ message: `Saml2Ops.importSaml2Provider: start`, state });
+  let response = null;
+  const errors = [];
+  const imported = [];
   const entityId64 = encode(entityId, false);
   const location = getLocation(entityId64, importData);
   debugMessage({
     message: `Saml2Ops.importSaml2Provider: entityId=${entityId}, entityId64=${entityId64}, location=${location}`,
     state,
   });
-  if (location) {
-    const providerData = importData.saml[location][entityId64];
-    await importDependencies({ providerData, fileData: importData, state });
-    let metaData = null;
-    if (location === 'remote') {
-      metaData = convertTextArrayToBase64Url(
-        importData.saml.metadata[entityId64]
-      );
+  try {
+    if (location) {
+      const providerData = importData.saml[location][entityId64];
+      await importDependencies({ providerData, fileData: importData, state });
+      let metaData = null;
+      if (location === 'remote') {
+        metaData = convertTextArrayToBase64Url(
+          importData.saml.metadata[entityId64]
+        );
+      }
+      try {
+        response = await _createProvider({
+          location,
+          providerData,
+          metaData,
+          state,
+        });
+        imported.push(entityId);
+      } catch (error) {
+        if (error.response?.status === 409) {
+          response = await _updateProvider({ location, providerData, state });
+          imported.push(entityId);
+        } else throw error;
+      }
+    } else {
+      throw new Error(`Provider ${entityId} not found in import data!`);
     }
-    try {
-      await _createProvider({ location, providerData, metaData, state });
-    } catch (error) {
-      await _updateProvider({ location, providerData, state });
-    }
-  } else {
-    throw new Error(`Provider ${entityId} not found in import data!`);
+  } catch (error) {
+    errors.push(error);
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\n${entityId} not found in import data!`);
   }
   debugMessage({ message: `Saml2Ops.importSaml2Provider: end`, state });
-  return true;
+  return response;
 }
 
 /**
  * Import SAML entity providers
  * @param {Saml2ExportInterface} importData Import data
+ * @returns {Promise<Saml2ProviderSkeleton[]>} a promise resolving to an array of provider objects
  */
 export async function importSaml2Providers({
   importData,
@@ -722,20 +747,16 @@ export async function importSaml2Providers({
 }: {
   importData: Saml2ExportInterface;
   state: State;
-}): Promise<MultiOpStatusInterface> {
+}): Promise<Saml2ProviderSkeleton[]> {
   debugMessage({ message: `Saml2Ops.importSaml2Providers: start`, state });
-  const myStatus: MultiOpStatusInterface = {
-    total: 0,
-    successes: 0,
-    warnings: 0,
-    failures: 0,
-  };
+  const response = [];
+  const errors = [];
+  const imported = [];
   try {
     // find providers in hosted and in remote and map locations
     const hostedIds = Object.keys(importData.saml.hosted);
     const remoteIds = Object.keys(importData.saml.remote);
     const providerIds = hostedIds.concat(remoteIds);
-    myStatus.total = providerIds.length;
     for (const entityId64 of providerIds) {
       debugMessage({
         message: `Saml2Ops.importSaml2Providers: entityId=${decodeBase64Url(
@@ -750,18 +771,8 @@ export async function importSaml2Providers({
       const providerData = importData.saml[location][entityId64];
       try {
         await importDependencies({ providerData, fileData: importData, state });
-      } catch (importDependenciesErr) {
-        myStatus.warnings += 1;
-        printMessage({
-          message: `\nWarning importing dependencies for ${entityId}`,
-          state,
-          type: 'warn',
-        });
-        printMessage({
-          message: importDependenciesErr.response.data,
-          type: 'error',
-          state,
-        });
+      } catch (error) {
+        errors.push(error);
       }
       let metaData = null;
       if (location === 'remote') {
@@ -770,36 +781,31 @@ export async function importSaml2Providers({
         );
       }
       try {
-        await _createProvider({ location, providerData, metaData, state });
-        myStatus.successes += 1;
+        response.push(
+          await _createProvider({ location, providerData, metaData, state })
+        );
+        imported.push(entityId);
       } catch (createProviderErr) {
         try {
-          await _updateProvider({ location, providerData, state });
-          myStatus.successes += 1;
-        } catch (updateProviderError) {
-          myStatus.failures += 1;
-          printMessage({
-            message: `\nError importing provider ${entityId}: ${updateProviderError.message}`,
-            state,
-            type: 'error',
-          });
-          printMessage({
-            message: updateProviderError.response?.data,
-            type: 'error',
-            state,
-          });
+          response.push(
+            await _updateProvider({ location, providerData, state })
+          );
+          imported.push(entityId);
+        } catch (error) {
+          errors.push(error);
         }
       }
     }
-    myStatus.message = `${myStatus.successes}/${myStatus.total} providers imported.`;
   } catch (error) {
-    myStatus.failures += 1;
-    printMessage({
-      message: `\nError importing providers ${error.message}`,
-      type: 'error',
-      state,
-    });
+    errors.push(error);
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\nNo providers found in import data!`);
   }
   debugMessage({ message: `Saml2Ops.importSaml2Providers: end`, state });
-  return myStatus;
+  return response;
 }
