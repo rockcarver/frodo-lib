@@ -30,11 +30,11 @@ import {
   debugMessage,
 } from '../utils/Console';
 import {
-  getProviderByLocationAndId,
-  getProviders,
+  getProvider,
+  getProviderStubs,
   getProviderMetadata,
   createProvider,
-  findProviders,
+  queryProviderStubs,
   updateProvider,
 } from '../api/Saml2Api';
 import {
@@ -614,7 +614,7 @@ async function getSaml2NodeDependencies(
     const entity = findInArray(allProviders, { entityId });
     if (entity) {
       try {
-        const providerResponse = await getProviderByLocationAndId({
+        const providerResponse = await getProvider({
           location: entity.location,
           entityId64: entity._id,
           state,
@@ -805,7 +805,7 @@ export async function exportJourney({
       if (deps && nodeType === 'product-Saml2Node') {
         if (!allSaml2Providers) {
           // eslint-disable-next-line no-await-in-loop
-          allSaml2Providers = (await getProviders({ state })).result;
+          allSaml2Providers = (await getProviderStubs({ state })).result;
         }
         if (!allCirclesOfTrust) {
           // eslint-disable-next-line no-await-in-loop
@@ -936,7 +936,7 @@ export async function exportJourney({
         printMessage({ message: 'SAML2 inner node', type: 'error', state });
         if (!allSaml2Providers) {
           // eslint-disable-next-line no-await-in-loop
-          allSaml2Providers = (await getProviders({ state })).result;
+          allSaml2Providers = (await getProviderStubs({ state })).result;
         }
         if (!allCirclesOfTrust) {
           // eslint-disable-next-line no-await-in-loop
@@ -1359,7 +1359,7 @@ export async function importJourney({
       // create the provider if it doesn't already exist, or just update it
       if (
         (
-          await findProviders({
+          await queryProviderStubs({
             filter: `entityId eq '${entityId}'`,
             fields: ['location'],
             state,
