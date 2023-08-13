@@ -19,7 +19,7 @@ import {
   encodeBase64Url,
 } from '../utils/Base64Utils';
 import { Saml2ExportInterface } from './OpsTypes';
-import { putScript } from './ScriptOps';
+import { updateScript } from './ScriptOps';
 import { debugMessage, printMessage } from '../utils/Console';
 import {
   convertBase64TextToArray,
@@ -631,7 +631,7 @@ async function importDependencies({
     });
     const scriptData = get(fileData, ['script', attrMapperScriptId]);
     scriptData.script = convertTextArrayToBase64(scriptData.script as string[]);
-    await putScript({ scriptId: attrMapperScriptId, scriptData, state });
+    await updateScript({ scriptId: attrMapperScriptId, scriptData, state });
   }
   const idpAdapterScriptId = get(providerData, [
     'identityProvider',
@@ -646,7 +646,7 @@ async function importDependencies({
     });
     const scriptData = get(fileData, ['script', idpAdapterScriptId]);
     scriptData.script = convertTextArrayToBase64(scriptData.script as string[]);
-    await putScript({ scriptId: idpAdapterScriptId, scriptData, state });
+    await updateScript({ scriptId: idpAdapterScriptId, scriptData, state });
   }
   debugMessage({ message: `Saml2Ops.importDependencies: end`, state });
 }

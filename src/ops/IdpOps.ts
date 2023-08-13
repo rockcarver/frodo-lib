@@ -5,7 +5,7 @@ import {
   SocialIdpSkeleton,
 } from '../api/SocialIdentityProvidersApi';
 import { getScript } from '../api/ScriptApi';
-import { putScript } from './ScriptOps';
+import { updateScript } from './ScriptOps';
 import {
   convertBase64TextToArray,
   convertTextArrayToBase64,
@@ -695,7 +695,7 @@ export async function importSocialIdentityProvider({
             scriptData.script = convertTextArrayToBase64(
               scriptData.script as string[]
             );
-            await putScript({ scriptId, scriptData, state });
+            await updateScript({ scriptId, scriptData, state });
           }
         }
         response = await updateSocialIdentityProvider({
@@ -747,7 +747,7 @@ export async function importFirstSocialIdentityProvider({
           scriptData.script = convertTextArrayToBase64(
             scriptData.script as string[]
           );
-          await putScript({ scriptId, scriptData, state });
+          await updateScript({ scriptId, scriptData, state });
         }
       }
       response = await updateSocialIdentityProvider({
@@ -799,7 +799,7 @@ export async function importSocialIdentityProviders({
           scriptData.script = convertTextArrayToBase64(
             scriptData.script as string[]
           );
-          await putScript({ scriptId, scriptData, state });
+          await updateScript({ scriptId, scriptData, state });
         }
       }
       response.push(
@@ -849,7 +849,7 @@ export async function importSocialProvider({
         scriptData.script = convertTextArrayToBase64(
           scriptData.script as string[]
         );
-        await putScript({ scriptId, scriptData, state });
+        await updateScript({ scriptId, scriptData, state });
       }
       await updateSocialIdentityProvider({
         providerType: importData.idp[idpId]._type._id,
@@ -881,7 +881,7 @@ export async function importFirstSocialProvider({
       scriptData.script = convertTextArrayToBase64(
         scriptData.script as string[]
       );
-      await putScript({ scriptId, scriptData, state });
+      await updateScript({ scriptId, scriptData, state });
     }
     await updateSocialIdentityProvider({
       providerType: importData.idp[idpId]._type._id,
@@ -914,7 +914,7 @@ export async function importSocialProviders({
         scriptData.script = convertTextArrayToBase64(
           scriptData.script as string[]
         );
-        await putScript({ scriptId, scriptData, state });
+        await updateScript({ scriptId, scriptData, state });
       }
       await updateSocialIdentityProvider({
         providerType: importData.idp[idpId]._type._id,

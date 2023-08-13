@@ -5,7 +5,7 @@ import {
   createPolicySet as _createPolicySet,
   updatePolicySet as _updatePolicySet,
 } from '../api/PolicySetApi';
-import { putScript } from './ScriptOps';
+import { updateScript } from './ScriptOps';
 import { convertBase64TextToArray } from '../utils/ExportImportUtils';
 import { ExportMetaData } from './OpsTypes';
 import {
@@ -638,7 +638,7 @@ async function importPolicySetDependencies({
           try {
             const scriptData = exportData.script[scriptUuid];
             debugMessage({ message: `Importing script ${scriptUuid}`, state });
-            await putScript({ scriptId: scriptUuid, scriptData, state });
+            await updateScript({ scriptId: scriptUuid, scriptData, state });
           } catch (error) {
             debugMessage({ message: error.response?.data, state });
             error.message = `Error importing script ${scriptUuid} for policy ${policyData._id} in policy set ${policySetData.name}: ${error.message}`;
