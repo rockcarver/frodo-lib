@@ -1,5 +1,5 @@
 export interface NoIdObjectSkeletonInterface {
-  _rev?: number;
+  _rev?: string;
   [k: string]:
     | string
     | number
@@ -235,9 +235,9 @@ export type ScriptSkeleton = IdObjectSkeletonInterface & {
 };
 
 export type CircleOfTrustSkeleton = IdObjectSkeletonInterface & {
-  _type: AmServiceType;
-  status: string;
-  trustedProviders: string[];
+  status?: string;
+  trustedProviders?: string[];
+  _type?: AmServiceType;
 };
 
 export type PagedResult<Result> = {

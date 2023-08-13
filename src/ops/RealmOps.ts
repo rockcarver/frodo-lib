@@ -35,7 +35,7 @@ export type Realm = {
    */
   createRealm(
     realmName: string,
-    realmData: RealmSkeleton
+    realmData?: RealmSkeleton
   ): Promise<RealmSkeleton>;
   /**
    * Update realm
@@ -125,7 +125,7 @@ export default (state: State): Realm => {
     },
     createRealm(
       realmName: string,
-      realmData: RealmSkeleton
+      realmData?: RealmSkeleton
     ): Promise<RealmSkeleton> {
       return createRealm({ realmName, realmData, state });
     },
@@ -188,14 +188,15 @@ export async function getRealms({ state }: { state: State }) {
  */
 export async function createRealm({
   realmName,
-  realmData,
+  realmData = undefined,
   state,
 }: {
   realmName: string;
-  realmData: RealmSkeleton;
+  realmData?: RealmSkeleton;
   state: State;
 }): Promise<RealmSkeleton> {
-  return _createRealm({ realmName, realmData, state });
+  realmData.name = realmName;
+  return _createRealm({ realmData, state });
 }
 
 /**
