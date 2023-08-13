@@ -76,15 +76,12 @@ const realmTemplate: RealmSkeleton = {
  * @returns {Promise<RealmSkeleton>} a promise that resolves to a realm object
  */
 export async function createRealm({
-  realmName,
   realmData = realmTemplate,
   state,
 }: {
-  realmName: string;
   realmData?: RealmSkeleton;
   state: State;
 }): Promise<RealmSkeleton> {
-  realmData.name = realmName;
   const urlString = util.format(createRealmURLTemplate, state.getHost());
   const { data } = await generateAmApi({
     resource: getApiConfig(),
