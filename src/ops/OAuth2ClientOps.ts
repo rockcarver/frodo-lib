@@ -15,7 +15,7 @@ import { debugMessage, printMessage } from '../utils/Console';
 import { convertBase64TextToArray } from '../utils/ExportImportUtils';
 import { readOAuth2Provider } from './OAuth2ProviderOps';
 import { State } from '../shared/State';
-import { getScript, putScript } from './ScriptOps';
+import { readScript, updateScript } from './ScriptOps';
 
 export type OAuth2Client = {
   /**
@@ -491,7 +491,7 @@ async function exportOAuth2ClientDependencies(
               message: `- ${scriptId} referenced by ${clientData['_id']}`,
               state,
             });
-            const scriptData = await getScript({ scriptId, state });
+            const scriptData = await readScript({ scriptId, state });
             if (options.useStringArrays)
               scriptData.script = convertBase64TextToArray(
                 scriptData.script as string
@@ -623,7 +623,7 @@ async function importOAuth2ClientDependencies(
       const scriptId = clientData['overrideOAuth2ClientConfig'][key];
       if (scriptId !== '[Empty]' && importData.script[scriptId]) {
         const scriptData: ScriptSkeleton = importData.script[scriptId];
-        await putScript({ scriptId, scriptData, state });
+        await updateScript({ scriptId, scriptData, state });
       }
     }
   }

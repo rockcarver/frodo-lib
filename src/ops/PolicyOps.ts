@@ -5,7 +5,7 @@ import {
   deletePolicy as _deletePolicy,
   putPolicy as _putPolicy,
 } from '../api/PoliciesApi';
-import { getScript, putScript } from './ScriptOps';
+import { readScript, updateScript } from './ScriptOps';
 import { convertBase64TextToArray } from '../utils/ExportImportUtils';
 import { ExportMetaData } from './OpsTypes';
 import {
@@ -527,7 +527,7 @@ export async function getScripts({
     debugMessage({ message: `found scripts: ${scriptUuids}`, state });
     for (const scriptUuid of scriptUuids) {
       try {
-        const script = await getScript({ scriptId: scriptUuid, state });
+        const script = await readScript({ scriptId: scriptUuid, state });
         scripts.push(script);
       } catch (error) {
         error.message = `Error retrieving script ${scriptUuid} referenced in policy ${policyData['name']}: ${error.message}`;
@@ -874,7 +874,7 @@ async function importPolicyDependencies({
       try {
         const scriptData = exportData.script[scriptUuid];
         debugMessage({ message: `Importing script ${scriptUuid}`, state });
-        await putScript({ scriptId: scriptUuid, scriptData, state });
+        await updateScript({ scriptId: scriptUuid, scriptData, state });
       } catch (error) {
         debugMessage({ message: error.response?.data, state });
         error.message = `Error importing script ${scriptUuid} for policy ${

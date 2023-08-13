@@ -53,7 +53,7 @@ import {
   putProviderByTypeAndId,
 } from '../api/SocialIdentityProvidersApi';
 import { getThemes, putThemes } from './ThemeOps';
-import { putScript } from './ScriptOps';
+import { updateScript } from './ScriptOps';
 import {
   InnerNodeRefSkeletonInterface,
   NodeRefSkeletonInterface,
@@ -1208,7 +1208,7 @@ export async function importJourney({
         scriptObject['script'] = encode(JSON.parse(scriptObject['script']));
       }
       try {
-        await putScript({ scriptId, scriptData: scriptObject, state });
+        await updateScript({ scriptId, scriptData: scriptObject, state });
       } catch (error) {
         throw new Error(
           `Error importing script ${scriptObject['name']} (${scriptId}) in journey ${treeId}: ${error.message}`
