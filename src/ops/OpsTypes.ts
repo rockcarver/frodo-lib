@@ -123,11 +123,3 @@ export type JourneyClassificationType =
   | 'custom'
   | 'cloud'
   | 'premium';
-
-export interface MultiOpStatusInterface {
-  total: number;
-  successes: number;
-  warnings: number;
-  failures: number;
-  message?: string;
-}
