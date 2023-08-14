@@ -1684,7 +1684,7 @@ export async function importJourney({
 
   delete importData.tree._rev;
   try {
-    await putTree({
+    response = await putTree({
       treeId,
       treeData: importData.tree,
       state,

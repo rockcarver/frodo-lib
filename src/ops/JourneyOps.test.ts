@@ -74,7 +74,7 @@ async function stageJourney(journey: { id: string }, create = true) {
   } finally {
     if (create) {
       await JourneyOps.importJourney({
-        treeObject: getJourney(journey.id),
+        importData: getJourney(journey.id),
         options: {
           reUuid: false,
           deps: true,
@@ -201,7 +201,7 @@ describe('JourneyOps', () => {
         const journeyExport = getJourney(journey4.id);
         expect.assertions(1);
         const response = await JourneyOps.importJourney({
-          treeObject: journeyExport,
+          importData: journeyExport,
           options: {
             reUuid: false,
             deps: false,
@@ -215,7 +215,7 @@ describe('JourneyOps', () => {
         const journeyExport = getJourney(journey5.id);
         expect.assertions(1);
         const response = await JourneyOps.importJourney({
-          treeObject: journeyExport,
+          importData: journeyExport,
           options: {
             reUuid: false,
             deps: true,
