@@ -24,6 +24,7 @@ exports[`IdpOps exportSocialProvider() 1: Export social provider FrodoTestIdp1 1
       "privateKeyJwtExpTime": 3600,
       "redirectURI": "https://idc.scheuber.io/am/XUI/?realm=%2Falpha",
       "responseMode": "DEFAULT",
+      "revocationCheckOptions": [],
       "scopeDelimiter": " ",
       "scopes": [
         "email",
@@ -40,6 +41,7 @@ exports[`IdpOps exportSocialProvider() 1: Export social provider FrodoTestIdp1 1
         "iconClass": "fa-facebook",
         "iconFontColor": "white",
       },
+      "useCustomTrustStore": false,
       "userInfoEndpoint": "https://graph.facebook.com/me?fields=id,name,picture,email,first_name,last_name,locale",
     },
   },
@@ -107,6 +109,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "privateKeyJwtExpTime": 3600,
       "redirectURI": "https://idc.scheuber.io/am/XUI/?realm=%2Falpha",
       "responseMode": "DEFAULT",
+      "revocationCheckOptions": [],
       "scopeDelimiter": " ",
       "scopes": [
         "email",
@@ -123,6 +126,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
         "iconClass": "fa-facebook",
         "iconFontColor": "white",
       },
+      "useCustomTrustStore": false,
       "userInfoEndpoint": "https://graph.facebook.com/me?fields=id,name,picture,email,first_name,last_name,locale",
     },
     "FrodoTestIdp2": {
@@ -151,6 +155,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "privateKeyJwtExpTime": 600,
       "redirectURI": "https://idc.scheuber.io/login",
       "responseMode": "DEFAULT",
+      "revocationCheckOptions": [],
       "scopeDelimiter": " ",
       "scopes": [
         "openid",
@@ -169,6 +174,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
         "iconClass": "fa-google",
         "iconFontColor": "white",
       },
+      "useCustomTrustStore": false,
       "userInfoEndpoint": "https://www.googleapis.com/oauth2/v3/userinfo",
       "userInfoResponseType": "JSON",
       "wellKnownEndpoint": "https://accounts.google.com/.well-known/openid-configuration",
@@ -185,6 +191,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "authorizationEndpoint": "https://adfs.mytestrun.com/adfs/oauth2/authorize",
       "clientAuthenticationMethod": "CLIENT_SECRET_POST",
       "clientId": "aa9a179e-cdba-4db8-8477-3d1069d5ec04",
+      "clientSecret": null,
       "enableNativeNonce": true,
       "enabled": true,
       "encryptJwtRequestParameter": false,
@@ -200,6 +207,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "privateKeyJwtExpTime": 600,
       "redirectURI": "https://idc.scheuber.io/login",
       "responseMode": "DEFAULT",
+      "revocationCheckOptions": [],
       "scopeDelimiter": " ",
       "scopes": [
         "openid",
@@ -218,6 +226,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
         "iconClass": "fa-windows",
         "iconFontColor": "white",
       },
+      "useCustomTrustStore": false,
       "userInfoResponseType": "JSON",
       "wellKnownEndpoint": "https://adfs.mytestrun.com/adfs/.well-known/openid-configuration",
     },
@@ -232,9 +241,10 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "authenticationIdKey": "sub",
       "authorizationEndpoint": "https://appleid.apple.com/auth/authorize",
       "clientAuthenticationMethod": "CLIENT_SECRET_POST",
-      "clientId": "com.forgerock.ios.sdk.social.service",
+      "clientId": "CHANGE ME",
+      "clientSecret": null,
       "enableNativeNonce": true,
-      "enabled": true,
+      "enabled": false,
       "encryptJwtRequestParameter": false,
       "encryptedIdTokens": false,
       "issuer": "https://appleid.apple.com",
@@ -250,6 +260,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "redirectURI": "https://openam-volker-dev.forgeblocks.com/am/oauth2/alpha/client/form_post/apple-stoyan",
       "requestNativeAppForUserInfo": false,
       "responseMode": "FORM_POST",
+      "revocationCheckOptions": [],
       "scopeDelimiter": " ",
       "scopes": [
         "name",
@@ -267,6 +278,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
         "iconClass": "fa-apple",
         "iconFontColor": "white",
       },
+      "useCustomTrustStore": false,
       "userInfoResponseType": "JSON",
       "wellKnownEndpoint": "https://appleid.apple.com/.well-known/openid-configuration",
     },
@@ -281,9 +293,10 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "authenticationIdKey": "sub",
       "authorizationEndpoint": "https://appleid.apple.com/auth/authorize",
       "clientAuthenticationMethod": "CLIENT_SECRET_POST",
-      "clientId": "io.scheuber.idc.signinWithApple.service",
+      "clientId": "CHANGE ME",
+      "clientSecret": null,
       "enableNativeNonce": true,
-      "enabled": true,
+      "enabled": false,
       "encryptJwtRequestParameter": false,
       "encryptedIdTokens": false,
       "issuer": "https://appleid.apple.com",
@@ -299,6 +312,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "redirectURI": "https://idc.scheuber.io/am/oauth2/client/form_post/apple_web",
       "requestNativeAppForUserInfo": false,
       "responseMode": "FORM_POST",
+      "revocationCheckOptions": [],
       "scopeDelimiter": " ",
       "scopes": [
         "name",
@@ -316,6 +330,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
         "iconClass": "fa-apple",
         "iconFontColor": "white",
       },
+      "useCustomTrustStore": false,
       "userInfoResponseType": "JSON",
       "wellKnownEndpoint": "https://appleid.apple.com/.well-known/openid-configuration",
     },
@@ -329,8 +344,9 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "authenticationIdKey": "id",
       "authorizationEndpoint": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/oauth2/v2.0/authorize",
       "clientAuthenticationMethod": "CLIENT_SECRET_POST",
-      "clientId": "c42a3dc8-f276-496b-a722-269f131cc21c",
-      "enabled": true,
+      "clientId": "CHANGE ME",
+      "clientSecret": null,
+      "enabled": false,
       "issuerComparisonCheckType": "EXACT",
       "jwtEncryptionAlgorithm": "NONE",
       "jwtEncryptionMethod": "NONE",
@@ -339,6 +355,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "privateKeyJwtExpTime": 600,
       "redirectURI": "https://idc.scheuber.io/login",
       "responseMode": "DEFAULT",
+      "revocationCheckOptions": [],
       "scopeDelimiter": " ",
       "scopes": [
         "User.Read",
@@ -356,6 +373,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
         "iconClass": "fa-windows",
         "iconFontColor": "white",
       },
+      "useCustomTrustStore": false,
       "userInfoEndpoint": "https://graph.microsoft.com/v1.0/me",
     },
     "facebook": {
@@ -368,8 +386,9 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "authenticationIdKey": "id",
       "authorizationEndpoint": "https://www.facebook.com/dialog/oauth",
       "clientAuthenticationMethod": "CLIENT_SECRET_POST",
-      "clientId": "123741918345526",
-      "enabled": true,
+      "clientId": "CHANGE ME",
+      "clientSecret": null,
+      "enabled": false,
       "issuerComparisonCheckType": "EXACT",
       "jwtEncryptionAlgorithm": "NONE",
       "jwtEncryptionMethod": "NONE",
@@ -378,6 +397,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "privateKeyJwtExpTime": 3600,
       "redirectURI": "https://idc.scheuber.io/am/XUI/?realm=%2Falpha",
       "responseMode": "DEFAULT",
+      "revocationCheckOptions": [],
       "scopeDelimiter": " ",
       "scopes": [
         "email",
@@ -394,6 +414,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
         "iconClass": "fa-facebook",
         "iconFontColor": "white",
       },
+      "useCustomTrustStore": false,
       "userInfoEndpoint": "https://graph.facebook.com/me?fields=id,name,picture,email,first_name,last_name,locale",
     },
     "github": {
@@ -407,6 +428,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "authorizationEndpoint": "https://github.com/login/oauth/authorize",
       "clientAuthenticationMethod": "CLIENT_SECRET_POST",
       "clientId": "bdae6d141d4dcf95a630",
+      "clientSecret": null,
       "enabled": true,
       "issuerComparisonCheckType": "EXACT",
       "jwtEncryptionAlgorithm": "NONE",
@@ -416,6 +438,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "privateKeyJwtExpTime": 600,
       "redirectURI": "https://idc.scheuber.io/login",
       "responseMode": "DEFAULT",
+      "revocationCheckOptions": [],
       "scopeDelimiter": " ",
       "scopes": [
         "user",
@@ -430,6 +453,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
         "iconBackground": "#4184f3",
         "iconFontColor": "white",
       },
+      "useCustomTrustStore": false,
       "userInfoEndpoint": "https://ig.mytestrun.com/user",
     },
     "google": {
@@ -443,9 +467,10 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "authenticationIdKey": "sub",
       "authorizationEndpoint": "https://accounts.google.com/o/oauth2/v2/auth",
       "clientAuthenticationMethod": "CLIENT_SECRET_POST",
-      "clientId": "297338177925-mho17cgnm540s2gre8h27feb6sbs1msd.apps.googleusercontent.com",
+      "clientId": "CHANGE ME",
+      "clientSecret": null,
       "enableNativeNonce": true,
-      "enabled": true,
+      "enabled": false,
       "encryptJwtRequestParameter": false,
       "encryptedIdTokens": false,
       "issuer": "https://accounts.google.com",
@@ -458,6 +483,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "privateKeyJwtExpTime": 600,
       "redirectURI": "https://idc.scheuber.io/login",
       "responseMode": "DEFAULT",
+      "revocationCheckOptions": [],
       "scopeDelimiter": " ",
       "scopes": [
         "openid",
@@ -476,6 +502,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
         "iconClass": "fa-google",
         "iconFontColor": "white",
       },
+      "useCustomTrustStore": false,
       "userInfoEndpoint": "https://www.googleapis.com/oauth2/v3/userinfo",
       "userInfoResponseType": "JSON",
       "wellKnownEndpoint": "https://accounts.google.com/.well-known/openid-configuration",
@@ -491,9 +518,10 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "authenticationIdKey": "id",
       "authorizationEndpoint": "https://trial-5735851.okta.com/oauth2/v1/authorize",
       "clientAuthenticationMethod": "CLIENT_SECRET_POST",
-      "clientId": "0oa13r2cp29Rynmyw697",
+      "clientId": "CHANGE ME",
+      "clientSecret": null,
       "enableNativeNonce": true,
-      "enabled": true,
+      "enabled": false,
       "encryptJwtRequestParameter": false,
       "encryptedIdTokens": false,
       "issuer": "https://trial-5735851.okta.com",
@@ -506,6 +534,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "privateKeyJwtExpTime": 600,
       "redirectURI": "https://idc.scheuber.io/login",
       "responseMode": "DEFAULT",
+      "revocationCheckOptions": [],
       "scopeDelimiter": " ",
       "scopes": [
         "openid",
@@ -517,6 +546,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "uiConfig": {
         "buttonDisplayName": "Okta",
       },
+      "useCustomTrustStore": false,
       "userInfoEndpoint": "https://trial-5735851.okta.com/oauth2/v1/userinfo",
       "userInfoResponseType": "JSON",
       "wellKnownEndpoint": "https://trial-5735851.okta.com/.well-known/openid-configuration",
@@ -534,7 +564,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
       "language": "GROOVY",
       "lastModifiedBy": "null",
       "lastModifiedDate": 0,
-      "name": "GitHub Profile Normalization - imported (1)",
+      "name": "GitHub Profile Normalization (VS)",
       "script": [
         "/*",
         " * Copyright 2020 ForgeRock AS. All Rights Reserved",
@@ -891,7 +921,7 @@ exports[`IdpOps exportSocialProviders() 1: Export all social providers 1`] = `
 }
 `;
 
-exports[`IdpOps getSocialProvider() 1: Get social provider FrodoTestIdp1 1`] = `
+exports[`IdpOps readSocialIdentityProvider() 1: Get social provider FrodoTestIdp1 1`] = `
 {
   "_id": "FrodoTestIdp1",
   "_type": {
@@ -913,6 +943,7 @@ exports[`IdpOps getSocialProvider() 1: Get social provider FrodoTestIdp1 1`] = `
   "privateKeyJwtExpTime": 3600,
   "redirectURI": "https://idc.scheuber.io/am/XUI/?realm=%2Falpha",
   "responseMode": "DEFAULT",
+  "revocationCheckOptions": [],
   "scopeDelimiter": " ",
   "scopes": [
     "email",
@@ -929,11 +960,12 @@ exports[`IdpOps getSocialProvider() 1: Get social provider FrodoTestIdp1 1`] = `
     "iconClass": "fa-facebook",
     "iconFontColor": "white",
   },
+  "useCustomTrustStore": false,
   "userInfoEndpoint": "https://graph.facebook.com/me?fields=id,name,picture,email,first_name,last_name,locale",
 }
 `;
 
-exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
+exports[`IdpOps readSocialIdentityProviders() 1: Read social providers 1`] = `
 [
   {
     "_id": "google",
@@ -946,9 +978,10 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "authenticationIdKey": "sub",
     "authorizationEndpoint": "https://accounts.google.com/o/oauth2/v2/auth",
     "clientAuthenticationMethod": "CLIENT_SECRET_POST",
-    "clientId": "297338177925-mho17cgnm540s2gre8h27feb6sbs1msd.apps.googleusercontent.com",
+    "clientId": "CHANGE ME",
+    "clientSecret": null,
     "enableNativeNonce": true,
-    "enabled": true,
+    "enabled": false,
     "encryptJwtRequestParameter": false,
     "encryptedIdTokens": false,
     "issuer": "https://accounts.google.com",
@@ -961,6 +994,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "privateKeyJwtExpTime": 600,
     "redirectURI": "https://idc.scheuber.io/login",
     "responseMode": "DEFAULT",
+    "revocationCheckOptions": [],
     "scopeDelimiter": " ",
     "scopes": [
       "openid",
@@ -979,6 +1013,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
       "iconClass": "fa-google",
       "iconFontColor": "white",
     },
+    "useCustomTrustStore": false,
     "userInfoEndpoint": "https://www.googleapis.com/oauth2/v3/userinfo",
     "userInfoResponseType": "JSON",
     "wellKnownEndpoint": "https://accounts.google.com/.well-known/openid-configuration",
@@ -1009,6 +1044,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "privateKeyJwtExpTime": 600,
     "redirectURI": "https://idc.scheuber.io/login",
     "responseMode": "DEFAULT",
+    "revocationCheckOptions": [],
     "scopeDelimiter": " ",
     "scopes": [
       "openid",
@@ -1027,6 +1063,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
       "iconClass": "fa-google",
       "iconFontColor": "white",
     },
+    "useCustomTrustStore": false,
     "userInfoEndpoint": "https://www.googleapis.com/oauth2/v3/userinfo",
     "userInfoResponseType": "JSON",
     "wellKnownEndpoint": "https://accounts.google.com/.well-known/openid-configuration",
@@ -1042,6 +1079,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "authorizationEndpoint": "https://github.com/login/oauth/authorize",
     "clientAuthenticationMethod": "CLIENT_SECRET_POST",
     "clientId": "bdae6d141d4dcf95a630",
+    "clientSecret": null,
     "enabled": true,
     "issuerComparisonCheckType": "EXACT",
     "jwtEncryptionAlgorithm": "NONE",
@@ -1051,6 +1089,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "privateKeyJwtExpTime": 600,
     "redirectURI": "https://idc.scheuber.io/login",
     "responseMode": "DEFAULT",
+    "revocationCheckOptions": [],
     "scopeDelimiter": " ",
     "scopes": [
       "user",
@@ -1065,6 +1104,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
       "iconBackground": "#4184f3",
       "iconFontColor": "white",
     },
+    "useCustomTrustStore": false,
     "userInfoEndpoint": "https://ig.mytestrun.com/user",
   },
   {
@@ -1077,8 +1117,9 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "authenticationIdKey": "id",
     "authorizationEndpoint": "https://www.facebook.com/dialog/oauth",
     "clientAuthenticationMethod": "CLIENT_SECRET_POST",
-    "clientId": "123741918345526",
-    "enabled": true,
+    "clientId": "CHANGE ME",
+    "clientSecret": null,
+    "enabled": false,
     "issuerComparisonCheckType": "EXACT",
     "jwtEncryptionAlgorithm": "NONE",
     "jwtEncryptionMethod": "NONE",
@@ -1087,6 +1128,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "privateKeyJwtExpTime": 3600,
     "redirectURI": "https://idc.scheuber.io/am/XUI/?realm=%2Falpha",
     "responseMode": "DEFAULT",
+    "revocationCheckOptions": [],
     "scopeDelimiter": " ",
     "scopes": [
       "email",
@@ -1103,6 +1145,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
       "iconClass": "fa-facebook",
       "iconFontColor": "white",
     },
+    "useCustomTrustStore": false,
     "userInfoEndpoint": "https://graph.facebook.com/me?fields=id,name,picture,email,first_name,last_name,locale",
   },
   {
@@ -1126,6 +1169,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "privateKeyJwtExpTime": 3600,
     "redirectURI": "https://idc.scheuber.io/am/XUI/?realm=%2Falpha",
     "responseMode": "DEFAULT",
+    "revocationCheckOptions": [],
     "scopeDelimiter": " ",
     "scopes": [
       "email",
@@ -1142,6 +1186,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
       "iconClass": "fa-facebook",
       "iconFontColor": "white",
     },
+    "useCustomTrustStore": false,
     "userInfoEndpoint": "https://graph.facebook.com/me?fields=id,name,picture,email,first_name,last_name,locale",
   },
   {
@@ -1155,9 +1200,10 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "authenticationIdKey": "sub",
     "authorizationEndpoint": "https://appleid.apple.com/auth/authorize",
     "clientAuthenticationMethod": "CLIENT_SECRET_POST",
-    "clientId": "com.forgerock.ios.sdk.social.service",
+    "clientId": "CHANGE ME",
+    "clientSecret": null,
     "enableNativeNonce": true,
-    "enabled": true,
+    "enabled": false,
     "encryptJwtRequestParameter": false,
     "encryptedIdTokens": false,
     "issuer": "https://appleid.apple.com",
@@ -1173,6 +1219,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "redirectURI": "https://openam-volker-dev.forgeblocks.com/am/oauth2/alpha/client/form_post/apple-stoyan",
     "requestNativeAppForUserInfo": false,
     "responseMode": "FORM_POST",
+    "revocationCheckOptions": [],
     "scopeDelimiter": " ",
     "scopes": [
       "name",
@@ -1190,6 +1237,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
       "iconClass": "fa-apple",
       "iconFontColor": "white",
     },
+    "useCustomTrustStore": false,
     "userInfoResponseType": "JSON",
     "wellKnownEndpoint": "https://appleid.apple.com/.well-known/openid-configuration",
   },
@@ -1204,9 +1252,10 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "authenticationIdKey": "sub",
     "authorizationEndpoint": "https://appleid.apple.com/auth/authorize",
     "clientAuthenticationMethod": "CLIENT_SECRET_POST",
-    "clientId": "io.scheuber.idc.signinWithApple.service",
+    "clientId": "CHANGE ME",
+    "clientSecret": null,
     "enableNativeNonce": true,
-    "enabled": true,
+    "enabled": false,
     "encryptJwtRequestParameter": false,
     "encryptedIdTokens": false,
     "issuer": "https://appleid.apple.com",
@@ -1222,6 +1271,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "redirectURI": "https://idc.scheuber.io/am/oauth2/client/form_post/apple_web",
     "requestNativeAppForUserInfo": false,
     "responseMode": "FORM_POST",
+    "revocationCheckOptions": [],
     "scopeDelimiter": " ",
     "scopes": [
       "name",
@@ -1239,6 +1289,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
       "iconClass": "fa-apple",
       "iconFontColor": "white",
     },
+    "useCustomTrustStore": false,
     "userInfoResponseType": "JSON",
     "wellKnownEndpoint": "https://appleid.apple.com/.well-known/openid-configuration",
   },
@@ -1253,9 +1304,10 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "authenticationIdKey": "id",
     "authorizationEndpoint": "https://trial-5735851.okta.com/oauth2/v1/authorize",
     "clientAuthenticationMethod": "CLIENT_SECRET_POST",
-    "clientId": "0oa13r2cp29Rynmyw697",
+    "clientId": "CHANGE ME",
+    "clientSecret": null,
     "enableNativeNonce": true,
-    "enabled": true,
+    "enabled": false,
     "encryptJwtRequestParameter": false,
     "encryptedIdTokens": false,
     "issuer": "https://trial-5735851.okta.com",
@@ -1268,6 +1320,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "privateKeyJwtExpTime": 600,
     "redirectURI": "https://idc.scheuber.io/login",
     "responseMode": "DEFAULT",
+    "revocationCheckOptions": [],
     "scopeDelimiter": " ",
     "scopes": [
       "openid",
@@ -1279,6 +1332,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "uiConfig": {
       "buttonDisplayName": "Okta",
     },
+    "useCustomTrustStore": false,
     "userInfoEndpoint": "https://trial-5735851.okta.com/oauth2/v1/userinfo",
     "userInfoResponseType": "JSON",
     "wellKnownEndpoint": "https://trial-5735851.okta.com/.well-known/openid-configuration",
@@ -1295,6 +1349,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "authorizationEndpoint": "https://adfs.mytestrun.com/adfs/oauth2/authorize",
     "clientAuthenticationMethod": "CLIENT_SECRET_POST",
     "clientId": "aa9a179e-cdba-4db8-8477-3d1069d5ec04",
+    "clientSecret": null,
     "enableNativeNonce": true,
     "enabled": true,
     "encryptJwtRequestParameter": false,
@@ -1310,6 +1365,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "privateKeyJwtExpTime": 600,
     "redirectURI": "https://idc.scheuber.io/login",
     "responseMode": "DEFAULT",
+    "revocationCheckOptions": [],
     "scopeDelimiter": " ",
     "scopes": [
       "openid",
@@ -1328,6 +1384,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
       "iconClass": "fa-windows",
       "iconFontColor": "white",
     },
+    "useCustomTrustStore": false,
     "userInfoResponseType": "JSON",
     "wellKnownEndpoint": "https://adfs.mytestrun.com/adfs/.well-known/openid-configuration",
   },
@@ -1341,8 +1398,9 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "authenticationIdKey": "id",
     "authorizationEndpoint": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/oauth2/v2.0/authorize",
     "clientAuthenticationMethod": "CLIENT_SECRET_POST",
-    "clientId": "c42a3dc8-f276-496b-a722-269f131cc21c",
-    "enabled": true,
+    "clientId": "CHANGE ME",
+    "clientSecret": null,
+    "enabled": false,
     "issuerComparisonCheckType": "EXACT",
     "jwtEncryptionAlgorithm": "NONE",
     "jwtEncryptionMethod": "NONE",
@@ -1351,6 +1409,7 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
     "privateKeyJwtExpTime": 600,
     "redirectURI": "https://idc.scheuber.io/login",
     "responseMode": "DEFAULT",
+    "revocationCheckOptions": [],
     "scopeDelimiter": " ",
     "scopes": [
       "User.Read",
@@ -1368,15 +1427,16 @@ exports[`IdpOps getSocialProviders() 1: Get social providers 1`] = `
       "iconClass": "fa-windows",
       "iconFontColor": "white",
     },
+    "useCustomTrustStore": false,
     "userInfoEndpoint": "https://graph.microsoft.com/v1.0/me",
   },
 ]
 `;
 
-exports[`IdpOps putProviderByTypeAndId() 1: Put social provider FrodoTestIdp3 1`] = `
+exports[`IdpOps updateSocialIdentityProvider() 1: Update social provider FrodoTestIdp3 1`] = `
 {
   "_id": "FrodoTestIdp3",
-  "_rev": "-1602914426",
+  "_rev": "-188118417",
   "_type": {
     "_id": "oidcConfig",
     "collection": true,
@@ -1401,6 +1461,7 @@ exports[`IdpOps putProviderByTypeAndId() 1: Put social provider FrodoTestIdp3 1`
   "privateKeyJwtExpTime": 600,
   "redirectURI": "https://idc.scheuber.io/login",
   "responseMode": "DEFAULT",
+  "revocationCheckOptions": [],
   "scopeDelimiter": " ",
   "scopes": [
     "openid",
@@ -1412,6 +1473,7 @@ exports[`IdpOps putProviderByTypeAndId() 1: Put social provider FrodoTestIdp3 1`
   "uiConfig": {
     "buttonDisplayName": "Okta",
   },
+  "useCustomTrustStore": false,
   "userInfoEndpoint": "https://trial-1234567.okta.com/oauth2/v1/userinfo",
   "userInfoResponseType": "JSON",
   "wellKnownEndpoint": "https://trial-1234567.okta.com/.well-known/openid-configuration",
