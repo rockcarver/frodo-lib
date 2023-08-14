@@ -123,3 +123,10 @@ export type JourneyClassificationType =
   | 'custom'
   | 'cloud'
   | 'premium';
+
+export class FrodoError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UnresolvedDependenciesError';
+  }
+}

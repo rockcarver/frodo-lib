@@ -32,18 +32,18 @@ export type Script = {
    */
   createScriptExportTemplate(): ScriptExportInterface;
   /**
-   * Get all scripts
+   * Read all scripts
    * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
    */
   readScripts(): Promise<ScriptSkeleton[]>;
   /**
-   * Get script
+   * Read script
    * @param {string} scriptId script id
    * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
    */
   readScript(scriptId: string): Promise<ScriptSkeleton>;
   /**
-   * Get script by name
+   * Read script by name
    * @param {string} scriptName name of the script
    * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
    */

@@ -3,61 +3,80 @@ import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { debugMessage } from '../utils/Console';
 import { State } from '../shared/State';
+import { ExportMetaData } from './OpsTypes';
+import { getMetadata } from '../utils/ExportImportUtils';
 
 export const THEMEREALM_ID = 'ui/themerealm';
 
 export type Theme = {
   /**
-   * Get all themes
+   * Create an empty theme export template
+   * @returns {ThemeExportInterface} an empty theme export template
+   */
+  createThemeExportTemplate(): ThemeExportInterface;
+  /**
+   * Read all themes
    * @param {string} realm realm name
    * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
    */
-  getThemes(): Promise<ThemeSkeleton[]>;
+  readThemes(): Promise<ThemeSkeleton[]>;
   /**
-   * Get theme by id
+   * Read theme by id
    * @param {string} themeId theme id
    * @param {string} realm realm name
    * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
    */
-  getTheme(themeId: string, realm?: string): Promise<ThemeSkeleton>;
+  readTheme(themeId: string, realm?: string): Promise<ThemeSkeleton>;
   /**
-   * Get theme by name
+   * Read theme by name
    * @param {string} themeName theme name
    * @param {string} realm realm name
    * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
    */
-  getThemeByName(themeName: string, realm?: string): Promise<ThemeSkeleton>;
+  readThemeByName(themeName: string, realm?: string): Promise<ThemeSkeleton>;
   /**
-   * Put theme by id
+   * Update theme
+   * @param {ThemeSkeleton} themeData theme object
+   * @param {string} themeId theme id
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+   */
+  createTheme(
+    themeData: ThemeSkeleton,
+    themeId?: string,
+    realm?: string
+  ): Promise<ThemeSkeleton>;
+  /**
+   * Update theme
    * @param {string} themeId theme id
    * @param {ThemeSkeleton} themeData theme object
    * @param {string} realm realm name
    * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
    */
-  putTheme(
+  updateTheme(
     themeId: string,
     themeData: ThemeSkeleton,
     realm?: string
   ): Promise<ThemeSkeleton>;
   /**
-   * Put theme by name
+   * Update theme by name
    * @param {String} themeName theme name
    * @param {ThemeSkeleton} themeData theme object
    * @param {string} realm realm name
    * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
    */
-  putThemeByName(
+  updateThemeByName(
     themeName: string,
     themeData: ThemeSkeleton,
     realm?: string
   ): Promise<ThemeSkeleton>;
   /**
-   * Put all themes
+   * Update all themes
    * @param {Map<string, ThemeSkeleton>} allThemesData themes object containing all themes for all realms
    * @param {string} realm realm name
    * @returns {Promise<Map<string, ThemeSkeleton>>} a promise that resolves to a themes object
    */
-  putThemes(
+  updateThemes(
     themeMap: Map<string, ThemeSkeleton>
   ): Promise<Map<string, ThemeSkeleton>>;
   /**
@@ -80,125 +99,217 @@ export type Theme = {
    * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
    */
   deleteThemes(realm?: string): Promise<ThemeSkeleton[]>;
+
+  // Deprecated
+
+  /**
+   * Get all themes
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
+   * @deprecated since v2.0.0 use {@link Theme.readThemes | readThemes} instead
+   * ```javascript
+   * readThemes(): Promise<ThemeSkeleton[]>
+   * ```
+   * @group Deprecated
+   */
+  getThemes(): Promise<ThemeSkeleton[]>;
+  /**
+   * Get theme by id
+   * @param {string} themeId theme id
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+   * @deprecated since v2.0.0 use {@link Theme.readTheme | readTheme} instead
+   * ```javascript
+   * readTheme(themeId: string, realm?: string): Promise<ThemeSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  getTheme(themeId: string, realm?: string): Promise<ThemeSkeleton>;
+  /**
+   * Get theme by name
+   * @param {string} themeName theme name
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+   * @deprecated since v2.0.0 use {@link Theme.readThemeByName | readThemeByName} instead
+   * ```javascript
+   * readThemeByName(themeName: string, realm?: string): Promise<ThemeSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  getThemeByName(themeName: string, realm?: string): Promise<ThemeSkeleton>;
+  /**
+   * Put theme by id
+   * @param {string} themeId theme id
+   * @param {ThemeSkeleton} themeData theme object
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+   * @deprecated since v2.0.0 use {@link Theme.updateTheme | updateTheme} or {@link Theme.createTheme | createTheme} instead
+   * ```javascript
+   * updateTheme(themeId: string, themeData: ThemeSkeleton, realm?: string): Promise<ThemeSkeleton>
+   * createTheme(themeData: ThemeSkeleton, themeId?: string, realm?: string): Promise<ThemeSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  putTheme(
+    themeId: string,
+    themeData: ThemeSkeleton,
+    realm?: string
+  ): Promise<ThemeSkeleton>;
+  /**
+   * Put theme by name
+   * @param {String} themeName theme name
+   * @param {ThemeSkeleton} themeData theme object
+   * @param {string} realm realm name
+   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+   * @deprecated since v2.0.0 use {@link Theme.updateThemeByName | updateThemeByName} instead
+   * ```javascript
+   * updateThemeByName(themeName: string, themeData: ThemeSkeleton, realm?: string): Promise<ThemeSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  putThemeByName(
+    themeName: string,
+    themeData: ThemeSkeleton,
+    realm?: string
+  ): Promise<ThemeSkeleton>;
+  /**
+   * Put all themes
+   * @param {Map<string, ThemeSkeleton>} allThemesData themes object containing all themes for all realms
+   * @param {string} realm realm name
+   * @returns {Promise<Map<string, ThemeSkeleton>>} a promise that resolves to a themes object
+   * @deprecated since v2.0.0 use {@link Theme.updateThemes | updateThemes} instead
+   * ```javascript
+   * updateThemes(themeMap: Map<string, ThemeSkeleton>): Promise<Map<string, ThemeSkeleton>>
+   * ```
+   * @group Deprecated
+   */
+  putThemes(
+    themeMap: Map<string, ThemeSkeleton>
+  ): Promise<Map<string, ThemeSkeleton>>;
 };
 
 export default (state: State): Theme => {
   return {
-    /**
-     * Get all themes
-     * @param {string} realm realm name
-     * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
-     */
-    async getThemes(): Promise<ThemeSkeleton[]> {
-      return getThemes({ state });
+    createThemeExportTemplate(): ThemeExportInterface {
+      return createThemeExportTemplate({ state });
     },
-
-    /**
-     * Get theme by id
-     * @param {string} themeId theme id
-     * @param {string} realm realm name
-     * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
-     */
-    async getTheme(
+    async readThemes(): Promise<ThemeSkeleton[]> {
+      return readThemes({ state });
+    },
+    async readTheme(
       themeId: string,
       realm: string = state.getRealm()
     ): Promise<ThemeSkeleton> {
-      return getTheme({ themeId, realm, state });
+      return readTheme({ themeId, realm, state });
     },
-
-    /**
-     * Get theme by name
-     * @param {string} themeName theme name
-     * @param {string} realm realm name
-     * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
-     */
-    async getThemeByName(
+    async readThemeByName(
       themeName: string,
       realm: string = state.getRealm()
     ): Promise<ThemeSkeleton> {
-      return getThemeByName({ themeName, realm, state });
+      return readThemeByName({ themeName, realm, state });
     },
-
-    /**
-     * Put theme by id
-     * @param {string} themeId theme id
-     * @param {ThemeSkeleton} themeData theme object
-     * @param {string} realm realm name
-     * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
-     */
-    async putTheme(
+    async createTheme(
+      themeData: ThemeSkeleton,
+      themeId?: string,
+      realm?: string
+    ): Promise<ThemeSkeleton> {
+      return createTheme({ themeId, themeData, realm, state });
+    },
+    async updateTheme(
       themeId: string,
       themeData: ThemeSkeleton,
       realm: string = state.getRealm()
     ): Promise<ThemeSkeleton> {
-      return putTheme({ themeId, themeData, realm, state });
+      return updateTheme({ themeId, themeData, realm, state });
     },
-
-    /**
-     * Put theme by name
-     * @param {String} themeName theme name
-     * @param {ThemeSkeleton} themeData theme object
-     * @param {string} realm realm name
-     * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
-     */
-    async putThemeByName(
+    async updateThemeByName(
       themeName: string,
       themeData: ThemeSkeleton,
       realm: string = state.getRealm()
     ): Promise<ThemeSkeleton> {
-      return putThemeByName({ themeName, themeData, realm, state });
+      return updateThemeByName({ themeName, themeData, realm, state });
     },
-
-    /**
-     * Put all themes
-     * @param {Map<string, ThemeSkeleton>} allThemesData themes object containing all themes for all realms
-     * @param {string} realm realm name
-     * @returns {Promise<Map<string, ThemeSkeleton>>} a promise that resolves to a themes object
-     */
-    async putThemes(
+    async updateThemes(
       themeMap: Map<string, ThemeSkeleton>
     ): Promise<Map<string, ThemeSkeleton>> {
-      return putThemes({ themeMap, state });
+      return updateThemes({ themeMap, state });
     },
-
-    /**
-     * Delete theme by id
-     * @param {string} themeId theme id
-     * @param {string} realm realm name
-     * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
-     */
     async deleteTheme(
       themeId: string,
       realm: string = state.getRealm()
     ): Promise<ThemeSkeleton> {
       return deleteTheme({ themeId, realm, state });
     },
-
-    /**
-     * Delete theme by name
-     * @param {string} themeName theme name
-     * @param {string} realm realm name
-     * @returns {Promise<ThemeSkeleton>} a promise that resolves to a themes object
-     */
     async deleteThemeByName(
       themeName: string,
       realm: string = state.getRealm()
     ): Promise<ThemeSkeleton> {
       return deleteThemeByName({ themeName, realm, state });
     },
-
-    /**
-     * Delete all themes
-     * @param {string} realm realm name
-     * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
-     */
     async deleteThemes(
       realm: string = state.getRealm()
     ): Promise<ThemeSkeleton[]> {
       return deleteThemes({ realm, state });
     },
+
+    // Deprecated
+
+    async getThemes(): Promise<ThemeSkeleton[]> {
+      return readThemes({ state });
+    },
+    async getTheme(
+      themeId: string,
+      realm: string = state.getRealm()
+    ): Promise<ThemeSkeleton> {
+      return readTheme({ themeId, realm, state });
+    },
+    async getThemeByName(
+      themeName: string,
+      realm: string = state.getRealm()
+    ): Promise<ThemeSkeleton> {
+      return readThemeByName({ themeName, realm, state });
+    },
+    async putTheme(
+      themeId: string,
+      themeData: ThemeSkeleton,
+      realm: string = state.getRealm()
+    ): Promise<ThemeSkeleton> {
+      return updateTheme({ themeId, themeData, realm, state });
+    },
+    async putThemeByName(
+      themeName: string,
+      themeData: ThemeSkeleton,
+      realm: string = state.getRealm()
+    ): Promise<ThemeSkeleton> {
+      return updateThemeByName({ themeName, themeData, realm, state });
+    },
+    async putThemes(
+      themeMap: Map<string, ThemeSkeleton>
+    ): Promise<Map<string, ThemeSkeleton>> {
+      return updateThemes({ themeMap, state });
+    },
   };
 };
+
+export interface ThemeExportInterface {
+  meta?: ExportMetaData;
+  theme: Record<string, ThemeSkeleton>;
+}
+
+/**
+ * Create an empty theme export template
+ * @returns {ThemeExportInterface} an empty theme export template
+ */
+export function createThemeExportTemplate({
+  state,
+}: {
+  state: State;
+}): ThemeExportInterface {
+  return {
+    meta: getMetadata({ state }),
+    theme: {},
+  } as ThemeExportInterface;
+}
 
 /**
  * Get realm themes
@@ -220,11 +331,11 @@ function getRealmThemes({
 }
 
 /**
- * Get all themes
+ * Read all themes
  * @param {string} realm realm name
  * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
  */
-export async function getThemes({
+export async function readThemes({
   realm = null,
   state,
 }: {
@@ -237,12 +348,12 @@ export async function getThemes({
 }
 
 /**
- * Get theme by id
+ * Read theme by id
  * @param {string} themeId theme id
  * @param {string} realm realm name
  * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
  */
-export async function getTheme({
+export async function readTheme({
   themeId,
   realm,
   state,
@@ -268,12 +379,12 @@ export async function getTheme({
 }
 
 /**
- * Get theme by name
+ * Read theme by name
  * @param {string} themeName theme name
  * @param {string} realm realm name
  * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
  */
-export async function getThemeByName({
+export async function readThemeByName({
   themeName,
   realm,
   state,
@@ -299,13 +410,44 @@ export async function getThemeByName({
 }
 
 /**
- * Put theme by id
+ * Create theme
  * @param {string} themeId theme id
  * @param {ThemeSkeleton} themeData theme object
  * @param {string} realm realm name
  * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
  */
-export async function putTheme({
+export async function createTheme({
+  themeData,
+  themeId,
+  realm,
+  state,
+}: {
+  themeData: ThemeSkeleton;
+  themeId?: string;
+  realm?: string;
+  state: State;
+}): Promise<ThemeSkeleton> {
+  try {
+    await readTheme({ themeId, realm, state });
+  } catch (error) {
+    const result = await updateTheme({
+      themeId,
+      themeData,
+      realm,
+      state,
+    });
+    return result;
+  }
+}
+
+/**
+ * Update theme
+ * @param {string} themeId theme id
+ * @param {ThemeSkeleton} themeData theme object
+ * @param {string} realm realm name
+ * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
+ */
+export async function updateTheme({
   themeId,
   themeData,
   realm,
@@ -353,13 +495,13 @@ export async function putTheme({
 }
 
 /**
- * Put theme by name
+ * Update theme by name
  * @param {String} themeName theme name
  * @param {ThemeSkeleton} themeData theme object
  * @param {string} realm realm name
  * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
  */
-export async function putThemeByName({
+export async function updateThemeByName({
   themeName,
   themeData,
   realm,
@@ -407,12 +549,12 @@ export async function putThemeByName({
 }
 
 /**
- * Put all themes
+ * Update all themes
  * @param {Map<string, ThemeSkeleton>} allThemesData themes object containing all themes for all realms
  * @param {string} realm realm name
  * @returns {Promise<Map<string, ThemeSkeleton>>} a promise that resolves to a themes object
  */
-export async function putThemes({
+export async function updateThemes({
   themeMap,
   realm = null,
   state,
