@@ -39,7 +39,7 @@ autoSetupPolly();
 const { EMAIL_TEMPLATE_TYPE } = EmailTemplateOps;
 
 async function stageTemplate(
-  template: { id: string; data: object },
+  template: { id: string; data: any },
   create = true
 ) {
   // delete if exists, then create
@@ -133,13 +133,13 @@ describe('EmailTemplateOps', () => {
     }
   });
 
-  describe('getEmailTemplate()', () => {
+  describe('readEmailTemplate()', () => {
     test('0: Method is implemented', async () => {
-      expect(EmailTemplateOps.getEmailTemplate).toBeDefined();
+      expect(EmailTemplateOps.readEmailTemplate).toBeDefined();
     });
 
-    test(`1: Get email template '${template1.id}'`, async () => {
-      const response = await EmailTemplateOps.getEmailTemplate({
+    test(`1: Read email template '${template1.id}'`, async () => {
+      const response = await EmailTemplateOps.readEmailTemplate({
         templateId: template1.id,
         state,
       });
@@ -147,24 +147,24 @@ describe('EmailTemplateOps', () => {
     });
   });
 
-  describe('getEmailTemplates()', () => {
+  describe('readEmailTemplates()', () => {
     test('0: Method is implemented', async () => {
-      expect(EmailTemplateOps.getEmailTemplates).toBeDefined();
+      expect(EmailTemplateOps.readEmailTemplates).toBeDefined();
     });
 
-    test('1: Get all email templates', async () => {
-      const response = await EmailTemplateOps.getEmailTemplates({ state });
+    test('1: Read all email templates', async () => {
+      const response = await EmailTemplateOps.readEmailTemplates({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
-  describe('putEmailTemplate()', () => {
+  describe('updateEmailTemplate()', () => {
     test('0: Method is implemented', async () => {
-      expect(EmailTemplateOps.putEmailTemplate).toBeDefined();
+      expect(EmailTemplateOps.updateEmailTemplate).toBeDefined();
     });
 
     test(`1: Create email template '${template3.id}'`, async () => {
-      const response = await EmailTemplateOps.putEmailTemplate({
+      const response = await EmailTemplateOps.updateEmailTemplate({
         templateId: template3.id,
         templateData: template3.data,
         state,
