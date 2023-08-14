@@ -25,7 +25,6 @@
  *
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=frodo-dev npm run test:record Saml2Ops
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=4 FRODO_HOST=frodo-dev npm run test:record Saml2Ops
- *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=5 FRODO_HOST=frodo-dev npm run test:record Saml2Ops
  *
  *    The above command assumes that you have a connection profile for
  *    'frodo-dev' on your development machine.
@@ -65,7 +64,7 @@ state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 async function stageProvider(provider: { entityId: string }, create = true) {
   // delete if exists, then create
   try {
-    await Saml2Ops.getSaml2Provider({ entityId: provider.entityId, state });
+    await Saml2Ops.readSaml2Provider({ entityId: provider.entityId, state });
     await Saml2Ops.deleteSaml2Provider({ entityId: provider.entityId, state });
   } catch (error) {
     if (error.isAxiosError) {
@@ -233,33 +232,30 @@ describe('Saml2Ops', () => {
       });
     });
 
-    describe('getSaml2ProviderStubs()', () => {
+    describe('readSaml2ProviderStubs()', () => {
       test('0: Method is implemented', async () => {
-        expect(Saml2Ops.getSaml2ProviderStubs).toBeDefined();
+        expect(Saml2Ops.readSaml2ProviderStubs).toBeDefined();
       });
 
-      test('1: Get saml2 provider stubs', async () => {
-        const response = await Saml2Ops.getSaml2ProviderStubs({ state });
+      test('1: Read saml2 provider stubs', async () => {
+        const response = await Saml2Ops.readSaml2ProviderStubs({ state });
         expect(response).toMatchSnapshot();
       });
     });
 
-    describe('getProviderMetadataUrl()', () => {
+    describe('getSaml2ProviderMetadataUrl()', () => {
       test('0: Method is implemented', async () => {
-        expect(Saml2Ops.getProviderMetadataUrl).toBeDefined();
+        expect(Saml2Ops.getSaml2ProviderMetadataUrl).toBeDefined();
       });
 
       test(`1: Get metadata url for hosted provider '${provider3.entityId}'`, async () => {
-        const response = Saml2Ops.getProviderMetadataUrl({
+        const response = Saml2Ops.getSaml2ProviderMetadataUrl({
           entityId: provider3.entityId,
           state,
         });
         expect(response).toMatch(
           new RegExp(
-            `^${
-              process.env.FRODO_HOST ||
-              'https://openam-frodo-dev.forgeblocks.com'
-            }`
+            `^${state.getHost()}`
           )
         );
         const url = new URL(response);
@@ -269,16 +265,13 @@ describe('Saml2Ops', () => {
       });
 
       test(`2: Get metadata url for remote provider '${provider4.entityId}'`, async () => {
-        const response = Saml2Ops.getProviderMetadataUrl({
+        const response = Saml2Ops.getSaml2ProviderMetadataUrl({
           entityId: provider4.entityId,
           state,
         });
         expect(response).toMatch(
           new RegExp(
-            `^${
-              process.env.FRODO_HOST ||
-              'https://openam-frodo-dev.forgeblocks.com'
-            }`
+            `^${state.getHost()}`
           )
         );
         const url = new URL(response);
@@ -288,13 +281,13 @@ describe('Saml2Ops', () => {
       });
     });
 
-    describe('getProviderMetadata()', () => {
+    describe('getSaml2ProviderMetadata()', () => {
       test('0: Method is implemented', async () => {
-        expect(Saml2Ops.getProviderMetadata).toBeDefined();
+        expect(Saml2Ops.getSaml2ProviderMetadata).toBeDefined();
       });
 
       test(`1: Get metadata for hosted provider '${provider1.entityId}'`, async () => {
-        const response = await Saml2Ops.getProviderMetadata({
+        const response = await Saml2Ops.getSaml2ProviderMetadata({
           entityId: provider1.entityId,
           state,
         });
@@ -302,7 +295,7 @@ describe('Saml2Ops', () => {
       });
 
       test(`2: Get metadata for remote provider '${provider4.entityId}'`, async () => {
-        const response = await Saml2Ops.getProviderMetadata({
+        const response = await Saml2Ops.getSaml2ProviderMetadata({
           entityId: provider4.entityId,
           state,
         });
@@ -310,21 +303,21 @@ describe('Saml2Ops', () => {
       });
     });
 
-    describe('getSaml2ProviderStub()', () => {
+    describe('readSaml2ProviderStub()', () => {
       test('0: Method is implemented', async () => {
-        expect(Saml2Ops.getSaml2ProviderStub).toBeDefined();
+        expect(Saml2Ops.readSaml2ProviderStub).toBeDefined();
       });
 
-      test(`1: Get stub of hosted provider '${provider1.entityId}'`, async () => {
-        const response = await Saml2Ops.getSaml2ProviderStub({
+      test(`1: Read stub of hosted provider '${provider1.entityId}'`, async () => {
+        const response = await Saml2Ops.readSaml2ProviderStub({
           entityId: provider1.entityId,
           state,
         });
         expect(response).toMatchSnapshot();
       });
 
-      test(`2: Get stub of remote provider '${provider4.entityId}'`, async () => {
-        const response = await Saml2Ops.getSaml2ProviderStub({
+      test(`2: Read stub of remote provider '${provider4.entityId}'`, async () => {
+        const response = await Saml2Ops.readSaml2ProviderStub({
           entityId: provider4.entityId,
           state,
         });
@@ -334,19 +327,19 @@ describe('Saml2Ops', () => {
 
     describe('getSaml2Provider()', () => {
       test('0: Method is implemented', async () => {
-        expect(Saml2Ops.getSaml2Provider).toBeDefined();
+        expect(Saml2Ops.readSaml2Provider).toBeDefined();
       });
 
-      test(`1: Get hosted provider '${provider1.entityId}'`, async () => {
-        const response = await Saml2Ops.getSaml2Provider({
+      test(`1: Read hosted provider '${provider1.entityId}'`, async () => {
+        const response = await Saml2Ops.readSaml2Provider({
           entityId: provider1.entityId,
           state,
         });
         expect(response).toMatchSnapshot();
       });
 
-      test(`2: Get remote provider '${provider4.entityId}'`, async () => {
-        const response = await Saml2Ops.getSaml2Provider({
+      test(`2: Read remote provider '${provider4.entityId}'`, async () => {
+        const response = await Saml2Ops.readSaml2Provider({
           entityId: provider4.entityId,
           state,
         });
@@ -442,13 +435,12 @@ describe('Saml2Ops', () => {
       });
 
       test('1: Import providers', async () => {
-        expect.assertions(2);
+        expect.assertions(1);
         const response = await Saml2Ops.importSaml2Providers({
           importData: getSaml2ProvidersImportData(),
           state,
         });
-        expect(response.failures).toBe(0);
-        expect(response.warnings).toBe(0);
+        expect(response.length).toBe(10);
       });
     });
   }
