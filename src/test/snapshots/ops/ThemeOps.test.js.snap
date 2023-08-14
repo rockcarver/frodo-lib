@@ -2517,7 +2517,7 @@ exports[`ThemeOps deleteThemes() 3: Delete all root themes (encore) 1`] = `
 
 exports[`ThemeOps deleteThemes() 4: Delete all themes in non-existent realm 1`] = `[Error: No theme configuration found for realm 'doesnotexist']`;
 
-exports[`ThemeOps getTheme() 1: Get alpha theme '84bbd22e-6def-459f-91c9-4c9aa4e0bec0' (cloud) 1`] = `
+exports[`ThemeOps readTheme() 1: Read alpha theme '84bbd22e-6def-459f-91c9-4c9aa4e0bec0' (cloud) 1`] = `
 {
   "_id": "84bbd22e-6def-459f-91c9-4c9aa4e0bec0",
   "accountFooter": "<div class="d-flex justify-content-center py-4 w-100"><span class="pr-1">© 2021</span>
@@ -2606,7 +2606,7 @@ exports[`ThemeOps getTheme() 1: Get alpha theme '84bbd22e-6def-459f-91c9-4c9aa4e
 }
 `;
 
-exports[`ThemeOps getTheme() 2: Get bravo theme '05ef90a8-10f2-47fd-a481-c8c52f49e48f' (cloud) 1`] = `
+exports[`ThemeOps readTheme() 2: Read bravo theme '05ef90a8-10f2-47fd-a481-c8c52f49e48f' (cloud) 1`] = `
 {
   "_id": "05ef90a8-10f2-47fd-a481-c8c52f49e48f",
   "accountFooter": "<footer class="w-100">
@@ -2835,7 +2835,7 @@ exports[`ThemeOps getTheme() 2: Get bravo theme '05ef90a8-10f2-47fd-a481-c8c52f4
 }
 `;
 
-exports[`ThemeOps getTheme() 3: Get root theme 'd6636b33-111b-40f2-870d-f4dcb7281e43' (encore) 1`] = `
+exports[`ThemeOps readTheme() 3: Read root theme 'd6636b33-111b-40f2-870d-f4dcb7281e43' (encore) 1`] = `
 {
   "_id": "d6636b33-111b-40f2-870d-f4dcb7281e43",
   "accountCardBackgroundColor": "#ffffff",
@@ -2910,9 +2910,9 @@ exports[`ThemeOps getTheme() 3: Get root theme 'd6636b33-111b-40f2-870d-f4dcb728
 }
 `;
 
-exports[`ThemeOps getTheme() 4: Get theme 'd6636b33-111b-40f2-870d-f4dcb7281e43' from non-existent realm 1`] = `[Error: Theme with id 'd6636b33-111b-40f2-870d-f4dcb7281e43' not found in realm 'doesnotexist'!]`;
+exports[`ThemeOps readTheme() 4: Read theme 'd6636b33-111b-40f2-870d-f4dcb7281e43' from non-existent realm 1`] = `[Error: Theme with id 'd6636b33-111b-40f2-870d-f4dcb7281e43' not found in realm 'doesnotexist'!]`;
 
-exports[`ThemeOps getThemeByName() 1: Get alpha theme 'Contrast' (cloud) 1`] = `
+exports[`ThemeOps readThemeByName() 1: Read alpha theme 'Contrast' (cloud) 1`] = `
 {
   "_id": "84bbd22e-6def-459f-91c9-4c9aa4e0bec0",
   "accountFooter": "<div class="d-flex justify-content-center py-4 w-100"><span class="pr-1">© 2021</span>
@@ -3001,7 +3001,7 @@ exports[`ThemeOps getThemeByName() 1: Get alpha theme 'Contrast' (cloud) 1`] = `
 }
 `;
 
-exports[`ThemeOps getThemeByName() 2: Get bravo theme 'Highlander' (cloud) 1`] = `
+exports[`ThemeOps readThemeByName() 2: Read bravo theme 'Highlander' (cloud) 1`] = `
 {
   "_id": "05ef90a8-10f2-47fd-a481-c8c52f49e48f",
   "accountFooter": "<footer class="w-100">
@@ -3230,7 +3230,7 @@ exports[`ThemeOps getThemeByName() 2: Get bravo theme 'Highlander' (cloud) 1`] =
 }
 `;
 
-exports[`ThemeOps getThemeByName() 3: Get root theme 'Starter Theme' (encore) 1`] = `
+exports[`ThemeOps readThemeByName() 3: Read root theme 'Starter Theme' (encore) 1`] = `
 {
   "_id": "d6636b33-111b-40f2-870d-f4dcb7281e43",
   "accountCardBackgroundColor": "#ffffff",
@@ -3305,9 +3305,9 @@ exports[`ThemeOps getThemeByName() 3: Get root theme 'Starter Theme' (encore) 1`
 }
 `;
 
-exports[`ThemeOps getThemeByName() 4: Get theme 'Starter Theme' from non-existent realm 1`] = `[Error: Theme 'Starter Theme' not found in realm 'doesnotexist'!]`;
+exports[`ThemeOps readThemeByName() 4: Read theme 'Starter Theme' from non-existent realm 1`] = `[Error: Theme 'Starter Theme' not found in realm 'doesnotexist'!]`;
 
-exports[`ThemeOps getThemes() 1: Get all alpha themes (cloud) 1`] = `
+exports[`ThemeOps readThemes() 1: Read all alpha themes (cloud) 1`] = `
 [
   {
     "_id": "84bbd22e-6def-459f-91c9-4c9aa4e0bec0",
@@ -4131,7 +4131,7 @@ exports[`ThemeOps getThemes() 1: Get all alpha themes (cloud) 1`] = `
 ]
 `;
 
-exports[`ThemeOps getThemes() 2: Get all bravo themes (cloud) 1`] = `
+exports[`ThemeOps readThemes() 2: Read all bravo themes (cloud) 1`] = `
 [
   {
     "_id": "84bbd22e-6def-459f-91c9-4c9aa4e0bec0",
@@ -4955,7 +4955,7 @@ exports[`ThemeOps getThemes() 2: Get all bravo themes (cloud) 1`] = `
 ]
 `;
 
-exports[`ThemeOps getThemes() 3: Get all root themes (encore) 1`] = `
+exports[`ThemeOps readThemes() 3: Read all root themes (encore) 1`] = `
 [
   {
     "_id": "d6636b33-111b-40f2-870d-f4dcb7281e43",
@@ -5032,9 +5032,9 @@ exports[`ThemeOps getThemes() 3: Get all root themes (encore) 1`] = `
 ]
 `;
 
-exports[`ThemeOps getThemes() 4: Get all themes from non-existent realm 1`] = `[]`;
+exports[`ThemeOps readThemes() 4: Read all themes from non-existent realm 1`] = `[]`;
 
-exports[`ThemeOps putTheme() 1: Put alpha theme 'a5420670-bae8-4ad6-9595-8477f6bca2c7' (cloud) 1`] = `
+exports[`ThemeOps updateTheme() 1: Update alpha theme 'a5420670-bae8-4ad6-9595-8477f6bca2c7' (cloud) 1`] = `
 {
   "_id": "a5420670-bae8-4ad6-9595-8477f6bca2c7",
   "accountCardBackgroundColor": "#ffffff",
@@ -5156,7 +5156,7 @@ exports[`ThemeOps putTheme() 1: Put alpha theme 'a5420670-bae8-4ad6-9595-8477f6b
 }
 `;
 
-exports[`ThemeOps putTheme() 2: Put bravo theme (cloud) 1`] = `
+exports[`ThemeOps updateTheme() 2: Update bravo theme (cloud) 1`] = `
 {
   "_id": "a5420670-bae8-4ad6-9595-8477f6bca2c7",
   "accountCardBackgroundColor": "#ffffff",
@@ -5278,7 +5278,7 @@ exports[`ThemeOps putTheme() 2: Put bravo theme (cloud) 1`] = `
 }
 `;
 
-exports[`ThemeOps putTheme() 3: Put root theme (encore) 1`] = `
+exports[`ThemeOps updateTheme() 3: Update root theme (encore) 1`] = `
 {
   "_id": "a5420670-bae8-4ad6-9595-8477f6bca2c7",
   "accountCardBackgroundColor": "#ffffff",
@@ -5400,7 +5400,7 @@ exports[`ThemeOps putTheme() 3: Put root theme (encore) 1`] = `
 }
 `;
 
-exports[`ThemeOps putTheme() 4: Put theme from non-existent realm (encore) 1`] = `
+exports[`ThemeOps updateTheme() 4: Update theme from non-existent realm (encore) 1`] = `
 {
   "_id": "a5420670-bae8-4ad6-9595-8477f6bca2c7",
   "accountCardBackgroundColor": "#ffffff",
@@ -5522,7 +5522,7 @@ exports[`ThemeOps putTheme() 4: Put theme from non-existent realm (encore) 1`] =
 }
 `;
 
-exports[`ThemeOps putThemeByName() 1: Put alpha theme (cloud) 1`] = `
+exports[`ThemeOps updateThemeByName() 1: Update alpha theme (cloud) 1`] = `
 {
   "_id": "a5420670-bae8-4ad6-9595-8477f6bca2c7",
   "accountCardBackgroundColor": "#ffffff",
@@ -5644,7 +5644,7 @@ exports[`ThemeOps putThemeByName() 1: Put alpha theme (cloud) 1`] = `
 }
 `;
 
-exports[`ThemeOps putThemeByName() 2: Put bravo theme (cloud) 1`] = `
+exports[`ThemeOps updateThemeByName() 2: Update bravo theme (cloud) 1`] = `
 {
   "_id": "a5420670-bae8-4ad6-9595-8477f6bca2c7",
   "accountCardBackgroundColor": "#ffffff",
@@ -5766,7 +5766,7 @@ exports[`ThemeOps putThemeByName() 2: Put bravo theme (cloud) 1`] = `
 }
 `;
 
-exports[`ThemeOps putThemeByName() 3: Put root theme (encore) 1`] = `
+exports[`ThemeOps updateThemeByName() 3: Update root theme (encore) 1`] = `
 {
   "_id": "a5420670-bae8-4ad6-9595-8477f6bca2c7",
   "accountCardBackgroundColor": "#ffffff",
@@ -5888,7 +5888,7 @@ exports[`ThemeOps putThemeByName() 3: Put root theme (encore) 1`] = `
 }
 `;
 
-exports[`ThemeOps putThemeByName() 4: Put theme from non-existent realm (encore) 1`] = `
+exports[`ThemeOps updateThemeByName() 4: Update theme from non-existent realm (encore) 1`] = `
 {
   "_id": "a5420670-bae8-4ad6-9595-8477f6bca2c7",
   "accountCardBackgroundColor": "#ffffff",
@@ -6010,7 +6010,7 @@ exports[`ThemeOps putThemeByName() 4: Put theme from non-existent realm (encore)
 }
 `;
 
-exports[`ThemeOps putThemes() 1: Update 1 and add 1 alpha themes 1`] = `
+exports[`ThemeOps updateThemes() 1: Update 1 and add 1 alpha themes 1`] = `
 Map {
   "84bbd22e-6def-459f-91c9-4c9aa4e0bec0" => {
     "_id": "84bbd22e-6def-459f-91c9-4c9aa4e0bec0",
@@ -6220,7 +6220,7 @@ Map {
 }
 `;
 
-exports[`ThemeOps putThemes() 2: Update 1 and add 1 bravo themes 1`] = `
+exports[`ThemeOps updateThemes() 2: Update 1 and add 1 bravo themes 1`] = `
 Map {
   "84bbd22e-6def-459f-91c9-4c9aa4e0bec0" => {
     "_id": "84bbd22e-6def-459f-91c9-4c9aa4e0bec0",
@@ -6430,7 +6430,7 @@ Map {
 }
 `;
 
-exports[`ThemeOps putThemes() 3: Add 2 root themes 1`] = `
+exports[`ThemeOps updateThemes() 3: Add 2 root themes 1`] = `
 Map {
   "84bbd22e-6def-459f-91c9-4c9aa4e0bec0" => {
     "_id": "84bbd22e-6def-459f-91c9-4c9aa4e0bec0",
@@ -6640,7 +6640,7 @@ Map {
 }
 `;
 
-exports[`ThemeOps putThemes() 4: Add 2 themes to non-existent realm 1`] = `
+exports[`ThemeOps updateThemes() 4: Add 2 themes to non-existent realm 1`] = `
 Map {
   "84bbd22e-6def-459f-91c9-4c9aa4e0bec0" => {
     "_id": "84bbd22e-6def-459f-91c9-4c9aa4e0bec0",

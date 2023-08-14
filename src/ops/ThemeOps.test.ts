@@ -270,7 +270,7 @@ const THEME_MAP_RAW = {
 };
 const THEME_MAP: Map<string, ThemeSkeleton> = new Map<string, ThemeSkeleton>();
 for (const theme of Object.values(THEME_MAP_RAW)) {
-  THEME_MAP[theme._id] = theme;
+  THEME_MAP[theme._id as string] = theme;
 }
 
 async function stageThemes(configEntity: { id: string; data: object }) {
@@ -340,28 +340,28 @@ describe('ThemeOps', () => {
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '1')
   ) {
-    describe('getThemes()', () => {
+    describe('readThemes()', () => {
       test('0: Method is implemented', async () => {
-        expect(ThemeOps.getThemes).toBeDefined();
+        expect(ThemeOps.readThemes).toBeDefined();
       });
 
-      test('1: Get all alpha themes (cloud)', async () => {
-        const response = await ThemeOps.getThemes({ realm: 'alpha', state });
+      test('1: Read all alpha themes (cloud)', async () => {
+        const response = await ThemeOps.readThemes({ realm: 'alpha', state });
         expect(response).toMatchSnapshot();
       });
 
-      test('2: Get all bravo themes (cloud)', async () => {
-        const response = await ThemeOps.getThemes({ realm: 'bravo', state });
+      test('2: Read all bravo themes (cloud)', async () => {
+        const response = await ThemeOps.readThemes({ realm: 'bravo', state });
         expect(response).toMatchSnapshot();
       });
 
-      test('3: Get all root themes (encore)', async () => {
-        const response = await ThemeOps.getThemes({ realm: '/', state });
+      test('3: Read all root themes (encore)', async () => {
+        const response = await ThemeOps.readThemes({ realm: '/', state });
         expect(response).toMatchSnapshot();
       });
 
-      test('4: Get all themes from non-existent realm', async () => {
-        const response = await ThemeOps.getThemes({
+      test('4: Read all themes from non-existent realm', async () => {
+        const response = await ThemeOps.readThemes({
           realm: 'doesnotexist',
           state,
         });
@@ -369,13 +369,13 @@ describe('ThemeOps', () => {
       });
     });
 
-    describe('getTheme()', () => {
+    describe('readTheme()', () => {
       test('0: Method is implemented', async () => {
-        expect(ThemeOps.getTheme).toBeDefined();
+        expect(ThemeOps.readTheme).toBeDefined();
       });
 
-      test(`1: Get alpha theme '${alphaTheme.id}' (cloud)`, async () => {
-        const response = await ThemeOps.getTheme({
+      test(`1: Read alpha theme '${alphaTheme.id}' (cloud)`, async () => {
+        const response = await ThemeOps.readTheme({
           themeId: alphaTheme.id,
           realm: 'alpha',
           state,
@@ -383,8 +383,8 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test(`2: Get bravo theme '${bravoTheme.id}' (cloud)`, async () => {
-        const response = await ThemeOps.getTheme({
+      test(`2: Read bravo theme '${bravoTheme.id}' (cloud)`, async () => {
+        const response = await ThemeOps.readTheme({
           themeId: bravoTheme.id,
           realm: 'bravo',
           state,
@@ -392,8 +392,8 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test(`3: Get root theme '${rootTheme.id}' (encore)`, async () => {
-        const response = await ThemeOps.getTheme({
+      test(`3: Read root theme '${rootTheme.id}' (encore)`, async () => {
+        const response = await ThemeOps.readTheme({
           themeId: rootTheme.id,
           realm: '/',
           state,
@@ -401,10 +401,10 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test(`4: Get theme '${rootTheme.id}' from non-existent realm`, async () => {
+      test(`4: Read theme '${rootTheme.id}' from non-existent realm`, async () => {
         expect.assertions(1);
         try {
-          await ThemeOps.getTheme({
+          await ThemeOps.readTheme({
             themeId: rootTheme.id,
             realm: 'doesnotexist',
             state,
@@ -415,13 +415,13 @@ describe('ThemeOps', () => {
       });
     });
 
-    describe('getThemeByName()', () => {
+    describe('readThemeByName()', () => {
       test('0: Method is implemented', async () => {
-        expect(ThemeOps.getThemeByName).toBeDefined();
+        expect(ThemeOps.readThemeByName).toBeDefined();
       });
 
-      test(`1: Get alpha theme '${alphaTheme.name}' (cloud)`, async () => {
-        const response = await ThemeOps.getThemeByName({
+      test(`1: Read alpha theme '${alphaTheme.name}' (cloud)`, async () => {
+        const response = await ThemeOps.readThemeByName({
           themeName: alphaTheme.name,
           realm: 'alpha',
           state,
@@ -429,8 +429,8 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test(`2: Get bravo theme '${bravoTheme.name}' (cloud)`, async () => {
-        const response = await ThemeOps.getThemeByName({
+      test(`2: Read bravo theme '${bravoTheme.name}' (cloud)`, async () => {
+        const response = await ThemeOps.readThemeByName({
           themeName: bravoTheme.name,
           realm: 'bravo',
           state,
@@ -438,8 +438,8 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test(`3: Get root theme '${rootTheme.name}' (encore)`, async () => {
-        const response = await ThemeOps.getThemeByName({
+      test(`3: Read root theme '${rootTheme.name}' (encore)`, async () => {
+        const response = await ThemeOps.readThemeByName({
           themeName: rootTheme.name,
           realm: '/',
           state,
@@ -447,10 +447,10 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test(`4: Get theme '${rootTheme.name}' from non-existent realm`, async () => {
+      test(`4: Read theme '${rootTheme.name}' from non-existent realm`, async () => {
         expect.assertions(1);
         try {
-          await ThemeOps.getThemeByName({
+          await ThemeOps.readThemeByName({
             themeName: rootTheme.name,
             realm: 'doesnotexist',
             state,
@@ -461,13 +461,13 @@ describe('ThemeOps', () => {
       });
     });
 
-    describe('putTheme()', () => {
+    describe('updateTheme()', () => {
       test('0: Method is implemented', async () => {
-        expect(ThemeOps.putTheme).toBeDefined();
+        expect(ThemeOps.updateTheme).toBeDefined();
       });
 
-      test(`1: Put alpha theme '${theme1.id}' (cloud)`, async () => {
-        const response = await ThemeOps.putTheme({
+      test(`1: Update alpha theme '${theme1.id}' (cloud)`, async () => {
+        const response = await ThemeOps.updateTheme({
           themeId: theme1.id,
           themeData: theme1.data,
           realm: 'alpha',
@@ -476,8 +476,8 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test('2: Put bravo theme (cloud)', async () => {
-        const response = await ThemeOps.putTheme({
+      test('2: Update bravo theme (cloud)', async () => {
+        const response = await ThemeOps.updateTheme({
           themeId: theme1.id,
           themeData: theme1.data,
           realm: 'bravo',
@@ -486,8 +486,8 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test('3: Put root theme (encore)', async () => {
-        const response = await ThemeOps.putTheme({
+      test('3: Update root theme (encore)', async () => {
+        const response = await ThemeOps.updateTheme({
           themeId: theme1.id,
           themeData: theme1.data,
           realm: '/',
@@ -496,8 +496,8 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test('4: Put theme from non-existent realm (encore)', async () => {
-        const response = await ThemeOps.putTheme({
+      test('4: Update theme from non-existent realm (encore)', async () => {
+        const response = await ThemeOps.updateTheme({
           themeId: theme1.id,
           themeData: theme1.data,
           realm: 'doesnotexist',
@@ -507,13 +507,13 @@ describe('ThemeOps', () => {
       });
     });
 
-    describe('putThemeByName()', () => {
+    describe('updateThemeByName()', () => {
       test('0: Method is implemented', async () => {
-        expect(ThemeOps.putThemeByName).toBeDefined();
+        expect(ThemeOps.updateThemeByName).toBeDefined();
       });
 
-      test('1: Put alpha theme (cloud)', async () => {
-        const response = await ThemeOps.putThemeByName({
+      test('1: Update alpha theme (cloud)', async () => {
+        const response = await ThemeOps.updateThemeByName({
           themeName: theme1.name,
           themeData: theme1.data,
           realm: 'alpha',
@@ -522,8 +522,8 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test('2: Put bravo theme (cloud)', async () => {
-        const response = await ThemeOps.putThemeByName({
+      test('2: Update bravo theme (cloud)', async () => {
+        const response = await ThemeOps.updateThemeByName({
           themeName: theme1.name,
           themeData: theme1.data,
           realm: 'bravo',
@@ -532,8 +532,8 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test('3: Put root theme (encore)', async () => {
-        const response = await ThemeOps.putThemeByName({
+      test('3: Update root theme (encore)', async () => {
+        const response = await ThemeOps.updateThemeByName({
           themeName: theme1.name,
           themeData: theme1.data,
           realm: '/',
@@ -542,8 +542,8 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test('4: Put theme from non-existent realm (encore)', async () => {
-        const response = await ThemeOps.putThemeByName({
+      test('4: Update theme from non-existent realm (encore)', async () => {
+        const response = await ThemeOps.updateThemeByName({
           themeName: theme1.name,
           themeData: theme1.data,
           realm: 'doesnotexist',
@@ -560,13 +560,13 @@ describe('ThemeOps', () => {
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '2')
   ) {
-    describe('putThemes()', () => {
+    describe('updateThemes()', () => {
       test('0: Method is implemented', async () => {
-        expect(ThemeOps.putThemes).toBeDefined();
+        expect(ThemeOps.updateThemes).toBeDefined();
       });
 
       test('1: Update 1 and add 1 alpha themes', async () => {
-        const response = await ThemeOps.putThemes({
+        const response = await ThemeOps.updateThemes({
           themeMap: THEME_MAP,
           realm: 'alpha',
           state,
@@ -575,7 +575,7 @@ describe('ThemeOps', () => {
       });
 
       test('2: Update 1 and add 1 bravo themes', async () => {
-        const response = await ThemeOps.putThemes({
+        const response = await ThemeOps.updateThemes({
           themeMap: THEME_MAP,
           realm: 'bravo',
           state,
@@ -584,7 +584,7 @@ describe('ThemeOps', () => {
       });
 
       test('3: Add 2 root themes', async () => {
-        const response = await ThemeOps.putThemes({
+        const response = await ThemeOps.updateThemes({
           themeMap: THEME_MAP,
           realm: '/',
           state,
@@ -593,7 +593,7 @@ describe('ThemeOps', () => {
       });
 
       test('4: Add 2 themes to non-existent realm', async () => {
-        const response = await ThemeOps.putThemes({
+        const response = await ThemeOps.updateThemes({
           themeMap: THEME_MAP,
           realm: 'doesnotexist',
           state,
