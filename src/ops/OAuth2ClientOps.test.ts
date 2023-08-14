@@ -49,13 +49,13 @@ async function stageOAuth2Client(
 ) {
   // delete if exists, then create
   try {
-    await OAuth2ClientOps.getOAuth2Client({ clientId: client.id, state });
+    await OAuth2ClientOps.readOAuth2Client({ clientId: client.id, state });
     await OAuth2ClientOps.deleteOAuth2Client({ clientId: client.id, state });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await OAuth2ClientOps.putOAuth2Client({
+      await OAuth2ClientOps.createOAuth2Client({
         clientId: client.id,
         clientData: client.data,
         state,
@@ -393,413 +393,6 @@ describe('OAuth2ClientOps', () => {
         value: [],
       },
     },
-    // _type: {
-    //   _id: 'OAuth2Client',
-    //   name: 'OAuth2 Clients',
-    //   collection: true,
-    // },
-    // _provider: {
-    //   _id: '',
-    //   _rev: '745152125',
-    //   advancedOIDCConfig: {
-    //     supportedRequestParameterEncryptionEnc: [
-    //       'A256GCM',
-    //       'A192GCM',
-    //       'A128GCM',
-    //       'A128CBC-HS256',
-    //       'A192CBC-HS384',
-    //       'A256CBC-HS512',
-    //     ],
-    //     authorisedOpenIdConnectSSOClients: [],
-    //     supportedUserInfoEncryptionAlgorithms: [
-    //       'ECDH-ES+A256KW',
-    //       'ECDH-ES+A192KW',
-    //       'RSA-OAEP',
-    //       'ECDH-ES+A128KW',
-    //       'RSA-OAEP-256',
-    //       'A128KW',
-    //       'A256KW',
-    //       'ECDH-ES',
-    //       'dir',
-    //       'A192KW',
-    //     ],
-    //     supportedAuthorizationResponseEncryptionEnc: [
-    //       'A256GCM',
-    //       'A192GCM',
-    //       'A128GCM',
-    //       'A128CBC-HS256',
-    //       'A192CBC-HS384',
-    //       'A256CBC-HS512',
-    //     ],
-    //     supportedTokenIntrospectionResponseEncryptionAlgorithms: [
-    //       'ECDH-ES+A256KW',
-    //       'ECDH-ES+A192KW',
-    //       'RSA-OAEP',
-    //       'ECDH-ES+A128KW',
-    //       'RSA-OAEP-256',
-    //       'A128KW',
-    //       'A256KW',
-    //       'ECDH-ES',
-    //       'dir',
-    //       'A192KW',
-    //     ],
-    //     useForceAuthnForPromptLogin: false,
-    //     alwaysAddClaimsToToken: true,
-    //     supportedTokenIntrospectionResponseSigningAlgorithms: [
-    //       'PS384',
-    //       'RS384',
-    //       'EdDSA',
-    //       'ES384',
-    //       'HS256',
-    //       'HS512',
-    //       'ES256',
-    //       'RS256',
-    //       'HS384',
-    //       'ES512',
-    //       'PS256',
-    //       'PS512',
-    //       'RS512',
-    //     ],
-    //     supportedTokenEndpointAuthenticationSigningAlgorithms: [
-    //       'PS384',
-    //       'ES384',
-    //       'RS384',
-    //       'HS256',
-    //       'HS512',
-    //       'ES256',
-    //       'RS256',
-    //       'HS384',
-    //       'ES512',
-    //       'PS256',
-    //       'PS512',
-    //       'RS512',
-    //     ],
-    //     supportedRequestParameterSigningAlgorithms: [
-    //       'PS384',
-    //       'ES384',
-    //       'RS384',
-    //       'HS256',
-    //       'HS512',
-    //       'ES256',
-    //       'RS256',
-    //       'HS384',
-    //       'ES512',
-    //       'PS256',
-    //       'PS512',
-    //       'RS512',
-    //     ],
-    //     includeAllKtyAlgCombinationsInJwksUri: false,
-    //     amrMappings: {},
-    //     loaMapping: {},
-    //     authorisedIdmDelegationClients: [],
-    //     idTokenInfoClientAuthenticationEnabled: true,
-    //     storeOpsTokens: true,
-    //     supportedUserInfoSigningAlgorithms: [
-    //       'ES384',
-    //       'HS256',
-    //       'HS512',
-    //       'ES256',
-    //       'RS256',
-    //       'HS384',
-    //       'ES512',
-    //     ],
-    //     supportedAuthorizationResponseSigningAlgorithms: [
-    //       'PS384',
-    //       'RS384',
-    //       'EdDSA',
-    //       'ES384',
-    //       'HS256',
-    //       'HS512',
-    //       'ES256',
-    //       'RS256',
-    //       'HS384',
-    //       'ES512',
-    //       'PS256',
-    //       'PS512',
-    //       'RS512',
-    //     ],
-    //     supportedUserInfoEncryptionEnc: [
-    //       'A256GCM',
-    //       'A192GCM',
-    //       'A128GCM',
-    //       'A128CBC-HS256',
-    //       'A192CBC-HS384',
-    //       'A256CBC-HS512',
-    //     ],
-    //     claimsParameterSupported: false,
-    //     supportedTokenIntrospectionResponseEncryptionEnc: [
-    //       'A256GCM',
-    //       'A192GCM',
-    //       'A128GCM',
-    //       'A128CBC-HS256',
-    //       'A192CBC-HS384',
-    //       'A256CBC-HS512',
-    //     ],
-    //     supportedAuthorizationResponseEncryptionAlgorithms: [
-    //       'ECDH-ES+A256KW',
-    //       'ECDH-ES+A192KW',
-    //       'RSA-OAEP',
-    //       'ECDH-ES+A128KW',
-    //       'RSA-OAEP-256',
-    //       'A128KW',
-    //       'A256KW',
-    //       'ECDH-ES',
-    //       'dir',
-    //       'A192KW',
-    //     ],
-    //     supportedRequestParameterEncryptionAlgorithms: [
-    //       'ECDH-ES+A256KW',
-    //       'ECDH-ES+A192KW',
-    //       'ECDH-ES+A128KW',
-    //       'RSA-OAEP',
-    //       'RSA-OAEP-256',
-    //       'A128KW',
-    //       'A256KW',
-    //       'ECDH-ES',
-    //       'dir',
-    //       'A192KW',
-    //     ],
-    //     defaultACR: [],
-    //   },
-    //   advancedOAuth2Config: {
-    //     passwordGrantAuthService: 'PasswordGrant',
-    //     tokenCompressionEnabled: false,
-    //     tokenEncryptionEnabled: false,
-    //     requirePushedAuthorizationRequests: false,
-    //     tlsCertificateBoundAccessTokensEnabled: true,
-    //     defaultScopes: ['address', 'phone', 'openid', 'profile', 'email'],
-    //     moduleMessageEnabledInPasswordGrant: false,
-    //     supportedSubjectTypes: ['public', 'pairwise'],
-    //     refreshTokenGracePeriod: 0,
-    //     tlsClientCertificateHeaderFormat: 'URLENCODED_PEM',
-    //     hashSalt: 'qAWV0MFSQpC/f1GPbZAZnMRksak=',
-    //     macaroonTokenFormat: 'V2',
-    //     maxAgeOfRequestObjectNbfClaim: 0,
-    //     tlsCertificateRevocationCheckingEnabled: false,
-    //     nbfClaimRequiredInRequestObject: false,
-    //     requestObjectProcessing: 'OIDC',
-    //     maxDifferenceBetweenRequestObjectNbfAndExp: 0,
-    //     responseTypeClasses: [
-    //       'code|org.forgerock.oauth2.core.AuthorizationCodeResponseTypeHandler',
-    //       'device_code|org.forgerock.oauth2.core.TokenResponseTypeHandler',
-    //       'token|org.forgerock.oauth2.core.TokenResponseTypeHandler',
-    //       'id_token|org.forgerock.openidconnect.IdTokenResponseTypeHandler',
-    //     ],
-    //     expClaimRequiredInRequestObject: false,
-    //     tokenValidatorClasses: [
-    //       'urn:ietf:params:oauth:token-type:id_token|org.forgerock.oauth2.core.tokenexchange.idtoken.OidcIdTokenValidator',
-    //       'urn:ietf:params:oauth:token-type:access_token|org.forgerock.oauth2.core.tokenexchange.accesstoken.OAuth2AccessTokenValidator',
-    //     ],
-    //     tokenSigningAlgorithm: 'HS256',
-    //     codeVerifierEnforced: 'false',
-    //     displayNameAttribute: 'cn',
-    //     tokenExchangeClasses: [
-    //       'urn:ietf:params:oauth:token-type:access_token=>urn:ietf:params:oauth:token-type:access_token|org.forgerock.oauth2.core.tokenexchange.accesstoken.AccessTokenToAccessTokenExchanger',
-    //       'urn:ietf:params:oauth:token-type:id_token=>urn:ietf:params:oauth:token-type:id_token|org.forgerock.oauth2.core.tokenexchange.idtoken.IdTokenToIdTokenExchanger',
-    //       'urn:ietf:params:oauth:token-type:access_token=>urn:ietf:params:oauth:token-type:id_token|org.forgerock.oauth2.core.tokenexchange.accesstoken.AccessTokenToIdTokenExchanger',
-    //       'urn:ietf:params:oauth:token-type:id_token=>urn:ietf:params:oauth:token-type:access_token|org.forgerock.oauth2.core.tokenexchange.idtoken.IdTokenToAccessTokenExchanger',
-    //     ],
-    //     parRequestUriLifetime: 90,
-    //     allowedAudienceValues: [],
-    //     persistentClaims: [],
-    //     supportedScopes: [
-    //       'email|Your email address',
-    //       'openid|',
-    //       'address|Your postal address',
-    //       'phone|Your telephone number(s)',
-    //       'profile|Your personal information',
-    //       'fr:idm:*',
-    //       'am-introspect-all-tokens',
-    //     ],
-    //     authenticationAttributes: ['uid'],
-    //     grantTypes: [
-    //       'implicit',
-    //       'urn:ietf:params:oauth:grant-type:saml2-bearer',
-    //       'refresh_token',
-    //       'password',
-    //       'client_credentials',
-    //       'urn:ietf:params:oauth:grant-type:device_code',
-    //       'authorization_code',
-    //       'urn:openid:params:grant-type:ciba',
-    //       'urn:ietf:params:oauth:grant-type:uma-ticket',
-    //       'urn:ietf:params:oauth:grant-type:jwt-bearer',
-    //     ],
-    //   },
-    //   clientDynamicRegistrationConfig: {
-    //     dynamicClientRegistrationScope: 'dynamic_client_registration',
-    //     allowDynamicRegistration: false,
-    //     requiredSoftwareStatementAttestedAttributes: ['redirect_uris'],
-    //     dynamicClientRegistrationSoftwareStatementRequired: false,
-    //     generateRegistrationAccessTokens: true,
-    //   },
-    //   coreOIDCConfig: {
-    //     overrideableOIDCClaims: [],
-    //     oidcDiscoveryEndpointEnabled: true,
-    //     supportedIDTokenEncryptionMethods: [
-    //       'A256GCM',
-    //       'A192GCM',
-    //       'A128GCM',
-    //       'A128CBC-HS256',
-    //       'A192CBC-HS384',
-    //       'A256CBC-HS512',
-    //     ],
-    //     supportedClaims: [],
-    //     supportedIDTokenSigningAlgorithms: [
-    //       'PS384',
-    //       'ES384',
-    //       'RS384',
-    //       'HS256',
-    //       'HS512',
-    //       'ES256',
-    //       'RS256',
-    //       'HS384',
-    //       'ES512',
-    //       'PS256',
-    //       'PS512',
-    //       'RS512',
-    //     ],
-    //     supportedIDTokenEncryptionAlgorithms: [
-    //       'ECDH-ES+A256KW',
-    //       'ECDH-ES+A192KW',
-    //       'RSA-OAEP',
-    //       'ECDH-ES+A128KW',
-    //       'RSA-OAEP-256',
-    //       'A128KW',
-    //       'A256KW',
-    //       'ECDH-ES',
-    //       'dir',
-    //       'A192KW',
-    //     ],
-    //     jwtTokenLifetime: 3600,
-    //   },
-    //   coreOAuth2Config: {
-    //     refreshTokenLifetime: 604800,
-    //     scopesPolicySet: 'oauth2Scopes',
-    //     accessTokenMayActScript: '[Empty]',
-    //     accessTokenLifetime: 3600,
-    //     macaroonTokensEnabled: false,
-    //     codeLifetime: 120,
-    //     statelessTokensEnabled: true,
-    //     usePolicyEngineForScope: false,
-    //     issueRefreshToken: true,
-    //     oidcMayActScript: '[Empty]',
-    //     issueRefreshTokenOnRefreshedToken: true,
-    //   },
-    //   consent: {
-    //     supportedRcsRequestSigningAlgorithms: [
-    //       'PS384',
-    //       'ES384',
-    //       'RS384',
-    //       'HS256',
-    //       'HS512',
-    //       'ES256',
-    //       'RS256',
-    //       'HS384',
-    //       'ES512',
-    //       'PS256',
-    //       'PS512',
-    //       'RS512',
-    //     ],
-    //     supportedRcsResponseEncryptionAlgorithms: [
-    //       'ECDH-ES+A256KW',
-    //       'ECDH-ES+A192KW',
-    //       'ECDH-ES+A128KW',
-    //       'RSA-OAEP',
-    //       'RSA-OAEP-256',
-    //       'A128KW',
-    //       'A256KW',
-    //       'ECDH-ES',
-    //       'dir',
-    //       'A192KW',
-    //     ],
-    //     supportedRcsRequestEncryptionMethods: [
-    //       'A256GCM',
-    //       'A192GCM',
-    //       'A128GCM',
-    //       'A128CBC-HS256',
-    //       'A192CBC-HS384',
-    //       'A256CBC-HS512',
-    //     ],
-    //     enableRemoteConsent: false,
-    //     supportedRcsRequestEncryptionAlgorithms: [
-    //       'ECDH-ES+A256KW',
-    //       'ECDH-ES+A192KW',
-    //       'RSA-OAEP',
-    //       'ECDH-ES+A128KW',
-    //       'RSA-OAEP-256',
-    //       'A128KW',
-    //       'A256KW',
-    //       'ECDH-ES',
-    //       'dir',
-    //       'A192KW',
-    //     ],
-    //     clientsCanSkipConsent: true,
-    //     supportedRcsResponseSigningAlgorithms: [
-    //       'PS384',
-    //       'ES384',
-    //       'RS384',
-    //       'HS256',
-    //       'HS512',
-    //       'ES256',
-    //       'RS256',
-    //       'HS384',
-    //       'ES512',
-    //       'PS256',
-    //       'PS512',
-    //       'RS512',
-    //     ],
-    //     supportedRcsResponseEncryptionMethods: [
-    //       'A256GCM',
-    //       'A192GCM',
-    //       'A128GCM',
-    //       'A128CBC-HS256',
-    //       'A192CBC-HS384',
-    //       'A256CBC-HS512',
-    //     ],
-    //   },
-    //   deviceCodeConfig: {
-    //     deviceUserCodeLength: 8,
-    //     deviceCodeLifetime: 300,
-    //     deviceUserCodeCharacterSet:
-    //       '234567ACDEFGHJKLMNPQRSTWXYZabcdefhijkmnopqrstwxyz',
-    //     devicePollInterval: 5,
-    //   },
-    //   pluginsConfig: {
-    //     evaluateScopeClass:
-    //       'org.forgerock.openam.oauth2.OpenAMScopeValidator',
-    //     validateScopeScript: '[Empty]',
-    //     accessTokenEnricherClass:
-    //       'org.forgerock.openam.oauth2.OpenAMScopeValidator',
-    //     oidcClaimsPluginType: 'SCRIPTED',
-    //     authorizeEndpointDataProviderClass:
-    //       'org.forgerock.openam.oauth2.OpenAMScopeValidator',
-    //     authorizeEndpointDataProviderPluginType: 'JAVA',
-    //     userCodeGeneratorClass:
-    //       'org.forgerock.oauth2.core.plugins.registry.DefaultUserCodeGenerator',
-    //     evaluateScopeScript: '[Empty]',
-    //     oidcClaimsClass: 'org.forgerock.openam.oauth2.OpenAMScopeValidator',
-    //     evaluateScopePluginType: 'JAVA',
-    //     authorizeEndpointDataProviderScript: '[Empty]',
-    //     accessTokenModifierClass:
-    //       'org.forgerock.openam.oauth2.OpenAMScopeValidator',
-    //     accessTokenModificationScript: '39c08084-1238-43e8-857f-2e11005eac49',
-    //     validateScopePluginType: 'JAVA',
-    //     accessTokenModificationPluginType: 'SCRIPTED',
-    //     oidcClaimsScript: 'cf3515f0-8278-4ee3-a530-1bad7424c416',
-    //     validateScopeClass:
-    //       'org.forgerock.openam.oauth2.OpenAMScopeValidator',
-    //   },
-    //   cibaConfig: {
-    //     cibaMinimumPollingInterval: 2,
-    //     supportedCibaSigningAlgorithms: ['ES256', 'PS256'],
-    //     cibaAuthReqIdLifetime: 600,
-    //   },
-    //   _type: {
-    //     _id: 'oauth-oidc',
-    //     name: 'OAuth2 Provider',
-    //     collection: false,
-    //   },
-    // },
   };
   const depsClientImportTemplate = {
     meta: {
@@ -2470,24 +2063,24 @@ describe('OAuth2ClientOps', () => {
     });
   });
 
-  describe('getOAuth2Clients()', () => {
+  describe('readOAuth2Clients()', () => {
     test('0: Method is implemented', async () => {
-      expect(OAuth2ClientOps.getOAuth2Clients).toBeDefined();
+      expect(OAuth2ClientOps.readOAuth2Clients).toBeDefined();
     });
 
-    test(`1: Get oauth2 clients`, async () => {
-      const response = await OAuth2ClientOps.getOAuth2Clients({ state });
+    test(`1: Read oauth2 clients`, async () => {
+      const response = await OAuth2ClientOps.readOAuth2Clients({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
-  describe('getOAuth2Client()', () => {
+  describe('readOAuth2Client()', () => {
     test('0: Method is implemented', async () => {
-      expect(OAuth2ClientOps.getOAuth2Client).toBeDefined();
+      expect(OAuth2ClientOps.readOAuth2Client).toBeDefined();
     });
 
-    test(`1: Get oauth2 client ${client1.id}`, async () => {
-      const response = await OAuth2ClientOps.getOAuth2Client({
+    test(`1: Read oauth2 client ${client1.id}`, async () => {
+      const response = await OAuth2ClientOps.readOAuth2Client({
         clientId: client1.id,
         state,
       });
@@ -2495,13 +2088,13 @@ describe('OAuth2ClientOps', () => {
     });
   });
 
-  describe('putOAuth2Client()', () => {
+  describe('updateOAuth2Client()', () => {
     test('0: Method is implemented', async () => {
-      expect(OAuth2ClientOps.putOAuth2Client).toBeDefined();
+      expect(OAuth2ClientOps.updateOAuth2Client).toBeDefined();
     });
 
-    test(`1: Put oauth2 client ${client3.id}`, async () => {
-      const response = await OAuth2ClientOps.putOAuth2Client({
+    test(`1: Update oauth2 client ${client3.id}`, async () => {
+      const response = await OAuth2ClientOps.updateOAuth2Client({
         clientId: client3.id,
         clientData: client3.data,
         state,

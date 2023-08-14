@@ -32,10 +32,8 @@
 import { state } from '../index';
 import * as IdpOps from './IdpOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import {
-  NoIdObjectSkeletonInterface,
-  SocialIdpSkeleton,
-} from '../api/ApiTypes';
+import { NoIdObjectSkeletonInterface } from '../api/ApiTypes';
+import { SocialIdpSkeleton } from '../api/SocialIdentityProvidersApi';
 
 autoSetupPolly();
 
@@ -43,22 +41,22 @@ async function stageIdp(
   idp: {
     id: string;
     type: string;
-    data: SocialIdpSkeleton | NoIdObjectSkeletonInterface;
+    data?: SocialIdpSkeleton;
   },
   create = true
 ) {
   // delete if exists, then create
   try {
-    await IdpOps.getSocialProvider({ providerId: idp.id, state });
-    await IdpOps.deleteSocialProvider({ providerId: idp.id, state });
+    await IdpOps.readSocialIdentityProvider({ providerId: idp.id, state });
+    await IdpOps.deleteSocialIdentityProvider({ providerId: idp.id, state });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await IdpOps.putProviderByTypeAndId({
+      await IdpOps.createSocialIdentityProvider({
         providerType: idp.type,
         providerId: idp.id,
-        providerData: idp.data,
+        providerData: idp.data as SocialIdpSkeleton,
         state,
       });
     }
@@ -66,7 +64,8 @@ async function stageIdp(
 }
 
 describe('IdpOps', () => {
-  const idp1 = {
+  type IdpType = { id: string; type: string; data?: SocialIdpSkeleton };
+  const idp1: IdpType = {
     id: 'FrodoTestIdp1',
     type: 'oauth2Config',
     data: {
@@ -112,7 +111,7 @@ describe('IdpOps', () => {
       },
     },
   };
-  const idp2 = {
+  const idp2: IdpType = {
     id: 'FrodoTestIdp2',
     type: 'googleConfig',
     data: {
@@ -124,7 +123,7 @@ describe('IdpOps', () => {
       jwtEncryptionMethod: 'NONE',
       authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
       jwtEncryptionAlgorithm: 'NONE',
-      clientSecret: null,
+      clientSecret: undefined,
       issuerComparisonCheckType: 'EXACT',
       encryptJwtRequestParameter: false,
       scopeDelimiter: ' ',
@@ -167,7 +166,7 @@ describe('IdpOps', () => {
       },
     },
   };
-  const idp3 = {
+  const idp3: IdpType = {
     id: 'FrodoTestIdp3',
     type: 'oidcConfig',
     data: {
@@ -179,7 +178,7 @@ describe('IdpOps', () => {
       authorizationEndpoint:
         'https://trial-1234567.okta.com/oauth2/v1/authorize',
       jwtEncryptionAlgorithm: 'NONE',
-      clientSecret: null,
+      clientSecret: undefined,
       issuerComparisonCheckType: 'EXACT',
       encryptJwtRequestParameter: false,
       scopeDelimiter: ' ',
@@ -216,27 +215,22 @@ describe('IdpOps', () => {
   const idp4 = {
     id: 'FrodoTestIdp4',
     type: 'none',
-    data: {},
   };
   const idp5 = {
     id: 'FrodoTestIdp5',
     type: 'none',
-    data: {},
   };
   const idp6 = {
     id: 'FrodoTestIdp6',
     type: 'none',
-    data: {},
   };
   const idp7 = {
     id: 'FrodoTestIdp7',
     type: 'none',
-    data: {},
   };
   const idp8 = {
     id: 'FrodoTestIdp8',
     type: 'none',
-    data: {},
   };
   const import1: { id: string; data: IdpOps.SocialProviderExportInterface } = {
     id: 'FrodoTestIdp4',
@@ -364,7 +358,7 @@ describe('IdpOps', () => {
           authorizationEndpoint:
             'https://adfs.mytestrun.com/adfs/oauth2/authorize',
           jwtEncryptionAlgorithm: 'NONE',
-          clientSecret: null,
+          clientSecret: undefined,
           issuerComparisonCheckType: 'EXACT',
           encryptJwtRequestParameter: false,
           scopeDelimiter: ' ',
@@ -596,7 +590,7 @@ describe('IdpOps', () => {
         authorizationEndpoint:
           'https://adfs.mytestrun.com/adfs/oauth2/authorize',
         jwtEncryptionAlgorithm: 'NONE',
-        clientSecret: null,
+        clientSecret: undefined,
         issuerComparisonCheckType: 'EXACT',
         encryptJwtRequestParameter: false,
         scopeDelimiter: ' ',
@@ -646,7 +640,7 @@ describe('IdpOps', () => {
         jwtEncryptionMethod: 'NONE',
         authorizationEndpoint: 'https://appleid.apple.com/auth/authorize',
         jwtEncryptionAlgorithm: 'NONE',
-        clientSecret: null,
+        clientSecret: undefined,
         issuerComparisonCheckType: 'EXACT',
         encryptJwtRequestParameter: false,
         scopeDelimiter: ' ',
@@ -880,7 +874,7 @@ describe('IdpOps', () => {
         authorizationEndpoint:
           'https://adfs.mytestrun.com/adfs/oauth2/authorize',
         jwtEncryptionAlgorithm: 'NONE',
-        clientSecret: null,
+        clientSecret: undefined,
         issuerComparisonCheckType: 'EXACT',
         encryptJwtRequestParameter: false,
         scopeDelimiter: ' ',
@@ -930,7 +924,7 @@ describe('IdpOps', () => {
         jwtEncryptionMethod: 'NONE',
         authorizationEndpoint: 'https://appleid.apple.com/auth/authorize',
         jwtEncryptionAlgorithm: 'NONE',
-        clientSecret: null,
+        clientSecret: undefined,
         issuerComparisonCheckType: 'EXACT',
         encryptJwtRequestParameter: false,
         scopeDelimiter: ' ',
@@ -1028,24 +1022,24 @@ describe('IdpOps', () => {
     });
   });
 
-  describe('getSocialProviders()', () => {
+  describe('readSocialIdentityProviders()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdpOps.getSocialIdentityProviders).toBeDefined();
+      expect(IdpOps.readSocialIdentityProviders).toBeDefined();
     });
 
-    test(`1: Get social providers`, async () => {
-      const response = await IdpOps.getSocialIdentityProviders({ state });
+    test(`1: Read social providers`, async () => {
+      const response = await IdpOps.readSocialIdentityProviders({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
-  describe('getSocialProvider()', () => {
+  describe('readSocialIdentityProvider()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdpOps.getSocialProvider).toBeDefined();
+      expect(IdpOps.readSocialIdentityProvider).toBeDefined();
     });
 
     test(`1: Get social provider ${idp1.id}`, async () => {
-      const response = await IdpOps.getSocialProvider({
+      const response = await IdpOps.readSocialIdentityProvider({
         providerId: idp1.id,
         state,
       });
@@ -1053,16 +1047,16 @@ describe('IdpOps', () => {
     });
   });
 
-  describe('putProviderByTypeAndId()', () => {
+  describe('updateSocialIdentityProvider()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdpOps.putProviderByTypeAndId).toBeDefined();
+      expect(IdpOps.updateSocialIdentityProvider).toBeDefined();
     });
 
-    test(`1: Put social provider ${idp3.id}`, async () => {
-      const response = await IdpOps.putProviderByTypeAndId({
+    test(`1: Update social provider ${idp3.id}`, async () => {
+      const response = await IdpOps.updateSocialIdentityProvider({
         providerType: idp3.type,
         providerId: idp3.id,
-        providerData: idp3.data,
+        providerData: idp3.data as SocialIdpSkeleton,
         state,
       });
       expect(response).toMatchSnapshot();
