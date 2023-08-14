@@ -7,7 +7,7 @@
  *    script and override all the connection state variables required
  *    to connect to the env to record from:
  *
- *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record IdmOps
+ *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record IdmConfigOps
  *
  *    The above command assumes that you have a connection profile for
  *    'frodo-dev' on your development machine.
@@ -17,14 +17,14 @@
  *    After recording, the ESM snapshots will already be updated as that happens
  *    in one go, but you musty manually update the CJS snapshots by running:
  *
- *        FRODO_DEBUG=1 npm run test:update IdmOps
+ *        FRODO_DEBUG=1 npm run test:update IdmConfigOps
  *
  * 3. Test your changes
  *
  *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
  *    replay mode and make sure they all succeed as well:
  *
- *        npm run test:only IdmOps
+ *        npm run test:only IdmConfigOps
  *
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
@@ -126,23 +126,23 @@ describe('IdmConfigOps', () => {
     }
   });
 
-  describe('getAllConfigEntities()', () => {
+  describe('readConfigEntities()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdmConfigOps.getAllConfigEntities).toBeDefined();
+      expect(IdmConfigOps.readConfigEntities).toBeDefined();
     });
 
-    test('1: get all config entities', async () => {
-      const response = await IdmConfigOps.getAllConfigEntities({ state });
+    test('1: Read all config entities', async () => {
+      const response = await IdmConfigOps.readConfigEntities({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
-  describe('getConfigEntitiesByType()', () => {
+  describe('readConfigEntitiesByType()', () => {
     test('0: Method is implemented', async () => {
       expect(IdmConfigOps.readConfigEntitiesByType).toBeDefined();
     });
 
-    test('1: Get config entity by type (emailTemplate)', async () => {
+    test('1: Read config entity by type (emailTemplate)', async () => {
       const response = await IdmConfigOps.readConfigEntitiesByType({
         type: 'emailTemplate',
         state,
@@ -150,7 +150,7 @@ describe('IdmConfigOps', () => {
       expect(response).toMatchSnapshot();
     });
 
-    test('2: Get config entity by type (managed)', async () => {
+    test('2: Read config entity by type (managed)', async () => {
       const response = await IdmConfigOps.readConfigEntitiesByType({
         type: 'managed',
         state,
@@ -159,21 +159,21 @@ describe('IdmConfigOps', () => {
     });
   });
 
-  describe('getConfigEntity()', () => {
+  describe('readConfigEntity()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdmConfigOps.getConfigEntity).toBeDefined();
+      expect(IdmConfigOps.readConfigEntity).toBeDefined();
     });
 
-    test(`1: Get config entity '${configEntity1.id}'`, async () => {
-      const response = await IdmConfigOps.getConfigEntity({
+    test(`1: Read config entity '${configEntity1.id}'`, async () => {
+      const response = await IdmConfigOps.readConfigEntity({
         entityId: configEntity1.id,
         state,
       });
       expect(response).toMatchSnapshot();
     });
 
-    test("2: Get config entity 'managed'", async () => {
-      const response = await IdmConfigOps.getConfigEntity({
+    test("2: Read config entity 'managed'", async () => {
+      const response = await IdmConfigOps.readConfigEntity({
         entityId: 'managed',
         state,
       });
@@ -181,13 +181,13 @@ describe('IdmConfigOps', () => {
     });
   });
 
-  describe('putConfigEntity()', () => {
+  describe('updateConfigEntity()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdmConfigOps.putConfigEntity).toBeDefined();
+      expect(IdmConfigOps.updateConfigEntity).toBeDefined();
     });
 
-    test(`1: Put a config entity '${configEntity3.id}'`, async () => {
-      const response = await IdmConfigOps.putConfigEntity({
+    test(`1: Update a config entity '${configEntity3.id}'`, async () => {
+      const response = await IdmConfigOps.updateConfigEntity({
         entityId: configEntity3.id,
         entityData: configEntity3.data,
         state,

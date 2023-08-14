@@ -406,9 +406,3 @@ export async function testConnectorServers({
   const response = await _testConnectorServers({ state });
   return response.openicf;
 }
-
-export {
-  _getConfigEntityStubs as getAllConfigEntities,
-  _getConfigEntity as getConfigEntity,
-  _putConfigEntity as putConfigEntity,
-};
