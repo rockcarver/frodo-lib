@@ -1,16 +1,17 @@
-import { AmServiceSkeleton, FullService } from '../api/ApiTypes';
 import {
+  type AmServiceSkeleton,
   deleteService,
   deleteServiceNextDescendent,
-  getService,
+  type FullService,
   getListOfServices as _getListOfServices,
+  getService,
   getServiceDescendents,
   putService,
   putServiceNextDescendent,
 } from '../api/ServiceApi';
 import { State } from '../shared/State';
-import { ServiceExportInterface } from './OpsTypes';
 import { debugMessage, printMessage } from '../utils/Console';
+import { type ExportMetaData } from './OpsTypes';
 
 export type Service = {
   createServiceExportTemplate(): ServiceExportInterface;
@@ -186,6 +187,11 @@ export default (state: State): Service => {
     },
   };
 };
+
+export interface ServiceExportInterface {
+  meta?: Record<string, ExportMetaData>;
+  service: Record<string, AmServiceSkeleton>;
+}
 
 /**
  * Create an empty service export template

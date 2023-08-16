@@ -1,11 +1,11 @@
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import {
-  getManagedObject as _getManagedObject,
   createManagedObject as _createManagedObject,
-  putManagedObject as _putManagedObject,
   deleteManagedObject as _deleteManagedObject,
-  queryManagedObjects as _queryManagedObjects,
+  getManagedObject as _getManagedObject,
+  putManagedObject as _putManagedObject,
   queryAllManagedObjectsByType,
+  queryManagedObjects as _queryManagedObjects,
 } from '../api/ManagedObjectApi';
 import { State } from '../shared/State';
 
@@ -74,8 +74,8 @@ export type ManagedObject = {
    */
   queryManagedObjects(
     type: string,
-    filter: string,
-    fields: string[]
+    filter?: string,
+    fields?: string[]
   ): Promise<IdObjectSkeletonInterface[]>;
   /**
    * Resolve a managed object's uuid to a human readable username
@@ -130,8 +130,8 @@ export default (state: State): ManagedObject => {
     },
     async queryManagedObjects(
       type: string,
-      filter: string,
-      fields: string[]
+      filter: string = undefined,
+      fields: string[] = []
     ): Promise<IdObjectSkeletonInterface[]> {
       return queryManagedObjects({ type, filter, fields, state });
     },

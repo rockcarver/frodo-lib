@@ -1,25 +1,29 @@
 // instantiable modules
-import StateImpl, { State, StateInterface } from '../shared/State';
-import AdminFederationOps, {
-  AdminFederation,
-} from '../ops/cloud/AdminFederationOps';
 import AdminOps, { Admin } from '../ops/AdminOps';
 import AgentOps, { Agent } from '../ops/AgentOps';
 import ApplicationOps, { Application } from '../ops/ApplicationOps';
 import AuthenticateOps, { Authenticate } from '../ops/AuthenticateOps';
 import CirclesOfTrustOps, { CirclesOfTrust } from '../ops/CirclesOfTrustOps';
+import AdminFederationOps, {
+  AdminFederation,
+} from '../ops/cloud/AdminFederationOps';
+import FeatureOps, { Feature } from '../ops/cloud/FeatureOps';
+import LogOps, { Log } from '../ops/cloud/LogOps';
+import SecretsOps, { Secret } from '../ops/cloud/SecretsOps';
+import ServiceAccountOps, {
+  ServiceAccount,
+} from '../ops/cloud/ServiceAccountOps';
+import StartupOps, { Startup } from '../ops/cloud/StartupOps';
+import VariablesOps, { Variable } from '../ops/cloud/VariablesOps';
 import ConnectionProfileOps, {
   ConnectionProfile,
 } from '../ops/ConnectionProfileOps';
 import EmailTemplateOps, { EmailTemplate } from '../ops/EmailTemplateOps';
-import ExportImportUtils, { ExportImport } from '../utils/ExportImportUtils';
-import FeatureOps, { Feature } from '../ops/cloud/FeatureOps';
 import IdmConfigOps, { IdmConfig } from '../ops/IdmConfigOps';
 import IdpOps, { Idp } from '../ops/IdpOps';
 import InfoOps, { Info } from '../ops/InfoOps';
 import JoseOps, { Jose } from '../ops/JoseOps';
 import JourneyOps, { Journey } from '../ops/JourneyOps';
-import LogOps, { Log } from '../ops/cloud/LogOps';
 import ManagedObjectOps, { ManagedObject } from '../ops/ManagedObjectOps';
 import NodeOps, { Node } from '../ops/NodeOps';
 import OAuth2ClientOps, { OAuth2Client } from '../ops/OAuth2ClientOps';
@@ -32,24 +36,19 @@ import RealmOps, { Realm } from '../ops/RealmOps';
 import ResourceTypeOps, { ResourceType } from '../ops/ResourceTypeOps';
 import Saml2Ops, { Saml2 } from '../ops/Saml2Ops';
 import ScriptOps, { Script } from '../ops/ScriptOps';
+import ServiceOps, { Service } from '../ops/ServiceOps';
+import ThemeOps, { Theme } from '../ops/ThemeOps';
+import VersionUtils, { Version } from '../ops/VersionUtils';
+// non-instantiable modules
+import ConstantsImpl, { Constants } from '../shared/Constants';
+import StateImpl, { State, StateInterface } from '../shared/State';
+import Base64Utils, { Base64 } from '../utils/Base64Utils';
+import ExportImportUtils, { ExportImport } from '../utils/ExportImportUtils';
+import ForgeRockUtils, { FRUtils } from '../utils/ForgeRockUtils';
+import JsonUtils, { Json } from '../utils/JsonUtils';
 import ScriptValidationUtils, {
   ScriptValidation,
 } from '../utils/ScriptValidationUtils';
-import ServiceOps, { Service } from '../ops/ServiceOps';
-import SecretsOps, { Secret } from '../ops/cloud/SecretsOps';
-import ServiceAccountOps, {
-  ServiceAccount,
-} from '../ops/cloud/ServiceAccountOps';
-import StartupOps, { Startup } from '../ops/cloud/StartupOps';
-import ThemeOps, { Theme } from '../ops/ThemeOps';
-import VariablesOps, { Variable } from '../ops/cloud/VariablesOps';
-import VersionUtils, { Version } from '../ops/VersionUtils';
-
-// non-instantiable modules
-import ConstantsImpl, { Constants } from '../shared/Constants';
-import ForgeRockUtils, { FRUtils } from '../utils/ForgeRockUtils';
-import Base64Utils, { Base64 } from '../utils/Base64Utils';
-import JsonUtils, { Json } from '../utils/JsonUtils';
 
 /**
  * Frodo Library
@@ -423,6 +422,6 @@ const frodo = FrodoLib();
  */
 const state = frodo.state;
 
-export { frodo, state, FrodoLib };
+export { frodo, FrodoLib, state };
 
 export default FrodoLib;

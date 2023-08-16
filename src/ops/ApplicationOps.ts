@@ -1,26 +1,24 @@
-import {
-  IdObjectSkeletonInterface,
-  OAuth2ClientSkeleton,
-  ScriptSkeleton,
-} from '../api/ApiTypes';
+import { type IdObjectSkeletonInterface } from '../api/ApiTypes';
+import { type OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
+import { type ScriptSkeleton } from '../api/ScriptApi';
+import constants from '../shared/Constants';
 import { State } from '../shared/State';
+import { decode } from '../utils/Base64Utils';
 import { debugMessage } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { get, mergeDeep } from '../utils/JsonUtils';
+import { exportCirclesOfTrust } from './CirclesOfTrustOps';
 import {
   createManagedObject,
+  deleteManagedObject,
+  queryManagedObjects,
   readManagedObject,
   readManagedObjects,
   updateManagedObject,
-  deleteManagedObject,
-  queryManagedObjects,
 } from './ManagedObjectOps';
 import { exportOAuth2Client } from './OAuth2ClientOps';
-import { ExportMetaData } from './OpsTypes';
+import { type ExportMetaData } from './OpsTypes';
 import { exportSaml2Provider } from './Saml2Ops';
-import constants from '../shared/Constants';
-import { decode } from '../utils/Base64Utils';
-import { exportCirclesOfTrust } from './CirclesOfTrustOps';
 
 const defaultFields = [
   'authoritative',

@@ -1,5 +1,15 @@
 import { v4 as uuidv4 } from 'uuid';
-import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
+
+import {
+  deleteScript as _deleteScript,
+  getScript as _getScript,
+  getScriptByName as _getScriptByName,
+  getScripts as _getScripts,
+  putScript as _putScript,
+} from '../api/ScriptApi';
+import { type ScriptSkeleton } from '../api/ScriptApi';
+import { type ExportMetaData } from '../ops/OpsTypes';
+import { State } from '../shared/State';
 import {
   createProgressIndicator,
   debugMessage,
@@ -9,21 +19,12 @@ import {
   verboseMessage,
 } from '../utils/Console';
 import {
-  getScript as _getScript,
-  getScriptByName as _getScriptByName,
-  getScripts as _getScripts,
-  putScript as _putScript,
-  deleteScript as _deleteScript,
-} from '../api/ScriptApi';
-import {
   convertBase64TextToArray,
   convertTextArrayToBase64,
   getMetadata,
 } from '../utils/ExportImportUtils';
-import { ScriptSkeleton } from '../api/ApiTypes';
-import { ExportMetaData } from '../ops/OpsTypes';
+import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
 import { validateScriptDecoded } from '../utils/ScriptValidationUtils';
-import { State } from '../shared/State';
 
 export type Script = {
   /**

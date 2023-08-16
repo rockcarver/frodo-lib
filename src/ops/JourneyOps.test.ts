@@ -59,7 +59,7 @@ state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 async function stageJourney(journey: { id: string }, create = true) {
   // delete if exists, then create
   try {
-    await JourneyOps.getJourney({ journeyId: journey.id, state });
+    await JourneyOps.readJourney({ journeyId: journey.id, state });
     await JourneyOps.deleteJourney({
       journeyId: journey.id,
       options: {
@@ -149,11 +149,11 @@ describe('JourneyOps', () => {
   ) {
     describe('getJourneys()', () => {
       test('0: Method is implemented', async () => {
-        expect(JourneyOps.getJourneys).toBeDefined();
+        expect(JourneyOps.readJourneys).toBeDefined();
       });
 
       test('1: Get all journeys', async () => {
-        const journeys = await JourneyOps.getJourneys({ state });
+        const journeys = await JourneyOps.readJourneys({ state });
         expect(journeys).toMatchSnapshot();
       });
     });
@@ -165,7 +165,7 @@ describe('JourneyOps', () => {
 
       test(`1: Export journey '${journey3.id}' w/o dependencies`, async () => {
         const response = await JourneyOps.exportJourney({
-          treeId: journey3.id,
+          journeyId: journey3.id,
           options: {
             useStringArrays: false,
             deps: false,
@@ -179,7 +179,7 @@ describe('JourneyOps', () => {
 
       test(`2: Export journey '${journey3.id}' w/ dependencies`, async () => {
         const response = await JourneyOps.exportJourney({
-          treeId: journey3.id,
+          journeyId: journey3.id,
           options: {
             useStringArrays: false,
             deps: true,

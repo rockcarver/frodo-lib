@@ -1,9 +1,10 @@
 import util from 'util';
-import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
-import { generateAmApi } from './BaseApi';
+
 import { State } from '../shared/State';
-import { PolicySetSkeleton } from './ApiTypes';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
+import { type NoIdObjectSkeletonInterface } from './ApiTypes';
+import { generateAmApi } from './BaseApi';
 
 const queryAllPolicySetURLTemplate =
   '%s/json%s/applications?_sortKeys=name&_queryFilter=name+eq+%22%5E(%3F!sunAMDelegationService%24).*%22';
@@ -15,6 +16,11 @@ const getApiConfig = () => {
   return {
     apiVersion,
   };
+};
+
+export type PolicySetSkeleton = NoIdObjectSkeletonInterface & {
+  name: string;
+  resourceTypeUuids: string[];
 };
 
 /**

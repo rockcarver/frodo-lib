@@ -1,16 +1,17 @@
-import { debugMessage, printMessage } from '../utils/Console';
 import {
-  getAgentsByType,
-  getAgentByTypeAndId as _getAgentByTypeAndId,
-  putAgentByTypeAndId,
-  findAgentById,
+  type AgentSkeleton,
+  type AgentType,
   deleteAgentByTypeAndId,
+  findAgentById,
   findAgentByTypeAndId,
+  getAgentByTypeAndId as _getAgentByTypeAndId,
+  getAgentsByType,
+  putAgentByTypeAndId,
 } from '../api/AgentApi';
-import { AgentSkeleton, AgentType } from '../api/ApiTypes';
-import { AgentExportInterface } from './OpsTypes';
-import { validateImport } from '../utils/ExportImportUtils';
 import { State } from '../shared/State';
+import { debugMessage, printMessage } from '../utils/Console';
+import { validateImport } from '../utils/ExportImportUtils';
+import { type ExportMetaData } from './OpsTypes';
 
 export type Agent = {
   /**
@@ -637,6 +638,11 @@ export default (state: State): Agent => {
     },
   };
 };
+
+export interface AgentExportInterface {
+  meta?: Record<string, ExportMetaData>;
+  agents: Record<string, AgentSkeleton>;
+}
 
 /**
  * Create an empty agent export template

@@ -1,16 +1,16 @@
 import {
+  createResourceType as _createResourceType,
   deleteResourceType as _deleteResourceType,
-  getResourceTypes as _getResourceTypes,
   getResourceType as _getResourceType,
   getResourceTypeByName as _getResourceTypeByName,
-  createResourceType as _createResourceType,
+  getResourceTypes as _getResourceTypes,
   putResourceType as _putResourceType,
+  type ResourceTypeSkeleton,
 } from '../api/ResourceTypesApi';
-import { ExportMetaData } from './OpsTypes';
-import { ResourceTypeSkeleton } from '../api/ApiTypes';
-import { getMetadata } from '../utils/ExportImportUtils';
-import { debugMessage } from '../utils/Console';
 import { State } from '../shared/State';
+import { debugMessage } from '../utils/Console';
+import { getMetadata } from '../utils/ExportImportUtils';
+import { ExportMetaData } from './OpsTypes';
 
 export type ResourceType = {
   /**

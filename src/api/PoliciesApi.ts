@@ -1,8 +1,12 @@
 import util from 'util';
-import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
-import { generateAmApi } from './BaseApi';
+
 import { State } from '../shared/State';
-import { PolicySkeleton } from './ApiTypes';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
+import {
+  type IdObjectSkeletonInterface,
+  type NoIdObjectSkeletonInterface,
+} from './ApiTypes';
+import { generateAmApi } from './BaseApi';
 
 // const queryAllPoliciesByApplicationURLTemplate =
 //   '%s/json%s/policies?_sortKeys=name&_queryFilter=applicationName+eq+%22%s%22';
@@ -16,6 +20,41 @@ const getApiConfig = () => {
   return {
     apiVersion,
   };
+};
+
+export type PolicyConditionType =
+  | 'Script'
+  | 'AMIdentityMembership'
+  | 'IPv6'
+  | 'IPv4'
+  | 'SimpleTime'
+  | 'LEAuthLevel'
+  | 'LDAPFilter'
+  | 'AuthScheme'
+  | 'Session'
+  | 'AND'
+  | 'AuthenticateToRealm'
+  | 'ResourceEnvIP'
+  | 'Policy'
+  | 'OAuth2Scope'
+  | 'SessionProperty'
+  | 'OR'
+  | 'Transaction'
+  | 'NOT'
+  | 'AuthLevel'
+  | 'AuthenticateToService';
+
+export type PolicyCondition = NoIdObjectSkeletonInterface & {
+  type: PolicyConditionType;
+  condition?: PolicyCondition;
+  conditions?: PolicyCondition[];
+};
+
+export type PolicySkeleton = IdObjectSkeletonInterface & {
+  name: string;
+  applicationName: string;
+  condition?: PolicyCondition;
+  resourceTypeUuid: string;
 };
 
 /**

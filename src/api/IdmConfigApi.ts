@@ -1,12 +1,13 @@
 import util from 'util';
-import { generateIdmApi } from './BaseApi';
-import { getHostBaseUrl } from '../utils/ForgeRockUtils';
+
 import { State } from '../shared/State';
+import { getHostBaseUrl } from '../utils/ForgeRockUtils';
 import {
   IdObjectSkeletonInterface,
   NoIdObjectSkeletonInterface,
   PagedResult,
 } from './ApiTypes';
+import { generateIdmApi } from './BaseApi';
 
 const idmAllConfigURLTemplate = '%s/openidm/config';
 const idmConfigURLTemplate = '%s/openidm/config/%s';

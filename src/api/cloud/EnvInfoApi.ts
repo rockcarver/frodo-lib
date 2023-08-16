@@ -1,7 +1,8 @@
 import util from 'util';
+
+import { State } from '../../shared/State';
 import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { generateAmApi } from '../BaseApi';
-import { State } from '../../shared/State';
 
 const envInfoURLTemplate = '%s/environment/info';
 

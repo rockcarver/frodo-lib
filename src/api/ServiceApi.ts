@@ -1,13 +1,9 @@
 import util from 'util';
+
 import { State } from '../shared/State';
-import {
-  AmServiceSkeleton,
-  PagedResult,
-  ServiceNextDescendent,
-  ServiceNextDescendentResponse,
-} from './ApiTypes';
-import { generateAmApi } from './BaseApi';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
+import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
+import { generateAmApi } from './BaseApi';
 
 const serviceURLTemplate = '%s/json%s/%s/services/%s';
 const serviceURLNextDescendentsTemplate =
@@ -37,16 +33,28 @@ export interface ServiceListItem {
   _rev: string;
 }
 
-// export interface AmService {
-//   _id: '';
-//   _rev: string;
-//   _type: {
-//     _id: string;
-//     name: string;
-//     collection: boolean;
-//   };
-//   [key: string]: any;
-// }
+export type AmServiceType = IdObjectSkeletonInterface & {
+  name: string;
+};
+
+export type AmServiceSkeleton = IdObjectSkeletonInterface & {
+  _type: AmServiceType;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+};
+
+export interface ServiceNextDescendentResponse {
+  result: ServiceNextDescendent;
+}
+
+export interface ServiceNextDescendent {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+}
+
+export interface FullService extends AmServiceSkeleton {
+  nextDescendents?: ServiceNextDescendent[];
+}
 
 /**
  * Helper function to get the realm path required for the API call considering if the request

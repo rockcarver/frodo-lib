@@ -1,8 +1,12 @@
 import util from 'util';
-import { generateLogApi, generateLogKeysApi } from '../BaseApi';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+
 import { State } from '../../shared/State';
-import { LogApiKey, LogEventSkeleton, PagedResult } from '../ApiTypes';
+import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import {
+  type NoIdObjectSkeletonInterface,
+  type PagedResult,
+} from '../ApiTypes';
+import { generateLogApi, generateLogKeysApi } from '../BaseApi';
 
 const logsTailURLTemplate = '%s/monitoring/logs/tail?source=%s';
 const logsFetchURLTemplate =
@@ -11,6 +15,33 @@ const logsSourcesURLTemplate = '%s/monitoring/logs/sources';
 const logsCreateAPIKeyAndSecretURLTemplate = '%s/keys?_action=create';
 const logsGetAPIKeysURLTemplate = '%s/keys';
 const logsAPIKeyURLTemplate = '%s/keys/%s';
+
+export type LogApiKey = {
+  name: string;
+  api_key_id: string;
+  api_key_secret?: string;
+  created_at: string;
+};
+
+export type LogEventPayloadSkeleton = NoIdObjectSkeletonInterface & {
+  context: string;
+  level: string;
+  logger: string;
+  mdc: {
+    transactionId: string;
+  };
+  message: string;
+  thread: string;
+  timestamp: string;
+  transactionId: string;
+};
+
+export type LogEventSkeleton = NoIdObjectSkeletonInterface & {
+  payload: string | LogEventPayloadSkeleton;
+  timestamp: string;
+  type: string;
+  source: string;
+};
 
 /**
  * Get log API key

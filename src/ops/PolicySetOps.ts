@@ -1,29 +1,29 @@
+import { type PolicySkeleton } from '../api/PoliciesApi';
 import {
-  deletePolicySet as _deletePolicySet,
-  getPolicySets as _getPolicySets,
-  getPolicySet as _getPolicySet,
   createPolicySet as _createPolicySet,
+  deletePolicySet as _deletePolicySet,
+  getPolicySet as _getPolicySet,
+  getPolicySets as _getPolicySets,
   updatePolicySet as _updatePolicySet,
 } from '../api/PolicySetApi';
-import { updateScript } from './ScriptOps';
-import { convertBase64TextToArray } from '../utils/ExportImportUtils';
+import { type PolicySetSkeleton } from '../api/PolicySetApi';
+import { getResourceType, putResourceType } from '../api/ResourceTypesApi';
+import { type ResourceTypeSkeleton } from '../api/ResourceTypesApi';
+import { type ScriptSkeleton } from '../api/ScriptApi';
+import { State } from '../shared/State';
+import { debugMessage } from '../utils/Console';
+import {
+  convertBase64TextToArray,
+  getMetadata,
+} from '../utils/ExportImportUtils';
 import { ExportMetaData } from './OpsTypes';
 import {
-  PolicySetSkeleton,
-  PolicySkeleton,
-  ResourceTypeSkeleton,
-  ScriptSkeleton,
-} from '../api/ApiTypes';
-import { getMetadata } from '../utils/ExportImportUtils';
-import { debugMessage } from '../utils/Console';
-import { getResourceType, putResourceType } from '../api/ResourceTypesApi';
-import {
   findScriptUuids,
-  readPoliciesByPolicySet,
   getScripts,
+  readPoliciesByPolicySet,
   updatePolicy,
 } from './PolicyOps';
-import { State } from '../shared/State';
+import { updateScript } from './ScriptOps';
 
 export type PolicySet = {
   /**

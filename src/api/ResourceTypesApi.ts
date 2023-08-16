@@ -1,8 +1,9 @@
 import util from 'util';
-import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
-import { generateAmApi } from './BaseApi';
+
 import { State } from '../shared/State';
-import { ResourceTypeSkeleton } from './ApiTypes';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
+import { type NoIdObjectSkeletonInterface } from './ApiTypes';
+import { generateAmApi } from './BaseApi';
 
 const queryAllResourceTypesURLTemplate =
   '%s/json%s/resourcetypes?_sortKeys=name&_queryFilter=name+eq+%22%5E(%3F!Delegation%20Service%24).*%22';
@@ -16,6 +17,11 @@ const getApiConfig = () => {
   return {
     apiVersion,
   };
+};
+
+export type ResourceTypeSkeleton = NoIdObjectSkeletonInterface & {
+  uuid: string;
+  name: string;
 };
 
 /**

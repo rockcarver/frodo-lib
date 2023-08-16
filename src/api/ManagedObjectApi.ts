@@ -1,8 +1,9 @@
 import util from 'util';
-import { generateIdmApi } from './BaseApi';
-import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
+
 import { State } from '../shared/State';
 import { getHostBaseUrl } from '../utils/ForgeRockUtils';
+import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
+import { generateIdmApi } from './BaseApi';
 
 const createManagedObjectURLTemplate = '%s/openidm/managed/%s?_action=create';
 const managedObjectByIdURLTemplate = '%s/openidm/managed/%s/%s';

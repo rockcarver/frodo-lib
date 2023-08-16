@@ -1,11 +1,12 @@
-import { State } from '../shared/State';
+import { AxiosRequestConfig } from 'axios';
+
 import {
   accessToken,
   authorize,
   clientCredentialsGrant,
   getTokenInfo,
 } from '../api/OAuth2OIDCApi';
-import { AxiosRequestConfig } from 'axios';
+import { State } from '../shared/State';
 
 export type OAuth2Oidc = {
   authorize(

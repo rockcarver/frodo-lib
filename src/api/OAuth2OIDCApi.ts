@@ -1,10 +1,11 @@
-import util from 'util';
-import qs from 'qs';
-import { generateOauth2Api } from './BaseApi';
-import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
-import { encode } from '../utils/Base64Utils';
 import { AxiosRequestConfig } from 'axios';
+import qs from 'qs';
+import util from 'util';
+
 import { State } from '../shared/State';
+import { encode } from '../utils/Base64Utils';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
+import { generateOauth2Api } from './BaseApi';
 
 const authorizeUrlTemplate = '%s/oauth2%s/authorize';
 const accessTokenUrlTemplate = '%s/oauth2%s/access_token';

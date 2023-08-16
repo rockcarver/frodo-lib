@@ -1,25 +1,23 @@
 import fs from 'fs';
-import {
-  readOAuth2Clients,
-  readOAuth2Client,
-  updateOAuth2Client,
-} from '../ops/OAuth2ClientOps';
-import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
-import { get, isEqualJson } from '../utils/JsonUtils';
-import { getCurrentRealmManagedUser } from '../utils/ForgeRockUtils';
-import { getRealmManagedOrganization } from './OrganizationOps';
-import { readOAuth2Provider } from '../ops/OAuth2ProviderOps';
-import { putSecret } from '../api/cloud/SecretsApi';
-import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
-import { printMessage } from '../utils/Console';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { State } from '../shared/State';
+
+import { type ReadableStrings, type WritableStrings } from '../api/ApiTypes';
+import { putSecret } from '../api/cloud/SecretsApi';
+import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
+import { type OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
+import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
 import {
-  OAuth2ClientSkeleton,
-  ReadableStrings,
-  WritableStrings,
-} from '../api/ApiTypes';
+  readOAuth2Client,
+  readOAuth2Clients,
+  updateOAuth2Client,
+} from '../ops/OAuth2ClientOps';
+import { readOAuth2Provider } from '../ops/OAuth2ProviderOps';
+import { State } from '../shared/State';
+import { printMessage } from '../utils/Console';
+import { getCurrentRealmManagedUser } from '../utils/ForgeRockUtils';
+import { get, isEqualJson } from '../utils/JsonUtils';
+import { getRealmManagedOrganization } from './OrganizationOps';
 
 export type Admin = {
   listOAuth2CustomClients(): Promise<any>;
