@@ -1,26 +1,26 @@
+import { type NoIdObjectSkeletonInterface } from '../api/ApiTypes';
+import { getScript, type ScriptSkeleton } from '../api/ScriptApi';
 import {
   deleteProviderByTypeAndId,
   getSocialIdentityProviders as _getSocialIdentityProviders,
   putProviderByTypeAndId as _putProviderByTypeAndId,
-  SocialIdpSkeleton,
+  type SocialIdpSkeleton,
 } from '../api/SocialIdentityProvidersApi';
-import { getScript } from '../api/ScriptApi';
-import { updateScript } from './ScriptOps';
+import { State } from '../shared/State';
+import {
+  createProgressIndicator,
+  debugMessage,
+  printMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../utils/Console';
 import {
   convertBase64TextToArray,
   convertTextArrayToBase64,
+  getMetadata,
 } from '../utils/ExportImportUtils';
-import {
-  printMessage,
-  createProgressIndicator,
-  updateProgressIndicator,
-  stopProgressIndicator,
-} from '../utils/Console';
-import { ExportMetaData } from './OpsTypes';
-import { NoIdObjectSkeletonInterface, ScriptSkeleton } from '../api/ApiTypes';
-import { getMetadata } from '../utils/ExportImportUtils';
-import { State } from '../shared/State';
-import { debugMessage } from '../utils/Console';
+import { type ExportMetaData } from './OpsTypes';
+import { updateScript } from './ScriptOps';
 
 export type Idp = {
   /**

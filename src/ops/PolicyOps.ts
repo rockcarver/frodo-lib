@@ -1,23 +1,25 @@
 import {
+  deletePolicy as _deletePolicy,
   getPolicies as _getPolicies,
   getPoliciesByPolicySet as _getPoliciesByPolicySet,
   getPolicy as _getPolicy,
-  deletePolicy as _deletePolicy,
+  type PolicyCondition,
+  type PolicySkeleton,
   putPolicy as _putPolicy,
 } from '../api/PoliciesApi';
-import { readScript, updateScript } from './ScriptOps';
-import { convertBase64TextToArray } from '../utils/ExportImportUtils';
-import { ExportMetaData } from './OpsTypes';
+import { type PolicySetSkeleton } from '../api/PolicySetApi';
 import {
-  PolicyCondition,
-  PolicySetSkeleton,
-  PolicySkeleton,
-  ResourceTypeSkeleton,
-  ScriptSkeleton,
-} from '../api/ApiTypes';
-import { getMetadata } from '../utils/ExportImportUtils';
+  getResourceType,
+  type ResourceTypeSkeleton,
+} from '../api/ResourceTypesApi';
+import { type ScriptSkeleton } from '../api/ScriptApi';
+import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
-import { getResourceType } from '../api/ResourceTypesApi';
+import {
+  convertBase64TextToArray,
+  getMetadata,
+} from '../utils/ExportImportUtils';
+import { type ExportMetaData } from './OpsTypes';
 import {
   createPolicySet,
   readPolicySet,
@@ -27,7 +29,7 @@ import {
   createResourceType as _createResourceType,
   updateResourceType,
 } from './ResourceTypeOps';
-import { State } from '../shared/State';
+import { readScript, updateScript } from './ScriptOps';
 
 export type Policy = {
   /**

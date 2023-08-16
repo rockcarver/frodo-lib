@@ -1,15 +1,17 @@
-import { debugMessage } from '../utils/Console';
 import {
-  getCirclesOfTrust as _getCirclesOfTrust,
-  getCircleOfTrust as _getCircleOfTrust,
+  type CircleOfTrustSkeleton,
   createCircleOfTrust as _createCircleOfTrust,
-  updateCircleOfTrust as _updateCircleOfTrust,
   deleteCircleOfTrust as _deleteCircleOfTrust,
+  getCircleOfTrust as _getCircleOfTrust,
+  getCirclesOfTrust as _getCirclesOfTrust,
+  updateCircleOfTrust as _updateCircleOfTrust,
 } from '../api/CirclesOfTrustApi';
-import { getMetadata } from '../utils/ExportImportUtils';
+import { type Saml2ProviderSkeleton } from '../api/Saml2Api';
+import { type ScriptSkeleton } from '../api/ScriptApi';
 import { State } from '../shared/State';
-import { CirclesOfTrustExportInterface } from './OpsTypes';
-import { CircleOfTrustSkeleton } from '../api/ApiTypes';
+import { debugMessage } from '../utils/Console';
+import { getMetadata } from '../utils/ExportImportUtils';
+import { type ExportMetaData } from './OpsTypes';
 
 export type CirclesOfTrust = {
   /**
@@ -156,6 +158,17 @@ export default (state: State): CirclesOfTrust => {
     },
   };
 };
+
+export interface CirclesOfTrustExportInterface {
+  meta?: ExportMetaData;
+  script: Record<string, ScriptSkeleton>;
+  saml: {
+    hosted: Record<string, Saml2ProviderSkeleton>;
+    remote: Record<string, Saml2ProviderSkeleton>;
+    metadata: Record<string, string[]>;
+    cot: Record<string, CircleOfTrustSkeleton>;
+  };
+}
 
 /**
  * Create an empty agent export template

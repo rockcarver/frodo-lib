@@ -1,14 +1,14 @@
 import {
-  createProgressIndicator,
-  updateProgressIndicator,
-  stopProgressIndicator,
-} from '../../utils/Console';
-import {
   getStatus,
   initiateRestart,
   RestartStatus,
 } from '../../api/cloud/StartupApi';
 import { State } from '../../shared/State';
+import {
+  createProgressIndicator,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../../utils/Console';
 import { readSecrets } from './SecretsOps';
 import { readVariables } from './VariablesOps';
 

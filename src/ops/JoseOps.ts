@@ -1,4 +1,5 @@
 import jose from 'node-jose';
+
 import { State } from '../shared/State';
 
 export type Jose = {

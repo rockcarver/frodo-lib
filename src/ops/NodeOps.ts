@@ -1,26 +1,78 @@
-import { State } from '../shared/State';
 import {
-  getNode,
-  deleteNode,
-  getNodeTypes,
-  getNodesByType,
+  createNode as _createNode,
+  deleteNode as _deleteNode,
+  getNode as _getNode,
+  getNodes as _getNodes,
+  getNodesByType as _getNodesByType,
+  getNodeTypes as _getNodeTypes,
+  type NodeSkeleton,
+  type NodeTypeSkeleton,
+  putNode as _putNode,
 } from '../api/NodeApi';
 import { getTrees } from '../api/TreeApi';
+import { State } from '../shared/State';
 import {
-  printMessage,
   createProgressIndicator,
-  updateProgressIndicator,
+  printMessage,
   stopProgressIndicator,
+  updateProgressIndicator,
 } from '../utils/Console';
-import { NodeClassificationType } from './OpsTypes';
-import { NodeSkeleton } from '../api/ApiTypes';
 
 export type Node = {
   /**
-   * Find all node configuration objects that are no longer referenced by any tree
-   * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
+   * Read all node types
+   * @returns {Promise<any>} a promise that resolves to an array of node type objects
    */
-  findOrphanedNodes(): Promise<unknown[]>;
+  readNodeTypes(): Promise<any>;
+  /**
+   * Read all nodes
+   * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an object containing an array of node objects
+   */
+  readNodes(): Promise<NodeSkeleton[]>;
+  /**
+   * Read all nodes by type
+   * @param {string} nodeType node type
+   * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an object containing an array of node objects of the requested type
+   */
+  readNodesByType(nodeType: string): Promise<NodeSkeleton[]>;
+  /**
+   * Read node by uuid and type
+   * @param {string} nodeId node uuid
+   * @param {string} nodeType node type
+   * @returns {Promise<NodeSkeleton>} a promise that resolves to a node object
+   */
+  readNode(nodeId: string, nodeType: string): Promise<NodeSkeleton>;
+  /**
+   * Create node by type
+   * @param {string} nodeType node type
+   * @param {NodeSkeleton} nodeData node object
+   * @returns {Promise<NodeSkeleton>} a promise that resolves to an object containing a node object
+   */
+  createNode(nodeType: string, nodeData: NodeSkeleton): Promise<NodeSkeleton>;
+  /**
+   * Update or create node by uuid and type
+   * @param {string} nodeId node uuid
+   * @param {string} nodeType node type
+   * @param {NodeSkeleton} nodeData node object
+   * @returns {Promise<NodeSkeleton>} a promise that resolves to an object containing a node object
+   */
+  updateNode(
+    nodeId: string,
+    nodeType: string,
+    nodeData: NodeSkeleton
+  ): Promise<NodeSkeleton>;
+  /**
+   * Delete node by uuid and type
+   * @param {string} nodeId node uuid
+   * @param {string} nodeType node type
+   * @returns {Promise<NodeSkeleton>} a promise that resolves to an object containing a node object
+   */
+  deleteNode(nodeId: string, nodeType: string): Promise<NodeSkeleton>;
+  /**
+   * Find all node configuration objects that are no longer referenced by any tree
+   * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array of orphaned nodes
+   */
+  findOrphanedNodes(): Promise<NodeSkeleton[]>;
   /**
    * Remove orphaned nodes
    * @param {NodeSkeleton[]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
@@ -58,65 +110,62 @@ export type Node = {
 
 export default (state: State): Node => {
   return {
-    /**
-     * Find all node configuration objects that are no longer referenced by any tree
-     * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
-     */
-    async findOrphanedNodes(): Promise<unknown[]> {
+    readNodeTypes(): Promise<any> {
+      return readNodeTypes({ state });
+    },
+    async readNodes(): Promise<NodeSkeleton[]> {
+      return readNodes({ state });
+    },
+    async readNodesByType(nodeType: string): Promise<NodeSkeleton[]> {
+      return readNodesByType({ nodeType, state });
+    },
+    async readNode(nodeId: string, nodeType: string): Promise<NodeSkeleton> {
+      return readNode({ nodeId, nodeType, state });
+    },
+    async createNode(
+      nodeType: string,
+      nodeData: NodeSkeleton
+    ): Promise<NodeSkeleton> {
+      return createNode({ nodeType, nodeData, state });
+    },
+    async updateNode(
+      nodeId: string,
+      nodeType: string,
+      nodeData: NodeSkeleton
+    ): Promise<NodeSkeleton> {
+      return updateNode({ nodeId, nodeType, nodeData, state });
+    },
+    async deleteNode(nodeId: string, nodeType: string): Promise<NodeSkeleton> {
+      return deleteNode({ nodeId, nodeType, state });
+    },
+    async findOrphanedNodes(): Promise<NodeSkeleton[]> {
       return findOrphanedNodes({ state });
     },
-
-    /**
-     * Remove orphaned nodes
-     * @param {NodeSkeleton[]} orphanedNodes Pass in an array of orphaned node configuration objects to remove
-     * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array nodes that encountered errors deleting
-     */
     async removeOrphanedNodes(
       orphanedNodes: NodeSkeleton[]
     ): Promise<NodeSkeleton[]> {
       return removeOrphanedNodes({ orphanedNodes, state });
     },
-
-    /**
-     * Analyze if a node is a premium node.
-     * @param {string} nodeType Node type
-     * @returns {boolean} True if the node type is premium, false otherwise.
-     */
     isPremiumNode(nodeType: string): boolean {
       return isPremiumNode(nodeType);
     },
-
-    /**
-     * Analyze if a node is a cloud-only node.
-     * @param {string} nodeType Node type
-     * @returns {boolean} True if the node type is cloud-only, false otherwise.
-     */
     isCloudOnlyNode(nodeType: string): boolean {
       return isCloudOnlyNode(nodeType);
     },
-
-    /**
-     * Analyze if a node is custom.
-     * @param {string} nodeType Node type
-     * @returns {boolean} True if the node type is custom, false otherwise.
-     */
     isCustomNode(nodeType: string): boolean {
       return isCustomNode({ nodeType, state });
     },
-
-    /**
-     * Get a node's classifications, which can be one or multiple of:
-     * - standard: can run on any instance of a ForgeRock platform
-     * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
-     * - premium: utilizes nodes, which come at a premium
-     * @param {string} nodeType Node type
-     * @returns {NodeClassificationType[]} an array of one or multiple classifications
-     */
     getNodeClassification(nodeType: string): NodeClassificationType[] {
       return getNodeClassification({ nodeType, state });
     },
   };
 };
+
+export type NodeClassificationType =
+  | 'standard'
+  | 'custom'
+  | 'cloud'
+  | 'premium';
 
 export enum NodeClassification {
   STANDARD = 'standard',
@@ -128,6 +177,135 @@ export enum NodeClassification {
 const containerNodes = ['PageNode', 'CustomPageNode'];
 
 /**
+ * Read all node types
+ * @returns {Promise<NodeTypeSkeleton[]>} a promise that resolves to an array of node type objects
+ */
+export async function readNodeTypes({
+  state,
+}: {
+  state: State;
+}): Promise<NodeTypeSkeleton[]> {
+  const { result } = await _getNodeTypes({ state });
+  return result;
+}
+
+/**
+ * Get all nodes
+ * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an object containing an array of node objects
+ */
+export async function readNodes({
+  state,
+}: {
+  state: State;
+}): Promise<NodeSkeleton[]> {
+  const { result } = await _getNodes({ state });
+  return result;
+}
+
+/**
+ * Read all nodes by type
+ * @param {string} nodeType node type
+ * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an object containing an array of node objects of the requested type
+ */
+export async function readNodesByType({
+  nodeType,
+  state,
+}: {
+  nodeType: string;
+  state: State;
+}): Promise<NodeSkeleton[]> {
+  const { result } = await _getNodesByType({ nodeType, state });
+  return result;
+}
+
+/**
+ * Read node
+ * @param {String} nodeId node uuid
+ * @param {String} nodeType node type
+ * @returns {Promise} a promise that resolves to a node object
+ */
+export async function readNode({
+  nodeId,
+  nodeType,
+  state,
+}: {
+  nodeId: string;
+  nodeType: string;
+  state: State;
+}): Promise<NodeSkeleton> {
+  return _getNode({ nodeId, nodeType, state });
+}
+
+/**
+ * Create node
+ * @param {string} nodeId node uuid
+ * @param {string} nodeType node type
+ * @param {NodeSkeleton} nodeData node object
+ * @returns {Promise<NodeSkeleton>} a promise that resolves to an object containing a node object
+ */
+export async function createNode({
+  nodeId,
+  nodeType,
+  nodeData,
+  state,
+}: {
+  nodeId?: string;
+  nodeType: string;
+  nodeData: NodeSkeleton;
+  state: State;
+}): Promise<NodeSkeleton> {
+  if (nodeId) {
+    try {
+      await readNode({ nodeId, nodeType, state });
+    } catch (error) {
+      const result = await updateNode({ nodeId, nodeType, nodeData, state });
+      return result;
+    }
+    throw new Error(`Node ${nodeId} already exists!`);
+  }
+  return _createNode({ nodeType, nodeData, state });
+}
+
+/**
+ * Put node by uuid and type
+ * @param {string} nodeId node uuid
+ * @param {string} nodeType node type
+ * @param {object} nodeData node object
+ * @returns {Promise} a promise that resolves to an object containing a node object
+ */
+export async function updateNode({
+  nodeId,
+  nodeType,
+  nodeData,
+  state,
+}: {
+  nodeId: string;
+  nodeType: string;
+  nodeData: NodeSkeleton;
+  state: State;
+}): Promise<NodeSkeleton> {
+  return _putNode({ nodeId, nodeType, nodeData, state });
+}
+
+/**
+ * Delete node by uuid and type
+ * @param {String} nodeId node uuid
+ * @param {String} nodeType node type
+ * @returns {Promise} a promise that resolves to an object containing a node object
+ */
+export async function deleteNode({
+  nodeId,
+  nodeType,
+  state,
+}: {
+  nodeId: string;
+  nodeType: string;
+  state: State;
+}): Promise<NodeSkeleton> {
+  return _deleteNode({ nodeId, nodeType, state });
+}
+
+/**
  * Find all node configuration objects that are no longer referenced by any tree
  * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
  */
@@ -135,7 +313,7 @@ export async function findOrphanedNodes({
   state,
 }: {
   state: State;
-}): Promise<unknown[]> {
+}): Promise<NodeSkeleton[]> {
   const allNodes = [];
   const orphanedNodes = [];
   let types = [];
@@ -150,20 +328,16 @@ export async function findOrphanedNodes({
     state,
   });
   try {
-    types = (await getNodeTypes({ state })).result;
+    types = (await _getNodeTypes({ state })).result;
   } catch (error) {
-    printMessage({
-      message: 'Error retrieving all available node types:',
-      type: 'error',
-      state,
-    });
-    printMessage({ message: error.response.data, type: 'error', state });
-    return [];
+    error.message = `Error retrieving all available node types: ${
+      error.response?.data?.message || error.message
+    }`;
+    throw error;
   }
   for (const type of types) {
     try {
-      // eslint-disable-next-line no-await-in-loop, no-loop-func
-      const nodes = (await getNodesByType({ nodeType: type._id, state }))
+      const nodes = (await _getNodesByType({ nodeType: type._id, state }))
         .result;
       for (const node of nodes) {
         allNodes.push(node);
@@ -212,7 +386,7 @@ export async function findOrphanedNodes({
         });
         const node = journey.nodes[nodeId];
         if (containerNodes.includes(node.nodeType)) {
-          const containerNode = await getNode({
+          const containerNode = await _getNode({
             nodeId,
             nodeType: node.nodeType,
             state,

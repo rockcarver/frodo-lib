@@ -1,19 +1,20 @@
 import fs from 'fs';
 import { lstat, readdir } from 'fs/promises';
 import { join } from 'path';
+import { Reader } from 'properties-reader';
+import replaceall from 'replaceall';
 import slugify from 'slugify';
+
+import { ExportMetaData } from '../ops/OpsTypes';
+import Constants from '../shared/Constants';
+import { State } from '../shared/State';
 import {
   decode,
   decodeBase64Url,
   encode,
   encodeBase64Url,
 } from './Base64Utils';
-import { State } from '../shared/State';
-import Constants from '../shared/Constants';
-import { ExportMetaData } from '../ops/OpsTypes';
 import { debugMessage, printMessage } from './Console';
-import { Reader } from 'properties-reader';
-import replaceall from 'replaceall';
 
 export type ExportImport = {
   getMetadata(): ExportMetaData;

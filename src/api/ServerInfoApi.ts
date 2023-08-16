@@ -1,6 +1,7 @@
 import util from 'util';
-import { generateAmApi } from './BaseApi';
+
 import { State } from '../shared/State';
+import { generateAmApi } from './BaseApi';
 
 const serverInfoUrlTemplate = '%s/json/serverinfo/%s';
 

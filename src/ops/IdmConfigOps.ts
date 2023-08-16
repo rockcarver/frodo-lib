@@ -3,18 +3,18 @@ import {
   NoIdObjectSkeletonInterface,
 } from '../api/ApiTypes';
 import {
-  IdmConfigStub,
-  getConfigStubs as _getConfigEntityStubs,
-  getConfigEntity as _getConfigEntity,
-  putConfigEntity as _putConfigEntity,
-  getConfigEntitiesByType as _getConfigEntitiesByType,
-  getConfigEntities as _getConfigEntities,
-  getConfigEntity,
   deleteConfigEntity as _deleteConfigEntity,
+  getConfigEntities as _getConfigEntities,
+  getConfigEntitiesByType as _getConfigEntitiesByType,
+  getConfigEntity as _getConfigEntity,
+  getConfigEntity,
+  getConfigStubs as _getConfigEntityStubs,
+  IdmConfigStub,
+  putConfigEntity as _putConfigEntity,
 } from '../api/IdmConfigApi';
 import {
-  testConnectorServers as _testConnectorServers,
   ConnectorServerStatusInterface,
+  testConnectorServers as _testConnectorServers,
 } from '../api/IdmSystemApi';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';

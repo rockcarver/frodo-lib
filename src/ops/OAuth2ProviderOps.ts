@@ -1,9 +1,9 @@
 import {
-  OAuth2ProviderSkeleton,
-  getOAuth2Provider as _getOAuth2Provider,
   createOAuth2Provider as _createOAuth2Provider,
-  putOAuth2Provider as _putOAuth2Provider,
   deleteOAuth2Provider as _deleteOAuth2Provider,
+  getOAuth2Provider as _getOAuth2Provider,
+  OAuth2ProviderSkeleton,
+  putOAuth2Provider as _putOAuth2Provider,
 } from '../api/OAuth2ProviderApi';
 import { State } from '../shared/State';
 

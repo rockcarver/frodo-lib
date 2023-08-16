@@ -1,17 +1,17 @@
-import axios, { AxiosInstance, AxiosProxyConfig } from 'axios';
 import Agent from 'agentkeepalive';
+import axios, { AxiosInstance, AxiosProxyConfig } from 'axios';
 import axiosRetry from 'axios-retry';
-import HttpsProxyAgent from 'https-proxy-agent';
-import url from 'url';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { curlirizeMessage, printMessage } from '../utils/Console';
-import _curlirize from '../ext/axios-curlirize/curlirize';
 import { randomUUID } from 'crypto';
-import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
+import fs from 'fs';
+import HttpsProxyAgent from 'https-proxy-agent';
+import path from 'path';
+import url, { fileURLToPath } from 'url';
+
+import _curlirize from '../ext/axios-curlirize/curlirize';
 import StateImpl, { State } from '../shared/State';
+import { curlirizeMessage, printMessage } from '../utils/Console';
 import { mergeDeep } from '../utils/JsonUtils';
+import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
 
 if (process.env.FRODO_MOCK) {
   setupPollyForFrodoLib({ state: StateImpl({}) });

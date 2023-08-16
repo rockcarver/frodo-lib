@@ -7,9 +7,9 @@ import {
   getSecretVersions as _getSecretVersions,
   getVersionOfSecret as _getVersionOfSecret,
   putSecret as _putSecret,
+  SecretSkeleton,
   setSecretDescription as _setSecretDescription,
   setStatusOfVersionOfSecret as _setStatusOfVersionOfSecret,
-  SecretSkeleton,
   VersionOfSecretSkeleton,
   VersionOfSecretStatus,
 } from '../../api/cloud/SecretsApi';
@@ -382,12 +382,12 @@ export async function readSecrets({
 }
 
 export {
-  _getSecret as readSecret,
   _putSecret as createSecret,
-  _setSecretDescription as updateSecretDescription,
-  _deleteSecret as deleteSecret,
-  _getSecretVersions as readVersionsOfSecret,
   _createNewVersionOfSecret as createVersionOfSecret,
-  _getVersionOfSecret as readVersionOfSecret,
+  _deleteSecret as deleteSecret,
   _deleteVersionOfSecret as deleteVersionOfSecret,
+  _getSecret as readSecret,
+  _getVersionOfSecret as readVersionOfSecret,
+  _getSecretVersions as readVersionsOfSecret,
+  _setSecretDescription as updateSecretDescription,
 };

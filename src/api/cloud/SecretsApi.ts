@@ -1,9 +1,10 @@
 import util from 'util';
+
+import { State } from '../../shared/State';
 import { encode } from '../../utils/Base64Utils';
 import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
-import { generateEnvApi } from '../BaseApi';
-import { State } from '../../shared/State';
 import { IdObjectSkeletonInterface, PagedResult } from '../ApiTypes';
+import { generateEnvApi } from '../BaseApi';
 
 const secretsListURLTemplate = '%s/environment/secrets';
 const secretListVersionsURLTemplate = '%s/environment/secrets/%s/versions';

@@ -1,25 +1,24 @@
 import {
-  Saml2ProiderLocation,
-  Saml2ProviderSkeleton,
-  Saml2ProviderStub,
   createProvider as _createProvider,
-  updateProvider as _updateProvider,
-  queryProviderStubs as _queryProviderStubs,
+  deleteProvider as _deleteProvider,
   getProvider as _getProviderByLocationAndId,
   getProviderMetadata as _getProviderMetadata,
   getProviderMetadataUrl as _getProviderMetadataUrl,
   getProviderStubs as _getProviderStubs,
-  deleteProvider as _deleteProvider,
+  queryProviderStubs as _queryProviderStubs,
+  type Saml2ProiderLocation,
+  type Saml2ProviderSkeleton,
+  type Saml2ProviderStub,
+  updateProvider as _updateProvider,
 } from '../api/Saml2Api';
-import { getScript } from '../api/ScriptApi';
+import { getScript, type ScriptSkeleton } from '../api/ScriptApi';
+import { State } from '../shared/State';
 import {
   decode,
   decodeBase64Url,
   encode,
   encodeBase64Url,
 } from '../utils/Base64Utils';
-import { Saml2ExportInterface } from './OpsTypes';
-import { updateScript } from './ScriptOps';
 import { debugMessage, printMessage } from '../utils/Console';
 import {
   convertBase64TextToArray,
@@ -28,8 +27,9 @@ import {
   convertTextArrayToBase64Url,
   getMetadata,
 } from '../utils/ExportImportUtils';
-import { State } from '../shared/State';
 import { get } from '../utils/JsonUtils';
+import { type ExportMetaData } from './OpsTypes';
+import { updateScript } from './ScriptOps';
 
 export type Saml2 = {
   /**
@@ -258,6 +258,16 @@ export default (state: State): Saml2 => {
     },
   };
 };
+
+export interface Saml2ExportInterface {
+  meta?: ExportMetaData;
+  script: Record<string, ScriptSkeleton>;
+  saml: {
+    hosted: Record<string, Saml2ProviderSkeleton>;
+    remote: Record<string, Saml2ProviderSkeleton>;
+    metadata: Record<string, string[]>;
+  };
+}
 
 // use a function vs a template variable to avoid problems in loops
 export function createSaml2ExportTemplate({

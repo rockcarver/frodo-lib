@@ -1,12 +1,12 @@
+import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
 import {
   createManagedObject,
   getManagedObject,
 } from '../../api/ManagedObjectApi';
-import { JwksInterface } from '../JoseOps';
-import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
-import { debugMessage } from '../../utils/Console';
-import { hasFeature } from './FeatureOps';
 import { State } from '../../shared/State';
+import { debugMessage } from '../../utils/Console';
+import { JwksInterface } from '../JoseOps';
+import { hasFeature } from './FeatureOps';
 
 export type ServiceAccount = {
   /**

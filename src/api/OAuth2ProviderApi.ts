@@ -1,9 +1,11 @@
 import util from 'util';
-import { generateAmApi } from './BaseApi';
-import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
+
 import { State } from '../shared/State';
-import { AmServiceType, IdObjectSkeletonInterface } from './ApiTypes';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
+import { type IdObjectSkeletonInterface } from './ApiTypes';
+import { generateAmApi } from './BaseApi';
+import { type AmServiceType } from './ServiceApi';
 
 const oAuth2ProviderServiceURLTemplate =
   '%s/json%s/realm-config/services/oauth-oidc';

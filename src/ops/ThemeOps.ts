@@ -1,10 +1,21 @@
-import { ThemeSkeleton, UiThemeRealmObject } from '../api/ApiTypes';
+import { type IdObjectSkeletonInterface } from '../api/ApiTypes';
 import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
-import { getCurrentRealmName } from '../utils/ForgeRockUtils';
-import { debugMessage } from '../utils/Console';
 import { State } from '../shared/State';
-import { ExportMetaData } from './OpsTypes';
+import { debugMessage } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { getCurrentRealmName } from '../utils/ForgeRockUtils';
+import { ExportMetaData } from './OpsTypes';
+
+export type ThemeSkeleton = IdObjectSkeletonInterface & {
+  name: string;
+  isDefault: boolean;
+  linkedTrees: string[];
+};
+
+export type UiThemeRealmObject = IdObjectSkeletonInterface & {
+  name: string;
+  realm: Map<string, ThemeSkeleton[]>;
+};
 
 export const THEMEREALM_ID = 'ui/themerealm';
 

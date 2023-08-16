@@ -17,11 +17,23 @@
     "requireConfigFile": false,
     "project": "./tsconfig.json"
   },
-  "plugins": ["prettier", "jest", "@typescript-eslint", "deprecation"],
+  "plugins": [
+    "prettier",
+    "jest",
+    "@typescript-eslint",
+    "deprecation",
+    "simple-import-sort",
+    "import"
+  ],
   "rules": {
     "@typescript-eslint/no-explicit-any": "off",
     "prettier/prettier": ["error"],
-    "deprecation/deprecation": "warn"
+    "deprecation/deprecation": "warn",
+    "simple-import-sort/imports": "error",
+    "simple-import-sort/exports": "error",
+    "import/first": "error",
+    "import/newline-after-import": "error",
+    "import/no-duplicates": "error"
   },
   "env": {
     "jest": true,

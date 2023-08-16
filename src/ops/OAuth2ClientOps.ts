@@ -1,20 +1,20 @@
+import { type NoIdObjectSkeletonInterface } from '../api/ApiTypes';
 import {
+  deleteOAuth2Client as _deleteOAuth2Client,
   getOAuth2Client as _getOAuth2Client,
   getOAuth2Clients as _getOAuth2Clients,
+  type OAuth2ClientSkeleton,
   putOAuth2Client as _putOAuth2Client,
-  deleteOAuth2Client as _deleteOAuth2Client,
 } from '../api/OAuth2ClientApi';
-import { ExportMetaData } from './OpsTypes';
-import {
-  NoIdObjectSkeletonInterface,
-  OAuth2ClientSkeleton,
-  ScriptSkeleton,
-} from '../api/ApiTypes';
-import { getMetadata } from '../utils/ExportImportUtils';
-import { debugMessage, printMessage } from '../utils/Console';
-import { convertBase64TextToArray } from '../utils/ExportImportUtils';
-import { readOAuth2Provider } from './OAuth2ProviderOps';
+import { type ScriptSkeleton } from '../api/ScriptApi';
 import { State } from '../shared/State';
+import { debugMessage, printMessage } from '../utils/Console';
+import {
+  convertBase64TextToArray,
+  getMetadata,
+} from '../utils/ExportImportUtils';
+import { readOAuth2Provider } from './OAuth2ProviderOps';
+import { ExportMetaData } from './OpsTypes';
 import { readScript, updateScript } from './ScriptOps';
 
 export type OAuth2Client = {

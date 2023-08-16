@@ -1,8 +1,9 @@
 import util from 'util';
-import { getHostBaseUrl } from '../utils/ForgeRockUtils';
-import { generateAmApi } from './BaseApi';
+
 import { State } from '../shared/State';
+import { getHostBaseUrl } from '../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
+import { generateAmApi } from './BaseApi';
 
 const realmsListURLTemplate = '%s/json/global-config/realms/?_queryFilter=true';
 const realmURLTemplate = '%s/json/global-config/realms/%s';

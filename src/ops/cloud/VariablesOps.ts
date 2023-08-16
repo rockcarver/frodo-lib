@@ -1,11 +1,11 @@
 import {
-  VariableExpressionType,
-  VariableSkeleton,
   deleteVariable as _deleteVariable,
   getVariable as _getVariable,
   getVariables as _getVariables,
   putVariable as _putVariable,
   setVariableDescription as _setVariableDescription,
+  VariableExpressionType,
+  VariableSkeleton,
 } from '../../api/cloud/VariablesApi';
 import { State } from '../../shared/State';
 import { debugMessage } from '../../utils/Console';

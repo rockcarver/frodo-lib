@@ -1,13 +1,14 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
-import pollyJest from 'setup-polly-jest';
-import { Polly } from '@pollyjs/core';
-import { MODES } from '@pollyjs/utils';
 import NodeHttpAdapter from '@pollyjs/adapter-node-http';
+import { Polly } from '@pollyjs/core';
 import FSPersister from '@pollyjs/persister-fs';
-import { getTokens } from '../ops/AuthenticateOps';
-import { state } from '../index';
+import { MODES } from '@pollyjs/utils';
 import { LogLevelDesc } from 'loglevel';
+import path from 'path';
+import pollyJest from 'setup-polly-jest';
+import { fileURLToPath } from 'url';
+
+import { state } from '../index';
+import { getTokens } from '../ops/AuthenticateOps';
 
 const { setupPolly } = pollyJest;
 Polly.register(NodeHttpAdapter);

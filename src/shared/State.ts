@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { JwkRsa } from '../ops/JoseOps';
+
 import { FeatureInterface } from '../api/cloud/FeatureApi';
+import { JwkRsa } from '../ops/JoseOps';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

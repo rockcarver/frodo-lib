@@ -1,10 +1,10 @@
 import {
-  RealmSkeleton,
-  getRealms as _getRealms,
-  getRealm as _getRealm,
   createRealm as _createRealm,
-  putRealm as _putRealm,
   deleteRealm as _deleteRealm,
+  getRealm as _getRealm,
+  getRealms as _getRealms,
+  putRealm as _putRealm,
+  RealmSkeleton,
 } from '../api/RealmApi';
 import { State } from '../shared/State';
 import { getRealmName } from '../utils/ForgeRockUtils';

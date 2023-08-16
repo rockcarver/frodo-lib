@@ -9,13 +9,14 @@
  * +--------------------+-----------------------+----------------+----------------+
  * This module doesn't take care of data persistence, it's assumed the consuming method/class/package will do so.
  */
-import fs, { promises as fsp } from 'fs';
 import crypto from 'crypto';
+import fs, { promises as fsp } from 'fs';
 import { homedir } from 'os';
 import { promisify } from 'util';
-import { printMessage } from './Console';
+
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
+import { printMessage } from './Console';
 
 const scrypt = promisify(crypto.scrypt);
 // using WeakMaps for added security since  it gets garbage collected
