@@ -72,14 +72,14 @@ async function stagePolicySet(policySet: PolicySetSkeleton, create = true) {
 async function stageScript(script: ScriptSkeleton, create = true) {
   // delete if exists, then create
   try {
-    await ScriptOps.getScript({ scriptId: script._id, state });
-    await ScriptOps.deleteScript({ scriptId: script._id, state });
+    await ScriptOps.getScript({ scriptId: script._id as string, state });
+    await ScriptOps.deleteScript({ scriptId: script._id as string, state });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
       await ScriptOps.putScript({
-        scriptId: script._id,
+        scriptId: script._id as string,
         scriptData: script,
         state,
       });
@@ -90,14 +90,14 @@ async function stageScript(script: ScriptSkeleton, create = true) {
 async function stagePolicy(policy: PolicySkeleton, create = true) {
   // delete if exists, then create
   try {
-    await PoliciesApi.getPolicy({ policyId: policy._id, state });
-    await PoliciesApi.deletePolicy({ policyId: policy._id, state });
+    await PoliciesApi.getPolicy({ policyId: policy._id as string, state });
+    await PoliciesApi.deletePolicy({ policyId: policy._id as string, state });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
       await PoliciesApi.putPolicy({
-        policyId: policy._id,
+        policyId: policy._id as string,
         policyData: policy,
         state,
       });
@@ -573,11 +573,11 @@ describe('PolicyOps', () => {
       exportToolVersion: 'v0.18.9-6 [v19.4.0]',
     },
     script: {
-      [script1._id]: script1,
-      [script2._id]: script2,
+      [script1._id as string]: script1,
+      [script2._id as string]: script2,
     },
     policy: {
-      [policy11._id]: policy11,
+      [policy11._id as string]: policy11,
     },
     policyset: {
       [set1.name]: set1,
@@ -596,11 +596,11 @@ describe('PolicyOps', () => {
       exportToolVersion: 'v0.18.9-6 [v19.4.0]',
     },
     script: {
-      [script1._id]: script1,
-      [script2._id]: script2,
+      [script1._id as string]: script1,
+      [script2._id as string]: script2,
     },
     policy: {
-      [policy12._id]: policy12,
+      [policy12._id as string]: policy12,
     },
     policyset: {
       [set1.name]: set1,
@@ -619,12 +619,12 @@ describe('PolicyOps', () => {
       exportToolVersion: 'v0.18.9-6 [v19.4.0]',
     },
     script: {
-      [script1._id]: script1,
-      [script2._id]: script2,
+      [script1._id as string]: script1,
+      [script2._id as string]: script2,
     },
     policy: {
-      [policy13._id]: policy13,
-      [policy14._id]: policy14,
+      [policy13._id as string]: policy13,
+      [policy14._id as string]: policy14,
     },
     policyset: {
       [set1.name]: set1,
@@ -643,12 +643,12 @@ describe('PolicyOps', () => {
       exportToolVersion: 'v0.18.9-6 [v19.4.0]',
     },
     script: {
-      [script1._id]: script1,
-      [script2._id]: script2,
+      [script1._id as string]: script1,
+      [script2._id as string]: script2,
     },
     policy: {
-      [policy15._id]: policy15,
-      [policy16._id]: policy16,
+      [policy15._id as string]: policy15,
+      [policy16._id as string]: policy16,
     },
     policyset: {
       [set1.name]: set1,
@@ -667,12 +667,12 @@ describe('PolicyOps', () => {
       exportToolVersion: 'v0.18.9-6 [v19.4.0]',
     },
     script: {
-      [script1._id]: script1,
-      [script2._id]: script2,
+      [script1._id as string]: script1,
+      [script2._id as string]: script2,
     },
     policy: {
-      [policy17._id]: policy17,
-      [policy18._id]: policy18,
+      [policy17._id as string]: policy17,
+      [policy18._id as string]: policy18,
     },
     policyset: {
       [set1.name]: set1,
@@ -691,12 +691,12 @@ describe('PolicyOps', () => {
       exportToolVersion: 'v0.18.9-6 [v19.4.0]',
     },
     script: {
-      [script1._id]: script1,
-      [script2._id]: script2,
+      [script1._id as string]: script1,
+      [script2._id as string]: script2,
     },
     policy: {
-      [policy19._id]: policy19,
-      [policy20._id]: policy20,
+      [policy19._id as string]: policy19,
+      [policy20._id as string]: policy20,
     },
     policyset: {
       [set1.name]: set1,
@@ -762,24 +762,24 @@ describe('PolicyOps', () => {
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '1')
   ) {
-    describe('getPolicies()', () => {
+    describe('readPolicies()', () => {
       test('0: Method is implemented', async () => {
-        expect(PolicyOps.getPolicies).toBeDefined();
+        expect(PolicyOps.readPolicies).toBeDefined();
       });
 
       test('1: Get all policies', async () => {
-        const response = await PolicyOps.getPolicies({ state });
+        const response = await PolicyOps.readPolicies({ state });
         expect(response).toMatchSnapshot();
       });
     });
 
-    describe('getPoliciesByPolicySet()', () => {
+    describe('readPoliciesByPolicySet()', () => {
       test('0: Method is implemented', async () => {
-        expect(PolicyOps.getPoliciesByPolicySet).toBeDefined();
+        expect(PolicyOps.readPoliciesByPolicySet).toBeDefined();
       });
 
       test(`1: Get all policies in policy set [${set1.name}]`, async () => {
-        const response = await PolicyOps.getPoliciesByPolicySet({
+        const response = await PolicyOps.readPoliciesByPolicySet({
           policySetId: set1.name,
           state,
         });
@@ -787,14 +787,14 @@ describe('PolicyOps', () => {
       });
     });
 
-    describe('getPolicy()', () => {
+    describe('readPolicy()', () => {
       test('0: Method is implemented', async () => {
-        expect(PolicyOps.getPolicy).toBeDefined();
+        expect(PolicyOps.readPolicy).toBeDefined();
       });
 
       test(`1: Get existing policy [${policy1._id}]`, async () => {
-        const response = await PolicyOps.getPolicy({
-          policyId: policy1._id,
+        const response = await PolicyOps.readPolicy({
+          policyId: policy1._id as string,
           state,
         });
         expect(response).toMatchSnapshot();
@@ -803,21 +803,21 @@ describe('PolicyOps', () => {
       test('2: Get non-existing policy [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await PolicyOps.getPolicy({ policyId: 'DoesNotExist', state });
+          await PolicyOps.readPolicy({ policyId: 'DoesNotExist', state });
         } catch (error) {
           expect(error.response.data).toMatchSnapshot();
         }
       });
     });
 
-    describe('putPolicy()', () => {
+    describe('updatePolicy()', () => {
       test('0: Method is implemented', async () => {
-        expect(PolicyOps.putPolicy).toBeDefined();
+        expect(PolicyOps.updatePolicy).toBeDefined();
       });
 
       test(`1: Create non-existing policy [${policy3.name}]`, async () => {
-        const response = await PolicyOps.putPolicy({
-          policyId: policy3._id,
+        const response = await PolicyOps.updatePolicy({
+          policyId: policy3._id as string,
           policyData: policy3,
           state,
         });
@@ -825,8 +825,8 @@ describe('PolicyOps', () => {
       });
 
       test(`2: Update existing policy [${policy4.name}]`, async () => {
-        const response = await PolicyOps.putPolicy({
-          policyId: policy4._id,
+        const response = await PolicyOps.updatePolicy({
+          policyId: policy4._id as string,
           policyData: policy4,
           state,
         });
@@ -868,7 +868,7 @@ describe('PolicyOps', () => {
 
       test(`1: Export existing policy w/o deps [${policy9._id}]`, async () => {
         const response = await PolicyOps.exportPolicy({
-          policyId: policy9._id,
+          policyId: policy9._id as string,
           options: {
             deps: false,
             prereqs: false,
@@ -883,7 +883,7 @@ describe('PolicyOps', () => {
 
       test(`2: Export existing policy w/ deps [${policy9._id}]`, async () => {
         const response = await PolicyOps.exportPolicy({
-          policyId: policy9._id,
+          policyId: policy9._id as string,
           options: {
             deps: true,
             prereqs: false,
@@ -991,7 +991,7 @@ describe('PolicyOps', () => {
 
       test(`1: Import policy [${policy11._id}] w/o deps`, async () => {
         const response = await PolicyOps.importPolicy({
-          policyId: policy11._id,
+          policyId: policy11._id as string,
           importData: import1,
           options: {
             deps: false,
@@ -1004,7 +1004,7 @@ describe('PolicyOps', () => {
 
       test(`2: Import policy [${policy12._id}] w/ deps`, async () => {
         const response = await PolicyOps.importPolicy({
-          policyId: policy12._id,
+          policyId: policy12._id as string,
           importData: import2,
           options: {
             deps: true,
@@ -1107,7 +1107,7 @@ describe('PolicyOps', () => {
 
       test(`1: Delete existing policy [${policy7._id}]`, async () => {
         const response = await PolicyOps.deletePolicy({
-          policyId: policy7._id,
+          policyId: policy7._id as string,
           state,
         });
         expect(response).toMatchSnapshot();

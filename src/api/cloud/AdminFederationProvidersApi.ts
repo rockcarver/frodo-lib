@@ -1,9 +1,12 @@
 import util from 'util';
-import { generateAmApi } from '../BaseApi';
+
+import { State } from '../../shared/State';
 import { getRealmPath } from '../../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../../utils/JsonUtils';
-import { State } from '../../shared/State';
-import { AmServiceType, PagedResult, SocialIdpSkeleton } from '../ApiTypes';
+import { type IdObjectSkeletonInterface, type PagedResult } from '../ApiTypes';
+import { generateAmApi } from '../BaseApi';
+import { type AmServiceType } from '../ServiceApi';
+import { type SocialIdpSkeleton } from '../SocialIdentityProvidersApi';
 
 const getAllProviderTypesURLTemplate =
   '%s/json%s/realm-config/services/SocialIdentityProviders?_action=getAllTypes';
@@ -19,6 +22,16 @@ const getApiConfig = () => {
   return {
     path: `${configPath}/realm-config/services/SocialIdentityProviders`,
     apiVersion,
+  };
+};
+
+export type AdminFederationConfigSkeleton = IdObjectSkeletonInterface & {
+  groups: {
+    claim: string;
+    mappings: {
+      'super-admins': string[];
+      'tenant-admins': string[];
+    };
   };
 };
 

@@ -1,13 +1,17 @@
 import util from 'util';
-import { generateAmApi } from './BaseApi';
+
+import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../utils/JsonUtils';
-import { State } from '../shared/State';
 import {
-  NoIdObjectSkeletonInterface,
-  OAuth2ClientSkeleton,
-  PagedResult,
+  type IdObjectSkeletonInterface,
+  type NoIdObjectSkeletonInterface,
+  type PagedResult,
+  type ReadableStrings,
+  type WritableStrings,
 } from './ApiTypes';
+import { generateAmApi } from './BaseApi';
+import { AmServiceType } from './ServiceApi';
 
 const oauth2ClientURLTemplate = '%s/json%s/realm-config/agents/OAuth2Client/%s';
 const oauth2ClientListURLTemplate =
@@ -17,6 +21,47 @@ const getApiConfig = () => {
   return {
     apiVersion,
   };
+};
+
+export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
+  overrideOAuth2ClientConfig?: {
+    [k: string]: string | number | boolean | string[] | object | undefined;
+  };
+  advancedOAuth2ClientConfig?: {
+    descriptions: {
+      inherited: boolean;
+      value: string[];
+    };
+    grantTypes?: ReadableStrings | WritableStrings;
+    [k: string]: string | number | boolean | string[] | object | undefined;
+  };
+  signEncOAuth2ClientConfig?: {
+    [k: string]: string | number | boolean | string[] | object | undefined;
+  };
+  coreOpenIDClientConfig?: {
+    [k: string]: string | number | boolean | string[] | object | undefined;
+  };
+  coreOAuth2ClientConfig?: {
+    userpassword?: string;
+    clientName?: {
+      inherited: boolean;
+      value: string[];
+    };
+    accessTokenLifetime?: {
+      inherited: boolean;
+      value: number;
+    };
+    scopes?: ReadableStrings | WritableStrings;
+    defaultScopes?: {
+      value: string[];
+      [k: string]: string | number | boolean | string[] | object | undefined;
+    };
+    [k: string]: string | number | boolean | string[] | object | undefined;
+  };
+  coreUmaClientConfig?: {
+    [k: string]: string | number | boolean | string[] | object | undefined;
+  };
+  _type: AmServiceType;
 };
 
 /**

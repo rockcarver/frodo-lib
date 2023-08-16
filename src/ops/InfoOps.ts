@@ -1,8 +1,8 @@
-import { getEnvInfo, EnvInfoInterface } from '../api/cloud/EnvInfoApi';
-import Constants from '../shared/Constants';
+import { EnvInfoInterface, getEnvInfo } from '../api/cloud/EnvInfoApi';
 import { getServerVersionInfo } from '../api/ServerInfoApi';
-import { getServiceAccount } from './cloud/ServiceAccountOps';
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
+import { getServiceAccount } from './cloud/ServiceAccountOps';
 
 export type Info = {
   /**

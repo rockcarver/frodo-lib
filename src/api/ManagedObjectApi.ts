@@ -1,8 +1,9 @@
 import util from 'util';
-import { generateIdmApi } from './BaseApi';
-import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
+
 import { State } from '../shared/State';
 import { getHostBaseUrl } from '../utils/ForgeRockUtils';
+import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
+import { generateIdmApi } from './BaseApi';
 
 const createManagedObjectURLTemplate = '%s/openidm/managed/%s?_action=create';
 const managedObjectByIdURLTemplate = '%s/openidm/managed/%s/%s';
@@ -44,7 +45,7 @@ export async function getManagedObject({
 /**
  * Create managed object with server-generated id
  * @param {string} moType managed object type
- * @param {any} moData managed object data
+ * @param {IdObjectSkeletonInterface} moData managed object data
  * @param {State} state library state
  * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
  */
@@ -72,7 +73,8 @@ export async function createManagedObject({
 /**
  * Create or update managed object
  * @param {string} id managed object id
- * @param {string} moData managed object
+ * @param {IdObjectSkeletonInterface} moData managed object
+ * @param {boolean} failIfExists fail if exists
  * @param {State} state library state
  * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
  */
@@ -80,11 +82,13 @@ export async function putManagedObject({
   type,
   id,
   moData,
+  failIfExists = false,
   state,
 }: {
   type: string;
   id: string;
   moData: IdObjectSkeletonInterface;
+  failIfExists?: boolean;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
@@ -93,18 +97,25 @@ export async function putManagedObject({
     type,
     id
   );
-  return generateIdmApi({ requestOverride: {}, state }).put(urlString, moData);
+  const requestOverride = failIfExists
+    ? { headers: { 'If-None-Match': '*' } }
+    : {};
+  const { data } = await generateIdmApi({ requestOverride, state }).put(
+    urlString,
+    moData
+  );
+  return data;
 }
 
 /**
- * Find managed object
+ * Query managed object
  * @param {string} type managed object type, e.g. alpha_user or user
  * @param {string} filter CREST search filter
  * @param {string[]} id array of fields to include
  * @param {State} state library state
  * @returns {Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an ObjectSkeletonInterface
  */
-export async function findManagedObjects({
+export async function queryManagedObjects({
   type,
   filter,
   fields = ['*'],

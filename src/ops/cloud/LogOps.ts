@@ -1,17 +1,15 @@
-import {
-  LogApiKey,
-  LogEventPayloadSkeleton,
-  LogEventSkeleton,
-  PagedResult,
-} from '../../api/ApiTypes';
+import { type PagedResult } from '../../api/ApiTypes';
 import {
   createLogApiKey,
   deleteLogApiKey as _deleteLogApiKey,
-  getLogApiKeys as _getLogApiKeys,
-  getSources,
-  tail,
   fetch,
   getLogApiKey,
+  getLogApiKeys as _getLogApiKeys,
+  getSources,
+  type LogApiKey,
+  type LogEventPayloadSkeleton,
+  type LogEventSkeleton,
+  tail,
 } from '../../api/cloud/LogApi';
 import { State } from '../../shared/State';
 
@@ -530,4 +528,4 @@ export async function deleteLogApiKeys({
   return responses;
 }
 
-export { tail, fetch, createLogApiKey };
+export { createLogApiKey, fetch, tail };

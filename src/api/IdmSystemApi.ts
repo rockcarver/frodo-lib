@@ -1,7 +1,8 @@
 import util from 'util';
-import { generateIdmApi } from './BaseApi';
-import { getHostBaseUrl } from '../utils/ForgeRockUtils';
+
 import { State } from '../shared/State';
+import { getHostBaseUrl } from '../utils/ForgeRockUtils';
+import { generateIdmApi } from './BaseApi';
 
 const testConnectorServersURLTemplate =
   '%s/openidm/system?_action=testConnectorServers';

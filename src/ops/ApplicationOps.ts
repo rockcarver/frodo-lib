@@ -1,26 +1,24 @@
-import {
-  IdObjectSkeletonInterface,
-  OAuth2ClientSkeleton,
-  ScriptSkeleton,
-} from '../api/ApiTypes';
+import { type IdObjectSkeletonInterface } from '../api/ApiTypes';
+import { type OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
+import { type ScriptSkeleton } from '../api/ScriptApi';
+import constants from '../shared/Constants';
 import { State } from '../shared/State';
+import { decode } from '../utils/Base64Utils';
 import { debugMessage } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { get, mergeDeep } from '../utils/JsonUtils';
+import { exportCirclesOfTrust } from './CirclesOfTrustOps';
 import {
   createManagedObject,
+  deleteManagedObject,
+  queryManagedObjects,
   readManagedObject,
   readManagedObjects,
   updateManagedObject,
-  deleteManagedObject,
-  findManagedObjects,
 } from './ManagedObjectOps';
 import { exportOAuth2Client } from './OAuth2ClientOps';
-import { ExportMetaData } from './OpsTypes';
+import { type ExportMetaData } from './OpsTypes';
 import { exportSaml2Provider } from './Saml2Ops';
-import constants from '../shared/Constants';
-import { decode } from '../utils/Base64Utils';
-import { exportCirclesOfTrust } from './CirclesOfTrustOps';
 
 const defaultFields = [
   'authoritative',
@@ -52,12 +50,12 @@ export type Application = {
   /**
    * Create application
    * @param {string} applicationId application id/name
-   * @param {ApplicationSkeleton} moData application data
+   * @param {ApplicationSkeleton} applicationData application data
    * @returns {Promise<ApplicationSkeleton>} a promise that resolves to an application object
    */
   createApplication(
     applicationId: string,
-    moData: ApplicationSkeleton
+    applicationData: ApplicationSkeleton
   ): Promise<ApplicationSkeleton>;
   /**
    * Read application
@@ -73,12 +71,12 @@ export type Application = {
   /**
    * Update application
    * @param {string} applicationId application uuid
-   * @param {ApplicationSkeleton} moData application data
+   * @param {ApplicationSkeleton} applicationData application data
    * @returns {Promise<ApplicationSkeleton>} a promise that resolves to an application object
    */
   updateApplication(
     applicationId: string,
-    moData: IdObjectSkeletonInterface
+    applicationData: ApplicationSkeleton
   ): Promise<ApplicationSkeleton>;
   /**
    * Delete application
@@ -92,11 +90,11 @@ export type Application = {
    */
   deleteApplications(): Promise<ApplicationSkeleton[]>;
   /**
-   * Find applications
+   * Query applications
    * @param filter CREST search filter
    * @param fields array of fields to return
    */
-  findApplications(
+  queryApplications(
     filter: string,
     fields?: string[]
   ): Promise<ApplicationSkeleton[]>;
@@ -142,9 +140,13 @@ export default (state: State): Application => {
     },
     async createApplication(
       applicationId: string,
-      moData: IdObjectSkeletonInterface
+      applicationData: ApplicationSkeleton
     ): Promise<ApplicationSkeleton> {
-      return createApplication({ applicationId, moData, state });
+      return createApplication({
+        applicationId,
+        applicationData,
+        state,
+      });
     },
     async readApplication(
       applicationId: string,
@@ -159,7 +161,11 @@ export default (state: State): Application => {
       applicationId: string,
       moData: IdObjectSkeletonInterface
     ): Promise<ApplicationSkeleton> {
-      return updateApplication({ applicationId, moData, state });
+      return updateApplication({
+        applicationId,
+        applicationData: moData,
+        state,
+      });
     },
     async deleteApplication(
       applicationId: string
@@ -169,11 +175,11 @@ export default (state: State): Application => {
     async deleteApplications(): Promise<ApplicationSkeleton[]> {
       return deleteApplications({ state });
     },
-    async findApplications(
+    async queryApplications(
       filter: string,
       fields: string[] = defaultFields
     ): Promise<ApplicationSkeleton[]> {
-      return findApplications({ filter, fields, state });
+      return queryApplications({ filter, fields, state });
     },
     async exportApplication(
       applicationId: string,
@@ -259,17 +265,17 @@ export function getRealmManagedApplication({ state }: { state: State }) {
 
 export async function createApplication({
   applicationId,
-  moData,
+  applicationData,
   state,
 }: {
   applicationId: string;
-  moData: IdObjectSkeletonInterface;
+  applicationData: ApplicationSkeleton;
   state: State;
 }): Promise<ApplicationSkeleton> {
   const application = await createManagedObject({
     type: getRealmManagedApplication({ state }),
     id: applicationId,
-    moData,
+    moData: applicationData,
     state,
   });
   return application as ApplicationSkeleton;
@@ -310,17 +316,17 @@ export async function readApplications({
 
 export async function updateApplication({
   applicationId,
-  moData,
+  applicationData,
   state,
 }: {
   applicationId: string;
-  moData: IdObjectSkeletonInterface;
+  applicationData: IdObjectSkeletonInterface;
   state: State;
 }): Promise<ApplicationSkeleton> {
   const application = await updateManagedObject({
     type: getRealmManagedApplication({ state }),
     id: applicationId,
-    moData,
+    moData: applicationData,
     state,
   });
   return application as ApplicationSkeleton;
@@ -376,7 +382,7 @@ export async function deleteApplications({
   return deleted;
 }
 
-export async function findApplications({
+export async function queryApplications({
   filter,
   fields = defaultFields,
   state,
@@ -385,7 +391,7 @@ export async function findApplications({
   fields?: string[];
   state: State;
 }): Promise<ApplicationSkeleton[]> {
-  const application = await findManagedObjects({
+  const application = await queryManagedObjects({
     type: getRealmManagedApplication({ state }),
     filter,
     fields,

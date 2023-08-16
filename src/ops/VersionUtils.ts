@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { generateReleaseApi } from '../api/BaseApi';
-
 import { fileURLToPath } from 'url';
+
+import { generateReleaseApi } from '../api/BaseApi';
 import { State } from '../shared/State';
 
 export type Version = {

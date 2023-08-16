@@ -7,7 +7,7 @@
  *    script and override all the connection state variables required
  *    to connect to the env to record from:
  *
- *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record IdmOps
+ *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record IdmConfigOps
  *
  *    The above command assumes that you have a connection profile for
  *    'frodo-dev' on your development machine.
@@ -17,27 +17,28 @@
  *    After recording, the ESM snapshots will already be updated as that happens
  *    in one go, but you musty manually update the CJS snapshots by running:
  *
- *        FRODO_DEBUG=1 npm run test:update IdmOps
+ *        FRODO_DEBUG=1 npm run test:update IdmConfigOps
  *
  * 3. Test your changes
  *
  *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
  *    replay mode and make sure they all succeed as well:
  *
- *        npm run test:only IdmOps
+ *        npm run test:only IdmConfigOps
  *
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
 import { state } from '../index';
 import * as IdmConfigApi from '../api/IdmConfigApi';
-import * as IdmOps from './IdmOps';
+import * as IdmConfigOps from './IdmConfigOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 
 autoSetupPolly();
 
 async function stageConfigEntity(
-  configEntity: { id: string; data: object },
+  configEntity: { id: string; data: IdObjectSkeletonInterface },
   create = true
 ) {
   // delete if exists, then create
@@ -57,7 +58,7 @@ async function stageConfigEntity(
   }
 }
 
-describe('IdmOps', () => {
+describe('IdmConfigOps', () => {
   const configEntity1 = {
     id: 'emailTemplate/FrodoTestConfigEntity1',
     data: {
@@ -125,32 +126,32 @@ describe('IdmOps', () => {
     }
   });
 
-  describe('getAllConfigEntities()', () => {
+  describe('readConfigEntities()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdmOps.getAllConfigEntities).toBeDefined();
+      expect(IdmConfigOps.readConfigEntities).toBeDefined();
     });
 
-    test('1: get all config entities', async () => {
-      const response = await IdmOps.getAllConfigEntities({ state });
+    test('1: Read all config entities', async () => {
+      const response = await IdmConfigOps.readConfigEntities({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
-  describe('getConfigEntitiesByType()', () => {
+  describe('readConfigEntitiesByType()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdmOps.getConfigEntitiesByType).toBeDefined();
+      expect(IdmConfigOps.readConfigEntitiesByType).toBeDefined();
     });
 
-    test('1: Get config entity by type (emailTemplate)', async () => {
-      const response = await IdmOps.getConfigEntitiesByType({
+    test('1: Read config entity by type (emailTemplate)', async () => {
+      const response = await IdmConfigOps.readConfigEntitiesByType({
         type: 'emailTemplate',
         state,
       });
       expect(response).toMatchSnapshot();
     });
 
-    test('2: Get config entity by type (managed)', async () => {
-      const response = await IdmOps.getConfigEntitiesByType({
+    test('2: Read config entity by type (managed)', async () => {
+      const response = await IdmConfigOps.readConfigEntitiesByType({
         type: 'managed',
         state,
       });
@@ -158,21 +159,21 @@ describe('IdmOps', () => {
     });
   });
 
-  describe('getConfigEntity()', () => {
+  describe('readConfigEntity()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdmOps.getConfigEntity).toBeDefined();
+      expect(IdmConfigOps.readConfigEntity).toBeDefined();
     });
 
-    test(`1: Get config entity '${configEntity1.id}'`, async () => {
-      const response = await IdmOps.getConfigEntity({
+    test(`1: Read config entity '${configEntity1.id}'`, async () => {
+      const response = await IdmConfigOps.readConfigEntity({
         entityId: configEntity1.id,
         state,
       });
       expect(response).toMatchSnapshot();
     });
 
-    test("2: Get config entity 'managed'", async () => {
-      const response = await IdmOps.getConfigEntity({
+    test("2: Read config entity 'managed'", async () => {
+      const response = await IdmConfigOps.readConfigEntity({
         entityId: 'managed',
         state,
       });
@@ -180,13 +181,13 @@ describe('IdmOps', () => {
     });
   });
 
-  describe('putConfigEntity()', () => {
+  describe('updateConfigEntity()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdmOps.putConfigEntity).toBeDefined();
+      expect(IdmConfigOps.updateConfigEntity).toBeDefined();
     });
 
-    test(`1: Put a config entity '${configEntity3.id}'`, async () => {
-      const response = await IdmOps.putConfigEntity({
+    test(`1: Update a config entity '${configEntity3.id}'`, async () => {
+      const response = await IdmConfigOps.updateConfigEntity({
         entityId: configEntity3.id,
         entityData: configEntity3.data,
         state,
@@ -195,28 +196,13 @@ describe('IdmOps', () => {
     });
   });
 
-  describe('queryAllManagedObjectsByType()', () => {
-    test('0: Method is implemented', async () => {
-      expect(IdmOps.queryAllManagedObjectsByType).toBeDefined();
-    });
-
-    test(`1: Query managed objects of type 'alpha_user'`, async () => {
-      const response = await IdmOps.queryAllManagedObjectsByType({
-        type: 'alpha_user',
-        fields: ['*'],
-        state,
-      });
-      expect(response).toMatchSnapshot();
-    });
-  });
-
   describe('testConnectorServers()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdmOps.testConnectorServers).toBeDefined();
+      expect(IdmConfigOps.testConnectorServers).toBeDefined();
     });
 
     test(`1: Test connector servers`, async () => {
-      const response = await IdmOps.testConnectorServers({ state });
+      const response = await IdmConfigOps.testConnectorServers({ state });
       expect(response).toMatchSnapshot();
     });
   });

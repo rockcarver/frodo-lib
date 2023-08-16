@@ -1,9 +1,10 @@
 import util from 'util';
+
+import { State } from '../../shared/State';
 import { encode } from '../../utils/Base64Utils';
 import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { IdObjectSkeletonInterface, PagedResult } from '../ApiTypes';
 import { generateEnvApi } from '../BaseApi';
-import { State } from '../../shared/State';
-import { IdObjectSkeletonInterface } from '../ApiTypes';
 
 const variablesListURLTemplate = '%s/environment/variables';
 const variableURLTemplate = '%s/environment/variables/%s';
@@ -61,9 +62,13 @@ export type VariableSkeleton = IdObjectSkeletonInterface & {
 
 /**
  * Get all variables
- * @returns {Promise<unknown[]>} a promise that resolves to an array of variable objects
+ * @returns {Promise<PagedResult<VariableSkeleton>>} a promise that resolves to an array of variable objects
  */
-export async function getVariables({ state }: { state: State }) {
+export async function getVariables({
+  state,
+}: {
+  state: State;
+}): Promise<PagedResult<VariableSkeleton>> {
   const urlString = util.format(
     variablesListURLTemplate,
     getHostBaseUrl(state.getHost())
@@ -80,7 +85,7 @@ export async function getVariables({ state }: { state: State }) {
 /**
  * Get variable by id/name
  * @param {string} variableId variable id/name
- * @returns {Promise<unknown>} a promise that resolves to a variable object
+ * @returns {Promise<VariableSkeleton>} a promise that resolves to a variable object
  */
 export async function getVariable({
   variableId,
@@ -88,7 +93,7 @@ export async function getVariable({
 }: {
   variableId: string;
   state: State;
-}) {
+}): Promise<VariableSkeleton> {
   const urlString = util.format(
     variableURLTemplate,
     getHostBaseUrl(state.getHost()),
@@ -104,7 +109,7 @@ export async function getVariable({
 }
 
 /**
- * Put variable by id/name
+ * Create or update variable by id/name
  * @param {string} variableId variable id/name
  * @param {string} value variable value
  * @param {string} description variable description
@@ -146,7 +151,7 @@ export async function putVariable({
  * Set variable description
  * @param {string} variableId variable id/name
  * @param {string} description variable description
- * @returns {Promise<unknown>} a promise that resolves to a status object
+ * @returns {Promise<any>} a promise that resolves to an empty string.
  */
 export async function setVariableDescription({
   variableId,
@@ -156,7 +161,7 @@ export async function setVariableDescription({
   variableId: string;
   description: string;
   state: State;
-}) {
+}): Promise<any> {
   const urlString = util.format(
     variableSetDescriptionURLTemplate,
     getHostBaseUrl(state.getHost()),
@@ -172,7 +177,7 @@ export async function setVariableDescription({
 /**
  * Delete variable by id/name
  * @param {string} variableId variable id/name
- * @returns {Promise<unknown>} a promise that resolves to a variable object
+ * @returns {Promise<VariableSkeleton>} a promise that resolves to a variable object
  */
 export async function deleteVariable({
   variableId,
@@ -180,7 +185,7 @@ export async function deleteVariable({
 }: {
   variableId: string;
   state: State;
-}) {
+}): Promise<VariableSkeleton> {
   const urlString = util.format(
     variableURLTemplate,
     getHostBaseUrl(state.getHost()),
