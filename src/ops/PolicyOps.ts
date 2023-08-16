@@ -1,41 +1,83 @@
 import {
+  deletePolicy as _deletePolicy,
   getPolicies as _getPolicies,
   getPoliciesByPolicySet as _getPoliciesByPolicySet,
-  getPolicy,
-  putPolicy,
-  deletePolicy,
+  getPolicy as _getPolicy,
+  type PolicyCondition,
+  type PolicySkeleton,
+  putPolicy as _putPolicy,
 } from '../api/PoliciesApi';
-import { getScript, putScript } from './ScriptOps';
-import { convertBase64TextToArray } from '../utils/ExportImportUtils';
-import { ExportMetaData } from './OpsTypes';
+import { type PolicySetSkeleton } from '../api/PolicySetApi';
 import {
-  PolicyCondition,
-  PolicySetSkeleton,
-  PolicySkeleton,
-  ResourceTypeSkeleton,
-  ScriptSkeleton,
-} from '../api/ApiTypes';
-import { getMetadata } from '../utils/ExportImportUtils';
-import { debugMessage } from '../utils/Console';
-import { getResourceType } from '../api/ResourceTypesApi';
-import { createPolicySet, getPolicySet, updatePolicySet } from './PolicySetOps';
-import { createResourceType, updateResourceType } from './ResourceTypeOps';
+  getResourceType,
+  type ResourceTypeSkeleton,
+} from '../api/ResourceTypesApi';
+import { type ScriptSkeleton } from '../api/ScriptApi';
 import { State } from '../shared/State';
+import { debugMessage } from '../utils/Console';
+import {
+  convertBase64TextToArray,
+  getMetadata,
+} from '../utils/ExportImportUtils';
+import { type ExportMetaData } from './OpsTypes';
+import {
+  createPolicySet,
+  readPolicySet,
+  updatePolicySet,
+} from './PolicySetOps';
+import {
+  createResourceType as _createResourceType,
+  updateResourceType,
+} from './ResourceTypeOps';
+import { readScript, updateScript } from './ScriptOps';
 
 export type Policy = {
   /**
-   * Get all policies
+   * Create policy export template
+   */
+  createPolicyExportTemplate(): PolicyExportInterface;
+  /**
+   * Read all policies
    * @returns {Promise<PolicySkeleton>} a promise that resolves to an array of policy set objects
    */
-  getPolicies(): Promise<PolicySkeleton[]>;
+  readPolicies(): Promise<PolicySkeleton[]>;
   /**
    * Get policies by policy set
    * @param {string} policySetId policy set id/name
    * @returns {Promise<PolicySkeleton[]>} a promise resolving to an array of policy objects
    */
-  getPoliciesByPolicySet(policySetId: string): Promise<PolicySkeleton[]>;
-  getPolicy(policyId: string): Promise<PolicySkeleton>;
-  putPolicy(policyId: string, policyData: PolicySkeleton): Promise<any>;
+  readPoliciesByPolicySet(policySetId: string): Promise<PolicySkeleton[]>;
+  /**
+   * Get policy
+   * @param {string} policyId policy id/name
+   * @returns {Promise<PolicySkeleton>} promise resolving to a policy object
+   */
+  readPolicy(policyId: string): Promise<PolicySkeleton>;
+  /**
+   * Update or create policy
+   * @param {string} policyId policy id/name
+   * @param {PolicySkeleton} policyData policy object
+   * @returns {Promise<PolicySkeleton>} promise resolving to a policy object
+   */
+  createPolicy(
+    policyId: string,
+    policyData: PolicySkeleton
+  ): Promise<PolicySkeleton>;
+  /**
+   * Update or create policy
+   * @param {string} policyId policy id/name
+   * @param {PolicySkeleton} policyData policy object
+   * @returns {Promise<PolicySkeleton>} promise resolving to a policy object
+   */
+  updatePolicy(
+    policyId: string,
+    policyData: PolicySkeleton
+  ): Promise<PolicySkeleton>;
+  /**
+   * Delete policy
+   * @param {string} policyId policy id/name
+   * @returns {Promise<PolicySkeleton>} promise resolving to a policy object
+   */
   deletePolicy(policyId: string): Promise<any>;
   /**
    * Export policy
@@ -94,46 +136,84 @@ export type Policy = {
     importData: PolicyExportInterface,
     options?: PolicyImportOptions
   ): Promise<PolicySkeleton[]>;
+
+  // Deprecated
+
+  /**
+   * Get all policies
+   * @returns {Promise<PolicySkeleton>} a promise that resolves to an array of policy set objects
+   * @deprecated since v2.0.0 use {@link Agent.readPolicies | readPolicies} instead
+   * ```javascript
+   * readPolicies(): Promise<PolicySkeleton[]>
+   * ```
+   * @group Deprecated
+   */
+  getPolicies(): Promise<PolicySkeleton[]>;
+  /**
+   * Get policies by policy set
+   * @param {string} policySetId policy set id/name
+   * @returns {Promise<PolicySkeleton[]>} a promise resolving to an array of policy objects
+   * @deprecated since v2.0.0 use {@link Agent.readPoliciesByPolicySet | readPoliciesByPolicySet} instead
+   * ```javascript
+   * readPoliciesByPolicySet(policySetId: string): Promise<PolicySkeleton[]>
+   * ```
+   * @group Deprecated
+   */
+  getPoliciesByPolicySet(policySetId: string): Promise<PolicySkeleton[]>;
+  /**
+   * Get policy
+   * @param {string} policyId policy id/name
+   * @returns {Promise<PolicySkeleton>} promise resolving to a policy object
+   * @deprecated since v2.0.0 use {@link Agent.readPolicy | readPolicy} instead
+   * ```javascript
+   * readPolicy(policyId: string): Promise<PolicySkeleton>
+   * ```
+   * @group Deprecated
+   */
+  getPolicy(policyId: string): Promise<PolicySkeleton>;
+  /**
+   * Update or create policy
+   * @param {string} policyId policy id/name
+   * @param {PolicySkeleton} policyData policy object
+   * @returns {Promise<PolicySkeleton>} promise resolving to a policy object
+   * @deprecated since v2.0.0 use {@link Agent.updatePolicy | updatePolicy} or {@link Agent.createPolicy | createPolicy} instead
+   * ```javascript
+   * updatePolicy(policyId: string, policyData: PolicySkeleton): Promise<PolicySkeleton>
+   * createPolicy(policyId: string, policyData: PolicySkeleton): Promise<PolicySkeleton>
+   * ```
+   * @group Deprecated
+   */
+  putPolicy(
+    policyId: string,
+    policyData: PolicySkeleton
+  ): Promise<PolicySkeleton>;
 };
 
 export default (state: State): Policy => {
   return {
-    /**
-     * Get all policies
-     * @returns {Promise<PolicySkeleton>} a promise that resolves to an array of policy set objects
-     */
-    async getPolicies(): Promise<PolicySkeleton[]> {
-      return getPolicies({ state });
+    createPolicyExportTemplate(): PolicyExportInterface {
+      return createPolicyExportTemplate({ state });
     },
-
-    /**
-     * Get policies by policy set
-     * @param {string} policySetId policy set id/name
-     * @returns {Promise<PolicySkeleton[]>} a promise resolving to an array of policy objects
-     */
-    async getPoliciesByPolicySet(
+    async readPolicies(): Promise<PolicySkeleton[]> {
+      return readPolicies({ state });
+    },
+    async readPoliciesByPolicySet(
       policySetId: string
     ): Promise<PolicySkeleton[]> {
-      return getPoliciesByPolicySet({ policySetId, state });
+      return readPoliciesByPolicySet({ policySetId, state });
     },
-
-    async getPolicy(policyId: string) {
-      return getPolicy({ policyId, state });
+    async readPolicy(policyId: string) {
+      return readPolicy({ policyId, state });
     },
-
-    async putPolicy(policyId: string, policyData: PolicySkeleton) {
-      return putPolicy({ policyId, policyData, state });
+    async createPolicy(policyId: string, policyData: PolicySkeleton) {
+      return createPolicy({ policyId, policyData, state });
     },
-
+    async updatePolicy(policyId: string, policyData: PolicySkeleton) {
+      return updatePolicy({ policyId, policyData, state });
+    },
     async deletePolicy(policyId: string) {
       return deletePolicy({ policyId, state });
     },
-
-    /**
-     * Export policy
-     * @param {string} policyId policy id/name
-     * @returns {Promise<PolicyExportInterface>} a promise that resolves to a PolicyExportInterface object
-     */
     async exportPolicy(
       policyId: string,
       options: PolicyExportOptions = {
@@ -144,12 +224,6 @@ export default (state: State): Policy => {
     ): Promise<PolicyExportInterface> {
       return exportPolicy({ policyId, options, state });
     },
-
-    /**
-     * Export policies
-     * @param {PolicyExportOptions} options export options
-     * @returns {Promise<PolicyExportInterface>} a promise that resolves to an PolicyExportInterface object
-     */
     async exportPolicies(
       options: PolicyExportOptions = {
         deps: true,
@@ -159,13 +233,6 @@ export default (state: State): Policy => {
     ): Promise<PolicyExportInterface> {
       return exportPolicies({ options, state });
     },
-
-    /**
-     * Export policies by policy set
-     * @param {string} policySetName policy set id/name
-     * @param {PolicyExportOptions} options export options
-     * @returns {Promise<PolicyExportInterface>} a promise that resolves to an PolicyExportInterface object
-     */
     async exportPoliciesByPolicySet(
       policySetName: string,
       options: PolicyExportOptions = {
@@ -180,14 +247,6 @@ export default (state: State): Policy => {
         state,
       });
     },
-
-    /**
-     * Import policy by id
-     * @param {string} policyId policy id
-     * @param {PolicyExportInterface} importData import data
-     * @param {PolicyImportOptions} options import options
-     * @returns {Promise<PolicySkeleton>} imported policy object
-     */
     async importPolicy(
       policyId: string,
       importData: PolicyExportInterface,
@@ -195,31 +254,34 @@ export default (state: State): Policy => {
     ): Promise<PolicySkeleton> {
       return importPolicy({ policyId, importData, options, state });
     },
-
-    /**
-     * Import first policy
-     * @param {PolicyExportInterface} importData import data
-     * @param {PolicyImportOptions} options import options
-     * @returns {Promise<PolicySkeleton>} imported policy object
-     */
     async importFirstPolicy(
       importData: PolicyExportInterface,
       options: PolicyImportOptions = { deps: true, prereqs: false }
     ): Promise<PolicySkeleton> {
       return importFirstPolicy({ importData, options, state });
     },
-
-    /**
-     * Import policies
-     * @param {PolicyExportInterface} importData import data
-     * @param {PolicyImportOptions} options import options
-     * @returns {Promise<PolicySkeleton[]>} array of imported policy objects
-     */
     async importPolicies(
       importData: PolicyExportInterface,
       options: PolicyImportOptions = { deps: true, prereqs: false }
     ): Promise<PolicySkeleton[]> {
       return importPolicies({ importData, options, state });
+    },
+
+    // Deprecated
+
+    async getPolicies(): Promise<PolicySkeleton[]> {
+      return readPolicies({ state });
+    },
+    async getPoliciesByPolicySet(
+      policySetId: string
+    ): Promise<PolicySkeleton[]> {
+      return readPoliciesByPolicySet({ policySetId, state });
+    },
+    async getPolicy(policyId: string) {
+      return readPolicy({ policyId, state });
+    },
+    async putPolicy(policyId: string, policyData: PolicySkeleton) {
+      return updatePolicy({ policyId, policyData, state });
     },
   };
 };
@@ -272,7 +334,7 @@ export interface PolicyImportOptions {
  * Create an empty export template
  * @returns {PolicyExportInterface} an empty export template
  */
-function createPolicyExportTemplate({
+export function createPolicyExportTemplate({
   state,
 }: {
   state: State;
@@ -290,7 +352,7 @@ function createPolicyExportTemplate({
  * Get all policies
  * @returns {Promise<PolicySkeleton>} a promise that resolves to an array of policy set objects
  */
-export async function getPolicies({
+export async function readPolicies({
   state,
 }: {
   state: State;
@@ -299,12 +361,32 @@ export async function getPolicies({
   return result;
 }
 
+export async function readPolicy({
+  policyId,
+  state,
+}: {
+  policyId: string;
+  state: State;
+}) {
+  return _getPolicy({ policyId, state });
+}
+
+export async function deletePolicy({
+  policyId,
+  state,
+}: {
+  policyId: string;
+  state: State;
+}) {
+  return _deletePolicy({ policyId, state });
+}
+
 /**
  * Get policies by policy set
  * @param {string} policySetId policy set id/name
  * @returns {Promise<PolicySkeleton[]>} a promise resolving to an array of policy objects
  */
-export async function getPoliciesByPolicySet({
+export async function readPoliciesByPolicySet({
   policySetId,
   state,
 }: {
@@ -315,7 +397,44 @@ export async function getPoliciesByPolicySet({
   return data.result;
 }
 
-export { getPolicy, putPolicy, deletePolicy };
+export async function createPolicy({
+  policyId,
+  policyData,
+  state,
+}: {
+  policyId: string;
+  policyData: PolicySkeleton;
+  state: State;
+}) {
+  debugMessage({ message: `PolicyOps.createPolicy: start`, state });
+  try {
+    await _getPolicy({ policyId, state });
+  } catch (error) {
+    const result = await _putPolicy({
+      policyId,
+      policyData,
+      state,
+    });
+    debugMessage({
+      message: `PolicyOps.createPolicy: end`,
+      state,
+    });
+    return result;
+  }
+  throw new Error(`Policy ${policyId} already exists!`);
+}
+
+export async function updatePolicy({
+  policyId,
+  policyData,
+  state,
+}: {
+  policyId: string;
+  policyData: PolicySkeleton;
+  state: State;
+}) {
+  return _putPolicy({ policyId, policyData, state });
+}
 
 /**
  * Find all script references in a deeply-nested policy condition object
@@ -410,7 +529,7 @@ export async function getScripts({
     debugMessage({ message: `found scripts: ${scriptUuids}`, state });
     for (const scriptUuid of scriptUuids) {
       try {
-        const script = await getScript({ scriptId: scriptUuid, state });
+        const script = await readScript({ scriptId: scriptUuid, state });
         scripts.push(script);
       } catch (error) {
         error.message = `Error retrieving script ${scriptUuid} referenced in policy ${policyData['name']}: ${error.message}`;
@@ -457,7 +576,7 @@ async function exportPolicyPrerequisites({
   }
   // policy set
   if (policyData.applicationName) {
-    const policySet = await getPolicySet({
+    const policySet = await readPolicySet({
       policySetName: policyData.applicationName,
       state,
     });
@@ -523,7 +642,7 @@ export async function exportPolicy({
   state: State;
 }): Promise<PolicyExportInterface> {
   debugMessage({ message: `PolicyOps.exportPolicy: start`, state });
-  const policyData = await getPolicy({ policyId, state });
+  const policyData = await _getPolicy({ policyId, state });
   const exportData = createPolicyExportTemplate({ state });
   exportData.policy[policyData._id] = policyData;
   if (options.prereqs) {
@@ -556,7 +675,7 @@ export async function exportPolicies({
   const exportData = createPolicyExportTemplate({ state });
   const errors = [];
   try {
-    const policies = await getPolicies({ state });
+    const policies = await readPolicies({ state });
     for (const policyData of policies) {
       exportData.policy[policyData._id] = policyData;
       if (options.prereqs) {
@@ -613,7 +732,7 @@ export async function exportPoliciesByPolicySet({
   const exportData = createPolicyExportTemplate({ state });
   const errors = [];
   try {
-    const policies = await getPoliciesByPolicySet({
+    const policies = await readPoliciesByPolicySet({
       policySetId: policySetName,
       state,
     });
@@ -677,7 +796,7 @@ async function importPolicyPrerequisites({
           message: `Importing resource type ${policyData.resourceTypeUuid}`,
           state,
         });
-        await createResourceType({
+        await _createResourceType({
           resourceTypeData:
             exportData.resourcetype[policyData.resourceTypeUuid],
           state,
@@ -757,7 +876,7 @@ async function importPolicyDependencies({
       try {
         const scriptData = exportData.script[scriptUuid];
         debugMessage({ message: `Importing script ${scriptUuid}`, state });
-        await putScript({ scriptId: scriptUuid, scriptData, state });
+        await updateScript({ scriptId: scriptUuid, scriptData, state });
       } catch (error) {
         debugMessage({ message: error.response?.data, state });
         error.message = `Error importing script ${scriptUuid} for policy ${
@@ -825,7 +944,7 @@ export async function importPolicy({
           }
         }
         try {
-          response = await putPolicy({
+          response = await updatePolicy({
             policyId: policyData._id,
             policyData,
             state,
@@ -899,7 +1018,7 @@ export async function importFirstPolicy({
         }
       }
       try {
-        response = await putPolicy({
+        response = await updatePolicy({
           policyId: policyData._id,
           policyData,
           state,
@@ -974,7 +1093,7 @@ export async function importPolicies({
       }
       try {
         response.push(
-          await putPolicy({ policyId: policyData._id, policyData, state })
+          await updatePolicy({ policyId: policyData._id, policyData, state })
         );
         imported.push(id);
       } catch (error) {

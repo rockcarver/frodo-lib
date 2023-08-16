@@ -19,120 +19,9 @@ exports[`PolicyOps exportPolicies() 1: Export all policies w/o deps 1`] = `
 {
   "meta": Any<Object>,
   "policy": {
-    "Allow Everything": {
-      "_id": "Allow Everything",
-      "_rev": "1684694915794",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": false,
-      "applicationName": "newApps",
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.335Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:35.794Z",
-      "name": "Allow Everything",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/*",
-        "*://*:*/*?*",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "App2": {
-      "_id": "App2",
-      "_rev": "1684694915876",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.400Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:35.876Z",
-      "name": "App2",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/forgerock/app2/*",
-        "*://*:*/app2/*",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "App3": {
-      "_id": "App3",
-      "_rev": "1684694915955",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.461Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:35.955Z",
-      "name": "App3",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/forgerock/app3/*",
-        "*://*:*/app3/*",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "Bi": {
-      "_id": "Bi",
-      "_rev": "1684694916200",
-      "actionValues": {
-        "DELETE": true,
-        "GET": true,
-        "HEAD": true,
-        "OPTIONS": true,
-        "PATCH": true,
-        "POST": true,
-        "PUT": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.654Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:36.200Z",
-      "name": "Bi",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://10.1.4.18:*/*",
-        "*://bi.scheuber.io:*/*",
-        "*://bi.scheuber.io:*/*?*",
-        "*://10.1.4.18:*/*?*",
-      ],
-      "subject": {
-        "subjects": [
-          {
-            "type": "AuthenticatedUsers",
-          },
-          {
-            "subjectValues": [
-              "id=BusinessApps,ou=group,o=alpha,ou=services,ou=am-config",
-            ],
-            "type": "Identity",
-          },
-        ],
-        "type": "AND",
-      },
-    },
     "FrodoTestPolicy1": {
       "_id": "FrodoTestPolicy1",
-      "_rev": "1684702168885",
+      "_rev": "1691208983792",
       "actionValues": {
         "GET": true,
       },
@@ -178,11 +67,11 @@ exports[`PolicyOps exportPolicies() 1: Export all policies w/o deps 1`] = `
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:28.885Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:23.792Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:28.885Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:23.792Z",
       "name": "FrodoTestPolicy1",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -195,7 +84,7 @@ exports[`PolicyOps exportPolicies() 1: Export all policies w/o deps 1`] = `
     },
     "FrodoTestPolicy3": {
       "_id": "FrodoTestPolicy3",
-      "_rev": "1684702170512",
+      "_rev": "1691208985362",
       "actionValues": {
         "GET": true,
       },
@@ -241,11 +130,11 @@ exports[`PolicyOps exportPolicies() 1: Export all policies w/o deps 1`] = `
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:30.512Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:25.362Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:30.512Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:25.362Z",
       "name": "FrodoTestPolicy3",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -258,7 +147,7 @@ exports[`PolicyOps exportPolicies() 1: Export all policies w/o deps 1`] = `
     },
     "FrodoTestPolicy4": {
       "_id": "FrodoTestPolicy4",
-      "_rev": "1684702170596",
+      "_rev": "1691208985467",
       "actionValues": {
         "GET": true,
       },
@@ -304,11 +193,11 @@ exports[`PolicyOps exportPolicies() 1: Export all policies w/o deps 1`] = `
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.66Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:23.967Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:30.596Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:25.467Z",
       "name": "FrodoTestPolicy4",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -321,7 +210,7 @@ exports[`PolicyOps exportPolicies() 1: Export all policies w/o deps 1`] = `
     },
     "FrodoTestPolicy5": {
       "_id": "FrodoTestPolicy5",
-      "_rev": "1684702169188",
+      "_rev": "1691208984096",
       "actionValues": {
         "GET": true,
       },
@@ -367,11 +256,11 @@ exports[`PolicyOps exportPolicies() 1: Export all policies w/o deps 1`] = `
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.188Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.96Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.188Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.96Z",
       "name": "FrodoTestPolicy5",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -384,7 +273,7 @@ exports[`PolicyOps exportPolicies() 1: Export all policies w/o deps 1`] = `
     },
     "FrodoTestPolicy7": {
       "_id": "FrodoTestPolicy7",
-      "_rev": "1684702169360",
+      "_rev": "1691208984262",
       "actionValues": {
         "GET": true,
       },
@@ -430,11 +319,11 @@ exports[`PolicyOps exportPolicies() 1: Export all policies w/o deps 1`] = `
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.360Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.262Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.360Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.262Z",
       "name": "FrodoTestPolicy7",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -447,7 +336,7 @@ exports[`PolicyOps exportPolicies() 1: Export all policies w/o deps 1`] = `
     },
     "FrodoTestPolicy9": {
       "_id": "FrodoTestPolicy9",
-      "_rev": "1684702169488",
+      "_rev": "1691208984378",
       "actionValues": {
         "GET": true,
       },
@@ -493,215 +382,16 @@ exports[`PolicyOps exportPolicies() 1: Export all policies w/o deps 1`] = `
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.488Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.378Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.488Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.378Z",
       "name": "FrodoTestPolicy9",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
         "*://*:*/forgerock/app2/*",
         "*://*:*/app2/*",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "Grafana": {
-      "_id": "Grafana",
-      "_rev": "1684694916292",
-      "actionValues": {
-        "DELETE": true,
-        "GET": true,
-        "HEAD": true,
-        "OPTIONS": true,
-        "PATCH": true,
-        "POST": true,
-        "PUT": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.720Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:36.292Z",
-      "name": "Grafana",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://ig.mytestrun.com:*/grafana",
-        "*://ig.mytestrun.com:*/grafana/*?*",
-        "*://10.1.4.18:3000/*",
-        "*://ig.mytestrun.com:*/grafana/*",
-        "*://ig.mytestrun.com:*/grafana?*",
-        "*://10.1.4.18:3000/*?*",
-      ],
-      "subject": {
-        "subjects": [
-          {
-            "type": "AuthenticatedUsers",
-          },
-          {
-            "subjectValues": [
-              "id=BusinessApps,ou=group,o=alpha,ou=services,ou=am-config",
-            ],
-            "type": "Identity",
-          },
-        ],
-        "type": "AND",
-      },
-    },
-    "Pay - Transactional AuthZ": {
-      "_id": "Pay - Transactional AuthZ",
-      "_rev": "1684694916035",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "condition": {
-        "authenticationStrategy": "AuthenticateToTreeConditionAdvice",
-        "strategySpecifier": "TxAuthZ",
-        "type": "Transaction",
-      },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.523Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:36.35Z",
-      "name": "Pay - Transactional AuthZ",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/pay/*",
-        "*://*:*/forgerock/pay/*",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "Tomcat - Transactional Auth": {
-      "_id": "Tomcat - Transactional Auth",
-      "_rev": "1684694915707",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "condition": {
-        "authenticationStrategy": "AuthenticateToTreeConditionAdvice",
-        "strategySpecifier": "TxAuthZ",
-        "type": "Transaction",
-      },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.266Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:35.707Z",
-      "name": "Tomcat - Transactional Auth",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/sample/hello.jsp",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "Zero Trust": {
-      "_id": "Zero Trust",
-      "_rev": "1684694916118",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": false,
-      "applicationName": "newApps",
-      "condition": {
-        "conditions": [
-          {
-            "maxSessionTime": 60,
-            "terminateSession": false,
-            "type": "Session",
-          },
-          {
-            "authenticationStrategy": "AuthenticateToTreeConditionAdvice",
-            "strategySpecifier": "ZeroTrust",
-            "type": "Transaction",
-          },
-        ],
-        "type": "AND",
-      },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.590Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:36.118Z",
-      "name": "Zero Trust",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/*",
-        "*://*:*/*?*",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "pol1": {
-      "_id": "pol1",
-      "_rev": "1684700691679",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "condition": {
-        "conditions": [
-          {
-            "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-            "type": "Script",
-          },
-          {
-            "authenticateToService": "TxAuthz",
-            "type": "AuthenticateToService",
-          },
-          {
-            "conditions": [
-              {
-                "maxSessionTime": 5,
-                "terminateSession": false,
-                "type": "Session",
-              },
-              {
-                "requiredScopes": [
-                  "openid",
-                ],
-                "type": "OAuth2Scope",
-              },
-              {
-                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                "type": "Script",
-              },
-              {
-                "condition": {
-                  "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                  "type": "Script",
-                },
-                "type": "NOT",
-              },
-            ],
-            "type": "OR",
-          },
-        ],
-        "type": "AND",
-      },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:24:51.679Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:24:51.679Z",
-      "name": "pol1",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/*",
       ],
       "subject": {
         "type": "AuthenticatedUsers",
@@ -718,120 +408,9 @@ exports[`PolicyOps exportPolicies() 2: Export all policies w/ deps 1`] = `
 {
   "meta": Any<Object>,
   "policy": {
-    "Allow Everything": {
-      "_id": "Allow Everything",
-      "_rev": "1684694915794",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": false,
-      "applicationName": "newApps",
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.335Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:35.794Z",
-      "name": "Allow Everything",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/*",
-        "*://*:*/*?*",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "App2": {
-      "_id": "App2",
-      "_rev": "1684694915876",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.400Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:35.876Z",
-      "name": "App2",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/forgerock/app2/*",
-        "*://*:*/app2/*",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "App3": {
-      "_id": "App3",
-      "_rev": "1684694915955",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.461Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:35.955Z",
-      "name": "App3",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/forgerock/app3/*",
-        "*://*:*/app3/*",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "Bi": {
-      "_id": "Bi",
-      "_rev": "1684694916200",
-      "actionValues": {
-        "DELETE": true,
-        "GET": true,
-        "HEAD": true,
-        "OPTIONS": true,
-        "PATCH": true,
-        "POST": true,
-        "PUT": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.654Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:36.200Z",
-      "name": "Bi",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://10.1.4.18:*/*",
-        "*://bi.scheuber.io:*/*",
-        "*://bi.scheuber.io:*/*?*",
-        "*://10.1.4.18:*/*?*",
-      ],
-      "subject": {
-        "subjects": [
-          {
-            "type": "AuthenticatedUsers",
-          },
-          {
-            "subjectValues": [
-              "id=BusinessApps,ou=group,o=alpha,ou=services,ou=am-config",
-            ],
-            "type": "Identity",
-          },
-        ],
-        "type": "AND",
-      },
-    },
     "FrodoTestPolicy1": {
       "_id": "FrodoTestPolicy1",
-      "_rev": "1684702168885",
+      "_rev": "1691208983792",
       "actionValues": {
         "GET": true,
       },
@@ -877,11 +456,11 @@ exports[`PolicyOps exportPolicies() 2: Export all policies w/ deps 1`] = `
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:28.885Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:23.792Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:28.885Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:23.792Z",
       "name": "FrodoTestPolicy1",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -894,7 +473,7 @@ exports[`PolicyOps exportPolicies() 2: Export all policies w/ deps 1`] = `
     },
     "FrodoTestPolicy3": {
       "_id": "FrodoTestPolicy3",
-      "_rev": "1684702170512",
+      "_rev": "1691208985362",
       "actionValues": {
         "GET": true,
       },
@@ -940,11 +519,11 @@ exports[`PolicyOps exportPolicies() 2: Export all policies w/ deps 1`] = `
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:30.512Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:25.362Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:30.512Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:25.362Z",
       "name": "FrodoTestPolicy3",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -957,7 +536,7 @@ exports[`PolicyOps exportPolicies() 2: Export all policies w/ deps 1`] = `
     },
     "FrodoTestPolicy4": {
       "_id": "FrodoTestPolicy4",
-      "_rev": "1684702170596",
+      "_rev": "1691208985467",
       "actionValues": {
         "GET": true,
       },
@@ -1003,11 +582,11 @@ exports[`PolicyOps exportPolicies() 2: Export all policies w/ deps 1`] = `
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.66Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:23.967Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:30.596Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:25.467Z",
       "name": "FrodoTestPolicy4",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -1020,7 +599,7 @@ exports[`PolicyOps exportPolicies() 2: Export all policies w/ deps 1`] = `
     },
     "FrodoTestPolicy5": {
       "_id": "FrodoTestPolicy5",
-      "_rev": "1684702169188",
+      "_rev": "1691208984096",
       "actionValues": {
         "GET": true,
       },
@@ -1066,11 +645,11 @@ exports[`PolicyOps exportPolicies() 2: Export all policies w/ deps 1`] = `
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.188Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.96Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.188Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.96Z",
       "name": "FrodoTestPolicy5",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -1083,7 +662,7 @@ exports[`PolicyOps exportPolicies() 2: Export all policies w/ deps 1`] = `
     },
     "FrodoTestPolicy7": {
       "_id": "FrodoTestPolicy7",
-      "_rev": "1684702169360",
+      "_rev": "1691208984262",
       "actionValues": {
         "GET": true,
       },
@@ -1129,11 +708,11 @@ exports[`PolicyOps exportPolicies() 2: Export all policies w/ deps 1`] = `
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.360Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.262Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.360Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.262Z",
       "name": "FrodoTestPolicy7",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -1146,7 +725,7 @@ exports[`PolicyOps exportPolicies() 2: Export all policies w/ deps 1`] = `
     },
     "FrodoTestPolicy9": {
       "_id": "FrodoTestPolicy9",
-      "_rev": "1684702169488",
+      "_rev": "1691208984378",
       "actionValues": {
         "GET": true,
       },
@@ -1192,215 +771,16 @@ exports[`PolicyOps exportPolicies() 2: Export all policies w/ deps 1`] = `
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.488Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.378Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.488Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.378Z",
       "name": "FrodoTestPolicy9",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
         "*://*:*/forgerock/app2/*",
         "*://*:*/app2/*",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "Grafana": {
-      "_id": "Grafana",
-      "_rev": "1684694916292",
-      "actionValues": {
-        "DELETE": true,
-        "GET": true,
-        "HEAD": true,
-        "OPTIONS": true,
-        "PATCH": true,
-        "POST": true,
-        "PUT": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.720Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:36.292Z",
-      "name": "Grafana",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://ig.mytestrun.com:*/grafana",
-        "*://ig.mytestrun.com:*/grafana/*?*",
-        "*://10.1.4.18:3000/*",
-        "*://ig.mytestrun.com:*/grafana/*",
-        "*://ig.mytestrun.com:*/grafana?*",
-        "*://10.1.4.18:3000/*?*",
-      ],
-      "subject": {
-        "subjects": [
-          {
-            "type": "AuthenticatedUsers",
-          },
-          {
-            "subjectValues": [
-              "id=BusinessApps,ou=group,o=alpha,ou=services,ou=am-config",
-            ],
-            "type": "Identity",
-          },
-        ],
-        "type": "AND",
-      },
-    },
-    "Pay - Transactional AuthZ": {
-      "_id": "Pay - Transactional AuthZ",
-      "_rev": "1684694916035",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "condition": {
-        "authenticationStrategy": "AuthenticateToTreeConditionAdvice",
-        "strategySpecifier": "TxAuthZ",
-        "type": "Transaction",
-      },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.523Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:36.35Z",
-      "name": "Pay - Transactional AuthZ",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/pay/*",
-        "*://*:*/forgerock/pay/*",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "Tomcat - Transactional Auth": {
-      "_id": "Tomcat - Transactional Auth",
-      "_rev": "1684694915707",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "condition": {
-        "authenticationStrategy": "AuthenticateToTreeConditionAdvice",
-        "strategySpecifier": "TxAuthZ",
-        "type": "Transaction",
-      },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.266Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:35.707Z",
-      "name": "Tomcat - Transactional Auth",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/sample/hello.jsp",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "Zero Trust": {
-      "_id": "Zero Trust",
-      "_rev": "1684694916118",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": false,
-      "applicationName": "newApps",
-      "condition": {
-        "conditions": [
-          {
-            "maxSessionTime": 60,
-            "terminateSession": false,
-            "type": "Session",
-          },
-          {
-            "authenticationStrategy": "AuthenticateToTreeConditionAdvice",
-            "strategySpecifier": "ZeroTrust",
-            "type": "Transaction",
-          },
-        ],
-        "type": "AND",
-      },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T18:38:13.590Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T18:48:36.118Z",
-      "name": "Zero Trust",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/*",
-        "*://*:*/*?*",
-      ],
-      "subject": {
-        "type": "AuthenticatedUsers",
-      },
-    },
-    "pol1": {
-      "_id": "pol1",
-      "_rev": "1684700691679",
-      "actionValues": {
-        "GET": true,
-      },
-      "active": true,
-      "applicationName": "newApps",
-      "condition": {
-        "conditions": [
-          {
-            "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-            "type": "Script",
-          },
-          {
-            "authenticateToService": "TxAuthz",
-            "type": "AuthenticateToService",
-          },
-          {
-            "conditions": [
-              {
-                "maxSessionTime": 5,
-                "terminateSession": false,
-                "type": "Session",
-              },
-              {
-                "requiredScopes": [
-                  "openid",
-                ],
-                "type": "OAuth2Scope",
-              },
-              {
-                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                "type": "Script",
-              },
-              {
-                "condition": {
-                  "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                  "type": "Script",
-                },
-                "type": "NOT",
-              },
-            ],
-            "type": "OR",
-          },
-        ],
-        "type": "AND",
-      },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:24:51.679Z",
-      "description": "",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:24:51.679Z",
-      "name": "pol1",
-      "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-      "resources": [
-        "*://*:*/*",
       ],
       "subject": {
         "type": "AuthenticatedUsers",
@@ -1732,7 +1112,7 @@ exports[`PolicyOps exportPoliciesByPolicySet() 1: Export all policies in policy 
   "policy": {
     "FrodoTestPolicy1": {
       "_id": "FrodoTestPolicy1",
-      "_rev": "1684702168885",
+      "_rev": "1691208983792",
       "actionValues": {
         "GET": true,
       },
@@ -1778,11 +1158,11 @@ exports[`PolicyOps exportPoliciesByPolicySet() 1: Export all policies in policy 
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:28.885Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:23.792Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:28.885Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:23.792Z",
       "name": "FrodoTestPolicy1",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -1795,7 +1175,7 @@ exports[`PolicyOps exportPoliciesByPolicySet() 1: Export all policies in policy 
     },
     "FrodoTestPolicy3": {
       "_id": "FrodoTestPolicy3",
-      "_rev": "1684702170512",
+      "_rev": "1691208985362",
       "actionValues": {
         "GET": true,
       },
@@ -1841,11 +1221,11 @@ exports[`PolicyOps exportPoliciesByPolicySet() 1: Export all policies in policy 
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:30.512Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:25.362Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:30.512Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:25.362Z",
       "name": "FrodoTestPolicy3",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -1858,7 +1238,7 @@ exports[`PolicyOps exportPoliciesByPolicySet() 1: Export all policies in policy 
     },
     "FrodoTestPolicy4": {
       "_id": "FrodoTestPolicy4",
-      "_rev": "1684702170596",
+      "_rev": "1691208985467",
       "actionValues": {
         "GET": true,
       },
@@ -1904,11 +1284,11 @@ exports[`PolicyOps exportPoliciesByPolicySet() 1: Export all policies in policy 
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.66Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:23.967Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:30.596Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:25.467Z",
       "name": "FrodoTestPolicy4",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -1921,7 +1301,7 @@ exports[`PolicyOps exportPoliciesByPolicySet() 1: Export all policies in policy 
     },
     "FrodoTestPolicy5": {
       "_id": "FrodoTestPolicy5",
-      "_rev": "1684702169188",
+      "_rev": "1691208984096",
       "actionValues": {
         "GET": true,
       },
@@ -1967,11 +1347,11 @@ exports[`PolicyOps exportPoliciesByPolicySet() 1: Export all policies in policy 
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.188Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.96Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.188Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.96Z",
       "name": "FrodoTestPolicy5",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -1984,7 +1364,7 @@ exports[`PolicyOps exportPoliciesByPolicySet() 1: Export all policies in policy 
     },
     "FrodoTestPolicy7": {
       "_id": "FrodoTestPolicy7",
-      "_rev": "1684702169360",
+      "_rev": "1691208984262",
       "actionValues": {
         "GET": true,
       },
@@ -2030,11 +1410,11 @@ exports[`PolicyOps exportPoliciesByPolicySet() 1: Export all policies in policy 
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.360Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.262Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.360Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.262Z",
       "name": "FrodoTestPolicy7",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -2047,7 +1427,7 @@ exports[`PolicyOps exportPoliciesByPolicySet() 1: Export all policies in policy 
     },
     "FrodoTestPolicy9": {
       "_id": "FrodoTestPolicy9",
-      "_rev": "1684702169488",
+      "_rev": "1691208984378",
       "actionValues": {
         "GET": true,
       },
@@ -2093,11 +1473,11 @@ exports[`PolicyOps exportPoliciesByPolicySet() 1: Export all policies in policy 
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.488Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.378Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.488Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.378Z",
       "name": "FrodoTestPolicy9",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -2121,7 +1501,7 @@ exports[`PolicyOps exportPoliciesByPolicySet() 2: Export all policies in policy 
   "policy": {
     "FrodoTestPolicy1": {
       "_id": "FrodoTestPolicy1",
-      "_rev": "1684702168885",
+      "_rev": "1691208983792",
       "actionValues": {
         "GET": true,
       },
@@ -2167,11 +1547,11 @@ exports[`PolicyOps exportPoliciesByPolicySet() 2: Export all policies in policy 
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:28.885Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:23.792Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:28.885Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:23.792Z",
       "name": "FrodoTestPolicy1",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -2184,7 +1564,7 @@ exports[`PolicyOps exportPoliciesByPolicySet() 2: Export all policies in policy 
     },
     "FrodoTestPolicy3": {
       "_id": "FrodoTestPolicy3",
-      "_rev": "1684702170512",
+      "_rev": "1691208985362",
       "actionValues": {
         "GET": true,
       },
@@ -2230,11 +1610,11 @@ exports[`PolicyOps exportPoliciesByPolicySet() 2: Export all policies in policy 
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:30.512Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:25.362Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:30.512Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:25.362Z",
       "name": "FrodoTestPolicy3",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -2247,7 +1627,7 @@ exports[`PolicyOps exportPoliciesByPolicySet() 2: Export all policies in policy 
     },
     "FrodoTestPolicy4": {
       "_id": "FrodoTestPolicy4",
-      "_rev": "1684702170596",
+      "_rev": "1691208985467",
       "actionValues": {
         "GET": true,
       },
@@ -2293,11 +1673,11 @@ exports[`PolicyOps exportPoliciesByPolicySet() 2: Export all policies in policy 
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.66Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:23.967Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:30.596Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:25.467Z",
       "name": "FrodoTestPolicy4",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -2310,7 +1690,7 @@ exports[`PolicyOps exportPoliciesByPolicySet() 2: Export all policies in policy 
     },
     "FrodoTestPolicy5": {
       "_id": "FrodoTestPolicy5",
-      "_rev": "1684702169188",
+      "_rev": "1691208984096",
       "actionValues": {
         "GET": true,
       },
@@ -2356,11 +1736,11 @@ exports[`PolicyOps exportPoliciesByPolicySet() 2: Export all policies in policy 
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.188Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.96Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.188Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.96Z",
       "name": "FrodoTestPolicy5",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -2373,7 +1753,7 @@ exports[`PolicyOps exportPoliciesByPolicySet() 2: Export all policies in policy 
     },
     "FrodoTestPolicy7": {
       "_id": "FrodoTestPolicy7",
-      "_rev": "1684702169360",
+      "_rev": "1691208984262",
       "actionValues": {
         "GET": true,
       },
@@ -2419,11 +1799,11 @@ exports[`PolicyOps exportPoliciesByPolicySet() 2: Export all policies in policy 
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.360Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.262Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.360Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.262Z",
       "name": "FrodoTestPolicy7",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -2436,7 +1816,7 @@ exports[`PolicyOps exportPoliciesByPolicySet() 2: Export all policies in policy 
     },
     "FrodoTestPolicy9": {
       "_id": "FrodoTestPolicy9",
-      "_rev": "1684702169488",
+      "_rev": "1691208984378",
       "actionValues": {
         "GET": true,
       },
@@ -2482,11 +1862,11 @@ exports[`PolicyOps exportPoliciesByPolicySet() 2: Export all policies in policy 
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.488Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.378Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.488Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.378Z",
       "name": "FrodoTestPolicy9",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -2823,7 +2203,7 @@ exports[`PolicyOps exportPolicy() 1: Export existing policy w/o deps [FrodoTestP
   "policy": {
     "FrodoTestPolicy9": {
       "_id": "FrodoTestPolicy9",
-      "_rev": "1684702169488",
+      "_rev": "1691208984378",
       "actionValues": {
         "GET": true,
       },
@@ -2869,11 +2249,11 @@ exports[`PolicyOps exportPolicy() 1: Export existing policy w/o deps [FrodoTestP
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.488Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.378Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.488Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.378Z",
       "name": "FrodoTestPolicy9",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -2897,7 +2277,7 @@ exports[`PolicyOps exportPolicy() 2: Export existing policy w/ deps [FrodoTestPo
   "policy": {
     "FrodoTestPolicy9": {
       "_id": "FrodoTestPolicy9",
-      "_rev": "1684702169488",
+      "_rev": "1691208984378",
       "actionValues": {
         "GET": true,
       },
@@ -2943,11 +2323,11 @@ exports[`PolicyOps exportPolicy() 2: Export existing policy w/ deps [FrodoTestPo
         ],
         "type": "AND",
       },
-      "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "creationDate": "2023-05-21T20:49:29.488Z",
+      "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "creationDate": "2023-08-05T04:16:24.378Z",
       "description": "Frodo Test Policy",
-      "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-      "lastModifiedDate": "2023-05-21T20:49:29.488Z",
+      "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+      "lastModifiedDate": "2023-08-05T04:16:24.378Z",
       "name": "FrodoTestPolicy9",
       "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
       "resources": [
@@ -3287,1030 +2667,6 @@ exports[`PolicyOps findScriptUuids() 1: Find script uuids for policy [FrodoTestP
 ]
 `;
 
-exports[`PolicyOps getPolicies() 1: Get all policies 1`] = `
-[
-  {
-    "_id": "Tomcat - Transactional Auth",
-    "_rev": "1684694915707",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "newApps",
-    "condition": {
-      "authenticationStrategy": "AuthenticateToTreeConditionAdvice",
-      "strategySpecifier": "TxAuthZ",
-      "type": "Transaction",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T18:38:13.266Z",
-    "description": "",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T18:48:35.707Z",
-    "name": "Tomcat - Transactional Auth",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/sample/hello.jsp",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "Allow Everything",
-    "_rev": "1684694915794",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": false,
-    "applicationName": "newApps",
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T18:38:13.335Z",
-    "description": "",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T18:48:35.794Z",
-    "name": "Allow Everything",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/*",
-      "*://*:*/*?*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "App2",
-    "_rev": "1684694915876",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "newApps",
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T18:38:13.400Z",
-    "description": "",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T18:48:35.876Z",
-    "name": "App2",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/forgerock/app2/*",
-      "*://*:*/app2/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "App3",
-    "_rev": "1684694915955",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "newApps",
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T18:38:13.461Z",
-    "description": "",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T18:48:35.955Z",
-    "name": "App3",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/forgerock/app3/*",
-      "*://*:*/app3/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "Pay - Transactional AuthZ",
-    "_rev": "1684694916035",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "newApps",
-    "condition": {
-      "authenticationStrategy": "AuthenticateToTreeConditionAdvice",
-      "strategySpecifier": "TxAuthZ",
-      "type": "Transaction",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T18:38:13.523Z",
-    "description": "",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T18:48:36.35Z",
-    "name": "Pay - Transactional AuthZ",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/pay/*",
-      "*://*:*/forgerock/pay/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "Zero Trust",
-    "_rev": "1684694916118",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": false,
-    "applicationName": "newApps",
-    "condition": {
-      "conditions": [
-        {
-          "maxSessionTime": 60,
-          "terminateSession": false,
-          "type": "Session",
-        },
-        {
-          "authenticationStrategy": "AuthenticateToTreeConditionAdvice",
-          "strategySpecifier": "ZeroTrust",
-          "type": "Transaction",
-        },
-      ],
-      "type": "AND",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T18:38:13.590Z",
-    "description": "",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T18:48:36.118Z",
-    "name": "Zero Trust",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/*",
-      "*://*:*/*?*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "Bi",
-    "_rev": "1684694916200",
-    "actionValues": {
-      "DELETE": true,
-      "GET": true,
-      "HEAD": true,
-      "OPTIONS": true,
-      "PATCH": true,
-      "POST": true,
-      "PUT": true,
-    },
-    "active": true,
-    "applicationName": "newApps",
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T18:38:13.654Z",
-    "description": "",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T18:48:36.200Z",
-    "name": "Bi",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://10.1.4.18:*/*",
-      "*://bi.scheuber.io:*/*",
-      "*://bi.scheuber.io:*/*?*",
-      "*://10.1.4.18:*/*?*",
-    ],
-    "subject": {
-      "subjects": [
-        {
-          "type": "AuthenticatedUsers",
-        },
-        {
-          "subjectValues": [
-            "id=BusinessApps,ou=group,o=alpha,ou=services,ou=am-config",
-          ],
-          "type": "Identity",
-        },
-      ],
-      "type": "AND",
-    },
-  },
-  {
-    "_id": "Grafana",
-    "_rev": "1684694916292",
-    "actionValues": {
-      "DELETE": true,
-      "GET": true,
-      "HEAD": true,
-      "OPTIONS": true,
-      "PATCH": true,
-      "POST": true,
-      "PUT": true,
-    },
-    "active": true,
-    "applicationName": "newApps",
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T18:38:13.720Z",
-    "description": "",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T18:48:36.292Z",
-    "name": "Grafana",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://ig.mytestrun.com:*/grafana",
-      "*://ig.mytestrun.com:*/grafana/*?*",
-      "*://10.1.4.18:3000/*",
-      "*://ig.mytestrun.com:*/grafana/*",
-      "*://ig.mytestrun.com:*/grafana?*",
-      "*://10.1.4.18:3000/*?*",
-    ],
-    "subject": {
-      "subjects": [
-        {
-          "type": "AuthenticatedUsers",
-        },
-        {
-          "subjectValues": [
-            "id=BusinessApps,ou=group,o=alpha,ou=services,ou=am-config",
-          ],
-          "type": "Identity",
-        },
-      ],
-      "type": "AND",
-    },
-  },
-  {
-    "_id": "pol1",
-    "_rev": "1684700691679",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "newApps",
-    "condition": {
-      "conditions": [
-        {
-          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-          "type": "Script",
-        },
-        {
-          "authenticateToService": "TxAuthz",
-          "type": "AuthenticateToService",
-        },
-        {
-          "conditions": [
-            {
-              "maxSessionTime": 5,
-              "terminateSession": false,
-              "type": "Session",
-            },
-            {
-              "requiredScopes": [
-                "openid",
-              ],
-              "type": "OAuth2Scope",
-            },
-            {
-              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-              "type": "Script",
-            },
-            {
-              "condition": {
-                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                "type": "Script",
-              },
-              "type": "NOT",
-            },
-          ],
-          "type": "OR",
-        },
-      ],
-      "type": "AND",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:24:51.679Z",
-    "description": "",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:24:51.679Z",
-    "name": "pol1",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "FrodoTestPolicy1",
-    "_rev": "1684702168885",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "FrodoTestPolicySet1",
-    "condition": {
-      "conditions": [
-        {
-          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-          "type": "Script",
-        },
-        {
-          "authenticateToService": "TxAuthz",
-          "type": "AuthenticateToService",
-        },
-        {
-          "conditions": [
-            {
-              "maxSessionTime": 5,
-              "terminateSession": false,
-              "type": "Session",
-            },
-            {
-              "requiredScopes": [
-                "openid",
-              ],
-              "type": "OAuth2Scope",
-            },
-            {
-              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-              "type": "Script",
-            },
-            {
-              "condition": {
-                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                "type": "Script",
-              },
-              "type": "NOT",
-            },
-          ],
-          "type": "OR",
-        },
-      ],
-      "type": "AND",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:28.885Z",
-    "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:28.885Z",
-    "name": "FrodoTestPolicy1",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/forgerock/app2/*",
-      "*://*:*/app2/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "FrodoTestPolicy4",
-    "_rev": "1684702169066",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "FrodoTestPolicySet1",
-    "condition": {
-      "conditions": [
-        {
-          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-          "type": "Script",
-        },
-        {
-          "authenticateToService": "TxAuthz",
-          "type": "AuthenticateToService",
-        },
-        {
-          "conditions": [
-            {
-              "maxSessionTime": 5,
-              "terminateSession": false,
-              "type": "Session",
-            },
-            {
-              "requiredScopes": [
-                "openid",
-              ],
-              "type": "OAuth2Scope",
-            },
-            {
-              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-              "type": "Script",
-            },
-            {
-              "condition": {
-                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                "type": "Script",
-              },
-              "type": "NOT",
-            },
-          ],
-          "type": "OR",
-        },
-      ],
-      "type": "AND",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:29.66Z",
-    "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:29.66Z",
-    "name": "FrodoTestPolicy4",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/forgerock/app2/*",
-      "*://*:*/app2/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "FrodoTestPolicy5",
-    "_rev": "1684702169188",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "FrodoTestPolicySet1",
-    "condition": {
-      "conditions": [
-        {
-          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-          "type": "Script",
-        },
-        {
-          "authenticateToService": "TxAuthz",
-          "type": "AuthenticateToService",
-        },
-        {
-          "conditions": [
-            {
-              "maxSessionTime": 5,
-              "terminateSession": false,
-              "type": "Session",
-            },
-            {
-              "requiredScopes": [
-                "openid",
-              ],
-              "type": "OAuth2Scope",
-            },
-            {
-              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-              "type": "Script",
-            },
-            {
-              "condition": {
-                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                "type": "Script",
-              },
-              "type": "NOT",
-            },
-          ],
-          "type": "OR",
-        },
-      ],
-      "type": "AND",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:29.188Z",
-    "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:29.188Z",
-    "name": "FrodoTestPolicy5",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/forgerock/app2/*",
-      "*://*:*/app2/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "FrodoTestPolicy7",
-    "_rev": "1684702169360",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "FrodoTestPolicySet1",
-    "condition": {
-      "conditions": [
-        {
-          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-          "type": "Script",
-        },
-        {
-          "authenticateToService": "TxAuthz",
-          "type": "AuthenticateToService",
-        },
-        {
-          "conditions": [
-            {
-              "maxSessionTime": 5,
-              "terminateSession": false,
-              "type": "Session",
-            },
-            {
-              "requiredScopes": [
-                "openid",
-              ],
-              "type": "OAuth2Scope",
-            },
-            {
-              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-              "type": "Script",
-            },
-            {
-              "condition": {
-                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                "type": "Script",
-              },
-              "type": "NOT",
-            },
-          ],
-          "type": "OR",
-        },
-      ],
-      "type": "AND",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:29.360Z",
-    "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:29.360Z",
-    "name": "FrodoTestPolicy7",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/forgerock/app2/*",
-      "*://*:*/app2/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "FrodoTestPolicy9",
-    "_rev": "1684702169488",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "FrodoTestPolicySet1",
-    "condition": {
-      "conditions": [
-        {
-          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-          "type": "Script",
-        },
-        {
-          "authenticateToService": "TxAuthz",
-          "type": "AuthenticateToService",
-        },
-        {
-          "conditions": [
-            {
-              "maxSessionTime": 5,
-              "terminateSession": false,
-              "type": "Session",
-            },
-            {
-              "requiredScopes": [
-                "openid",
-              ],
-              "type": "OAuth2Scope",
-            },
-            {
-              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-              "type": "Script",
-            },
-            {
-              "condition": {
-                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                "type": "Script",
-              },
-              "type": "NOT",
-            },
-          ],
-          "type": "OR",
-        },
-      ],
-      "type": "AND",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:29.488Z",
-    "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:29.488Z",
-    "name": "FrodoTestPolicy9",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/forgerock/app2/*",
-      "*://*:*/app2/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-]
-`;
-
-exports[`PolicyOps getPoliciesByPolicySet() 1: Get all policies in policy set [FrodoTestPolicySet1] 1`] = `
-[
-  {
-    "_id": "FrodoTestPolicy1",
-    "_rev": "1684702168885",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "FrodoTestPolicySet1",
-    "condition": {
-      "conditions": [
-        {
-          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-          "type": "Script",
-        },
-        {
-          "authenticateToService": "TxAuthz",
-          "type": "AuthenticateToService",
-        },
-        {
-          "conditions": [
-            {
-              "maxSessionTime": 5,
-              "terminateSession": false,
-              "type": "Session",
-            },
-            {
-              "requiredScopes": [
-                "openid",
-              ],
-              "type": "OAuth2Scope",
-            },
-            {
-              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-              "type": "Script",
-            },
-            {
-              "condition": {
-                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                "type": "Script",
-              },
-              "type": "NOT",
-            },
-          ],
-          "type": "OR",
-        },
-      ],
-      "type": "AND",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:28.885Z",
-    "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:28.885Z",
-    "name": "FrodoTestPolicy1",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/forgerock/app2/*",
-      "*://*:*/app2/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "FrodoTestPolicy4",
-    "_rev": "1684702169066",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "FrodoTestPolicySet1",
-    "condition": {
-      "conditions": [
-        {
-          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-          "type": "Script",
-        },
-        {
-          "authenticateToService": "TxAuthz",
-          "type": "AuthenticateToService",
-        },
-        {
-          "conditions": [
-            {
-              "maxSessionTime": 5,
-              "terminateSession": false,
-              "type": "Session",
-            },
-            {
-              "requiredScopes": [
-                "openid",
-              ],
-              "type": "OAuth2Scope",
-            },
-            {
-              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-              "type": "Script",
-            },
-            {
-              "condition": {
-                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                "type": "Script",
-              },
-              "type": "NOT",
-            },
-          ],
-          "type": "OR",
-        },
-      ],
-      "type": "AND",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:29.66Z",
-    "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:29.66Z",
-    "name": "FrodoTestPolicy4",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/forgerock/app2/*",
-      "*://*:*/app2/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "FrodoTestPolicy5",
-    "_rev": "1684702169188",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "FrodoTestPolicySet1",
-    "condition": {
-      "conditions": [
-        {
-          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-          "type": "Script",
-        },
-        {
-          "authenticateToService": "TxAuthz",
-          "type": "AuthenticateToService",
-        },
-        {
-          "conditions": [
-            {
-              "maxSessionTime": 5,
-              "terminateSession": false,
-              "type": "Session",
-            },
-            {
-              "requiredScopes": [
-                "openid",
-              ],
-              "type": "OAuth2Scope",
-            },
-            {
-              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-              "type": "Script",
-            },
-            {
-              "condition": {
-                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                "type": "Script",
-              },
-              "type": "NOT",
-            },
-          ],
-          "type": "OR",
-        },
-      ],
-      "type": "AND",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:29.188Z",
-    "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:29.188Z",
-    "name": "FrodoTestPolicy5",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/forgerock/app2/*",
-      "*://*:*/app2/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "FrodoTestPolicy7",
-    "_rev": "1684702169360",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "FrodoTestPolicySet1",
-    "condition": {
-      "conditions": [
-        {
-          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-          "type": "Script",
-        },
-        {
-          "authenticateToService": "TxAuthz",
-          "type": "AuthenticateToService",
-        },
-        {
-          "conditions": [
-            {
-              "maxSessionTime": 5,
-              "terminateSession": false,
-              "type": "Session",
-            },
-            {
-              "requiredScopes": [
-                "openid",
-              ],
-              "type": "OAuth2Scope",
-            },
-            {
-              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-              "type": "Script",
-            },
-            {
-              "condition": {
-                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                "type": "Script",
-              },
-              "type": "NOT",
-            },
-          ],
-          "type": "OR",
-        },
-      ],
-      "type": "AND",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:29.360Z",
-    "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:29.360Z",
-    "name": "FrodoTestPolicy7",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/forgerock/app2/*",
-      "*://*:*/app2/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-  {
-    "_id": "FrodoTestPolicy9",
-    "_rev": "1684702169488",
-    "actionValues": {
-      "GET": true,
-    },
-    "active": true,
-    "applicationName": "FrodoTestPolicySet1",
-    "condition": {
-      "conditions": [
-        {
-          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-          "type": "Script",
-        },
-        {
-          "authenticateToService": "TxAuthz",
-          "type": "AuthenticateToService",
-        },
-        {
-          "conditions": [
-            {
-              "maxSessionTime": 5,
-              "terminateSession": false,
-              "type": "Session",
-            },
-            {
-              "requiredScopes": [
-                "openid",
-              ],
-              "type": "OAuth2Scope",
-            },
-            {
-              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-              "type": "Script",
-            },
-            {
-              "condition": {
-                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-                "type": "Script",
-              },
-              "type": "NOT",
-            },
-          ],
-          "type": "OR",
-        },
-      ],
-      "type": "AND",
-    },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:29.488Z",
-    "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:29.488Z",
-    "name": "FrodoTestPolicy9",
-    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-    "resources": [
-      "*://*:*/forgerock/app2/*",
-      "*://*:*/app2/*",
-    ],
-    "subject": {
-      "type": "AuthenticatedUsers",
-    },
-  },
-]
-`;
-
-exports[`PolicyOps getPolicy() 1: Get existing policy [FrodoTestPolicy1] 1`] = `
-{
-  "_id": "FrodoTestPolicy1",
-  "_rev": "1684702168885",
-  "actionValues": {
-    "GET": true,
-  },
-  "active": true,
-  "applicationName": "FrodoTestPolicySet1",
-  "condition": {
-    "conditions": [
-      {
-        "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
-        "type": "Script",
-      },
-      {
-        "authenticateToService": "TxAuthz",
-        "type": "AuthenticateToService",
-      },
-      {
-        "conditions": [
-          {
-            "maxSessionTime": 5,
-            "terminateSession": false,
-            "type": "Session",
-          },
-          {
-            "requiredScopes": [
-              "openid",
-            ],
-            "type": "OAuth2Scope",
-          },
-          {
-            "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-            "type": "Script",
-          },
-          {
-            "condition": {
-              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
-              "type": "Script",
-            },
-            "type": "NOT",
-          },
-        ],
-        "type": "OR",
-      },
-    ],
-    "type": "AND",
-  },
-  "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "creationDate": "2023-05-21T20:49:28.885Z",
-  "description": "Frodo Test Policy",
-  "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "lastModifiedDate": "2023-05-21T20:49:28.885Z",
-  "name": "FrodoTestPolicy1",
-  "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
-  "resources": [
-    "*://*:*/forgerock/app2/*",
-    "*://*:*/app2/*",
-  ],
-  "subject": {
-    "type": "AuthenticatedUsers",
-  },
-}
-`;
-
-exports[`PolicyOps getPolicy() 2: Get non-existing policy [DoesNotExist] 1`] = `
-{
-  "code": 404,
-  "message": "Policy DoesNotExist does not exist.",
-  "reason": "Not Found",
-}
-`;
-
 exports[`PolicyOps getScripts() 1: Find scripts for policy [FrodoTestPolicy6] 1`] = `
 [
   {
@@ -4345,7 +2701,7 @@ exports[`PolicyOps getScripts() 1: Find scripts for policy [FrodoTestPolicy6] 1`
 exports[`PolicyOps importFirstPolicy() 1: Import first policy w/o deps 1`] = `
 {
   "_id": "FrodoTestPolicy13",
-  "_rev": "1684702173231",
+  "_rev": "1691208988082",
   "actionValues": {
     "GET": true,
   },
@@ -4391,11 +2747,11 @@ exports[`PolicyOps importFirstPolicy() 1: Import first policy w/o deps 1`] = `
     ],
     "type": "AND",
   },
-  "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "creationDate": "2023-05-21T20:49:33.231Z",
+  "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "creationDate": "2023-08-05T04:16:28.82Z",
   "description": "Frodo Test Policy",
-  "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "lastModifiedDate": "2023-05-21T20:49:33.231Z",
+  "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "lastModifiedDate": "2023-08-05T04:16:28.82Z",
   "name": "FrodoTestPolicy13",
   "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
   "resources": [
@@ -4411,7 +2767,7 @@ exports[`PolicyOps importFirstPolicy() 1: Import first policy w/o deps 1`] = `
 exports[`PolicyOps importFirstPolicy() 2: Import first policy w/ deps 1`] = `
 {
   "_id": "FrodoTestPolicy15",
-  "_rev": "1684702173301",
+  "_rev": "1691208988154",
   "actionValues": {
     "GET": true,
   },
@@ -4457,11 +2813,11 @@ exports[`PolicyOps importFirstPolicy() 2: Import first policy w/ deps 1`] = `
     ],
     "type": "AND",
   },
-  "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "creationDate": "2023-05-21T20:49:33.301Z",
+  "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "creationDate": "2023-08-05T04:16:28.154Z",
   "description": "Frodo Test Policy",
-  "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "lastModifiedDate": "2023-05-21T20:49:33.301Z",
+  "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "lastModifiedDate": "2023-08-05T04:16:28.154Z",
   "name": "FrodoTestPolicy15",
   "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
   "resources": [
@@ -4478,7 +2834,7 @@ exports[`PolicyOps importPolicies() 1: Import all policies w/o deps 1`] = `
 [
   {
     "_id": "FrodoTestPolicy17",
-    "_rev": "1684702173630",
+    "_rev": "1691208988426",
     "actionValues": {
       "GET": true,
     },
@@ -4524,11 +2880,11 @@ exports[`PolicyOps importPolicies() 1: Import all policies w/o deps 1`] = `
       ],
       "type": "AND",
     },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:33.630Z",
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:28.426Z",
     "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:33.630Z",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:28.426Z",
     "name": "FrodoTestPolicy17",
     "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
     "resources": [
@@ -4541,7 +2897,7 @@ exports[`PolicyOps importPolicies() 1: Import all policies w/o deps 1`] = `
   },
   {
     "_id": "FrodoTestPolicy18",
-    "_rev": "1684702173693",
+    "_rev": "1691208988532",
     "actionValues": {
       "GET": true,
     },
@@ -4587,11 +2943,11 @@ exports[`PolicyOps importPolicies() 1: Import all policies w/o deps 1`] = `
       ],
       "type": "AND",
     },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:33.693Z",
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:28.532Z",
     "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:33.693Z",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:28.532Z",
     "name": "FrodoTestPolicy18",
     "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
     "resources": [
@@ -4609,7 +2965,7 @@ exports[`PolicyOps importPolicies() 2: Import all policies w/ deps 1`] = `
 [
   {
     "_id": "FrodoTestPolicy19",
-    "_rev": "1684702173756",
+    "_rev": "1691208988609",
     "actionValues": {
       "GET": true,
     },
@@ -4655,11 +3011,11 @@ exports[`PolicyOps importPolicies() 2: Import all policies w/ deps 1`] = `
       ],
       "type": "AND",
     },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:33.756Z",
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:28.609Z",
     "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:33.756Z",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:28.609Z",
     "name": "FrodoTestPolicy19",
     "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
     "resources": [
@@ -4672,7 +3028,7 @@ exports[`PolicyOps importPolicies() 2: Import all policies w/ deps 1`] = `
   },
   {
     "_id": "FrodoTestPolicy20",
-    "_rev": "1684702173966",
+    "_rev": "1691208988937",
     "actionValues": {
       "GET": true,
     },
@@ -4718,11 +3074,11 @@ exports[`PolicyOps importPolicies() 2: Import all policies w/ deps 1`] = `
       ],
       "type": "AND",
     },
-    "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "creationDate": "2023-05-21T20:49:33.966Z",
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:28.937Z",
     "description": "Frodo Test Policy",
-    "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-    "lastModifiedDate": "2023-05-21T20:49:33.966Z",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:28.937Z",
     "name": "FrodoTestPolicy20",
     "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
     "resources": [
@@ -4739,7 +3095,7 @@ exports[`PolicyOps importPolicies() 2: Import all policies w/ deps 1`] = `
 exports[`PolicyOps importPolicy() 1: Import policy [FrodoTestPolicy11] w/o deps 1`] = `
 {
   "_id": "FrodoTestPolicy11",
-  "_rev": "1684702172917",
+  "_rev": "1691208987794",
   "actionValues": {
     "GET": true,
   },
@@ -4785,11 +3141,11 @@ exports[`PolicyOps importPolicy() 1: Import policy [FrodoTestPolicy11] w/o deps 
     ],
     "type": "AND",
   },
-  "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "creationDate": "2023-05-21T20:49:32.917Z",
+  "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "creationDate": "2023-08-05T04:16:27.794Z",
   "description": "Frodo Test Policy",
-  "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "lastModifiedDate": "2023-05-21T20:49:32.917Z",
+  "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "lastModifiedDate": "2023-08-05T04:16:27.794Z",
   "name": "FrodoTestPolicy11",
   "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
   "resources": [
@@ -4805,7 +3161,7 @@ exports[`PolicyOps importPolicy() 1: Import policy [FrodoTestPolicy11] w/o deps 
 exports[`PolicyOps importPolicy() 2: Import policy [FrodoTestPolicy12] w/ deps 1`] = `
 {
   "_id": "FrodoTestPolicy12",
-  "_rev": "1684702172987",
+  "_rev": "1691208987864",
   "actionValues": {
     "GET": true,
   },
@@ -4851,11 +3207,11 @@ exports[`PolicyOps importPolicy() 2: Import policy [FrodoTestPolicy12] w/ deps 1
     ],
     "type": "AND",
   },
-  "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "creationDate": "2023-05-21T20:49:32.987Z",
+  "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "creationDate": "2023-08-05T04:16:27.864Z",
   "description": "Frodo Test Policy",
-  "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "lastModifiedDate": "2023-05-21T20:49:32.987Z",
+  "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "lastModifiedDate": "2023-08-05T04:16:27.864Z",
   "name": "FrodoTestPolicy12",
   "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
   "resources": [
@@ -4873,10 +3229,650 @@ exports[`PolicyOps importPolicy() 3: Import non-existing policy [DoesNotExist] 1
 DoesNotExist not found in import data!"
 `;
 
-exports[`PolicyOps putPolicy() 1: Create non-existing policy [FrodoTestPolicy3] 1`] = `
+exports[`PolicyOps readPolicies() 1: Get all policies 1`] = `
+[
+  {
+    "_id": "FrodoTestPolicy1",
+    "_rev": "1691208983792",
+    "actionValues": {
+      "GET": true,
+    },
+    "active": true,
+    "applicationName": "FrodoTestPolicySet1",
+    "condition": {
+      "conditions": [
+        {
+          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
+          "type": "Script",
+        },
+        {
+          "authenticateToService": "TxAuthz",
+          "type": "AuthenticateToService",
+        },
+        {
+          "conditions": [
+            {
+              "maxSessionTime": 5,
+              "terminateSession": false,
+              "type": "Session",
+            },
+            {
+              "requiredScopes": [
+                "openid",
+              ],
+              "type": "OAuth2Scope",
+            },
+            {
+              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+              "type": "Script",
+            },
+            {
+              "condition": {
+                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+                "type": "Script",
+              },
+              "type": "NOT",
+            },
+          ],
+          "type": "OR",
+        },
+      ],
+      "type": "AND",
+    },
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:23.792Z",
+    "description": "Frodo Test Policy",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:23.792Z",
+    "name": "FrodoTestPolicy1",
+    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
+    "resources": [
+      "*://*:*/forgerock/app2/*",
+      "*://*:*/app2/*",
+    ],
+    "subject": {
+      "type": "AuthenticatedUsers",
+    },
+  },
+  {
+    "_id": "FrodoTestPolicy4",
+    "_rev": "1691208983967",
+    "actionValues": {
+      "GET": true,
+    },
+    "active": true,
+    "applicationName": "FrodoTestPolicySet1",
+    "condition": {
+      "conditions": [
+        {
+          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
+          "type": "Script",
+        },
+        {
+          "authenticateToService": "TxAuthz",
+          "type": "AuthenticateToService",
+        },
+        {
+          "conditions": [
+            {
+              "maxSessionTime": 5,
+              "terminateSession": false,
+              "type": "Session",
+            },
+            {
+              "requiredScopes": [
+                "openid",
+              ],
+              "type": "OAuth2Scope",
+            },
+            {
+              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+              "type": "Script",
+            },
+            {
+              "condition": {
+                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+                "type": "Script",
+              },
+              "type": "NOT",
+            },
+          ],
+          "type": "OR",
+        },
+      ],
+      "type": "AND",
+    },
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:23.967Z",
+    "description": "Frodo Test Policy",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:23.967Z",
+    "name": "FrodoTestPolicy4",
+    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
+    "resources": [
+      "*://*:*/forgerock/app2/*",
+      "*://*:*/app2/*",
+    ],
+    "subject": {
+      "type": "AuthenticatedUsers",
+    },
+  },
+  {
+    "_id": "FrodoTestPolicy5",
+    "_rev": "1691208984096",
+    "actionValues": {
+      "GET": true,
+    },
+    "active": true,
+    "applicationName": "FrodoTestPolicySet1",
+    "condition": {
+      "conditions": [
+        {
+          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
+          "type": "Script",
+        },
+        {
+          "authenticateToService": "TxAuthz",
+          "type": "AuthenticateToService",
+        },
+        {
+          "conditions": [
+            {
+              "maxSessionTime": 5,
+              "terminateSession": false,
+              "type": "Session",
+            },
+            {
+              "requiredScopes": [
+                "openid",
+              ],
+              "type": "OAuth2Scope",
+            },
+            {
+              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+              "type": "Script",
+            },
+            {
+              "condition": {
+                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+                "type": "Script",
+              },
+              "type": "NOT",
+            },
+          ],
+          "type": "OR",
+        },
+      ],
+      "type": "AND",
+    },
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:24.96Z",
+    "description": "Frodo Test Policy",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:24.96Z",
+    "name": "FrodoTestPolicy5",
+    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
+    "resources": [
+      "*://*:*/forgerock/app2/*",
+      "*://*:*/app2/*",
+    ],
+    "subject": {
+      "type": "AuthenticatedUsers",
+    },
+  },
+  {
+    "_id": "FrodoTestPolicy7",
+    "_rev": "1691208984262",
+    "actionValues": {
+      "GET": true,
+    },
+    "active": true,
+    "applicationName": "FrodoTestPolicySet1",
+    "condition": {
+      "conditions": [
+        {
+          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
+          "type": "Script",
+        },
+        {
+          "authenticateToService": "TxAuthz",
+          "type": "AuthenticateToService",
+        },
+        {
+          "conditions": [
+            {
+              "maxSessionTime": 5,
+              "terminateSession": false,
+              "type": "Session",
+            },
+            {
+              "requiredScopes": [
+                "openid",
+              ],
+              "type": "OAuth2Scope",
+            },
+            {
+              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+              "type": "Script",
+            },
+            {
+              "condition": {
+                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+                "type": "Script",
+              },
+              "type": "NOT",
+            },
+          ],
+          "type": "OR",
+        },
+      ],
+      "type": "AND",
+    },
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:24.262Z",
+    "description": "Frodo Test Policy",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:24.262Z",
+    "name": "FrodoTestPolicy7",
+    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
+    "resources": [
+      "*://*:*/forgerock/app2/*",
+      "*://*:*/app2/*",
+    ],
+    "subject": {
+      "type": "AuthenticatedUsers",
+    },
+  },
+  {
+    "_id": "FrodoTestPolicy9",
+    "_rev": "1691208984378",
+    "actionValues": {
+      "GET": true,
+    },
+    "active": true,
+    "applicationName": "FrodoTestPolicySet1",
+    "condition": {
+      "conditions": [
+        {
+          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
+          "type": "Script",
+        },
+        {
+          "authenticateToService": "TxAuthz",
+          "type": "AuthenticateToService",
+        },
+        {
+          "conditions": [
+            {
+              "maxSessionTime": 5,
+              "terminateSession": false,
+              "type": "Session",
+            },
+            {
+              "requiredScopes": [
+                "openid",
+              ],
+              "type": "OAuth2Scope",
+            },
+            {
+              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+              "type": "Script",
+            },
+            {
+              "condition": {
+                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+                "type": "Script",
+              },
+              "type": "NOT",
+            },
+          ],
+          "type": "OR",
+        },
+      ],
+      "type": "AND",
+    },
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:24.378Z",
+    "description": "Frodo Test Policy",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:24.378Z",
+    "name": "FrodoTestPolicy9",
+    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
+    "resources": [
+      "*://*:*/forgerock/app2/*",
+      "*://*:*/app2/*",
+    ],
+    "subject": {
+      "type": "AuthenticatedUsers",
+    },
+  },
+]
+`;
+
+exports[`PolicyOps readPoliciesByPolicySet() 1: Get all policies in policy set [FrodoTestPolicySet1] 1`] = `
+[
+  {
+    "_id": "FrodoTestPolicy1",
+    "_rev": "1691208983792",
+    "actionValues": {
+      "GET": true,
+    },
+    "active": true,
+    "applicationName": "FrodoTestPolicySet1",
+    "condition": {
+      "conditions": [
+        {
+          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
+          "type": "Script",
+        },
+        {
+          "authenticateToService": "TxAuthz",
+          "type": "AuthenticateToService",
+        },
+        {
+          "conditions": [
+            {
+              "maxSessionTime": 5,
+              "terminateSession": false,
+              "type": "Session",
+            },
+            {
+              "requiredScopes": [
+                "openid",
+              ],
+              "type": "OAuth2Scope",
+            },
+            {
+              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+              "type": "Script",
+            },
+            {
+              "condition": {
+                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+                "type": "Script",
+              },
+              "type": "NOT",
+            },
+          ],
+          "type": "OR",
+        },
+      ],
+      "type": "AND",
+    },
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:23.792Z",
+    "description": "Frodo Test Policy",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:23.792Z",
+    "name": "FrodoTestPolicy1",
+    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
+    "resources": [
+      "*://*:*/forgerock/app2/*",
+      "*://*:*/app2/*",
+    ],
+    "subject": {
+      "type": "AuthenticatedUsers",
+    },
+  },
+  {
+    "_id": "FrodoTestPolicy4",
+    "_rev": "1691208983967",
+    "actionValues": {
+      "GET": true,
+    },
+    "active": true,
+    "applicationName": "FrodoTestPolicySet1",
+    "condition": {
+      "conditions": [
+        {
+          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
+          "type": "Script",
+        },
+        {
+          "authenticateToService": "TxAuthz",
+          "type": "AuthenticateToService",
+        },
+        {
+          "conditions": [
+            {
+              "maxSessionTime": 5,
+              "terminateSession": false,
+              "type": "Session",
+            },
+            {
+              "requiredScopes": [
+                "openid",
+              ],
+              "type": "OAuth2Scope",
+            },
+            {
+              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+              "type": "Script",
+            },
+            {
+              "condition": {
+                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+                "type": "Script",
+              },
+              "type": "NOT",
+            },
+          ],
+          "type": "OR",
+        },
+      ],
+      "type": "AND",
+    },
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:23.967Z",
+    "description": "Frodo Test Policy",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:23.967Z",
+    "name": "FrodoTestPolicy4",
+    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
+    "resources": [
+      "*://*:*/forgerock/app2/*",
+      "*://*:*/app2/*",
+    ],
+    "subject": {
+      "type": "AuthenticatedUsers",
+    },
+  },
+  {
+    "_id": "FrodoTestPolicy5",
+    "_rev": "1691208984096",
+    "actionValues": {
+      "GET": true,
+    },
+    "active": true,
+    "applicationName": "FrodoTestPolicySet1",
+    "condition": {
+      "conditions": [
+        {
+          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
+          "type": "Script",
+        },
+        {
+          "authenticateToService": "TxAuthz",
+          "type": "AuthenticateToService",
+        },
+        {
+          "conditions": [
+            {
+              "maxSessionTime": 5,
+              "terminateSession": false,
+              "type": "Session",
+            },
+            {
+              "requiredScopes": [
+                "openid",
+              ],
+              "type": "OAuth2Scope",
+            },
+            {
+              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+              "type": "Script",
+            },
+            {
+              "condition": {
+                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+                "type": "Script",
+              },
+              "type": "NOT",
+            },
+          ],
+          "type": "OR",
+        },
+      ],
+      "type": "AND",
+    },
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:24.96Z",
+    "description": "Frodo Test Policy",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:24.96Z",
+    "name": "FrodoTestPolicy5",
+    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
+    "resources": [
+      "*://*:*/forgerock/app2/*",
+      "*://*:*/app2/*",
+    ],
+    "subject": {
+      "type": "AuthenticatedUsers",
+    },
+  },
+  {
+    "_id": "FrodoTestPolicy7",
+    "_rev": "1691208984262",
+    "actionValues": {
+      "GET": true,
+    },
+    "active": true,
+    "applicationName": "FrodoTestPolicySet1",
+    "condition": {
+      "conditions": [
+        {
+          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
+          "type": "Script",
+        },
+        {
+          "authenticateToService": "TxAuthz",
+          "type": "AuthenticateToService",
+        },
+        {
+          "conditions": [
+            {
+              "maxSessionTime": 5,
+              "terminateSession": false,
+              "type": "Session",
+            },
+            {
+              "requiredScopes": [
+                "openid",
+              ],
+              "type": "OAuth2Scope",
+            },
+            {
+              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+              "type": "Script",
+            },
+            {
+              "condition": {
+                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+                "type": "Script",
+              },
+              "type": "NOT",
+            },
+          ],
+          "type": "OR",
+        },
+      ],
+      "type": "AND",
+    },
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:24.262Z",
+    "description": "Frodo Test Policy",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:24.262Z",
+    "name": "FrodoTestPolicy7",
+    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
+    "resources": [
+      "*://*:*/forgerock/app2/*",
+      "*://*:*/app2/*",
+    ],
+    "subject": {
+      "type": "AuthenticatedUsers",
+    },
+  },
+  {
+    "_id": "FrodoTestPolicy9",
+    "_rev": "1691208984378",
+    "actionValues": {
+      "GET": true,
+    },
+    "active": true,
+    "applicationName": "FrodoTestPolicySet1",
+    "condition": {
+      "conditions": [
+        {
+          "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
+          "type": "Script",
+        },
+        {
+          "authenticateToService": "TxAuthz",
+          "type": "AuthenticateToService",
+        },
+        {
+          "conditions": [
+            {
+              "maxSessionTime": 5,
+              "terminateSession": false,
+              "type": "Session",
+            },
+            {
+              "requiredScopes": [
+                "openid",
+              ],
+              "type": "OAuth2Scope",
+            },
+            {
+              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+              "type": "Script",
+            },
+            {
+              "condition": {
+                "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+                "type": "Script",
+              },
+              "type": "NOT",
+            },
+          ],
+          "type": "OR",
+        },
+      ],
+      "type": "AND",
+    },
+    "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "creationDate": "2023-08-05T04:16:24.378Z",
+    "description": "Frodo Test Policy",
+    "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+    "lastModifiedDate": "2023-08-05T04:16:24.378Z",
+    "name": "FrodoTestPolicy9",
+    "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
+    "resources": [
+      "*://*:*/forgerock/app2/*",
+      "*://*:*/app2/*",
+    ],
+    "subject": {
+      "type": "AuthenticatedUsers",
+    },
+  },
+]
+`;
+
+exports[`PolicyOps readPolicy() 1: Get existing policy [FrodoTestPolicy1] 1`] = `
 {
-  "_id": "FrodoTestPolicy3",
-  "_rev": "1684702170512",
+  "_id": "FrodoTestPolicy1",
+  "_rev": "1691208983792",
   "actionValues": {
     "GET": true,
   },
@@ -4922,11 +3918,85 @@ exports[`PolicyOps putPolicy() 1: Create non-existing policy [FrodoTestPolicy3] 
     ],
     "type": "AND",
   },
-  "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "creationDate": "2023-05-21T20:49:30.512Z",
+  "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "creationDate": "2023-08-05T04:16:23.792Z",
   "description": "Frodo Test Policy",
-  "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "lastModifiedDate": "2023-05-21T20:49:30.512Z",
+  "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "lastModifiedDate": "2023-08-05T04:16:23.792Z",
+  "name": "FrodoTestPolicy1",
+  "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
+  "resources": [
+    "*://*:*/forgerock/app2/*",
+    "*://*:*/app2/*",
+  ],
+  "subject": {
+    "type": "AuthenticatedUsers",
+  },
+}
+`;
+
+exports[`PolicyOps readPolicy() 2: Get non-existing policy [DoesNotExist] 1`] = `
+{
+  "code": 404,
+  "message": "Policy DoesNotExist does not exist.",
+  "reason": "Not Found",
+}
+`;
+
+exports[`PolicyOps updatePolicy() 1: Create non-existing policy [FrodoTestPolicy3] 1`] = `
+{
+  "_id": "FrodoTestPolicy3",
+  "_rev": "1691208985362",
+  "actionValues": {
+    "GET": true,
+  },
+  "active": true,
+  "applicationName": "FrodoTestPolicySet1",
+  "condition": {
+    "conditions": [
+      {
+        "scriptId": "62f18ede-e5e7-4a7b-8b73-1b02fcbd241a",
+        "type": "Script",
+      },
+      {
+        "authenticateToService": "TxAuthz",
+        "type": "AuthenticateToService",
+      },
+      {
+        "conditions": [
+          {
+            "maxSessionTime": 5,
+            "terminateSession": false,
+            "type": "Session",
+          },
+          {
+            "requiredScopes": [
+              "openid",
+            ],
+            "type": "OAuth2Scope",
+          },
+          {
+            "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+            "type": "Script",
+          },
+          {
+            "condition": {
+              "scriptId": "729ee140-a4e9-43af-b358-d60eeda13cc3",
+              "type": "Script",
+            },
+            "type": "NOT",
+          },
+        ],
+        "type": "OR",
+      },
+    ],
+    "type": "AND",
+  },
+  "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "creationDate": "2023-08-05T04:16:25.362Z",
+  "description": "Frodo Test Policy",
+  "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "lastModifiedDate": "2023-08-05T04:16:25.362Z",
   "name": "FrodoTestPolicy3",
   "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
   "resources": [
@@ -4939,10 +4009,10 @@ exports[`PolicyOps putPolicy() 1: Create non-existing policy [FrodoTestPolicy3] 
 }
 `;
 
-exports[`PolicyOps putPolicy() 2: Update existing policy [FrodoTestPolicy4] 1`] = `
+exports[`PolicyOps updatePolicy() 2: Update existing policy [FrodoTestPolicy4] 1`] = `
 {
   "_id": "FrodoTestPolicy4",
-  "_rev": "1684702170596",
+  "_rev": "1691208985467",
   "actionValues": {
     "GET": true,
   },
@@ -4988,11 +4058,11 @@ exports[`PolicyOps putPolicy() 2: Update existing policy [FrodoTestPolicy4] 1`] 
     ],
     "type": "AND",
   },
-  "createdBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "creationDate": "2023-05-21T20:49:29.66Z",
+  "createdBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "creationDate": "2023-08-05T04:16:23.967Z",
   "description": "Frodo Test Policy",
-  "lastModifiedBy": "id=8d9723a9-a439-4cbf-beb4-30e52811789d,ou=user,ou=am-config",
-  "lastModifiedDate": "2023-05-21T20:49:30.596Z",
+  "lastModifiedBy": "id=b672336b-41ef-428d-ae4a-e0c082875377,ou=user,ou=am-config",
+  "lastModifiedDate": "2023-08-05T04:16:25.467Z",
   "name": "FrodoTestPolicy4",
   "resourceTypeUuid": "76656a38-5f8e-401b-83aa-4ccb74ce88d2",
   "resources": [

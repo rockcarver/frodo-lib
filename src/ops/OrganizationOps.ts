@@ -1,36 +1,48 @@
-import { State } from '../shared/State';
+import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import { queryAllManagedObjectsByType } from '../api/ManagedObjectApi';
+import Constants from '../shared/Constants';
+import { State } from '../shared/State';
 import { printMessage } from '../utils/Console';
 
 export type Organization = {
   /**
    * Get organization managed object type
-   * @returns {String} organization managed object type in this realm
+   * @returns {string} organization managed object type in this realm
    */
   getRealmManagedOrganization(): string;
   /**
-   * Get organizations
-   * @returns {Promise} promise resolving to an object containing an array of organization objects
+   * Read all organizations
+   * @returns {Promise<IdObjectSkeletonInterface[]>} promise resolving to an array of organization objects
    */
-  getOrganizations(): Promise<any[]>;
+  readOrganizations(): Promise<IdObjectSkeletonInterface[]>;
+
+  // Deprecated
+
+  /**
+   * Get organizations
+   * @returns {Promise<IdObjectSkeletonInterface[]>} promise resolving to an array of organization objects
+   * @deprecated since v2.0.0 use {@link Organization.readOrganizations | readOrganizations} instead
+   * ```javascript
+   * readOrganizations(): Promise<IdObjectSkeletonInterface[]>
+   * ```
+   * @group Deprecated
+   */
+  getOrganizations(): Promise<IdObjectSkeletonInterface[]>;
 };
 
 export default (state: State): Organization => {
   return {
-    /**
-     * Get organization managed object type
-     * @returns {String} organization managed object type in this realm
-     */
-    getRealmManagedOrganization() {
+    getRealmManagedOrganization(): string {
       return getRealmManagedOrganization({ state });
     },
+    async readOrganizations(): Promise<IdObjectSkeletonInterface[]> {
+      return readOrganizations({ state });
+    },
 
-    /**
-     * Get organizations
-     * @returns {Promise} promise resolving to an object containing an array of organization objects
-     */
-    async getOrganizations() {
-      return getOrganizations({ state });
+    // Deprecated
+
+    async getOrganizations(): Promise<IdObjectSkeletonInterface[]> {
+      return readOrganizations({ state });
     },
   };
 };
@@ -41,18 +53,23 @@ export default (state: State): Organization => {
  */
 export function getRealmManagedOrganization({ state }: { state: State }) {
   let realmManagedOrg = 'organization';
-  if (state.getDeploymentType() === global.CLOUD_DEPLOYMENT_TYPE_KEY) {
+  if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
     realmManagedOrg = `${state.getRealm()}_organization`;
   }
   return realmManagedOrg;
 }
 
 /**
- * Get organizations
- * @returns {Promise} promise resolving to an object containing an array of organization objects
+ * Read all organizations
+ * @returns {Promise<IdObjectSkeletonInterface[]>} promise resolving to an object containing an array of organization objects
  */
-export async function getOrganizations({ state }: { state: State }) {
+export async function readOrganizations({
+  state,
+}: {
+  state: State;
+}): Promise<IdObjectSkeletonInterface[]> {
   let orgs = [];
+  const errors = [];
   let result = {
     result: [],
     resultCount: 0,
@@ -61,39 +78,22 @@ export async function getOrganizations({ state }: { state: State }) {
     totalPagedResults: -1,
     remainingPagedResults: -1,
   };
-  try {
-    do {
-      try {
-        result = await queryAllManagedObjectsByType({
-          type: getRealmManagedOrganization({ state }),
-          fields: ['name', 'parent/*/name', 'children/*/name'],
-          pageCookie: result.pagedResultsCookie,
-          state,
-        });
-      } catch (error) {
-        printMessage({
-          message: error,
-          type: 'error',
-          state,
-        });
-        printMessage({
-          message: `Error querying ${getRealmManagedOrganization({
-            state,
-          })} objects: ${error}`,
-          type: 'error',
-          state,
-        });
-      }
-      orgs = orgs.concat(result.result);
-      printMessage({ message: '.', type: 'text', newline: false, state });
-    } while (result.pagedResultsCookie);
-  } catch (error) {
-    printMessage({ message: error.response.data, type: 'error', state });
-    printMessage({
-      message: `Error retrieving all organizations: ${error}`,
-      type: 'error',
-      state,
-    });
+  do {
+    try {
+      result = await queryAllManagedObjectsByType({
+        type: getRealmManagedOrganization({ state }),
+        fields: ['name', 'parent/*/name', 'children/*/name', '*'],
+        pageCookie: result.pagedResultsCookie,
+        state,
+      });
+    } catch (error) {
+      errors.push(error);
+    }
+    orgs = orgs.concat(result.result);
+  } while (result.pagedResultsCookie);
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Error:\n${errorMessages}`);
   }
   return orgs;
 }

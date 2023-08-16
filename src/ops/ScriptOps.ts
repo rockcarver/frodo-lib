@@ -1,48 +1,87 @@
 import { v4 as uuidv4 } from 'uuid';
-import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
+
+import {
+  deleteScript as _deleteScript,
+  getScript as _getScript,
+  getScriptByName as _getScriptByName,
+  getScripts as _getScripts,
+  putScript as _putScript,
+} from '../api/ScriptApi';
+import { type ScriptSkeleton } from '../api/ScriptApi';
+import { type ExportMetaData } from '../ops/OpsTypes';
+import { State } from '../shared/State';
 import {
   createProgressIndicator,
   debugMessage,
   printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
+  verboseMessage,
 } from '../utils/Console';
-import {
-  getScript,
-  getScriptByName as _getScriptByName,
-  getScripts as _getScripts,
-  putScript as _putScript,
-  deleteScript,
-} from '../api/ScriptApi';
 import {
   convertBase64TextToArray,
   convertTextArrayToBase64,
   getMetadata,
 } from '../utils/ExportImportUtils';
-import { ScriptSkeleton } from '../api/ApiTypes';
-import { ExportMetaData } from '../ops/OpsTypes';
+import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
 import { validateScriptDecoded } from '../utils/ScriptValidationUtils';
-import { State } from '../shared/State';
 
 export type Script = {
   /**
-   * Get all scripts
+   * Create an empty script export template
+   * @returns {ScriptExportInterface} an empty script export template
+   */
+  createScriptExportTemplate(): ScriptExportInterface;
+  /**
+   * Read all scripts
    * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
    */
-  getScripts(): Promise<ScriptSkeleton[]>;
+  readScripts(): Promise<ScriptSkeleton[]>;
   /**
-   * Get script by name
-   * @param {string} name name of the script
+   * Read script
+   * @param {string} scriptId script id
    * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
    */
-  getScriptByName(scriptName: string): Promise<ScriptSkeleton>;
+  readScript(scriptId: string): Promise<ScriptSkeleton>;
+  /**
+   * Read script by name
+   * @param {string} scriptName name of the script
+   * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
+   */
+  readScriptByName(scriptName: string): Promise<ScriptSkeleton>;
+  /**
+   * Create script
+   * @param {string} scriptId script id
+   * @param {string} scriptName name of the script
+   * @param {ScriptSkeleton} scriptData script object
+   * @returns {Promise<ScriptSkeleton>} a status object
+   */
+  createScript(
+    scriptId: string,
+    scriptName: string,
+    scriptData: ScriptSkeleton
+  ): Promise<ScriptSkeleton>;
   /**
    * Create or update script
-   * @param {string} scriptId script uuid
+   * @param {string} scriptId script id
    * @param {ScriptSkeleton} scriptData script object
-   * @returns {Promise<boolean>} a status object
+   * @returns {Promise<ScriptSkeleton>} a status object
    */
-  putScript(scriptId: string, scriptData: ScriptSkeleton): Promise<boolean>;
+  updateScript(
+    scriptId: string,
+    scriptData: ScriptSkeleton
+  ): Promise<ScriptSkeleton>;
+  /**
+   * Delete script
+   * @param {string} scriptId script id
+   * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
+   */
+  deleteScript(scriptId: string): Promise<ScriptSkeleton>;
+  /**
+   * Export all scripts
+   * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
+   */
+  exportScripts(): Promise<ScriptExportInterface>;
   /**
    * Export script by id
    * @param {string} scriptId script uuid
@@ -51,105 +90,123 @@ export type Script = {
   exportScript(scriptId: string): Promise<ScriptExportInterface>;
   /**
    * Export script by name
-   * @param {string} name script name
+   * @param {string} scriptName script name
    * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
    */
   exportScriptByName(scriptName: string): Promise<ScriptExportInterface>;
-  /**
-   * Export all scripts
-   * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
-   */
-  exportScripts(): Promise<ScriptExportInterface>;
   /**
    * Import scripts
    * @param {string} scriptName Optional name of script. If supplied, only the script of that name is imported
    * @param {ScriptExportInterface} importData Script import data
    * @param {boolean} reUuid true to generate a new uuid for each script on import, false otherwise
-   * @returns {Promise<boolean>} true if no errors occurred during import, false otherwise
+   * @returns {Promise<ScriptSkeleton[]>} true if no errors occurred during import, false otherwise
    */
   importScripts(
     scriptName: string,
     importData: ScriptExportInterface,
     reUuid?: boolean,
     validate?: boolean
-  ): Promise<boolean>;
-  getScript(scriptId: string): Promise<any>;
-  deleteScript(scriptId: string): Promise<any>;
+  ): Promise<ScriptSkeleton[]>;
+
+  // Deprecated
+
+  /**
+   * Get all scripts
+   * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
+   * @deprecated since v2.0.0 use {@link Script.readScripts | readScripts} instead
+   * ```javascript
+   * readScripts(): Promise<ScriptSkeleton[]>
+   * ```
+   * @group Deprecated
+   */
+  getScripts(): Promise<ScriptSkeleton[]>;
+  /**
+   * Get script
+   * @param {string} scriptId script id
+   * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
+   * @deprecated since v2.0.0 use {@link Script.readScript | readScript} instead
+   * ```javascript
+   * readScript(scriptName: string): Promise<ScriptSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  getScript(scriptId: string): Promise<ScriptSkeleton>;
+  /**
+   * Get script by name
+   * @param {string} scriptName name of the script
+   * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
+   * @deprecated since v2.0.0 use {@link Script.readScriptByName | readScriptByName} instead
+   * ```javascript
+   * readScriptByName(scriptName: string): Promise<ScriptSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  getScriptByName(scriptName: string): Promise<ScriptSkeleton>;
+  /**
+   * Create or update script
+   * @param {string} scriptId script uuid
+   * @param {ScriptSkeleton} scriptData script object
+   * @returns {Promise<ScriptSkeleton>} a status object
+   * @deprecated since v2.0.0 use {@link Script.updateScript | updateScript} or {@link Script.createScript | createScript} instead
+   * ```javascript
+   * updateScript(scriptId: string, scriptData: ScriptSkeleton): Promise<ScriptSkeleton>
+   * createScript(scriptId: string, scriptName: string, scriptData: ScriptSkeleton): Promise<ScriptSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  putScript(
+    scriptId: string,
+    scriptData: ScriptSkeleton
+  ): Promise<ScriptSkeleton>;
 };
 
 export default (state: State): Script => {
   return {
-    /**
-     * Get all scripts
-     * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
-     */
-    async getScripts(): Promise<ScriptSkeleton[]> {
-      return getScripts({ state });
+    createScriptExportTemplate(): ScriptExportInterface {
+      return createScriptExportTemplate({ state });
     },
-
-    /**
-     * Get script by name
-     * @param {string} name name of the script
-     * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
-     */
-    async getScriptByName(scriptName: string): Promise<ScriptSkeleton> {
-      return getScriptByName({ scriptName, state });
+    async readScripts(): Promise<ScriptSkeleton[]> {
+      return readScripts({ state });
     },
-
-    /**
-     * Create or update script
-     * @param {string} scriptId script uuid
-     * @param {ScriptSkeleton} scriptData script object
-     * @returns {Promise<boolean>} a status object
-     */
-    async putScript(
+    async readScript(scriptId: string): Promise<ScriptSkeleton> {
+      return readScript({ scriptId, state });
+    },
+    async readScriptByName(scriptName: string): Promise<ScriptSkeleton> {
+      return readScriptByName({ scriptName, state });
+    },
+    async createScript(
+      scriptId: string,
+      scriptName: string,
+      scriptData: ScriptSkeleton
+    ): Promise<ScriptSkeleton> {
+      return createScript({ scriptId, scriptName, scriptData, state });
+    },
+    async updateScript(
       scriptId: string,
       scriptData: ScriptSkeleton
-    ): Promise<boolean> {
-      return putScript({ scriptId, scriptData, state });
+    ): Promise<ScriptSkeleton> {
+      return updateScript({ scriptId, scriptData, state });
     },
-
-    /**
-     * Export script by id
-     * @param {string} scriptId script uuid
-     * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
-     */
+    async deleteScript(scriptId: string): Promise<ScriptSkeleton> {
+      return deleteScript({ scriptId, state });
+    },
     async exportScript(scriptId: string): Promise<ScriptExportInterface> {
       return exportScript({ scriptId, state });
     },
-
-    /**
-     * Export script by name
-     * @param {string} name script name
-     * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
-     */
     async exportScriptByName(
       scriptName: string
     ): Promise<ScriptExportInterface> {
       return exportScriptByName({ scriptName, state });
     },
-
-    /**
-     * Export all scripts
-     * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
-     */
     async exportScripts(): Promise<ScriptExportInterface> {
       return exportScripts({ state });
     },
-
-    /**
-     * Import scripts
-     * @param {string} scriptName Optional name of script. If supplied, only the script of that name is imported
-     * @param {ScriptExportInterface} importData Script import data
-     * @param {boolean} reUuid true to generate a new uuid for each script on import, false otherwise
-     * @returns {Promise<boolean>} true if no errors occurred during import, false otherwise
-     */
     async importScripts(
       scriptName: string,
       importData: ScriptExportInterface,
       reUuid = false,
       validate = false
-    ): Promise<boolean> {
+    ): Promise<ScriptSkeleton[]> {
       return importScripts({
         scriptName,
         importData,
@@ -159,12 +216,22 @@ export default (state: State): Script => {
       });
     },
 
-    getScript(scriptId: string) {
-      return getScript({ scriptId, state });
-    },
+    // Deprecated
 
-    deleteScript(scriptId: string) {
-      return deleteScript({ scriptId, state });
+    async getScripts(): Promise<ScriptSkeleton[]> {
+      return readScripts({ state });
+    },
+    async getScript(scriptId: string): Promise<ScriptSkeleton> {
+      return readScript({ scriptId, state });
+    },
+    async getScriptByName(scriptName: string): Promise<ScriptSkeleton> {
+      return readScriptByName({ scriptName, state });
+    },
+    async putScript(
+      scriptId: string,
+      scriptData: ScriptSkeleton
+    ): Promise<ScriptSkeleton> {
+      return updateScript({ scriptId, scriptData, state });
     },
   };
 };
@@ -175,8 +242,8 @@ export interface ScriptExportInterface {
 }
 
 /**
- * Create an empty idp export template
- * @returns {ScriptExportInterface} an empty idp export template
+ * Create an empty script export template
+ * @returns {ScriptExportInterface} an empty script export template
  */
 export function createScriptExportTemplate({
   state,
@@ -193,7 +260,7 @@ export function createScriptExportTemplate({
  * Get all scripts
  * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
  */
-export async function getScripts({
+export async function readScripts({
   state,
 }: {
   state: State;
@@ -203,11 +270,25 @@ export async function getScripts({
 }
 
 /**
+ * Get script
+ * @returns {Promise<ScriptSkeleto]>} a promise that resolves to an array of script objects
+ */
+export async function readScript({
+  scriptId,
+  state,
+}: {
+  scriptId: string;
+  state: State;
+}): Promise<ScriptSkeleton> {
+  return _getScript({ scriptId, state });
+}
+
+/**
  * Get script by name
  * @param {string} scriptName name of the script
  * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
  */
-export async function getScriptByName({
+export async function readScriptByName({
   scriptName,
   state,
 }: {
@@ -226,12 +307,45 @@ export async function getScriptByName({
 }
 
 /**
+ * Create script
+ * @param {ScriptSkeleton} scriptData script object
+ * @returns {Promise<ScriptSkeleton>} a promise resolving to a script object
+ */
+export async function createScript({
+  scriptId,
+  scriptName,
+  scriptData,
+  state,
+}: {
+  scriptId: string;
+  scriptName: string;
+  scriptData: ScriptSkeleton;
+  state: State;
+}): Promise<ScriptSkeleton> {
+  debugMessage({ message: `ScriptOps.createOAuth2Client: start`, state });
+  scriptData._id = scriptId;
+  scriptData.name = scriptName;
+  try {
+    await _getScript({ scriptId, state });
+  } catch (error) {
+    const result = await updateScript({
+      scriptId,
+      scriptData,
+      state,
+    });
+    debugMessage({ message: `ScriptOps.createOAuth2Client: end`, state });
+    return result;
+  }
+  throw new Error(`Script ${scriptData._id} already exists!`);
+}
+
+/**
  * Create or update script
  * @param {string} scriptId script uuid
  * @param {ScriptSkeleton} scriptData script object
- * @returns {Promise<boolean>} a status object
+ * @returns {Promise<ScriptSkeleton>} a status object
  */
-export async function putScript({
+export async function updateScript({
   scriptId,
   scriptData,
   state,
@@ -239,32 +353,44 @@ export async function putScript({
   scriptId: string;
   scriptData: ScriptSkeleton;
   state: State;
-}): Promise<boolean> {
+}): Promise<ScriptSkeleton> {
+  let result = null;
   try {
     if (Array.isArray(scriptData.script)) {
       scriptData.script = convertTextArrayToBase64(scriptData.script);
     }
-    const result = await _putScript({ scriptId, scriptData, state });
-    return result;
+    result = await _putScript({ scriptId, scriptData, state });
   } catch (error) {
     if (error.response?.status === 409) {
-      printMessage({
+      verboseMessage({
         message: `createOrUpdateScript WARNING: script with name ${scriptData.name} already exists, using renaming policy... <name> => <name - imported (n)>`,
-        type: 'warn',
         state,
       });
       const newName = applyNameCollisionPolicy(scriptData.name);
       scriptData.name = newName;
-      const result = await putScript({ scriptId, scriptData, state });
-      printMessage({
+      result = await updateScript({ scriptId, scriptData, state });
+      verboseMessage({
         message: `Saved script as ${newName}`,
-        type: 'warn',
         state,
       });
-      return result;
-    }
-    throw error;
+    } else throw error;
   }
+  return result;
+}
+
+/**
+ * Delete script
+ * @param {string} scriptId script uuid
+ * @returns {Promise<ScriptSkeleton>} a promise resolving to a script object
+ */
+export async function deleteScript({
+  scriptId,
+  state,
+}: {
+  scriptId: string;
+  state: State;
+}): Promise<ScriptSkeleton> {
+  return _deleteScript({ scriptId, state });
 }
 
 /**
@@ -280,7 +406,7 @@ export async function exportScript({
   state: State;
 }): Promise<ScriptExportInterface> {
   debugMessage({ message: `ScriptOps.exportScriptById: start`, state });
-  const scriptData = await getScript({ scriptId, state });
+  const scriptData = await _getScript({ scriptId, state });
   scriptData.script = convertBase64TextToArray(scriptData.script);
   const exportData = createScriptExportTemplate({ state });
   exportData.script[scriptData._id] = scriptData;
@@ -301,7 +427,7 @@ export async function exportScriptByName({
   state: State;
 }): Promise<ScriptExportInterface> {
   debugMessage({ message: `ScriptOps.exportScriptByName: start`, state });
-  const scriptData = await getScriptByName({ scriptName, state });
+  const scriptData = await readScriptByName({ scriptName, state });
   scriptData.script = convertBase64TextToArray(scriptData.script as string);
   const exportData = createScriptExportTemplate({ state });
   exportData.script[scriptData._id] = scriptData;
@@ -318,7 +444,7 @@ export async function exportScripts({
 }: {
   state: State;
 }): Promise<ScriptExportInterface> {
-  const scriptList = await getScripts({ state });
+  const scriptList = await readScripts({ state });
   const exportData = createScriptExportTemplate({ state });
   createProgressIndicator({
     total: scriptList.length,
@@ -330,7 +456,7 @@ export async function exportScripts({
       message: `Reading script ${script.name}`,
       state,
     });
-    const scriptData = await getScriptByName({
+    const scriptData = await readScriptByName({
       scriptName: script.name,
       state,
     });
@@ -363,53 +489,62 @@ export async function importScripts({
   reUuid?: boolean;
   validate?: boolean;
   state: State;
-}): Promise<boolean> {
-  let outcome = true;
+}): Promise<ScriptSkeleton[]> {
   debugMessage({ message: `ScriptOps.importScripts: start`, state });
+  const response = [];
+  const errors = [];
+  const imported = [];
   for (const existingId of Object.keys(importData.script)) {
-    const scriptSkeleton = importData.script[existingId];
-    let newId = existingId;
-    if (reUuid) {
-      newId = uuidv4();
-      debugMessage({
-        message: `ScriptOps.importScripts: Re-uuid-ing script ${scriptSkeleton.name} ${existingId} => ${newId}...`,
-        state,
-      });
-      scriptSkeleton._id = newId;
-    }
-    if (scriptName) {
-      debugMessage({
-        message: `ScriptOps.importScripts: Renaming script ${scriptSkeleton.name} => ${scriptName}...`,
-        state,
-      });
-      scriptSkeleton.name = scriptName;
-    }
-    if (validate) {
-      if (!validateScriptDecoded({ scriptSkeleton, state })) {
-        outcome = false;
-        printMessage({
-          message: `Error importing script '${scriptSkeleton.name}': Script is not valid`,
-          type: 'error',
+    try {
+      const scriptSkeleton = importData.script[existingId];
+      let newId = existingId;
+      if (reUuid) {
+        newId = uuidv4();
+        debugMessage({
+          message: `ScriptOps.importScripts: Re-uuid-ing script ${scriptSkeleton.name} ${existingId} => ${newId}...`,
           state,
         });
-        continue;
+        scriptSkeleton._id = newId;
       }
-    }
-    try {
-      await putScript({ scriptId: newId, scriptData: scriptSkeleton, state });
+      if (scriptName) {
+        debugMessage({
+          message: `ScriptOps.importScripts: Renaming script ${scriptSkeleton.name} => ${scriptName}...`,
+          state,
+        });
+        scriptSkeleton.name = scriptName;
+      }
+      if (validate) {
+        if (!validateScriptDecoded({ scriptSkeleton, state })) {
+          const message = `Error importing script '${scriptSkeleton.name}': Script is not valid`;
+          printMessage({
+            message,
+            type: 'error',
+            state,
+          });
+          throw new Error(message);
+        }
+      }
+      try {
+        await updateScript({
+          scriptId: newId,
+          scriptData: scriptSkeleton,
+          state,
+        });
+        imported.push(newId);
+      } catch (error) {
+        errors.push(error);
+      }
     } catch (error) {
-      outcome = false;
-      printMessage({
-        message: `Error importing script '${scriptSkeleton.name}': ${error.message}`,
-        type: 'error',
-        state,
-      });
-      debugMessage({ message: error, state });
+      errors.push(error);
     }
-    if (scriptName) break;
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\nNo scripts found in import data!`);
   }
   debugMessage({ message: `ScriptOps.importScripts: end`, state });
-  return outcome;
+  return response;
 }
-
-export { getScript, deleteScript };

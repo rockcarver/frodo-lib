@@ -1,25 +1,24 @@
 import {
-  Saml2ProiderLocation,
-  Saml2ProviderSkeleton,
-  Saml2ProviderStub,
-  createProvider,
-  updateProvider,
-  findProviders,
-  getProviderByLocationAndId as _getProviderByLocationAndId,
+  createProvider as _createProvider,
+  deleteProvider as _deleteProvider,
+  getProvider as _getProviderByLocationAndId,
   getProviderMetadata as _getProviderMetadata,
   getProviderMetadataUrl as _getProviderMetadataUrl,
-  getProviders,
-  deleteProviderByLocationAndId,
+  getProviderStubs as _getProviderStubs,
+  queryProviderStubs as _queryProviderStubs,
+  type Saml2ProiderLocation,
+  type Saml2ProviderSkeleton,
+  type Saml2ProviderStub,
+  updateProvider as _updateProvider,
 } from '../api/Saml2Api';
-import { getScript } from '../api/ScriptApi';
+import { getScript, type ScriptSkeleton } from '../api/ScriptApi';
+import { State } from '../shared/State';
 import {
   decode,
   decodeBase64Url,
   encode,
   encodeBase64Url,
 } from '../utils/Base64Utils';
-import { MultiOpStatusInterface, Saml2ExportInterface } from './OpsTypes';
-import { putScript } from './ScriptOps';
 import { debugMessage, printMessage } from '../utils/Console';
 import {
   convertBase64TextToArray,
@@ -28,49 +27,52 @@ import {
   convertTextArrayToBase64Url,
   getMetadata,
 } from '../utils/ExportImportUtils';
-import { State } from '../shared/State';
 import { get } from '../utils/JsonUtils';
+import { type ExportMetaData } from './OpsTypes';
+import { updateScript } from './ScriptOps';
 
 export type Saml2 = {
   /**
-   * Get SAML2 entity provider stubs
+   * Read all SAML2 entity provider stubs
    * @returns {Promise<Saml2ProviderStub[]>} a promise that resolves to an array of saml2 entity stubs
    */
-  getSaml2ProviderStubs(): Promise<Saml2ProviderStub[]>;
-  /**
-   * Geta SAML2 entity provider by location and id
-   * @param {string} location Entity provider location (hosted or remote)
-   * @param {string} entityId64 Base64-encoded-without-padding provider entity id
-   * @returns {Promise} a promise that resolves to a saml2 entity provider object
-   */
-  getProviderByLocationAndId(
-    location: string,
-    entityId64: string
-  ): Promise<any>;
-  /**
-   * Get a SAML2 entity provider's metadata URL by entity id
-   * @param {string} entityId SAML2 entity id
-   * @returns {string} the URL to get the metadata from
-   */
-  getProviderMetadataUrl(entityId: string): string;
-  /**
-   * Get a SAML2 entity provider's metadata by entity id
-   * @param {string} entityId SAML2 entity id
-   * @returns {Promise<object>} a promise that resolves to an object containing a SAML2 metadata
-   */
-  getProviderMetadata(entityId: string): Promise<any>;
+  readSaml2ProviderStubs(): Promise<Saml2ProviderStub[]>;
   /**
    *
    * @param {string} entityId Provider entity id
    * @returns {Promise<Saml2ProviderStub>} Promise resolving to a Saml2ExportInterface object.
    */
-  getSaml2ProviderStub(entityId: string): Promise<Saml2ProviderStub>;
+  readSaml2ProviderStub(entityId: string): Promise<Saml2ProviderStub>;
   /**
    * Export a single entity provider. The response can be saved to file as is.
    * @param {string} entityId Provider entity id
    * @returns {Promise<Saml2ProviderSkeleton>} Promise resolving to a Saml2ExportInterface object.
    */
-  getSaml2Provider(entityId: string): Promise<Saml2ProviderSkeleton>;
+  readSaml2Provider(entityId: string): Promise<Saml2ProviderSkeleton>;
+  /**
+   * Create a SAML2 entity provider
+   * @param {Saml2ProiderLocation} location 'hosted' or 'remote'
+   * @param {Saml2ProviderSkeleton} providerData Object representing a SAML entity provider
+   * @param {string} metaData Base64-encoded metadata XML. Only required for remote providers
+   * @returns {Promise<Saml2ProviderSkeleton>} a promise that resolves to a saml2 entity provider object
+   */
+  createSaml2Provider(
+    location: Saml2ProiderLocation,
+    providerData: Saml2ProviderSkeleton,
+    metaData: string
+  ): Promise<Saml2ProviderSkeleton>;
+  /**
+   * Update SAML2 entity provider
+   * @param {Saml2ProiderLocation} location Entity provider location (hosted or remote)
+   * @param {string} entityId SAML2 entity id
+   * @param {Saml2ProviderSkeleton} providerData Object representing a SAML entity provider
+   * @returns {Promise<Saml2ProviderSkeleton>} a promise that resolves to a saml2 entity provider object
+   */
+  updateSaml2Provider(
+    location: Saml2ProiderLocation,
+    providerData: Saml2ProviderSkeleton,
+    entityId?: string
+  ): Promise<Saml2ProviderSkeleton>;
   /**
    * Delete an entity provider. The response can be saved to file as is.
    * @param {string} entityId Provider entity id
@@ -82,6 +84,18 @@ export type Saml2 = {
    * @returns {Promise<Saml2ProviderSkeleton[]>} Promise resolving to an array of Saml2ProviderSkeleton objects.
    */
   deleteSaml2Providers(): Promise<Saml2ProviderSkeleton[]>;
+  /**
+   * Get a SAML2 entity provider's metadata URL by entity id
+   * @param {string} entityId SAML2 entity id
+   * @returns {string} the URL to get the metadata from
+   */
+  getSaml2ProviderMetadataUrl(entityId: string): string;
+  /**
+   * Get a SAML2 entity provider's metadata by entity id
+   * @param {string} entityId SAML2 entity id
+   * @returns {Promise<object>} a promise that resolves to an object containing a SAML2 metadata
+   */
+  getSaml2ProviderMetadata(entityId: string): Promise<any>;
   /**
    * Export a single entity provider. The response can be saved to file as is.
    * @param {string} entityId Provider entity id
@@ -101,135 +115,159 @@ export type Saml2 = {
   importSaml2Provider(
     entityId: string,
     importData: Saml2ExportInterface
-  ): Promise<boolean>;
+  ): Promise<Saml2ProviderSkeleton>;
   /**
    * Import SAML entity providers
    * @param {Saml2ExportInterface} importData Import data
    */
   importSaml2Providers(
     importData: Saml2ExportInterface
-  ): Promise<MultiOpStatusInterface>;
+  ): Promise<Saml2ProviderSkeleton[]>;
+
+  // Deprecated
+
+  /**
+   * Get SAML2 entity provider stubs
+   * @returns {Promise<Saml2ProviderStub[]>} a promise that resolves to an array of saml2 entity stubs
+   * @deprecated since v2.0.0 use {@link Saml2.readSaml2ProviderStubs | readSaml2ProviderStubs} instead
+   * ```javascript
+   * readSaml2ProviderStubs(): Promise<Saml2ProviderStub[]>
+   * ```
+   * @group Deprecated
+   */
+  getSaml2ProviderStubs(): Promise<Saml2ProviderStub[]>;
+  /**
+   * Get a SAML2 entity provider's metadata URL by entity id
+   * @param {string} entityId SAML2 entity id
+   * @returns {string} the URL to get the metadata from
+   * @deprecated since v2.0.0 use {@link Saml2.getSaml2ProviderMetadataUrl | getSaml2ProviderMetadataUrl} instead
+   * ```javascript
+   * getSaml2ProviderMetadataUrl(entityId: string): string
+   * ```
+   * @group Deprecated
+   */
+  getProviderMetadataUrl(entityId: string): string;
+  /**
+   * Get a SAML2 entity provider's metadata by entity id
+   * @param {string} entityId SAML2 entity id
+   * @returns {Promise<any>} a promise that resolves to an object containing a SAML2 metadata
+   * @deprecated since v2.0.0 use {@link Saml2.getSaml2ProviderMetadata | getSaml2ProviderMetadata} instead
+   * ```javascript
+   * getSaml2ProviderMetadata(entityId: string): Promise<any>
+   * ```
+   * @group Deprecated
+   */
+  getProviderMetadata(entityId: string): Promise<any>;
+  /**
+   *
+   * @param {string} entityId Provider entity id
+   * @returns {Promise<Saml2ProviderStub>} Promise resolving to a Saml2ExportInterface object.
+   * @deprecated since v2.0.0 use {@link Saml2.readSaml2ProviderStub | readSaml2ProviderStub} instead
+   * ```javascript
+   * readSaml2ProviderStub(entityId: string): Promise<Saml2ProviderStub>
+   * ```
+   * @group Deprecated
+   */
+  getSaml2ProviderStub(entityId: string): Promise<Saml2ProviderStub>;
+  /**
+   * Export a single entity provider. The response can be saved to file as is.
+   * @param {string} entityId Provider entity id
+   * @returns {Promise<Saml2ProviderSkeleton>} Promise resolving to a Saml2ExportInterface object.
+   * @deprecated since v2.0.0 use {@link Saml2.readSaml2Provider | readSaml2Provider} instead
+   * ```javascript
+   * readSaml2Provider(entityId: string): Promise<Saml2ProviderSkeleton>
+   * ```
+   * @group Deprecated
+   */
+  getSaml2Provider(entityId: string): Promise<Saml2ProviderSkeleton>;
 };
 
 export default (state: State): Saml2 => {
   return {
-    /**
-     * Get SAML2 entity provider stubs
-     * @returns {Promise<Saml2ProviderStub[]>} a promise that resolves to an array of saml2 entity stubs
-     */
-    async getSaml2ProviderStubs(): Promise<Saml2ProviderStub[]> {
-      return getSaml2ProviderStubs({ state });
+    async readSaml2ProviderStubs(): Promise<Saml2ProviderStub[]> {
+      return readSaml2ProviderStubs({ state });
     },
-
-    /**
-     * Geta SAML2 entity provider by location and id
-     * @param {string} location Entity provider location (hosted or remote)
-     * @param {string} entityId64 Base64-encoded-without-padding provider entity id
-     * @returns {Promise} a promise that resolves to a saml2 entity provider object
-     */
-    async getProviderByLocationAndId(location: string, entityId64: string) {
-      return getProviderByLocationAndId({
-        location,
-        entityId64,
-        state,
-      });
+    async readSaml2ProviderStub(entityId: string): Promise<Saml2ProviderStub> {
+      return readSaml2ProviderStub({ entityId, state });
     },
-
-    /**
-     * Get a SAML2 entity provider's metadata URL by entity id
-     * @param {string} entityId SAML2 entity id
-     * @returns {string} the URL to get the metadata from
-     */
-    getProviderMetadataUrl(entityId: string): string {
-      return getProviderMetadataUrl({ entityId, state });
+    async readSaml2Provider(entityId: string): Promise<Saml2ProviderSkeleton> {
+      return readSaml2Provider({ entityId, state });
     },
-
-    /**
-     * Get a SAML2 entity provider's metadata by entity id
-     * @param {string} entityId SAML2 entity id
-     * @returns {Promise<object>} a promise that resolves to an object containing a SAML2 metadata
-     */
-    async getProviderMetadata(entityId: string) {
-      return getProviderMetadata({ entityId, state });
+    async createSaml2Provider(
+      location: Saml2ProiderLocation,
+      providerData: Saml2ProviderSkeleton,
+      metaData: string
+    ): Promise<Saml2ProviderSkeleton> {
+      return createSaml2Provider({ location, providerData, metaData, state });
     },
-
-    /**
-     *
-     * @param {string} entityId Provider entity id
-     * @returns {Promise<Saml2ProviderStub>} Promise resolving to a Saml2ExportInterface object.
-     */
-    async getSaml2ProviderStub(entityId: string): Promise<Saml2ProviderStub> {
-      return getSaml2ProviderStub({ entityId, state });
+    async updateSaml2Provider(
+      location: Saml2ProiderLocation,
+      providerData: Saml2ProviderSkeleton,
+      entityId?: string
+    ): Promise<Saml2ProviderSkeleton> {
+      return updateSaml2Provider({ location, providerData, entityId, state });
     },
-
-    /**
-     * Export a single entity provider. The response can be saved to file as is.
-     * @param {string} entityId Provider entity id
-     * @returns {Promise<Saml2ProviderSkeleton>} Promise resolving to a Saml2ExportInterface object.
-     */
-    async getSaml2Provider(entityId: string): Promise<Saml2ProviderSkeleton> {
-      return getSaml2Provider({ entityId, state });
-    },
-
-    /**
-     * Delete an entity provider. The response can be saved to file as is.
-     * @param {string} entityId Provider entity id
-     * @returns {Promise<Saml2ProviderSkeleton>} Promise resolving to a Saml2ExportInterface object.
-     */
     async deleteSaml2Provider(
       entityId: string
     ): Promise<Saml2ProviderSkeleton> {
       return deleteSaml2Provider({ entityId, state });
     },
-
-    /**
-     * Delete all entity providers.
-     * @returns {Promise<Saml2ProviderSkeleton[]>} Promise resolving to an array of Saml2ProviderSkeleton objects.
-     */
     async deleteSaml2Providers(): Promise<Saml2ProviderSkeleton[]> {
       return deleteSaml2Providers({ state });
     },
-
-    /**
-     * Export a single entity provider. The response can be saved to file as is.
-     * @param {string} entityId Provider entity id
-     * @returns {Promise<Saml2ExportInterface>} Promise resolving to a Saml2ExportInterface object.
-     */
+    getSaml2ProviderMetadataUrl(entityId: string): string {
+      return getSaml2ProviderMetadataUrl({ entityId, state });
+    },
+    async getSaml2ProviderMetadata(entityId: string) {
+      return getSaml2ProviderMetadata({ entityId, state });
+    },
     async exportSaml2Provider(entityId: string): Promise<Saml2ExportInterface> {
       return exportSaml2Provider({ entityId, state });
     },
-
-    /**
-     * Export all entity providers. The response can be saved to file as is.
-     * @returns {Promise<Saml2ExportInterface>} Promise resolving to a Saml2ExportInterface object.
-     */
     async exportSaml2Providers(): Promise<Saml2ExportInterface> {
       return exportSaml2Providers({ state });
     },
-
-    /**
-     * Import a SAML entity provider
-     * @param {string} entityId Provider entity id
-     * @param {Saml2ExportInterface} importData Import data
-     */
     async importSaml2Provider(
       entityId: string,
       importData: Saml2ExportInterface
-    ): Promise<boolean> {
+    ): Promise<Saml2ProviderSkeleton> {
       return importSaml2Provider({ entityId, importData, state });
     },
-
-    /**
-     * Import SAML entity providers
-     * @param {Saml2ExportInterface} importData Import data
-     */
     async importSaml2Providers(
       importData: Saml2ExportInterface
-    ): Promise<MultiOpStatusInterface> {
+    ): Promise<Saml2ProviderSkeleton[]> {
       return importSaml2Providers({ importData, state });
+    },
+
+    // Deprecated
+
+    async getSaml2ProviderStubs(): Promise<Saml2ProviderStub[]> {
+      return readSaml2ProviderStubs({ state });
+    },
+    getProviderMetadataUrl(entityId: string): string {
+      return getSaml2ProviderMetadataUrl({ entityId, state });
+    },
+    async getProviderMetadata(entityId: string) {
+      return getSaml2ProviderMetadata({ entityId, state });
+    },
+    async getSaml2ProviderStub(entityId: string): Promise<Saml2ProviderStub> {
+      return readSaml2ProviderStub({ entityId, state });
+    },
+    async getSaml2Provider(entityId: string): Promise<Saml2ProviderSkeleton> {
+      return readSaml2Provider({ entityId, state });
     },
   };
 };
+
+export interface Saml2ExportInterface {
+  meta?: ExportMetaData;
+  script: Record<string, ScriptSkeleton>;
+  saml: {
+    hosted: Record<string, Saml2ProviderSkeleton>;
+    remote: Record<string, Saml2ProviderSkeleton>;
+    metadata: Record<string, string[]>;
+  };
+}
 
 // use a function vs a template variable to avoid problems in loops
 export function createSaml2ExportTemplate({
@@ -252,31 +290,13 @@ export function createSaml2ExportTemplate({
  * Get SAML2 entity provider stubs
  * @returns {Promise<Saml2ProviderStub[]>} a promise that resolves to an array of saml2 entity stubs
  */
-export async function getSaml2ProviderStubs({
+export async function readSaml2ProviderStubs({
   state,
 }: {
   state: State;
 }): Promise<Saml2ProviderStub[]> {
-  const { result } = await getProviders({ state });
+  const { result } = await _getProviderStubs({ state });
   return result;
-}
-
-/**
- * Geta SAML2 entity provider by location and id
- * @param {string} location Entity provider location (hosted or remote)
- * @param {string} entityId64 Base64-encoded-without-padding provider entity id
- * @returns {Promise} a promise that resolves to a saml2 entity provider object
- */
-export async function getProviderByLocationAndId({
-  location,
-  entityId64,
-  state,
-}: {
-  location: string;
-  entityId64: string;
-  state: State;
-}) {
-  return _getProviderByLocationAndId({ location, entityId64, state });
 }
 
 /**
@@ -284,7 +304,7 @@ export async function getProviderByLocationAndId({
  * @param {string} entityId SAML2 entity id
  * @returns {string} the URL to get the metadata from
  */
-export function getProviderMetadataUrl({
+export function getSaml2ProviderMetadataUrl({
   entityId,
   state,
 }: {
@@ -299,7 +319,7 @@ export function getProviderMetadataUrl({
  * @param {string} entityId SAML2 entity id
  * @returns {Promise<object>} a promise that resolves to an object containing a SAML2 metadata
  */
-export async function getProviderMetadata({
+export async function getSaml2ProviderMetadata({
   entityId,
   state,
 }: {
@@ -345,13 +365,13 @@ async function exportDependencies({
     scriptData.script = convertBase64TextToArray(scriptData.script);
     fileData.script[idpAdapterScriptId] = scriptData;
   }
-  const metaDataResponse = await getProviderMetadata({
+  const metaDataResponse = await getSaml2ProviderMetadata({
     entityId: providerData.entityId,
     state,
   });
   if (!metaDataResponse) {
     throw new Error(
-      `Unable to obtain metadata from ${getProviderMetadataUrl({
+      `Unable to obtain metadata from ${getSaml2ProviderMetadataUrl({
         entityId: providerData.entityId,
         state,
       })}`
@@ -367,7 +387,7 @@ async function exportDependencies({
  * @param {string} entityId Provider entity id
  * @returns {Promise<Saml2ProviderStub>} Promise resolving to a Saml2ExportInterface object.
  */
-export async function getSaml2ProviderStub({
+export async function readSaml2ProviderStub({
   entityId,
   state,
 }: {
@@ -378,7 +398,7 @@ export async function getSaml2ProviderStub({
     message: `Saml2Ops.getSaml2ProviderStub: start [entityId=${entityId}]`,
     state,
   });
-  const found = await findProviders({
+  const found = await _queryProviderStubs({
     filter: `entityId eq '${entityId}'`,
     state,
   });
@@ -402,7 +422,7 @@ export async function getSaml2ProviderStub({
  * @param {string} entityId Provider entity id
  * @returns {Promise<Saml2ProviderSkeleton>} Promise resolving to a Saml2ExportInterface object.
  */
-export async function getSaml2Provider({
+export async function readSaml2Provider({
   entityId,
   state,
 }: {
@@ -413,12 +433,12 @@ export async function getSaml2Provider({
     message: `Saml2Ops.getSaml2Provider: start [entityId=${entityId}]`,
     state,
   });
-  const stub = await getSaml2ProviderStub({ entityId, state });
+  const stub = await readSaml2ProviderStub({ entityId, state });
   const { location } = stub;
-  const id = stub._id;
-  const providerData = await getProviderByLocationAndId({
+  const entityId64 = stub._id;
+  const providerData = await _getProviderByLocationAndId({
     location,
-    entityId64: id,
+    entityId64,
     state,
   });
   debugMessage({
@@ -426,6 +446,48 @@ export async function getSaml2Provider({
     state,
   });
   return providerData;
+}
+
+/**
+ * Create a SAML2 entity provider
+ * @param {Saml2ProiderLocation} location 'hosted' or 'remote'
+ * @param {Saml2ProviderSkeleton} providerData Object representing a SAML entity provider
+ * @param {string} metaData Base64-encoded metadata XML. Only required for remote providers
+ * @returns {Promise<Saml2ProviderSkeleton>} a promise that resolves to a saml2 entity provider object
+ */
+export async function createSaml2Provider({
+  location,
+  providerData,
+  metaData,
+  state,
+}: {
+  location: Saml2ProiderLocation;
+  providerData: Saml2ProviderSkeleton;
+  metaData?: string;
+  state: State;
+}): Promise<Saml2ProviderSkeleton> {
+  return _createProvider({ location, providerData, metaData, state });
+}
+
+/**
+ * Update SAML2 entity provider
+ * @param {Saml2ProiderLocation} location Entity provider location (hosted or remote)
+ * @param {string} entityId SAML2 entity id
+ * @param {Saml2ProviderSkeleton} providerData Object representing a SAML entity provider
+ * @returns {Promise<Saml2ProviderSkeleton>} a promise that resolves to a saml2 entity provider object
+ */
+export async function updateSaml2Provider({
+  location,
+  entityId = undefined,
+  providerData,
+  state,
+}: {
+  location: Saml2ProiderLocation;
+  entityId?: string;
+  providerData: Saml2ProviderSkeleton;
+  state: State;
+}): Promise<Saml2ProviderSkeleton> {
+  return _updateProvider({ location, entityId, providerData, state });
 }
 
 /**
@@ -444,10 +506,10 @@ export async function deleteSaml2Provider({
     message: `Saml2Ops.deleteSaml2Provider: start [entityId=${entityId}]`,
     state,
   });
-  const stub = await getSaml2ProviderStub({ entityId, state });
+  const stub = await readSaml2ProviderStub({ entityId, state });
   const { location } = stub;
   const id = stub._id;
-  const providerData = await deleteProviderByLocationAndId({
+  const providerData = await _deleteProvider({
     location,
     entityId64: id,
     state,
@@ -470,9 +532,9 @@ export async function deleteSaml2Providers({
 }): Promise<Saml2ProviderSkeleton[]> {
   debugMessage({ message: `Saml2Ops.deleteSaml2Providers: start`, state });
   const providers: Saml2ProviderSkeleton[] = [];
-  const stubs = await getSaml2ProviderStubs({ state });
+  const stubs = await readSaml2ProviderStubs({ state });
   for (const stub of stubs) {
-    const provider = await deleteProviderByLocationAndId({
+    const provider = await _deleteProvider({
       location: stub.location,
       entityId64: stub._id,
       state,
@@ -503,10 +565,10 @@ export async function exportSaml2Provider({
     state,
   });
   const exportData = createSaml2ExportTemplate({ state });
-  const stub = await getSaml2ProviderStub({ entityId, state });
+  const stub = await readSaml2ProviderStub({ entityId, state });
   const { location } = stub;
   const id = stub._id;
-  const providerData = await getProviderByLocationAndId({
+  const providerData = await _getProviderByLocationAndId({
     location,
     entityId64: id,
     state,
@@ -534,9 +596,9 @@ export async function exportSaml2Providers({
   state: State;
 }): Promise<Saml2ExportInterface> {
   const fileData = createSaml2ExportTemplate({ state });
-  const stubs = await getSaml2ProviderStubs({ state });
+  const stubs = await readSaml2ProviderStubs({ state });
   for (const stub of stubs) {
-    const providerData = await getProviderByLocationAndId({
+    const providerData = await _getProviderByLocationAndId({
       location: stub.location,
       entityId64: stub._id,
       state,
@@ -579,7 +641,7 @@ async function importDependencies({
     });
     const scriptData = get(fileData, ['script', attrMapperScriptId]);
     scriptData.script = convertTextArrayToBase64(scriptData.script as string[]);
-    await putScript({ scriptId: attrMapperScriptId, scriptData, state });
+    await updateScript({ scriptId: attrMapperScriptId, scriptData, state });
   }
   const idpAdapterScriptId = get(providerData, [
     'identityProvider',
@@ -594,7 +656,7 @@ async function importDependencies({
     });
     const scriptData = get(fileData, ['script', idpAdapterScriptId]);
     scriptData.script = convertTextArrayToBase64(scriptData.script as string[]);
-    await putScript({ scriptId: idpAdapterScriptId, scriptData, state });
+    await updateScript({ scriptId: idpAdapterScriptId, scriptData, state });
   }
   debugMessage({ message: `Saml2Ops.importDependencies: end`, state });
 }
@@ -622,6 +684,7 @@ function getLocation(
  * Import a SAML entity provider
  * @param {string} entityId Provider entity id
  * @param {Saml2ExportInterface} importData Import data
+ * @returns {Promise<Saml2ProviderSkeleton>} a promise resolving to a provider object
  */
 export async function importSaml2Provider({
   entityId,
@@ -631,38 +694,62 @@ export async function importSaml2Provider({
   entityId: string;
   importData: Saml2ExportInterface;
   state: State;
-}): Promise<boolean> {
+}): Promise<Saml2ProviderSkeleton> {
   debugMessage({ message: `Saml2Ops.importSaml2Provider: start`, state });
+  let response = null;
+  const errors = [];
+  const imported = [];
   const entityId64 = encode(entityId, false);
   const location = getLocation(entityId64, importData);
   debugMessage({
     message: `Saml2Ops.importSaml2Provider: entityId=${entityId}, entityId64=${entityId64}, location=${location}`,
     state,
   });
-  if (location) {
-    const providerData = importData.saml[location][entityId64];
-    await importDependencies({ providerData, fileData: importData, state });
-    let metaData = null;
-    if (location === 'remote') {
-      metaData = convertTextArrayToBase64Url(
-        importData.saml.metadata[entityId64]
-      );
+  try {
+    if (location) {
+      const providerData = importData.saml[location][entityId64];
+      await importDependencies({ providerData, fileData: importData, state });
+      let metaData = null;
+      if (location === 'remote') {
+        metaData = convertTextArrayToBase64Url(
+          importData.saml.metadata[entityId64]
+        );
+      }
+      try {
+        response = await _createProvider({
+          location,
+          providerData,
+          metaData,
+          state,
+        });
+        imported.push(entityId);
+      } catch (error) {
+        if (error.response?.status === 409) {
+          response = await _updateProvider({ location, providerData, state });
+          imported.push(entityId);
+        } else throw error;
+      }
+    } else {
+      throw new Error(`Provider ${entityId} not found in import data!`);
     }
-    try {
-      await createProvider({ location, providerData, metaData, state });
-    } catch (error) {
-      await updateProvider({ location, providerData, state });
-    }
-  } else {
-    throw new Error(`Provider ${entityId} not found in import data!`);
+  } catch (error) {
+    errors.push(error);
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\n${entityId} not found in import data!`);
   }
   debugMessage({ message: `Saml2Ops.importSaml2Provider: end`, state });
-  return true;
+  return response;
 }
 
 /**
  * Import SAML entity providers
  * @param {Saml2ExportInterface} importData Import data
+ * @returns {Promise<Saml2ProviderSkeleton[]>} a promise resolving to an array of provider objects
  */
 export async function importSaml2Providers({
   importData,
@@ -670,20 +757,16 @@ export async function importSaml2Providers({
 }: {
   importData: Saml2ExportInterface;
   state: State;
-}): Promise<MultiOpStatusInterface> {
+}): Promise<Saml2ProviderSkeleton[]> {
   debugMessage({ message: `Saml2Ops.importSaml2Providers: start`, state });
-  const myStatus: MultiOpStatusInterface = {
-    total: 0,
-    successes: 0,
-    warnings: 0,
-    failures: 0,
-  };
+  const response = [];
+  const errors = [];
+  const imported = [];
   try {
     // find providers in hosted and in remote and map locations
     const hostedIds = Object.keys(importData.saml.hosted);
     const remoteIds = Object.keys(importData.saml.remote);
     const providerIds = hostedIds.concat(remoteIds);
-    myStatus.total = providerIds.length;
     for (const entityId64 of providerIds) {
       debugMessage({
         message: `Saml2Ops.importSaml2Providers: entityId=${decodeBase64Url(
@@ -698,18 +781,8 @@ export async function importSaml2Providers({
       const providerData = importData.saml[location][entityId64];
       try {
         await importDependencies({ providerData, fileData: importData, state });
-      } catch (importDependenciesErr) {
-        myStatus.warnings += 1;
-        printMessage({
-          message: `\nWarning importing dependencies for ${entityId}`,
-          state,
-          type: 'warn',
-        });
-        printMessage({
-          message: importDependenciesErr.response.data,
-          type: 'error',
-          state,
-        });
+      } catch (error) {
+        errors.push(error);
       }
       let metaData = null;
       if (location === 'remote') {
@@ -718,36 +791,31 @@ export async function importSaml2Providers({
         );
       }
       try {
-        await createProvider({ location, providerData, metaData, state });
-        myStatus.successes += 1;
+        response.push(
+          await _createProvider({ location, providerData, metaData, state })
+        );
+        imported.push(entityId);
       } catch (createProviderErr) {
         try {
-          await updateProvider({ location, providerData, state });
-          myStatus.successes += 1;
-        } catch (updateProviderError) {
-          myStatus.failures += 1;
-          printMessage({
-            message: `\nError importing provider ${entityId}: ${updateProviderError.message}`,
-            state,
-            type: 'error',
-          });
-          printMessage({
-            message: updateProviderError.response?.data,
-            type: 'error',
-            state,
-          });
+          response.push(
+            await _updateProvider({ location, providerData, state })
+          );
+          imported.push(entityId);
+        } catch (error) {
+          errors.push(error);
         }
       }
     }
-    myStatus.message = `${myStatus.successes}/${myStatus.total} providers imported.`;
   } catch (error) {
-    myStatus.failures += 1;
-    printMessage({
-      message: `\nError importing providers ${error.message}`,
-      type: 'error',
-      state,
-    });
+    errors.push(error);
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\nNo providers found in import data!`);
   }
   debugMessage({ message: `Saml2Ops.importSaml2Providers: end`, state });
-  return myStatus;
+  return response;
 }

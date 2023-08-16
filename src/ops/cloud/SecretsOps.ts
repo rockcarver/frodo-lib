@@ -1,30 +1,32 @@
-import { VersionOfSecretStatus } from '../../api/ApiTypes';
 import {
-  createNewVersionOfSecret,
-  deleteSecret,
-  deleteVersionOfSecret,
-  getSecret,
-  getSecrets,
-  getSecretVersions,
-  getVersionOfSecret,
-  putSecret,
-  setSecretDescription,
-  setStatusOfVersionOfSecret,
+  createNewVersionOfSecret as _createNewVersionOfSecret,
+  deleteSecret as _deleteSecret,
+  deleteVersionOfSecret as _deleteVersionOfSecret,
+  getSecret as _getSecret,
+  getSecrets as _getSecrets,
+  getSecretVersions as _getSecretVersions,
+  getVersionOfSecret as _getVersionOfSecret,
+  putSecret as _putSecret,
+  SecretSkeleton,
+  setSecretDescription as _setSecretDescription,
+  setStatusOfVersionOfSecret as _setStatusOfVersionOfSecret,
+  VersionOfSecretSkeleton,
+  VersionOfSecretStatus,
 } from '../../api/cloud/SecretsApi';
 import { State } from '../../shared/State';
 
 export type Secret = {
   /**
-   * Get all secrets
-   * @returns {Promise<unknown[]>} a promise that resolves to an array of secrets
+   * Read all secrets
+   * @returns {Promise<SecretSkeleton[]>} a promise that resolves to an array of secrets
    */
-  getSecrets(): Promise<any>;
+  readSecrets(): Promise<SecretSkeleton[]>;
   /**
-   * Get secret
+   * Read secret
    * @param secretId secret id/name
-   * @returns {Promise<unknown>} a promise that resolves to a secret
+   * @returns {Promise<SecretSkeleton>} a promise that resolves to a secret
    */
-  getSecret(secretId: string): Promise<any>;
+  readSecret(secretId: string): Promise<SecretSkeleton>;
   /**
    * Create secret
    * @param {string} secretId secret id/name
@@ -32,7 +34,121 @@ export type Secret = {
    * @param {string} description secret description
    * @param {string} encoding secret encoding (only `generic` is supported)
    * @param {boolean} useInPlaceholders flag indicating if the secret can be used in placeholders
-   * @returns {Promise<unknown>} a promise that resolves to a secret
+   * @returns {Promise<SecretSkeleton>} a promise that resolves to a secret
+   */
+  createSecret(
+    secretId: string,
+    value: string,
+    description: string,
+    encoding?: string,
+    useInPlaceholders?: boolean
+  ): Promise<SecretSkeleton>;
+  /**
+   * Update secret description
+   * @param {string} secretId secret id/name
+   * @param {string} description secret description
+   * @returns {Promise<any>} a promise that resolves to an empty string
+   */
+  updateSecretDescription(secretId: string, description: string): Promise<any>;
+  /**
+   * Delete secret
+   * @param {string} secretId secret id/name
+   * @returns {Promise<SecretSkeleton>} a promise that resolves to a secret object
+   */
+  deleteSecret(secretId: string): Promise<SecretSkeleton>;
+  /**
+   * Read versions of secret
+   * @param {string} secretId secret id/name
+   * @returns {Promise<VersionOfSecretSkeleton[]>} a promise that resolves to an array of secret versions
+   */
+  readVersionsOfSecret(secretId: string): Promise<VersionOfSecretSkeleton[]>;
+  /**
+   * Create version of secret
+   * @param {string} secretId secret id/name
+   * @param {string} value secret value
+   * @returns {Promise<VersionOfSecretSkeleton>} a promise that resolves to a version object
+   */
+  createVersionOfSecret(
+    secretId: string,
+    value: string
+  ): Promise<VersionOfSecretSkeleton>;
+  /**
+   * Read version of secret
+   * @param {string} secretId secret id/name
+   * @param {string} version secret version
+   * @returns {Promise<VersionOfSecretSkeleton>} a promise that resolves to a version object
+   */
+  readVersionOfSecret(
+    secretId: string,
+    version: string
+  ): Promise<VersionOfSecretSkeleton>;
+  /**
+   * Enable a version of a secret
+   * @param {string} secretId secret id/name
+   * @param {string} version secret version
+   * @returns {Promise<VersionOfSecretSkeleton>} a promise that resolves to a status object
+   */
+  enableVersionOfSecret(
+    secretId: string,
+    version: string
+  ): Promise<VersionOfSecretSkeleton>;
+  /**
+   * Disable a version of a secret
+   * @param {string} secretId secret id/name
+   * @param {string} version secret version
+   * @returns {Promise<VersionOfSecretSkeleton>} a promise that resolves to a status object
+   */
+  disableVersionOfSecret(
+    secretId: string,
+    version: string
+  ): Promise<VersionOfSecretSkeleton>;
+  /**
+   * Delete version of secret
+   * @param {string} secretId secret id/name
+   * @param {string} version secret version
+   * @returns {Promise<VersionOfSecretSkeleton>} a promise that resolves to a version object
+   */
+  deleteVersionOfSecret(
+    secretId: string,
+    version: string
+  ): Promise<VersionOfSecretSkeleton>;
+
+  // Deprecated
+
+  /**
+   * Get all secrets
+   * @returns {Promise<any[]>} a promise that resolves to an array of secrets
+   * @deprecated since v2.0.0 use {@link Secret.readSecrets | readSecrets} instead
+   * ```javascript
+   * readSecrets(): Promise<SecretSkeleton[]>
+   * ```
+   * @group Deprecated
+   */
+  getSecrets(): Promise<SecretSkeleton[]>;
+  /**
+   * Get secret
+   * @param secretId secret id/name
+   * @returns {Promise<SecretSkeleton>} a promise that resolves to a secret
+   * @deprecated since v2.0.0 use {@link Secret.readSecret | readSecret} instead
+   * ```javascript
+   * readSecret(secretId: string): Promise<any>
+   * ```
+   * @group Deprecated
+   */
+  getSecret(secretId: string): Promise<SecretSkeleton>;
+  /**
+   * Create secret
+   * @param {string} secretId secret id/name
+   * @param {string} value secret value
+   * @param {string} description secret description
+   * @param {string} encoding secret encoding (only `generic` is supported)
+   * @param {boolean} useInPlaceholders flag indicating if the secret can be used in placeholders
+   * @returns {Promise<SecretSkeleton>} a promise that resolves to a secret
+   * @deprecated since v2.0.0 use {@link Secret.createSecret | createSecret} instead
+   * ```javascript
+   * createSecret(secretId: string, value: string, description: string, encoding?: string, useInPlaceholders?: boolean): Promise<any>
+   * ```
+   * @group Deprecated
    */
   putSecret(
     secretId: string,
@@ -40,97 +156,96 @@ export type Secret = {
     description: string,
     encoding?: string,
     useInPlaceholders?: boolean
-  ): Promise<any>;
+  ): Promise<SecretSkeleton>;
   /**
    * Set secret description
    * @param {string} secretId secret id/name
    * @param {string} description secret description
-   * @returns {Promise<unknown>} a promise that resolves to a status object
+   * @returns {Promise<any>} a promise that resolves to an empty string
+   * @deprecated since v2.0.0 use {@link Secret.updateSecretDescription | updateSecretDescription} instead
+   * ```javascript
+   * updateSecretDescription(secretId: string, description: string): Promise<any>
+   * ```
+   * @group Deprecated
    */
   setSecretDescription(secretId: string, description: string): Promise<any>;
   /**
-   * Delete secret
-   * @param {string} secretId secret id/name
-   * @returns {Promise<unknown>} a promise that resolves to a secret object
-   */
-  deleteSecret(secretId: string): Promise<any>;
-  /**
    * Get secret versions
    * @param {string} secretId secret id/name
-   * @returns {Promise<unknown>} a promise that resolves to an array of secret versions
+   * @returns {Promise<VersionOfSecretSkeleton[]>} a promise that resolves to an array of secret versions
+   * @deprecated since v2.0.0 use {@link Secret.readVersionsOfSecret | readVersionsOfSecret} instead
+   * ```javascript
+   * readVersionsOfSecret(secretId: string): Promise<any>
+   * ```
+   * @group Deprecated
    */
-  getSecretVersions(secretId: string): Promise<any>;
+  getSecretVersions(secretId: string): Promise<VersionOfSecretSkeleton[]>;
   /**
    * Create new secret version
    * @param {string} secretId secret id/name
    * @param {string} value secret value
-   * @returns {Promise<unknown>} a promise that resolves to a version object
+   * @returns {Promise<VersionOfSecretSkeleton>} a promise that resolves to a version object
+   * @deprecated since v2.0.0 use {@link Secret.createVersionOfSecret | createVersionOfSecret} instead
+   * ```javascript
+   * createVersionOfSecret(secretId: string, value: string): Promise<any>
+   * ```
+   * @group Deprecated
    */
-  createNewVersionOfSecret(secretId: string, value: string): Promise<any>;
+  createNewVersionOfSecret(
+    secretId: string,
+    value: string
+  ): Promise<VersionOfSecretSkeleton>;
   /**
    * Get version of secret
    * @param {string} secretId secret id/name
    * @param {string} version secret version
-   * @returns {Promise<unknown>} a promise that resolves to a version object
+   * @returns {Promise<VersionOfSecretSkeleton>} a promise that resolves to a version object
+   * @deprecated since v2.0.0 use {@link Secret.readVersionOfSecret | readVersionOfSecret} instead
+   * ```javascript
+   * readVersionOfSecret(secretId: string, version: string): Promise<any>
+   * ```
+   * @group Deprecated
    */
-  getVersionOfSecret(secretId: string, version: string): Promise<any>;
+  getVersionOfSecret(
+    secretId: string,
+    version: string
+  ): Promise<VersionOfSecretSkeleton>;
   /**
    * Update the status of a version of a secret
    * @param {string} secretId secret id/name
    * @param {string} version secret version
    * @param {VersionOfSecretStatus} status status
-   * @returns {Promise<unknown>} a promise that resolves to a status object
+   * @returns {Promise<VersionOfSecretSkeleton>} a promise that resolves to a status object
+   * @deprecated since v2.0.0 use {@link Secret.enableVersionOfSecret | enableVersionOfSecret} or {@link Secret.disableVersionOfSecret | disableVersionOfSecret} instead
+   * ```javascript
+   * enableVersionOfSecret(secretId: string, version: string): Promise<any>
+   * disableVersionOfSecret(secretId: string, version: string): Promise<any>
+   * ```
+   * @group Deprecated
    */
   setStatusOfVersionOfSecret(
     secretId: string,
     version: string,
     status: VersionOfSecretStatus
-  ): Promise<any>;
-  /**
-   * Delete version of secret
-   * @param {string} secretId secret id/name
-   * @param {string} version secret version
-   * @returns {Promise<unknown>} a promise that resolves to a version object
-   */
-  deleteVersionOfSecret(secretId: string, version: string): Promise<any>;
+  ): Promise<VersionOfSecretSkeleton>;
 };
 
 export default (state: State): Secret => {
   return {
-    /**
-     * Get all secrets
-     * @returns {Promise<unknown[]>} a promise that resolves to an array of secrets
-     */
-    async getSecrets() {
-      return getSecrets({ state });
+    async readSecrets() {
+      return readSecrets({ state });
     },
-
-    /**
-     * Get secret
-     * @param secretId secret id/name
-     * @returns {Promise<unknown>} a promise that resolves to a secret
-     */
-    async getSecret(secretId: string) {
-      return getSecret({ secretId, state });
+    async readSecret(secretId: string) {
+      return _getSecret({ secretId, state });
     },
-
-    /**
-     * Create secret
-     * @param {string} secretId secret id/name
-     * @param {string} value secret value
-     * @param {string} description secret description
-     * @param {string} encoding secret encoding (only `generic` is supported)
-     * @param {boolean} useInPlaceholders flag indicating if the secret can be used in placeholders
-     * @returns {Promise<unknown>} a promise that resolves to a secret
-     */
-    async putSecret(
+    async createSecret(
       secretId: string,
       value: string,
       description: string,
       encoding = 'generic',
       useInPlaceholders = true
     ) {
-      return putSecret({
+      return _putSecret({
         secretId,
         value,
         description,
@@ -139,95 +254,140 @@ export default (state: State): Secret => {
         state,
       });
     },
-
-    /**
-     * Set secret description
-     * @param {string} secretId secret id/name
-     * @param {string} description secret description
-     * @returns {Promise<unknown>} a promise that resolves to a status object
-     */
-    async setSecretDescription(secretId: string, description: string) {
-      return setSecretDescription({ secretId, description, state });
+    async updateSecretDescription(secretId: string, description: string) {
+      return _setSecretDescription({ secretId, description, state });
     },
-
-    /**
-     * Delete secret
-     * @param {string} secretId secret id/name
-     * @returns {Promise<unknown>} a promise that resolves to a secret object
-     */
     async deleteSecret(secretId: string) {
-      return deleteSecret({ secretId, state });
+      return _deleteSecret({ secretId, state });
+    },
+    async readVersionsOfSecret(secretId: string) {
+      return _getSecretVersions({ secretId, state });
+    },
+    async createVersionOfSecret(secretId: string, value: string) {
+      return _createNewVersionOfSecret({ secretId, value, state });
+    },
+    async readVersionOfSecret(secretId: string, version: string) {
+      return _getVersionOfSecret({ secretId, version, state });
+    },
+    async enableVersionOfSecret(secretId: string, version: string) {
+      return enableVersionOfSecret({
+        secretId,
+        version,
+        state,
+      });
+    },
+    async disableVersionOfSecret(secretId: string, version: string) {
+      return disableVersionOfSecret({
+        secretId,
+        version,
+        state,
+      });
+    },
+    async deleteVersionOfSecret(secretId: string, version: string) {
+      return _deleteVersionOfSecret({ secretId, version, state });
     },
 
-    /**
-     * Get secret versions
-     * @param {string} secretId secret id/name
-     * @returns {Promise<unknown>} a promise that resolves to an array of secret versions
-     */
+    // Deprecatd
+
+    async getSecrets() {
+      return readSecrets({ state });
+    },
+    async getSecret(secretId: string) {
+      return _getSecret({ secretId, state });
+    },
+    async putSecret(
+      secretId: string,
+      value: string,
+      description: string,
+      encoding = 'generic',
+      useInPlaceholders = true
+    ) {
+      return _putSecret({
+        secretId,
+        value,
+        description,
+        encoding,
+        useInPlaceholders,
+        state,
+      });
+    },
+    async setSecretDescription(secretId: string, description: string) {
+      return _setSecretDescription({ secretId, description, state });
+    },
     async getSecretVersions(secretId: string) {
-      return getSecretVersions({ secretId, state });
+      return _getSecretVersions({ secretId, state });
     },
-
-    /**
-     * Create new secret version
-     * @param {string} secretId secret id/name
-     * @param {string} value secret value
-     * @returns {Promise<unknown>} a promise that resolves to a version object
-     */
     async createNewVersionOfSecret(secretId: string, value: string) {
-      return createNewVersionOfSecret({ secretId, value, state });
+      return _createNewVersionOfSecret({ secretId, value, state });
     },
-
-    /**
-     * Get version of secret
-     * @param {string} secretId secret id/name
-     * @param {string} version secret version
-     * @returns {Promise<unknown>} a promise that resolves to a version object
-     */
     async getVersionOfSecret(secretId: string, version: string) {
-      return getVersionOfSecret({ secretId, version, state });
+      return _getVersionOfSecret({ secretId, version, state });
     },
-
-    /**
-     * Update the status of a version of a secret
-     * @param {string} secretId secret id/name
-     * @param {string} version secret version
-     * @param {VersionOfSecretStatus} status status
-     * @returns {Promise<unknown>} a promise that resolves to a status object
-     */
     async setStatusOfVersionOfSecret(
       secretId: string,
       version: string,
       status: VersionOfSecretStatus
     ) {
-      return setStatusOfVersionOfSecret({
+      return _setStatusOfVersionOfSecret({
         secretId,
         version,
         status,
         state,
       });
     },
-
-    /**
-     * Delete version of secret
-     * @param {string} secretId secret id/name
-     * @param {string} version secret version
-     * @returns {Promise<unknown>} a promise that resolves to a version object
-     */
-    async deleteVersionOfSecret(secretId: string, version: string) {
-      return deleteVersionOfSecret({ secretId, version, state });
-    },
   };
 };
 
+export async function enableVersionOfSecret({
+  secretId,
+  version,
+  state,
+}: {
+  secretId: string;
+  version: string;
+  state: State;
+}) {
+  return _setStatusOfVersionOfSecret({
+    secretId,
+    version,
+    status: 'ENABLED',
+    state,
+  });
+}
+
+export async function disableVersionOfSecret({
+  secretId,
+  version,
+  state,
+}: {
+  secretId: string;
+  version: string;
+  state: State;
+}) {
+  return _setStatusOfVersionOfSecret({
+    secretId,
+    version,
+    status: 'DISABLED',
+    state,
+  });
+}
+
+export async function readSecrets({
+  state,
+}: {
+  state: State;
+}): Promise<SecretSkeleton[]> {
+  const { result } = await _getSecrets({ state });
+  return result;
+}
+
 export {
-  createNewVersionOfSecret,
-  deleteSecret,
-  deleteVersionOfSecret,
-  getSecret,
-  getSecrets,
-  getSecretVersions,
-  putSecret,
-  setSecretDescription,
-  setStatusOfVersionOfSecret,
+  _putSecret as createSecret,
+  _createNewVersionOfSecret as createVersionOfSecret,
+  _deleteSecret as deleteSecret,
+  _deleteVersionOfSecret as deleteVersionOfSecret,
+  _getSecret as readSecret,
+  _getVersionOfSecret as readVersionOfSecret,
+  _getSecretVersions as readVersionsOfSecret,
+  _setSecretDescription as updateSecretDescription,
 };

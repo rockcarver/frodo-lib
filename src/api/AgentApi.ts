@@ -1,10 +1,12 @@
 import util from 'util';
-import { generateAmApi } from './BaseApi';
-import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
-import { deleteDeepByKey } from '../utils/JsonUtils';
+
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
-import { AgentSkeleton, AgentType } from './ApiTypes';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
+import { deleteDeepByKey } from '../utils/JsonUtils';
+import { type IdObjectSkeletonInterface } from './ApiTypes';
+import { generateAmApi } from './BaseApi';
+import { type AmServiceType } from './ServiceApi';
 
 const getAgentTypesURLTemplate =
   '%s/json%s/realm-config/agents?_action=getAllTypes';
@@ -22,6 +24,15 @@ const getApiConfig = () => {
   return {
     apiVersion,
   };
+};
+
+export type GatewayAgentType = 'IdentityGatewayAgent';
+export type JavaAgentType = 'J2EEAgent';
+export type WebAgentType = 'WebAgent';
+export type AgentType = GatewayAgentType | JavaAgentType | WebAgentType;
+
+export type AgentSkeleton = IdObjectSkeletonInterface & {
+  _type: AmServiceType;
 };
 
 /**

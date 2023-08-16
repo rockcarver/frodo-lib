@@ -1,25 +1,23 @@
 import fs from 'fs';
-import {
-  getOAuth2Clients,
-  getOAuth2Client,
-  putOAuth2Client,
-} from '../ops/OAuth2ClientOps';
-import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
-import { get, isEqualJson } from '../utils/JsonUtils';
-import { getCurrentRealmManagedUser } from '../utils/ForgeRockUtils';
-import { getRealmManagedOrganization } from './OrganizationOps';
-import { getOAuth2Provider } from '../ops/OAuth2ProviderOps';
-import { putSecret } from '../api/cloud/SecretsApi';
-import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
-import { printMessage } from '../utils/Console';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { State } from '../shared/State';
+
+import { type ReadableStrings, type WritableStrings } from '../api/ApiTypes';
+import { putSecret } from '../api/cloud/SecretsApi';
+import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
+import { type OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
+import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
 import {
-  OAuth2ClientSkeleton,
-  ReadableStrings,
-  WritableStrings,
-} from '../api/ApiTypes';
+  readOAuth2Client,
+  readOAuth2Clients,
+  updateOAuth2Client,
+} from '../ops/OAuth2ClientOps';
+import { readOAuth2Provider } from '../ops/OAuth2ProviderOps';
+import { State } from '../shared/State';
+import { printMessage } from '../utils/Console';
+import { getCurrentRealmManagedUser } from '../utils/ForgeRockUtils';
+import { get, isEqualJson } from '../utils/JsonUtils';
+import { getRealmManagedOrganization } from './OrganizationOps';
 
 export type Admin = {
   listOAuth2CustomClients(): Promise<any>;
@@ -332,7 +330,7 @@ const autoIdRoles = [
   }
  */
 export async function listOAuth2CustomClients({ state }: { state: State }) {
-  const clients = await getOAuth2Clients({ state });
+  const clients = await readOAuth2Clients({ state });
   const clientIds = clients
     .map((client) => client._id)
     .filter((client) => !protectedClients.includes(client));
@@ -372,7 +370,7 @@ export async function listOAuth2CustomClients({ state }: { state: State }) {
   }
  */
 export async function listOAuth2AdminClients({ state }: { state: State }) {
-  const clients = await getOAuth2Clients({ state });
+  const clients = await readOAuth2Clients({ state });
   const clientIds = clients
     .filter((client) => {
       // printMessage({ message: client, type: 'error', state });
@@ -462,7 +460,7 @@ export async function listNonOAuth2AdminStaticUserMappings({
   showProtected: boolean;
   state: State;
 }) {
-  const clients = await getOAuth2Clients({ state });
+  const clients = await readOAuth2Clients({ state });
   const clientIds = clients
     .map((client) => client._id)
     .filter((client) => !protectedClients.includes(client));
@@ -495,7 +493,7 @@ export async function listNonOAuth2AdminStaticUserMappings({
 }
 
 async function getDynamicClientRegistrationScope({ state }: { state: State }) {
-  const provider = await getOAuth2Provider({ state });
+  const provider = await readOAuth2Provider({ state });
   return provider.clientDynamicRegistrationConfig
     .dynamicClientRegistrationScope;
 }
@@ -785,7 +783,7 @@ export async function grantOAuth2ClientAdminPrivileges({
   clientId: string;
   state: State;
 }) {
-  let client = await getOAuth2Client({ clientId, state });
+  let client = await readOAuth2Client({ clientId, state });
   if (client.coreOAuth2ClientConfig.clientName.value.length === 0) {
     client.coreOAuth2ClientConfig.clientName.value = [clientId];
   }
@@ -804,7 +802,7 @@ export async function grantOAuth2ClientAdminPrivileges({
   }
   client = await addAdminScopes({ clientId, client, state });
   client = addClientCredentialsGrantType({ clientId, client, state });
-  await putOAuth2Client({ clientId, clientData: client, state });
+  await updateOAuth2Client({ clientId, clientData: client, state });
   await addAdminStaticUserMapping({ name: clientId, state });
 }
 
@@ -980,7 +978,7 @@ export async function revokeOAuth2ClientAdminPrivileges({
   clientId: string;
   state: State;
 }) {
-  let client = await getOAuth2Client({ clientId, state });
+  let client = await readOAuth2Client({ clientId, state });
   if (client.coreOAuth2ClientConfig.clientName.value.length === 0) {
     client.coreOAuth2ClientConfig.clientName.value = [clientId];
   }
@@ -999,7 +997,7 @@ export async function revokeOAuth2ClientAdminPrivileges({
   }
   client = await removeAdminScopes({ name: clientId, client, state });
   client = removeClientCredentialsGrantType({ clientId, client, state });
-  await putOAuth2Client({ clientId, clientData: client, state });
+  await updateOAuth2Client({ clientId, clientData: client, state });
   await removeAdminStaticUserMapping({ name: clientId, state });
 }
 
@@ -1020,7 +1018,7 @@ export async function createOAuth2ClientWithAdminPrivileges({
   ];
   try {
     client = await addAdminScopes({ clientId, client, state });
-    await putOAuth2Client({ clientId, clientData: client, state });
+    await updateOAuth2Client({ clientId, clientData: client, state });
     await addAdminStaticUserMapping({ name: clientId, state });
   } catch (error) {
     printMessage({
@@ -1047,14 +1045,14 @@ export async function createLongLivedToken({
   state: State;
 }) {
   // get oauth2 client
-  const client = await getOAuth2Client({ clientId, state });
+  const client = await readOAuth2Client({ clientId, state });
   client.userpassword = clientSecret;
   // remember current lifetime
   const rememberedLifetime =
     client.coreOAuth2ClientConfig.accessTokenLifetime.value || 3600;
   // set long token lifetime
   client.coreOAuth2ClientConfig.accessTokenLifetime.value = lifetime;
-  await putOAuth2Client({ clientId, clientData: client, state });
+  await updateOAuth2Client({ clientId, clientData: client, state });
   const response = await clientCredentialsGrant({
     amBaseUrl: state.getHost(),
     clientId,
@@ -1066,7 +1064,7 @@ export async function createLongLivedToken({
   response.expires_on = new Date(expires).toLocaleString();
   // reset token lifetime
   client.coreOAuth2ClientConfig.accessTokenLifetime.value = rememberedLifetime;
-  await putOAuth2Client({ clientId, clientData: client, state });
+  await updateOAuth2Client({ clientId, clientData: client, state });
   // create secret with token as value
   if (secret) {
     const description = 'Long-lived admin token';

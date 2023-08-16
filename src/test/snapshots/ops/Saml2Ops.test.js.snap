@@ -159,7 +159,7 @@ exports[`Saml2Ops deleteSaml2Provider() 1: Delete hosted provider 'https://idc.s
 exports[`Saml2Ops deleteSaml2Provider() 2: Delete remote provider 'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/' 1`] = `
 {
   "_id": "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw",
-  "_rev": "740333789",
+  "_rev": "-859975283",
   "entityId": "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/",
   "identityProvider": {
     "assertionContent": {
@@ -168,6 +168,7 @@ exports[`Saml2Ops deleteSaml2Provider() 2: Delete remote provider 'https://sts.w
       "signingAndEncryption": {
         "encryption": {},
         "requestResponseSigning": {},
+        "secretIdAndAlgorithms": {},
       },
     },
     "services": {
@@ -380,7 +381,7 @@ exports[`Saml2Ops deleteSaml2Providers() 1: Delete all providers 1`] = `
   },
   {
     "_id": "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw",
-    "_rev": "740333789",
+    "_rev": "-859975283",
     "entityId": "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/",
     "identityProvider": {
       "assertionContent": {
@@ -389,6 +390,7 @@ exports[`Saml2Ops deleteSaml2Providers() 1: Delete all providers 1`] = `
         "signingAndEncryption": {
           "encryption": {},
           "requestResponseSigning": {},
+          "secretIdAndAlgorithms": {},
         },
       },
       "services": {
@@ -415,7 +417,7 @@ exports[`Saml2Ops deleteSaml2Providers() 1: Delete all providers 1`] = `
   },
   {
     "_id": "aWRw",
-    "_rev": "-599047583",
+    "_rev": "41055057",
     "entityId": "idp",
     "identityProvider": {
       "assertionContent": {
@@ -430,6 +432,7 @@ exports[`Saml2Ops deleteSaml2Providers() 1: Delete all providers 1`] = `
           "requestResponseSigning": {
             "authenticationRequest": false,
           },
+          "secretIdAndAlgorithms": {},
         },
       },
       "services": {
@@ -934,7 +937,7 @@ exports[`Saml2Ops deleteSaml2Providers() 1: Delete all providers 1`] = `
   },
   {
     "_id": "dXJuOmZlZGVyYXRpb246TWljcm9zb2Z0T25saW5l",
-    "_rev": "1879768393",
+    "_rev": "292377593",
     "entityId": "urn:federation:MicrosoftOnline",
     "serviceProvider": {
       "advanced": {
@@ -957,6 +960,7 @@ exports[`Saml2Ops deleteSaml2Providers() 1: Delete all providers 1`] = `
           "requestResponseSigning": {
             "assertion": true,
           },
+          "secretIdAndAlgorithms": {},
         },
       },
       "assertionProcessing": {
@@ -1310,7 +1314,7 @@ exports[`Saml2Ops exportSaml2Provider() 2: Export remote provider 'https://sts.w
     "remote": {
       "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw": {
         "_id": "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw",
-        "_rev": "740333789",
+        "_rev": "-859975283",
         "entityId": "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/",
         "identityProvider": {
           "assertionContent": {
@@ -1319,6 +1323,7 @@ exports[`Saml2Ops exportSaml2Provider() 2: Export remote provider 'https://sts.w
             "signingAndEncryption": {
               "encryption": {},
               "requestResponseSigning": {},
+              "secretIdAndAlgorithms": {},
             },
           },
           "services": {
@@ -1980,7 +1985,7 @@ exports[`Saml2Ops exportSaml2Providers() 1: Export saml2 entity providers 1`] = 
     "remote": {
       "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw": {
         "_id": "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw",
-        "_rev": "740333789",
+        "_rev": "-859975283",
         "entityId": "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/",
         "identityProvider": {
           "assertionContent": {
@@ -1989,6 +1994,7 @@ exports[`Saml2Ops exportSaml2Providers() 1: Export saml2 entity providers 1`] = 
             "signingAndEncryption": {
               "encryption": {},
               "requestResponseSigning": {},
+              "secretIdAndAlgorithms": {},
             },
           },
           "services": {
@@ -2015,7 +2021,7 @@ exports[`Saml2Ops exportSaml2Providers() 1: Export saml2 entity providers 1`] = 
       },
       "dXJuOmZlZGVyYXRpb246TWljcm9zb2Z0T25saW5l": {
         "_id": "dXJuOmZlZGVyYXRpb246TWljcm9zb2Z0T25saW5l",
-        "_rev": "1879768393",
+        "_rev": "292377593",
         "entityId": "urn:federation:MicrosoftOnline",
         "serviceProvider": {
           "advanced": {
@@ -2038,6 +2044,7 @@ exports[`Saml2Ops exportSaml2Providers() 1: Export saml2 entity providers 1`] = 
               "requestResponseSigning": {
                 "assertion": true,
               },
+              "secretIdAndAlgorithms": {},
             },
           },
           "assertionProcessing": {
@@ -2082,7 +2089,7 @@ exports[`Saml2Ops exportSaml2Providers() 1: Export saml2 entity providers 1`] = 
 }
 `;
 
-exports[`Saml2Ops getProviderByLocationAndId() 1: Get hosted provider 'iSPAzure' 1`] = `
+exports[`Saml2Ops getSaml2Provider() 1: Read hosted provider 'iSPAzure' 1`] = `
 {
   "_id": "aVNQQXp1cmU",
   "_rev": "1379466460",
@@ -2231,64 +2238,37 @@ exports[`Saml2Ops getProviderByLocationAndId() 1: Get hosted provider 'iSPAzure'
 }
 `;
 
-exports[`Saml2Ops getProviderByLocationAndId() 2: Get remote provider 'urn:federation:MicrosoftOnline' 1`] = `
+exports[`Saml2Ops getSaml2Provider() 2: Read remote provider 'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/' 1`] = `
 {
-  "_id": "dXJuOmZlZGVyYXRpb246TWljcm9zb2Z0T25saW5l",
-  "_rev": "1879768393",
-  "entityId": "urn:federation:MicrosoftOnline",
-  "serviceProvider": {
-    "advanced": {
-      "idpProxy": {},
-      "saeConfiguration": {},
-    },
+  "_id": "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw",
+  "_rev": "-859975283",
+  "entityId": "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/",
+  "identityProvider": {
     "assertionContent": {
       "basicAuthentication": {},
-      "nameIdFormat": {
-        "nameIdFormatList": [
-          "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-          "urn:mace:shibboleth:1.0:nameIdentifier",
-          "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
-          "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
-          "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
-        ],
-      },
+      "nameIdFormat": {},
       "signingAndEncryption": {
         "encryption": {},
-        "requestResponseSigning": {
-          "assertion": true,
-        },
+        "requestResponseSigning": {},
+        "secretIdAndAlgorithms": {},
       },
-    },
-    "assertionProcessing": {
-      "attributeMapper": {},
-      "responseArtifactMessageEncoding": {},
     },
     "services": {
       "serviceAttributes": {
-        "assertionConsumerService": [
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-            "index": 0,
-            "isDefault": true,
-            "location": "https://login.microsoftonline.com/login.srf",
-          },
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign",
-            "index": 1,
-            "isDefault": false,
-            "location": "https://login.microsoftonline.com/login.srf",
-          },
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:PAOS",
-            "index": 2,
-            "isDefault": false,
-            "location": "https://login.microsoftonline.com/login.srf",
-          },
-        ],
         "singleLogoutService": [
           {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "location": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/saml2",
+          },
+        ],
+        "singleSignOnService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "location": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/saml2",
+          },
+          {
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-            "location": "https://login.microsoftonline.com/login.srf",
+            "location": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/saml2",
           },
         ],
       },
@@ -2297,7 +2277,7 @@ exports[`Saml2Ops getProviderByLocationAndId() 2: Get remote provider 'urn:feder
 }
 `;
 
-exports[`Saml2Ops getProviderMetadata() 1: Get metadata for hosted provider 'iSPAzure' 1`] = `
+exports[`Saml2Ops getSaml2ProviderMetadata() 1: Get metadata for hosted provider 'iSPAzure' 1`] = `
 "<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <EntityDescriptor entityID="iSPAzure" xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:query="urn:oasis:names:tc:SAML:metadata:ext:query" xmlns:mdattr="urn:oasis:names:tc:SAML:metadata:attribute" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" xmlns:xenc11="http://www.w3.org/2009/xmlenc11#" xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport" xmlns:x509qry="urn:oasis:names:tc:SAML:metadata:X509:query" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
     <SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
@@ -2376,7 +2356,7 @@ mK3zry+aIWav0yj1Pmh2lOgD6rEnOlGZDqrmIqWd0d2jp8Am4iawP0sr9e7etjK/YGCFW4byuCOx
 "
 `;
 
-exports[`Saml2Ops getProviderMetadata() 2: Get metadata for remote provider 'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/' 1`] = `
+exports[`Saml2Ops getSaml2ProviderMetadata() 2: Get metadata for remote provider 'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/' 1`] = `
 "<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <EntityDescriptor entityID="https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/" ID="_e5f839b8-1482-40ae-9261-b6eb35465a16" xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:query="urn:oasis:names:tc:SAML:metadata:ext:query" xmlns:mdattr="urn:oasis:names:tc:SAML:metadata:attribute" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:xenc="http://www.w3.org/2001/04/xmlenc#" xmlns:xenc11="http://www.w3.org/2009/xmlenc11#" xmlns:alg="urn:oasis:names:tc:SAML:metadata:algsupport" xmlns:x509qry="urn:oasis:names:tc:SAML:metadata:X509:query" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
     <IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
@@ -2441,194 +2421,7 @@ Ritpy6bwva8piGPKhVi/
 "
 `;
 
-exports[`Saml2Ops getSaml2Provider() 1: Get hosted provider 'iSPAzure' 1`] = `
-{
-  "_id": "aVNQQXp1cmU",
-  "_rev": "1379466460",
-  "entityId": "iSPAzure",
-  "serviceProvider": {
-    "advanced": {
-      "ecpConfiguration": {
-        "ecpRequestIdpListFinderImpl": "com.sun.identity.saml2.plugins.ECPIDPFinder",
-      },
-      "idpProxy": {},
-      "relayStateUrlList": {},
-      "saeConfiguration": {
-        "spUrl": "https://idc.scheuber.io/am/spsaehandler/metaAlias/alpha/iSPAzure",
-      },
-    },
-    "assertionContent": {
-      "assertionTimeSkew": 300,
-      "authenticationContext": {
-        "authContextItems": [
-          {
-            "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
-            "defaultItem": true,
-            "level": 0,
-          },
-        ],
-        "authenticationComparisonType": "Exact",
-        "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultSPAuthnContextMapper",
-        "includeRequestedAuthenticationContext": true,
-      },
-      "basicAuthentication": {},
-      "nameIdFormat": {
-        "nameIdFormatList": [
-          "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
-          "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
-          "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-          "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
-          "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
-          "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
-          "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
-        ],
-      },
-      "signingAndEncryption": {
-        "encryption": {},
-        "requestResponseSigning": {},
-        "secretIdAndAlgorithms": {},
-      },
-    },
-    "assertionProcessing": {
-      "accountMapping": {
-        "spAccountMapper": "com.sun.identity.saml2.plugins.DefaultSPAccountMapper",
-        "useNameIDAsSPUserID": true,
-      },
-      "adapter": {},
-      "attributeMapper": {
-        "attributeMap": [
-          {
-            "key": "http://schemas.microsoft.com/identity/claims/displayname",
-            "value": "cn",
-          },
-          {
-            "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
-            "value": "givenName",
-          },
-          {
-            "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
-            "value": "sn",
-          },
-          {
-            "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
-            "value": "mail",
-          },
-          {
-            "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
-            "value": "uid",
-          },
-        ],
-        "attributeMapper": "com.sun.identity.saml2.plugins.DefaultSPAttributeMapper",
-      },
-      "autoFederation": {
-        "autoFedEnabled": false,
-      },
-      "responseArtifactMessageEncoding": {
-        "encoding": "URI",
-      },
-      "url": {},
-    },
-    "services": {
-      "metaAlias": "/alpha/iSPAzure",
-      "serviceAttributes": {
-        "assertionConsumerService": [
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact",
-            "index": 0,
-            "isDefault": true,
-            "location": "https://idc.scheuber.io/am/AuthConsumer/metaAlias/alpha/iSPAzure",
-          },
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-            "index": 1,
-            "isDefault": false,
-            "location": "https://idc.scheuber.io/am/AuthConsumer/metaAlias/alpha/iSPAzure",
-          },
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:PAOS",
-            "index": 2,
-            "isDefault": false,
-            "location": "https://idc.scheuber.io/am/Consumer/ECP/metaAlias/alpha/iSPAzure",
-          },
-        ],
-        "nameIdService": [
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
-            "location": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/iSPAzure",
-          },
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-            "location": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/iSPAzure",
-          },
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
-            "location": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/iSPAzure",
-          },
-        ],
-        "singleLogoutService": [
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
-            "location": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/iSPAzure",
-          },
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-            "location": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/iSPAzure",
-            "responseLocation": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/iSPAzure",
-          },
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
-            "location": "https://idc.scheuber.io/am/SPSloSoap/metaAlias/alpha/iSPAzure",
-          },
-        ],
-      },
-    },
-  },
-}
-`;
-
-exports[`Saml2Ops getSaml2Provider() 2: Get remote provider 'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/' 1`] = `
-{
-  "_id": "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw",
-  "_rev": "740333789",
-  "entityId": "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/",
-  "identityProvider": {
-    "assertionContent": {
-      "basicAuthentication": {},
-      "nameIdFormat": {},
-      "signingAndEncryption": {
-        "encryption": {},
-        "requestResponseSigning": {},
-      },
-    },
-    "services": {
-      "serviceAttributes": {
-        "singleLogoutService": [
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
-            "location": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/saml2",
-          },
-        ],
-        "singleSignOnService": [
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
-            "location": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/saml2",
-          },
-          {
-            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-            "location": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/saml2",
-          },
-        ],
-      },
-    },
-  },
-}
-`;
-
-exports[`Saml2Ops getSaml2ProviderStub() 1: Get stub of hosted provider 'iSPAzure' 1`] = `
+exports[`Saml2Ops readSaml2ProviderStub() 1: Read stub of hosted provider 'iSPAzure' 1`] = `
 {
   "_id": "aVNQQXp1cmU",
   "_rev": "2065843986",
@@ -2640,7 +2433,7 @@ exports[`Saml2Ops getSaml2ProviderStub() 1: Get stub of hosted provider 'iSPAzur
 }
 `;
 
-exports[`Saml2Ops getSaml2ProviderStub() 2: Get stub of remote provider 'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/' 1`] = `
+exports[`Saml2Ops readSaml2ProviderStub() 2: Read stub of remote provider 'https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/' 1`] = `
 {
   "_id": "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw",
   "_rev": "761336767",
@@ -2652,7 +2445,7 @@ exports[`Saml2Ops getSaml2ProviderStub() 2: Get stub of remote provider 'https:/
 }
 `;
 
-exports[`Saml2Ops getSaml2ProviderStubs() 1: Get saml2 provider stubs 1`] = `
+exports[`Saml2Ops readSaml2ProviderStubs() 1: Read saml2 provider stubs 1`] = `
 [
   {
     "_id": "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw",

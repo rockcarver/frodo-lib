@@ -42,14 +42,15 @@ async function stageScript(
 ) {
   // delete if exists, then create
   try {
-    await ScriptOps.getScript({ scriptId: script.id, state });
+    await ScriptOps.readScript({ scriptId: script.id, state });
     await ScriptOps.deleteScript({ scriptId: script.id, state });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await ScriptOps.putScript({
+      await ScriptOps.createScript({
         scriptId: script.id,
+        scriptName: script.name,
         scriptData: script.data,
         state,
       });
@@ -337,24 +338,24 @@ describe('ScriptOps', () => {
     });
   });
 
-  describe('getScripts()', () => {
+  describe('readScripts()', () => {
     test('0: Method is implemented', async () => {
-      expect(ScriptOps.getScripts).toBeDefined();
+      expect(ScriptOps.readScripts).toBeDefined();
     });
 
-    test(`1: Get scripts`, async () => {
-      const response = await ScriptOps.getScripts({ state });
+    test(`1: Read scripts`, async () => {
+      const response = await ScriptOps.readScripts({ state });
       expect(response).toMatchSnapshot();
     });
   });
 
-  describe('getScript()', () => {
+  describe('readScript()', () => {
     test('0: Method is implemented', async () => {
-      expect(ScriptOps.getScript).toBeDefined();
+      expect(ScriptOps.readScript).toBeDefined();
     });
 
-    test(`1: Get script by id '${script1.id}'`, async () => {
-      const response = await ScriptOps.getScript({
+    test(`1: Read script by id '${script1.id}'`, async () => {
+      const response = await ScriptOps.readScript({
         scriptId: script1.id,
         state,
       });
@@ -362,13 +363,13 @@ describe('ScriptOps', () => {
     });
   });
 
-  describe('getScriptByName()', () => {
+  describe('readScriptByName()', () => {
     test('0: Method is implemented', async () => {
-      expect(ScriptOps.getScriptByName).toBeDefined();
+      expect(ScriptOps.readScriptByName).toBeDefined();
     });
 
-    test(`1: Get script by name '${script1.name}'`, async () => {
-      const response = await ScriptOps.getScriptByName({
+    test(`1: Read script by name '${script1.name}'`, async () => {
+      const response = await ScriptOps.readScriptByName({
         scriptName: script1.name,
         state,
       });
@@ -376,13 +377,13 @@ describe('ScriptOps', () => {
     });
   });
 
-  describe('putScript()', () => {
+  describe('updateScript()', () => {
     test('0: Method is implemented', async () => {
-      expect(ScriptOps.putScript).toBeDefined();
+      expect(ScriptOps.updateScript).toBeDefined();
     });
 
-    test(`1: Put script '${script3.id}'`, async () => {
-      const response = await ScriptOps.putScript({
+    test(`1: Update script '${script3.id}'`, async () => {
+      const response = await ScriptOps.updateScript({
         scriptId: script3.id,
         scriptData: script3.data,
         state,

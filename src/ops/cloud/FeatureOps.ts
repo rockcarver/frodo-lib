@@ -1,6 +1,6 @@
 import {
-  getFeatures as _getFeatures,
   FeatureInterface,
+  getFeatures as _getFeatures,
 } from '../../api/cloud/FeatureApi';
 import { State } from '../../shared/State';
 import { debugMessage } from '../../utils/Console';

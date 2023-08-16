@@ -1,7 +1,8 @@
 import util from 'util';
-import { generateAmApi } from './BaseApi';
+
 import { State } from '../shared/State';
 import { getRealmPath } from '../utils/ForgeRockUtils';
+import { generateAmApi } from './BaseApi';
 
 const authenticateUrlTemplate = '%s/json%s/authenticate';
 const authenticateWithServiceUrlTemplate = `${authenticateUrlTemplate}?authIndexType=service&authIndexValue=%s`;

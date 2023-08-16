@@ -261,24 +261,24 @@ describe('PolicySetOps', () => {
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '1')
   ) {
-    describe('getPolicySets()', () => {
+    describe('readPolicySets()', () => {
       test('0: Method is implemented', async () => {
-        expect(PolicySetOps.getPolicySets).toBeDefined();
+        expect(PolicySetOps.readPolicySets).toBeDefined();
       });
 
       test('1: Get all policy sets', async () => {
-        const response = await PolicySetOps.getPolicySets({ state });
+        const response = await PolicySetOps.readPolicySets({ state });
         expect(response).toMatchSnapshot();
       });
     });
 
-    describe('getPolicySet()', () => {
+    describe('readPolicySet()', () => {
       test('0: Method is implemented', async () => {
-        expect(PolicySetOps.getPolicySet).toBeDefined();
+        expect(PolicySetOps.readPolicySet).toBeDefined();
       });
 
       test(`1: Get existing policy set [${set1.name}]`, async () => {
-        const response = await PolicySetOps.getPolicySet({
+        const response = await PolicySetOps.readPolicySet({
           policySetName: set1.name,
           state,
         });
@@ -288,7 +288,7 @@ describe('PolicySetOps', () => {
       test('2: Get non-existing policy set [DoesNotExist]', async () => {
         expect.assertions(1);
         try {
-          await PolicySetOps.getPolicySet({
+          await PolicySetOps.readPolicySet({
             policySetName: 'DoesNotExist',
             state,
           });

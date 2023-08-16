@@ -1,16 +1,17 @@
-import axios, { AxiosInstance, AxiosProxyConfig } from 'axios';
 import Agent from 'agentkeepalive';
+import axios, { AxiosInstance, AxiosProxyConfig } from 'axios';
 import axiosRetry from 'axios-retry';
-import HttpsProxyAgent from 'https-proxy-agent';
-import url from 'url';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { curlirizeMessage, printMessage } from '../utils/Console';
-import _curlirize from '../ext/axios-curlirize/curlirize';
 import { randomUUID } from 'crypto';
-import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
+import fs from 'fs';
+import HttpsProxyAgent from 'https-proxy-agent';
+import path from 'path';
+import url, { fileURLToPath } from 'url';
+
+import _curlirize from '../ext/axios-curlirize/curlirize';
 import StateImpl, { State } from '../shared/State';
+import { curlirizeMessage, printMessage } from '../utils/Console';
+import { mergeDeep } from '../utils/JsonUtils';
+import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
 
 if (process.env.FRODO_MOCK) {
   setupPollyForFrodoLib({ state: StateImpl({}) });
@@ -124,7 +125,7 @@ export function generateAmApi({
   requestOverride?;
   state: State;
 }) {
-  let headers = {
+  const headers = {
     'User-Agent': userAgent,
     'X-ForgeRock-TransactionId': transactionId,
     'Content-Type': 'application/json',
@@ -142,25 +143,21 @@ export function generateAmApi({
         Authorization: `Bearer ${state.getBearerToken()}`,
       }),
   };
-  if (requestOverride['headers']) {
-    headers = {
-      ...headers,
-      ...requestOverride['headers'],
-    };
-  }
 
-  const requestDetails = {
-    // baseURL: `${storage.session.getTenant()}/json`,
-    timeout,
-    ...requestOverride,
-    headers: {
-      ...headers,
-      ...state.getAuthenticationHeaderOverrides(),
+  const requestDetails = mergeDeep(
+    {
+      // baseURL: `${storage.session.getTenant()}/json`,
+      timeout,
+      headers: {
+        ...headers,
+        ...state.getAuthenticationHeaderOverrides(),
+      },
+      httpAgent: getHttpAgent(),
+      httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+      proxy: getProxy(),
     },
-    httpAgent: getHttpAgent(),
-    httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
-    proxy: getProxy(),
-  };
+    requestOverride
+  );
 
   const request = axios.create(requestDetails);
 
@@ -247,26 +244,28 @@ export function generateIdmApi({
   requestOverride = {},
   state,
 }: {
-  requestOverride?;
+  requestOverride?: any;
   state: State;
 }) {
-  const requestDetails = {
-    // baseURL: getTenantURL(storage.session.getTenant()),
-    timeout,
-    headers: {
-      'User-Agent': userAgent,
-      'X-ForgeRock-TransactionId': transactionId,
-      'Content-Type': 'application/json',
-      // only add authorization header if we have a bearer token
-      ...(state.getBearerToken() && {
-        Authorization: `Bearer ${state.getBearerToken()}`,
-      }),
+  const requestDetails = mergeDeep(
+    {
+      // baseURL: getTenantURL(storage.session.getTenant()),
+      timeout,
+      headers: {
+        'User-Agent': userAgent,
+        'X-ForgeRock-TransactionId': transactionId,
+        'Content-Type': 'application/json',
+        // only add authorization header if we have a bearer token
+        ...(state.getBearerToken() && {
+          Authorization: `Bearer ${state.getBearerToken()}`,
+        }),
+      },
+      httpAgent: getHttpAgent(),
+      httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+      proxy: getProxy(),
     },
-    ...requestOverride,
-    httpAgent: getHttpAgent(),
-    httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
-    proxy: getProxy(),
-  };
+    requestOverride
+  );
 
   // if (storage.session.getBearerToken()) {
   //   requestDetails.headers[

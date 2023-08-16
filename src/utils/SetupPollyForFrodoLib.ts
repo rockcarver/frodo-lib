@@ -1,12 +1,13 @@
+import NodeHttpAdapter from '@pollyjs/adapter-node-http';
+import { Polly } from '@pollyjs/core';
+import FSPersister from '@pollyjs/persister-fs';
+import { MODES } from '@pollyjs/utils';
+import { LogLevelDesc } from 'loglevel';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Polly } from '@pollyjs/core';
-import { MODES } from '@pollyjs/utils';
-import NodeHttpAdapter from '@pollyjs/adapter-node-http';
-import FSPersister from '@pollyjs/persister-fs';
-import { LogLevelDesc } from 'loglevel';
-import { debugMessage, printMessage } from './Console';
+
 import { State } from '../shared/State';
+import { debugMessage, printMessage } from './Console';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

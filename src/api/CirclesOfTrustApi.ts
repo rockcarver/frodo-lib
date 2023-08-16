@@ -1,9 +1,11 @@
 import util from 'util';
-import { generateAmApi } from './BaseApi';
-import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
+
 import { State } from '../shared/State';
-import { CircleOfTrustSkeleton, PagedResult } from './ApiTypes';
+import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
+import { type IdObjectSkeletonInterface, type PagedResult } from './ApiTypes';
+import { generateAmApi } from './BaseApi';
+import { type AmServiceType } from './ServiceApi';
 
 const circleOfTrustByIdURLTemplate =
   '%s/json%s/realm-config/federation/circlesoftrust/%s';
@@ -18,9 +20,15 @@ const getApiConfig = () => {
   };
 };
 
+export type CircleOfTrustSkeleton = IdObjectSkeletonInterface & {
+  status?: string;
+  trustedProviders?: string[];
+  _type?: AmServiceType;
+};
+
 /**
- * Get all SAML2 circles of trust
- * @returns {Promise} a promise that resolves to an array of circles of trust objects
+ * Get all circles of trust
+ * @returns {Promise<PagedResult<CircleOfTrustSkeleton>>} a promise that resolves to an array of circles of trust objects
  */
 export async function getCirclesOfTrust({
   state,
@@ -42,9 +50,9 @@ export async function getCirclesOfTrust({
 }
 
 /**
- * Get SAML2 circle of trust by id/name
- * @param {String} cotId Circle of trust id/name
- * @returns {Promise} a promise that resolves to a saml2 circle of trust object
+ * Get circle of trust by id/name
+ * @param {string} cotId circle of trust id/name
+ * @returns {Promise<CircleOfTrustSkeleton>} a promise that resolves to a saml2 circle of trust object
  */
 export async function getCircleOfTrust({
   cotId,
@@ -52,7 +60,7 @@ export async function getCircleOfTrust({
 }: {
   cotId: string;
   state: State;
-}) {
+}): Promise<CircleOfTrustSkeleton> {
   const urlString = util.format(
     circleOfTrustByIdURLTemplate,
     state.getHost(),
@@ -69,9 +77,10 @@ export async function getCircleOfTrust({
 }
 
 /**
- * Create a SAML2 circle of trust
+ * Create a circle of trust
+ * @param {string} cotId circle of trust id/name
  * @param {CircleOfTrustSkeleton} cotData Object representing a SAML circle of trust
- * @returns {Promise} a promise that resolves to a saml2 circle of trust object
+ * @returns {Promise<CircleOfTrustSkeleton>} a promise that resolves to a saml2 circle of trust object
  */
 export async function createCircleOfTrust({
   cotData,
@@ -79,7 +88,7 @@ export async function createCircleOfTrust({
 }: {
   cotData: CircleOfTrustSkeleton;
   state: State;
-}) {
+}): Promise<CircleOfTrustSkeleton> {
   const postData = cloneDeep(cotData);
   const urlString = util.format(
     createCircleOfTrustURLTemplate,
@@ -96,10 +105,10 @@ export async function createCircleOfTrust({
 }
 
 /**
- * Update SAML2 circle of trust
- * @param {string} cotId Entity provider location (hosted or remote)
- * @param {CircleOfTrustSkeleton} cotData Object representing a SAML2 circle of trust
- * @returns {Promise} a promise that resolves to a saml2 circle of trust object
+ * Update circle of trust
+ * @param {string} cotId circle of trust id/name
+ * @param {CircleOfTrustSkeleton} cotData Object representing a circle of trust
+ * @returns {Promise<CircleOfTrustSkeleton>} a promise that resolves to a saml2 circle of trust object
  */
 export async function updateCircleOfTrust({
   cotId,
@@ -109,7 +118,9 @@ export async function updateCircleOfTrust({
   cotId: string;
   cotData: CircleOfTrustSkeleton;
   state: State;
-}) {
+}): Promise<CircleOfTrustSkeleton> {
+  delete cotData._id;
+  delete cotData._rev;
   const urlString = util.format(
     circleOfTrustByIdURLTemplate,
     state.getHost(),
@@ -123,5 +134,32 @@ export async function updateCircleOfTrust({
       withCredentials: true,
     }
   );
+  return data;
+}
+
+/**
+ * Delete circle of trust
+ * @param {string} realmId realm id
+ * @returns {Promise<CircleOfTrustSkeleton>} a promise that resolves to an object containing a realm object
+ */
+export async function deleteCircleOfTrust({
+  cotId,
+  state,
+}: {
+  cotId: string;
+  state: State;
+}): Promise<CircleOfTrustSkeleton> {
+  const urlString = util.format(
+    circleOfTrustByIdURLTemplate,
+    state.getHost(),
+    getCurrentRealmPath(state),
+    cotId
+  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).delete(urlString, {
+    withCredentials: true,
+  });
   return data;
 }

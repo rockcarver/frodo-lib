@@ -1,16 +1,17 @@
-import { AmServiceSkeleton, FullService } from '../api/ApiTypes';
 import {
+  type AmServiceSkeleton,
   deleteService,
   deleteServiceNextDescendent,
-  getService,
+  type FullService,
   getListOfServices as _getListOfServices,
+  getService,
   getServiceDescendents,
   putService,
   putServiceNextDescendent,
 } from '../api/ServiceApi';
 import { State } from '../shared/State';
-import { ServiceExportInterface } from './OpsTypes';
 import { debugMessage, printMessage } from '../utils/Console';
+import { type ExportMetaData } from './OpsTypes';
 
 export type Service = {
   createServiceExportTemplate(): ServiceExportInterface;
@@ -187,6 +188,11 @@ export default (state: State): Service => {
   };
 };
 
+export interface ServiceExportInterface {
+  meta?: Record<string, ExportMetaData>;
+  service: Record<string, AmServiceSkeleton>;
+}
+
 /**
  * Create an empty service export template
  * @returns {SingleTreeExportInterface} an empty service export template
@@ -274,9 +280,9 @@ export async function getFullServices({
 }
 
 /**
- * Saves a service using the provide id and data, including descendents
+ * Saves a service including descendents
  * @param {string} serviceId the service id / name
- * @param {string} fullServiceData service object including descendants
+ * @param {FullService} fullServiceData service object including descendants
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns promise resolving to a service object
  */

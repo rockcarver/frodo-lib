@@ -1,7 +1,8 @@
 import util from 'util';
+
+import { State } from '../../shared/State';
 import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
-import { State } from '../../shared/State';
 
 const startupURLTemplate = '%s/environment/startup';
 const startupInitiateRestartURLTemplate = `${startupURLTemplate}?_action=restart`;
