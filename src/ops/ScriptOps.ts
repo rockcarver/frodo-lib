@@ -6,8 +6,8 @@ import {
   getScriptByName as _getScriptByName,
   getScripts as _getScripts,
   putScript as _putScript,
+  type ScriptSkeleton,
 } from '../api/ScriptApi';
-import { type ScriptSkeleton } from '../api/ScriptApi';
 import { type ExportMetaData } from '../ops/OpsTypes';
 import { State } from '../shared/State';
 import {
@@ -24,7 +24,7 @@ import {
   getMetadata,
 } from '../utils/ExportImportUtils';
 import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
-import { validateScriptDecoded } from '../utils/ScriptValidationUtils';
+import { isScriptValid } from '../utils/ScriptValidationUtils';
 
 export type Script = {
   /**
@@ -496,38 +496,40 @@ export async function importScripts({
   const imported = [];
   for (const existingId of Object.keys(importData.script)) {
     try {
-      const scriptSkeleton = importData.script[existingId];
+      const scriptData = importData.script[existingId];
       let newId = existingId;
       if (reUuid) {
         newId = uuidv4();
         debugMessage({
-          message: `ScriptOps.importScripts: Re-uuid-ing script ${scriptSkeleton.name} ${existingId} => ${newId}...`,
+          message: `ScriptOps.importScripts: Re-uuid-ing script ${scriptData.name} ${existingId} => ${newId}...`,
           state,
         });
-        scriptSkeleton._id = newId;
+        scriptData._id = newId;
       }
       if (scriptName) {
         debugMessage({
-          message: `ScriptOps.importScripts: Renaming script ${scriptSkeleton.name} => ${scriptName}...`,
+          message: `ScriptOps.importScripts: Renaming script ${scriptData.name} => ${scriptName}...`,
           state,
         });
-        scriptSkeleton.name = scriptName;
+        scriptData.name = scriptName;
       }
       if (validate) {
-        if (!validateScriptDecoded({ scriptSkeleton, state })) {
-          const message = `Error importing script '${scriptSkeleton.name}': Script is not valid`;
-          printMessage({
-            message,
-            type: 'error',
-            state,
-          });
-          throw new Error(message);
+        if (!isScriptValid({ scriptData, state })) {
+          {
+            const message = `Error importing script '${scriptData.name}': Script is not valid`;
+            printMessage({
+              message,
+              type: 'error',
+              state,
+            });
+            throw new Error(message);
+          }
         }
       }
       try {
         await updateScript({
           scriptId: newId,
-          scriptData: scriptSkeleton,
+          scriptData,
           state,
         });
         imported.push(newId);
@@ -539,7 +541,9 @@ export async function importScripts({
     }
   }
   if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
+    const errorMessages = errors
+      .map((error) => error.response?.data?.message || error.message)
+      .join('\n');
     throw new Error(`Import error:\n${errorMessages}`);
   }
   if (0 === imported.length) {

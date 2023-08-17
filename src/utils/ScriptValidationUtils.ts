@@ -6,38 +6,32 @@ import { decode } from './Base64Utils';
 import { printMessage } from './Console';
 
 export type ScriptValidation = {
-  validateScriptHooks(jsonData: object): boolean;
-  findAllScriptHooks(
-    jsonData: object,
-    scriptHooksArray?: ScriptHook[]
-  ): ScriptHook[];
-  validateScript(script: ScriptSkeleton): boolean;
-  validateScriptDecoded(scriptSkeleton: ScriptSkeleton): boolean;
+  validateScriptHooks(jsonData: object): void;
+  validateScript(scriptData: ScriptSkeleton): void;
+  validateJs(javascriptSource: string): void;
+  areScriptHooksValid(jsonData: object): boolean;
+  isScriptValid(scriptData: ScriptSkeleton): boolean;
   isValidJs(javascriptSource: string): boolean;
 };
 
-export default (state: State) => {
+export default (state: State): ScriptValidation => {
   return {
-    validateScriptHooks(jsonData: object): boolean {
-      return validateScriptHooks({ jsonData, state });
+    validateScriptHooks(jsonData: object): void {
+      validateScriptHooks({ jsonData });
     },
-
-    findAllScriptHooks(
-      jsonData: object,
-      scriptHooksArray: ScriptHook[] = []
-    ): ScriptHook[] {
-      return findAllScriptHooks(jsonData, scriptHooksArray);
+    validateScript(scriptData: ScriptSkeleton): void {
+      validateScript({ scriptData });
     },
-
-    validateScript(script: ScriptSkeleton): boolean {
-      return validateScript(script, state);
+    validateJs(javascriptSource: string): void {
+      validateJs({ javascriptSource });
     },
-
-    validateScriptDecoded(scriptSkeleton: ScriptSkeleton): boolean {
-      return validateScriptDecoded({ scriptSkeleton, state });
+    areScriptHooksValid(jsonData: object): boolean {
+      return areScriptHooksValid({ jsonData, state });
     },
-
-    isValidJs(javascriptSource: string) {
+    isScriptValid(scriptData: ScriptSkeleton): boolean {
+      return isScriptValid({ scriptData, state });
+    },
+    isValidJs(javascriptSource: string): boolean {
       return isValidJs({ javascriptSource, state });
     },
   };
@@ -48,30 +42,8 @@ export interface ScriptHook {
   source?: string;
 }
 
-export function validateScriptHooks({
-  jsonData,
-  state,
-}: {
-  jsonData: object;
-  state: State;
-}): boolean {
-  const scriptHooks = findAllScriptHooks(jsonData);
-
-  for (const scriptHook of scriptHooks) {
-    if (!('source' in scriptHook)) {
-      continue;
-    }
-
-    if (!isValidJs({ javascriptSource: scriptHook.source, state })) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 function findAllScriptHooks(
-  jsonData: unknown,
+  jsonData: any,
   scriptHooksArray: ScriptHook[] = []
 ): ScriptHook[] {
   if (typeof jsonData !== 'object' || jsonData === null) {
@@ -94,27 +66,69 @@ function findAllScriptHooks(
   return scriptHooksArray;
 }
 
-export function validateScript(script: ScriptSkeleton, state: State): boolean {
-  const scriptRaw = decode(script.script as string);
+export function validateScriptHooks({ jsonData }: { jsonData: object }): void {
+  const scriptHooks = findAllScriptHooks(jsonData);
 
-  if (script.language === 'JAVASCRIPT') {
-    return isValidJs({ javascriptSource: scriptRaw, state });
+  for (const scriptHook of scriptHooks) {
+    if (!('source' in scriptHook)) {
+      continue;
+    }
+
+    validateJs({ javascriptSource: scriptHook.source });
   }
+}
+
+export function validateScript({
+  scriptData,
+}: {
+  scriptData: ScriptSkeleton;
+}): void {
+  if (scriptData.language === 'JAVASCRIPT') {
+    const script = Array.isArray(scriptData.script)
+      ? scriptData.script.join('\n')
+      : decode(scriptData.script as string);
+    validateJs({ javascriptSource: script });
+  }
+}
+
+export function validateJs({ javascriptSource }: { javascriptSource: string }) {
+  parseScript(javascriptSource);
   return true;
 }
 
-export function validateScriptDecoded({
-  scriptSkeleton,
+export function areScriptHooksValid({
+  jsonData,
   state,
 }: {
-  scriptSkeleton: ScriptSkeleton;
+  jsonData: object;
   state: State;
 }): boolean {
-  if (!Array.isArray(scriptSkeleton.script)) {
-    return false;
+  const scriptHooks = findAllScriptHooks(jsonData);
+
+  for (const scriptHook of scriptHooks) {
+    if (!('source' in scriptHook)) {
+      continue;
+    }
+
+    if (!isValidJs({ javascriptSource: scriptHook.source, state })) {
+      return false;
+    }
   }
-  if (scriptSkeleton.language === 'JAVASCRIPT') {
-    const script = scriptSkeleton.script.join('\n');
+
+  return true;
+}
+
+export function isScriptValid({
+  scriptData,
+  state,
+}: {
+  scriptData: ScriptSkeleton;
+  state: State;
+}): boolean {
+  if (scriptData.language === 'JAVASCRIPT') {
+    const script = Array.isArray(scriptData.script)
+      ? scriptData.script.join('\n')
+      : decode(scriptData.script as string);
     return isValidJs({ javascriptSource: script, state });
   }
   return true;
