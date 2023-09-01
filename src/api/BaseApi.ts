@@ -1,5 +1,5 @@
 import Agent from 'agentkeepalive';
-import axios, { AxiosInstance, AxiosProxyConfig } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosProxyConfig } from 'axios';
 import axiosRetry from 'axios-retry';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
@@ -98,12 +98,35 @@ function getProxy(): AxiosProxyConfig | false {
  * @param request axios request object
  */
 function curlirize(request, state: State) {
-  _curlirize(request, (result, err) => {
-    const { command } = result;
+  _curlirize(request, (result, err: Error | AxiosError) => {
     if (err) {
-      printMessage({ message: err, type: 'error', state });
-    } else {
-      curlirizeMessage({ message: command, state });
+      if (axios.isAxiosError(err)) {
+        // Access to config, request, and response
+        printMessage({
+          message: `${err.response?.status}${
+            err.response?.data['reason']
+              ? ' ' + err.response?.data['reason']
+              : ''
+          }${
+            err.response?.data['message']
+              ? ' - ' + err.response?.data['message']
+              : ''
+          }`,
+          type: 'error',
+          state,
+        });
+      } else {
+        // Just a stock error
+        printMessage({ message: err, type: 'error', state });
+      }
+    } else if (result.command) {
+      curlirizeMessage({ message: result.command, state });
+    } else if (result.response) {
+      printMessage({
+        message: `${result.response.status} ${result.response.statusText}`,
+        type: 'info',
+        state,
+      });
     }
   });
 }
