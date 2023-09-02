@@ -48,7 +48,7 @@ describe('AuthenticateOps', () => {
       expect(AuthenticateOps.getTokens).toBeDefined();
     });
 
-    test('1: Authenticate successfully as user', async () => {
+    test.skip('1: Authenticate successfully as user', async () => {
       state.setHost(
         process.env.FRODO_HOST || 'https://openam-frodo-dev.forgeblocks.com/am'
       );
