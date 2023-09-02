@@ -15,6 +15,7 @@ import {
   encodeBase64Url,
 } from './Base64Utils';
 import { debugMessage, printMessage } from './Console';
+import { stringify } from './JsonUtils';
 
 export type ExportImport = {
   getMetadata(): ExportMetaData;
@@ -76,48 +77,33 @@ export default (state: State): ExportImport => {
     getMetadata(): ExportMetaData {
       return getMetadata({ state });
     },
-
-    /*
-     * Output str in title case
-     *
-     * e.g.: 'ALL UPPERCASE AND all lowercase' = 'All Uppercase And All Lowercase'
-     */
     titleCase(input: string) {
       return titleCase(input);
     },
-
     getRealmString() {
       return getRealmString({ state });
     },
-
     convertBase64TextToArray(b64text: string) {
       return convertBase64TextToArray(b64text);
     },
-
     convertBase64UrlTextToArray(b64UTF8Text: string) {
       return convertBase64UrlTextToArray(b64UTF8Text);
     },
-
     convertTextArrayToBase64(textArray: string[]) {
       return convertTextArrayToBase64(textArray);
     },
-
     convertTextArrayToBase64Url(textArray: string[]) {
       return convertTextArrayToBase64Url(textArray);
     },
-
     validateImport(metadata): boolean {
       return validateImport(metadata);
     },
-
     getTypedFilename(name: string, type: string, suffix = 'json') {
       return getTypedFilename(name, type, suffix);
     },
-
     getWorkingDirectory() {
       return getWorkingDirectory({ state });
     },
-
     saveToFile(
       type: string,
       data: object,
@@ -132,13 +118,6 @@ export default (state: State): ExportImport => {
         state,
       });
     },
-
-    /**
-     * Save JSON object to file
-     * @param {Object} data data object
-     * @param {String} filename file name
-     * @return {boolean} true if successful, false otherwise
-     */
     saveJsonToFile(
       data: object,
       filename: string,
@@ -146,41 +125,18 @@ export default (state: State): ExportImport => {
     ): boolean {
       return saveJsonToFile({ data, filename, includeMeta, state });
     },
-
-    /**
-     * Append text data to file
-     * @param {String} data text data
-     * @param {String} filename file name
-     */
     appendTextToFile(data: string, filename: string) {
       return appendTextToFile(data, filename);
     },
-
-    /**
-     * Find files by name
-     * @param {string} fileName file name to search for
-     * @param {boolean} fast return first result and stop search
-     * @param {string} path path to directory where to start the search
-     * @returns {string[]} array of found file paths relative to starting directory
-     */
     findFilesByName(fileName: string, fast = true, path = './'): string[] {
       return findFilesByName(fileName, fast, path);
     },
-
-    /**
-     * find all (nested) files in a directory
-     *
-     * @param directory directory to search
-     * @returns list of files
-     */
     async readFilesRecursive(directory: string): Promise<string[]> {
       return readFilesRecursive(directory);
     },
-
     substituteEnvParams(input: string, reader: Reader): string {
       return substituteEnvParams(input, reader);
     },
-
     unSubstituteEnvParams(input: string, reader: Reader): string {
       return unSubstituteEnvParams(input, reader);
     },
@@ -298,7 +254,7 @@ export function saveToFile({
   } else {
     exportData[type][data[identifier]] = data;
   }
-  fs.writeFile(filename, JSON.stringify(exportData, null, 2), (err) => {
+  fs.writeFile(filename, stringify(exportData), (err) => {
     if (err) {
       return printMessage({
         message: `ERROR - can't save ${type} to file`,
@@ -312,8 +268,8 @@ export function saveToFile({
 
 /**
  * Save JSON object to file
- * @param {Object} data data object
- * @param {String} filename file name
+ * @param {any} data data object
+ * @param {string} filename file name
  * @return {boolean} true if successful, false otherwise
  */
 export function saveJsonToFile({
@@ -330,7 +286,7 @@ export function saveJsonToFile({
   const exportData = data;
   if (includeMeta) exportData['meta'] = getMetadata({ state });
   try {
-    fs.writeFileSync(filename, JSON.stringify(exportData, null, 2));
+    fs.writeFileSync(filename, stringify(exportData));
     return true;
   } catch (err) {
     printMessage({
@@ -344,8 +300,8 @@ export function saveJsonToFile({
 
 /**
  * Append text data to file
- * @param {String} data text data
- * @param {String} filename file name
+ * @param {string} data text data
+ * @param {string} filename file name
  */
 export function appendTextToFile(data: string, filename: string) {
   fs.appendFileSync(filename, data);
