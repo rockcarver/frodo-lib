@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: 18
+  NODE_VERSION: 16
 
 jobs:
   build:
@@ -141,9 +141,8 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      - name: Update npm and install dependencies
+      - name: Install dependencies
         run: |
-          npm install -g npm
           npm ci
 
       #

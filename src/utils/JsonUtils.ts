@@ -37,6 +37,12 @@ export type Json = {
   getPaths(o: any, prefix?: string, delim?: string): string[];
   findInArray(objs: any[], predicate: any): any;
   get(obj: any, path: string[], defaultValue?: any): any;
+  /**
+   * Deterministic stringify
+   * @param {any} obj json object to stringify deterministically
+   * @returns {string} stringified json object
+   */
+  stringify(obj: any): string;
 };
 
 export default (): Json => {
@@ -65,6 +71,9 @@ export default (): Json => {
     },
     get(obj: any, path: string[], defaultValue: any = undefined): any {
       return get(obj, path, defaultValue);
+    },
+    stringify(obj: any): string {
+      return stringify(obj);
     },
   };
 };
@@ -107,16 +116,16 @@ export function isEqualJson(
 }
 
 /**
- * Deep delete keys and their values from an input object. If a key in object contains substring, the key an its value is deleted.
+ * Deep delete keys and their values from an input object. If a key in object contains or equals substring, the key an its value is deleted.
  * @param {Object} object input object that needs keys removed
  * @param {String} substring substring to search for in key
  * @returns the modified object without the matching keys and their values
  */
-export function deleteDeepByKey(object, substring) {
+export function deleteDeepByKey(object: any, substring: string) {
   const obj = object;
   const keys = Object.keys(obj);
   for (const key of keys) {
-    if (key.indexOf(substring) > 0) {
+    if (key.indexOf(substring) > -1) {
       delete obj[key];
     } else if (Object(obj[key]) === obj[key]) {
       obj[key] = deleteDeepByKey(obj[key], substring);
@@ -203,4 +212,31 @@ export function get(
     if (!result) return defaultValue;
   }
   return result;
+}
+
+/**
+ * Replacer function to create deterministic output with JSON.stringify()
+ * @param _key not used
+ * @param value json object to sort
+ * @returns sorted object
+ * @see {@link https://gist.github.com/davidfurlong/463a83a33b70a3b6618e97ec9679e490}
+ * @example JSON.stringify({c: 1, a: { d: 0, c: 1, e: {a: 0, 1: 4}}}, replacer);
+ */
+const replacer = (_key: any, value: any) =>
+  value instanceof Object && !(value instanceof Array)
+    ? Object.keys(value)
+        .sort()
+        .reduce((sorted, key) => {
+          sorted[key] = value[key];
+          return sorted;
+        }, {})
+    : value;
+
+/**
+ * Deterministic stringify
+ * @param obj json object to stringify deterministically
+ * @returns stringified json object
+ */
+export function stringify(obj: any): string {
+  return JSON.stringify(obj, replacer, 2);
 }

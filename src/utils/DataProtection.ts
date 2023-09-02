@@ -38,7 +38,7 @@ class DataProtection {
       pathToMasterKey ||
       process.env[Constants.FRODO_MASTER_KEY_PATH_KEY] ||
       `${homedir()}/.frodo/masterkey.key`;
-    // Generates a master key in base64 format. This master key will be used to derive the key for encryption. this key should be protected by an HSM or KMS
+    // Generates a 256bit master key and base64-encodes it. This master key is used to derive the key for encryption. this key should be protected by an HSM or KMS
     _masterKey.set(this, async () => {
       try {
         if (process.env[Constants.FRODO_MASTER_KEY_KEY])

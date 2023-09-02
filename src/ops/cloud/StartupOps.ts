@@ -201,9 +201,8 @@ export async function applyUpdates({
     }
   } catch (error) {
     stopProgressIndicator({
-      message: `Error: ${error.response?.data?.code || error} - ${
-        error.response?.data?.message
-      }`,
+      message: `Error: ${error.response?.data?.code || error} - ${error.response
+        ?.data?.message}`,
       status: 'fail',
       state,
     });
