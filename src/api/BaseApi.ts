@@ -5,7 +5,7 @@ import { randomUUID } from 'crypto';
 import fs from 'fs';
 import HttpsProxyAgent from 'https-proxy-agent';
 import path from 'path';
-import url, { fileURLToPath } from 'url';
+import { fileURLToPath } from 'url';
 
 import _curlirize from '../ext/axios-curlirize/curlirize';
 import StateImpl, { State } from '../shared/State';
@@ -66,7 +66,7 @@ function getHttpsAgent(allowInsecureConnection: boolean): Agent.HttpsAgent {
   if (httpsProxy) {
     // https://github.com/axios/axios/issues/3459
     console.error(`Using proxy ${httpsProxy}`['yellow']);
-    const parsed = url.parse(httpsProxy);
+    const parsed = new URL(httpsProxy);
     options['host'] = parsed.hostname;
     options['port'] = parsed.port;
     options['protocol'] = parsed.protocol;
