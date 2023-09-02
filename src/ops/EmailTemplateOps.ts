@@ -297,7 +297,7 @@ export async function deleteEmailTemplates({
   const templates = await readEmailTemplates({ state });
   for (const template of templates) {
     debugMessage({
-      message: `AgentOps.deleteWebAgent: '${template['_id']}'`,
+      message: `EmailTemplateOps.deleteEmailTemplates: '${template['_id']}'`,
       state,
     });
     result.push(
