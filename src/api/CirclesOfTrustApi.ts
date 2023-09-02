@@ -119,7 +119,7 @@ export async function updateCircleOfTrust({
   cotData: CircleOfTrustSkeleton;
   state: State;
 }): Promise<CircleOfTrustSkeleton> {
-  delete cotData._id;
+  // delete cotData._id;
   delete cotData._rev;
   const urlString = util.format(
     circleOfTrustByIdURLTemplate,

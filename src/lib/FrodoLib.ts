@@ -18,6 +18,7 @@ import VariablesOps, { Variable } from '../ops/cloud/VariablesOps';
 import ConnectionProfileOps, {
   ConnectionProfile,
 } from '../ops/ConnectionProfileOps';
+import ConnectorOps, { Connector } from '../ops/ConnectorOps';
 import EmailTemplateOps, { EmailTemplate } from '../ops/EmailTemplateOps';
 import IdmConfigOps, { IdmConfig } from '../ops/IdmConfigOps';
 import IdpOps, { Idp } from '../ops/IdpOps';
@@ -25,6 +26,7 @@ import InfoOps, { Info } from '../ops/InfoOps';
 import JoseOps, { Jose } from '../ops/JoseOps';
 import JourneyOps, { Journey } from '../ops/JourneyOps';
 import ManagedObjectOps, { ManagedObject } from '../ops/ManagedObjectOps';
+import MappingOps, { Mapping } from '../ops/MappingOps';
 import NodeOps, { Node } from '../ops/NodeOps';
 import OAuth2ClientOps, { OAuth2Client } from '../ops/OAuth2ClientOps';
 import OAuth2OidcOps, { OAuth2Oidc } from '../ops/OAuth2OidcOps';
@@ -88,7 +90,9 @@ export type Frodo = {
 
   idm: {
     config: IdmConfig;
+    connector: Connector;
     managed: ManagedObject;
+    mapping: Mapping;
     organization: Organization;
   };
 
@@ -220,7 +224,9 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
 
     idm: {
       config: IdmConfigOps(state),
+      connector: ConnectorOps(state),
       managed: ManagedObjectOps(state),
+      mapping: MappingOps(state),
       organization: OrganizationOps(state),
     },
 

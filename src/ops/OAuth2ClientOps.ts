@@ -265,7 +265,7 @@ export interface OAuth2ClientImportOptions {
 
 export interface OAuth2ClientExportInterface {
   meta?: ExportMetaData;
-  script: Record<string, ScriptSkeleton>;
+  script?: Record<string, ScriptSkeleton>;
   application: Record<string, OAuth2ClientSkeleton>;
 }
 

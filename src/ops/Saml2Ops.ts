@@ -723,11 +723,13 @@ export async function importSaml2Provider({
           state,
         });
         imported.push(entityId);
-      } catch (error) {
-        if (error.response?.status === 409) {
+      } catch (createProviderErr) {
+        try {
           response = await _updateProvider({ location, providerData, state });
           imported.push(entityId);
-        } else throw error;
+        } catch (error) {
+          errors.push(error);
+        }
       }
     } else {
       throw new Error(`Provider ${entityId} not found in import data!`);
@@ -737,10 +739,12 @@ export async function importSaml2Provider({
   }
   if (errors.length) {
     const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+    throw new Error(
+      `Error importing dependencies for ${entityId}:\n${errorMessages}`
+    );
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\n${entityId} not found in import data!`);
+    throw new Error(`${entityId} not found in import data!`);
   }
   debugMessage({ message: `Saml2Ops.importSaml2Provider: end`, state });
   return response;
@@ -814,7 +818,7 @@ export async function importSaml2Providers({
     throw new Error(`Import error:\n${errorMessages}`);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo providers found in import data!`);
+    throw new Error(`No providers found in import data!`);
   }
   debugMessage({ message: `Saml2Ops.importSaml2Providers: end`, state });
   return response;

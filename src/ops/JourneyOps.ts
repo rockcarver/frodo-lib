@@ -2472,7 +2472,6 @@ export async function deleteJourney({
           // delete inner nodes (nodes inside container nodes)
           if (containerNodes.includes(nodeObject['nodeType'])) {
             try {
-              // eslint-disable-next-line no-await-in-loop
               const containerNode = await getNode({
                 nodeId,
                 nodeType: nodeObject['nodeType'],
