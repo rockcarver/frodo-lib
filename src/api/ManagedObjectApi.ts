@@ -194,5 +194,8 @@ export async function deleteManagedObject({
     type,
     id
   );
-  return generateIdmApi({ requestOverride: {}, state }).delete(urlString);
+  const { data } = await generateIdmApi({ requestOverride: {}, state }).delete(
+    urlString
+  );
+  return data;
 }
