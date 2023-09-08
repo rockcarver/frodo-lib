@@ -706,6 +706,10 @@ export async function exportJourney({
   options?: TreeExportOptions;
   state: State;
 }): Promise<SingleTreeExportInterface> {
+  debugMessage({
+    message: `JourneyOps.exportJourney: start [journey=${journeyId}]`,
+    state,
+  });
   const exportData = createSingleTreeExportTemplate({ state });
   const errors = [];
   try {
@@ -901,103 +905,108 @@ export async function exportJourney({
     if (verbose && innerNodePromises.length > 0)
       printMessage({ message: '  - Inner nodes:', state });
     try {
-      const innerNodeDataResults = await Promise.all(innerNodePromises);
-      for (const innerNodeObject of innerNodeDataResults) {
-        const innerNodeId = innerNodeObject._id;
-        const innerNodeType = innerNodeObject._type._id;
-        if (verbose)
-          printMessage({
-            message: `    - ${innerNodeId} (${innerNodeType})`,
-            type: 'info',
-            newline: true,
-            state,
-          });
-        exportData.innerNodes[innerNodeId] = innerNodeObject;
+      const settledPromises = await Promise.allSettled(innerNodePromises);
+      for (const settledPromise of settledPromises) {
+        if (settledPromise.status === 'fulfilled' && settledPromise.value) {
+          const innerNodeObject = settledPromise.value as NodeSkeleton;
+          const innerNodeId = innerNodeObject._id;
+          const innerNodeType = innerNodeObject._type._id;
+          if (verbose)
+            printMessage({
+              message: `    - ${innerNodeId} (${innerNodeType})`,
+              type: 'info',
+              newline: true,
+              state,
+            });
+          exportData.innerNodes[innerNodeId] = innerNodeObject;
 
-        // handle script node types
-        if (deps && scriptedNodes.includes(innerNodeType)) {
-          scriptPromises.push(
-            getScript({ scriptId: innerNodeObject.script, state })
-          );
-        }
+          // handle script node types
+          if (deps && scriptedNodes.includes(innerNodeType)) {
+            scriptPromises.push(
+              getScript({ scriptId: innerNodeObject.script, state })
+            );
+          }
 
-        // frodo supports email templates in platform deployments
-        if (
-          (deps &&
-            state.getDeploymentType() ===
-              Constants.CLOUD_DEPLOYMENT_TYPE_KEY) ||
-          state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
-        ) {
-          if (emailTemplateNodes.includes(innerNodeType)) {
-            try {
-              const emailTemplate = await readEmailTemplate({
-                templateId: innerNodeObject.emailTemplateName,
-                state,
-              });
-              emailTemplatePromises.push(emailTemplate);
-            } catch (error) {
-              error.message = `Error reading email template ${
-                innerNodeObject.emailTemplateName
-              }: ${error.response?.data?.message || error.message}`;
-              errors.push(error);
+          // frodo supports email templates in platform deployments
+          if (
+            (deps &&
+              state.getDeploymentType() ===
+                Constants.CLOUD_DEPLOYMENT_TYPE_KEY) ||
+            state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
+          ) {
+            if (emailTemplateNodes.includes(innerNodeType)) {
+              try {
+                const emailTemplate = await readEmailTemplate({
+                  templateId: innerNodeObject.emailTemplateName,
+                  state,
+                });
+                emailTemplatePromises.push(emailTemplate);
+              } catch (error) {
+                error.message = `Error reading email template ${
+                  innerNodeObject.emailTemplateName
+                }: ${error.response?.data?.message || error.message}`;
+                errors.push(error);
+              }
             }
           }
-        }
 
-        // handle SAML2 node dependencies
-        if (deps && innerNodeType === 'product-Saml2Node') {
-          if (!allSaml2Providers) {
-            try {
-              allSaml2Providers = await readSaml2ProviderStubs({ state });
-            } catch (error) {
-              error.message = `Error reading saml2 providers: ${
-                error.response?.data?.message || error.message
-              }`;
-              errors.push(error);
+          // handle SAML2 node dependencies
+          if (deps && innerNodeType === 'product-Saml2Node') {
+            if (!allSaml2Providers) {
+              try {
+                allSaml2Providers = await readSaml2ProviderStubs({ state });
+              } catch (error) {
+                error.message = `Error reading saml2 providers: ${
+                  error.response?.data?.message || error.message
+                }`;
+                errors.push(error);
+              }
+            }
+            if (!allCirclesOfTrust) {
+              try {
+                allCirclesOfTrust = await readCirclesOfTrust({ state });
+              } catch (error) {
+                error.message = `Error reading circles of trust: ${
+                  error.response?.data?.message || error.message
+                }`;
+                errors.push(error);
+              }
+            }
+            saml2ConfigPromises.push(
+              getSaml2NodeDependencies(
+                innerNodeObject,
+                allSaml2Providers,
+                allCirclesOfTrust,
+                state
+              )
+            );
+          }
+
+          // If this is a SocialProviderHandlerNode get each enabled social identity provider.
+          if (
+            deps &&
+            !socialProviderPromise &&
+            innerNodeType === 'SocialProviderHandlerNode'
+          ) {
+            socialProviderPromise = getSocialIdentityProviders({ state });
+          }
+
+          // If this is a SelectIdPNode and filteredProviters is not already set to empty array set filteredSocialProviers.
+          if (
+            deps &&
+            !filteredSocialProviders &&
+            innerNodeType === 'SelectIdPNode' &&
+            innerNodeObject.filteredProviders
+          ) {
+            filteredSocialProviders = filteredSocialProviders || [];
+            for (const filteredProvider of innerNodeObject.filteredProviders) {
+              if (!filteredSocialProviders.includes(filteredProvider)) {
+                filteredSocialProviders.push(filteredProvider);
+              }
             }
           }
-          if (!allCirclesOfTrust) {
-            try {
-              allCirclesOfTrust = await readCirclesOfTrust({ state });
-            } catch (error) {
-              error.message = `Error reading circles of trust: ${
-                error.response?.data?.message || error.message
-              }`;
-              errors.push(error);
-            }
-          }
-          saml2ConfigPromises.push(
-            getSaml2NodeDependencies(
-              innerNodeObject,
-              allSaml2Providers,
-              allCirclesOfTrust,
-              state
-            )
-          );
-        }
-
-        // If this is a SocialProviderHandlerNode get each enabled social identity provider.
-        if (
-          deps &&
-          !socialProviderPromise &&
-          innerNodeType === 'SocialProviderHandlerNode'
-        ) {
-          socialProviderPromise = getSocialIdentityProviders({ state });
-        }
-
-        // If this is a SelectIdPNode and filteredProviters is not already set to empty array set filteredSocialProviers.
-        if (
-          deps &&
-          !filteredSocialProviders &&
-          innerNodeType === 'SelectIdPNode' &&
-          innerNodeObject.filteredProviders
-        ) {
-          filteredSocialProviders = filteredSocialProviders || [];
-          for (const filteredProvider of innerNodeObject.filteredProviders) {
-            if (!filteredSocialProviders.includes(filteredProvider)) {
-              filteredSocialProviders.push(filteredProvider);
-            }
-          }
+        } else if (settledPromise.status === 'rejected') {
+          errors.push(new Error(settledPromise.reason));
         }
       }
     } catch (error) {
@@ -1180,6 +1189,10 @@ export async function exportJourney({
     const errorMessages = errors.map((error) => error.message).join('\n');
     throw new Error(`Export error:\n${errorMessages}`);
   }
+  debugMessage({
+    message: `JourneyOps.exportJourney: end [journey=${journeyId}]`,
+    state,
+  });
   return exportData;
 }
 

@@ -49,6 +49,9 @@ export type NodeSkeleton = IdObjectSkeletonInterface & {
   nodes?: InnerNodeRefSkeletonInterface[];
   tree?: string;
   identityResource?: string;
+  script?: string;
+  emailTemplateName?: string;
+  filteredProviders?: string[];
 };
 
 export type NodeTypeSkeleton = IdObjectSkeletonInterface & {
@@ -159,7 +162,7 @@ export async function getNode({
   nodeId: string;
   nodeType: string;
   state: State;
-}) {
+}): Promise<NodeSkeleton> {
   const urlString = util.format(
     nodeURLTemplate,
     state.getHost(),
