@@ -150,18 +150,18 @@ jobs:
       #
       - name: Direct Tests
         env:
-          FRODO_HOST: ${{ secrets.FIDC_TENANT_URL }}
-          FRODO_USER: ${{ secrets.FIDC_TENANT_ADMIN_USERNAME }}
-          FRODO_PASSWORD: ${{ secrets.FIDC_TENANT_ADMIN_PASSWORD }}
+          FRODO_HOST: ${{ vars.FIDC_TENANT_URL }}
+          FRODO_SA_ID: ${{ vars.FIDC_TENANT_SA_ID }}
+          FRODO_SA_JWK: ${{ secrets.FIDC_TENANT_SA_JWK }}
         run: |
           npm run test:only
 
       - name: Proxy Tests
         env:
           HTTPS_PROXY: 'http://127.0.0.1:3128'
-          FRODO_HOST: ${{ secrets.FIDC_TENANT_URL }}
-          FRODO_USER: ${{ secrets.FIDC_TENANT_ADMIN_USERNAME }}
-          FRODO_PASSWORD: ${{ secrets.FIDC_TENANT_ADMIN_PASSWORD }}
+          FRODO_HOST: ${{ vars.FIDC_TENANT_URL }}
+          FRODO_SA_ID: ${{ vars.FIDC_TENANT_SA_ID }}
+          FRODO_SA_JWK: ${{ secrets.FIDC_TENANT_SA_JWK }}
         run: |
           npm run test:only
 
