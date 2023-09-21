@@ -154,7 +154,7 @@ jobs:
           FRODO_SA_ID: ${{ vars.FIDC_TENANT_SA_ID }}
           FRODO_SA_JWK: ${{ secrets.FIDC_TENANT_SA_JWK }}
         run: |
-          npm run test:only
+          npm run test:debug
 
       - name: Proxy Tests
         env:
