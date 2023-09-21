@@ -181,10 +181,19 @@ export async function getServiceAccount({
   serviceAccountId: string;
   state: State;
 }) {
+  debugMessage({
+    message: `ServiceAccountOps.getServiceAccount: start`,
+    state,
+  });
   const serviceAccount = await getManagedObject({
     type: moType,
     id: serviceAccountId,
     fields: ['*'],
+    state,
+  });
+  debugMessage({ message: serviceAccount, state });
+  debugMessage({
+    message: `ServiceAccountOps.getServiceAccount: end`,
     state,
   });
   return serviceAccount as ServiceAccountType;
