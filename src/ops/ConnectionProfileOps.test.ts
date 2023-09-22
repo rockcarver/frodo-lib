@@ -60,12 +60,12 @@ describe('ConnectionProfileOps', () => {
       const host = 'https://openam-tenant-name.forgeblocks.com/am';
       const user = 'frodo.baggins@shire.me';
       const password = 'G@nd@lfTheW153';
-      
+
       state.setHost(host);
       state.setUsername(user);
       state.setPassword(password);
       state.setConnectionProfilesPath(connectionProfilePath1);
-      await ConnectionProfileOps.saveConnectionProfile({ host, state });
+      await ConnectionProfileOps.saveConnectionProfile({ host, offline: true, state });
       expect(fs.existsSync(connectionProfilePath1)).toBeTruthy();
       const connections = JSON.parse(
         fs.readFileSync(connectionProfilePath1, 'utf8')
@@ -88,7 +88,7 @@ describe('ConnectionProfileOps', () => {
       state.setUsername(user);
       state.setPassword(password);
       state.setConnectionProfilesPath('');
-      await ConnectionProfileOps.saveConnectionProfile({ host, state });
+      await ConnectionProfileOps.saveConnectionProfile({ host, offline: true, state });
       expect(ConnectionProfileOps.getConnectionProfilesPath({ state })).toEqual(
         connectionProfilePath2
       );
@@ -114,7 +114,7 @@ describe('ConnectionProfileOps', () => {
       state.setUsername(user);
       state.setPassword(password);
       state.setConnectionProfilesPath(connectionProfilePath3);
-      await ConnectionProfileOps.saveConnectionProfile({ host, state });
+      await ConnectionProfileOps.saveConnectionProfile({ host, offline: true, state });
       expect(fs.existsSync(connectionProfilePath3)).toBeTruthy();
       const connections = JSON.parse(
         fs.readFileSync(connectionProfilePath3, 'utf8')
