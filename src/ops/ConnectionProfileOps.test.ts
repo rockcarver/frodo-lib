@@ -60,8 +60,7 @@ describe('ConnectionProfileOps', () => {
       const host = 'https://openam-tenant-name.forgeblocks.com/am';
       const user = 'frodo.baggins@shire.me';
       const password = 'G@nd@lfTheW153';
-
-      state.setDebug(true);
+      
       state.setHost(host);
       state.setUsername(user);
       state.setPassword(password);
