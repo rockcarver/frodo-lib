@@ -419,9 +419,11 @@ export async function getConnectionProfile({
  */
 export async function saveConnectionProfile({
   host,
+  offline = false,
   state,
 }: {
   host: string;
+  offline?: boolean;
   state: State;
 }): Promise<boolean> {
   debugMessage({
@@ -496,19 +498,21 @@ export async function saveConnectionProfile({
   // service account
   if (state.getServiceAccountId()) {
     profile.svcacctId = state.getServiceAccountId();
-    profile.svcacctName = (
-      await getServiceAccount({
-        serviceAccountId: state.getServiceAccountId(),
-        state,
-      })
-    ).name;
+    if (!offline) {
+      profile.svcacctName = (
+        await getServiceAccount({
+          serviceAccountId: state.getServiceAccountId(),
+          state,
+        })
+      ).name;
+    }
   }
   if (state.getServiceAccountJwk())
     profile.encodedSvcacctJwk = await dataProtection.encrypt(
       state.getServiceAccountJwk()
     );
   // update existing service account profile
-  if (profile.svcacctId && !profile.svcacctName) {
+  if (!offline && profile.svcacctId && !profile.svcacctName) {
     profile.svcacctName = (
       await getServiceAccount({ serviceAccountId: profile.svcacctId, state })
     ).name;
