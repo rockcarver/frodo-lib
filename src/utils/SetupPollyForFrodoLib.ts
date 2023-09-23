@@ -14,6 +14,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FRODO_MOCK_HOSTS = [
   'https://openam-frodo-dev.forgeblocks.com',
   'https://openam-volker-dev.forgeblocks.com',
+  'https://openam-volker-demo.forgeblocks.com',
 ];
 
 let recordIfMissing = false;
