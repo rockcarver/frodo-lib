@@ -38,68 +38,21 @@ if (process.env.FRODO_MOCK) {
 }
 
 function defaultMatchRequestsBy() {
-  // return JSON.parse(
-  //   JSON.stringify({
   return {
     method: true,
     headers: false, // do not match headers, because "Authorization" header is sent only at recording time
-    // headers(headers: { [x: string]: any }) {
-    //   // console.log('headers before:');
-    //   // console.dir(headers);
-    //   if (headers['AUTHORIZATION']) {
-    //     if (isBase64Encoded(headers['AUTHORIZATION'])) {
-    //       headers['AUTHORIZATION'] = encode('username:password');
-    //     } else {
-    //       headers['AUTHORIZATION'] = headers['AUTHORIZATION'].replace(
-    //         /Bearer .+/,
-    //         'Bearer <bearer token>'
-    //       );
-    //     }
-    //   }
-    //   if (headers['X-API-KEY']) {
-    //     headers['X-API-KEY'] = '<api key>';
-    //   }
-    //   if (headers['X-API-SECRET']) {
-    //     headers['X-API-SECRET'] = '<api secret>';
-    //   }
-    //   // console.log('headers after:');
-    //   // console.dir(headers);
-    //   return headers;
-    // },
     body: true,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    // body(body: string, _req: any) {
-    //   try {
-    //     const json = JSON.parse(body);
-    //     if (json['access_token']) json['access_token'] = '<access token>';
-    //     return JSON.stringify(json);
-    //   } catch (error) {
-    //     body = body.replace(
-    //       /assertion=.+?&/,
-    //       'assertion=<assertion jwt token>&'
-    //     );
-    //     return body;
-    //   }
-    // },
     order: false,
     url: {
       protocol: false,
       username: false,
-      // username() {
-      //   return 'username';
-      // },
       password: false,
-      // password() {
-      //   return 'password';
-      // },
       hostname: false, // we will record from different envs but run tests always against `frodo-dev`
       port: false,
       pathname: true,
       query: true,
       hash: true,
     },
-    //   })
-    // );
   };
 }
 
