@@ -15,7 +15,7 @@ import {
   encodeBase64Url,
 } from './Base64Utils';
 import { debugMessage, printMessage } from './Console';
-import { stringify } from './JsonUtils';
+import { deleteDeepByKey, stringify } from './JsonUtils';
 
 export type ExportImport = {
   getMetadata(): ExportMetaData;
@@ -285,6 +285,7 @@ export function saveJsonToFile({
 }): boolean {
   const exportData = data;
   if (includeMeta) exportData['meta'] = getMetadata({ state });
+  deleteDeepByKey(exportData, '_rev');
   try {
     fs.writeFileSync(filename, stringify(exportData));
     return true;

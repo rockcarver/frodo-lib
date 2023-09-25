@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { State } from '../shared/State';
+import { encode, isBase64Encoded } from './Base64Utils';
 import { debugMessage, printMessage } from './Console';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -14,6 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FRODO_MOCK_HOSTS = [
   'https://openam-frodo-dev.forgeblocks.com',
   'https://openam-volker-dev.forgeblocks.com',
+  'https://openam-volker-demo.forgeblocks.com',
 ];
 
 let recordIfMissing = false;
@@ -36,29 +38,27 @@ if (process.env.FRODO_MOCK) {
 }
 
 function defaultMatchRequestsBy() {
-  return JSON.parse(
-    JSON.stringify({
-      method: true,
-      headers: false, // do not match headers, because "Authorization" header is sent only at recording time
-      body: true,
-      order: false,
-      url: {
-        protocol: false,
-        username: false,
-        password: false,
-        hostname: false, // we will record from different envs but run tests always against `frodo-dev`
-        port: false,
-        pathname: true,
-        query: true,
-        hash: true,
-      },
-    })
-  );
+  return {
+    method: true,
+    headers: false, // do not match headers, because "Authorization" header is sent only at recording time
+    body: true,
+    order: false,
+    url: {
+      protocol: false,
+      username: false,
+      password: false,
+      hostname: false, // we will record from different envs but run tests always against `frodo-dev`
+      port: false,
+      pathname: true,
+      query: true,
+      hash: true,
+    },
+  };
 }
 
 function authenticationMatchRequestsBy() {
   const matchRequestsBy = defaultMatchRequestsBy();
-  matchRequestsBy.body = false;
+  matchRequestsBy['body'] = false;
   matchRequestsBy.order = true;
   return matchRequestsBy;
 }
@@ -187,6 +187,59 @@ function getFrodoCommand({ state }: { state: State }) {
   return cmd;
 }
 
+function filterRecording(recording: {
+  request: {
+    headers: [{ name: string; value: string }];
+    postData: { text: any };
+  };
+  response: { content: { text: any } };
+}) {
+  // request headers
+  if (recording.request?.headers) {
+    const headers: [{ name: string; value: string }] =
+      recording.request.headers;
+    headers.map((header) => {
+      if (header.name.toUpperCase() === 'AUTHORIZATION') {
+        if (isBase64Encoded(header.value)) {
+          header.value = encode('username:password');
+        } else {
+          header.value = header.value.replace(
+            /Bearer .+/,
+            'Bearer <bearer token>'
+          );
+        }
+      }
+      if (header.name.toUpperCase() === 'X-API-KEY') {
+        header.value = '<api key>';
+      }
+      if (header.name.toUpperCase() === 'X-API-SECRET') {
+        header.value = '<api secret>';
+      }
+    });
+    recording.request.headers = headers;
+  }
+
+  // request post body
+  if (recording.request?.postData?.text) {
+    let body = recording.request.postData.text;
+    body = body.replace(/assertion=.+?&/, 'assertion=<assertion jwt token>&');
+    recording.request.postData.text = body;
+  }
+
+  // response body
+  if (recording.response?.content?.text) {
+    let body = recording.response.content.text;
+    try {
+      const json = JSON.parse(body);
+      if (json['access_token']) json['access_token'] = '<access token>';
+      body = JSON.stringify(json);
+    } catch (error) {
+      // ignore
+    }
+    recording.response.content.text = body;
+  }
+}
+
 export function setupPollyForFrodoLib({
   matchRequestsBy = defaultMatchRequestsBy(),
   state,
@@ -259,12 +312,17 @@ export function setupPollyForFrodoLib({
   polly.server.host('https://registry.npmjs.org', () => {
     polly.server.any('/*').recordingName(`npmjs`);
   });
-  polly.server.any().on('request', () => {
-    if (ttl < timeout) {
-      // console.log(`Reset polly stop ttl (${ttl}) to ${timeout}`);
-      ttl = timeout;
-    }
-  });
+  polly.server
+    .any()
+    .on('request', () => {
+      if (ttl < timeout) {
+        // console.log(`Reset polly stop ttl (${ttl}) to ${timeout}`);
+        ttl = timeout;
+      }
+    })
+    .on('beforePersist', (_req, recording) => {
+      filterRecording(recording);
+    });
 
   if (mode === MODES.RECORD) {
     scheduleShutdown({ polly, state });
