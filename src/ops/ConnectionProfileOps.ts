@@ -193,11 +193,19 @@ const newProfileFilename = 'Connections.json';
  * @returns {String} connection profiles file name
  */
 export function getConnectionProfilesPath({ state }: { state: State }): string {
-  return (
+  debugMessage({
+    message: `ConnectionProfileOps.getConnectionProfilesPath: start`,
+    state,
+  });
+  const profilesPath =
     state.getConnectionProfilesPath() ||
     process.env[Constants.FRODO_CONNECTION_PROFILES_PATH_KEY] ||
-    `${os.homedir()}/.frodo/${newProfileFilename}`
-  );
+    `${os.homedir()}/.frodo/${newProfileFilename}`;
+  debugMessage({
+    message: `ConnectionProfileOps.getConnectionProfilesPath: end [profilesPath=${profilesPath}]`,
+    state,
+  });
+  return profilesPath;
 }
 
 /**
@@ -266,6 +274,10 @@ function migrateFromLegacyProfile() {
  * @param {State} state library state
  */
 export async function initConnectionProfiles({ state }: { state: State }) {
+  debugMessage({
+    message: `ConnectionProfileOps.initConnectionProfiles: start`,
+    state,
+  });
   const dataProtection = new DataProtection({
     pathToMasterKey: state.getMasterKeyPath(),
     state,
@@ -273,9 +285,19 @@ export async function initConnectionProfiles({ state }: { state: State }) {
   // create connections.json file if it doesn't exist
   const filename = getConnectionProfilesPath({ state });
   const folderName = path.dirname(filename);
-  if (!fs.existsSync(folderName)) {
-    fs.mkdirSync(folderName, { recursive: true });
+  if (!fs.existsSync(filename)) {
+    if (!fs.existsSync(folderName)) {
+      debugMessage({
+        message: `ConnectionProfileOps.initConnectionProfiles: folder does not exist: ${folderName}, creating...`,
+        state,
+      });
+      fs.mkdirSync(folderName, { recursive: true });
+    }
     if (!fs.existsSync(filename)) {
+      debugMessage({
+        message: `ConnectionProfileOps.initConnectionProfiles: file does not exist: ${filename}, creating...`,
+        state,
+      });
       fs.writeFileSync(
         filename,
         JSON.stringify({}, null, fileOptions.indentation)
@@ -317,6 +339,10 @@ export async function initConnectionProfiles({ state }: { state: State }) {
       );
     }
   }
+  debugMessage({
+    message: `ConnectionProfileOps.initConnectionProfiles: end`,
+    state,
+  });
 }
 
 /**
