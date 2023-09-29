@@ -98,6 +98,39 @@ export async function getSources({
 }
 
 /**
+ * Validate log API key
+ * @param {string} keyId log api key id
+ * @param {string} secret log api secret
+ * @returns {Promise<boolean>} a promise resolving to true if the key is valid, false otherwise
+ */
+export async function isLogApiKeyValid({
+  keyId,
+  secret,
+  state,
+}: {
+  keyId: string;
+  secret: string;
+  state: State;
+}): Promise<boolean> {
+  try {
+    const requestOverride = {
+      headers: {
+        'X-API-Key': keyId,
+        'X-API-Secret': secret,
+      },
+    };
+    const urlString = util.format(
+      logsSourcesURLTemplate,
+      getHostBaseUrl(state.getHost())
+    );
+    await generateLogApi({ requestOverride, state }).get(urlString);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
  * Create API key
  * @param {keyName: string, state: State} params keyName, state
  * @returns {Promise<LogApiKey>} new API key and secret

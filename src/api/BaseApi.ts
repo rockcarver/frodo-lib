@@ -328,15 +328,16 @@ export function generateLogKeysApi({
       Authorization: `Bearer ${state.getBearerToken()}`,
     }),
   };
-  const requestDetails = {
-    // baseURL: getTenantURL(storage.session.getTenant()),
-    timeout,
-    headers,
-    ...requestOverride,
-    httpAgent: getHttpAgent(),
-    httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
-    proxy: getProxy(),
-  };
+  const requestDetails = mergeDeep(
+    {
+      timeout,
+      headers,
+      httpAgent: getHttpAgent(),
+      httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+      proxy: getProxy(),
+    },
+    requestOverride
+  );
 
   const request = axios.create(requestDetails);
 
@@ -367,15 +368,17 @@ export function generateLogApi({
     'X-API-Key': state.getLogApiKey(),
     'X-API-Secret': state.getLogApiSecret(),
   };
-  const requestDetails = {
-    // baseURL: getTenantURL(storage.session.getTenant()),
-    timeout,
-    headers,
-    ...requestOverride,
-    httpAgent: getHttpAgent(),
-    httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
-    proxy: getProxy(),
-  };
+  const requestDetails = mergeDeep(
+    {
+      // baseURL: getTenantURL(storage.session.getTenant()),
+      timeout,
+      headers,
+      httpAgent: getHttpAgent(),
+      httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+      proxy: getProxy(),
+    },
+    requestOverride
+  );
 
   const request = axios.create(requestDetails);
 
