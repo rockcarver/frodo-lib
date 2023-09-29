@@ -53,7 +53,7 @@ export async function step({
   realm?: string;
   service?: string;
   state: State;
-}) {
+}): Promise<any> {
   const urlString =
     service || state.getAuthenticationService()
       ? util.format(

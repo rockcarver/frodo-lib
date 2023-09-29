@@ -1,15 +1,16 @@
 import { type PagedResult } from '../../api/ApiTypes';
 import {
-  createLogApiKey,
+  createLogApiKey as _createLogApiKey,
   deleteLogApiKey as _deleteLogApiKey,
-  fetch,
-  getLogApiKey,
+  fetch as _fetch,
+  getLogApiKey as _getLogApiKey,
   getLogApiKeys as _getLogApiKeys,
-  getSources,
+  getSources as _getSources,
+  isLogApiKeyValid as _isLogApiKeyValid,
   type LogApiKey,
   type LogEventPayloadSkeleton,
   type LogEventSkeleton,
-  tail,
+  tail as _tail,
 } from '../../api/cloud/LogApi';
 import { State } from '../../shared/State';
 
@@ -38,9 +39,17 @@ export type Log = {
   getLogSources(): Promise<string[]>;
   /**
    * Get log api key
+   * @param {string} keyId key id
    * @returns {Promise<LogApiKey>} promise resolving to a LogApiKey objects
    */
   getLogApiKey(keyId: string): Promise<LogApiKey>;
+  /**
+   * Validate log api key and secret
+   * @param {string} keyId log api key id
+   * @param {string} secret log api secret
+   * @returns {Promise<boolean>} a promise resolving to true if the key is valid, false otherwise
+   */
+  isLogApiKeyValid(keyId: string, secret: string): Promise<boolean>;
   /**
    * Get log api keys
    * @returns {Promise<LogApiKey[]>} promise resolving to an array of LogApiKey objects
@@ -88,103 +97,42 @@ export type Log = {
 
 export default (state: State): Log => {
   return {
-    /**
-     * Get default noise filter
-     * @returns {string[]} array of default event types and loggers to be filtered out
-     */
     getDefaultNoiseFilter(): string[] {
       return getDefaultNoiseFilter();
     },
-
-    /**
-     * Resolve log level to an array of effective log levels
-     * @param level string or numeric log level: 'FATAL', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE', 'ALL', 0, 1, 2, 3, 4
-     * @returns {string[]} array of effective log levels
-     */
     resolveLevel(level: string | number): string[] {
       return resolveLevel(level);
     },
-
-    /**
-     * Resolve a log event's level
-     * @param {object} log log event
-     * @returns {string} log level
-     */
     resolvePayloadLevel(log: LogEventSkeleton): string {
       return resolvePayloadLevel(log);
     },
-
-    /**
-     * Get available log sources
-     * @returns {Promise<string[]>} promise resolving to an array of available log sources
-     */
     async getLogSources() {
       return getLogSources({ state });
     },
-
-    /**
-     * Get log api key
-     * @returns {Promise<LogApiKey>} promise resolving to a LogApiKey objects
-     */
     async getLogApiKey(keyId: string): Promise<LogApiKey> {
       return getLogApiKey({ keyId, state });
     },
-
-    /**
-     * Get log api keys
-     * @returns {Promise<LogApiKey[]>} promise resolving to an array of LogApiKey objects
-     */
+    async isLogApiKeyValid(keyId: string, secret: string): Promise<boolean> {
+      return isLogApiKeyValid({ keyId, secret, state });
+    },
     async getLogApiKeys(): Promise<LogApiKey[]> {
       return getLogApiKeys({ state });
     },
-
-    /**
-     * Create log api key
-     * @param {string} keyName human-readable key name
-     * @returns {Promise<LogApiKey>} a promise resolving to an object containing the log api key and secret
-     */
     async createLogApiKey(keyName: string): Promise<LogApiKey> {
       return createLogApiKey({ keyName, state });
     },
-
-    /**
-     * Delete log api key
-     * @param {string} keyId key id
-     * @returns {Promise<LogApiKey>} a promise resolving to an object containing the log api key
-     */
     async deleteLogApiKey(keyId: string): Promise<LogApiKey> {
       return deleteLogApiKey({ keyId, state });
     },
-
-    /**
-     * Delete all log api keys
-     * @returns {Promise<LogApiKey>} a promise resolving to an array of log api key objects
-     */
     async deleteLogApiKeys(): Promise<LogApiKey[]> {
       return deleteLogApiKeys({ state });
     },
-
-    /**
-     * Tail logs
-     * @param {string} source log source(s) to tail
-     * @param {string} cookie paged results cookie
-     * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
-     */
     tail(
       source: string,
       cookie: string
     ): Promise<PagedResult<LogEventSkeleton>> {
       return tail({ source, cookie, state });
     },
-
-    /**
-     * Fetch logs
-     * @param {string} source log source(s) to tail
-     * @param {string} startTs start timestamp
-     * @param {string} endTs end timestamp
-     * @param {string} cookie paged results cookie
-     * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
-     */
     async fetch(
       source: string,
       startTs: string,
@@ -463,8 +411,40 @@ export function resolvePayloadLevel(log: LogEventSkeleton): string {
  * @returns {Promise<string[]>} promise resolving to an array of available log sources
  */
 export async function getLogSources({ state }: { state: State }) {
-  const sources = (await getSources({ state })).result;
+  const sources = (await _getSources({ state })).result;
   return sources;
+}
+
+/**
+ * Get log API key
+ * @returns {Promise<PagedResult<LogApiKey>>} a promise resolving to a log api key object
+ */
+export async function getLogApiKey({
+  keyId,
+  state,
+}: {
+  keyId: string;
+  state: State;
+}): Promise<LogApiKey> {
+  return _getLogApiKey({ keyId, state });
+}
+
+/**
+ * Validate log API key
+ * @param {string} keyId log api key id
+ * @param {string} secret log api secret
+ * @returns {Promise<boolean>} a promise resolving to true if the key is valid, false otherwise
+ */
+export async function isLogApiKeyValid({
+  keyId,
+  secret,
+  state,
+}: {
+  keyId: string;
+  secret: string;
+  state: State;
+}): Promise<boolean> {
+  return _isLogApiKeyValid({ keyId, secret, state });
 }
 
 /**
@@ -481,7 +461,22 @@ export async function getLogApiKeys({
 }
 
 /**
- * Delete all keys
+ * Create API key
+ * @param {keyName: string, state: State} params keyName, state
+ * @returns {Promise<LogApiKey>} new API key and secret
+ */
+export async function createLogApiKey({
+  keyName,
+  state,
+}: {
+  keyName: string;
+  state: State;
+}): Promise<LogApiKey> {
+  return _createLogApiKey({ keyName, state });
+}
+
+/**
+ * Delete key
  */
 export async function deleteLogApiKey({
   keyId,
@@ -528,4 +523,44 @@ export async function deleteLogApiKeys({
   return responses;
 }
 
-export { createLogApiKey, fetch, tail };
+/**
+ * Tail logs
+ * @param {string} source log source(s) to tail
+ * @param {string} cookie paged results cookie
+ * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+ */
+export async function tail({
+  source,
+  cookie,
+  state,
+}: {
+  source: string;
+  cookie: string;
+  state: State;
+}): Promise<PagedResult<LogEventSkeleton>> {
+  return _tail({ source, cookie, state });
+}
+
+/**
+ * Fetch logs
+ * @param {string} source log source(s) to tail
+ * @param {string} startTs start timestamp
+ * @param {string} endTs end timestamp
+ * @param {string} cookie paged results cookie
+ * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
+ */
+export async function fetch({
+  source,
+  startTs,
+  endTs,
+  cookie,
+  state,
+}: {
+  source: string;
+  startTs: string;
+  endTs: string;
+  cookie: string;
+  state: State;
+}): Promise<PagedResult<LogEventSkeleton>> {
+  return _fetch({ source, startTs, endTs, cookie, state });
+}
