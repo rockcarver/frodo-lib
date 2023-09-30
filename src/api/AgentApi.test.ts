@@ -32,46 +32,46 @@
 import * as AgentApi from './AgentApi';
 import { state } from '../index';
 import { getAgent } from '../test/mocks/ForgeRockApiMockEngine';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 describe('AgentApi', () => {
   const gateway1 = {
     id: 'FrodoTestGatewayAgent1',
-    type: 'IdentityGatewayAgent',
+    type: 'IdentityGatewayAgent' as AgentApi.AgentType,
   };
   const gateway2 = {
     id: 'FrodoTestGatewayAgent2',
-    type: 'IdentityGatewayAgent',
+    type: 'IdentityGatewayAgent' as AgentApi.AgentType,
   };
   const gateway3 = {
     id: 'FrodoTestGatewayAgent3',
-    type: 'IdentityGatewayAgent',
+    type: 'IdentityGatewayAgent' as AgentApi.AgentType,
   };
   const java1 = {
     id: 'FrodoTestJavaAgent1',
-    type: 'J2EEAgent',
+    type: 'J2EEAgent' as AgentApi.AgentType,
   };
   const java2 = {
     id: 'FrodoTestJavaAgent2',
-    type: 'J2EEAgent',
+    type: 'J2EEAgent' as AgentApi.AgentType,
   };
   const java3 = {
     id: 'FrodoTestJavaAgent3',
-    type: 'J2EEAgent',
+    type: 'J2EEAgent' as AgentApi.AgentType,
   };
   const web1 = {
     id: 'FrodoTestWebAgent1',
-    type: 'WebAgent',
+    type: 'WebAgent' as AgentApi.AgentType,
   };
   const web2 = {
     id: 'FrodoTestWebAgent2',
-    type: 'WebAgent',
+    type: 'WebAgent' as AgentApi.AgentType,
   };
   const web3 = {
     id: 'FrodoTestWebAgent3',
-    type: 'WebAgent',
+    type: 'WebAgent' as AgentApi.AgentType,
   };
   // in recording mode, setup test data before recording
   beforeAll(async () => {
@@ -388,6 +388,13 @@ describe('AgentApi', () => {
       } catch (error) {
         // ignore
       }
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 
