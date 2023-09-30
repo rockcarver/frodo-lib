@@ -1357,7 +1357,7 @@ exports[`OAuth2ClientOps exportOAuth2Client() 1: Export oauth2 client FrodoTestO
       "_id": "FrodoTestOAuth2Client1",
       "_provider": {
         "_id": "",
-        "_rev": "520068704",
+        "_rev": "1577238457",
         "_type": {
           "_id": "oauth-oidc",
           "collection": false,
@@ -1392,6 +1392,7 @@ exports[`OAuth2ClientOps exportOAuth2Client() 1: Export oauth2 client FrodoTestO
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
           ],
           "hashSalt": "&{am.oidc.client.subject.identifier.hash.salt}",
+          "includeSubnameInTokenClaims": true,
           "macaroonTokenFormat": "V2",
           "maxAgeOfRequestObjectNbfClaim": 0,
           "maxDifferenceBetweenRequestObjectNbfAndExp": 0,
@@ -2106,7 +2107,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
       "_id": "23281ea7-739b-4fd1-b953-eaae73a2b497",
       "_provider": {
         "_id": "",
-        "_rev": "520068704",
+        "_rev": "1577238457",
         "_type": {
           "_id": "oauth-oidc",
           "collection": false,
@@ -2141,6 +2142,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
           ],
           "hashSalt": "&{am.oidc.client.subject.identifier.hash.salt}",
+          "includeSubnameInTokenClaims": true,
           "macaroonTokenFormat": "V2",
           "maxAgeOfRequestObjectNbfClaim": 0,
           "maxDifferenceBetweenRequestObjectNbfAndExp": 0,
@@ -2656,7 +2658,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
       "_id": "49a2981c-e192-4739-a0e6-c7582168bdf5",
       "_provider": {
         "_id": "",
-        "_rev": "520068704",
+        "_rev": "1577238457",
         "_type": {
           "_id": "oauth-oidc",
           "collection": false,
@@ -2691,6 +2693,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
           ],
           "hashSalt": "&{am.oidc.client.subject.identifier.hash.salt}",
+          "includeSubnameInTokenClaims": true,
           "macaroonTokenFormat": "V2",
           "maxAgeOfRequestObjectNbfClaim": 0,
           "maxDifferenceBetweenRequestObjectNbfAndExp": 0,
@@ -3203,7 +3206,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
       "_id": "86fca6d7-2f52-4524-92c6-b6f416071455",
       "_provider": {
         "_id": "",
-        "_rev": "520068704",
+        "_rev": "1577238457",
         "_type": {
           "_id": "oauth-oidc",
           "collection": false,
@@ -3238,6 +3241,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
           ],
           "hashSalt": "&{am.oidc.client.subject.identifier.hash.salt}",
+          "includeSubnameInTokenClaims": true,
           "macaroonTokenFormat": "V2",
           "maxAgeOfRequestObjectNbfClaim": 0,
           "maxDifferenceBetweenRequestObjectNbfAndExp": 0,
@@ -3749,7 +3753,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
       "_id": "FrodoTestOAuth2Client1",
       "_provider": {
         "_id": "",
-        "_rev": "520068704",
+        "_rev": "1577238457",
         "_type": {
           "_id": "oauth-oidc",
           "collection": false,
@@ -3784,6 +3788,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
           ],
           "hashSalt": "&{am.oidc.client.subject.identifier.hash.salt}",
+          "includeSubnameInTokenClaims": true,
           "macaroonTokenFormat": "V2",
           "maxAgeOfRequestObjectNbfClaim": 0,
           "maxDifferenceBetweenRequestObjectNbfAndExp": 0,
@@ -4295,7 +4300,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
       "_id": "FrodoTestOAuth2Client2",
       "_provider": {
         "_id": "",
-        "_rev": "520068704",
+        "_rev": "1577238457",
         "_type": {
           "_id": "oauth-oidc",
           "collection": false,
@@ -4330,6 +4335,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
           ],
           "hashSalt": "&{am.oidc.client.subject.identifier.hash.salt}",
+          "includeSubnameInTokenClaims": true,
           "macaroonTokenFormat": "V2",
           "maxAgeOfRequestObjectNbfClaim": 0,
           "maxDifferenceBetweenRequestObjectNbfAndExp": 0,
@@ -4841,7 +4847,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
       "_id": "RCSClient",
       "_provider": {
         "_id": "",
-        "_rev": "520068704",
+        "_rev": "1577238457",
         "_type": {
           "_id": "oauth-oidc",
           "collection": false,
@@ -4876,6 +4882,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
           ],
           "hashSalt": "&{am.oidc.client.subject.identifier.hash.salt}",
+          "includeSubnameInTokenClaims": true,
           "macaroonTokenFormat": "V2",
           "maxAgeOfRequestObjectNbfClaim": 0,
           "maxDifferenceBetweenRequestObjectNbfAndExp": 0,
@@ -5252,7 +5259,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
           "validateScopeScript": "[Empty]",
         },
       },
-      "_rev": "-318736287",
+      "_rev": "1059867403",
       "_type": {
         "_id": "OAuth2Client",
         "collection": true,
@@ -5290,7 +5297,6 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
       },
       "coreOAuth2ClientConfig": {
         "accessTokenLifetime": 0,
-        "agentgroup": null,
         "authorizationCodeLifetime": 0,
         "clientName": [],
         "clientType": "Confidential",
@@ -5358,7 +5364,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
       "_id": "d4c3ecbc-4b03-4ad5-b32f-464bda442e3f",
       "_provider": {
         "_id": "",
-        "_rev": "520068704",
+        "_rev": "1577238457",
         "_type": {
           "_id": "oauth-oidc",
           "collection": false,
@@ -5393,6 +5399,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
           ],
           "hashSalt": "&{am.oidc.client.subject.identifier.hash.salt}",
+          "includeSubnameInTokenClaims": true,
           "macaroonTokenFormat": "V2",
           "maxAgeOfRequestObjectNbfClaim": 0,
           "maxDifferenceBetweenRequestObjectNbfAndExp": 0,
@@ -5905,7 +5912,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
       "_id": "ig-oidc-app",
       "_provider": {
         "_id": "",
-        "_rev": "520068704",
+        "_rev": "1577238457",
         "_type": {
           "_id": "oauth-oidc",
           "collection": false,
@@ -5940,6 +5947,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
           ],
           "hashSalt": "&{am.oidc.client.subject.identifier.hash.salt}",
+          "includeSubnameInTokenClaims": true,
           "macaroonTokenFormat": "V2",
           "maxAgeOfRequestObjectNbfClaim": 0,
           "maxDifferenceBetweenRequestObjectNbfAndExp": 0,
@@ -6455,7 +6463,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
       "_id": "test2",
       "_provider": {
         "_id": "",
-        "_rev": "520068704",
+        "_rev": "1577238457",
         "_type": {
           "_id": "oauth-oidc",
           "collection": false,
@@ -6490,6 +6498,7 @@ exports[`OAuth2ClientOps exportOAuth2Clients() 1: Export all oauth2 clients 1`] 
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
           ],
           "hashSalt": "&{am.oidc.client.subject.identifier.hash.salt}",
+          "includeSubnameInTokenClaims": true,
           "macaroonTokenFormat": "V2",
           "maxAgeOfRequestObjectNbfClaim": 0,
           "maxDifferenceBetweenRequestObjectNbfAndExp": 0,
@@ -9610,7 +9619,7 @@ exports[`OAuth2ClientOps readOAuth2Clients() 1: Read oauth2 clients 1`] = `
   },
   {
     "_id": "RCSClient",
-    "_rev": "-318736287",
+    "_rev": "1059867403",
     "_type": {
       "_id": "OAuth2Client",
       "collection": true,
@@ -9648,7 +9657,6 @@ exports[`OAuth2ClientOps readOAuth2Clients() 1: Read oauth2 clients 1`] = `
     },
     "coreOAuth2ClientConfig": {
       "accessTokenLifetime": 0,
-      "agentgroup": null,
       "authorizationCodeLifetime": 0,
       "clientName": [],
       "clientType": "Confidential",
