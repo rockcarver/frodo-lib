@@ -32,9 +32,9 @@
 import { state } from '../index';
 import * as IdmConfigApi from '../api/IdmConfigApi';
 import * as EmailTemplateOps from './EmailTemplateOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 const { EMAIL_TEMPLATE_TYPE } = EmailTemplateOps;
 
@@ -130,6 +130,14 @@ describe('EmailTemplateOps', () => {
       await stageTemplate(template1, false);
       await stageTemplate(template2, false);
       await stageTemplate(template3, false);
+    }
+  });
+
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 
