@@ -59,7 +59,7 @@ switch (process.env.FRODO_POLLY_MODE) {
     break;
 }
 
-function defaultMatchRequestsBy() {
+export function defaultMatchRequestsBy() {
   return {
     method: true,
     headers: false, // do not match headers, because "Authorization" header is sent only at recording time
