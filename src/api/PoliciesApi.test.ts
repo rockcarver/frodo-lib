@@ -31,12 +31,13 @@
  */
 import * as PolicySetApi from './PolicySetApi';
 import * as PoliciesApi from './PoliciesApi';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { PolicySetSkeleton, PolicySkeleton } from './ApiTypes';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { type PolicySetSkeleton } from './PolicySetApi';
+import { type PolicySkeleton } from './PoliciesApi';
 import { cloneDeep } from '../utils/JsonUtils';
 import { state } from '../index';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 async function stagePolicySet(policySet: PolicySetSkeleton, create = true) {
   // delete if exists, then create
@@ -58,14 +59,14 @@ async function stagePolicySet(policySet: PolicySetSkeleton, create = true) {
 async function stagePolicy(policy: PolicySkeleton, create = true) {
   // delete if exists, then create
   try {
-    await PoliciesApi.getPolicy({ policyId: policy._id, state });
-    await PoliciesApi.deletePolicy({ policyId: policy._id, state });
+    await PoliciesApi.getPolicy({ policyId: policy._id as string, state });
+    await PoliciesApi.deletePolicy({ policyId: policy._id as string, state });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
       await PoliciesApi.putPolicy({
-        policyId: policy._id,
+        policyId: policy._id as string,
         policyData: policy,
         state,
       });
@@ -87,7 +88,7 @@ describe('PoliciesApi', () => {
   const set1: PolicySetSkeleton = {
     name: 'FrodoTestPolicySet1',
     displayName: 'Frodo Test Policy Set',
-    description: null,
+    description: 'Frodo Test Policy Set',
     attributeNames: [],
     conditions: [
       'Script',
@@ -112,10 +113,10 @@ describe('PoliciesApi', () => {
       'AuthenticateToService',
     ],
     resourceTypeUuids: ['76656a38-5f8e-401b-83aa-4ccb74ce88d2'],
-    resourceComparator: null,
+    resourceComparator: undefined,
     editable: true,
-    saveIndex: null,
-    searchIndex: null,
+    saveIndex: undefined,
+    searchIndex: undefined,
     applicationType: 'iPlanetAMWebAgentService',
     entitlementCombiner: 'DenyOverride',
     subjects: [
@@ -168,6 +169,13 @@ describe('PoliciesApi', () => {
       await stagePolicySet(set1, false);
     }
   });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
+    }
+  });
 
   describe('getPolicies()', () => {
     test('0: Method is implemented', async () => {
@@ -209,7 +217,7 @@ describe('PoliciesApi', () => {
 
     test(`1: Get existing policy [${policy1._id}]`, async () => {
       const response = await PoliciesApi.getPolicy({
-        policyId: policy1._id,
+        policyId: policy1._id as string,
         state,
       });
       expect(response).toMatchSnapshot();
@@ -232,7 +240,7 @@ describe('PoliciesApi', () => {
 
     test(`1: Update existing policy [${policy2._id}]`, async () => {
       const response = await PoliciesApi.putPolicy({
-        policyId: policy2._id,
+        policyId: policy2._id as string,
         policyData: policy2,
         state,
       });
@@ -241,7 +249,7 @@ describe('PoliciesApi', () => {
 
     test(`2: Create non-existing policy [${policy3._id}]`, async () => {
       const response = await PoliciesApi.putPolicy({
-        policyId: policy3._id,
+        policyId: policy3._id as string,
         policyData: policy3,
         state,
       });

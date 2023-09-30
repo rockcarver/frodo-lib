@@ -7,7 +7,7 @@
  *    script and override all the connection state variables required
  *    to connect to the env to record from:
  *
- *        FRODO_DEBUG=1 FRODO_HOST=volker-dev npm run test:record TreeApi
+ *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record TreeApi
  *
  *    The above command assumes that you have a connection profile for
  *    'volker-dev' on your development machine.
@@ -24,16 +24,16 @@
  *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
  *    replay mode and make sure they all succeed as well:
  *
- *        npm run test TreeApi
+ *        npm run test:only TreeApi
  *
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
 import * as TreeApi from './TreeApi';
 import { state } from '../index';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 describe('TreeApi', () => {
   const tree1 = {
@@ -224,6 +224,13 @@ describe('TreeApi', () => {
       }
     }
   });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
+    }
+  });
 
   describe('getTrees()', () => {
     test('0: Method is implemented', async () => {
@@ -274,6 +281,7 @@ describe('TreeApi', () => {
       expect.assertions(1);
       const treeData =
         JSON.stringify({
+          _id: 'Invalid',
           entryNodeId: 'e301438c-0bd0-429c-ab0c-66126501069a',
           nodes: {},
           staticNodes: {},
