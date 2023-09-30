@@ -7,7 +7,7 @@
  *    script and override all the connection state variables required
  *    to connect to the env to record from:
  *
- *        FRODO_DEBUG=1 FRODO_HOST=volker-dev npm run test:record SecretsApi
+ *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record SecretsApi
  *
  *    The above command assumes that you have a connection profile for
  *    'volker-dev' on your development machine.
@@ -24,16 +24,16 @@
  *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
  *    replay mode and make sure they all succeed as well:
  *
- *        npm run test SecretsApi
+ *        npm run test:only SecretsApi
  *
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
 import * as SecretsApi from './SecretsApi';
-import { autoSetupPolly } from '../../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../../utils/AutoSetupPolly';
 import { state } from '../../index';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 describe('SecretsApi', () => {
   const secret1 = {
@@ -165,6 +165,13 @@ describe('SecretsApi', () => {
       } catch (error) {
         // ignore
       }
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 

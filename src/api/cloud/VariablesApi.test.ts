@@ -24,16 +24,16 @@
  *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
  *    replay mode and make sure they all succeed as well:
  *
- *        npm run test VariablesApi
+ *        npm run test:only VariablesApi
  *
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
 import * as VariablesApi from './VariablesApi';
-import { autoSetupPolly } from '../../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../../utils/AutoSetupPolly';
 import { state } from '../../index';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 type TestVariable = {
   name: string;
@@ -185,6 +185,13 @@ describe('VariablesApi', () => {
       await stageVariable(var11, false);
       await stageVariable(var12, false);
       await stageVariable(var13, false);
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 
