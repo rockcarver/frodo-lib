@@ -31,14 +31,12 @@
  */
 import { state } from '../index';
 import * as OAuth2ClientOps from './OAuth2ClientOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 import { cloneDeep } from '../utils/JsonUtils';
-import {
-  NoIdObjectSkeletonInterface,
-  OAuth2ClientSkeleton,
-} from '../api/ApiTypes';
+import { NoIdObjectSkeletonInterface } from '../api/ApiTypes';
+import { OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 async function stageOAuth2Client(
   client: {
@@ -2031,6 +2029,13 @@ describe('OAuth2ClientOps', () => {
       await stageOAuth2Client(client11, false);
       await stageOAuth2Client(client12, false);
       await stageOAuth2Client(client13, false);
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 

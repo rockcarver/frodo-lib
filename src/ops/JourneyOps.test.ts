@@ -49,10 +49,10 @@
 import { state } from '../index';
 import * as JourneyOps from './JourneyOps';
 import { getJourney } from '../test/mocks/ForgeRockApiMockEngine';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 import Constants from '../shared/Constants';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 
@@ -139,6 +139,13 @@ describe('JourneyOps', () => {
       await stageJourney(journey7, false);
       await stageJourney(journey8, false);
       await stageJourney(journey9, false);
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
   // Phase 1

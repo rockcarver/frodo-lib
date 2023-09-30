@@ -31,11 +31,11 @@
  */
 import { state } from '../index';
 import * as IdpOps from './IdpOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 import { NoIdObjectSkeletonInterface } from '../api/ApiTypes';
 import { SocialIdpSkeleton } from '../api/SocialIdentityProvidersApi';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 async function stageIdp(
   idp: {
@@ -990,6 +990,14 @@ describe('IdpOps', () => {
       await stageIdp(idp6, false);
       await stageIdp(idp7, false);
       await stageIdp(idp8, false);
+    }
+  });
+
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 

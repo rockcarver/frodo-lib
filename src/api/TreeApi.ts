@@ -82,7 +82,7 @@ export async function putTree({
   state,
 }: {
   treeId: string;
-  treeData: TreeSkeleton;
+  treeData: TreeSkeleton | string;
   state: State;
 }): Promise<TreeSkeleton> {
   const urlString = util.format(

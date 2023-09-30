@@ -31,10 +31,10 @@
  */
 import * as ResourceTypesApi from './ResourceTypesApi';
 import { state } from '../index';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { ResourceTypeSkeleton } from './ApiTypes';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { type ResourceTypeSkeleton } from './ResourceTypesApi';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 async function stageResourceType(type: ResourceTypeSkeleton, create = true) {
   // delete if exists, then create
@@ -131,6 +131,13 @@ describe('ResourceTypesApi', () => {
       await stageResourceType(type5, false);
       await stageResourceType(type6, false);
       await stageResourceType(type7, false);
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 

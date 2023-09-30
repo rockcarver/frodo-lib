@@ -38,15 +38,24 @@ import { createJwkRsa, createJwks, getJwkRsaPublic } from '../JoseOps';
 import {
   autoSetupPolly,
   defaultMatchRequestsBy,
+  filterRecording,
 } from '../../utils/AutoSetupPolly';
 
 // need to modify the default matching rules to allow the mocking to work for service account tests.
 const matchConfig = defaultMatchRequestsBy();
 matchConfig.body = false; // service account create requests are tricky because of the public key, which is different for each request
 
-autoSetupPolly(matchConfig);
+const ctx = autoSetupPolly(matchConfig);
 
-describe.only('ServiceAccountOps', () => {
+describe('ServiceAccountOps', () => {
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
+    }
+  });
+
   describe('isServiceAccountsFeatureAvailable()', () => {
     test('0: Method is implemented', async () => {
       expect(ServiceAccountOps.isServiceAccountsFeatureAvailable).toBeDefined();

@@ -31,10 +31,10 @@
  */
 import { state } from '../index';
 import * as ScriptOps from './ScriptOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { ScriptSkeleton } from '../../types/api/ApiTypes';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { type ScriptSkeleton } from '../../types/api/ScriptApi';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 async function stageScript(
   script: { id: string; name: string; data: ScriptSkeleton },
@@ -322,6 +322,13 @@ describe('ScriptOps', () => {
       await stageScript(script3, false);
       await stageScript(script4, false);
       await stageScript(script5, false);
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 

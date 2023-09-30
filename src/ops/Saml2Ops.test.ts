@@ -55,9 +55,9 @@ import {
   getSaml2ProvidersImportData,
 } from '../test/mocks/ForgeRockApiMockEngine';
 import { encodeBase64Url } from '../utils/Base64Utils';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 
@@ -210,6 +210,13 @@ describe('Saml2Ops', () => {
       await stageProvider(provider8, false);
       await stageProvider(provider9, false);
       await stageProvider(provider10, false);
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 

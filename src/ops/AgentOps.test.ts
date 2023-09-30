@@ -50,12 +50,14 @@ import { state } from '../index';
 import * as AgentApi from '../api/AgentApi';
 import * as AgentOps from './AgentOps';
 import { getAgent } from '../test/mocks/ForgeRockApiMockEngine';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { AgentType } from '../api/ApiTypes';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
-async function stageAgent(agent: { id: string; type: AgentType }, create = true) {
+async function stageAgent(
+  agent: { id: string; type: AgentApi.AgentType },
+  create = true
+) {
   // delete if exists, then create
   try {
     await AgentApi.getAgentByTypeAndId({
@@ -84,8 +86,8 @@ async function stageAgent(agent: { id: string; type: AgentType }, create = true)
 
 type agentStub = {
   id: string;
-  type: AgentType;
-}
+  type: AgentApi.AgentType;
+};
 describe('AgentOps', () => {
   const gateway1: agentStub = {
     id: 'FrodoOpsTestGatewayAgent1',
@@ -261,6 +263,13 @@ describe('AgentOps', () => {
       await stageAgent(web7, false);
       await stageAgent(web8, false);
       await stageAgent(web9, false);
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 
