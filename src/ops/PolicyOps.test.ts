@@ -40,17 +40,14 @@ import * as PolicySetApi from '../api/PolicySetApi';
 import * as PoliciesApi from '../api/PoliciesApi';
 import * as ScriptOps from './ScriptOps';
 import * as PolicyOps from './PolicyOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import {
-  PolicyCondition,
-  PolicySetSkeleton,
-  PolicySkeleton,
-  ScriptSkeleton,
-} from '../api/ApiTypes';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { type PolicyCondition, type PolicySkeleton } from '../api/PoliciesApi';
+import { type PolicySetSkeleton } from '../api/PolicySetApi';
+import { type ScriptSkeleton } from '../api/ScriptApi';
 import { cloneDeep } from '../utils/JsonUtils';
 import { PolicyExportInterface } from '../../types/ops/PolicyOps';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 async function stagePolicySet(policySet: PolicySetSkeleton, create = true) {
   // delete if exists, then create
@@ -72,13 +69,13 @@ async function stagePolicySet(policySet: PolicySetSkeleton, create = true) {
 async function stageScript(script: ScriptSkeleton, create = true) {
   // delete if exists, then create
   try {
-    await ScriptOps.getScript({ scriptId: script._id as string, state });
+    await ScriptOps.readScript({ scriptId: script._id as string, state });
     await ScriptOps.deleteScript({ scriptId: script._id as string, state });
   } catch (error) {
     // ignore
   } finally {
     if (create) {
-      await ScriptOps.putScript({
+      await ScriptOps.updateScript({
         scriptId: script._id as string,
         scriptData: script,
         state,
@@ -139,7 +136,7 @@ describe('PolicyOps', () => {
   const set1: PolicySetSkeleton = {
     name: 'FrodoTestPolicySet1',
     displayName: 'Frodo Test Policy Set',
-    description: null,
+    description: 'Frodo Test Policy Set',
     attributeNames: [],
     conditions: [
       'Script',
@@ -164,10 +161,10 @@ describe('PolicyOps', () => {
       'AuthenticateToService',
     ],
     resourceTypeUuids: ['76656a38-5f8e-401b-83aa-4ccb74ce88d2'],
-    resourceComparator: null,
+    resourceComparator: undefined,
     editable: true,
-    saveIndex: null,
-    searchIndex: null,
+    saveIndex: undefined,
+    searchIndex: undefined,
     applicationType: 'iPlanetAMWebAgentService',
     entitlementCombiner: 'DenyOverride',
     subjects: [
@@ -753,6 +750,13 @@ describe('PolicyOps', () => {
       await stageScript(script1, false);
       await stageScript(script2, false);
       await stagePolicySet(set1, false);
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 
