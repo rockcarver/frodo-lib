@@ -48,13 +48,12 @@
 import { state } from '../index';
 import * as IdmConfigApi from '../api/IdmConfigApi';
 import * as ThemeOps from './ThemeOps';
-import { ThemeSkeleton } from '../api/ApiTypes';
 import { getConfigEntity } from '../test/mocks/ForgeRockApiMockEngine';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
-const THEME_OBJ: ThemeSkeleton = {
+const THEME_OBJ: ThemeOps.ThemeSkeleton = {
   _id: 'a5420670-bae8-4ad6-9595-8477f6bca2c7',
   accountCardBackgroundColor: '#ffffff',
   accountCardHeaderColor: '#23282e',
@@ -268,7 +267,7 @@ const THEME_MAP_RAW = {
   },
   'a5420670-bae8-4ad6-9595-8477f6bca2c7': THEME_OBJ,
 };
-const THEME_MAP: Map<string, ThemeSkeleton> = new Map<string, ThemeSkeleton>();
+const THEME_MAP: Map<string, ThemeOps.ThemeSkeleton> = new Map<string, ThemeOps.ThemeSkeleton>();
 for (const theme of Object.values(THEME_MAP_RAW)) {
   THEME_MAP[theme._id as string] = theme;
 }
@@ -331,6 +330,13 @@ describe('ThemeOps', () => {
   afterAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
       await stageThemes(allThemes);
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 
