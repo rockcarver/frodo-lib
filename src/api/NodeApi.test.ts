@@ -7,7 +7,7 @@
  *    script and override all the connection state variables required
  *    to connect to the env to record from:
  *
- *        FRODO_DEBUG=1 FRODO_HOST=volker-dev npm run test:record NodeApi
+ *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record NodeApi
  *
  *    The above command assumes that you have a connection profile for
  *    'volker-dev' on your development machine.
@@ -31,9 +31,9 @@
  */
 import * as NodeApi from './NodeApi';
 import { state } from '../index';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 describe('NodeApi', () => {
   const node1 = {
@@ -273,6 +273,13 @@ describe('NodeApi', () => {
       } catch (error) {
         // ignore
       }
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 

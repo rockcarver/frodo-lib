@@ -8,7 +8,7 @@
  *    getTokens() function by the test to connect to the env to record from:
  *
  *        FRODO_DEBUG=1 \
- *        FRODO_HOST=https://openam-volker-dev.forgeblocks.com/am \
+ *        FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am \
  *        FRODO_REALM=alpha \
  *        FRODO_USERNAME=vscheuber@gmail.com \
  *        FRODO_PASSWORD='S3cr3!S@uc3' \
@@ -37,6 +37,7 @@ import { state } from '../index';
 import {
   autoSetupPolly,
   defaultMatchRequestsBy,
+  filterRecording,
 } from '../utils/AutoSetupPolly';
 
 // need to modify the default matching rules to allow the mocking to work for an authentication flow.
@@ -44,9 +45,17 @@ const matchConfig = defaultMatchRequestsBy();
 matchConfig.body = false; // oauth flows are tricky because of the PKCE challenge, which is different for each request
 matchConfig.order = true; // since we instruct Polly not to match the body, we need to enable ordering of the requests
 
-autoSetupPolly(matchConfig);
+const ctx = autoSetupPolly(matchConfig);
 
 describe('AuthenticateApi', () => {
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
+    }
+  });
+
   describe('step()', () => {
     test('0: Method is implemented', async () => {
       expect(AuthenticateApi.step).toBeDefined();
