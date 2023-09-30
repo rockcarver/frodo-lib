@@ -38,12 +38,12 @@
 import { state } from '../index';
 import * as PolicySetApi from '../api/PolicySetApi';
 import * as PolicySetOps from './PolicySetOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { PolicySetSkeleton } from '../api/ApiTypes';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { PolicySetSkeleton } from '../api/PolicySetApi';
 import { cloneDeep } from '../utils/JsonUtils';
 import { PolicySetExportInterface } from '../../types/ops/PolicySetOps';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 async function stagePolicySet(policySet: PolicySetSkeleton, create = true) {
   // delete if exists, then create
@@ -95,7 +95,7 @@ describe('PolicySetOps', () => {
   const policySetTemplate: PolicySetSkeleton = {
     name: 'FrodoTestPolicySetTemplate',
     displayName: 'Frodo Test Policy Set Template',
-    description: null,
+    description: 'Frodo Test Policy Set Template',
     attributeNames: [],
     conditions: [
       'Script',
@@ -120,10 +120,10 @@ describe('PolicySetOps', () => {
       'AuthenticateToService',
     ],
     resourceTypeUuids: ['76656a38-5f8e-401b-83aa-4ccb74ce88d2'],
-    resourceComparator: null,
+    resourceComparator: undefined,
     editable: true,
-    saveIndex: null,
-    searchIndex: null,
+    saveIndex: undefined,
+    searchIndex: undefined,
     applicationType: 'iPlanetAMWebAgentService',
     entitlementCombiner: 'DenyOverride',
     subjects: [
@@ -252,6 +252,13 @@ describe('PolicySetOps', () => {
       await stagePolicySet(set14, false);
       await stagePolicySet(set15, false);
       await stagePolicySet(set16, false);
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 
