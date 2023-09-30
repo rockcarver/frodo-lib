@@ -32,10 +32,10 @@
 import { state } from '../index';
 import * as IdmConfigApi from '../api/IdmConfigApi';
 import * as IdmConfigOps from './IdmConfigOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 async function stageConfigEntity(
   configEntity: { id: string; data: IdObjectSkeletonInterface },
@@ -123,6 +123,14 @@ describe('IdmConfigOps', () => {
       await stageConfigEntity(configEntity1, false);
       await stageConfigEntity(configEntity2, false);
       await stageConfigEntity(configEntity3, false);
+    }
+  });
+
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 
