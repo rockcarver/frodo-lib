@@ -39,7 +39,7 @@ import { state } from '../index';
 import * as PolicySetApi from '../api/PolicySetApi';
 import * as PolicySetOps from './PolicySetOps';
 import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
-import { PolicySetSkeleton } from '../api/PolicySetApi';
+import { type PolicySetSkeleton } from '../api/PolicySetApi';
 import { cloneDeep } from '../utils/JsonUtils';
 import { PolicySetExportInterface } from '../../types/ops/PolicySetOps';
 

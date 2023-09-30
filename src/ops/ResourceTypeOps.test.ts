@@ -37,10 +37,10 @@
  */
 import { state } from '../index';
 import * as ResourceTypeOps from './ResourceTypeOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { ResourceTypeSkeleton } from '../api/ApiTypes';
+import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { type ResourceTypeSkeleton } from '../api/ResourceTypesApi';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 async function stageResourceType(type: ResourceTypeSkeleton, create = true) {
   // delete if exists, then create
@@ -293,6 +293,13 @@ describe('ResourceTypeOps', () => {
       await stageResourceType(import3.type?.[import3.uuid], false);
       await stageResourceType(import4.type?.[import4.uuid], false);
       await stageResourceType(import5.type?.[import5.uuid], false);
+    }
+  });
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
     }
   });
 
