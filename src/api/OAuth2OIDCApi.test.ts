@@ -19,7 +19,7 @@ import {
   mockAuthorize,
   mockAccessToken,
 } from '../test/mocks/ForgeRockApiMockEngine';
-import { parseUrl } from '../utils/MiscUtils';
+import { parseUrl } from '../utils/ExportImportUtils';
 
 const mock = new MockAdapter(axios);
 
