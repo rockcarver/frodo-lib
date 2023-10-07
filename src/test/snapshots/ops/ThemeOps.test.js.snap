@@ -89,7 +89,7 @@ exports[`ThemeOps deleteTheme() 1: Delete alpha theme '84bbd22e-6def-459f-91c9-4
 }
 `;
 
-exports[`ThemeOps deleteTheme() 2: Delete bravo theme '84bbd22e-6def-459f-91c9-4c9aa4e0bec0' (cloud) 1`] = `
+exports[`ThemeOps deleteTheme() 2: Delete bravo theme '05ef90a8-10f2-47fd-a481-c8c52f49e48f' (cloud) 1`] = `
 {
   "_id": "05ef90a8-10f2-47fd-a481-c8c52f49e48f",
   "accountFooter": "<footer class="w-100">
@@ -318,7 +318,7 @@ exports[`ThemeOps deleteTheme() 2: Delete bravo theme '84bbd22e-6def-459f-91c9-4
 }
 `;
 
-exports[`ThemeOps deleteTheme() 3: Delete root theme '84bbd22e-6def-459f-91c9-4c9aa4e0bec0' (encore) 1`] = `
+exports[`ThemeOps deleteTheme() 3: Delete root theme 'd6636b33-111b-40f2-870d-f4dcb7281e43' (encore) 1`] = `
 {
   "_id": "d6636b33-111b-40f2-870d-f4dcb7281e43",
   "accountCardBackgroundColor": "#ffffff",
@@ -393,7 +393,7 @@ exports[`ThemeOps deleteTheme() 3: Delete root theme '84bbd22e-6def-459f-91c9-4c
 }
 `;
 
-exports[`ThemeOps deleteTheme() 4: Delete theme '84bbd22e-6def-459f-91c9-4c9aa4e0bec0' from non-existent realm 1`] = `[Error: 'd6636b33-111b-40f2-870d-f4dcb7281e43' not found in realm 'doesnotexist']`;
+exports[`ThemeOps deleteTheme() 4: Delete theme 'd6636b33-111b-40f2-870d-f4dcb7281e43' from non-existent realm 1`] = `[Error: 'd6636b33-111b-40f2-870d-f4dcb7281e43' not found in realm 'doesnotexist']`;
 
 exports[`ThemeOps deleteThemeByName() 1: Delete alpha theme 'Contrast' by name (cloud) 1`] = `
 {

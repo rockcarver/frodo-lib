@@ -658,7 +658,7 @@ export async function deleteTheme({
   });
   if (realmThemes.length === finalThemes.length)
     throw new Error(`'${themeId}' not found in realm '${realm}'`);
-  themes.realm[realm] = realmThemes;
+  themes.realm[realm] = finalThemes;
   const undeletedThemes = getRealmThemes({
     themes: await putConfigEntity({
       entityId: THEMEREALM_ID,
@@ -739,7 +739,7 @@ export async function deleteThemes({
   realm ? realm : getCurrentRealmName(state);
   const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
   const realmThemes = themes.realm[realm];
-  if (!realmThemes)
+  if (!realmThemes || realmThemes.length == 0)
     throw new Error(`No theme configuration found for realm '${realm}'`);
   const deletedThemes: ThemeSkeleton[] = [];
   for (const theme of realmThemes) {
