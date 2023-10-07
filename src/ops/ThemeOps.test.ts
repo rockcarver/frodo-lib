@@ -8,7 +8,8 @@
  *    Phase 1: Get/export individual and all and put/import individuals only
  *    Phase 2: Import all
  *    Phase 3: Deletes individuals by id
- *    Phase 4: Delete all
+ *    Phase 4: Deletes individuals by name
+ *    Phase 5: Delete all
  *
  *    Because tests interfere with each other, they have to be run in groups of
  *    non-interfering tests.
@@ -24,6 +25,7 @@
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=frodo-dev npm run test:record ThemeOps
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=frodo-dev npm run test:record ThemeOps
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=4 FRODO_HOST=frodo-dev npm run test:record ThemeOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=5 FRODO_HOST=frodo-dev npm run test:record ThemeOps
  *
  *    The above command assumes that you have a connection profile for
  *    'frodo-dev' on your development machine.
@@ -309,12 +311,14 @@ describe('ThemeOps', () => {
   beforeAll(async () => {
     // Phase 1: Get/export individual and all and put/import individuals only
     // Phase 3: Deletes individuals by id
-    // Phase 4: Delete multiple or all
+    // Phase 4: Deletes individuals by name
+    // Phase 5: Delete multiple or all
     if (
       process.env.FRODO_POLLY_MODE === 'record' &&
       (process.env.FRODO_RECORD_PHASE === '1' ||
         process.env.FRODO_RECORD_PHASE === '3' ||
-        process.env.FRODO_RECORD_PHASE === '4')
+        process.env.FRODO_RECORD_PHASE === '4' ||
+        process.env.FRODO_RECORD_PHASE === '5')
     ) {
       await stageThemes(allThemes);
     }
@@ -629,7 +633,7 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test(`2: Delete bravo theme '${alphaTheme.id}' (cloud)`, async () => {
+      test(`2: Delete bravo theme '${bravoTheme.id}' (cloud)`, async () => {
         const response = await ThemeOps.deleteTheme({
           themeId: bravoTheme.id,
           realm: 'bravo',
@@ -638,7 +642,7 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test(`3: Delete root theme '${alphaTheme.id}' (encore)`, async () => {
+      test(`3: Delete root theme '${rootTheme.id}' (encore)`, async () => {
         const response = await ThemeOps.deleteTheme({
           themeId: rootTheme.id,
           realm: '/',
@@ -647,7 +651,7 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test(`4: Delete theme '${alphaTheme.id}' from non-existent realm`, async () => {
+      test(`4: Delete theme '${rootTheme.id}' from non-existent realm`, async () => {
         expect.assertions(1);
         try {
           await ThemeOps.deleteTheme({
@@ -660,7 +664,14 @@ describe('ThemeOps', () => {
         }
       });
     });
+  }
 
+  // Phase 4: Deletes individuals by name
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '4')
+  ) {
     describe('deleteThemeByName()', () => {
       test('0: Method is implemented', async () => {
         expect(ThemeOps.deleteThemeByName).toBeDefined();
@@ -708,11 +719,11 @@ describe('ThemeOps', () => {
     });
   }
 
-  // Phase 4: Delete multiple or all
+  // Phase 5: Delete multiple or all
   if (
     !process.env.FRODO_POLLY_MODE ||
     (process.env.FRODO_POLLY_MODE === 'record' &&
-      process.env.FRODO_RECORD_PHASE === '4')
+      process.env.FRODO_RECORD_PHASE === '5')
   ) {
     describe('deleteThemes()', () => {
       test('0: Method is implemented', async () => {
