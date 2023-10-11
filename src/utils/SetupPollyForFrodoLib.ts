@@ -4,29 +4,25 @@ import FSPersister from '@pollyjs/persister-fs';
 import { MODES } from '@pollyjs/utils';
 import { LogLevelDesc } from 'loglevel';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 import { State } from '../shared/State';
 import { encode, isBase64Encoded } from './Base64Utils';
 import { debugMessage, printMessage } from './Console';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const FRODO_MOCK_HOSTS = [
-  'https://openam-frodo-dev.forgeblocks.com',
-  'https://openam-volker-dev.forgeblocks.com',
-  'https://openam-volker-demo.forgeblocks.com',
-];
+const FRODO_MOCK_HOSTS = process.env.FRODO_MOCK_HOSTS
+  ? process.env.FRODO_MOCK_HOSTS.split(',')
+  : [
+      'https://openam-frodo-dev.forgeblocks.com',
+      'https://openam-volker-dev.forgeblocks.com',
+      'https://openam-volker-demo.forgeblocks.com',
+    ];
 
 let recordIfMissing = false;
 let mode = MODES.REPLAY;
 
-// resolve "/home/sandeepc/work/ForgeRock/sources/frodo-lib/esm/api" to
-// "/home/sandeepc/work/ForgeRock/sources/frodo-lib/src/test/recordings"
-const recordingsDir = __dirname.replace(
-  /^(.*\/frodo-\w{3})(.*)$/gi,
-  '$1/mocks'
-);
+const recordingsDir = process.env.FRODO_MOCK_DIR
+  ? process.env.FRODO_MOCK_DIR
+  : 'test/e2e/mocks';
 
 if (process.env.FRODO_MOCK) {
   Polly.register(NodeHttpAdapter);
