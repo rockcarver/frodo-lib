@@ -1639,8 +1639,8 @@ export async function importJourney({
         });
       } catch (nodeImportError) {
         if (
-          nodeImportError.response.status === 400 &&
-          nodeImportError.response.data.message ===
+          nodeImportError.response?.status === 400 &&
+          nodeImportError.response?.data?.message ===
             'Data validation failed for the attribute, Script'
         ) {
           nodeImportError.message = `Missing script ${
@@ -1760,8 +1760,8 @@ export async function importJourney({
         await putNode({ nodeId: newUuid, nodeType, nodeData, state });
       } catch (nodeImportError) {
         if (
-          nodeImportError.response.status === 400 &&
-          nodeImportError.response.data.message ===
+          nodeImportError.response?.status === 400 &&
+          nodeImportError.response?.data?.message ===
             'Data validation failed for the attribute, Script'
         ) {
           nodeImportError.message = `Missing script ${
