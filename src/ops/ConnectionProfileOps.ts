@@ -7,8 +7,7 @@ import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { debugMessage, printMessage, verboseMessage } from '../utils/Console';
 import DataProtection from '../utils/DataProtection';
-import { saveJsonToFile } from '../utils/ExportImportUtils';
-import { isValidUrl } from '../utils/MiscUtils';
+import { isValidUrl, saveJsonToFile } from '../utils/ExportImportUtils';
 import {
   createServiceAccount,
   getServiceAccount,

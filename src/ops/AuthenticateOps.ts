@@ -10,7 +10,7 @@ import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { encodeBase64Url } from '../utils/Base64Utils';
 import { debugMessage, printMessage, verboseMessage } from '../utils/Console';
-import { isValidUrl, parseUrl } from '../utils/MiscUtils';
+import { isValidUrl, parseUrl } from '../utils/ExportImportUtils';
 import { getServiceAccount } from './cloud/ServiceAccountOps';
 import { getConnectionProfile } from './ConnectionProfileOps';
 import { createSignedJwtToken, JwkRsa } from './JoseOps';

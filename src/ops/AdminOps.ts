@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { type ReadableStrings, type WritableStrings } from '../api/ApiTypes';
+import { step } from '../api/AuthenticateApi';
 import { putSecret } from '../api/cloud/SecretsApi';
 import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
 import { type OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
@@ -51,146 +52,40 @@ export type Admin = {
     extendPermissions: boolean,
     dryRun: boolean
   ): Promise<void>;
+  trainAA(
+    apiKey: string,
+    apiSecret: string,
+    customUsernames?: string[],
+    customUserAgents?: string[],
+    customIPs?: string[],
+    loginsPerUser?: number,
+    service?: string
+  ): Promise<void>;
 };
 
 export default (state: State): Admin => {
   return {
-    /*
-   * List all oauth2 clients, which have a corresponding staticUserMapping
-   * in the IDM authentication.json:
-    {
-      "_id": "authentication",
-      "rsFilter": {
-        ...
-        "staticUserMapping": [
-          {
-            "subject": "someOauth2ClientID",
-            "localUser": "internal/user/openidm-admin",
-            "userRoles": "authzRoles/*",
-            "roles": [
-              "internal/role/openidm-authorized",
-              "internal/role/openidm-admin"
-            ]
-          },
-          {
-            "subject": "RCSClient",
-            "localUser": "internal/user/idm-provisioning"
-          }
-        ]
-      }
-    }
-   */
     async listOAuth2CustomClients() {
       return listOAuth2CustomClients({ state });
     },
-
-    /*
-   * List all oauth2 clients, which have the fr:idm:* scope and a 
-   * corresponding staticUserMapping in the IDM authentication.json
-   * and are assigned admin privileges:
-    {
-      "_id": "authentication",
-      "rsFilter": {
-        ...
-        "staticUserMapping": [
-          {
-            "subject": "someOauth2ClientID",
-            "localUser": "internal/user/openidm-admin",
-            "userRoles": "authzRoles/*",
-            "roles": [
-              "internal/role/openidm-authorized",
-              "internal/role/openidm-admin"
-            ]
-          }
-        ]
-      }
-    }
-   */
     async listOAuth2AdminClients() {
       return listOAuth2AdminClients({ state });
     },
-
-    /*
-   * List all static user mappings that are not oauth2 clients in authentication.json
-   * and are assigned admin privileges:
-    {
-      "_id": "authentication",
-      "rsFilter": {
-        ...
-          "staticUserMapping": [
-              {
-                  "subject": "amadmin",
-                  "localUser": "internal/user/openidm-admin",
-                  "userRoles": "authzRoles/*",
-                  "roles": [
-                      "internal/role/openidm-authorized",
-                      "internal/role/openidm-admin"
-                  ]
-              },
-              {
-                  "subject": "idm-provisioning",
-                  "localUser": "internal/user/idm-provisioning",
-                  "roles": [
-                      "internal/role/platform-provisioning"
-                  ]
-              },
-              {
-                  "subject": "RCSClient",
-                  "localUser": "internal/user/idm-provisioning"
-              },
-              {
-                  "subject": "autoid-resource-server",
-                  "localUser": "internal/user/idm-provisioning",
-                  "roles": [
-                      "internal/role/platform-provisioning",
-                      "internal/role/openidm-authorized",
-                      "internal/role/openidm-admin"
-                  ]
-              }
-          ]
-      }
-    }
-   */
     async listNonOAuth2AdminStaticUserMappings(showProtected: boolean) {
       return listNonOAuth2AdminStaticUserMappings({
         showProtected,
         state,
       });
     },
-
-    /*
-   * Add AutoId static user mapping to authentication.json to enable dashboards and other AutoId-based functionality.
-    {
-      "_id": "authentication",
-      "rsFilter": {
-        ...
-          "staticUserMapping": [
-              ...
-              {
-                  "subject": "autoid-resource-server",
-                  "localUser": "internal/user/idm-provisioning",
-                  "roles": [
-                      "internal/role/platform-provisioning",
-                      "internal/role/openidm-authorized",
-                      "internal/role/openidm-admin"
-                  ]
-              }
-          ]
-      }
-    }
-   */
     async addAutoIdStaticUserMapping() {
       return addAutoIdStaticUserMapping({ state });
     },
-
     async grantOAuth2ClientAdminPrivileges(clientId: string) {
       return grantOAuth2ClientAdminPrivileges({ clientId, state });
     },
-
     async revokeOAuth2ClientAdminPrivileges(clientId: string) {
       return revokeOAuth2ClientAdminPrivileges({ clientId, state });
     },
-
     async createOAuth2ClientWithAdminPrivileges(
       clientId: string,
       clientSecret: string
@@ -201,7 +96,6 @@ export default (state: State): Admin => {
         state,
       });
     },
-
     async createLongLivedToken(
       clientId: string,
       clientSecret: string,
@@ -218,11 +112,9 @@ export default (state: State): Admin => {
         state,
       });
     },
-
     async removeStaticUserMapping(subject: string) {
       return removeStaticUserMapping({ subject, state });
     },
-
     async hideGenericExtensionAttributes(
       includeCustomized: boolean,
       dryRun: boolean
@@ -233,7 +125,6 @@ export default (state: State): Admin => {
         state,
       });
     },
-
     async showGenericExtensionAttributes(
       includeCustomized: boolean,
       dryRun: boolean
@@ -244,7 +135,6 @@ export default (state: State): Admin => {
         state,
       });
     },
-
     async repairOrgModel(
       excludeCustomized: boolean,
       extendPermissions: boolean,
@@ -254,6 +144,26 @@ export default (state: State): Admin => {
         excludeCustomized,
         extendPermissions,
         dryRun,
+        state,
+      });
+    },
+    async trainAA(
+      apiKey: string,
+      apiSecret: string,
+      customUsernames?: string[],
+      customUserAgents?: string[],
+      customIPs?: string[],
+      loginsPerUser?: number,
+      service?: string
+    ): Promise<void> {
+      return trainAA({
+        apiKey,
+        apiSecret,
+        customUsernames,
+        customUserAgents,
+        customIPs,
+        loginsPerUser,
+        service,
         state,
       });
     },
@@ -1421,6 +1331,171 @@ export async function repairOrgModel({
       type: 'warn',
       state,
     });
+  }
+}
+
+const templateUsernames: string[] = JSON.parse(
+  fs.readFileSync(
+    path.resolve(__dirname, './templates/autoaccess/Usernames.json'),
+    'utf8'
+  )
+);
+
+const templateUserAgents: string[] = JSON.parse(
+  fs.readFileSync(
+    path.resolve(__dirname, './templates/autoaccess/UserAgents.json'),
+    'utf8'
+  )
+);
+
+const templateIpAddresses: string[] = JSON.parse(
+  fs.readFileSync(
+    path.resolve(__dirname, './templates/autoaccess/IPAddresses.json'),
+    'utf8'
+  )
+);
+
+export function getUniqueValues(values: string[]): string[] {
+  return [...new Set(values)].filter((it) => it);
+}
+
+export function pickRandomValue(values: string[]): string {
+  const finalValues = values.filter((it) => it);
+  return finalValues[Math.floor(Math.random() * finalValues.length)];
+}
+
+export function pickRandomNumber(max: number): number {
+  return Math.ceil(Math.random() * max);
+}
+
+export function pickRandomValues(values: string[], picks: number): string[] {
+  const finalValues = values.filter((it) => it);
+  const result: string[] = [];
+  for (let i = 0; i < picks; i++) {
+    result.push(finalValues[Math.floor(Math.random() * finalValues.length)]);
+  }
+  return result;
+}
+
+export function pickRandomUsername(customUsernames: string[] = []): string {
+  const finalUsernames = getUniqueValues(
+    customUsernames.concat(templateUsernames)
+  );
+  return pickRandomValue(finalUsernames);
+}
+
+export function pickRandomUserAgent(customUserAgents: string[] = []): string {
+  const finalUserAgents = getUniqueValues(
+    customUserAgents.concat(templateUserAgents)
+  );
+  return pickRandomValue(finalUserAgents);
+}
+
+export function pickRandomIPAddress(customIPs: string[] = []): string {
+  const finalIPs = getUniqueValues(customIPs.concat(templateIpAddresses));
+  return pickRandomValue(finalIPs);
+}
+
+export function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// generate auto access sample data
+export async function trainAA({
+  apiKey,
+  apiSecret,
+  customUsernames = [],
+  customUserAgents = [],
+  customIPs = [],
+  loginsPerUser = 100,
+  service = 'Frodo-Train-AA',
+  state,
+}: {
+  apiKey: string;
+  apiSecret: string;
+  customUsernames?: string[];
+  customUserAgents?: string[];
+  customIPs?: string[];
+  loginsPerUser?: number;
+  service?: string;
+  state: State;
+}): Promise<void> {
+  printMessage({
+    message: `loginsPerUser: ${loginsPerUser}`,
+    state,
+  });
+  const usernames = getUniqueValues(customUsernames.concat(templateUsernames));
+  for (let i = 0; i < 200; i++) {
+    const username = usernames[i];
+    const numDevices = pickRandomNumber(5);
+    const ipAddresses = pickRandomValues(
+      customIPs.concat(templateIpAddresses),
+      numDevices
+    );
+    const ipAgentMap = {};
+    for (let j = 0; j < numDevices; j++) {
+      ipAgentMap[ipAddresses[j]] = pickRandomValue(
+        customUserAgents.concat(templateUserAgents)
+      );
+    }
+    const requests = [];
+    for (let j = 0; j < loginsPerUser; j++) {
+      const ipAddress = pickRandomValue(ipAddresses);
+      const userAgent = ipAgentMap[ipAddress];
+      const config = {
+        headers: {
+          'User-Agent': userAgent,
+          'X-Forwarded-For': ipAddress,
+          'X-OpenAM-Username': username,
+          'X-API-KEY': apiKey,
+          'X-API-SECRET': apiSecret,
+        },
+      };
+      requests.push(
+        step({
+          body: {},
+          config,
+          realm: state.getRealm(),
+          service,
+          state,
+        })
+          .then((response) => {
+            printMessage({
+              message: `${username},${ipAddress},${userAgent},${
+                response.tokenId ? 'OK' : 'NOK'
+              }`,
+              state,
+            });
+          })
+          .catch((error) => {
+            printMessage({
+              message: `${username},${ipAddress},${userAgent},${error.message}`,
+              state,
+            });
+          })
+      );
+      await Promise.allSettled(requests);
+      // try {
+      //   const response = await step({
+      //     body: {},
+      //     config,
+      //     realm: state.getRealm(),
+      //     service,
+      //     state,
+      //   });
+      //   printMessage({
+      //     message: `${username},${ipAddress},${userAgent},${
+      //       response.tokenId ? 'OK' : 'NOK'
+      //     }`,
+      //     state,
+      //   });
+      // } catch (error) {
+      //   printMessage({
+      //     message: `${username},${ipAddress},${userAgent},${error.message}`,
+      //     state,
+      //   });
+      // }
+    }
   }
 }
 
