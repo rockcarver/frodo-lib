@@ -27,7 +27,8 @@ export type ExportImport = {
   convertTextArrayToBase64Url(textArray: string[]): any;
   validateImport(metadata: any): boolean;
   getTypedFilename(name: string, type: string, suffix?: string): string;
-  getWorkingDirectory(): string;
+  getWorkingDirectory(mkdirs?: boolean): string;
+  getFilePath(fileName: string, mkdirs?: boolean): string;
   saveToFile(
     type: string,
     data: object,
@@ -135,8 +136,11 @@ export default (state: State): ExportImport => {
     getTypedFilename(name: string, type: string, suffix = 'json') {
       return getTypedFilename(name, type, suffix);
     },
-    getWorkingDirectory() {
-      return getWorkingDirectory({ state });
+    getWorkingDirectory(mkdirs = false) {
+      return getWorkingDirectory({ mkdirs, state });
+    },
+    getFilePath(fileName: string, mkdirs = false): string {
+      return getFilePath({ fileName, mkdirs, state });
     },
     saveToFile(
       type: string,
@@ -254,12 +258,18 @@ export function getTypedFilename(name: string, type: string, suffix = 'json') {
   return `${slug}.${type}.${suffix}`;
 }
 
-export function getWorkingDirectory({ state }: { state: State }) {
+export function getWorkingDirectory({
+  mkdirs = false,
+  state,
+}: {
+  mkdirs: boolean;
+  state: State;
+}) {
   let wd = '.';
   if (state.getDirectory()) {
     wd = state.getDirectory().replace(/\/$/, '');
     // create directory if it doesn't exist
-    if (!fs.existsSync(wd)) {
+    if (mkdirs && !fs.existsSync(wd)) {
       debugMessage({
         message: `ExportImportUtils.getWorkingDirectory: creating directory '${wd}'`,
         state,
@@ -268,6 +278,26 @@ export function getWorkingDirectory({ state }: { state: State }) {
     }
   }
   return wd;
+}
+
+/**
+ * Get the file path to a file in the working directory. If working directory does not exist, it will return the fileName as the file path.
+ * @param fileName The file name
+ * @param mkdirs If directories to working directory don't exist, makes the directories if true, and if false does not make the directories. Default: false
+ * @return The file path to the file in the working directory
+ */
+export function getFilePath({
+  fileName,
+  mkdirs = false,
+  state,
+}: {
+  fileName: string;
+  mkdirs: boolean;
+  state: State;
+}): string {
+  return state.getDirectory()
+    ? `${getWorkingDirectory({ mkdirs, state })}/${fileName}`
+    : fileName;
 }
 
 export function saveToFile({
