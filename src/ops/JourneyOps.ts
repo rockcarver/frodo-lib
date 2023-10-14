@@ -715,26 +715,33 @@ export async function exportJourney({
   try {
     const treeObject = await getTree({ id: journeyId, state });
     const { useStringArrays, deps } = options;
-    const verbose = state.getDebug();
+    const verbose = state.getVerbose();
 
     if (verbose)
       printMessage({
-        message: `\n- ${treeObject._id}\n`,
+        message: `- ${treeObject._id}`,
         type: 'info',
         newline: false,
         state,
       });
 
     // Process tree
-    if (verbose) printMessage({ message: '  - Flow', state });
+    if (verbose) printMessage({ message: '\n  - Flow', newline: false, state });
     exportData.tree = treeObject;
     if (verbose && treeObject.identityResource)
       printMessage({
-        message: `    - identityResource: ${treeObject.identityResource}`,
-        state,
+        message: `\n    - identityResource: ${treeObject.identityResource}`,
         type: 'info',
+        newline: false,
+        state,
       });
-    if (verbose) printMessage({ message: `    - Done`, type: 'info', state });
+    if (verbose)
+      printMessage({
+        message: `\n    - Done`,
+        newline: false,
+        type: 'info',
+        state,
+      });
 
     const nodePromises = [];
     const scriptPromises = [];
@@ -762,7 +769,7 @@ export async function exportJourney({
       );
     }
     if (verbose && nodePromises.length > 0)
-      printMessage({ message: '  - Nodes:', state });
+      printMessage({ message: '\n  - Nodes:', newline: false, state });
     const nodeObjects = await Promise.all(nodePromises);
 
     // iterate over every node in tree
@@ -771,9 +778,9 @@ export async function exportJourney({
       const nodeType = nodeObject._type._id;
       if (verbose)
         printMessage({
-          message: `    - ${nodeId} (${nodeType})`,
+          message: `\n    - ${nodeId} (${nodeType})`,
           type: 'info',
-          newline: true,
+          newline: false,
           state,
         });
       exportData.nodes[nodeObject._id] = nodeObject;
@@ -903,7 +910,7 @@ export async function exportJourney({
 
     // Process inner nodes
     if (verbose && innerNodePromises.length > 0)
-      printMessage({ message: '  - Inner nodes:', state });
+      printMessage({ message: '\n  - Inner nodes:', newline: false, state });
     try {
       const settledPromises = await Promise.allSettled(innerNodePromises);
       for (const settledPromise of settledPromises) {
@@ -913,9 +920,9 @@ export async function exportJourney({
           const innerNodeType = innerNodeObject._type._id;
           if (verbose)
             printMessage({
-              message: `    - ${innerNodeId} (${innerNodeType})`,
+              message: `\n    - ${innerNodeId} (${innerNodeType})`,
               type: 'info',
-              newline: true,
+              newline: false,
               state,
             });
           exportData.innerNodes[innerNodeId] = innerNodeObject;
@@ -1018,7 +1025,11 @@ export async function exportJourney({
 
     // Process email templates
     if (verbose && emailTemplatePromises.length > 0)
-      printMessage({ message: '  - Email templates:', state });
+      printMessage({
+        message: '\n  - Email templates:',
+        newline: false,
+        state,
+      });
     try {
       const settledEmailTemplatePromises = await Promise.allSettled(
         emailTemplatePromises
@@ -1027,13 +1038,13 @@ export async function exportJourney({
         if (settledPromise.status === 'fulfilled' && settledPromise.value) {
           if (verbose)
             printMessage({
-              message: `    - ${settledPromise.value._id.split('/')[1]}${
+              message: `\n    - ${settledPromise.value._id.split('/')[1]}${
                 settledPromise.value.displayName
                   ? ` (${settledPromise.value.displayName})`
                   : ''
               }`,
               type: 'info',
-              newline: true,
+              newline: false,
               state,
             });
           exportData.emailTemplates[settledPromise.value._id.split('/')[1]] =
@@ -1053,23 +1064,33 @@ export async function exportJourney({
       for (const saml2NodeDependency of saml2NodeDependencies) {
         if (saml2NodeDependency) {
           if (verbose)
-            printMessage({ message: '  - SAML2 entity providers:', state });
+            printMessage({
+              message: '\n  - SAML2 entity providers:',
+              newline: false,
+              state,
+            });
           for (const saml2Entity of saml2NodeDependency.saml2Entities) {
             if (verbose)
               printMessage({
-                message: `    - ${saml2Entity.entityLocation} ${saml2Entity.entityId}`,
+                message: `\n    - ${saml2Entity.entityLocation} ${saml2Entity.entityId}`,
                 type: 'info',
+                newline: false,
                 state,
               });
             exportData.saml2Entities[saml2Entity._id] = saml2Entity;
           }
           if (verbose)
-            printMessage({ message: '  - SAML2 circles of trust:', state });
+            printMessage({
+              message: '\n  - SAML2 circles of trust:',
+              newline: false,
+              state,
+            });
           for (const circleOfTrust of saml2NodeDependency.circlesOfTrust) {
             if (verbose)
               printMessage({
-                message: `    - ${circleOfTrust._id}`,
+                message: `\n    - ${circleOfTrust._id}`,
                 type: 'info',
+                newline: false,
                 state,
               });
             exportData.circlesOfTrust[circleOfTrust._id] = circleOfTrust;
@@ -1089,7 +1110,8 @@ export async function exportJourney({
       if (socialProviders) {
         if (verbose)
           printMessage({
-            message: '  - OAuth2/OIDC (social) identity providers:',
+            message: '\n  - OAuth2/OIDC (social) identity providers:',
+            newline: false,
             state,
           });
         for (const socialProvider of socialProviders.result) {
@@ -1103,8 +1125,9 @@ export async function exportJourney({
           ) {
             if (verbose)
               printMessage({
-                message: `    - ${socialProvider._id}`,
+                message: `\n    - ${socialProvider._id}`,
                 type: 'info',
+                newline: false,
                 state,
               });
             scriptPromises.push(
@@ -1124,16 +1147,16 @@ export async function exportJourney({
 
     // Process scripts
     if (verbose && scriptPromises.length > 0)
-      printMessage({ message: '  - Scripts:', state });
+      printMessage({ message: '\n  - Scripts:', newline: false, state });
     try {
       const scriptObjects = await Promise.all(scriptPromises);
       for (const scriptObject of scriptObjects) {
         if (scriptObject) {
           if (verbose)
             printMessage({
-              message: `    - ${scriptObject._id} (${scriptObject.name})`,
+              message: `\n    - ${scriptObject._id} (${scriptObject.name})`,
               type: 'info',
-              newline: true,
+              newline: false,
               state,
             });
           scriptObject.script = useStringArrays
@@ -1151,7 +1174,8 @@ export async function exportJourney({
 
     // Process themes
     if (themePromise) {
-      if (verbose) printMessage({ message: '  - Themes:', state });
+      if (verbose)
+        printMessage({ message: '\n  - Themes:', newline: false, state });
       try {
         const themePromiseResults = await Promise.resolve(themePromise);
         for (const themeObject of themePromiseResults) {
@@ -1165,8 +1189,9 @@ export async function exportJourney({
           ) {
             if (verbose)
               printMessage({
-                message: `    - ${themeObject._id} (${themeObject.name})`,
+                message: `\n    - ${themeObject._id} (${themeObject.name})`,
                 type: 'info',
+                newline: false,
                 state,
               });
             exportData.themes.push(themeObject);
@@ -1179,6 +1204,13 @@ export async function exportJourney({
         errors.push(error);
       }
     }
+    if (verbose)
+      printMessage({
+        message: `\n`,
+        type: 'info',
+        newline: false,
+        state,
+      });
   } catch (error) {
     error.message = `Error exporting journey ${journeyId}: ${
       error.response?.data?.message || error.message
@@ -1297,10 +1329,10 @@ export async function importJourney({
   const imported = [];
 
   const { reUuid, deps } = options;
-  const verbose = state.getDebug();
+  const verbose = state.getVerbose();
   if (verbose)
     printMessage({
-      message: `\n- ${importData.tree._id}\n`,
+      message: `- ${importData.tree._id}\n`,
       type: 'info',
       newline: false,
       state,
@@ -1315,11 +1347,12 @@ export async function importJourney({
     importData.scripts &&
     Object.entries(importData.scripts).length > 0
   ) {
-    if (verbose) printMessage({ message: '  - Scripts:', state });
+    if (verbose)
+      printMessage({ message: '  - Scripts:', newline: false, state });
     for (const [scriptId, scriptObject] of Object.entries(importData.scripts)) {
       if (verbose)
         printMessage({
-          message: `    - ${scriptId} (${scriptObject['name']})`,
+          message: `\n    - ${scriptId} (${scriptObject['name']})`,
           type: 'info',
           newline: false,
           state,
@@ -1352,13 +1385,18 @@ export async function importJourney({
     importData.emailTemplates &&
     Object.entries(importData.emailTemplates).length > 0
   ) {
-    if (verbose) printMessage({ message: '  - Email templates:', state });
+    if (verbose)
+      printMessage({
+        message: '\n  - Email templates:',
+        newline: false,
+        state,
+      });
     for (const [templateId, templateData] of Object.entries(
       importData.emailTemplates
     )) {
       if (verbose)
         printMessage({
-          message: `    - ${templateId}`,
+          message: `\n    - ${templateId}`,
           type: 'info',
           newline: false,
           state,
@@ -1377,13 +1415,15 @@ export async function importJourney({
 
   // Process themes
   if (deps && importData.themes && importData.themes.length > 0) {
-    if (verbose) printMessage({ message: '  - Themes:', state });
+    if (verbose)
+      printMessage({ message: '\n  - Themes:', newline: false, state });
     const themes: Map<string, ThemeSkeleton> = new Map<string, ThemeSkeleton>();
     for (const theme of importData.themes) {
       if (verbose)
         printMessage({
-          message: `    - ${theme['_id']} (${theme['name']})`,
+          message: `\n    - ${theme['_id']} (${theme['name']})`,
           type: 'info',
+          newline: false,
           state,
         });
       themes[theme['_id']] = theme;
@@ -1406,14 +1446,20 @@ export async function importJourney({
   ) {
     if (verbose)
       printMessage({
-        message: '  - OAuth2/OIDC (social) identity providers:',
+        message: '\n  - OAuth2/OIDC (social) identity providers:',
+        newline: false,
         state,
       });
     for (const [providerId, providerData] of Object.entries(
       importData.socialIdentityProviders
     )) {
       if (verbose)
-        printMessage({ message: `    - ${providerId}`, type: 'info', state });
+        printMessage({
+          message: `\n    - ${providerId}`,
+          type: 'info',
+          newline: false,
+          state,
+        });
       try {
         await putProviderByTypeAndId({
           type: providerData['_type']['_id'],
@@ -1462,15 +1508,20 @@ export async function importJourney({
     Object.entries(importData.saml2Entities).length > 0
   ) {
     if (verbose)
-      printMessage({ message: '  - SAML2 entity providers:', state });
+      printMessage({
+        message: '\n  - SAML2 entity providers:',
+        newline: false,
+        state,
+      });
     for (const [, providerData] of Object.entries(importData.saml2Entities)) {
       delete providerData['_rev'];
       const entityId = providerData['entityId'];
       const entityLocation = providerData['entityLocation'];
       if (verbose)
         printMessage({
-          message: `    - ${entityLocation} ${entityId}`,
+          message: `\n    - ${entityLocation} ${entityId}`,
           type: 'info',
+          newline: false,
           state,
         });
       let metaData = null;
@@ -1532,11 +1583,20 @@ export async function importJourney({
     Object.entries(importData.circlesOfTrust).length > 0
   ) {
     if (verbose)
-      printMessage({ message: '  - SAML2 circles of trust:', state });
+      printMessage({
+        message: '\n  - SAML2 circles of trust:',
+        newline: false,
+        state,
+      });
     for (const [cotId, cotData] of Object.entries(importData.circlesOfTrust)) {
       delete cotData['_rev'];
       if (verbose)
-        printMessage({ message: `    - ${cotId}`, type: 'info', state });
+        printMessage({
+          message: `\n    - ${cotId}`,
+          type: 'info',
+          newline: false,
+          state,
+        });
       try {
         await createCircleOfTrust({ cotData, state });
       } catch (error) {
@@ -1584,9 +1644,9 @@ export async function importJourney({
   if (Object.entries(innerNodes).length > 0) {
     if (verbose)
       printMessage({
-        message: '  - Inner nodes:',
+        message: '\n  - Inner nodes:',
         type: 'text',
-        newline: true,
+        newline: false,
         state,
       });
     for (const [innerNodeId, innerNodeData] of Object.entries(innerNodes)) {
@@ -1602,7 +1662,7 @@ export async function importJourney({
 
       if (verbose)
         printMessage({
-          message: `    - ${newUuid}${reUuid ? '*' : ''} (${nodeType})`,
+          message: `\n    - ${newUuid}${reUuid ? '*' : ''} (${nodeType})`,
           type: 'info',
           newline: false,
           state,
@@ -1706,7 +1766,8 @@ export async function importJourney({
 
   // Process nodes
   if (importData.nodes && Object.entries(importData.nodes).length > 0) {
-    if (verbose) printMessage({ message: '  - Nodes:', state });
+    if (verbose)
+      printMessage({ message: '\n  - Nodes:', newline: false, state });
     // eslint-disable-next-line prefer-const
     for (let [nodeId, nodeData] of Object.entries(importData.nodes)) {
       delete nodeData['_rev'];
@@ -1730,7 +1791,7 @@ export async function importJourney({
 
       if (verbose)
         printMessage({
-          message: `    - ${newUuid}${reUuid ? '*' : ''} (${nodeType})`,
+          message: `\n    - ${newUuid}${reUuid ? '*' : ''} (${nodeType})`,
           type: 'info',
           newline: false,
           state,
@@ -1813,7 +1874,7 @@ export async function importJourney({
   }
 
   // Process tree
-  if (verbose) printMessage({ message: '  - Flow', state });
+  if (verbose) printMessage({ message: '\n  - Flow', newline: false, state });
 
   if (reUuid) {
     let journeyText = JSON.stringify(importData.tree, null, 2);
@@ -1837,7 +1898,7 @@ export async function importJourney({
     })}`;
     if (verbose)
       printMessage({
-        message: `    - identityResource: ${importData.tree.identityResource}`,
+        message: `\n    - identityResource: ${importData.tree.identityResource}`,
         type: 'info',
         newline: false,
         state,
