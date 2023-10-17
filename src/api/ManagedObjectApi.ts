@@ -11,6 +11,15 @@ const managedObjectQueryAllURLTemplate = `%s/openidm/managed/%s?_queryFilter=tru
 const findManagedObjectURLTemplate = `%s/openidm/managed/%s?_queryFilter=%s&_pageSize=10000`;
 
 /**
+ * See {@link https://backstage.forgerock.com/docs/idm/7/rest-api-reference/sec-about-crest.html#about-crest-patch}.
+ */
+export interface ManagedObjectPatchOperationInterface {
+  operation: string;
+  field: string;
+  value: string | Array<string> | number;
+}
+
+/**
  * Get managed object
  * @param {string} type managed object type, e.g. alpha_user or user
  * @param {string} id managed object id
@@ -104,6 +113,36 @@ export async function putManagedObject({
     urlString,
     moData
   );
+  return data;
+}
+
+/**
+ * Partially update a managed object, with a collection of operations.
+ * @param {string} type managed object type, e.g. alpha_user or user
+ * @param {string} id managed object id
+ * @param {ManagedObjectPatchOperationInterface[]} operations collection of patch operations to perform on the object
+ * @param state library state
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to the updated managed object
+ */
+export async function patchManagedObject({
+  type,
+  id,
+  operations,
+  state,
+}: {
+  type: string;
+  id: string;
+  operations: ManagedObjectPatchOperationInterface[];
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
+  const urlString = util.format(
+    managedObjectByIdURLTemplate,
+    getHostBaseUrl(state.getHost()),
+    type,
+    id
+  );
+
+  const { data } = await generateIdmApi({ state }).patch(urlString, operations);
   return data;
 }
 
