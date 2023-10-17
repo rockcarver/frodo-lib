@@ -62,12 +62,14 @@ export type ManagedObject = {
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} id managed object id
    * @param {ManagedObjectPatchOperationInterface[]} operations collection of patch operations to perform on the object
+   * @param {string} rev managed object revision
    * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface
    */
   updateManagedObjectProperties(
     type: string,
     id: string,
-    operations: ManagedObjectPatchOperationInterface[]
+    operations: ManagedObjectPatchOperationInterface[],
+    rev?: string
   ): Promise<IdObjectSkeletonInterface>;
   /**
    * Delete managed object
@@ -139,9 +141,16 @@ export default (state: State): ManagedObject => {
     async updateManagedObjectProperties(
       type: string,
       id: string,
-      operations: ManagedObjectPatchOperationInterface[]
+      operations: ManagedObjectPatchOperationInterface[],
+      rev?: string
     ): Promise<IdObjectSkeletonInterface> {
-      return updateManagedObjectProperties({ type, id, operations, state });
+      return updateManagedObjectProperties({
+        type,
+        id,
+        operations,
+        rev,
+        state,
+      });
     },
     async deleteManagedObject(
       type: string,
@@ -243,14 +252,16 @@ export async function updateManagedObjectProperties({
   type,
   id,
   operations,
+  rev = null,
   state,
 }: {
   type: string;
   id: string;
   operations: ManagedObjectPatchOperationInterface[];
+  rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _patchManagedObject({ type, id, operations, state });
+  return _patchManagedObject({ type, id, operations, rev, state });
 }
 
 export async function deleteManagedObject({
