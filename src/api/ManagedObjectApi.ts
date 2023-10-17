@@ -16,7 +16,7 @@ const findManagedObjectURLTemplate = `%s/openidm/managed/%s?_queryFilter=%s&_pag
 export interface ManagedObjectPatchOperationInterface {
   operation: string;
   field: string;
-  value: string | Array<string>;
+  value: string | Array<string> | number;
 }
 
 /**
