@@ -14,9 +14,17 @@ const findManagedObjectURLTemplate = `%s/openidm/managed/%s?_queryFilter=%s&_pag
  * See {@link https://backstage.forgerock.com/docs/idm/7/rest-api-reference/sec-about-crest.html#about-crest-patch}.
  */
 export interface ManagedObjectPatchOperationInterface {
-  operation: string;
+  operation:
+    | 'add'
+    | 'copy'
+    | 'increment'
+    | 'move'
+    | 'remove'
+    | 'replace'
+    | 'transform';
   field: string;
-  value: string | Array<string> | number;
+  value?: any;
+  from?: string;
 }
 
 /**
@@ -117,22 +125,25 @@ export async function putManagedObject({
 }
 
 /**
- * Partially update a managed object, with a collection of operations.
- * @param {string} type managed object type, e.g. alpha_user or user
+ * Partially update a managed object, with an array of operations.
+ * @param {string} type managed object type
  * @param {string} id managed object id
- * @param {ManagedObjectPatchOperationInterface[]} operations collection of patch operations to perform on the object
- * @param state library state
- * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to the updated managed object
+ * @param {ManagedObjectPatchOperationInterface[]} operations array of operations
+ * @param {string} rev revision
+ * @param {State} state library state
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
  */
 export async function patchManagedObject({
   type,
   id,
-  operations,
+  operations: operations,
+  rev = null,
   state,
 }: {
   type: string;
   id: string;
   operations: ManagedObjectPatchOperationInterface[];
+  rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
@@ -141,8 +152,11 @@ export async function patchManagedObject({
     type,
     id
   );
-
-  const { data } = await generateIdmApi({ state }).patch(urlString, operations);
+  const requestOverride = rev ? { headers: { 'If-Match': rev } } : {};
+  const { data } = await generateIdmApi({ requestOverride, state }).patch(
+    urlString,
+    operations
+  );
   return data;
 }
 
