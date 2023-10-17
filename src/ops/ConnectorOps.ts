@@ -123,16 +123,16 @@ export default (state: State): Connector => {
     createConnectorExportTemplate(): ConnectorExportInterface {
       return createConnectorExportTemplate({ state });
     },
-    async readConnectors(): Promise<any> {
+    async readConnectors(): Promise<ConnectorSkeleton[]> {
       return readConnectors({ state });
     },
-    async readConnector(connectorId: string): Promise<any> {
+    async readConnector(connectorId: string): Promise<ConnectorSkeleton> {
       return readConnector({ connectorId, state });
     },
     async createConnector(
       connectorId: string,
       connectorData: ConnectorSkeleton
-    ): Promise<any> {
+    ): Promise<ConnectorSkeleton> {
       return createConnector({
         connectorId,
         connectorData,
@@ -142,7 +142,7 @@ export default (state: State): Connector => {
     async updateConnector(
       connectorId: string,
       connectorData: ConnectorSkeleton
-    ): Promise<any> {
+    ): Promise<ConnectorSkeleton> {
       return updateConnector({
         connectorId,
         connectorData,
