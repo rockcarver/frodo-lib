@@ -23743,8 +23743,6 @@ exports[`IdmConfigOps readConfigEntity() 2: Read config entity 'managed' 1`] = `
 }
 `;
 
-exports[`IdmConfigOps testConnectorServers() 1: Test connector servers 1`] = `[]`;
-
 exports[`IdmConfigOps updateConfigEntity() 1: Update a config entity 'emailTemplate/FrodoTestConfigEntity3' 1`] = `
 {
   "_id": "emailTemplate/FrodoTestConfigEntity3",

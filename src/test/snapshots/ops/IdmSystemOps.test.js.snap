@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`IdmSystemOps testConnectorServers() 1: Test connector servers 1`] = `
+[
+  {
+    "name": "rcscluster",
+    "ok": true,
+    "type": "remoteConnectorClientsGroup",
+  },
+  {
+    "name": "rcsdocker",
+    "ok": true,
+    "type": "remoteConnectorClient",
+  },
+  {
+    "name": "rcs2",
+    "ok": false,
+    "type": "remoteConnectorClient",
+  },
+]
+`;
