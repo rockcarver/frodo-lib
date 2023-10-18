@@ -21,6 +21,7 @@ import ConnectionProfileOps, {
 import ConnectorOps, { Connector } from '../ops/ConnectorOps';
 import EmailTemplateOps, { EmailTemplate } from '../ops/EmailTemplateOps';
 import IdmConfigOps, { IdmConfig } from '../ops/IdmConfigOps';
+import IdmSystemOps, { IdmSystem } from '../ops/IdmSystemOps';
 import IdpOps, { Idp } from '../ops/IdpOps';
 import InfoOps, { Info } from '../ops/InfoOps';
 import JoseOps, { Jose } from '../ops/JoseOps';
@@ -94,6 +95,7 @@ export type Frodo = {
     managed: ManagedObject;
     mapping: Mapping;
     organization: Organization;
+    system: IdmSystem;
   };
 
   info: Info;
@@ -228,6 +230,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       managed: ManagedObjectOps(state),
       mapping: MappingOps(state),
       organization: OrganizationOps(state),
+      system: IdmSystemOps(state),
     },
 
     info: InfoOps(state),
