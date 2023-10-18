@@ -12,12 +12,10 @@ import {
   IdmConfigStub,
   putConfigEntity as _putConfigEntity,
 } from '../api/IdmConfigApi';
-import {
-  ConnectorServerStatusInterface,
-  testConnectorServers as _testConnectorServers,
-} from '../api/IdmSystemApi';
+import { ConnectorServerStatusInterface } from '../api/IdmSystemApi';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
+import { testConnectorServers as _testConnectorServers } from './IdmSystemOps';
 
 export type IdmConfig = {
   /**
@@ -86,11 +84,6 @@ export type IdmConfig = {
    * @returns {IdObjectSkeletonInterface} promise resolving to a config entity
    */
   deleteConfigEntity(entityId: string): Promise<IdObjectSkeletonInterface>;
-  /**
-   * Test connector servers
-   * @returns {Promise<ConnectorServerStatusInterface[]>} a promise that resolves to an array of ConnectorServerStatusInterface objects
-   */
-  testConnectorServers(): Promise<ConnectorServerStatusInterface[]>;
 
   // Deprecated
 
@@ -142,6 +135,12 @@ export type IdmConfig = {
     entityId: string,
     entityData: IdObjectSkeletonInterface
   ): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Test connector servers
+   * @deprecated since v2.0.0-42 use {@link IdmSystem.testConnectorServers | testConnectorServers} or {@link IdmSystem.testConnectorServers | testConnectorServers} instead
+   * @returns {Promise<ConnectorServerStatusInterface[]>} a promise that resolves to an array of ConnectorServerStatusInterface objects
+   */
+  testConnectorServers(): Promise<ConnectorServerStatusInterface[]>;
 };
 
 export default (state: State): IdmConfig => {
@@ -190,9 +189,6 @@ export default (state: State): IdmConfig => {
     ): Promise<IdObjectSkeletonInterface> {
       return deleteConfigEntity({ entityId, state });
     },
-    async testConnectorServers(): Promise<ConnectorServerStatusInterface[]> {
-      return testConnectorServers({ state });
-    },
 
     // Deprecated
 
@@ -214,6 +210,9 @@ export default (state: State): IdmConfig => {
       entityData: NoIdObjectSkeletonInterface | string
     ): Promise<IdObjectSkeletonInterface> {
       return _putConfigEntity({ entityId, entityData, state });
+    },
+    async testConnectorServers(): Promise<ConnectorServerStatusInterface[]> {
+      return _testConnectorServers({ state });
     },
   };
 };
@@ -392,17 +391,4 @@ export async function deleteConfigEntity({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   return _deleteConfigEntity({ entityId, state });
-}
-
-/**
- * Test connector servers
- * @returns {Promise<ConnectorServerStatusInterface[]>} a promise that resolves to an array of ConnectorServerStatusInterface objects
- */
-export async function testConnectorServers({
-  state,
-}: {
-  state: State;
-}): Promise<ConnectorServerStatusInterface[]> {
-  const response = await _testConnectorServers({ state });
-  return response.openicf;
 }
