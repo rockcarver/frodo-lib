@@ -546,7 +546,7 @@ export async function importCirclesOfTrust({
           hasEntityId = true;
         }
       }
-      if (entityProviders.length || hasEntityId) {
+      if (entityProviders.length === 0 || hasEntityId) {
         try {
           response.push(await createCircleOfTrust({ cotId, cotData, state }));
         } catch (createError) {
