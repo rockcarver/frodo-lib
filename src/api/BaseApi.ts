@@ -194,7 +194,7 @@ export function generateAmApi({
 
 /**
  * Generates an OAuth2 Axios API instance
- * @param {object} resource Takes an object takes a resource object. example:
+ * @param {object} resource Takes a resource object. example:
  * @param {object} requestOverride Takes an object of AXIOS parameters that can be used to either
  * add on extra information or override default properties https://github.com/axios/axios#request-config
  *

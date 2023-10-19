@@ -36,6 +36,7 @@ import OrganizationOps, { Organization } from '../ops/OrganizationOps';
 import PolicyOps, { Policy } from '../ops/PolicyOps';
 import PolicySetOps, { PolicySet } from '../ops/PolicySetOps';
 import RealmOps, { Realm } from '../ops/RealmOps';
+import ReconOps, { Recon } from '../ops/ReconOps';
 import ResourceTypeOps, { ResourceType } from '../ops/ResourceTypeOps';
 import Saml2Ops, { Saml2 } from '../ops/Saml2Ops';
 import ScriptOps, { Script } from '../ops/ScriptOps';
@@ -95,6 +96,7 @@ export type Frodo = {
     managed: ManagedObject;
     mapping: Mapping;
     organization: Organization;
+    recon: Recon;
     system: IdmSystem;
   };
 
@@ -230,6 +232,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       managed: ManagedObjectOps(state),
       mapping: MappingOps(state),
       organization: OrganizationOps(state),
+      recon: ReconOps(state),
       system: IdmSystemOps(state),
     },
 
