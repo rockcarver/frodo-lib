@@ -260,7 +260,22 @@ export async function createCircleOfTrust({
   state: State;
 }): Promise<CircleOfTrustSkeleton> {
   if (cotId) cotData._id = cotId;
-  return _createCircleOfTrust({ cotData, state });
+  let response;
+  try {
+    response = await _createCircleOfTrust({ cotData, state });
+    return response;
+  } catch (error) {
+    if (
+      error.response?.data?.code === 500 &&
+      error.response?.data?.message ===
+        "Unable to update entity provider's circle of trust"
+    ) {
+      response = await _updateCircleOfTrust({ cotId, cotData, state });
+      return response;
+    } else {
+      throw error;
+    }
+  }
 }
 
 /**
@@ -278,7 +293,22 @@ export async function updateCircleOfTrust({
   cotData: CircleOfTrustSkeleton;
   state: State;
 }): Promise<CircleOfTrustSkeleton> {
-  return _updateCircleOfTrust({ cotId, cotData, state });
+  let response;
+  try {
+    response = await _updateCircleOfTrust({ cotId, cotData, state });
+    return response;
+  } catch (error) {
+    if (
+      error.response?.data?.code === 500 &&
+      error.response?.data?.message ===
+        "Unable to update entity provider's circle of trust"
+    ) {
+      response = await _updateCircleOfTrust({ cotId, cotData, state });
+      return response;
+    } else {
+      throw error;
+    }
+  }
 }
 
 /**
@@ -462,7 +492,7 @@ export async function importCircleOfTrust({
   }
   if (errors.length) {
     const errorMessages = errors
-      .map((error) => error.response?.data?.message || error.message)
+      .map((error) => JSON.stringify(error.response?.data) || error.message)
       .join('\n');
     throw new Error(`Import error:\n${errorMessages}`);
   }
@@ -531,7 +561,7 @@ export async function importCirclesOfTrust({
   entityProviders?: string[];
   importData: CirclesOfTrustExportInterface;
   state: State;
-}) {
+}): Promise<CircleOfTrustSkeleton[]> {
   const response = [];
   const errors = [];
   const imported = [];
