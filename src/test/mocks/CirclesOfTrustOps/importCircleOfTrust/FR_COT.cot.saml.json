@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "exportDate": "2023-10-20T03:38:35.128Z",
+    "exportTool": "frodo",
+    "exportToolVersion": "v2.0.0-43 [v20.5.1]",
+    "exportedBy": "volker.scheuber@forgerock.com",
+    "origin": "https://openam-frodo-dev.forgeblocks.com/am",
+    "originAmVersion": "7.4.0"
+  },
+  "saml": {
+    "cot": {
+      "FR_COT": {
+        "_id": "FR_COT",
+        "_type": {
+          "_id": "circlesoftrust",
+          "collection": true,
+          "name": "Circle of Trust"
+        },
+        "status": "active",
+        "trustedProviders": [
+          "engineering-IDP|saml2",
+          "https://volker-demo.encore.forgerock.com:443/apps/web/company/saml|saml2",
+          "company-IDP|saml2",
+          "https://volker-demo.encore.forgerock.com:443/apps/web/roles/saml|saml2",
+          "https://volker-demo.encore.forgerock.com:443/apps/web/sales/saml|saml2",
+          "sales-IDP|saml2",
+          "benefits-IDP|saml2",
+          "https://volker-demo.encore.forgerock.com:443/apps/web/benefits/saml|saml2"
+        ]
+      }
+    },
+    "hosted": {},
+    "metadata": {},
+    "remote": {}
+  },
+  "script": {}
+}

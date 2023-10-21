@@ -1,0 +1,481 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CirclesOfTrustOps createCircleOfTrust() 1: Create circle of trust 'AzureCOT' 1`] = `
+{
+  "_id": "AzureCOT",
+  "_rev": "-954827061",
+  "_type": {
+    "_id": "circlesoftrust",
+    "collection": true,
+    "name": "Circle of Trust",
+  },
+  "status": "active",
+  "trustedProviders": [
+    "iSPAzure|saml2",
+    "urn:federation:MicrosoftOnline|saml2",
+    "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
+    "SPAzure|saml2",
+    "https://idc.scheuber.io/am/saml2/IDPAzure|saml2",
+  ],
+}
+`;
+
+exports[`CirclesOfTrustOps createCirclesOfTrustExportTemplate() 1: Create circles of trust export template 1`] = `
+{
+  "meta": Any<Object>,
+  "saml": {
+    "cot": {},
+    "hosted": {},
+    "metadata": {},
+    "remote": {},
+  },
+  "script": {},
+}
+`;
+
+exports[`CirclesOfTrustOps deleteCircleOfTrust() 1: Delete circle of trust 'FR_COT' 1`] = `
+{
+  "_id": "FR_COT",
+  "_rev": "1191818231",
+  "_type": {
+    "_id": "circlesoftrust",
+    "collection": true,
+    "name": "Circle of Trust",
+  },
+  "status": "active",
+  "trustedProviders": [
+    "sales-IDP|saml2",
+    "engineering-IDP|saml2",
+    "company-IDP|saml2",
+    "benefits-IDP|saml2",
+  ],
+}
+`;
+
+exports[`CirclesOfTrustOps deleteCirclesOfTrust() 1: Delete all circles of trust 1`] = `
+[
+  {
+    "_id": "2f04818d-561e-4f8a-82e8-af2426112138",
+    "_rev": "-222749816",
+    "_type": {
+      "_id": "circlesoftrust",
+      "collection": true,
+      "name": "Circle of Trust",
+    },
+    "status": "active",
+    "trustedProviders": [
+      "benefits-IDP|saml2",
+      "iSPAzure|saml2",
+    ],
+  },
+  {
+    "_id": "AzureCOT",
+    "_rev": "36617749",
+    "_type": {
+      "_id": "circlesoftrust",
+      "collection": true,
+      "name": "Circle of Trust",
+    },
+    "status": "active",
+    "trustedProviders": [
+      "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
+      "iSPAzure|saml2",
+      "urn:federation:MicrosoftOnline|saml2",
+    ],
+  },
+  {
+    "_id": "FR_COT",
+    "_rev": "1191818231",
+    "_type": {
+      "_id": "circlesoftrust",
+      "collection": true,
+      "name": "Circle of Trust",
+    },
+    "status": "active",
+    "trustedProviders": [
+      "sales-IDP|saml2",
+      "engineering-IDP|saml2",
+      "company-IDP|saml2",
+      "benefits-IDP|saml2",
+    ],
+  },
+]
+`;
+
+exports[`CirclesOfTrustOps deleteCirclesOfTrust() 2: Delete circles of trust (filtered by entity providers) 1`] = `
+[
+  {
+    "_id": "AzureCOT",
+    "_rev": "36617749",
+    "_type": {
+      "_id": "circlesoftrust",
+      "collection": true,
+      "name": "Circle of Trust",
+    },
+    "status": "active",
+    "trustedProviders": [
+      "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
+      "iSPAzure|saml2",
+      "urn:federation:MicrosoftOnline|saml2",
+    ],
+  },
+]
+`;
+
+exports[`CirclesOfTrustOps exportCircleOfTrust() 1: Export circle of trust 'FR_COT' 1`] = `
+{
+  "meta": Any<Object>,
+  "saml": {
+    "cot": {
+      "FR_COT": {
+        "_id": "FR_COT",
+        "_rev": "1191818231",
+        "_type": {
+          "_id": "circlesoftrust",
+          "collection": true,
+          "name": "Circle of Trust",
+        },
+        "status": "active",
+        "trustedProviders": [
+          "sales-IDP|saml2",
+          "engineering-IDP|saml2",
+          "company-IDP|saml2",
+          "benefits-IDP|saml2",
+        ],
+      },
+    },
+    "hosted": {},
+    "metadata": {},
+    "remote": {},
+  },
+  "script": {},
+}
+`;
+
+exports[`CirclesOfTrustOps exportCirclesOfTrust() 1: Export all circles of trust 1`] = `
+{
+  "meta": Any<Object>,
+  "saml": {
+    "cot": {
+      "2f04818d-561e-4f8a-82e8-af2426112138": {
+        "_id": "2f04818d-561e-4f8a-82e8-af2426112138",
+        "_rev": "-222749816",
+        "_type": {
+          "_id": "circlesoftrust",
+          "collection": true,
+          "name": "Circle of Trust",
+        },
+        "status": "active",
+        "trustedProviders": [
+          "benefits-IDP|saml2",
+          "iSPAzure|saml2",
+        ],
+      },
+      "AzureCOT": {
+        "_id": "AzureCOT",
+        "_rev": "-954827061",
+        "_type": {
+          "_id": "circlesoftrust",
+          "collection": true,
+          "name": "Circle of Trust",
+        },
+        "status": "active",
+        "trustedProviders": [
+          "iSPAzure|saml2",
+          "urn:federation:MicrosoftOnline|saml2",
+          "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
+          "SPAzure|saml2",
+          "https://idc.scheuber.io/am/saml2/IDPAzure|saml2",
+        ],
+      },
+      "FR_COT": {
+        "_id": "FR_COT",
+        "_rev": "1191818231",
+        "_type": {
+          "_id": "circlesoftrust",
+          "collection": true,
+          "name": "Circle of Trust",
+        },
+        "status": "active",
+        "trustedProviders": [
+          "sales-IDP|saml2",
+          "engineering-IDP|saml2",
+          "company-IDP|saml2",
+          "benefits-IDP|saml2",
+        ],
+      },
+    },
+    "hosted": {},
+    "metadata": {},
+    "remote": {},
+  },
+  "script": {},
+}
+`;
+
+exports[`CirclesOfTrustOps exportCirclesOfTrust() 2: Export circles of trust (filtered by entity providers) 1`] = `
+{
+  "meta": Any<Object>,
+  "saml": {
+    "cot": {
+      "AzureCOT": {
+        "_id": "AzureCOT",
+        "_rev": "-954827061",
+        "_type": {
+          "_id": "circlesoftrust",
+          "collection": true,
+          "name": "Circle of Trust",
+        },
+        "status": "active",
+        "trustedProviders": [
+          "iSPAzure|saml2",
+          "urn:federation:MicrosoftOnline|saml2",
+          "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
+          "SPAzure|saml2",
+          "https://idc.scheuber.io/am/saml2/IDPAzure|saml2",
+        ],
+      },
+    },
+    "hosted": {},
+    "metadata": {},
+    "remote": {},
+  },
+  "script": {},
+}
+`;
+
+exports[`CirclesOfTrustOps importCircleOfTrust() 1: Import circle of trust 'AzureCOT' 1`] = `
+{
+  "_id": "AzureCOT",
+  "_rev": "36617749",
+  "_type": {
+    "_id": "circlesoftrust",
+    "collection": true,
+    "name": "Circle of Trust",
+  },
+  "status": "active",
+  "trustedProviders": [
+    "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
+    "iSPAzure|saml2",
+    "urn:federation:MicrosoftOnline|saml2",
+  ],
+}
+`;
+
+exports[`CirclesOfTrustOps importCircleOfTrust() 1: Import new circle of trust 1`] = `
+{
+  "_id": "FR_COT",
+  "_rev": "1191818231",
+  "_type": {
+    "_id": "circlesoftrust",
+    "collection": true,
+    "name": "Circle of Trust",
+  },
+  "status": "active",
+  "trustedProviders": [
+    "sales-IDP|saml2",
+    "engineering-IDP|saml2",
+    "company-IDP|saml2",
+    "benefits-IDP|saml2",
+  ],
+}
+`;
+
+exports[`CirclesOfTrustOps importCircleOfTrust() 2: Import existing circle of trust 1`] = `null`;
+
+exports[`CirclesOfTrustOps importCirclesOfTrust() 1: Import all new circles of trust 1`] = `
+[
+  {
+    "_id": "2f04818d-561e-4f8a-82e8-af2426112138",
+    "_rev": "-1164170555",
+    "_type": {
+      "_id": "circlesoftrust",
+      "collection": true,
+      "name": "Circle of Trust",
+    },
+    "status": "active",
+    "trustedProviders": [],
+  },
+  {
+    "_id": "AzureCOT",
+    "_rev": "36617749",
+    "_type": {
+      "_id": "circlesoftrust",
+      "collection": true,
+      "name": "Circle of Trust",
+    },
+    "status": "active",
+    "trustedProviders": [
+      "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
+      "iSPAzure|saml2",
+      "urn:federation:MicrosoftOnline|saml2",
+    ],
+  },
+  {
+    "_id": "FR_COT",
+    "_rev": "1191818231",
+    "_type": {
+      "_id": "circlesoftrust",
+      "collection": true,
+      "name": "Circle of Trust",
+    },
+    "status": "active",
+    "trustedProviders": [
+      "sales-IDP|saml2",
+      "engineering-IDP|saml2",
+      "company-IDP|saml2",
+      "benefits-IDP|saml2",
+    ],
+  },
+]
+`;
+
+exports[`CirclesOfTrustOps importCirclesOfTrust() 2: Import all new circles of trust (filtered by entity providers) 1`] = `
+[
+  {
+    "_id": "AzureCOT",
+    "_rev": "-954827061",
+    "_type": {
+      "_id": "circlesoftrust",
+      "collection": true,
+      "name": "Circle of Trust",
+    },
+    "status": "active",
+    "trustedProviders": [
+      "iSPAzure|saml2",
+      "urn:federation:MicrosoftOnline|saml2",
+      "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
+      "SPAzure|saml2",
+      "https://idc.scheuber.io/am/saml2/IDPAzure|saml2",
+    ],
+  },
+]
+`;
+
+exports[`CirclesOfTrustOps importCirclesOfTrust() 3: Import existing and new circles of trust (filtered by entity providers) 1`] = `[]`;
+
+exports[`CirclesOfTrustOps importFirstCircleOfTrust() 1: Import new circle of trust 1`] = `
+{
+  "_id": "2f04818d-561e-4f8a-82e8-af2426112138",
+  "_rev": "-1164170555",
+  "_type": {
+    "_id": "circlesoftrust",
+    "collection": true,
+    "name": "Circle of Trust",
+  },
+  "status": "active",
+  "trustedProviders": [],
+}
+`;
+
+exports[`CirclesOfTrustOps importFirstCircleOfTrust() 2: Import existing circle of trust 1`] = `null`;
+
+exports[`CirclesOfTrustOps readCircleOfTrust() 1: Read circle of trust 'FR_COT' 1`] = `
+{
+  "_id": "FR_COT",
+  "_rev": "1191818231",
+  "_type": {
+    "_id": "circlesoftrust",
+    "collection": true,
+    "name": "Circle of Trust",
+  },
+  "status": "active",
+  "trustedProviders": [
+    "sales-IDP|saml2",
+    "engineering-IDP|saml2",
+    "company-IDP|saml2",
+    "benefits-IDP|saml2",
+  ],
+}
+`;
+
+exports[`CirclesOfTrustOps readCirclesOfTrust() 1: Read all circles of trust 1`] = `
+[
+  {
+    "_id": "2f04818d-561e-4f8a-82e8-af2426112138",
+    "_rev": "-222749816",
+    "_type": {
+      "_id": "circlesoftrust",
+      "collection": true,
+      "name": "Circle of Trust",
+    },
+    "status": "active",
+    "trustedProviders": [
+      "benefits-IDP|saml2",
+      "iSPAzure|saml2",
+    ],
+  },
+  {
+    "_id": "AzureCOT",
+    "_rev": "-954827061",
+    "_type": {
+      "_id": "circlesoftrust",
+      "collection": true,
+      "name": "Circle of Trust",
+    },
+    "status": "active",
+    "trustedProviders": [
+      "iSPAzure|saml2",
+      "urn:federation:MicrosoftOnline|saml2",
+      "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
+      "SPAzure|saml2",
+      "https://idc.scheuber.io/am/saml2/IDPAzure|saml2",
+    ],
+  },
+  {
+    "_id": "FR_COT",
+    "_rev": "1191818231",
+    "_type": {
+      "_id": "circlesoftrust",
+      "collection": true,
+      "name": "Circle of Trust",
+    },
+    "status": "active",
+    "trustedProviders": [
+      "sales-IDP|saml2",
+      "engineering-IDP|saml2",
+      "company-IDP|saml2",
+      "benefits-IDP|saml2",
+    ],
+  },
+]
+`;
+
+exports[`CirclesOfTrustOps readCirclesOfTrust() 2: Read circles of trust (filtered by entity providers) 1`] = `
+[
+  {
+    "_id": "AzureCOT",
+    "_rev": "-954827061",
+    "_type": {
+      "_id": "circlesoftrust",
+      "collection": true,
+      "name": "Circle of Trust",
+    },
+    "status": "active",
+    "trustedProviders": [
+      "iSPAzure|saml2",
+      "urn:federation:MicrosoftOnline|saml2",
+      "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
+      "SPAzure|saml2",
+      "https://idc.scheuber.io/am/saml2/IDPAzure|saml2",
+    ],
+  },
+]
+`;
+
+exports[`CirclesOfTrustOps updateCircleOfTrust() 1: Update circle of trust '2f04818d-561e-4f8a-82e8-af2426112138' 1`] = `
+{
+  "_id": "2f04818d-561e-4f8a-82e8-af2426112138",
+  "_rev": "-222749816",
+  "_type": {
+    "_id": "circlesoftrust",
+    "collection": true,
+    "name": "Circle of Trust",
+  },
+  "status": "active",
+  "trustedProviders": [
+    "benefits-IDP|saml2",
+    "iSPAzure|saml2",
+  ],
+}
+`;

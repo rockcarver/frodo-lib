@@ -12,6 +12,7 @@ import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { type ExportMetaData } from './OpsTypes';
+import { readSaml2EntityIds } from './Saml2Ops';
 
 export type CirclesOfTrust = {
   /**
@@ -21,8 +22,11 @@ export type CirclesOfTrust = {
   createCirclesOfTrustExportTemplate(): CirclesOfTrustExportInterface;
   /**
    * Read all circles of trust
+   * @param {string[]} entityProviders filter by entity providers
    */
-  readCirclesOfTrust(): Promise<CircleOfTrustSkeleton[]>;
+  readCirclesOfTrust(
+    entityProviders?: string[]
+  ): Promise<CircleOfTrustSkeleton[]>;
   /**
    * Read circle of trust
    * @param {string} cotId circle of trust id/name
@@ -52,18 +56,29 @@ export type CirclesOfTrust = {
    */
   deleteCircleOfTrust(cotId: string): Promise<CircleOfTrustSkeleton>;
   /**
+   * Delete circles of trust
+   * @param {string[]} entityProviders filter by entity providers
+   */
+  deleteCirclesOfTrust(
+    entityProviders?: string[]
+  ): Promise<CircleOfTrustSkeleton[]>;
+  /**
    * Export circle of trust
    * @param {string} cotId circle of trust id/name
    */
   exportCircleOfTrust(cotId: string): Promise<CirclesOfTrustExportInterface>;
   /**
    * Export all circles of trust
+   * @param {string[]} entityProviders filter by entity providers
    */
-  exportCirclesOfTrust(): Promise<CirclesOfTrustExportInterface>;
+  exportCirclesOfTrust(
+    entityProviders?: string[]
+  ): Promise<CirclesOfTrustExportInterface>;
   /**
    * Import a circle of trust by id/name from file
    * @param {string} cotId Circle of trust id/name
    * @param {CirclesOfTrustExportInterface} importData Import data
+   * @returns {Promise<CircleOfTrustSkeleton[]>} a promise resolving to the circle of trust object that was created or updated. Note: If the circle of trust already exists and does not need updating, null is returned.
    */
   importCircleOfTrust(
     cotId: string,
@@ -72,16 +87,20 @@ export type CirclesOfTrust = {
   /**
    * Import first circle of trust
    * @param {CirclesOfTrustExportInterface} importData Import data
+   * @returns {Promise<CircleOfTrustSkeleton[]>} a promise resolving to the circle of trust object that was created or updated. Note: If the circle of trust already exists and does not need updating, null is returned.
    */
   importFirstCircleOfTrust(
     importData: CirclesOfTrustExportInterface
   ): Promise<CircleOfTrustSkeleton>;
   /**
    * Import all circles of trust
-   * @param {CirclesOfTrustExportInterface} importData Import file name
+   * @param {string[]} entityProviders filter by entity providers
+   * @param {CirclesOfTrustExportInterface} importData Import data
+   * @returns {Promise<CircleOfTrustSkeleton[]>} a promise resolving to an array of circle of trust objects that were created or updated. Note: If a circle of trust already exists and does not need updating, it is omitted from the response array.
    */
   importCirclesOfTrust(
-    importData: CirclesOfTrustExportInterface
+    importData: CirclesOfTrustExportInterface,
+    entityProviders?: string[]
   ): Promise<CircleOfTrustSkeleton[]>;
 
   // Deprecated
@@ -114,8 +133,8 @@ export default (state: State): CirclesOfTrust => {
     createCirclesOfTrustExportTemplate() {
       return createCirclesOfTrustExportTemplate({ state });
     },
-    async readCirclesOfTrust() {
-      return readCirclesOfTrust({ state });
+    async readCirclesOfTrust(entityProviders: string[] = []) {
+      return readCirclesOfTrust({ entityProviders, state });
     },
     async readCircleOfTrust(cotId: string) {
       return readCircleOfTrust({ cotId, state });
@@ -129,11 +148,16 @@ export default (state: State): CirclesOfTrust => {
     async deleteCircleOfTrust(cotId: string) {
       return deleteCircleOfTrust({ cotId, state });
     },
+    async deleteCirclesOfTrust(
+      entityProviders: string[] = []
+    ): Promise<CircleOfTrustSkeleton[]> {
+      return deleteCirclesOfTrust({ entityProviders, state });
+    },
     async exportCircleOfTrust(cotId: string) {
       return exportCircleOfTrust({ cotId, state });
     },
-    async exportCirclesOfTrust() {
-      return exportCirclesOfTrust({ state });
+    async exportCirclesOfTrust(entityProviders: string[] = []) {
+      return exportCirclesOfTrust({ entityProviders, state });
     },
     async importCircleOfTrust(
       cotId: string,
@@ -144,8 +168,11 @@ export default (state: State): CirclesOfTrust => {
     async importFirstCircleOfTrust(importData: CirclesOfTrustExportInterface) {
       return importFirstCircleOfTrust({ importData, state });
     },
-    async importCirclesOfTrust(importData: CirclesOfTrustExportInterface) {
-      return importCirclesOfTrust({ importData, state });
+    async importCirclesOfTrust(
+      importData: CirclesOfTrustExportInterface,
+      entityProviders: string[] = []
+    ) {
+      return importCirclesOfTrust({ importData, entityProviders, state });
     },
 
     // Deprecated
@@ -206,7 +233,7 @@ export async function readCirclesOfTrust({
     state,
   });
   let { result } = await _getCirclesOfTrust({ state });
-  if (entityProviders.length > 0) {
+  if (entityProviders.length) {
     debugMessage({
       message: `CirclesOfTrustOps.getCirclesOfTrust: filtering results to entity providers: ${entityProviders}`,
       state,
@@ -260,7 +287,21 @@ export async function createCircleOfTrust({
   state: State;
 }): Promise<CircleOfTrustSkeleton> {
   if (cotId) cotData._id = cotId;
-  return _createCircleOfTrust({ cotData, state });
+  try {
+    const response = await _createCircleOfTrust({ cotData, state });
+    return response;
+  } catch (error) {
+    if (
+      error.response?.data?.code === 500 &&
+      error.response?.data?.message ===
+        "Unable to update entity provider's circle of trust"
+    ) {
+      const response = await _updateCircleOfTrust({ cotId, cotData, state });
+      return response;
+    } else {
+      throw error;
+    }
+  }
 }
 
 /**
@@ -278,7 +319,23 @@ export async function updateCircleOfTrust({
   cotData: CircleOfTrustSkeleton;
   state: State;
 }): Promise<CircleOfTrustSkeleton> {
-  return _updateCircleOfTrust({ cotId, cotData, state });
+  try {
+    const response = await _updateCircleOfTrust({ cotId, cotData, state });
+    return response;
+  } catch (error) {
+    if (
+      error.response?.data?.code === 500 &&
+      (error.response?.data?.message ===
+        "Unable to update entity provider's circle of trust" ||
+        error.response?.data?.message ===
+          'An error occurred while updating the COT memberships')
+    ) {
+      const response = await _updateCircleOfTrust({ cotId, cotData, state });
+      return response;
+    } else {
+      throw error;
+    }
+  }
 }
 
 /**
@@ -314,16 +371,13 @@ export async function deleteCirclesOfTrust({
   const deleted: CircleOfTrustSkeleton[] = [];
   const errors = [];
   try {
-    let cots = await readCirclesOfTrust({ entityProviders, state });
-    cots = cots.filter((cot) => {
-      for (const trustedProvider of cot.trustedProviders) {
-        const entityId = trustedProvider.split('|')[0];
-        if (!entityProviders.includes(entityId)) return false;
-      }
-      return true;
-    });
+    const cots = await readCirclesOfTrust({ entityProviders, state });
     for (const cot of cots) {
-      deleted.push(await deleteCircleOfTrust({ cotId: cot._id, state }));
+      try {
+        deleted.push(await deleteCircleOfTrust({ cotId: cot._id, state }));
+      } catch (error) {
+        errors.push(error);
+      }
     }
   } catch (error) {
     errors.push(error);
@@ -441,18 +495,57 @@ export async function importCircleOfTrust({
   for (const id of Object.keys(importData.saml.cot)) {
     if (id === cotId) {
       try {
+        const validEntityIds = await readSaml2EntityIds({ state });
+        const validProviders = validEntityIds.map((id) => `${id}|saml2`);
         const cotData = importData.saml.cot[id];
         delete cotData._rev;
+        // only allow adding valid providers
+        cotData.trustedProviders = validProviders.filter((value) =>
+          cotData.trustedProviders.includes(value)
+        );
         try {
-          response = await createCircleOfTrust({ cotId: id, cotData, state });
+          response = await createCircleOfTrust({ cotId, cotData, state });
         } catch (createError) {
-          if (createError.response?.status === 409)
-            response = await updateCircleOfTrust({
-              cotId: id,
-              cotData,
+          if (createError.response?.status === 409) {
+            debugMessage({
+              message: `Circle of trust: ${cotId} already exists, updating...`,
               state,
             });
-          else throw createError;
+            const existingCot = await readCircleOfTrust({ cotId, state });
+            debugMessage({
+              message: `CirclesOfTrustOps.importCirclesOfTrust: Existing trusted providers for ${cotId}:\n${existingCot.trustedProviders
+                .map((it) => it.split('|')[0])
+                .join('\n')}.`,
+              state,
+            });
+            const providers = [
+              ...new Set([
+                ...existingCot.trustedProviders,
+                ...cotData.trustedProviders,
+              ]),
+            ];
+            debugMessage({
+              message: `CirclesOfTrustOps.importCirclesOfTrust: Merged trusted providers for ${cotId}:\n${providers
+                .map((it) => it.split('|')[0])
+                .join('\n')}.`,
+              state,
+            });
+            if (providers.length > existingCot.trustedProviders.length) {
+              existingCot.trustedProviders = providers;
+              response = await updateCircleOfTrust({
+                cotId,
+                cotData: existingCot,
+                state,
+              });
+            } else {
+              debugMessage({
+                message: `CirclesOfTrustOps.importCirclesOfTrust: No new trusted providers for ${cotId}.`,
+                state,
+              });
+            }
+          } else {
+            throw createError;
+          }
         }
         imported.push(id);
       } catch (error) {
@@ -462,7 +555,7 @@ export async function importCircleOfTrust({
   }
   if (errors.length) {
     const errorMessages = errors
-      .map((error) => error.response?.data?.message || error.message)
+      .map((error) => JSON.stringify(error.response?.data) || error.message)
       .join('\n');
     throw new Error(`Import error:\n${errorMessages}`);
   }
@@ -486,22 +579,61 @@ export async function importFirstCircleOfTrust({
   let response = null;
   const errors = [];
   const imported = [];
-  for (const id of Object.keys(importData.saml.cot)) {
+  for (const cotId of Object.keys(importData.saml.cot)) {
     try {
-      const cotData = importData.saml.cot[id];
+      const validEntityIds = await readSaml2EntityIds({ state });
+      const validProviders = validEntityIds.map((id) => `${id}|saml2`);
+      const cotData = importData.saml.cot[cotId];
       delete cotData._rev;
+      // only allow adding valid providers
+      cotData.trustedProviders = validProviders.filter((value) =>
+        cotData.trustedProviders.includes(value)
+      );
       try {
-        response = await createCircleOfTrust({ cotData, state });
+        response = await createCircleOfTrust({ cotId, cotData, state });
       } catch (createError) {
-        if (createError.response?.status === 409)
-          response = await updateCircleOfTrust({
-            cotId: id,
-            cotData,
+        if (createError.response?.status === 409) {
+          debugMessage({
+            message: `Circle of trust: ${cotId} already exists, updating...`,
             state,
           });
-        else throw createError;
+          const existingCot = await readCircleOfTrust({ cotId, state });
+          debugMessage({
+            message: `CirclesOfTrustOps.importCirclesOfTrust: Existing trusted providers for ${cotId}:\n${existingCot.trustedProviders
+              .map((it) => it.split('|')[0])
+              .join('\n')}.`,
+            state,
+          });
+          const providers = [
+            ...new Set([
+              ...existingCot.trustedProviders,
+              ...cotData.trustedProviders,
+            ]),
+          ];
+          debugMessage({
+            message: `CirclesOfTrustOps.importCirclesOfTrust: Merged trusted providers for ${cotId}:\n${providers
+              .map((it) => it.split('|')[0])
+              .join('\n')}.`,
+            state,
+          });
+          if (providers.length > existingCot.trustedProviders.length) {
+            existingCot.trustedProviders = providers;
+            response = await updateCircleOfTrust({
+              cotId,
+              cotData: existingCot,
+              state,
+            });
+          } else {
+            debugMessage({
+              message: `CirclesOfTrustOps.importCirclesOfTrust: No new trusted providers for ${cotId}.`,
+              state,
+            });
+          }
+        } else {
+          throw createError;
+        }
       }
-      imported.push(id);
+      imported.push(cotId);
     } catch (error) {
       errors.push(error);
     }
@@ -531,24 +663,94 @@ export async function importCirclesOfTrust({
   entityProviders?: string[];
   importData: CirclesOfTrustExportInterface;
   state: State;
-}) {
-  const response = [];
+}): Promise<CircleOfTrustSkeleton[]> {
+  const responses = [];
   const errors = [];
   const imported = [];
   entityProviders = entityProviders.map((id) => `${id}|saml2`);
+  const validEntityIds = await readSaml2EntityIds({ state });
+  const validProviders = validEntityIds.map((id) => `${id}|saml2`);
   for (const cotId of Object.keys(importData.saml.cot)) {
     try {
       const cotData: CircleOfTrustSkeleton = importData.saml.cot[cotId];
       delete cotData._rev;
-      let hasEntityId = false;
-      for (const trustedProvider of cotData.trustedProviders) {
-        if (!hasEntityId && entityProviders.includes(trustedProvider)) {
-          hasEntityId = true;
+      // apply filter and merge logic
+      if (entityProviders.length) {
+        // only allow filtering for valid providers
+        entityProviders = validProviders.filter((value) =>
+          entityProviders.includes(value)
+        );
+        // determine if cot import candidate matches entity providers filter
+        let hasEntityId = false;
+        for (const trustedProvider of cotData.trustedProviders) {
+          if (!hasEntityId && entityProviders.includes(trustedProvider)) {
+            hasEntityId = true;
+          }
+        }
+        if (hasEntityId) {
+          try {
+            const response = await createCircleOfTrust({
+              cotId,
+              cotData,
+              state,
+            });
+            imported.push(cotId);
+            responses.push(response);
+          } catch (createError) {
+            if (createError.response?.status === 409) {
+              debugMessage({
+                message: `Circle of trust: ${cotId} already exists, updating...`,
+                state,
+              });
+              const existingCot = await readCircleOfTrust({ cotId, state });
+              debugMessage({
+                message: `CirclesOfTrustOps.importCirclesOfTrust: Existing trusted providers for ${cotId}:\n${existingCot.trustedProviders
+                  .map((it) => it.split('|')[0])
+                  .join('\n')}.`,
+                state,
+              });
+              const providers = [
+                ...new Set([
+                  ...existingCot.trustedProviders,
+                  ...entityProviders,
+                ]),
+              ];
+              debugMessage({
+                message: `CirclesOfTrustOps.importCirclesOfTrust: Updated trusted providers for ${cotId}:\n${providers
+                  .map((it) => it.split('|')[0])
+                  .join('\n')}.`,
+                state,
+              });
+              if (providers.length > existingCot.trustedProviders.length) {
+                existingCot.trustedProviders = providers;
+                const response = await updateCircleOfTrust({
+                  cotId,
+                  cotData: existingCot,
+                  state,
+                });
+                imported.push(cotId);
+                responses.push(response);
+              } else {
+                debugMessage({
+                  message: `CirclesOfTrustOps.importCirclesOfTrust: No new trusted providers for ${cotId}.`,
+                  state,
+                });
+              }
+            } else {
+              throw createError;
+            }
+          }
         }
       }
-      if (entityProviders.length === 0 || hasEntityId) {
+      // import unfiltered but merge if existing cot
+      else {
+        // only allow adding valid providers
+        cotData.trustedProviders = validProviders.filter((value) =>
+          cotData.trustedProviders.includes(value)
+        );
         try {
-          response.push(await createCircleOfTrust({ cotId, cotData, state }));
+          const response = await createCircleOfTrust({ cotId, cotData, state });
+          responses.push(response);
         } catch (createError) {
           if (createError.response?.status === 409) {
             debugMessage({
@@ -563,23 +765,25 @@ export async function importCirclesOfTrust({
               state,
             });
             const providers = [
-              ...new Set([...existingCot.trustedProviders, ...entityProviders]),
+              ...new Set([
+                ...existingCot.trustedProviders,
+                ...cotData.trustedProviders,
+              ]),
             ];
             debugMessage({
-              message: `CirclesOfTrustOps.importCirclesOfTrust: Updated trusted providers for ${cotId}:\n${providers
+              message: `CirclesOfTrustOps.importCirclesOfTrust: Merged trusted providers for ${cotId}:\n${providers
                 .map((it) => it.split('|')[0])
                 .join('\n')}.`,
               state,
             });
             if (providers.length > existingCot.trustedProviders.length) {
               existingCot.trustedProviders = providers;
-              response.push(
-                await updateCircleOfTrust({
-                  cotId,
-                  cotData: existingCot,
-                  state,
-                })
-              );
+              const response = await updateCircleOfTrust({
+                cotId,
+                cotData: existingCot,
+                state,
+              });
+              responses.push(response);
             } else {
               debugMessage({
                 message: `CirclesOfTrustOps.importCirclesOfTrust: No new trusted providers for ${cotId}.`,
@@ -591,7 +795,6 @@ export async function importCirclesOfTrust({
           }
         }
       }
-      imported.push(cotId);
     } catch (error) {
       debugMessage({
         message: `Error ${error.response?.status} creating/updating circle of trust: ${error.response?.data?.message}`,
@@ -599,6 +802,7 @@ export async function importCirclesOfTrust({
       });
       errors.push(error);
     }
+    imported.push(cotId);
   }
   if (errors.length) {
     const errorMessages = errors
@@ -609,5 +813,5 @@ export async function importCirclesOfTrust({
   if (0 === imported.length) {
     throw new Error(`Import error:\nNo circles of trust found in import data!`);
   }
-  return response;
+  return responses;
 }

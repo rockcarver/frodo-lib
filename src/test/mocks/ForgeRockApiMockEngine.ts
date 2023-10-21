@@ -110,12 +110,57 @@ export function getSaml2ProviderImportData(entityId: string) {
   return importData;
 }
 
-export function getSaml2ProvidersImportData() {
+export function getSaml2ProvidersImportData(
+  file = 'allAlphaProviders.saml.json'
+) {
+  const importData = JSON.parse(
+    fs.readFileSync(
+      path.resolve(__dirname, `./Saml2Ops/importSaml2Providers/${file}`),
+      'utf8'
+    )
+  );
+  return importData;
+}
+
+/**
+ * CirclesOfTrust Mock Data
+ */
+export function getCircleOfTrustImportData(cotId: string) {
   const importData = JSON.parse(
     fs.readFileSync(
       path.resolve(
         __dirname,
-        `./Saml2Ops/importSaml2Providers/allAlphaProviders.saml.json`
+        `./CirclesOfTrustOps/importCircleOfTrust/${getTypedFilename(
+          cotId,
+          'cot.saml',
+          'json'
+        )}`
+      ),
+      'utf8'
+    )
+  );
+  return importData;
+}
+
+export function getCirclesOfTrustImportData() {
+  const importData = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        `./CirclesOfTrustOps/importCirclesOfTrust/allAlphaCirclesOfTrust.cot.saml.json`
+      ),
+      'utf8'
+    )
+  );
+  return importData;
+}
+
+export function getCircleOfTrustRawData(cotId: string) {
+  const importData = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        `./CirclesOfTrustOps/raw/${getTypedFilename(cotId, 'cot', 'json')}`
       ),
       'utf8'
     )
