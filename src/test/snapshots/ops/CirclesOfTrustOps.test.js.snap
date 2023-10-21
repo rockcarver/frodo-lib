@@ -36,7 +36,7 @@ exports[`CirclesOfTrustOps createCirclesOfTrustExportTemplate() 1: Create circle
 exports[`CirclesOfTrustOps deleteCircleOfTrust() 1: Delete circle of trust 'FR_COT' 1`] = `
 {
   "_id": "FR_COT",
-  "_rev": "1191818231",
+  "_rev": "-1494750593",
   "_type": {
     "_id": "circlesoftrust",
     "collection": true,
@@ -44,83 +44,19 @@ exports[`CirclesOfTrustOps deleteCircleOfTrust() 1: Delete circle of trust 'FR_C
   },
   "status": "active",
   "trustedProviders": [
-    "sales-IDP|saml2",
     "engineering-IDP|saml2",
+    "https://volker-demo.encore.forgerock.com:443/apps/web/company/saml|saml2",
     "company-IDP|saml2",
+    "https://volker-demo.encore.forgerock.com:443/apps/web/roles/saml|saml2",
+    "https://volker-demo.encore.forgerock.com:443/apps/web/sales/saml|saml2",
+    "sales-IDP|saml2",
     "benefits-IDP|saml2",
+    "https://volker-demo.encore.forgerock.com:443/apps/web/benefits/saml|saml2",
   ],
 }
 `;
 
-exports[`CirclesOfTrustOps deleteCirclesOfTrust() 1: Delete all circles of trust 1`] = `
-[
-  {
-    "_id": "2f04818d-561e-4f8a-82e8-af2426112138",
-    "_rev": "-222749816",
-    "_type": {
-      "_id": "circlesoftrust",
-      "collection": true,
-      "name": "Circle of Trust",
-    },
-    "status": "active",
-    "trustedProviders": [
-      "benefits-IDP|saml2",
-      "iSPAzure|saml2",
-    ],
-  },
-  {
-    "_id": "AzureCOT",
-    "_rev": "36617749",
-    "_type": {
-      "_id": "circlesoftrust",
-      "collection": true,
-      "name": "Circle of Trust",
-    },
-    "status": "active",
-    "trustedProviders": [
-      "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
-      "iSPAzure|saml2",
-      "urn:federation:MicrosoftOnline|saml2",
-    ],
-  },
-  {
-    "_id": "FR_COT",
-    "_rev": "1191818231",
-    "_type": {
-      "_id": "circlesoftrust",
-      "collection": true,
-      "name": "Circle of Trust",
-    },
-    "status": "active",
-    "trustedProviders": [
-      "sales-IDP|saml2",
-      "engineering-IDP|saml2",
-      "company-IDP|saml2",
-      "benefits-IDP|saml2",
-    ],
-  },
-]
-`;
-
-exports[`CirclesOfTrustOps deleteCirclesOfTrust() 2: Delete circles of trust (filtered by entity providers) 1`] = `
-[
-  {
-    "_id": "AzureCOT",
-    "_rev": "36617749",
-    "_type": {
-      "_id": "circlesoftrust",
-      "collection": true,
-      "name": "Circle of Trust",
-    },
-    "status": "active",
-    "trustedProviders": [
-      "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
-      "iSPAzure|saml2",
-      "urn:federation:MicrosoftOnline|saml2",
-    ],
-  },
-]
-`;
+exports[`CirclesOfTrustOps deleteCirclesOfTrust() 1: Delete all circles of trust 1`] = `[]`;
 
 exports[`CirclesOfTrustOps exportCircleOfTrust() 1: Export circle of trust 'FR_COT' 1`] = `
 {
@@ -129,7 +65,7 @@ exports[`CirclesOfTrustOps exportCircleOfTrust() 1: Export circle of trust 'FR_C
     "cot": {
       "FR_COT": {
         "_id": "FR_COT",
-        "_rev": "1191818231",
+        "_rev": "-1494750593",
         "_type": {
           "_id": "circlesoftrust",
           "collection": true,
@@ -137,10 +73,14 @@ exports[`CirclesOfTrustOps exportCircleOfTrust() 1: Export circle of trust 'FR_C
         },
         "status": "active",
         "trustedProviders": [
-          "sales-IDP|saml2",
           "engineering-IDP|saml2",
+          "https://volker-demo.encore.forgerock.com:443/apps/web/company/saml|saml2",
           "company-IDP|saml2",
+          "https://volker-demo.encore.forgerock.com:443/apps/web/roles/saml|saml2",
+          "https://volker-demo.encore.forgerock.com:443/apps/web/sales/saml|saml2",
+          "sales-IDP|saml2",
           "benefits-IDP|saml2",
+          "https://volker-demo.encore.forgerock.com:443/apps/web/benefits/saml|saml2",
         ],
       },
     },
@@ -152,7 +92,7 @@ exports[`CirclesOfTrustOps exportCircleOfTrust() 1: Export circle of trust 'FR_C
 }
 `;
 
-exports[`CirclesOfTrustOps exportCirclesOfTrust() 1: Export all circles of trust 1`] = `
+exports[`CirclesOfTrustOps exportCirclesOfTrust() 1: Export circles of trust 1`] = `
 {
   "meta": Any<Object>,
   "saml": {
@@ -190,7 +130,7 @@ exports[`CirclesOfTrustOps exportCirclesOfTrust() 1: Export all circles of trust
       },
       "FR_COT": {
         "_id": "FR_COT",
-        "_rev": "1191818231",
+        "_rev": "-1494750593",
         "_type": {
           "_id": "circlesoftrust",
           "collection": true,
@@ -198,41 +138,14 @@ exports[`CirclesOfTrustOps exportCirclesOfTrust() 1: Export all circles of trust
         },
         "status": "active",
         "trustedProviders": [
-          "sales-IDP|saml2",
           "engineering-IDP|saml2",
+          "https://volker-demo.encore.forgerock.com:443/apps/web/company/saml|saml2",
           "company-IDP|saml2",
+          "https://volker-demo.encore.forgerock.com:443/apps/web/roles/saml|saml2",
+          "https://volker-demo.encore.forgerock.com:443/apps/web/sales/saml|saml2",
+          "sales-IDP|saml2",
           "benefits-IDP|saml2",
-        ],
-      },
-    },
-    "hosted": {},
-    "metadata": {},
-    "remote": {},
-  },
-  "script": {},
-}
-`;
-
-exports[`CirclesOfTrustOps exportCirclesOfTrust() 2: Export circles of trust (filtered by entity providers) 1`] = `
-{
-  "meta": Any<Object>,
-  "saml": {
-    "cot": {
-      "AzureCOT": {
-        "_id": "AzureCOT",
-        "_rev": "-954827061",
-        "_type": {
-          "_id": "circlesoftrust",
-          "collection": true,
-          "name": "Circle of Trust",
-        },
-        "status": "active",
-        "trustedProviders": [
-          "iSPAzure|saml2",
-          "urn:federation:MicrosoftOnline|saml2",
-          "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
-          "SPAzure|saml2",
-          "https://idc.scheuber.io/am/saml2/IDPAzure|saml2",
+          "https://volker-demo.encore.forgerock.com:443/apps/web/benefits/saml|saml2",
         ],
       },
     },
@@ -247,7 +160,7 @@ exports[`CirclesOfTrustOps exportCirclesOfTrust() 2: Export circles of trust (fi
 exports[`CirclesOfTrustOps importCircleOfTrust() 1: Import circle of trust 'AzureCOT' 1`] = `
 {
   "_id": "AzureCOT",
-  "_rev": "36617749",
+  "_rev": "-954827061",
   "_type": {
     "_id": "circlesoftrust",
     "collection": true,
@@ -255,35 +168,16 @@ exports[`CirclesOfTrustOps importCircleOfTrust() 1: Import circle of trust 'Azur
   },
   "status": "active",
   "trustedProviders": [
-    "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
     "iSPAzure|saml2",
     "urn:federation:MicrosoftOnline|saml2",
+    "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
+    "SPAzure|saml2",
+    "https://idc.scheuber.io/am/saml2/IDPAzure|saml2",
   ],
 }
 `;
 
-exports[`CirclesOfTrustOps importCircleOfTrust() 1: Import new circle of trust 1`] = `
-{
-  "_id": "FR_COT",
-  "_rev": "1191818231",
-  "_type": {
-    "_id": "circlesoftrust",
-    "collection": true,
-    "name": "Circle of Trust",
-  },
-  "status": "active",
-  "trustedProviders": [
-    "sales-IDP|saml2",
-    "engineering-IDP|saml2",
-    "company-IDP|saml2",
-    "benefits-IDP|saml2",
-  ],
-}
-`;
-
-exports[`CirclesOfTrustOps importCircleOfTrust() 2: Import existing circle of trust 1`] = `null`;
-
-exports[`CirclesOfTrustOps importCirclesOfTrust() 1: Import all new circles of trust 1`] = `
+exports[`CirclesOfTrustOps importCirclesOfTrust() 1: Import circles of trust 1`] = `
 [
   {
     "_id": "2f04818d-561e-4f8a-82e8-af2426112138",
@@ -296,42 +190,6 @@ exports[`CirclesOfTrustOps importCirclesOfTrust() 1: Import all new circles of t
     "status": "active",
     "trustedProviders": [],
   },
-  {
-    "_id": "AzureCOT",
-    "_rev": "36617749",
-    "_type": {
-      "_id": "circlesoftrust",
-      "collection": true,
-      "name": "Circle of Trust",
-    },
-    "status": "active",
-    "trustedProviders": [
-      "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
-      "iSPAzure|saml2",
-      "urn:federation:MicrosoftOnline|saml2",
-    ],
-  },
-  {
-    "_id": "FR_COT",
-    "_rev": "1191818231",
-    "_type": {
-      "_id": "circlesoftrust",
-      "collection": true,
-      "name": "Circle of Trust",
-    },
-    "status": "active",
-    "trustedProviders": [
-      "sales-IDP|saml2",
-      "engineering-IDP|saml2",
-      "company-IDP|saml2",
-      "benefits-IDP|saml2",
-    ],
-  },
-]
-`;
-
-exports[`CirclesOfTrustOps importCirclesOfTrust() 2: Import all new circles of trust (filtered by entity providers) 1`] = `
-[
   {
     "_id": "AzureCOT",
     "_rev": "-954827061",
@@ -349,31 +207,33 @@ exports[`CirclesOfTrustOps importCirclesOfTrust() 2: Import all new circles of t
       "https://idc.scheuber.io/am/saml2/IDPAzure|saml2",
     ],
   },
+  {
+    "_id": "FR_COT",
+    "_rev": "-1494750593",
+    "_type": {
+      "_id": "circlesoftrust",
+      "collection": true,
+      "name": "Circle of Trust",
+    },
+    "status": "active",
+    "trustedProviders": [
+      "engineering-IDP|saml2",
+      "https://volker-demo.encore.forgerock.com:443/apps/web/company/saml|saml2",
+      "company-IDP|saml2",
+      "https://volker-demo.encore.forgerock.com:443/apps/web/roles/saml|saml2",
+      "https://volker-demo.encore.forgerock.com:443/apps/web/sales/saml|saml2",
+      "sales-IDP|saml2",
+      "benefits-IDP|saml2",
+      "https://volker-demo.encore.forgerock.com:443/apps/web/benefits/saml|saml2",
+    ],
+  },
 ]
 `;
-
-exports[`CirclesOfTrustOps importCirclesOfTrust() 3: Import existing and new circles of trust (filtered by entity providers) 1`] = `[]`;
-
-exports[`CirclesOfTrustOps importFirstCircleOfTrust() 1: Import new circle of trust 1`] = `
-{
-  "_id": "2f04818d-561e-4f8a-82e8-af2426112138",
-  "_rev": "-1164170555",
-  "_type": {
-    "_id": "circlesoftrust",
-    "collection": true,
-    "name": "Circle of Trust",
-  },
-  "status": "active",
-  "trustedProviders": [],
-}
-`;
-
-exports[`CirclesOfTrustOps importFirstCircleOfTrust() 2: Import existing circle of trust 1`] = `null`;
 
 exports[`CirclesOfTrustOps readCircleOfTrust() 1: Read circle of trust 'FR_COT' 1`] = `
 {
   "_id": "FR_COT",
-  "_rev": "1191818231",
+  "_rev": "-1494750593",
   "_type": {
     "_id": "circlesoftrust",
     "collection": true,
@@ -381,15 +241,19 @@ exports[`CirclesOfTrustOps readCircleOfTrust() 1: Read circle of trust 'FR_COT' 
   },
   "status": "active",
   "trustedProviders": [
-    "sales-IDP|saml2",
     "engineering-IDP|saml2",
+    "https://volker-demo.encore.forgerock.com:443/apps/web/company/saml|saml2",
     "company-IDP|saml2",
+    "https://volker-demo.encore.forgerock.com:443/apps/web/roles/saml|saml2",
+    "https://volker-demo.encore.forgerock.com:443/apps/web/sales/saml|saml2",
+    "sales-IDP|saml2",
     "benefits-IDP|saml2",
+    "https://volker-demo.encore.forgerock.com:443/apps/web/benefits/saml|saml2",
   ],
 }
 `;
 
-exports[`CirclesOfTrustOps readCirclesOfTrust() 1: Read all circles of trust 1`] = `
+exports[`CirclesOfTrustOps readCirclesOfTrust() 1: Read circles of trust 1`] = `
 [
   {
     "_id": "2f04818d-561e-4f8a-82e8-af2426112138",
@@ -424,7 +288,7 @@ exports[`CirclesOfTrustOps readCirclesOfTrust() 1: Read all circles of trust 1`]
   },
   {
     "_id": "FR_COT",
-    "_rev": "1191818231",
+    "_rev": "-1494750593",
     "_type": {
       "_id": "circlesoftrust",
       "collection": true,
@@ -432,32 +296,14 @@ exports[`CirclesOfTrustOps readCirclesOfTrust() 1: Read all circles of trust 1`]
     },
     "status": "active",
     "trustedProviders": [
-      "sales-IDP|saml2",
       "engineering-IDP|saml2",
+      "https://volker-demo.encore.forgerock.com:443/apps/web/company/saml|saml2",
       "company-IDP|saml2",
+      "https://volker-demo.encore.forgerock.com:443/apps/web/roles/saml|saml2",
+      "https://volker-demo.encore.forgerock.com:443/apps/web/sales/saml|saml2",
+      "sales-IDP|saml2",
       "benefits-IDP|saml2",
-    ],
-  },
-]
-`;
-
-exports[`CirclesOfTrustOps readCirclesOfTrust() 2: Read circles of trust (filtered by entity providers) 1`] = `
-[
-  {
-    "_id": "AzureCOT",
-    "_rev": "-954827061",
-    "_type": {
-      "_id": "circlesoftrust",
-      "collection": true,
-      "name": "Circle of Trust",
-    },
-    "status": "active",
-    "trustedProviders": [
-      "iSPAzure|saml2",
-      "urn:federation:MicrosoftOnline|saml2",
-      "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/|saml2",
-      "SPAzure|saml2",
-      "https://idc.scheuber.io/am/saml2/IDPAzure|saml2",
+      "https://volker-demo.encore.forgerock.com:443/apps/web/benefits/saml|saml2",
     ],
   },
 ]
