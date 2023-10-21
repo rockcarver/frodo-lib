@@ -300,6 +300,20 @@ export async function readSaml2ProviderStubs({
 }
 
 /**
+ * Get all SAML2 entity ids
+ * @returns {Promise<string[]>} a promise that resolves to an array of saml2 entity ids
+ */
+export async function readSaml2EntityIds({
+  state,
+}: {
+  state: State;
+}): Promise<string[]> {
+  const { result } = await _getProviderStubs({ state });
+  const entityIds = result.map((stub) => stub.entityId);
+  return entityIds;
+}
+
+/**
  * Get a SAML2 entity provider's metadata URL by entity id
  * @param {string} entityId SAML2 entity id
  * @returns {string} the URL to get the metadata from
