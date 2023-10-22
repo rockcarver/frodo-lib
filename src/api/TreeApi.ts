@@ -28,6 +28,7 @@ export type TreeSkeleton = IdObjectSkeletonInterface & {
   identityResource?: string;
   uiConfig?: UiConfigInterface;
   enabled?: boolean;
+  innerTreeOnly?: boolean;
 };
 
 /**
