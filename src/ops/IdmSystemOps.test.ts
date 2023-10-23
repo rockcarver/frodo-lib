@@ -176,11 +176,11 @@ describe('IdmSystemOps', () => {
   // in recording mode, remove test data after recording
   afterAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
-      // await stageSystemObject(obj1, false);
-      // await stageSystemObject(obj2, false);
-      // await stageSystemObject(obj3, false);
-      // await stageSystemObject(obj4, false);
-      // await stageSystemObject(obj5, false);
+      await stageSystemObject(obj1, false);
+      await stageSystemObject(obj2, false);
+      await stageSystemObject(obj3, false);
+      await stageSystemObject(obj4, false);
+      await stageSystemObject(obj5, false);
     }
   });
 
