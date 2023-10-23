@@ -221,7 +221,7 @@ export async function getSystemObject({
   systemName: string;
   systemObjectType: string;
   systemObjectId: string;
-  fields: string[];
+  fields?: string[];
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   const fieldsParam = `_fields=${fields.join(',')}`;
