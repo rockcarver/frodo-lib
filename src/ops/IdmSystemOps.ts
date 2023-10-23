@@ -18,6 +18,7 @@ import {
   testConnectorServers as _testConnectorServers,
 } from '../api/IdmSystemApi';
 import { State } from '../shared/State';
+import { ObjectTypeSkeleton, readConnector } from './ConnectorOps';
 
 export type IdmSystem = {
   /**
@@ -84,7 +85,7 @@ export type IdmSystem = {
     systemName: string,
     systemObjectType: string,
     filter: string,
-    fields: string[],
+    fields?: string[],
     pageSize?: number,
     pageCookie?: string
   ): Promise<PagedResult<IdObjectSkeletonInterface>>;
@@ -93,14 +94,14 @@ export type IdmSystem = {
    * @param {string} systemName name of system/connector
    * @param {string} systemObjectType type of system object
    * @param {string} systemObjectId id of system object
-   * @param {string[]} fields array of fields to return
+   * @param {string[]} fields array of fields to return (default: `['*']`)
    * @returns {Promise<IdObjectSkeletonInterface>} a promise resolving to an IdObjectSkeletonInterface object
    */
   readSystemObject(
     systemName: string,
     systemObjectType: string,
     systemObjectId: string,
-    fields: string[]
+    fields?: string[]
   ): Promise<IdObjectSkeletonInterface>;
   /**
    * Create system object
@@ -156,6 +157,14 @@ export type IdmSystem = {
     systemObjectType: string,
     systemObjectId: string
   ): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Read system schema
+   * @param {string} systemName name of system/connector
+   * @returns {Promise<Record<string, ObjectTypeSkeleton>>} a promise resolving to a map of Record<string, ObjectTypeSkeleton>
+   */
+  readSystemSchema(
+    systemName: string
+  ): Promise<Record<string, ObjectTypeSkeleton>>;
 };
 
 export default (state: State): IdmSystem => {
@@ -225,7 +234,7 @@ export default (state: State): IdmSystem => {
       systemName: string,
       systemObjectType: string,
       systemObjectId: string,
-      fields: string[]
+      fields: string[] = ['*']
     ): Promise<IdObjectSkeletonInterface> {
       return readSystemObject({
         systemName,
@@ -288,6 +297,11 @@ export default (state: State): IdmSystem => {
         systemObjectId,
         state,
       });
+    },
+    async readSystemSchema(
+      systemName: string
+    ): Promise<Record<string, ObjectTypeSkeleton>> {
+      return readSystemSchema({ systemName, state });
     },
   };
 };
@@ -391,7 +405,7 @@ export async function querySystemObjects({
   systemName: string;
   systemObjectType: string;
   filter: string;
-  fields: string[];
+  fields?: string[];
   pageSize?: number;
   pageCookie?: string;
   state: State;
@@ -417,7 +431,7 @@ export async function readSystemObject({
   systemName: string;
   systemObjectType: string;
   systemObjectId: string;
-  fields: string[];
+  fields?: string[];
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   return _getSystemObject({
@@ -512,4 +526,18 @@ export async function deleteSystemObject({
     systemObjectId,
     state,
   });
+}
+
+export async function readSystemSchema({
+  systemName,
+  state,
+}: {
+  systemName: string;
+  state: State;
+}): Promise<Record<string, ObjectTypeSkeleton>> {
+  const { objectTypes } = await readConnector({
+    connectorId: systemName,
+    state,
+  });
+  return objectTypes;
 }

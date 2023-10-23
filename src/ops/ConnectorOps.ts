@@ -191,6 +191,62 @@ export default (state: State): Connector => {
  */
 export const CONNECTOR_TYPE = 'provisioner.openicf';
 
+export type ObjectPropertyFlag =
+  | 'NOT_CREATABLE'
+  | 'NOT_READABLE'
+  | 'NOT_RETURNED_BY_DEFAULT'
+  | 'NOT_UPDATEABLE';
+
+export type ObjectPropertyType = 'array' | 'boolean' | 'string';
+
+export type ObjectPropertyNativeType =
+  | 'array'
+  | 'boolean'
+  | 'string'
+  | 'JAVA_TYPE_BIGDECIMAL'
+  | 'JAVA_TYPE_BIGINTEGER'
+  | 'JAVA_TYPE_BYTE'
+  | 'JAVA_TYPE_BYTE_ARRAY'
+  | 'JAVA_TYPE_CHAR'
+  | 'JAVA_TYPE_CHARACTER'
+  | 'JAVA_TYPE_DATE'
+  | 'JAVA_TYPE_DOUBLE'
+  | 'JAVA_TYPE_FILE'
+  | 'JAVA_TYPE_FLOAT'
+  | 'JAVA_TYPE_GUARDEDBYTEARRAY'
+  | 'JAVA_TYPE_GUARDEDSTRING'
+  | 'JAVA_TYPE_INT'
+  | 'JAVA_TYPE_INTEGER'
+  | 'JAVA_TYPE_LONG'
+  | 'JAVA_TYPE_OBJECT'
+  | 'JAVA_TYPE_PRIMITIVE_BOOLEAN'
+  | 'JAVA_TYPE_PRIMITIVE_BYTE'
+  | 'JAVA_TYPE_PRIMITIVE_DOUBLE'
+  | 'JAVA_TYPE_PRIMITIVE_FLOAT'
+  | 'JAVA_TYPE_PRIMITIVE_LONG'
+  | 'JAVA_TYPE_STRING';
+
+export type ObjectPropertySkeleton = {
+  flags?: ObjectPropertyFlag[];
+  nativeName: string;
+  nativeType: ObjectPropertyNativeType;
+  type: ObjectPropertyType;
+  runAsUser?: boolean;
+  required?: boolean;
+  items?: {
+    nativeType: ObjectPropertyNativeType;
+    type: ObjectPropertyType;
+  };
+};
+
+export type ObjectTypeSkeleton = {
+  $schema: string;
+  id: string;
+  nativeType: string;
+  properties: Record<string, ObjectPropertySkeleton>;
+  type: 'object';
+};
+
 export type ConnectorSkeleton = IdObjectSkeletonInterface & {
   configurationProperties: any;
   connectorRef: {
@@ -202,6 +258,7 @@ export type ConnectorSkeleton = IdObjectSkeletonInterface & {
     systemType: 'provisioner.openicf';
   };
   enabled: boolean;
+  objectTypes: Record<string, ObjectTypeSkeleton>;
 };
 
 /**
