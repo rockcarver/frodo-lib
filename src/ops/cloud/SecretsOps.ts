@@ -250,7 +250,7 @@ export default (state: State): Secret => {
       return readSecrets({ state });
     },
     async readSecret(secretId: string) {
-      return _getSecret({ secretId, state });
+      return readSecret({ secretId, state });
     },
     async exportSecret(secretId: string): Promise<SecretsExportInterface> {
       return exportSecret({ secretId, state });
@@ -307,7 +307,7 @@ export default (state: State): Secret => {
       return _deleteVersionOfSecret({ secretId, version, state });
     },
 
-    // Deprecatd
+    // Deprecated
 
     async getSecrets() {
       return readSecrets({ state });
@@ -438,6 +438,16 @@ export async function disableVersionOfSecret({
   });
 }
 
+export async function readSecret({
+  secretId,
+  state,
+}: {
+  secretId: string;
+  state: State;
+}): Promise<SecretSkeleton> {
+  return await _getSecret({ secretId, state });
+}
+
 export async function readSecrets({
   state,
 }: {
@@ -451,8 +461,6 @@ export {
   _putSecret as createSecret,
   _createNewVersionOfSecret as createVersionOfSecret,
   _deleteSecret as deleteSecret,
-  _deleteVersionOfSecret as deleteVersionOfSecret,
-  _getSecret as readSecret,
   _getVersionOfSecret as readVersionOfSecret,
   _getSecretVersions as readVersionsOfSecret,
   _setSecretDescription as updateSecretDescription,
