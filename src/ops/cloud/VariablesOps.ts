@@ -31,7 +31,10 @@ export type Variable = {
    * @param noDecode Do not include decoded variable value in export
    * @returns {Promise<VariablesExportInterface>} Promise resolving to a VariablesExportInterface object.
    */
-  exportVariable(variableId: string, noDecode: boolean): Promise<VariablesExportInterface>;
+  exportVariable(
+    variableId: string,
+    noDecode: boolean
+  ): Promise<VariablesExportInterface>;
   /**
    * Export all variables
    * @param noDecode Do not include decoded variable value in export
@@ -153,9 +156,7 @@ export default (state: State): Variable => {
     ): Promise<VariablesExportInterface> {
       return exportVariable({ variableId, noDecode, state });
     },
-    exportVariables(
-      noDecode: boolean
-    ): Promise<VariablesExportInterface> {
+    exportVariables(noDecode: boolean): Promise<VariablesExportInterface> {
       return exportVariables({ noDecode, state });
     },
     createVariable(
