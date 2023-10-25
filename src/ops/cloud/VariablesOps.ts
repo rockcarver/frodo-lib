@@ -8,7 +8,10 @@ import {
   VariableSkeleton,
 } from '../../api/cloud/VariablesApi';
 import { State } from '../../shared/State';
+import { decode } from '../../utils/Base64Utils';
 import { debugMessage } from '../../utils/Console';
+import { getMetadata } from '../../utils/ExportImportUtils';
+import { ExportMetaData } from '../OpsTypes';
 
 export type Variable = {
   /**
@@ -22,6 +25,22 @@ export type Variable = {
    * @returns {Promise<VariableSkeleton[]>} a promise that resolves to an array of variable objects
    */
   readVariables(): Promise<VariableSkeleton[]>;
+  /**
+   * Export variable. The response can be saved to file as is.
+   * @param variableId variable id/name
+   * @param noDecode Do not include decoded variable value in export
+   * @returns {Promise<VariablesExportInterface>} Promise resolving to a VariablesExportInterface object.
+   */
+  exportVariable(
+    variableId: string,
+    noDecode: boolean
+  ): Promise<VariablesExportInterface>;
+  /**
+   * Export all variables
+   * @param noDecode Do not include decoded variable value in export
+   * @returns {Promise<VariablesExportInterface>} Promise resolving to an VariablesExportInterface object.
+   */
+  exportVariables(noDecode: boolean): Promise<VariablesExportInterface>;
   /**
    * Create variable
    * @param {string} variableId variable id/name
@@ -131,6 +150,15 @@ export default (state: State): Variable => {
     readVariables(): Promise<VariableSkeleton[]> {
       return readVariables({ state });
     },
+    async exportVariable(
+      variableId: string,
+      noDecode: boolean
+    ): Promise<VariablesExportInterface> {
+      return exportVariable({ variableId, noDecode, state });
+    },
+    exportVariables(noDecode: boolean): Promise<VariablesExportInterface> {
+      return exportVariables({ noDecode, state });
+    },
     createVariable(
       variableId: string,
       value: string,
@@ -208,6 +236,22 @@ export default (state: State): Variable => {
   };
 };
 
+export interface VariablesExportInterface {
+  meta?: ExportMetaData;
+  variables: Record<string, VariableSkeleton>;
+}
+
+export function createVariablesExportTemplate({
+  state,
+}: {
+  state: State;
+}): VariablesExportInterface {
+  return {
+    meta: getMetadata({ state }),
+    variables: {},
+  } as VariablesExportInterface;
+}
+
 export async function readVariable({
   variableId,
   state,
@@ -224,6 +268,46 @@ export async function readVariables({
   state: State;
 }): Promise<VariableSkeleton[]> {
   return (await _getVariables({ state })).result;
+}
+
+export async function exportVariable({
+  variableId,
+  noDecode,
+  state,
+}: {
+  variableId: string;
+  noDecode: boolean;
+  state: State;
+}): Promise<VariablesExportInterface> {
+  debugMessage({ message: `VariablesOps.exportVariable: start`, state });
+  const exportData = createVariablesExportTemplate({ state });
+  const variable = await _getVariable({ variableId, state });
+  if (!noDecode) {
+    variable.value = decode(variable.valueBase64);
+  }
+  exportData.variables[variable._id] = variable;
+  debugMessage({ message: `VariablesOps.exportVariable: end`, state });
+  return exportData;
+}
+
+export async function exportVariables({
+  noDecode,
+  state,
+}: {
+  noDecode: boolean;
+  state: State;
+}): Promise<VariablesExportInterface> {
+  debugMessage({ message: `VariablesOps.exportVariables: start`, state });
+  const exportData = createVariablesExportTemplate({ state });
+  const variables = await readVariables({ state });
+  for (const variable of variables) {
+    if (!noDecode) {
+      variable.value = decode(variable.valueBase64);
+    }
+    exportData.variables[variable._id] = variable;
+  }
+  debugMessage({ message: `VariablesOps.exportVariables: end`, state });
+  return exportData;
 }
 
 export async function createVariable({

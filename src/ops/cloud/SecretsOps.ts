@@ -14,6 +14,9 @@ import {
   VersionOfSecretStatus,
 } from '../../api/cloud/SecretsApi';
 import { State } from '../../shared/State';
+import { debugMessage } from '../../utils/Console';
+import { getMetadata } from '../../utils/ExportImportUtils';
+import { ExportMetaData } from '../OpsTypes';
 
 export type Secret = {
   /**
@@ -27,6 +30,17 @@ export type Secret = {
    * @returns {Promise<SecretSkeleton>} a promise that resolves to a secret
    */
   readSecret(secretId: string): Promise<SecretSkeleton>;
+  /**
+   * Export secret. The response can be saved to file as is.
+   * @param secretId secret id/name
+   * @returns {Promise<SecretsExportInterface>} Promise resolving to a SecretsExportInterface object.
+   */
+  exportSecret(secretId): Promise<SecretsExportInterface>;
+  /**
+   * Export all secrets
+   * @returns {Promise<SecretsExportInterface>} Promise resolving to an SecretsExportInterface object.
+   */
+  exportSecrets(): Promise<SecretsExportInterface>;
   /**
    * Create secret
    * @param {string} secretId secret id/name
@@ -236,7 +250,13 @@ export default (state: State): Secret => {
       return readSecrets({ state });
     },
     async readSecret(secretId: string) {
-      return _getSecret({ secretId, state });
+      return readSecret({ secretId, state });
+    },
+    async exportSecret(secretId: string): Promise<SecretsExportInterface> {
+      return exportSecret({ secretId, state });
+    },
+    async exportSecrets(): Promise<SecretsExportInterface> {
+      return exportSecrets({ state });
     },
     async createSecret(
       secretId: string,
@@ -287,7 +307,7 @@ export default (state: State): Secret => {
       return _deleteVersionOfSecret({ secretId, version, state });
     },
 
-    // Deprecatd
+    // Deprecated
 
     async getSecrets() {
       return readSecrets({ state });
@@ -338,6 +358,52 @@ export default (state: State): Secret => {
   };
 };
 
+export interface SecretsExportInterface {
+  meta?: ExportMetaData;
+  secrets: Record<string, SecretSkeleton>;
+}
+
+export function createSecretsExportTemplate({
+  state,
+}: {
+  state: State;
+}): SecretsExportInterface {
+  return {
+    meta: getMetadata({ state }),
+    secrets: {},
+  } as SecretsExportInterface;
+}
+
+export async function exportSecret({
+  secretId,
+  state,
+}: {
+  secretId: string;
+  state: State;
+}): Promise<SecretsExportInterface> {
+  debugMessage({ message: `SecretsOps.exportSecret: start`, state });
+  const exportData = createSecretsExportTemplate({ state });
+  const secret = await _getSecret({ secretId, state });
+  exportData.secrets[secret._id] = secret;
+  debugMessage({ message: `VariablesOps.exportSecret: end`, state });
+  return exportData;
+}
+
+export async function exportSecrets({
+  state,
+}: {
+  state: State;
+}): Promise<SecretsExportInterface> {
+  debugMessage({ message: `SecretsOps.exportSecrets: start`, state });
+  const exportData = createSecretsExportTemplate({ state });
+  const secrets = await readSecrets({ state });
+  for (const secret of secrets) {
+    exportData.secrets[secret._id] = secret;
+  }
+  debugMessage({ message: `SecretsOps.exportSecrets: end`, state });
+  return exportData;
+}
+
 export async function enableVersionOfSecret({
   secretId,
   version,
@@ -372,6 +438,16 @@ export async function disableVersionOfSecret({
   });
 }
 
+export async function readSecret({
+  secretId,
+  state,
+}: {
+  secretId: string;
+  state: State;
+}): Promise<SecretSkeleton> {
+  return await _getSecret({ secretId, state });
+}
+
 export async function readSecrets({
   state,
 }: {
@@ -385,8 +461,6 @@ export {
   _putSecret as createSecret,
   _createNewVersionOfSecret as createVersionOfSecret,
   _deleteSecret as deleteSecret,
-  _deleteVersionOfSecret as deleteVersionOfSecret,
-  _getSecret as readSecret,
   _getVersionOfSecret as readVersionOfSecret,
   _getSecretVersions as readVersionsOfSecret,
   _setSecretDescription as updateSecretDescription,
