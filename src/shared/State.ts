@@ -58,6 +58,8 @@ export type State = {
   getOutputFile(): string;
   setDirectory(directory: string): void;
   getDirectory(): string;
+  setAutoRefreshTimer(timer: NodeJS.Timeout): void;
+  getAutoRefreshTimer(): NodeJS.Timeout;
   setCurlirizeHandler(handler: (message: string) => void): void;
   getCurlirizeHandler(): (message: string) => void;
   setCurlirize(curlirize: boolean): void;
@@ -275,6 +277,13 @@ export default (initialState: StateInterface): State => {
       return state.directory;
     },
 
+    setAutoRefreshTimer(timer: NodeJS.Timeout): void {
+      state.autoRefreshTimer = timer;
+    },
+    getAutoRefreshTimer(): NodeJS.Timeout {
+      return state.autoRefreshTimer;
+    },
+
     setCurlirizeHandler(handler: (message: string) => void) {
       state.curlirizeHandler = handler;
     },
@@ -396,6 +405,7 @@ export interface StateInterface {
   masterKeyPath?: string;
   outputFile?: string;
   directory?: string;
+  autoRefreshTimer?: NodeJS.Timeout;
   // output handler settings
   printHandler?: (
     message: string | object,
@@ -858,6 +868,7 @@ export const getDebug = (): boolean =>
  * @deprecated since version v0.17.0. Import state:
  *
  * ```import { state } from '@rockcarver/frodo-lib';```
+import { setInterval } from '@types/node';
  *
  * then call functions:
  *

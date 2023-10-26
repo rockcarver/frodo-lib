@@ -27,31 +27,25 @@ export type Authenticate = {
   /**
    * Get tokens
    * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
+   * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
    * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
    */
-  getTokens(forceLoginAsUser?: boolean): Promise<boolean>;
+  getTokens(
+    forceLoginAsUser?: boolean,
+    autoRefresh?: boolean
+  ): Promise<boolean>;
 };
 
 export default (state: State): Authenticate => {
   return {
-    /**
-     * Get access token for service account
-     * @returns {string | null} Access token or null
-     */
     async getAccessTokenForServiceAccount(
       saId: string = undefined,
       saJwk: JwkRsa = undefined
     ): Promise<string | null> {
       return getAccessTokenForServiceAccount({ saId, saJwk, state });
     },
-
-    /**
-     * Get tokens
-     * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
-     * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
-     */
-    getTokens(forceLoginAsUser = false) {
-      return getTokens({ forceLoginAsUser, state });
+    getTokens(forceLoginAsUser = false, autoRefresh = true) {
+      return getTokens({ forceLoginAsUser, autoRefresh, state });
     },
   };
 };
@@ -572,6 +566,10 @@ export async function getAccessTokenForServiceAccount({
     });
     debugMessage({ message: response.data.access_token, state });
     debugMessage({
+      message: `AuthenticateOps.getAccessTokenForServiceAccount: expires: ${response.data.expires_in}`,
+      state,
+    });
+    debugMessage({
       message: `AuthenticateOps.getAccessTokenForServiceAccount: end`,
       state,
     });
@@ -645,16 +643,64 @@ async function getLoggedInSubject(state: State): Promise<string> {
 }
 
 /**
+ * Helper method to set, reset, or cancel timer to auto refresh tokens
+ * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
+ * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
+ * @param {State} state library state
+ */
+function scheduleAutoRefresh(
+  forceLoginAsUser: boolean,
+  autoRefresh: boolean,
+  state: State
+) {
+  let timer = state.getAutoRefreshTimer();
+  // reset existing timer
+  if (timer) {
+    if (autoRefresh) {
+      debugMessage({
+        message: `AuthenticateOps.scheduleAutoRefresh: reset existing timer`,
+        state,
+      });
+      timer.refresh();
+    } else {
+      debugMessage({
+        message: `AuthenticateOps.scheduleAutoRefresh: cancel existing timer`,
+        state,
+      });
+      clearInterval(timer);
+    }
+  }
+  // new timer
+  else if (autoRefresh) {
+    debugMessage({
+      message: `AuthenticateOps.scheduleAutoRefresh: set new timer`,
+      state,
+    });
+    timer = setInterval(getTokens, 1000 * 10, {
+      forceLoginAsUser,
+      autoRefresh,
+      state,
+      // Volker's Visual Studio Code doesn't want to have it any other way.
+    }) as unknown as NodeJS.Timeout;
+    timer.unref();
+    state.setAutoRefreshTimer(timer);
+  }
+}
+
+/**
  * Get tokens
  * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
+ * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
  * @param {State} state library state
  * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
  */
 export async function getTokens({
   forceLoginAsUser = false,
+  autoRefresh = true,
   state,
 }: {
   forceLoginAsUser?: boolean;
+  autoRefresh?: boolean;
   state: State;
 }): Promise<boolean> {
   debugMessage({ message: `AuthenticateOps.getTokens: start`, state });
@@ -770,6 +816,7 @@ export async function getTokens({
         type: 'info',
         state,
       });
+      scheduleAutoRefresh(forceLoginAsUser, autoRefresh, state);
       debugMessage({
         message: `AuthenticateOps.getTokens: end with tokens`,
         state,
