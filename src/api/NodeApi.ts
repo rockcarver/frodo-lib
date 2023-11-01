@@ -52,6 +52,7 @@ export type NodeSkeleton = IdObjectSkeletonInterface & {
   script?: string;
   emailTemplateName?: string;
   filteredProviders?: string[];
+  useScript?: boolean;
 };
 
 export type NodeTypeSkeleton = IdObjectSkeletonInterface & {

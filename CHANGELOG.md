@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+-   rockcarver/frodo-cli#316: Frodo Library now properly exports scripts referenced by the `Device Match` node if the `Use Custom Matching Script` option is selected.
+
 ## [2.0.0-46] - 2023-10-25
 
 ## [2.0.0-45] - 2023-10-23
