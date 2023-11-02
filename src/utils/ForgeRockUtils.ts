@@ -66,6 +66,7 @@ export function applyNameCollisionPolicy(name: string): string {
  * @returns {string} a CREST-compliant realm path, e.g. /realms/root/realms/alpha
  */
 export function getRealmPath(realm: string): string {
+  if (!realm) realm = '/';
   if (realm.startsWith('/')) {
     realm = realm.substring(1);
   }

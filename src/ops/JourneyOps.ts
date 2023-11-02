@@ -541,13 +541,40 @@ export interface TreeExportResolverInterface {
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
 
-const scriptedNodes = [
-  'ConfigProviderNode',
-  'ScriptedDecisionNode',
-  'ClientScriptNode',
-  'SocialProviderHandlerNode',
-  'CustomScriptNode',
-];
+const scriptedNodesConditions = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ClientScriptNode: (_nodeConfig: NodeSkeleton): boolean => {
+    return true;
+  },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ConfigProviderNode: (_nodeConfig: NodeSkeleton): boolean => {
+    return true;
+  },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  DeviceMatchNode: (nodeConfig: NodeSkeleton): boolean => {
+    return nodeConfig.useScript;
+  },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ScriptedDecisionNode: (_nodeConfig: NodeSkeleton): boolean => {
+    return true;
+  },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  SocialProviderHandlerNode: (_nodeConfig: NodeSkeleton): boolean => {
+    return true;
+  },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  CustomScriptNode: (_nodeConfig: NodeSkeleton): boolean => {
+    return true;
+  },
+};
+
+export function hasScriptDependency(nodeConfig: NodeSkeleton): boolean {
+  if (Object.keys(scriptedNodesConditions).includes(nodeConfig._type._id)) {
+    const handler: any = scriptedNodesConditions[nodeConfig._type._id];
+    return handler(nodeConfig);
+  }
+  return false;
+}
 
 const emailTemplateNodes = ['EmailSuspendNode', 'EmailTemplateNode'];
 
@@ -788,7 +815,7 @@ export async function exportJourney({
       // handle script node types
       if (
         deps &&
-        scriptedNodes.includes(nodeType) &&
+        hasScriptDependency(nodeObject) &&
         nodeObject.script !== emptyScriptPlaceholder
       ) {
         scriptPromises.push(getScript({ scriptId: nodeObject.script, state }));
@@ -928,7 +955,7 @@ export async function exportJourney({
           exportData.innerNodes[innerNodeId] = innerNodeObject;
 
           // handle script node types
-          if (deps && scriptedNodes.includes(innerNodeType)) {
+          if (deps && hasScriptDependency(innerNodeObject)) {
             scriptPromises.push(
               getScript({ scriptId: innerNodeObject.script, state })
             );

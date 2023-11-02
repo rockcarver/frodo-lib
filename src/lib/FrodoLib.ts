@@ -42,6 +42,7 @@ import Saml2Ops, { Saml2 } from '../ops/Saml2Ops';
 import ScriptOps, { Script } from '../ops/ScriptOps';
 import ServiceOps, { Service } from '../ops/ServiceOps';
 import ThemeOps, { Theme } from '../ops/ThemeOps';
+import TokenCacheOps, { TokenCache } from '../ops/TokenCacheOps';
 import VersionUtils, { Version } from '../ops/VersionUtils';
 // non-instantiable modules
 import ConstantsImpl, { Constants } from '../shared/Constants';
@@ -85,6 +86,7 @@ export type Frodo = {
   };
 
   conn: ConnectionProfile;
+  cache: TokenCache;
 
   email: {
     template: EmailTemplate;
@@ -221,6 +223,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     },
 
     conn: ConnectionProfileOps(state),
+    cache: TokenCacheOps(state),
 
     email: {
       template: EmailTemplateOps(state),

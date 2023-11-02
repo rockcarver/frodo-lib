@@ -55,7 +55,12 @@ switch (process.env.FRODO_POLLY_MODE) {
     );
     state.setRealm(process.env.FRODO_REALM || 'alpha');
     state.setCookieName('cookieName');
-    state.setCookieValue('cookieValue');
+    state.setUserSessionTokenMeta({
+      tokenId: 'cookieValue',
+      realm: '/realm',
+      successUrl: 'url',
+      expires: 0,
+    });
     break;
 }
 

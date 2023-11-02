@@ -14,11 +14,11 @@ export interface IdObjectSkeletonInterface extends NoIdObjectSkeletonInterface {
   _id?: string;
 }
 
-export type ReadableStrings = string[];
+export type Readable<Type> = Type;
 
-export type WritableStrings = {
+export type Writable<Type> = {
   inherited: boolean;
-  value: string[];
+  value: Type;
 };
 
 export type QueryResult<Type> = {

@@ -1,4 +1,4 @@
-import { AxiosRequestConfig } from 'axios';
+import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import qs from 'qs';
 import util from 'util';
 
@@ -14,6 +14,37 @@ const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => ({
   apiVersion,
 });
+
+export type AccessTokenResponseType = {
+  access_token: string;
+  scope: string;
+  token_type: string;
+  expires_in: number;
+};
+
+export type TokenInfoResponseType = {
+  sub: string;
+  cts: string;
+  auditTrackingId: string;
+  subname: string;
+  iss: string;
+  tokenName: string;
+  token_type: string;
+  authGrantId: string;
+  access_token: string;
+  aud: string;
+  nbf: number;
+  grant_type: string;
+  scope: string[];
+  auth_time: number;
+  sessionToken?: string;
+  realm: string;
+  exp: number;
+  iat: number;
+  expires_in: number;
+  jti: string;
+  [k: string]: string | number | string[];
+};
 
 /**
  * Perform the authorization step of the authorization code grant flow
@@ -33,7 +64,7 @@ export async function authorize({
   data: string;
   config: AxiosRequestConfig;
   state: State;
-}) {
+}): Promise<AxiosResponse<any, any>> {
   const authorizeURL = util.format(authorizeUrlTemplate, amBaseUrl, '');
   return generateOauth2Api({
     resource: getApiConfig(),
@@ -48,25 +79,26 @@ export async function authorize({
  * @param {string} data body form data
  * @param {AxiosRequestConfig} config config axios request config object
  * @param {State} state library state
- * @returns {Promise} a promise resolving to an object containing the authorization server response object containing the access token
+ * @returns {Promise<AccessTokenResponseType>} a promise resolving to an object containing the authorization server response object containing the access token
  */
 export async function accessToken({
   amBaseUrl,
-  data,
+  postData,
   config,
   state,
 }: {
   amBaseUrl: string;
-  data: any;
+  postData: any;
   config: AxiosRequestConfig;
   state: State;
-}) {
+}): Promise<AccessTokenResponseType> {
   const accessTokenURL = util.format(accessTokenUrlTemplate, amBaseUrl, '');
-  return generateOauth2Api({
+  const { data } = await generateOauth2Api({
     resource: getApiConfig(),
     requestOverride: {},
     state,
-  }).post(accessTokenURL, data, config);
+  }).post(accessTokenURL, postData, config);
+  return data;
 }
 
 /**
@@ -84,7 +116,7 @@ export async function getTokenInfo({
   amBaseUrl: string;
   config: AxiosRequestConfig;
   state: State;
-}) {
+}): Promise<TokenInfoResponseType> {
   const accessTokenURL = util.format(tokenInfoUrlTemplate, amBaseUrl, '');
   const { data } = await generateOauth2Api({
     resource: getApiConfig(),
@@ -115,7 +147,7 @@ export async function clientCredentialsGrant({
   clientSecret: string;
   scope: string;
   state: State;
-}) {
+}): Promise<AccessTokenResponseType> {
   const urlString = util.format(
     accessTokenUrlTemplate,
     amBaseUrl,
