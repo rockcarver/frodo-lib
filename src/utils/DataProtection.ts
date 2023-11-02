@@ -19,7 +19,7 @@ import { State } from '../shared/State';
 import { printMessage } from './Console';
 
 const scrypt = promisify(crypto.scrypt);
-// using WeakMaps for added security since  it gets garbage collected
+// using WeakMaps for added security since it gets garbage collected
 const _masterKey = new WeakMap();
 const _nonce = new WeakMap();
 const _salt = new WeakMap();
@@ -29,9 +29,11 @@ const _encrypt = new WeakMap();
 class DataProtection {
   constructor({
     pathToMasterKey = undefined,
+    sessionKey = undefined,
     state,
   }: {
     pathToMasterKey?: string;
+    sessionKey?: string;
     state: State;
   }) {
     const masterKeyPath = () =>
@@ -40,17 +42,21 @@ class DataProtection {
       `${homedir()}/.frodo/masterkey.key`;
     // Generates a 256bit master key and base64-encodes it. This master key is used to derive the key for encryption. this key should be protected by an HSM or KMS
     _masterKey.set(this, async () => {
-      try {
-        if (process.env[Constants.FRODO_MASTER_KEY_KEY])
-          return process.env[Constants.FRODO_MASTER_KEY_KEY];
-        if (!fs.existsSync(masterKeyPath())) {
-          const masterKey = crypto.randomBytes(32).toString('base64');
-          await fsp.writeFile(masterKeyPath(), masterKey);
+      if (!sessionKey) {
+        try {
+          if (process.env[Constants.FRODO_MASTER_KEY_KEY])
+            return process.env[Constants.FRODO_MASTER_KEY_KEY];
+          if (!fs.existsSync(masterKeyPath())) {
+            const masterKey = crypto.randomBytes(32).toString('base64');
+            await fsp.writeFile(masterKeyPath(), masterKey);
+          }
+          return await fsp.readFile(masterKeyPath(), 'utf8');
+        } catch (err) {
+          printMessage({ message: err.message, type: 'error', state });
+          return '';
         }
-        return await fsp.readFile(masterKeyPath(), 'utf8');
-      } catch (err) {
-        printMessage({ message: err.message, type: 'error', state });
-        return '';
+      } else {
+        return sessionKey;
       }
     });
 

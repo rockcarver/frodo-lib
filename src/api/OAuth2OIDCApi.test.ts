@@ -26,7 +26,12 @@ const mock = new MockAdapter(axios);
 state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
 state.setRealm('alpha');
 state.setCookieName('cookieName');
-state.setCookieValue('cookieValue');
+state.setUserSessionTokenMeta({
+  tokenId: 'cookieValue',
+  realm: '/realm',
+  successUrl: 'url',
+  expires: 0,
+});
 state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 
 describe('OAuth2OIDCApi', () => {
@@ -75,12 +80,11 @@ describe('OAuth2OIDCApi', () => {
       };
       const response = await OAuth2OIDCApi.accessToken({
         amBaseUrl: state.getHost() as string,
-        data: bodyFormData,
+        postData: bodyFormData,
         config,
         state,
       });
-      expect(response.status).toBe(200);
-      expect(response.data.access_token).toBeTruthy();
+      expect(response.access_token).toBeTruthy();
     });
   });
 });

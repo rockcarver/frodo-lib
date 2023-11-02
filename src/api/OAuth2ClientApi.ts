@@ -7,8 +7,8 @@ import {
   type IdObjectSkeletonInterface,
   type NoIdObjectSkeletonInterface,
   type PagedResult,
-  type ReadableStrings,
-  type WritableStrings,
+  type Readable,
+  type Writable,
 } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 import { AmServiceType } from './ServiceApi';
@@ -32,10 +32,15 @@ export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
       inherited: boolean;
       value: string[];
     };
-    grantTypes?: ReadableStrings | WritableStrings;
+    grantTypes?: Readable<string[]> | Writable<string[]>;
+    isConsentImplied?: Readable<boolean> | Writable<boolean>;
+    tokenEndpointAuthMethod?: Readable<string> | Writable<string>;
+    responseTypes?: Readable<string[]> | Writable<string[]>;
     [k: string]: string | number | boolean | string[] | object | undefined;
   };
   signEncOAuth2ClientConfig?: {
+    jwkSet?: Readable<string> | Writable<string>;
+    publicKeyLocation?: Readable<string> | Writable<string>;
     [k: string]: string | number | boolean | string[] | object | undefined;
   };
   coreOpenIDClientConfig?: {
@@ -43,15 +48,10 @@ export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
   };
   coreOAuth2ClientConfig?: {
     userpassword?: string;
-    clientName?: {
-      inherited: boolean;
-      value: string[];
-    };
-    accessTokenLifetime?: {
-      inherited: boolean;
-      value: number;
-    };
-    scopes?: ReadableStrings | WritableStrings;
+    clientName?: Readable<string[]> | Writable<string[]>;
+    clientType?: Readable<string> | Writable<string>;
+    accessTokenLifetime?: Readable<number> | Writable<number>;
+    scopes?: Readable<string[]> | Writable<string[]>;
     defaultScopes?: {
       value: string[];
       [k: string]: string | number | boolean | string[] | object | undefined;

@@ -21,7 +21,12 @@ const mock = new MockAdapter(axios);
 state.setHost('https://openam-frodo-dev.forgeblocks.com/am');
 state.setRealm('alpha');
 state.setCookieName('cookieName');
-state.setCookieValue('cookieValue');
+state.setUserSessionTokenMeta({
+  tokenId: 'cookieValue',
+  realm: '/realm',
+  successUrl: 'url',
+  expires: 0,
+});
 
 describe('StartupApi - getStatus()', () => {
   test('getStatus() 1: Get restart status - expect "ready"', async () => {

@@ -37,6 +37,7 @@ export type Json = {
   getPaths(o: any, prefix?: string, delim?: string): string[];
   findInArray(objs: any[], predicate: any): any;
   get(obj: any, path: string[], defaultValue?: any): any;
+  put(obj: any, value: any, path: string[]): any;
   /**
    * Deterministic stringify
    * @param {any} obj json object to stringify deterministically
@@ -71,6 +72,9 @@ export default (): Json => {
     },
     get(obj: any, path: string[], defaultValue: any = undefined): any {
       return get(obj, path, defaultValue);
+    },
+    put(obj: any, value: any, path: string[]): any {
+      return put(obj, value, path);
     },
     stringify(obj: any): string {
       return stringify(obj);
@@ -212,6 +216,16 @@ export function get(
     if (!result) return defaultValue;
   }
   return result;
+}
+
+export function put(obj: any, value: any, path: string[]): any {
+  let ref = obj;
+  for (const [i, element] of path.entries()) {
+    if (!ref[element] || !(ref[element] instanceof Object)) ref[element] = {};
+    i < path.length - 1 ? (ref = ref[element]) : (ref[element] = value);
+  }
+  ref = value;
+  return obj;
 }
 
 /**

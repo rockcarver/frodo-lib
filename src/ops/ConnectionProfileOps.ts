@@ -68,20 +68,9 @@ export type ConnectionProfile = {
 
 export default (state: State): ConnectionProfile => {
   return {
-    /**
-     * Get connection profiles file name
-     * @returns {string} connection profiles file name
-     */
     getConnectionProfilesPath(): string {
       return getConnectionProfilesPath({ state });
     },
-
-    /**
-     * Find connection profiles
-     * @param {ConnectionsFileInterface} connectionProfiles connection profile object
-     * @param {string} host host url or unique substring
-     * @returns {SecureConnectionProfileInterface[]} Array of connection profiles
-     */
     findConnectionProfiles(
       connectionProfiles: ConnectionsFileInterface,
       host: string
@@ -92,57 +81,23 @@ export default (state: State): ConnectionProfile => {
         state,
       });
     },
-
-    /**
-     * Initialize connection profiles
-     *
-     * This method is called from app.ts and runs before any of the message handlers are registered.
-     * Therefore none of the Console message functions will produce any output.
-     */
     async initConnectionProfiles() {
       initConnectionProfiles({ state });
     },
-
-    /**
-     * Get connection profile by host
-     * @param {String} host host tenant host url or unique substring
-     * @returns {Object} connection profile or null
-     */
     async getConnectionProfileByHost(
       host: string
     ): Promise<ConnectionProfileInterface> {
       return getConnectionProfileByHost({ host, state });
     },
-
-    /**
-     * Get connection profile
-     * @returns {Object} connection profile or null
-     */
     async getConnectionProfile(): Promise<ConnectionProfileInterface> {
       return getConnectionProfile({ state });
     },
-
-    /**
-     * Save connection profile
-     * @param {string} host host url for new profiles or unique substring for existing profiles
-     * @returns {Promise<boolean>} true if the operation succeeded, false otherwise
-     */
     async saveConnectionProfile(host: string): Promise<boolean> {
       return saveConnectionProfile({ host, state });
     },
-
-    /**
-     * Delete connection profile
-     * @param {string} host host tenant host url or unique substring
-     */
     deleteConnectionProfile(host: string): void {
       deleteConnectionProfile({ host, state });
     },
-
-    /**
-     * Create a new service account using auto-generated parameters
-     * @returns {Promise<IdObjectSkeletonInterface>} A promise resolving to a service account object
-     */
     async addNewServiceAccount(): Promise<IdObjectSkeletonInterface> {
       return addNewServiceAccount({ state });
     },
@@ -225,10 +180,10 @@ function findConnectionProfiles({
 }): SecureConnectionProfileInterface[] {
   const profiles: SecureConnectionProfileInterface[] = [];
   for (const tenant in connectionProfiles) {
-    debugMessage({
-      message: `ConnectionProfileOps.findConnectionProfiles: tenant=${tenant}`,
-      state,
-    });
+    // debugMessage({
+    //   message: `ConnectionProfileOps.findConnectionProfiles: tenant=${tenant}`,
+    //   state,
+    // });
     if (tenant.includes(host)) {
       debugMessage({
         message: `ConnectionProfileOps.findConnectionProfiles: '${host}' identifies '${tenant}', including in result set`,

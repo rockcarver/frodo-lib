@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, URL } from 'url';
+import util from 'util';
 
-import { type ReadableStrings, type WritableStrings } from '../api/ApiTypes';
+import { type Readable, Writable } from '../api/ApiTypes';
 import { step } from '../api/AuthenticateApi';
 import { putSecret } from '../api/cloud/SecretsApi';
 import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
@@ -16,8 +17,19 @@ import {
 import { readOAuth2Provider } from '../ops/OAuth2ProviderOps';
 import { State } from '../shared/State';
 import { printMessage } from '../utils/Console';
-import { getCurrentRealmManagedUser } from '../utils/ForgeRockUtils';
-import { get, isEqualJson } from '../utils/JsonUtils';
+import {
+  getCurrentRealmManagedUser,
+  getCurrentRealmPath,
+} from '../utils/ForgeRockUtils';
+import { cloneDeep, get, isEqualJson } from '../utils/JsonUtils';
+import {
+  createJwkRsa,
+  createJwks,
+  createSignedJwtToken,
+  getJwkRsaPublic,
+  JwkRsa,
+  JwksInterface,
+} from './JoseOps';
 import { getRealmManagedOrganization } from './OrganizationOps';
 
 export type Admin = {
@@ -172,7 +184,7 @@ export default (state: State): Admin => {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const OAUTH2_CLIENT = JSON.parse(
+const OAUTH2_CLIENT: OAuth2ClientSkeleton = JSON.parse(
   fs.readFileSync(
     path.resolve(__dirname, './templates/OAuth2ClientTemplate.json'),
     'utf8'
@@ -286,7 +298,7 @@ export async function listOAuth2AdminClients({ state }: { state: State }) {
       // printMessage({ message: client, type: 'error', state });
       let isPrivileged = false;
       if (client.coreOAuth2ClientConfig.scopes) {
-        (client.coreOAuth2ClientConfig.scopes as ReadableStrings).forEach(
+        (client.coreOAuth2ClientConfig.scopes as Readable<string[]>).forEach(
           (scope) => {
             if (privilegedScopes.includes(scope)) {
               isPrivileged = true;
@@ -424,24 +436,24 @@ async function addAdminScopes({
   let addScopes = [];
   if (
     modClient.coreOAuth2ClientConfig.scopes &&
-    (modClient.coreOAuth2ClientConfig.scopes as WritableStrings).value
+    (modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>).value
   ) {
     addScopes = allAdminScopes.filter((scope) => {
       let add = false;
       if (
         !(
-          modClient.coreOAuth2ClientConfig.scopes as WritableStrings
+          modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>
         ).value.includes(scope)
       ) {
         add = true;
       }
       return add;
     });
-    (modClient.coreOAuth2ClientConfig.scopes as WritableStrings).value = (
-      modClient.coreOAuth2ClientConfig.scopes as WritableStrings
+    (modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>).value = (
+      modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>
     ).value.concat(addScopes);
   } else {
-    (modClient.coreOAuth2ClientConfig.scopes as WritableStrings).value =
+    (modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>).value =
       allAdminScopes;
   }
   let addDefaultScope = false;
@@ -486,24 +498,26 @@ function addClientCredentialsGrantType({
   let modified = false;
   if (
     modClient.advancedOAuth2ClientConfig.grantTypes &&
-    (modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings).value
+    (modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>)
+      .value
   ) {
     if (
       !(
-        modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings
+        modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>
       ).value.includes('client_credentials')
     ) {
       modified = true;
       (
-        modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings
+        modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>
       ).value.push('client_credentials');
     }
   } else {
-    (modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings).value =
-      ['client_credentials'];
+    (
+      modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>
+    ).value = ['client_credentials'];
   }
   (
-    modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings
+    modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>
   ).inherited = false;
   if (modified) {
     printMessage({
@@ -694,8 +708,14 @@ export async function grantOAuth2ClientAdminPrivileges({
   state: State;
 }) {
   let client = await readOAuth2Client({ clientId, state });
-  if (client.coreOAuth2ClientConfig.clientName.value.length === 0) {
-    client.coreOAuth2ClientConfig.clientName.value = [clientId];
+  if (
+    (client.coreOAuth2ClientConfig.clientName as Readable<string[]>).length ===
+    0
+  ) {
+    client.coreOAuth2ClientConfig.clientName = {
+      inherited: false,
+      value: [clientId],
+    };
   }
   if (
     client.advancedOAuth2ClientConfig.descriptions.value.length === 0 ||
@@ -732,21 +752,21 @@ async function removeAdminScopes({
   let finalScopes = [];
   if (
     modClient.coreOAuth2ClientConfig.scopes &&
-    (modClient.coreOAuth2ClientConfig.scopes as WritableStrings).value
+    (modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>).value
   ) {
     finalScopes = (
-      modClient.coreOAuth2ClientConfig.scopes as WritableStrings
+      modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>
     ).value.filter((scope) => !allAdminScopes.includes(scope));
   }
   if (
-    (modClient.coreOAuth2ClientConfig.scopes as WritableStrings).value.length >
-    finalScopes.length
+    (modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>).value
+      .length > finalScopes.length
   ) {
     printMessage({
       message: `Removing admin scopes from client "${name}"...`,
       state,
     });
-    (modClient.coreOAuth2ClientConfig.scopes as WritableStrings).value =
+    (modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>).value =
       finalScopes;
   } else {
     printMessage({ message: `Client "${name}" has no admin scopes.`, state });
@@ -793,22 +813,24 @@ function removeClientCredentialsGrantType({
   let finalGrantTypes = [];
   if (
     modClient.advancedOAuth2ClientConfig.grantTypes &&
-    (modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings).value
+    (modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>)
+      .value
   ) {
     finalGrantTypes = (
-      modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings
+      modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>
     ).value.filter((grantType) => grantType !== 'client_credentials');
     modified =
-      (modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings).value
-        .length > finalGrantTypes.length;
+      (modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>)
+        .value.length > finalGrantTypes.length;
   }
   if (modified) {
     printMessage({
       message: `Removing client credentials grant type from client "${clientId}"...`,
       state,
     });
-    (modClient.advancedOAuth2ClientConfig.grantTypes as WritableStrings).value =
-      finalGrantTypes;
+    (
+      modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>
+    ).value = finalGrantTypes;
   } else {
     printMessage({
       message: `Client "${clientId}" does not allow client credentials grant type.`,
@@ -889,8 +911,14 @@ export async function revokeOAuth2ClientAdminPrivileges({
   state: State;
 }) {
   let client = await readOAuth2Client({ clientId, state });
-  if (client.coreOAuth2ClientConfig.clientName.value.length === 0) {
-    client.coreOAuth2ClientConfig.clientName.value = [clientId];
+  if (
+    (client.coreOAuth2ClientConfig.clientName as Readable<string[]>).length ===
+    0
+  ) {
+    client.coreOAuth2ClientConfig.clientName = {
+      inherited: false,
+      value: [clientId],
+    };
   }
   if (
     client.advancedOAuth2ClientConfig.descriptions.value.length === 0 ||
@@ -920,7 +948,7 @@ export async function createOAuth2ClientWithAdminPrivileges({
   clientSecret: string;
   state: State;
 }) {
-  let client = OAUTH2_CLIENT;
+  let client = cloneDeep(OAUTH2_CLIENT);
   client.coreOAuth2ClientConfig.userpassword = clientSecret;
   client.coreOAuth2ClientConfig.clientName.value = [clientId];
   client.advancedOAuth2ClientConfig.descriptions.value = [
@@ -959,9 +987,13 @@ export async function createLongLivedToken({
   client.userpassword = clientSecret;
   // remember current lifetime
   const rememberedLifetime =
-    client.coreOAuth2ClientConfig.accessTokenLifetime.value || 3600;
+    (client.coreOAuth2ClientConfig.accessTokenLifetime as Readable<number>) ||
+    3600;
   // set long token lifetime
-  client.coreOAuth2ClientConfig.accessTokenLifetime.value = lifetime;
+  client.coreOAuth2ClientConfig.accessTokenLifetime = {
+    inherited: false,
+    value: lifetime,
+  };
   await updateOAuth2Client({ clientId, clientData: client, state });
   const response = await clientCredentialsGrant({
     amBaseUrl: state.getHost(),
@@ -971,9 +1003,12 @@ export async function createLongLivedToken({
     state,
   });
   const expires = new Date().getTime() + 1000 * response.expires_in;
-  response.expires_on = new Date(expires).toLocaleString();
+  response['expires_on'] = new Date(expires).toLocaleString();
   // reset token lifetime
-  client.coreOAuth2ClientConfig.accessTokenLifetime.value = rememberedLifetime;
+  client.coreOAuth2ClientConfig.accessTokenLifetime = {
+    inherited: false,
+    value: rememberedLifetime,
+  };
   await updateOAuth2Client({ clientId, clientData: client, state });
   // create secret with token as value
   if (secret) {
@@ -985,7 +1020,7 @@ export async function createLongLivedToken({
         description,
         state,
       });
-      response.secret = secret;
+      response['secret'] = secret;
     } catch (error) {
       if (
         get(error, ['response', 'data', 'code']) === 400 &&
@@ -1004,7 +1039,7 @@ export async function createLongLivedToken({
           description,
           state,
         });
-        response.secret = newSecret;
+        response['secret'] = newSecret;
       }
     }
     delete response.access_token;
@@ -1497,6 +1532,176 @@ export async function trainAA({
       // }
     }
   }
+}
+
+function getAccessTokenUrl(state: State) {
+  const accessTokenUrlTemplate = '%s/oauth2%s/access_token';
+  const accessTokenURL = util.format(
+    accessTokenUrlTemplate,
+    state.getHost(),
+    getCurrentRealmPath(state)
+  );
+  const url = new URL(accessTokenURL);
+  const urlWithPort = `${url.protocol}//${url.host}:${
+    url.port ? url.port : url.protocol === 'https:' ? '443' : '80'
+  }${url.pathname}`;
+  return urlWithPort;
+}
+
+export async function generateRfc7523ClientAuthNArtifacts({
+  clientId,
+  jwk = null,
+  exp = 60 * 5,
+  options = {
+    saveClient: true,
+  },
+  state,
+}: {
+  clientId: string;
+  jwk?: JwkRsa;
+  exp?: number;
+  options?: { saveClient: boolean };
+  state: State;
+}): Promise<{
+  jwk: JwkRsa;
+  jwks: JwksInterface;
+  jwt: any;
+  client: OAuth2ClientSkeleton;
+}> {
+  if (!jwk) {
+    jwk = await createJwkRsa();
+  }
+
+  // create header and payload
+  const jwks = createJwks(await getJwkRsaPublic(jwk));
+  const sub = clientId;
+  const iss = clientId;
+  const aud = getAccessTokenUrl(state);
+
+  const payload = {
+    iss,
+    sub,
+    aud,
+    exp,
+  };
+
+  // create and sign JWT
+  const jwt = createSignedJwtToken(payload, jwk);
+
+  // create oauth2 client
+  const clientData: OAuth2ClientSkeleton = cloneDeep(OAUTH2_CLIENT);
+  clientData.coreOAuth2ClientConfig.clientType = {
+    inherited: false,
+    value: 'Confidential',
+  };
+  clientData.advancedOAuth2ClientConfig.grantTypes = {
+    inherited: false,
+    value: ['client_credentials'],
+  };
+  clientData.advancedOAuth2ClientConfig.isConsentImplied = {
+    inherited: false,
+    value: false,
+  };
+  clientData.advancedOAuth2ClientConfig.tokenEndpointAuthMethod = {
+    inherited: false,
+    value: 'private_key_jwt',
+  };
+  clientData.signEncOAuth2ClientConfig.publicKeyLocation = {
+    inherited: false,
+    value: 'jwks',
+  };
+  clientData.signEncOAuth2ClientConfig.jwkSet = {
+    inherited: false,
+    value: JSON.stringify(jwks),
+  };
+  if (options.saveClient) {
+    await updateOAuth2Client({ clientId, clientData, state });
+  }
+
+  return {
+    jwk,
+    jwks,
+    jwt,
+    client: clientData,
+  };
+}
+
+export async function generateRfc7523AuthZGrantArtifacts({
+  clientId,
+  jwk = null,
+  sub,
+  iss,
+  exp = 60 * 30,
+  options = { saveClient: true },
+  state,
+}: {
+  clientId: string;
+  jwk: JwkRsa;
+  sub: string;
+  iss: string;
+  exp?: number;
+  options?: { saveClient: boolean };
+  state: State;
+}): Promise<{
+  jwk: JwkRsa;
+  jwks: JwksInterface;
+  jwt: any;
+  client: OAuth2ClientSkeleton;
+}> {
+  if (!jwk) {
+    jwk = await createJwkRsa();
+  }
+
+  // create header and payload
+  const jwks = createJwks(await getJwkRsaPublic(jwk));
+  const aud = getAccessTokenUrl(state);
+
+  const payload = {
+    iss,
+    sub,
+    aud,
+    exp,
+  };
+
+  // create and sign JWT
+  const jwt = createSignedJwtToken(payload, jwk);
+
+  // create oauth2 client
+  const clientData: OAuth2ClientSkeleton = cloneDeep(OAUTH2_CLIENT);
+  clientData.coreOAuth2ClientConfig.clientType = {
+    inherited: false,
+    value: 'Public',
+  };
+  clientData.advancedOAuth2ClientConfig.grantTypes = {
+    inherited: false,
+    value: ['urn:ietf:params:oauth:grant-type:jwt-bearer'],
+  };
+  clientData.advancedOAuth2ClientConfig.isConsentImplied = {
+    inherited: false,
+    value: true,
+  };
+  clientData.advancedOAuth2ClientConfig.tokenEndpointAuthMethod = {
+    inherited: false,
+    value: 'none',
+  };
+  clientData.signEncOAuth2ClientConfig.publicKeyLocation = {
+    inherited: false,
+    value: 'jwks',
+  };
+  clientData.signEncOAuth2ClientConfig.jwkSet = {
+    inherited: false,
+    value: JSON.stringify(jwks),
+  };
+  if (options.saveClient) {
+    await updateOAuth2Client({ clientId, clientData, state });
+  }
+
+  return {
+    jwk,
+    jwks,
+    jwt,
+    client: clientData,
+  };
 }
 
 // suggested by John K.

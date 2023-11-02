@@ -4,7 +4,6 @@ import url from 'url';
 import { v4 } from 'uuid';
 
 import { step } from '../api/AuthenticateApi';
-import { accessToken, authorize } from '../api/OAuth2OIDCApi';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
@@ -14,18 +13,27 @@ import { isValidUrl, parseUrl } from '../utils/ExportImportUtils';
 import { getServiceAccount } from './cloud/ServiceAccountOps';
 import { getConnectionProfile } from './ConnectionProfileOps';
 import { createSignedJwtToken, JwkRsa } from './JoseOps';
+import {
+  accessToken,
+  type AccessTokenMetaType,
+  authorize,
+} from './OAuth2OidcOps';
+import { getSessionInfo } from './SessionOps';
+import {
+  hasSaBearerToken,
+  hasUserBearerToken,
+  hasUserSessionToken,
+  readSaBearerToken,
+  readUserBearerToken,
+  readUserSessionToken,
+  saveSaBearerToken,
+  saveUserBearerToken,
+  saveUserSessionToken,
+} from './TokenCacheOps';
 
 export type Authenticate = {
   /**
-   * Get access token for service account
-   * @returns {string | null} Access token or null
-   */
-  getAccessTokenForServiceAccount(
-    saId?: string,
-    saJwk?: JwkRsa
-  ): Promise<string | null>;
-  /**
-   * Get tokens
+   * Get tokens and stores them in State
    * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
    * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
    * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
@@ -34,18 +42,42 @@ export type Authenticate = {
     forceLoginAsUser?: boolean,
     autoRefresh?: boolean
   ): Promise<boolean>;
+
+  // Deprecated
+  /**
+   * Get access token for service account
+   * @param {string} saId optional service account id
+   * @param {JwkRsa} saJwk optional service account JWK
+   * @returns {string | null} Access token or null
+   * @deprecated since v2.0.0 use {@link Authenticate.getTokens | getTokens} instead
+   * ```javascript
+   * getTokens(): Promise<boolean>
+   * ```
+   * @group Deprecated
+   */
+  getAccessTokenForServiceAccount(
+    saId?: string,
+    saJwk?: JwkRsa
+  ): Promise<string | null>;
 };
 
 export default (state: State): Authenticate => {
   return {
+    async getTokens(forceLoginAsUser = false, autoRefresh = true) {
+      return getTokens({ forceLoginAsUser, autoRefresh, state });
+    },
+
+    // Deprecated
     async getAccessTokenForServiceAccount(
       saId: string = undefined,
       saJwk: JwkRsa = undefined
     ): Promise<string | null> {
-      return getAccessTokenForServiceAccount({ saId, saJwk, state });
-    },
-    getTokens(forceLoginAsUser = false, autoRefresh = true) {
-      return getTokens({ forceLoginAsUser, autoRefresh, state });
+      const { access_token } = await getFreshSaBearerToken({
+        saId,
+        saJwk,
+        state,
+      });
+      return access_token;
     },
   };
 };
@@ -303,13 +335,28 @@ function getSemanticVersion(versionInfo) {
   throw new Error('Cannot extract semantic version from version info object.');
 }
 
+export type UserSessionMetaType = {
+  tokenId: string;
+  successUrl: string;
+  realm: string;
+  expires: number;
+  from_cache?: boolean;
+};
+
 /**
  * Helper function to authenticate and obtain and store session cookie
  * @param {State} state library state
  * @returns {string} Session token or null
  */
-async function authenticate(state: State): Promise<string> {
-  debugMessage({ message: `AuthenticateOps.authenticate: start`, state });
+async function getFreshUserSessionToken({
+  state,
+}: {
+  state: State;
+}): Promise<UserSessionMetaType> {
+  debugMessage({
+    message: `AuthenticateOps.getFreshUserSessionToken: start`,
+    state,
+  });
   const config = {
     headers: {
       'X-OpenAM-Username': state.getUsername(),
@@ -335,18 +382,73 @@ async function authenticate(state: State): Promise<string> {
     }
 
     if ('tokenId' in response) {
-      debugMessage({
-        message: `AuthenticateOps.authenticate: end [tokenId=${response['tokenId']}]`,
+      response['from_cache'] = false;
+      // get session expiration
+      const sessionInfo = await getSessionInfo({
+        tokenId: response['tokenId'],
         state,
       });
-      return response['tokenId'] as string;
+      response['expires'] = Date.parse(sessionInfo.maxIdleExpirationTime);
+      debugMessage({
+        message: `AuthenticateOps.getFreshUserSessionToken: end [tokenId=${response['tokenId']}]`,
+        state,
+      });
+      debugMessage({
+        message: response,
+        state,
+      });
+      return response as UserSessionMetaType;
     }
   } while (skip2FA.nextStep && steps < maxSteps);
   debugMessage({
-    message: `AuthenticateOps.authenticate: end [no session]`,
+    message: `AuthenticateOps.getFreshUserSessionToken: end [no session]`,
     state,
   });
   return null;
+}
+
+/**
+ * Helper function to obtain user session token
+ * @param {State} state library state
+ * @returns {Promise<UserSessionMetaType>} session token or null
+ */
+async function getUserSessionToken(state: State): Promise<UserSessionMetaType> {
+  debugMessage({
+    message: `AuthenticateOps.getUserSessionToken: start`,
+    state,
+  });
+  let token: UserSessionMetaType = null;
+  if (state.getUseTokenCache() && (await hasUserSessionToken({ state }))) {
+    try {
+      token = await readUserSessionToken({ state });
+      token.from_cache = true;
+      debugMessage({
+        message: `AuthenticateOps.getUserSessionToken: cached`,
+        state,
+      });
+    } catch (error) {
+      debugMessage({
+        message: `AuthenticateOps.getUserSessionToken: failed cache read`,
+        state,
+      });
+    }
+  }
+  if (!token) {
+    token = await getFreshUserSessionToken({ state });
+    token.from_cache = false;
+    debugMessage({
+      message: `AuthenticateOps.getUserSessionToken: fresh`,
+      state,
+    });
+  }
+  if (state.getUseTokenCache()) {
+    await saveUserSessionToken({ token, state });
+  }
+  debugMessage({
+    message: `AuthenticateOps.getUserSessionToken: end`,
+    state,
+  });
+  return token;
 }
 
 /**
@@ -421,9 +523,13 @@ async function getAuthCode(
 /**
  * Helper function to obtain oauth2 access token
  * @param {State} state library state
- * @returns {Promise<string | null>} access token or null
+ * @returns {Promise<AccessTokenMetaType>} access token or null
  */
-async function getAccessTokenForUser(state: State): Promise<string | null> {
+async function getFreshUserBearerToken({
+  state,
+}: {
+  state: State;
+}): Promise<AccessTokenMetaType> {
   debugMessage({
     message: `AuthenticateOps.getAccessTokenForUser: start`,
     state,
@@ -449,7 +555,7 @@ async function getAccessTokenForUser(state: State): Promise<string | null> {
       });
       return null;
     }
-    let response = null;
+    let response: AccessTokenMetaType = null;
     if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
       const config = {
         auth: {
@@ -473,12 +579,12 @@ async function getAccessTokenForUser(state: State): Promise<string | null> {
         state,
       });
     }
-    if ('access_token' in response.data) {
+    if ('access_token' in response) {
       debugMessage({
         message: `AuthenticateOps.getAccessTokenForUser: end with token`,
         state,
       });
-      return response.data.access_token;
+      return response;
     }
     printMessage({
       message: 'No access token in response.',
@@ -497,6 +603,46 @@ async function getAccessTokenForUser(state: State): Promise<string | null> {
     state,
   });
   return null;
+}
+
+/**
+ * Helper function to obtain oauth2 access token
+ * @param {State} state library state
+ * @returns {Promise<AccessTokenMetaType>} access token or null
+ */
+async function getUserBearerToken(state: State): Promise<AccessTokenMetaType> {
+  debugMessage({
+    message: `AuthenticateOps.getUserBearerToken: start`,
+    state,
+  });
+  let token: AccessTokenMetaType = null;
+  if (state.getUseTokenCache() && (await hasUserBearerToken({ state }))) {
+    try {
+      token = await readUserBearerToken({ state });
+      token.from_cache = true;
+      debugMessage({
+        message: `AuthenticateOps.getUserBearerToken: end [cached]`,
+        state,
+      });
+    } catch (error) {
+      debugMessage({
+        message: `AuthenticateOps.getUserBearerToken: end [failed cache read]`,
+        state,
+      });
+    }
+  }
+  if (!token) {
+    token = await getFreshUserBearerToken({ state });
+    token.from_cache = false;
+    debugMessage({
+      message: `AuthenticateOps.getUserBearerToken: end [fresh]`,
+      state,
+    });
+  }
+  if (state.getUseTokenCache()) {
+    await saveUserBearerToken({ token, state });
+  }
+  return token;
 }
 
 function createPayload(serviceAccountId: string, host: string) {
@@ -521,11 +667,11 @@ function createPayload(serviceAccountId: string, host: string) {
 }
 
 /**
- * Get access token for service account
+ * Get fresh access token for service account
  * @param {State} state library state
- * @returns {string | null} Access token or null
+ * @returns {Promise<AccessTokenResponseType>} response object containg token, scope, type, and expiration in seconds
  */
-export async function getAccessTokenForServiceAccount({
+export async function getFreshSaBearerToken({
   saId = undefined,
   saJwk = undefined,
   state,
@@ -533,25 +679,15 @@ export async function getAccessTokenForServiceAccount({
   saId?: string;
   saJwk?: JwkRsa;
   state: State;
-}): Promise<string | null> {
+}): Promise<AccessTokenMetaType> {
+  debugMessage({
+    message: `AuthenticateOps.getFreshSaBearerToken: start`,
+    state,
+  });
   saId = saId ? saId : state.getServiceAccountId();
   saJwk = saJwk ? saJwk : state.getServiceAccountJwk();
-  debugMessage({
-    message: `AuthenticateOps.getAccessTokenForServiceAccount: start`,
-    state,
-  });
   const payload = createPayload(saId, state.getHost());
-  debugMessage({
-    message: `AuthenticateOps.getAccessTokenForServiceAccount: payload:`,
-    state,
-  });
-  debugMessage({ message: payload, state });
   const jwt = await createSignedJwtToken(payload, saJwk);
-  debugMessage({
-    message: `AuthenticateOps.getAccessTokenForServiceAccount: jwt:`,
-    state,
-  });
-  debugMessage({ message: jwt, state });
   const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${serviceAccountScopes}`;
   const response = await accessToken({
     amBaseUrl: state.getHost(),
@@ -559,31 +695,62 @@ export async function getAccessTokenForServiceAccount({
     config: {},
     state,
   });
-  if ('access_token' in response.data) {
+  if ('access_token' in response) {
     debugMessage({
-      message: `AuthenticateOps.getAccessTokenForServiceAccount: token:`,
+      message: `AuthenticateOps.getFreshSaBearerToken: end`,
       state,
     });
-    debugMessage({ message: response.data.access_token, state });
-    debugMessage({
-      message: `AuthenticateOps.getAccessTokenForServiceAccount: expires: ${response.data.expires_in}`,
-      state,
-    });
-    debugMessage({
-      message: `AuthenticateOps.getAccessTokenForServiceAccount: end`,
-      state,
-    });
-    return response.data.access_token;
+    return response;
   }
   debugMessage({
-    message: `AuthenticateOps.getAccessTokenForServiceAccount: No access token in response.`,
-    state,
-  });
-  debugMessage({
-    message: `AuthenticateOps.getAccessTokenForServiceAccount: end`,
+    message: `AuthenticateOps.getFreshSaBearerToken: end [No access token in response]`,
     state,
   });
   return null;
+}
+
+/**
+ * Get cached or fresh access token for service account
+ * @param {State} state library state
+ * @returns {Promise<AccessTokenResponseType>} response object containg token, scope, type, and expiration in seconds
+ */
+export async function getSaBearerToken({
+  state,
+}: {
+  state: State;
+}): Promise<AccessTokenMetaType> {
+  debugMessage({
+    message: `AuthenticateOps.getSaBearerToken: start`,
+    state,
+  });
+  let token: AccessTokenMetaType = null;
+  if (state.getUseTokenCache() && (await hasSaBearerToken({ state }))) {
+    try {
+      token = await readSaBearerToken({ state });
+      token.from_cache = true;
+      debugMessage({
+        message: `AuthenticateOps.getSaBearerToken: end [cached]`,
+        state,
+      });
+    } catch (error) {
+      debugMessage({
+        message: `AuthenticateOps.getSaBearerToken: end [failed cache read]`,
+        state,
+      });
+    }
+  }
+  if (!token) {
+    token = await getFreshSaBearerToken({ state });
+    token.from_cache = false;
+    debugMessage({
+      message: `AuthenticateOps.getSaBearerToken: end [fresh]`,
+      state,
+    });
+  }
+  if (state.getUseTokenCache()) {
+    await saveSaBearerToken({ token, state });
+  }
+  return token;
 }
 
 /**
@@ -654,36 +821,46 @@ function scheduleAutoRefresh(
   state: State
 ) {
   let timer = state.getAutoRefreshTimer();
-  // reset existing timer
+  // clear existing timer
   if (timer) {
-    if (autoRefresh) {
-      debugMessage({
-        message: `AuthenticateOps.scheduleAutoRefresh: reset existing timer`,
-        state,
-      });
-      timer.refresh();
-    } else {
-      debugMessage({
-        message: `AuthenticateOps.scheduleAutoRefresh: cancel existing timer`,
-        state,
-      });
-      clearInterval(timer);
-    }
-  }
-  // new timer
-  else if (autoRefresh) {
     debugMessage({
-      message: `AuthenticateOps.scheduleAutoRefresh: set new timer`,
+      message: `AuthenticateOps.scheduleAutoRefresh: cancel existing timer`,
       state,
     });
-    timer = setInterval(getTokens, 1000 * 10, {
+    clearTimeout(timer);
+  }
+  // new timer
+  if (autoRefresh) {
+    const expires = state.getUseBearerTokenForAmApis()
+      ? state.getBearerTokenMeta()?.expires
+      : Math.min(
+          state.getBearerTokenMeta()?.expires,
+          state.getUserSessionTokenMeta()?.expires
+        );
+    const timeout = expires - Date.now() - 1000 * 25;
+    if (timeout < 1000 * 30) {
+      throw new Error(
+        `Auto-refresh scheduling error: timeout below threshold of 30 seconds: ${Math.ceil(
+          timeout
+        )}`
+      );
+    }
+    debugMessage({
+      message: `AuthenticateOps.scheduleAutoRefresh: set new timer [${Math.floor(
+        timeout / 1000
+      )}s (${new Date(timeout).getMinutes()}m ${new Date(
+        timeout
+      ).getSeconds()}s)]`,
+      state,
+    });
+    timer = setTimeout(getTokens, timeout, {
       forceLoginAsUser,
       autoRefresh,
       state,
       // Volker's Visual Studio Code doesn't want to have it any other way.
     }) as unknown as NodeJS.Timeout;
-    timer.unref();
     state.setAutoRefreshTimer(timer);
+    timer.unref();
   }
 }
 
@@ -760,13 +937,13 @@ export async function getTokens({
         state,
       });
       try {
-        const token = await getAccessTokenForServiceAccount({ state });
-        state.setBearerToken(token);
+        const token = await getSaBearerToken({ state });
+        state.setBearerTokenMeta(token);
         state.setUseBearerTokenForAmApis(true);
         await determineDeploymentTypeAndDefaultRealmAndVersion(state);
       } catch (saErr) {
         debugMessage({ message: saErr.response?.data || saErr, state });
-        debugMessage({ message: state, state });
+        debugMessage({ message: state.getState(), state });
         throw new Error(
           `Service account login error: ${
             saErr.response?.data?.error_description ||
@@ -782,17 +959,17 @@ export async function getTokens({
         message: `AuthenticateOps.getTokens: Authenticating with user account ${state.getUsername()}`,
         state,
       });
-      const token = await authenticate(state);
-      if (token) state.setCookieValue(token);
+      const token = await getUserSessionToken(state);
+      if (token) state.setUserSessionTokenMeta(token);
       await determineDeploymentTypeAndDefaultRealmAndVersion(state);
       if (
         state.getCookieValue() &&
-        !state.getBearerToken() &&
+        // !state.getBearerToken() &&
         (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
           state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY)
       ) {
-        const accessToken = await getAccessTokenForUser(state);
-        if (accessToken) state.setBearerToken(accessToken);
+        const accessToken = await getUserBearerToken(state);
+        if (accessToken) state.setBearerTokenMeta(accessToken);
       }
     }
     // incomplete or no credentials
@@ -808,7 +985,15 @@ export async function getTokens({
       state.getCookieValue() ||
       (state.getUseBearerTokenForAmApis() && state.getBearerToken())
     ) {
-      // https://github.com/rockcarver/frodo-cli/issues/102
+      if (state.getBearerTokenMeta()?.from_cache) {
+        verboseMessage({ message: `Using cached bearer token.`, state });
+      }
+      if (
+        !state.getUseBearerTokenForAmApis() &&
+        state.getUserSessionTokenMeta()?.from_cache
+      ) {
+        verboseMessage({ message: `Using cached session token.`, state });
+      }
       printMessage({
         message: `Connected to ${state.getHost()} [${
           state.getRealm() ? state.getRealm() : 'root'
