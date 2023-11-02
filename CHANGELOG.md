@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+-   \#53: Frodo Library now uses a file-based secure token cache to persist session and access tokens for re-use. The cached tokens are protected by the credential that was used to obtain them. Session tokens are encrypted using the hashed password as the master key, access tokens are encrypted using the hashed JWK private key as the master key. Therefore only users and processes with the correct credentials can access the tokens in the cache.
+    
+    - There is a new TokenCache module with accessible functions for frodo clients (like frodo-cli) to use.
+    - The State module has been extended to host meta data like expiration time for sessions and tokens and a new boolean field indicating if the library should make use of the new token cache or not: `state.getUseTokenCache(): boolean` and `state.setUseTokenCache(useTokenCache: boolean): void`.
+    - The new default behavior is to always use the new token cache.
+
+-   \#340: Frodo Library now autotomatically refreshes expired session and access tokens.
+
+    - The new default behavior is to automatically refresh tokens. However, if an application prefers to handle that on its own, it can call the `frodo.login.getTokens()` functino with a new `autoRefresh: boolean` parameter.
+
 ### Fixed
 
 -   rockcarver/frodo-cli#316: Frodo Library now properly exports scripts referenced by the `Device Match` node if the `Use Custom Matching Script` option is selected.
