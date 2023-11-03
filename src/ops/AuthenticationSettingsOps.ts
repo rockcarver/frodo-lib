@@ -8,7 +8,7 @@ import { debugMessage } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { type ExportMetaData } from './OpsTypes';
 
-export type Idp = {
+export type AuthenticationSettings = {
   /**
    * Read authentication settings
    * @returns {Promise<AuthenticationSettingsSkeleton>} a promise that resolves an authentication settings object
@@ -36,7 +36,7 @@ export type Idp = {
   ): Promise<AuthenticationSettingsSkeleton>;
 };
 
-export default (state: State): Idp => {
+export default (state: State): AuthenticationSettings => {
   return {
     async readAuthenticationSettings() {
       return readAuthenticationSettings({ state });
@@ -89,8 +89,8 @@ export async function readAuthenticationSettings({
 }: {
   state: State;
 }): Promise<AuthenticationSettingsSkeleton> {
-  const { result } = await _getAuthenticationSettings({ state });
-  return result;
+  const settings = await _getAuthenticationSettings({ state });
+  return settings;
 }
 
 export async function updateAuthenticationSettings({
@@ -139,23 +139,6 @@ export async function exportAuthenticationSettings({
 }
 
 /**
- * Export authentication settings
- * @returns {Promise<AuthenticationSettingsExportInterface>} a promise that resolves to a AuthenticationSettingsExportInterface object
- */
-export async function exportSocialProviders({
-  state,
-}: {
-  state: State;
-}): Promise<AuthenticationSettingsExportInterface> {
-  const exportData = createAuthenticationSettingsExportTemplate({ state });
-  const settingsData = await readAuthenticationSettings({
-    state,
-  });
-  exportData.authentication = settingsData;
-  return exportData;
-}
-
-/**
  * Import authentication settings
  * @param {AuthenticationSettingsExportInterface} importData import data
  * @returns {Promise<AuthenticationSettingsSkeleton>} a promise resolving to a authentication settings object
@@ -178,7 +161,20 @@ export async function importAuthenticationSettings({
     errors.push(error);
   }
   if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
+    const errorMessages = errors
+      .map(
+        (error) =>
+          `${error.response?.status}${
+            error.response?.data['reason']
+              ? ' ' + error.response?.data['reason']
+              : ''
+          }${
+            error.response?.data['message']
+              ? ' - ' + error.response?.data['message']
+              : ''
+          }`
+      )
+      .join('\n');
     throw new Error(`Import error:\n${errorMessages}`);
   }
   return response;
