@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-48] - 2023-11-04
+
 ### Added
 
 -   rockcarver/frodo-cli#217: Support for authentication settings through new `frodo.authn.settings` module.
@@ -1316,7 +1318,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-47...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-48...HEAD
+
+[2.0.0-48]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-47...v2.0.0-48
 
 [2.0.0-47]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-46...v2.0.0-47
 
