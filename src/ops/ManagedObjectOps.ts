@@ -9,6 +9,7 @@ import {
   queryAllManagedObjectsByType,
   queryManagedObjects as _queryManagedObjects,
 } from '../api/ManagedObjectApi';
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 
 export type ManagedObject = {
@@ -107,6 +108,12 @@ export type ManagedObject = {
    * @returns {Promise<string>} resolved full name or uuid if any error occurs during reslution
    */
   resolveFullName(type: string, id: string): Promise<string>;
+  /**
+   * Resolve a perpetrator's uuid to a human readable string identifying the perpetrator
+   * @param {string} id managed object _id
+   * @returns {Promise<string>} resolved perpetrator descriptive string or uuid if any error occurs during reslution
+   */
+  resolvePerpetratorUuid(id: string): Promise<string>;
 };
 
 export default (state: State): ManagedObject => {
@@ -170,6 +177,9 @@ export default (state: State): ManagedObject => {
     },
     async resolveFullName(type: string, id: string) {
       return resolveFullName({ type, id, state });
+    },
+    async resolvePerpetratorUuid(id: string): Promise<string> {
+      return resolvePerpetratorUuid({ id, state });
     },
   };
 };
@@ -337,6 +347,84 @@ export async function resolveFullName({
       state,
     });
     return `${managedObject.givenName} ${managedObject.sn}`;
+  } catch (error) {
+    // ignore
+  }
+  return id;
+}
+
+export async function resolvePerpetratorUuid({
+  id,
+  state,
+}: {
+  id: string;
+  state: State;
+}): Promise<string> {
+  try {
+    if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
+      const lookupPromises: Promise<IdObjectSkeletonInterface>[] = [];
+      lookupPromises.push(
+        _getManagedObject({
+          type: 'teammember',
+          id,
+          fields: ['givenName', 'sn', 'userName'],
+          state,
+        })
+      );
+      lookupPromises.push(
+        _getManagedObject({
+          type: 'svcacct',
+          id,
+          fields: ['name', 'description'],
+          state,
+        })
+      );
+      lookupPromises.push(
+        _getManagedObject({
+          type: 'alpha_user',
+          id,
+          fields: ['givenName', 'sn', 'userName'],
+          state,
+        })
+      );
+      lookupPromises.push(
+        _getManagedObject({
+          type: 'bravo_user',
+          id,
+          fields: ['givenName', 'sn', 'userName'],
+          state,
+        })
+      );
+      const lookupResults = await Promise.allSettled(lookupPromises);
+      // tenant admin
+      if (lookupResults[0].status === 'fulfilled') {
+        const admin = lookupResults[0].value;
+        return `Admin user: ${admin.givenName} ${admin.sn} (${admin.userName})`;
+      }
+      // service account
+      if (lookupResults[1].status === 'fulfilled') {
+        const sa = lookupResults[1].value;
+        return `Service account: ${sa.name} (${sa.description})`;
+      }
+      // alpha user
+      if (lookupResults[2].status === 'fulfilled') {
+        const user = lookupResults[2].value;
+        return `Alpha user: ${user.givenName} ${user.sn} (${user.userName})`;
+      }
+      // bravo user
+      if (lookupResults[3].status === 'fulfilled') {
+        const user = lookupResults[3].value;
+        return `Bravo user:${user.givenName} ${user.sn} (${user.userName})`;
+      }
+    } else {
+      const user = await _getManagedObject({
+        type: 'user',
+        id,
+        fields: ['givenName', 'sn', 'userName'],
+        state,
+      });
+      return `${user.givenName} ${user.sn} (${user.userName})`;
+    }
   } catch (error) {
     // ignore
   }

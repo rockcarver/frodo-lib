@@ -3,6 +3,9 @@ import AdminOps, { Admin } from '../ops/AdminOps';
 import AgentOps, { Agent } from '../ops/AgentOps';
 import ApplicationOps, { Application } from '../ops/ApplicationOps';
 import AuthenticateOps, { Authenticate } from '../ops/AuthenticateOps';
+import AuthenticationSettingsOps, {
+  AuthenticationSettings,
+} from '../ops/AuthenticationSettingsOps';
 import CirclesOfTrustOps, { CirclesOfTrust } from '../ops/CirclesOfTrustOps';
 import AdminFederationOps, {
   AdminFederation,
@@ -67,6 +70,7 @@ export type Frodo = {
   authn: {
     journey: Journey;
     node: Node;
+    settings: AuthenticationSettings;
   };
 
   authz: {
@@ -204,6 +208,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     authn: {
       journey: JourneyOps(state),
       node: NodeOps(state),
+      settings: AuthenticationSettingsOps(state),
     },
 
     authz: {

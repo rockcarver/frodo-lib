@@ -28,7 +28,11 @@ export type AuthenticationSettingsSkeleton = IdObjectSkeletonInterface & {
  * Get authentication settings
  * @returns {Promise<AuthenticationSettingsSkeleton>} a promise that resolves to an authentication settings object
  */
-export async function getAuthenticationSettings({ state }: { state: State }) {
+export async function getAuthenticationSettings({
+  state,
+}: {
+  state: State;
+}): Promise<AuthenticationSettingsSkeleton> {
   debugMessage({
     message: `AuthenticationSettingsApi.getAuthenticationSettings: start`,
     state,
