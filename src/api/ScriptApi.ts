@@ -155,8 +155,8 @@ export async function putScript({
 
 /**
  * Delete script by id
- * @param {String} scriptId script uuid/name
- * @returns {Promise} a promise that resolves to a script object
+ * @param {String} scriptId script uuid
+ * @returns {Promise<ScriptSkeleton>>} a promise that resolves to a script object
  */
 export async function deleteScript({
   scriptId,
@@ -164,7 +164,7 @@ export async function deleteScript({
 }: {
   scriptId: string;
   state: State;
-}) {
+}): Promise<ScriptSkeleton> {
   const urlString = util.format(
     scriptURLTemplate,
     state.getHost(),
@@ -178,4 +178,60 @@ export async function deleteScript({
     withCredentials: true,
   });
   return data;
+}
+
+/**
+ * Delete script by name
+ * @param {String} scriptId script name
+ * @returns {Promise<ScriptSkeleton>} a promise that resolves to a script object
+ */
+export async function deleteScriptByName({
+  scriptName,
+  state,
+}: {
+  scriptName: string;
+  state: State;
+}): Promise<ScriptSkeleton> {
+  const { result } = await getScriptByName({ scriptName, state });
+  if (!result[0]) {
+    throw new Error(`Script with name ${scriptName} does not exist.`);
+  }
+  const scriptId = result[0]._id;
+  return deleteScript({
+    scriptId,
+    state,
+  });
+}
+
+/**
+ * Delete all non-default scripts
+ * @returns {Promise<ScriptSkeleton[]>>} a promise that resolves to an array of script objects
+ */
+export async function deleteScripts({
+  state,
+}: {
+  state: State;
+}): Promise<ScriptSkeleton[]> {
+  const { result } = await getScripts({ state });
+  //Unable to delete default scripts, so filter them out
+  const scripts = result.filter((s) => !s.default);
+  const deletedScripts = [];
+  const errors = [];
+  for (const script of scripts) {
+    try {
+      deletedScripts.push(
+        await deleteScript({
+          scriptId: script._id,
+          state,
+        })
+      );
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Delete error:\n${errorMessages}`);
+  }
+  return deletedScripts;
 }

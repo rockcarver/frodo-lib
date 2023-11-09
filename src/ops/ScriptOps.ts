@@ -2,6 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {
   deleteScript as _deleteScript,
+  deleteScriptByName as _deleteScriptByName,
+  deleteScripts as _deleteScripts,
   getScript as _getScript,
   getScriptByName as _getScriptByName,
   getScripts as _getScripts,
@@ -77,6 +79,17 @@ export type Script = {
    * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
    */
   deleteScript(scriptId: string): Promise<ScriptSkeleton>;
+  /**
+   * Delete script by name
+   * @param {String} scriptId script name
+   * @returns {Promise<ScriptSkeleton>} a promise that resolves to a script object
+   */
+  deleteScriptByName(scriptName: string): Promise<ScriptSkeleton>;
+  /**
+   * Delete all non-default scripts
+   * @returns {Promise<ScriptSkeleton[]>>} a promise that resolves to an array of script objects
+   */
+  deleteScripts(): Promise<ScriptSkeleton[]>;
   /**
    * Export all scripts
    * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
@@ -189,6 +202,12 @@ export default (state: State): Script => {
     },
     async deleteScript(scriptId: string): Promise<ScriptSkeleton> {
       return deleteScript({ scriptId, state });
+    },
+    async deleteScriptByName(scriptName: string): Promise<ScriptSkeleton> {
+      return deleteScriptByName({ scriptName, state });
+    },
+    async deleteScripts(): Promise<ScriptSkeleton[]> {
+      return deleteScripts({ state });
     },
     async exportScript(scriptId: string): Promise<ScriptExportInterface> {
       return exportScript({ scriptId, state });
@@ -391,6 +410,33 @@ export async function deleteScript({
   state: State;
 }): Promise<ScriptSkeleton> {
   return _deleteScript({ scriptId, state });
+}
+
+/**
+ * Delete script by name
+ * @param {String} scriptId script name
+ * @returns {Promise<ScriptSkeleton>} a promise that resolves to a script object
+ */
+export async function deleteScriptByName({
+  scriptName,
+  state,
+}: {
+  scriptName: string;
+  state: State;
+}): Promise<ScriptSkeleton> {
+  return _deleteScriptByName({ scriptName, state });
+}
+
+/**
+ * Delete all non-default scripts
+ * @returns {Promise<ScriptSkeleton[]>>} a promise that resolves to an array of script objects
+ */
+export async function deleteScripts({
+  state,
+}: {
+  state: State;
+}): Promise<ScriptSkeleton[]> {
+  return _deleteScripts({ state });
 }
 
 /**
