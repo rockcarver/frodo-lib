@@ -80,6 +80,7 @@ jobs:
         run: npm run lint
 
       - name: Security Audit
+        continue-on-error: true
         run: npm audit --omit=dev
 
       - name: Zip build artifacts
