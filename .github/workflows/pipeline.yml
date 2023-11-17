@@ -169,7 +169,7 @@ jobs:
 
       - name: Security Audit
         run: |
-          npm audit --omit=dev
+          npm audit --omit=dev --audit-level high
 
   npm-release:
     if: github.ref == 'refs/heads/main'
