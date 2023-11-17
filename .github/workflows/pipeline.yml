@@ -80,8 +80,7 @@ jobs:
         run: npm run lint
 
       - name: Security Audit
-        continue-on-error: true
-        run: npm audit --omit=dev
+        run: npm audit --omit dev --audit-level high
 
       - name: Zip build artifacts
         run: zip -r build.zip esm cjs mocks package.json package-lock.json snapshotResolve.js types
