@@ -254,7 +254,9 @@ export function validateImport(metadata): boolean {
 }
 
 export function getTypedFilename(name: string, type: string, suffix = 'json') {
-  const slug = slugify(name.replace(/^http(s?):\/\//, ''));
+  const slug = slugify(name.replace(/^http(s?):\/\//, ''), {
+    remove: /[^\w\s$*_+~.()'"!\-@]+/g,
+  });
   return `${slug}.${type}.${suffix}`;
 }
 
