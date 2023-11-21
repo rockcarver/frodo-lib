@@ -199,6 +199,19 @@ describe('JourneyOps', () => {
       });
     });
 
+    describe('exportJourneys()', () => {
+      test('0: Method is implemented', async () => {
+        expect(JourneyOps.exportJourneys).toBeDefined();
+      });
+
+      test('1: Export journeys', async () => {
+        const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true }, state });
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
+      });
+    });
+
     describe('importJourney()', () => {
       test('0: Method is implemented', async () => {
         expect(JourneyOps.importJourney).toBeDefined();

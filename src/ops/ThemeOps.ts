@@ -1,7 +1,14 @@
+import { v4 as uuidv4 } from 'uuid';
+
 import { type IdObjectSkeletonInterface } from '../api/ApiTypes';
 import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
 import { State } from '../shared/State';
-import { debugMessage } from '../utils/Console';
+import {
+  createProgressIndicator,
+  debugMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { ExportMetaData } from './OpsTypes';
@@ -45,6 +52,11 @@ export type Theme = {
    * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
    */
   readThemeByName(themeName: string, realm?: string): Promise<ThemeSkeleton>;
+  /**
+   * Export all themes. The response can be saved to file as is.
+   * @returns {Promise<ThemeExportInterface>} Promise resolving to a ThemeExportInterface object.
+   */
+  exportThemes(): Promise<ThemeExportInterface>;
   /**
    * Update theme
    * @param {ThemeSkeleton} themeData theme object
@@ -218,6 +230,9 @@ export default (state: State): Theme => {
       realm: string = state.getRealm()
     ): Promise<ThemeSkeleton> {
       return readThemeByName({ themeName, realm, state });
+    },
+    async exportThemes(): Promise<ThemeExportInterface> {
+      return exportThemes({ state });
     },
     async createTheme(
       themeData: ThemeSkeleton,
@@ -418,6 +433,39 @@ export async function readThemeByName({
     );
   }
   throw new Error(`Theme '${themeName}' not found in realm '${realm}'!`);
+}
+
+/**
+ * Export all themes. The response can be saved to file as is.
+ * @returns {Promise<ThemeExportInterface>} Promise resolving to a ThemeExportInterface object.
+ */
+export async function exportThemes({
+  state,
+}: {
+  state: State;
+}): Promise<ThemeExportInterface> {
+  debugMessage({ message: `ThemeOps.exportThemes: start`, state });
+  const exportData = createThemeExportTemplate({ state });
+  const themes = await readThemes({ state });
+  createProgressIndicator({
+    total: themes.length,
+    message: 'Exporting themes...',
+    state,
+  });
+  for (const theme of themes) {
+    if (!theme._id) theme._id = uuidv4();
+    updateProgressIndicator({
+      message: `Exporting theme ${theme.name}`,
+      state,
+    });
+    exportData.theme[theme._id] = theme;
+  }
+  stopProgressIndicator({
+    message: `Exported ${themes.length} themes.`,
+    state,
+  });
+  debugMessage({ message: `ThemeOps.exportThemes: end`, state });
+  return exportData;
 }
 
 /**

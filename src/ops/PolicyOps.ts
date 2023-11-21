@@ -14,7 +14,12 @@ import {
 } from '../api/ResourceTypesApi';
 import { type ScriptSkeleton } from '../api/ScriptApi';
 import { State } from '../shared/State';
-import { debugMessage } from '../utils/Console';
+import {
+  createProgressIndicator,
+  debugMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../utils/Console';
 import {
   convertBase64TextToArray,
   getMetadata,
@@ -676,7 +681,16 @@ export async function exportPolicies({
   const errors = [];
   try {
     const policies = await readPolicies({ state });
+    createProgressIndicator({
+      total: policies.length,
+      message: 'Exporting policies...',
+      state,
+    });
     for (const policyData of policies) {
+      updateProgressIndicator({
+        message: `Exporting policy ${policyData._id}`,
+        state,
+      });
       exportData.policy[policyData._id] = policyData;
       if (options.prereqs) {
         try {
@@ -698,6 +712,10 @@ export async function exportPolicies({
         }
       }
     }
+    stopProgressIndicator({
+      message: `Exported ${policies.length} policies.`,
+      state,
+    });
   } catch (error) {
     errors.push(error);
   }

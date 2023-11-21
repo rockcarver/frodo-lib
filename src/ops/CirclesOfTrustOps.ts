@@ -9,7 +9,12 @@ import {
 import { type Saml2ProviderSkeleton } from '../api/Saml2Api';
 import { type ScriptSkeleton } from '../api/ScriptApi';
 import { State } from '../shared/State';
-import { debugMessage } from '../utils/Console';
+import {
+  createProgressIndicator,
+  debugMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { type ExportMetaData } from './OpsTypes';
 import { readSaml2EntityIds } from './Saml2Ops';
@@ -458,9 +463,22 @@ export async function exportCirclesOfTrust({
   const errors = [];
   try {
     const cots = await readCirclesOfTrust({ entityProviders, state });
+    createProgressIndicator({
+      total: cots.length,
+      message: 'Exporting circles of trust...',
+      state,
+    });
     for (const cot of cots) {
+      updateProgressIndicator({
+        message: `Exporting circle of trust ${cot._id}`,
+        state,
+      });
       exportData.saml.cot[cot._id] = cot;
     }
+    stopProgressIndicator({
+      message: `Exported ${cots.length} circles of trust.`,
+      state,
+    });
   } catch (error) {
     errors.push(error);
   }

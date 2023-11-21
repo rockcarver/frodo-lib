@@ -19,7 +19,13 @@ import {
   encode,
   encodeBase64Url,
 } from '../utils/Base64Utils';
-import { debugMessage, printMessage } from '../utils/Console';
+import {
+  createProgressIndicator,
+  debugMessage,
+  printMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../utils/Console';
 import {
   convertBase64TextToArray,
   convertBase64UrlTextToArray,
@@ -611,7 +617,16 @@ export async function exportSaml2Providers({
 }): Promise<Saml2ExportInterface> {
   const fileData = createSaml2ExportTemplate({ state });
   const stubs = await readSaml2ProviderStubs({ state });
+  createProgressIndicator({
+    total: stubs.length,
+    message: 'Exporting SAML2 providers...',
+    state,
+  });
   for (const stub of stubs) {
+    updateProgressIndicator({
+      message: `Exporting SAML2 provider ${stub._id}`,
+      state,
+    });
     const providerData = await _getProviderByLocationAndId({
       location: stub.location,
       entityId64: stub._id,
@@ -620,10 +635,14 @@ export async function exportSaml2Providers({
     try {
       await exportDependencies({ providerData, fileData, state });
     } catch (error) {
-      printMessage({ message: error, type: 'error', state });
+      printMessage({ message: error.message, type: 'error', state });
     }
     fileData.saml[stub.location][providerData._id] = providerData;
   }
+  stopProgressIndicator({
+    message: `Exported ${stubs.length} SAML2 providers.`,
+    state,
+  });
   return fileData;
 }
 

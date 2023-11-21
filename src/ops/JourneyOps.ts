@@ -100,6 +100,14 @@ export type Journey = {
     options?: TreeExportOptions
   ): Promise<SingleTreeExportInterface>;
   /**
+   * Create export data for all trees/journeys with all their nodes and dependencies. The export data can be written to a file as is.
+   * @param {TreeExportOptions} options export options
+   * @returns {Promise<MultiTreeExportInterface>} a promise that resolves to an object containing the trees and all their nodes and dependencies
+   */
+  exportJourneys(
+    options?: TreeExportOptions
+  ): Promise<MultiTreeExportInterface>;
+  /**
    * Read all journeys without dependencies.
    * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of journey objects
    */
@@ -345,6 +353,14 @@ export default (state: State): Journey => {
       }
     ): Promise<SingleTreeExportInterface> {
       return exportJourney({ journeyId: treeId, options, state });
+    },
+    async exportJourneys(
+      options: TreeExportOptions = {
+        useStringArrays: true,
+        deps: true,
+      }
+    ): Promise<MultiTreeExportInterface> {
+      return exportJourneys({ options, state });
     },
     async readJourneys(): Promise<TreeSkeleton[]> {
       return readJourneys({ state });
@@ -1253,6 +1269,56 @@ export async function exportJourney({
     state,
   });
   return exportData;
+}
+
+/**
+ * Create export data for all trees/journeys with all their nodes and dependencies. The export data can be written to a file as is.
+ * @param {TreeExportOptions} options export options
+ * @returns {Promise<MultiTreeExportInterface>} a promise that resolves to an object containing the trees and all their nodes and dependencies
+ */
+export async function exportJourneys({
+  options = {
+    useStringArrays: true,
+    deps: true,
+  },
+  state,
+}: {
+  options?: TreeExportOptions;
+  state: State;
+}): Promise<MultiTreeExportInterface> {
+  const trees = await readJourneys({ state });
+  const multiTreeExport = createMultiTreeExportTemplate({ state });
+  createProgressIndicator({
+    total: trees.length,
+    message: 'Exporting journeys...',
+    state,
+  });
+  for (const tree of trees) {
+    updateProgressIndicator({
+      message: `Exporting journey ${tree._id}`,
+      state,
+    });
+    try {
+      const exportData: SingleTreeExportInterface = await exportJourney({
+        journeyId: tree._id,
+        options,
+        state,
+      });
+      delete exportData.meta;
+      multiTreeExport.trees[tree._id] = exportData;
+    } catch (error) {
+      printMessage({
+        message: `Error exporting journey ${tree._id}: ${error}`,
+        type: 'error',
+        state,
+      });
+    }
+  }
+  stopProgressIndicator({
+    message: `Exported ${trees.length} journeys.`,
+    state,
+  });
+  return multiTreeExport;
 }
 
 /**

@@ -527,3 +527,25 @@ export function isValidUrl(urlString: string): boolean {
     return false;
   }
 }
+
+/**
+ * Performs an export given a function with its parameters with custom error handling that will just print the error if one is thrown and return null.
+ * @param exportFunction The export function.
+ * @param parameters The parameters to call the export function with. By default, it is { state }.
+ * @returns {Promise<R | null>} Returns the result of the export function, or null if an error is thrown
+ */
+export async function exportWithErrorHandling<P extends { state: State }, R>(
+  exportFunction: (params: P) => Promise<R>,
+  parameters: P
+): Promise<R | null> {
+  try {
+    return await exportFunction(parameters);
+  } catch (e) {
+    printMessage({
+      message: `ERROR: ${e.message}`,
+      type: 'error',
+      state: parameters.state,
+    });
+    return null;
+  }
+}
