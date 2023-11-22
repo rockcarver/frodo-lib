@@ -26,6 +26,12 @@ export type OAuth2Oidc = {
     data: any,
     config: AxiosRequestConfig
   ): Promise<AccessTokenMetaType>;
+  accessTokenRfc7523AuthZGrant(
+    clientId: string,
+    jwt: string,
+    scope: string[],
+    config?: AxiosRequestConfig
+  ): Promise<AccessTokenMetaType>;
   getTokenInfo(
     amBaseUrl: string,
     config: AxiosRequestConfig
@@ -52,17 +58,27 @@ export default (state: State): OAuth2Oidc => {
         state,
       });
     },
-
     async accessToken(
       amBaseUrl: string,
       data: any,
       config: AxiosRequestConfig
     ): Promise<AccessTokenMetaType> {
-      const response = await accessToken({ amBaseUrl, config, data, state });
-      response['expires'] = new Date().getTime() + response.expires_in;
-      return response as AccessTokenMetaType;
+      return accessToken({ amBaseUrl, config, data, state });
     },
-
+    async accessTokenRfc7523AuthZGrant(
+      clientId: string,
+      jwt: string,
+      scope: string[],
+      config?: AxiosRequestConfig
+    ): Promise<AccessTokenMetaType> {
+      return accessTokenRfc7523AuthZGrant({
+        clientId,
+        jwt,
+        scope,
+        config,
+        state,
+      });
+    },
     async getTokenInfo(
       amBaseUrl: string,
       config: AxiosRequestConfig
@@ -73,7 +89,6 @@ export default (state: State): OAuth2Oidc => {
         state,
       });
     },
-
     async clientCredentialsGrant(
       amBaseUrl: string,
       clientId: string,
@@ -124,6 +139,32 @@ export async function accessToken({
   });
   response['expires'] = Date.now() + response.expires_in * 1000;
   return response as AccessTokenMetaType;
+}
+
+export async function accessTokenRfc7523AuthZGrant({
+  clientId,
+  jwt,
+  scope,
+  config = {},
+  state,
+}: {
+  clientId: string;
+  jwt: string;
+  scope: string[];
+  config?: AxiosRequestConfig;
+  state: State;
+}): Promise<AccessTokenMetaType> {
+  const data = `grant_type=${encodeURIComponent(
+    'urn:ietf:params:oauth:grant-type:jwt-bearer'
+  )}&assertion=${jwt}&scope=${encodeURIComponent(
+    scope.join(' ')
+  )}&client_id=${encodeURIComponent(clientId)}`;
+  return accessToken({
+    amBaseUrl: state.getHost(),
+    config,
+    data,
+    state,
+  });
 }
 
 export async function getTokenInfo({

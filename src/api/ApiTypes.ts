@@ -18,7 +18,7 @@ export type Readable<Type> = Type;
 
 export type Writable<Type> = {
   inherited: boolean;
-  value: Type;
+  value?: Type;
 };
 
 export type QueryResult<Type> = {
