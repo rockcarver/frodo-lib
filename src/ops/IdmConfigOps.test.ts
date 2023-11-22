@@ -189,6 +189,19 @@ describe('IdmConfigOps', () => {
     });
   });
 
+  describe('exportConfigEntities()', () => {
+    test('0: Method is implemented', async () => {
+      expect(IdmConfigOps.exportConfigEntities).toBeDefined();
+    });
+
+    test('1: Export config entities', async () => {
+      const response = await IdmConfigOps.exportConfigEntities({ state });
+      expect(response).toMatchSnapshot({
+        meta: expect.any(Object)
+      });
+    });
+  });
+
   describe('updateConfigEntity()', () => {
     test('0: Method is implemented', async () => {
       expect(IdmConfigOps.updateConfigEntity).toBeDefined();

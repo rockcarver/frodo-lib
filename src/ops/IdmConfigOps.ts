@@ -14,8 +14,16 @@ import {
 } from '../api/IdmConfigApi';
 import { ConnectorServerStatusInterface } from '../api/IdmSystemApi';
 import { State } from '../shared/State';
-import { debugMessage } from '../utils/Console';
+import {
+  createProgressIndicator,
+  debugMessage,
+  printMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../utils/Console';
+import { getMetadata } from '../utils/ExportImportUtils';
 import { testConnectorServers as _testConnectorServers } from './IdmSystemOps';
+import { ExportMetaData } from './OpsTypes';
 
 export type IdmConfig = {
   /**
@@ -45,6 +53,11 @@ export type IdmConfig = {
    * @returns {IdObjectSkeletonInterface} promise resolving to a config entity
    */
   readConfigEntity(entityId: string): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Export all IDM config entities
+   * @returns {ConfigEntityExportInterface} promise resolving to a ConfigEntityExportInterface object
+   */
+  exportConfigEntities(): Promise<ConfigEntityExportInterface>;
   /**
    * Create config entity
    * @param {string} entityId config entity id/name
@@ -164,6 +177,9 @@ export default (state: State): IdmConfig => {
     ): Promise<IdObjectSkeletonInterface> {
       return readConfigEntity({ entityId, state });
     },
+    async exportConfigEntities(): Promise<ConfigEntityExportInterface> {
+      return exportConfigEntities({ state });
+    },
     async createConfigEntity(
       entityId: string,
       entityData: IdObjectSkeletonInterface
@@ -216,6 +232,26 @@ export default (state: State): IdmConfig => {
     },
   };
 };
+
+export interface ConfigEntityExportInterface {
+  meta?: ExportMetaData;
+  config: Record<string, IdObjectSkeletonInterface>;
+}
+
+/**
+ * Create an empty config entity export template
+ * @returns {ConfigEntityExportInterface} an empty config entity export template
+ */
+export function createConfigEntityExportTemplate({
+  state,
+}: {
+  state: State;
+}): ConfigEntityExportInterface {
+  return {
+    meta: getMetadata({ state }),
+    config: {},
+  } as ConfigEntityExportInterface;
+}
 
 export async function readConfigEntityStubs({
   state,
@@ -270,6 +306,108 @@ export async function readConfigEntity({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   return getConfigEntity({ entityId, state });
+}
+
+/**
+ * Export all IDM config entities
+ * @returns {ConfigEntityExportInterface} promise resolving to a ConfigEntityExportInterface object
+ */
+export async function exportConfigEntities({
+  state,
+}: {
+  state: State;
+}): Promise<ConfigEntityExportInterface> {
+  try {
+    const configurations = await readConfigEntities({ state });
+    createProgressIndicator({
+      total: configurations.length,
+      message: 'Exporting config entities...',
+      state,
+    });
+    const entityPromises = [];
+    for (const configEntity of configurations) {
+      updateProgressIndicator({
+        message: `Exporting config entity ${configEntity._id}`,
+        state,
+      });
+      entityPromises.push(
+        readConfigEntity({ entityId: configEntity._id, state }).catch(
+          (readConfigEntityError) => {
+            if (
+              !(
+                readConfigEntityError.response?.status === 403 &&
+                readConfigEntityError.response?.data?.message ===
+                  'This operation is not available in ForgeRock Identity Cloud.'
+              ) &&
+              !(
+                // list of config entities, which do not exist by default or ever.
+                (
+                  [
+                    'script',
+                    'notificationFactory',
+                    'apiVersion',
+                    'metrics',
+                    'repo.init',
+                    'endpoint/validateQueryFilter',
+                    'endpoint/oauthproxy',
+                    'external.rest',
+                    'scheduler',
+                    'org.apache.felix.fileinstall/openidm',
+                    'cluster',
+                    'endpoint/mappingDetails',
+                    'fieldPolicy/teammember',
+                  ].includes(configEntity._id) &&
+                  readConfigEntityError.response?.status === 404 &&
+                  readConfigEntityError.response?.data?.reason === 'Not Found'
+                )
+              ) &&
+              // https://bugster.forgerock.org/jira/browse/OPENIDM-18270
+              !(
+                readConfigEntityError.response?.status === 404 &&
+                readConfigEntityError.response?.data?.message ===
+                  'No configuration exists for id org.apache.felix.fileinstall/openidm'
+              )
+            ) {
+              printMessage({
+                message: readConfigEntityError.response?.data,
+                type: 'error',
+                state,
+              });
+              printMessage({
+                message: `Error getting config entity ${configEntity._id}: ${readConfigEntityError}`,
+                type: 'error',
+                state,
+              });
+            }
+          }
+        )
+      );
+    }
+    const results = await Promise.all(entityPromises);
+    const exportData = createConfigEntityExportTemplate({ state });
+    for (const result of results) {
+      if (result != null) {
+        exportData.config[result._id] = result;
+      }
+    }
+    stopProgressIndicator({
+      message: `Exported ${configurations.length} config entities.`,
+      status: 'success',
+      state,
+    });
+    return exportData;
+  } catch (getAllConfigEntitiesError) {
+    printMessage({
+      message: getAllConfigEntitiesError,
+      type: 'error',
+      state,
+    });
+    printMessage({
+      message: `Error getting config entities: ${getAllConfigEntitiesError}`,
+      type: 'error',
+      state,
+    });
+  }
 }
 
 export async function createConfigEntity({

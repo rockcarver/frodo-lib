@@ -166,6 +166,19 @@ describe('EmailTemplateOps', () => {
     });
   });
 
+  describe('exportEmailTemplates()', () => {
+    test('0: Method is implemented', async () => {
+      expect(EmailTemplateOps.exportEmailTemplates).toBeDefined();
+    });
+
+    test('1: Export email templates', async () => {
+      const response = await EmailTemplateOps.exportEmailTemplates({ state });
+      expect(response).toMatchSnapshot({
+        meta: expect.any(Object)
+      });
+    });
+  });
+
   describe('updateEmailTemplate()', () => {
     test('0: Method is implemented', async () => {
       expect(EmailTemplateOps.updateEmailTemplate).toBeDefined();

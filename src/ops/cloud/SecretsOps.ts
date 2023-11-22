@@ -14,7 +14,12 @@ import {
   VersionOfSecretStatus,
 } from '../../api/cloud/SecretsApi';
 import { State } from '../../shared/State';
-import { debugMessage } from '../../utils/Console';
+import {
+  createProgressIndicator,
+  debugMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../../utils/Console';
 import { getMetadata } from '../../utils/ExportImportUtils';
 import { ExportMetaData } from '../OpsTypes';
 
@@ -397,9 +402,22 @@ export async function exportSecrets({
   debugMessage({ message: `SecretsOps.exportSecrets: start`, state });
   const exportData = createSecretsExportTemplate({ state });
   const secrets = await readSecrets({ state });
+  createProgressIndicator({
+    total: secrets.length,
+    message: 'Exporting secrets...',
+    state,
+  });
   for (const secret of secrets) {
+    updateProgressIndicator({
+      message: `Exporting secret ${secret._id}`,
+      state,
+    });
     exportData.secrets[secret._id] = secret;
   }
+  stopProgressIndicator({
+    message: `Exported ${secrets.length} secrets.`,
+    state,
+  });
   debugMessage({ message: `SecretsOps.exportSecrets: end`, state });
   return exportData;
 }

@@ -6,7 +6,13 @@ import { type ScriptSkeleton } from '../api/ScriptApi';
 import constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { decode } from '../utils/Base64Utils';
-import { debugMessage } from '../utils/Console';
+import {
+  createProgressIndicator,
+  debugMessage,
+  printMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { get, mergeDeep } from '../utils/JsonUtils';
 import {
@@ -988,12 +994,16 @@ export async function exportApplication({
   const exportData = createApplicationExportTemplate({ state });
   exportData.managedApplication[applicationData._id] = applicationData;
   if (options.deps) {
-    await exportDependencies({
-      applicationData: applicationData,
-      options,
-      exportData,
-      state,
-    });
+    try {
+      await exportDependencies({
+        applicationData: applicationData,
+        options,
+        exportData,
+        state,
+      });
+    } catch (error) {
+      printMessage({ message: error.message, type: 'error', state });
+    }
   }
   debugMessage({ message: `ApplicationOps.exportApplication: end`, state });
   return exportData;
@@ -1022,12 +1032,16 @@ export async function exportApplicationByName({
   const exportData = createApplicationExportTemplate({ state });
   exportData.managedApplication[applicationData._id] = applicationData;
   if (options.deps) {
-    await exportDependencies({
-      applicationData: applicationData,
-      options,
-      exportData,
-      state,
-    });
+    try {
+      await exportDependencies({
+        applicationData: applicationData,
+        options,
+        exportData,
+        state,
+      });
+    } catch (error) {
+      printMessage({ message: error.message, type: 'error', state });
+    }
   }
   debugMessage({
     message: `ApplicationOps.exportApplicationByName: end`,
@@ -1046,17 +1060,34 @@ export async function exportApplications({
   debugMessage({ message: `ApplicationOps.exportApplication: start`, state });
   const exportData = createApplicationExportTemplate({ state });
   const applications = await readApplications({ state });
+  createProgressIndicator({
+    total: applications.length,
+    message: 'Exporting applications...',
+    state,
+  });
   for (const applicationData of applications) {
+    updateProgressIndicator({
+      message: `Exporting application ${applicationData._id}`,
+      state,
+    });
     exportData.managedApplication[applicationData._id] = applicationData;
     if (options.deps) {
-      await exportDependencies({
-        applicationData: applicationData,
-        options,
-        exportData,
-        state,
-      });
+      try {
+        await exportDependencies({
+          applicationData: applicationData,
+          options,
+          exportData,
+          state,
+        });
+      } catch (error) {
+        printMessage({ message: error.message, type: 'error', state });
+      }
     }
   }
+  stopProgressIndicator({
+    message: `Exported ${applications.length} services.`,
+    state,
+  });
   debugMessage({ message: `ApplicationOps.exportApplication: end`, state });
   return exportData;
 }

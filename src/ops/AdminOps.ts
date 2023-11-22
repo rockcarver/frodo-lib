@@ -3,25 +3,63 @@ import path from 'path';
 import { fileURLToPath, URL } from 'url';
 import util from 'util';
 
-import { type Readable, Writable } from '../api/ApiTypes';
+import { AgentSkeleton } from '../api/AgentApi';
+import {
+  IdObjectSkeletonInterface,
+  type Readable,
+  Writable,
+} from '../api/ApiTypes';
 import { step } from '../api/AuthenticateApi';
-import { putSecret } from '../api/cloud/SecretsApi';
+import { AuthenticationSettingsSkeleton } from '../api/AuthenticationSettingsApi';
+import { CircleOfTrustSkeleton } from '../api/CirclesOfTrustApi';
+import { putSecret, SecretSkeleton } from '../api/cloud/SecretsApi';
+import { VariableSkeleton } from '../api/cloud/VariablesApi';
 import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
 import { type OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
 import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
+import { PolicySkeleton } from '../api/PoliciesApi';
+import { PolicySetSkeleton } from '../api/PolicySetApi';
+import { ResourceTypeSkeleton } from '../api/ResourceTypesApi';
+import { Saml2ProviderSkeleton } from '../api/Saml2Api';
+import { ScriptSkeleton } from '../api/ScriptApi';
+import { AmServiceSkeleton } from '../api/ServiceApi';
+import { SocialIdpSkeleton } from '../api/SocialIdentityProvidersApi';
 import {
+  EmailTemplateSkeleton,
+  exportEmailTemplates,
+} from '../ops/EmailTemplateOps';
+import { exportJourneys, SingleTreeExportInterface } from '../ops/JourneyOps';
+import {
+  exportOAuth2Clients,
   readOAuth2Client,
   readOAuth2Clients,
   updateOAuth2Client,
 } from '../ops/OAuth2ClientOps';
 import { readOAuth2Provider } from '../ops/OAuth2ProviderOps';
+import { ExportMetaData } from '../ops/OpsTypes';
+import { exportThemes, ThemeSkeleton } from '../ops/ThemeOps';
 import { State } from '../shared/State';
 import { printMessage } from '../utils/Console';
+import {
+  exportWithErrorHandling,
+  getMetadata,
+} from '../utils/ExportImportUtils';
 import {
   getCurrentRealmManagedUser,
   getCurrentRealmPath,
 } from '../utils/ForgeRockUtils';
 import { cloneDeep, get, isEqualJson } from '../utils/JsonUtils';
+import { exportAgents } from './AgentOps';
+import { ApplicationSkeleton, exportApplications } from './ApplicationOps';
+import { exportAuthenticationSettings } from './AuthenticationSettingsOps';
+import {
+  CirclesOfTrustExportInterface,
+  exportCirclesOfTrust,
+} from './CirclesOfTrustOps';
+import { exportSecrets } from './cloud/SecretsOps';
+import { exportVariables } from './cloud/VariablesOps';
+import { exportConfigEntities } from './IdmConfigOps';
+import { exportSocialProviders } from './IdpOps';
 import {
   createJwkRsa,
   createJwks,
@@ -31,6 +69,12 @@ import {
   JwksInterface,
 } from './JoseOps';
 import { getRealmManagedOrganization } from './OrganizationOps';
+import { exportPolicies } from './PolicyOps';
+import { exportPolicySets } from './PolicySetOps';
+import { exportResourceTypes } from './ResourceTypeOps';
+import { exportSaml2Providers } from './Saml2Ops';
+import { exportScripts } from './ScriptOps';
+import { exportServices } from './ServiceOps';
 
 export type Admin = {
   listOAuth2CustomClients(): Promise<any>;
@@ -73,6 +117,9 @@ export type Admin = {
     loginsPerUser?: number,
     service?: string
   ): Promise<void>;
+  exportFullConfiguration(
+    options: FullExportOptions
+  ): Promise<FullExportInterface>;
 };
 
 export default (state: State): Admin => {
@@ -179,8 +226,55 @@ export default (state: State): Admin => {
         state,
       });
     },
+    async exportFullConfiguration(
+      options: FullExportOptions = { useStringArrays: true, noDecode: false }
+    ) {
+      return exportFullConfiguration({ options, state });
+    },
   };
 };
+
+/**
+ * Full export options
+ */
+export interface FullExportOptions {
+  /**
+   * Use string arrays to store multi-line text in scripts.
+   */
+  useStringArrays: boolean;
+  /**
+   * Do not include decoded variable value in export
+   */
+  noDecode: boolean;
+}
+
+export interface FullExportInterface {
+  meta?: ExportMetaData;
+  agents: Record<string, AgentSkeleton> | undefined;
+  application: Record<string, OAuth2ClientSkeleton> | undefined;
+  authentication: AuthenticationSettingsSkeleton | undefined;
+  config: Record<string, IdObjectSkeletonInterface> | undefined;
+  emailTemplate: Record<string, EmailTemplateSkeleton> | undefined;
+  idp: Record<string, SocialIdpSkeleton> | undefined;
+  managedApplication: Record<string, ApplicationSkeleton> | undefined;
+  policy: Record<string, PolicySkeleton> | undefined;
+  policyset: Record<string, PolicySetSkeleton> | undefined;
+  resourcetype: Record<string, ResourceTypeSkeleton> | undefined;
+  saml:
+    | {
+        hosted: Record<string, Saml2ProviderSkeleton>;
+        remote: Record<string, Saml2ProviderSkeleton>;
+        metadata: Record<string, string[]>;
+        cot: Record<string, CircleOfTrustSkeleton> | undefined;
+      }
+    | undefined;
+  script: Record<string, ScriptSkeleton> | undefined;
+  secrets: Record<string, SecretSkeleton> | undefined;
+  service: Record<string, AmServiceSkeleton> | undefined;
+  theme: Record<string, ThemeSkeleton> | undefined;
+  trees: Record<string, SingleTreeExportInterface> | undefined;
+  variables: Record<string, VariableSkeleton> | undefined;
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -1701,6 +1795,104 @@ export async function generateRfc7523AuthZGrantArtifacts({
     jwks,
     jwt,
     client: clientData,
+  };
+}
+
+/**
+ * Export full configuration
+ * @param {FullExportOptions} options export options
+ */
+export async function exportFullConfiguration({
+  options = { useStringArrays: true, noDecode: false },
+  state,
+}: {
+  options: FullExportOptions;
+  state: State;
+}): Promise<FullExportInterface> {
+  const { useStringArrays, noDecode } = options;
+  const stateObj = { state };
+  //Export saml2 providers and circle of trusts
+  let saml = (
+    (await exportWithErrorHandling(
+      exportSaml2Providers,
+      stateObj
+    )) as CirclesOfTrustExportInterface
+  )?.saml;
+  const cotExport = await exportWithErrorHandling(
+    exportCirclesOfTrust,
+    stateObj
+  );
+  if (saml) {
+    saml.cot = cotExport?.saml.cot;
+  } else {
+    saml = cotExport?.saml;
+  }
+  //Create full export
+  return {
+    meta: getMetadata(stateObj),
+    agents: (await exportWithErrorHandling(exportAgents, stateObj))?.agents,
+    application: (
+      await exportWithErrorHandling(exportOAuth2Clients, {
+        options: { deps: false, useStringArrays },
+        state,
+      })
+    )?.application,
+    authentication: (
+      await exportWithErrorHandling(exportAuthenticationSettings, stateObj)
+    )?.authentication,
+    config: (await exportWithErrorHandling(exportConfigEntities, stateObj))
+      ?.config,
+    emailTemplate: (
+      await exportWithErrorHandling(exportEmailTemplates, stateObj)
+    )?.emailTemplate,
+    idp: (await exportWithErrorHandling(exportSocialProviders, stateObj))?.idp,
+    managedApplication: (
+      await exportWithErrorHandling(exportApplications, {
+        options: { deps: false, useStringArrays },
+        state,
+      })
+    )?.managedApplication,
+    policy: (
+      await exportWithErrorHandling(exportPolicies, {
+        options: { deps: false, prereqs: false, useStringArrays },
+        state,
+      })
+    )?.policy,
+    policyset: (
+      await exportWithErrorHandling(exportPolicySets, {
+        options: { deps: false, prereqs: false, useStringArrays },
+        state,
+      })
+    )?.policyset,
+    resourcetype: (await exportWithErrorHandling(exportResourceTypes, stateObj))
+      ?.resourcetype,
+    saml,
+    script: (await exportWithErrorHandling(exportScripts, stateObj))?.script,
+    secrets: (await exportWithErrorHandling(exportSecrets, stateObj))?.secrets,
+    service: {
+      ...(
+        await exportWithErrorHandling(exportServices, {
+          globalConfig: true,
+          state,
+        })
+      )?.service,
+      ...(
+        await exportWithErrorHandling(exportServices, {
+          globalConfig: false,
+          state,
+        })
+      )?.service,
+    },
+    theme: (await exportWithErrorHandling(exportThemes, stateObj))?.theme,
+    trees: (
+      await exportWithErrorHandling(exportJourneys, {
+        options: { deps: false, useStringArrays },
+        state,
+      })
+    )?.trees,
+    variables: (
+      await exportWithErrorHandling(exportVariables, { noDecode, state })
+    )?.variables,
   };
 }
 

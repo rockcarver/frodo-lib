@@ -8,7 +8,13 @@ import {
 } from '../api/OAuth2ClientApi';
 import { type ScriptSkeleton } from '../api/ScriptApi';
 import { State } from '../shared/State';
-import { debugMessage, printMessage } from '../utils/Console';
+import {
+  createProgressIndicator,
+  debugMessage,
+  printMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../utils/Console';
 import {
   convertBase64TextToArray,
   getMetadata,
@@ -540,7 +546,16 @@ export async function exportOAuth2Clients({
   try {
     const provider = await readOAuth2Provider({ state });
     const clients = await readOAuth2Clients({ state });
+    createProgressIndicator({
+      total: clients.length,
+      message: 'Exporting OAuth2 clients...',
+      state,
+    });
     for (const client of clients) {
+      updateProgressIndicator({
+        message: `Exporting OAuth2 client ${client._id}`,
+        state,
+      });
       try {
         client._provider = provider;
         exportData.application[client._id] = client;
@@ -556,6 +571,10 @@ export async function exportOAuth2Clients({
         errors.push(error);
       }
     }
+    stopProgressIndicator({
+      message: `Exported ${clients.length} OAuth2 clients.`,
+      state,
+    });
   } catch (error) {
     errors.push(error);
   }

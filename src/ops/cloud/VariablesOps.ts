@@ -9,7 +9,12 @@ import {
 } from '../../api/cloud/VariablesApi';
 import { State } from '../../shared/State';
 import { decode } from '../../utils/Base64Utils';
-import { debugMessage } from '../../utils/Console';
+import {
+  createProgressIndicator,
+  debugMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../../utils/Console';
 import { getMetadata } from '../../utils/ExportImportUtils';
 import { ExportMetaData } from '../OpsTypes';
 
@@ -300,12 +305,25 @@ export async function exportVariables({
   debugMessage({ message: `VariablesOps.exportVariables: start`, state });
   const exportData = createVariablesExportTemplate({ state });
   const variables = await readVariables({ state });
+  createProgressIndicator({
+    total: variables.length,
+    message: 'Exporting variables...',
+    state,
+  });
   for (const variable of variables) {
+    updateProgressIndicator({
+      message: `Exporting variable ${variable._id}`,
+      state,
+    });
     if (!noDecode) {
       variable.value = decode(variable.valueBase64);
     }
     exportData.variables[variable._id] = variable;
   }
+  stopProgressIndicator({
+    message: `Exported ${variables.length} variables.`,
+    state,
+  });
   debugMessage({ message: `VariablesOps.exportVariables: end`, state });
   return exportData;
 }
