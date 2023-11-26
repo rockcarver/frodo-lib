@@ -77,7 +77,7 @@ export async function checkForUpdates({
   state: State;
 }): Promise<Updates> {
   const updates: Updates = { secrets: [], variables: [] };
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: undefined,
     message: `Checking for updates to apply...`,
     type: 'indeterminate',
@@ -92,6 +92,7 @@ export async function checkForUpdates({
     );
   } catch (error) {
     stopProgressIndicator({
+      id: indicatorId,
       message: `Error: ${error.response.data.code} - ${error.response.data.message}`,
       status: 'fail',
       state,
@@ -100,12 +101,14 @@ export async function checkForUpdates({
   const updateCount = updates.secrets?.length + updates.variables?.length || 0;
   if (updateCount > 0) {
     stopProgressIndicator({
+      id: indicatorId,
       message: `${updateCount} update(s) need to be applied`,
       status: 'success',
       state,
     });
   } else {
     stopProgressIndicator({
+      id: indicatorId,
       message: `No updates need to be applied`,
       status: 'success',
       state,
@@ -129,7 +132,7 @@ export async function applyUpdates({
   timeout?: number;
   state: State;
 }) {
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: undefined,
     message: `Applying updates...`,
     type: 'indeterminate',
@@ -155,6 +158,7 @@ export async function applyUpdates({
 
           runtime = new Date().getTime() - start;
           updateProgressIndicator({
+            id: indicatorId,
             message: `${status} (${Math.round(runtime / 1000)}s)`,
             state,
           });
@@ -165,6 +169,7 @@ export async function applyUpdates({
           }
           runtime = new Date().getTime() - start;
           updateProgressIndicator({
+            id: indicatorId,
             message: `${
               error.message
             } - retry ${errors}/${maxErrors} (${Math.round(runtime / 1000)}s)`,
@@ -174,6 +179,7 @@ export async function applyUpdates({
       }
       if (runtime < timeout) {
         stopProgressIndicator({
+          id: indicatorId,
           message: `Updates applied in ${Math.round(
             runtime / 1000
           )}s with final status: ${status}`,
@@ -183,6 +189,7 @@ export async function applyUpdates({
         return true;
       } else {
         stopProgressIndicator({
+          id: indicatorId,
           message: `Updates timed out after ${Math.round(
             runtime / 1000
           )}s with final status: ${status}`,
@@ -193,6 +200,7 @@ export async function applyUpdates({
       }
     } else {
       stopProgressIndicator({
+        id: indicatorId,
         message: `Updates are being applied. Changes may take up to 10 minutes to propagate, during which time you will not be able to make further updates.`,
         status: 'success',
         state,
@@ -201,6 +209,7 @@ export async function applyUpdates({
     }
   } catch (error) {
     stopProgressIndicator({
+      id: indicatorId,
       message: `Error: ${error.response?.data?.code || error} - ${error.response
         ?.data?.message}`,
       status: 'fail',

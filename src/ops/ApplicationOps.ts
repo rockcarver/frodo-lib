@@ -617,6 +617,7 @@ async function exportDependencies({
     // circles of trust
     const cotData = await exportCirclesOfTrust({
       entityProviders: [saml2IdpId, saml2SpId],
+      options: { indicateProgress: false },
       state,
     });
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1060,14 +1061,15 @@ export async function exportApplications({
   debugMessage({ message: `ApplicationOps.exportApplication: start`, state });
   const exportData = createApplicationExportTemplate({ state });
   const applications = await readApplications({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: applications.length,
     message: 'Exporting applications...',
     state,
   });
   for (const applicationData of applications) {
     updateProgressIndicator({
-      message: `Exporting application ${applicationData._id}`,
+      id: indicatorId,
+      message: `Exporting application ${applicationData.name}`,
       state,
     });
     exportData.managedApplication[applicationData._id] = applicationData;
@@ -1085,6 +1087,7 @@ export async function exportApplications({
     }
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Exported ${applications.length} services.`,
     state,
   });

@@ -617,13 +617,14 @@ export async function exportSaml2Providers({
 }): Promise<Saml2ExportInterface> {
   const fileData = createSaml2ExportTemplate({ state });
   const stubs = await readSaml2ProviderStubs({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: stubs.length,
     message: 'Exporting SAML2 providers...',
     state,
   });
   for (const stub of stubs) {
     updateProgressIndicator({
+      id: indicatorId,
       message: `Exporting SAML2 provider ${stub._id}`,
       state,
     });
@@ -640,6 +641,7 @@ export async function exportSaml2Providers({
     fileData.saml[stub.location][providerData._id] = providerData;
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Exported ${stubs.length} SAML2 providers.`,
     state,
   });

@@ -402,19 +402,21 @@ export async function exportSecrets({
   debugMessage({ message: `SecretsOps.exportSecrets: start`, state });
   const exportData = createSecretsExportTemplate({ state });
   const secrets = await readSecrets({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: secrets.length,
     message: 'Exporting secrets...',
     state,
   });
   for (const secret of secrets) {
     updateProgressIndicator({
+      id: indicatorId,
       message: `Exporting secret ${secret._id}`,
       state,
     });
     exportData.secrets[secret._id] = secret;
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Exported ${secrets.length} secrets.`,
     state,
   });

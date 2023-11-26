@@ -461,21 +461,24 @@ export async function exportResourceTypes({
   debugMessage({ message: `ResourceTypeOps.exportResourceType: start`, state });
   const exportData = createResourceTypeExportTemplate({ state });
   const errors = [];
+  let indicatorId: string;
   try {
     const resourceTypes = await readResourceTypes({ state });
-    createProgressIndicator({
+    indicatorId = createProgressIndicator({
       total: resourceTypes.length,
       message: 'Exporting resource types...',
       state,
     });
     for (const resourceTypeData of resourceTypes) {
       updateProgressIndicator({
+        id: indicatorId,
         message: `Exporting resource type ${resourceTypeData._id}`,
         state,
       });
       exportData.resourcetype[resourceTypeData.uuid] = resourceTypeData;
     }
     stopProgressIndicator({
+      id: indicatorId,
       message: `Exported ${resourceTypes.length} resource types.`,
       state,
     });

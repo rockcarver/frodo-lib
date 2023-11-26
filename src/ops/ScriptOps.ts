@@ -492,13 +492,14 @@ export async function exportScripts({
 }): Promise<ScriptExportInterface> {
   const scriptList = await readScripts({ state });
   const exportData = createScriptExportTemplate({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: scriptList.length,
     message: `Exporting ${scriptList.length} scripts...`,
     state,
   });
   for (const script of scriptList) {
     updateProgressIndicator({
+      id: indicatorId,
       message: `Reading script ${script.name}`,
       state,
     });
@@ -510,6 +511,7 @@ export async function exportScripts({
     exportData.script[scriptData._id] = scriptData;
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Exported ${scriptList.length} scripts.`,
     state,
   });

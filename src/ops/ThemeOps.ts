@@ -100,8 +100,8 @@ export type Theme = {
    * @returns {Promise<Map<string, ThemeSkeleton>>} a promise that resolves to a themes object
    */
   updateThemes(
-    themeMap: Map<string, ThemeSkeleton>
-  ): Promise<Map<string, ThemeSkeleton>>;
+    themeMap: Record<string, ThemeSkeleton>
+  ): Promise<Record<string, ThemeSkeleton>>;
   /**
    * Delete theme by id
    * @param {string} themeId theme id
@@ -207,8 +207,8 @@ export type Theme = {
    * @group Deprecated
    */
   putThemes(
-    themeMap: Map<string, ThemeSkeleton>
-  ): Promise<Map<string, ThemeSkeleton>>;
+    themeMap: Record<string, ThemeSkeleton>
+  ): Promise<Record<string, ThemeSkeleton>>;
 };
 
 export default (state: State): Theme => {
@@ -256,8 +256,8 @@ export default (state: State): Theme => {
       return updateThemeByName({ themeName, themeData, realm, state });
     },
     async updateThemes(
-      themeMap: Map<string, ThemeSkeleton>
-    ): Promise<Map<string, ThemeSkeleton>> {
+      themeMap: Record<string, ThemeSkeleton>
+    ): Promise<Record<string, ThemeSkeleton>> {
       return updateThemes({ themeMap, state });
     },
     async deleteTheme(
@@ -310,8 +310,8 @@ export default (state: State): Theme => {
       return updateThemeByName({ themeName, themeData, realm, state });
     },
     async putThemes(
-      themeMap: Map<string, ThemeSkeleton>
-    ): Promise<Map<string, ThemeSkeleton>> {
+      themeMap: Record<string, ThemeSkeleton>
+    ): Promise<Record<string, ThemeSkeleton>> {
       return updateThemes({ themeMap, state });
     },
   };
@@ -447,7 +447,7 @@ export async function exportThemes({
   debugMessage({ message: `ThemeOps.exportThemes: start`, state });
   const exportData = createThemeExportTemplate({ state });
   const themes = await readThemes({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: themes.length,
     message: 'Exporting themes...',
     state,
@@ -455,12 +455,14 @@ export async function exportThemes({
   for (const theme of themes) {
     if (!theme._id) theme._id = uuidv4();
     updateProgressIndicator({
+      id: indicatorId,
       message: `Exporting theme ${theme.name}`,
       state,
     });
     exportData.theme[theme._id] = theme;
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Exported ${themes.length} themes.`,
     state,
   });
@@ -618,10 +620,10 @@ export async function updateThemes({
   realm = null,
   state,
 }: {
-  themeMap: Map<string, ThemeSkeleton>;
+  themeMap: Record<string, ThemeSkeleton>;
   realm?: string;
   state: State;
-}): Promise<Map<string, ThemeSkeleton>> {
+}): Promise<Record<string, ThemeSkeleton>> {
   debugMessage({ message: `ThemeApi.putThemes: start`, state });
   realm = realm ? realm : getCurrentRealmName(state);
   const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
@@ -663,7 +665,7 @@ export async function updateThemes({
     });
   }
   themes.realm[realm] = realmThemes;
-  const updatedThemes = new Map(
+  const updatedThemes: unknown = new Map(
     getRealmThemes({
       themes: await putConfigEntity({
         entityId: THEMEREALM_ID,
@@ -673,9 +675,12 @@ export async function updateThemes({
       realm,
     }).map((theme) => [theme._id, theme])
   );
-  debugMessage({ message: updatedThemes, state });
+  debugMessage({
+    message: updatedThemes as Record<string, ThemeSkeleton>,
+    state,
+  });
   debugMessage({ message: `ThemeApi.putThemes: finished`, state });
-  return updatedThemes;
+  return updatedThemes as Record<string, ThemeSkeleton>;
 }
 
 /**

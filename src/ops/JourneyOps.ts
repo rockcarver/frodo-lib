@@ -1288,13 +1288,14 @@ export async function exportJourneys({
 }): Promise<MultiTreeExportInterface> {
   const trees = await readJourneys({ state });
   const multiTreeExport = createMultiTreeExportTemplate({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: trees.length,
     message: 'Exporting journeys...',
     state,
   });
   for (const tree of trees) {
     updateProgressIndicator({
+      id: indicatorId,
       message: `Exporting journey ${tree._id}`,
       state,
     });
@@ -1315,6 +1316,7 @@ export async function exportJourneys({
     }
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Exported ${trees.length} journeys.`,
     state,
   });
@@ -1510,7 +1512,7 @@ export async function importJourney({
   if (deps && importData.themes && importData.themes.length > 0) {
     if (verbose)
       printMessage({ message: '\n  - Themes:', newline: false, state });
-    const themes: Map<string, ThemeSkeleton> = new Map<string, ThemeSkeleton>();
+    const themes: Record<string, ThemeSkeleton> = {};
     for (const theme of importData.themes) {
       if (verbose)
         printMessage({
@@ -2241,7 +2243,7 @@ export async function importJourneys({
   const installedJourneys = (await readJourneys({ state })).map((x) => x._id);
   const unresolvedJourneys = {};
   const resolvedJourneys = [];
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: undefined,
     message: 'Resolving dependencies',
     type: 'indeterminate',
@@ -2256,12 +2258,14 @@ export async function importJourneys({
   if (Object.keys(unresolvedJourneys).length === 0) {
     // no unresolved journeys
     stopProgressIndicator({
+      id: indicatorId,
       message: `Resolved all dependencies.`,
       status: 'success',
       state,
     });
   } else {
     stopProgressIndicator({
+      id: indicatorId,
       message: `${
         Object.keys(unresolvedJourneys).length
       } journeys with unresolved dependencies:`,
@@ -2287,7 +2291,7 @@ export async function importJourneys({
         await importJourney({ importData: importData[tree], options, state })
       );
       imported.push(tree);
-      updateProgressIndicator({ message: `${tree}`, state });
+      updateProgressIndicator({ id: indicatorId, message: `${tree}`, state });
     } catch (error) {
       errors.push(error);
     }
@@ -2296,13 +2300,17 @@ export async function importJourneys({
     const errorMessages = errors
       .map((error) => error.response?.data?.message || error.message)
       .join('\n');
-    stopProgressIndicator({ message: 'Error importing journeys!', state });
+    stopProgressIndicator({
+      id: indicatorId,
+      message: 'Error importing journeys!',
+      state,
+    });
     throw new Error(`Import error:\n${errorMessages}`);
   }
   if (0 === imported.length) {
     throw new Error(`Import error:\nNo clients found in import data!`);
   }
-  stopProgressIndicator({ message: 'Done', state });
+  stopProgressIndicator({ id: indicatorId, message: 'Done', state });
   return response;
 }
 
@@ -2614,14 +2622,15 @@ export async function deleteJourney({
   const { deep, verbose } = options;
   const progress = !('progress' in options) ? true : options.progress;
   const status: DeleteJourneyStatus = { status: 'unknown', nodes: {} };
+  let indicatorId: string;
   if (progress)
-    createProgressIndicator({
+    indicatorId = createProgressIndicator({
       total: undefined,
       message: `Deleting ${journeyId}...`,
       type: 'indeterminate',
       state,
     });
-  if (progress && verbose) stopProgressIndicator({ state });
+  if (progress && verbose) stopProgressIndicator({ id: indicatorId, state });
   return deleteTree({ treeId: journeyId, state })
     .then(async (deleteTreeResponse) => {
       status['status'] = 'success';
@@ -2773,6 +2782,7 @@ export async function deleteJourney({
         }
         if (errorCount === 0) {
           stopProgressIndicator({
+            id: indicatorId,
             message: `Deleted ${journeyId} and ${
               nodeCount - errorCount
             }/${nodeCount} nodes.`,
@@ -2781,6 +2791,7 @@ export async function deleteJourney({
           });
         } else {
           stopProgressIndicator({
+            id: indicatorId,
             message: `Deleted ${journeyId} and ${
               nodeCount - errorCount
             }/${nodeCount} nodes.`,
@@ -2795,6 +2806,7 @@ export async function deleteJourney({
       status['status'] = 'error';
       status['error'] = error;
       stopProgressIndicator({
+        id: indicatorId,
         message: `Error deleting ${journeyId}.`,
         status: 'fail',
         state,
@@ -2830,7 +2842,7 @@ export async function deleteJourneys({
   const { verbose } = options;
   const status: DeleteJourneysStatus = {};
   const trees = (await getTrees({ state })).result;
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: trees.length,
     message: 'Deleting journeys...',
     state,
@@ -2843,7 +2855,7 @@ export async function deleteJourneys({
       options,
       state,
     });
-    updateProgressIndicator({ message: `${tree._id}`, state });
+    updateProgressIndicator({ id: indicatorId, message: `${tree._id}`, state });
     // introduce a 100ms wait to allow the progress bar to update before the next verbose message prints from the async function
     if (verbose)
       // eslint-disable-next-line no-await-in-loop
@@ -2864,6 +2876,7 @@ export async function deleteJourneys({
     }
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Deleted ${
       journeyCount - journeyErrorCount
     }/${journeyCount} journeys and ${

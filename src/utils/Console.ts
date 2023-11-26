@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'uuid';
+
 import { State } from '../shared/State';
 
 /**
@@ -102,6 +104,8 @@ export function curlirizeMessage({
   }
 }
 
+export type ProgressIndicatorType = 'determinate' | 'indeterminate';
+
 /**
  * Calls a callback on client to create a progress indicator.
  * The actual implementation of the indicator is left to the client
@@ -128,13 +132,14 @@ export function createProgressIndicator({
 }: {
   total: number;
   message?: string;
-  type?: string;
+  type?: ProgressIndicatorType;
   state: State;
-}) {
+}): string {
   const handler = state.getCreateProgressHandler();
   if (handler) {
-    handler(type, total, message);
+    return handler(type, total, message);
   }
+  return uuidv4();
 }
 
 /**
@@ -143,17 +148,21 @@ export function createProgressIndicator({
  *
  */
 export function updateProgressIndicator({
+  id,
   message = undefined,
   state,
 }: {
+  id: string;
   message?: string;
   state: State;
 }) {
   const handler = state.getUpdateProgressHandler();
   if (handler) {
-    handler(message);
+    handler(id, message);
   }
 }
+
+export type ProgressIndicatorStatusType = 'none' | 'success' | 'warn' | 'fail';
 
 /**
  * Stop and hide the progress indicator
@@ -161,16 +170,18 @@ export function updateProgressIndicator({
  * @param {string} status one of 'none', 'success', 'warn', 'fail'
  */
 export function stopProgressIndicator({
+  id,
   message = null,
   status = 'none',
   state,
 }: {
+  id: string;
   message?: string;
-  status?: string;
+  status?: ProgressIndicatorStatusType;
   state: State;
 }) {
   const handler = state.getStopProgressHandler();
   if (handler) {
-    handler(message, status);
+    handler(id, message, status);
   }
 }

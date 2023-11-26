@@ -305,13 +305,14 @@ export async function exportVariables({
   debugMessage({ message: `VariablesOps.exportVariables: start`, state });
   const exportData = createVariablesExportTemplate({ state });
   const variables = await readVariables({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: variables.length,
     message: 'Exporting variables...',
     state,
   });
   for (const variable of variables) {
     updateProgressIndicator({
+      id: indicatorId,
       message: `Exporting variable ${variable._id}`,
       state,
     });
@@ -321,6 +322,7 @@ export async function exportVariables({
     exportData.variables[variable._id] = variable;
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Exported ${variables.length} variables.`,
     state,
   });

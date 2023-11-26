@@ -502,15 +502,17 @@ export async function exportPolicySets({
   debugMessage({ message: `PolicySetOps.exportPolicySet: start`, state });
   const exportData = createPolicySetExportTemplate({ state });
   const errors = [];
+  let indicatorId: string;
   try {
     const policySets = await readPolicySets({ state });
-    createProgressIndicator({
+    indicatorId = createProgressIndicator({
       total: policySets.length,
       message: 'Exporting policy sets...',
       state,
     });
     for (const policySetData of policySets) {
       updateProgressIndicator({
+        id: indicatorId,
         message: `Exporting policy set ${policySetData._id}`,
         state,
       });
@@ -540,6 +542,7 @@ export async function exportPolicySets({
       }
     }
     stopProgressIndicator({
+      id: indicatorId,
       message: `Exported ${policySets.length} policy sets.`,
       state,
     });
