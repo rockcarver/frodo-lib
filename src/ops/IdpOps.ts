@@ -637,13 +637,14 @@ export async function exportSocialProviders({
 }): Promise<SocialProviderExportInterface> {
   const exportData = createIdpExportTemplate({ state });
   const allIdpsData = await readSocialIdentityProviders({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: allIdpsData.length,
     message: 'Exporting providers',
     state,
   });
   for (const idpData of allIdpsData) {
     updateProgressIndicator({
+      id: indicatorId,
       message: `Exporting provider ${idpData._id}`,
       state,
     });
@@ -658,6 +659,7 @@ export async function exportSocialProviders({
     }
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `${allIdpsData.length} providers exported.`,
     state,
   });

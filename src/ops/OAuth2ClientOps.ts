@@ -543,16 +543,18 @@ export async function exportOAuth2Clients({
   });
   const exportData = createOAuth2ClientExportTemplate({ state });
   const errors = [];
+  let indicatorId: string;
   try {
     const provider = await readOAuth2Provider({ state });
     const clients = await readOAuth2Clients({ state });
-    createProgressIndicator({
+    indicatorId = createProgressIndicator({
       total: clients.length,
       message: 'Exporting OAuth2 clients...',
       state,
     });
     for (const client of clients) {
       updateProgressIndicator({
+        id: indicatorId,
         message: `Exporting OAuth2 client ${client._id}`,
         state,
       });
@@ -572,6 +574,7 @@ export async function exportOAuth2Clients({
       }
     }
     stopProgressIndicator({
+      id: indicatorId,
       message: `Exported ${clients.length} OAuth2 clients.`,
       state,
     });

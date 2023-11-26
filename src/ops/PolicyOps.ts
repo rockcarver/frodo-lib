@@ -679,15 +679,17 @@ export async function exportPolicies({
   debugMessage({ message: `PolicyOps.exportPolicies: start`, state });
   const exportData = createPolicyExportTemplate({ state });
   const errors = [];
+  let indicatorId: string;
   try {
     const policies = await readPolicies({ state });
-    createProgressIndicator({
+    indicatorId = createProgressIndicator({
       total: policies.length,
       message: 'Exporting policies...',
       state,
     });
     for (const policyData of policies) {
       updateProgressIndicator({
+        id: indicatorId,
         message: `Exporting policy ${policyData._id}`,
         state,
       });
@@ -713,6 +715,7 @@ export async function exportPolicies({
       }
     }
     stopProgressIndicator({
+      id: indicatorId,
       message: `Exported ${policies.length} policies.`,
       state,
     });

@@ -1051,19 +1051,21 @@ export async function exportAgents({
   debugMessage({ message: `AgentOps.exportAgents: start`, state });
   const exportData = createAgentExportTemplate();
   const agents = await readAgents({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: agents.length,
     message: 'Exporting agents...',
     state,
   });
   for (const agent of agents) {
     updateProgressIndicator({
+      id: indicatorId,
       message: `Exporting agent ${agent._id}`,
       state,
     });
     exportData.agents[agent._id] = agent;
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Exported ${agents.length} agents.`,
     state,
   });
@@ -1086,19 +1088,21 @@ export async function exportIdentityGatewayAgents({
   });
   const exportData = createAgentExportTemplate();
   const agents = await readIdentityGatewayAgents({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: agents.length,
     message: 'Exporting IG agents...',
     state,
   });
   for (const agent of agents) {
     updateProgressIndicator({
+      id: indicatorId,
       message: `Exporting IG agent ${agent._id}`,
       state,
     });
     exportData.agents[agent._id] = agent;
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Exported ${agents.length} IG agents.`,
     state,
   });
@@ -1118,19 +1122,21 @@ export async function exportJavaAgents({
   debugMessage({ message: `AgentOps.exportJavaAgents: start`, state });
   const exportData = createAgentExportTemplate();
   const agents = await readJavaAgents({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: agents.length,
     message: 'Exporting Java agents...',
     state,
   });
   for (const agent of agents) {
     updateProgressIndicator({
+      id: indicatorId,
       message: `Exporting Java agent ${agent._id}`,
       state,
     });
     exportData.agents[agent._id] = agent;
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Exported ${agents.length} Java agents.`,
     state,
   });
@@ -1150,19 +1156,21 @@ export async function exportWebAgents({
   debugMessage({ message: `AgentOps.exportWebAgents: start`, state });
   const exportData = createAgentExportTemplate();
   const agents = await readWebAgents({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: agents.length,
     message: 'Exporting web agents...',
     state,
   });
   for (const agent of agents) {
     updateProgressIndicator({
+      id: indicatorId,
       message: `Exporting web agent ${agent._id}`,
       state,
     });
     exportData.agents[agent._id] = agent;
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Exported ${agents.length} web agents.`,
     state,
   });

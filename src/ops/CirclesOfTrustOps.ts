@@ -445,14 +445,26 @@ export async function exportCircleOfTrust({
 }
 
 /**
+ * Application export options
+ */
+export type CircleOfTrustExportOptions = {
+  /**
+   * Indicate progress
+   */
+  indicateProgress: boolean;
+};
+
+/**
  * Export circles of trust
  * @returns {Promise<CirclesOfTrustExportInterface>} a promise that resolves to an CirclesOfTrustExportInterface object
  */
 export async function exportCirclesOfTrust({
   entityProviders = [],
+  options = { indicateProgress: true },
   state,
 }: {
   entityProviders?: string[];
+  options?: CircleOfTrustExportOptions;
   state: State;
 }): Promise<CirclesOfTrustExportInterface> {
   debugMessage({
@@ -461,26 +473,39 @@ export async function exportCirclesOfTrust({
   });
   const exportData = createCirclesOfTrustExportTemplate({ state });
   const errors = [];
+  let indicatorId: string;
   try {
     const cots = await readCirclesOfTrust({ entityProviders, state });
-    createProgressIndicator({
-      total: cots.length,
-      message: 'Exporting circles of trust...',
-      state,
-    });
-    for (const cot of cots) {
-      updateProgressIndicator({
-        message: `Exporting circle of trust ${cot._id}`,
+    if (options.indicateProgress)
+      indicatorId = createProgressIndicator({
+        total: cots.length,
+        message: 'Exporting circles of trust...',
         state,
       });
+    for (const cot of cots) {
+      if (options.indicateProgress)
+        updateProgressIndicator({
+          id: indicatorId,
+          message: `Exporting circle of trust ${cot._id}`,
+          state,
+        });
       exportData.saml.cot[cot._id] = cot;
     }
-    stopProgressIndicator({
-      message: `Exported ${cots.length} circles of trust.`,
-      state,
-    });
+    if (options.indicateProgress)
+      stopProgressIndicator({
+        id: indicatorId,
+        message:
+          cots.length > 1 ? `Exported ${cots.length} circles of trust.` : null,
+        state,
+      });
   } catch (error) {
     errors.push(error);
+    if (options.indicateProgress)
+      stopProgressIndicator({
+        id: indicatorId,
+        message: `Error exporting circles of trust.`,
+        state,
+      });
   }
   if (errors.length) {
     const errorMessages = errors.map((error) => error.message).join('\n');

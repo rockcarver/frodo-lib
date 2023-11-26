@@ -274,6 +274,9 @@ export function setupPollyForFrodoLib({
         .any('/am/json/*')
         .recordingName(`${getFrodoCommand({ state })}/am`);
       polly.server
+        .any('/am/saml2/*')
+        .recordingName(`${getFrodoCommand({ state })}/saml2`);
+      polly.server
         .any('/openidm/managed/svcacct')
         .recordingName(`${getFrodoCommand({ state })}/openidm/managed/svcacct`)
         .on('request', (req) => {

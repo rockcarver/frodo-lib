@@ -506,7 +506,7 @@ export async function exportConnectors({
 }): Promise<ConnectorExportInterface> {
   const exportData = createConnectorExportTemplate({ state });
   const allConnectorsData = await readConnectors({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: allConnectorsData.length,
     message: 'Exporting connectors',
     state,
@@ -514,12 +514,14 @@ export async function exportConnectors({
   for (const connectorData of allConnectorsData) {
     const connectorId = connectorData._id.split('/')[1];
     updateProgressIndicator({
+      id: indicatorId,
       message: `Exporting connector ${connectorId}`,
       state,
     });
     exportData.connector[connectorId] = connectorData;
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `${allConnectorsData.length} connectors exported.`,
     state,
   });

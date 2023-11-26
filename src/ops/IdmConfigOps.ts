@@ -317,9 +317,10 @@ export async function exportConfigEntities({
 }: {
   state: State;
 }): Promise<ConfigEntityExportInterface> {
+  let indicatorId: string;
   try {
     const configurations = await readConfigEntities({ state });
-    createProgressIndicator({
+    indicatorId = createProgressIndicator({
       total: configurations.length,
       message: 'Exporting config entities...',
       state,
@@ -327,6 +328,7 @@ export async function exportConfigEntities({
     const entityPromises = [];
     for (const configEntity of configurations) {
       updateProgressIndicator({
+        id: indicatorId,
         message: `Exporting config entity ${configEntity._id}`,
         state,
       });
@@ -391,6 +393,7 @@ export async function exportConfigEntities({
       }
     }
     stopProgressIndicator({
+      id: indicatorId,
       message: `Exported ${configurations.length} config entities.`,
       status: 'success',
       state,

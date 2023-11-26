@@ -752,19 +752,21 @@ export async function exportMappings({
 }): Promise<MappingExportInterface> {
   const exportData = createMappingExportTemplate({ state });
   const allMappingsData = await readMappings({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: allMappingsData.length,
     message: 'Exporting mappings',
     state,
   });
   for (const mappingData of allMappingsData) {
     updateProgressIndicator({
+      id: indicatorId,
       message: `Exporting mapping ${mappingData._id}`,
       state,
     });
     exportData.mapping[mappingData._id] = mappingData;
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `${allMappingsData.length} mappings exported.`,
     state,
   });

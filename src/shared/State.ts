@@ -6,6 +6,10 @@ import { FeatureInterface } from '../api/cloud/FeatureApi';
 import { UserSessionMetaType } from '../ops/AuthenticateOps';
 import { JwkRsa } from '../ops/JoseOps';
 import { AccessTokenMetaType } from '../ops/OAuth2OidcOps';
+import {
+  ProgressIndicatorStatusType,
+  ProgressIndicatorType,
+} from '../utils/Console';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -74,19 +78,33 @@ export type State = {
   setCurlirize(curlirize: boolean): void;
   getCurlirize(): boolean;
   setCreateProgressHandler(
-    handler: (type: string, total?: number, message?: string) => void
+    handler: (
+      type: ProgressIndicatorType,
+      total?: number,
+      message?: string
+    ) => string
   ): void;
   getCreateProgressHandler(): (
-    type: string,
+    type: ProgressIndicatorType,
     total?: number,
     message?: string
-  ) => void;
-  setUpdateProgressHandler(handler: (message: string) => void): void;
-  getUpdateProgressHandler(): (message: string) => void;
-  setStopProgressHandler(
-    handler: (message: string, status?: string) => void
+  ) => string;
+  setUpdateProgressHandler(
+    handler: (id: string, message: string) => void
   ): void;
-  getStopProgressHandler(): (message: string, status?: string) => void;
+  getUpdateProgressHandler(): (id: string, message: string) => void;
+  setStopProgressHandler(
+    handler: (
+      id: string,
+      message: string,
+      status?: ProgressIndicatorStatusType
+    ) => void
+  ): void;
+  getStopProgressHandler(): (
+    id: string,
+    message: string,
+    status?: ProgressIndicatorStatusType
+  ) => void;
   setPrintHandler(
     handler: (
       message: string | object,
@@ -330,14 +348,18 @@ export default (initialState: StateInterface): State => {
     },
 
     setCreateProgressHandler(
-      handler: (type: string, total?: number, message?: string) => void
+      handler: (
+        type: ProgressIndicatorType,
+        total?: number,
+        message?: string
+      ) => string
     ) {
       state.createProgressHandler = handler;
     },
     getCreateProgressHandler() {
       return state.createProgressHandler;
     },
-    setUpdateProgressHandler(handler: (message: string) => void) {
+    setUpdateProgressHandler(handler: (id: string, message: string) => void) {
       state.updateProgressHandler = handler;
     },
     getUpdateProgressHandler() {
@@ -453,12 +475,12 @@ export interface StateInterface {
   curlirizeHandler?: (message: string) => void;
   curlirize?: boolean;
   createProgressHandler?: (
-    type: string,
+    type: ProgressIndicatorType,
     total?: number,
     message?: string
-  ) => void;
-  updateProgressHandler?: (message: string) => void;
-  stopProgressHandler?: (message: string, status?: string) => void;
+  ) => string;
+  updateProgressHandler?: (id: string, message: string) => void;
+  stopProgressHandler?: (id: string, message: string, status?: string) => void;
 }
 
 const globalState: StateInterface = {

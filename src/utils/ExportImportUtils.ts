@@ -302,6 +302,11 @@ export function getFilePath({
     : fileName;
 }
 
+/**
+ * Save to file
+ * @param {any} data data object
+ * @param {string} filename file name
+ */
 export function saveToFile({
   type,
   data,
@@ -314,7 +319,7 @@ export function saveToFile({
   identifier: string;
   filename: string;
   state: State;
-}) {
+}): void {
   const exportData = {};
   exportData['meta'] = getMetadata({ state });
   exportData[type] = {};
@@ -326,16 +331,7 @@ export function saveToFile({
   } else {
     exportData[type][data[identifier]] = data;
   }
-  fs.writeFile(filename, stringify(exportData), (err) => {
-    if (err) {
-      return printMessage({
-        message: `ERROR - can't save ${type} to file`,
-        state,
-        type: 'error',
-      });
-    }
-    return '';
-  });
+  fs.writeFileSync(filename, stringify(exportData));
 }
 
 /**

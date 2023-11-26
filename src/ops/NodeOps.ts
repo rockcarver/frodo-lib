@@ -321,7 +321,7 @@ export async function findOrphanedNodes({
   let errorMessage = '';
   const errorTypes = [];
 
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: undefined,
     message: `Counting total nodes...`,
     type: 'indeterminate',
@@ -342,6 +342,7 @@ export async function findOrphanedNodes({
       for (const node of nodes) {
         allNodes.push(node);
         updateProgressIndicator({
+          id: indicatorId,
           message: `${allNodes.length} total nodes${errorMessage}`,
           state,
         });
@@ -350,6 +351,7 @@ export async function findOrphanedNodes({
       errorTypes.push(type._id);
       errorMessage = ` (Skipped type(s): ${errorTypes})`['yellow'];
       updateProgressIndicator({
+        id: indicatorId,
         message: `${allNodes.length} total nodes${errorMessage}`,
         state,
       });
@@ -357,19 +359,21 @@ export async function findOrphanedNodes({
   }
   if (errorTypes.length > 0) {
     stopProgressIndicator({
+      id: indicatorId,
       message: `${allNodes.length} total nodes${errorMessage}`,
       state,
       status: 'warn',
     });
   } else {
     stopProgressIndicator({
+      id: indicatorId,
       message: `${allNodes.length} total nodes`,
       status: 'success',
       state,
     });
   }
 
-  createProgressIndicator({
+  const indicatorId2 = createProgressIndicator({
     total: undefined,
     message: 'Counting active nodes...',
     type: 'indeterminate',
@@ -381,6 +385,7 @@ export async function findOrphanedNodes({
       if ({}.hasOwnProperty.call(journey.nodes, nodeId)) {
         activeNodes.push(nodeId);
         updateProgressIndicator({
+          id: indicatorId2,
           message: `${activeNodes.length} active nodes`,
           state,
         });
@@ -394,6 +399,7 @@ export async function findOrphanedNodes({
           for (const innerNode of containerNode.nodes) {
             activeNodes.push(innerNode._id);
             updateProgressIndicator({
+              id: indicatorId2,
               message: `${activeNodes.length} active nodes`,
               state,
             });
@@ -403,12 +409,13 @@ export async function findOrphanedNodes({
     }
   }
   stopProgressIndicator({
+    id: indicatorId2,
     message: `${activeNodes.length} active nodes`,
     status: 'success',
     state,
   });
 
-  createProgressIndicator({
+  const indicatorId3 = createProgressIndicator({
     total: undefined,
     message: 'Calculating orphaned nodes...',
     type: 'indeterminate',
@@ -419,6 +426,7 @@ export async function findOrphanedNodes({
     orphanedNodes.push(orphanedNode);
   }
   stopProgressIndicator({
+    id: indicatorId3,
     message: `${orphanedNodes.length} orphaned nodes`,
     status: 'success',
     state,
@@ -439,13 +447,17 @@ export async function removeOrphanedNodes({
   state: State;
 }): Promise<NodeSkeleton[]> {
   const errorNodes = [];
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: orphanedNodes.length,
     message: 'Removing orphaned nodes...',
     state,
   });
   for (const node of orphanedNodes) {
-    updateProgressIndicator({ message: `Removing ${node['_id']}...`, state });
+    updateProgressIndicator({
+      id: indicatorId,
+      message: `Removing ${node['_id']}...`,
+      state,
+    });
     try {
       await deleteNode({
         nodeId: node['_id'],
@@ -458,6 +470,7 @@ export async function removeOrphanedNodes({
     }
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Removed ${orphanedNodes.length} orphaned nodes.`,
     state,
   });

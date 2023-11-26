@@ -247,7 +247,7 @@ export async function exportEmailTemplates({
   });
   const exportData = createEmailTemplateExportTemplate({ state });
   const emailTemplates = await readEmailTemplates({ state });
-  createProgressIndicator({
+  const indicatorId = createProgressIndicator({
     total: emailTemplates.length,
     message: 'Exporting email templates...',
     state,
@@ -255,12 +255,14 @@ export async function exportEmailTemplates({
   for (const emailTemplate of emailTemplates) {
     const templateId = emailTemplate._id.replace(`${EMAIL_TEMPLATE_TYPE}/`, '');
     updateProgressIndicator({
+      id: indicatorId,
       message: `Exporting email template ${templateId}`,
       state,
     });
     exportData.emailTemplate[templateId] = emailTemplate;
   }
   stopProgressIndicator({
+    id: indicatorId,
     message: `Exported ${emailTemplates.length} email templates.`,
     state,
   });

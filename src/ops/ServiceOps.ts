@@ -597,21 +597,24 @@ export async function exportServices({
   });
   const globalString = globalConfig ? ' global ' : ' ';
   const exportData = createServiceExportTemplate();
+  let indicatorId: string;
   try {
     const services = await getFullServices({ globalConfig, state });
-    createProgressIndicator({
+    indicatorId = createProgressIndicator({
       total: services.length,
       message: `Exporting${globalString}services...`,
       state,
     });
     for (const service of services) {
       updateProgressIndicator({
+        id: indicatorId,
         message: `Exporting${globalString}service ${service._id}`,
         state,
       });
       exportData.service[service._type._id] = service;
     }
     stopProgressIndicator({
+      id: indicatorId,
       message: `Exported ${services.length}${globalString}services.`,
       state,
     });
