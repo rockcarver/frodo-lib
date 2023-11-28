@@ -35,6 +35,9 @@ import NodeOps, { Node } from '../ops/NodeOps';
 import OAuth2ClientOps, { OAuth2Client } from '../ops/OAuth2ClientOps';
 import OAuth2OidcOps, { OAuth2Oidc } from '../ops/OAuth2OidcOps';
 import OAuth2ProviderOps, { OAuth2Provider } from '../ops/OAuth2ProviderOps';
+import OAuth2TrustedJwtIssuerOps, {
+  OAuth2TrustedJwtIssuer,
+} from '../ops/OAuth2TrustedJwtIssuerOps';
 import OrganizationOps, { Organization } from '../ops/OrganizationOps';
 import PolicyOps, { Policy } from '../ops/PolicyOps';
 import PolicySetOps, { PolicySet } from '../ops/PolicySetOps';
@@ -114,6 +117,7 @@ export type Frodo = {
     endpoint: OAuth2Oidc;
     external: Idp;
     provider: OAuth2Provider;
+    issuer: OAuth2TrustedJwtIssuer;
   };
 
   realm: Realm;
@@ -252,6 +256,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       endpoint: OAuth2OidcOps(state),
       external: IdpOps(state),
       provider: OAuth2ProviderOps(state),
+      issuer: OAuth2TrustedJwtIssuerOps(state),
     },
 
     realm: RealmOps(state),

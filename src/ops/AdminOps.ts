@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, URL } from 'url';
 import util from 'util';
+import { v4 as uuidv4 } from 'uuid';
 
 import { AgentSkeleton } from '../api/AgentApi';
 import {
@@ -16,7 +17,11 @@ import { putSecret, SecretSkeleton } from '../api/cloud/SecretsApi';
 import { VariableSkeleton } from '../api/cloud/VariablesApi';
 import { getConfigEntity, putConfigEntity } from '../api/IdmConfigApi';
 import { type OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
-import { clientCredentialsGrant } from '../api/OAuth2OIDCApi';
+import {
+  AccessTokenResponseType,
+  clientCredentialsGrant,
+} from '../api/OAuth2OIDCApi';
+import { OAuth2TrustedJwtIssuerSkeleton } from '../api/OAuth2TrustedJwtIssuerApi';
 import { PolicySkeleton } from '../api/PoliciesApi';
 import { PolicySetSkeleton } from '../api/PolicySetApi';
 import { ResourceTypeSkeleton } from '../api/ResourceTypesApi';
@@ -48,7 +53,7 @@ import {
   getCurrentRealmManagedUser,
   getCurrentRealmPath,
 } from '../utils/ForgeRockUtils';
-import { cloneDeep, get, isEqualJson } from '../utils/JsonUtils';
+import { cloneDeep, get, isEqualJson, stringify } from '../utils/JsonUtils';
 import { exportAgents } from './AgentOps';
 import { ApplicationSkeleton, exportApplications } from './ApplicationOps';
 import { exportAuthenticationSettings } from './AuthenticationSettingsOps';
@@ -68,6 +73,8 @@ import {
   JwkRsa,
   JwksInterface,
 } from './JoseOps';
+import { accessTokenRfc7523AuthZGrant } from './OAuth2OidcOps';
+import { updateOAuth2TrustedJwtIssuer } from './OAuth2TrustedJwtIssuerOps';
 import { getRealmManagedOrganization } from './OrganizationOps';
 import { exportPolicies } from './PolicyOps';
 import { exportPolicySets } from './PolicySetOps';
@@ -117,6 +124,37 @@ export type Admin = {
     loginsPerUser?: number,
     service?: string
   ): Promise<void>;
+  generateRfc7523AuthZGrantArtifacts(
+    clientId: string,
+    iss: string,
+    jwk?: JwkRsa,
+    sub?: string,
+    scope?: string[],
+    options?: { save: boolean }
+  ): Promise<{
+    jwk: JwkRsa;
+    jwks: JwksInterface;
+    client: OAuth2ClientSkeleton;
+    issuer: OAuth2TrustedJwtIssuerSkeleton;
+  }>;
+  executeRfc7523AuthZGrantFlow(
+    clientId: string,
+    iss: string,
+    jwk: JwkRsa,
+    sub: string,
+    scope?: string[]
+  ): Promise<AccessTokenResponseType>;
+  generateRfc7523ClientAuthNArtifacts(
+    clientId: string,
+    aud?: string,
+    jwk?: JwkRsa,
+    options?: { save: boolean }
+  ): Promise<{
+    jwk: JwkRsa;
+    jwks: JwksInterface;
+    jwt: any;
+    client: OAuth2ClientSkeleton;
+  }>;
   exportFullConfiguration(
     options: FullExportOptions
   ): Promise<FullExportInterface>;
@@ -226,6 +264,64 @@ export default (state: State): Admin => {
         state,
       });
     },
+    async generateRfc7523AuthZGrantArtifacts(
+      clientId: string,
+      iss: string,
+      jwk: JwkRsa,
+      sub: string,
+      scope: string[] = ['fr:am:*', 'fr:idm:*', 'openid'],
+      options = { save: false }
+    ): Promise<{
+      jwk: JwkRsa;
+      jwks: JwksInterface;
+      client: OAuth2ClientSkeleton;
+      issuer: OAuth2TrustedJwtIssuerSkeleton;
+    }> {
+      return generateRfc7523AuthZGrantArtifacts({
+        clientId,
+        iss,
+        jwk,
+        sub,
+        scope,
+        options,
+        state,
+      });
+    },
+    executeRfc7523AuthZGrantFlow(
+      clientId: string,
+      iss: string,
+      jwk: JwkRsa,
+      sub: string,
+      scope: string[] = ['fr:am:*', 'fr:idm:*', 'openid']
+    ): Promise<AccessTokenResponseType> {
+      return executeRfc7523AuthZGrantFlow({
+        clientId,
+        iss,
+        jwk,
+        sub,
+        scope,
+        state,
+      });
+    },
+    async generateRfc7523ClientAuthNArtifacts(
+      clientId: string,
+      aud?: string,
+      jwk?: JwkRsa,
+      options?: { save: boolean }
+    ): Promise<{
+      jwk: JwkRsa;
+      jwks: JwksInterface;
+      jwt: any;
+      client: OAuth2ClientSkeleton;
+    }> {
+      return generateRfc7523ClientAuthNArtifacts({
+        clientId,
+        aud,
+        jwk,
+        options,
+        state,
+      });
+    },
     async exportFullConfiguration(
       options: FullExportOptions = { useStringArrays: true, noDecode: false }
     ) {
@@ -281,6 +377,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OAUTH2_CLIENT: OAuth2ClientSkeleton = JSON.parse(
   fs.readFileSync(
     path.resolve(__dirname, './templates/OAuth2ClientTemplate.json'),
+    'utf8'
+  )
+);
+const OAUTH2_ISSUER: OAuth2TrustedJwtIssuerSkeleton = JSON.parse(
+  fs.readFileSync(
+    path.resolve(__dirname, './templates/OAuth2TrustedJwtIssuerTemplate.json'),
     'utf8'
   )
 );
@@ -1642,19 +1744,152 @@ function getAccessTokenUrl(state: State) {
   return urlWithPort;
 }
 
+export async function generateRfc7523AuthZGrantArtifacts({
+  clientId,
+  iss,
+  jwk = null,
+  sub = null,
+  scope = ['fr:am:*', 'fr:idm:*', 'openid'],
+  options = { save: false },
+  state,
+}: {
+  clientId: string;
+  iss: string;
+  jwk?: JwkRsa;
+  sub?: string;
+  scope?: string[];
+  options?: { save: boolean };
+  state: State;
+}): Promise<{
+  jwk: JwkRsa;
+  jwks: JwksInterface;
+  client: OAuth2ClientSkeleton;
+  issuer: OAuth2TrustedJwtIssuerSkeleton;
+}> {
+  if (!jwk) {
+    jwk = await createJwkRsa();
+  }
+
+  // create header and payload
+  const jwks = createJwks(await getJwkRsaPublic(jwk));
+
+  // create oauth2 client
+  const clientData: OAuth2ClientSkeleton = cloneDeep(OAUTH2_CLIENT);
+  clientData.coreOAuth2ClientConfig.clientName = {
+    inherited: false,
+    value: [clientId],
+  };
+  clientData.coreOAuth2ClientConfig.scopes = {
+    inherited: false,
+    value: scope,
+  };
+  clientData.coreOAuth2ClientConfig.clientType = {
+    inherited: false,
+    value: 'Public',
+  };
+  clientData.advancedOAuth2ClientConfig.grantTypes = {
+    inherited: false,
+    value: ['urn:ietf:params:oauth:grant-type:jwt-bearer'],
+  };
+  clientData.advancedOAuth2ClientConfig.isConsentImplied = {
+    inherited: false,
+    value: true,
+  };
+  clientData.advancedOAuth2ClientConfig.tokenEndpointAuthMethod = {
+    inherited: false,
+    value: 'none',
+  };
+  clientData.signEncOAuth2ClientConfig.publicKeyLocation = {
+    inherited: false,
+    value: 'jwks',
+  };
+  clientData.signEncOAuth2ClientConfig.jwkSet = {
+    inherited: false,
+    value: JSON.stringify(jwks),
+  };
+  if (options.save) {
+    await updateOAuth2Client({ clientId, clientData, state });
+  }
+
+  // create trusted issuer
+  const issuerData: OAuth2TrustedJwtIssuerSkeleton = cloneDeep(OAUTH2_ISSUER);
+  issuerData._id = clientId + '-issuer';
+  issuerData.issuer = {
+    inherited: false,
+    value: iss,
+  };
+  issuerData.allowedSubjects = {
+    inherited: false,
+    value: sub ? [sub] : [],
+  };
+  issuerData.jwkSet = {
+    inherited: false,
+    value: stringify(jwks),
+  };
+  if (options.save) {
+    await updateOAuth2TrustedJwtIssuer({
+      issuerId: issuerData._id,
+      issuerData,
+      state,
+    });
+  }
+
+  return {
+    jwk,
+    jwks,
+    client: clientData,
+    issuer: issuerData,
+  };
+}
+
+export async function executeRfc7523AuthZGrantFlow({
+  clientId,
+  iss,
+  jwk,
+  sub,
+  scope = ['fr:am:*', 'fr:idm:*', 'openid'],
+  state,
+}: {
+  clientId: string;
+  iss: string;
+  jwk: JwkRsa;
+  sub: string;
+  scope?: string[];
+  state: State;
+}): Promise<AccessTokenResponseType> {
+  // create header and payload
+  const payload = {
+    iss,
+    sub,
+    aud: getAccessTokenUrl(state),
+
+    // Cross platform way of setting JWT expiry time 3 minutes in the future, expressed as number of seconds since EPOCH
+    exp: Math.floor(new Date().getTime() / 1000 + 180),
+
+    // A unique ID for the JWT which is required when requesting the openid scope
+    jti: uuidv4(),
+  };
+
+  // create and sign JWT
+  const jwt = await createSignedJwtToken(payload, jwk);
+
+  // get access token
+  return accessTokenRfc7523AuthZGrant({ clientId, jwt, scope, state });
+}
+
 export async function generateRfc7523ClientAuthNArtifacts({
   clientId,
+  aud = null,
   jwk = null,
-  exp = 60 * 5,
   options = {
-    saveClient: true,
+    save: false,
   },
   state,
 }: {
   clientId: string;
+  aud?: string;
   jwk?: JwkRsa;
-  exp?: number;
-  options?: { saveClient: boolean };
+  options?: { save: boolean };
   state: State;
 }): Promise<{
   jwk: JwkRsa;
@@ -1670,13 +1905,15 @@ export async function generateRfc7523ClientAuthNArtifacts({
   const jwks = createJwks(await getJwkRsaPublic(jwk));
   const sub = clientId;
   const iss = clientId;
-  const aud = getAccessTokenUrl(state);
+  if (!aud) {
+    aud = getAccessTokenUrl(state);
+  }
 
   const payload = {
     iss,
     sub,
     aud,
-    exp,
+    exp: 60 * 5,
   };
 
   // create and sign JWT
@@ -1708,85 +1945,7 @@ export async function generateRfc7523ClientAuthNArtifacts({
     inherited: false,
     value: JSON.stringify(jwks),
   };
-  if (options.saveClient) {
-    await updateOAuth2Client({ clientId, clientData, state });
-  }
-
-  return {
-    jwk,
-    jwks,
-    jwt,
-    client: clientData,
-  };
-}
-
-export async function generateRfc7523AuthZGrantArtifacts({
-  clientId,
-  jwk = null,
-  sub,
-  iss,
-  exp = 60 * 30,
-  options = { saveClient: true },
-  state,
-}: {
-  clientId: string;
-  jwk: JwkRsa;
-  sub: string;
-  iss: string;
-  exp?: number;
-  options?: { saveClient: boolean };
-  state: State;
-}): Promise<{
-  jwk: JwkRsa;
-  jwks: JwksInterface;
-  jwt: any;
-  client: OAuth2ClientSkeleton;
-}> {
-  if (!jwk) {
-    jwk = await createJwkRsa();
-  }
-
-  // create header and payload
-  const jwks = createJwks(await getJwkRsaPublic(jwk));
-  const aud = getAccessTokenUrl(state);
-
-  const payload = {
-    iss,
-    sub,
-    aud,
-    exp,
-  };
-
-  // create and sign JWT
-  const jwt = createSignedJwtToken(payload, jwk);
-
-  // create oauth2 client
-  const clientData: OAuth2ClientSkeleton = cloneDeep(OAUTH2_CLIENT);
-  clientData.coreOAuth2ClientConfig.clientType = {
-    inherited: false,
-    value: 'Public',
-  };
-  clientData.advancedOAuth2ClientConfig.grantTypes = {
-    inherited: false,
-    value: ['urn:ietf:params:oauth:grant-type:jwt-bearer'],
-  };
-  clientData.advancedOAuth2ClientConfig.isConsentImplied = {
-    inherited: false,
-    value: true,
-  };
-  clientData.advancedOAuth2ClientConfig.tokenEndpointAuthMethod = {
-    inherited: false,
-    value: 'none',
-  };
-  clientData.signEncOAuth2ClientConfig.publicKeyLocation = {
-    inherited: false,
-    value: 'jwks',
-  };
-  clientData.signEncOAuth2ClientConfig.jwkSet = {
-    inherited: false,
-    value: JSON.stringify(jwks),
-  };
-  if (options.saveClient) {
+  if (options.save) {
     await updateOAuth2Client({ clientId, clientData, state });
   }
 

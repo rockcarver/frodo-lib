@@ -1,5 +1,10 @@
 import Agent from 'agentkeepalive';
-import axios, { AxiosError, AxiosInstance, AxiosProxyConfig } from 'axios';
+import axios, {
+  AxiosError,
+  AxiosInstance,
+  AxiosProxyConfig,
+  AxiosRequestConfig,
+} from 'axios';
 import axiosRetry from 'axios-retry';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
@@ -203,10 +208,12 @@ export function generateAmApi({
 export function generateOauth2Api({
   resource,
   requestOverride = {},
+  authenticate = true,
   state,
 }: {
-  resource;
-  requestOverride?;
+  resource: { apiVersion: string };
+  requestOverride?: AxiosRequestConfig;
+  authenticate?: boolean;
   state: State;
 }) {
   let headers = {
@@ -215,13 +222,15 @@ export function generateOauth2Api({
     // only add API version if we have it
     ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
     // only send session cookie if we know its name and value and we are not instructed to use the bearer token for AM APIs
-    ...(!state.getUseBearerTokenForAmApis() &&
+    ...(authenticate &&
+      !state.getUseBearerTokenForAmApis() &&
       state.getCookieName() &&
       state.getCookieValue() && {
         Cookie: `${state.getCookieName()}=${state.getCookieValue()}`,
       }),
     // only add authorization header if we have a bearer token and are instructed to use it for AM APIs
-    ...(state.getUseBearerTokenForAmApis() &&
+    ...(authenticate &&
+      state.getUseBearerTokenForAmApis() &&
       state.getBearerToken() && {
         Authorization: `Bearer ${state.getBearerToken()}`,
       }),
