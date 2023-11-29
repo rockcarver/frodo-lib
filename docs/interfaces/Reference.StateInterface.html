@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="default" lang="en"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>StateInterface | Frodo Library - v2.0.0-45</title><meta name="description" content="Documentation for Frodo Library"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os"</script><header class="tsd-page-toolbar">
+<!DOCTYPE html><html class="default" lang="en"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>StateInterface | Frodo Library - v2.0.0-51</title><meta name="description" content="Documentation for Frodo Library"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os"</script><header class="tsd-page-toolbar">
 <div class="tsd-toolbar-contents container">
 <div class="table-cell" id="tsd-search" data-base="..">
 <div class="field"><label for="tsd-search-field" class="tsd-widget tsd-toolbar-icon search no-caption"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><use href="#icon-search"></use></svg></label><input type="text" id="tsd-search-field" aria-label="Search"/></div>
@@ -6,7 +6,7 @@
 <div id="tsd-toolbar-links"><a href="https://github.com/rockcarver/frodo-lib">Project Home</a></div></div>
 <ul class="results">
 <li class="state loading">Preparing search index...</li>
-<li class="state failure">The search index is not available</li></ul><a href="../index.html" class="title">Frodo Library - v2.0.0-45</a></div>
+<li class="state failure">The search index is not available</li></ul><a href="../index.html" class="title">Frodo Library - v2.0.0-51</a></div>
 <div class="table-cell" id="tsd-widgets"><a href="#" class="tsd-widget tsd-toolbar-icon menu no-caption" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><use href="#icon-menu"></use></svg></a></div></div></header>
 <div class="container container-main">
 <div class="col-content">
@@ -21,7 +21,7 @@
 <ul class="tsd-hierarchy">
 <li><span class="target">StateInterface</span></li></ul></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L366">shared/State.ts:366</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L429">shared/State.ts:429</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-index-accordion" open><summary class="tsd-accordion-summary tsd-index-summary">
@@ -33,10 +33,10 @@
 <a href="Reference.StateInterface.html#amVersion" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>am<wbr/>Version?</span></a>
 <a href="Reference.StateInterface.html#authenticationHeaderOverrides" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>authentication<wbr/>Header<wbr/>Overrides?</span></a>
 <a href="Reference.StateInterface.html#authenticationService" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>authentication<wbr/>Service?</span></a>
+<a href="Reference.StateInterface.html#autoRefreshTimer" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>auto<wbr/>Refresh<wbr/>Timer?</span></a>
 <a href="Reference.StateInterface.html#bearerToken" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>bearer<wbr/>Token?</span></a>
 <a href="Reference.StateInterface.html#connectionProfilesPath" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>connection<wbr/>Profiles<wbr/>Path?</span></a>
 <a href="Reference.StateInterface.html#cookieName" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>cookie<wbr/>Name?</span></a>
-<a href="Reference.StateInterface.html#cookieValue" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>cookie<wbr/>Value?</span></a>
 <a href="Reference.StateInterface.html#createProgressHandler" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>create<wbr/>Progress<wbr/>Handler?</span></a>
 <a href="Reference.StateInterface.html#curlirize" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>curlirize?</span></a>
 <a href="Reference.StateInterface.html#curlirizeHandler" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>curlirize<wbr/>Handler?</span></a>
@@ -57,8 +57,11 @@
 <a href="Reference.StateInterface.html#serviceAccountId" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>service<wbr/>Account<wbr/>Id?</span></a>
 <a href="Reference.StateInterface.html#serviceAccountJwk" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>service<wbr/>Account<wbr/>Jwk?</span></a>
 <a href="Reference.StateInterface.html#stopProgressHandler" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>stop<wbr/>Progress<wbr/>Handler?</span></a>
+<a href="Reference.StateInterface.html#tokenCachePath" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>token<wbr/>Cache<wbr/>Path?</span></a>
 <a href="Reference.StateInterface.html#updateProgressHandler" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>update<wbr/>Progress<wbr/>Handler?</span></a>
 <a href="Reference.StateInterface.html#useBearerTokenForAmApis" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>use<wbr/>Bearer<wbr/>Token<wbr/>For<wbr/>Am<wbr/>Apis?</span></a>
+<a href="Reference.StateInterface.html#useTokenCache" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>use<wbr/>Token<wbr/>Cache?</span></a>
+<a href="Reference.StateInterface.html#userSessionToken" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>user<wbr/>Session<wbr/>Token?</span></a>
 <a href="Reference.StateInterface.html#username" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>username?</span></a>
 <a href="Reference.StateInterface.html#verbose" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>verbose?</span></a>
 <a href="Reference.StateInterface.html#verboseHandler" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>verbose<wbr/>Handler?</span></a>
@@ -69,69 +72,69 @@
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>allow<wbr/>Insecure<wbr/>Connection</span><a href="#allowInsecureConnection" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">allow<wbr/>Insecure<wbr/>Connection</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L373">shared/State.ts:373</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L436">shared/State.ts:436</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="amVersion" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>am<wbr/>Version</span><a href="#amVersion" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">am<wbr/>Version</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L392">shared/State.ts:392</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L455">shared/State.ts:455</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="authenticationHeaderOverrides" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>authentication<wbr/>Header<wbr/>Overrides</span><a href="#authenticationHeaderOverrides" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">authentication<wbr/>Header<wbr/>Overrides</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type ">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L375">shared/State.ts:375</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L438">shared/State.ts:438</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="authenticationService" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>authentication<wbr/>Service</span><a href="#authenticationService" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">authentication<wbr/>Service</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L376">shared/State.ts:376</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L439">shared/State.ts:439</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member"><a id="autoRefreshTimer" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>auto<wbr/>Refresh<wbr/>Timer</span><a href="#autoRefreshTimer" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">auto<wbr/>Refresh<wbr/>Timer</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type ">Timeout</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L464">shared/State.ts:464</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="bearerToken" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>bearer<wbr/>Token</span><a href="#bearerToken" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
-<div class="tsd-signature"><span class="tsd-kind-property">bearer<wbr/>Token</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<div class="tsd-signature"><span class="tsd-kind-property">bearer<wbr/>Token</span><span class="tsd-signature-symbol">?:</span> <a href="../types/Reference.AccessTokenMetaType.html" class="tsd-signature-type tsd-kind-type-alias">AccessTokenMetaType</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L387">shared/State.ts:387</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L450">shared/State.ts:450</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="connectionProfilesPath" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>connection<wbr/>Profiles<wbr/>Path</span><a href="#connectionProfilesPath" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">connection<wbr/>Profiles<wbr/>Path</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L395">shared/State.ts:395</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L458">shared/State.ts:458</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="cookieName" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>cookie<wbr/>Name</span><a href="#cookieName" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">cookie<wbr/>Name</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L378">shared/State.ts:378</a></li></ul></aside></section>
-<section class="tsd-panel tsd-member"><a id="cookieValue" class="tsd-anchor"></a>
-<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>cookie<wbr/>Value</span><a href="#cookieValue" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
-<div class="tsd-signature"><span class="tsd-kind-property">cookie<wbr/>Value</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
-<ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L379">shared/State.ts:379</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L441">shared/State.ts:441</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="createProgressHandler" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>create<wbr/>Progress<wbr/>Handler</span><a href="#createProgressHandler" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
-<div class="tsd-signature"><span class="tsd-kind-property">create<wbr/>Progress<wbr/>Handler</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">type</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, <span class="tsd-kind-parameter">total</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, <span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span></div>
+<div class="tsd-signature"><span class="tsd-kind-property">create<wbr/>Progress<wbr/>Handler</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">type</span><span class="tsd-signature-symbol">: </span><a href="../types/Reference.ProgressIndicatorType.html" class="tsd-signature-type tsd-kind-type-alias">ProgressIndicatorType</a>, <span class="tsd-kind-parameter">total</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, <span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span></div>
 <div class="tsd-type-declaration">
 <h4>Type declaration</h4>
 <ul class="tsd-parameters">
 <li class="tsd-parameter-signature">
 <ul class="tsd-signatures">
-<li class="tsd-signature" id="createProgressHandler.__type.__type-1"><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">type</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, <span class="tsd-kind-parameter">total</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, <span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+<li class="tsd-signature" id="createProgressHandler.__type.__type-1"><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">type</span><span class="tsd-signature-symbol">: </span><a href="../types/Reference.ProgressIndicatorType.html" class="tsd-signature-type tsd-kind-type-alias">ProgressIndicatorType</a>, <span class="tsd-kind-parameter">total</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, <span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></li>
 <li class="tsd-description">
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li>
-<h5><span class="tsd-kind-parameter">type</span>: <span class="tsd-signature-type">string</span></h5></li>
+<h5><span class="tsd-kind-parameter">type</span>: <a href="../types/Reference.ProgressIndicatorType.html" class="tsd-signature-type tsd-kind-type-alias">ProgressIndicatorType</a></h5></li>
 <li>
 <h5><code class="tsd-tag ts-flagOptional">Optional</code> <span class="tsd-kind-parameter">total</span>: <span class="tsd-signature-type">number</span></h5></li>
 <li>
 <h5><code class="tsd-tag ts-flagOptional">Optional</code> <span class="tsd-kind-parameter">message</span>: <span class="tsd-signature-type">string</span></h5></li></ul></div>
-<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4></li></ul></li></ul></div><aside class="tsd-sources">
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span></h4></li></ul></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L411">shared/State.ts:411</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L477">shared/State.ts:477</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="curlirize" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>curlirize</span><a href="#curlirize" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">curlirize</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L410">shared/State.ts:410</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L476">shared/State.ts:476</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="curlirizeHandler" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>curlirize<wbr/>Handler</span><a href="#curlirizeHandler" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">curlirize<wbr/>Handler</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span></div>
@@ -149,12 +152,12 @@
 <h5><span class="tsd-kind-parameter">message</span>: <span class="tsd-signature-type">string</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4></li></ul></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L409">shared/State.ts:409</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L475">shared/State.ts:475</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="debug" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>debug</span><a href="#debug" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">debug</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L408">shared/State.ts:408</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L474">shared/State.ts:474</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="debugHandler" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>debug<wbr/>Handler</span><a href="#debugHandler" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">debug<wbr/>Handler</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span></div>
@@ -172,57 +175,57 @@
 <h5><span class="tsd-kind-parameter">message</span>: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4></li></ul></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L407">shared/State.ts:407</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L473">shared/State.ts:473</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="deploymentType" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>deployment<wbr/>Type</span><a href="#deploymentType" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">deployment<wbr/>Type</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L372">shared/State.ts:372</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L435">shared/State.ts:435</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="directory" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>directory</span><a href="#directory" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">directory</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L398">shared/State.ts:398</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L463">shared/State.ts:463</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="features" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>features</span><a href="#features" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">features</span><span class="tsd-signature-symbol">?:</span> <a href="Reference.FeatureInterface.html" class="tsd-signature-type tsd-kind-interface">FeatureInterface</a><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L381">shared/State.ts:381</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L444">shared/State.ts:444</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="frodoVersion" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>frodo<wbr/>Version</span><a href="#frodoVersion" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">frodo<wbr/>Version</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L393">shared/State.ts:393</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L456">shared/State.ts:456</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="host" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>host</span><a href="#host" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">host</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L368">shared/State.ts:368</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L431">shared/State.ts:431</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="logApiKey" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>log<wbr/>Api<wbr/>Key</span><a href="#logApiKey" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">log<wbr/>Api<wbr/>Key</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L389">shared/State.ts:389</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L452">shared/State.ts:452</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="logApiSecret" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>log<wbr/>Api<wbr/>Secret</span><a href="#logApiSecret" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">log<wbr/>Api<wbr/>Secret</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L390">shared/State.ts:390</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L453">shared/State.ts:453</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="masterKeyPath" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>master<wbr/>Key<wbr/>Path</span><a href="#masterKeyPath" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">master<wbr/>Key<wbr/>Path</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L396">shared/State.ts:396</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L461">shared/State.ts:461</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="outputFile" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>output<wbr/>File</span><a href="#outputFile" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">output<wbr/>File</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L397">shared/State.ts:397</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L462">shared/State.ts:462</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="password" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>password</span><a href="#password" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">password</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L370">shared/State.ts:370</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L433">shared/State.ts:433</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="printHandler" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>print<wbr/>Handler</span><a href="#printHandler" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">print<wbr/>Handler</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span>, <span class="tsd-kind-parameter">type</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span>, <span class="tsd-kind-parameter">newline</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span></div>
@@ -244,75 +247,94 @@
 <h5><code class="tsd-tag ts-flagOptional">Optional</code> <span class="tsd-kind-parameter">newline</span>: <span class="tsd-signature-type">boolean</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4></li></ul></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L400">shared/State.ts:400</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L466">shared/State.ts:466</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="realm" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>realm</span><a href="#realm" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">realm</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L371">shared/State.ts:371</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L434">shared/State.ts:434</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="serviceAccountId" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>service<wbr/>Account<wbr/>Id</span><a href="#serviceAccountId" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">service<wbr/>Account<wbr/>Id</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L383">shared/State.ts:383</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L446">shared/State.ts:446</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="serviceAccountJwk" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>service<wbr/>Account<wbr/>Jwk</span><a href="#serviceAccountJwk" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">service<wbr/>Account<wbr/>Jwk</span><span class="tsd-signature-symbol">?:</span> <a href="../types/Reference.JwkRsa.html" class="tsd-signature-type tsd-kind-type-alias">JwkRsa</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L384">shared/State.ts:384</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L447">shared/State.ts:447</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="stopProgressHandler" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>stop<wbr/>Progress<wbr/>Handler</span><a href="#stopProgressHandler" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
-<div class="tsd-signature"><span class="tsd-kind-property">stop<wbr/>Progress<wbr/>Handler</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, <span class="tsd-kind-parameter">status</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span></div>
+<div class="tsd-signature"><span class="tsd-kind-property">stop<wbr/>Progress<wbr/>Handler</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">id</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, <span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, <span class="tsd-kind-parameter">status</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span></div>
 <div class="tsd-type-declaration">
 <h4>Type declaration</h4>
 <ul class="tsd-parameters">
 <li class="tsd-parameter-signature">
 <ul class="tsd-signatures">
-<li class="tsd-signature" id="stopProgressHandler.__type-8.__type-9"><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, <span class="tsd-kind-parameter">status</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+<li class="tsd-signature" id="stopProgressHandler.__type-8.__type-9"><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">id</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, <span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, <span class="tsd-kind-parameter">status</span><span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 <li class="tsd-description">
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
+<li>
+<h5><span class="tsd-kind-parameter">id</span>: <span class="tsd-signature-type">string</span></h5></li>
 <li>
 <h5><span class="tsd-kind-parameter">message</span>: <span class="tsd-signature-type">string</span></h5></li>
 <li>
 <h5><code class="tsd-tag ts-flagOptional">Optional</code> <span class="tsd-kind-parameter">status</span>: <span class="tsd-signature-type">string</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4></li></ul></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L417">shared/State.ts:417</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L483">shared/State.ts:483</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member"><a id="tokenCachePath" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>token<wbr/>Cache<wbr/>Path</span><a href="#tokenCachePath" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">token<wbr/>Cache<wbr/>Path</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L460">shared/State.ts:460</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="updateProgressHandler" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>update<wbr/>Progress<wbr/>Handler</span><a href="#updateProgressHandler" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
-<div class="tsd-signature"><span class="tsd-kind-property">update<wbr/>Progress<wbr/>Handler</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span></div>
+<div class="tsd-signature"><span class="tsd-kind-property">update<wbr/>Progress<wbr/>Handler</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">id</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, <span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span></div>
 <div class="tsd-type-declaration">
 <h4>Type declaration</h4>
 <ul class="tsd-parameters">
 <li class="tsd-parameter-signature">
 <ul class="tsd-signatures">
-<li class="tsd-signature" id="updateProgressHandler.__type-10.__type-11"><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+<li class="tsd-signature" id="updateProgressHandler.__type-10.__type-11"><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">id</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, <span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 <li class="tsd-description">
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li>
+<h5><span class="tsd-kind-parameter">id</span>: <span class="tsd-signature-type">string</span></h5></li>
+<li>
 <h5><span class="tsd-kind-parameter">message</span>: <span class="tsd-signature-type">string</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4></li></ul></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L416">shared/State.ts:416</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L482">shared/State.ts:482</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="useBearerTokenForAmApis" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>use<wbr/>Bearer<wbr/>Token<wbr/>For<wbr/>Am<wbr/>Apis</span><a href="#useBearerTokenForAmApis" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">use<wbr/>Bearer<wbr/>Token<wbr/>For<wbr/>Am<wbr/>Apis</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L386">shared/State.ts:386</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L449">shared/State.ts:449</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member"><a id="useTokenCache" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>use<wbr/>Token<wbr/>Cache</span><a href="#useTokenCache" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">use<wbr/>Token<wbr/>Cache</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L459">shared/State.ts:459</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member"><a id="userSessionToken" class="tsd-anchor"></a>
+<h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>user<wbr/>Session<wbr/>Token</span><a href="#userSessionToken" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">user<wbr/>Session<wbr/>Token</span><span class="tsd-signature-symbol">?:</span> <a href="../types/Reference.UserSessionMetaType.html" class="tsd-signature-type tsd-kind-type-alias">UserSessionMetaType</a></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L442">shared/State.ts:442</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="username" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>username</span><a href="#username" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">username</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L369">shared/State.ts:369</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L432">shared/State.ts:432</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="verbose" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>verbose</span><a href="#verbose" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">verbose</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L406">shared/State.ts:406</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L472">shared/State.ts:472</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member"><a id="verboseHandler" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><code class="tsd-tag ts-flagOptional">Optional</code> <span>verbose<wbr/>Handler</span><a href="#verboseHandler" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24"><use href="#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">verbose<wbr/>Handler</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">message</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span></div>
@@ -330,7 +352,7 @@
 <h5><span class="tsd-kind-parameter">message</span>: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4></li></ul></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/d6e0c9f5/src/shared/State.ts#L405">shared/State.ts:405</a></li></ul></aside></section></section></div>
+<li>Defined in <a href="https://github.com/vscheuber/frodo-lib/blob/dbf906f4/src/shared/State.ts#L471">shared/State.ts:471</a></li></ul></aside></section></section></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -353,10 +375,10 @@
 <li><a href="#amVersion" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>am<wbr/>Version</span></a></li>
 <li><a href="#authenticationHeaderOverrides" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>authentication<wbr/>Header<wbr/>Overrides</span></a></li>
 <li><a href="#authenticationService" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>authentication<wbr/>Service</span></a></li>
+<li><a href="#autoRefreshTimer" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>auto<wbr/>Refresh<wbr/>Timer</span></a></li>
 <li><a href="#bearerToken" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>bearer<wbr/>Token</span></a></li>
 <li><a href="#connectionProfilesPath" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>connection<wbr/>Profiles<wbr/>Path</span></a></li>
 <li><a href="#cookieName" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>cookie<wbr/>Name</span></a></li>
-<li><a href="#cookieValue" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>cookie<wbr/>Value</span></a></li>
 <li><a href="#createProgressHandler" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>create<wbr/>Progress<wbr/>Handler</span></a></li>
 <li><a href="#curlirize" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>curlirize</span></a></li>
 <li><a href="#curlirizeHandler" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>curlirize<wbr/>Handler</span></a></li>
@@ -377,13 +399,16 @@
 <li><a href="#serviceAccountId" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>service<wbr/>Account<wbr/>Id</span></a></li>
 <li><a href="#serviceAccountJwk" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>service<wbr/>Account<wbr/>Jwk</span></a></li>
 <li><a href="#stopProgressHandler" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>stop<wbr/>Progress<wbr/>Handler</span></a></li>
+<li><a href="#tokenCachePath" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>token<wbr/>Cache<wbr/>Path</span></a></li>
 <li><a href="#updateProgressHandler" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>update<wbr/>Progress<wbr/>Handler</span></a></li>
 <li><a href="#useBearerTokenForAmApis" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>use<wbr/>Bearer<wbr/>Token<wbr/>For<wbr/>Am<wbr/>Apis</span></a></li>
+<li><a href="#useTokenCache" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>use<wbr/>Token<wbr/>Cache</span></a></li>
+<li><a href="#userSessionToken" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>user<wbr/>Session<wbr/>Token</span></a></li>
 <li><a href="#username" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>username</span></a></li>
 <li><a href="#verbose" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>verbose</span></a></li>
 <li><a href="#verboseHandler" class=""><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1024"></use></svg><span>verbose<wbr/>Handler</span></a></li></ul></div></details></div>
 <div class="site-menu">
-<nav class="tsd-navigation"><a href="../modules.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1"></use></svg><span>Frodo Library - v2.0.0-45</span></a>
+<nav class="tsd-navigation"><a href="../modules.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-1"></use></svg><span>Frodo Library - v2.0.0-51</span></a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container" data-base="..">
 <li><a href="../modules/Reference.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-2"></use></svg>Reference</a></li>
 <li><a href="../variables/frodo.html"><svg class="tsd-kind-icon" viewBox="0 0 24 24"><use href="#icon-32"></use></svg>frodo</a></li>
