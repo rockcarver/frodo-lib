@@ -9,6 +9,7 @@ import {
 } from '../api/OAuth2OIDCApi';
 import { TokenInfoResponseType } from '../api/OAuth2OIDCApi';
 import { State } from '../shared/State';
+import { mergeDeep } from '../utils/JsonUtils';
 
 export type AccessTokenMetaType = AccessTokenResponseType & {
   expires: number;
@@ -124,17 +125,20 @@ export async function accessToken({
   amBaseUrl,
   data,
   config,
+  realm = false,
   state,
 }: {
   amBaseUrl: string;
   data: any;
   config: AxiosRequestConfig;
+  realm?: boolean;
   state: State;
 }): Promise<AccessTokenMetaType> {
   const response = await _accessToken({
     amBaseUrl,
     config,
     postData: data,
+    realm,
     state,
   });
   response['expires'] = Date.now() + response.expires_in * 1000;
@@ -154,15 +158,22 @@ export async function accessTokenRfc7523AuthZGrant({
   config?: AxiosRequestConfig;
   state: State;
 }): Promise<AccessTokenMetaType> {
-  const data = `grant_type=${encodeURIComponent(
-    'urn:ietf:params:oauth:grant-type:jwt-bearer'
-  )}&assertion=${jwt}&scope=${encodeURIComponent(
-    scope.join(' ')
-  )}&client_id=${encodeURIComponent(clientId)}`;
+  config = mergeDeep(config, {
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+    },
+  });
+  const data = new URLSearchParams({
+    grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+    assertion: jwt,
+    scope: scope.join(' '),
+    client_id: clientId,
+  }).toString();
   return accessToken({
     amBaseUrl: state.getHost(),
     config,
     data,
+    realm: true,
     state,
   });
 }

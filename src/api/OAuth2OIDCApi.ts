@@ -86,17 +86,24 @@ export async function accessToken({
   amBaseUrl,
   postData,
   config,
+  realm = false,
   state,
 }: {
   amBaseUrl: string;
   postData: any;
   config: AxiosRequestConfig;
+  realm?: boolean;
   state: State;
 }): Promise<AccessTokenResponseType> {
-  const accessTokenURL = util.format(accessTokenUrlTemplate, amBaseUrl, '');
+  const accessTokenURL = util.format(
+    accessTokenUrlTemplate,
+    amBaseUrl,
+    realm ? getCurrentRealmPath(state) : ''
+  );
   const { data } = await generateOauth2Api({
     resource: getApiConfig(),
     requestOverride: {},
+    authenticate: false,
     state,
   }).post(accessTokenURL, postData, config);
   return data;
