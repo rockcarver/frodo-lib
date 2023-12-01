@@ -124,7 +124,7 @@ export type Admin = {
     loginsPerUser?: number,
     service?: string
   ): Promise<void>;
-  generateRfc7523AuthZGrantArtifacts(
+  generateRfc7523AuthZGrantArtefacts(
     clientId: string,
     iss: string,
     jwk?: JwkRsa,
@@ -144,7 +144,7 @@ export type Admin = {
     sub: string,
     scope?: string[]
   ): Promise<AccessTokenResponseType>;
-  generateRfc7523ClientAuthNArtifacts(
+  generateRfc7523ClientAuthNArtefacts(
     clientId: string,
     aud?: string,
     jwk?: JwkRsa,
@@ -264,7 +264,7 @@ export default (state: State): Admin => {
         state,
       });
     },
-    async generateRfc7523AuthZGrantArtifacts(
+    async generateRfc7523AuthZGrantArtefacts(
       clientId: string,
       iss: string,
       jwk: JwkRsa,
@@ -277,7 +277,7 @@ export default (state: State): Admin => {
       client: OAuth2ClientSkeleton;
       issuer: OAuth2TrustedJwtIssuerSkeleton;
     }> {
-      return generateRfc7523AuthZGrantArtifacts({
+      return generateRfc7523AuthZGrantArtefacts({
         clientId,
         iss,
         jwk,
@@ -303,7 +303,7 @@ export default (state: State): Admin => {
         state,
       });
     },
-    async generateRfc7523ClientAuthNArtifacts(
+    async generateRfc7523ClientAuthNArtefacts(
       clientId: string,
       aud?: string,
       jwk?: JwkRsa,
@@ -314,7 +314,7 @@ export default (state: State): Admin => {
       jwt: any;
       client: OAuth2ClientSkeleton;
     }> {
-      return generateRfc7523ClientAuthNArtifacts({
+      return generateRfc7523ClientAuthNArtefacts({
         clientId,
         aud,
         jwk,
@@ -1744,7 +1744,7 @@ function getAccessTokenUrl(state: State) {
   return urlWithPort;
 }
 
-export async function generateRfc7523AuthZGrantArtifacts({
+export async function generateRfc7523AuthZGrantArtefacts({
   clientId,
   iss,
   jwk = null,
@@ -1877,7 +1877,7 @@ export async function executeRfc7523AuthZGrantFlow({
   return accessTokenRfc7523AuthZGrant({ clientId, jwt, scope, state });
 }
 
-export async function generateRfc7523ClientAuthNArtifacts({
+export async function generateRfc7523ClientAuthNArtefacts({
   clientId,
   aud = null,
   jwk = null,
