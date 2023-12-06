@@ -18,6 +18,7 @@ import ServiceAccountOps, {
 } from '../ops/cloud/ServiceAccountOps';
 import StartupOps, { Startup } from '../ops/cloud/StartupOps';
 import VariablesOps, { Variable } from '../ops/cloud/VariablesOps';
+import ConfigOps, { Config } from '../ops/ConfigOps';
 import ConnectionProfileOps, {
   ConnectionProfile,
 } from '../ops/ConnectionProfileOps';
@@ -92,6 +93,7 @@ export type Frodo = {
     variable: Variable;
   };
 
+  config: Config;
   conn: ConnectionProfile;
   cache: TokenCache;
 
@@ -231,6 +233,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       variable: VariablesOps(state),
     },
 
+    config: ConfigOps(state),
     conn: ConnectionProfileOps(state),
     cache: TokenCacheOps(state),
 
