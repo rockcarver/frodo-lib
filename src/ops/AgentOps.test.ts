@@ -285,8 +285,10 @@ describe('AgentOps', () => {
       });
 
       test('1: Read all agent types', async () => {
-        const response = AgentOps.createAgentExportTemplate();
-        expect(response).toMatchSnapshot();
+        const response = AgentOps.createAgentExportTemplate({ state });
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
     });
 
@@ -485,7 +487,9 @@ describe('AgentOps', () => {
 
       test('1: Export all agents', async () => {
         const response = await AgentOps.exportAgents({ state });
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
     });
 
@@ -496,7 +500,9 @@ describe('AgentOps', () => {
 
       test('1: Export gateway agents', async () => {
         const response = await AgentOps.exportIdentityGatewayAgents({ state });
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
     });
 
@@ -507,7 +513,9 @@ describe('AgentOps', () => {
 
       test('1: Export java agents', async () => {
         const response = await AgentOps.exportJavaAgents({ state });
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
     });
 
@@ -518,7 +526,9 @@ describe('AgentOps', () => {
 
       test('1: Export web agents', async () => {
         const response = await AgentOps.exportWebAgents({ state });
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
     });
 
@@ -532,7 +542,9 @@ describe('AgentOps', () => {
           agentId: gateway1.id,
           state,
         });
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
 
       test(`2: Export agent '${java1.id}' (${java1.type})`, async () => {
@@ -540,7 +552,9 @@ describe('AgentOps', () => {
           agentId: java1.id,
           state,
         });
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
 
       test(`3: Export agent '${web1.id}' (${web1.type})`, async () => {
@@ -548,7 +562,9 @@ describe('AgentOps', () => {
           agentId: web1.id,
           state,
         });
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
     });
 
@@ -562,7 +578,9 @@ describe('AgentOps', () => {
           agentId: gateway1.id,
           state,
         });
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
     });
 
@@ -576,7 +594,9 @@ describe('AgentOps', () => {
           agentId: java1.id,
           state,
         });
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
     });
 
@@ -590,7 +610,9 @@ describe('AgentOps', () => {
           agentId: web1.id,
           state,
         });
-        expect(response).toMatchSnapshot();
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
       });
     });
 
@@ -605,7 +627,7 @@ describe('AgentOps', () => {
           [java3.id]: java3.type,
           [web3.id]: web3.type,
         };
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
@@ -624,7 +646,7 @@ describe('AgentOps', () => {
           [gateway4.id]: gateway4.type,
           [gateway5.id]: gateway5.type,
         };
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
@@ -640,7 +662,7 @@ describe('AgentOps', () => {
           [java4.id]: java4.type,
           [web4.id]: web4.type,
         };
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
@@ -666,7 +688,7 @@ describe('AgentOps', () => {
           [java4.id]: java4.type,
           [java5.id]: java5.type,
         };
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
@@ -679,7 +701,7 @@ describe('AgentOps', () => {
           [web4.id]: web4.type,
           [gateway4.id]: gateway4.type,
         };
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
@@ -702,7 +724,7 @@ describe('AgentOps', () => {
           [web4.id]: web4.type,
           [web5.id]: web5.type,
         };
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
@@ -715,7 +737,7 @@ describe('AgentOps', () => {
           [gateway4.id]: gateway4.type,
           [java4.id]: java4.type,
         };
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
@@ -734,7 +756,7 @@ describe('AgentOps', () => {
       });
 
       test('1: Import gateway agent', async () => {
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         exportData.agents[gateway6.id] = getAgent(gateway6.type, gateway6.id);
         await AgentOps.importAgent({
           agentId: gateway6.id,
@@ -745,7 +767,7 @@ describe('AgentOps', () => {
       });
 
       test('2: Import java agent', async () => {
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         exportData.agents[java6.id] = getAgent(java6.type, java6.id);
         await AgentOps.importAgent({
           agentId: java6.id,
@@ -756,7 +778,7 @@ describe('AgentOps', () => {
       });
 
       test('3: Import web agent', async () => {
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         exportData.agents[web6.id] = getAgent(web6.type, web6.id);
         await AgentOps.importAgent({
           agentId: web6.id,
@@ -773,7 +795,7 @@ describe('AgentOps', () => {
       });
 
       test(`1: Import ${gateway7.type} '${gateway7.id}'`, async () => {
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         exportData.agents[gateway7.id] = getAgent(gateway7.type, gateway7.id);
         await AgentOps.importIdentityGatewayAgent({
           agentId: gateway7.id,
@@ -784,7 +806,7 @@ describe('AgentOps', () => {
       });
 
       test('2: Import gateway agent with wrong type', async () => {
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         exportData.agents[java7.id] = getAgent(java7.type, java7.id);
         expect.assertions(1);
         try {
@@ -805,7 +827,7 @@ describe('AgentOps', () => {
       });
 
       test(`1: Import ${java7.type} '${java7.id}'`, async () => {
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         exportData.agents[java7.id] = getAgent(java7.type, java7.id);
         await AgentOps.importJavaAgent({
           agentId: java7.id,
@@ -816,7 +838,7 @@ describe('AgentOps', () => {
       });
 
       test('2: Import java agent with wrong type', async () => {
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         exportData.agents[web7.id] = getAgent(web7.type, web7.id);
         expect.assertions(1);
         try {
@@ -837,7 +859,7 @@ describe('AgentOps', () => {
       });
 
       test(`1: Import ${web7.type} '${web7.id}'`, async () => {
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         exportData.agents[web7.id] = getAgent(web7.type, web7.id);
         await AgentOps.importWebAgent({
           agentId: web7.id,
@@ -848,7 +870,7 @@ describe('AgentOps', () => {
       });
 
       test('2: Import web agent with wrong type', async () => {
-        const exportData = AgentOps.createAgentExportTemplate();
+        const exportData = AgentOps.createAgentExportTemplate({ state });
         exportData.agents[gateway7.id] = getAgent(gateway7.type, gateway7.id);
         expect.assertions(1);
         try {

@@ -3,7 +3,7 @@
 exports[`AgentOps createAgentExportTemplate() 1: Read all agent types 1`] = `
 {
   "agents": {},
-  "meta": {},
+  "meta": Any<Object>,
 }
 `;
 
@@ -51,7 +51,7 @@ exports[`AgentOps exportAgent() 1: Export agent 'FrodoOpsTestGatewayAgent1' (Ide
       },
     },
   },
-  "meta": {},
+  "meta": Any<Object>,
 }
 `;
 
@@ -725,7 +725,7 @@ exports[`AgentOps exportAgent() 2: Export agent 'FrodoOpsTestJavaAgent1' (J2EEAg
       },
     },
   },
-  "meta": {},
+  "meta": Any<Object>,
 }
 `;
 
@@ -1217,7 +1217,7 @@ exports[`AgentOps exportAgent() 3: Export agent 'FrodoOpsTestWebAgent1' (WebAgen
       },
     },
   },
-  "meta": {},
+  "meta": Any<Object>,
 }
 `;
 
@@ -3242,7 +3242,7 @@ exports[`AgentOps exportAgents() 1: Export all agents 1`] = `
       },
     },
   },
-  "meta": {},
+  "meta": Any<Object>,
 }
 `;
 
@@ -3284,7 +3284,7 @@ exports[`AgentOps exportIdentityGatewayAgent() 1: Export IdentityGatewayAgent 'F
       },
     },
   },
-  "meta": {},
+  "meta": Any<Object>,
 }
 `;
 
@@ -3382,7 +3382,7 @@ exports[`AgentOps exportIdentityGatewayAgents() 1: Export gateway agents 1`] = `
       "status": "Active",
     },
   },
-  "meta": {},
+  "meta": Any<Object>,
 }
 `;
 
@@ -4056,7 +4056,7 @@ exports[`AgentOps exportJavaAgent() 1: Export J2EEAgent 'FrodoOpsTestJavaAgent1'
       },
     },
   },
-  "meta": {},
+  "meta": Any<Object>,
 }
 `;
 
@@ -5178,7 +5178,7 @@ exports[`AgentOps exportJavaAgents() 1: Export java agents 1`] = `
       },
     },
   },
-  "meta": {},
+  "meta": Any<Object>,
 }
 `;
 
@@ -5670,7 +5670,7 @@ exports[`AgentOps exportWebAgent() 1: Export WebAgent 'FrodoOpsTestWebAgent1' 1`
       },
     },
   },
-  "meta": {},
+  "meta": Any<Object>,
 }
 `;
 
@@ -6491,7 +6491,7 @@ exports[`AgentOps exportWebAgents() 1: Export web agents 1`] = `
       },
     },
   },
-  "meta": {},
+  "meta": Any<Object>,
 }
 `;
 

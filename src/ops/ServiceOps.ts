@@ -17,6 +17,7 @@ import {
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
+import { getMetadata } from '../utils/ExportImportUtils';
 import { type ExportMetaData } from './OpsTypes';
 
 export type Service = {
@@ -195,7 +196,7 @@ export default (state: State): Service => {
 };
 
 export interface ServiceExportInterface {
-  meta?: Record<string, ExportMetaData>;
+  meta?: ExportMetaData;
   service: Record<string, AmServiceSkeleton>;
 }
 
@@ -203,9 +204,13 @@ export interface ServiceExportInterface {
  * Create an empty service export template
  * @returns {SingleTreeExportInterface} an empty service export template
  */
-export function createServiceExportTemplate(): ServiceExportInterface {
+export function createServiceExportTemplate({
+  state,
+}: {
+  state: State;
+}): ServiceExportInterface {
   return {
-    meta: {},
+    meta: getMetadata({ state }),
     service: {},
   } as ServiceExportInterface;
 }
