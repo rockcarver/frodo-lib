@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { CurlHelper } from './lib/CurlHelper';
 
 function defaultLogCallback(curlResult, err = undefined) {
