@@ -103,6 +103,12 @@ export type Theme = {
     themeMap: Record<string, ThemeSkeleton>
   ): Promise<Record<string, ThemeSkeleton>>;
   /**
+   * Import themes
+   * @param {ThemeExportInterface} importData import data
+   * @returns {Promise<ThemeSkeleton[]>} a promise resolving to an array of theme objects
+   */
+  importThemes(importData: ThemeExportInterface): Promise<ThemeSkeleton[]>;
+  /**
    * Delete theme by id
    * @param {string} themeId theme id
    * @param {string} realm realm name
@@ -259,6 +265,11 @@ export default (state: State): Theme => {
       themeMap: Record<string, ThemeSkeleton>
     ): Promise<Record<string, ThemeSkeleton>> {
       return updateThemes({ themeMap, state });
+    },
+    async importThemes(
+      importData: ThemeExportInterface
+    ): Promise<ThemeSkeleton[]> {
+      return importThemes({ importData, state });
     },
     async deleteTheme(
       themeId: string,
@@ -681,6 +692,32 @@ export async function updateThemes({
   });
   debugMessage({ message: `ThemeApi.putThemes: finished`, state });
   return updatedThemes as Record<string, ThemeSkeleton>;
+}
+
+/**
+ * Import themes
+ * @param {ThemeExportInterface} importData import data
+ * @param {string} realm realm name
+ * @returns {Promise<ThemeSkeleton[]>} a promise resolving to an array of theme objects
+ */
+export async function importThemes({
+  importData,
+  realm = null,
+  state,
+}: {
+  importData: ThemeExportInterface;
+  realm?: string;
+  state: State;
+}): Promise<ThemeSkeleton[]> {
+  debugMessage({ message: `ThemeOps.importThemes: start`, state });
+  const map = (await updateThemes({
+    themeMap: importData.theme,
+    realm,
+    state,
+  })) as unknown as Map<string, ThemeSkeleton>;
+  const response = Array.from(map.values());
+  debugMessage({ message: `ThemeOps.importThemes: end`, state });
+  return response;
 }
 
 /**

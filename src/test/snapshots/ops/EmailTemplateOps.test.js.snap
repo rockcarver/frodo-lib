@@ -629,6 +629,64 @@ a{
 }
 `;
 
+exports[`EmailTemplateOps importEmailTemplates() 1: importEmailTemplates 1`] = `
+[
+  {
+    "_id": "emailTemplate/FrodoTestEmailTemplate1",
+    "data": {
+      "defaultLocale": "en",
+      "displayName": "Frodo Test Email Template One",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<h3>Click to reset your password</h3><h4><a href="{{object.resumeURI}}">Password reset link</a></h4>",
+        "fr": "<h3>Cliquez pour réinitialiser votre mot de passe</h3><h4><a href="{{object.resumeURI}}">Mot de passe lien de réinitialisation</a></h4>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "Reset your password",
+        "fr": "Réinitialisez votre mot de passe",
+      },
+    },
+    "id": "FrodoTestEmailTemplate1",
+  },
+  {
+    "_id": "emailTemplate/FrodoTestEmailTemplate2",
+    "data": {
+      "defaultLocale": "en",
+      "displayName": "Frodo Test Email Template Two",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<h3>This is your one-time password:</h3><h4>{{object.description}}</a></h4>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "One-Time Password for login",
+      },
+    },
+    "id": "FrodoTestEmailTemplate2",
+  },
+  {
+    "_id": "emailTemplate/FrodoTestEmailTemplate3",
+    "data": {
+      "defaultLocale": "en",
+      "displayName": "Frodo Test Email Template Three",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<html><body><h3>You started a login or profile update that requires MFA. </h3><h4><a href="{{object.resumeURI}}">Click to Proceed</a></h4></body></html>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "Multi-Factor Email for Identity Cloud login",
+      },
+    },
+    "id": "FrodoTestEmailTemplate3",
+  },
+]
+`;
+
 exports[`EmailTemplateOps readEmailTemplate() 1: Read email template 'FrodoTestEmailTemplate1' 1`] = `
 {
   "_id": "emailTemplate/FrodoTestEmailTemplate1",

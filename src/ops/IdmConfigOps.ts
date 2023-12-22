@@ -22,6 +22,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { areScriptHooksValid } from '../utils/ScriptValidationUtils';
 import { testConnectorServers as _testConnectorServers } from './IdmSystemOps';
 import { ExportMetaData } from './OpsTypes';
 
@@ -78,6 +79,16 @@ export type IdmConfig = {
     entityId: string,
     entityData: IdObjectSkeletonInterface
   ): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Import idm config entities.
+   * @param {ConfigEntityExportInterface} importData idm config entity import data.
+   * @param {ConfigEntityImportOptions} options import options
+   * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects
+   */
+  importConfigEntities(
+    importData: ConfigEntityExportInterface,
+    options: ConfigEntityImportOptions
+  ): Promise<IdObjectSkeletonInterface[]>;
   /**
    * Delete all config entities
    * @returns {IdObjectSkeletonInterface[]} promise reolving to an array of config entities
@@ -192,6 +203,12 @@ export default (state: State): IdmConfig => {
     ): Promise<IdObjectSkeletonInterface> {
       return updateConfigEntity({ entityId, entityData, state });
     },
+    async importConfigEntities(
+      importData: ConfigEntityExportInterface,
+      options: ConfigEntityImportOptions = { validate: false }
+    ): Promise<IdObjectSkeletonInterface[]> {
+      return importConfigEntities({ importData, options, state });
+    },
     async deleteConfigEntities(): Promise<IdObjectSkeletonInterface[]> {
       return deleteConfigEntities({ state });
     },
@@ -232,6 +249,16 @@ export default (state: State): IdmConfig => {
     },
   };
 };
+
+/**
+ * Config entity import options
+ */
+export interface ConfigEntityImportOptions {
+  /**
+   * validate script hooks
+   */
+  validate: boolean;
+}
 
 export interface ConfigEntityExportInterface {
   meta?: ExportMetaData;
@@ -447,6 +474,60 @@ export async function updateConfigEntity({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   return _putConfigEntity({ entityId, entityData, state });
+}
+
+export async function importConfigEntities({
+  importData,
+  options = { validate: false },
+  state,
+}: {
+  importData: ConfigEntityExportInterface;
+  options: ConfigEntityImportOptions;
+  state: State;
+}): Promise<IdObjectSkeletonInterface[]> {
+  debugMessage({ message: `IdmConfigOps.importConfigEntities: start`, state });
+  const response = [];
+  const errors = [];
+  const imported = [];
+  for (const entityId of Object.keys(importData.config)) {
+    try {
+      debugMessage({
+        message: `IdmConfigOps.importConfigEntities: ${entityId}`,
+        state,
+      });
+      const entityData = importData.config[entityId];
+      if (
+        options.validate &&
+        !areScriptHooksValid({ jsonData: entityData, state })
+      ) {
+        errors.push(
+          Error(`Invalid script hook in the config object '${entityId}'`)
+        );
+      } else {
+        const result: IdObjectSkeletonInterface | PromiseRejectedResult =
+          await updateConfigEntity({ entityId, entityData, state });
+        if (result.status === 'rejected') {
+          errors.push(Error(`- ${result.reason}`));
+        } else {
+          response.push(result);
+        }
+      }
+      imported.push(entityId);
+    } catch (e) {
+      errors.push(e);
+    }
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(
+      `Import error; ${errors.length} config objects failed to import:\n${errorMessages}`
+    );
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\nNo config entities found in import data!`);
+  }
+  debugMessage({ message: `IdmConfigOps.importConfigEntities: end`, state });
+  return response;
 }
 
 export async function deleteConfigEntities({
