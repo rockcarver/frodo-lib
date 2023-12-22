@@ -36905,6 +36905,7 @@ a{
         "name": "CORS Service",
       },
       "enabled": true,
+      "location": "global",
       "nextDescendents": [],
     },
     "SocialIdentityProviders": {
@@ -36916,6 +36917,7 @@ a{
         "name": "Social Identity Provider Service",
       },
       "enabled": true,
+      "location": "alpha",
       "nextDescendents": [
         {
           "_id": "google",
@@ -37301,6 +37303,7 @@ a{
       },
       "contextPath": "/am",
       "fixedValue": "https://&{fqdn}",
+      "location": "alpha",
       "nextDescendents": [],
       "source": "REQUEST_VALUES",
     },
@@ -37315,6 +37318,7 @@ a{
       "defaults": {
         "assignedDashboard": [],
       },
+      "location": "global",
       "nextDescendents": [
         {
           "_id": "Google",
@@ -37754,6 +37758,7 @@ a{
         "deviceUserCodeCharacterSet": "234567ACDEFGHJKLMNPQRSTWXYZabcdefhijkmnopqrstwxyz",
         "deviceUserCodeLength": 8,
       },
+      "location": "alpha",
       "nextDescendents": [],
       "pluginsConfig": {
         "accessTokenEnricherClass": "org.forgerock.openam.oauth2.OpenAMScopeValidator",
@@ -37795,6 +37800,7 @@ a{
         "userstore-0.userstore:1389",
         "userstore-2.userstore:1389",
       ],
+      "location": "alpha",
       "maximumSearchResults": 100,
       "nextDescendents": [],
       "policyHeartbeatInterval": 10,
@@ -37820,6 +37826,7 @@ a{
         "name": "Self Service Trees",
       },
       "enabled": true,
+      "location": "alpha",
       "nextDescendents": [],
       "treeMapping": {
         "forgottenUsername": "ForgottenUsername",
@@ -37836,6 +37843,7 @@ a{
         "collection": false,
         "name": "Validation Service",
       },
+      "location": "alpha",
       "nextDescendents": [],
       "validGotoDestinations": [
         "&{am.server.protocol|https}://&{fqdn}/*?*",
@@ -79070,6 +79078,7 @@ a{
         "name": "CORS Service",
       },
       "enabled": true,
+      "location": "global",
       "nextDescendents": [],
     },
     "SocialIdentityProviders": {
@@ -79081,6 +79090,7 @@ a{
         "name": "Social Identity Provider Service",
       },
       "enabled": true,
+      "location": "alpha",
       "nextDescendents": [
         {
           "_id": "google",
@@ -79466,6 +79476,7 @@ a{
       },
       "contextPath": "/am",
       "fixedValue": "https://&{fqdn}",
+      "location": "alpha",
       "nextDescendents": [],
       "source": "REQUEST_VALUES",
     },
@@ -79480,6 +79491,7 @@ a{
       "defaults": {
         "assignedDashboard": [],
       },
+      "location": "global",
       "nextDescendents": [
         {
           "_id": "Google",
@@ -79919,6 +79931,7 @@ a{
         "deviceUserCodeCharacterSet": "234567ACDEFGHJKLMNPQRSTWXYZabcdefhijkmnopqrstwxyz",
         "deviceUserCodeLength": 8,
       },
+      "location": "alpha",
       "nextDescendents": [],
       "pluginsConfig": {
         "accessTokenEnricherClass": "org.forgerock.openam.oauth2.OpenAMScopeValidator",
@@ -79960,6 +79973,7 @@ a{
         "userstore-0.userstore:1389",
         "userstore-2.userstore:1389",
       ],
+      "location": "alpha",
       "maximumSearchResults": 100,
       "nextDescendents": [],
       "policyHeartbeatInterval": 10,
@@ -79985,6 +79999,7 @@ a{
         "name": "Self Service Trees",
       },
       "enabled": true,
+      "location": "alpha",
       "nextDescendents": [],
       "treeMapping": {
         "forgottenUsername": "ForgottenUsername",
@@ -80001,6 +80016,7 @@ a{
         "collection": false,
         "name": "Validation Service",
       },
+      "location": "alpha",
       "nextDescendents": [],
       "validGotoDestinations": [
         "&{am.server.protocol|https}://&{fqdn}/*?*",

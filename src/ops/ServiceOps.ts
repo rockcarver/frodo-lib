@@ -17,6 +17,7 @@ import {
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
+import { getMetadata } from '../utils/ExportImportUtils';
 import { type ExportMetaData } from './OpsTypes';
 
 export type Service = {
@@ -64,33 +65,30 @@ export type Service = {
    * Imports a single service using a reference to the service and a file to read the data from. Optionally clean (remove) an existing service first
    * @param {string} serviceId The service id/name to add
    * @param {ServiceExportInterface} importData The service configuration export data to import
-   * @param {boolean} clean Indicates whether to remove a possible existing service with the same id first.
-   * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
-   * @returns Promise resolving when the service has been imported
+   * @param {ServiceImportOptions} options Import options
+   * @returns {Promise<AmServiceSkeleton>} A promise resolving to a service object
    */
   importService(
     serviceId: string,
     importData: ServiceExportInterface,
-    clean: boolean,
-    globalConfig?: boolean
+    options: ServiceImportOptions
   ): Promise<AmServiceSkeleton>;
   /**
    * Imports multiple services from the same file. Optionally clean (remove) existing services first
    * @param {ServiceExportInterface} importData The service configuration export data to import
-   * @param {boolean} clean Indicates whether to remove possible existing services first
-   * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+   * @param {ServiceImportOptions} options Import options
+   * @returns {Promise<AmServiceSkeleton[]>} A promise resolving to an array of service objects
    */
   importServices(
     importData: ServiceExportInterface,
-    clean: boolean,
-    globalConfig?: boolean
+    options: ServiceImportOptions
   ): Promise<AmServiceSkeleton[]>;
 };
 
 export default (state: State): Service => {
   return {
     createServiceExportTemplate(): ServiceExportInterface {
-      return createServiceExportTemplate();
+      return createServiceExportTemplate({ state });
     },
 
     /**
@@ -154,21 +152,22 @@ export default (state: State): Service => {
      * Imports a single service using a reference to the service and a file to read the data from. Optionally clean (remove) an existing service first
      * @param {string} serviceId The service id/name to add
      * @param {ServiceExportInterface} importData The service configuration export data to import
-     * @param {boolean} clean Indicates whether to remove a possible existing service with the same id first.
-     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
-     * @returns Promise resolving when the service has been imported
+     * @param {ServiceImportOptions} options Import options
+     * @returns {Promise<AmServiceSkeleton>} A promise resolving to a service object
      */
     async importService(
       serviceId: string,
       importData: ServiceExportInterface,
-      clean: boolean,
-      globalConfig = false
+      options: ServiceImportOptions = {
+        clean: false,
+        global: false,
+        realm: false,
+      }
     ): Promise<AmServiceSkeleton> {
       return importService({
         serviceId,
         importData,
-        clean,
-        globalConfig,
+        options,
         state,
       });
     },
@@ -176,18 +175,20 @@ export default (state: State): Service => {
     /**
      * Imports multiple services from the same file. Optionally clean (remove) existing services first
      * @param {ServiceExportInterface} importData The service configuration export data to import
-     * @param {boolean} clean Indicates whether to remove possible existing services first
-     * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+     * @param {ServiceImportOptions} options Import options
+     * @returns {Promise<AmServiceSkeleton[]>} A promise resolving to an array of service objects
      */
     async importServices(
       importData: ServiceExportInterface,
-      clean: boolean,
-      globalConfig = false
-    ) {
+      options: ServiceImportOptions = {
+        clean: false,
+        global: false,
+        realm: false,
+      }
+    ): Promise<AmServiceSkeleton[]> {
       return importServices({
         importData,
-        clean,
-        globalConfig,
+        options,
         state,
       });
     },
@@ -195,17 +196,41 @@ export default (state: State): Service => {
 };
 
 export interface ServiceExportInterface {
-  meta?: Record<string, ExportMetaData>;
+  meta?: ExportMetaData;
   service: Record<string, AmServiceSkeleton>;
+}
+
+/**
+ * Service import options
+ */
+export interface ServiceImportOptions {
+  /**
+   * Indicates whether to remove previously existing services of the same id before importing
+   */
+  clean: boolean;
+
+  /**
+   * Indicates whether to import service(s) as global services
+   */
+  global: boolean;
+
+  /**
+   * Indicates whether to import service(s) to the current realm
+   */
+  realm: boolean;
 }
 
 /**
  * Create an empty service export template
  * @returns {SingleTreeExportInterface} an empty service export template
  */
-export function createServiceExportTemplate(): ServiceExportInterface {
+export function createServiceExportTemplate({
+  state,
+}: {
+  state: State;
+}): ServiceExportInterface {
   return {
-    meta: {},
+    meta: getMetadata({ state }),
     service: {},
   } as ServiceExportInterface;
 }
@@ -326,7 +351,7 @@ async function putFullService({
           error.response?.data?.message === 'Not Found'
         )
       ) {
-        const message = error.response?.data?.message;
+        const message = error.response?.data?.message || error;
         printMessage({
           message: `Error deleting service '${serviceId}' before import: ${message}`,
           type: 'error',
@@ -335,6 +360,9 @@ async function putFullService({
       }
     }
   }
+
+  // delete location field before adding or updating the service
+  delete fullServiceData.location;
 
   // create service first
   const result = await putService({
@@ -394,17 +422,20 @@ async function putFullService({
  * @param {[string, FullService][]} serviceEntries The services to add
  * @param {boolean} clean Indicates whether to remove possible existing services first
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+ * @param {boolean} realmConfig true if the current realm service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AmService[]>} promise resolving to an array of service objects
  */
 async function putFullServices({
   serviceEntries,
   clean,
   globalConfig = false,
+  realmConfig = false,
   state,
 }: {
   serviceEntries: [string, FullService][];
   clean: boolean;
   globalConfig: boolean;
+  realmConfig: boolean;
   state: State;
 }): Promise<AmServiceSkeleton[]> {
   debugMessage({
@@ -414,17 +445,32 @@ async function putFullServices({
   const results: AmServiceSkeleton[] = [];
   for (const [id, data] of serviceEntries) {
     try {
-      const result = await putFullService({
-        serviceId: id,
-        fullServiceData: data,
-        clean,
-        globalConfig,
-        state,
-      });
-      results.push(result);
+      let result;
+      if (globalConfig || (!realmConfig && data.location === 'global')) {
+        result = await putFullService({
+          serviceId: id,
+          fullServiceData: data,
+          clean,
+          globalConfig: true,
+          state,
+        });
+      }
+      if (
+        realmConfig ||
+        (!globalConfig && data.location === state.getRealm())
+      ) {
+        result = await putFullService({
+          serviceId: id,
+          fullServiceData: data,
+          clean,
+          globalConfig: false,
+          state,
+        });
+      }
+      if (result) results.push(result);
       printMessage({ message: `Imported: ${id}`, type: 'info', state });
     } catch (error) {
-      const message = error.response?.data?.message;
+      const message = error.response?.data?.message || error;
       const detail = error.response?.data?.detail;
       printMessage({
         message: `Import service '${id}': ${message}`,
@@ -559,7 +605,7 @@ export async function exportService({
     message: `ServiceOps.exportService: start, globalConfig=${globalConfig}`,
     state,
   });
-  const exportData = createServiceExportTemplate();
+  const exportData = createServiceExportTemplate({ state });
   try {
     const service = await getService({ serviceId, globalConfig, state });
     service.nextDescendents = await getServiceDescendents({
@@ -567,6 +613,7 @@ export async function exportService({
       globalConfig,
       state,
     });
+    service.location = globalConfig ? 'global' : state.getRealm();
     exportData.service[serviceId] = service;
   } catch (error) {
     const message = error.response?.data?.message;
@@ -596,7 +643,7 @@ export async function exportServices({
     state,
   });
   const globalString = globalConfig ? ' global ' : ' ';
-  const exportData = createServiceExportTemplate();
+  const exportData = createServiceExportTemplate({ state });
   let indicatorId: string;
   try {
     const services = await getFullServices({ globalConfig, state });
@@ -611,6 +658,7 @@ export async function exportServices({
         message: `Exporting${globalString}service ${service._id}`,
         state,
       });
+      service.location = globalConfig ? 'global' : state.getRealm();
       exportData.service[service._type._id] = service;
     }
     stopProgressIndicator({
@@ -634,35 +682,51 @@ export async function exportServices({
  * Imports a single service using a reference to the service and a file to read the data from. Optionally clean (remove) an existing service first
  * @param {string} serviceId The service id/name to add
  * @param {ServiceExportInterface} importData The service configuration export data to import
- * @param {boolean} clean Indicates whether to remove a possible existing service with the same id first.
- * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
- * @returns Promise resolving when the service has been imported
+ * @param {ServiceImportOptions} options Import options
+ * @returns {Promise<AmServiceSkeleton>} A promise resolving to a service object
  */
 export async function importService({
   serviceId,
   importData,
-  clean,
-  globalConfig = false,
+  options = {
+    clean: false,
+    global: false,
+    realm: false,
+  },
   state,
 }: {
   serviceId: string;
   importData: ServiceExportInterface;
-  clean: boolean;
-  globalConfig: boolean;
+  options: ServiceImportOptions;
   state: State;
 }): Promise<AmServiceSkeleton> {
   debugMessage({
-    message: `ServiceOps.importService: start, globalConfig=${globalConfig}`,
+    message: `ServiceOps.importService: start, global=${options.global}, realm=${options.realm}`,
     state,
   });
   const serviceData = importData.service[serviceId];
-  const result = await putFullService({
-    serviceId,
-    fullServiceData: serviceData,
-    clean,
-    globalConfig,
-    state,
-  });
+  let result;
+  if (options.global || (!options.realm && serviceData.location === 'global')) {
+    result = await putFullService({
+      serviceId,
+      fullServiceData: serviceData,
+      clean: options.clean,
+      globalConfig: true,
+      state,
+    });
+  }
+  if (
+    options.realm ||
+    (!options.global && serviceData.location === state.getRealm())
+  ) {
+    result = await putFullService({
+      serviceId,
+      fullServiceData: serviceData,
+      clean: options.clean,
+      globalConfig: false,
+      state,
+    });
+  }
   debugMessage({ message: `ServiceOps.importService: end`, state });
   return result;
 }
@@ -670,29 +734,32 @@ export async function importService({
 /**
  * Imports multiple services from the same file. Optionally clean (remove) existing services first
  * @param {ServiceExportInterface} importData The service configuration export data to import
- * @param {boolean} clean Indicates whether to remove possible existing services first
- * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+ * @param {ServiceImportOptions} options Import options
+ * @returns {Promise<AmServiceSkeleton[]>} A promise resolving to an array of service objects
  */
 export async function importServices({
   importData,
-  clean,
-  globalConfig = false,
+  options = {
+    clean: false,
+    global: false,
+    realm: false,
+  },
   state,
 }: {
   importData: ServiceExportInterface;
-  clean: boolean;
-  globalConfig: boolean;
+  options: ServiceImportOptions;
   state: State;
-}) {
+}): Promise<AmServiceSkeleton[]> {
   debugMessage({
-    message: `ServiceOps.importServices: start, globalConfig=${globalConfig}`,
+    message: `ServiceOps.importServices: start, global=${options.global}, realm=${options.realm}`,
     state,
   });
   try {
     const result = await putFullServices({
       serviceEntries: Object.entries(importData.service),
-      clean,
-      globalConfig,
+      clean: options.clean,
+      globalConfig: options.global,
+      realmConfig: options.realm,
       state,
     });
     debugMessage({ message: `ServiceOps.importServices: end`, state });

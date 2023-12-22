@@ -624,6 +624,54 @@ describe('ThemeOps', () => {
         expect(response).toMatchSnapshot();
       });
     });
+
+    describe('importThemes()', () => {
+      const importData = {
+        theme: {
+          ...THEME_MAP_RAW
+        }
+      }
+
+      test('0: Method is implemented', async () => {
+        expect(ThemeOps.importThemes).toBeDefined();
+      });
+
+      test('1: Import 1 and add 1 alpha themes', async () => {
+        const response = await ThemeOps.importThemes({
+          importData: importData,
+          realm: 'alpha',
+          state,
+        });
+        expect(response).toMatchSnapshot();
+      });
+
+      test('2: Update 1 and add 1 bravo themes', async () => {
+        const response = await ThemeOps.importThemes({
+          importData: importData,
+          realm: 'bravo',
+          state,
+        });
+        expect(response).toMatchSnapshot();
+      });
+
+      test('3: Add 2 root themes', async () => {
+        const response = await ThemeOps.importThemes({
+          importData: importData,
+          realm: '/',
+          state,
+        });
+        expect(response).toMatchSnapshot();
+      });
+
+      test('4: Add 2 themes to non-existent realm', async () => {
+        const response = await ThemeOps.importThemes({
+          importData: importData,
+          realm: 'doesnotexist',
+          state,
+        });
+        expect(response).toMatchSnapshot();
+      });
+    });
   }
 
   // Phase 3: Deletes individuals by id

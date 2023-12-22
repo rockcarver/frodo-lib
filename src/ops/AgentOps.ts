@@ -16,7 +16,7 @@ import {
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
-import { validateImport } from '../utils/ExportImportUtils';
+import { getMetadata, validateImport } from '../utils/ExportImportUtils';
 import { type ExportMetaData } from './OpsTypes';
 
 export type Agent = {
@@ -431,7 +431,7 @@ export type Agent = {
 export default (state: State): Agent => {
   return {
     createAgentExportTemplate(): AgentExportInterface {
-      return createAgentExportTemplate();
+      return createAgentExportTemplate({ state });
     },
     async readAgents(): Promise<AgentSkeleton[]> {
       return readAgents({ state });
@@ -646,7 +646,7 @@ export default (state: State): Agent => {
 };
 
 export interface AgentExportInterface {
-  meta?: Record<string, ExportMetaData>;
+  meta?: ExportMetaData;
   agents: Record<string, AgentSkeleton>;
 }
 
@@ -654,9 +654,13 @@ export interface AgentExportInterface {
  * Create an empty agent export template
  * @returns {AgentExportInterface} an empty agent export template
  */
-export function createAgentExportTemplate(): AgentExportInterface {
+export function createAgentExportTemplate({
+  state,
+}: {
+  state: State;
+}): AgentExportInterface {
   return {
-    meta: {},
+    meta: getMetadata({ state }),
     agents: {},
   } as AgentExportInterface;
 }
@@ -1049,7 +1053,7 @@ export async function exportAgents({
   state: State;
 }): Promise<AgentExportInterface> {
   debugMessage({ message: `AgentOps.exportAgents: start`, state });
-  const exportData = createAgentExportTemplate();
+  const exportData = createAgentExportTemplate({ state });
   const agents = await readAgents({ state });
   const indicatorId = createProgressIndicator({
     total: agents.length,
@@ -1086,7 +1090,7 @@ export async function exportIdentityGatewayAgents({
     message: `AgentOps.exportIdentityGatewayAgents: start`,
     state,
   });
-  const exportData = createAgentExportTemplate();
+  const exportData = createAgentExportTemplate({ state });
   const agents = await readIdentityGatewayAgents({ state });
   const indicatorId = createProgressIndicator({
     total: agents.length,
@@ -1120,7 +1124,7 @@ export async function exportJavaAgents({
   state: State;
 }): Promise<AgentExportInterface> {
   debugMessage({ message: `AgentOps.exportJavaAgents: start`, state });
-  const exportData = createAgentExportTemplate();
+  const exportData = createAgentExportTemplate({ state });
   const agents = await readJavaAgents({ state });
   const indicatorId = createProgressIndicator({
     total: agents.length,
@@ -1154,7 +1158,7 @@ export async function exportWebAgents({
   state: State;
 }): Promise<AgentExportInterface> {
   debugMessage({ message: `AgentOps.exportWebAgents: start`, state });
-  const exportData = createAgentExportTemplate();
+  const exportData = createAgentExportTemplate({ state });
   const agents = await readWebAgents({ state });
   const indicatorId = createProgressIndicator({
     total: agents.length,
@@ -1191,7 +1195,7 @@ export async function exportAgent({
   state: State;
 }): Promise<AgentExportInterface> {
   debugMessage({ message: `AgentOps.exportAgent: start`, state });
-  const exportData = createAgentExportTemplate();
+  const exportData = createAgentExportTemplate({ state });
   const agentObject = await readAgent({ agentId, state });
   exportData.agents[agentId] = agentObject;
   debugMessage({ message: `AgentOps.exportAgent: end`, state });
@@ -1214,7 +1218,7 @@ export async function exportIdentityGatewayAgent({
     message: `AgentOps.exportIdentityGatewayAgent: start`,
     state,
   });
-  const exportData = createAgentExportTemplate();
+  const exportData = createAgentExportTemplate({ state });
   const agentObject = await readIdentityGatewayAgent({
     gatewayId: agentId,
     state,
@@ -1237,7 +1241,7 @@ export async function exportJavaAgent({
   state: State;
 }): Promise<AgentExportInterface> {
   debugMessage({ message: `AgentOps.exportJavaAgent: start`, state });
-  const exportData = createAgentExportTemplate();
+  const exportData = createAgentExportTemplate({ state });
   const agentObject = await readJavaAgent({ agentId, state });
   exportData.agents[agentId] = agentObject;
   debugMessage({ message: `AgentOps.exportJavaAgent: end`, state });
@@ -1257,7 +1261,7 @@ export async function exportWebAgent({
   state: State;
 }): Promise<AgentExportInterface> {
   debugMessage({ message: `AgentOps.exportWebAgent: start`, state });
-  const exportData = createAgentExportTemplate();
+  const exportData = createAgentExportTemplate({ state });
   const agentObject = await readWebAgent({ agentId, state });
   exportData.agents[agentId] = agentObject;
   debugMessage({ message: `AgentOps.exportWebAgent: end`, state });

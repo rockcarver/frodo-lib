@@ -193,4 +193,25 @@ describe('EmailTemplateOps', () => {
       expect(response).toMatchSnapshot();
     });
   });
+
+  describe('importEmailTemplates()', () => {
+    test('0: Method is implemented', async () => {
+      expect(EmailTemplateOps.importEmailTemplates).toBeDefined();
+    });
+
+    test(`1: importEmailTemplates`, async () => {
+      const importData = {
+        emailTemplate: {
+          [template1.id]: template1,
+          [template2.id]: template2,
+          [template3.id]: template3
+        }
+      }
+      const response = await EmailTemplateOps.importEmailTemplates({
+        importData,
+        state
+      });
+      expect(response).toMatchSnapshot();
+    });
+  });
 });

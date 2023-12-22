@@ -79,6 +79,9 @@ async function stageProvider(provider: { entityId: string }, create = true) {
         await Saml2Ops.importSaml2Provider({
           entityId: provider.entityId,
           importData: getSaml2ProviderImportData(provider.entityId),
+          options: {
+            deps: true
+          },
           state,
         });
       } catch (error) {
@@ -399,33 +402,45 @@ describe('Saml2Ops', () => {
       });
 
       test(`1: Import hosted provider '${provider5.entityId}'`, async () => {
-        expect.assertions(1);
+        expect.assertions(2);
         const response = await Saml2Ops.importSaml2Provider({
           entityId: provider5.entityId,
           importData: getSaml2ProviderImportData(provider5.entityId),
+          options: {
+            deps: true
+          },
           state,
         });
         expect(response).toBeTruthy();
+        expect(response).toMatchSnapshot();
       });
 
-      test(`2: Import hosted provider '${provider6.entityId}'`, async () => {
-        expect.assertions(1);
+      test(`2: Import hosted provider '${provider6.entityId}' no deps`, async () => {
+        expect.assertions(2);
         const response = await Saml2Ops.importSaml2Provider({
           entityId: provider6.entityId,
           importData: getSaml2ProviderImportData(provider6.entityId),
+          options: {
+            deps: false
+          },
           state,
         });
         expect(response).toBeTruthy();
+        expect(response).toMatchSnapshot();
       });
 
       test(`3: Import remote provider '${provider7.entityId}' with metadata`, async () => {
-        expect.assertions(1);
+        expect.assertions(2);
         const response = await Saml2Ops.importSaml2Provider({
           entityId: provider7.entityId,
           importData: getSaml2ProviderImportData(provider7.entityId),
+          options: {
+            deps: true
+          },
           state,
         });
         expect(response).toBeTruthy();
+        expect(response).toMatchSnapshot();
       });
     });
   }
@@ -442,12 +457,29 @@ describe('Saml2Ops', () => {
       });
 
       test('1: Import providers', async () => {
-        expect.assertions(1);
+        expect.assertions(2);
         const response = await Saml2Ops.importSaml2Providers({
           importData: getSaml2ProvidersImportData(),
+          options: {
+            deps: true
+          },
           state,
         });
         expect(response.length).toBe(10);
+        expect(response).toMatchSnapshot();
+      });
+
+      test('2: Import providers no deps', async () => {
+        expect.assertions(2);
+        const response = await Saml2Ops.importSaml2Providers({
+          importData: getSaml2ProvidersImportData(),
+          options: {
+            deps: false
+          },
+          state,
+        });
+        expect(response.length).toBe(10);
+        expect(response).toMatchSnapshot();
       });
     });
   }

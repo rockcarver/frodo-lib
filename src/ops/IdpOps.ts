@@ -86,24 +86,33 @@ export type Idp = {
    * Import social identity provider
    * @param {string} providerId provider id/name
    * @param {SocialProviderExportInterface} importData import data
+   * @param {SocialIdentityProviderImportOptions} options import options
+   * @returns {Promise<SocialIdpSkeleton>} a promise resolving to a social identity provider object
    */
   importSocialIdentityProvider(
     providerId: string,
-    importData: SocialProviderExportInterface
+    importData: SocialProviderExportInterface,
+    options: SocialIdentityProviderImportOptions
   ): Promise<SocialIdpSkeleton>;
   /**
    * Import first social identity provider
    * @param {SocialProviderExportInterface} importData import data
+   * @param {SocialIdentityProviderImportOptions} options import options
+   * @returns {Promise<SocialIdpSkeleton>} a promise resolving to a social identity provider object
    */
   importFirstSocialIdentityProvider(
-    importData: SocialProviderExportInterface
+    importData: SocialProviderExportInterface,
+    options: SocialIdentityProviderImportOptions
   ): Promise<SocialIdpSkeleton>;
   /**
    * Import all social identity providers
    * @param {SocialProviderExportInterface} importData import data
+   * @param {SocialIdentityProviderImportOptions} options import options
+   * @returns {Promise<SocialIdpSkeleton[]>} a promise resolving to an array of social identity provider objects
    */
   importSocialIdentityProviders(
-    importData: SocialProviderExportInterface
+    importData: SocialProviderExportInterface,
+    options: SocialIdentityProviderImportOptions
   ): Promise<SocialIdpSkeleton[]>;
 
   // Deprecated
@@ -264,26 +273,34 @@ export default (state: State): Idp => {
     async exportSocialIdentityProvider(
       providerId: string
     ): Promise<SocialProviderExportInterface> {
-      return exportSocialProvider({ providerId, state });
+      return exportSocialIdentityProvider({ providerId, state });
     },
     async exportSocialIdentityProviders(): Promise<SocialProviderExportInterface> {
-      return exportSocialProviders({ state });
+      return exportSocialIdentityProviders({ state });
     },
     async importSocialIdentityProvider(
       providerId: string,
-      importData: SocialProviderExportInterface
+      importData: SocialProviderExportInterface,
+      options: SocialIdentityProviderImportOptions = { deps: true }
     ): Promise<SocialIdpSkeleton> {
-      return importSocialIdentityProvider({ providerId, importData, state });
+      return importSocialIdentityProvider({
+        providerId,
+        importData,
+        options,
+        state,
+      });
     },
     async importFirstSocialIdentityProvider(
-      importData: SocialProviderExportInterface
+      importData: SocialProviderExportInterface,
+      options: SocialIdentityProviderImportOptions = { deps: true }
     ): Promise<SocialIdpSkeleton> {
-      return importFirstSocialIdentityProvider({ importData, state });
+      return importFirstSocialIdentityProvider({ importData, options, state });
     },
     async importSocialIdentityProviders(
-      importData: SocialProviderExportInterface
+      importData: SocialProviderExportInterface,
+      options: SocialIdentityProviderImportOptions = { deps: true }
     ): Promise<SocialIdpSkeleton[]> {
-      return importSocialIdentityProviders({ importData, state });
+      return importSocialIdentityProviders({ importData, options, state });
     },
 
     // Deprecated
@@ -312,10 +329,10 @@ export default (state: State): Idp => {
     async exportSocialProvider(
       providerId: string
     ): Promise<SocialProviderExportInterface> {
-      return exportSocialProvider({ providerId, state });
+      return exportSocialIdentityProvider({ providerId, state });
     },
     async exportSocialProviders(): Promise<SocialProviderExportInterface> {
-      return exportSocialProviders({ state });
+      return exportSocialIdentityProviders({ state });
     },
     async importSocialProvider(
       providerId: string,
@@ -606,7 +623,7 @@ export async function deleteSocialIdentityProvider({
  * @param {string} providerId provider id/name
  * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
  */
-export async function exportSocialProvider({
+export async function exportSocialIdentityProvider({
   providerId,
   state,
 }: {
@@ -630,7 +647,7 @@ export async function exportSocialProvider({
  * Export all providers
  * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
  */
-export async function exportSocialProviders({
+export async function exportSocialIdentityProviders({
   state,
 }: {
   state: State;

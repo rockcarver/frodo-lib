@@ -117,17 +117,23 @@ export type Saml2 = {
    * Import a SAML entity provider
    * @param {string} entityId Provider entity id
    * @param {Saml2ExportInterface} importData Import data
+   * @param {Saml2ProviderImportOptions} options import options
+   * @returns {Promise<Saml2ProviderSkeleton>} a promise resolving to a provider object
    */
   importSaml2Provider(
     entityId: string,
-    importData: Saml2ExportInterface
+    importData: Saml2ExportInterface,
+    options: Saml2ProviderImportOptions
   ): Promise<Saml2ProviderSkeleton>;
   /**
    * Import SAML entity providers
    * @param {Saml2ExportInterface} importData Import data
+   * @param {Saml2ProviderImportOptions} options import options
+   * @returns {Promise<Saml2ProviderSkeleton[]>} a promise resolving to an array of provider objects
    */
   importSaml2Providers(
-    importData: Saml2ExportInterface
+    importData: Saml2ExportInterface,
+    options: Saml2ProviderImportOptions
   ): Promise<Saml2ProviderSkeleton[]>;
 
   // Deprecated
@@ -235,14 +241,16 @@ export default (state: State): Saml2 => {
     },
     async importSaml2Provider(
       entityId: string,
-      importData: Saml2ExportInterface
+      importData: Saml2ExportInterface,
+      options: Saml2ProviderImportOptions = { deps: true }
     ): Promise<Saml2ProviderSkeleton> {
-      return importSaml2Provider({ entityId, importData, state });
+      return importSaml2Provider({ entityId, importData, options, state });
     },
     async importSaml2Providers(
-      importData: Saml2ExportInterface
+      importData: Saml2ExportInterface,
+      options: Saml2ProviderImportOptions = { deps: true }
     ): Promise<Saml2ProviderSkeleton[]> {
-      return importSaml2Providers({ importData, state });
+      return importSaml2Providers({ importData, options, state });
     },
 
     // Deprecated
@@ -264,6 +272,16 @@ export default (state: State): Saml2 => {
     },
   };
 };
+
+/**
+ * Saml2 provider import options
+ */
+export interface Saml2ProviderImportOptions {
+  /**
+   * Include any dependencies (scripts).
+   */
+  deps: boolean;
+}
 
 export interface Saml2ExportInterface {
   meta?: ExportMetaData;
@@ -719,15 +737,18 @@ function getLocation(
  * Import a SAML entity provider
  * @param {string} entityId Provider entity id
  * @param {Saml2ExportInterface} importData Import data
+ * @param {Saml2ProviderImportOptions} options import options
  * @returns {Promise<Saml2ProviderSkeleton>} a promise resolving to a provider object
  */
 export async function importSaml2Provider({
   entityId,
   importData,
+  options = { deps: true },
   state,
 }: {
   entityId: string;
   importData: Saml2ExportInterface;
+  options: Saml2ProviderImportOptions;
   state: State;
 }): Promise<Saml2ProviderSkeleton> {
   debugMessage({ message: `Saml2Ops.importSaml2Provider: start`, state });
@@ -743,7 +764,9 @@ export async function importSaml2Provider({
   try {
     if (location) {
       const providerData = importData.saml[location][entityId64];
-      await importDependencies({ providerData, fileData: importData, state });
+      if (options.deps) {
+        await importDependencies({ providerData, fileData: importData, state });
+      }
       let metaData = null;
       if (location === 'remote') {
         metaData = convertTextArrayToBase64Url(
@@ -788,13 +811,16 @@ export async function importSaml2Provider({
 /**
  * Import SAML entity providers
  * @param {Saml2ExportInterface} importData Import data
+ * @param {Saml2ProviderImportOptions} options import options
  * @returns {Promise<Saml2ProviderSkeleton[]>} a promise resolving to an array of provider objects
  */
 export async function importSaml2Providers({
   importData,
+  options = { deps: true },
   state,
 }: {
   importData: Saml2ExportInterface;
+  options: Saml2ProviderImportOptions;
   state: State;
 }): Promise<Saml2ProviderSkeleton[]> {
   debugMessage({ message: `Saml2Ops.importSaml2Providers: start`, state });
@@ -818,10 +844,16 @@ export async function importSaml2Providers({
         : 'remote';
       const entityId = decode(entityId64);
       const providerData = importData.saml[location][entityId64];
-      try {
-        await importDependencies({ providerData, fileData: importData, state });
-      } catch (error) {
-        errors.push(error);
+      if (options.deps) {
+        try {
+          await importDependencies({
+            providerData,
+            fileData: importData,
+            state,
+          });
+        } catch (error) {
+          errors.push(error);
+        }
       }
       let metaData = null;
       if (location === 'remote') {

@@ -14711,6 +14711,122 @@ response;",
 }
 `;
 
+exports[`IdmConfigOps importConfigEntities() 1: ImportConfigEntities no validate 1`] = `
+[
+  {
+    "_id": "emailTemplate/FrodoTestConfigEntity1",
+    "data": {
+      "defaultLocale": "en",
+      "displayName": "Frodo Test Email Template One",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<h3>Click to reset your password</h3><h4><a href="{{object.resumeURI}}">Password reset link</a></h4>",
+        "fr": "<h3>Cliquez pour réinitialiser votre mot de passe</h3><h4><a href="{{object.resumeURI}}">Mot de passe lien de réinitialisation</a></h4>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "Reset your password",
+        "fr": "Réinitialisez votre mot de passe",
+      },
+    },
+    "id": "emailTemplate/FrodoTestConfigEntity1",
+  },
+  {
+    "_id": "emailTemplate/FrodoTestConfigEntity2",
+    "data": {
+      "defaultLocale": "en",
+      "displayName": "Frodo Test Email Template Two",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<h3>This is your one-time password:</h3><h4>{{object.description}}</a></h4>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "One-Time Password for login",
+      },
+    },
+    "id": "emailTemplate/FrodoTestConfigEntity2",
+  },
+  {
+    "_id": "emailTemplate/FrodoTestConfigEntity3",
+    "data": {
+      "defaultLocale": "en",
+      "displayName": "Frodo Test Email Template Three",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<html><body><h3>You started a login or profile update that requires MFA. </h3><h4><a href="{{object.resumeURI}}">Click to Proceed</a></h4></body></html>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "Multi-Factor Email for Identity Cloud login",
+      },
+    },
+    "id": "emailTemplate/FrodoTestConfigEntity3",
+  },
+]
+`;
+
+exports[`IdmConfigOps importConfigEntities() 2: ImportConfigEntities validate 1`] = `
+[
+  {
+    "_id": "emailTemplate/FrodoTestConfigEntity1",
+    "data": {
+      "defaultLocale": "en",
+      "displayName": "Frodo Test Email Template One",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<h3>Click to reset your password</h3><h4><a href="{{object.resumeURI}}">Password reset link</a></h4>",
+        "fr": "<h3>Cliquez pour réinitialiser votre mot de passe</h3><h4><a href="{{object.resumeURI}}">Mot de passe lien de réinitialisation</a></h4>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "Reset your password",
+        "fr": "Réinitialisez votre mot de passe",
+      },
+    },
+    "id": "emailTemplate/FrodoTestConfigEntity1",
+  },
+  {
+    "_id": "emailTemplate/FrodoTestConfigEntity2",
+    "data": {
+      "defaultLocale": "en",
+      "displayName": "Frodo Test Email Template Two",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<h3>This is your one-time password:</h3><h4>{{object.description}}</a></h4>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "One-Time Password for login",
+      },
+    },
+    "id": "emailTemplate/FrodoTestConfigEntity2",
+  },
+  {
+    "_id": "emailTemplate/FrodoTestConfigEntity3",
+    "data": {
+      "defaultLocale": "en",
+      "displayName": "Frodo Test Email Template Three",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<html><body><h3>You started a login or profile update that requires MFA. </h3><h4><a href="{{object.resumeURI}}">Click to Proceed</a></h4></body></html>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "Multi-Factor Email for Identity Cloud login",
+      },
+    },
+    "id": "emailTemplate/FrodoTestConfigEntity3",
+  },
+]
+`;
+
 exports[`IdmConfigOps readConfigEntities() 1: Read all config entities 1`] = `
 [
   {

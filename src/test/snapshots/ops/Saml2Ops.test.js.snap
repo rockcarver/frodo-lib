@@ -2421,6 +2421,2413 @@ Ritpy6bwva8piGPKhVi/
 "
 `;
 
+exports[`Saml2Ops importSaml2Provider() 1: Import hosted provider 'https://idc.scheuber.io/am/saml2/IDPAzure' 1`] = `
+{
+  "_id": "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQQXp1cmU",
+  "_rev": "1637076051",
+  "entityId": "https://idc.scheuber.io/am/saml2/IDPAzure",
+  "identityProvider": {
+    "advanced": {
+      "ecpConfiguration": {
+        "idpSessionMapper": "com.sun.identity.saml2.plugins.DefaultIDPECPSessionMapper",
+      },
+      "idpAdapter": {
+        "idpAdapterScript": "85523e71-2d77-4577-b078-6f9674cc54e2",
+      },
+      "idpFinderImplementation": {
+        "enableProxyIdpFinderForAllSps": false,
+      },
+      "relayStateUrlList": {},
+      "saeConfiguration": {
+        "idpUrl": "https://idc.scheuber.io/am/idpsaehandler/metaAlias/alpha/IDPAzure",
+      },
+      "sessionSynchronization": {
+        "enabled": false,
+      },
+    },
+    "assertionContent": {
+      "assertionCache": {
+        "enabled": false,
+      },
+      "assertionTime": {
+        "effectiveTime": 600,
+        "notBeforeTimeSkew": 600,
+      },
+      "authenticationContext": {
+        "authContextItems": [
+          {
+            "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+            "key": "service",
+            "level": 0,
+            "value": "Login",
+          },
+        ],
+        "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultIDPAuthnContextMapper",
+      },
+      "basicAuthentication": {
+        "enabled": false,
+      },
+      "nameIdFormat": {
+        "nameIdFormatList": [
+          "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+          "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+          "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+          "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+          "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+          "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+          "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+        ],
+        "nameIdValueMap": [
+          {
+            "binary": false,
+            "key": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            "value": "mail",
+          },
+          {
+            "binary": false,
+            "key": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "value": "mail",
+          },
+        ],
+      },
+      "signingAndEncryption": {
+        "encryption": {
+          "nameIdEncryption": false,
+        },
+        "requestResponseSigning": {
+          "artifactResolve": false,
+          "authenticationRequest": false,
+          "logoutRequest": false,
+          "logoutResponse": false,
+          "manageNameIdRequest": false,
+          "manageNameIdResponse": false,
+        },
+        "secretIdAndAlgorithms": {},
+      },
+    },
+    "assertionProcessing": {
+      "accountMapper": {
+        "accountMapper": "com.sun.identity.saml2.plugins.DefaultIDPAccountMapper",
+        "disableNameIdPersistence": true,
+      },
+      "attributeMapper": {
+        "attributeMap": [
+          {
+            "binary": false,
+            "localAttribute": "mail",
+            "samlAttribute": "IDPEmail",
+          },
+          {
+            "binary": false,
+            "localAttribute": "UOPClassID",
+            "samlAttribute": "UOPClassID",
+          },
+        ],
+        "attributeMapper": "com.sun.identity.saml2.plugins.DefaultIDPAttributeMapper",
+      },
+      "localConfiguration": {
+        "authUrl": "",
+      },
+    },
+    "services": {
+      "assertionIdRequest": [
+        {
+          "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+          "location": "https://idc.scheuber.io/am/AIDReqSoap/IDPRole/metaAlias/alpha/IDPAzure",
+        },
+        {
+          "binding": "urn:oasis:names:tc:SAML:2.0:bindings:URI",
+          "location": "https://idc.scheuber.io/am/AIDReqUri/IDPRole/metaAlias/alpha/IDPAzure",
+        },
+      ],
+      "metaAlias": "/alpha/IDPAzure",
+      "nameIdMapping": [
+        {
+          "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+          "location": "https://idc.scheuber.io/am/NIMSoap/metaAlias/alpha/IDPAzure",
+        },
+      ],
+      "serviceAttributes": {
+        "artifactResolutionService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/ArtifactResolver/metaAlias/alpha/IDPAzure",
+          },
+        ],
+        "nameIdService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "location": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPAzure",
+            "responseLocation": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPAzure",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "location": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPAzure",
+            "responseLocation": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPAzure",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/IDPMniSoap/metaAlias/alpha/IDPAzure",
+          },
+        ],
+        "singleLogoutService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "location": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPAzure",
+            "responseLocation": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPAzure",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "location": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPAzure",
+            "responseLocation": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPAzure",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/IDPSloSoap/metaAlias/alpha/IDPAzure",
+          },
+        ],
+        "singleSignOnService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "location": "https://idc.scheuber.io/am/SSORedirect/metaAlias/alpha/IDPAzure",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "location": "https://idc.scheuber.io/am/SSOPOST/metaAlias/alpha/IDPAzure",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/SSOSoap/metaAlias/alpha/IDPAzure",
+          },
+        ],
+      },
+    },
+  },
+}
+`;
+
+exports[`Saml2Ops importSaml2Provider() 2: Import hosted provider 'https://idc.scheuber.io/am/saml2/IDPBroadcom' no deps 1`] = `
+{
+  "_id": "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQQnJvYWRjb20",
+  "_rev": "-728528736",
+  "entityId": "https://idc.scheuber.io/am/saml2/IDPBroadcom",
+  "identityProvider": {
+    "advanced": {
+      "ecpConfiguration": {
+        "idpSessionMapper": "com.sun.identity.saml2.plugins.DefaultIDPECPSessionMapper",
+      },
+      "idpAdapter": {
+        "idpAdapterScript": "5b29c5b7-b161-4a42-a41f-d6c85316b951",
+      },
+      "idpFinderImplementation": {
+        "enableProxyIdpFinderForAllSps": false,
+      },
+      "relayStateUrlList": {},
+      "saeConfiguration": {
+        "idpUrl": "https://idc.scheuber.io/am/idpsaehandler/metaAlias/alpha/IDPBroadcom",
+      },
+      "sessionSynchronization": {
+        "enabled": false,
+      },
+    },
+    "assertionContent": {
+      "assertionCache": {},
+      "assertionTime": {
+        "effectiveTime": 600,
+        "notBeforeTimeSkew": 600,
+      },
+      "authenticationContext": {
+        "authContextItems": [
+          {
+            "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+            "level": 0,
+          },
+        ],
+        "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultIDPAuthnContextMapper",
+      },
+      "basicAuthentication": {},
+      "nameIdFormat": {
+        "nameIdFormatList": [
+          "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+          "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+          "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+          "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+          "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+          "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+          "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+        ],
+        "nameIdValueMap": [
+          {
+            "binary": false,
+            "key": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "value": "mail",
+          },
+        ],
+      },
+      "signingAndEncryption": {
+        "encryption": {},
+        "requestResponseSigning": {},
+        "secretIdAndAlgorithms": {},
+      },
+    },
+    "assertionProcessing": {
+      "accountMapper": {
+        "accountMapper": "com.sun.identity.saml2.plugins.DefaultIDPAccountMapper",
+        "disableNameIdPersistence": false,
+      },
+      "attributeMapper": {
+        "attributeMapper": "com.sun.identity.saml2.plugins.DefaultIDPAttributeMapper",
+        "attributeMapperScript": "90c4eca5-05f0-42f5-b9bf-88b693eabbbd",
+      },
+      "localConfiguration": {},
+    },
+    "services": {
+      "assertionIdRequest": [
+        {
+          "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+          "location": "https://idc.scheuber.io/am/AIDReqSoap/IDPRole/metaAlias/alpha/IDPBroadcom",
+        },
+        {
+          "binding": "urn:oasis:names:tc:SAML:2.0:bindings:URI",
+          "location": "https://idc.scheuber.io/am/AIDReqUri/IDPRole/metaAlias/alpha/IDPBroadcom",
+        },
+      ],
+      "metaAlias": "/alpha/IDPBroadcom",
+      "nameIdMapping": [
+        {
+          "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+          "location": "https://idc.scheuber.io/am/NIMSoap/metaAlias/alpha/IDPBroadcom",
+        },
+      ],
+      "serviceAttributes": {
+        "artifactResolutionService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/ArtifactResolver/metaAlias/alpha/IDPBroadcom",
+          },
+        ],
+        "nameIdService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "location": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPBroadcom",
+            "responseLocation": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPBroadcom",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "location": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPBroadcom",
+            "responseLocation": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPBroadcom",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/IDPMniSoap/metaAlias/alpha/IDPBroadcom",
+          },
+        ],
+        "singleLogoutService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "location": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPBroadcom",
+            "responseLocation": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPBroadcom",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "location": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPBroadcom",
+            "responseLocation": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPBroadcom",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/IDPSloSoap/metaAlias/alpha/IDPBroadcom",
+          },
+        ],
+        "singleSignOnService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "location": "https://idc.scheuber.io/am/SSORedirect/metaAlias/alpha/IDPBroadcom",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "location": "https://idc.scheuber.io/am/SSOPOST/metaAlias/alpha/IDPBroadcom",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/SSOSoap/metaAlias/alpha/IDPBroadcom",
+          },
+        ],
+      },
+    },
+  },
+}
+`;
+
+exports[`Saml2Ops importSaml2Provider() 3: Import remote provider 'idp' with metadata 1`] = `
+{
+  "importedEntities": [
+    "idp",
+  ],
+}
+`;
+
+exports[`Saml2Ops importSaml2Providers() 1: Import providers 1`] = `
+[
+  {
+    "_id": "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQQXp1cmU",
+    "_rev": "1637076051",
+    "entityId": "https://idc.scheuber.io/am/saml2/IDPAzure",
+    "identityProvider": {
+      "advanced": {
+        "ecpConfiguration": {
+          "idpSessionMapper": "com.sun.identity.saml2.plugins.DefaultIDPECPSessionMapper",
+        },
+        "idpAdapter": {
+          "idpAdapterScript": "85523e71-2d77-4577-b078-6f9674cc54e2",
+        },
+        "idpFinderImplementation": {
+          "enableProxyIdpFinderForAllSps": false,
+        },
+        "relayStateUrlList": {},
+        "saeConfiguration": {
+          "idpUrl": "https://idc.scheuber.io/am/idpsaehandler/metaAlias/alpha/IDPAzure",
+        },
+        "sessionSynchronization": {
+          "enabled": false,
+        },
+      },
+      "assertionContent": {
+        "assertionCache": {
+          "enabled": false,
+        },
+        "assertionTime": {
+          "effectiveTime": 600,
+          "notBeforeTimeSkew": 600,
+        },
+        "authenticationContext": {
+          "authContextItems": [
+            {
+              "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+              "key": "service",
+              "level": 0,
+              "value": "Login",
+            },
+          ],
+          "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultIDPAuthnContextMapper",
+        },
+        "basicAuthentication": {
+          "enabled": false,
+        },
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+          ],
+          "nameIdValueMap": [
+            {
+              "binary": false,
+              "key": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+              "value": "mail",
+            },
+            {
+              "binary": false,
+              "key": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+              "value": "mail",
+            },
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {
+            "nameIdEncryption": false,
+          },
+          "requestResponseSigning": {
+            "artifactResolve": false,
+            "authenticationRequest": false,
+            "logoutRequest": false,
+            "logoutResponse": false,
+            "manageNameIdRequest": false,
+            "manageNameIdResponse": false,
+          },
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "accountMapper": {
+          "accountMapper": "com.sun.identity.saml2.plugins.DefaultIDPAccountMapper",
+          "disableNameIdPersistence": true,
+        },
+        "attributeMapper": {
+          "attributeMap": [
+            {
+              "binary": false,
+              "localAttribute": "mail",
+              "samlAttribute": "IDPEmail",
+            },
+            {
+              "binary": false,
+              "localAttribute": "UOPClassID",
+              "samlAttribute": "UOPClassID",
+            },
+          ],
+          "attributeMapper": "com.sun.identity.saml2.plugins.DefaultIDPAttributeMapper",
+        },
+        "localConfiguration": {
+          "authUrl": "",
+        },
+      },
+      "services": {
+        "assertionIdRequest": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/AIDReqSoap/IDPRole/metaAlias/alpha/IDPAzure",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:URI",
+            "location": "https://idc.scheuber.io/am/AIDReqUri/IDPRole/metaAlias/alpha/IDPAzure",
+          },
+        ],
+        "metaAlias": "/alpha/IDPAzure",
+        "nameIdMapping": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/NIMSoap/metaAlias/alpha/IDPAzure",
+          },
+        ],
+        "serviceAttributes": {
+          "artifactResolutionService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/ArtifactResolver/metaAlias/alpha/IDPAzure",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/IDPMniSoap/metaAlias/alpha/IDPAzure",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/IDPSloSoap/metaAlias/alpha/IDPAzure",
+            },
+          ],
+          "singleSignOnService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SSORedirect/metaAlias/alpha/IDPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SSOPOST/metaAlias/alpha/IDPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SSOSoap/metaAlias/alpha/IDPAzure",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "U1BBenVyZQ",
+    "_rev": "-1930164078",
+    "entityId": "SPAzure",
+    "serviceProvider": {
+      "advanced": {
+        "ecpConfiguration": {
+          "ecpRequestIdpListFinderImpl": "com.sun.identity.saml2.plugins.ECPIDPFinder",
+        },
+        "idpProxy": {},
+        "relayStateUrlList": {},
+        "saeConfiguration": {
+          "spUrl": "https://idc.scheuber.io/am/spsaehandler/metaAlias/alpha/SPAzure",
+        },
+      },
+      "assertionContent": {
+        "assertionTimeSkew": 300,
+        "authenticationContext": {
+          "authContextItems": [
+            {
+              "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+              "defaultItem": true,
+              "level": 0,
+            },
+          ],
+          "authenticationComparisonType": "Exact",
+          "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultSPAuthnContextMapper",
+          "includeRequestedAuthenticationContext": true,
+        },
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {},
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "accountMapping": {
+          "spAccountMapper": "com.sun.identity.saml2.plugins.DefaultSPAccountMapper",
+          "useNameIDAsSPUserID": true,
+        },
+        "adapter": {},
+        "attributeMapper": {
+          "attributeMap": [
+            {
+              "key": "http://schemas.microsoft.com/identity/claims/displayname",
+              "value": "cn",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
+              "value": "givenName",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
+              "value": "sn",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+              "value": "mail",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+              "value": "uid",
+            },
+          ],
+          "attributeMapper": "com.sun.identity.saml2.plugins.DefaultSPAttributeMapper",
+        },
+        "autoFederation": {
+          "autoFedEnabled": false,
+        },
+        "defaultRelayState": "https://idc.scheuber.io/enduser/?realm=alpha#/profile",
+        "responseArtifactMessageEncoding": {
+          "encoding": "URI",
+        },
+        "url": {},
+      },
+      "services": {
+        "metaAlias": "/alpha/SPAzure",
+        "serviceAttributes": {
+          "assertionConsumerService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact",
+              "index": 0,
+              "isDefault": true,
+              "location": "https://idc.scheuber.io/am/Consumer/metaAlias/alpha/SPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "index": 1,
+              "isDefault": false,
+              "location": "https://idc.scheuber.io/am/Consumer/metaAlias/alpha/SPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:PAOS",
+              "index": 2,
+              "isDefault": false,
+              "location": "https://idc.scheuber.io/am/Consumer/ECP/metaAlias/alpha/SPAzure",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/SPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/SPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/SPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/SPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/SPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/SPAzure",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/SPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/SPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/SPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/SPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SPSloSoap/metaAlias/alpha/SPAzure",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQRmVkbGV0",
+    "_rev": "-1020599606",
+    "entityId": "https://idc.scheuber.io/am/saml2/IDPFedlet",
+    "identityProvider": {
+      "advanced": {
+        "ecpConfiguration": {
+          "idpSessionMapper": "com.sun.identity.saml2.plugins.DefaultIDPECPSessionMapper",
+        },
+        "idpAdapter": {},
+        "idpFinderImplementation": {},
+        "relayStateUrlList": {},
+        "saeConfiguration": {
+          "idpUrl": "https://idc.scheuber.io/am/idpsaehandler/metaAlias/alpha/IDPFedlet",
+        },
+        "sessionSynchronization": {},
+      },
+      "assertionContent": {
+        "assertionCache": {},
+        "assertionTime": {
+          "effectiveTime": 600,
+          "notBeforeTimeSkew": 600,
+        },
+        "authenticationContext": {
+          "authContextItems": [
+            {
+              "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+              "level": 0,
+            },
+          ],
+          "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultIDPAuthnContextMapper",
+        },
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+          ],
+          "nameIdValueMap": [
+            {
+              "binary": false,
+              "key": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+              "value": "mail",
+            },
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {},
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "accountMapper": {
+          "accountMapper": "com.sun.identity.saml2.plugins.DefaultIDPAccountMapper",
+        },
+        "attributeMapper": {
+          "attributeMapper": "com.sun.identity.saml2.plugins.DefaultIDPAttributeMapper",
+        },
+        "localConfiguration": {},
+      },
+      "services": {
+        "assertionIdRequest": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/AIDReqSoap/IDPRole/metaAlias/alpha/IDPFedlet",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:URI",
+            "location": "https://idc.scheuber.io/am/AIDReqUri/IDPRole/metaAlias/alpha/IDPFedlet",
+          },
+        ],
+        "metaAlias": "/alpha/IDPFedlet",
+        "nameIdMapping": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/NIMSoap/metaAlias/alpha/IDPFedlet",
+          },
+        ],
+        "serviceAttributes": {
+          "artifactResolutionService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/ArtifactResolver/metaAlias/alpha/IDPFedlet",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPFedlet",
+              "responseLocation": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPFedlet",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPFedlet",
+              "responseLocation": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPFedlet",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/IDPMniSoap/metaAlias/alpha/IDPFedlet",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPFedlet",
+              "responseLocation": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPFedlet",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPFedlet",
+              "responseLocation": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPFedlet",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/IDPSloSoap/metaAlias/alpha/IDPFedlet",
+            },
+          ],
+          "singleSignOnService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SSORedirect/metaAlias/alpha/IDPFedlet",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SSOPOST/metaAlias/alpha/IDPFedlet",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SSOSoap/metaAlias/alpha/IDPFedlet",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "dm9sa2VyRGV2U1A",
+    "_rev": "-1233096083",
+    "entityId": "volkerDevSP",
+    "serviceProvider": {
+      "advanced": {
+        "ecpConfiguration": {
+          "ecpRequestIdpListFinderImpl": "com.sun.identity.saml2.plugins.ECPIDPFinder",
+        },
+        "idpProxy": {},
+        "relayStateUrlList": {},
+        "saeConfiguration": {
+          "spUrl": "https://openam-volker-dev.forgeblocks.com/am/spsaehandler/metaAlias/alpha/volkerDevSP",
+        },
+      },
+      "assertionContent": {
+        "assertionTimeSkew": 300,
+        "authenticationContext": {
+          "authContextItems": [
+            {
+              "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+              "defaultItem": true,
+              "level": 0,
+            },
+          ],
+          "authenticationComparisonType": "Exact",
+          "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultSPAuthnContextMapper",
+          "includeRequestedAuthenticationContext": true,
+        },
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {},
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "accountMapping": {
+          "spAccountMapper": "com.sun.identity.saml2.plugins.DefaultSPAccountMapper",
+          "useNameIDAsSPUserID": true,
+        },
+        "adapter": {},
+        "attributeMapper": {
+          "attributeMap": [
+            {
+              "key": "*",
+              "value": "*",
+            },
+          ],
+          "attributeMapper": "com.sun.identity.saml2.plugins.DefaultSPAttributeMapper",
+        },
+        "autoFederation": {
+          "autoFedEnabled": false,
+        },
+        "responseArtifactMessageEncoding": {
+          "encoding": "URI",
+        },
+        "url": {},
+      },
+      "services": {
+        "metaAlias": "/alpha/volkerDevSP",
+        "serviceAttributes": {
+          "assertionConsumerService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "index": 1,
+              "isDefault": true,
+              "location": "https://openam-volker-dev.forgeblocks.com/am/Consumer/metaAlias/alpha/volkerDevSP",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://openam-volker-dev.forgeblocks.com/am/SPMniPOST/metaAlias/alpha/volkerDevSP",
+              "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPMniPOST/metaAlias/alpha/volkerDevSP",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://openam-volker-dev.forgeblocks.com/am/SPMniRedirect/metaAlias/alpha/volkerDevSP",
+              "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPMniRedirect/metaAlias/alpha/volkerDevSP",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://openam-volker-dev.forgeblocks.com/am/SPMniSoap/metaAlias/alpha/volkerDevSP",
+              "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPMniSoap/metaAlias/alpha/volkerDevSP",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://openam-volker-dev.forgeblocks.com/am/SPSloRedirect/metaAlias/alpha/volkerDevSP",
+              "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPSloRedirect/metaAlias/alpha/volkerDevSP",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://openam-volker-dev.forgeblocks.com/am/SPSloPOST/metaAlias/alpha/volkerDevSP",
+              "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPSloPOST/metaAlias/alpha/volkerDevSP",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://openam-volker-dev.forgeblocks.com/am/SPSloSoap/metaAlias/alpha/volkerDevSP",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "aVNQQXp1cmU",
+    "_rev": "1379466460",
+    "entityId": "iSPAzure",
+    "serviceProvider": {
+      "advanced": {
+        "ecpConfiguration": {
+          "ecpRequestIdpListFinderImpl": "com.sun.identity.saml2.plugins.ECPIDPFinder",
+        },
+        "idpProxy": {},
+        "relayStateUrlList": {},
+        "saeConfiguration": {
+          "spUrl": "https://idc.scheuber.io/am/spsaehandler/metaAlias/alpha/iSPAzure",
+        },
+      },
+      "assertionContent": {
+        "assertionTimeSkew": 300,
+        "authenticationContext": {
+          "authContextItems": [
+            {
+              "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+              "defaultItem": true,
+              "level": 0,
+            },
+          ],
+          "authenticationComparisonType": "Exact",
+          "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultSPAuthnContextMapper",
+          "includeRequestedAuthenticationContext": true,
+        },
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {},
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "accountMapping": {
+          "spAccountMapper": "com.sun.identity.saml2.plugins.DefaultSPAccountMapper",
+          "useNameIDAsSPUserID": true,
+        },
+        "adapter": {},
+        "attributeMapper": {
+          "attributeMap": [
+            {
+              "key": "http://schemas.microsoft.com/identity/claims/displayname",
+              "value": "cn",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
+              "value": "givenName",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
+              "value": "sn",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+              "value": "mail",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+              "value": "uid",
+            },
+          ],
+          "attributeMapper": "com.sun.identity.saml2.plugins.DefaultSPAttributeMapper",
+        },
+        "autoFederation": {
+          "autoFedEnabled": false,
+        },
+        "responseArtifactMessageEncoding": {
+          "encoding": "URI",
+        },
+        "url": {},
+      },
+      "services": {
+        "metaAlias": "/alpha/iSPAzure",
+        "serviceAttributes": {
+          "assertionConsumerService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact",
+              "index": 0,
+              "isDefault": true,
+              "location": "https://idc.scheuber.io/am/AuthConsumer/metaAlias/alpha/iSPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "index": 1,
+              "isDefault": false,
+              "location": "https://idc.scheuber.io/am/AuthConsumer/metaAlias/alpha/iSPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:PAOS",
+              "index": 2,
+              "isDefault": false,
+              "location": "https://idc.scheuber.io/am/Consumer/ECP/metaAlias/alpha/iSPAzure",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/iSPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/iSPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/iSPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/iSPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/iSPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/iSPAzure",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/iSPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/iSPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/iSPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/iSPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SPSloSoap/metaAlias/alpha/iSPAzure",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQQnJvYWRjb20",
+    "_rev": "-728528736",
+    "entityId": "https://idc.scheuber.io/am/saml2/IDPBroadcom",
+    "identityProvider": {
+      "advanced": {
+        "ecpConfiguration": {
+          "idpSessionMapper": "com.sun.identity.saml2.plugins.DefaultIDPECPSessionMapper",
+        },
+        "idpAdapter": {
+          "idpAdapterScript": "5b29c5b7-b161-4a42-a41f-d6c85316b951",
+        },
+        "idpFinderImplementation": {
+          "enableProxyIdpFinderForAllSps": false,
+        },
+        "relayStateUrlList": {},
+        "saeConfiguration": {
+          "idpUrl": "https://idc.scheuber.io/am/idpsaehandler/metaAlias/alpha/IDPBroadcom",
+        },
+        "sessionSynchronization": {
+          "enabled": false,
+        },
+      },
+      "assertionContent": {
+        "assertionCache": {},
+        "assertionTime": {
+          "effectiveTime": 600,
+          "notBeforeTimeSkew": 600,
+        },
+        "authenticationContext": {
+          "authContextItems": [
+            {
+              "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+              "level": 0,
+            },
+          ],
+          "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultIDPAuthnContextMapper",
+        },
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+          ],
+          "nameIdValueMap": [
+            {
+              "binary": false,
+              "key": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+              "value": "mail",
+            },
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {},
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "accountMapper": {
+          "accountMapper": "com.sun.identity.saml2.plugins.DefaultIDPAccountMapper",
+          "disableNameIdPersistence": false,
+        },
+        "attributeMapper": {
+          "attributeMapper": "com.sun.identity.saml2.plugins.DefaultIDPAttributeMapper",
+          "attributeMapperScript": "90c4eca5-05f0-42f5-b9bf-88b693eabbbd",
+        },
+        "localConfiguration": {},
+      },
+      "services": {
+        "assertionIdRequest": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/AIDReqSoap/IDPRole/metaAlias/alpha/IDPBroadcom",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:URI",
+            "location": "https://idc.scheuber.io/am/AIDReqUri/IDPRole/metaAlias/alpha/IDPBroadcom",
+          },
+        ],
+        "metaAlias": "/alpha/IDPBroadcom",
+        "nameIdMapping": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/NIMSoap/metaAlias/alpha/IDPBroadcom",
+          },
+        ],
+        "serviceAttributes": {
+          "artifactResolutionService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/ArtifactResolver/metaAlias/alpha/IDPBroadcom",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPBroadcom",
+              "responseLocation": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPBroadcom",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPBroadcom",
+              "responseLocation": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPBroadcom",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/IDPMniSoap/metaAlias/alpha/IDPBroadcom",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPBroadcom",
+              "responseLocation": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPBroadcom",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPBroadcom",
+              "responseLocation": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPBroadcom",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/IDPSloSoap/metaAlias/alpha/IDPBroadcom",
+            },
+          ],
+          "singleSignOnService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SSORedirect/metaAlias/alpha/IDPBroadcom",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SSOPOST/metaAlias/alpha/IDPBroadcom",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SSOSoap/metaAlias/alpha/IDPBroadcom",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "importedEntities": [
+      "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/",
+    ],
+  },
+  {
+    "importedEntities": [
+      "idp",
+    ],
+  },
+  {
+    "importedEntities": [
+      "urn:federation:MicrosoftOnline",
+    ],
+  },
+  {
+    "importedEntities": [
+      "https://saml.mytestrun.com/sp",
+    ],
+  },
+]
+`;
+
+exports[`Saml2Ops importSaml2Providers() 2: Import providers no deps 1`] = `
+[
+  {
+    "_id": "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQQXp1cmU",
+    "_rev": "1637076051",
+    "entityId": "https://idc.scheuber.io/am/saml2/IDPAzure",
+    "identityProvider": {
+      "advanced": {
+        "ecpConfiguration": {
+          "idpSessionMapper": "com.sun.identity.saml2.plugins.DefaultIDPECPSessionMapper",
+        },
+        "idpAdapter": {
+          "idpAdapterScript": "85523e71-2d77-4577-b078-6f9674cc54e2",
+        },
+        "idpFinderImplementation": {
+          "enableProxyIdpFinderForAllSps": false,
+        },
+        "relayStateUrlList": {},
+        "saeConfiguration": {
+          "idpUrl": "https://idc.scheuber.io/am/idpsaehandler/metaAlias/alpha/IDPAzure",
+        },
+        "sessionSynchronization": {
+          "enabled": false,
+        },
+      },
+      "assertionContent": {
+        "assertionCache": {
+          "enabled": false,
+        },
+        "assertionTime": {
+          "effectiveTime": 600,
+          "notBeforeTimeSkew": 600,
+        },
+        "authenticationContext": {
+          "authContextItems": [
+            {
+              "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+              "key": "service",
+              "level": 0,
+              "value": "Login",
+            },
+          ],
+          "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultIDPAuthnContextMapper",
+        },
+        "basicAuthentication": {
+          "enabled": false,
+        },
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+          ],
+          "nameIdValueMap": [
+            {
+              "binary": false,
+              "key": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+              "value": "mail",
+            },
+            {
+              "binary": false,
+              "key": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+              "value": "mail",
+            },
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {
+            "nameIdEncryption": false,
+          },
+          "requestResponseSigning": {
+            "artifactResolve": false,
+            "authenticationRequest": false,
+            "logoutRequest": false,
+            "logoutResponse": false,
+            "manageNameIdRequest": false,
+            "manageNameIdResponse": false,
+          },
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "accountMapper": {
+          "accountMapper": "com.sun.identity.saml2.plugins.DefaultIDPAccountMapper",
+          "disableNameIdPersistence": true,
+        },
+        "attributeMapper": {
+          "attributeMap": [
+            {
+              "binary": false,
+              "localAttribute": "mail",
+              "samlAttribute": "IDPEmail",
+            },
+            {
+              "binary": false,
+              "localAttribute": "UOPClassID",
+              "samlAttribute": "UOPClassID",
+            },
+          ],
+          "attributeMapper": "com.sun.identity.saml2.plugins.DefaultIDPAttributeMapper",
+        },
+        "localConfiguration": {
+          "authUrl": "",
+        },
+      },
+      "services": {
+        "assertionIdRequest": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/AIDReqSoap/IDPRole/metaAlias/alpha/IDPAzure",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:URI",
+            "location": "https://idc.scheuber.io/am/AIDReqUri/IDPRole/metaAlias/alpha/IDPAzure",
+          },
+        ],
+        "metaAlias": "/alpha/IDPAzure",
+        "nameIdMapping": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/NIMSoap/metaAlias/alpha/IDPAzure",
+          },
+        ],
+        "serviceAttributes": {
+          "artifactResolutionService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/ArtifactResolver/metaAlias/alpha/IDPAzure",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/IDPMniSoap/metaAlias/alpha/IDPAzure",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/IDPSloSoap/metaAlias/alpha/IDPAzure",
+            },
+          ],
+          "singleSignOnService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SSORedirect/metaAlias/alpha/IDPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SSOPOST/metaAlias/alpha/IDPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SSOSoap/metaAlias/alpha/IDPAzure",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "U1BBenVyZQ",
+    "_rev": "-1930164078",
+    "entityId": "SPAzure",
+    "serviceProvider": {
+      "advanced": {
+        "ecpConfiguration": {
+          "ecpRequestIdpListFinderImpl": "com.sun.identity.saml2.plugins.ECPIDPFinder",
+        },
+        "idpProxy": {},
+        "relayStateUrlList": {},
+        "saeConfiguration": {
+          "spUrl": "https://idc.scheuber.io/am/spsaehandler/metaAlias/alpha/SPAzure",
+        },
+      },
+      "assertionContent": {
+        "assertionTimeSkew": 300,
+        "authenticationContext": {
+          "authContextItems": [
+            {
+              "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+              "defaultItem": true,
+              "level": 0,
+            },
+          ],
+          "authenticationComparisonType": "Exact",
+          "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultSPAuthnContextMapper",
+          "includeRequestedAuthenticationContext": true,
+        },
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {},
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "accountMapping": {
+          "spAccountMapper": "com.sun.identity.saml2.plugins.DefaultSPAccountMapper",
+          "useNameIDAsSPUserID": true,
+        },
+        "adapter": {},
+        "attributeMapper": {
+          "attributeMap": [
+            {
+              "key": "http://schemas.microsoft.com/identity/claims/displayname",
+              "value": "cn",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
+              "value": "givenName",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
+              "value": "sn",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+              "value": "mail",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+              "value": "uid",
+            },
+          ],
+          "attributeMapper": "com.sun.identity.saml2.plugins.DefaultSPAttributeMapper",
+        },
+        "autoFederation": {
+          "autoFedEnabled": false,
+        },
+        "defaultRelayState": "https://idc.scheuber.io/enduser/?realm=alpha#/profile",
+        "responseArtifactMessageEncoding": {
+          "encoding": "URI",
+        },
+        "url": {},
+      },
+      "services": {
+        "metaAlias": "/alpha/SPAzure",
+        "serviceAttributes": {
+          "assertionConsumerService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact",
+              "index": 0,
+              "isDefault": true,
+              "location": "https://idc.scheuber.io/am/Consumer/metaAlias/alpha/SPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "index": 1,
+              "isDefault": false,
+              "location": "https://idc.scheuber.io/am/Consumer/metaAlias/alpha/SPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:PAOS",
+              "index": 2,
+              "isDefault": false,
+              "location": "https://idc.scheuber.io/am/Consumer/ECP/metaAlias/alpha/SPAzure",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/SPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/SPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/SPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/SPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/SPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/SPAzure",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/SPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/SPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/SPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/SPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SPSloSoap/metaAlias/alpha/SPAzure",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQRmVkbGV0",
+    "_rev": "-1020599606",
+    "entityId": "https://idc.scheuber.io/am/saml2/IDPFedlet",
+    "identityProvider": {
+      "advanced": {
+        "ecpConfiguration": {
+          "idpSessionMapper": "com.sun.identity.saml2.plugins.DefaultIDPECPSessionMapper",
+        },
+        "idpAdapter": {},
+        "idpFinderImplementation": {},
+        "relayStateUrlList": {},
+        "saeConfiguration": {
+          "idpUrl": "https://idc.scheuber.io/am/idpsaehandler/metaAlias/alpha/IDPFedlet",
+        },
+        "sessionSynchronization": {},
+      },
+      "assertionContent": {
+        "assertionCache": {},
+        "assertionTime": {
+          "effectiveTime": 600,
+          "notBeforeTimeSkew": 600,
+        },
+        "authenticationContext": {
+          "authContextItems": [
+            {
+              "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+              "level": 0,
+            },
+          ],
+          "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultIDPAuthnContextMapper",
+        },
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+          ],
+          "nameIdValueMap": [
+            {
+              "binary": false,
+              "key": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+              "value": "mail",
+            },
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {},
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "accountMapper": {
+          "accountMapper": "com.sun.identity.saml2.plugins.DefaultIDPAccountMapper",
+        },
+        "attributeMapper": {
+          "attributeMapper": "com.sun.identity.saml2.plugins.DefaultIDPAttributeMapper",
+        },
+        "localConfiguration": {},
+      },
+      "services": {
+        "assertionIdRequest": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/AIDReqSoap/IDPRole/metaAlias/alpha/IDPFedlet",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:URI",
+            "location": "https://idc.scheuber.io/am/AIDReqUri/IDPRole/metaAlias/alpha/IDPFedlet",
+          },
+        ],
+        "metaAlias": "/alpha/IDPFedlet",
+        "nameIdMapping": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/NIMSoap/metaAlias/alpha/IDPFedlet",
+          },
+        ],
+        "serviceAttributes": {
+          "artifactResolutionService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/ArtifactResolver/metaAlias/alpha/IDPFedlet",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPFedlet",
+              "responseLocation": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPFedlet",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPFedlet",
+              "responseLocation": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPFedlet",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/IDPMniSoap/metaAlias/alpha/IDPFedlet",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPFedlet",
+              "responseLocation": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPFedlet",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPFedlet",
+              "responseLocation": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPFedlet",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/IDPSloSoap/metaAlias/alpha/IDPFedlet",
+            },
+          ],
+          "singleSignOnService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SSORedirect/metaAlias/alpha/IDPFedlet",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SSOPOST/metaAlias/alpha/IDPFedlet",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SSOSoap/metaAlias/alpha/IDPFedlet",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "dm9sa2VyRGV2U1A",
+    "_rev": "-1233096083",
+    "entityId": "volkerDevSP",
+    "serviceProvider": {
+      "advanced": {
+        "ecpConfiguration": {
+          "ecpRequestIdpListFinderImpl": "com.sun.identity.saml2.plugins.ECPIDPFinder",
+        },
+        "idpProxy": {},
+        "relayStateUrlList": {},
+        "saeConfiguration": {
+          "spUrl": "https://openam-volker-dev.forgeblocks.com/am/spsaehandler/metaAlias/alpha/volkerDevSP",
+        },
+      },
+      "assertionContent": {
+        "assertionTimeSkew": 300,
+        "authenticationContext": {
+          "authContextItems": [
+            {
+              "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+              "defaultItem": true,
+              "level": 0,
+            },
+          ],
+          "authenticationComparisonType": "Exact",
+          "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultSPAuthnContextMapper",
+          "includeRequestedAuthenticationContext": true,
+        },
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {},
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "accountMapping": {
+          "spAccountMapper": "com.sun.identity.saml2.plugins.DefaultSPAccountMapper",
+          "useNameIDAsSPUserID": true,
+        },
+        "adapter": {},
+        "attributeMapper": {
+          "attributeMap": [
+            {
+              "key": "*",
+              "value": "*",
+            },
+          ],
+          "attributeMapper": "com.sun.identity.saml2.plugins.DefaultSPAttributeMapper",
+        },
+        "autoFederation": {
+          "autoFedEnabled": false,
+        },
+        "responseArtifactMessageEncoding": {
+          "encoding": "URI",
+        },
+        "url": {},
+      },
+      "services": {
+        "metaAlias": "/alpha/volkerDevSP",
+        "serviceAttributes": {
+          "assertionConsumerService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "index": 1,
+              "isDefault": true,
+              "location": "https://openam-volker-dev.forgeblocks.com/am/Consumer/metaAlias/alpha/volkerDevSP",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://openam-volker-dev.forgeblocks.com/am/SPMniPOST/metaAlias/alpha/volkerDevSP",
+              "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPMniPOST/metaAlias/alpha/volkerDevSP",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://openam-volker-dev.forgeblocks.com/am/SPMniRedirect/metaAlias/alpha/volkerDevSP",
+              "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPMniRedirect/metaAlias/alpha/volkerDevSP",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://openam-volker-dev.forgeblocks.com/am/SPMniSoap/metaAlias/alpha/volkerDevSP",
+              "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPMniSoap/metaAlias/alpha/volkerDevSP",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://openam-volker-dev.forgeblocks.com/am/SPSloRedirect/metaAlias/alpha/volkerDevSP",
+              "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPSloRedirect/metaAlias/alpha/volkerDevSP",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://openam-volker-dev.forgeblocks.com/am/SPSloPOST/metaAlias/alpha/volkerDevSP",
+              "responseLocation": "https://openam-volker-dev.forgeblocks.com/am/SPSloPOST/metaAlias/alpha/volkerDevSP",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://openam-volker-dev.forgeblocks.com/am/SPSloSoap/metaAlias/alpha/volkerDevSP",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "aVNQQXp1cmU",
+    "_rev": "1379466460",
+    "entityId": "iSPAzure",
+    "serviceProvider": {
+      "advanced": {
+        "ecpConfiguration": {
+          "ecpRequestIdpListFinderImpl": "com.sun.identity.saml2.plugins.ECPIDPFinder",
+        },
+        "idpProxy": {},
+        "relayStateUrlList": {},
+        "saeConfiguration": {
+          "spUrl": "https://idc.scheuber.io/am/spsaehandler/metaAlias/alpha/iSPAzure",
+        },
+      },
+      "assertionContent": {
+        "assertionTimeSkew": 300,
+        "authenticationContext": {
+          "authContextItems": [
+            {
+              "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+              "defaultItem": true,
+              "level": 0,
+            },
+          ],
+          "authenticationComparisonType": "Exact",
+          "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultSPAuthnContextMapper",
+          "includeRequestedAuthenticationContext": true,
+        },
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {},
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "accountMapping": {
+          "spAccountMapper": "com.sun.identity.saml2.plugins.DefaultSPAccountMapper",
+          "useNameIDAsSPUserID": true,
+        },
+        "adapter": {},
+        "attributeMapper": {
+          "attributeMap": [
+            {
+              "key": "http://schemas.microsoft.com/identity/claims/displayname",
+              "value": "cn",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
+              "value": "givenName",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
+              "value": "sn",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+              "value": "mail",
+            },
+            {
+              "key": "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+              "value": "uid",
+            },
+          ],
+          "attributeMapper": "com.sun.identity.saml2.plugins.DefaultSPAttributeMapper",
+        },
+        "autoFederation": {
+          "autoFedEnabled": false,
+        },
+        "responseArtifactMessageEncoding": {
+          "encoding": "URI",
+        },
+        "url": {},
+      },
+      "services": {
+        "metaAlias": "/alpha/iSPAzure",
+        "serviceAttributes": {
+          "assertionConsumerService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact",
+              "index": 0,
+              "isDefault": true,
+              "location": "https://idc.scheuber.io/am/AuthConsumer/metaAlias/alpha/iSPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "index": 1,
+              "isDefault": false,
+              "location": "https://idc.scheuber.io/am/AuthConsumer/metaAlias/alpha/iSPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:PAOS",
+              "index": 2,
+              "isDefault": false,
+              "location": "https://idc.scheuber.io/am/Consumer/ECP/metaAlias/alpha/iSPAzure",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/iSPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPMniRedirect/metaAlias/alpha/iSPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/iSPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPMniPOST/metaAlias/alpha/iSPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/iSPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPMniSoap/metaAlias/alpha/iSPAzure",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/iSPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPSloRedirect/metaAlias/alpha/iSPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/iSPAzure",
+              "responseLocation": "https://idc.scheuber.io/am/SPSloPOST/metaAlias/alpha/iSPAzure",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SPSloSoap/metaAlias/alpha/iSPAzure",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQQnJvYWRjb20",
+    "_rev": "-728528736",
+    "entityId": "https://idc.scheuber.io/am/saml2/IDPBroadcom",
+    "identityProvider": {
+      "advanced": {
+        "ecpConfiguration": {
+          "idpSessionMapper": "com.sun.identity.saml2.plugins.DefaultIDPECPSessionMapper",
+        },
+        "idpAdapter": {
+          "idpAdapterScript": "5b29c5b7-b161-4a42-a41f-d6c85316b951",
+        },
+        "idpFinderImplementation": {
+          "enableProxyIdpFinderForAllSps": false,
+        },
+        "relayStateUrlList": {},
+        "saeConfiguration": {
+          "idpUrl": "https://idc.scheuber.io/am/idpsaehandler/metaAlias/alpha/IDPBroadcom",
+        },
+        "sessionSynchronization": {
+          "enabled": false,
+        },
+      },
+      "assertionContent": {
+        "assertionCache": {},
+        "assertionTime": {
+          "effectiveTime": 600,
+          "notBeforeTimeSkew": 600,
+        },
+        "authenticationContext": {
+          "authContextItems": [
+            {
+              "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+              "level": 0,
+            },
+          ],
+          "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultIDPAuthnContextMapper",
+        },
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+          ],
+          "nameIdValueMap": [
+            {
+              "binary": false,
+              "key": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+              "value": "mail",
+            },
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {},
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "accountMapper": {
+          "accountMapper": "com.sun.identity.saml2.plugins.DefaultIDPAccountMapper",
+          "disableNameIdPersistence": false,
+        },
+        "attributeMapper": {
+          "attributeMapper": "com.sun.identity.saml2.plugins.DefaultIDPAttributeMapper",
+          "attributeMapperScript": "90c4eca5-05f0-42f5-b9bf-88b693eabbbd",
+        },
+        "localConfiguration": {},
+      },
+      "services": {
+        "assertionIdRequest": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/AIDReqSoap/IDPRole/metaAlias/alpha/IDPBroadcom",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:URI",
+            "location": "https://idc.scheuber.io/am/AIDReqUri/IDPRole/metaAlias/alpha/IDPBroadcom",
+          },
+        ],
+        "metaAlias": "/alpha/IDPBroadcom",
+        "nameIdMapping": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://idc.scheuber.io/am/NIMSoap/metaAlias/alpha/IDPBroadcom",
+          },
+        ],
+        "serviceAttributes": {
+          "artifactResolutionService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/ArtifactResolver/metaAlias/alpha/IDPBroadcom",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPBroadcom",
+              "responseLocation": "https://idc.scheuber.io/am/IDPMniRedirect/metaAlias/alpha/IDPBroadcom",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPBroadcom",
+              "responseLocation": "https://idc.scheuber.io/am/IDPMniPOST/metaAlias/alpha/IDPBroadcom",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/IDPMniSoap/metaAlias/alpha/IDPBroadcom",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPBroadcom",
+              "responseLocation": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPBroadcom",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPBroadcom",
+              "responseLocation": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPBroadcom",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/IDPSloSoap/metaAlias/alpha/IDPBroadcom",
+            },
+          ],
+          "singleSignOnService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://idc.scheuber.io/am/SSORedirect/metaAlias/alpha/IDPBroadcom",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://idc.scheuber.io/am/SSOPOST/metaAlias/alpha/IDPBroadcom",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://idc.scheuber.io/am/SSOSoap/metaAlias/alpha/IDPBroadcom",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "aHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzExZmZhOWMtNTk3Mi00NzEzLWFjZTMtNjg4Yzk3MzI2MTRhLw",
+    "_rev": "-859975283",
+    "entityId": "https://sts.windows.net/711ffa9c-5972-4713-ace3-688c9732614a/",
+    "identityProvider": {
+      "assertionContent": {
+        "basicAuthentication": {},
+        "nameIdFormat": {},
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {},
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "services": {
+        "serviceAttributes": {
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/saml2",
+            },
+          ],
+          "singleSignOnService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/saml2",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://login.microsoftonline.com/711ffa9c-5972-4713-ace3-688c9732614a/saml2",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "aWRw",
+    "_rev": "41055057",
+    "entityId": "idp",
+    "identityProvider": {
+      "assertionContent": {
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {
+            "authenticationRequest": false,
+          },
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "services": {
+        "nameIdMapping": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://openam-admin-fed.forgeblocks.com/am/NIMSoap/metaAlias/alpha/idp",
+          },
+        ],
+        "serviceAttributes": {
+          "artifactResolutionService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/ArtifactResolver/metaAlias/alpha/idp",
+            },
+          ],
+          "nameIdService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/IDPMniPOST/metaAlias/alpha/idp",
+              "responseLocation": "https://openam-admin-fed.forgeblocks.com/am/IDPMniPOST/metaAlias/alpha/idp",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/IDPMniRedirect/metaAlias/alpha/idp",
+              "responseLocation": "https://openam-admin-fed.forgeblocks.com/am/IDPMniRedirect/metaAlias/alpha/idp",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/IDPMniSoap/metaAlias/alpha/idp",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/IDPSloRedirect/metaAlias/alpha/idp",
+              "responseLocation": "https://openam-admin-fed.forgeblocks.com/am/IDPSloRedirect/metaAlias/alpha/idp",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/IDPSloPOST/metaAlias/alpha/idp",
+              "responseLocation": "https://openam-admin-fed.forgeblocks.com/am/IDPSloPOST/metaAlias/alpha/idp",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/IDPSloSoap/metaAlias/alpha/idp",
+            },
+          ],
+          "singleSignOnService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/SSOPOST/metaAlias/alpha/idp",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/SSORedirect/metaAlias/alpha/idp",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://openam-admin-fed.forgeblocks.com/am/SSOSoap/metaAlias/alpha/idp",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "dXJuOmZlZGVyYXRpb246TWljcm9zb2Z0T25saW5l",
+    "_rev": "317057337",
+    "entityId": "urn:federation:MicrosoftOnline",
+    "serviceProvider": {
+      "advanced": {
+        "idpProxy": {},
+        "saeConfiguration": {},
+      },
+      "assertionContent": {
+        "basicAuthentication": {},
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            "urn:mace:shibboleth:1.0:nameIdentifier",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {
+            "assertion": true,
+          },
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "attributeMapper": {
+          "attributeMap": [
+            {
+              "binary": false,
+              "localAttribute": "mail",
+              "samlAttribute": "IDPEmail",
+            },
+            {
+              "binary": false,
+              "localAttribute": "UOPClassID",
+              "samlAttribute": "UOPClassID",
+            },
+          ],
+        },
+        "responseArtifactMessageEncoding": {
+          "encoding": "URI",
+        },
+      },
+      "services": {
+        "serviceAttributes": {
+          "assertionConsumerService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "index": 0,
+              "isDefault": true,
+              "location": "https://login.microsoftonline.com/login.srf",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign",
+              "index": 1,
+              "isDefault": false,
+              "location": "https://login.microsoftonline.com/login.srf",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:PAOS",
+              "index": 2,
+              "isDefault": false,
+              "location": "https://login.microsoftonline.com/login.srf",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://login.microsoftonline.com/login.srf",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    "_id": "aHR0cHM6Ly9zYW1sLm15dGVzdHJ1bi5jb20vc3A",
+    "_rev": "-1375425000",
+    "entityId": "https://saml.mytestrun.com/sp",
+    "serviceProvider": {
+      "advanced": {
+        "idpProxy": {},
+        "saeConfiguration": {},
+      },
+      "assertionContent": {
+        "basicAuthentication": {
+          "enabled": false,
+        },
+        "nameIdFormat": {
+          "nameIdFormatList": [
+            "urn:oasis:names:tc:SAML:2.0:nameid-format:transient",
+          ],
+        },
+        "signingAndEncryption": {
+          "encryption": {},
+          "requestResponseSigning": {
+            "assertion": false,
+            "authenticationRequest": false,
+          },
+          "secretIdAndAlgorithms": {},
+        },
+      },
+      "assertionProcessing": {
+        "attributeMapper": {},
+        "responseArtifactMessageEncoding": {},
+      },
+      "services": {
+        "serviceAttributes": {
+          "assertionConsumerService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "index": 0,
+              "isDefault": true,
+              "location": "https://saml.mytestrun.com:443/sp/fedletapplication",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact",
+              "index": 1,
+              "isDefault": false,
+              "location": "https://saml.mytestrun.com:443/sp/fedletapplication",
+            },
+          ],
+          "singleLogoutService": [
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+              "location": "https://saml.mytestrun.com:443/sp/fedletSloRedirect",
+              "responseLocation": "https://saml.mytestrun.com:443/sp/fedletSloRedirect",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+              "location": "https://saml.mytestrun.com:443/sp/fedletSloPOST",
+              "responseLocation": "https://saml.mytestrun.com:443/sp/fedletSloPOST",
+            },
+            {
+              "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+              "location": "https://saml.mytestrun.com:443/sp/fedletSloSoap",
+            },
+          ],
+        },
+      },
+    },
+  },
+]
+`;
+
 exports[`Saml2Ops readSaml2ProviderStub() 1: Read stub of hosted provider 'iSPAzure' 1`] = `
 {
   "_id": "aVNQQXp1cmU",

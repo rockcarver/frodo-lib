@@ -62,6 +62,14 @@ export type EmailTemplate = {
     templateData: EmailTemplateSkeleton
   ): Promise<EmailTemplateSkeleton>;
   /**
+   * Import all email templates
+   * @param {EmailTemplateExportInterface} importData import data
+   * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of email template objects
+   */
+  importEmailTemplates(
+    importData: EmailTemplateExportInterface
+  ): Promise<EmailTemplateSkeleton[]>;
+  /**
    * Delete all email templates
    * @returns {Promise<EmailTemplateSkeleton[]>} a promise that resolves to an array of email template objects
    */
@@ -140,6 +148,11 @@ export default (state: State): EmailTemplate => {
       templateData: EmailTemplateSkeleton
     ): Promise<any> {
       return updateEmailTemplate({ templateId, templateData, state });
+    },
+    importEmailTemplates(
+      importData: EmailTemplateExportInterface
+    ): Promise<EmailTemplateSkeleton[]> {
+      return importEmailTemplates({ importData, state });
     },
     async deleteEmailTemplates(): Promise<EmailTemplateSkeleton[]> {
       return deleteEmailTemplates({ state });
@@ -332,6 +345,57 @@ export async function updateEmailTemplate({
     entityData: templateData,
     state,
   });
+}
+
+/**
+ * Import email templates.
+ * @param {EmailTemplateExportInterface} importData email template import data.
+ * @returns {Promise<SocialIdpSkeleton[]>} a promise resolving to an array of email template objects
+ */
+export async function importEmailTemplates({
+  importData,
+  state,
+}: {
+  importData: EmailTemplateExportInterface;
+  state: State;
+}): Promise<EmailTemplateSkeleton[]> {
+  debugMessage({
+    message: `EmailTemplateOps.importEmailTemplates: start`,
+    state,
+  });
+  const response = [];
+  const errors = [];
+  const imported = [];
+  for (const templateId of Object.keys(importData.emailTemplate)) {
+    try {
+      debugMessage({
+        message: `EmailTemplateOps.importEmailTemplates: ${templateId}`,
+        state,
+      });
+      response.push(
+        await updateEmailTemplate({
+          templateId,
+          templateData: importData.emailTemplate[templateId],
+          state,
+        })
+      );
+      imported.push(templateId);
+    } catch (e) {
+      errors.push(e);
+    }
+  }
+  if (errors.length) {
+    const errorMessages = errors.map((error) => error.message).join('\n');
+    throw new Error(`Import error:\n${errorMessages}`);
+  }
+  if (0 === imported.length) {
+    throw new Error(`Import error:\nNo email templates found in import data!`);
+  }
+  debugMessage({
+    message: `EmailTemplateOps.importEmailTemplates: end`,
+    state,
+  });
+  return response;
 }
 
 /**

@@ -216,4 +216,46 @@ describe('IdmConfigOps', () => {
       expect(response).toMatchSnapshot();
     });
   });
+
+  describe('importConfigEntities()', () => {
+    test('0: Method is implemented', async () => {
+      expect(IdmConfigOps.importConfigEntities).toBeDefined();
+    });
+
+    test(`1: ImportConfigEntities no validate`, async () => {
+      const importData = {
+        config: {
+          [configEntity1.id]: configEntity1,
+          [configEntity2.id]: configEntity2,
+          [configEntity3.id]: configEntity3
+        }
+      }
+      const response = await IdmConfigOps.importConfigEntities({
+        importData,
+        options: {
+          validate: false
+        },
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`2: ImportConfigEntities validate`, async () => {
+      const importData = {
+        config: {
+          [configEntity1.id]: configEntity1,
+          [configEntity2.id]: configEntity2,
+          [configEntity3.id]: configEntity3
+        }
+      }
+      const response = await IdmConfigOps.importConfigEntities({
+        importData,
+        options: {
+          validate: true
+        },
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+  });
 });
