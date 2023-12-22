@@ -148,8 +148,8 @@ export type Journey = {
   ): Promise<TreeSkeleton>;
   /**
    * Resolve journey dependencies
-   * @param {Map} installedJorneys Map of installed journeys
-   * @param {Map} journeyMap Map of journeys to resolve dependencies for
+   * @param {string[]} installedJorneys Map of installed journeys
+   * @param {Record<string, SingleTreeExportInterface>} journeyMap Map of journeys to resolve dependencies for
    * @param {string[]} unresolvedJourneys Map to hold the names of unresolved journeys and their dependencies
    * @param {string[]} resolvedJourneys Array to hold the names of resolved journeys
    * @param {int} index Depth of recursion
@@ -2150,14 +2150,14 @@ export async function resolveInnerTreeDependencies({
 /**
  * Resolve journey dependencies
  * @param {string[]} installedJorneys Map of installed journeys
- * @param {MultiTreeExportInterface} journeyMap Map of journeys to resolve dependencies for
+ * @param {Record<string, SingleTreeExportInterface>} journeyMap Map of journeys to resolve dependencies for
  * @param {string[]} unresolvedJourneys Map to hold the names of unresolved journeys and their dependencies
  * @param {string[]} resolvedJourneys Array to hold the names of resolved journeys
  * @param {number} index Depth of recursion
  */
 export async function resolveDependencies(
   installedJorneys: string[],
-  journeyMap: MultiTreeExportInterface,
+  journeyMap: Record<string, SingleTreeExportInterface>,
   unresolvedJourneys: { [k: string]: string[] },
   resolvedJourneys: string[],
   index = -1
@@ -2242,7 +2242,7 @@ export async function importJourneys({
   const installedJourneys = (await readJourneys({ state })).map((x) => x._id);
   const unresolvedJourneys = {};
   const resolvedJourneys = [];
-  const indicatorId = createProgressIndicator({
+  let indicatorId = createProgressIndicator({
     total: undefined,
     message: 'Resolving dependencies',
     type: 'indeterminate',
@@ -2250,7 +2250,7 @@ export async function importJourneys({
   });
   await resolveDependencies(
     installedJourneys,
-    importData,
+    importData.trees,
     unresolvedJourneys,
     resolvedJourneys
   );
@@ -2279,7 +2279,7 @@ export async function importJourneys({
       });
     }
   }
-  createProgressIndicator({
+  indicatorId = createProgressIndicator({
     total: resolvedJourneys.length,
     message: 'Importing',
     state,
@@ -2287,7 +2287,11 @@ export async function importJourneys({
   for (const tree of resolvedJourneys) {
     try {
       response.push(
-        await importJourney({ importData: importData[tree], options, state })
+        await importJourney({
+          importData: importData.trees[tree],
+          options,
+          state,
+        })
       );
       imported.push(tree);
       updateProgressIndicator({ id: indicatorId, message: `${tree}`, state });
@@ -2309,7 +2313,11 @@ export async function importJourneys({
   if (0 === imported.length) {
     throw new Error(`Import error:\nNo clients found in import data!`);
   }
-  stopProgressIndicator({ id: indicatorId, message: 'Done', state });
+  stopProgressIndicator({
+    id: indicatorId,
+    message: 'Finished Importing Journeys',
+    state,
+  });
   return response;
 }
 
