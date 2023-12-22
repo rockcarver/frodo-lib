@@ -32,7 +32,6 @@
 import { state } from '../index';
 import * as IdpOps from './IdpOps';
 import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
-import { NoIdObjectSkeletonInterface } from '../api/ApiTypes';
 import { SocialIdpSkeleton } from '../api/SocialIdentityProvidersApi';
 
 const ctx = autoSetupPolly();
@@ -1001,13 +1000,13 @@ describe('IdpOps', () => {
     }
   });
 
-  describe('exportSocialProvider()', () => {
+  describe('exportSocialIdentityProvider()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdpOps.exportSocialProvider).toBeDefined();
+      expect(IdpOps.exportSocialIdentityProvider).toBeDefined();
     });
 
     test(`1: Export social provider ${idp1.id}`, async () => {
-      const response = await IdpOps.exportSocialProvider({
+      const response = await IdpOps.exportSocialIdentityProvider({
         providerId: idp1.id,
         state,
       });
@@ -1017,13 +1016,13 @@ describe('IdpOps', () => {
     });
   });
 
-  describe('exportSocialProviders()', () => {
+  describe('exportSocialIdentityProviders()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdpOps.exportSocialProviders).toBeDefined();
+      expect(IdpOps.exportSocialIdentityProviders).toBeDefined();
     });
 
     test('1: Export all social providers', async () => {
-      const response = await IdpOps.exportSocialProviders({ state });
+      const response = await IdpOps.exportSocialIdentityProviders({ state });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -1071,49 +1070,101 @@ describe('IdpOps', () => {
     });
   });
 
-  describe('importSocialProvider()', () => {
+  describe('importSocialIdentityProvider()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdpOps.importSocialProvider).toBeDefined();
+      expect(IdpOps.importSocialIdentityProvider).toBeDefined();
     });
 
     test(`1: Import social provider ${import1.id}`, async () => {
-      expect.assertions(1);
-      const outcome = await IdpOps.importSocialProvider({
+      expect.assertions(2);
+      const outcome = await IdpOps.importSocialIdentityProvider({
         providerId: import1.id,
         importData: import1.data,
+        options: {
+          deps: true
+        },
         state,
       });
       expect(outcome).toBeTruthy();
+      expect(outcome).toMatchSnapshot();
+    });
+
+    test(`2: Import social provider ${import1.id} no deps`, async () => {
+      expect.assertions(2);
+      const outcome = await IdpOps.importSocialIdentityProvider({
+        providerId: import1.id,
+        importData: import1.data,
+        options: {
+          deps: false
+        },
+        state,
+      });
+      expect(outcome).toBeTruthy();
+      expect(outcome).toMatchSnapshot();
     });
   });
 
-  describe('importFirstSocialProvider()', () => {
+  describe('importFirstSocialIdentityProvider()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdpOps.importFirstSocialProvider).toBeDefined();
+      expect(IdpOps.importFirstSocialIdentityProvider).toBeDefined();
     });
 
     test(`1: Import first social provider`, async () => {
-      expect.assertions(1);
-      const outcome = await IdpOps.importFirstSocialProvider({
+      expect.assertions(2);
+      const outcome = await IdpOps.importFirstSocialIdentityProvider({
         importData: importData1,
+        options: {
+          deps: true
+        },
         state,
       });
       expect(outcome).toBeTruthy();
+      expect(outcome).toMatchSnapshot();
+    });
+
+    test(`2: Import first social provider no deps`, async () => {
+      expect.assertions(2);
+      const outcome = await IdpOps.importFirstSocialIdentityProvider({
+        importData: importData1,
+        options: {
+          deps: false
+        },
+        state,
+      });
+      expect(outcome).toBeTruthy();
+      expect(outcome).toMatchSnapshot();
     });
   });
 
-  describe('importSocialProviders()', () => {
+  describe('importSocialIdentityProviders()', () => {
     test('0: Method is implemented', async () => {
-      expect(IdpOps.importSocialProviders).toBeDefined();
+      expect(IdpOps.importSocialIdentityProviders).toBeDefined();
     });
   });
 
   test(`1: Import all social providers`, async () => {
-    expect.assertions(1);
-    const outcome = await IdpOps.importSocialProviders({
+    expect.assertions(2);
+    const outcome = await IdpOps.importSocialIdentityProviders({
       importData: importData2,
+      options: {
+        deps: true
+      },
       state,
     });
     expect(outcome).toBeTruthy();
+    expect(outcome).toMatchSnapshot();
+  });
+
+  test(`2: Import all social providers no deps`, async () => {
+    expect.assertions(2);
+    const outcome = await IdpOps.importSocialIdentityProviders({
+      importData: importData2,
+      options: {
+        deps: false
+      },
+      state,
+    });
+    expect(outcome).toBeTruthy();
+    expect(outcome).toMatchSnapshot();
   });
 });

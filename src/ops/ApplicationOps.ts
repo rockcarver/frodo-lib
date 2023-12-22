@@ -684,6 +684,7 @@ async function importDependencies({
         await importSaml2Provider({
           entityId: saml2IdpId,
           importData: importData as Saml2ExportInterface,
+          options: { deps: true },
           state,
         });
       } catch (error) {
@@ -698,6 +699,7 @@ async function importDependencies({
         await importSaml2Provider({
           entityId: saml2SpId,
           importData: importData as Saml2ExportInterface,
+          options: { deps: true },
           state,
         });
       } catch (error) {
