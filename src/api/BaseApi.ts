@@ -70,6 +70,7 @@ function getHttpsAgent(allowInsecureConnection: boolean): Agent.HttpsAgent {
   const httpsProxy = process.env.HTTPS_PROXY || process.env.https_proxy;
   if (httpsProxy) {
     // https://github.com/axios/axios/issues/3459
+    // eslint-disable-next-line no-console
     console.error(`Using proxy ${httpsProxy}`['yellow']);
     const parsed = new URL(httpsProxy);
     options['host'] = parsed.hostname;

@@ -1772,11 +1772,10 @@ export async function importJourney({
         innerNodeData['identityResource'].endsWith('user') &&
         innerNodeData['identityResource'] === importData.tree.identityResource
       ) {
-        innerNodeData[
-          'identityResource'
-        ] = `managed/${getCurrentRealmManagedUser({
-          state,
-        })}`;
+        innerNodeData['identityResource'] =
+          `managed/${getCurrentRealmManagedUser({
+            state,
+          })}`;
         if (verbose)
           printMessage({
             message: `\n      - identityResource: ${innerNodeData['identityResource']}`,
