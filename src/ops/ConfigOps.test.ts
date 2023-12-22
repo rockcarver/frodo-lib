@@ -59,4 +59,11 @@ describe('ConfigOps', () => {
       });
     });
   });
+
+  describe('importFullConfiguration()', () => {
+    test('0: Method is implemented', async () => {
+      expect(ConfigOps.importFullConfiguration).toBeDefined();
+    });
+    // TODO: Write tests for full import
+  });
 });
