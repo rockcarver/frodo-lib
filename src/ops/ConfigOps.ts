@@ -87,7 +87,11 @@ export type Config = {
 export default (state: State): Config => {
   return {
     async exportFullConfiguration(
-      options: FullExportOptions = { useStringArrays: true, noDecode: false }
+      options: FullExportOptions = {
+        useStringArrays: true,
+        noDecode: false,
+        coords: true,
+      }
     ) {
       return exportFullConfiguration({ options, state });
     },
@@ -122,6 +126,10 @@ export interface FullExportOptions {
    * Do not include decoded variable value in export
    */
   noDecode: boolean;
+  /**
+   * Include x and y coordinate positions of the journey/tree nodes.
+   */
+  coords: boolean;
 }
 
 /**
@@ -183,13 +191,13 @@ export interface FullExportInterface {
  * @param {FullExportOptions} options export options
  */
 export async function exportFullConfiguration({
-  options = { useStringArrays: true, noDecode: false },
+  options = { useStringArrays: true, noDecode: false, coords: true },
   state,
 }: {
   options: FullExportOptions;
   state: State;
 }): Promise<FullExportInterface> {
-  const { useStringArrays, noDecode } = options;
+  const { useStringArrays, noDecode, coords } = options;
   const stateObj = { state };
   //Export saml2 providers and circle of trusts
   let saml = (
@@ -280,7 +288,7 @@ export async function exportFullConfiguration({
       ?.theme,
     trees: (
       await exportOrImportWithErrorHandling(exportJourneys, {
-        options: { deps: false, useStringArrays },
+        options: { deps: false, useStringArrays, coords },
         state,
       })
     )?.trees,

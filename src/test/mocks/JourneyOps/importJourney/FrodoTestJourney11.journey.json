@@ -1,0 +1,22 @@
+{
+  "tree": {
+    "_id": "FrodoTestJourney11",
+    "entryNodeId": "node5",
+    "nodes": {
+      "node5": {
+        "connections": {},
+        "displayName": "name3",
+        "nodeType": "type3"
+      },
+      "node6": {
+        "connections": {},
+        "displayName": "name4",
+        "nodeType": "type4"
+      }
+    },
+    "staticNodes": {
+      "node7": {},
+      "node8": {}
+    }
+  }
+}

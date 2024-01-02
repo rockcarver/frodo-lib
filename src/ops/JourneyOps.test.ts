@@ -113,6 +113,15 @@ describe('JourneyOps', () => {
   const journey9 = {
     id: 'FrodoTestJourney9',
   };
+  const journey10 = {
+    id: 'FrodoTestJourney10',
+  };
+  const journey10NoCoords = {
+    id: 'FrodoTestJourney10NoCoords'
+  };
+  const journey11 = {
+    id: 'FrodoTestJourney11',
+  }
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
@@ -125,6 +134,9 @@ describe('JourneyOps', () => {
       await stageJourney(journey7);
       await stageJourney(journey8);
       await stageJourney(journey9);
+      await stageJourney(journey10);
+      await stageJourney(journey10NoCoords, false);
+      await stageJourney(journey11, false);
     }
   });
   // in recording mode, remove test data after recording
@@ -139,6 +151,9 @@ describe('JourneyOps', () => {
       await stageJourney(journey7, false);
       await stageJourney(journey8, false);
       await stageJourney(journey9, false);
+      await stageJourney(journey10, false);
+      await stageJourney(journey10NoCoords, false);
+      await stageJourney(journey11, false);
     }
   });
   beforeEach(async () => {
@@ -154,6 +169,110 @@ describe('JourneyOps', () => {
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '1')
   ) {
+    describe('updateCoordinates()', () => {
+      test('0: Method is implemented', async () => {
+        expect(JourneyOps.updateCoordinates).toBeDefined();
+      });
+
+      test('1: Nothing changes when coordinates exist', async () => {
+        const journey = getJourney(journey10.id);
+        const tree = JSON.parse(JSON.stringify(journey.tree));
+        expect(await JourneyOps.updateCoordinates({
+          tree: tree,
+          nodesAttributeName: "nodes",
+          serverTree: null,
+          state
+        })).toBeNull();
+        expect(tree).toMatchSnapshot(journey.tree);
+      });
+
+      test('2: Update coordinates with server coordinates when server tree exists', async () => {
+        const journey = getJourney(journey10.id);
+        const tree = JSON.parse(JSON.stringify(journey.tree));
+        delete tree.nodes.node1.x;
+        delete tree.nodes.node2.y;
+        const serverTree = await JourneyOps.updateCoordinates({
+          tree: tree,
+          nodesAttributeName: "nodes",
+          serverTree: null,
+          state
+        });
+        //Ignore the _rev field
+        serverTree._rev = journey.tree._rev;
+        expect(serverTree).toStrictEqual(journey.tree);
+        expect(tree).toMatchSnapshot(journey.tree);
+      });
+
+      test('3: Updates coordinates to 0 if serverTree does not exist', async () => {
+        const journey = getJourney(journey11.id);
+        const expectedTree = JSON.parse(JSON.stringify(journey.tree));
+        expectedTree.nodes.node5.x = 0;
+        expectedTree.nodes.node5.y = 0;
+        expectedTree.nodes.node6.x = 0;
+        expectedTree.nodes.node6.y = 0;
+        const tree = JSON.parse(JSON.stringify(journey.tree));
+        expect(await JourneyOps.updateCoordinates({
+          tree: tree,
+          nodesAttributeName: "nodes",
+          serverTree: null,
+          state
+        })).toBeNull();
+        expect(tree).toMatchSnapshot(expectedTree);
+      });
+
+      test('4: Updates coordinates to 0 if serverTree nodes do not exist', async () => {
+        const journey = getJourney(journey10NoCoords.id);
+        const expectedTree = JSON.parse(JSON.stringify(journey.tree));
+        expectedTree.nodes.node1.x = 0;
+        expectedTree.nodes.node1.y = 0;
+        expectedTree.nodes.node2.x = 0;
+        expectedTree.nodes.node2.y = 0;
+        const serverTree = JSON.parse(JSON.stringify(journey.tree));
+        delete serverTree.nodes;
+        const tree = JSON.parse(JSON.stringify(journey.tree));
+        expect(await JourneyOps.updateCoordinates({
+          tree: tree,
+          nodesAttributeName: "nodes",
+          serverTree: serverTree,
+          state
+        })).toStrictEqual(serverTree);
+        expect(tree).toStrictEqual(expectedTree);
+      });
+
+      test('5: Updates coordinates in various cases', async () => {
+        const journey = getJourney(journey10.id);
+        const journeyNoCoords = getJourney(journey10NoCoords.id);
+        const expectedTree = JSON.parse(JSON.stringify(journey.tree));
+        expectedTree.nodes.node1.x = 0;
+        expectedTree.nodes.node2.y = 0;
+        expectedTree.nodes.node2.x = 1001;
+        expectedTree.staticNodes.node3.y = 0;
+        expectedTree.staticNodes.node4.x = 0;
+        expectedTree.staticNodes.node4.y = 1002;
+        const serverTree = JSON.parse(JSON.stringify(journey.tree));
+        delete serverTree.nodes.node1.x;
+        delete serverTree.nodes.node2.y;
+        delete serverTree.staticNodes.node3.y;
+        delete serverTree.staticNodes.node4.x;
+        const tree = JSON.parse(JSON.stringify(journeyNoCoords.tree));
+        tree.nodes.node2.x = 1001;
+        tree.staticNodes.node4.y = 1002;
+        expect(await JourneyOps.updateCoordinates({
+          tree: tree,
+          nodesAttributeName: "nodes",
+          serverTree: serverTree,
+          state
+        })).toStrictEqual(serverTree);
+        expect(await JourneyOps.updateCoordinates({
+          tree: tree,
+          nodesAttributeName: "staticNodes",
+          serverTree: serverTree,
+          state
+        })).toStrictEqual(serverTree);
+        expect(tree).toStrictEqual(expectedTree);
+      });
+    });
+
     describe('getJourneys()', () => {
       test('0: Method is implemented', async () => {
         expect(JourneyOps.readJourneys).toBeDefined();
@@ -176,6 +295,7 @@ describe('JourneyOps', () => {
           options: {
             useStringArrays: false,
             deps: false,
+            coords: true,
           },
           state,
         });
@@ -190,6 +310,22 @@ describe('JourneyOps', () => {
           options: {
             useStringArrays: false,
             deps: true,
+            coords: true,
+          },
+          state,
+        });
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
+      });
+
+      test(`3: Export journey '${journey3.id}' w/ dependencies and w/o coordinates`, async () => {
+        const response = await JourneyOps.exportJourney({
+          journeyId: journey3.id,
+          options: {
+            useStringArrays: false,
+            deps: true,
+            coords: false,
           },
           state,
         });
@@ -204,8 +340,22 @@ describe('JourneyOps', () => {
         expect(JourneyOps.exportJourneys).toBeDefined();
       });
 
-      test('1: Export journeys', async () => {
-        const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true }, state });
+      test('1: Export journeys w/o dependencies', async () => {
+        const response = await JourneyOps.exportJourneys({ options: { deps: false, useStringArrays: true, coords: true }, state });
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
+      });
+
+      test('1: Export journeys w/ dependencies', async () => {
+        const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true, coords: true }, state });
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
+      });
+
+      test('1: Export journeys w/ dependencies and w/o coordinates', async () => {
+        const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true, coords: false }, state });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });

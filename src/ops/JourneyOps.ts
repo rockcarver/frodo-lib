@@ -1,3 +1,4 @@
+import axios, { AxiosError } from 'axios';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,6 +14,7 @@ import {
   type NodeRefSkeletonInterface,
   type NodeSkeleton,
   putNode,
+  type StaticNodeRefSkeletonInterface,
 } from '../api/NodeApi';
 import {
   createProvider,
@@ -350,6 +352,7 @@ export default (state: State): Journey => {
       options: TreeExportOptions = {
         useStringArrays: true,
         deps: true,
+        coords: true,
       }
     ): Promise<SingleTreeExportInterface> {
       return exportJourney({ journeyId: treeId, options, state });
@@ -358,6 +361,7 @@ export default (state: State): Journey => {
       options: TreeExportOptions = {
         useStringArrays: true,
         deps: true,
+        coords: true,
       }
     ): Promise<MultiTreeExportInterface> {
       return exportJourneys({ options, state });
@@ -499,6 +503,10 @@ export interface TreeExportOptions {
    * Include any dependencies (scripts, email templates, SAML entity providers and circles of trust, social identity providers, themes).
    */
   deps: boolean;
+  /**
+   * Include x and y coordinate positions of the journey/tree nodes.
+   */
+  coords: boolean;
 }
 
 /**
@@ -635,6 +643,69 @@ function createMultiTreeExportTemplate({
 }
 
 /**
+ * Updates coordinates of the nodes in a tree to the same as the nodes on the server if the nodes on the tree do not exist.
+ * @param {TreeSkeleton} tree The tree being imported
+ * @param {string} nodesAttributeName The name (key) of the attribute on the tree that has nodes
+ * @param {TreeSkeleton} serverTree The current tree on the server
+ * @returns {TreeSkeleton} The current tree on the server
+ */
+export async function updateCoordinates({
+  tree,
+  nodesAttributeName,
+  serverTree,
+  state,
+}: {
+  tree: TreeSkeleton;
+  nodesAttributeName: string;
+  serverTree: TreeSkeleton | null;
+  state: State;
+}): Promise<TreeSkeleton | null> {
+  const nodeEntries = Object.entries(
+    tree[nodesAttributeName] as
+      | NodeRefSkeletonInterface
+      | StaticNodeRefSkeletonInterface
+  ).filter(
+    ([, nodeInfo]) => nodeInfo.x === undefined || nodeInfo.y === undefined
+  );
+  if (nodeEntries.length === 0) {
+    return serverTree;
+  }
+  if (serverTree === null) {
+    try {
+      serverTree = await getTree({ id: tree._id, state: state });
+    } catch (e) {
+      if (!axios.isAxiosError(e) || (e as AxiosError).response.status !== 404) {
+        throw e;
+      }
+    }
+  }
+  nodeEntries.forEach(([nodeId, nodeInfo]) => {
+    const coords =
+      serverTree == undefined ||
+      serverTree[nodesAttributeName] == undefined ||
+      serverTree[nodesAttributeName][nodeId] == undefined
+        ? {
+            x: 0,
+            y: 0,
+          }
+        : serverTree[nodesAttributeName][nodeId];
+    nodeInfo.x =
+      nodeInfo.x === undefined
+        ? coords.x == undefined
+          ? 0
+          : coords.x
+        : nodeInfo.x;
+    nodeInfo.y =
+      nodeInfo.y === undefined
+        ? coords.y == undefined
+          ? 0
+          : coords.y
+        : nodeInfo.y;
+  });
+  return serverTree;
+}
+
+/**
  * Helper to get all SAML2 dependencies for a given node object
  * @param {Object} nodeObject node object
  * @param {[Object]} allProviders array of all saml2 providers objects
@@ -742,6 +813,7 @@ export async function exportJourney({
   options = {
     useStringArrays: true,
     deps: true,
+    coords: true,
   },
   state,
 }: {
@@ -757,7 +829,7 @@ export async function exportJourney({
   const errors = [];
   try {
     const treeObject = await getTree({ id: journeyId, state });
-    const { useStringArrays, deps } = options;
+    const { useStringArrays, deps, coords } = options;
     const verbose = state.getVerbose();
 
     if (verbose)
@@ -810,6 +882,16 @@ export async function exportJourney({
       nodePromises.push(
         getNode({ nodeId, nodeType: nodeInfo['nodeType'], state })
       );
+      if (!coords) {
+        delete nodeInfo['x'];
+        delete nodeInfo['y'];
+      }
+    }
+    if (!coords) {
+      for (const [, nodeInfo] of Object.entries(treeObject.staticNodes)) {
+        delete nodeInfo['x'];
+        delete nodeInfo['y'];
+      }
     }
     if (verbose && nodePromises.length > 0)
       printMessage({ message: '\n  - Nodes:', newline: false, state });
@@ -1280,6 +1362,7 @@ export async function exportJourneys({
   options = {
     useStringArrays: true,
     deps: true,
+    coords: true,
   },
   state,
 }: {
@@ -1772,10 +1855,11 @@ export async function importJourney({
         innerNodeData['identityResource'].endsWith('user') &&
         innerNodeData['identityResource'] === importData.tree.identityResource
       ) {
-        innerNodeData['identityResource'] =
-          `managed/${getCurrentRealmManagedUser({
-            state,
-          })}`;
+        innerNodeData[
+          'identityResource'
+        ] = `managed/${getCurrentRealmManagedUser({
+          state,
+        })}`;
         if (verbose)
           printMessage({
             message: `\n      - identityResource: ${innerNodeData['identityResource']}`,
@@ -1998,6 +2082,21 @@ export async function importJourney({
         state,
       });
   }
+
+  // Process tree nodes
+  const serverTreeObject = await updateCoordinates({
+    tree: importData.tree,
+    nodesAttributeName: 'nodes',
+    serverTree: null,
+    state: state,
+  });
+  // Process tree static nodes
+  await updateCoordinates({
+    tree: importData.tree,
+    nodesAttributeName: 'staticNodes',
+    serverTree: serverTreeObject,
+    state: state,
+  });
 
   delete importData.tree._rev;
   try {
@@ -2367,6 +2466,7 @@ export const onlineTreeExportResolver: TreeExportResolverInterface =
       options: {
         deps: false,
         useStringArrays: false,
+        coords: true,
       },
       state,
     });

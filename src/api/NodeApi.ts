@@ -38,6 +38,11 @@ export interface NodeRefSkeletonInterface {
   y: number;
 }
 
+export interface StaticNodeRefSkeletonInterface {
+  x: number;
+  y: number;
+}
+
 export interface InnerNodeRefSkeletonInterface {
   _id: string;
   displayName: string;
