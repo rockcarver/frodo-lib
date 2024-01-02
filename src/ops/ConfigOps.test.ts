@@ -33,19 +33,29 @@
  * in case things don't function as expected
  */
 
-import { autoSetupPolly } from "../utils/AutoSetupPolly";
+import { autoSetupPolly, filterRecording } from "../utils/AutoSetupPolly";
 import * as ConfigOps from "./ConfigOps";
 import { state } from "../index";
+import Constants from '../shared/Constants';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 describe('ConfigOps', () => {
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
+    }
+  });
   describe('exportFullConfiguration()', () => {
     test('0: Method is implemented', async () => {
       expect(ConfigOps.exportFullConfiguration).toBeDefined();
     });
 
     test('1: Export everything with string arrays and decoding', async () => {
+      // Set deployment type to cloud since it is necessary for exporting applications correctly. It does this automatically when recording the mock, but not when running the test after recording
+      state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
       const response = await ConfigOps.exportFullConfiguration({ options: { useStringArrays: true, noDecode: false }, state });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object)
@@ -53,6 +63,8 @@ describe('ConfigOps', () => {
     });
 
     test('2: Export everything without string arrays and decoding', async () => {
+      // Set deployment type to cloud since it is necessary for exporting applications correctly. It does this automatically when recording the mock, but not when running the test after recording
+      state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
       const response = await ConfigOps.exportFullConfiguration({ options: { useStringArrays: false, noDecode: true }, state });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object)
