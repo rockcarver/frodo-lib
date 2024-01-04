@@ -304,6 +304,43 @@ describe('ScriptOps', () => {
       },
     },
   };
+  const import2: { name: string; data: ScriptOps.ScriptExportInterface } = {
+    name: 'Authentication Tree Decision Node Script',
+    data: {
+      meta: {
+        origin: 'https://openam-frodo-dev.forgeblocks.com/am',
+        originAmVersion: '7.3.0',
+        exportedBy: 'volker.scheuber@forgerock.com',
+        exportDate: '2023-01-02T20:04:41.662Z',
+        exportTool: 'frodo',
+        exportToolVersion: 'v0.17.1 [v18.5.0]',
+      },
+      script: {
+        '01e1a3c0-038b-4c16-956a-6c9d89328cff': {
+          _id: "01e1a3c0-038b-4c16-956a-6c9d89328cff",
+          context: "AUTHENTICATION_TREE_DECISION_NODE",
+          createdBy: "null",
+          creationDate: 0,
+          default: true,
+          description: "Default global script for a scripted decision node",
+          evaluatorVersion: "1.0",
+          language: "JAVASCRIPT",
+          lastModifiedBy: "null",
+          lastModifiedDate: 0,
+          name: "Authentication Tree Decision Node Script",
+          script: [
+            "/*",
+            "  - Data made available by nodes that have already executed are available in the sharedState variable.",
+            "  - The script should set outcome to either \"true\" or \"false\".",
+            " */",
+            "",
+            "outcome = \"true\";",
+            ""
+          ]
+        },
+      },
+    },
+  };
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
@@ -437,7 +474,14 @@ describe('ScriptOps', () => {
     });
 
     test('1: Export all scripts', async () => {
-      const response = await ScriptOps.exportScripts({ state });
+      const response = await ScriptOps.exportScripts({ includeDefault: false, state });
+      expect(response).toMatchSnapshot({
+        meta: expect.any(Object),
+      });
+    });
+
+    test('2: Export all scripts, including default scripts', async () => {
+      const response = await ScriptOps.exportScripts({ includeDefault: true, state });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -454,6 +498,10 @@ describe('ScriptOps', () => {
       const outcome = await ScriptOps.importScripts({
         scriptName: '',
         importData: import1.data,
+        options: {
+          reUuid: false,
+          includeDefault: true
+        },
         state,
       });
       expect(outcome).toBeTruthy();
@@ -467,6 +515,19 @@ describe('ScriptOps', () => {
         state,
       });
       expect(outcome).toBeTruthy();
+    });
+
+    test(`3: Import no scripts when excluding default scripts and only default scripts given`, async () => {
+      expect.assertions(1);
+      await expect(ScriptOps.importScripts({
+        scriptName: '',
+        importData: import2.data,
+        options: {
+          reUuid: false,
+          includeDefault: false
+        },
+        state,
+      })).rejects.toThrow("Import error:\nNo scripts found in import data!");
     });
   });
 

@@ -92,9 +92,10 @@ export type Script = {
   deleteScripts(): Promise<ScriptSkeleton[]>;
   /**
    * Export all scripts
+   * @param includeDefault true to include default scripts in export, false otherwise. Default: false
    * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
    */
-  exportScripts(): Promise<ScriptExportInterface>;
+  exportScripts(includeDefault: boolean): Promise<ScriptExportInterface>;
   /**
    * Export script by id
    * @param {string} scriptId script uuid
@@ -111,13 +112,14 @@ export type Script = {
    * Import scripts
    * @param {string} scriptName Optional name of script. If supplied, only the script of that name is imported
    * @param {ScriptExportInterface} importData Script import data
-   * @param {boolean} reUuid true to generate a new uuid for each script on import, false otherwise
+   * @param {ScriptImportOptions} options Script import options
+   * @param {boolean} validate If true, validates Javascript scripts to ensure no errors exist in them. Default: false
    * @returns {Promise<ScriptSkeleton[]>} true if no errors occurred during import, false otherwise
    */
   importScripts(
     scriptName: string,
     importData: ScriptExportInterface,
-    reUuid?: boolean,
+    options?: ScriptImportOptions,
     validate?: boolean
   ): Promise<ScriptSkeleton[]>;
 
@@ -217,19 +219,24 @@ export default (state: State): Script => {
     ): Promise<ScriptExportInterface> {
       return exportScriptByName({ scriptName, state });
     },
-    async exportScripts(): Promise<ScriptExportInterface> {
-      return exportScripts({ state });
+    async exportScripts(
+      includeDefault = false
+    ): Promise<ScriptExportInterface> {
+      return exportScripts({ includeDefault, state });
     },
     async importScripts(
       scriptName: string,
       importData: ScriptExportInterface,
-      reUuid = false,
+      options = {
+        reUuid: false,
+        includeDefault: false,
+      },
       validate = false
     ): Promise<ScriptSkeleton[]> {
       return importScripts({
         scriptName,
         importData,
-        reUuid,
+        options,
         validate,
         state,
       });
@@ -258,6 +265,20 @@ export default (state: State): Script => {
 export interface ScriptExportInterface {
   meta?: ExportMetaData;
   script: Record<string, ScriptSkeleton>;
+}
+
+/**
+ * Script import options
+ */
+export interface ScriptImportOptions {
+  /**
+   * Generate new UUIDs for all scripts during import.
+   */
+  reUuid: boolean;
+  /**
+   * Include default scripts in import if true
+   */
+  includeDefault: boolean;
 }
 
 /**
@@ -483,14 +504,19 @@ export async function exportScriptByName({
 
 /**
  * Export all scripts
+ @param includeDefault true to include default scripts in export, false otherwise. Default: false
  * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
  */
 export async function exportScripts({
+  includeDefault = false,
   state,
 }: {
+  includeDefault: boolean;
   state: State;
 }): Promise<ScriptExportInterface> {
-  const scriptList = await readScripts({ state });
+  let scriptList = await readScripts({ state });
+  if (!includeDefault)
+    scriptList = scriptList.filter((script) => !script.default);
   const exportData = createScriptExportTemplate({ state });
   const indicatorId = createProgressIndicator({
     total: scriptList.length,
@@ -522,19 +548,23 @@ export async function exportScripts({
  * Import scripts
  * @param {string} scriptName Optional name of script. If supplied, only the script of that name is imported
  * @param {ScriptExportInterface} importData Script import data
- * @param {boolean} reUuid true to generate a new uuid for each script on import, false otherwise
+ * @param {ScriptImportOptions} options Script import options
+ * @param {boolean} validate If true, validates Javascript scripts to ensure no errors exist in them. Default: false
  * @returns {Promise<boolean>} true if no errors occurred during import, false otherwise
  */
 export async function importScripts({
   scriptName,
   importData,
-  reUuid = false,
+  options = {
+    reUuid: false,
+    includeDefault: false,
+  },
   validate = false,
   state,
 }: {
   scriptName: string;
   importData: ScriptExportInterface;
-  reUuid?: boolean;
+  options?: ScriptImportOptions;
   validate?: boolean;
   state: State;
 }): Promise<ScriptSkeleton[]> {
@@ -545,8 +575,9 @@ export async function importScripts({
   for (const existingId of Object.keys(importData.script)) {
     try {
       const scriptData = importData.script[existingId];
+      if (!options.includeDefault && scriptData.default) continue;
       let newId = existingId;
-      if (reUuid) {
+      if (options.reUuid) {
         newId = uuidv4();
         debugMessage({
           message: `ScriptOps.importScripts: Re-uuid-ing script ${scriptData.name} ${existingId} => ${newId}...`,
