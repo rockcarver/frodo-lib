@@ -53,19 +53,19 @@ describe('ConfigOps', () => {
       expect(ConfigOps.exportFullConfiguration).toBeDefined();
     });
 
-    test('1: Export everything with string arrays and decoding and coords', async () => {
+    test('1: Export everything with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
       // Set deployment type to cloud since it is necessary for exporting applications correctly. It does this automatically when recording the mock, but not when running the test after recording
       state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
-      const response = await ConfigOps.exportFullConfiguration({ options: { useStringArrays: true, noDecode: false, coords: true }, state });
+      const response = await ConfigOps.exportFullConfiguration({ options: { useStringArrays: true, noDecode: false, coords: true, includeDefault: true }, state });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object)
       });
     });
 
-    test('2: Export everything without string arrays and decoding and coords', async () => {
+    test('2: Export everything without string arrays, decoding variables, excluding journey coordinates and default scripts', async () => {
       // Set deployment type to cloud since it is necessary for exporting applications correctly. It does this automatically when recording the mock, but not when running the test after recording
       state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
-      const response = await ConfigOps.exportFullConfiguration({ options: { useStringArrays: false, noDecode: true, coords: false }, state });
+      const response = await ConfigOps.exportFullConfiguration({ options: { useStringArrays: false, noDecode: true, coords: false, includeDefault: false }, state });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object)
       });

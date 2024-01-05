@@ -91,6 +91,7 @@ export default (state: State): Config => {
         useStringArrays: true,
         noDecode: false,
         coords: true,
+        includeDefault: false,
       }
     ) {
       return exportFullConfiguration({ options, state });
@@ -103,6 +104,7 @@ export default (state: State): Config => {
         cleanServices: false,
         global: false,
         realm: false,
+        includeDefault: false,
       }
     ) {
       return importFullConfiguration({
@@ -130,6 +132,10 @@ export interface FullExportOptions {
    * Include x and y coordinate positions of the journey/tree nodes.
    */
   coords: boolean;
+  /**
+   * Include default scripts in export if true
+   */
+  includeDefault: boolean;
 }
 
 /**
@@ -156,6 +162,10 @@ export interface FullImportOptions {
    * Indicates whether to import service(s) to the current realm
    */
   realm: boolean;
+  /**
+   * Include default scripts in import if true
+   */
+  includeDefault: boolean;
 }
 
 export interface FullExportInterface {
@@ -191,13 +201,18 @@ export interface FullExportInterface {
  * @param {FullExportOptions} options export options
  */
 export async function exportFullConfiguration({
-  options = { useStringArrays: true, noDecode: false, coords: true },
+  options = {
+    useStringArrays: true,
+    noDecode: false,
+    coords: true,
+    includeDefault: false,
+  },
   state,
 }: {
   options: FullExportOptions;
   state: State;
 }): Promise<FullExportInterface> {
-  const { useStringArrays, noDecode, coords } = options;
+  const { useStringArrays, noDecode, coords, includeDefault } = options;
   const stateObj = { state };
   //Export saml2 providers and circle of trusts
   let saml = (
@@ -266,8 +281,12 @@ export async function exportFullConfiguration({
       await exportOrImportWithErrorHandling(exportResourceTypes, stateObj)
     )?.resourcetype,
     saml,
-    script: (await exportOrImportWithErrorHandling(exportScripts, stateObj))
-      ?.script,
+    script: (
+      await exportOrImportWithErrorHandling(exportScripts, {
+        includeDefault,
+        state,
+      })
+    )?.script,
     secrets: (await exportOrImportWithErrorHandling(exportSecrets, stateObj))
       ?.secrets,
     service: {
@@ -314,6 +333,7 @@ export async function importFullConfiguration({
     cleanServices: false,
     global: false,
     realm: false,
+    includeDefault: false,
   },
   state,
 }: {
@@ -321,8 +341,14 @@ export async function importFullConfiguration({
   options: FullImportOptions;
   state: State;
 }): Promise<void> {
-  const { reUuidJourneys, reUuidScripts, cleanServices, global, realm } =
-    options;
+  const {
+    reUuidJourneys,
+    reUuidScripts,
+    cleanServices,
+    global,
+    realm,
+    includeDefault,
+  } = options;
   const indicatorId = createProgressIndicator({
     total: 16,
     message: 'Importing everything...',
@@ -337,7 +363,10 @@ export async function importFullConfiguration({
   await exportOrImportWithErrorHandling(importScripts, {
     scriptName: '',
     importData,
-    reUuid: reUuidScripts,
+    options: {
+      reUuid: reUuidScripts,
+      includeDefault,
+    },
     validate: false,
     state,
   });
