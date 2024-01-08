@@ -7,13 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-60] - 2024-01-08
+
 ### Added
 
-- Added tests for Saml export with and without deps
+-   Added tests for Saml export with and without deps
 
 ### Fixed
 
-- Saml metadata is no more considered a dependency and will always be exportd
+-   Saml metadata is no more considered a dependency and will always be exportd
 
 ## [2.0.0-59] - 2024-01-05
 
@@ -1348,7 +1350,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-59...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-60...HEAD
+
+[2.0.0-60]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-59...v2.0.0-60
 
 [2.0.0-59]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-58...v2.0.0-59
 
