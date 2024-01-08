@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added tests for Saml export with and without deps
+
+### Fixed
+
+- Saml metadata is no more considered a dependency and will always be exportd
+
 ## [2.0.0-59] - 2024-01-05
 
 ## [2.0.0-58] - 2024-01-02

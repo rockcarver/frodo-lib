@@ -1,26 +1,52 @@
 {
   "meta": {
-    "origin": "https://openam-volker-dev.forgeblocks.com/am",
-    "originAmVersion": "7.3.0",
-    "exportedBy": "volker.scheuber@forgerock.com",
-    "exportDate": "2022-11-20T01:31:37.204Z",
+    "exportDate": "2024-01-04T18:38:18.084Z",
     "exportTool": "frodo",
-    "exportToolVersion": "v0.16.2-8 [v18.7.0]"
+    "exportToolVersion": "v2.0.0-58 [v18.16.0]",
+    "exportedBy": "sandeep.chaturvedi@forgerock.com",
+    "origin": "https://openam-frodo-dev.forgeblocks.com/am",
+    "originAmVersion": "7.5.0"
   },
-  "script": {},
   "saml": {
     "hosted": {
       "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQRmVkbGV0": {
         "_id": "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQRmVkbGV0",
-        "_rev": "-1020599606",
         "entityId": "https://idc.scheuber.io/am/saml2/IDPFedlet",
         "identityProvider": {
-          "assertionContent": {
-            "signingAndEncryption": {
-              "requestResponseSigning": {},
-              "encryption": {},
-              "secretIdAndAlgorithms": {}
+          "advanced": {
+            "ecpConfiguration": {
+              "idpSessionMapper": "com.sun.identity.saml2.plugins.DefaultIDPECPSessionMapper"
             },
+            "idpAdapter": {
+              "idpAdapterScript": "248b8a56-df81-4b1b-b4ba-45d994f6504c"
+            },
+            "idpFinderImplementation": {
+              "enableProxyIdpFinderForAllSps": false
+            },
+            "relayStateUrlList": {},
+            "saeConfiguration": {
+              "idpUrl": "https://idc.scheuber.io/am/idpsaehandler/metaAlias/alpha/IDPFedlet"
+            },
+            "sessionSynchronization": {
+              "enabled": false
+            }
+          },
+          "assertionContent": {
+            "assertionCache": {},
+            "assertionTime": {
+              "effectiveTime": 600,
+              "notBeforeTimeSkew": 600
+            },
+            "authenticationContext": {
+              "authContextItems": [
+                {
+                  "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+                  "level": 0
+                }
+              ],
+              "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultIDPAuthnContextMapper"
+            },
+            "basicAuthentication": {},
             "nameIdFormat": {
               "nameIdFormatList": [
                 "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
@@ -33,60 +59,50 @@
               ],
               "nameIdValueMap": [
                 {
+                  "binary": false,
                   "key": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-                  "value": "mail",
-                  "binary": false
+                  "value": "mail"
                 }
               ]
             },
-            "authenticationContext": {
-              "authenticationContextMapper": "com.sun.identity.saml2.plugins.DefaultIDPAuthnContextMapper",
-              "authContextItems": [
-                {
-                  "contextReference": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
-                  "level": 0
-                }
-              ]
-            },
-            "assertionTime": {
-              "notBeforeTimeSkew": 600,
-              "effectiveTime": 600
-            },
-            "basicAuthentication": {},
-            "assertionCache": {}
+            "signingAndEncryption": {
+              "encryption": {},
+              "requestResponseSigning": {},
+              "secretIdAndAlgorithms": {}
+            }
           },
           "assertionProcessing": {
-            "attributeMapper": {
-              "attributeMapper": "com.sun.identity.saml2.plugins.DefaultIDPAttributeMapper"
-            },
             "accountMapper": {
               "accountMapper": "com.sun.identity.saml2.plugins.DefaultIDPAccountMapper"
+            },
+            "attributeMapper": {
+              "attributeMapper": "com.sun.identity.saml2.plugins.DefaultIDPAttributeMapper"
             },
             "localConfiguration": {}
           },
           "services": {
+            "assertionIdRequest": [
+              {
+                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+                "location": "https://idc.scheuber.io/am/AIDReqSoap/IDPRole/metaAlias/alpha/IDPFedlet"
+              },
+              {
+                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:URI",
+                "location": "https://idc.scheuber.io/am/AIDReqUri/IDPRole/metaAlias/alpha/IDPFedlet"
+              }
+            ],
             "metaAlias": "/alpha/IDPFedlet",
+            "nameIdMapping": [
+              {
+                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+                "location": "https://idc.scheuber.io/am/NIMSoap/metaAlias/alpha/IDPFedlet"
+              }
+            ],
             "serviceAttributes": {
               "artifactResolutionService": [
                 {
                   "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
                   "location": "https://idc.scheuber.io/am/ArtifactResolver/metaAlias/alpha/IDPFedlet"
-                }
-              ],
-              "singleLogoutService": [
-                {
-                  "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
-                  "location": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPFedlet",
-                  "responseLocation": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPFedlet"
-                },
-                {
-                  "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
-                  "location": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPFedlet",
-                  "responseLocation": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPFedlet"
-                },
-                {
-                  "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
-                  "location": "https://idc.scheuber.io/am/IDPSloSoap/metaAlias/alpha/IDPFedlet"
                 }
               ],
               "nameIdService": [
@@ -105,6 +121,22 @@
                   "location": "https://idc.scheuber.io/am/IDPMniSoap/metaAlias/alpha/IDPFedlet"
                 }
               ],
+              "singleLogoutService": [
+                {
+                  "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+                  "location": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPFedlet",
+                  "responseLocation": "https://idc.scheuber.io/am/IDPSloRedirect/metaAlias/alpha/IDPFedlet"
+                },
+                {
+                  "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+                  "location": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPFedlet",
+                  "responseLocation": "https://idc.scheuber.io/am/IDPSloPOST/metaAlias/alpha/IDPFedlet"
+                },
+                {
+                  "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+                  "location": "https://idc.scheuber.io/am/IDPSloSoap/metaAlias/alpha/IDPFedlet"
+                }
+              ],
               "singleSignOnService": [
                 {
                   "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
@@ -119,40 +151,11 @@
                   "location": "https://idc.scheuber.io/am/SSOSoap/metaAlias/alpha/IDPFedlet"
                 }
               ]
-            },
-            "nameIdMapping": [
-              {
-                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
-                "location": "https://idc.scheuber.io/am/NIMSoap/metaAlias/alpha/IDPFedlet"
-              }
-            ],
-            "assertionIdRequest": [
-              {
-                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
-                "location": "https://idc.scheuber.io/am/AIDReqSoap/IDPRole/metaAlias/alpha/IDPFedlet"
-              },
-              {
-                "binding": "urn:oasis:names:tc:SAML:2.0:bindings:URI",
-                "location": "https://idc.scheuber.io/am/AIDReqUri/IDPRole/metaAlias/alpha/IDPFedlet"
-              }
-            ]
-          },
-          "advanced": {
-            "saeConfiguration": {
-              "idpUrl": "https://idc.scheuber.io/am/idpsaehandler/metaAlias/alpha/IDPFedlet"
-            },
-            "ecpConfiguration": {
-              "idpSessionMapper": "com.sun.identity.saml2.plugins.DefaultIDPECPSessionMapper"
-            },
-            "sessionSynchronization": {},
-            "idpFinderImplementation": {},
-            "relayStateUrlList": {},
-            "idpAdapter": {}
+            }
           }
         }
       }
     },
-    "remote": {},
     "metadata": {
       "aHR0cHM6Ly9pZGMuc2NoZXViZXIuaW8vYW0vc2FtbDIvSURQRmVkbGV0": [
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>",
@@ -162,22 +165,22 @@
         "            <ds:KeyInfo>",
         "                <ds:X509Data>",
         "                    <ds:X509Certificate>",
-        "MIIDXzCCAkegAwIBAgIEXw0sqjANBgkqhkiG9w0BAQsFADBgMQswCQYDVQQGEwJVSzEQMA4GA1UE",
-        "CBMHQnJpc3RvbDEQMA4GA1UEBxMHQnJpc3RvbDESMBAGA1UEChMJRm9yZ2VSb2NrMRkwFwYDVQQD",
-        "ExByc2Fqd3RzaWduaW5na2V5MB4XDTIxMDMwNjAyMTgzNVoXDTMxMDMwNDAyMTgzNVowYDELMAkG",
-        "A1UEBhMCVUsxEDAOBgNVBAgTB0JyaXN0b2wxEDAOBgNVBAcTB0JyaXN0b2wxEjAQBgNVBAoTCUZv",
-        "cmdlUm9jazEZMBcGA1UEAxMQcnNhand0c2lnbmluZ2tleTCCASIwDQYJKoZIhvcNAQEBBQADggEP",
-        "ADCCAQoCggEBAI7DfQgOfXacEXp9EUBbH4PosMK36VIeZDO/gllKmJYnOsa+7FPHMJi7OETsF7sF",
-        "FkiL63+3KiqBIk1b9cIp6SWnp7Z2Hvz+WwgF6o0ZhRWbpF1FyLHZWKB2H30BdY6I3keE2xnvOsmq",
-        "X9pyTdap52WatS06GMAzpisMEZsremV49vc5zuVS//QWSmv6r0S9UNfgW1iICKfqxeYibAND2kgc",
-        "2+0I9QTabH59601aGm2bgTr+EOVtbQUEvblz7/l6b4Q4y8o+BmwXk+olPKgBruPa0XOXBpCa7b/d",
-        "SfLI7z2XHyMzqNG9IGg0LWMtlj7WC0V2gJIrvoxBkSApDUWxyOkCAwEAAaMhMB8wHQYDVR0OBBYE",
-        "FMfL4Owt4dhAwUApAiUclxOHGeUcMA0GCSqGSIb3DQEBCwUAA4IBAQA3xUrvKeQcTMaywcrv8KPP",
-        "WWz5ybb5TxW/5T/W7BtOwFqgEIPQcnauBQ6Pv2tEGWW83lPTan6+boDTTtzASKn9oO0P+dqIH6iw",
-        "ARGw/beScRk3xYpnhUsuMb/RDU5IhQYksD/95Ep9Kx3bDMFjFw7ShE0teHq/GAbymUj5vJQfEKZl",
-        "9G+UByYkvoSoFFjQKK+T2JUVpmernGqVkDZ35oRSktgz0xesZkiKkc0iczAmgBY2w95bxrK4rfA5",
-        "S6PFTRF06pZG55r+bcQAhZXEMzbchHh7WaxqEev97s7JlqyLl3VoIC7UBJcCasJLNeGE551r0R0/",
-        "noRTsMSbQ3Eex5Kt",
+        "MIIDYzCCAkugAwIBAgIIZKO699rkpmYwDQYJKoZIhvcNAQELBQAwYDELMAkGA1UEBhMCVUsxEDAO",
+        "BgNVBAgTB0JyaXN0b2wxEDAOBgNVBAcTB0JyaXN0b2wxEjAQBgNVBAoTCUZvcmdlUm9jazEZMBcG",
+        "A1UEAxMQcnNhand0c2lnbmluZ2tleTAeFw0yMzEyMDEwMDI2NThaFw0zMzExMjgwMDI2NThaMGAx",
+        "CzAJBgNVBAYTAlVLMRAwDgYDVQQIEwdCcmlzdG9sMRAwDgYDVQQHEwdCcmlzdG9sMRIwEAYDVQQK",
+        "EwlGb3JnZVJvY2sxGTAXBgNVBAMTEHJzYWp3dHNpZ25pbmdrZXkwggEiMA0GCSqGSIb3DQEBAQUA",
+        "A4IBDwAwggEKAoIBAQC32R6yZEUoqnrQLnw3sKCYy5bxo3TdKdew7AvuxCYwVB3c2khauBqDD99Z",
+        "+Dl3Q31vQ3vJ8ZVuXQauHowWT+C6aK/tEhGSeRWPdHzexWW/5OBXHtRJf99HdakUt8HToRquCoyL",
+        "d+KrAvg2Cq/f4vb0dIJ3RDQ7BOgmpJ4Ym6Z5B3jAiRSWEP2ZW+RExpyTq8uIPjQGoYbqQSXC/td5",
+        "27rAw0Pvlo3YTKrJNVWV+hgIUUPwfuF0ijunPTkseFW6ZH0VWnFswPIvzF5Y6iAjcaFj9aQDyejV",
+        "AEWT8mpsPtetbPFWPfZlg4KVbx8tL/u7E27FfWRJr0yRPsXGHvZrUU5lAgMBAAGjITAfMB0GA1Ud",
+        "DgQWBBTY0biEminc++0WTPVXy7CqC+fdQDANBgkqhkiG9w0BAQsFAAOCAQEAG0cE49mQ46hmezGB",
+        "2E24x+7Czwy9LQXB8vn9xyJEcVCudZ7aZzq3Y5NLjuP8y6rbhnd2v1pTpZHhEP4bfGUBnq2dacqY",
+        "LVlQTmEit0p4NNHGNFKQi+96P07bftnVBIf0yN32KPka7nuRsmQNj9PvpnqVMU8Fqhyb26PKQJXA",
+        "MVRC4ZYJZMbX/1gQ1YOCATwcHryZkoOFUOeJya9Ard4xmlyi6gX+D51x3zuQjiIql5Qe/MDOvN6v",
+        "OdLzwiUdh6qt0NvUee+Fxq1R6afHgz+0M2CY74ZzcRYKHrVvySHFLBpfFJVTv6/KWK2Wsr/20FYt",
+        "gKHO7RETEtknWIqelZ2uQg==",
         "                    </ds:X509Certificate>",
         "                </ds:X509Data>",
         "            </ds:KeyInfo>",
@@ -186,21 +189,21 @@
         "            <ds:KeyInfo>",
         "                <ds:X509Data>",
         "                    <ds:X509Certificate>",
-        "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",
+        "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",
-        "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",
+        "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",
         "                    </ds:X509Certificate>",
         "                </ds:X509Data>",
         "            </ds:KeyInfo>",
@@ -235,6 +238,174 @@
         "</EntityDescriptor>",
         "",
         ""
+      ]
+    },
+    "remote": {}
+  },
+  "script": {
+    "248b8a56-df81-4b1b-b4ba-45d994f6504c": {
+      "_id": "248b8a56-df81-4b1b-b4ba-45d994f6504c",
+      "context": "SAML2_IDP_ADAPTER",
+      "createdBy": "null",
+      "creationDate": 0,
+      "default": true,
+      "description": "Default global script for SAML2 IDP Adapter",
+      "evaluatorVersion": "1.0",
+      "language": "JAVASCRIPT",
+      "lastModifiedBy": "null",
+      "lastModifiedDate": 0,
+      "name": "SAML2 IDP Adapter Script",
+      "script": [
+        "/*",
+        " * Copyright 2021-2023 ForgeRock AS. All Rights Reserved",
+        " *",
+        " * Use of this code requires a commercial software license with ForgeRock AS.",
+        " * or with one of its affiliates. All use shall be exclusively subject",
+        " * to such license between the licensee and ForgeRock AS.",
+        " */",
+        "",
+        "/*",
+        " * The script has these top level functions that could be executed during a SAML2 flow.",
+        " *      - preSingleSignOn",
+        " *      - preAuthentication",
+        " *      - preSendResponse",
+        " *      - preSignResponse",
+        " *      - preSendFailureResponse",
+        " *",
+        " * Please see the javadoc for the interface definition and more information about these methods.",
+        " * https://backstage.forgerock.com/docs/am/7.3/_attachments/apidocs/com/sun/identity/saml2/plugins/SAML2IdentityProviderAdapter.html",
+        " * Note that the initialize method is not supported in the scripts.",
+        " *",
+        " * Defined variables. Check the documentation on the respective functions for the variables available to it.",
+        " *",
+        " * hostedEntityId - String",
+        " *     Entity ID for the hosted IDP",
+        " * realm - String",
+        " *     Realm of the hosted IDP",
+        " * idpAdapterScriptHelper - IdpAdapterScriptHelper (1)",
+        " *     An instance of IdpAdapterScriptHelper containing helper methods. See Javadoc for more details.",
+        " * request - HttpServletRequest (2)",
+        " *     Servlet request object",
+        " * response - HttpServletResponse (3)",
+        " *     Servlet response object",
+        " * authnRequest - AuthnRequest (4)",
+        " *     The original authentication request sent from SP",
+        " * reqId - String",
+        " *     The id to use for continuation of processing if the adapter redirects",
+        " * res - Response (5)",
+        " *     The SAML Response",
+        " * session - SSOToken (6)",
+        " *     The single sign-on session. The reference type of this is Object and would need to be casted to SSOToken.",
+        " * relayState - String",
+        " *     The relayState that will be used in the redirect",
+        " * faultCode - String",
+        " *     the fault code that will be returned in the SAML response",
+        " * faultDetail - String",
+        " *     the fault detail that will be returned in the SAML response",
+        " * logger - Logger instance",
+        " *     https://backstage.forgerock.com/docs/am/7.3/scripting-guide/scripting-api-global-logger.html.",
+        " *     Corresponding log files will be prefixed with: scripts.<script name>",
+        " *",
+        " * Throws SAML2Exception (7):",
+        " *     for any exceptions occurring in the adapter. The federation process will continue",
+        " *",
+        " * Class reference:",
+        " * (1) idpAdapterScriptHelper - https://backstage.forgerock.com/docs/am/7.3/_attachments/apidocs/com/sun/identity/saml2/plugins/scripted/IdpAdapterScriptHelper.html.",
+        " * (2) HttpServletRequest - https://tomcat.apache.org/tomcat-7.0-doc/servletapi/javax/servlet/http/HttpServletRequest.html.",
+        " * (3) HttpServletResponse - https://tomcat.apache.org/tomcat-7.0-doc/servletapi/javax/servlet/http/HttpServletResponse.html.",
+        " * (4) AuthnRequest - https://backstage.forgerock.com/docs/am/7.3/_attachments/apidocs/com/sun/identity/saml2/protocol/AuthnRequest.html.",
+        " * (5) Response - https://backstage.forgerock.com/docs/am/7.3/_attachments/apidocs/com/sun/identity/saml2/protocol/Response.html.",
+        " * (6) SSOToken - https://backstage.forgerock.com/docs/am/7.3/_attachments/apidocs/com/iplanet/sso/SSOToken.html.",
+        " * (7) SAML2Exception - https://backstage.forgerock.com/docs/am/7.3/_attachments/apidocs/com/sun/identity/saml2/common/SAML2Exception.html.",
+        " */",
+        "",
+        "/*",
+        " * Template/default script for SAML2 IDP Adapter scripted plugin.",
+        " */",
+        "",
+        "/*",
+        " * Available variables for preSingleSignOn:",
+        " *     hostedEntityId",
+        " *     realm",
+        " *     idpAdapterScriptHelper",
+        " *     request",
+        " *     authnRequest",
+        " *     response",
+        " *     reqId",
+        " *     logger",
+        " *",
+        " * Return - true if browser redirection is happening after processing, false otherwise. Default to false.",
+        " */",
+        "function preSingleSignOn () {",
+        "    return false;",
+        "}",
+        "",
+        "/*",
+        " * Available variables for preAuthentication:",
+        " *     hostedEntityId",
+        " *     realm",
+        " *     idpAdapterScriptHelper",
+        " *     request",
+        " *     authnRequest",
+        " *     response",
+        " *     reqId",
+        " *     session",
+        " *     relayState",
+        " *     logger",
+        " *",
+        " * Return - true if browser redirection is happening after processing, false otherwise. Default to false.",
+        " */",
+        "function preAuthentication () {",
+        "    return false;",
+        "}",
+        "",
+        "/*",
+        " * Available variables for preSendResponse:",
+        " *     hostedEntityId",
+        " *     realm",
+        " *     idpAdapterScriptHelper",
+        " *     request",
+        " *     authnRequest",
+        " *     response",
+        " *     reqId",
+        " *     session",
+        " *     relayState",
+        " *     logger",
+        " *",
+        " * Return - true if browser redirection happened after processing, false otherwise. Default to false.",
+        " */",
+        "function preSendResponse () {",
+        "    return false;",
+        "}",
+        "",
+        "/*",
+        " * Available variables for preSignResponse:",
+        " *     hostedEntityId",
+        " *     realm",
+        " *     idpAdapterScriptHelper",
+        " *     request",
+        " *     authnRequest",
+        " *     session",
+        " *     relayState",
+        " *     res",
+        " *     logger",
+        " */",
+        "function preSignResponse () {",
+        "}",
+        "",
+        "/*",
+        " * Available variables for preSendFailureResponse:",
+        " *     hostedEntityId",
+        " *     realm",
+        " *     idpAdapterScriptHelper",
+        " *     request",
+        " *     response",
+        " *     faultCode",
+        " *     faultDetail",
+        " *     logger",
+        " */",
+        "function preSendFailureResponse () {",
+        "}"
       ]
     }
   }
