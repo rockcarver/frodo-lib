@@ -165,8 +165,8 @@ export type Frodo = {
    */
   createInstanceWithAdminAccount(
     host: string,
-    serviceAccountId: string,
-    serviceAccountJwkStr: string,
+    username: string,
+    password: string,
     realm?: string,
     deploymentType?: string,
     allowInsecureConnection?: boolean,

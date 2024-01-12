@@ -10,6 +10,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@rockcarver/frodo-lib": "^2.0.0-13"
+    "@rockcarver/frodo-lib": "file:../.."
   }
 }
