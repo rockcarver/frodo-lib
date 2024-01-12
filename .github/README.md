@@ -110,7 +110,7 @@ If you are a node developer and want to use frodo-lib as a library for your own 
 
 - To install the latest version as a dependency for you own application:
   ```console
-  npm i --save @rockcarver/frodo-lib
+  npm i @rockcarver/frodo-lib
   ```
 - To install the latest pre-release:
   ```console
@@ -119,26 +119,73 @@ If you are a node developer and want to use frodo-lib as a library for your own 
 
 ## Using the library
 
-Import the library members:
+### Import the library members (ESM):
+
 ```javascript
 import {
   // default instance
   frodo,
   // default state
   state,
-  // factory function to create new instances
-  FrodoLib,
-  // factory helper function to create new instances ready to login with a service account
-  createInstanceWithAdminAccount,
-  // factory helper function to create new instances ready to login with an admin user account
-  createInstanceWithServiceAccount,
 } from '@rockcarver/frodo-lib';
 ```
 
-create a new instance using factory helper function and login as admin user:
+### Require the library members (CJS):
+
+```javascript
+const {
+  // default instance
+  frodo,
+  // default state
+  state,
+} = require('@rockcarver/frodo-lib');
+```
+
+### Use the library
+
+Create a new instance using factory helper function and login as service account:
+
+```javascript
+async function newFactoryHelperServiceAccountLogin() {
+  const myFrodo1 = frodo.createInstanceWithServiceAccount(
+    host1, // host base URL
+    said1, // service account id
+    jwk1 // service account jwk as a string
+  );
+
+  // destructure default instance for easier use of library functions
+  const { getTokens } = myFrodo1.login;
+  const { getInfo } = myFrodo1.info;
+
+  // login and obtain tokens
+  if (await getTokens()) {
+    // obtain and print information about the instance you are connected to
+    const info = await getInfo();
+    console.log(
+      `newFactoryHelperServiceAccountLogin: Logged in to: ${info.host}`
+    );
+    console.log(
+      `newFactoryHelperServiceAccountLogin: Logged in as: ${info.authenticatedSubject}`
+    );
+    console.log(
+      `newFactoryHelperServiceAccountLogin: Using bearer token: \n${info.bearerToken}`
+    );
+  } else {
+    console.log('error getting tokens');
+  }
+}
+newFactoryHelperServiceAccountLogin();
+```
+
+Create a new instance using factory helper function and login as admin user:
+
 ```javascript
 async function newFactoryHelperAdminLogin() {
-  const myFrodo1 = createInstanceWithAdminAccount(host1, user1, pass1);
+  const myFrodo1 = frodo.createInstanceWithAdminAccount(
+    host1, // host base URL
+    user1, // admin username
+    pass1 // admin password
+  );
 
   // destructure default instance for easier use of library functions
   const { getTokens } = myFrodo1.login;
@@ -149,8 +196,12 @@ async function newFactoryHelperAdminLogin() {
     // obtain and print information about the instance you are connected to
     const info = await getInfo();
     console.log(`newFactoryHelperAdminLogin: Logged in to: ${info.host}`);
-    console.log(`newFactoryHelperAdminLogin: Logged in as: ${info.authenticatedSubject}`);
-    console.log(`newFactoryHelperAdminLogin: Using bearer token: \n${info.bearerToken}`);
+    console.log(
+      `newFactoryHelperAdminLogin: Logged in as: ${info.authenticatedSubject}`
+    );
+    console.log(
+      `newFactoryHelperAdminLogin: Using bearer token: \n${info.bearerToken}`
+    );
   } else {
     console.log('error getting tokens');
   }
@@ -158,13 +209,53 @@ async function newFactoryHelperAdminLogin() {
 newFactoryHelperAdminLogin();
 ```
 
-Create a new instance using factory function and login as admin user
+Create a new instance using factory function and login as service account:
+
+```javascript
+async function newFactoryServiceAccountLogin() {
+  console.log(
+    `\n********** BEGIN ********** newFactoryServiceAccountLogin **********`
+  );
+  const myFrodo2 = frodo.createInstance({
+    host: host2, // host base URL
+    serviceAccountId: said2, // service account id
+    serviceAccountJwk: JSON.parse(jwk2), // service account jwk as a JwkRsa object
+  });
+
+  // destructure default instance for easier use of library functions
+  const { getTokens } = myFrodo2.login;
+  const { getInfo } = myFrodo2.info;
+
+  // login and obtain tokens
+  if (await getTokens()) {
+    // obtain and print information about the instance you are connected to
+    const info = await getInfo();
+    console.log(`newFactoryServiceAccountLogin: Logged in to: ${info.host}`);
+    console.log(
+      `newFactoryServiceAccountLogin: Logged in as: ${info.authenticatedSubject}`
+    );
+    console.log(
+      `newFactoryServiceAccountLogin: Using bearer token: \n${info.bearerToken}`
+    );
+  } else {
+    console.log('error getting tokens');
+  }
+  console.log(
+    `********** END ************ newFactoryServiceAccountLogin **********\n`
+  );
+}
+newFactoryServiceAccountLogin();
+```
+
+Create a new instance using factory function and login as admin user:
+
 ```javascript
 async function newFactoryAdminLogin() {
-  const myFrodo2 = FrodoLib({
-    host: host2,
-    username: user2,
-    password: pass2,
+  console.log(`\n********** BEGIN ********** newFactoryAdminLogin **********`);
+  const myFrodo2 = frodo.createInstance({
+    host: host2, // host base URL
+    username: user2, // admin username
+    password: pass2, // admin password
   });
 
   // destructure default instance for easier use of library functions
@@ -176,22 +267,80 @@ async function newFactoryAdminLogin() {
     // obtain and print information about the instance you are connected to
     const info = await getInfo();
     console.log(`newFactoryAdminLogin: Logged in to: ${info.host}`);
-    console.log(`newFactoryAdminLogin: Logged in as: ${info.authenticatedSubject}`);
-    console.log(`newFactoryAdminLogin: Using bearer token: \n${info.bearerToken}`);
+    console.log(
+      `newFactoryAdminLogin: Logged in as: ${info.authenticatedSubject}`
+    );
+    console.log(
+      `newFactoryAdminLogin: Using bearer token: \n${info.bearerToken}`
+    );
   } else {
     console.log('error getting tokens');
   }
+  console.log(`********** END ************ newFactoryAdminLogin **********\n`);
 }
 newFactoryAdminLogin();
 ```
-Use default instance and state:
-```javascript
-// destructure default instance for easier use of library functions
-const { getTokens } = frodo.login;
-const { getInfo } = frodo.info;
 
+Use default instance and state and login as service account:
+
+```javascript
+async function defaultServiceAccountLogin() {
+  console.log(
+    `\n********** BEGIN ********** defaultServiceAccountLogin **********`
+  );
+  // destructure default instance for easier use of library functions
+  const { getTokens } = frodo.login;
+  const { getInfo } = frodo.info;
+
+  // The default state instance is a singleton. It is best to reset() the state before
+  // logging in to avoid interference. In this particular case no previous method in
+  // this file is using the default state but it is good practice to call reset() if
+  // you are not sure and need a clean state.
+  state.reset();
+
+  // host base URL
+  state.setHost(host0);
+  // service account id
+  state.setServiceAccountId(said0);
+  // service account jwk as a JwkRsa object
+  state.setServiceAccountJwk(JSON.parse(jwk0));
+
+  // login and obtain tokens
+  if (await getTokens()) {
+    // obtain and print information about the instance you are connected to
+    const info = await getInfo();
+    console.log(`defaultServiceAccountLogin: Logged in to: ${info.host}`);
+    console.log(
+      `defaultServiceAccountLogin: Logged in as: ${info.authenticatedSubject}`
+    );
+    console.log(
+      `defaultServiceAccountLogin: Using bearer token: \n${info.bearerToken}`
+    );
+  } else {
+    console.log('error getting tokens');
+  }
+  console.log(
+    `********** END ************ defaultServiceAccountLogin **********\n`
+  );
+}
+await defaultServiceAccountLogin();
+```
+
+Use default instance and state and login as admin user
+
+```javascript
 async function defaultAdminLogin() {
-  // this has to be the base URL of your AM service, not just the host hame
+  // destructure default instance for easier use of library functions
+  const { getTokens } = frodo.login;
+  const { getInfo } = frodo.info;
+
+  // The default state instance is a singleton. It is best to reset() the state before
+  // logging in to avoid interference. In this particular case the previous method in
+  // this file is populating the state with a service account login and the admin login
+  // could possibly fail.
+  state.reset();
+
+  // host base URL
   state.setHost(host0);
   // username of an admin user
   state.setUsername(user0);
@@ -203,18 +352,21 @@ async function defaultAdminLogin() {
     // obtain and print information about the instance you are connected to
     const info = await getInfo();
     console.log(`defaultAdminLogin: Logged in to: ${info.host}`);
-    console.log(`defaultAdminLogin: Logged in as: ${info.authenticatedSubject}`);
+    console.log(
+      `defaultAdminLogin: Logged in as: ${info.authenticatedSubject}`
+    );
     console.log(`defaultAdminLogin: Using bearer token: \n${info.bearerToken}`);
   } else {
     console.log('error getting tokens');
   }
 }
-defaultAdminLogin();
+await defaultAdminLogin();
 ```
 
 Check out all the examples in `/path/to/frodo-lib/examples`.
 
 ## Library API docs
+
 [Latest library API docs](https://rockcarver.github.io/frodo-lib/)
 
 ## Feature requests
