@@ -119,7 +119,7 @@ If you are a node developer and want to use frodo-lib as a library for your own 
 
 ## Using the library
 
-### Import the library members (ESM):
+### Import the library members ([ESM](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/esm/index.js#L1-L6)):
 
 ```javascript
 import {
@@ -130,7 +130,7 @@ import {
 } from '@rockcarver/frodo-lib';
 ```
 
-### Require the library members (CJS):
+### Require the library members ([CJS](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/cjs/index.js#L1-L6)):
 
 ```javascript
 const {
@@ -143,7 +143,7 @@ const {
 
 ### Use the library
 
-Create a new instance using factory helper function and login as service account:
+Create a new instance using factory helper function and login as service account ([ESM](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/esm/index.js#L24-L61) | [CJS](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/cjs/index.js#L24-L61)):
 
 ```javascript
 async function newFactoryHelperServiceAccountLogin() {
@@ -177,7 +177,7 @@ async function newFactoryHelperServiceAccountLogin() {
 newFactoryHelperServiceAccountLogin();
 ```
 
-Create a new instance using factory helper function and login as admin user:
+Create a new instance using factory helper function and login as admin user ([ESM](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/esm/index.js#L63-L98) | [CJS](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/cjs/index.js#L63-L98)):
 
 ```javascript
 async function newFactoryHelperAdminLogin() {
@@ -209,13 +209,10 @@ async function newFactoryHelperAdminLogin() {
 newFactoryHelperAdminLogin();
 ```
 
-Create a new instance using factory function and login as service account:
+Create a new instance using factory function and login as service account ([ESM](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/esm/index.js#L100-L135) | [CJS](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/cjs/index.js#L100-L135)):
 
 ```javascript
 async function newFactoryServiceAccountLogin() {
-  console.log(
-    `\n********** BEGIN ********** newFactoryServiceAccountLogin **********`
-  );
   const myFrodo2 = frodo.createInstance({
     host: host2, // host base URL
     serviceAccountId: said2, // service account id
@@ -240,18 +237,14 @@ async function newFactoryServiceAccountLogin() {
   } else {
     console.log('error getting tokens');
   }
-  console.log(
-    `********** END ************ newFactoryServiceAccountLogin **********\n`
-  );
 }
 newFactoryServiceAccountLogin();
 ```
 
-Create a new instance using factory function and login as admin user:
+Create a new instance using factory function and login as admin user ([ESM](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/esm/index.js#L137-L168) | [CJS](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/cjs/index.js#L137-L168)):
 
 ```javascript
 async function newFactoryAdminLogin() {
-  console.log(`\n********** BEGIN ********** newFactoryAdminLogin **********`);
   const myFrodo2 = frodo.createInstance({
     host: host2, // host base URL
     username: user2, // admin username
@@ -276,18 +269,14 @@ async function newFactoryAdminLogin() {
   } else {
     console.log('error getting tokens');
   }
-  console.log(`********** END ************ newFactoryAdminLogin **********\n`);
 }
 newFactoryAdminLogin();
 ```
 
-Use default instance and state and login as service account:
+Use default instance and state and login as service account ([ESM](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/esm/index.js#L170-L212) | [CJS](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/cjs/index.js#L170-L212)):
 
 ```javascript
 async function defaultServiceAccountLogin() {
-  console.log(
-    `\n********** BEGIN ********** defaultServiceAccountLogin **********`
-  );
   // destructure default instance for easier use of library functions
   const { getTokens } = frodo.login;
   const { getInfo } = frodo.info;
@@ -319,14 +308,11 @@ async function defaultServiceAccountLogin() {
   } else {
     console.log('error getting tokens');
   }
-  console.log(
-    `********** END ************ defaultServiceAccountLogin **********\n`
-  );
 }
 await defaultServiceAccountLogin();
 ```
 
-Use default instance and state and login as admin user
+Use default instance and state and login as admin user ([ESM](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/esm/index.js#L214-L250) | [CJS](https://github.com/rockcarver/frodo-lib/blob/b7220de90478dfd3e1bb0d8b9cdcef455cb20b3b/examples/cjs/index.js#L214-L250)):
 
 ```javascript
 async function defaultAdminLogin() {
