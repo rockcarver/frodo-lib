@@ -11,6 +11,7 @@ import {
   ProgressIndicatorStatusType,
   ProgressIndicatorType,
 } from '../utils/Console';
+import { cloneDeep } from '../utils/JsonUtils';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,8 +20,20 @@ const pkg = JSON.parse(
 );
 
 export type State = {
+  /**
+   * Get a clone of the full state as an object
+   * @returns a clone of the state
+   */
   getState(): StateInterface;
+  /**
+   * Set the AM host base URL
+   * @param host Access Management base URL, e.g.: https://cdk.iam.example.com/am. To use a connection profile, just specify a unique substring.
+   */
   setHost(host: string): void;
+  /**
+   * Get the AM host base URL
+   * @returns the AM host base URL
+   */
   getHost(): string;
   setUsername(username: string): void;
   getUsername(): string;
@@ -126,6 +139,10 @@ export type State = {
   getDebugHandler(): (message: string | object) => void;
   setDebug(debug: boolean): void;
   getDebug(): boolean;
+  /**
+   * Reset the state to default values
+   */
+  reset(): void;
 
   // Deprecated
 
@@ -143,7 +160,7 @@ export default (initialState: StateInterface): State => {
   const state: StateInterface = { ...globalState, ...initialState };
   return {
     getState(): StateInterface {
-      return state;
+      return cloneDeep(state);
     },
 
     setHost(host: string) {
@@ -414,6 +431,11 @@ export default (initialState: StateInterface): State => {
     },
     getDebug(): boolean {
       return globalState.debug || process.env.FRODO_DEBUG !== undefined;
+    },
+    reset(): void {
+      for (const key of Object.keys(state)) {
+        state[key] = globalState[key];
+      }
     },
 
     // Deprecated
