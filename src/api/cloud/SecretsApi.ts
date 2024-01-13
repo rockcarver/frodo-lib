@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { encode } from '../../utils/Base64Utils';
+import { encode, isBase64Encoded } from '../../utils/Base64Utils';
 import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface, PagedResult } from '../ApiTypes';
 import { generateEnvApi } from '../BaseApi';
@@ -147,10 +147,8 @@ export async function putSecret({
   useInPlaceholders?: boolean;
   state: State;
 }): Promise<SecretSkeleton> {
-  if (encoding !== 'generic')
-    throw new Error(`Unsupported encoding: ${encoding}`);
   const secretData = {
-    valueBase64: encode(value),
+    valueBase64: isBase64Encoded(value) ? value : encode(value),
     description,
     encoding,
     useInPlaceholders,
