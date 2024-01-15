@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-63] - 2024-01-15
+
 ### Fixed
 
-- Polly recording names can have an optional cli parameter value as well
+-   Polly recording names can have an optional cli parameter value as well
 
 ## [2.0.0-62] - 2024-01-13
 
@@ -1358,7 +1360,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-62...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-63...HEAD
+
+[2.0.0-63]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-62...v2.0.0-63
 
 [2.0.0-62]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-61...v2.0.0-62
 
