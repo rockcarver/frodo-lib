@@ -124,6 +124,24 @@ function getFrodoArgsId({ start, state }: { start: number; state: State }) {
 }
 
 /*
+Special case for when cli switches are the same but their values are 
+different, for example when testing different encodings: generic, pem, base64hmac
+*/
+function getFrodoArgValue({ name }: { name: string }) {
+  let result: string = '';
+  let expectValue = false;
+  process.argv.map((v) => {
+    if (v === name) {
+      expectValue = true;
+    } else if (expectValue) {
+      result = v;
+      expectValue = false;
+    }
+  });
+  return result;
+}
+
+/*
 argv:
 [
   '/Users/vscheuber/.nvm/versions/node/v18.7.0/bin/node',
@@ -286,9 +304,11 @@ export function setupPollyForFrodoLib({
       polly.server
         .any('/openidm/*')
         .recordingName(`${getFrodoCommand({ state })}/openidm`);
-      polly.server
-        .any('/environment/*')
-        .recordingName(`${getFrodoCommand({ state })}/environment`);
+      polly.server.any('/environment/*').recordingName(
+        `${getFrodoCommand({
+          state,
+        })}_${getFrodoArgValue({ name: '--encoding' })}/environment`
+      );
       polly.server
         .any('/keys')
         .recordingName(`${getFrodoCommand({ state })}/keys`)

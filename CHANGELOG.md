@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Polly recording names can have an optional cli parameter value as well
+
 ## [2.0.0-62] - 2024-01-13
 
 ## [2.0.0-61] - 2024-01-12
