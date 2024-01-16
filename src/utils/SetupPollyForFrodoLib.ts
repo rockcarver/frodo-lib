@@ -134,7 +134,7 @@ function getFrodoArgValue({ name }: { name: string }) {
     if (v === name) {
       expectValue = true;
     } else if (expectValue) {
-      result = v;
+      result = '_' + v;
       expectValue = false;
     }
   });
@@ -307,7 +307,7 @@ export function setupPollyForFrodoLib({
       polly.server.any('/environment/*').recordingName(
         `${getFrodoCommand({
           state,
-        })}_${getFrodoArgValue({ name: '--encoding' })}/environment`
+        })}${getFrodoArgValue({ name: '--encoding' })}/environment`
       );
       polly.server
         .any('/keys')
