@@ -14,6 +14,7 @@ import {
   VersionOfSecretStatus,
 } from '../../api/cloud/SecretsApi';
 import { State } from '../../shared/State';
+import { decode, encode, isBase64Encoded } from '../../utils/Base64Utils';
 import {
   createProgressIndicator,
   debugMessage,
@@ -249,6 +250,35 @@ export type Secret = {
   ): Promise<VersionOfSecretSkeleton>;
 };
 
+function getEncodedValue(
+  value: string,
+  encoding: string,
+  state: State
+): string {
+  let finalValue: string = '';
+  debugMessage({ message: `SecretsOps.getEncodedValue: start`, state });
+  if (encoding === 'pem') {
+    if (isBase64Encoded(value)) {
+      finalValue = value; // this means the PEM is already b64 encoded
+    } else {
+      finalValue = encode(value); // the PEM is unencoded, we need to encode
+    }
+  } else if (encoding === 'base64hmac') {
+    if (isBase64Encoded(decode(value))) {
+      finalValue = value; // the value is already doubly b64 encoded key
+    } else {
+      finalValue = encode(value); // value is b64 encoded key, need to encode before creating secret
+    }
+  } else {
+    finalValue = encode(value);
+  }
+  debugMessage({
+    message: `SecretsOps.getEncodedValue: finalValue: ${finalValue}`,
+    state,
+  });
+  return finalValue;
+}
+
 export default (state: State): Secret => {
   return {
     async readSecrets() {
@@ -270,7 +300,7 @@ export default (state: State): Secret => {
       encoding = 'generic',
       useInPlaceholders = true
     ) {
-      return _putSecret({
+      return createSecret({
         secretId,
         value,
         description,
@@ -289,7 +319,7 @@ export default (state: State): Secret => {
       return _getSecretVersions({ secretId, state });
     },
     async createVersionOfSecret(secretId: string, value: string) {
-      return _createNewVersionOfSecret({ secretId, value, state });
+      return createVersionOfSecret({ secretId, value, state });
     },
     async readVersionOfSecret(secretId: string, version: string) {
       return _getVersionOfSecret({ secretId, version, state });
@@ -329,7 +359,7 @@ export default (state: State): Secret => {
     ) {
       return _putSecret({
         secretId,
-        value,
+        value: getEncodedValue(value, encoding, state),
         description,
         encoding,
         useInPlaceholders,
@@ -477,9 +507,52 @@ export async function readSecrets({
   return result;
 }
 
+export async function createSecret({
+  secretId,
+  value,
+  description,
+  encoding = 'generic',
+  useInPlaceholders = true,
+  state,
+}: {
+  secretId: string;
+  value: string;
+  description: string;
+  encoding: string;
+  useInPlaceholders: boolean;
+  state: State;
+}) {
+  return _putSecret({
+    secretId,
+    value: getEncodedValue(value, encoding, state),
+    description,
+    encoding,
+    useInPlaceholders,
+    state,
+  });
+}
+
+export async function createVersionOfSecret({
+  secretId,
+  value,
+  state,
+}: {
+  secretId: string;
+  value: string;
+  state: State;
+}) {
+  // first get the secret encoding
+  let secret: SecretSkeleton = null;
+  secret = await readSecret({ secretId, state });
+  // now create the new version (using encoding to calculate the correctly encoded value)
+  return _createNewVersionOfSecret({
+    secretId,
+    value: getEncodedValue(value, secret.encoding, state),
+    state,
+  });
+}
+
 export {
-  _putSecret as createSecret,
-  _createNewVersionOfSecret as createVersionOfSecret,
   _deleteSecret as deleteSecret,
   _getVersionOfSecret as readVersionOfSecret,
   _getSecretVersions as readVersionsOfSecret,
