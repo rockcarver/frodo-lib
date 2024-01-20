@@ -110,6 +110,7 @@ const fileOptions = {
 
 export interface SecureConnectionProfileInterface {
   tenant: string;
+  deploymentType?: string;
   username?: string | null;
   encodedPassword?: string | null;
   logApiKey?: string | null;
@@ -123,6 +124,7 @@ export interface SecureConnectionProfileInterface {
 
 export interface ConnectionProfileInterface {
   tenant: string;
+  deploymentType?: string;
   username?: string | null;
   password?: string | null;
   logApiKey?: string | null;
@@ -350,6 +352,7 @@ export async function getConnectionProfileByHost({
     }
     return {
       tenant: profiles[0].tenant,
+      deploymentType: profiles[0].deploymentType,
       username: profiles[0].username ? profiles[0].username : null,
       password: profiles[0].encodedPassword
         ? await dataProtection.decrypt(profiles[0].encodedPassword)
@@ -460,6 +463,10 @@ export async function saveConnectionProfile({
       state,
     });
   }
+
+  // deployment type
+  if (state.getDeploymentType())
+    profile.deploymentType = state.getDeploymentType();
 
   // user account
   if (state.getUsername()) profile.username = state.getUsername();

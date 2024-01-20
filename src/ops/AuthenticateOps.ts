@@ -89,7 +89,9 @@ const cloudIdmAdminScopes = 'openid fr:idm:* fr:idc:esv:*';
 const forgeopsIdmAdminScopes = 'openid fr:idm:*';
 const serviceAccountScopes = 'fr:am:* fr:idm:* fr:idc:esv:*';
 
-let adminClientId = 'idmAdminClient';
+const fidcClientId = 'idmAdminClient';
+const forgeopsClientId = 'idm-admin-ui';
+let adminClientId = fidcClientId;
 
 /**
  * Helper function to get cookie name
@@ -246,78 +248,91 @@ function determineDefaultRealm(state: State) {
  */
 async function determineDeploymentType(state: State): Promise<string> {
   const cookieValue = state.getCookieValue();
+  let deploymentType = state.getDeploymentType();
 
-  // if we are using a service account, we know it's cloud
-  if (state.getUseBearerTokenForAmApis())
-    return Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
+  switch (deploymentType) {
+    case Constants.CLOUD_DEPLOYMENT_TYPE_KEY:
+      return deploymentType;
 
-  const fidcClientId = 'idmAdminClient';
-  const forgeopsClientId = 'idm-admin-ui';
+    case Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY:
+      adminClientId = forgeopsClientId;
+      return deploymentType;
 
-  const verifier = encodeBase64Url(randomBytes(32));
-  const challenge = encodeBase64Url(
-    createHash('sha256').update(verifier).digest()
-  );
-  const challengeMethod = 'S256';
-  const redirectURL = url.resolve(state.getHost(), redirectUrlTemplate);
+    case Constants.CLASSIC_DEPLOYMENT_TYPE_KEY:
+      return deploymentType;
 
-  const config = {
-    maxRedirects: 0,
-    headers: {
-      [state.getCookieName()]: state.getCookieValue(),
-    },
-  };
-  let bodyFormData = `redirect_uri=${redirectURL}&scope=${cloudIdmAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+    // detect deployment type
+    default: {
+      // if we are using a service account, we know it's cloud
+      if (state.getUseBearerTokenForAmApis())
+        return Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
 
-  let deploymentType = Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
-  try {
-    await authorize({
-      amBaseUrl: state.getHost(),
-      data: bodyFormData,
-      config,
-      state,
-    });
-  } catch (e) {
-    // debugMessage(e.response);
-    if (
-      e.response?.status === 302 &&
-      e.response.headers?.location?.indexOf('code=') > -1
-    ) {
-      verboseMessage({
-        message: `ForgeRock Identity Cloud`['brightCyan'] + ` detected.`,
-        state,
-      });
-      deploymentType = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
-    } else {
+      const verifier = encodeBase64Url(randomBytes(32));
+      const challenge = encodeBase64Url(
+        createHash('sha256').update(verifier).digest()
+      );
+      const challengeMethod = 'S256';
+      const redirectURL = url.resolve(state.getHost(), redirectUrlTemplate);
+
+      const config = {
+        maxRedirects: 0,
+        headers: {
+          [state.getCookieName()]: state.getCookieValue(),
+        },
+      };
+      let bodyFormData = `redirect_uri=${redirectURL}&scope=${cloudIdmAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+
+      deploymentType = Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
       try {
-        bodyFormData = `redirect_uri=${redirectURL}&scope=${forgeopsIdmAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
         await authorize({
           amBaseUrl: state.getHost(),
           data: bodyFormData,
           config,
           state,
         });
-      } catch (ex) {
+      } catch (e) {
+        // debugMessage(e.response);
         if (
-          ex.response?.status === 302 &&
-          ex.response.headers?.location?.indexOf('code=') > -1
+          e.response?.status === 302 &&
+          e.response.headers?.location?.indexOf('code=') > -1
         ) {
-          adminClientId = forgeopsClientId;
           verboseMessage({
-            message: `ForgeOps deployment`['brightCyan'] + ` detected.`,
+            message: `ForgeRock Identity Cloud`['brightCyan'] + ` detected.`,
             state,
           });
-          deploymentType = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
+          deploymentType = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
         } else {
-          verboseMessage({
-            message: `Classic deployment`['brightCyan'] + ` detected.`,
-            state,
-          });
+          try {
+            bodyFormData = `redirect_uri=${redirectURL}&scope=${forgeopsIdmAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+            await authorize({
+              amBaseUrl: state.getHost(),
+              data: bodyFormData,
+              config,
+              state,
+            });
+          } catch (ex) {
+            if (
+              ex.response?.status === 302 &&
+              ex.response.headers?.location?.indexOf('code=') > -1
+            ) {
+              adminClientId = forgeopsClientId;
+              verboseMessage({
+                message: `ForgeOps deployment`['brightCyan'] + ` detected.`,
+                state,
+              });
+              deploymentType = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
+            } else {
+              verboseMessage({
+                message: `Classic deployment`['brightCyan'] + ` detected.`,
+                state,
+              });
+            }
+          }
         }
       }
+      return deploymentType;
     }
   }
-  return deploymentType;
 }
 
 /**
@@ -487,19 +502,19 @@ async function getAuthCode(
       });
     } catch (error) {
       response = error.response;
-    }
-    if (response.status < 200 || response.status > 399) {
-      printMessage({
-        message: 'error getting auth code',
-        type: 'error',
-        state,
-      });
-      printMessage({
-        message: 'likely cause: mismatched parameters with OAuth client config',
-        type: 'error',
-        state,
-      });
-      return null;
+      if (response.status < 200 || response.status > 399) {
+        printMessage({
+          message: 'error getting auth code',
+          type: 'error',
+          state,
+        });
+        printMessage({
+          message: response.data,
+          type: 'error',
+          state,
+        });
+        return null;
+      }
     }
     const redirectLocationURL = response.headers?.location;
     const queryObject = url.parse(redirectLocationURL, true).query;
@@ -764,9 +779,7 @@ async function determineDeploymentTypeAndDefaultRealmAndVersion(
     message: `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: start`,
     state,
   });
-  if (!state.getDeploymentType()) {
-    state.setDeploymentType(await determineDeploymentType(state));
-  }
+  state.setDeploymentType(await determineDeploymentType(state));
   determineDefaultRealm(state);
   debugMessage({
     message: `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: realm=${state.getRealm()}, type=${state.getDeploymentType()}`,
@@ -831,12 +844,15 @@ function scheduleAutoRefresh(
   }
   // new timer
   if (autoRefresh) {
-    const expires = state.getUseBearerTokenForAmApis()
-      ? state.getBearerTokenMeta()?.expires
-      : Math.min(
-          state.getBearerTokenMeta()?.expires,
-          state.getUserSessionTokenMeta()?.expires
-        );
+    const expires =
+      state.getDeploymentType() === Constants.CLASSIC_DEPLOYMENT_TYPE_KEY
+        ? state.getUserSessionTokenMeta()?.expires
+        : state.getUseBearerTokenForAmApis()
+          ? state.getBearerTokenMeta()?.expires
+          : Math.min(
+              state.getBearerTokenMeta()?.expires,
+              state.getUserSessionTokenMeta()?.expires
+            );
     const timeout = expires - Date.now() - 1000 * 25;
     if (timeout < 1000 * 30) {
       throw new Error(
@@ -900,6 +916,7 @@ export async function getTokens({
       const conn = await getConnectionProfile({ state });
       if (conn) {
         state.setHost(conn.tenant);
+        state.setDeploymentType(conn.deploymentType);
         state.setUsername(conn.username);
         state.setPassword(conn.password);
         state.setAuthenticationService(conn.authenticationService);
@@ -913,11 +930,12 @@ export async function getTokens({
       }
     }
 
-    // if host is not a valid URL, try to locate a valid URL from connections.json
+    // if host is not a valid URL, try to locate a valid URL and deployment type from connections.json
     if (!isValidUrl(state.getHost())) {
       const conn = await getConnectionProfile({ state });
       if (conn) {
         state.setHost(conn.tenant);
+        state.setDeploymentType(conn.deploymentType);
       } else {
         return false;
       }
