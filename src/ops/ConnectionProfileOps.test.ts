@@ -62,16 +62,20 @@ describe('ConnectionProfileOps', () => {
       const password = 'G@nd@lfTheW153';
 
       state.setHost(host);
+      state.setDeploymentType(Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY);
       state.setUsername(user);
       state.setPassword(password);
       state.setConnectionProfilesPath(connectionProfilePath1);
-      await ConnectionProfileOps.saveConnectionProfile({ host, offline: true, state });
+      await ConnectionProfileOps.saveConnectionProfile({ host, state });
       expect(fs.existsSync(connectionProfilePath1)).toBeTruthy();
       const connections = JSON.parse(
         fs.readFileSync(connectionProfilePath1, 'utf8')
       );
       expect(connections).toBeTruthy();
       expect(connections[host]).toBeTruthy();
+      expect(connections[host].deploymentType).toEqual(
+        Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
+      );
       expect(connections[host].username).toEqual(user);
       expect(connections[host].encodedPassword).toBeTruthy();
     });
@@ -85,19 +89,22 @@ describe('ConnectionProfileOps', () => {
         connectionProfilePath2;
 
       state.setHost(host);
+      state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
       state.setUsername(user);
       state.setPassword(password);
       state.setConnectionProfilesPath('');
-      await ConnectionProfileOps.saveConnectionProfile({ host, offline: true, state });
+      await ConnectionProfileOps.saveConnectionProfile({ host, state });
       expect(ConnectionProfileOps.getConnectionProfilesPath({ state })).toEqual(
         connectionProfilePath2
       );
       expect(fs.existsSync(connectionProfilePath2)).toBeTruthy();
-      const connections = JSON.parse(
-        fs.readFileSync(connectionProfilePath2, 'utf8')
-      );
+      const connections: ConnectionProfileOps.ConnectionsFileInterface =
+        JSON.parse(fs.readFileSync(connectionProfilePath2, 'utf8'));
       expect(connections).toBeTruthy();
       expect(connections[host]).toBeTruthy();
+      expect(connections[host].deploymentType).toEqual(
+        Constants.CLOUD_DEPLOYMENT_TYPE_KEY
+      );
       expect(connections[host].username).toEqual(user);
       expect(connections[host].encodedPassword).toBeTruthy();
     });
@@ -111,16 +118,20 @@ describe('ConnectionProfileOps', () => {
       process.env[Constants.FRODO_MASTER_KEY_KEY] = masterKey;
 
       state.setHost(host);
+      state.setDeploymentType(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
       state.setUsername(user);
       state.setPassword(password);
       state.setConnectionProfilesPath(connectionProfilePath3);
-      await ConnectionProfileOps.saveConnectionProfile({ host, offline: true, state });
+      await ConnectionProfileOps.saveConnectionProfile({ host, state });
       expect(fs.existsSync(connectionProfilePath3)).toBeTruthy();
       const connections = JSON.parse(
         fs.readFileSync(connectionProfilePath3, 'utf8')
       );
       expect(connections).toBeTruthy();
       expect(connections[host]).toBeTruthy();
+      expect(connections[host].deploymentType).toEqual(
+        Constants.CLASSIC_DEPLOYMENT_TYPE_KEY
+      );
       expect(connections[host].username).toEqual(user);
       expect(connections[host].encodedPassword).toBeTruthy();
     });
