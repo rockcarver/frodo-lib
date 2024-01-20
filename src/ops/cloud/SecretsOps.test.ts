@@ -91,6 +91,49 @@ describe('SecretsOps', () => {
     encoding: 'generic',
     useInPlaceholders: false
   }
+  const secret4 = {
+    id: 'esv-frodo-test-secret4',
+    value: `-----BEGIN CERTIFICATE-----
+MIICEjCCAXsCAg36MA0GCSqGSIb3DQEBBQUAMIGbMQswCQYDVQQGEwJKUDEOMAwG
+A1UECBMFVG9reW8xEDAOBgNVBAcTB0NodW8ta3UxETAPBgNVBAoTCEZyYW5rNERE
+MRgwFgYDVQQLEw9XZWJDZXJ0IFN1cHBvcnQxGDAWBgNVBAMTD0ZyYW5rNEREIFdl
+YiBDQTEjMCEGCSqGSIb3DQEJARYUc3VwcG9ydEBmcmFuazRkZC5jb20wHhcNMTIw
+ODIyMDUyNjU0WhcNMTcwODIxMDUyNjU0WjBKMQswCQYDVQQGEwJKUDEOMAwGA1UE
+CAwFVG9reW8xETAPBgNVBAoMCEZyYW5rNEREMRgwFgYDVQQDDA93d3cuZXhhbXBs
+ZS5jb20wXDANBgkqhkiG9w0BAQEFAANLADBIAkEAm/xmkHmEQrurE/0re/jeFRLl
+8ZPjBop7uLHhnia7lQG/5zDtZIUC3RVpqDSwBuw/NTweGyuP+o8AG98HxqxTBwID
+AQABMA0GCSqGSIb3DQEBBQUAA4GBABS2TLuBeTPmcaTaUW/LCB2NYOy8GMdzR1mx
+8iBIu2H6/E2tiY3RIevV2OW61qY2/XRQg7YPxx3ffeUugX9F4J/iPnnu1zAxxyBy
+2VguKv4SWjRFoRkIfIlHX0qVviMhSlNy2ioFLy7JcPZb+v3ftDGywUqcBiVDoea0
+Hn+GmxZA
+-----END CERTIFICATE-----`,
+    newValue: `-----BEGIN CERTIFICATE-----
+MIICXjCCAccCAg4GMA0GCSqGSIb3DQEBBQUAMIGbMQswCQYDVQQGEwJKUDEOMAwG
+A1UECBMFVG9reW8xEDAOBgNVBAcTB0NodW8ta3UxETAPBgNVBAoTCEZyYW5rNERE
+MRgwFgYDVQQLEw9XZWJDZXJ0IFN1cHBvcnQxGDAWBgNVBAMTD0ZyYW5rNEREIFdl
+YiBDQTEjMCEGCSqGSIb3DQEJARYUc3VwcG9ydEBmcmFuazRkZC5jb20wHhcNMTIw
+OTI3MTMwMDE0WhcNMTcwOTI2MTMwMDE0WjBKMQswCQYDVQQGEwJKUDEOMAwGA1UE
+CAwFVG9reW8xETAPBgNVBAoMCEZyYW5rNEREMRgwFgYDVQQDDA93d3cuZXhhbXBs
+ZS5jb20wgacwEAYHKoZIzj0CAQYFK4EEACcDgZIABAIZ0Rc0Y3jsqPqqptRz3tiS
+AuvTHA9vUigM2gUjM6YkTKofP7RRls4dqt6aM7/1eLbFg4Jdh9DXS4zU1EFeiZQZ
++drSQYAmAgAtTzpmtmUoy+miwtiSBomu3CSUe6YrVvWb+Oirmvw2x3BCTJW2Xjhy
+5y6tDPVRRyhg0nh5wm/UxZv4jo7AZuJV8ztZKwCEADANBgkqhkiG9w0BAQUFAAOB
+gQBlaOF5O4RyvDQ1qCAuM6oXjmL3kCA3Kp7VfytDYaxbaJVhC8PnE0A8VPX2ypn9
+aQR4yq98e2umPsrSL7gPddoga+OvatusG9GnIviWGSzazQBQTTQdESJxrPdDXE0E
+YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
+-----END CERTIFICATE-----`,
+    description: 'Frodo Test PEM encoded Secret Four Description',
+    encoding: 'pem',
+    useInPlaceholders: true,
+  };
+
+  const secret5 = {
+    id: 'esv-frodo-test-secret-5',
+    value: '0nbVGkrNnIm4o5WKzYS/dL3/eo/k9EnSBH2QOOm5dLM=',
+    description: 'description5',
+    encoding: 'base64hmac',
+    useInPlaceholders: false
+  }
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
@@ -105,6 +148,8 @@ describe('SecretsOps', () => {
       await stageSecret(secret1, false);
       await stageSecret(secret2, false);
       await stageSecret(secret3, false);
+      await stageSecret(secret4, false);
+      await stageSecret(secret5, false);
     }
   });
 
@@ -164,5 +209,42 @@ describe('SecretsOps', () => {
       }
       expect(errorCaught).toBeTruthy();
     });
+  });
+
+  describe('createSecret()', () => {
+
+    test(`0: Create pem encoded secret: ${secret4.id} - success`, async () => {
+      const response = await SecretsOps.createSecret({
+        secretId: secret4.id,
+        value: secret4.value,
+        description: secret4.description,
+        encoding: secret4.encoding,
+        useInPlaceholders: secret4.useInPlaceholders,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`1: Create new version of pem encoded secret: ${secret4.id} - success`, async () => {
+      const response = await SecretsOps.createVersionOfSecret({
+        secretId: secret4.id,
+        value: secret4.newValue,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`3: Create base64hmac encoded secret: ${secret5.id} - success`, async () => {
+      const response = await SecretsOps.createSecret({
+        secretId: secret5.id,
+        value: secret5.value,
+        description: secret5.description,
+        encoding: secret5.encoding,
+        useInPlaceholders: secret5.useInPlaceholders,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
   });
 });

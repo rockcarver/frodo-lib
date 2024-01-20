@@ -32,49 +32,41 @@
 import * as SecretsApi from './SecretsApi';
 import { autoSetupPolly, filterRecording } from '../../utils/AutoSetupPolly';
 import { state } from '../../index';
-import { encode } from '../../utils/Base64Utils';
 
 const ctx = autoSetupPolly();
 
 describe('SecretsApi', () => {
   const secret1 = {
     name: 'esv-frodo-test-secret1',
-    value: 'Frodo Test Secret One Value',
+    value: 'RnJvZG8gVGVzdCBTZWNyZXQgT25lIFZhbHVl', // base64 encoded 'Frodo Test Secret One Value'
+    valueV2: 'RnJvZG8gVGVzdCBTZWNyZXQgT25lIFZhbHVlIFZlcnNpb24gMg==', // base64 'Frodo Test Secret One Value Version 2'
+    valueV3: 'RnJvZG8gVGVzdCBTZWNyZXQgT25lIFZhbHVlIFZlcnNpb24gMw==', // base64 'Frodo Test Secret One Value Version 3'
     description: 'Frodo Test Secret One Description',
   };
   const secret2 = {
     name: 'esv-frodo-test-secret2',
-    value: 'Frodo Test Secret Two Value',
+    value: 'RnJvZG8gVGVzdCBTZWNyZXQgVHdvIFZhbHVl', // base64 encoded 'Frodo Test Secret Two Value'
+    valueV2: 'RnJvZG8gVGVzdCBTZWNyZXQgVHdvIFZhbHVlIFZlcnNpb24gMg==', // base64 'Frodo Test Secret Two Value Version 2'
+    valueV3: 'RnJvZG8gVGVzdCBTZWNyZXQgVHdvIFZhbHVlIFZlcnNpb24gMw==', // base64 'Frodo Test Secret Two Value Version 3'
+    valueV4: 'RnJvZG8gVGVzdCBTZWNyZXQgVHdvIFZhbHVlIFZlcnNpb24gNA==', // base64 encoded 'Frodo Test Secret Two Value Version 4'
     description: 'Frodo Test Secret Two Description',
   };
   const secret3 = {
     name: 'esv-frodo-test-secret3',
-    value: 'Frodo Test Secret Three Value',
+    value: 'RnJvZG8gVGVzdCBTZWNyZXQgVGhyZWUgVmFsdWU=', // base64 encoded 'Frodo Test Secret Three Value'
     description: 'Frodo Test Secret Three Description',
   };
   const secret4 = {
     name: 'esv-frodo-test-secret4',
-    value: 'Frodo Test Secret Four Value',
+    value: 'RnJvZG8gVGVzdCBTZWNyZXQgRm91ciBWYWx1ZQ==', // base64 encoded 'Frodo Test Secret Four Value'
     description: 'Frodo Test Secret Four Description',
     encoding: 'generic',
     placeholders: true,
   };
   const secret5 = {
     name: 'esv-frodo-test-secret5',
-    value: `-----BEGIN CERTIFICATE-----
-MIICEjCCAXsCAg36MA0GCSqGSIb3DQEBBQUAMIGbMQswCQYDVQQGEwJKUDEOMAwG
-A1UECBMFVG9reW8xEDAOBgNVBAcTB0NodW8ta3UxETAPBgNVBAoTCEZyYW5rNERE
-MRgwFgYDVQQLEw9XZWJDZXJ0IFN1cHBvcnQxGDAWBgNVBAMTD0ZyYW5rNEREIFdl
-YiBDQTEjMCEGCSqGSIb3DQEJARYUc3VwcG9ydEBmcmFuazRkZC5jb20wHhcNMTIw
-ODIyMDUyNjU0WhcNMTcwODIxMDUyNjU0WjBKMQswCQYDVQQGEwJKUDEOMAwGA1UE
-CAwFVG9reW8xETAPBgNVBAoMCEZyYW5rNEREMRgwFgYDVQQDDA93d3cuZXhhbXBs
-ZS5jb20wXDANBgkqhkiG9w0BAQEFAANLADBIAkEAm/xmkHmEQrurE/0re/jeFRLl
-8ZPjBop7uLHhnia7lQG/5zDtZIUC3RVpqDSwBuw/NTweGyuP+o8AG98HxqxTBwID
-AQABMA0GCSqGSIb3DQEBBQUAA4GBABS2TLuBeTPmcaTaUW/LCB2NYOy8GMdzR1mx
-8iBIu2H6/E2tiY3RIevV2OW61qY2/XRQg7YPxx3ffeUugX9F4J/iPnnu1zAxxyBy
-2VguKv4SWjRFoRkIfIlHX0qVviMhSlNy2ioFLy7JcPZb+v3ftDGywUqcBiVDoea0
-Hn+GmxZA
------END CERTIFICATE-----`,
+    value: `LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNFakNDQVhzQ0FnMzZNQTBHQ1NxR1NJYjNEUUVCQlFVQU1JR2JNUXN3Q1FZRFZRUUdFd0pLVURFT01Bd0cKQTFVRUNCTUZWRzlyZVc4eEVEQU9CZ05WQkFjVEIwTm9kVzh0YTNVeEVUQVBCZ05WQkFvVENFWnlZVzVyTkVSRQpNUmd3RmdZRFZRUUxFdzlYWldKRFpYSjBJRk4xY0hCdmNuUXhHREFXQmdOVkJBTVREMFp5WVc1ck5FUkVJRmRsCllpQkRRVEVqTUNFR0NTcUdTSWIzRFFFSkFSWVVjM1Z3Y0c5eWRFQm1jbUZ1YXpSa1pDNWpiMjB3SGhjTk1USXcKT0RJeU1EVXlOalUwV2hjTk1UY3dPREl4TURVeU5qVTBXakJLTVFzd0NRWURWUVFHRXdKS1VERU9NQXdHQTFVRQpDQXdGVkc5cmVXOHhFVEFQQmdOVkJBb01DRVp5WVc1ck5FUkVNUmd3RmdZRFZRUUREQTkzZDNjdVpYaGhiWEJzClpTNWpiMjB3WERBTkJna3Foa2lHOXcwQkFRRUZBQU5MQURCSUFrRUFtL3hta0htRVFydXJFLzByZS9qZUZSTGwKOFpQakJvcDd1TEhobmlhN2xRRy81ekR0WklVQzNSVnBxRFN3QnV3L05Ud2VHeXVQK284QUc5OEh4cXhUQndJRApBUUFCTUEwR0NTcUdTSWIzRFFFQkJRVUFBNEdCQUJTMlRMdUJlVFBtY2FUYVVXL0xDQjJOWU95OEdNZHpSMW14CjhpQkl1Mkg2L0UydGlZM1JJZXZWMk9XNjFxWTIvWFJRZzdZUHh4M2ZmZVV1Z1g5RjRKL2lQbm51MXpBeHh5QnkKMlZndUt2NFNXalJGb1JrSWZJbEhYMHFWdmlNaFNsTnkyaW9GTHk3SmNQWmIrdjNmdERHeXdVcWNCaVZEb2VhMApIbitHbXhaQQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t`,
+    newValue: `LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNYakNDQWNjQ0FnNEdNQTBHQ1NxR1NJYjNEUUVCQlFVQU1JR2JNUXN3Q1FZRFZRUUdFd0pLVURFT01Bd0cKQTFVRUNCTUZWRzlyZVc4eEVEQU9CZ05WQkFjVEIwTm9kVzh0YTNVeEVUQVBCZ05WQkFvVENFWnlZVzVyTkVSRQpNUmd3RmdZRFZRUUxFdzlYWldKRFpYSjBJRk4xY0hCdmNuUXhHREFXQmdOVkJBTVREMFp5WVc1ck5FUkVJRmRsCllpQkRRVEVqTUNFR0NTcUdTSWIzRFFFSkFSWVVjM1Z3Y0c5eWRFQm1jbUZ1YXpSa1pDNWpiMjB3SGhjTk1USXcKT1RJM01UTXdNREUwV2hjTk1UY3dPVEkyTVRNd01ERTBXakJLTVFzd0NRWURWUVFHRXdKS1VERU9NQXdHQTFVRQpDQXdGVkc5cmVXOHhFVEFQQmdOVkJBb01DRVp5WVc1ck5FUkVNUmd3RmdZRFZRUUREQTkzZDNjdVpYaGhiWEJzClpTNWpiMjB3Z2Fjd0VBWUhLb1pJemowQ0FRWUZLNEVFQUNjRGdaSUFCQUlaMFJjMFkzanNxUHFxcHRSejN0aVMKQXV2VEhBOXZVaWdNMmdVak02WWtUS29mUDdSUmxzNGRxdDZhTTcvMWVMYkZnNEpkaDlEWFM0elUxRUZlaVpRWgorZHJTUVlBbUFnQXRUenBtdG1Vb3krbWl3dGlTQm9tdTNDU1VlNllyVnZXYitPaXJtdncyeDNCQ1RKVzJYamh5CjV5NnREUFZSUnloZzBuaDV3bS9VeFp2NGpvN0FadUpWOHp0Wkt3Q0VBREFOQmdrcWhraUc5dzBCQVFVRkFBT0IKZ1FCbGFPRjVPNFJ5dkRRMXFDQXVNNm9Yam1MM2tDQTNLcDdWZnl0RFlheGJhSlZoQzhQbkUwQThWUFgyeXBuOQphUVI0eXE5OGUydW1Qc3JTTDdnUGRkb2dhK092YXR1c0c5R25JdmlXR1N6YXpRQlFUVFFkRVNKeHJQZERYRTBFCllGNVBQeEFPKzB5S0dxa2w4UGVwdnltWEJyTUFlc3psSGFSRlhlUm9qWFZBTHc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t`,
     description: 'Frodo Test PEM encoded Secret Five Description',
     encoding: 'pem',
     placeholders: true,
@@ -97,12 +89,12 @@ Hn+GmxZA
         });
         await SecretsApi.createNewVersionOfSecret({
           secretId: secret1.name,
-          value: secret1.value + ' Version 2',
+          value: secret1.valueV2,
           state,
         });
         await SecretsApi.createNewVersionOfSecret({
           secretId: secret1.name,
-          value: secret1.value + ' Version 3',
+          value: secret1.valueV3,
           state,
         });
         await SecretsApi.setStatusOfVersionOfSecret({
@@ -127,12 +119,12 @@ Hn+GmxZA
         });
         await SecretsApi.createNewVersionOfSecret({
           secretId: secret2.name,
-          value: secret2.value + ' Version 2',
+          value: secret2.valueV2,
           state,
         });
         await SecretsApi.createNewVersionOfSecret({
           secretId: secret2.name,
-          value: secret2.value + ' Version 3',
+          value: secret2.valueV3,
           state,
         });
       }
@@ -266,7 +258,7 @@ Hn+GmxZA
     test(`2: Create pem encoded secret: ${secret5.name} - success`, async () => {
       const response = await SecretsApi.putSecret({
         secretId: secret5.name,
-        value: encode(secret5.value),
+        value: secret5.value,
         description: secret5.description,
         encoding: secret5.encoding,
         useInPlaceholders: secret5.placeholders,
@@ -367,7 +359,7 @@ Hn+GmxZA
     test(`1: Create new version of existing secret: ${secret2.name} - success`, async () => {
       const response = await SecretsApi.createNewVersionOfSecret({
         secretId: secret2.name,
-        value: secret2.value + ' Version 4',
+        value: secret2.valueV4,
         state,
       });
       expect(response).toMatchSnapshot();
@@ -378,13 +370,23 @@ Hn+GmxZA
       try {
         await SecretsApi.createNewVersionOfSecret({
           secretId: 'esv-does-not-exist',
-          value: 'Frodo Non-Existing Test Secret Value Version 2',
+          value: 'RnJvZG8gTm9uLUV4aXN0aW5nIFRlc3QgU2VjcmV0IFZhbHVlIFZlcnNpb24gMg==', // base64 encoded 'Frodo Non-Existing Test Secret Value Version 2',
           state,
         });
       } catch (error) {
         expect(error).toMatchSnapshot();
       }
     });
+
+    test(`3: Create new version of existing secret with pem encoding: ${secret5.name} - success`, async () => {
+      const response = await SecretsApi.createNewVersionOfSecret({
+        secretId: secret5.name,
+        value: secret5.newValue,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
   });
 
   describe('setStatusOfVersionOfSecret()', () => {

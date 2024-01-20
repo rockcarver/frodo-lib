@@ -1,7 +1,6 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { encode, isBase64Encoded } from '../../utils/Base64Utils';
 import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface, PagedResult } from '../ApiTypes';
 import { generateEnvApi } from '../BaseApi';
@@ -148,7 +147,7 @@ export async function putSecret({
   state: State;
 }): Promise<SecretSkeleton> {
   const secretData = {
-    valueBase64: isBase64Encoded(value) ? value : encode(value),
+    valueBase64: value,
     description,
     encoding,
     useInPlaceholders,
@@ -269,7 +268,7 @@ export async function createNewVersionOfSecret({
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
     state,
-  }).post(urlString, { valueBase64: encode(value) }, { withCredentials: true });
+  }).post(urlString, { valueBase64: value }, { withCredentials: true });
   return data;
 }
 
