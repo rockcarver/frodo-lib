@@ -853,13 +853,15 @@ function scheduleAutoRefresh(
               state.getBearerTokenMeta()?.expires,
               state.getUserSessionTokenMeta()?.expires
             );
-    const timeout = expires - Date.now() - 1000 * 25;
+    let timeout = expires - Date.now() - 1000 * 25;
     if (timeout < 1000 * 30) {
-      throw new Error(
-        `Auto-refresh scheduling error: timeout below threshold of 30 seconds: ${Math.ceil(
-          timeout
-        )}`
-      );
+      debugMessage({
+        message: `Timeout below threshold of 30 seconds (${Math.ceil(
+          timeout / 1000
+        )}), resetting timeout to 10ms.`,
+        state,
+      });
+      if (timeout < 10) timeout = 10;
     }
     debugMessage({
       message: `AuthenticateOps.scheduleAutoRefresh: set new timer [${Math.floor(
