@@ -128,6 +128,7 @@ export function filterRecording(recording: {
     try {
       const json = JSON.parse(body);
       if (json['access_token']) json['access_token'] = '<access token>';
+      if (json['id_token']) json['id_token'] = '<id token>';
       body = JSON.stringify(json);
     } catch (error) {
       // ignore
