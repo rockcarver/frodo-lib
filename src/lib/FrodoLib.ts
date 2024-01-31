@@ -48,6 +48,7 @@ import ResourceTypeOps, { ResourceType } from '../ops/ResourceTypeOps';
 import Saml2Ops, { Saml2 } from '../ops/Saml2Ops';
 import ScriptOps, { Script } from '../ops/ScriptOps';
 import ServiceOps, { Service } from '../ops/ServiceOps';
+import SessionOps, { Session } from '../ops/SessionOps';
 import ThemeOps, { Theme } from '../ops/ThemeOps';
 import TokenCacheOps, { TokenCache } from '../ops/TokenCacheOps';
 import VersionUtils, { Version } from '../ops/VersionUtils';
@@ -131,6 +132,7 @@ export type Frodo = {
 
   script: Script;
   service: Service;
+  session: Session;
 
   theme: Theme;
 
@@ -271,6 +273,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
 
     script: ScriptOps(state),
     service: ServiceOps(state),
+    session: SessionOps(state),
 
     theme: ThemeOps(state),
 
