@@ -13,6 +13,7 @@ on:
       - 'main'
     paths-ignore:
       - '**/pipeline.yml'
+      - '**/doc.yml'
       - '**/README.md'
       - '**/CODE_OF_CONDUCT.md'
       - 'docs/**'
@@ -76,6 +77,10 @@ jobs:
           npm run transpile-cjs
           npm run resources-cjs
 
+      - name: Build docs
+        run: |
+          npm run doc
+
       - name: Lint
         run: npm run lint
 
@@ -83,7 +88,7 @@ jobs:
         run: npm audit --omit dev --audit-level high
 
       - name: Zip build artifacts
-        run: zip -r build.zip esm cjs mocks package.json package-lock.json snapshotResolve.js types
+        run: zip -r build.zip esm cjs mocks package.json package-lock.json snapshotResolve.js types docs
 
       - uses: actions/upload-artifact@v3
         with:
@@ -257,13 +262,13 @@ jobs:
           ignore-case: true
           omit-heading: true
 
-      - name: Commit updated changelog and version
+      - name: Commit updated changelog, version, and docs
         id: commit-changelog
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md package.json
-          git commit --message "Updated changelog and version for release ${{ needs.build.outputs.newTag }}"
+          git add CHANGELOG.md package.json doc
+          git commit --message "Updated changelog, version, and docs for release ${{ needs.build.outputs.newTag }}"
           git push
 
       - name: Release
@@ -279,3 +284,29 @@ jobs:
             LICENSE
             Release.txt
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  doc:
+    if: github.ref == 'refs/heads/main'
+    needs: [build, release]
+    # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload docs directory
+          path: './docs'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
