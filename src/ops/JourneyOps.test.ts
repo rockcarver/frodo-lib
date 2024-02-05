@@ -198,7 +198,7 @@ describe('JourneyOps', () => {
           state
         });
         //Ignore the _rev field
-        serverTree._rev = journey.tree._rev;
+        if (serverTree) serverTree._rev = journey.tree._rev;
         expect(serverTree).toStrictEqual(journey.tree);
         expect(tree).toMatchSnapshot(journey.tree);
       });

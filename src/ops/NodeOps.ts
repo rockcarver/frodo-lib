@@ -10,6 +10,7 @@ import {
   putNode as _putNode,
 } from '../api/NodeApi';
 import { getTrees } from '../api/TreeApi';
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
   createProgressIndicator,
@@ -80,17 +81,29 @@ export type Node = {
    */
   removeOrphanedNodes(orphanedNodes: NodeSkeleton[]): Promise<NodeSkeleton[]>;
   /**
-   * Analyze if a node is a premium node.
+   * Analyze if a node type is premium.
    * @param {string} nodeType Node type
    * @returns {boolean} True if the node type is premium, false otherwise.
    */
   isPremiumNode(nodeType: string): boolean;
   /**
-   * Analyze if a node is a cloud-only node.
+   * Analyze if a node type is a cloud-only node.
    * @param {string} nodeType Node type
    * @returns {boolean} True if the node type is cloud-only, false otherwise.
    */
   isCloudOnlyNode(nodeType: string): boolean;
+  /**
+   * Analyze if a node type is a cloud-excluded node. Cloud excluded nodes are OOTB nodes in self-hosted AM deployments but have been excluded in cloud.
+   * @param {string} nodeType node type.
+   * @returns {boolean} True if node type is cloud-excluded, false otherwise.
+   */
+  isCloudExcludedNode(nodeType: string): boolean;
+  /**
+   * Analyze if a node type has been deprecated
+   * @param {string} nodeType node type.
+   * @returns {boolean} True if node type is deprecated, false otherwise.
+   */
+  isDeprecatedNode(nodeType: string): boolean;
   /**
    * Analyze if a node is custom.
    * @param {string} nodeType Node type
@@ -152,6 +165,12 @@ export default (state: State): Node => {
     isCloudOnlyNode(nodeType: string): boolean {
       return isCloudOnlyNode(nodeType);
     },
+    isCloudExcludedNode(nodeType: string): boolean {
+      return isCloudExcludedNode({ nodeType, state });
+    },
+    isDeprecatedNode(nodeType: string): boolean {
+      return isDeprecatedNode({ nodeType, state });
+    },
     isCustomNode(nodeType: string): boolean {
       return isCustomNode({ nodeType, state });
     },
@@ -165,13 +184,17 @@ export type NodeClassificationType =
   | 'standard'
   | 'custom'
   | 'cloud'
-  | 'premium';
+  | 'excluded'
+  | 'premium'
+  | 'deprecated';
 
 export enum NodeClassification {
   STANDARD = 'standard',
   CUSTOM = 'custom',
   CLOUD = 'cloud',
+  EXCLUDED = 'excluded',
   PREMIUM = 'premium',
+  DEPRECATED = 'deprecated',
 }
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
@@ -526,6 +549,13 @@ const OOTB_NODE_TYPES_7 = [
   'PatchObjectNode',
   'PersistentCookieDecisionNode',
   'PollingWaitNode',
+  'product-CertificateCollectorNode',
+  'product-CertificateUserExtractorNode',
+  'product-CertificateValidationNode',
+  'product-KerberosNode',
+  'product-ReCaptchaNode',
+  'product-Saml2Node',
+  'product-WriteFederationInformationNode',
   'ProfileCompletenessDecisionNode',
   'ProvisionDynamicAccountNode',
   'ProvisionIdmAccountNode',
@@ -552,9 +582,9 @@ const OOTB_NODE_TYPES_7 = [
   'SocialOpenIdConnectNode',
   'SocialProviderHandlerNode',
   'TermsAndConditionsDecisionNode',
-  'TimeSinceDecisionNode',
   'TimerStartNode',
   'TimerStopNode',
+  'TimeSinceDecisionNode',
   'UsernameCollectorNode',
   'ValidatedPasswordNode',
   'ValidatedUsernameNode',
@@ -562,33 +592,61 @@ const OOTB_NODE_TYPES_7 = [
   'WebAuthnDeviceStorageNode',
   'WebAuthnRegistrationNode',
   'ZeroPageLoginNode',
-  'product-CertificateCollectorNode',
-  'product-CertificateUserExtractorNode',
-  'product-CertificateValidationNode',
-  'product-KerberosNode',
-  'product-ReCaptchaNode',
-  'product-Saml2Node',
-  'product-WriteFederationInformationNode',
 ];
 
+const DEPRECATED_NODE_TYPES_7 = [];
+
 const OOTB_NODE_TYPES_7_1 = [
-  'PushRegistrationNode',
   'GetAuthenticatorAppNode',
   'MultiFactorRegistrationOptionsNode',
   'OptOutMultiFactorAuthenticationNode',
+  'PushRegistrationNode',
 ].concat(OOTB_NODE_TYPES_7);
 
+const DEPRECATED_NODE_TYPES_7_1 = [].concat(DEPRECATED_NODE_TYPES_7);
+
 const OOTB_NODE_TYPES_7_2 = [
+  'ConfigProviderNode',
+  'DebugNode',
   'OathRegistrationNode',
   'OathTokenVerifierNode',
   'PassthroughAuthenticationNode',
-  'ConfigProviderNode',
-  'DebugNode',
+  'product-CaptchaNode',
+  'PushWaitNode',
+  'SetCustomCookieNode',
 ].concat(OOTB_NODE_TYPES_7_1);
 
-const OOTB_NODE_TYPES_7_3 = [].concat(OOTB_NODE_TYPES_7_2);
+const DEPRECATED_NODE_TYPES_7_2 = ['product-ReCaptchaNode'].concat(
+  DEPRECATED_NODE_TYPES_7_1
+);
 
-const OOTB_NODE_TYPES_7_4 = [].concat(OOTB_NODE_TYPES_7_3);
+const OOTB_NODE_TYPES_7_3 = [
+  'CombinedMultiFactorRegistrationNode',
+  'OathDeviceStorageNode',
+  'OidcNode',
+].concat(OOTB_NODE_TYPES_7_2);
+
+const DEPRECATED_NODE_TYPES_7_3 = [].concat(DEPRECATED_NODE_TYPES_7_2);
+
+const OOTB_NODE_TYPES_7_4 = ['QueryParameterNode'].concat(OOTB_NODE_TYPES_7_3);
+
+const DEPRECATED_NODE_TYPES_7_4 = [].concat(DEPRECATED_NODE_TYPES_7_3);
+
+const OOTB_NODE_TYPES_7_5 = [
+  'DeviceBindingNode',
+  'DeviceBindingStorageNode',
+  'DeviceSigningVerifierNode',
+].concat(OOTB_NODE_TYPES_7_4);
+
+const DEPRECATED_NODE_TYPES_7_5 = ['SocialProviderHandlerNode'].concat(
+  DEPRECATED_NODE_TYPES_7_4
+);
+
+// move above 7 release nodes once 8 becomes a release version
+const OOTB_NODE_TYPES_8 = [].concat(OOTB_NODE_TYPES_7_5);
+
+// move above 7 release nodes once 8 becomes a release version
+const DEPRECATED_NODE_TYPES_8 = [].concat(DEPRECATED_NODE_TYPES_7_5);
 
 const OOTB_NODE_TYPES_6_5 = [
   'AbstractSocialAuthLoginNode',
@@ -694,6 +752,17 @@ const OOTB_NODE_TYPES_6 = [
   'ZeroPageLoginNode',
 ];
 
+const CLOUD_EXCLUDED_NODE_TYPES = [
+  'CreatePasswordNode',
+  'ProvisionDynamicAccountNode',
+  'ProvisionIdmAccountNode',
+  'SocialFacebookNode',
+  'SocialGoogleNode',
+  'SocialNode',
+  'SocialOAuthIgnoreProfileNode',
+  'SocialOpenIdConnectNode',
+];
+
 const CLOUD_ONLY_NODE_TYPES = [
   'IdentityStoreDecisionNode',
   'AutonomousAccessSignalNode',
@@ -726,6 +795,72 @@ export function isCloudOnlyNode(nodeType: string): boolean {
 }
 
 /**
+ * Analyze if a node is a cloud-excluded node. Cloud excluded nodes are OOTB nodes in self-hosted AM deployments but have been excluded in cloud.
+ * @param {{string, State}} param0 object containing node type and state.
+ * @returns {boolean} True if node type is cloud-excluded, false otherwise.
+ */
+export function isCloudExcludedNode({
+  nodeType,
+  state,
+}: {
+  nodeType: string;
+  state: State;
+}): boolean {
+  return (
+    state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
+    CLOUD_EXCLUDED_NODE_TYPES.includes(nodeType)
+  );
+}
+
+/**
+ * Analyze if node has been deprecated
+ * @param {{string, State}} param0 object containing node type and state.
+ * @returns {boolean} True if node type is deprecated, false otherwise.
+ */
+export function isDeprecatedNode({
+  nodeType,
+  state,
+}: {
+  nodeType: string;
+  state: State;
+}): boolean {
+  let deprecatedNodeTypes = [];
+  switch (state.getAmVersion()) {
+    case '8.0.0':
+      deprecatedNodeTypes = DEPRECATED_NODE_TYPES_8.slice(0);
+      break;
+    case '7.1.0':
+    case '7.1.1':
+    case '7.1.2':
+    case '7.1.3':
+    case '7.1.4':
+      deprecatedNodeTypes = DEPRECATED_NODE_TYPES_7_1.slice(0);
+      break;
+    case '7.2.0':
+    case '7.2.1':
+      deprecatedNodeTypes = DEPRECATED_NODE_TYPES_7_2.slice(0);
+      break;
+    case '7.3.0':
+      deprecatedNodeTypes = DEPRECATED_NODE_TYPES_7_3.slice(0);
+      break;
+    case '7.4.0':
+      deprecatedNodeTypes = DEPRECATED_NODE_TYPES_7_4.slice(0);
+      break;
+    case '7.5.0':
+      deprecatedNodeTypes = DEPRECATED_NODE_TYPES_7_5.slice(0);
+      break;
+    case '7.0.0':
+    case '7.0.1':
+    case '7.0.2':
+      deprecatedNodeTypes = DEPRECATED_NODE_TYPES_7.slice(0);
+      break;
+    default:
+      return false;
+  }
+  return deprecatedNodeTypes.includes(nodeType);
+}
+
+/**
  * Analyze if a node is custom.
  * @param {string} nodeType Node type
  * @returns {boolean} True if the node type is custom, false otherwise.
@@ -739,10 +874,18 @@ export function isCustomNode({
 }): boolean {
   let ootbNodeTypes = [];
   switch (state.getAmVersion()) {
+    case '8.0.0':
+      ootbNodeTypes = OOTB_NODE_TYPES_8.slice(0);
+      break;
     case '7.1.0':
+    case '7.1.1':
+    case '7.1.2':
+    case '7.1.3':
+    case '7.1.4':
       ootbNodeTypes = OOTB_NODE_TYPES_7_1.slice(0);
       break;
     case '7.2.0':
+    case '7.2.1':
       ootbNodeTypes = OOTB_NODE_TYPES_7_2.slice(0);
       break;
     case '7.3.0':
@@ -750,6 +893,9 @@ export function isCustomNode({
       break;
     case '7.4.0':
       ootbNodeTypes = OOTB_NODE_TYPES_7_4.slice(0);
+      break;
+    case '7.5.0':
+      ootbNodeTypes = OOTB_NODE_TYPES_7_5.slice(0);
       break;
     case '7.0.0':
     case '7.0.1':
@@ -805,13 +951,18 @@ export function getNodeClassification({
   const premium = isPremiumNode(nodeType);
   const custom = isCustomNode({ nodeType, state });
   const cloud = isCloudOnlyNode(nodeType);
+  const excluded = isCloudExcludedNode({ nodeType, state });
+  const deprecated = isDeprecatedNode({ nodeType, state });
   if (custom) {
     classifications.push(NodeClassification.CUSTOM);
   } else if (cloud) {
     classifications.push(NodeClassification.CLOUD);
+  } else if (excluded) {
+    classifications.push(NodeClassification.EXCLUDED);
   } else {
     classifications.push(NodeClassification.STANDARD);
   }
   if (premium) classifications.push(NodeClassification.PREMIUM);
+  if (deprecated) classifications.push(NodeClassification.DEPRECATED);
   return classifications;
 }
