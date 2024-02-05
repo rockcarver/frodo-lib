@@ -1,0 +1,148 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`NodeOps getNodeClassification() 1: Classification of "PageNode" is "standard" 1`] = `
+[
+  "standard",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 2: Classification of "AutonomousAccessSignalNode" is "cloud, premium" 1`] = `
+[
+  "cloud",
+  "premium",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 3: Classification of "AutonomousAccessDecisionNode" is "cloud, premium" 1`] = `
+[
+  "cloud",
+  "premium",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 4: Classification of "AutonomousAccessResultNode" is "cloud, premium" 1`] = `
+[
+  "cloud",
+  "premium",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 5: Classification of "IdentityStoreDecisionNode" is "cloud" 1`] = `
+[
+  "cloud",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 6: Classification of "CreatePasswordNode" is "excluded" 1`] = `
+[
+  "excluded",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 7: Classification of "ProvisionDynamicAccountNode" is "excluded" 1`] = `
+[
+  "excluded",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 8: Classification of "ProvisionIdmAccountNode" is "excluded" 1`] = `
+[
+  "excluded",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 9: Classification of "SocialFacebookNode" is "excluded" 1`] = `
+[
+  "excluded",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 10: Classification of "SocialGoogleNode" is "excluded" 1`] = `
+[
+  "excluded",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 11: Classification of "SocialNode" is "excluded" 1`] = `
+[
+  "excluded",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 12: Classification of "SocialOAuthIgnoreProfileNode" is "excluded" 1`] = `
+[
+  "excluded",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 13: Classification of "SocialOpenIdConnectNode" is "excluded" 1`] = `
+[
+  "excluded",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 14: Classification of "SocialProviderHandlerNode" is "standard, deprecated" 1`] = `
+[
+  "standard",
+  "deprecated",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 15: Classification of "product-ReCaptchaNode" is "standard, deprecated" 1`] = `
+[
+  "standard",
+  "deprecated",
+]
+`;
+
+exports[`NodeOps getNodeClassification() 16: Classification of "CustomNode" is "custom" 1`] = `
+[
+  "custom",
+]
+`;
+
+exports[`NodeOps isCloudExcludedNode() 1: LdapDecisionNode is not a cloud-excluded node 1`] = `false`;
+
+exports[`NodeOps isCloudExcludedNode() 2: CreatePasswordNode is a cloud-excluded node 1`] = `true`;
+
+exports[`NodeOps isCloudExcludedNode() 3: ProvisionDynamicAccountNode is a cloud-excluded node 1`] = `true`;
+
+exports[`NodeOps isCloudExcludedNode() 4: ProvisionIdmAccountNode is a cloud-excluded node 1`] = `true`;
+
+exports[`NodeOps isCloudExcludedNode() 5: SocialFacebookNode is a cloud-excluded node 1`] = `true`;
+
+exports[`NodeOps isCloudExcludedNode() 6: SocialGoogleNode is a cloud-excluded node 1`] = `true`;
+
+exports[`NodeOps isCloudExcludedNode() 7: SocialNode is a cloud-excluded node 1`] = `true`;
+
+exports[`NodeOps isCloudExcludedNode() 8: SocialOAuthIgnoreProfileNode is a cloud-excluded node 1`] = `true`;
+
+exports[`NodeOps isCloudExcludedNode() 9: SocialOpenIdConnectNode is a cloud-excluded node 1`] = `true`;
+
+exports[`NodeOps isCloudOnlyNode() 1: LdapDecisionNode is not a cloud-only node 1`] = `false`;
+
+exports[`NodeOps isCloudOnlyNode() 2: AutonomousAccessDecisionNode is a cloud-only node 1`] = `true`;
+
+exports[`NodeOps isCloudOnlyNode() 3: AutonomousAccessResultNode is a cloud-only node 1`] = `true`;
+
+exports[`NodeOps isCloudOnlyNode() 4: AutonomousAccessSignalNode is a cloud-only node 1`] = `true`;
+
+exports[`NodeOps isCloudOnlyNode() 5: IdentityStoreDecisionNode is a cloud-only node 1`] = `true`;
+
+exports[`NodeOps isCustomNode() 1: PageNode is not a custom node 1`] = `false`;
+
+exports[`NodeOps isCustomNode() 2: CustomNode is a custom node 1`] = `true`;
+
+exports[`NodeOps isDeprecatedNode() 1: PageNode is not a deprecated node 1`] = `false`;
+
+exports[`NodeOps isDeprecatedNode() 2: SocialProviderHandlerNode is a deprecated node 1`] = `true`;
+
+exports[`NodeOps isDeprecatedNode() 3: product-ReCaptchaNode is a deprecated node 1`] = `true`;
+
+exports[`NodeOps isPremiumNode() 1: PageNode is not a premium node 1`] = `false`;
+
+exports[`NodeOps isPremiumNode() 2: AutonomousAccessDecisionNode is a premium node 1`] = `true`;
+
+exports[`NodeOps isPremiumNode() 3: AutonomousAccessResultNode is a premium node 1`] = `true`;
+
+exports[`NodeOps isPremiumNode() 4: AutonomousAccessSignalNode is a premium node 1`] = `true`;
