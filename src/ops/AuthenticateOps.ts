@@ -37,13 +37,13 @@ export type Authenticate = {
    * Get tokens and store them in State
    * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
    * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
-   * @param {CallbackHandler} callback function allowing the library to collect responses from the user like OTP or other
+   * @param {CallbackHandler} callbackHandler function allowing the library to collect responses from the user through callbacks
    * @returns {Promise<Tokens>} object containing the tokens
    */
   getTokens(
     forceLoginAsUser?: boolean,
     autoRefresh?: boolean,
-    callback?: CallbackHandler
+    callbackHandler?: CallbackHandler
   ): Promise<Tokens>;
 
   // Deprecated
@@ -69,12 +69,12 @@ export default (state: State): Authenticate => {
     async getTokens(
       forceLoginAsUser = false,
       autoRefresh = true,
-      callback = null
+      callbackHandler = null
     ) {
       return getTokens({
         forceLoginAsUser,
         autoRefresh,
-        callbackHandler: callback,
+        callbackHandler,
         state,
       });
     },
