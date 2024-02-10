@@ -133,7 +133,6 @@
     "node-jose": "^2.2.0",
     "properties-reader": "^2.2.0",
     "qs": "^6.10.3",
-    "readline-sync": "^1.4.10",
     "replaceall": "^0.1.6",
     "slugify": "^1.6.5",
     "uuid": "^9.0.0"
