@@ -1,15 +1,16 @@
 import { createHash, randomBytes } from 'crypto';
-import readlineSync from 'readline-sync';
 import url from 'url';
 import { v4 } from 'uuid';
 
 import { step } from '../api/AuthenticateApi';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
+import { FrodoError } from '../FrodoError';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { encodeBase64Url } from '../utils/Base64Utils';
-import { debugMessage, printMessage, verboseMessage } from '../utils/Console';
+import { debugMessage, verboseMessage } from '../utils/Console';
 import { isValidUrl, parseUrl } from '../utils/ExportImportUtils';
+import { CallbackHandler } from './CallbackOps';
 import { getServiceAccount } from './cloud/ServiceAccountOps';
 import { getConnectionProfile } from './ConnectionProfileOps';
 import { createSignedJwtToken, JwkRsa } from './JoseOps';
@@ -33,15 +34,17 @@ import {
 
 export type Authenticate = {
   /**
-   * Get tokens and stores them in State
+   * Get tokens and store them in State
    * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
    * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
-   * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
+   * @param {CallbackHandler} callbackHandler function allowing the library to collect responses from the user through callbacks
+   * @returns {Promise<Tokens>} object containing the tokens
    */
   getTokens(
     forceLoginAsUser?: boolean,
-    autoRefresh?: boolean
-  ): Promise<boolean>;
+    autoRefresh?: boolean,
+    callbackHandler?: CallbackHandler
+  ): Promise<Tokens>;
 
   // Deprecated
   /**
@@ -63,8 +66,17 @@ export type Authenticate = {
 
 export default (state: State): Authenticate => {
   return {
-    async getTokens(forceLoginAsUser = false, autoRefresh = true) {
-      return getTokens({ forceLoginAsUser, autoRefresh, state });
+    async getTokens(
+      forceLoginAsUser = false,
+      autoRefresh = true,
+      callbackHandler = null
+    ) {
+      return getTokens({
+        forceLoginAsUser,
+        autoRefresh,
+        callbackHandler,
+        state,
+      });
     },
 
     // Deprecated
@@ -113,11 +125,19 @@ async function determineCookieName(state: State) {
  * @param {State} state library state
  * @returns {Object} an object indicating if 2fa is required and the original payload
  */
-function checkAndHandle2FA(payload, state: State) {
+function checkAndHandle2FA({
+  payload,
+  otpCallbackHandler,
+  state,
+}: {
+  payload;
+  otpCallbackHandler: CallbackHandler;
+  state: State;
+}) {
   debugMessage({ message: `AuthenticateOps.checkAndHandle2FA: start`, state });
   // let skippable = false;
   if ('callbacks' in payload) {
-    for (const callback of payload.callbacks) {
+    for (let callback of payload.callbacks) {
       // select localAuthentication if Admin Federation is enabled
       if (callback.type === 'SelectIdPCallback') {
         debugMessage({
@@ -175,12 +195,11 @@ function checkAndHandle2FA(payload, state: State) {
             message: `AuthenticateOps.checkAndHandle2FA: need2fa=true, skippable=false`,
             state,
           });
-          printMessage({
-            message: '2FA is enabled and required for this user...',
-            state,
-          });
-          const code = readlineSync.question(`${callback.output[0].value}: `);
-          callback.input[0].value = code;
+          if (!otpCallbackHandler)
+            throw new FrodoError(
+              `2fa required but no otpCallback function provided.`
+            );
+          callback = otpCallbackHandler(callback);
           debugMessage({
             message: `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, skippable=false, factor=Code]`,
             state,
@@ -364,8 +383,10 @@ export type UserSessionMetaType = {
  * @returns {string} Session token or null
  */
 async function getFreshUserSessionToken({
+  otpCallbackHandler,
   state,
 }: {
+  otpCallbackHandler: CallbackHandler;
   state: State;
 }): Promise<UserSessionMetaType> {
   debugMessage({
@@ -384,7 +405,11 @@ async function getFreshUserSessionToken({
   let steps = 0;
   const maxSteps = 3;
   do {
-    skip2FA = checkAndHandle2FA(response, state);
+    skip2FA = checkAndHandle2FA({
+      payload: response,
+      otpCallbackHandler: otpCallbackHandler,
+      state,
+    });
 
     // throw exception if 2fa required but factor not supported by frodo (e.g. WebAuthN)
     if (!skip2FA.supported) {
@@ -427,7 +452,10 @@ async function getFreshUserSessionToken({
  * @param {State} state library state
  * @returns {Promise<UserSessionMetaType>} session token or null
  */
-async function getUserSessionToken(state: State): Promise<UserSessionMetaType> {
+async function getUserSessionToken(
+  otpCallback: CallbackHandler,
+  state: State
+): Promise<UserSessionMetaType> {
   debugMessage({
     message: `AuthenticateOps.getUserSessionToken: start`,
     state,
@@ -449,7 +477,10 @@ async function getUserSessionToken(state: State): Promise<UserSessionMetaType> {
     }
   }
   if (!token) {
-    token = await getFreshUserSessionToken({ state });
+    token = await getFreshUserSessionToken({
+      otpCallbackHandler: otpCallback,
+      state,
+    });
     token.from_cache = false;
     debugMessage({
       message: `AuthenticateOps.getUserSessionToken: fresh`,
@@ -479,7 +510,7 @@ async function getAuthCode(
   codeChallenge: string,
   codeChallengeMethod: string,
   state: State
-) {
+): Promise<string> {
   try {
     const bodyFormData = `redirect_uri=${redirectURL}&scope=${
       state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY
@@ -503,35 +534,17 @@ async function getAuthCode(
     } catch (error) {
       response = error.response;
       if (response.status < 200 || response.status > 399) {
-        printMessage({
-          message: 'error getting auth code',
-          type: 'error',
-          state,
-        });
-        printMessage({
-          message: response.data,
-          type: 'error',
-          state,
-        });
-        return null;
+        throw error;
       }
     }
     const redirectLocationURL = response.headers?.location;
     const queryObject = url.parse(redirectLocationURL, true).query;
     if ('code' in queryObject) {
-      return queryObject.code;
+      return queryObject.code as string;
     }
-    printMessage({ message: 'auth code not found', type: 'error', state });
-    return null;
+    throw new FrodoError(`Authz code not found`);
   } catch (error) {
-    printMessage({
-      message: `error getting auth code - ${error.message}`,
-      type: 'error',
-      state,
-    });
-    printMessage({ message: error.response?.data, type: 'error', state });
-    debugMessage({ message: error.stack, state });
-    return null;
+    throw new FrodoError(`Error getting authz code`, error);
   }
 }
 
@@ -562,14 +575,6 @@ async function getFreshUserBearerToken({
       challengeMethod,
       state
     );
-    if (authCode == null) {
-      printMessage({
-        message: 'error getting auth code',
-        type: 'error',
-        state,
-      });
-      return null;
-    }
     let response: AccessTokenMetaType = null;
     if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
       const config = {
@@ -601,23 +606,10 @@ async function getFreshUserBearerToken({
       });
       return response;
     }
-    printMessage({
-      message: 'No access token in response.',
-      type: 'error',
-      state,
-    });
+    throw new FrodoError(`No access token in response`);
   } catch (error) {
-    debugMessage({
-      message: `Error getting access token for user: ${error}`,
-      state,
-    });
-    debugMessage({ message: error.response?.data, state });
+    throw new FrodoError(`Error getting access token for user`, error);
   }
-  debugMessage({
-    message: `AuthenticateOps.getAccessTokenForUser: end without token`,
-    state,
-  });
-  return null;
 }
 
 /**
@@ -882,30 +874,35 @@ function scheduleAutoRefresh(
   }
 }
 
+export type Tokens = {
+  bearerToken?: AccessTokenMetaType;
+  userSessionToken?: UserSessionMetaType;
+  subject?: string;
+  host?: string;
+  realm?: string;
+};
+
 /**
  * Get tokens
  * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
  * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
  * @param {State} state library state
- * @returns {Promise<boolean>} true if tokens were successfully obtained, false otherwise
+ * @returns {Promise<Tokens>} object containing the tokens
  */
 export async function getTokens({
   forceLoginAsUser = false,
   autoRefresh = true,
+  callbackHandler = null,
   state,
 }: {
   forceLoginAsUser?: boolean;
   autoRefresh?: boolean;
+  callbackHandler?: CallbackHandler;
   state: State;
-}): Promise<boolean> {
+}): Promise<Tokens> {
   debugMessage({ message: `AuthenticateOps.getTokens: start`, state });
   if (!state.getHost()) {
-    printMessage({
-      message: `No host specified and FRODO_HOST env variable not set!`,
-      type: 'error',
-      state,
-    });
-    return false;
+    throw new FrodoError(`No host specified`);
   }
   try {
     // if username/password on cli are empty, try to read from connections.json
@@ -928,7 +925,9 @@ export async function getTokens({
         state.setServiceAccountId(conn.svcacctId);
         state.setServiceAccountJwk(conn.svcacctJwk);
       } else {
-        return false;
+        throw new FrodoError(
+          `No credentials specified and no connection profile found for ${state.getHost()}`
+        );
       }
     }
 
@@ -939,7 +938,9 @@ export async function getTokens({
         state.setHost(conn.tenant);
         state.setDeploymentType(conn.deploymentType);
       } else {
-        return false;
+        throw new FrodoError(
+          `No connection profile found for ${state.getHost()}`
+        );
       }
     }
 
@@ -964,13 +965,7 @@ export async function getTokens({
       } catch (saErr) {
         debugMessage({ message: saErr.response?.data || saErr, state });
         debugMessage({ message: state.getState(), state });
-        throw new Error(
-          `Service account login error: ${
-            saErr.response?.data?.error_description ||
-            saErr.response?.data?.message ||
-            saErr
-          }`
-        );
+        throw new FrodoError(`Service account login error`, saErr);
       }
     }
     // use user account to login
@@ -979,7 +974,7 @@ export async function getTokens({
         message: `AuthenticateOps.getTokens: Authenticating with user account ${state.getUsername()}`,
         state,
       });
-      const token = await getUserSessionToken(state);
+      const token = await getUserSessionToken(callbackHandler, state);
       if (token) state.setUserSessionTokenMeta(token);
       await determineDeploymentTypeAndDefaultRealmAndVersion(state);
       if (
@@ -994,12 +989,7 @@ export async function getTokens({
     }
     // incomplete or no credentials
     else {
-      printMessage({
-        message: `Incomplete or no credentials!`,
-        type: 'error',
-        state,
-      });
-      return false;
+      throw new FrodoError(`Incomplete or no credentials`);
     }
     if (
       state.getCookieValue() ||
@@ -1014,43 +1004,22 @@ export async function getTokens({
       ) {
         verboseMessage({ message: `Using cached session token.`, state });
       }
-      printMessage({
-        message: `Connected to ${state.getHost()} [${
-          state.getRealm() ? state.getRealm() : 'root'
-        }] as ${await getLoggedInSubject(state)}`,
-        type: 'info',
-        state,
-      });
       scheduleAutoRefresh(forceLoginAsUser, autoRefresh, state);
+      const tokens: Tokens = {
+        bearerToken: state.getBearerTokenMeta(),
+        userSessionToken: state.getUserSessionTokenMeta(),
+        subject: await getLoggedInSubject(state),
+        host: state.getHost(),
+        realm: state.getRealm() ? state.getRealm() : 'root',
+      };
       debugMessage({
         message: `AuthenticateOps.getTokens: end with tokens`,
         state,
       });
-      return true;
+      // `Connected to ${state.getHost()} [${state.getRealm() ? state.getRealm() : 'root'}] as ${await getLoggedInSubject(state)}`
+      return tokens;
     }
   } catch (error) {
-    // regular error
-    printMessage({ message: error.message, type: 'error', state });
-    // axios error am api
-    printMessage({
-      message: error.response?.data?.message,
-      type: 'error',
-      state,
-    });
-    // axios error am oauth2 api
-    printMessage({
-      message: error.response?.data?.error_description,
-      type: 'error',
-      state,
-    });
-    // axios error data
-    debugMessage({ message: error.response?.data, state });
-    // stack trace
-    debugMessage({ message: error.stack || new Error().stack, state });
+    throw new FrodoError(`Error getting tokens`, error);
   }
-  debugMessage({
-    message: `AuthenticateOps.getTokens: end without tokens`,
-    state,
-  });
-  return false;
 }
