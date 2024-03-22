@@ -393,7 +393,10 @@ exports[`ThemeOps deleteTheme() 3: Delete root theme 'd6636b33-111b-40f2-870d-f4
 }
 `;
 
-exports[`ThemeOps deleteTheme() 4: Delete theme 'd6636b33-111b-40f2-870d-f4dcb7281e43' from non-existent realm 1`] = `[Error: 'd6636b33-111b-40f2-870d-f4dcb7281e43' not found in realm 'doesnotexist']`;
+exports[`ThemeOps deleteTheme() 4: Delete theme 'd6636b33-111b-40f2-870d-f4dcb7281e43' from non-existent realm 1`] = `
+"Error deleting theme d6636b33-111b-40f2-870d-f4dcb7281e43
+  'd6636b33-111b-40f2-870d-f4dcb7281e43' not found in realm 'doesnotexist'"
+`;
 
 exports[`ThemeOps deleteThemeByName() 1: Delete alpha theme 'Contrast' by name (cloud) 1`] = `
 {
@@ -788,7 +791,10 @@ exports[`ThemeOps deleteThemeByName() 3: Delete root theme 'Starter Theme' by na
 }
 `;
 
-exports[`ThemeOps deleteThemeByName() 4: Delete theme 'Starter Theme' by name from non-existent realm (encore) 1`] = `[Error: 'Starter Theme' not found in realm 'doesnotexist']`;
+exports[`ThemeOps deleteThemeByName() 4: Delete theme 'Starter Theme' by name from non-existent realm (encore) 1`] = `
+"Error deleting theme Starter Theme
+  'Starter Theme' not found in realm 'doesnotexist'"
+`;
 
 exports[`ThemeOps deleteThemes() 1: Delete all alpha themes 1`] = `
 [
@@ -2515,7 +2521,10 @@ exports[`ThemeOps deleteThemes() 3: Delete all root themes (encore) 1`] = `
 ]
 `;
 
-exports[`ThemeOps deleteThemes() 4: Delete all themes in non-existent realm 1`] = `[Error: No theme configuration found for realm 'doesnotexist']`;
+exports[`ThemeOps deleteThemes() 4: Delete all themes in non-existent realm 1`] = `
+"Error deleting themes
+  No theme configuration found for realm 'doesnotexist'"
+`;
 
 exports[`ThemeOps exportThemes() 1: Export themes 1`] = `
 {
@@ -4577,7 +4586,10 @@ exports[`ThemeOps readTheme() 3: Read root theme 'd6636b33-111b-40f2-870d-f4dcb7
 }
 `;
 
-exports[`ThemeOps readTheme() 4: Read theme 'd6636b33-111b-40f2-870d-f4dcb7281e43' from non-existent realm 1`] = `[Error: Theme with id 'd6636b33-111b-40f2-870d-f4dcb7281e43' not found in realm 'doesnotexist'!]`;
+exports[`ThemeOps readTheme() 4: Read theme 'd6636b33-111b-40f2-870d-f4dcb7281e43' from non-existent realm 1`] = `
+"Error reading theme d6636b33-111b-40f2-870d-f4dcb7281e43
+  Theme with id 'd6636b33-111b-40f2-870d-f4dcb7281e43' not found in realm 'doesnotexist'!"
+`;
 
 exports[`ThemeOps readThemeByName() 1: Read alpha theme 'Contrast' (cloud) 1`] = `
 {
@@ -4972,7 +4984,10 @@ exports[`ThemeOps readThemeByName() 3: Read root theme 'Starter Theme' (encore) 
 }
 `;
 
-exports[`ThemeOps readThemeByName() 4: Read theme 'Starter Theme' from non-existent realm 1`] = `[Error: Theme 'Starter Theme' not found in realm 'doesnotexist'!]`;
+exports[`ThemeOps readThemeByName() 4: Read theme 'Starter Theme' from non-existent realm 1`] = `
+"Error reading theme Starter Theme
+  Theme 'Starter Theme' not found in realm 'doesnotexist'!"
+`;
 
 exports[`ThemeOps readThemes() 1: Read all alpha themes (cloud) 1`] = `
 [

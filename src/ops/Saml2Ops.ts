@@ -22,7 +22,6 @@ import {
 import {
   createProgressIndicator,
   debugMessage,
-  printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
@@ -34,6 +33,7 @@ import {
   getMetadata,
 } from '../utils/ExportImportUtils';
 import { get } from '../utils/JsonUtils';
+import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
 import { updateScript } from './ScriptOps';
 
@@ -335,8 +335,12 @@ export async function readSaml2ProviderStubs({
 }: {
   state: State;
 }): Promise<Saml2ProviderStub[]> {
-  const { result } = await _getProviderStubs({ state });
-  return result;
+  try {
+    const { result } = await _getProviderStubs({ state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading saml2 provider stubs`, error);
+  }
 }
 
 /**
@@ -348,9 +352,13 @@ export async function readSaml2EntityIds({
 }: {
   state: State;
 }): Promise<string[]> {
-  const { result } = await _getProviderStubs({ state });
-  const entityIds = result.map((stub) => stub.entityId);
-  return entityIds;
+  try {
+    const { result } = await _getProviderStubs({ state });
+    const entityIds = result.map((stub) => stub.entityId);
+    return entityIds;
+  } catch (error) {
+    throw new FrodoError(`Error reading saml2 entity ids`, error);
+  }
 }
 
 /**
@@ -365,7 +373,14 @@ export function getSaml2ProviderMetadataUrl({
   entityId: string;
   state: State;
 }): string {
-  return _getProviderMetadataUrl({ entityId, state });
+  try {
+    return _getProviderMetadataUrl({ entityId, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error getting metadata URL for saml2 provider ${entityId}`,
+      error
+    );
+  }
 }
 
 /**
@@ -380,7 +395,14 @@ export async function getSaml2ProviderMetadata({
   entityId: string;
   state: State;
 }) {
-  return _getProviderMetadata({ entityId, state });
+  try {
+    return _getProviderMetadata({ entityId, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error getting metadata for saml2 provider ${entityId}`,
+      error
+    );
+  }
 }
 
 /**
@@ -397,6 +419,7 @@ async function exportDependencies({
   fileData: Saml2ExportInterface;
   state: State;
 }) {
+  const errors: Error[] = [];
   const attrMapperScriptId = get(providerData, [
     'identityProvider',
     'assertionProcessing',
@@ -404,9 +427,18 @@ async function exportDependencies({
     'attributeMapperScript',
   ]);
   if (attrMapperScriptId && attrMapperScriptId !== '[Empty]') {
-    const scriptData = await getScript({ scriptId: attrMapperScriptId, state });
-    scriptData.script = convertBase64TextToArray(scriptData.script);
-    fileData.script[attrMapperScriptId] = scriptData;
+    try {
+      const scriptData = await getScript({
+        scriptId: attrMapperScriptId,
+        state,
+      });
+      scriptData.script = convertBase64TextToArray(scriptData.script);
+      fileData.script[attrMapperScriptId] = scriptData;
+    } catch (error) {
+      errors.push(
+        new FrodoError(`Error getting attribute mapper script`, error)
+      );
+    }
   }
   const idpAdapterScriptId = get(providerData, [
     'identityProvider',
@@ -415,9 +447,16 @@ async function exportDependencies({
     'idpAdapterScript',
   ]);
   if (idpAdapterScriptId && idpAdapterScriptId !== '[Empty]') {
-    const scriptData = await getScript({ scriptId: idpAdapterScriptId, state });
-    scriptData.script = convertBase64TextToArray(scriptData.script);
-    fileData.script[idpAdapterScriptId] = scriptData;
+    try {
+      const scriptData = await getScript({
+        scriptId: idpAdapterScriptId,
+        state,
+      });
+      scriptData.script = convertBase64TextToArray(scriptData.script);
+      fileData.script[idpAdapterScriptId] = scriptData;
+    } catch (error) {
+      errors.push(new FrodoError(`Error getting idp adapter script`, error));
+    }
   }
   const spAdapterScriptId = get(providerData, [
     'serviceProvider',
@@ -426,9 +465,20 @@ async function exportDependencies({
     'spAdapterScript',
   ]);
   if (spAdapterScriptId && spAdapterScriptId !== '[Empty]') {
-    const scriptData = await getScript({ scriptId: spAdapterScriptId, state });
-    scriptData.script = convertBase64TextToArray(scriptData.script);
-    fileData.script[spAdapterScriptId] = scriptData;
+    try {
+      const scriptData = await getScript({
+        scriptId: spAdapterScriptId,
+        state,
+      });
+      scriptData.script = convertBase64TextToArray(scriptData.script);
+      fileData.script[spAdapterScriptId] = scriptData;
+    } catch (error) {
+      errors.push(new FrodoError(`Error getting sp adapter script`, error));
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new FrodoError(`Error exporting saml2 dependencies`, errors);
   }
 
   // const metaDataResponse = await getSaml2ProviderMetadata({
@@ -447,7 +497,6 @@ async function exportDependencies({
   //   encodeBase64Url(metaDataResponse)
   // );
 }
-
 
 /**
  * Include metadata in the export file
@@ -468,7 +517,7 @@ async function exportMetadata({
     state,
   });
   if (!metaDataResponse) {
-    throw new Error(
+    throw new FrodoError(
       `Unable to obtain metadata from ${getSaml2ProviderMetadataUrl({
         entityId: providerData.entityId,
         state,
@@ -492,26 +541,35 @@ export async function readSaml2ProviderStub({
   entityId: string;
   state: State;
 }): Promise<Saml2ProviderStub> {
-  debugMessage({
-    message: `Saml2Ops.getSaml2ProviderStub: start [entityId=${entityId}]`,
-    state,
-  });
-  const found = await _queryProviderStubs({
-    filter: `entityId eq '${entityId}'`,
-    state,
-  });
-  switch (found.resultCount) {
-    case 0:
-      throw new Error(`No provider with entity id '${entityId}' found`);
-    case 1: {
-      debugMessage({
-        message: `Saml2Ops.getSaml2ProviderStub: end [entityId=${entityId}]`,
-        state,
-      });
-      return found.result[0];
+  try {
+    debugMessage({
+      message: `Saml2Ops.getSaml2ProviderStub: start [entityId=${entityId}]`,
+      state,
+    });
+    const found = await _queryProviderStubs({
+      filter: `entityId eq '${entityId}'`,
+      state,
+    });
+    switch (found.resultCount) {
+      case 0:
+        throw new FrodoError(`No provider with entity id '${entityId}' found`);
+      case 1: {
+        debugMessage({
+          message: `Saml2Ops.getSaml2ProviderStub: end [entityId=${entityId}]`,
+          state,
+        });
+        return found.result[0];
+      }
+      default:
+        throw new FrodoError(
+          `Multiple providers with entity id '${entityId}' found`
+        );
     }
-    default:
-      throw new Error(`Multiple providers with entity id '${entityId}' found`);
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading saml2 provider stub ${entityId}`,
+      error
+    );
   }
 }
 
@@ -527,23 +585,27 @@ export async function readSaml2Provider({
   entityId: string;
   state: State;
 }): Promise<Saml2ProviderSkeleton> {
-  debugMessage({
-    message: `Saml2Ops.getSaml2Provider: start [entityId=${entityId}]`,
-    state,
-  });
-  const stub = await readSaml2ProviderStub({ entityId, state });
-  const { location } = stub;
-  const entityId64 = stub._id;
-  const providerData = await _getProviderByLocationAndId({
-    location,
-    entityId64,
-    state,
-  });
-  debugMessage({
-    message: `Saml2Ops.getSaml2Provider: end [entityId=${entityId}]`,
-    state,
-  });
-  return providerData;
+  try {
+    debugMessage({
+      message: `Saml2Ops.getSaml2Provider: start [entityId=${entityId}]`,
+      state,
+    });
+    const stub = await readSaml2ProviderStub({ entityId, state });
+    const { location } = stub;
+    const entityId64 = stub._id;
+    const providerData = await _getProviderByLocationAndId({
+      location,
+      entityId64,
+      state,
+    });
+    debugMessage({
+      message: `Saml2Ops.getSaml2Provider: end [entityId=${entityId}]`,
+      state,
+    });
+    return providerData;
+  } catch (error) {
+    throw new FrodoError(`Error reading saml2 provider ${entityId}`, error);
+  }
 }
 
 /**
@@ -564,7 +626,11 @@ export async function createSaml2Provider({
   metaData?: string;
   state: State;
 }): Promise<Saml2ProviderSkeleton> {
-  return _createProvider({ location, providerData, metaData, state });
+  try {
+    return _createProvider({ location, providerData, metaData, state });
+  } catch (error) {
+    throw new FrodoError(`Error creating saml2 provider`, error);
+  }
 }
 
 /**
@@ -585,7 +651,11 @@ export async function updateSaml2Provider({
   providerData: Saml2ProviderSkeleton;
   state: State;
 }): Promise<Saml2ProviderSkeleton> {
-  return _updateProvider({ location, entityId, providerData, state });
+  try {
+    return _updateProvider({ location, entityId, providerData, state });
+  } catch (error) {
+    throw new FrodoError(`Error updating saml2 provider`, error);
+  }
 }
 
 /**
@@ -600,23 +670,27 @@ export async function deleteSaml2Provider({
   entityId: string;
   state: State;
 }): Promise<Saml2ProviderSkeleton> {
-  debugMessage({
-    message: `Saml2Ops.deleteSaml2Provider: start [entityId=${entityId}]`,
-    state,
-  });
-  const stub = await readSaml2ProviderStub({ entityId, state });
-  const { location } = stub;
-  const id = stub._id;
-  const providerData = await _deleteProvider({
-    location,
-    entityId64: id,
-    state,
-  });
-  debugMessage({
-    message: `Saml2Ops.deleteSaml2Provider: end [entityId=${entityId}]`,
-    state,
-  });
-  return providerData;
+  try {
+    debugMessage({
+      message: `Saml2Ops.deleteSaml2Provider: start [entityId=${entityId}]`,
+      state,
+    });
+    const stub = await readSaml2ProviderStub({ entityId, state });
+    const { location } = stub;
+    const id = stub._id;
+    const providerData = await _deleteProvider({
+      location,
+      entityId64: id,
+      state,
+    });
+    debugMessage({
+      message: `Saml2Ops.deleteSaml2Provider: end [entityId=${entityId}]`,
+      state,
+    });
+    return providerData;
+  } catch (error) {
+    throw new FrodoError(`Error deleting saml2 provider ${entityId}`, error);
+  }
 }
 
 /**
@@ -628,22 +702,26 @@ export async function deleteSaml2Providers({
 }: {
   state: State;
 }): Promise<Saml2ProviderSkeleton[]> {
-  debugMessage({ message: `Saml2Ops.deleteSaml2Providers: start`, state });
-  const providers: Saml2ProviderSkeleton[] = [];
-  const stubs = await readSaml2ProviderStubs({ state });
-  for (const stub of stubs) {
-    const provider = await _deleteProvider({
-      location: stub.location,
-      entityId64: stub._id,
+  try {
+    debugMessage({ message: `Saml2Ops.deleteSaml2Providers: start`, state });
+    const providers: Saml2ProviderSkeleton[] = [];
+    const stubs = await readSaml2ProviderStubs({ state });
+    for (const stub of stubs) {
+      const provider = await _deleteProvider({
+        location: stub.location,
+        entityId64: stub._id,
+        state,
+      });
+      providers.push(provider);
+    }
+    debugMessage({
+      message: `Saml2Ops.deleteSaml2Providers: end [deleted ${providers.length} providers]`,
       state,
     });
-    providers.push(provider);
+    return providers;
+  } catch (error) {
+    throw new FrodoError(`Error deleting saml2 providers`, error);
   }
-  debugMessage({
-    message: `Saml2Ops.deleteSaml2Providers: end [deleted ${providers.length} providers]`,
-    state,
-  });
-  return providers;
 }
 
 /**
@@ -660,33 +738,33 @@ export async function exportSaml2Provider({
   options?: Saml2EntitiesExportOptions;
   state: State;
 }): Promise<Saml2ExportInterface> {
-  debugMessage({
-    message: `Saml2Ops.exportSaml2Provider: start [entityId=${entityId}]`,
-    state,
-  });
-  const exportData = createSaml2ExportTemplate({ state });
-  const stub = await readSaml2ProviderStub({ entityId, state });
-  const { location } = stub;
-  const id = stub._id;
-  const providerData = await _getProviderByLocationAndId({
-    location,
-    entityId64: id,
-    state,
-  });
-  exportData.saml[stub.location][providerData._id] = providerData;
-  await exportMetadata({ providerData, fileData: exportData, state });
-  if (options.deps) {
-    try {
+  try {
+    debugMessage({
+      message: `Saml2Ops.exportSaml2Provider: start [entityId=${entityId}]`,
+      state,
+    });
+    const exportData = createSaml2ExportTemplate({ state });
+    const stub = await readSaml2ProviderStub({ entityId, state });
+    const { location } = stub;
+    const id = stub._id;
+    const providerData = await _getProviderByLocationAndId({
+      location,
+      entityId64: id,
+      state,
+    });
+    exportData.saml[stub.location][providerData._id] = providerData;
+    await exportMetadata({ providerData, fileData: exportData, state });
+    if (options.deps) {
       await exportDependencies({ providerData, fileData: exportData, state });
-    } catch (error) {
-      printMessage({ message: error.message, type: 'error', state });
     }
+    debugMessage({
+      message: `Saml2Ops.exportSaml2Provider: end [entityId=${entityId}]`,
+      state,
+    });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting saml2 provider ${entityId}`, error);
   }
-  debugMessage({
-    message: `Saml2Ops.exportSaml2Provider: end [entityId=${entityId}]`,
-    state,
-  });
-  return exportData;
 }
 
 /**
@@ -700,40 +778,65 @@ export async function exportSaml2Providers({
   options?: Saml2EntitiesExportOptions;
   state: State;
 }): Promise<Saml2ExportInterface> {
-  const fileData = createSaml2ExportTemplate({ state });
-  const stubs = await readSaml2ProviderStubs({ state });
-  const indicatorId = createProgressIndicator({
-    total: stubs.length,
-    message: 'Exporting SAML2 providers...',
-    state,
-  });
-  for (const stub of stubs) {
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting SAML2 provider ${stub._id}`,
+  let indicatorId: string;
+  const errors: Error[] = [];
+  try {
+    const fileData = createSaml2ExportTemplate({ state });
+    const stubs = await readSaml2ProviderStubs({ state });
+    indicatorId = createProgressIndicator({
+      total: stubs.length,
+      message: 'Exporting SAML2 providers...',
       state,
     });
-    const providerData = await _getProviderByLocationAndId({
-      location: stub.location,
-      entityId64: stub._id,
-      state,
-    });
-    await exportMetadata({ providerData, fileData, state });
-    if (options.deps) {
+    for (const stub of stubs) {
       try {
-        await exportDependencies({ providerData, fileData, state });
+        updateProgressIndicator({
+          id: indicatorId,
+          message: `Exporting SAML2 provider ${stub._id}`,
+          state,
+        });
+        const providerData = await _getProviderByLocationAndId({
+          location: stub.location,
+          entityId64: stub._id,
+          state,
+        });
+        await exportMetadata({ providerData, fileData, state });
+        if (options.deps) {
+          try {
+            await exportDependencies({ providerData, fileData, state });
+          } catch (error) {
+            errors.push(error);
+          }
+        }
+        fileData.saml[stub.location][providerData._id] = providerData;
       } catch (error) {
-        printMessage({ message: error, type: 'error', state });
+        errors.push(
+          new FrodoError(`Error exporting saml2 provider ${stub._id}`, error)
+        );
       }
     }
-    fileData.saml[stub.location][providerData._id] = providerData;
+    if (errors.length > 0) {
+      throw new FrodoError(`Error exporting saml2 providers`, errors);
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${stubs.length} SAML2 providers.`,
+      state,
+    });
+    return fileData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting saml2 providers`,
+      status: 'fail',
+      state,
+    });
+    // re-throw previously caught error
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error exporting saml2 providers`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Exported ${stubs.length} SAML2 providers.`,
-    state,
-  });
-  return fileData;
 }
 
 /**
@@ -751,6 +854,7 @@ export async function importDependencies({
   state: State;
 }) {
   debugMessage({ message: `Saml2Ops.importDependencies: start`, state });
+  const errors: Error[] = [];
   const attrMapperScriptId = get(providerData, [
     'identityProvider',
     'assertionProcessing',
@@ -758,13 +862,21 @@ export async function importDependencies({
     'attributeMapperScript',
   ]);
   if (attrMapperScriptId && attrMapperScriptId !== '[Empty]') {
-    debugMessage({
-      message: `Saml2Ops.importDependencies: attributeMapperScript=${attrMapperScriptId}`,
-      state,
-    });
-    const scriptData = get(fileData, ['script', attrMapperScriptId]);
-    scriptData.script = convertTextArrayToBase64(scriptData.script as string[]);
-    await updateScript({ scriptId: attrMapperScriptId, scriptData, state });
+    try {
+      debugMessage({
+        message: `Saml2Ops.importDependencies: attributeMapperScript=${attrMapperScriptId}`,
+        state,
+      });
+      const scriptData = get(fileData, ['script', attrMapperScriptId]);
+      scriptData.script = convertTextArrayToBase64(
+        scriptData.script as string[]
+      );
+      await updateScript({ scriptId: attrMapperScriptId, scriptData, state });
+    } catch (error) {
+      errors.push(
+        new FrodoError(`Error getting attribute mapper script`, error)
+      );
+    }
   }
   const idpAdapterScriptId = get(providerData, [
     'identityProvider',
@@ -773,13 +885,21 @@ export async function importDependencies({
     'idpAdapterScript',
   ]);
   if (idpAdapterScriptId && idpAdapterScriptId !== '[Empty]') {
-    debugMessage({
-      message: `Saml2Ops.importDependencies: idpAdapterScript=${idpAdapterScriptId}`,
-      state,
-    });
-    const scriptData = get(fileData, ['script', idpAdapterScriptId]);
-    scriptData.script = convertTextArrayToBase64(scriptData.script as string[]);
-    await updateScript({ scriptId: idpAdapterScriptId, scriptData, state });
+    try {
+      debugMessage({
+        message: `Saml2Ops.importDependencies: idpAdapterScript=${idpAdapterScriptId}`,
+        state,
+      });
+      const scriptData = get(fileData, ['script', idpAdapterScriptId]);
+      scriptData.script = convertTextArrayToBase64(
+        scriptData.script as string[]
+      );
+      await updateScript({ scriptId: idpAdapterScriptId, scriptData, state });
+    } catch (error) {
+      errors.push(
+        new FrodoError(`Error getting attribute mapper script`, error)
+      );
+    }
   }
   const spAdapterScriptId = get(providerData, [
     'serviceProvider',
@@ -788,13 +908,24 @@ export async function importDependencies({
     'spAdapterScript',
   ]);
   if (spAdapterScriptId && spAdapterScriptId !== '[Empty]') {
-    debugMessage({
-      message: `Saml2Ops.importDependencies: spAdapterScriptId=${spAdapterScriptId}`,
-      state,
-    });
-    const scriptData = get(fileData, ['script', spAdapterScriptId]);
-    scriptData.script = convertTextArrayToBase64(scriptData.script as string[]);
-    await updateScript({ scriptId: spAdapterScriptId, scriptData, state });
+    try {
+      debugMessage({
+        message: `Saml2Ops.importDependencies: spAdapterScriptId=${spAdapterScriptId}`,
+        state,
+      });
+      const scriptData = get(fileData, ['script', spAdapterScriptId]);
+      scriptData.script = convertTextArrayToBase64(
+        scriptData.script as string[]
+      );
+      await updateScript({ scriptId: spAdapterScriptId, scriptData, state });
+    } catch (error) {
+      errors.push(
+        new FrodoError(`Error getting attribute mapper script`, error)
+      );
+    }
+  }
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing saml2 dependencies`, errors);
   }
   debugMessage({ message: `Saml2Ops.importDependencies: end`, state });
 }
@@ -838,19 +969,18 @@ export async function importSaml2Provider({
 }): Promise<Saml2ProviderSkeleton> {
   debugMessage({ message: `Saml2Ops.importSaml2Provider: start`, state });
   let response = null;
-  const errors = [];
-  const imported = [];
-  const entityId64 = encode(entityId, false);
-  const location = getLocation(entityId64, importData);
-  debugMessage({
-    message: `Saml2Ops.importSaml2Provider: entityId=${entityId}, entityId64=${entityId64}, location=${location}`,
-    state,
-  });
   try {
+    const entityId64 = encode(entityId, false);
+    const location = getLocation(entityId64, importData);
+    debugMessage({
+      message: `Saml2Ops.importSaml2Provider: entityId=${entityId}, entityId64=${entityId64}, location=${location}`,
+      state,
+    });
     if (location) {
       const providerData = importData.saml[location][entityId64];
-      if (options.deps)
+      if (options.deps) {
         await importDependencies({ providerData, fileData: importData, state });
+      }
       let metaData = null;
       if (location === 'remote') {
         metaData = convertTextArrayToBase64Url(
@@ -864,29 +994,20 @@ export async function importSaml2Provider({
           metaData,
           state,
         });
-        imported.push(entityId);
       } catch (createProviderErr) {
         try {
           response = await _updateProvider({ location, providerData, state });
-          imported.push(entityId);
         } catch (error) {
-          errors.push(error);
+          throw new FrodoError(`Error creating saml2 provider`, error);
         }
       }
     } else {
-      throw new Error(`Provider ${entityId} not found in import data!`);
+      throw new FrodoError(
+        `Saml2 provider ${entityId} not found in import data!`
+      );
     }
   } catch (error) {
-    errors.push(error);
-  }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(
-      `Error importing dependencies for ${entityId}:\n${errorMessages}`
-    );
-  }
-  if (0 === imported.length) {
-    throw new Error(`${entityId} not found in import data!`);
+    throw new FrodoError(`Error importing saml2 provider ${entityId}`, error);
   }
   debugMessage({ message: `Saml2Ops.importSaml2Provider: end`, state });
   return response;
@@ -961,12 +1082,15 @@ export async function importSaml2Providers({
         }
       }
     }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error importing saml2 providers`, errors);
+    }
   } catch (error) {
-    errors.push(error);
-  }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+    // re-throw previously caught error
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error importing saml2 providers`, error);
   }
   if (0 === imported.length) {
     throw new Error(`No providers found in import data!`);

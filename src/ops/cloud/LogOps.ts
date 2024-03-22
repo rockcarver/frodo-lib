@@ -13,6 +13,7 @@ import {
   tail as _tail,
 } from '../../api/cloud/LogApi';
 import { State } from '../../shared/State';
+import { FrodoError } from '../FrodoError';
 
 export type Log = {
   /**
@@ -411,8 +412,12 @@ export function resolvePayloadLevel(log: LogEventSkeleton): string {
  * @returns {Promise<string[]>} promise resolving to an array of available log sources
  */
 export async function getLogSources({ state }: { state: State }) {
-  const sources = (await _getSources({ state })).result;
-  return sources;
+  try {
+    const { result } = await _getSources({ state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error getting log sources`, error);
+  }
 }
 
 /**
@@ -426,7 +431,11 @@ export async function getLogApiKey({
   keyId: string;
   state: State;
 }): Promise<LogApiKey> {
-  return _getLogApiKey({ keyId, state });
+  try {
+    return _getLogApiKey({ keyId, state });
+  } catch (error) {
+    throw new FrodoError(`Error getting log api key ${keyId}`, error);
+  }
 }
 
 /**
@@ -444,7 +453,11 @@ export async function isLogApiKeyValid({
   secret: string;
   state: State;
 }): Promise<boolean> {
-  return _isLogApiKeyValid({ keyId, secret, state });
+  try {
+    return _isLogApiKeyValid({ keyId, secret, state });
+  } catch (error) {
+    throw new FrodoError(`Error validating log api key ${keyId}`, error);
+  }
 }
 
 /**
@@ -456,8 +469,12 @@ export async function getLogApiKeys({
 }: {
   state: State;
 }): Promise<LogApiKey[]> {
-  const keys = (await _getLogApiKeys({ state })).result;
-  return keys;
+  try {
+    const { result } = await _getLogApiKeys({ state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error getting log api keys`, error);
+  }
 }
 
 /**
@@ -472,7 +489,11 @@ export async function createLogApiKey({
   keyName: string;
   state: State;
 }): Promise<LogApiKey> {
-  return _createLogApiKey({ keyName, state });
+  try {
+    return _createLogApiKey({ keyName, state });
+  } catch (error) {
+    throw new FrodoError(`Error creating log api key ${keyName}`, error);
+  }
 }
 
 /**
@@ -485,9 +506,13 @@ export async function deleteLogApiKey({
   keyId: string;
   state: State;
 }): Promise<LogApiKey> {
-  const key = await getLogApiKey({ keyId, state });
-  await _deleteLogApiKey({ keyId, state });
-  return key;
+  try {
+    const key = await getLogApiKey({ keyId, state });
+    await _deleteLogApiKey({ keyId, state });
+    return key;
+  } catch (error) {
+    throw new FrodoError(`Error deleting log api key ${keyId}`, error);
+  }
 }
 
 /**
@@ -517,8 +542,7 @@ export async function deleteLogApiKeys({
     errors.push(error);
   }
   if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
+    throw new FrodoError(`Error deleting log api keys`, errors);
   }
   return responses;
 }
@@ -538,7 +562,11 @@ export async function tail({
   cookie: string;
   state: State;
 }): Promise<PagedResult<LogEventSkeleton>> {
-  return _tail({ source, cookie, state });
+  try {
+    return _tail({ source, cookie, state });
+  } catch (error) {
+    throw new FrodoError(`Error tailing logs`, error);
+  }
 }
 
 /**
@@ -562,5 +590,9 @@ export async function fetch({
   cookie: string;
   state: State;
 }): Promise<PagedResult<LogEventSkeleton>> {
-  return _fetch({ source, startTs, endTs, cookie, state });
+  try {
+    return _fetch({ source, startTs, endTs, cookie, state });
+  } catch (error) {
+    throw new FrodoError(`Error fetching logs`, error);
+  }
 }

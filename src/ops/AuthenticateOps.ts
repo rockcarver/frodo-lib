@@ -4,7 +4,6 @@ import { v4 } from 'uuid';
 
 import { step } from '../api/AuthenticateApi';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
-import { FrodoError } from '../FrodoError';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { encodeBase64Url } from '../utils/Base64Utils';
@@ -13,6 +12,7 @@ import { isValidUrl, parseUrl } from '../utils/ExportImportUtils';
 import { CallbackHandler } from './CallbackOps';
 import { getServiceAccount } from './cloud/ServiceAccountOps';
 import { getConnectionProfile } from './ConnectionProfileOps';
+import { FrodoError } from './FrodoError';
 import { createSignedJwtToken, JwkRsa } from './JoseOps';
 import {
   accessToken,
@@ -726,38 +726,45 @@ export async function getSaBearerToken({
 }: {
   state: State;
 }): Promise<AccessTokenMetaType> {
-  debugMessage({
-    message: `AuthenticateOps.getSaBearerToken: start`,
-    state,
-  });
-  let token: AccessTokenMetaType = null;
-  if (state.getUseTokenCache() && (await hasSaBearerToken({ state }))) {
-    try {
-      token = await readSaBearerToken({ state });
-      token.from_cache = true;
+  try {
+    debugMessage({
+      message: `AuthenticateOps.getSaBearerToken: start`,
+      state,
+    });
+    let token: AccessTokenMetaType = null;
+    if (state.getUseTokenCache() && (await hasSaBearerToken({ state }))) {
+      try {
+        token = await readSaBearerToken({ state });
+        token.from_cache = true;
+        debugMessage({
+          message: `AuthenticateOps.getSaBearerToken: end [cached]`,
+          state,
+        });
+      } catch (error) {
+        debugMessage({
+          message: `AuthenticateOps.getSaBearerToken: end [failed cache read]`,
+          state,
+        });
+      }
+    }
+    if (!token) {
+      token = await getFreshSaBearerToken({ state });
+      token.from_cache = false;
       debugMessage({
-        message: `AuthenticateOps.getSaBearerToken: end [cached]`,
-        state,
-      });
-    } catch (error) {
-      debugMessage({
-        message: `AuthenticateOps.getSaBearerToken: end [failed cache read]`,
+        message: `AuthenticateOps.getSaBearerToken: end [fresh]`,
         state,
       });
     }
+    if (state.getUseTokenCache()) {
+      await saveSaBearerToken({ token, state });
+    }
+    return token;
+  } catch (error) {
+    throw new FrodoError(
+      `Error getting access token for service account`,
+      error
+    );
   }
-  if (!token) {
-    token = await getFreshSaBearerToken({ state });
-    token.from_cache = false;
-    debugMessage({
-      message: `AuthenticateOps.getSaBearerToken: end [fresh]`,
-      state,
-    });
-  }
-  if (state.getUseTokenCache()) {
-    await saveSaBearerToken({ token, state });
-  }
-  return token;
 }
 
 /**
@@ -913,35 +920,23 @@ export async function getTokens({
       !state.getServiceAccountJwk()
     ) {
       const conn = await getConnectionProfile({ state });
-      if (conn) {
-        state.setHost(conn.tenant);
-        state.setDeploymentType(conn.deploymentType);
-        state.setUsername(conn.username);
-        state.setPassword(conn.password);
-        state.setAuthenticationService(conn.authenticationService);
-        state.setAuthenticationHeaderOverrides(
-          conn.authenticationHeaderOverrides
-        );
-        state.setServiceAccountId(conn.svcacctId);
-        state.setServiceAccountJwk(conn.svcacctJwk);
-      } else {
-        throw new FrodoError(
-          `No credentials specified and no connection profile found for ${state.getHost()}`
-        );
-      }
+      state.setHost(conn.tenant);
+      state.setDeploymentType(conn.deploymentType);
+      state.setUsername(conn.username);
+      state.setPassword(conn.password);
+      state.setAuthenticationService(conn.authenticationService);
+      state.setAuthenticationHeaderOverrides(
+        conn.authenticationHeaderOverrides
+      );
+      state.setServiceAccountId(conn.svcacctId);
+      state.setServiceAccountJwk(conn.svcacctJwk);
     }
 
     // if host is not a valid URL, try to locate a valid URL and deployment type from connections.json
     if (!isValidUrl(state.getHost())) {
       const conn = await getConnectionProfile({ state });
-      if (conn) {
-        state.setHost(conn.tenant);
-        state.setDeploymentType(conn.deploymentType);
-      } else {
-        throw new FrodoError(
-          `No connection profile found for ${state.getHost()}`
-        );
-      }
+      state.setHost(conn.tenant);
+      state.setDeploymentType(conn.deploymentType);
     }
 
     // now that we have the full tenant URL we can lookup the cookie name
@@ -963,8 +958,6 @@ export async function getTokens({
         state.setUseBearerTokenForAmApis(true);
         await determineDeploymentTypeAndDefaultRealmAndVersion(state);
       } catch (saErr) {
-        debugMessage({ message: saErr.response?.data || saErr, state });
-        debugMessage({ message: state.getState(), state });
         throw new FrodoError(`Service account login error`, saErr);
       }
     }

@@ -14,10 +14,11 @@ import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
   createProgressIndicator,
-  printMessage,
+  printError,
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
+import { FrodoError } from './FrodoError';
 
 export type Node = {
   /**
@@ -208,8 +209,12 @@ export async function readNodeTypes({
 }: {
   state: State;
 }): Promise<NodeTypeSkeleton[]> {
-  const { result } = await _getNodeTypes({ state });
-  return result;
+  try {
+    const { result } = await _getNodeTypes({ state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading node types`, error);
+  }
 }
 
 /**
@@ -221,8 +226,12 @@ export async function readNodes({
 }: {
   state: State;
 }): Promise<NodeSkeleton[]> {
-  const { result } = await _getNodes({ state });
-  return result;
+  try {
+    const { result } = await _getNodes({ state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading nodes`, error);
+  }
 }
 
 /**
@@ -237,8 +246,12 @@ export async function readNodesByType({
   nodeType: string;
   state: State;
 }): Promise<NodeSkeleton[]> {
-  const { result } = await _getNodesByType({ nodeType, state });
-  return result;
+  try {
+    const { result } = await _getNodesByType({ nodeType, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading ${nodeType} nodes`, error);
+  }
 }
 
 /**
@@ -256,7 +269,11 @@ export async function readNode({
   nodeType: string;
   state: State;
 }): Promise<NodeSkeleton> {
-  return _getNode({ nodeId, nodeType, state });
+  try {
+    return _getNode({ nodeId, nodeType, state });
+  } catch (error) {
+    throw new FrodoError(`Error reading ${nodeType} node ${nodeId}`, error);
+  }
 }
 
 /**
@@ -277,16 +294,20 @@ export async function createNode({
   nodeData: NodeSkeleton;
   state: State;
 }): Promise<NodeSkeleton> {
-  if (nodeId) {
-    try {
-      await readNode({ nodeId, nodeType, state });
-    } catch (error) {
-      const result = await updateNode({ nodeId, nodeType, nodeData, state });
-      return result;
+  try {
+    if (nodeId) {
+      try {
+        await readNode({ nodeId, nodeType, state });
+      } catch (error) {
+        const result = await updateNode({ nodeId, nodeType, nodeData, state });
+        return result;
+      }
+      throw new FrodoError(`Node ${nodeId} already exists!`);
     }
-    throw new Error(`Node ${nodeId} already exists!`);
+    return _createNode({ nodeType, nodeData, state });
+  } catch (error) {
+    throw new FrodoError(`Error creating ${nodeType} node ${nodeId}`, error);
   }
-  return _createNode({ nodeType, nodeData, state });
 }
 
 /**
@@ -307,7 +328,11 @@ export async function updateNode({
   nodeData: NodeSkeleton;
   state: State;
 }): Promise<NodeSkeleton> {
-  return _putNode({ nodeId, nodeType, nodeData, state });
+  try {
+    return _putNode({ nodeId, nodeType, nodeData, state });
+  } catch (error) {
+    throw new FrodoError(`Error updating ${nodeType} node ${nodeId}`, error);
+  }
 }
 
 /**
@@ -325,7 +350,11 @@ export async function deleteNode({
   nodeType: string;
   state: State;
 }): Promise<NodeSkeleton> {
-  return _deleteNode({ nodeId, nodeType, state });
+  try {
+    return _deleteNode({ nodeId, nodeType, state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting ${nodeType} node ${nodeId}`, error);
+  }
 }
 
 /**
@@ -353,10 +382,7 @@ export async function findOrphanedNodes({
   try {
     types = (await _getNodeTypes({ state })).result;
   } catch (error) {
-    error.message = `Error retrieving all available node types: ${
-      error.response?.data?.message || error.message
-    }`;
-    throw error;
+    throw new FrodoError(`Error retrieving all available node types`, error);
   }
   for (const type of types) {
     try {
@@ -489,7 +515,7 @@ export async function removeOrphanedNodes({
       });
     } catch (deleteError) {
       errorNodes.push(node);
-      printMessage({ message: ` ${deleteError}`, type: 'error', state });
+      printError(deleteError);
     }
   }
   stopProgressIndicator({

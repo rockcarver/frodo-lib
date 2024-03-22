@@ -12,6 +12,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { FrodoError } from './FrodoError';
 import { readConfigEntitiesByType } from './IdmConfigOps';
 import { ExportMetaData } from './OpsTypes';
 
@@ -220,11 +221,15 @@ export async function readEmailTemplates({
 }: {
   state: State;
 }): Promise<EmailTemplateSkeleton[]> {
-  const templates = await readConfigEntitiesByType({
-    type: EMAIL_TEMPLATE_TYPE,
-    state,
-  });
-  return templates as EmailTemplateSkeleton[];
+  try {
+    const templates = await readConfigEntitiesByType({
+      type: EMAIL_TEMPLATE_TYPE,
+      state,
+    });
+    return templates as EmailTemplateSkeleton[];
+  } catch (error) {
+    throw new FrodoError(`Error reading email templates`, error);
+  }
 }
 
 /**
@@ -239,10 +244,14 @@ export async function readEmailTemplate({
   templateId: string;
   state: State;
 }): Promise<EmailTemplateSkeleton> {
-  return getConfigEntity({
-    entityId: `${EMAIL_TEMPLATE_TYPE}/${templateId}`,
-    state,
-  });
+  try {
+    return getConfigEntity({
+      entityId: `${EMAIL_TEMPLATE_TYPE}/${templateId}`,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(`Error reading email template ${templateId}`, error);
+  }
 }
 
 /**
@@ -254,36 +263,43 @@ export async function exportEmailTemplates({
 }: {
   state: State;
 }): Promise<EmailTemplateExportInterface> {
-  debugMessage({
-    message: `EmailTemplateOps.exportEmailTemplates: start`,
-    state,
-  });
-  const exportData = createEmailTemplateExportTemplate({ state });
-  const emailTemplates = await readEmailTemplates({ state });
-  const indicatorId = createProgressIndicator({
-    total: emailTemplates.length,
-    message: 'Exporting email templates...',
-    state,
-  });
-  for (const emailTemplate of emailTemplates) {
-    const templateId = emailTemplate._id.replace(`${EMAIL_TEMPLATE_TYPE}/`, '');
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting email template ${templateId}`,
+  try {
+    debugMessage({
+      message: `EmailTemplateOps.exportEmailTemplates: start`,
       state,
     });
-    exportData.emailTemplate[templateId] = emailTemplate;
+    const exportData = createEmailTemplateExportTemplate({ state });
+    const emailTemplates = await readEmailTemplates({ state });
+    const indicatorId = createProgressIndicator({
+      total: emailTemplates.length,
+      message: 'Exporting email templates...',
+      state,
+    });
+    for (const emailTemplate of emailTemplates) {
+      const templateId = emailTemplate._id.replace(
+        `${EMAIL_TEMPLATE_TYPE}/`,
+        ''
+      );
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting email template ${templateId}`,
+        state,
+      });
+      exportData.emailTemplate[templateId] = emailTemplate;
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${emailTemplates.length} email templates.`,
+      state,
+    });
+    debugMessage({
+      message: `EmailTemplateOps.exportEmailTemplates: end`,
+      state,
+    });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting email templates`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Exported ${emailTemplates.length} email templates.`,
-    state,
-  });
-  debugMessage({
-    message: `EmailTemplateOps.exportEmailTemplates: end`,
-    state,
-  });
-  return exportData;
 }
 
 /**
@@ -311,16 +327,23 @@ export async function createEmailTemplate({
       state,
     });
   } catch (error) {
-    const result = await putConfigEntity({
-      entityId: `${EMAIL_TEMPLATE_TYPE}/${templateId}`,
-      entityData: templateData,
-      state,
-    });
-    debugMessage({
-      message: `EmailTemplateOps.createEmailTemplate: end`,
-      state,
-    });
-    return result as EmailTemplateSkeleton;
+    try {
+      const result = await putConfigEntity({
+        entityId: `${EMAIL_TEMPLATE_TYPE}/${templateId}`,
+        entityData: templateData,
+        state,
+      });
+      debugMessage({
+        message: `EmailTemplateOps.createEmailTemplate: end`,
+        state,
+      });
+      return result as EmailTemplateSkeleton;
+    } catch (error) {
+      throw new FrodoError(
+        `Error creating email template ${templateId}`,
+        error
+      );
+    }
   }
   throw new Error(`Email template ${templateId} already exists!`);
 }
@@ -340,11 +363,15 @@ export async function updateEmailTemplate({
   templateData: EmailTemplateSkeleton;
   state: State;
 }): Promise<EmailTemplateSkeleton> {
-  return putConfigEntity({
-    entityId: `${EMAIL_TEMPLATE_TYPE}/${templateId}`,
-    entityData: templateData,
-    state,
-  });
+  try {
+    return putConfigEntity({
+      entityId: `${EMAIL_TEMPLATE_TYPE}/${templateId}`,
+      entityData: templateData,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(`Error updting email template ${templateId}`, error);
+  }
 }
 
 /**
@@ -384,12 +411,11 @@ export async function importEmailTemplates({
       errors.push(e);
     }
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing email templates`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo email templates found in import data!`);
+    throw new FrodoError(`No email templates found in import data`);
   }
   debugMessage({
     message: `EmailTemplateOps.importEmailTemplates: end`,
@@ -407,29 +433,45 @@ export async function deleteEmailTemplates({
 }: {
   state: State;
 }): Promise<EmailTemplateSkeleton[]> {
-  debugMessage({
-    message: `EmailTemplateOps.deleteEmailTemplates: start`,
-    state,
-  });
-  const result: EmailTemplateSkeleton[] = [];
-  const templates = await readEmailTemplates({ state });
-  for (const template of templates) {
+  const errors: Error[] = [];
+  try {
     debugMessage({
-      message: `EmailTemplateOps.deleteEmailTemplates: '${template['_id']}'`,
+      message: `EmailTemplateOps.deleteEmailTemplates: start`,
       state,
     });
-    result.push(
-      await deleteConfigEntity({
-        entityId: template['_id'],
-        state,
-      })
-    );
+    const result: EmailTemplateSkeleton[] = [];
+    const templates = await readEmailTemplates({ state });
+    for (const template of templates) {
+      try {
+        debugMessage({
+          message: `EmailTemplateOps.deleteEmailTemplates: '${template['_id']}'`,
+          state,
+        });
+        result.push(
+          await deleteConfigEntity({
+            entityId: template['_id'],
+            state,
+          })
+        );
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error deleting email templates`, errors);
+    }
+    debugMessage({
+      message: `EmailTemplateOps.deleteEmailTemplates: end`,
+      state,
+    });
+    return result;
+  } catch (error) {
+    // re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error deleting email templates`, error);
   }
-  debugMessage({
-    message: `EmailTemplateOps.deleteEmailTemplates: end`,
-    state,
-  });
-  return result;
 }
 
 /**
@@ -444,8 +486,12 @@ export async function deleteEmailTemplate({
   templateId: string;
   state: State;
 }): Promise<EmailTemplateSkeleton> {
-  return deleteConfigEntity({
-    entityId: `${EMAIL_TEMPLATE_TYPE}/${templateId}`,
-    state,
-  });
+  try {
+    return deleteConfigEntity({
+      entityId: `${EMAIL_TEMPLATE_TYPE}/${templateId}`,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(`Error deleting email template ${templateId}`, error);
+  }
 }

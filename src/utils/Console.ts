@@ -32,6 +32,26 @@ export function printMessage({
 }
 
 /**
+ * Prints an error message from an error object and an optional custom message
+ *
+ * @param error error object
+ */
+export function printError({
+  error,
+  message,
+  state,
+}: {
+  error: Error;
+  message?: string;
+  state: State;
+}) {
+  const handler = state.getErrorHandler();
+  if (handler) {
+    handler(error, message);
+  }
+}
+
+/**
  * Handles verbose output. The caller decides and implements how
  * the messages are handled, by implementing the handler function
  * on its side. Implementing and registering a `handler` is optional.

@@ -22,6 +22,7 @@ import {
   updateProgressIndicator,
 } from '../../utils/Console';
 import { getMetadata } from '../../utils/ExportImportUtils';
+import { FrodoError } from '../FrodoError';
 import { ExportMetaData } from '../OpsTypes';
 
 export type Secret = {
@@ -250,35 +251,6 @@ export type Secret = {
   ): Promise<VersionOfSecretSkeleton>;
 };
 
-function getEncodedValue(
-  value: string,
-  encoding: string,
-  state: State
-): string {
-  let finalValue: string = '';
-  debugMessage({ message: `SecretsOps.getEncodedValue: start`, state });
-  if (encoding === 'pem') {
-    if (isBase64Encoded(value)) {
-      finalValue = value; // this means the PEM is already b64 encoded
-    } else {
-      finalValue = encode(value); // the PEM is unencoded, we need to encode
-    }
-  } else if (encoding === 'base64hmac') {
-    if (isBase64Encoded(decode(value))) {
-      finalValue = value; // the value is already doubly b64 encoded key
-    } else {
-      finalValue = encode(value); // value is b64 encoded key, need to encode before creating secret
-    }
-  } else {
-    finalValue = encode(value);
-  }
-  debugMessage({
-    message: `SecretsOps.getEncodedValue: finalValue: ${finalValue}`,
-    state,
-  });
-  return finalValue;
-}
-
 export default (state: State): Secret => {
   return {
     async readSecrets() {
@@ -398,6 +370,35 @@ export interface SecretsExportInterface {
   secrets: Record<string, SecretSkeleton>;
 }
 
+function getEncodedValue(
+  value: string,
+  encoding: string,
+  state: State
+): string {
+  let finalValue: string = '';
+  debugMessage({ message: `SecretsOps.getEncodedValue: start`, state });
+  if (encoding === 'pem') {
+    if (isBase64Encoded(value)) {
+      finalValue = value; // this means the PEM is already b64 encoded
+    } else {
+      finalValue = encode(value); // the PEM is unencoded, we need to encode
+    }
+  } else if (encoding === 'base64hmac') {
+    if (isBase64Encoded(decode(value))) {
+      finalValue = value; // the value is already doubly b64 encoded key
+    } else {
+      finalValue = encode(value); // value is b64 encoded key, need to encode before creating secret
+    }
+  } else {
+    finalValue = encode(value);
+  }
+  debugMessage({
+    message: `SecretsOps.getEncodedValue: finalValue: ${finalValue}`,
+    state,
+  });
+  return finalValue;
+}
+
 export function createSecretsExportTemplate({
   state,
 }: {
@@ -416,12 +417,16 @@ export async function exportSecret({
   secretId: string;
   state: State;
 }): Promise<SecretsExportInterface> {
-  debugMessage({ message: `SecretsOps.exportSecret: start`, state });
-  const exportData = createSecretsExportTemplate({ state });
-  const secret = await _getSecret({ secretId, state });
-  exportData.secrets[secret._id] = secret;
-  debugMessage({ message: `VariablesOps.exportSecret: end`, state });
-  return exportData;
+  try {
+    debugMessage({ message: `SecretsOps.exportSecret: start`, state });
+    const exportData = createSecretsExportTemplate({ state });
+    const secret = await _getSecret({ secretId, state });
+    exportData.secrets[secret._id] = secret;
+    debugMessage({ message: `VariablesOps.exportSecret: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting secret ${secretId}`, error);
+  }
 }
 
 export async function exportSecrets({
@@ -429,29 +434,40 @@ export async function exportSecrets({
 }: {
   state: State;
 }): Promise<SecretsExportInterface> {
-  debugMessage({ message: `SecretsOps.exportSecrets: start`, state });
-  const exportData = createSecretsExportTemplate({ state });
-  const secrets = await readSecrets({ state });
-  const indicatorId = createProgressIndicator({
-    total: secrets.length,
-    message: 'Exporting secrets...',
-    state,
-  });
-  for (const secret of secrets) {
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting secret ${secret._id}`,
+  let indicatorId: string;
+  try {
+    debugMessage({ message: `SecretsOps.exportSecrets: start`, state });
+    const exportData = createSecretsExportTemplate({ state });
+    const secrets = await readSecrets({ state });
+    indicatorId = createProgressIndicator({
+      total: secrets.length,
+      message: 'Exporting secrets...',
       state,
     });
-    exportData.secrets[secret._id] = secret;
+    for (const secret of secrets) {
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting secret ${secret._id}`,
+        state,
+      });
+      exportData.secrets[secret._id] = secret;
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${secrets.length} secrets.`,
+      state,
+    });
+    debugMessage({ message: `SecretsOps.exportSecrets: end`, state });
+    return exportData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting secrets`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(`Error exporting secrets`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Exported ${secrets.length} secrets.`,
-    state,
-  });
-  debugMessage({ message: `SecretsOps.exportSecrets: end`, state });
-  return exportData;
 }
 
 export async function enableVersionOfSecret({
@@ -463,12 +479,19 @@ export async function enableVersionOfSecret({
   version: string;
   state: State;
 }) {
-  return _setStatusOfVersionOfSecret({
-    secretId,
-    version,
-    status: 'ENABLED',
-    state,
-  });
+  try {
+    return _setStatusOfVersionOfSecret({
+      secretId,
+      version,
+      status: 'ENABLED',
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error enabling version ${version} of secret ${secretId}`,
+      error
+    );
+  }
 }
 
 export async function disableVersionOfSecret({
@@ -480,12 +503,19 @@ export async function disableVersionOfSecret({
   version: string;
   state: State;
 }) {
-  return _setStatusOfVersionOfSecret({
-    secretId,
-    version,
-    status: 'DISABLED',
-    state,
-  });
+  try {
+    return _setStatusOfVersionOfSecret({
+      secretId,
+      version,
+      status: 'DISABLED',
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error disabling version ${version} of secret ${secretId}`,
+      error
+    );
+  }
 }
 
 export async function readSecret({
@@ -495,7 +525,11 @@ export async function readSecret({
   secretId: string;
   state: State;
 }): Promise<SecretSkeleton> {
-  return await _getSecret({ secretId, state });
+  try {
+    return await _getSecret({ secretId, state });
+  } catch (error) {
+    throw new FrodoError(`Error reading secret ${secretId}`, error);
+  }
 }
 
 export async function readSecrets({
@@ -503,8 +537,12 @@ export async function readSecrets({
 }: {
   state: State;
 }): Promise<SecretSkeleton[]> {
-  const { result } = await _getSecrets({ state });
-  return result;
+  try {
+    const { result } = await _getSecrets({ state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading secrets`, error);
+  }
 }
 
 export async function createSecret({
@@ -522,14 +560,18 @@ export async function createSecret({
   useInPlaceholders: boolean;
   state: State;
 }) {
-  return _putSecret({
-    secretId,
-    value: getEncodedValue(value, encoding, state),
-    description,
-    encoding,
-    useInPlaceholders,
-    state,
-  });
+  try {
+    return _putSecret({
+      secretId,
+      value: getEncodedValue(value, encoding, state),
+      description,
+      encoding,
+      useInPlaceholders,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(`Error creating secret ${secretId}`, error);
+  }
 }
 
 export async function createVersionOfSecret({
@@ -541,20 +583,90 @@ export async function createVersionOfSecret({
   value: string;
   state: State;
 }) {
-  // first get the secret encoding
-  let secret: SecretSkeleton = null;
-  secret = await readSecret({ secretId, state });
-  // now create the new version (using encoding to calculate the correctly encoded value)
-  return _createNewVersionOfSecret({
-    secretId,
-    value: getEncodedValue(value, secret.encoding, state),
-    state,
-  });
+  try {
+    // first get the secret encoding
+    let secret: SecretSkeleton = null;
+    secret = await readSecret({ secretId, state });
+    // now create the new version (using encoding to calculate the correctly encoded value)
+    return _createNewVersionOfSecret({
+      secretId,
+      value: getEncodedValue(value, secret.encoding, state),
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error creating new version of secret ${secretId}`,
+      error
+    );
+  }
 }
 
-export {
-  _deleteSecret as deleteSecret,
-  _getVersionOfSecret as readVersionOfSecret,
-  _getSecretVersions as readVersionsOfSecret,
-  _setSecretDescription as updateSecretDescription,
-};
+export async function deleteSecret({
+  secretId,
+  state,
+}: {
+  secretId: string;
+  state: State;
+}) {
+  try {
+    return _deleteSecret({ secretId, state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting secret ${secretId}`, error);
+  }
+}
+
+export async function readVersionOfSecret({
+  secretId,
+  version,
+  state,
+}: {
+  secretId: string;
+  version: string;
+  state: State;
+}) {
+  try {
+    return _getVersionOfSecret({ secretId, version, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error deleting version ${version} of secret ${secretId}`,
+      error
+    );
+  }
+}
+
+export async function readVersionsOfSecret({
+  secretId,
+  state,
+}: {
+  secretId: string;
+  state: State;
+}) {
+  try {
+    return _getSecretVersions({ secretId, state });
+  } catch (error) {
+    throw new FrodoError(`Error reading secret ${secretId}`, error);
+  }
+}
+
+export async function updateSecretDescription({
+  secretId,
+  description,
+  state,
+}: {
+  secretId: string;
+  description: string;
+  state: State;
+}) {
+  try {
+    return _setSecretDescription({
+      secretId,
+      description,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error updating description of secret ${secretId}`,
+      error
+    );
+  }
+}

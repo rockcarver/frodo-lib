@@ -8,6 +8,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { FrodoError } from './FrodoError';
 import {
   deleteConfigEntity,
   readConfigEntitiesByType,
@@ -299,23 +300,27 @@ export async function readSyncMappings({
 }: {
   state: State;
 }): Promise<MappingSkeleton[]> {
-  debugMessage({
-    message: `MappingOps.readLegacyMappings: start`,
-    state,
-  });
-  const sync = await readConfigEntity({
-    entityId: 'sync',
-    state,
-  });
-  const mappings = (sync.mappings as MappingSkeleton[]).map((it) => {
-    it._id = `sync/${it.name}`;
-    return it;
-  });
-  debugMessage({
-    message: `MappingOps.readLegacyMappings: end`,
-    state,
-  });
-  return mappings;
+  try {
+    debugMessage({
+      message: `MappingOps.readLegacyMappings: start`,
+      state,
+    });
+    const sync = await readConfigEntity({
+      entityId: 'sync',
+      state,
+    });
+    const mappings = (sync.mappings as MappingSkeleton[]).map((it) => {
+      it._id = `sync/${it.name}`;
+      return it;
+    });
+    debugMessage({
+      message: `MappingOps.readLegacyMappings: end`,
+      state,
+    });
+    return mappings;
+  } catch (error) {
+    throw new FrodoError(`Error reading sync mappings`, error);
+  }
 }
 
 /**
@@ -333,35 +338,39 @@ export async function readMappings({
   moType?: string;
   state: State;
 }): Promise<MappingSkeleton[]> {
-  debugMessage({
-    message: `MappingOps.readMappings: start [connectorId=${
-      connectorId ? connectorId : 'all'
-    }, moType=${moType ? moType : 'all'}]`,
-    state,
-  });
-  let mappings = (await readConfigEntitiesByType({
-    type: 'mapping',
-    state,
-  })) as MappingSkeleton[];
-  const legacyMappings = await readSyncMappings({ state });
-  mappings = mappings.concat(legacyMappings);
-  if (connectorId)
-    mappings = mappings.filter(
-      (mapping) =>
-        mapping.source.startsWith(`system/${connectorId}/`) ||
-        mapping.target.startsWith(`system/${connectorId}/`)
-    );
-  if (moType)
-    mappings = mappings.filter(
-      (mapping) =>
-        mapping.source === `managed/${moType}` ||
-        mapping.target === `managed/${moType}`
-    );
-  debugMessage({
-    message: `MappingOps.readMappings: end`,
-    state,
-  });
-  return mappings;
+  try {
+    debugMessage({
+      message: `MappingOps.readMappings: start [connectorId=${
+        connectorId ? connectorId : 'all'
+      }, moType=${moType ? moType : 'all'}]`,
+      state,
+    });
+    let mappings = (await readConfigEntitiesByType({
+      type: 'mapping',
+      state,
+    })) as MappingSkeleton[];
+    const legacyMappings = await readSyncMappings({ state });
+    mappings = mappings.concat(legacyMappings);
+    if (connectorId)
+      mappings = mappings.filter(
+        (mapping) =>
+          mapping.source.startsWith(`system/${connectorId}/`) ||
+          mapping.target.startsWith(`system/${connectorId}/`)
+      );
+    if (moType)
+      mappings = mappings.filter(
+        (mapping) =>
+          mapping.source === `managed/${moType}` ||
+          mapping.target === `managed/${moType}`
+      );
+    debugMessage({
+      message: `MappingOps.readMappings: end`,
+      state,
+    });
+    return mappings;
+  } catch (error) {
+    throw new FrodoError(`Error reading mappings`, error);
+  }
 }
 
 /**
@@ -381,7 +390,7 @@ export async function readMapping({
     for (const mapping of mappings) {
       if (mapping._id === mappingId) return mapping;
     }
-    throw new Error(`Mapping '${mappingId}' not found!`);
+    throw new FrodoError(`Mapping '${mappingId}' not found!`);
   } else if (mappingId.startsWith('mapping/')) {
     const mapping = await readConfigEntity({
       entityId: mappingId,
@@ -389,7 +398,7 @@ export async function readMapping({
     });
     return mapping as MappingSkeleton;
   } else {
-    throw new Error(
+    throw new FrodoError(
       `Invalid mapping id ${mappingId}. Must start with 'sync/' or 'mapping/'`
     );
   }
@@ -420,18 +429,22 @@ export async function createMapping({
       state,
     });
   } catch (error) {
-    const result = await updateMapping({
-      mappingId,
-      mappingData,
-      state,
-    });
-    debugMessage({
-      message: `MappingOps.createMapping: end`,
-      state,
-    });
-    return result as MappingSkeleton;
+    try {
+      const result = await updateMapping({
+        mappingId,
+        mappingData,
+        state,
+      });
+      debugMessage({
+        message: `MappingOps.createMapping: end`,
+        state,
+      });
+      return result as MappingSkeleton;
+    } catch (error) {
+      throw new FrodoError(`Error creating mapping ${mappingId}`, error);
+    }
   }
-  throw new Error(`Mapping ${mappingId} already exists!`);
+  throw new FrodoError(`Mapping ${mappingId} already exists!`);
 }
 
 /**
@@ -450,34 +463,44 @@ export async function updateMapping({
   state: State;
 }): Promise<MappingSkeleton> {
   if (mappingId.startsWith('sync/')) {
-    let mappings = await readMappings({ state });
-    mappings = mappings.map((mapping) => {
-      if (mappingId == mapping._id) {
-        return mappingData;
+    try {
+      let mappings = await readMappings({ state });
+      mappings = mappings.map((mapping) => {
+        if (mappingId == mapping._id) {
+          return mappingData;
+        }
+        return mapping;
+      });
+      const sync = await putConfigEntity({
+        entityId: 'sync',
+        entityData: { mappings },
+        state,
+      });
+      for (const mapping of sync.mappings.map((it: MappingSkeleton) => {
+        it._id = `sync/${it.name}`;
+        return it;
+      })) {
+        if (mapping._id === mappingId) return mapping;
       }
-      return mapping;
-    });
-    const sync = await putConfigEntity({
-      entityId: 'sync',
-      entityData: { mappings },
-      state,
-    });
-    for (const mapping of sync.mappings.map((it: MappingSkeleton) => {
-      it._id = `sync/${it.name}`;
-      return it;
-    })) {
-      if (mapping._id === mappingId) return mapping;
+    } catch (error) {
+      throw new FrodoError(`Error updating sync mapping ${mappingId}`, error);
     }
-    throw new Error(`Mapping ${mappingId} not found after successful update!`);
+    throw new FrodoError(
+      `Mapping ${mappingId} not found after successful update!`
+    );
   } else if (mappingId.startsWith('mapping/')) {
-    const mapping = await putConfigEntity({
-      entityId: mappingId,
-      entityData: mappingData,
-      state,
-    });
-    return mapping;
+    try {
+      const mapping = await putConfigEntity({
+        entityId: mappingId,
+        entityData: mappingData,
+        state,
+      });
+      return mapping;
+    } catch (error) {
+      throw new FrodoError(`Error updating mapping ${mappingId}`, error);
+    }
   } else {
-    throw new Error(
+    throw new FrodoError(
       `Invalid mapping id ${mappingId}. Must start with 'sync/' or 'mapping/'`
     );
   }
@@ -495,12 +518,16 @@ export async function updateLegacyMappings({
   mappings: MappingSkeleton[];
   state: State;
 }): Promise<MappingSkeleton[]> {
-  const sync = await putConfigEntity({
-    entityId: 'sync',
-    entityData: { mappings },
-    state,
-  });
-  return sync.mappings;
+  try {
+    const sync = await putConfigEntity({
+      entityId: 'sync',
+      entityData: { mappings },
+      state,
+    });
+    return sync.mappings;
+  } catch (error) {
+    throw new FrodoError(`Error updating legacy mappings`, error);
+  }
 }
 
 /**
@@ -518,125 +545,133 @@ export async function deleteMappings({
   moType?: string;
   state: State;
 }): Promise<MappingSkeleton[]> {
-  debugMessage({ message: `MappingOps.deleteMappings: start`, state });
-  const mappings = await readMappings({ state });
-  const deletedMappings: MappingSkeleton[] = [];
-  // delete all mappings
-  if (!connectorId && !moType) {
-    // delete all mappings in sync.json
-    await updateLegacyMappings({
-      mappings: [],
-      state,
-    });
-    for (const mapping of mappings.filter((it) => it._id.startsWith('sync/'))) {
-      deletedMappings.push(mapping);
-    }
-    // delete all the new mappings
-    for (const mapping of mappings.filter((it) =>
-      it._id.startsWith('mapping/')
-    )) {
-      deletedMappings.push(
-        await deleteMapping({ mappingId: mapping._id, state })
-      );
-    }
-    return deletedMappings;
-  }
-  // delete filtered mappings
-  else {
-    let mappingsToDelete: MappingSkeleton[] = [];
-    if (connectorId) {
-      debugMessage({
-        message: `MappingOps.deleteMappings: select mappings for connector ${connectorId}`,
+  try {
+    debugMessage({ message: `MappingOps.deleteMappings: start`, state });
+    const mappings = await readMappings({ state });
+    const deletedMappings: MappingSkeleton[] = [];
+    // delete all mappings
+    if (!connectorId && !moType) {
+      // delete all mappings in sync.json
+      await updateLegacyMappings({
+        mappings: [],
         state,
       });
-      mappingsToDelete = mappings.filter(
-        (mapping) =>
-          mapping.source.startsWith(`system/${connectorId}/`) ||
-          mapping.target.startsWith(`system/${connectorId}/`)
-      );
+      for (const mapping of mappings.filter((it) =>
+        it._id.startsWith('sync/')
+      )) {
+        deletedMappings.push(mapping);
+      }
+      // delete all the new mappings
+      for (const mapping of mappings.filter((it) =>
+        it._id.startsWith('mapping/')
+      )) {
+        deletedMappings.push(
+          await deleteMapping({ mappingId: mapping._id, state })
+        );
+      }
+      return deletedMappings;
     }
-    if (moType) {
+    // delete filtered mappings
+    else {
+      let mappingsToDelete: MappingSkeleton[] = [];
+      if (connectorId) {
+        debugMessage({
+          message: `MappingOps.deleteMappings: select mappings for connector ${connectorId}`,
+          state,
+        });
+        mappingsToDelete = mappings.filter(
+          (mapping) =>
+            mapping.source.startsWith(`system/${connectorId}/`) ||
+            mapping.target.startsWith(`system/${connectorId}/`)
+        );
+      }
+      if (moType) {
+        debugMessage({
+          message: `MappingOps.deleteMappings: select mappings for managed object type ${moType}`,
+          state,
+        });
+        mappingsToDelete = mappingsToDelete.filter(
+          (mapping) =>
+            mapping.source === `managed/${moType}` ||
+            mapping.target === `managed/${moType}`
+        );
+      }
+      // filter only sync mappings
+      const legacyMappingIdsToDelete = mappingsToDelete
+        .filter((it) => it._id.startsWith('sync/'))
+        .map((it) => it._id);
       debugMessage({
-        message: `MappingOps.deleteMappings: select mappings for managed object type ${moType}`,
+        message: `MappingOps.deleteMappings: selected ${
+          mappingsToDelete.length
+        } mappings: ${legacyMappingIdsToDelete.join(', ')}`,
         state,
       });
-      mappingsToDelete = mappingsToDelete.filter(
-        (mapping) =>
-          mapping.source === `managed/${moType}` ||
-          mapping.target === `managed/${moType}`
+      const updatedLegacyMappings = mappings.filter(
+        (mapping) => !legacyMappingIdsToDelete.includes(mapping._id)
       );
-    }
-    // filter only sync mappings
-    const legacyMappingIdsToDelete = mappingsToDelete
-      .filter((it) => it._id.startsWith('sync/'))
-      .map((it) => it._id);
-    debugMessage({
-      message: `MappingOps.deleteMappings: selected ${
-        mappingsToDelete.length
-      } mappings: ${legacyMappingIdsToDelete.join(', ')}`,
-      state,
-    });
-    const updatedLegacyMappings = mappings.filter(
-      (mapping) => !legacyMappingIdsToDelete.includes(mapping._id)
-    );
-    debugMessage({
-      message: `MappingOps.deleteMappings: ${
-        updatedLegacyMappings.length
-      } remaining mappings: ${updatedLegacyMappings
-        .map((mapping) => mapping._id)
-        .join(', ')}`,
-      state,
-    });
-    // update the mappings
-    const finalMappings = await updateLegacyMappings({
-      mappings: updatedLegacyMappings,
-      state,
-    });
-    for (const mapping of mappings.filter((it) => it._id.startsWith('sync/'))) {
-      deletedMappings.push(mapping);
-    }
-    debugMessage({
-      message: `MappingOps.deleteMappings: ${
-        finalMappings.length
-      } mappings after update: ${finalMappings
-        .map((mapping) => mapping._id)
-        .join(', ')}`,
-      state,
-    });
-    // are there any mappings that were not deleted?
-    const undeletedMappings = finalMappings.filter((mapping) =>
-      legacyMappingIdsToDelete.includes(mapping._id)
-    );
-    // delete all the new mappings
-    for (const mapping of mappings.filter((it) =>
-      it._id.startsWith('mapping/')
-    )) {
-      deletedMappings.push(
-        await deleteMapping({ mappingId: mapping._id, state })
-      );
-    }
-    // if there were undeleted mappings, throw exception
-    if (undeletedMappings.length > 0) {
-      const message = `${
-        undeletedMappings.length
-      } mappings were not deleted from sync.json: ${undeletedMappings
-        .map((mapping) => mapping._id)
-        .join(', ')}`;
       debugMessage({
-        message,
+        message: `MappingOps.deleteMappings: ${
+          updatedLegacyMappings.length
+        } remaining mappings: ${updatedLegacyMappings
+          .map((mapping) => mapping._id)
+          .join(', ')}`,
         state,
       });
-      throw new Error(message);
+      // update the mappings
+      const finalMappings = await updateLegacyMappings({
+        mappings: updatedLegacyMappings,
+        state,
+      });
+      for (const mapping of mappings.filter((it) =>
+        it._id.startsWith('sync/')
+      )) {
+        deletedMappings.push(mapping);
+      }
+      debugMessage({
+        message: `MappingOps.deleteMappings: ${
+          finalMappings.length
+        } mappings after update: ${finalMappings
+          .map((mapping) => mapping._id)
+          .join(', ')}`,
+        state,
+      });
+      // are there any mappings that were not deleted?
+      const undeletedMappings = finalMappings.filter((mapping) =>
+        legacyMappingIdsToDelete.includes(mapping._id)
+      );
+      // delete all the new mappings
+      for (const mapping of mappings.filter((it) =>
+        it._id.startsWith('mapping/')
+      )) {
+        deletedMappings.push(
+          await deleteMapping({ mappingId: mapping._id, state })
+        );
+      }
+      // if there were undeleted mappings, throw exception
+      if (undeletedMappings.length > 0) {
+        const message = `${
+          undeletedMappings.length
+        } mappings were not deleted from sync.json: ${undeletedMappings
+          .map((mapping) => mapping._id)
+          .join(', ')}`;
+        debugMessage({
+          message,
+          state,
+        });
+        throw new FrodoError(message);
+      }
+      debugMessage({
+        message: `MappingOps.deleteMappings: deleted ${
+          mappingsToDelete.length
+        } mappings: ${legacyMappingIdsToDelete.join(', ')}`,
+        state,
+      });
+      debugMessage({ message: `MappingOps.deleteMappings: end`, state });
+      // otherwise return deleted mappings
+      return deletedMappings;
     }
-    debugMessage({
-      message: `MappingOps.deleteMappings: deleted ${
-        mappingsToDelete.length
-      } mappings: ${legacyMappingIdsToDelete.join(', ')}`,
-      state,
-    });
-    debugMessage({ message: `MappingOps.deleteMappings: end`, state });
-    // otherwise return deleted mappings
-    return deletedMappings;
+  } catch (error) {
+    throw new FrodoError(`Error deleting mappings`, error);
   }
 }
 
@@ -652,72 +687,79 @@ export async function deleteMapping({
   mappingId: string;
   state: State;
 }): Promise<MappingSkeleton> {
-  debugMessage({ message: `MappingOps.deleteMapping: start`, state });
-  if (mappingId.startsWith('sync/')) {
-    const mappings = await readMappings({ state });
-    const mappingsToDelete = mappings.filter(
-      (mapping) => mapping._id === mappingId
-    );
-    if (mappingsToDelete.length !== 1) {
-      const message = `Mapping ${mappingId} not found in sync.json or multiple mappings found!`;
-      debugMessage({ message: `MappingOps.deleteMapping: ${message}`, state });
-      throw new Error(message);
-    }
-    const updatedMappings = mappings.filter(
-      (mapping) => mapping._id !== mappingId
-    );
-    debugMessage({
-      message: `MappingOps.deleteMapping: ${
-        updatedMappings.length
-      } remaining mappings in sync.json: ${updatedMappings
-        .map((mapping) => mapping._id)
-        .join(', ')}`,
-      state,
-    });
-    // update the mappings
-    const finalMappings = await updateLegacyMappings({
-      mappings: updatedMappings,
-      state,
-    });
-    debugMessage({
-      message: `MappingOps.deleteMapping: ${
-        finalMappings.length
-      } mappings in sync.json after update: ${finalMappings
-        .map((mapping) => mapping._id)
-        .join(', ')}`,
-      state,
-    });
-    // are there any mappings that were not deleted?
-    const undeletedMappings = finalMappings.filter(
-      (mapping) => mappingId == mapping._id
-    );
-    // if so, throw exception
-    if (undeletedMappings.length > 0) {
-      const message = `Mapping ${undeletedMappings[0]} was not deleted from sync.json after successful update.`;
+  try {
+    debugMessage({ message: `MappingOps.deleteMapping: start`, state });
+    if (mappingId.startsWith('sync/')) {
+      const mappings = await readMappings({ state });
+      const mappingsToDelete = mappings.filter(
+        (mapping) => mapping._id === mappingId
+      );
+      if (mappingsToDelete.length !== 1) {
+        const message = `Mapping ${mappingId} not found in sync.json or multiple mappings found!`;
+        debugMessage({
+          message: `MappingOps.deleteMapping: ${message}`,
+          state,
+        });
+        throw new FrodoError(message);
+      }
+      const updatedMappings = mappings.filter(
+        (mapping) => mapping._id !== mappingId
+      );
       debugMessage({
-        message,
+        message: `MappingOps.deleteMapping: ${
+          updatedMappings.length
+        } remaining mappings in sync.json: ${updatedMappings
+          .map((mapping) => mapping._id)
+          .join(', ')}`,
         state,
       });
-      throw new Error(message);
+      // update the mappings
+      const finalMappings = await updateLegacyMappings({
+        mappings: updatedMappings,
+        state,
+      });
+      debugMessage({
+        message: `MappingOps.deleteMapping: ${
+          finalMappings.length
+        } mappings in sync.json after update: ${finalMappings
+          .map((mapping) => mapping._id)
+          .join(', ')}`,
+        state,
+      });
+      // are there any mappings that were not deleted?
+      const undeletedMappings = finalMappings.filter(
+        (mapping) => mappingId == mapping._id
+      );
+      // if so, throw exception
+      if (undeletedMappings.length > 0) {
+        const message = `Mapping ${undeletedMappings[0]} was not deleted from sync.json after successful update.`;
+        debugMessage({
+          message,
+          state,
+        });
+        throw new FrodoError(message);
+      }
+      debugMessage({
+        message: `MappingOps.deleteMapping: deleted legacy mapping ${mappingId} from sync.json.`,
+        state,
+      });
+      debugMessage({ message: `MappingOps.deleteMapping: end`, state });
+      // otherwise return deleted mapping
+      return mappingsToDelete[0];
+    } else if (mappingId.startsWith('mapping/')) {
+      const mapping = await deleteConfigEntity({
+        entityId: mappingId,
+        state,
+      });
+      debugMessage({ message: `MappingOps.deleteMapping: end`, state });
+      return mapping as MappingSkeleton;
+    } else {
+      throw new FrodoError(
+        `Invalid mapping id ${mappingId}. Must start with 'sync/' or 'mapping/'`
+      );
     }
-    debugMessage({
-      message: `MappingOps.deleteMapping: deleted legacy mapping ${mappingId} from sync.json.`,
-      state,
-    });
-    debugMessage({ message: `MappingOps.deleteMapping: end`, state });
-    // otherwise return deleted mapping
-    return mappingsToDelete[0];
-  } else if (mappingId.startsWith('mapping/')) {
-    const mapping = await deleteConfigEntity({
-      entityId: mappingId,
-      state,
-    });
-    debugMessage({ message: `MappingOps.deleteMapping: end`, state });
-    return mapping as MappingSkeleton;
-  } else {
-    throw new Error(
-      `Invalid mapping id ${mappingId}. Must start with 'sync/' or 'mapping/'`
-    );
+  } catch (error) {
+    throw new FrodoError(`Error deleting mapping ${mappingId}`, error);
   }
 }
 
@@ -733,12 +775,16 @@ export async function exportMapping({
   mappingId: string;
   state: State;
 }): Promise<MappingExportInterface> {
-  debugMessage({ message: `MappingOps.exportMapping: start`, state });
-  const mappingData = await readMapping({ mappingId, state });
-  const exportData = createMappingExportTemplate({ state });
-  exportData.mapping[mappingData._id] = mappingData;
-  debugMessage({ message: `MappingOps.exportMapping: end`, state });
-  return exportData;
+  try {
+    debugMessage({ message: `MappingOps.exportMapping: start`, state });
+    const mappingData = await readMapping({ mappingId, state });
+    const exportData = createMappingExportTemplate({ state });
+    exportData.mapping[mappingData._id] = mappingData;
+    debugMessage({ message: `MappingOps.exportMapping: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting mappings`, error);
+  }
 }
 
 /**
@@ -750,27 +796,38 @@ export async function exportMappings({
 }: {
   state: State;
 }): Promise<MappingExportInterface> {
-  const exportData = createMappingExportTemplate({ state });
-  const allMappingsData = await readMappings({ state });
-  const indicatorId = createProgressIndicator({
-    total: allMappingsData.length,
-    message: 'Exporting mappings',
-    state,
-  });
-  for (const mappingData of allMappingsData) {
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting mapping ${mappingData._id}`,
+  let indicatorId: string;
+  try {
+    const exportData = createMappingExportTemplate({ state });
+    const allMappingsData = await readMappings({ state });
+    indicatorId = createProgressIndicator({
+      total: allMappingsData.length,
+      message: 'Exporting mappings',
       state,
     });
-    exportData.mapping[mappingData._id] = mappingData;
+    for (const mappingData of allMappingsData) {
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting mapping ${mappingData._id}`,
+        state,
+      });
+      exportData.mapping[mappingData._id] = mappingData;
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `${allMappingsData.length} mappings exported.`,
+      state,
+    });
+    return exportData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting mappings`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(`Error exporting mappings`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `${allMappingsData.length} mappings exported.`,
-    state,
-  });
-  return exportData;
 }
 
 /**
@@ -811,12 +868,11 @@ export async function importMapping({
       }
     }
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing mapping ${mappingId}`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\n${mappingId} not found in import data!`);
+    throw new FrodoError(`Mapping ${mappingId} not found in import data`);
   }
   return response;
 }
@@ -855,12 +911,11 @@ export async function importFirstMapping({
     }
     break;
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing first mapping`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo mappings found in import data!`);
+    throw new FrodoError(`No mappings found in import data!`);
   }
   return response;
 }
@@ -900,12 +955,11 @@ export async function importMappings({
       errors.push(error);
     }
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing mappings`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo mappings found in import data!`);
+    throw new FrodoError(`No mappings found in import data!`);
   }
   return response;
 }

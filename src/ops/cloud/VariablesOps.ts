@@ -16,6 +16,7 @@ import {
   updateProgressIndicator,
 } from '../../utils/Console';
 import { getMetadata } from '../../utils/ExportImportUtils';
+import { FrodoError } from '../FrodoError';
 import { ExportMetaData } from '../OpsTypes';
 
 export type Variable = {
@@ -264,7 +265,11 @@ export async function readVariable({
   variableId: string;
   state: State;
 }): Promise<VariableSkeleton> {
-  return _getVariable({ variableId, state });
+  try {
+    return _getVariable({ variableId, state });
+  } catch (error) {
+    throw new FrodoError(`Error reading variable ${variableId}`, error);
+  }
 }
 
 export async function readVariables({
@@ -272,7 +277,11 @@ export async function readVariables({
 }: {
   state: State;
 }): Promise<VariableSkeleton[]> {
-  return (await _getVariables({ state })).result;
+  try {
+    return (await _getVariables({ state })).result;
+  } catch (error) {
+    throw new FrodoError(`Error reading variables`, error);
+  }
 }
 
 export async function exportVariable({
@@ -284,15 +293,19 @@ export async function exportVariable({
   noDecode: boolean;
   state: State;
 }): Promise<VariablesExportInterface> {
-  debugMessage({ message: `VariablesOps.exportVariable: start`, state });
-  const exportData = createVariablesExportTemplate({ state });
-  const variable = await _getVariable({ variableId, state });
-  if (!noDecode) {
-    variable.value = decode(variable.valueBase64);
+  try {
+    debugMessage({ message: `VariablesOps.exportVariable: start`, state });
+    const exportData = createVariablesExportTemplate({ state });
+    const variable = await _getVariable({ variableId, state });
+    if (!noDecode) {
+      variable.value = decode(variable.valueBase64);
+    }
+    exportData.variables[variable._id] = variable;
+    debugMessage({ message: `VariablesOps.exportVariable: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting variable ${variableId}`, error);
   }
-  exportData.variables[variable._id] = variable;
-  debugMessage({ message: `VariablesOps.exportVariable: end`, state });
-  return exportData;
 }
 
 export async function exportVariables({
@@ -302,32 +315,36 @@ export async function exportVariables({
   noDecode: boolean;
   state: State;
 }): Promise<VariablesExportInterface> {
-  debugMessage({ message: `VariablesOps.exportVariables: start`, state });
-  const exportData = createVariablesExportTemplate({ state });
-  const variables = await readVariables({ state });
-  const indicatorId = createProgressIndicator({
-    total: variables.length,
-    message: 'Exporting variables...',
-    state,
-  });
-  for (const variable of variables) {
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting variable ${variable._id}`,
+  try {
+    debugMessage({ message: `VariablesOps.exportVariables: start`, state });
+    const exportData = createVariablesExportTemplate({ state });
+    const variables = await readVariables({ state });
+    const indicatorId = createProgressIndicator({
+      total: variables.length,
+      message: 'Exporting variables...',
       state,
     });
-    if (!noDecode) {
-      variable.value = decode(variable.valueBase64);
+    for (const variable of variables) {
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting variable ${variable._id}`,
+        state,
+      });
+      if (!noDecode) {
+        variable.value = decode(variable.valueBase64);
+      }
+      exportData.variables[variable._id] = variable;
     }
-    exportData.variables[variable._id] = variable;
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${variables.length} variables.`,
+      state,
+    });
+    debugMessage({ message: `VariablesOps.exportVariables: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting variables`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Exported ${variables.length} variables.`,
-    state,
-  });
-  debugMessage({ message: `VariablesOps.exportVariables: end`, state });
-  return exportData;
 }
 
 export async function createVariable({
@@ -350,20 +367,24 @@ export async function createVariable({
   try {
     await _getVariable({ variableId, state });
   } catch (error) {
-    const result = await _putVariable({
-      variableId,
-      value,
-      description,
-      expressionType,
-      state,
-    });
-    debugMessage({
-      message: `VariablesOps.createVariable: end`,
-      state,
-    });
-    return result;
+    try {
+      const result = await _putVariable({
+        variableId,
+        value,
+        description,
+        expressionType,
+        state,
+      });
+      debugMessage({
+        message: `VariablesOps.createVariable: end`,
+        state,
+      });
+      return result;
+    } catch (error) {
+      throw new FrodoError(`Error creating variable ${variableId}`, error);
+    }
   }
-  throw new Error(`Variable ${variableId} already exists!`);
+  throw new FrodoError(`Variable ${variableId} already exists`);
 }
 
 export async function updateVariable({
@@ -379,13 +400,17 @@ export async function updateVariable({
   expressionType?: VariableExpressionType;
   state: State;
 }): Promise<VariableSkeleton> {
-  return _putVariable({
-    variableId,
-    value,
-    description,
-    expressionType,
-    state,
-  });
+  try {
+    return _putVariable({
+      variableId,
+      value,
+      description,
+      expressionType,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(`Error updating variable ${variableId}`, error);
+  }
 }
 
 export async function updateVariableDescription({
@@ -397,11 +422,18 @@ export async function updateVariableDescription({
   description: string;
   state: State;
 }): Promise<any> {
-  return _setVariableDescription({
-    variableId,
-    description,
-    state,
-  });
+  try {
+    return _setVariableDescription({
+      variableId,
+      description,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error updating description of variable ${variableId}`,
+      error
+    );
+  }
 }
 
 export async function deleteVariable({
@@ -411,12 +443,9 @@ export async function deleteVariable({
   variableId: string;
   state: State;
 }): Promise<VariableSkeleton> {
-  return _deleteVariable({ variableId, state });
+  try {
+    return _deleteVariable({ variableId, state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting variable ${variableId}`, error);
+  }
 }
-
-export {
-  _getVariable as getVariable,
-  _getVariables as getVariables,
-  _putVariable as putVariable,
-  _setVariableDescription as setVariableDescription,
-};

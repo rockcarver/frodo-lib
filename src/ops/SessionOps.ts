@@ -3,6 +3,7 @@ import {
   type SessionInfoType,
 } from '../api/SessionApi';
 import { State } from '../shared/State';
+import { FrodoError } from './FrodoError';
 
 export type Session = {
   /**
@@ -33,5 +34,9 @@ export async function getSessionInfo({
   tokenId: string;
   state: State;
 }): Promise<SessionInfoType> {
-  return _getSessionInfo({ tokenId, state });
+  try {
+    return _getSessionInfo({ tokenId, state });
+  } catch (error) {
+    throw new FrodoError(`Error getting session info`, error);
+  }
 }

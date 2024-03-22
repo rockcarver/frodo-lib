@@ -9,7 +9,6 @@ import { decode } from '../utils/Base64Utils';
 import {
   createProgressIndicator,
   debugMessage,
-  printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
@@ -28,6 +27,7 @@ import {
   exportConnector,
   importConnector,
 } from './ConnectorOps';
+import { FrodoError } from './FrodoError';
 import {
   createManagedObject,
   deleteManagedObject,
@@ -450,13 +450,17 @@ export async function createApplication({
   applicationData: ApplicationSkeleton;
   state: State;
 }): Promise<ApplicationSkeleton> {
-  const application = await createManagedObject({
-    type: getRealmManagedApplication({ state }),
-    id: applicationId,
-    moData: applicationData,
-    state,
-  });
-  return application as ApplicationSkeleton;
+  try {
+    const application = await createManagedObject({
+      type: getRealmManagedApplication({ state }),
+      id: applicationId,
+      moData: applicationData,
+      state,
+    });
+    return application as ApplicationSkeleton;
+  } catch (error) {
+    throw new FrodoError(`Error creating application ${applicationId}`, error);
+  }
 }
 
 export async function readApplication({
@@ -468,13 +472,17 @@ export async function readApplication({
   fields?: string[];
   state: State;
 }): Promise<ApplicationSkeleton> {
-  const application = await readManagedObject({
-    type: getRealmManagedApplication({ state }),
-    id: applicationId,
-    fields,
-    state,
-  });
-  return application as ApplicationSkeleton;
+  try {
+    const application = await readManagedObject({
+      type: getRealmManagedApplication({ state }),
+      id: applicationId,
+      fields,
+      state,
+    });
+    return application as ApplicationSkeleton;
+  } catch (error) {
+    throw new FrodoError(`Error reading application ${applicationId}`, error);
+  }
 }
 
 export async function readApplicationByName({
@@ -486,20 +494,24 @@ export async function readApplicationByName({
   fields?: string[];
   state: State;
 }): Promise<ApplicationSkeleton> {
-  const applications = await queryApplications({
-    filter: `name+eq+'${applicationName}'`,
-    fields,
-    state,
-  });
-  switch (applications.length) {
-    case 1:
-      return applications[0];
-    case 0:
-      throw new Error(`Application '${applicationName}' not found`);
-    default:
-      throw new Error(
-        `${applications.length} applications '${applicationName}' found`
-      );
+  try {
+    const applications = await queryApplications({
+      filter: `name eq '${applicationName}'`,
+      fields,
+      state,
+    });
+    switch (applications.length) {
+      case 1:
+        return applications[0];
+      case 0:
+        throw new Error(`Application '${applicationName}' not found`);
+      default:
+        throw new Error(
+          `${applications.length} applications '${applicationName}' found`
+        );
+    }
+  } catch (error) {
+    throw new FrodoError(`Error reading application ${applicationName}`, error);
   }
 }
 
@@ -510,12 +522,16 @@ export async function readApplications({
   fields?: string[];
   state: State;
 }): Promise<ApplicationSkeleton[]> {
-  const applications = await readManagedObjects({
-    type: getRealmManagedApplication({ state }),
-    fields,
-    state,
-  });
-  return applications as ApplicationSkeleton[];
+  try {
+    const applications = await readManagedObjects({
+      type: getRealmManagedApplication({ state }),
+      fields,
+      state,
+    });
+    return applications as ApplicationSkeleton[];
+  } catch (error) {
+    throw new FrodoError(`Error reading applications`, error);
+  }
 }
 
 export async function updateApplication({
@@ -527,13 +543,17 @@ export async function updateApplication({
   applicationData: IdObjectSkeletonInterface;
   state: State;
 }): Promise<ApplicationSkeleton> {
-  const application = await updateManagedObject({
-    type: getRealmManagedApplication({ state }),
-    id: applicationId,
-    moData: applicationData,
-    state,
-  });
-  return application as ApplicationSkeleton;
+  try {
+    const application = await updateManagedObject({
+      type: getRealmManagedApplication({ state }),
+      id: applicationId,
+      moData: applicationData,
+      state,
+    });
+    return application as ApplicationSkeleton;
+  } catch (error) {
+    throw new FrodoError(`Error updating application ${applicationId}`, error);
+  }
 }
 
 function isOidcApplication(applicationData: ApplicationSkeleton): boolean {
@@ -577,73 +597,80 @@ async function exportDependencies({
   exportData: ApplicationExportInterface;
   state: State;
 }) {
-  debugMessage({
-    message: `ApplicationOps.exportDependencies: start [application=${applicationData['name']}]`,
-    state,
-  });
-  // oauth2clients
-  if (isOidcApplication(applicationData)) {
-    const clientId = getOAuth2ClientId(applicationData);
-    const clientData = await exportOAuth2Client({
-      clientId,
-      options: { deps: options.deps, useStringArrays: options.useStringArrays },
+  try {
+    debugMessage({
+      message: `ApplicationOps.exportDependencies: start [application=${applicationData['name']}]`,
       state,
     });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    exportData = mergeDeep(exportData, clientData);
-  }
-  // saml entity providers and circles of trust
-  if (isSaml2Application(applicationData)) {
-    // saml IDPs
-    const saml2IdpId = getSaml2IdpEntityId(applicationData);
-    if (saml2IdpId) {
-      const saml2IdpData = await exportSaml2Provider({
-        entityId: saml2IdpId,
+    // oauth2clients
+    if (isOidcApplication(applicationData)) {
+      const clientId = getOAuth2ClientId(applicationData);
+      const clientData = await exportOAuth2Client({
+        clientId,
+        options: {
+          deps: options.deps,
+          useStringArrays: options.useStringArrays,
+        },
         state,
       });
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      exportData = mergeDeep(exportData, saml2IdpData);
+      exportData = mergeDeep(exportData, clientData);
     }
-    // saml SPs
-    const saml2SpId = getSaml2SpEntityId(applicationData);
-    if (saml2SpId) {
-      const saml2SpData = await exportSaml2Provider({
-        entityId: saml2SpId,
+    // saml entity providers and circles of trust
+    if (isSaml2Application(applicationData)) {
+      // saml IDPs
+      const saml2IdpId = getSaml2IdpEntityId(applicationData);
+      if (saml2IdpId) {
+        const saml2IdpData = await exportSaml2Provider({
+          entityId: saml2IdpId,
+          state,
+        });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        exportData = mergeDeep(exportData, saml2IdpData);
+      }
+      // saml SPs
+      const saml2SpId = getSaml2SpEntityId(applicationData);
+      if (saml2SpId) {
+        const saml2SpData = await exportSaml2Provider({
+          entityId: saml2SpId,
+          state,
+        });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        exportData = mergeDeep(exportData, saml2SpData);
+      }
+      // circles of trust
+      const cotData = await exportCirclesOfTrust({
+        entityProviders: [saml2IdpId, saml2SpId],
+        options: { indicateProgress: false },
         state,
       });
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      exportData = mergeDeep(exportData, saml2SpData);
+      exportData = mergeDeep(exportData, cotData);
     }
-    // circles of trust
-    const cotData = await exportCirclesOfTrust({
-      entityProviders: [saml2IdpId, saml2SpId],
-      options: { indicateProgress: false },
+    // connectors and mappings
+    if (isProvisioningApplication(applicationData)) {
+      const connectorId = getConnectorId(applicationData);
+      if (connectorId) {
+        debugMessage({
+          message: `ApplicationOps.exportDependencies: application=${applicationData['name']}, connector=${connectorId}`,
+          state,
+        });
+        const connectorData = await exportConnector({
+          connectorId,
+          options: { deps: true, useStringArrays: true },
+          state,
+        });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        exportData = mergeDeep(exportData, connectorData);
+      }
+    }
+    debugMessage({
+      message: `ApplicationOps.exportDependencies: end`,
       state,
     });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    exportData = mergeDeep(exportData, cotData);
+  } catch (error) {
+    throw new FrodoError(`Error exporting dependencies`, error);
   }
-  // connectors and mappings
-  if (isProvisioningApplication(applicationData)) {
-    const connectorId = getConnectorId(applicationData);
-    if (connectorId) {
-      debugMessage({
-        message: `ApplicationOps.exportDependencies: application=${applicationData['name']}, connector=${connectorId}`,
-        state,
-      });
-      const connectorData = await exportConnector({
-        connectorId,
-        options: { deps: true, useStringArrays: true },
-        state,
-      });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      exportData = mergeDeep(exportData, connectorData);
-    }
-  }
-  debugMessage({
-    message: `ApplicationOps.exportDependencies: end`,
-    state,
-  });
 }
 
 async function importDependencies({
@@ -655,95 +682,97 @@ async function importDependencies({
   importData: ApplicationExportInterface;
   state: State;
 }) {
-  debugMessage({
-    message: `ApplicationOps.importDependencies: start [application=${applicationData['name']}]`,
-    state,
-  });
-  const errors = [];
-  // oauth2clients
-  if (isOidcApplication(applicationData)) {
-    const clientId = getOAuth2ClientId(applicationData);
-    try {
-      await importOAuth2Client({
-        clientId,
-        importData: importData as OAuth2ClientExportInterface,
-        options: { deps: true },
-        state,
-      });
-    } catch (error) {
-      error.message = `Import oauth2 client error: ${error.message}`;
-      errors.push(error);
-    }
-  }
-  // saml entity providers and circles of trust
-  if (isSaml2Application(applicationData)) {
-    // saml IDPs
-    const saml2IdpId = getSaml2IdpEntityId(applicationData);
-    if (saml2IdpId) {
+  const errors: Error[] = [];
+  try {
+    debugMessage({
+      message: `ApplicationOps.importDependencies: start [application=${applicationData['name']}]`,
+      state,
+    });
+    // oauth2clients
+    if (isOidcApplication(applicationData)) {
+      const clientId = getOAuth2ClientId(applicationData);
       try {
-        await importSaml2Provider({
-          entityId: saml2IdpId,
-          importData: importData as Saml2ExportInterface,
+        await importOAuth2Client({
+          clientId,
+          importData: importData as OAuth2ClientExportInterface,
           options: { deps: true },
           state,
         });
       } catch (error) {
-        error.message = `Import saml2 idp error: ${error.message}`;
         errors.push(error);
       }
     }
-    // saml SPs
-    const saml2SpId = getSaml2SpEntityId(applicationData);
-    if (saml2SpId) {
+    // saml entity providers and circles of trust
+    if (isSaml2Application(applicationData)) {
+      // saml IDPs
+      const saml2IdpId = getSaml2IdpEntityId(applicationData);
+      if (saml2IdpId) {
+        try {
+          await importSaml2Provider({
+            entityId: saml2IdpId,
+            importData: importData as Saml2ExportInterface,
+            options: { deps: true },
+            state,
+          });
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+      // saml SPs
+      const saml2SpId = getSaml2SpEntityId(applicationData);
+      if (saml2SpId) {
+        try {
+          await importSaml2Provider({
+            entityId: saml2SpId,
+            importData: importData as Saml2ExportInterface,
+            options: { deps: true },
+            state,
+          });
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+      // circles of trust
       try {
-        await importSaml2Provider({
-          entityId: saml2SpId,
-          importData: importData as Saml2ExportInterface,
-          options: { deps: true },
+        await importCirclesOfTrust({
+          entityProviders: [saml2IdpId, saml2SpId],
+          importData: importData as CirclesOfTrustExportInterface,
           state,
         });
       } catch (error) {
-        error.message = `Import saml2 sp error: ${error.message}`;
         errors.push(error);
       }
     }
-    // circles of trust
-    try {
-      await importCirclesOfTrust({
-        entityProviders: [saml2IdpId, saml2SpId],
-        importData: importData as CirclesOfTrustExportInterface,
-        state,
-      });
-    } catch (error) {
-      error.message = `Import saml2 circle of trust error: ${error.message}`;
-      errors.push(error);
-    }
-  }
-  // connectors and mappings
-  if (isProvisioningApplication(applicationData)) {
-    const connectorId = getConnectorId(applicationData);
-    if (connectorId) {
-      try {
-        await importConnector({
-          connectorId,
-          importData: importData as ConnectorExportInterface,
-          options: { deps: true },
-          state,
-        });
-      } catch (error) {
-        error.message = `Import connector error: ${error.message}`;
-        errors.push(error);
+    // connectors and mappings
+    if (isProvisioningApplication(applicationData)) {
+      const connectorId = getConnectorId(applicationData);
+      if (connectorId) {
+        try {
+          await importConnector({
+            connectorId,
+            importData: importData as ConnectorExportInterface,
+            options: { deps: true },
+            state,
+          });
+        } catch (error) {
+          errors.push(error);
+        }
       }
     }
+    if (errors.length) {
+      throw new FrodoError(`Error importing dependencies`, errors);
+    }
+    debugMessage({
+      message: `ApplicationOps.importDependencies: end`,
+      state,
+    });
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error importing dependencies`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`${errorMessages}`);
-  }
-  debugMessage({
-    message: `ApplicationOps.importDependencies: end`,
-    state,
-  });
 }
 
 async function deleteDependencies({
@@ -753,112 +782,115 @@ async function deleteDependencies({
   applicationData: ApplicationSkeleton;
   state: State;
 }) {
-  debugMessage({
-    message: `ApplicationOps.deleteDependencies: start [application=${applicationData['name']}]`,
-    state,
-  });
-  const errors = [];
-  // oauth2clients
-  if (isOidcApplication(applicationData)) {
-    const clientId = getOAuth2ClientId(applicationData);
-    if (clientId) {
+  const errors: Error[] = [];
+  try {
+    debugMessage({
+      message: `ApplicationOps.deleteDependencies: start [application=${applicationData['name']}]`,
+      state,
+    });
+    // oauth2clients
+    if (isOidcApplication(applicationData)) {
+      const clientId = getOAuth2ClientId(applicationData);
+      if (clientId) {
+        try {
+          await deleteOAuth2Client({
+            clientId,
+            state,
+          });
+          debugMessage({
+            message: `ApplicationOps.deleteDependencies: Deleted oauth2 client '${clientId}'.`,
+            state,
+          });
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+    }
+    // saml entity providers and circles of trust
+    if (isSaml2Application(applicationData)) {
+      // saml IDPs
+      const saml2IdpId = getSaml2IdpEntityId(applicationData);
       try {
-        await deleteOAuth2Client({
-          clientId,
-          state,
-        });
-        debugMessage({
-          message: `ApplicationOps.deleteDependencies: Deleted oauth2 client '${clientId}'.`,
-          state,
-        });
+        if (saml2IdpId) {
+          await deleteSaml2Provider({
+            entityId: saml2IdpId,
+            state,
+          });
+          debugMessage({
+            message: `ApplicationOps.deleteDependencies: Deleted saml2 idp '${saml2IdpId}'.`,
+            state,
+          });
+        }
       } catch (error) {
-        error.message = `Delete oauth2 client error:\n${error.message}`;
+        errors.push(error);
+      }
+      // saml SPs
+      const saml2SpId = getSaml2SpEntityId(applicationData);
+      try {
+        if (saml2SpId) {
+          await deleteSaml2Provider({
+            entityId: saml2SpId,
+            state,
+          });
+          debugMessage({
+            message: `ApplicationOps.deleteDependencies: Deleted saml2 sp '${saml2SpId}'.`,
+            state,
+          });
+        }
+      } catch (error) {
+        errors.push(error);
+      }
+      // circles of trust
+      // only remove providers from circle of trust, don't delete the cot object
+      try {
+        const cots = await readCirclesOfTrust({
+          entityProviders: [saml2IdpId, saml2SpId],
+          state,
+        });
+        for (const cot of cots) {
+          // remove providers before saving modified cot
+          debugMessage({
+            message: `ApplicationOps.deleteDependencies: Existing trusted providers for ${
+              cot._id
+            }:\n${cot.trustedProviders
+              .map((it) => it.split('|')[0])
+              .join('\n')}.`,
+            state,
+          });
+          const providers = cot.trustedProviders.filter(
+            (provider) =>
+              provider !== `${saml2IdpId}|saml2` &&
+              provider !== `${saml2SpId}|saml2`
+          );
+          cot.trustedProviders = providers;
+          debugMessage({
+            message: `ApplicationOps.deleteDependencies: Updated trusted providers for ${
+              cot._id
+            }:\n${cot.trustedProviders
+              .map((it) => it.split('|')[0])
+              .join('\n')}.`,
+            state,
+          });
+          await updateCircleOfTrust({ cotId: cot._id, cotData: cot, state });
+        }
+      } catch (error) {
         errors.push(error);
       }
     }
-  }
-  // saml entity providers and circles of trust
-  if (isSaml2Application(applicationData)) {
-    // saml IDPs
-    const saml2IdpId = getSaml2IdpEntityId(applicationData);
-    try {
-      if (saml2IdpId) {
-        await deleteSaml2Provider({
-          entityId: saml2IdpId,
-          state,
-        });
-        debugMessage({
-          message: `ApplicationOps.deleteDependencies: Deleted saml2 idp '${saml2IdpId}'.`,
-          state,
-        });
-      }
-    } catch (error) {
-      error.message = `Delete saml2 idp error:\n${error.message}`;
-      errors.push(error);
+    if (errors.length > 0) {
+      throw new FrodoError(`Error deleting dependencies`, errors);
     }
-    // saml SPs
-    const saml2SpId = getSaml2SpEntityId(applicationData);
-    try {
-      if (saml2SpId) {
-        await deleteSaml2Provider({
-          entityId: saml2SpId,
-          state,
-        });
-        debugMessage({
-          message: `ApplicationOps.deleteDependencies: Deleted saml2 sp '${saml2SpId}'.`,
-          state,
-        });
-      }
-    } catch (error) {
-      error.message = `Delete saml2 sp error:\n${error.message}`;
-      errors.push(error);
+    debugMessage({
+      message: `ApplicationOps.deleteDependencies: end`,
+      state,
+    });
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
     }
-    // circles of trust
-    // only remove providers from circle of trust, don't delete the cot object
-    try {
-      const cots = await readCirclesOfTrust({
-        entityProviders: [saml2IdpId, saml2SpId],
-        state,
-      });
-      for (const cot of cots) {
-        // remove providers before saving modified cot
-        debugMessage({
-          message: `ApplicationOps.deleteDependencies: Existing trusted providers for ${
-            cot._id
-          }:\n${cot.trustedProviders
-            .map((it) => it.split('|')[0])
-            .join('\n')}.`,
-          state,
-        });
-        const providers = cot.trustedProviders.filter(
-          (provider) =>
-            provider !== `${saml2IdpId}|saml2` &&
-            provider !== `${saml2SpId}|saml2`
-        );
-        cot.trustedProviders = providers;
-        debugMessage({
-          message: `ApplicationOps.deleteDependencies: Updated trusted providers for ${
-            cot._id
-          }:\n${cot.trustedProviders
-            .map((it) => it.split('|')[0])
-            .join('\n')}.`,
-          state,
-        });
-        await updateCircleOfTrust({ cotId: cot._id, cotData: cot, state });
-      }
-    } catch (error) {
-      error.message = `Modify circles of trust error:\n${error.message}`;
-      errors.push(error);
-    }
+    throw new FrodoError(`Error deleting dependencies`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`${errorMessages}`);
-  }
-  debugMessage({
-    message: `ApplicationOps.deleteDependencies: end`,
-    state,
-  });
 }
 
 export async function deleteApplication({
@@ -870,12 +902,10 @@ export async function deleteApplication({
   options?: { deep: boolean };
   state: State;
 }): Promise<ApplicationSkeleton> {
-  debugMessage({ message: `ApplicationOps.deleteApplication: start`, state });
-  const { deep } = options;
-  const errors = [];
-  let applicationData: ApplicationSkeleton;
   try {
-    applicationData = (await deleteManagedObject({
+    debugMessage({ message: `ApplicationOps.deleteApplication: start`, state });
+    const { deep } = options;
+    const applicationData: ApplicationSkeleton = (await deleteManagedObject({
       type: getRealmManagedApplication({ state }),
       id: applicationId,
       state,
@@ -883,15 +913,11 @@ export async function deleteApplication({
     if (deep) {
       await deleteDependencies({ applicationData, state });
     }
+    debugMessage({ message: `ApplicationOps.deleteApplication: end`, state });
+    return applicationData as ApplicationSkeleton;
   } catch (error) {
-    errors.push(error);
+    throw new FrodoError(`Error deleting application ${applicationId}`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Error deleting applications:\n${errorMessages}`);
-  }
-  debugMessage({ message: `ApplicationOps.deleteApplication: end`, state });
-  return applicationData as ApplicationSkeleton;
 }
 
 export async function deleteApplicationByName({
@@ -903,24 +929,33 @@ export async function deleteApplicationByName({
   options?: { deep: boolean };
   state: State;
 }): Promise<ApplicationSkeleton> {
-  const applications = await queryApplications({
-    filter: `name+eq+'${applicationName}'`,
-    fields: ['_id'],
-    state,
-  });
-  switch (applications.length) {
-    case 1:
+  let applications: ApplicationSkeleton[] = [];
+  try {
+    applications = await queryApplications({
+      filter: `name eq '${applicationName}'`,
+      fields: ['_id'],
+      state,
+    });
+    if (applications.length == 1) {
       return deleteApplication({
         applicationId: applications[0]._id,
         options,
         state,
       });
-    case 0:
-      throw new Error(`Application '${applicationName}' not found`);
-    default:
-      throw new Error(
-        `${applications.length} applications '${applicationName}' found`
-      );
+    }
+  } catch (error) {
+    throw new FrodoError(
+      `Error deleting application ${applicationName}`,
+      error
+    );
+  }
+  if (applications.length == 0) {
+    throw new FrodoError(`Application '${applicationName}' not found`);
+  }
+  if (applications.length > 1) {
+    throw new FrodoError(
+      `${applications.length} applications '${applicationName}' found`
+    );
   }
 }
 
@@ -931,35 +966,45 @@ export async function deleteApplications({
   options?: { deep: boolean };
   state: State;
 }): Promise<ApplicationSkeleton[]> {
-  debugMessage({ message: `ApplicationOps.deleteApplications: start`, state });
-  const applications = await readApplications({
-    state,
-  });
-  const deleted: ApplicationSkeleton[] = [];
-  const errors = [];
-  for (const application of applications) {
+  const errors: Error[] = [];
+  try {
     debugMessage({
-      message: `ApplicationOps.deleteApplications: '${application['_id']}'`,
+      message: `ApplicationOps.deleteApplications: start`,
       state,
     });
-    try {
-      deleted.push(
-        await deleteApplication({
-          applicationId: application['_id'],
-          options,
-          state,
-        })
-      );
-    } catch (error) {
-      errors.push(error);
+    const applications = await readApplications({
+      state,
+    });
+    const deleted: ApplicationSkeleton[] = [];
+    for (const application of applications) {
+      debugMessage({
+        message: `ApplicationOps.deleteApplications: '${application['_id']}'`,
+        state,
+      });
+      try {
+        deleted.push(
+          await deleteApplication({
+            applicationId: application['_id'],
+            options,
+            state,
+          })
+        );
+      } catch (error) {
+        errors.push(error);
+      }
     }
+    if (errors.length) {
+      throw new FrodoError(`Error deleting applications`, errors);
+    }
+    debugMessage({ message: `ApplicationOps.deleteApplications: end`, state });
+    return deleted;
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error deleting applications`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Error deleting applications:\n${errorMessages}`);
-  }
-  debugMessage({ message: `ApplicationOps.deleteApplications: end`, state });
-  return deleted;
 }
 
 export async function queryApplications({
@@ -971,13 +1016,20 @@ export async function queryApplications({
   fields?: string[];
   state: State;
 }): Promise<ApplicationSkeleton[]> {
-  const application = await queryManagedObjects({
-    type: getRealmManagedApplication({ state }),
-    filter,
-    fields,
-    state,
-  });
-  return application as ApplicationSkeleton[];
+  try {
+    const application = await queryManagedObjects({
+      type: getRealmManagedApplication({ state }),
+      filter,
+      fields,
+      state,
+    });
+    return application as ApplicationSkeleton[];
+  } catch (error) {
+    throw new FrodoError(
+      `Error querying applications with filter ${filter}`,
+      error
+    );
+  }
 }
 
 export async function exportApplication({
@@ -992,24 +1044,24 @@ export async function exportApplication({
   options: ApplicationExportOptions;
   state: State;
 }): Promise<ApplicationExportInterface> {
-  debugMessage({ message: `ApplicationOps.exportApplication: start`, state });
-  const applicationData = await readApplication({ applicationId, state });
-  const exportData = createApplicationExportTemplate({ state });
-  exportData.managedApplication[applicationData._id] = applicationData;
-  if (options.deps) {
-    try {
+  try {
+    debugMessage({ message: `ApplicationOps.exportApplication: start`, state });
+    const applicationData = await readApplication({ applicationId, state });
+    const exportData = createApplicationExportTemplate({ state });
+    exportData.managedApplication[applicationData._id] = applicationData;
+    if (options.deps) {
       await exportDependencies({
         applicationData: applicationData,
         options,
         exportData,
         state,
       });
-    } catch (error) {
-      printMessage({ message: error.message, type: 'error', state });
     }
+    debugMessage({ message: `ApplicationOps.exportApplication: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting application ${applicationId}`, error);
   }
-  debugMessage({ message: `ApplicationOps.exportApplication: end`, state });
-  return exportData;
 }
 
 export async function exportApplicationByName({
@@ -1024,33 +1076,36 @@ export async function exportApplicationByName({
   options: ApplicationExportOptions;
   state: State;
 }): Promise<ApplicationExportInterface> {
-  debugMessage({
-    message: `ApplicationOps.exportApplicationByName: start`,
-    state,
-  });
-  const applicationData = await readApplicationByName({
-    applicationName,
-    state,
-  });
-  const exportData = createApplicationExportTemplate({ state });
-  exportData.managedApplication[applicationData._id] = applicationData;
-  if (options.deps) {
-    try {
+  try {
+    debugMessage({
+      message: `ApplicationOps.exportApplicationByName: start`,
+      state,
+    });
+    const applicationData = await readApplicationByName({
+      applicationName,
+      state,
+    });
+    const exportData = createApplicationExportTemplate({ state });
+    exportData.managedApplication[applicationData._id] = applicationData;
+    if (options.deps) {
       await exportDependencies({
         applicationData: applicationData,
         options,
         exportData,
         state,
       });
-    } catch (error) {
-      printMessage({ message: error.message, type: 'error', state });
     }
+    debugMessage({
+      message: `ApplicationOps.exportApplicationByName: end`,
+      state,
+    });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(
+      `Error exporting application ${applicationName}`,
+      error
+    );
   }
-  debugMessage({
-    message: `ApplicationOps.exportApplicationByName: end`,
-    state,
-  });
-  return exportData;
 }
 
 export async function exportApplications({
@@ -1060,41 +1115,66 @@ export async function exportApplications({
   options: ApplicationExportOptions;
   state: State;
 }): Promise<ApplicationExportInterface> {
-  debugMessage({ message: `ApplicationOps.exportApplication: start`, state });
-  const exportData = createApplicationExportTemplate({ state });
-  const applications = await readApplications({ state });
-  const indicatorId = createProgressIndicator({
-    total: applications.length,
-    message: 'Exporting applications...',
-    state,
-  });
-  for (const applicationData of applications) {
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting application ${applicationData.name}`,
+  const errors: Error[] = [];
+  let indicatorId: string;
+  try {
+    debugMessage({ message: `ApplicationOps.exportApplication: start`, state });
+    const exportData = createApplicationExportTemplate({ state });
+    const applications = await readApplications({ state });
+    indicatorId = createProgressIndicator({
+      total: applications.length,
+      message: 'Exporting applications...',
       state,
     });
-    exportData.managedApplication[applicationData._id] = applicationData;
-    if (options.deps) {
-      try {
-        await exportDependencies({
-          applicationData: applicationData,
-          options,
-          exportData,
-          state,
-        });
-      } catch (error) {
-        printMessage({ message: error.message, type: 'error', state });
+    for (const applicationData of applications) {
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting application ${applicationData.name}`,
+        state,
+      });
+      exportData.managedApplication[applicationData._id] = applicationData;
+      if (options.deps) {
+        try {
+          await exportDependencies({
+            applicationData: applicationData,
+            options,
+            exportData,
+            state,
+          });
+        } catch (error) {
+          errors.push(error);
+        }
       }
     }
+    if (errors.length > 0) {
+      stopProgressIndicator({
+        id: indicatorId,
+        message: `Error exporting applications`,
+        status: 'fail',
+        state,
+      });
+      throw new FrodoError(`Error exporting applications`, errors);
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${applications.length} applications`,
+      state,
+    });
+    debugMessage({ message: `ApplicationOps.exportApplication: end`, state });
+    return exportData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting applications`,
+      status: 'fail',
+      state,
+    });
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error exporting applications`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Exported ${applications.length} services.`,
-    state,
-  });
-  debugMessage({ message: `ApplicationOps.exportApplication: end`, state });
-  return exportData;
 }
 
 /**
@@ -1118,36 +1198,46 @@ export async function importApplication({
   let response = null;
   const errors = [];
   const imported = [];
-  for (const id of Object.keys(importData.managedApplication)) {
-    if (id === applicationId) {
-      try {
-        const applicationData = importData.managedApplication[id];
-        delete applicationData._provider;
-        delete applicationData._rev;
-        if (options.deps) {
-          await importDependencies({ applicationData, importData, state });
+  try {
+    for (const id of Object.keys(importData.managedApplication)) {
+      if (id === applicationId) {
+        try {
+          const applicationData = importData.managedApplication[id];
+          delete applicationData._provider;
+          delete applicationData._rev;
+          if (options.deps) {
+            await importDependencies({ applicationData, importData, state });
+          }
+          response = await updateApplication({
+            applicationId,
+            applicationData,
+            state,
+          });
+          imported.push(id);
+        } catch (error) {
+          errors.push(error);
         }
-        response = await updateApplication({
-          applicationId,
-          applicationData,
-          state,
-        });
-        imported.push(id);
-      } catch (error) {
-        errors.push(error);
       }
     }
+    if (errors.length > 0) {
+      throw new FrodoError(
+        `Error importing application ${applicationId}`,
+        errors
+      );
+    }
+    if (0 === imported.length) {
+      throw new FrodoError(
+        `Import error:\n${applicationId} not found in import data!`
+      );
+    }
+    return response;
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0 || imported.length == 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error importing application ${applicationId}`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
-  }
-  if (0 === imported.length) {
-    throw new Error(
-      `Import error:\n${applicationId} not found in import data!`
-    );
-  }
-  return response;
 }
 
 /**
@@ -1171,36 +1261,51 @@ export async function importApplicationByName({
   let response = null;
   const errors = [];
   const imported = [];
-  for (const applicationId of Object.keys(importData.managedApplication)) {
-    if (importData.managedApplication[applicationId].name === applicationName) {
-      try {
-        const applicationData = importData.managedApplication[applicationId];
-        delete applicationData._provider;
-        delete applicationData._rev;
-        if (options.deps) {
-          await importDependencies({ applicationData, importData, state });
+  try {
+    for (const applicationId of Object.keys(importData.managedApplication)) {
+      if (
+        importData.managedApplication[applicationId].name === applicationName
+      ) {
+        try {
+          const applicationData = importData.managedApplication[applicationId];
+          delete applicationData._provider;
+          delete applicationData._rev;
+          if (options.deps) {
+            await importDependencies({ applicationData, importData, state });
+          }
+          response = await updateApplication({
+            applicationId,
+            applicationData,
+            state,
+          });
+          imported.push(applicationId);
+        } catch (error) {
+          errors.push(error);
         }
-        response = await updateApplication({
-          applicationId,
-          applicationData,
-          state,
-        });
-        imported.push(applicationId);
-      } catch (error) {
-        errors.push(error);
       }
     }
-  }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
-  }
-  if (0 === imported.length) {
-    throw new Error(
-      `Import error:\n${applicationName} not found in import data!`
+    if (errors.length > 0) {
+      throw new FrodoError(
+        `Error importing application ${applicationName}`,
+        errors
+      );
+    }
+    if (0 === imported.length) {
+      throw new FrodoError(
+        `Import error:\n${applicationName} not found in import data!`
+      );
+    }
+    return response;
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0 || imported.length == 0) {
+      throw error;
+    }
+    throw new FrodoError(
+      `Error importing application ${applicationName}`,
+      error
     );
   }
-  return response;
 }
 
 /**
@@ -1221,33 +1326,42 @@ export async function importFirstApplication({
   let response = null;
   const errors = [];
   const imported = [];
-  for (const applicationId of Object.keys(importData.managedApplication)) {
-    try {
-      const applicationData = importData.managedApplication[applicationId];
-      delete applicationData._provider;
-      delete applicationData._rev;
-      if (options.deps) {
-        await importDependencies({ applicationData, importData, state });
+  try {
+    for (const applicationId of Object.keys(importData.managedApplication)) {
+      try {
+        const applicationData = importData.managedApplication[applicationId];
+        delete applicationData._provider;
+        delete applicationData._rev;
+        if (options.deps) {
+          await importDependencies({ applicationData, importData, state });
+        }
+        response = await updateApplication({
+          applicationId,
+          applicationData,
+          state,
+        });
+        imported.push(applicationId);
+      } catch (error) {
+        errors.push(error);
       }
-      response = await updateApplication({
-        applicationId,
-        applicationData,
-        state,
-      });
-      imported.push(applicationId);
-    } catch (error) {
-      errors.push(error);
+      break;
     }
-    break;
+    if (errors.length > 0) {
+      throw new FrodoError(`Error importing first application`, errors);
+    }
+    if (0 === imported.length) {
+      throw new FrodoError(
+        `Import error:\nNo applications found in import data!`
+      );
+    }
+    return response;
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0 || imported.length == 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error importing first application`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
-  }
-  if (0 === imported.length) {
-    throw new Error(`Import error:\nNo applications found in import data!`);
-  }
-  return response;
 }
 
 /**
@@ -1268,38 +1382,45 @@ export async function importApplications({
   const response = [];
   const errors = [];
   const imported = [];
-  for (const applicationId of Object.keys(importData.managedApplication)) {
-    const applicationData = importData.managedApplication[applicationId];
-    delete applicationData._provider;
-    delete applicationData._rev;
-    if (options.deps) {
+  try {
+    for (const applicationId of Object.keys(importData.managedApplication)) {
+      const applicationData = importData.managedApplication[applicationId];
+      delete applicationData._provider;
+      delete applicationData._rev;
+      if (options.deps) {
+        try {
+          await importDependencies({ applicationData, importData, state });
+        } catch (error) {
+          errors.push(error);
+        }
+      }
       try {
-        await importDependencies({ applicationData, importData, state });
+        response.push(
+          await updateApplication({
+            applicationId,
+            applicationData,
+            state,
+          })
+        );
+        imported.push(applicationId);
       } catch (error) {
-        error.message = `Import dependencies error: ${error.message}`;
         errors.push(error);
       }
     }
-    try {
-      response.push(
-        await updateApplication({
-          applicationId,
-          applicationData,
-          state,
-        })
-      );
-      imported.push(applicationId);
-    } catch (error) {
-      error.message = `Update application error: ${error.message}`;
-      errors.push(error);
+    if (errors.length) {
+      throw new FrodoError(`Error importing applications`, errors);
     }
+    if (0 === imported.length) {
+      throw new FrodoError(
+        `Import error:\nNo applications found in import data!`
+      );
+    }
+    return response;
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0 || imported.length == 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error importing applications`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`${errorMessages}`);
-  }
-  if (0 === imported.length) {
-    throw new Error(`Import error:\nNo applications found in import data!`);
-  }
-  return response;
 }

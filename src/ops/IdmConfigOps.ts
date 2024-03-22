@@ -17,21 +17,23 @@ import { State } from '../shared/State';
 import {
   createProgressIndicator,
   debugMessage,
+  printError,
   printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { areScriptHooksValid } from '../utils/ScriptValidationUtils';
+import { FrodoError } from './FrodoError';
 import { testConnectorServers as _testConnectorServers } from './IdmSystemOps';
 import { ExportMetaData } from './OpsTypes';
 
 export type IdmConfig = {
   /**
-   * Get available config entity types
+   * Read available config entity types
    * @returns {string[]} promise resolving to an array of config entity types
    */
-  getConfigEntityTypes(): Promise<string[]>;
+  readConfigEntityTypes(): Promise<string[]>;
   /**
    * Read all config entity stubs. For full entities use {@link IdmConfig.readConfigEntities | readConfigEntities}.
    * @returns {IdmConfigStub[]} promise resolving to an array of config entity stubs
@@ -112,6 +114,16 @@ export type IdmConfig = {
   // Deprecated
 
   /**
+   * Get available config entity types
+   * @returns {string[]} promise resolving to an array of config entity types
+   * @deprecated since v2.0.0 use {@link IdmConfig.readConfigEntityTypes | readConfigEntityTypes} instead
+   * ```javascript
+   * readConfigEntityTypes(): Promise<string[]>
+   * ```
+   * @group Deprecated
+   */
+  getConfigEntityTypes(): Promise<string[]>;
+  /**
    * Get all config entities
    * @returns {IdObjectSkeletonInterface[]} promise reolving to an array of config entities
    * @deprecated since v2.0.0 use {@link IdmConfig.readConfigEntities | readConfigEntities} instead
@@ -169,8 +181,8 @@ export type IdmConfig = {
 
 export default (state: State): IdmConfig => {
   return {
-    async getConfigEntityTypes(): Promise<string[]> {
-      return getConfigEntityTypes({ state });
+    async readConfigEntityTypes(): Promise<string[]> {
+      return readConfigEntityTypes({ state });
     },
     async readConfigEntityStubs(): Promise<IdmConfigStub[]> {
       return readConfigEntityStubs({ state });
@@ -225,6 +237,9 @@ export default (state: State): IdmConfig => {
 
     // Deprecated
 
+    async getConfigEntityTypes(): Promise<string[]> {
+      return readConfigEntityTypes({ state });
+    },
     async getAllConfigEntities(): Promise<IdmConfigStub[]> {
       return readConfigEntityStubs({ state });
     },
@@ -285,24 +300,32 @@ export async function readConfigEntityStubs({
 }: {
   state: State;
 }): Promise<IdmConfigStub[]> {
-  const { configurations } = await _getConfigEntityStubs({ state });
-  return configurations;
+  try {
+    const { configurations } = await _getConfigEntityStubs({ state });
+    return configurations;
+  } catch (error) {
+    throw new FrodoError(`Error reading config entity stubs`, error);
+  }
 }
 
-export async function getConfigEntityTypes({
+export async function readConfigEntityTypes({
   state,
 }: {
   state: State;
 }): Promise<string[]> {
-  const types: string[] = [];
-  const stubs = await readConfigEntityStubs({ state });
-  for (const stub of stubs) {
-    if (stub._id.split('/').length > 0) {
-      const type = stub._id.split('/')[0];
-      if (!types.includes(type)) types.push(type);
+  try {
+    const types: string[] = [];
+    const stubs = await readConfigEntityStubs({ state });
+    for (const stub of stubs) {
+      if (stub._id.split('/').length > 0) {
+        const type = stub._id.split('/')[0];
+        if (!types.includes(type)) types.push(type);
+      }
     }
+    return types;
+  } catch (error) {
+    throw new FrodoError(`Error reading config entity types`, error);
   }
-  return types;
 }
 
 export async function readConfigEntities({
@@ -310,8 +333,12 @@ export async function readConfigEntities({
 }: {
   state: State;
 }): Promise<IdObjectSkeletonInterface[]> {
-  const { result } = await _getConfigEntities({ state });
-  return result;
+  try {
+    const { result } = await _getConfigEntities({ state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading config entities`, error);
+  }
 }
 
 export async function readConfigEntitiesByType({
@@ -321,8 +348,12 @@ export async function readConfigEntitiesByType({
   type: string;
   state: State;
 }): Promise<NoIdObjectSkeletonInterface[]> {
-  const { result } = await _getConfigEntitiesByType({ type, state });
-  return result;
+  try {
+    const { result } = await _getConfigEntitiesByType({ type, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading config entities by type`, error);
+  }
 }
 
 export async function readConfigEntity({
@@ -332,7 +363,11 @@ export async function readConfigEntity({
   entityId: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return getConfigEntity({ entityId, state });
+  try {
+    return getConfigEntity({ entityId, state });
+  } catch (error) {
+    throw new FrodoError(`Error reading config entity ${entityId}`, error);
+  }
 }
 
 /**
@@ -426,17 +461,8 @@ export async function exportConfigEntities({
       state,
     });
     return exportData;
-  } catch (getAllConfigEntitiesError) {
-    printMessage({
-      message: getAllConfigEntitiesError,
-      type: 'error',
-      state,
-    });
-    printMessage({
-      message: `Error getting config entities: ${getAllConfigEntitiesError}`,
-      type: 'error',
-      state,
-    });
+  } catch (error) {
+    printError(error);
   }
 }
 
@@ -453,15 +479,19 @@ export async function createConfigEntity({
   try {
     await readConfigEntity({ entityId, state });
   } catch (error) {
-    const result = await updateConfigEntity({
-      entityId,
-      entityData,
-      state,
-    });
-    debugMessage({ message: `IdmConfigOps.createConfigEntity: end`, state });
-    return result;
+    try {
+      const result = await updateConfigEntity({
+        entityId,
+        entityData,
+        state,
+      });
+      debugMessage({ message: `IdmConfigOps.createConfigEntity: end`, state });
+      return result;
+    } catch (error) {
+      throw new FrodoError(`Error creating config entity ${entityId}`, error);
+    }
   }
-  throw new Error(`Config entity ${entityId} already exists!`);
+  throw new FrodoError(`Config entity ${entityId} already exists!`);
 }
 
 export async function updateConfigEntity({
@@ -473,7 +503,11 @@ export async function updateConfigEntity({
   entityData: IdObjectSkeletonInterface;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _putConfigEntity({ entityId, entityData, state });
+  try {
+    return _putConfigEntity({ entityId, entityData, state });
+  } catch (error) {
+    throw new FrodoError(`Error updating config entity ${entityId}`, error);
+  }
 }
 
 export async function importConfigEntities({
@@ -517,14 +551,11 @@ export async function importConfigEntities({
       errors.push(e);
     }
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(
-      `Import error; ${errors.length} config objects failed to import:\n${errorMessages}`
-    );
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing config entities`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo config entities found in import data!`);
+    throw new FrodoError(`No config entities found in import data!`);
   }
   debugMessage({ message: `IdmConfigOps.importConfigEntities: end`, state });
   return response;
@@ -562,9 +593,8 @@ export async function deleteConfigEntities({
   } catch (error) {
     errors.push(error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Delete error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error deleting config entities`, errors);
   }
   debugMessage({
     message: `IdmConfigOps.deleteConfigEntities: end`,
@@ -585,24 +615,40 @@ export async function deleteConfigEntitiesByType({
     state,
   });
   const result: IdObjectSkeletonInterface[] = [];
-  const configEntities = await readConfigEntitiesByType({ type, state });
-  for (const configEntity of configEntities) {
+  const errors: Error[] = [];
+  try {
+    const configEntities = await readConfigEntitiesByType({ type, state });
+    for (const configEntity of configEntities) {
+      try {
+        debugMessage({
+          message: `IdmConfigOps.deleteConfigEntitiesByType: '${configEntity['_id']}'`,
+          state,
+        });
+        result.push(
+          await _deleteConfigEntity({
+            entityId: configEntity['_id'] as string,
+            state,
+          })
+        );
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error deleting config entities by type`, errors);
+    }
     debugMessage({
-      message: `IdmConfigOps.deleteConfigEntitiesByType: '${configEntity['_id']}'`,
+      message: `IdmConfigOps.deleteConfigEntitiesByType: end`,
       state,
     });
-    result.push(
-      await _deleteConfigEntity({
-        entityId: configEntity['_id'] as string,
-        state,
-      })
-    );
+    return result;
+  } catch (error) {
+    // re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error deleting config entities by type`, error);
   }
-  debugMessage({
-    message: `IdmConfigOps.deleteConfigEntitiesByType: end`,
-    state,
-  });
-  return result;
 }
 
 export async function deleteConfigEntity({
@@ -612,5 +658,9 @@ export async function deleteConfigEntity({
   entityId: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _deleteConfigEntity({ entityId, state });
+  try {
+    return _deleteConfigEntity({ entityId, state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting config entity ${entityId}`, error);
+  }
 }

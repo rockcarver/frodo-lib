@@ -29,7 +29,7 @@ export type PagedResult<Type> = {
   result: Type[];
   resultCount: number;
   pagedResultsCookie: string;
-  totalPagedResultsPolicy: 'EXACT';
+  totalPagedResultsPolicy: 'EXACT' | 'NONE';
   totalPagedResults: number;
   remainingPagedResults: number;
 };

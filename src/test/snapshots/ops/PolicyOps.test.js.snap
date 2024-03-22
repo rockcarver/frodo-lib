@@ -8,11 +8,11 @@ exports[`PolicyOps deletePolicy() 1: Delete existing policy [FrodoTestPolicy7] 1
 `;
 
 exports[`PolicyOps deletePolicy() 2: Delete non-existing policy [DoesNotExist] 1`] = `
-{
-  "code": 404,
-  "message": "Policy DoesNotExist does not exist.",
-  "reason": "Not Found",
-}
+"Error deleting policy DoesNotExist
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: Policy DoesNotExist does not exist."
 `;
 
 exports[`PolicyOps exportPolicies() 1: Export all policies w/o deps 1`] = `
@@ -2782,7 +2782,13 @@ exports[`PolicyOps exportPolicy() 2: Export existing policy w/ deps [FrodoTestPo
 }
 `;
 
-exports[`PolicyOps exportPolicy() 3: Export non-existing policy [DoesNotExist] 1`] = `"Request failed with status code 404"`;
+exports[`PolicyOps exportPolicy() 3: Export non-existing policy [DoesNotExist] 1`] = `
+"Error exporting policy DoesNotExist
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: Policy DoesNotExist does not exist."
+`;
 
 exports[`PolicyOps findScriptUuids() 1: Find script uuids for policy [FrodoTestPolicy5] 1`] = `
 [
@@ -3348,10 +3354,7 @@ exports[`PolicyOps importPolicy() 2: Import policy [FrodoTestPolicy12] w/ deps 1
 }
 `;
 
-exports[`PolicyOps importPolicy() 3: Import non-existing policy [DoesNotExist] 1`] = `
-"Import error:
-DoesNotExist not found in import data!"
-`;
+exports[`PolicyOps importPolicy() 3: Import non-existing policy [DoesNotExist] 1`] = `"Policy DoesNotExist not found in import data"`;
 
 exports[`PolicyOps readPolicies() 1: Get all policies 1`] = `
 [
@@ -4122,11 +4125,11 @@ exports[`PolicyOps readPolicy() 1: Get existing policy [FrodoTestPolicy1] 1`] = 
 `;
 
 exports[`PolicyOps readPolicy() 2: Get non-existing policy [DoesNotExist] 1`] = `
-{
-  "code": 404,
-  "message": "Policy DoesNotExist does not exist.",
-  "reason": "Not Found",
-}
+"Error reading policy DoesNotExist
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: Policy DoesNotExist does not exist."
 `;
 
 exports[`PolicyOps updatePolicy() 1: Create non-existing policy [FrodoTestPolicy3] 1`] = `

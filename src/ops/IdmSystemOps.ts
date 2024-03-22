@@ -19,6 +19,7 @@ import {
 } from '../api/IdmSystemApi';
 import { State } from '../shared/State';
 import { ObjectTypeSkeleton, readConnector } from './ConnectorOps';
+import { FrodoError } from './FrodoError';
 
 export type IdmSystem = {
   /**
@@ -315,8 +316,12 @@ export async function testConnectorServers({
 }: {
   state: State;
 }): Promise<ConnectorServerStatusInterface[]> {
-  const response = await _testConnectorServers({ state });
-  return response.openicf;
+  try {
+    const response = await _testConnectorServers({ state });
+    return response.openicf;
+  } catch (error) {
+    throw new FrodoError(`Error testing connector servers`, error);
+  }
 }
 
 export async function readAvailableSystems({
@@ -324,7 +329,11 @@ export async function readAvailableSystems({
 }: {
   state: State;
 }): Promise<SystemStatusInterface[]> {
-  return _readAvailableSystems({ state });
+  try {
+    return _readAvailableSystems({ state });
+  } catch (error) {
+    throw new FrodoError(`Error reading available systems`, error);
+  }
 }
 
 export async function readSystemStatus({
@@ -334,7 +343,11 @@ export async function readSystemStatus({
   systemName: string;
   state: State;
 }): Promise<SystemStatusInterface> {
-  return _readSystemStatus({ systemName, state });
+  try {
+    return _readSystemStatus({ systemName, state });
+  } catch (error) {
+    throw new FrodoError(`Error reading system status`, error);
+  }
 }
 
 export async function authenticateSystemObject({
@@ -350,13 +363,20 @@ export async function authenticateSystemObject({
   password: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _authenticateSystemObject({
-    systemName,
-    systemObjectType,
-    username,
-    password,
-    state,
-  });
+  try {
+    return _authenticateSystemObject({
+      systemName,
+      systemObjectType,
+      username,
+      password,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error authenticating ${systemObjectType} ${username} in system ${systemName}`,
+      error
+    );
+  }
 }
 
 export async function runSystemScript({
@@ -368,7 +388,14 @@ export async function runSystemScript({
   scriptName: string;
   state: State;
 }) {
-  return _runSystemScript({ systemName, scriptName, state });
+  try {
+    return _runSystemScript({ systemName, scriptName, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error running script ${scriptName} in system ${systemName}`,
+      error
+    );
+  }
 }
 
 export async function queryAllSystemObjectIds({
@@ -384,13 +411,20 @@ export async function queryAllSystemObjectIds({
   pageCookie?: string;
   state: State;
 }): Promise<PagedResult<IdObjectSkeletonInterface>> {
-  return _queryAllSystemObjectIds({
-    systemName,
-    systemObjectType,
-    pageSize,
-    pageCookie,
-    state,
-  });
+  try {
+    return _queryAllSystemObjectIds({
+      systemName,
+      systemObjectType,
+      pageSize,
+      pageCookie,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error querying all ${systemObjectType} IDs in system ${systemName}`,
+      error
+    );
+  }
 }
 
 export async function querySystemObjects({
@@ -410,15 +444,22 @@ export async function querySystemObjects({
   pageCookie?: string;
   state: State;
 }): Promise<PagedResult<IdObjectSkeletonInterface>> {
-  return _querySystemObjects({
-    systemName,
-    systemObjectType,
-    filter,
-    fields,
-    pageSize,
-    pageCookie,
-    state,
-  });
+  try {
+    return _querySystemObjects({
+      systemName,
+      systemObjectType,
+      filter,
+      fields,
+      pageSize,
+      pageCookie,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error querying ${systemObjectType} objects in system ${systemName} matching filter "${filter}"`,
+      error
+    );
+  }
 }
 
 export async function readSystemObject({
@@ -434,13 +475,20 @@ export async function readSystemObject({
   fields?: string[];
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _getSystemObject({
-    systemName,
-    systemObjectType,
-    systemObjectId,
-    fields,
-    state,
-  });
+  try {
+    return _getSystemObject({
+      systemName,
+      systemObjectType,
+      systemObjectId,
+      fields,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading ${systemObjectType} ${systemObjectId} in system ${systemName}`,
+      error
+    );
+  }
 }
 
 export async function createSystemObject({
@@ -454,12 +502,19 @@ export async function createSystemObject({
   systemObjectData: IdObjectSkeletonInterface;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _createSystemObject({
-    systemName,
-    systemObjectType,
-    systemObjectData,
-    state,
-  });
+  try {
+    return _createSystemObject({
+      systemName,
+      systemObjectType,
+      systemObjectData,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error creating ${systemObjectType} object in system ${systemName}`,
+      error
+    );
+  }
 }
 
 export async function updateSystemObject({
@@ -477,14 +532,21 @@ export async function updateSystemObject({
   failIfExists?: boolean;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _putSystemObject({
-    systemName,
-    systemObjectType,
-    systemObjectId,
-    systemObjectData,
-    failIfExists,
-    state,
-  });
+  try {
+    return _putSystemObject({
+      systemName,
+      systemObjectType,
+      systemObjectId,
+      systemObjectData,
+      failIfExists,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error updating ${systemObjectType} ${systemObjectId} in system ${systemName}`,
+      error
+    );
+  }
 }
 
 export async function updateSystemObjectProperties({
@@ -500,13 +562,20 @@ export async function updateSystemObjectProperties({
   operations: SystemObjectPatchOperationInterface[];
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _patchSystemObject({
-    systemName,
-    systemObjectType,
-    systemObjectId,
-    operations,
-    state,
-  });
+  try {
+    return _patchSystemObject({
+      systemName,
+      systemObjectType,
+      systemObjectId,
+      operations,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error updating ${systemObjectType} ${systemObjectId} properties in system ${systemName}`,
+      error
+    );
+  }
 }
 
 export async function deleteSystemObject({
@@ -520,12 +589,19 @@ export async function deleteSystemObject({
   systemObjectId: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _deleteSystemObject({
-    systemName,
-    systemObjectType,
-    systemObjectId,
-    state,
-  });
+  try {
+    return _deleteSystemObject({
+      systemName,
+      systemObjectType,
+      systemObjectId,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error deleting ${systemObjectType} ${systemObjectId} from system ${systemName}`,
+      error
+    );
+  }
 }
 
 export async function readSystemSchema({
@@ -535,9 +611,13 @@ export async function readSystemSchema({
   systemName: string;
   state: State;
 }): Promise<Record<string, ObjectTypeSkeleton>> {
-  const { objectTypes } = await readConnector({
-    connectorId: systemName,
-    state,
-  });
-  return objectTypes;
+  try {
+    const { objectTypes } = await readConnector({
+      connectorId: systemName,
+      state,
+    });
+    return objectTypes;
+  } catch (error) {
+    throw new FrodoError(`Error reading schema of system ${systemName}`, error);
+  }
 }

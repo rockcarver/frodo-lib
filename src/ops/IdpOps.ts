@@ -19,6 +19,7 @@ import {
   convertTextArrayToBase64,
   getMetadata,
 } from '../utils/ExportImportUtils';
+import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
 import { updateScript } from './ScriptOps';
 
@@ -79,9 +80,12 @@ export type Idp = {
   ): Promise<SocialProviderExportInterface>;
   /**
    * Export all social identity providers
+   * @param {SocialIdentityProviderExportOptions} options export options
    * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
    */
-  exportSocialIdentityProviders(): Promise<SocialProviderExportInterface>;
+  exportSocialIdentityProviders(
+    options?: SocialIdentityProviderExportOptions
+  ): Promise<SocialProviderExportInterface>;
   /**
    * Import social identity provider
    * @param {string} providerId provider id/name
@@ -275,8 +279,13 @@ export default (state: State): Idp => {
     ): Promise<SocialProviderExportInterface> {
       return exportSocialIdentityProvider({ providerId, state });
     },
-    async exportSocialIdentityProviders(): Promise<SocialProviderExportInterface> {
-      return exportSocialIdentityProviders({ state });
+    async exportSocialIdentityProviders(
+      options: SocialIdentityProviderExportOptions = {
+        deps: true,
+        useStringArrays: true,
+      }
+    ): Promise<SocialProviderExportInterface> {
+      return exportSocialIdentityProviders({ options, state });
     },
     async importSocialIdentityProvider(
       providerId: string,
@@ -408,8 +417,12 @@ export async function readSocialIdentityProviders({
 }: {
   state: State;
 }): Promise<SocialIdpSkeleton[]> {
-  const { result } = await _getSocialIdentityProviders({ state });
-  return result;
+  try {
+    const { result } = await _getSocialIdentityProviders({ state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading providers`, error);
+  }
 }
 
 /**
@@ -424,19 +437,21 @@ export async function readSocialIdentityProvider({
   providerId: string;
   state: State;
 }): Promise<SocialIdpSkeleton> {
-  const response = await readSocialIdentityProviders({ state });
-  const foundProviders = response.filter(
-    (provider) => provider._id === providerId
-  );
-  switch (foundProviders.length) {
-    case 1:
-      return foundProviders[0];
-    case 0:
-      throw new Error(`Provider '${providerId}' not found`);
-    default:
-      throw new Error(
-        `${foundProviders.length} providers '${providerId}' found`
-      );
+  try {
+    const response = await readSocialIdentityProviders({ state });
+    const foundProviders = response.filter(
+      (provider) => provider._id === providerId
+    );
+    switch (foundProviders.length) {
+      case 1:
+        return foundProviders[0];
+      case 0:
+        throw new FrodoError(`Not found`);
+      default:
+        throw new FrodoError(`Multiple providers found`);
+    }
+  } catch (error) {
+    throw new FrodoError(`Error reading provider ${providerId}`, error);
   }
 }
 
@@ -458,19 +473,23 @@ export async function createSocialIdentityProvider({
   try {
     await readSocialIdentityProvider({ providerId, state });
   } catch (error) {
-    const result = await updateSocialIdentityProvider({
-      providerType,
-      providerId,
-      providerData,
-      state,
-    });
-    debugMessage({
-      message: `IdpOps.createSocialIdentityProvider: end`,
-      state,
-    });
-    return result;
+    try {
+      const result = await updateSocialIdentityProvider({
+        providerType,
+        providerId,
+        providerData,
+        state,
+      });
+      debugMessage({
+        message: `IdpOps.createSocialIdentityProvider: end`,
+        state,
+      });
+      return result;
+    } catch (error) {
+      throw new FrodoError(`Error creating provider ${providerId}`, error);
+    }
   }
-  throw new Error(`Provider ${providerId} already exists!`);
+  throw new FrodoError(`Provider ${providerId} already exists`);
 }
 
 export async function updateSocialIdentityProvider({
@@ -500,12 +519,12 @@ export async function updateSocialIdentityProvider({
       state,
     });
     return response;
-  } catch (importError) {
+  } catch (error) {
     if (
-      importError.response?.status === 400 &&
-      importError.response?.data?.message === 'Invalid attribute specified.'
+      error.response?.status === 400 &&
+      error.response?.data?.message === 'Invalid attribute specified.'
     ) {
-      const { validAttributes } = importError.response.data.detail;
+      const { validAttributes } = error.response.data.detail;
       validAttributes.push('_id', '_type');
       for (const attribute of Object.keys(providerData)) {
         if (!validAttributes.includes(attribute)) {
@@ -533,8 +552,8 @@ export async function updateSocialIdentityProvider({
       });
       return response;
     } else {
-      // re-throw unhandleable error
-      throw importError;
+      // unhandleable error
+      throw new FrodoError(`Error updating provider ${providerId}`, error);
     }
   }
 }
@@ -572,18 +591,21 @@ export async function deleteSocialIdentityProviders({
         errors.push(error);
       }
     }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error deleting providers`, errors);
+    }
+    debugMessage({
+      message: `IdpOps.deleteSocialProviders: end`,
+      state,
+    });
+    return result;
   } catch (error) {
-    errors.push(error);
+    // re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error deleting providers`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Delete error:\n${errorMessages}`);
-  }
-  debugMessage({
-    message: `IdpOps.deleteSocialProviders: end`,
-    state,
-  });
-  return result;
 }
 
 /**
@@ -598,23 +620,25 @@ export async function deleteSocialIdentityProvider({
   providerId: string;
   state: State;
 }): Promise<SocialIdpSkeleton> {
-  const response = await readSocialIdentityProviders({ state });
-  const foundProviders = response.filter(
-    (provider) => provider._id === providerId
-  );
-  switch (foundProviders.length) {
-    case 1:
-      return await deleteProviderByTypeAndId({
-        type: foundProviders[0]._type._id,
-        providerId: foundProviders[0]._id,
-        state,
-      });
-    case 0:
-      throw new Error(`Provider '${providerId}' not found`);
-    default:
-      throw new Error(
-        `${foundProviders.length} providers '${providerId}' found`
-      );
+  try {
+    const response = await readSocialIdentityProviders({ state });
+    const foundProviders = response.filter(
+      (provider) => provider._id === providerId
+    );
+    switch (foundProviders.length) {
+      case 1:
+        return await deleteProviderByTypeAndId({
+          type: foundProviders[0]._type._id,
+          providerId: foundProviders[0]._id,
+          state,
+        });
+      case 0:
+        throw new Error(`Not found`);
+      default:
+        throw new Error(`Multiple providers found`);
+    }
+  } catch (error) {
+    throw new FrodoError(`Error deleting provider ${providerId}`, error);
   }
 }
 
@@ -630,17 +654,28 @@ export async function exportSocialIdentityProvider({
   providerId: string;
   state: State;
 }): Promise<SocialProviderExportInterface> {
-  debugMessage({ message: `IdpOps.exportSocialProvider: start`, state });
-  const idpData = await readSocialIdentityProvider({ providerId, state });
-  const exportData = createIdpExportTemplate({ state });
-  exportData.idp[idpData._id] = idpData;
-  if (idpData.transform) {
-    const scriptData = await getScript({ scriptId: idpData.transform, state });
-    scriptData.script = convertBase64TextToArray(scriptData.script);
-    exportData.script[idpData.transform] = scriptData;
+  try {
+    debugMessage({ message: `IdpOps.exportSocialProvider: start`, state });
+    const idpData = await readSocialIdentityProvider({ providerId, state });
+    const exportData = createIdpExportTemplate({ state });
+    exportData.idp[idpData._id] = idpData;
+    if (idpData.transform) {
+      try {
+        const scriptData = await getScript({
+          scriptId: idpData.transform,
+          state,
+        });
+        scriptData.script = convertBase64TextToArray(scriptData.script);
+        exportData.script[idpData.transform] = scriptData;
+      } catch (error) {
+        throw new FrodoError(`Error reading script ${idpData.transform}`);
+      }
+    }
+    debugMessage({ message: `IdpOps.exportSocialProvider: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting provider ${providerId}`, error);
   }
-  debugMessage({ message: `IdpOps.exportSocialProvider: end`, state });
-  return exportData;
 }
 
 /**
@@ -648,39 +683,62 @@ export async function exportSocialIdentityProvider({
  * @returns {Promise<SocialProviderExportInterface>} a promise that resolves to a SocialProviderExportInterface object
  */
 export async function exportSocialIdentityProviders({
+  options = { deps: true, useStringArrays: true },
   state,
 }: {
+  options?: SocialIdentityProviderExportOptions;
   state: State;
 }): Promise<SocialProviderExportInterface> {
-  const exportData = createIdpExportTemplate({ state });
-  const allIdpsData = await readSocialIdentityProviders({ state });
-  const indicatorId = createProgressIndicator({
-    total: allIdpsData.length,
-    message: 'Exporting providers',
-    state,
-  });
-  for (const idpData of allIdpsData) {
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting provider ${idpData._id}`,
+  const errors: Error[] = [];
+  let indicatorId: string;
+  try {
+    const exportData = createIdpExportTemplate({ state });
+    const allIdpsData = await readSocialIdentityProviders({ state });
+    indicatorId = createProgressIndicator({
+      total: allIdpsData.length,
+      message: 'Exporting providers',
       state,
     });
-    exportData.idp[idpData._id] = idpData;
-    if (idpData.transform) {
-      const scriptData = await getScript({
-        scriptId: idpData.transform,
-        state,
-      });
-      scriptData.script = convertBase64TextToArray(scriptData.script);
-      exportData.script[idpData.transform] = scriptData;
+    for (const idpData of allIdpsData) {
+      try {
+        updateProgressIndicator({
+          id: indicatorId,
+          message: `Exporting provider ${idpData._id}`,
+          state,
+        });
+        exportData.idp[idpData._id] = idpData;
+        if (options.deps && idpData.transform) {
+          const scriptData = await getScript({
+            scriptId: idpData.transform,
+            state,
+          });
+          if (options.useStringArrays) {
+            scriptData.script = convertBase64TextToArray(scriptData.script);
+          }
+          exportData.script[idpData.transform] = scriptData;
+        }
+      } catch (error) {
+        errors.push(error);
+      }
     }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error exporting dependencies`, errors);
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `${allIdpsData.length} providers exported.`,
+      state,
+    });
+    return exportData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting providers`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(`Error exporting providers`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `${allIdpsData.length} providers exported.`,
-    state,
-  });
-  return exportData;
 }
 
 /**
@@ -707,14 +765,18 @@ export async function importSocialIdentityProvider({
   for (const idpId of Object.keys(importData.idp)) {
     if (idpId === providerId) {
       try {
-        if (options.deps) {
-          const scriptId = importData.idp[idpId].transform as string;
-          const scriptData = importData.script[scriptId as string];
-          if (scriptId && scriptData) {
-            scriptData.script = convertTextArrayToBase64(
-              scriptData.script as string[]
-            );
-            await updateScript({ scriptId, scriptData, state });
+        if (options.deps && importData.idp[idpId].transform) {
+          try {
+            const scriptId = importData.idp[idpId].transform as string;
+            const scriptData = importData.script[scriptId as string];
+            if (scriptId && scriptData) {
+              scriptData.script = convertTextArrayToBase64(
+                scriptData.script as string[]
+              );
+              await updateScript({ scriptId, scriptData, state });
+            }
+          } catch (error) {
+            errors.push(error);
           }
         }
         response = await updateSocialIdentityProvider({
@@ -729,12 +791,11 @@ export async function importSocialIdentityProvider({
       }
     }
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing provider ${providerId}`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\n${providerId} not found in import data!`);
+    throw new FrodoError(`Provider ${providerId} not found in import data`);
   }
   return response;
 }
@@ -759,14 +820,18 @@ export async function importFirstSocialIdentityProvider({
   const imported = [];
   for (const idpId of Object.keys(importData.idp)) {
     try {
-      if (options.deps) {
-        const scriptId = importData.idp[idpId].transform as string;
-        const scriptData = importData.script[scriptId as string];
-        if (scriptId && scriptData) {
-          scriptData.script = convertTextArrayToBase64(
-            scriptData.script as string[]
-          );
-          await updateScript({ scriptId, scriptData, state });
+      if (options.deps && importData.idp[idpId].transform) {
+        try {
+          const scriptId = importData.idp[idpId].transform as string;
+          const scriptData = importData.script[scriptId as string];
+          if (scriptId && scriptData) {
+            scriptData.script = convertTextArrayToBase64(
+              scriptData.script as string[]
+            );
+            await updateScript({ scriptId, scriptData, state });
+          }
+        } catch (error) {
+          errors.push(error);
         }
       }
       response = await updateSocialIdentityProvider({
@@ -781,12 +846,11 @@ export async function importFirstSocialIdentityProvider({
     }
     break;
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing first provider`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo providers found in import data!`);
+    throw new FrodoError(`No providers found in import data`);
   }
   return response;
 }
@@ -811,14 +875,18 @@ export async function importSocialIdentityProviders({
   const imported = [];
   for (const idpId of Object.keys(importData.idp)) {
     try {
-      if (options.deps) {
-        const scriptId = importData.idp[idpId].transform as string;
-        const scriptData = { ...importData.script[scriptId as string] };
-        if (scriptId && scriptData) {
-          scriptData.script = convertTextArrayToBase64(
-            scriptData.script as string[]
-          );
-          await updateScript({ scriptId, scriptData, state });
+      if (options.deps && importData.idp[idpId].transform) {
+        try {
+          const scriptId = importData.idp[idpId].transform as string;
+          const scriptData = { ...importData.script[scriptId as string] };
+          if (scriptId && scriptData) {
+            scriptData.script = convertTextArrayToBase64(
+              scriptData.script as string[]
+            );
+            await updateScript({ scriptId, scriptData, state });
+          }
+        } catch (error) {
+          errors.push(error);
         }
       }
       response.push(
@@ -834,12 +902,11 @@ export async function importSocialIdentityProviders({
       errors.push(error);
     }
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing providers`);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo providers found in import data!`);
+    throw new FrodoError(`No providers found in import data!`);
   }
   return response;
 }
@@ -850,6 +917,7 @@ export async function importSocialIdentityProviders({
  * Import provider by id/name
  * @param {string} providerId provider id/name
  * @param {SocialProviderExportInterface} importData import data
+ * @returns {Promise<boolean>} a promise resolving to true if successful, false otherwise
  */
 export async function importSocialProvider({
   providerId,
@@ -885,6 +953,7 @@ export async function importSocialProvider({
 /**
  * Import first provider
  * @param {SocialProviderExportInterface} importData import data
+ * @returns {Promise<boolean>} a promise resolving to true if successful, false otherwise
  */
 export async function importFirstSocialProvider({
   importData,
@@ -916,6 +985,7 @@ export async function importFirstSocialProvider({
 /**
  * Import all providers
  * @param {SocialProviderExportInterface} importData import data
+ * @returns {Promise<boolean>} a promise resolving to true if successful, false otherwise
  */
 export async function importSocialProviders({
   importData,
@@ -942,16 +1012,6 @@ export async function importSocialProviders({
         state,
       });
     } catch (error) {
-      printMessage({
-        message: error.response?.data || error,
-        type: 'error',
-        state,
-      });
-      printMessage({
-        message: `\nError importing provider ${idpId}`,
-        type: 'error',
-        state,
-      });
       outcome = false;
     }
   }

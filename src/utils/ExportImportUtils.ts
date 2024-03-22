@@ -14,7 +14,7 @@ import {
   encode,
   encodeBase64Url,
 } from './Base64Utils';
-import { debugMessage, printMessage } from './Console';
+import { debugMessage, printError, printMessage } from './Console';
 import { deleteDeepByKey, stringify } from './JsonUtils';
 
 export type ExportImport = {
@@ -603,10 +603,11 @@ export async function exportOrImportWithErrorHandling<
 >(func: (params: P) => Promise<R>, parameters: P): Promise<R | null> {
   try {
     return await func(parameters);
-  } catch (e) {
-    printMessage({
-      message: `ERROR: ${e.message}`,
-      type: 'error',
+  } catch (error) {
+    printError({
+      error,
+      // eslint-disable-next-line prefer-rest-params
+      message: `Error in ${arguments[0]}`,
       state: parameters.state,
     });
     return null;

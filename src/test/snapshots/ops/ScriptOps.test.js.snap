@@ -9334,6 +9334,11 @@ exports[`ScriptOps exportScripts() 2: Export all scripts, including default scri
 }
 `;
 
+exports[`ScriptOps importScripts() 3: Import no scripts when excluding default scripts and only default scripts given 1`] = `
+"Error importing scripts
+  No scripts found in import data"
+`;
+
 exports[`ScriptOps readScript() 1: Read script by id 'c9cb4b1e-1cd3-4e5b-8f56-140f83ba9f6d' 1`] = `
 {
   "_id": "c9cb4b1e-1cd3-4e5b-8f56-140f83ba9f6d",

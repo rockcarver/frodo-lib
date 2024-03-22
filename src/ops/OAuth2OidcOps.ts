@@ -10,6 +10,7 @@ import {
 import { TokenInfoResponseType } from '../api/OAuth2OIDCApi';
 import { State } from '../shared/State';
 import { mergeDeep } from '../utils/JsonUtils';
+import { FrodoError } from './FrodoError';
 
 export type AccessTokenMetaType = AccessTokenResponseType & {
   expires: number;
@@ -118,7 +119,11 @@ export async function authorize({
   config: AxiosRequestConfig;
   state: State;
 }): Promise<AxiosResponse<any, any>> {
-  return _authorize({ amBaseUrl, data, config, state });
+  try {
+    return _authorize({ amBaseUrl, data, config, state });
+  } catch (error) {
+    throw new FrodoError(`Error authorizing oauth2 client`, error);
+  }
 }
 
 export async function accessToken({
@@ -134,15 +139,19 @@ export async function accessToken({
   realm?: boolean;
   state: State;
 }): Promise<AccessTokenMetaType> {
-  const response = await _accessToken({
-    amBaseUrl,
-    config,
-    postData: data,
-    realm,
-    state,
-  });
-  response['expires'] = Date.now() + response.expires_in * 1000;
-  return response as AccessTokenMetaType;
+  try {
+    const response = await _accessToken({
+      amBaseUrl,
+      config,
+      postData: data,
+      realm,
+      state,
+    });
+    response['expires'] = Date.now() + response.expires_in * 1000;
+    return response as AccessTokenMetaType;
+  } catch (error) {
+    throw new FrodoError(`Error getting oauth2 access token`, error);
+  }
 }
 
 export async function accessTokenRfc7523AuthZGrant({
@@ -158,24 +167,31 @@ export async function accessTokenRfc7523AuthZGrant({
   config?: AxiosRequestConfig;
   state: State;
 }): Promise<AccessTokenMetaType> {
-  config = mergeDeep(config, {
-    headers: {
-      'content-type': 'application/x-www-form-urlencoded',
-    },
-  });
-  const data = new URLSearchParams({
-    grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-    assertion: jwt,
-    scope: scope.join(' '),
-    client_id: clientId,
-  }).toString();
-  return accessToken({
-    amBaseUrl: state.getHost(),
-    config,
-    data,
-    realm: true,
-    state,
-  });
+  try {
+    config = mergeDeep(config, {
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+    });
+    const data = new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+      scope: scope.join(' '),
+      client_id: clientId,
+    }).toString();
+    return accessToken({
+      amBaseUrl: state.getHost(),
+      config,
+      data,
+      realm: true,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error getting oauth2 access token (RFC7523 AuthZ Grant)`,
+      error
+    );
+  }
 }
 
 export async function getTokenInfo({
@@ -187,7 +203,11 @@ export async function getTokenInfo({
   config: AxiosRequestConfig;
   state: State;
 }): Promise<TokenInfoResponseType> {
-  return _getTokenInfo({ amBaseUrl, config, state });
+  try {
+    return _getTokenInfo({ amBaseUrl, config, state });
+  } catch (error) {
+    throw new FrodoError(`Error getting oauth2 token info`, error);
+  }
 }
 
 export async function clientCredentialsGrant({
@@ -203,13 +223,20 @@ export async function clientCredentialsGrant({
   scope: string;
   state: State;
 }): Promise<AccessTokenMetaType> {
-  const response = await _clientCredentialsGrant({
-    amBaseUrl,
-    clientId,
-    clientSecret,
-    scope,
-    state,
-  });
-  response['expires'] = new Date().getTime() + response.expires_in;
-  return response as AccessTokenMetaType;
+  try {
+    const response = await _clientCredentialsGrant({
+      amBaseUrl,
+      clientId,
+      clientSecret,
+      scope,
+      state,
+    });
+    response['expires'] = new Date().getTime() + response.expires_in;
+    return response as AccessTokenMetaType;
+  } catch (error) {
+    throw new FrodoError(
+      `Error getting access token using client credentials grant`,
+      error
+    );
+  }
 }

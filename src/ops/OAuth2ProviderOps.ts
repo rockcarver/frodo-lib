@@ -6,6 +6,7 @@ import {
   putOAuth2Provider as _putOAuth2Provider,
 } from '../api/OAuth2ProviderApi';
 import { State } from '../shared/State';
+import { FrodoError } from './FrodoError';
 
 export type OAuth2Provider = {
   /**
@@ -81,7 +82,11 @@ export async function readOAuth2Provider({
 }: {
   state: State;
 }): Promise<OAuth2ProviderSkeleton> {
-  return _getOAuth2Provider({ state });
+  try {
+    return _getOAuth2Provider({ state });
+  } catch (error) {
+    throw new FrodoError(`Error reading oauth2 provider`, error);
+  }
 }
 
 /**
@@ -96,7 +101,11 @@ export async function createOAuth2Provider({
   providerData: OAuth2ProviderSkeleton;
   state: State;
 }): Promise<OAuth2ProviderSkeleton> {
-  return _createOAuth2Provider({ providerData, state });
+  try {
+    return _createOAuth2Provider({ providerData, state });
+  } catch (error) {
+    throw new FrodoError(`Error creating oauth2 provider`, error);
+  }
 }
 
 /**
@@ -111,7 +120,11 @@ export async function updateOAuth2Provider({
   providerData: OAuth2ProviderSkeleton;
   state: State;
 }): Promise<OAuth2ProviderSkeleton> {
-  return _putOAuth2Provider({ providerData, state });
+  try {
+    return _putOAuth2Provider({ providerData, state });
+  } catch (error) {
+    throw new FrodoError(`Error updating oauth2 provider`, error);
+  }
 }
 
 /**
@@ -123,5 +136,9 @@ export async function deleteOAuth2Provider({
 }: {
   state: State;
 }): Promise<OAuth2ProviderSkeleton> {
-  return _deleteOAuth2Provider({ state });
+  try {
+    return _deleteOAuth2Provider({ state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting oauth2 provider`, error);
+  }
 }

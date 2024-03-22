@@ -51,6 +51,7 @@ import * as AgentApi from '../api/AgentApi';
 import * as AgentOps from './AgentOps';
 import { getAgent } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { FrodoError } from '../FrodoError';
 
 const ctx = autoSetupPolly();
 
@@ -666,14 +667,15 @@ describe('AgentOps', () => {
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
-        expect.assertions(1);
+        expect.assertions(2);
         try {
           await AgentOps.importIdentityGatewayAgents({
             importData: exportData,
             state,
           });
         } catch (error) {
-          expect(error).toMatchSnapshot();
+          expect(error.name).toEqual('FrodoError');
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -705,11 +707,12 @@ describe('AgentOps', () => {
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
-        expect.assertions(1);
+        expect.assertions(2);
         try {
           await AgentOps.importJavaAgents({ importData: exportData, state });
         } catch (error) {
-          expect(error).toMatchSnapshot();
+          expect(error.name).toEqual('FrodoError');
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -741,11 +744,12 @@ describe('AgentOps', () => {
         for (const agentId of Object.keys(agents)) {
           exportData.agents[agentId] = getAgent(agents[agentId], agentId);
         }
-        expect.assertions(1);
+        expect.assertions(2);
         try {
           await AgentOps.importWebAgents({ importData: exportData, state });
         } catch (error) {
-          expect(error).toMatchSnapshot();
+          expect(error.name).toEqual('FrodoError');
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -808,7 +812,7 @@ describe('AgentOps', () => {
       test('2: Import gateway agent with wrong type', async () => {
         const exportData = AgentOps.createAgentExportTemplate({ state });
         exportData.agents[java7.id] = getAgent(java7.type, java7.id);
-        expect.assertions(1);
+        expect.assertions(2);
         try {
           await AgentOps.importIdentityGatewayAgent({
             agentId: java7.id,
@@ -816,7 +820,8 @@ describe('AgentOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect(error.name).toEqual('FrodoError');
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -840,7 +845,7 @@ describe('AgentOps', () => {
       test('2: Import java agent with wrong type', async () => {
         const exportData = AgentOps.createAgentExportTemplate({ state });
         exportData.agents[web7.id] = getAgent(web7.type, web7.id);
-        expect.assertions(1);
+        expect.assertions(2);
         try {
           await AgentOps.importJavaAgent({
             agentId: web7.id,
@@ -848,7 +853,8 @@ describe('AgentOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect(error.name).toEqual('FrodoError');
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -872,7 +878,7 @@ describe('AgentOps', () => {
       test('2: Import web agent with wrong type', async () => {
         const exportData = AgentOps.createAgentExportTemplate({ state });
         exportData.agents[gateway7.id] = getAgent(gateway7.type, gateway7.id);
-        expect.assertions(1);
+        expect.assertions(2);
         try {
           await AgentOps.importWebAgent({
             agentId: gateway7.id,
@@ -880,7 +886,8 @@ describe('AgentOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect(error.name).toEqual('FrodoError');
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -927,14 +934,15 @@ describe('AgentOps', () => {
       });
 
       test(`2: Delete agent of wrong type '${java9.id}' (${java9.type})`, async () => {
-        expect.assertions(1);
+        expect.assertions(2);
         try {
           await AgentOps.deleteIdentityGatewayAgent({
             agentId: java9.id,
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect(error.name).toEqual('FrodoError');
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -950,11 +958,12 @@ describe('AgentOps', () => {
       });
 
       test(`2: Delete agent of wrong type '${web9.id}' (${web9.type})`, async () => {
-        expect.assertions(1);
+        expect.assertions(2);
         try {
           await AgentOps.deleteJavaAgent({ agentId: web9.id, state });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect(error.name).toEqual('FrodoError');
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -970,11 +979,12 @@ describe('AgentOps', () => {
       });
 
       test(`2: Delete agent of wrong type '${gateway9.id}' (${gateway9.type})`, async () => {
-        expect.assertions(1);
+        expect.assertions(2);
         try {
           await AgentOps.deleteWebAgent({ agentId: gateway9.id, state });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect(error.name).toEqual('FrodoError');
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });

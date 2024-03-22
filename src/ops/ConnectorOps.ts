@@ -12,6 +12,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { FrodoError } from './FrodoError';
 import { readConfigEntitiesByType } from './IdmConfigOps';
 import { MappingSkeleton, readMappings } from './MappingOps';
 import { ExportMetaData } from './OpsTypes';
@@ -312,11 +313,15 @@ export async function readConnectors({
 }: {
   state: State;
 }): Promise<ConnectorSkeleton[]> {
-  const connectors = await readConfigEntitiesByType({
-    type: CONNECTOR_TYPE,
-    state,
-  });
-  return connectors as ConnectorSkeleton[];
+  try {
+    const connectors = await readConfigEntitiesByType({
+      type: CONNECTOR_TYPE,
+      state,
+    });
+    return connectors as ConnectorSkeleton[];
+  } catch (error) {
+    throw new FrodoError(`Error reading connectors`, error);
+  }
 }
 
 /**
@@ -331,24 +336,28 @@ export async function readConnector({
   connectorId: string;
   state: State;
 }): Promise<ConnectorSkeleton> {
-  debugMessage({
-    message: `ConnectorOps.readConnector: start [connector=${connectorId}]`,
-    state,
-  });
-  const entityId = `${CONNECTOR_TYPE}/${connectorId}`;
-  debugMessage({
-    message: `ConnectorOps.readConnector: use entity id: ${entityId}`,
-    state,
-  });
-  const connectorData = await getConfigEntity({
-    entityId,
-    state,
-  });
-  debugMessage({
-    message: `ConnectorOps.readConnector: end [connector=${connectorId}]`,
-    state,
-  });
-  return connectorData;
+  try {
+    debugMessage({
+      message: `ConnectorOps.readConnector: start [connector=${connectorId}]`,
+      state,
+    });
+    const entityId = `${CONNECTOR_TYPE}/${connectorId}`;
+    debugMessage({
+      message: `ConnectorOps.readConnector: use entity id: ${entityId}`,
+      state,
+    });
+    const connectorData = await getConfigEntity({
+      entityId,
+      state,
+    });
+    debugMessage({
+      message: `ConnectorOps.readConnector: end [connector=${connectorId}]`,
+      state,
+    });
+    return connectorData;
+  } catch (error) {
+    throw new FrodoError(`Error reading connector ${connectorId}`, error);
+  }
 }
 
 /**
@@ -376,16 +385,20 @@ export async function createConnector({
       state,
     });
   } catch (error) {
-    const result = await putConfigEntity({
-      entityId: `${CONNECTOR_TYPE}/${connectorId}`,
-      entityData: connectorData,
-      state,
-    });
-    debugMessage({
-      message: `ConnectorOps.createConnector: end`,
-      state,
-    });
-    return result as ConnectorSkeleton;
+    try {
+      const result = await putConfigEntity({
+        entityId: `${CONNECTOR_TYPE}/${connectorId}`,
+        entityData: connectorData,
+        state,
+      });
+      debugMessage({
+        message: `ConnectorOps.createConnector: end`,
+        state,
+      });
+      return result as ConnectorSkeleton;
+    } catch (error) {
+      throw new FrodoError(`Error creating connector ${connectorId}`, error);
+    }
   }
   throw new Error(`Connector ${connectorId} already exists!`);
 }
@@ -405,11 +418,15 @@ export async function updateConnector({
   connectorData: ConnectorSkeleton;
   state: State;
 }): Promise<ConnectorSkeleton> {
-  return putConfigEntity({
-    entityId: `${CONNECTOR_TYPE}/${connectorId}`,
-    entityData: connectorData,
-    state,
-  });
+  try {
+    return putConfigEntity({
+      entityId: `${CONNECTOR_TYPE}/${connectorId}`,
+      entityData: connectorData,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(`Error updating connector ${connectorId}`, error);
+  }
 }
 
 /**
@@ -421,29 +438,45 @@ export async function deleteConnectors({
 }: {
   state: State;
 }): Promise<ConnectorSkeleton[]> {
-  debugMessage({
-    message: `ConnectorOps.deleteConnectors: start`,
-    state,
-  });
-  const result: ConnectorSkeleton[] = [];
-  const connectors = await readConnectors({ state });
-  for (const connector of connectors) {
+  const errors: Error[] = [];
+  try {
     debugMessage({
-      message: `ConnectorOps.deleteConnectors: '${connector['_id']}'`,
+      message: `ConnectorOps.deleteConnectors: start`,
       state,
     });
-    result.push(
-      await deleteConfigEntity({
-        entityId: connector['_id'],
-        state,
-      })
-    );
+    const result: ConnectorSkeleton[] = [];
+    const connectors = await readConnectors({ state });
+    for (const connector of connectors) {
+      try {
+        debugMessage({
+          message: `ConnectorOps.deleteConnectors: '${connector['_id']}'`,
+          state,
+        });
+        result.push(
+          await deleteConfigEntity({
+            entityId: connector['_id'],
+            state,
+          })
+        );
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error deleting connectors`, errors);
+    }
+    debugMessage({
+      message: `ConnectorOps.deleteConnectors: end`,
+      state,
+    });
+    return result;
+  } catch (error) {
+    // re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error deleting connectors`, error);
   }
-  debugMessage({
-    message: `ConnectorOps.deleteConnectors: end`,
-    state,
-  });
-  return result;
 }
 
 /**
@@ -458,10 +491,14 @@ export async function deleteConnector({
   connectorId: string;
   state: State;
 }): Promise<ConnectorSkeleton> {
-  return deleteConfigEntity({
-    entityId: `${CONNECTOR_TYPE}/${connectorId}`,
-    state,
-  });
+  try {
+    return deleteConfigEntity({
+      entityId: `${CONNECTOR_TYPE}/${connectorId}`,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(`Error deleting connector ${connectorId}`, error);
+  }
 }
 
 /**
@@ -478,21 +515,25 @@ export async function exportConnector({
   options?: ConnectorExportOptions;
   state: State;
 }): Promise<ConnectorExportInterface> {
-  debugMessage({
-    message: `ConnectorOps.exportConnector: start [connector=${connectorId}]`,
-    state,
-  });
-  const connectorData = await readConnector({ connectorId, state });
-  const exportData = createConnectorExportTemplate({ state });
-  exportData.connector[connectorId] = connectorData;
-  if (options.deps) {
-    const mappings = await readMappings({ connectorId, state });
-    for (const mapping of mappings) {
-      exportData.mapping[mapping.name] = mapping;
+  try {
+    debugMessage({
+      message: `ConnectorOps.exportConnector: start [connector=${connectorId}]`,
+      state,
+    });
+    const connectorData = await readConnector({ connectorId, state });
+    const exportData = createConnectorExportTemplate({ state });
+    exportData.connector[connectorId] = connectorData;
+    if (options.deps) {
+      const mappings = await readMappings({ connectorId, state });
+      for (const mapping of mappings) {
+        exportData.mapping[mapping.name] = mapping;
+      }
     }
+    debugMessage({ message: `ConnectorOps.exportConnector: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting connector ${connectorId}`, error);
   }
-  debugMessage({ message: `ConnectorOps.exportConnector: end`, state });
-  return exportData;
 }
 
 /**
@@ -504,28 +545,32 @@ export async function exportConnectors({
 }: {
   state: State;
 }): Promise<ConnectorExportInterface> {
-  const exportData = createConnectorExportTemplate({ state });
-  const allConnectorsData = await readConnectors({ state });
-  const indicatorId = createProgressIndicator({
-    total: allConnectorsData.length,
-    message: 'Exporting connectors',
-    state,
-  });
-  for (const connectorData of allConnectorsData) {
-    const connectorId = connectorData._id.split('/')[1];
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting connector ${connectorId}`,
+  try {
+    const exportData = createConnectorExportTemplate({ state });
+    const allConnectorsData = await readConnectors({ state });
+    const indicatorId = createProgressIndicator({
+      total: allConnectorsData.length,
+      message: 'Exporting connectors',
       state,
     });
-    exportData.connector[connectorId] = connectorData;
+    for (const connectorData of allConnectorsData) {
+      const connectorId = connectorData._id.split('/')[1];
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting connector ${connectorId}`,
+        state,
+      });
+      exportData.connector[connectorId] = connectorData;
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `${allConnectorsData.length} connectors exported.`,
+      state,
+    });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting connectors`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `${allConnectorsData.length} connectors exported.`,
-    state,
-  });
-  return exportData;
 }
 
 /**
@@ -564,14 +609,14 @@ export async function importConnector({
       } catch (error) {
         errors.push(error);
       }
+      break;
     }
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing connector ${connectorId}`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\n${connectorId} not found in import data!`);
+    throw new FrodoError(`Connector ${connectorId} not found in import data!`);
   }
   return response;
 }
@@ -610,12 +655,11 @@ export async function importFirstConnector({
     }
     break;
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing first connector`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo connectors found in import data!`);
+    throw new FrodoError(`No connectors not found in import data!`);
   }
   return response;
 }
@@ -655,12 +699,11 @@ export async function importConnectors({
       errors.push(error);
     }
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing connectors`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo connectors found in import data!`);
+    throw new FrodoError(`No connectors not found in import data!`);
   }
   return response;
 }

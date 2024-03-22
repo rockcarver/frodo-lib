@@ -47,7 +47,7 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { state } from '../index';
+import { FrodoError, state } from '../index';
 import * as IdmConfigApi from '../api/IdmConfigApi';
 import * as ThemeOps from './ThemeOps';
 import { getConfigEntity } from '../test/mocks/ForgeRockApiMockEngine';
@@ -269,7 +269,7 @@ const THEME_MAP_RAW = {
   },
   'a5420670-bae8-4ad6-9595-8477f6bca2c7': THEME_OBJ,
 };
-const THEME_MAP: Map<string, ThemeOps.ThemeSkeleton> = new Map<string, ThemeOps.ThemeSkeleton>();
+const THEME_MAP: Record<string, ThemeOps.ThemeSkeleton> = {};
 for (const theme of Object.values(THEME_MAP_RAW)) {
   THEME_MAP[theme._id as string] = theme;
 }
@@ -387,7 +387,7 @@ describe('ThemeOps', () => {
       test('1: Export themes', async () => {
         const response = await ThemeOps.exportThemes({ state });
         expect(response).toMatchSnapshot({
-          meta: expect.any(Object)
+          meta: expect.any(Object),
         });
       });
     });
@@ -433,7 +433,7 @@ describe('ThemeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -479,7 +479,7 @@ describe('ThemeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -628,9 +628,9 @@ describe('ThemeOps', () => {
     describe('importThemes()', () => {
       const importData = {
         theme: {
-          ...THEME_MAP_RAW
-        }
-      }
+          ...THEME_MAP_RAW,
+        },
+      };
 
       test('0: Method is implemented', async () => {
         expect(ThemeOps.importThemes).toBeDefined();
@@ -721,7 +721,7 @@ describe('ThemeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -774,7 +774,7 @@ describe('ThemeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -811,7 +811,7 @@ describe('ThemeOps', () => {
         try {
           await ThemeOps.deleteThemes({ realm: 'doesnotexist', state });
         } catch (error) {
-          expect(error).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });

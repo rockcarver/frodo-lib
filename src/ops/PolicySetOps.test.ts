@@ -35,7 +35,7 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { state } from '../index';
+import { FrodoError, state } from '../index';
 import * as PolicySetApi from '../api/PolicySetApi';
 import * as PolicySetOps from './PolicySetOps';
 import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
@@ -300,7 +300,7 @@ describe('PolicySetOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.response.data).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -323,7 +323,7 @@ describe('PolicySetOps', () => {
         try {
           await PolicySetOps.createPolicySet({ policySetData: set4, state });
         } catch (error) {
-          expect(error.response.data).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -346,7 +346,7 @@ describe('PolicySetOps', () => {
         try {
           await PolicySetOps.updatePolicySet({ policySetData: set6, state });
         } catch (error) {
-          expect(error.response.data).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -399,7 +399,7 @@ describe('PolicySetOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -452,7 +452,7 @@ describe('PolicySetOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -521,7 +521,7 @@ describe('PolicySetOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.response.data).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });

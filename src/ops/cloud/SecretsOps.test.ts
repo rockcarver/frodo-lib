@@ -33,10 +33,11 @@
  * in case things don't function as expected
  */
 
-import { autoSetupPolly } from "../../utils/AutoSetupPolly";
-import { state } from "../../index";
+import { autoSetupPolly } from '../../utils/AutoSetupPolly';
+import { state } from '../../index';
 import * as SecretsOps from './SecretsOps';
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError } from 'axios';
+import { FrodoError } from '../../FrodoError';
 
 autoSetupPolly();
 
@@ -52,7 +53,7 @@ async function stageSecret(
 ) {
   // delete if exists, then create
   try {
-    await SecretsOps.deleteSecret({ secretId: secret.id, state })
+    await SecretsOps.deleteSecret({ secretId: secret.id, state });
   } catch (error) {
     // ignore
   } finally {
@@ -63,7 +64,7 @@ async function stageSecret(
         description: secret.description,
         encoding: secret.encoding,
         useInPlaceholders: secret.useInPlaceholders,
-        state: state
+        state: state,
       });
     }
   }
@@ -75,22 +76,22 @@ describe('SecretsOps', () => {
     value: 'value1',
     description: 'description1',
     encoding: 'generic',
-    useInPlaceholders: true
-  }
+    useInPlaceholders: true,
+  };
   const secret2 = {
     id: 'esv-frodo-test-secret-2',
     value: 'value2',
     description: 'description2',
     encoding: 'generic',
-    useInPlaceholders: false
-  }
+    useInPlaceholders: false,
+  };
   const secret3 = {
     id: 'esv-frodo-test-secret-3',
     value: 'value3',
     description: 'description3',
     encoding: 'generic',
-    useInPlaceholders: false
-  }
+    useInPlaceholders: false,
+  };
   const secret4 = {
     id: 'esv-frodo-test-secret4',
     value: `-----BEGIN CERTIFICATE-----
@@ -132,8 +133,8 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
     value: '0nbVGkrNnIm4o5WKzYS/dL3/eo/k9EnSBH2QOOm5dLM=',
     description: 'description5',
     encoding: 'base64hmac',
-    useInPlaceholders: false
-  }
+    useInPlaceholders: false,
+  };
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
@@ -159,9 +160,11 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
     });
 
     test('1: Return template with meta data', async () => {
-      expect(SecretsOps.createSecretsExportTemplate({ state: state })).toStrictEqual({
+      expect(
+        SecretsOps.createSecretsExportTemplate({ state: state })
+      ).toStrictEqual({
         meta: expect.any(Object),
-        secrets: {}
+        secrets: {},
       });
     });
   });
@@ -185,34 +188,37 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
     });
 
     test('1: Export secret1', async () => {
-      const response = await SecretsOps.exportSecret({ secretId: secret1.id, state: state });
+      const response = await SecretsOps.exportSecret({
+        secretId: secret1.id,
+        state: state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
     });
 
     test('2: Export secret2', async () => {
-      const response = await SecretsOps.exportSecret({ secretId: secret2.id, state: state });
+      const response = await SecretsOps.exportSecret({
+        secretId: secret2.id,
+        state: state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
     });
 
     test('3: Export secret3 (non-existent)', async () => {
-      let errorCaught = false;
+      expect.assertions(2);
       try {
-        await SecretsOps.exportSecret({ secretId: secret3.id, state: state })
-      } catch (e: any) {
-        errorCaught = true;
-        expect(axios.isAxiosError(e)).toBeTruthy();
-        expect((e as AxiosError).response.status).toBe(404)
+        await SecretsOps.exportSecret({ secretId: secret3.id, state: state });
+      } catch (error) {
+        expect(error.name).toEqual('FrodoError');
+        expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
       }
-      expect(errorCaught).toBeTruthy();
     });
   });
 
   describe('createSecret()', () => {
-
     test(`0: Create pem encoded secret: ${secret4.id} - success`, async () => {
       const response = await SecretsOps.createSecret({
         secretId: secret4.id,
@@ -245,6 +251,5 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
       });
       expect(response).toMatchSnapshot();
     });
-
   });
 });

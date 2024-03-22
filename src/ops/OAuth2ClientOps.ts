@@ -19,6 +19,7 @@ import {
   convertBase64TextToArray,
   getMetadata,
 } from '../utils/ExportImportUtils';
+import { FrodoError } from './FrodoError';
 import { readOAuth2Provider } from './OAuth2ProviderOps';
 import { ExportMetaData } from './OpsTypes';
 import { readScript, updateScript } from './ScriptOps';
@@ -300,8 +301,12 @@ export async function readOAuth2Clients({
 }: {
   state: State;
 }): Promise<OAuth2ClientSkeleton[]> {
-  const clients = (await _getOAuth2Clients({ state })).result;
-  return clients;
+  try {
+    const clients = (await _getOAuth2Clients({ state })).result;
+    return clients;
+  } catch (error) {
+    throw new FrodoError(`Error reading oauth2 clients`, error);
+  }
 }
 
 /**
@@ -316,7 +321,11 @@ export async function readOAuth2Client({
   clientId: string;
   state: State;
 }): Promise<OAuth2ClientSkeleton> {
-  return _getOAuth2Client({ id: clientId, state });
+  try {
+    return _getOAuth2Client({ id: clientId, state });
+  } catch (error) {
+    throw new FrodoError(`Error reading oauth2 client ${clientId}`, error);
+  }
 }
 
 /**
@@ -338,15 +347,22 @@ export async function createOAuth2Client({
   try {
     await readOAuth2Client({ clientId, state });
   } catch (error) {
-    const result = await updateOAuth2Client({
-      clientId,
-      clientData,
-      state,
-    });
-    debugMessage({ message: `OAuth2ClientOps.createOAuth2Client: end`, state });
-    return result;
+    try {
+      const result = await updateOAuth2Client({
+        clientId,
+        clientData,
+        state,
+      });
+      debugMessage({
+        message: `OAuth2ClientOps.createOAuth2Client: end`,
+        state,
+      });
+      return result;
+    } catch (error) {
+      throw new FrodoError(`Error creating oauth2 client ${clientId}`, error);
+    }
   }
-  throw new Error(`OAuth2 client ${clientId} already exists!`);
+  throw new FrodoError(`OAuth2 client ${clientId} already exists!`);
 }
 
 /**
@@ -378,32 +394,39 @@ export async function updateOAuth2Client({
       error.response?.status === 400 &&
       error.response?.data?.message === 'Invalid attribute specified.'
     ) {
-      const { validAttributes } = error.response.data.detail;
-      validAttributes.push('_id');
-      for (const key of Object.keys(clientData)) {
-        if (typeof clientData[key] === 'object') {
-          for (const attribute of Object.keys(clientData[key])) {
-            if (!validAttributes.includes(attribute)) {
-              if (state.getVerbose() || state.getDebug())
-                printMessage({
-                  message: `\n- Removing invalid attribute: ${key}.${attribute}`,
-                  type: 'warn',
-                  state,
-                });
-              delete clientData[key][attribute];
+      try {
+        const { validAttributes } = error.response.data.detail;
+        validAttributes.push('_id');
+        for (const key of Object.keys(clientData)) {
+          if (typeof clientData[key] === 'object') {
+            for (const attribute of Object.keys(clientData[key])) {
+              if (!validAttributes.includes(attribute)) {
+                if (state.getVerbose() || state.getDebug())
+                  printMessage({
+                    message: `\n- Removing invalid attribute: ${key}.${attribute}`,
+                    type: 'warn',
+                    state,
+                  });
+                delete clientData[key][attribute];
+              }
             }
           }
         }
+        const response = await _putOAuth2Client({
+          id: clientId,
+          clientData,
+          state,
+        });
+        debugMessage({
+          message: `OAuth2ClientOps.putOAuth2Client: end`,
+          state,
+        });
+        return response;
+      } catch (error) {
+        throw new FrodoError(`Error updating oauth2 client ${clientId}`, error);
       }
-      const response = await _putOAuth2Client({
-        id: clientId,
-        clientData,
-        state,
-      });
-      debugMessage({ message: `OAuth2ClientOps.putOAuth2Client: end`, state });
-      return response;
     } else {
-      throw error;
+      throw new FrodoError(`Error updating oauth2 client ${clientId}`, error);
     }
   }
 }
@@ -446,8 +469,7 @@ export async function deleteOAuth2Clients({
     errors.push(error);
   }
   if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Delete error:\n${errorMessages}`);
+    throw new FrodoError(`Error deleting oauth2 clients`, errors);
   }
   debugMessage({
     message: `OAuth2ClientOps.deleteOAuth2Clients: end`,
@@ -468,7 +490,11 @@ export async function deleteOAuth2Client({
   clientId: string;
   state: State;
 }): Promise<OAuth2ClientSkeleton> {
-  return _deleteOAuth2Client({ id: clientId, state });
+  try {
+    return _deleteOAuth2Client({ id: clientId, state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting oauth2 client ${clientId}`, error);
+  }
 }
 
 /**
@@ -511,8 +537,10 @@ async function exportOAuth2ClientDependencies(
                   'This operation is not available in ForgeRock Identity Cloud.'
               )
             ) {
-              error.message = `Error retrieving script ${scriptId} referenced by ${key} key in client ${clientData['_id']}: ${error.message}`;
-              throw error;
+              throw new FrodoError(
+                `Error retrieving script ${scriptId} referenced by ${key} key in client ${clientData['_id']}`,
+                error
+              );
             }
           }
         }
@@ -581,9 +609,8 @@ export async function exportOAuth2Clients({
   } catch (error) {
     errors.push(error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error exporting oauth2 clients`, errors);
   }
   debugMessage({ message: `OAuth2ClientOps.exportOAuth2Clients: end`, state });
   return exportData;
@@ -622,9 +649,8 @@ export async function exportOAuth2Client({
   } catch (error) {
     errors.push(error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error exporting oauth2 client ${clientId}`, errors);
   }
   debugMessage({ message: `OAuth2ClientOps.exportOAuth2Client: end`, state });
   return exportData;
@@ -640,12 +666,21 @@ async function importOAuth2ClientDependencies(
   importData: OAuth2ClientExportInterface,
   state: State
 ) {
-  for (const key of Object.keys(clientData['overrideOAuth2ClientConfig'])) {
-    if (key.endsWith('Script')) {
-      const scriptId = clientData['overrideOAuth2ClientConfig'][key];
-      if (scriptId !== '[Empty]' && importData.script[scriptId]) {
-        const scriptData: ScriptSkeleton = importData.script[scriptId];
-        await updateScript({ scriptId, scriptData, state });
+  if (clientData['overrideOAuth2ClientConfig']) {
+    for (const key of Object.keys(clientData['overrideOAuth2ClientConfig'])) {
+      if (key.endsWith('Script')) {
+        const scriptId = clientData['overrideOAuth2ClientConfig'][key];
+        if (scriptId !== '[Empty]' && importData.script[scriptId]) {
+          try {
+            const scriptData: ScriptSkeleton = importData.script[scriptId];
+            await updateScript({ scriptId, scriptData, state });
+          } catch (error) {
+            throw new FrodoError(
+              `Error importing script dependency ${scriptId}`,
+              error
+            );
+          }
+        }
       }
     }
   }
@@ -692,12 +727,11 @@ export async function importOAuth2Client({
       }
     }
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing oauth2 client ${clientId}`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\n${clientId} not found in import data!`);
+    throw new FrodoError(`Oauth2 client ${clientId} not found in import data!`);
   }
   return response;
 }
@@ -735,12 +769,11 @@ export async function importFirstOAuth2Client({
     }
     break;
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing first oauth2 client`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo clients found in import data!`);
+    throw new FrodoError(`No oauth2 clients found in import data!`);
   }
   return response;
 }
@@ -779,12 +812,11 @@ export async function importOAuth2Clients({
       errors.push(error);
     }
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing oauth2 clients`);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo clients found in import data!`);
+    throw new FrodoError(`No oauth2 clients found in import data!`);
   }
   return response;
 }
