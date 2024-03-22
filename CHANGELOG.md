@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-73] - 2024-03-22
+
 ### Fixed
 
 -   \#393: Frodo now again properly imports oauth2 clients exported from an older AM version without provider overrides.
@@ -1395,7 +1397,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-72...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-73...HEAD
+
+[2.0.0-73]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-72...v2.0.0-73
 
 [2.0.0-72]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-71...v2.0.0-72
 
