@@ -7,15 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+-   \#393: Frodo now again properly imports oauth2 clients exported from an older AM version without provider overrides.
+-   \#390: Frodo now uses its own error type `FrodoError` for all ops layer errors.
+
 ## [2.0.0-72] - 2024-02-10
 
 ## [2.0.0-71] - 2024-02-05
 
 ## [2.0.0-70] - 2024-02-01
 
+### Changed
+
 -   Pipeline changes
 
 ## [2.0.0-69] - 2024-02-01
+
+### Changed
 
 -   Pipeline changes
 

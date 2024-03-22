@@ -145,6 +145,7 @@ export async function runSystemScript({
   return data;
 }
 
+//?_queryId=query-all-ids&_pageSize=/lmextuserCustomer sw '6'&_totalPagedResultsPolicy=EXACT
 export async function queryAllSystemObjectIds({
   systemName,
   systemObjectType,

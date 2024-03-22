@@ -7,8 +7,10 @@ import { generateIdmApi } from './BaseApi';
 
 const createManagedObjectURLTemplate = '%s/openidm/managed/%s?_action=create';
 const managedObjectByIdURLTemplate = '%s/openidm/managed/%s/%s';
-const managedObjectQueryAllURLTemplate = `%s/openidm/managed/%s?_queryFilter=true&_pageSize=10000`;
-const findManagedObjectURLTemplate = `%s/openidm/managed/%s?_queryFilter=%s&_pageSize=10000`;
+const queryAllManagedObjectURLTemplate = `%s/openidm/managed/%s?_queryFilter=true&_pageSize=%s`;
+const queryManagedObjectURLTemplate = `%s/openidm/managed/%s?_queryFilter=%s&_pageSize=%s`;
+
+export const DEFAULT_PAGE_SIZE: number = 1000;
 
 /**
  * See {@link https://backstage.forgerock.com/docs/idm/7/rest-api-reference/sec-about-crest.html#about-crest-patch}.
@@ -165,6 +167,7 @@ export async function patchManagedObject({
  * @param {string} type managed object type, e.g. alpha_user or user
  * @param {string} filter CREST search filter
  * @param {string[]} id array of fields to include
+ * @param {string} pageCookie paged results cookie
  * @param {State} state library state
  * @returns {Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an ObjectSkeletonInterface
  */
@@ -172,19 +175,28 @@ export async function queryManagedObjects({
   type,
   filter,
   fields = ['*'],
+  pageSize = DEFAULT_PAGE_SIZE,
+  pageCookie,
   state,
 }: {
   type: string;
   filter: string;
-  fields: string[];
+  fields?: string[];
+  pageSize?: number;
+  pageCookie?: string;
   state: State;
 }): Promise<PagedResult<IdObjectSkeletonInterface>> {
   const fieldsParam = `_fields=${fields.join(',')}`;
   const urlString = util.format(
-    `${findManagedObjectURLTemplate}&${fieldsParam}`,
+    pageCookie
+      ? `${queryManagedObjectURLTemplate}&${fieldsParam}&_pagedResultsCookie=${encodeURIComponent(
+          pageCookie
+        )}`
+      : `${queryManagedObjectURLTemplate}&${fieldsParam}`,
     getHostBaseUrl(state.getHost()),
     type,
-    filter
+    encodeURIComponent(filter),
+    pageSize
   );
   const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
     urlString
@@ -202,25 +214,28 @@ export async function queryManagedObjects({
 export async function queryAllManagedObjectsByType({
   type,
   fields = [],
+  pageSize = DEFAULT_PAGE_SIZE,
   pageCookie = undefined,
   state,
 }: {
   type: string;
   fields?: string[];
+  pageSize?: number;
   pageCookie?: string;
   state: State;
 }): Promise<PagedResult<IdObjectSkeletonInterface>> {
   const fieldsParam =
     fields.length > 0 ? `&_fields=${fields.join(',')}` : '&_fields=_id';
   const urlTemplate = pageCookie
-    ? `${managedObjectQueryAllURLTemplate}${fieldsParam}&_pagedResultsCookie=${encodeURIComponent(
+    ? `${queryAllManagedObjectURLTemplate}${fieldsParam}&_pagedResultsCookie=${encodeURIComponent(
         pageCookie
       )}`
-    : `${managedObjectQueryAllURLTemplate}${fieldsParam}`;
+    : `${queryAllManagedObjectURLTemplate}${fieldsParam}`;
   const urlString = util.format(
     urlTemplate,
     getHostBaseUrl(state.getHost()),
-    type
+    type,
+    pageSize
   );
   const { data } = await generateIdmApi({ state }).get(urlString);
   return data;

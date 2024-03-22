@@ -2,7 +2,7 @@ import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import { queryAllManagedObjectsByType } from '../api/ManagedObjectApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
-import { printMessage } from '../utils/Console';
+import { FrodoError } from './FrodoError';
 
 export type Organization = {
   /**
@@ -86,53 +86,40 @@ export async function readOrganizations({
         pageCookie: result.pagedResultsCookie,
         state,
       });
+      orgs = orgs.concat(result.result);
     } catch (error) {
       errors.push(error);
     }
-    orgs = orgs.concat(result.result);
   } while (result.pagedResultsCookie);
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error reading organizations`, errors);
   }
   return orgs;
 }
 
 // unfinished work
 export async function listOrganizationsTopDown({ state }: { state: State }) {
-  const orgs = [];
-  let result = {
-    result: [],
-    resultCount: 0,
-    pagedResultsCookie: null,
-    totalPagedResultsPolicy: 'NONE',
-    totalPagedResults: -1,
-    remainingPagedResults: -1,
-  };
-  do {
-    try {
+  try {
+    const orgs = [];
+    let result = {
+      result: [],
+      resultCount: 0,
+      pagedResultsCookie: null,
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    };
+    do {
       result = await queryAllManagedObjectsByType({
         type: getRealmManagedOrganization({ state }),
         fields: ['name', 'parent/*/name', 'children/*/name'],
         pageCookie: result.pagedResultsCookie,
         state,
       });
-    } catch (queryAllManagedObjectsByTypeError) {
-      printMessage({
-        message: queryAllManagedObjectsByTypeError,
-        type: 'error',
-        state,
-      });
-      printMessage({
-        message: `Error querying ${getRealmManagedOrganization({
-          state,
-        })} objects: ${queryAllManagedObjectsByTypeError}`,
-        type: 'error',
-        state,
-      });
-    }
-    orgs.concat(result.result);
-    printMessage({ message: '.', type: 'text', newline: false, state });
-  } while (result.pagedResultsCookie);
-  return orgs;
+      orgs.concat(result.result);
+    } while (result.pagedResultsCookie);
+    return orgs;
+  } catch (error) {
+    throw new FrodoError(`Error querying organizations`, error);
+  }
 }

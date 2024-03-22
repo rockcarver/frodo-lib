@@ -9,6 +9,7 @@ import {
 import { State } from '../shared/State';
 import { debugMessage, printMessage } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { FrodoError } from './FrodoError';
 import { ExportMetaData } from './OpsTypes';
 
 export type OAuth2TrustedJwtIssuer = {
@@ -302,8 +303,12 @@ export async function readOAuth2TrustedJwtIssuers({
 }: {
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton[]> {
-  const issuers = (await _getOAuth2TrustedJwtIssuers({ state })).result;
-  return issuers;
+  try {
+    const issuers = (await _getOAuth2TrustedJwtIssuers({ state })).result;
+    return issuers;
+  } catch (error) {
+    throw new FrodoError(`Error reading trusted issuers`, error);
+  }
 }
 
 /**
@@ -318,13 +323,17 @@ export async function readOAuth2TrustedJwtIssuer({
   issuerId: string;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton> {
-  return _getOAuth2TrustedJwtIssuer({ id: issuerId, state });
+  try {
+    return _getOAuth2TrustedJwtIssuer({ id: issuerId, state });
+  } catch (error) {
+    throw new FrodoError(`Error reading trusted issuer ${issuerId}`, error);
+  }
 }
 
 /**
  * Create OAuth2 trusted jwt issuer
  * @param {string} issuerId trusted jwt issuer id
- * @param {any} issuerData trusted jwt issuer object
+ * @param {OAuth2TrustedJwtIssuerSkeleton | NoIdObjectSkeletonInterface} issuerData trusted jwt issuer object
  * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to an trusted jwt issuer object
  */
 export async function createOAuth2TrustedJwtIssuer({
@@ -343,18 +352,22 @@ export async function createOAuth2TrustedJwtIssuer({
   try {
     await readOAuth2TrustedJwtIssuer({ issuerId, state });
   } catch (error) {
-    const result = await updateOAuth2TrustedJwtIssuer({
-      issuerId,
-      issuerData,
-      state,
-    });
-    debugMessage({
-      message: `OAuth2TrustedJwtIssuerOps.createOAuth2TrustedJwtIssuer: end`,
-      state,
-    });
-    return result;
+    try {
+      const result = await updateOAuth2TrustedJwtIssuer({
+        issuerId,
+        issuerData,
+        state,
+      });
+      debugMessage({
+        message: `OAuth2TrustedJwtIssuerOps.createOAuth2TrustedJwtIssuer: end`,
+        state,
+      });
+      return result;
+    } catch (error) {
+      throw new FrodoError(`Error creating trusted issuer ${issuerId}`, error);
+    }
   }
-  throw new Error(`OAuth2 trusted jwt issuer ${issuerId} already exists!`);
+  throw new FrodoError(`Trusted issuer ${issuerId} already exists!`);
 }
 
 /**
@@ -392,35 +405,42 @@ export async function updateOAuth2TrustedJwtIssuer({
       error.response?.status === 400 &&
       error.response?.data?.message === 'Invalid attribute specified.'
     ) {
-      const { validAttributes } = error.response.data.detail;
-      validAttributes.push('_id');
-      for (const key of Object.keys(issuerData)) {
-        if (typeof issuerData[key] === 'object') {
-          for (const attribute of Object.keys(issuerData[key])) {
-            if (!validAttributes.includes(attribute)) {
-              if (state.getVerbose() || state.getDebug())
-                printMessage({
-                  message: `\n- Removing invalid attribute: ${key}.${attribute}`,
-                  type: 'warn',
-                  state,
-                });
-              delete issuerData[key][attribute];
+      try {
+        const { validAttributes } = error.response.data.detail;
+        validAttributes.push('_id');
+        for (const key of Object.keys(issuerData)) {
+          if (typeof issuerData[key] === 'object') {
+            for (const attribute of Object.keys(issuerData[key])) {
+              if (!validAttributes.includes(attribute)) {
+                if (state.getVerbose() || state.getDebug())
+                  printMessage({
+                    message: `\n- Removing invalid attribute: ${key}.${attribute}`,
+                    type: 'warn',
+                    state,
+                  });
+                delete issuerData[key][attribute];
+              }
             }
           }
         }
+        const response = await _putOAuth2TrustedJwtIssuer({
+          id: issuerId,
+          issuerData,
+          state,
+        });
+        debugMessage({
+          message: `OAuth2TrustedJwtIssuerOps.putOAuth2TrustedJwtIssuer: end`,
+          state,
+        });
+        return response;
+      } catch (error) {
+        throw new FrodoError(
+          `Error updating trusted issuer ${issuerId}`,
+          error
+        );
       }
-      const response = await _putOAuth2TrustedJwtIssuer({
-        id: issuerId,
-        issuerData,
-        state,
-      });
-      debugMessage({
-        message: `OAuth2TrustedJwtIssuerOps.putOAuth2TrustedJwtIssuer: end`,
-        state,
-      });
-      return response;
     } else {
-      throw error;
+      throw new FrodoError(`Error updating trusted issuer ${issuerId}`, error);
     }
   }
 }
@@ -435,13 +455,13 @@ export async function deleteOAuth2TrustedJwtIssuers({
 }: {
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton[]> {
-  debugMessage({
-    message: `OAuth2TrustedJwtIssuerOps.deleteOAuth2TrustedJwtIssuers: start`,
-    state,
-  });
-  const result: OAuth2TrustedJwtIssuerSkeleton[] = [];
   const errors = [];
   try {
+    debugMessage({
+      message: `OAuth2TrustedJwtIssuerOps.deleteOAuth2TrustedJwtIssuers: start`,
+      state,
+    });
+    const result: OAuth2TrustedJwtIssuerSkeleton[] = [];
     const issuers = await readOAuth2TrustedJwtIssuers({ state });
     for (const issuer of issuers) {
       try {
@@ -459,18 +479,21 @@ export async function deleteOAuth2TrustedJwtIssuers({
         errors.push(error);
       }
     }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error deleting trusted issuers`, errors);
+    }
+    debugMessage({
+      message: `OAuth2TrustedJwtIssuerOps.deleteOAuth2TrustedJwtIssuers: end`,
+      state,
+    });
+    return result;
   } catch (error) {
-    errors.push(error);
+    // re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error deleting trusted issuers`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Delete error:\n${errorMessages}`);
-  }
-  debugMessage({
-    message: `OAuth2TrustedJwtIssuerOps.deleteOAuth2TrustedJwtIssuers: end`,
-    state,
-  });
-  return result;
 }
 
 /**
@@ -485,7 +508,11 @@ export async function deleteOAuth2TrustedJwtIssuer({
   issuerId: string;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton> {
-  return _deleteOAuth2TrustedJwtIssuer({ id: issuerId, state });
+  try {
+    return _deleteOAuth2TrustedJwtIssuer({ id: issuerId, state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting trusted issuer ${issuerId}`, error);
+  }
 }
 
 /**
@@ -498,13 +525,13 @@ export async function exportOAuth2TrustedJwtIssuers({
   options?: OAuth2TrustedJwtIssuerExportOptions;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerExportInterface> {
-  debugMessage({
-    message: `OAuth2TrustedJwtIssuerOps.exportOAuth2TrustedJwtIssuers: start`,
-    state,
-  });
-  const exportData = createOAuth2TrustedJwtIssuerExportTemplate({ state });
   const errors = [];
   try {
+    debugMessage({
+      message: `OAuth2TrustedJwtIssuerOps.exportOAuth2TrustedJwtIssuers: start`,
+      state,
+    });
+    const exportData = createOAuth2TrustedJwtIssuerExportTemplate({ state });
     const issuers = await readOAuth2TrustedJwtIssuers({ state });
     for (const issuer of issuers) {
       try {
@@ -513,18 +540,21 @@ export async function exportOAuth2TrustedJwtIssuers({
         errors.push(error);
       }
     }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error exporting trusted issuers`, errors);
+    }
+    debugMessage({
+      message: `OAuth2TrustedJwtIssuerOps.exportOAuth2TrustedJwtIssuers: end`,
+      state,
+    });
+    return exportData;
   } catch (error) {
-    errors.push(error);
+    // re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error exporting trusted issuers`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
-  }
-  debugMessage({
-    message: `OAuth2TrustedJwtIssuerOps.exportOAuth2TrustedJwtIssuers: end`,
-    state,
-  });
-  return exportData;
 }
 
 /**
@@ -540,27 +570,22 @@ export async function exportOAuth2TrustedJwtIssuer({
   issuerId: string;
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerExportInterface> {
-  debugMessage({
-    message: `OAuth2TrustedJwtIssuerOps.exportOAuth2TrustedJwtIssuer: start`,
-    state,
-  });
-  const exportData = createOAuth2TrustedJwtIssuerExportTemplate({ state });
-  const errors = [];
   try {
+    debugMessage({
+      message: `OAuth2TrustedJwtIssuerOps.exportOAuth2TrustedJwtIssuer: start`,
+      state,
+    });
+    const exportData = createOAuth2TrustedJwtIssuerExportTemplate({ state });
     const issuerData = await readOAuth2TrustedJwtIssuer({ issuerId, state });
     exportData.trustedJwtIssuer[issuerData._id] = issuerData;
+    debugMessage({
+      message: `OAuth2TrustedJwtIssuerOps.exportOAuth2TrustedJwtIssuer: end`,
+      state,
+    });
+    return exportData;
   } catch (error) {
-    errors.push(error);
+    throw new FrodoError(`Error exporting trusted issuer ${issuerId}`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
-  }
-  debugMessage({
-    message: `OAuth2TrustedJwtIssuerOps.exportOAuth2TrustedJwtIssuer: end`,
-    state,
-  });
-  return exportData;
 }
 
 /**
@@ -599,12 +624,13 @@ export async function importOAuth2TrustedJwtIssuer({
       }
     }
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing trusted issuer ${issuerId}`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\n${issuerId} not found in import data!`);
+    throw new FrodoError(
+      `Trusted issuer ${issuerId} not found in import data!`
+    );
   }
   return response;
 }
@@ -641,14 +667,11 @@ export async function importFirstOAuth2TrustedJwtIssuer({
     }
     break;
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing first trusted issuer`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(
-      `Import error:\nNo trusted jwt issuers found in import data!`
-    );
+    throw new FrodoError(`No trusted issuers found in import data!`);
   }
   return response;
 }
@@ -682,14 +705,11 @@ export async function importOAuth2TrustedJwtIssuers({
       errors.push(error);
     }
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing trusted issuers`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(
-      `Import error:\nNo trusted jwt issuers found in import data!`
-    );
+    throw new FrodoError(`No trusted issuers found in import data!`);
   }
   return response;
 }

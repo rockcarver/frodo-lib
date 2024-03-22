@@ -281,7 +281,24 @@ exports[`CirclesOfTrustOps importCircleOfTrust() 1: Import new circle of trust 1
 }
 `;
 
-exports[`CirclesOfTrustOps importCircleOfTrust() 2: Import existing circle of trust 1`] = `null`;
+exports[`CirclesOfTrustOps importCircleOfTrust() 2: Import existing circle of trust 1`] = `
+{
+  "_id": "FR_COT",
+  "_rev": "1191818231",
+  "_type": {
+    "_id": "circlesoftrust",
+    "collection": true,
+    "name": "Circle of Trust",
+  },
+  "status": "active",
+  "trustedProviders": [
+    "sales-IDP|saml2",
+    "engineering-IDP|saml2",
+    "company-IDP|saml2",
+    "benefits-IDP|saml2",
+  ],
+}
+`;
 
 exports[`CirclesOfTrustOps importCirclesOfTrust() 1: Import all new circles of trust 1`] = `
 [
@@ -368,7 +385,22 @@ exports[`CirclesOfTrustOps importFirstCircleOfTrust() 1: Import new circle of tr
 }
 `;
 
-exports[`CirclesOfTrustOps importFirstCircleOfTrust() 2: Import existing circle of trust 1`] = `null`;
+exports[`CirclesOfTrustOps importFirstCircleOfTrust() 2: Import existing circle of trust 1`] = `
+{
+  "_id": "2f04818d-561e-4f8a-82e8-af2426112138",
+  "_rev": "-222749816",
+  "_type": {
+    "_id": "circlesoftrust",
+    "collection": true,
+    "name": "Circle of Trust",
+  },
+  "status": "active",
+  "trustedProviders": [
+    "benefits-IDP|saml2",
+    "iSPAzure|saml2",
+  ],
+}
+`;
 
 exports[`CirclesOfTrustOps readCircleOfTrust() 1: Read circle of trust 'FR_COT' 1`] = `
 {

@@ -21,26 +21,30 @@ exports[`ResourceTypeOps createResourceType() 1: Create non-existing resource ty
 `;
 
 exports[`ResourceTypeOps createResourceType() 2: Create existing resource type [e219144d-8d94-47b6-8789-3a7b820d6cde - FrodoTestResourceType4] 1`] = `
-{
-  "code": 409,
-  "message": "Resource Type e219144d-8d94-47b6-8789-3a7b820d6cde already exists",
-  "reason": "Conflict",
-}
+"Error creating resource type
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 409
+    Message: Resource Type e219144d-8d94-47b6-8789-3a7b820d6cde already exists"
 `;
 
 exports[`ResourceTypeOps deleteResourceType() 1: Delete existing resource type [3d66c934-9bab-4363-973b-f5502245decc - FrodoTestResourceType7] 1`] = `{}`;
 
 exports[`ResourceTypeOps deleteResourceType() 2: Delete non-existing resource type [00000000-0000-0000-0000-000000000000] 1`] = `
-{
-  "code": 404,
-  "message": "Resource Type 00000000-0000-0000-0000-000000000000 does not exist in realm /alpha",
-  "reason": "Not Found",
-}
+"Error deleting resource type 00000000-0000-0000-0000-000000000000
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: Resource Type 00000000-0000-0000-0000-000000000000 does not exist in realm /alpha"
 `;
 
 exports[`ResourceTypeOps deleteResourceTypeByName() 1: Delete existing resource type by name [FrodoTestResourceType8 - 84f7b719-cbd4-4b82-8170-6c230f2973be] 1`] = `{}`;
 
-exports[`ResourceTypeOps deleteResourceTypeByName() 2: Delete non-existing resource type by name [DoesNotExist] 1`] = `"Resource Type with name DoesNotExist does not exist in realm alpha"`;
+exports[`ResourceTypeOps deleteResourceTypeByName() 2: Delete non-existing resource type by name [DoesNotExist] 1`] = `
+"Error deleting resource type DoesNotExist
+  Error reading resource type DoesNotExist
+  Resource Type with name DoesNotExist does not exist in realm alpha"
+`;
 
 exports[`ResourceTypeOps exportResourceType() 1: Export existing resource type by uuid [0c2b73b2-f18f-4634-85ec-14dc71f1b216 - FrodoTestResourceType9] 1`] = `
 {
@@ -71,8 +75,11 @@ exports[`ResourceTypeOps exportResourceType() 1: Export existing resource type b
 `;
 
 exports[`ResourceTypeOps exportResourceType() 2: Export non-existing resource type by uuid [00000000-0000-0000-0000-000000000000] 1`] = `
-"Export error:
-Resource Type with uuid 00000000-0000-0000-0000-000000000000 does not exist in realm alpha"
+"Resource type 00000000-0000-0000-0000-000000000000 does not exist
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: Resource Type 00000000-0000-0000-0000-000000000000 does not exist in realm /alpha"
 `;
 
 exports[`ResourceTypeOps exportResourceTypeByName() 1: Export existing resource type by name [FrodoTestResourceType10 - 6d5eed85-872b-48f4-be47-3151fd073961] 1`] = `
@@ -104,8 +111,9 @@ exports[`ResourceTypeOps exportResourceTypeByName() 1: Export existing resource 
 `;
 
 exports[`ResourceTypeOps exportResourceTypeByName() 2: Export non-existing resource type by name [DoesNotExist] 1`] = `
-"Export error:
-Resource Type with name DoesNotExist does not exist in realm alpha"
+"Error exporting resource type DoesNotExist
+  Error reading resource type DoesNotExist
+  Resource Type with name DoesNotExist does not exist in realm alpha"
 `;
 
 exports[`ResourceTypeOps exportResourceTypes() 1: Export all resource types 1`] = `
@@ -436,10 +444,7 @@ exports[`ResourceTypeOps importResourceType() 1: Import existing resource type b
 }
 `;
 
-exports[`ResourceTypeOps importResourceType() 2: Import non-existing resource type by uuid [00000000-0000-0000-0000-000000000000] 1`] = `
-"Import error:
-00000000-0000-0000-0000-000000000000 not found in import data!"
-`;
+exports[`ResourceTypeOps importResourceType() 2: Import non-existing resource type by uuid [00000000-0000-0000-0000-000000000000] 1`] = `"Resource type 00000000-0000-0000-0000-000000000000 not found in import data"`;
 
 exports[`ResourceTypeOps importResourceTypeByName() 1: Export existing resource type by name [FrodoTestResourceType12 - 3fc799d7-b73f-49e0-a70b-e37990e54e56] 1`] = `
 {
@@ -461,10 +466,7 @@ exports[`ResourceTypeOps importResourceTypeByName() 1: Export existing resource 
 }
 `;
 
-exports[`ResourceTypeOps importResourceTypeByName() 2: Export non-existing resource type by name [DoesNotExist] 1`] = `
-"Import error:
-DoesNotExist not found in import data!"
-`;
+exports[`ResourceTypeOps importResourceTypeByName() 2: Export non-existing resource type by name [DoesNotExist] 1`] = `"Resource type DoesNotExist not found in import data"`;
 
 exports[`ResourceTypeOps importResourceTypes() 1: Import all resource types 1`] = `
 [
@@ -526,11 +528,11 @@ exports[`ResourceTypeOps readResourceType() 1: Get existing resource type by uui
 `;
 
 exports[`ResourceTypeOps readResourceType() 2: Get non-existing resource type by uuid [00000000-0000-0000-0000-000000000000] 1`] = `
-{
-  "code": 404,
-  "message": "Resource Type 00000000-0000-0000-0000-000000000000 does not exist in realm /alpha",
-  "reason": "Not Found",
-}
+"Error reading resource type 00000000-0000-0000-0000-000000000000
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: Resource Type 00000000-0000-0000-0000-000000000000 does not exist in realm /alpha"
 `;
 
 exports[`ResourceTypeOps readResourceTypeByName() 1: Get existing resource type by name [FrodoTestResourceType2 - ab5fb0da-8fe8-4f48-be05-aba822aa23bb] 1`] = `
@@ -553,7 +555,10 @@ exports[`ResourceTypeOps readResourceTypeByName() 1: Get existing resource type 
 }
 `;
 
-exports[`ResourceTypeOps readResourceTypeByName() 2: Get non-existing resource type by name [DoesNotExist] 1`] = `"Resource Type with name DoesNotExist does not exist in realm alpha"`;
+exports[`ResourceTypeOps readResourceTypeByName() 2: Get non-existing resource type by name [DoesNotExist] 1`] = `
+"Error reading resource type DoesNotExist
+  Resource Type with name DoesNotExist does not exist in realm alpha"
+`;
 
 exports[`ResourceTypeOps readResourceTypes() 1: Get all resource types 1`] = `
 [
@@ -841,9 +846,9 @@ exports[`ResourceTypeOps updateResourceType() 1: Update existing resource type [
 `;
 
 exports[`ResourceTypeOps updateResourceType() 2: Update non-existing resource type [05e5fdb6-435e-43d9-b707-c73f7f347358 - FrodoTestResourceType6] 1`] = `
-{
-  "code": 404,
-  "message": "Resource Type 05e5fdb6-435e-43d9-b707-c73f7f347358 does not exist in realm /alpha",
-  "reason": "Not Found",
-}
+"Error updating resource type 05e5fdb6-435e-43d9-b707-c73f7f347358
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: Resource Type 05e5fdb6-435e-43d9-b707-c73f7f347358 does not exist in realm /alpha"
 `;

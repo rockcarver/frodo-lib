@@ -14,6 +14,7 @@ import {
   clientCredentialsGrant,
 } from '../api/OAuth2OIDCApi';
 import { OAuth2TrustedJwtIssuerSkeleton } from '../api/OAuth2TrustedJwtIssuerApi';
+import { FrodoError } from './FrodoError';
 import {
   readOAuth2Client,
   readOAuth2Clients,
@@ -40,46 +41,6 @@ import { updateOAuth2TrustedJwtIssuer } from './OAuth2TrustedJwtIssuerOps';
 import { getRealmManagedOrganization } from './OrganizationOps';
 
 export type Admin = {
-  listOAuth2CustomClients(): Promise<any>;
-  listOAuth2AdminClients(): Promise<any>;
-  listNonOAuth2AdminStaticUserMappings(showProtected: boolean): Promise<any>;
-  addAutoIdStaticUserMapping(): Promise<void>;
-  grantOAuth2ClientAdminPrivileges(clientId: string): Promise<void>;
-  revokeOAuth2ClientAdminPrivileges(clientId: string): Promise<void>;
-  createOAuth2ClientWithAdminPrivileges(
-    clientId: string,
-    clientSecret: string
-  ): Promise<void>;
-  createLongLivedToken(
-    clientId: string,
-    clientSecret: string,
-    scope: string,
-    secret: string | boolean,
-    lifetime: number
-  ): Promise<any>;
-  removeStaticUserMapping(subject: string): Promise<void>;
-  hideGenericExtensionAttributes(
-    includeCustomized: boolean,
-    dryRun: boolean
-  ): Promise<void>;
-  showGenericExtensionAttributes(
-    includeCustomized: boolean,
-    dryRun: boolean
-  ): Promise<void>;
-  repairOrgModel(
-    excludeCustomized: boolean,
-    extendPermissions: boolean,
-    dryRun: boolean
-  ): Promise<void>;
-  trainAA(
-    apiKey: string,
-    apiSecret: string,
-    customUsernames?: string[],
-    customUserAgents?: string[],
-    customIPs?: string[],
-    loginsPerUser?: number,
-    service?: string
-  ): Promise<void>;
   generateRfc7523AuthZGrantArtefacts(
     clientId: string,
     iss: string,
@@ -111,17 +72,193 @@ export type Admin = {
     jwt: any;
     client: OAuth2ClientSkeleton;
   }>;
+  trainAA(
+    apiKey: string,
+    apiSecret: string,
+    customUsernames?: string[],
+    customUserAgents?: string[],
+    customIPs?: string[],
+    loginsPerUser?: number,
+    service?: string
+  ): Promise<void>;
+
+  // deprecated
+
+  /**
+   * @deprecated Deprecated since v2.0.0. This function may be removed in future versions. Similar functionality has been added to the frodo-cli code base.
+   * @group Deprecated
+   */
+  listOAuth2CustomClients(): Promise<string[]>;
+  /**
+   * @deprecated Deprecated since v2.0.0. This function may be removed in future versions. Similar functionality has been added to the frodo-cli code base.
+   * @group Deprecated
+   */
+  listOAuth2AdminClients(): Promise<string[]>;
+  /**
+   * @deprecated Deprecated since v2.0.0. This function may be removed in future versions. Similar functionality has been added to the frodo-cli code base.
+   * @group Deprecated
+   */
+  listNonOAuth2AdminStaticUserMappings(
+    showProtected: boolean
+  ): Promise<string[]>;
+  /**
+   * @deprecated Deprecated since v2.0.0. This function may be removed in future versions. Similar functionality has been added to the frodo-cli code base.
+   * @group Deprecated
+   */
+  addAutoIdStaticUserMapping(): Promise<void>;
+  /**
+   * @deprecated Deprecated since v2.0.0. This function may be removed in future versions. Similar functionality has been added to the frodo-cli code base.
+   * @group Deprecated
+   */
+  grantOAuth2ClientAdminPrivileges(clientId: string): Promise<void>;
+  /**
+   * @deprecated Deprecated since v2.0.0. This function may be removed in future versions. Similar functionality has been added to the frodo-cli code base.
+   * @group Deprecated
+   */
+  revokeOAuth2ClientAdminPrivileges(clientId: string): Promise<void>;
+  /**
+   * @deprecated Deprecated since v2.0.0. This function may be removed in future versions. Similar functionality has been added to the frodo-cli code base.
+   * @group Deprecated
+   */
+  createOAuth2ClientWithAdminPrivileges(
+    clientId: string,
+    clientSecret: string
+  ): Promise<void>;
+  /**
+   * @deprecated Deprecated since v2.0.0. This function may be removed in future versions. Similar functionality has been added to the frodo-cli code base.
+   * @group Deprecated
+   */
+  createLongLivedToken(
+    clientId: string,
+    clientSecret: string,
+    scope: string,
+    secret: string | boolean,
+    lifetime: number
+  ): Promise<any>;
+  /**
+   * @deprecated Deprecated since v2.0.0. This function may be removed in future versions. Similar functionality has been added to the frodo-cli code base.
+   * @group Deprecated
+   */
+  removeStaticUserMapping(subject: string): Promise<void>;
+  /**
+   * @deprecated Deprecated since v2.0.0. This function may be removed in future versions. Similar functionality has been added to the frodo-cli code base.
+   * @group Deprecated
+   */
+  hideGenericExtensionAttributes(
+    includeCustomized: boolean,
+    dryRun: boolean
+  ): Promise<void>;
+  /**
+   * @deprecated Deprecated since v2.0.0. This function may be removed in future versions. Similar functionality has been added to the frodo-cli code base.
+   * @group Deprecated
+   */
+  showGenericExtensionAttributes(
+    includeCustomized: boolean,
+    dryRun: boolean
+  ): Promise<void>;
+  /**
+   * @deprecated Deprecated since v2.0.0. This function may be removed in future versions. Similar functionality has been added to the frodo-cli code base.
+   * @group Deprecated
+   */
+  repairOrgModel(
+    excludeCustomized: boolean,
+    extendPermissions: boolean,
+    dryRun: boolean
+  ): Promise<void>;
 };
 
 export default (state: State): Admin => {
   return {
-    async listOAuth2CustomClients() {
+    async generateRfc7523AuthZGrantArtefacts(
+      clientId: string,
+      iss: string,
+      jwk: JwkRsa,
+      sub: string,
+      scope: string[] = ['fr:am:*', 'fr:idm:*', 'openid'],
+      options = { save: false }
+    ): Promise<{
+      jwk: JwkRsa;
+      jwks: JwksInterface;
+      client: OAuth2ClientSkeleton;
+      issuer: OAuth2TrustedJwtIssuerSkeleton;
+    }> {
+      return generateRfc7523AuthZGrantArtefacts({
+        clientId,
+        iss,
+        jwk,
+        sub,
+        scope,
+        options,
+        state,
+      });
+    },
+    executeRfc7523AuthZGrantFlow(
+      clientId: string,
+      iss: string,
+      jwk: JwkRsa,
+      sub: string,
+      scope: string[] = ['fr:am:*', 'fr:idm:*', 'openid']
+    ): Promise<AccessTokenResponseType> {
+      return executeRfc7523AuthZGrantFlow({
+        clientId,
+        iss,
+        jwk,
+        sub,
+        scope,
+        state,
+      });
+    },
+    async generateRfc7523ClientAuthNArtefacts(
+      clientId: string,
+      aud?: string,
+      jwk?: JwkRsa,
+      options?: { save: boolean }
+    ): Promise<{
+      jwk: JwkRsa;
+      jwks: JwksInterface;
+      jwt: any;
+      client: OAuth2ClientSkeleton;
+    }> {
+      return generateRfc7523ClientAuthNArtefacts({
+        clientId,
+        aud,
+        jwk,
+        options,
+        state,
+      });
+    },
+    async trainAA(
+      apiKey: string,
+      apiSecret: string,
+      customUsernames?: string[],
+      customUserAgents?: string[],
+      customIPs?: string[],
+      loginsPerUser?: number,
+      service?: string
+    ): Promise<void> {
+      return trainAA({
+        apiKey,
+        apiSecret,
+        customUsernames,
+        customUserAgents,
+        customIPs,
+        loginsPerUser,
+        service,
+        state,
+      });
+    },
+
+    // deprecated
+
+    async listOAuth2CustomClients(): Promise<string[]> {
       return listOAuth2CustomClients({ state });
     },
-    async listOAuth2AdminClients() {
+    async listOAuth2AdminClients(): Promise<string[]> {
       return listOAuth2AdminClients({ state });
     },
-    async listNonOAuth2AdminStaticUserMappings(showProtected: boolean) {
+    async listNonOAuth2AdminStaticUserMappings(
+      showProtected: boolean
+    ): Promise<string[]> {
       return listNonOAuth2AdminStaticUserMappings({
         showProtected,
         state,
@@ -194,84 +331,6 @@ export default (state: State): Admin => {
         excludeCustomized,
         extendPermissions,
         dryRun,
-        state,
-      });
-    },
-    async trainAA(
-      apiKey: string,
-      apiSecret: string,
-      customUsernames?: string[],
-      customUserAgents?: string[],
-      customIPs?: string[],
-      loginsPerUser?: number,
-      service?: string
-    ): Promise<void> {
-      return trainAA({
-        apiKey,
-        apiSecret,
-        customUsernames,
-        customUserAgents,
-        customIPs,
-        loginsPerUser,
-        service,
-        state,
-      });
-    },
-    async generateRfc7523AuthZGrantArtefacts(
-      clientId: string,
-      iss: string,
-      jwk: JwkRsa,
-      sub: string,
-      scope: string[] = ['fr:am:*', 'fr:idm:*', 'openid'],
-      options = { save: false }
-    ): Promise<{
-      jwk: JwkRsa;
-      jwks: JwksInterface;
-      client: OAuth2ClientSkeleton;
-      issuer: OAuth2TrustedJwtIssuerSkeleton;
-    }> {
-      return generateRfc7523AuthZGrantArtefacts({
-        clientId,
-        iss,
-        jwk,
-        sub,
-        scope,
-        options,
-        state,
-      });
-    },
-    executeRfc7523AuthZGrantFlow(
-      clientId: string,
-      iss: string,
-      jwk: JwkRsa,
-      sub: string,
-      scope: string[] = ['fr:am:*', 'fr:idm:*', 'openid']
-    ): Promise<AccessTokenResponseType> {
-      return executeRfc7523AuthZGrantFlow({
-        clientId,
-        iss,
-        jwk,
-        sub,
-        scope,
-        state,
-      });
-    },
-    async generateRfc7523ClientAuthNArtefacts(
-      clientId: string,
-      aud?: string,
-      jwk?: JwkRsa,
-      options?: { save: boolean }
-    ): Promise<{
-      jwk: JwkRsa;
-      jwks: JwksInterface;
-      jwt: any;
-      client: OAuth2ClientSkeleton;
-    }> {
-      return generateRfc7523ClientAuthNArtefacts({
-        clientId,
-        aud,
-        jwk,
-        options,
         state,
       });
     },
@@ -353,22 +412,30 @@ const autoIdRoles = [
     }
   }
  */
-export async function listOAuth2CustomClients({ state }: { state: State }) {
-  const clients = await readOAuth2Clients({ state });
-  const clientIds = clients
-    .map((client) => client._id)
-    .filter((client) => !protectedClients.includes(client));
-  const authentication = await getConfigEntity({
-    entityId: 'authentication',
-    state,
-  });
-  const subjects = authentication.rsFilter.staticUserMapping
-    .map((mapping) => mapping.subject)
-    .filter((subject) => !protectedSubjects.includes(subject));
-  const adminClients = subjects.filter((subject) =>
-    clientIds.includes(subject)
-  );
-  return adminClients;
+export async function listOAuth2CustomClients({
+  state,
+}: {
+  state: State;
+}): Promise<string[]> {
+  try {
+    const clients = await readOAuth2Clients({ state });
+    const clientIds = clients
+      .map((client) => client._id)
+      .filter((client) => !protectedClients.includes(client));
+    const authentication = await getConfigEntity({
+      entityId: 'authentication',
+      state,
+    });
+    const subjects = authentication.rsFilter.staticUserMapping
+      .map((mapping) => mapping.subject)
+      .filter((subject) => !protectedSubjects.includes(subject));
+    const adminClients = subjects.filter((subject) =>
+      clientIds.includes(subject)
+    );
+    return adminClients;
+  } catch (error) {
+    throw new FrodoError(`Error listing custom OAuth2 clients`, error);
+  }
 }
 
 /*
@@ -393,47 +460,55 @@ export async function listOAuth2CustomClients({ state }: { state: State }) {
     }
   }
  */
-export async function listOAuth2AdminClients({ state }: { state: State }) {
-  const clients = await readOAuth2Clients({ state });
-  const clientIds = clients
-    .filter((client) => {
-      // printMessage({ message: client, type: 'error', state });
-      let isPrivileged = false;
-      if (client.coreOAuth2ClientConfig.scopes) {
-        (client.coreOAuth2ClientConfig.scopes as Readable<string[]>).forEach(
-          (scope) => {
-            if (privilegedScopes.includes(scope)) {
+export async function listOAuth2AdminClients({
+  state,
+}: {
+  state: State;
+}): Promise<string[]> {
+  try {
+    const clients = await readOAuth2Clients({ state });
+    const clientIds = clients
+      .filter((client) => {
+        // printMessage({ message: client, type: 'error', state });
+        let isPrivileged = false;
+        if (client.coreOAuth2ClientConfig.scopes) {
+          (client.coreOAuth2ClientConfig.scopes as Readable<string[]>).forEach(
+            (scope) => {
+              if (privilegedScopes.includes(scope)) {
+                isPrivileged = true;
+              }
+            }
+          );
+        }
+        return isPrivileged;
+      })
+      .map((client) => client._id)
+      .filter((clientId) => !protectedClients.includes(clientId));
+    const authentication = await getConfigEntity({
+      entityId: 'authentication',
+      state,
+    });
+    const subjects = authentication.rsFilter.staticUserMapping
+      .filter((mapping) => {
+        let isPrivileged = false;
+        if (mapping.roles) {
+          mapping.roles.forEach((role) => {
+            if (privilegedRoles.includes(role)) {
               isPrivileged = true;
             }
-          }
-        );
-      }
-      return isPrivileged;
-    })
-    .map((client) => client._id)
-    .filter((clientId) => !protectedClients.includes(clientId));
-  const authentication = await getConfigEntity({
-    entityId: 'authentication',
-    state,
-  });
-  const subjects = authentication.rsFilter.staticUserMapping
-    .filter((mapping) => {
-      let isPrivileged = false;
-      if (mapping.roles) {
-        mapping.roles.forEach((role) => {
-          if (privilegedRoles.includes(role)) {
-            isPrivileged = true;
-          }
-        });
-      }
-      return isPrivileged;
-    })
-    .map((mapping) => mapping.subject)
-    .filter((subject) => !protectedSubjects.includes(subject));
-  const adminClients = subjects.filter((subject) =>
-    clientIds.includes(subject)
-  );
-  return adminClients;
+          });
+        }
+        return isPrivileged;
+      })
+      .map((mapping) => mapping.subject)
+      .filter((subject) => !protectedSubjects.includes(subject));
+    const adminClients = subjects.filter((subject) =>
+      clientIds.includes(subject)
+    );
+    return adminClients;
+  } catch (error) {
+    throw new FrodoError(`Error listing admin OAuth2 clients`, error);
+  }
 }
 
 /*
@@ -483,43 +558,57 @@ export async function listNonOAuth2AdminStaticUserMappings({
 }: {
   showProtected: boolean;
   state: State;
-}) {
-  const clients = await readOAuth2Clients({ state });
-  const clientIds = clients
-    .map((client) => client._id)
-    .filter((client) => !protectedClients.includes(client));
-  const authentication = await getConfigEntity({
-    entityId: 'authentication',
-    state,
-  });
-  let subjects = authentication.rsFilter.staticUserMapping
-    .filter((mapping) => {
-      let isPrivileged = false;
-      if (mapping.roles) {
-        mapping.roles.forEach((role) => {
-          if (privilegedRoles.includes(role)) {
-            isPrivileged = true;
-          }
-        });
-      }
-      return isPrivileged;
-    })
-    .map((mapping) => mapping.subject);
-  if (!showProtected) {
-    subjects = subjects.filter(
-      (subject) => !protectedSubjects.includes(subject)
+}): Promise<string[]> {
+  try {
+    const clients = await readOAuth2Clients({ state });
+    const clientIds = clients
+      .map((client) => client._id)
+      .filter((client) => !protectedClients.includes(client));
+    const authentication = await getConfigEntity({
+      entityId: 'authentication',
+      state,
+    });
+    let subjects = authentication.rsFilter.staticUserMapping
+      .filter((mapping) => {
+        let isPrivileged = false;
+        if (mapping.roles) {
+          mapping.roles.forEach((role) => {
+            if (privilegedRoles.includes(role)) {
+              isPrivileged = true;
+            }
+          });
+        }
+        return isPrivileged;
+      })
+      .map((mapping) => mapping.subject);
+    if (!showProtected) {
+      subjects = subjects.filter(
+        (subject) => !protectedSubjects.includes(subject)
+      );
+    }
+    const adminSubjects = subjects.filter(
+      (subject) => !clientIds.includes(subject)
+    );
+    return adminSubjects;
+  } catch (error) {
+    throw new FrodoError(
+      `Error listing non-oauth2 admin static user mappings`,
+      error
     );
   }
-  const adminSubjects = subjects.filter(
-    (subject) => !clientIds.includes(subject)
-  );
-  return adminSubjects;
 }
 
 async function getDynamicClientRegistrationScope({ state }: { state: State }) {
-  const provider = await readOAuth2Provider({ state });
-  return provider.clientDynamicRegistrationConfig
-    .dynamicClientRegistrationScope;
+  try {
+    const provider = await readOAuth2Provider({ state });
+    return provider.clientDynamicRegistrationConfig
+      .dynamicClientRegistrationScope;
+  } catch (error) {
+    throw new FrodoError(
+      `Error getting dynamic client registration scope`,
+      error
+    );
+  }
 }
 
 async function addAdminScopes({
@@ -531,60 +620,68 @@ async function addAdminScopes({
   client: OAuth2ClientSkeleton;
   state: State;
 }) {
-  const modClient = client;
-  const allAdminScopes = adminScopes.concat([
-    await getDynamicClientRegistrationScope({ state }),
-  ]);
-  let addScopes = [];
-  if (
-    modClient.coreOAuth2ClientConfig.scopes &&
-    (modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>).value
-  ) {
-    addScopes = allAdminScopes.filter((scope) => {
-      let add = false;
-      if (
-        !(
-          modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>
-        ).value.includes(scope)
-      ) {
-        add = true;
+  try {
+    const modClient = client;
+    const allAdminScopes = adminScopes.concat([
+      await getDynamicClientRegistrationScope({ state }),
+    ]);
+    let addScopes = [];
+    if (
+      modClient.coreOAuth2ClientConfig.scopes &&
+      (modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>).value
+    ) {
+      addScopes = allAdminScopes.filter((scope) => {
+        let add = false;
+        if (
+          !(
+            modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>
+          ).value.includes(scope)
+        ) {
+          add = true;
+        }
+        return add;
+      });
+      (modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>).value = (
+        modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>
+      ).value.concat(addScopes);
+    } else {
+      (modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>).value =
+        allAdminScopes;
+    }
+    let addDefaultScope = false;
+    if (
+      modClient.coreOAuth2ClientConfig.defaultScopes &&
+      modClient.coreOAuth2ClientConfig.defaultScopes.value
+    ) {
+      if (modClient.coreOAuth2ClientConfig.defaultScopes.value.length === 0) {
+        addDefaultScope = true;
+        modClient.coreOAuth2ClientConfig.defaultScopes.value =
+          adminDefaultScopes;
+      } else {
+        printMessage({
+          message: `Client "${clientId}" already has default scopes configured, not adding admin default scope.`,
+          state,
+        });
       }
-      return add;
-    });
-    (modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>).value = (
-      modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>
-    ).value.concat(addScopes);
-  } else {
-    (modClient.coreOAuth2ClientConfig.scopes as Writable<string[]>).value =
-      allAdminScopes;
-  }
-  let addDefaultScope = false;
-  if (
-    modClient.coreOAuth2ClientConfig.defaultScopes &&
-    modClient.coreOAuth2ClientConfig.defaultScopes.value
-  ) {
-    if (modClient.coreOAuth2ClientConfig.defaultScopes.value.length === 0) {
-      addDefaultScope = true;
-      modClient.coreOAuth2ClientConfig.defaultScopes.value = adminDefaultScopes;
+    }
+    if (addScopes.length > 0 || addDefaultScope) {
+      printMessage({
+        message: `Adding admin scopes to client "${clientId}"...`,
+        state,
+      });
     } else {
       printMessage({
-        message: `Client "${clientId}" already has default scopes configured, not adding admin default scope.`,
+        message: `Client "${clientId}" already has admin scopes.`,
         state,
       });
     }
+    return modClient;
+  } catch (error) {
+    throw new FrodoError(
+      `Error adding admin scopes to oauth2 client ${clientId}`,
+      error
+    );
   }
-  if (addScopes.length > 0 || addDefaultScope) {
-    printMessage({
-      message: `Adding admin scopes to client "${clientId}"...`,
-      state,
-    });
-  } else {
-    printMessage({
-      message: `Client "${clientId}" already has admin scopes.`,
-      state,
-    });
-  }
-  return modClient;
 }
 
 function addClientCredentialsGrantType({
@@ -596,43 +693,50 @@ function addClientCredentialsGrantType({
   client: OAuth2ClientSkeleton;
   state: State;
 }) {
-  const modClient = client;
-  let modified = false;
-  if (
-    modClient.advancedOAuth2ClientConfig.grantTypes &&
-    (modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>)
-      .value
-  ) {
+  try {
+    const modClient = client;
+    let modified = false;
     if (
-      !(
-        modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>
-      ).value.includes('client_credentials')
+      modClient.advancedOAuth2ClientConfig.grantTypes &&
+      (modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>)
+        .value
     ) {
-      modified = true;
+      if (
+        !(
+          modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>
+        ).value.includes('client_credentials')
+      ) {
+        modified = true;
+        (
+          modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>
+        ).value.push('client_credentials');
+      }
+    } else {
       (
         modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>
-      ).value.push('client_credentials');
+      ).value = ['client_credentials'];
     }
-  } else {
     (
       modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>
-    ).value = ['client_credentials'];
+    ).inherited = false;
+    if (modified) {
+      printMessage({
+        message: `Adding client credentials grant type to client "${clientId}"...`,
+        state,
+      });
+    } else {
+      printMessage({
+        message: `Client "${clientId}" already has client credentials grant type.`,
+        state,
+      });
+    }
+    return modClient;
+  } catch (error) {
+    throw new FrodoError(
+      `Error client credentials grant type to oauth2 client ${clientId}`,
+      error
+    );
   }
-  (
-    modClient.advancedOAuth2ClientConfig.grantTypes as Writable<string[]>
-  ).inherited = false;
-  if (modified) {
-    printMessage({
-      message: `Adding client credentials grant type to client "${clientId}"...`,
-      state,
-    });
-  } else {
-    printMessage({
-      message: `Client "${clientId}" already has client credentials grant type.`,
-      state,
-    });
-  }
-  return modClient;
 }
 
 async function addAdminStaticUserMapping({
@@ -642,77 +746,66 @@ async function addAdminStaticUserMapping({
   name: string;
   state: State;
 }) {
-  let authentication = {};
   try {
-    authentication = await getConfigEntity({
+    const authentication = await getConfigEntity({
       entityId: 'authentication',
       state,
     });
-  } catch (error) {
-    printMessage({
-      message: `Error reading IDM authentication configuration: ${error.message}`,
-      type: 'error',
-      state,
-    });
-  }
-  let needsAdminMapping = true;
-  let addRoles = [];
-  const mappings = authentication['rsFilter']['staticUserMapping'].map(
-    (mapping) => {
-      // ignore mappings for other subjects
-      if (mapping.subject !== name) {
-        return mapping;
-      }
-      needsAdminMapping = false;
-      addRoles = adminRoles.filter((role) => {
-        let add = false;
-        if (!mapping.roles.includes(role)) {
-          add = true;
+    let needsAdminMapping = true;
+    let addRoles = [];
+    const mappings = authentication['rsFilter']['staticUserMapping'].map(
+      (mapping) => {
+        // ignore mappings for other subjects
+        if (mapping.subject !== name) {
+          return mapping;
         }
-        return add;
+        needsAdminMapping = false;
+        addRoles = adminRoles.filter((role) => {
+          let add = false;
+          if (!mapping.roles.includes(role)) {
+            add = true;
+          }
+          return add;
+        });
+        const newMapping = mapping;
+        newMapping.roles = newMapping.roles.concat(addRoles);
+        return newMapping;
+      }
+    );
+    if (needsAdminMapping) {
+      printMessage({
+        message: `Creating static user mapping for client "${name}"...`,
+        state,
       });
-      const newMapping = mapping;
-      newMapping.roles = newMapping.roles.concat(addRoles);
-      return newMapping;
+      mappings.push({
+        subject: name,
+        localUser: 'internal/user/openidm-admin',
+        userRoles: 'authzRoles/*',
+        roles: adminRoles,
+      });
     }
-  );
-  if (needsAdminMapping) {
-    printMessage({
-      message: `Creating static user mapping for client "${name}"...`,
-      state,
-    });
-    mappings.push({
-      subject: name,
-      localUser: 'internal/user/openidm-admin',
-      userRoles: 'authzRoles/*',
-      roles: adminRoles,
-    });
-  }
-  authentication['rsFilter']['staticUserMapping'] = mappings;
-  if (addRoles.length > 0 || needsAdminMapping) {
-    printMessage({
-      message: `Adding admin roles to static user mapping for client "${name}"...`,
-      state,
-    });
-    try {
+    authentication['rsFilter']['staticUserMapping'] = mappings;
+    if (addRoles.length > 0 || needsAdminMapping) {
+      printMessage({
+        message: `Adding admin roles to static user mapping for client "${name}"...`,
+        state,
+      });
       await putConfigEntity({
         entityId: 'authentication',
         entityData: authentication,
         state,
       });
-    } catch (putConfigEntityError) {
-      printMessage({ message: putConfigEntityError, type: 'error', state });
+    } else {
       printMessage({
-        message: `Error: ${putConfigEntityError}`,
-        type: 'error',
+        message: `Static user mapping for client "${name}" already has admin roles.`,
         state,
       });
     }
-  } else {
-    printMessage({
-      message: `Static user mapping for client "${name}" already has admin roles.`,
-      state,
-    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error adding admin static user mapping to ${name}`,
+      error
+    );
   }
 }
 
@@ -739,66 +832,75 @@ async function addAdminStaticUserMapping({
  */
 export async function addAutoIdStaticUserMapping({ state }: { state: State }) {
   const name = 'autoid-resource-server';
-  const authentication = await getConfigEntity({
-    entityId: 'authentication',
-    state,
-  });
-  let needsAdminMapping = true;
-  let addRoles = [];
-  const mappings = authentication.rsFilter.staticUserMapping.map((mapping) => {
-    // ignore mappings for other subjects
-    if (mapping.subject !== name) {
-      return mapping;
-    }
-    needsAdminMapping = false;
-    addRoles = autoIdRoles.filter((role) => {
-      let add = false;
-      if (!mapping.roles.includes(role)) {
-        add = true;
+  try {
+    const authentication = await getConfigEntity({
+      entityId: 'authentication',
+      state,
+    });
+    let needsAdminMapping = true;
+    let addRoles = [];
+    const mappings = authentication.rsFilter.staticUserMapping.map(
+      (mapping) => {
+        // ignore mappings for other subjects
+        if (mapping.subject !== name) {
+          return mapping;
+        }
+        needsAdminMapping = false;
+        addRoles = autoIdRoles.filter((role) => {
+          let add = false;
+          if (!mapping.roles.includes(role)) {
+            add = true;
+          }
+          return add;
+        });
+        const newMapping = mapping;
+        newMapping.roles = newMapping.roles.concat(addRoles);
+        return newMapping;
       }
-      return add;
-    });
-    const newMapping = mapping;
-    newMapping.roles = newMapping.roles.concat(addRoles);
-    return newMapping;
-  });
-  if (needsAdminMapping) {
-    printMessage({
-      message: `Creating static user mapping for AutoId client "${name}"...`,
-      state,
-    });
-    mappings.push({
-      subject: name,
-      localUser: 'internal/user/idm-provisioning',
-      userRoles: 'authzRoles/*',
-      roles: autoIdRoles,
-    });
-  }
-  authentication.rsFilter.staticUserMapping = mappings;
-  if (addRoles.length > 0 || needsAdminMapping) {
-    printMessage({
-      message: `Adding required roles to static user mapping for AutoId client "${name}"...`,
-      state,
-    });
-    try {
-      await putConfigEntity({
-        entityId: 'authentication',
-        entityData: authentication,
+    );
+    if (needsAdminMapping) {
+      printMessage({
+        message: `Creating static user mapping for AutoId client "${name}"...`,
         state,
       });
-    } catch (putConfigEntityError) {
-      printMessage({ message: putConfigEntityError, type: 'error', state });
+      mappings.push({
+        subject: name,
+        localUser: 'internal/user/idm-provisioning',
+        userRoles: 'authzRoles/*',
+        roles: autoIdRoles,
+      });
+    }
+    authentication.rsFilter.staticUserMapping = mappings;
+    if (addRoles.length > 0 || needsAdminMapping) {
       printMessage({
-        message: `Error: ${putConfigEntityError}`,
-        type: 'error',
+        message: `Adding required roles to static user mapping for AutoId client "${name}"...`,
+        state,
+      });
+      try {
+        await putConfigEntity({
+          entityId: 'authentication',
+          entityData: authentication,
+          state,
+        });
+      } catch (putConfigEntityError) {
+        printMessage({ message: putConfigEntityError, type: 'error', state });
+        printMessage({
+          message: `Error: ${putConfigEntityError}`,
+          type: 'error',
+          state,
+        });
+      }
+    } else {
+      printMessage({
+        message: `Static user mapping for AutoId client "${name}" already has all required roles.`,
         state,
       });
     }
-  } else {
-    printMessage({
-      message: `Static user mapping for AutoId client "${name}" already has all required roles.`,
-      state,
-    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error adding static user mapping for AutoId oauth2 client ${name}`,
+      error
+    );
   }
 }
 

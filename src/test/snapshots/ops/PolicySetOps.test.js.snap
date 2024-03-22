@@ -55,21 +55,21 @@ exports[`PolicySetOps createPolicySet() 1: Create non-existing policy set [Frodo
 `;
 
 exports[`PolicySetOps createPolicySet() 2: Create existing policy set [FrodoTestPolicySet4] 1`] = `
-{
-  "code": 409,
-  "message": "Application already exists",
-  "reason": "Conflict",
-}
+"Error creating policy set undefined
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 409
+    Message: Application already exists"
 `;
 
 exports[`PolicySetOps deletePolicySet() 1: Delete existing policy set [FrodoTestPolicySet7] 1`] = `{}`;
 
 exports[`PolicySetOps deletePolicySet() 2: Delete non-existing policy set [DoesNotExist] 1`] = `
-{
-  "code": 404,
-  "message": "DoesNotExist application not found in realm.",
-  "reason": "Not Found",
-}
+"Error deleting policy set DoesNotExist
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: DoesNotExist application not found in realm."
 `;
 
 exports[`PolicySetOps exportPolicySet() 1: Export existing policy set w/o deps [FrodoTestPolicySet9] 1`] = `
@@ -197,8 +197,11 @@ exports[`PolicySetOps exportPolicySet() 2: Export existing policy set w/ deps [F
 `;
 
 exports[`PolicySetOps exportPolicySet() 3: Export non-existing policy set [DoesNotExist] 1`] = `
-"Export error:
-Request failed with status code 404"
+"Error exporting policy set DoesNotExist
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: Unable to retrieve application under realm /alpha."
 `;
 
 exports[`PolicySetOps exportPolicySets() 1: Export all policy sets 1`] = `
@@ -791,10 +794,7 @@ exports[`PolicySetOps importPolicySet() 1: Import existing policy set [FrodoTest
 }
 `;
 
-exports[`PolicySetOps importPolicySet() 2: Import non-existing policy set [DoesNotExist] 1`] = `
-"Import error:
-DoesNotExist not found in import data!"
-`;
+exports[`PolicySetOps importPolicySet() 2: Import non-existing policy set [DoesNotExist] 1`] = `"Policy set DoesNotExist not found in import data"`;
 
 exports[`PolicySetOps importPolicySets() 1: Import all policy sets 1`] = `
 {
@@ -905,11 +905,11 @@ exports[`PolicySetOps readPolicySet() 1: Get existing policy set [FrodoTestPolic
 `;
 
 exports[`PolicySetOps readPolicySet() 2: Get non-existing policy set [DoesNotExist] 1`] = `
-{
-  "code": 404,
-  "message": "Unable to retrieve application under realm /alpha.",
-  "reason": "Not Found",
-}
+"Error reading policy set DoesNotExist
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: Unable to retrieve application under realm /alpha."
 `;
 
 exports[`PolicySetOps readPolicySets() 1: Get all policy sets 1`] = `
@@ -1329,9 +1329,9 @@ exports[`PolicySetOps updatePolicySet() 1: Update existing policy set [FrodoTest
 `;
 
 exports[`PolicySetOps updatePolicySet() 2: Update non-existing policy set [FrodoTestPolicySet6] 1`] = `
-{
-  "code": 404,
-  "message": "FrodoTestPolicySet6 not found.",
-  "reason": "Not Found",
-}
+"Error updating policy set undefined
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: FrodoTestPolicySet6 not found."
 `;

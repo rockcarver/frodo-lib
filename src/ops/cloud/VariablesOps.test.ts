@@ -33,11 +33,12 @@
  * in case things don't function as expected
  */
 
-import { autoSetupPolly } from "../../utils/AutoSetupPolly";
-import { state } from "../../index";
+import { autoSetupPolly } from '../../utils/AutoSetupPolly';
+import { state } from '../../index';
 import * as VariablesOps from './VariablesOps';
-import axios, { AxiosError } from "axios";
-import { VariableExpressionType } from "../../api/cloud/VariablesApi";
+import axios, { AxiosError } from 'axios';
+import { VariableExpressionType } from '../../api/cloud/VariablesApi';
+import { FrodoError } from '../../FrodoError';
 
 autoSetupPolly();
 
@@ -52,7 +53,7 @@ async function stageVariable(
 ) {
   // delete if exists, then create
   try {
-    await VariablesOps.deleteVariable({ variableId: variable.id, state })
+    await VariablesOps.deleteVariable({ variableId: variable.id, state });
   } catch (error) {
     // ignore
   } finally {
@@ -62,7 +63,7 @@ async function stageVariable(
         value: variable.value,
         description: variable.description,
         expressionType: variable.expressionType as VariableExpressionType,
-        state: state
+        state: state,
       });
     }
   }
@@ -73,20 +74,20 @@ describe('VariablesOps', () => {
     id: 'esv-frodo-test-variable-1',
     value: 'value1',
     description: 'description1',
-    expressionType: 'string'
-  }
+    expressionType: 'string',
+  };
   const variable2 = {
     id: 'esv-frodo-test-variable-2',
     value: '42',
     description: 'description2',
-    expressionType: 'int'
-  }
+    expressionType: 'int',
+  };
   const variable3 = {
     id: 'esv-frodo-test-variable-3',
     value: 'true',
     description: 'description3',
-    expressionType: 'bool'
-  }
+    expressionType: 'bool',
+  };
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
@@ -110,9 +111,11 @@ describe('VariablesOps', () => {
     });
 
     test('1: Return template with meta data', async () => {
-      expect(VariablesOps.createVariablesExportTemplate({ state: state })).toStrictEqual({
+      expect(
+        VariablesOps.createVariablesExportTemplate({ state: state })
+      ).toStrictEqual({
         meta: expect.any(Object),
-        variables: {}
+        variables: {},
       });
     });
   });
@@ -123,14 +126,20 @@ describe('VariablesOps', () => {
     });
 
     test('1: Export all variables', async () => {
-      const response = await VariablesOps.exportVariables({ noDecode: false, state: state });
+      const response = await VariablesOps.exportVariables({
+        noDecode: false,
+        state: state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
     });
 
     test('2: Export all variables without decoding', async () => {
-      const response = await VariablesOps.exportVariables({ noDecode: true, state: state });
+      const response = await VariablesOps.exportVariables({
+        noDecode: true,
+        state: state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -143,29 +152,40 @@ describe('VariablesOps', () => {
     });
 
     test('1: Export variable1', async () => {
-      const response = await VariablesOps.exportVariable({ variableId: variable1.id, noDecode: false, state: state });
+      const response = await VariablesOps.exportVariable({
+        variableId: variable1.id,
+        noDecode: false,
+        state: state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
     });
 
     test('2: Export variable2 without decoding', async () => {
-      const response = await VariablesOps.exportVariable({ variableId: variable2.id, noDecode: true, state: state });
+      const response = await VariablesOps.exportVariable({
+        variableId: variable2.id,
+        noDecode: true,
+        state: state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
     });
 
     test('3: Export variable3 (non-existent)', async () => {
+      expect.assertions(2)
       let errorCaught = false;
       try {
-        await VariablesOps.exportVariable({ variableId: variable3.id, noDecode: false, state: state })
+        await VariablesOps.exportVariable({
+          variableId: variable3.id,
+          noDecode: false,
+          state: state,
+        });
       } catch (e: any) {
-        errorCaught = true;
-        expect(axios.isAxiosError(e)).toBeTruthy();
-        expect((e as AxiosError).response.status).toBe(404)
+        expect(e.name).toEqual('FrodoError');
+        expect((e as FrodoError).getCombinedMessage()).toMatchSnapshot();
       }
-      expect(errorCaught).toBeTruthy();
     });
   });
 });

@@ -18,6 +18,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
 
 export type Service = {
@@ -40,12 +41,15 @@ export type Service = {
    * @param {string} serviceId The service to delete
    * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
    */
-  deleteFullService(serviceId: string, globalConfig?: boolean): Promise<void>;
+  deleteFullService(
+    serviceId: string,
+    globalConfig?: boolean
+  ): Promise<AmServiceSkeleton>;
   /**
    * Deletes all services
    * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
    */
-  deleteFullServices(globalConfig?: boolean): Promise<void>;
+  deleteFullServices(globalConfig?: boolean): Promise<AmServiceSkeleton[]>;
   /**
    * Export service. The response can be saved to file as is.
    * @param serviceId service id/name
@@ -113,7 +117,10 @@ export default (state: State): Service => {
      * @param {string} serviceId The service to delete
      * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
      */
-    async deleteFullService(serviceId: string, globalConfig = false) {
+    async deleteFullService(
+      serviceId: string,
+      globalConfig = false
+    ): Promise<AmServiceSkeleton> {
       return deleteFullService({ serviceId, globalConfig, state });
     },
 
@@ -121,7 +128,9 @@ export default (state: State): Service => {
      * Deletes all services
      * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
      */
-    async deleteFullServices(globalConfig = false) {
+    async deleteFullServices(
+      globalConfig: boolean = false
+    ): Promise<AmServiceSkeleton[]> {
       return deleteFullServices({ globalConfig, state });
     },
 
@@ -246,10 +255,17 @@ export async function getListOfServices({
   globalConfig: boolean;
   state: State;
 }) {
-  debugMessage({ message: `ServiceOps.getListOfServices: start`, state });
-  const services = (await _getListOfServices({ globalConfig, state })).result;
-  debugMessage({ message: `ServiceOps.getListOfServices: end`, state });
-  return services;
+  try {
+    debugMessage({ message: `ServiceOps.getListOfServices: start`, state });
+    const services = (await _getListOfServices({ globalConfig, state })).result;
+    debugMessage({ message: `ServiceOps.getListOfServices: end`, state });
+    return services;
+  } catch (error) {
+    throw new FrodoError(
+      `Error getting list of ${globalConfig ? 'global' : 'realm'} services`,
+      error
+    );
+  }
 }
 
 /**
@@ -264,50 +280,57 @@ export async function getFullServices({
   globalConfig: boolean;
   state: State;
 }): Promise<FullService[]> {
-  debugMessage({
-    message: `ServiceOps.getFullServices: start, globalConfig=${globalConfig}`,
-    state,
-  });
-  const serviceList = (await _getListOfServices({ globalConfig, state }))
-    .result;
+  try {
+    debugMessage({
+      message: `ServiceOps.getFullServices: start, globalConfig=${globalConfig}`,
+      state,
+    });
+    const serviceList = (await _getListOfServices({ globalConfig, state }))
+      .result;
 
-  const fullServiceData = await Promise.all(
-    serviceList.map(async (listItem) => {
-      try {
-        const [service, nextDescendents] = await Promise.all([
-          getService({ serviceId: listItem._id, globalConfig, state }),
-          getServiceDescendents({
-            serviceId: listItem._id,
-            globalConfig,
-            state,
-          }),
-        ]);
+    const fullServiceData = await Promise.all(
+      serviceList.map(async (listItem) => {
+        try {
+          const [service, nextDescendents] = await Promise.all([
+            getService({ serviceId: listItem._id, globalConfig, state }),
+            getServiceDescendents({
+              serviceId: listItem._id,
+              globalConfig,
+              state,
+            }),
+          ]);
 
-        return {
-          ...service,
-          nextDescendents,
-        };
-      } catch (error) {
-        if (
-          !(
-            error.response?.status === 403 &&
-            error.response?.data?.message ===
-              'This operation is not available in ForgeRock Identity Cloud.'
-          )
-        ) {
-          const message = error.response?.data?.message;
-          printMessage({
-            message: `Unable to retrieve data for ${listItem._id} with error: ${message}`,
-            type: 'error',
-            state,
-          });
+          return {
+            ...service,
+            nextDescendents,
+          };
+        } catch (error) {
+          if (
+            !(
+              error.response?.status === 403 &&
+              error.response?.data?.message ===
+                'This operation is not available in ForgeRock Identity Cloud.'
+            )
+          ) {
+            const message = error.response?.data?.message;
+            printMessage({
+              message: `Unable to retrieve data for ${listItem._id} with error: ${message}`,
+              type: 'error',
+              state,
+            });
+          }
         }
-      }
-    })
-  );
+      })
+    );
 
-  debugMessage({ message: `ServiceOps.getFullServices: end`, state });
-  return fullServiceData.filter((data) => !!data); // make sure to filter out any undefined objects
+    debugMessage({ message: `ServiceOps.getFullServices: end`, state });
+    return fullServiceData.filter((data) => !!data); // make sure to filter out any undefined objects
+  } catch (error) {
+    throw new FrodoError(
+      `Error getting ${globalConfig ? 'global' : 'realm'} full service configs`,
+      error
+    );
+  }
 }
 
 /**
@@ -330,91 +353,98 @@ async function putFullService({
   globalConfig: boolean;
   state: State;
 }): Promise<AmServiceSkeleton> {
-  debugMessage({
-    message: `ServiceOps.putFullService: start, serviceId=${serviceId}, globalConfig=${globalConfig}`,
-    state,
-  });
-  const nextDescendents = fullServiceData.nextDescendents;
+  try {
+    debugMessage({
+      message: `ServiceOps.putFullService: start, serviceId=${serviceId}, globalConfig=${globalConfig}`,
+      state,
+    });
+    const nextDescendents = fullServiceData.nextDescendents;
 
-  delete fullServiceData.nextDescendents;
-  delete fullServiceData._rev;
-  delete fullServiceData.enabled;
+    delete fullServiceData.nextDescendents;
+    delete fullServiceData._rev;
+    delete fullServiceData.enabled;
 
-  if (clean) {
-    try {
-      debugMessage({ message: `ServiceOps.putFullService: clean`, state });
-      await deleteFullService({ serviceId, globalConfig, state });
-    } catch (error) {
-      if (
-        !(
-          error.response?.status === 404 &&
-          error.response?.data?.message === 'Not Found'
-        )
-      ) {
-        const message = error.response?.data?.message || error;
-        printMessage({
-          message: `Error deleting service '${serviceId}' before import: ${message}`,
-          type: 'error',
-          state,
-        });
+    if (clean) {
+      try {
+        debugMessage({ message: `ServiceOps.putFullService: clean`, state });
+        await deleteFullService({ serviceId, globalConfig, state });
+      } catch (error) {
+        if (
+          !(
+            error.response?.status === 404 &&
+            error.response?.data?.message === 'Not Found'
+          )
+        ) {
+          throw new FrodoError(
+            `Error deleting service '${serviceId}' before import`,
+            error
+          );
+        }
       }
     }
-  }
 
-  // delete location field before adding or updating the service
-  delete fullServiceData.location;
+    // delete location field before adding or updating the service
+    delete fullServiceData.location;
 
-  // create service first
-  const result = await putService({
-    serviceId,
-    serviceData: fullServiceData,
-    globalConfig,
-    state,
-  });
+    // create service first
+    const result = await putService({
+      serviceId,
+      serviceData: fullServiceData,
+      globalConfig,
+      state,
+    });
 
-  // return fast if no next descendents supplied
-  if (nextDescendents.length === 0) {
+    // return fast if no next descendents supplied
+    if (nextDescendents.length === 0) {
+      debugMessage({
+        message: `ServiceOps.putFullService: end (w/o descendents)`,
+        state,
+      });
+      return result;
+    }
+
+    // now create next descendents
+    const nextDescendentResult = await Promise.all(
+      nextDescendents.map(async (descendent) => {
+        const type = descendent._type._id;
+        const descendentId = descendent._id;
+        debugMessage({
+          message: `ServiceOps.putFullService: descendentId=${descendentId}`,
+          state,
+        });
+        let result = undefined;
+        try {
+          result = await putServiceNextDescendent({
+            serviceId,
+            serviceType: type,
+            serviceNextDescendentId: descendentId,
+            serviceNextDescendentData: descendent,
+            globalConfig,
+            state,
+          });
+        } catch (error) {
+          throw new FrodoError(
+            `Error putting descendent '${descendentId}' of service '${serviceId}'`,
+            error
+          );
+        }
+        return result;
+      })
+    );
+    result.nextDescendents = nextDescendentResult;
     debugMessage({
-      message: `ServiceOps.putFullService: end (w/o descendents)`,
+      message: `ServiceOps.putFullService: end (w/ descendents)`,
       state,
     });
     return result;
+  } catch (error) {
+    throw new FrodoError(
+      `Error putting ${
+        globalConfig ? 'global' : 'realm'
+      } full service config ${serviceId}`,
+      error
+    );
   }
-
-  // now create next descendents
-  await Promise.all(
-    nextDescendents.map(async (descendent) => {
-      const type = descendent._type._id;
-      const descendentId = descendent._id;
-      debugMessage({
-        message: `ServiceOps.putFullService: descendentId=${descendentId}`,
-        state,
-      });
-      let result = undefined;
-      try {
-        result = await putServiceNextDescendent({
-          serviceId,
-          serviceType: type,
-          serviceNextDescendentId: descendentId,
-          serviceNextDescendentData: descendent,
-          globalConfig,
-          state,
-        });
-      } catch (error) {
-        const message = error.response?.data?.message;
-        printMessage({
-          message: `Put descendent '${descendentId}' of service '${serviceId}': ${message}`,
-          type: 'error',
-          state,
-        });
-      }
-      return result;
-    })
-  );
-  debugMessage({
-    message: `ServiceOps.putFullService: end (w/ descendents)`,
-    state,
-  });
 }
 
 /**
@@ -442,10 +472,11 @@ async function putFullServices({
     message: `ServiceOps.putFullServices: start, globalConfig=${globalConfig}`,
     state,
   });
+  const errors: Error[] = [];
   const results: AmServiceSkeleton[] = [];
   for (const [id, data] of serviceEntries) {
     try {
-      let result;
+      let result: AmServiceSkeleton;
       if (globalConfig || (!realmConfig && data.location === 'global')) {
         result = await putFullService({
           serviceId: id,
@@ -470,21 +501,14 @@ async function putFullServices({
       if (result) results.push(result);
       printMessage({ message: `Imported: ${id}`, type: 'info', state });
     } catch (error) {
-      const message = error.response?.data?.message || error;
-      const detail = error.response?.data?.detail;
-      printMessage({
-        message: `Import service '${id}': ${message}`,
-        type: 'error',
-        state,
-      });
-      if (detail) {
-        printMessage({
-          message: `Details: ${JSON.stringify(detail)}`,
-          type: 'error',
-          state,
-        });
-      }
+      errors.push(error);
     }
+  }
+  if (errors.length > 0) {
+    throw new FrodoError(
+      `Error putting ${globalConfig ? 'global' : 'realm'} full service configs`,
+      errors
+    );
   }
   debugMessage({ message: `ServiceOps.putFullServices: end`, state });
   return results;
@@ -504,35 +528,45 @@ export async function deleteFullService({
   globalConfig: boolean;
   state: State;
 }) {
-  debugMessage({
-    message: `ServiceOps.deleteFullService: start, globalConfig=${globalConfig}`,
-    state,
-  });
-  const serviceNextDescendentData = await getServiceDescendents({
-    serviceId,
-    globalConfig,
-    state,
-  });
+  try {
+    debugMessage({
+      message: `ServiceOps.deleteFullService: start, globalConfig=${globalConfig}`,
+      state,
+    });
+    const serviceNextDescendentData = await getServiceDescendents({
+      serviceId,
+      globalConfig,
+      state,
+    });
 
-  await Promise.all(
-    serviceNextDescendentData.map((nextDescendent) =>
-      deleteServiceNextDescendent({
-        serviceId,
-        serviceType: nextDescendent._type._id,
-        serviceNextDescendentId: nextDescendent._id,
-        globalConfig,
-        state,
-      })
-    )
-  );
+    await Promise.all(
+      serviceNextDescendentData.map((nextDescendent) =>
+        deleteServiceNextDescendent({
+          serviceId,
+          serviceType: nextDescendent._type._id,
+          serviceNextDescendentId: nextDescendent._id,
+          globalConfig,
+          state,
+        })
+      )
+    );
 
-  await deleteService({ serviceId, globalConfig, state });
-  debugMessage({ message: `ServiceOps.deleteFullService: end`, state });
+    debugMessage({ message: `ServiceOps.deleteFullService: end`, state });
+    return deleteService({ serviceId, globalConfig, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error deleting ${
+        globalConfig ? 'global' : 'realm'
+      } full service config ${serviceId}`,
+      error
+    );
+  }
 }
 
 /**
  * Deletes all services
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
+ * @return {Promise<AmServiceSkeleton[]>} a promise resolving to an array of deleted service objects
  */
 export async function deleteFullServices({
   globalConfig = false,
@@ -540,7 +574,7 @@ export async function deleteFullServices({
 }: {
   globalConfig: boolean;
   state: State;
-}) {
+}): Promise<AmServiceSkeleton[]> {
   debugMessage({
     message: `ServiceOps.deleteFullServices: start, globalConfig=${globalConfig}`,
     state,
@@ -549,10 +583,10 @@ export async function deleteFullServices({
     const serviceList = (await _getListOfServices({ globalConfig, state }))
       .result;
 
-    await Promise.all(
+    const deleted: AmServiceSkeleton[] = await Promise.all(
       serviceList.map(async (serviceListItem) => {
         try {
-          await deleteFullService({
+          return deleteFullService({
             serviceId: serviceListItem._id,
             globalConfig,
             state,
@@ -575,15 +609,16 @@ export async function deleteFullServices({
         }
       })
     );
+    debugMessage({ message: `ServiceOps.deleteFullServices: end`, state });
+    return deleted;
   } catch (error) {
-    const message = error.response?.data?.message;
-    printMessage({
-      message: `Delete services: ${message}`,
-      type: 'error',
-      state,
-    });
+    throw new FrodoError(
+      `Error deleting ${
+        globalConfig ? 'global' : 'realm'
+      } full service configs`,
+      error
+    );
   }
-  debugMessage({ message: `ServiceOps.deleteFullServices: end`, state });
 }
 
 /**
@@ -601,12 +636,12 @@ export async function exportService({
   globalConfig: boolean;
   state: State;
 }): Promise<ServiceExportInterface> {
-  debugMessage({
-    message: `ServiceOps.exportService: start, globalConfig=${globalConfig}`,
-    state,
-  });
-  const exportData = createServiceExportTemplate({ state });
   try {
+    debugMessage({
+      message: `ServiceOps.exportService: start, globalConfig=${globalConfig}`,
+      state,
+    });
+    const exportData = createServiceExportTemplate({ state });
     const service = await getService({ serviceId, globalConfig, state });
     service.nextDescendents = await getServiceDescendents({
       serviceId,
@@ -615,16 +650,16 @@ export async function exportService({
     });
     service.location = globalConfig ? 'global' : state.getRealm();
     exportData.service[serviceId] = service;
+    debugMessage({ message: `ServiceOps.exportService: end`, state });
+    return exportData;
   } catch (error) {
-    const message = error.response?.data?.message;
-    printMessage({
-      message: `Export service '${serviceId}': ${message}`,
-      type: 'error',
-      state,
-    });
+    throw new FrodoError(
+      `Error exporting ${
+        globalConfig ? 'global' : 'realm'
+      } service ${serviceId}`,
+      error
+    );
   }
-  debugMessage({ message: `ServiceOps.exportService: end`, state });
-  return exportData;
 }
 
 /**
@@ -642,20 +677,21 @@ export async function exportServices({
     message: `ServiceOps.exportServices: start, globalConfig=${globalConfig}`,
     state,
   });
-  const globalString = globalConfig ? ' global ' : ' ';
-  const exportData = createServiceExportTemplate({ state });
   let indicatorId: string;
   try {
+    const exportData = createServiceExportTemplate({ state });
     const services = await getFullServices({ globalConfig, state });
     indicatorId = createProgressIndicator({
       total: services.length,
-      message: `Exporting${globalString}services...`,
+      message: `Exporting ${globalConfig ? 'global' : 'realm'} services...`,
       state,
     });
     for (const service of services) {
       updateProgressIndicator({
         id: indicatorId,
-        message: `Exporting${globalString}service ${service._id}`,
+        message: `Exporting ${globalConfig ? 'global' : 'realm'} service ${
+          service._id
+        }`,
         state,
       });
       service.location = globalConfig ? 'global' : state.getRealm();
@@ -663,19 +699,25 @@ export async function exportServices({
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${services.length}${globalString}services.`,
+      message: `Exported ${services.length} ${
+        globalConfig ? 'global' : 'realm'
+      } services.`,
       state,
     });
+    debugMessage({ message: `ServiceOps.exportServices: end`, state });
+    return exportData;
   } catch (error) {
-    const message = error.response?.data?.message;
-    printMessage({
-      message: `Export${globalString}services: ${message}`,
-      type: 'error',
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting ${globalConfig ? 'global' : 'realm'} services.`,
+      status: 'fail',
       state,
     });
+    throw new FrodoError(
+      `Error exporting ${globalConfig ? 'global' : 'realm'} services`,
+      error
+    );
   }
-  debugMessage({ message: `ServiceOps.exportServices: end`, state });
-  return exportData;
 }
 
 /**
@@ -700,35 +742,42 @@ export async function importService({
   options: ServiceImportOptions;
   state: State;
 }): Promise<AmServiceSkeleton> {
-  debugMessage({
-    message: `ServiceOps.importService: start, global=${options.global}, realm=${options.realm}`,
-    state,
-  });
-  const serviceData = importData.service[serviceId];
-  let result;
-  if (options.global || (!options.realm && serviceData.location === 'global')) {
-    result = await putFullService({
-      serviceId,
-      fullServiceData: serviceData,
-      clean: options.clean,
-      globalConfig: true,
+  try {
+    debugMessage({
+      message: `ServiceOps.importService: start, global=${options.global}, realm=${options.realm}`,
       state,
     });
+    const serviceData = importData.service[serviceId];
+    let result: AmServiceSkeleton;
+    if (
+      options.global ||
+      (!options.realm && serviceData.location === 'global')
+    ) {
+      result = await putFullService({
+        serviceId,
+        fullServiceData: serviceData,
+        clean: options.clean,
+        globalConfig: true,
+        state,
+      });
+    }
+    if (
+      options.realm ||
+      (!options.global && serviceData.location === state.getRealm())
+    ) {
+      result = await putFullService({
+        serviceId,
+        fullServiceData: serviceData,
+        clean: options.clean,
+        globalConfig: false,
+        state,
+      });
+    }
+    debugMessage({ message: `ServiceOps.importService: end`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error importing service ${serviceId}`, error);
   }
-  if (
-    options.realm ||
-    (!options.global && serviceData.location === state.getRealm())
-  ) {
-    result = await putFullService({
-      serviceId,
-      fullServiceData: serviceData,
-      clean: options.clean,
-      globalConfig: false,
-      state,
-    });
-  }
-  debugMessage({ message: `ServiceOps.importService: end`, state });
-  return result;
 }
 
 /**
@@ -765,20 +814,6 @@ export async function importServices({
     debugMessage({ message: `ServiceOps.importServices: end`, state });
     return result;
   } catch (error) {
-    const message = error.response?.data?.message;
-    const detail = error.response?.data?.detail;
-    printMessage({
-      message: `Unable to import services: error: ${message}`,
-      type: 'error',
-      state,
-    });
-    if (detail) {
-      printMessage({
-        message: `Details: ${JSON.stringify(detail)}`,
-        type: 'error',
-        state,
-      });
-    }
-    throw error;
+    throw new FrodoError(`Error importing services`, error);
   }
 }

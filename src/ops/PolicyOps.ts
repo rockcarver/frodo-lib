@@ -24,16 +24,14 @@ import {
   convertBase64TextToArray,
   getMetadata,
 } from '../utils/ExportImportUtils';
+import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
 import {
   createPolicySet,
   readPolicySet,
   updatePolicySet,
 } from './PolicySetOps';
-import {
-  createResourceType as _createResourceType,
-  updateResourceType,
-} from './ResourceTypeOps';
+import { createResourceType, updateResourceType } from './ResourceTypeOps';
 import { readScript, updateScript } from './ScriptOps';
 
 export type Policy = {
@@ -362,8 +360,12 @@ export async function readPolicies({
 }: {
   state: State;
 }): Promise<PolicySkeleton[]> {
-  const { result } = await _getPolicies({ state });
-  return result;
+  try {
+    const { result } = await _getPolicies({ state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading policies`, error);
+  }
 }
 
 export async function readPolicy({
@@ -373,7 +375,12 @@ export async function readPolicy({
   policyId: string;
   state: State;
 }) {
-  return _getPolicy({ policyId, state });
+  try {
+    const response = await _getPolicy({ policyId, state });
+    return response;
+  } catch (error) {
+    throw new FrodoError(`Error reading policy ${policyId}`, error);
+  }
 }
 
 export async function deletePolicy({
@@ -383,7 +390,12 @@ export async function deletePolicy({
   policyId: string;
   state: State;
 }) {
-  return _deletePolicy({ policyId, state });
+  try {
+    const response = await _deletePolicy({ policyId, state });
+    return response;
+  } catch (error) {
+    throw new FrodoError(`Error deleting policy ${policyId}`, error);
+  }
 }
 
 /**
@@ -398,8 +410,12 @@ export async function readPoliciesByPolicySet({
   policySetId: string;
   state: State;
 }): Promise<PolicySkeleton[]> {
-  const data = await _getPoliciesByPolicySet({ policySetId, state });
-  return data.result;
+  try {
+    const data = await _getPoliciesByPolicySet({ policySetId, state });
+    return data.result;
+  } catch (error) {
+    throw new FrodoError(`Error reading policies in set ${policySetId}`, error);
+  }
 }
 
 export async function createPolicy({
@@ -415,16 +431,20 @@ export async function createPolicy({
   try {
     await _getPolicy({ policyId, state });
   } catch (error) {
-    const result = await _putPolicy({
-      policyId,
-      policyData,
-      state,
-    });
-    debugMessage({
-      message: `PolicyOps.createPolicy: end`,
-      state,
-    });
-    return result;
+    try {
+      const result = await _putPolicy({
+        policyId,
+        policyData,
+        state,
+      });
+      debugMessage({
+        message: `PolicyOps.createPolicy: end`,
+        state,
+      });
+      return result;
+    } catch (error) {
+      throw new FrodoError(`Error creating policy ${policyId}`, error);
+    }
   }
   throw new Error(`Policy ${policyId} already exists!`);
 }
@@ -438,7 +458,12 @@ export async function updatePolicy({
   policyData: PolicySkeleton;
   state: State;
 }) {
-  return _putPolicy({ policyId, policyData, state });
+  try {
+    const response = await _putPolicy({ policyId, policyData, state });
+    return response;
+  } catch (error) {
+    throw new FrodoError(`Error updating policy ${policyId}`, error);
+  }
 }
 
 /**
@@ -537,17 +562,24 @@ export async function getScripts({
         const script = await readScript({ scriptId: scriptUuid, state });
         scripts.push(script);
       } catch (error) {
-        error.message = `Error retrieving script ${scriptUuid} referenced in policy ${policyData['name']}: ${error.message}`;
-        errors.push(error);
+        errors.push(
+          new FrodoError(
+            `Error retrieving script ${scriptUuid} referenced in policy ${policyData['name']}`,
+            error
+          )
+        );
       }
     }
   } catch (error) {
-    error.message = `Error finding scripts in policy ${policyData['name']}: ${error.message}`;
-    errors.push(error);
+    errors.push(
+      new FrodoError(
+        `Error finding scripts in policy ${policyData['name']}`,
+        error
+      )
+    );
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error getting policy scripts`, errors);
   }
   debugMessage({ message: `PolicySetOps.getScripts: end`, state });
   return scripts;
@@ -567,25 +599,37 @@ async function exportPolicyPrerequisites({
   exportData: PolicyExportInterface;
   state: State;
 }) {
+  const errors: Error[] = [];
   debugMessage({
     message: `PolicyOps.exportPolicyPrerequisites: start [policy=${policyData['name']}]`,
     state,
   });
   // resource types
   if (policyData.resourceTypeUuid) {
-    const resourceType = await getResourceType({
-      resourceTypeUuid: policyData.resourceTypeUuid,
-      state,
-    });
-    exportData.resourcetype[policyData.resourceTypeUuid] = resourceType;
+    try {
+      const resourceType = await getResourceType({
+        resourceTypeUuid: policyData.resourceTypeUuid,
+        state,
+      });
+      exportData.resourcetype[policyData.resourceTypeUuid] = resourceType;
+    } catch (error) {
+      errors.push(error);
+    }
   }
   // policy set
   if (policyData.applicationName) {
-    const policySet = await readPolicySet({
-      policySetName: policyData.applicationName,
-      state,
-    });
-    exportData.policyset[policyData.applicationName] = policySet;
+    try {
+      const policySet = await readPolicySet({
+        policySetName: policyData.applicationName,
+        state,
+      });
+      exportData.policyset[policyData.applicationName] = policySet;
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length > 0) {
+    throw new FrodoError(`Error exporting policy prerequisites`, errors);
   }
   debugMessage({
     message: `PolicySetOps.exportPolicyPrerequisites: end`,
@@ -595,7 +639,7 @@ async function exportPolicyPrerequisites({
 
 /**
  * Helper function to export dependencies of a policy set
- * @param {unknown} policyData policy set data
+ * @param {PolicySkeleton} policyData policy set data
  * @param {PolicyExportOptions} options export options
  * @param {PolicyExportInterface} exportData export data
  */
@@ -615,12 +659,18 @@ async function exportPolicyDependencies({
     state,
   });
   // scripts
-  const scripts = await getScripts({ policyData, state });
-  for (const scriptData of scripts) {
-    if (options.useStringArrays) {
-      scriptData.script = convertBase64TextToArray(scriptData.script as string);
+  try {
+    const scripts = await getScripts({ policyData, state });
+    for (const scriptData of scripts) {
+      if (options.useStringArrays) {
+        scriptData.script = convertBase64TextToArray(
+          scriptData.script as string
+        );
+      }
+      exportData.script[scriptData._id] = scriptData;
     }
-    exportData.script[scriptData._id] = scriptData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting policy dependencies`, error);
   }
   debugMessage({
     message: `PolicySetOps.exportPolicySetDependencies: end`,
@@ -646,18 +696,39 @@ export async function exportPolicy({
   options?: PolicyExportOptions;
   state: State;
 }): Promise<PolicyExportInterface> {
-  debugMessage({ message: `PolicyOps.exportPolicy: start`, state });
-  const policyData = await _getPolicy({ policyId, state });
-  const exportData = createPolicyExportTemplate({ state });
-  exportData.policy[policyData._id] = policyData;
-  if (options.prereqs) {
-    await exportPolicyPrerequisites({ policyData, exportData, state });
+  const errors: Error[] = [];
+  try {
+    debugMessage({ message: `PolicyOps.exportPolicy: start`, state });
+    const policyData = await _getPolicy({ policyId, state });
+    const exportData = createPolicyExportTemplate({ state });
+    exportData.policy[policyData._id] = policyData;
+    if (options.prereqs) {
+      try {
+        await exportPolicyPrerequisites({ policyData, exportData, state });
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    if (options.deps) {
+      try {
+        await exportPolicyDependencies({
+          policyData,
+          options,
+          exportData,
+          state,
+        });
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error exporting policy ${policyId}`, errors);
+    }
+    debugMessage({ message: `PolicyOps.exportPolicy: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting policy ${policyId}`, error);
   }
-  if (options.deps) {
-    await exportPolicyDependencies({ policyData, options, exportData, state });
-  }
-  debugMessage({ message: `PolicyOps.exportPolicy: end`, state });
-  return exportData;
 }
 
 /**
@@ -714,20 +785,29 @@ export async function exportPolicies({
         }
       }
     }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error exporting policies`, errors);
+    }
     stopProgressIndicator({
       id: indicatorId,
       message: `Exported ${policies.length} policies.`,
       state,
     });
+    debugMessage({ message: `PolicyOps.exportPolicies: end`, state });
+    return exportData;
   } catch (error) {
-    errors.push(error);
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting policies.`,
+      status: 'fail',
+      state,
+    });
+    // re-throw previously caught error
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error exporting policies`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
-  }
-  debugMessage({ message: `PolicyOps.exportPolicies: end`, state });
-  return exportData;
 }
 
 /**
@@ -779,15 +859,24 @@ export async function exportPoliciesByPolicySet({
         }
       }
     }
+    if (errors.length > 0) {
+      throw new FrodoError(
+        `Error exporting policies in set ${policySetName}`,
+        errors
+      );
+    }
+    debugMessage({ message: `PolicyOps.exportPolicies: end`, state });
+    return exportData;
   } catch (error) {
-    errors.push(error);
+    // re-throw previously caught error
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(
+      `Error exporting policies in set ${policySetName}`,
+      error
+    );
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
-  }
-  debugMessage({ message: `PolicyOps.exportPolicies: end`, state });
-  return exportData;
 }
 
 /**
@@ -817,20 +906,19 @@ async function importPolicyPrerequisites({
           message: `Importing resource type ${policyData.resourceTypeUuid}`,
           state,
         });
-        await _createResourceType({
+        await updateResourceType({
+          resourceTypeUuid: policyData.resourceTypeUuid,
           resourceTypeData:
             exportData.resourcetype[policyData.resourceTypeUuid],
           state,
         });
       } catch (error) {
-        if (error.response?.status === 409)
-          await updateResourceType({
-            resourceTypeUuid: policyData.resourceTypeUuid,
-            resourceTypeData:
-              exportData.resourcetype[policyData.resourceTypeUuid],
-            state,
-          });
-        else throw error;
+        errors.push(
+          new FrodoError(
+            `Error importing prerequisite resource type ${policyData.resourceTypeUuid}`,
+            error
+          )
+        );
       }
     }
     // policy set
@@ -840,35 +928,39 @@ async function importPolicyPrerequisites({
           message: `Importing policy set ${policyData.applicationName}`,
           state,
         });
-        await createPolicySet({
+        await updatePolicySet({
           policySetData: exportData.policyset[policyData.applicationName],
           state,
         });
       } catch (error) {
-        if (error.response?.status === 409)
-          await updatePolicySet({
-            policySetData: exportData.policyset[policyData.applicationName],
-            state,
-          });
-        else throw error;
+        errors.push(
+          new FrodoError(
+            `Error importing prerequisite policy set ${policyData.applicationName}`,
+            error
+          )
+        );
       }
     }
+    if (errors.length > 0) {
+      throw new FrodoError(
+        `Error importing prerequisites for policy ${policyData._id}`,
+        errors
+      );
+    }
+    debugMessage({
+      message: `PolicyOps.importPolicyHardDependencies: end`,
+      state,
+    });
   } catch (error) {
-    error.message = `Error importing hard dependencies for policy ${
-      policyData._id
-    }: ${error.response?.data?.message || error.message}`;
-    errors.push(error);
+    // re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(
+      `Error importing prerequisites for policy ${policyData._id}`,
+      error
+    );
   }
-  if (errors.length) {
-    const errorMessages = errors
-      .map((error) => error.response?.data?.message || error.message)
-      .join('\n');
-    throw new Error(`Import hard dependencies error:\n${errorMessages}`);
-  }
-  debugMessage({
-    message: `PolicyOps.importPolicyHardDependencies: end`,
-    state,
-  });
 }
 
 /**
@@ -899,29 +991,34 @@ async function importPolicyDependencies({
         debugMessage({ message: `Importing script ${scriptUuid}`, state });
         await updateScript({ scriptId: scriptUuid, scriptData, state });
       } catch (error) {
-        debugMessage({ message: error.response?.data, state });
-        error.message = `Error importing script ${scriptUuid} for policy ${
-          policyData._id
-        }: ${error.response?.data?.message || error.message}`;
-        errors.push(error);
+        errors.push(
+          new FrodoError(
+            `Error importing script ${scriptUuid} for policy ${policyData._id}`,
+            error
+          )
+        );
       }
     }
+    if (errors.length > 0) {
+      throw new FrodoError(
+        `Error importing soft dependencies for policy ${policyData._id}`,
+        errors
+      );
+    }
+    debugMessage({
+      message: `PolicyOps.importPolicySoftDependencies: end`,
+      state,
+    });
   } catch (error) {
-    error.message = `Error importing soft dependencies for policy ${
-      policyData._id
-    }: ${error.response?.data?.message || error.message}`;
-    errors.push(error);
+    // re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(
+      `Error importing soft dependencies for policy ${policyData._id}`,
+      error
+    );
   }
-  if (errors.length) {
-    const errorMessages = errors
-      .map((error) => error.response?.data?.message || error.message)
-      .join('\n');
-    throw new Error(`Import soft dependencies error:\n${errorMessages}`);
-  }
-  debugMessage({
-    message: `PolicyOps.importPolicySoftDependencies: end`,
-    state,
-  });
 }
 
 /**
@@ -990,14 +1087,11 @@ export async function importPolicy({
       }
     }
   }
-  if (errors.length) {
-    const errorMessages = errors
-      .map((error) => error.response?.data?.message || error.message)
-      .join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing policy ${policyId}`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\n${policyId} not found in import data!`);
+    throw new FrodoError(`Policy ${policyId} not found in import data`);
   }
   return response;
 }
@@ -1064,14 +1158,11 @@ export async function importFirstPolicy({
     }
     break;
   }
-  if (errors.length) {
-    const errorMessages = errors
-      .map((error) => error.response?.data?.message || error.message)
-      .join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing first policy`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo policy found in import data!`);
+    throw new FrodoError(`No policy found in import data`);
   }
   return response;
 }
@@ -1135,14 +1226,11 @@ export async function importPolicies({
       errors.push(error);
     }
   }
-  if (errors.length) {
-    const errorMessages = errors
-      .map((error) => error.response?.data?.message || error.message)
-      .join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing policies`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo policies found in import data!`);
+    throw new FrodoError(`No policies found in import data`);
   }
   return response;
 }

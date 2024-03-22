@@ -8,15 +8,15 @@ import {
   getAgentsByType,
   putAgentByTypeAndId,
 } from '../api/AgentApi';
+import { FrodoError } from './FrodoError';
 import { State } from '../shared/State';
 import {
   createProgressIndicator,
   debugMessage,
-  printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
-import { getMetadata, validateImport } from '../utils/ExportImportUtils';
+import { getMetadata } from '../utils/ExportImportUtils';
 import { type ExportMetaData } from './OpsTypes';
 
 export type Agent = {
@@ -674,9 +674,9 @@ export async function readAgents({
 }: {
   state: State;
 }): Promise<AgentSkeleton[]> {
-  debugMessage({ message: `AgentOps.getAgents: start`, state });
-  let agents = [];
   try {
+    debugMessage({ message: `AgentOps.readAgents: start`, state });
+    let agents = [];
     const resolved = await Promise.all([
       getAgentsByType({ agentType: 'IdentityGatewayAgent', state }),
       getAgentsByType({ agentType: 'J2EEAgent', state }),
@@ -685,13 +685,12 @@ export async function readAgents({
     agents = agents.concat(resolved[0].result);
     agents = agents.concat(resolved[1].result);
     agents = agents.concat(resolved[2].result);
+    agents.sort((a, b) => a._id.localeCompare(b._id));
+    debugMessage({ message: `AgentOps.readAgents: end`, state });
+    return agents;
   } catch (error) {
-    printMessage({ message: `${error.message}`, type: 'error', state });
-    printMessage({ message: error.response.data, type: 'error', state });
+    throw new FrodoError(`Error reading agents`, error);
   }
-  agents.sort((a, b) => a._id.localeCompare(b._id));
-  debugMessage({ message: `AgentOps.getAgents: end`, state });
-  return agents;
 }
 
 /**
@@ -706,20 +705,26 @@ export async function readAgent({
   agentId: string;
   state: State;
 }): Promise<AgentSkeleton> {
-  debugMessage({ message: `AgentOps.getAgent: start`, state });
-  const agents = await findAgentById({ agentId, state });
-  if (agents.length === 1) {
-    const result = await _getAgentByTypeAndId({
-      agentType: agents[0]._type,
-      agentId: agents[0]._id,
-      state,
-    });
-    debugMessage({ message: `AgentOps.getAgent: end`, state });
-    return result;
-  } else if (agents.length === 0) {
-    throw new Error(`Agent '${agentId}' not found`);
+  let agents = [];
+  try {
+    debugMessage({ message: `AgentOps.readAgent: start`, state });
+    agents = await findAgentById({ agentId, state });
+    if (agents.length === 1) {
+      const result = await _getAgentByTypeAndId({
+        agentType: agents[0]._type,
+        agentId: agents[0]._id,
+        state,
+      });
+      debugMessage({ message: `AgentOps.readAgent: end`, state });
+      return result;
+    }
+  } catch (error) {
+    throw new FrodoError(`Error reading agent ${agentId}`, error);
+  }
+  if (agents.length === 0) {
+    throw new FrodoError(`Agent '${agentId}' not found`);
   } else {
-    throw new Error(`${agents.length} agents '${agentId}' found`);
+    throw new FrodoError(`${agents.length} agents '${agentId}' found`);
   }
 }
 
@@ -738,10 +743,17 @@ export async function readAgentByTypeAndId({
   agentId: string;
   state: State;
 }): Promise<AgentSkeleton> {
-  debugMessage({ message: `AgentOps.getAgentByTypeAndId: start`, state });
-  const result = await _getAgentByTypeAndId({ agentType, agentId, state });
-  debugMessage({ message: `AgentOps.getAgentByTypeAndId: start`, state });
-  return result;
+  try {
+    debugMessage({ message: `AgentOps.readAgentByTypeAndId: start`, state });
+    const result = await _getAgentByTypeAndId({ agentType, agentId, state });
+    debugMessage({ message: `AgentOps.readAgentByTypeAndId: start`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading agent ${agentId} of type ${agentType}`,
+      error
+    );
+  }
 }
 
 /**
@@ -753,13 +765,20 @@ export async function readIdentityGatewayAgents({
 }: {
   state: State;
 }): Promise<AgentSkeleton[]> {
-  debugMessage({ message: `AgentOps.getIdentityGatewayAgents: start`, state });
-  const { result } = await getAgentsByType({
-    agentType: 'IdentityGatewayAgent',
-    state,
-  });
-  debugMessage({ message: `AgentOps.getIdentityGatewayAgents: end`, state });
-  return result;
+  try {
+    debugMessage({
+      message: `AgentOps.readIdentityGatewayAgents: start`,
+      state,
+    });
+    const { result } = await getAgentsByType({
+      agentType: 'IdentityGatewayAgent',
+      state,
+    });
+    debugMessage({ message: `AgentOps.readIdentityGatewayAgents: end`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading identity gateway agents`, error);
+  }
 }
 
 /**
@@ -774,14 +793,24 @@ export async function readIdentityGatewayAgent({
   gatewayId: string;
   state: State;
 }): Promise<AgentSkeleton> {
-  debugMessage({ message: `AgentOps.getIdentityGatewayAgent: start`, state });
-  const result = await readAgentByTypeAndId({
-    agentType: 'IdentityGatewayAgent',
-    agentId: gatewayId,
-    state,
-  });
-  debugMessage({ message: `AgentOps.getIdentityGatewayAgent: end`, state });
-  return result;
+  try {
+    debugMessage({
+      message: `AgentOps.readIdentityGatewayAgent: start`,
+      state,
+    });
+    const result = await readAgentByTypeAndId({
+      agentType: 'IdentityGatewayAgent',
+      agentId: gatewayId,
+      state,
+    });
+    debugMessage({ message: `AgentOps.readIdentityGatewayAgent: end`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading identity gateway agent ${gatewayId}`,
+      error
+    );
+  }
 }
 
 /**
@@ -805,20 +834,27 @@ export async function createIdentityGatewayAgent({
   });
   try {
     await readIdentityGatewayAgent({ gatewayId, state });
+    throw new FrodoError(`Agent ${gatewayId} already exists!`);
   } catch (error) {
-    const result = await putAgentByTypeAndId({
-      agentType: 'IdentityGatewayAgent',
-      agentId: gatewayId,
-      agentData: gatewayData,
-      state,
-    });
-    debugMessage({
-      message: `AgentOps.createIdentityGatewayAgent: end`,
-      state,
-    });
-    return result;
+    try {
+      const result = await putAgentByTypeAndId({
+        agentType: 'IdentityGatewayAgent',
+        agentId: gatewayId,
+        agentData: gatewayData,
+        state,
+      });
+      debugMessage({
+        message: `AgentOps.createIdentityGatewayAgent: end`,
+        state,
+      });
+      return result;
+    } catch (error) {
+      throw new FrodoError(
+        `Error creating identity gateway agent ${gatewayId}`,
+        error
+      );
+    }
   }
-  throw new Error(`Agent ${gatewayId} already exists!`);
 }
 
 /**
@@ -836,15 +872,28 @@ export async function updateIdentityGatewayAgent({
   gatewayData: AgentSkeleton;
   state: State;
 }): Promise<AgentSkeleton> {
-  debugMessage({ message: `AgentOps.putIdentityGatewayAgent: start`, state });
-  const result = await putAgentByTypeAndId({
-    agentType: 'IdentityGatewayAgent',
-    agentId: gatewayId,
-    agentData: gatewayData,
-    state,
-  });
-  debugMessage({ message: `AgentOps.putIdentityGatewayAgent: end`, state });
-  return result;
+  try {
+    debugMessage({
+      message: `AgentOps.updateIdentityGatewayAgent: start`,
+      state,
+    });
+    const result = await putAgentByTypeAndId({
+      agentType: 'IdentityGatewayAgent',
+      agentId: gatewayId,
+      agentData: gatewayData,
+      state,
+    });
+    debugMessage({
+      message: `AgentOps.updateIdentityGatewayAgent: end`,
+      state,
+    });
+    return result;
+  } catch (error) {
+    throw new FrodoError(
+      `Error updating identity gateway agent ${gatewayId}`,
+      error
+    );
+  }
 }
 
 /**
@@ -856,13 +905,17 @@ export async function readJavaAgents({
 }: {
   state: State;
 }): Promise<AgentSkeleton[]> {
-  debugMessage({ message: `AgentOps.getJavaAgents: start`, state });
-  const { result } = await getAgentsByType({
-    agentType: 'J2EEAgent',
-    state,
-  });
-  debugMessage({ message: `AgentOps.getJavaAgents: end`, state });
-  return result;
+  try {
+    debugMessage({ message: `AgentOps.readJavaAgents: start`, state });
+    const { result } = await getAgentsByType({
+      agentType: 'J2EEAgent',
+      state,
+    });
+    debugMessage({ message: `AgentOps.readJavaAgents: end`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading java agents`, error);
+  }
 }
 
 /**
@@ -877,14 +930,18 @@ export async function readJavaAgent({
   agentId: string;
   state: State;
 }): Promise<AgentSkeleton> {
-  debugMessage({ message: `AgentOps.getJavaAgent: start`, state });
-  const result = await readAgentByTypeAndId({
-    agentType: 'J2EEAgent',
-    agentId,
-    state,
-  });
-  debugMessage({ message: `AgentOps.getJavaAgent: end`, state });
-  return result;
+  try {
+    debugMessage({ message: `AgentOps.readJavaAgent: start`, state });
+    const result = await readAgentByTypeAndId({
+      agentType: 'J2EEAgent',
+      agentId,
+      state,
+    });
+    debugMessage({ message: `AgentOps.readJavaAgent: end`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading java agent ${agentId}`, error);
+  }
 }
 
 /**
@@ -905,20 +962,24 @@ export async function createJavaAgent({
   debugMessage({ message: `AgentOps.createJavaAgent: start`, state });
   try {
     await readJavaAgent({ agentId, state });
+    throw new FrodoError(`Agent ${agentId} already exists!`);
   } catch (error) {
-    const result = await putAgentByTypeAndId({
-      agentType: 'J2EEAgent',
-      agentId,
-      agentData,
-      state,
-    });
-    debugMessage({
-      message: `AgentOps.createJavaAgent: end`,
-      state,
-    });
-    return result;
+    try {
+      const result = await putAgentByTypeAndId({
+        agentType: 'J2EEAgent',
+        agentId,
+        agentData,
+        state,
+      });
+      debugMessage({
+        message: `AgentOps.createJavaAgent: end`,
+        state,
+      });
+      return result;
+    } catch (error) {
+      throw new FrodoError(`Error creating java agent ${agentId}`, error);
+    }
   }
-  throw new Error(`Agent ${agentId} already exists!`);
 }
 
 /**
@@ -936,15 +997,19 @@ export async function updateJavaAgent({
   agentData: AgentSkeleton;
   state: State;
 }): Promise<AgentSkeleton> {
-  debugMessage({ message: `AgentOps.putJavaAgent: start`, state });
-  const result = await putAgentByTypeAndId({
-    agentType: 'J2EEAgent',
-    agentId,
-    agentData,
-    state,
-  });
-  debugMessage({ message: `AgentOps.putJavaAgent: end`, state });
-  return result;
+  try {
+    debugMessage({ message: `AgentOps.updateJavaAgent: start`, state });
+    const result = await putAgentByTypeAndId({
+      agentType: 'J2EEAgent',
+      agentId,
+      agentData,
+      state,
+    });
+    debugMessage({ message: `AgentOps.updateJavaAgent: end`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error updating java agent ${agentId}`, error);
+  }
 }
 
 /**
@@ -952,13 +1017,17 @@ export async function updateJavaAgent({
  * @returns {Promise} a promise that resolves to an array of WebAgent objects
  */
 export async function readWebAgents({ state }: { state: State }) {
-  debugMessage({ message: `AgentOps.getWebAgents: start`, state });
-  const { result } = await getAgentsByType({
-    agentType: 'WebAgent',
-    state,
-  });
-  debugMessage({ message: `AgentOps.getWebAgents: end`, state });
-  return result;
+  try {
+    debugMessage({ message: `AgentOps.readWebAgents: start`, state });
+    const { result } = await getAgentsByType({
+      agentType: 'WebAgent',
+      state,
+    });
+    debugMessage({ message: `AgentOps.readWebAgents: end`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading web agents`, error);
+  }
 }
 
 /**
@@ -973,14 +1042,18 @@ export async function readWebAgent({
   agentId: string;
   state: State;
 }) {
-  debugMessage({ message: `AgentOps.getWebAgent: start`, state });
-  const result = await readAgentByTypeAndId({
-    agentType: 'WebAgent',
-    agentId,
-    state,
-  });
-  debugMessage({ message: `AgentOps.getWebAgent: end`, state });
-  return result;
+  try {
+    debugMessage({ message: `AgentOps.readWebAgent: start`, state });
+    const result = await readAgentByTypeAndId({
+      agentType: 'WebAgent',
+      agentId,
+      state,
+    });
+    debugMessage({ message: `AgentOps.readWebAgent: end`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading web agent ${agentId}`, error);
+  }
 }
 
 /**
@@ -1001,20 +1074,24 @@ export async function createWebAgent({
   debugMessage({ message: `AgentOps.createWebAgent: start`, state });
   try {
     await readWebAgent({ agentId, state });
+    throw new FrodoError(`Agent ${agentId} already exists!`);
   } catch (error) {
-    const result = await putAgentByTypeAndId({
-      agentType: 'WebAgent',
-      agentId,
-      agentData,
-      state,
-    });
-    debugMessage({
-      message: `AgentOps.createWebAgent: end`,
-      state,
-    });
-    return result;
+    try {
+      const result = await putAgentByTypeAndId({
+        agentType: 'WebAgent',
+        agentId,
+        agentData,
+        state,
+      });
+      debugMessage({
+        message: `AgentOps.createWebAgent: end`,
+        state,
+      });
+      return result;
+    } catch (error) {
+      throw new FrodoError(`Error creating web agent ${agentId}`, error);
+    }
   }
-  throw new Error(`Agent ${agentId} already exists!`);
 }
 
 /**
@@ -1032,15 +1109,19 @@ export async function updateWebAgent({
   agentData: AgentSkeleton;
   state: State;
 }) {
-  debugMessage({ message: `AgentOps.putWebAgent: start`, state });
-  const result = await putAgentByTypeAndId({
-    agentType: 'WebAgent',
-    agentId,
-    agentData,
-    state,
-  });
-  debugMessage({ message: `AgentOps.putWebAgent: end`, state });
-  return result;
+  try {
+    debugMessage({ message: `AgentOps.updateWebAgent: start`, state });
+    const result = await putAgentByTypeAndId({
+      agentType: 'WebAgent',
+      agentId,
+      agentData,
+      state,
+    });
+    debugMessage({ message: `AgentOps.updateWebAgent: end`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error updating web agent ${agentId}`, error);
+  }
 }
 
 /**
@@ -1052,29 +1133,40 @@ export async function exportAgents({
 }: {
   state: State;
 }): Promise<AgentExportInterface> {
-  debugMessage({ message: `AgentOps.exportAgents: start`, state });
-  const exportData = createAgentExportTemplate({ state });
-  const agents = await readAgents({ state });
-  const indicatorId = createProgressIndicator({
-    total: agents.length,
-    message: 'Exporting agents...',
-    state,
-  });
-  for (const agent of agents) {
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting agent ${agent._id}`,
+  let indicatorId: string;
+  try {
+    debugMessage({ message: `AgentOps.exportAgents: start`, state });
+    const exportData = createAgentExportTemplate({ state });
+    const agents = await readAgents({ state });
+    indicatorId = createProgressIndicator({
+      total: agents.length,
+      message: 'Exporting agents...',
       state,
     });
-    exportData.agents[agent._id] = agent;
+    for (const agent of agents) {
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting agent ${agent._id}`,
+        state,
+      });
+      exportData.agents[agent._id] = agent;
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${agents.length} agents.`,
+      state,
+    });
+    debugMessage({ message: `AgentOps.exportAgents: end`, state });
+    return exportData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting agents`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(`Error exporting agents`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Exported ${agents.length} agents.`,
-    state,
-  });
-  debugMessage({ message: `AgentOps.exportAgents: end`, state });
-  return exportData;
 }
 
 /**
@@ -1086,32 +1178,46 @@ export async function exportIdentityGatewayAgents({
 }: {
   state: State;
 }): Promise<AgentExportInterface> {
-  debugMessage({
-    message: `AgentOps.exportIdentityGatewayAgents: start`,
-    state,
-  });
-  const exportData = createAgentExportTemplate({ state });
-  const agents = await readIdentityGatewayAgents({ state });
-  const indicatorId = createProgressIndicator({
-    total: agents.length,
-    message: 'Exporting IG agents...',
-    state,
-  });
-  for (const agent of agents) {
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting IG agent ${agent._id}`,
+  let indicatorId: string;
+  try {
+    debugMessage({
+      message: `AgentOps.exportIdentityGatewayAgents: start`,
       state,
     });
-    exportData.agents[agent._id] = agent;
+    const exportData = createAgentExportTemplate({ state });
+    const agents = await readIdentityGatewayAgents({ state });
+    indicatorId = createProgressIndicator({
+      total: agents.length,
+      message: 'Exporting IG agents...',
+      state,
+    });
+    for (const agent of agents) {
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting IG agent ${agent._id}`,
+        state,
+      });
+      exportData.agents[agent._id] = agent;
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${agents.length} IG agents.`,
+      state,
+    });
+    debugMessage({
+      message: `AgentOps.exportIdentityGatewayAgents: end`,
+      state,
+    });
+    return exportData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting identity gateway agents`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(`Error exporting identity gateway agents`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Exported ${agents.length} IG agents.`,
-    state,
-  });
-  debugMessage({ message: `AgentOps.exportIdentityGatewayAgents: end`, state });
-  return exportData;
 }
 
 /**
@@ -1123,29 +1229,40 @@ export async function exportJavaAgents({
 }: {
   state: State;
 }): Promise<AgentExportInterface> {
-  debugMessage({ message: `AgentOps.exportJavaAgents: start`, state });
-  const exportData = createAgentExportTemplate({ state });
-  const agents = await readJavaAgents({ state });
-  const indicatorId = createProgressIndicator({
-    total: agents.length,
-    message: 'Exporting Java agents...',
-    state,
-  });
-  for (const agent of agents) {
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting Java agent ${agent._id}`,
+  let indicatorId: string;
+  try {
+    debugMessage({ message: `AgentOps.exportJavaAgents: start`, state });
+    const exportData = createAgentExportTemplate({ state });
+    const agents = await readJavaAgents({ state });
+    indicatorId = createProgressIndicator({
+      total: agents.length,
+      message: 'Exporting Java agents...',
       state,
     });
-    exportData.agents[agent._id] = agent;
+    for (const agent of agents) {
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting Java agent ${agent._id}`,
+        state,
+      });
+      exportData.agents[agent._id] = agent;
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${agents.length} Java agents.`,
+      state,
+    });
+    debugMessage({ message: `AgentOps.exportJavaAgents: end`, state });
+    return exportData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting java agents`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(`Error exporting java agents`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Exported ${agents.length} Java agents.`,
-    state,
-  });
-  debugMessage({ message: `AgentOps.exportJavaAgents: end`, state });
-  return exportData;
 }
 
 /**
@@ -1157,29 +1274,40 @@ export async function exportWebAgents({
 }: {
   state: State;
 }): Promise<AgentExportInterface> {
-  debugMessage({ message: `AgentOps.exportWebAgents: start`, state });
-  const exportData = createAgentExportTemplate({ state });
-  const agents = await readWebAgents({ state });
-  const indicatorId = createProgressIndicator({
-    total: agents.length,
-    message: 'Exporting web agents...',
-    state,
-  });
-  for (const agent of agents) {
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting web agent ${agent._id}`,
+  let indicatorId: string;
+  try {
+    debugMessage({ message: `AgentOps.exportWebAgents: start`, state });
+    const exportData = createAgentExportTemplate({ state });
+    const agents = await readWebAgents({ state });
+    indicatorId = createProgressIndicator({
+      total: agents.length,
+      message: 'Exporting web agents...',
       state,
     });
-    exportData.agents[agent._id] = agent;
+    for (const agent of agents) {
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting web agent ${agent._id}`,
+        state,
+      });
+      exportData.agents[agent._id] = agent;
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${agents.length} web agents.`,
+      state,
+    });
+    debugMessage({ message: `AgentOps.exportWebAgents: end`, state });
+    return exportData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting web agents`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(`Error exporting web agents`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Exported ${agents.length} web agents.`,
-    state,
-  });
-  debugMessage({ message: `AgentOps.exportWebAgents: end`, state });
-  return exportData;
 }
 
 /**
@@ -1194,12 +1322,16 @@ export async function exportAgent({
   agentId: string;
   state: State;
 }): Promise<AgentExportInterface> {
-  debugMessage({ message: `AgentOps.exportAgent: start`, state });
-  const exportData = createAgentExportTemplate({ state });
-  const agentObject = await readAgent({ agentId, state });
-  exportData.agents[agentId] = agentObject;
-  debugMessage({ message: `AgentOps.exportAgent: end`, state });
-  return exportData;
+  try {
+    debugMessage({ message: `AgentOps.exportAgent: start`, state });
+    const exportData = createAgentExportTemplate({ state });
+    const agentObject = await readAgent({ agentId, state });
+    exportData.agents[agentId] = agentObject;
+    debugMessage({ message: `AgentOps.exportAgent: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting agent ${agentId}`, error);
+  }
 }
 
 /**
@@ -1214,18 +1346,28 @@ export async function exportIdentityGatewayAgent({
   agentId: string;
   state: State;
 }): Promise<AgentExportInterface> {
-  debugMessage({
-    message: `AgentOps.exportIdentityGatewayAgent: start`,
-    state,
-  });
-  const exportData = createAgentExportTemplate({ state });
-  const agentObject = await readIdentityGatewayAgent({
-    gatewayId: agentId,
-    state,
-  });
-  exportData.agents[agentId] = agentObject;
-  debugMessage({ message: `AgentOps.exportIdentityGatewayAgent: end`, state });
-  return exportData;
+  try {
+    debugMessage({
+      message: `AgentOps.exportIdentityGatewayAgent: start`,
+      state,
+    });
+    const exportData = createAgentExportTemplate({ state });
+    const agentObject = await readIdentityGatewayAgent({
+      gatewayId: agentId,
+      state,
+    });
+    exportData.agents[agentId] = agentObject;
+    debugMessage({
+      message: `AgentOps.exportIdentityGatewayAgent: end`,
+      state,
+    });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(
+      `Error exporting identity gateway agent ${agentId}`,
+      error
+    );
+  }
 }
 
 /**
@@ -1240,12 +1382,16 @@ export async function exportJavaAgent({
   agentId: string;
   state: State;
 }): Promise<AgentExportInterface> {
-  debugMessage({ message: `AgentOps.exportJavaAgent: start`, state });
-  const exportData = createAgentExportTemplate({ state });
-  const agentObject = await readJavaAgent({ agentId, state });
-  exportData.agents[agentId] = agentObject;
-  debugMessage({ message: `AgentOps.exportJavaAgent: end`, state });
-  return exportData;
+  try {
+    debugMessage({ message: `AgentOps.exportJavaAgent: start`, state });
+    const exportData = createAgentExportTemplate({ state });
+    const agentObject = await readJavaAgent({ agentId, state });
+    exportData.agents[agentId] = agentObject;
+    debugMessage({ message: `AgentOps.exportJavaAgent: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting java agent ${agentId}`, error);
+  }
 }
 
 /**
@@ -1260,12 +1406,16 @@ export async function exportWebAgent({
   agentId: string;
   state: State;
 }): Promise<AgentExportInterface> {
-  debugMessage({ message: `AgentOps.exportWebAgent: start`, state });
-  const exportData = createAgentExportTemplate({ state });
-  const agentObject = await readWebAgent({ agentId, state });
-  exportData.agents[agentId] = agentObject;
-  debugMessage({ message: `AgentOps.exportWebAgent: end`, state });
-  return exportData;
+  try {
+    debugMessage({ message: `AgentOps.exportWebAgent: start`, state });
+    const exportData = createAgentExportTemplate({ state });
+    const agentObject = await readWebAgent({ agentId, state });
+    exportData.agents[agentId] = agentObject;
+    debugMessage({ message: `AgentOps.exportWebAgent: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting web agent ${agentId}`, error);
+  }
 }
 
 /**
@@ -1279,25 +1429,43 @@ export async function importAgents({
   importData: AgentExportInterface;
   state: State;
 }): Promise<void> {
-  debugMessage({ message: `AgentOps.importAgents: start`, state });
-  if (validateImport(importData.meta)) {
+  const errors: Error[] = [];
+  try {
+    debugMessage({ message: `AgentOps.importAgents: start`, state });
     for (const agentId of Object.keys(importData.agents)) {
-      const agentType = importData.agents[agentId]._type._id as AgentType;
-      debugMessage({
-        message: `AgentOps.importAgents: ${agentId} [${agentType}]`,
-        state,
-      });
-      await putAgentByTypeAndId({
-        agentType,
-        agentId,
-        agentData: importData.agents[agentId],
-        state,
-      });
+      let agentType: AgentType;
+      try {
+        agentType = importData.agents[agentId]._type._id as AgentType;
+        debugMessage({
+          message: `AgentOps.importAgents: ${agentId} [${agentType}]`,
+          state,
+        });
+        await putAgentByTypeAndId({
+          agentType,
+          agentId,
+          agentData: importData.agents[agentId],
+          state,
+        });
+      } catch (error) {
+        errors.push(
+          new FrodoError(
+            `Error importing agent ${agentId} of type ${agentType}`,
+            error
+          )
+        );
+      }
     }
-  } else {
-    throw new Error('Invalid meta data.');
+    if (errors.length > 0) {
+      throw new FrodoError(`Error importing agents`, errors);
+    }
+    debugMessage({ message: `AgentOps.importAgents: end`, state });
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error importing agents`, error);
   }
-  debugMessage({ message: `AgentOps.importAgents: end`, state });
 }
 
 /**
@@ -1311,28 +1479,49 @@ export async function importIdentityGatewayAgents({
   importData: AgentExportInterface;
   state: State;
 }): Promise<void> {
-  debugMessage({
-    message: `AgentOps.importIdentityGatewayAgents: start`,
-    state,
-  });
-  if (validateImport(importData.meta)) {
+  const errors: Error[] = [];
+  try {
+    debugMessage({
+      message: `AgentOps.importIdentityGatewayAgents: start`,
+      state,
+    });
     for (const agentId of Object.keys(importData.agents)) {
-      const agentType = importData.agents[agentId]._type._id as AgentType;
-      if (agentType !== 'IdentityGatewayAgent')
-        throw new Error(
-          `Wrong agent type! Expected 'IdentityGatewayAgent' but got '${agentType}'.`
+      let agentType: AgentType;
+      try {
+        agentType = importData.agents[agentId]._type._id as AgentType;
+        if (agentType !== 'IdentityGatewayAgent')
+          throw new FrodoError(
+            `Wrong agent type! Expected 'IdentityGatewayAgent' but got '${agentType}'.`
+          );
+        await putAgentByTypeAndId({
+          agentType,
+          agentId,
+          agentData: importData.agents[agentId],
+          state,
+        });
+      } catch (error) {
+        errors.push(
+          new FrodoError(
+            `Error importing agent ${agentId} of type ${agentType}`,
+            error
+          )
         );
-      await putAgentByTypeAndId({
-        agentType,
-        agentId,
-        agentData: importData.agents[agentId],
-        state,
-      });
+      }
     }
-  } else {
-    throw new Error('Invalid meta data.');
+    if (errors.length > 0) {
+      throw new FrodoError(`Error importing identity gateway agents`, errors);
+    }
+    debugMessage({
+      message: `AgentOps.importIdentityGatewayAgents: end`,
+      state,
+    });
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error importing identity gateway agents`, error);
   }
-  debugMessage({ message: `AgentOps.importIdentityGatewayAgents: end`, state });
 }
 
 /**
@@ -1346,25 +1535,43 @@ export async function importJavaAgents({
   importData: AgentExportInterface;
   state: State;
 }): Promise<void> {
-  debugMessage({ message: `AgentOps.importJavaAgents: start`, state });
-  if (validateImport(importData.meta)) {
+  const errors: Error[] = [];
+  try {
+    debugMessage({ message: `AgentOps.importJavaAgents: start`, state });
     for (const agentId of Object.keys(importData.agents)) {
-      const agentType = importData.agents[agentId]._type._id as AgentType;
-      if (agentType !== 'J2EEAgent')
-        throw new Error(
-          `Wrong agent type! Expected 'J2EEAgent' but got '${agentType}'.`
+      let agentType: AgentType;
+      try {
+        agentType = importData.agents[agentId]._type._id as AgentType;
+        if (agentType !== 'J2EEAgent')
+          throw new FrodoError(
+            `Wrong agent type! Expected 'J2EEAgent' but got '${agentType}'.`
+          );
+        await putAgentByTypeAndId({
+          agentType,
+          agentId,
+          agentData: importData.agents[agentId],
+          state,
+        });
+      } catch (error) {
+        errors.push(
+          new FrodoError(
+            `Error importing agent ${agentId} of type ${agentType}`,
+            error
+          )
         );
-      await putAgentByTypeAndId({
-        agentType,
-        agentId,
-        agentData: importData.agents[agentId],
-        state,
-      });
+      }
     }
-  } else {
-    throw new Error('Invalid meta data.');
+    if (errors.length > 0) {
+      throw new FrodoError(`Error importing java agents`, errors);
+    }
+    debugMessage({ message: `AgentOps.importJavaAgents: end`, state });
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error importing java agents`, error);
   }
-  debugMessage({ message: `AgentOps.importJavaAgents: end`, state });
 }
 
 /**
@@ -1378,25 +1585,43 @@ export async function importWebAgents({
   importData: AgentExportInterface;
   state: State;
 }): Promise<void> {
-  debugMessage({ message: `AgentOps.importWebAgents: start`, state });
-  if (validateImport(importData.meta)) {
+  const errors: Error[] = [];
+  try {
+    debugMessage({ message: `AgentOps.importWebAgents: start`, state });
     for (const agentId of Object.keys(importData.agents)) {
-      const agentType = importData.agents[agentId]._type._id as AgentType;
-      if (agentType !== 'WebAgent')
-        throw new Error(
-          `Wrong agent type! Expected 'WebAgent' but got '${agentType}'.`
+      let agentType: AgentType;
+      try {
+        agentType = importData.agents[agentId]._type._id as AgentType;
+        if (agentType !== 'WebAgent')
+          throw new FrodoError(
+            `Wrong agent type! Expected 'WebAgent' but got '${agentType}'.`
+          );
+        await putAgentByTypeAndId({
+          agentType,
+          agentId,
+          agentData: importData.agents[agentId],
+          state,
+        });
+      } catch (error) {
+        errors.push(
+          new FrodoError(
+            `Error importing agent ${agentId} of type ${agentType}`,
+            error
+          )
         );
-      await putAgentByTypeAndId({
-        agentType,
-        agentId,
-        agentData: importData.agents[agentId],
-        state,
-      });
+      }
     }
-  } else {
-    throw new Error('Invalid meta data.');
+    if (errors.length > 0) {
+      throw new FrodoError(`Error importing web agents`, errors);
+    }
+    debugMessage({ message: `AgentOps.importWebAgents: end`, state });
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error importing web agents`, error);
   }
-  debugMessage({ message: `AgentOps.importWebAgents: end`, state });
 }
 
 /**
@@ -1414,8 +1639,8 @@ export async function importAgent({
   importData: AgentExportInterface;
   state: State;
 }) {
-  debugMessage({ message: `AgentOps.importAgent: start`, state });
-  if (validateImport(importData.meta)) {
+  try {
+    debugMessage({ message: `AgentOps.importAgent: start`, state });
     const agentType = importData.agents[agentId]?._type._id as AgentType;
     const result = await putAgentByTypeAndId({
       agentType,
@@ -1425,8 +1650,8 @@ export async function importAgent({
     });
     debugMessage({ message: `AgentOps.importAgent: end`, state });
     return result;
-  } else {
-    throw new Error('Invalid meta data.');
+  } catch (error) {
+    throw new FrodoError(`Error importing agent ${agentId}`, error);
   }
 }
 
@@ -1445,14 +1670,14 @@ export async function importIdentityGatewayAgent({
   importData: AgentExportInterface;
   state: State;
 }) {
-  debugMessage({
-    message: `AgentOps.importIdentityGatewayAgent: start`,
-    state,
-  });
-  if (validateImport(importData.meta)) {
+  try {
+    debugMessage({
+      message: `AgentOps.importIdentityGatewayAgent: start`,
+      state,
+    });
     const agentType = importData.agents[agentId]?._type._id as AgentType;
     if (agentType !== 'IdentityGatewayAgent')
-      throw new Error(
+      throw new FrodoError(
         `Wrong agent type! Expected 'IdentityGatewayAgent' but got '${agentType}'.`
       );
     const result = await putAgentByTypeAndId({
@@ -1466,8 +1691,11 @@ export async function importIdentityGatewayAgent({
       state,
     });
     return result;
-  } else {
-    throw new Error('Invalid meta data.');
+  } catch (error) {
+    throw new FrodoError(
+      `Error importing identity gateway agent ${agentId}`,
+      error
+    );
   }
 }
 
@@ -1486,11 +1714,11 @@ export async function importJavaAgent({
   importData: AgentExportInterface;
   state: State;
 }) {
-  debugMessage({ message: `AgentOps.importJavaAgent: start`, state });
-  if (validateImport(importData.meta)) {
+  try {
+    debugMessage({ message: `AgentOps.importJavaAgent: start`, state });
     const agentType = importData.agents[agentId]?._type._id as AgentType;
     if (agentType !== 'J2EEAgent')
-      throw new Error(
+      throw new FrodoError(
         `Wrong agent type! Expected 'J2EEAgent' but got '${agentType}'.`
       );
     const result = await putAgentByTypeAndId({
@@ -1501,8 +1729,8 @@ export async function importJavaAgent({
     });
     debugMessage({ message: `AgentOps.importJavaAgent: end`, state });
     return result;
-  } else {
-    throw new Error('Invalid meta data.');
+  } catch (error) {
+    throw new FrodoError(`Error importing java agent ${agentId}`, error);
   }
 }
 
@@ -1521,11 +1749,11 @@ export async function importWebAgent({
   importData: AgentExportInterface;
   state: State;
 }) {
-  debugMessage({ message: `AgentOps.importWebAgent: start`, state });
-  if (validateImport(importData.meta)) {
+  try {
+    debugMessage({ message: `AgentOps.importWebAgent: start`, state });
     const agentType = importData.agents[agentId]?._type._id as AgentType;
     if (agentType !== 'WebAgent')
-      throw new Error(
+      throw new FrodoError(
         `Wrong agent type! Expected 'WebAgent' but got '${agentType}'.`
       );
     const result = await putAgentByTypeAndId({
@@ -1536,8 +1764,8 @@ export async function importWebAgent({
     });
     debugMessage({ message: `AgentOps.importWebAgent: end`, state });
     return result;
-  } else {
-    throw new Error('Invalid meta data.');
+  } catch (error) {
+    throw new FrodoError(`Error importing web agent ${agentId}`, error);
   }
 }
 
@@ -1545,17 +1773,170 @@ export async function importWebAgent({
  * Delete all agents
  */
 export async function deleteAgents({ state }: { state: State }) {
-  debugMessage({ message: `AgentOps.deleteAgents: start`, state });
-  const agents = await readAgents({ state });
-  for (const agent of agents) {
-    debugMessage({ message: `AgentOps.deleteAgent: '${agent['_id']}'`, state });
-    await deleteAgentByTypeAndId({
-      agentType: agent['_type']['_id'] as AgentType,
-      agentId: agent['_id'],
+  const errors: Error[] = [];
+  try {
+    debugMessage({ message: `AgentOps.deleteAgents: start`, state });
+    const agents = await readAgents({ state });
+    for (const agent of agents) {
+      try {
+        debugMessage({
+          message: `AgentOps.deleteAgents: '${agent['_id']}'`,
+          state,
+        });
+        await deleteAgentByTypeAndId({
+          agentType: agent['_type']['_id'] as AgentType,
+          agentId: agent['_id'],
+          state,
+        });
+      } catch (error) {
+        errors.push(
+          new FrodoError(
+            `Error deleting agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+            error
+          )
+        );
+      }
+    }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error deleting agents`, errors);
+    }
+    debugMessage({ message: `AgentOps.deleteAgents: end`, state });
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error deleting agents`, error);
+  }
+}
+
+/**
+ * Delete all identity gateway agents
+ */
+export async function deleteIdentityGatewayAgents({ state }: { state: State }) {
+  const errors: Error[] = [];
+  try {
+    debugMessage({
+      message: `AgentOps.deleteIdentityGatewayAgents: start`,
       state,
     });
+    const agents = await readIdentityGatewayAgents({ state });
+    for (const agent of agents) {
+      try {
+        debugMessage({
+          message: `AgentOps.deleteIdentityGatewayAgent: '${agent['_id']}'`,
+          state,
+        });
+        await deleteAgentByTypeAndId({
+          agentType: agent['_type']['_id'] as AgentType,
+          agentId: agent['_id'],
+          state,
+        });
+      } catch (error) {
+        errors.push(
+          new FrodoError(
+            `Error deleting agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+            error
+          )
+        );
+      }
+    }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error deleting identity gateway agents`, errors);
+    }
+    debugMessage({
+      message: `AgentOps.deleteIdentityGatewayAgents: end`,
+      state,
+    });
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error deleting identity gateway agents`, error);
   }
-  debugMessage({ message: `AgentOps.deleteAgents: end`, state });
+}
+
+/**
+ * Delete all java agents
+ */
+export async function deleteJavaAgents({ state }: { state: State }) {
+  const errors: Error[] = [];
+  try {
+    debugMessage({ message: `AgentOps.deleteJavaAgents: start`, state });
+    const agents = await readJavaAgents({ state });
+    for (const agent of agents) {
+      try {
+        debugMessage({
+          message: `AgentOps.deleteJavaAgent: '${agent['_id']}'`,
+          state,
+        });
+        await deleteAgentByTypeAndId({
+          agentType: agent['_type']['_id'] as AgentType,
+          agentId: agent['_id'],
+          state,
+        });
+      } catch (error) {
+        errors.push(
+          new FrodoError(
+            `Error deleting agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+            error
+          )
+        );
+      }
+    }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error deleting java agents`, errors);
+    }
+    debugMessage({ message: `AgentOps.deleteJavaAgents: end`, state });
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error deleting java agents`, error);
+  }
+}
+
+/**
+ * Delete all web agents
+ */
+export async function deleteWebAgents({ state }: { state: State }) {
+  const errors: Error[] = [];
+  try {
+    debugMessage({ message: `AgentOps.deleteWebAgents: start`, state });
+    const agents = await readWebAgents({ state });
+    for (const agent of agents) {
+      try {
+        debugMessage({
+          message: `AgentOps.deleteWebAgent: '${agent['_id']}'`,
+          state,
+        });
+        await deleteAgentByTypeAndId({
+          agentType: agent['_type']['_id'],
+          agentId: agent['_id'],
+          state,
+        });
+      } catch (error) {
+        errors.push(
+          new FrodoError(
+            `Error deleting agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+            error
+          )
+        );
+      }
+    }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error deleting web agents`, errors);
+    }
+    debugMessage({ message: `AgentOps.deleteWebAgents: end`, state });
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error deleting web agents`, error);
+  }
 }
 
 /**
@@ -1569,9 +1950,12 @@ export async function deleteAgent({
   agentId: string;
   state: State;
 }) {
-  debugMessage({ message: `AgentOps.deleteAgent: start`, state });
-  const agents = await findAgentById({ agentId, state });
-  if (agents.length) {
+  try {
+    debugMessage({ message: `AgentOps.deleteAgent: start`, state });
+    const agents = await findAgentById({ agentId, state });
+    if (agents.length == 0) {
+      throw new FrodoError(`Agent '${agentId}' not found!`);
+    }
     for (const agent of agents) {
       debugMessage({
         message: `AgentOps.deleteAgent: '${agent['_id']}'`,
@@ -1583,33 +1967,10 @@ export async function deleteAgent({
         state,
       });
     }
-  } else {
-    throw new Error(`Agent '${agentId}' not found!`);
+    debugMessage({ message: `AgentOps.deleteAgent: end`, state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting agent ${agentId}`, error);
   }
-  debugMessage({ message: `AgentOps.deleteAgent: end`, state });
-}
-
-/**
- * Delete all identity gateway agents
- */
-export async function deleteIdentityGatewayAgents({ state }: { state: State }) {
-  debugMessage({
-    message: `AgentOps.deleteIdentityGatewayAgents: start`,
-    state,
-  });
-  const agents = await readIdentityGatewayAgents({ state });
-  for (const agent of agents) {
-    debugMessage({
-      message: `AgentOps.deleteIdentityGatewayAgent: '${agent['_id']}'`,
-      state,
-    });
-    await deleteAgentByTypeAndId({
-      agentType: agent['_type']['_id'] as AgentType,
-      agentId: agent['_id'],
-      state,
-    });
-  }
-  debugMessage({ message: `AgentOps.deleteIdentityGatewayAgents: end`, state });
 }
 
 /**
@@ -1623,16 +1984,19 @@ export async function deleteIdentityGatewayAgent({
   agentId: string;
   state: State;
 }) {
-  debugMessage({
-    message: `AgentOps.deleteIdentityGatewayAgent: start`,
-    state,
-  });
-  const agents = await findAgentByTypeAndId({
-    agentType: 'IdentityGatewayAgent',
-    agentId,
-    state,
-  });
-  if (agents.length) {
+  try {
+    debugMessage({
+      message: `AgentOps.deleteIdentityGatewayAgent: start`,
+      state,
+    });
+    const agents = await findAgentByTypeAndId({
+      agentType: 'IdentityGatewayAgent',
+      agentId,
+      state,
+    });
+    if (agents.length == 0) {
+      throw new FrodoError(`Identity gateway agent '${agentId}' not found!`);
+    }
     for (const agent of agents) {
       debugMessage({
         message: `AgentOps.deleteIdentityGatewayAgent: '${agent['_id']}'`,
@@ -1644,30 +2008,16 @@ export async function deleteIdentityGatewayAgent({
         state,
       });
     }
-  } else {
-    throw new Error(`Identity gateway agent '${agentId}' not found!`);
-  }
-  debugMessage({ message: `AgentOps.deleteIdentityGatewayAgent: end`, state });
-}
-
-/**
- * Delete all java agents
- */
-export async function deleteJavaAgents({ state }: { state: State }) {
-  debugMessage({ message: `AgentOps.deleteJavaAgents: start`, state });
-  const agents = await readJavaAgents({ state });
-  for (const agent of agents) {
     debugMessage({
-      message: `AgentOps.deleteJavaAgent: '${agent['_id']}'`,
+      message: `AgentOps.deleteIdentityGatewayAgent: end`,
       state,
     });
-    await deleteAgentByTypeAndId({
-      agentType: agent['_type']['_id'] as AgentType,
-      agentId: agent['_id'],
-      state,
-    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error deleting identity gateway agent ${agentId}`,
+      error
+    );
   }
-  debugMessage({ message: `AgentOps.deleteJavaAgents: end`, state });
 }
 
 /**
@@ -1681,13 +2031,16 @@ export async function deleteJavaAgent({
   agentId: string;
   state: State;
 }) {
-  debugMessage({ message: `AgentOps.deleteJavaAgent: start`, state });
-  const agents = await findAgentByTypeAndId({
-    agentType: 'J2EEAgent',
-    agentId,
-    state,
-  });
-  if (agents.length) {
+  try {
+    debugMessage({ message: `AgentOps.deleteJavaAgent: start`, state });
+    const agents = await findAgentByTypeAndId({
+      agentType: 'J2EEAgent',
+      agentId,
+      state,
+    });
+    if (agents.length == 0) {
+      throw new FrodoError(`Java agent '${agentId}' not found!`);
+    }
     for (const agent of agents) {
       debugMessage({
         message: `AgentOps.deleteJavaAgent: '${agent['_id']}'`,
@@ -1699,30 +2052,10 @@ export async function deleteJavaAgent({
         state,
       });
     }
-  } else {
-    throw new Error(`Java agent '${agentId}' not found!`);
+    debugMessage({ message: `AgentOps.deleteJavaAgent: end`, state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting java agent ${agentId}`, error);
   }
-  debugMessage({ message: `AgentOps.deleteJavaAgent: end`, state });
-}
-
-/**
- * Delete all web agents
- */
-export async function deleteWebAgents({ state }: { state: State }) {
-  debugMessage({ message: `AgentOps.deleteWebAgents: start`, state });
-  const agents = await readWebAgents({ state });
-  for (const agent of agents) {
-    debugMessage({
-      message: `AgentOps.deleteWebAgent: '${agent['_id']}'`,
-      state,
-    });
-    await deleteAgentByTypeAndId({
-      agentType: agent['_type']['_id'],
-      agentId: agent['_id'],
-      state,
-    });
-  }
-  debugMessage({ message: `AgentOps.deleteWebAgents: end`, state });
 }
 
 /**
@@ -1736,13 +2069,16 @@ export async function deleteWebAgent({
   agentId: string;
   state: State;
 }) {
-  debugMessage({ message: `AgentOps.deleteWebAgent: start`, state });
-  const agents = await findAgentByTypeAndId({
-    agentType: 'WebAgent',
-    agentId,
-    state,
-  });
-  if (agents.length) {
+  try {
+    debugMessage({ message: `AgentOps.deleteWebAgent: start`, state });
+    const agents = await findAgentByTypeAndId({
+      agentType: 'WebAgent',
+      agentId,
+      state,
+    });
+    if (agents.length == 0) {
+      throw new FrodoError(`Web agent '${agentId}' not found!`);
+    }
     for (const agent of agents) {
       debugMessage({
         message: `AgentOps.deleteWebAgent: '${agent['_id']}'`,
@@ -1754,8 +2090,8 @@ export async function deleteWebAgent({
         state,
       });
     }
-  } else {
-    throw new Error(`Web agent '${agentId}' not found!`);
+    debugMessage({ message: `AgentOps.deleteWebAgent: end`, state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting web agent ${agentId}`, error);
   }
-  debugMessage({ message: `AgentOps.deleteWebAgent: end`, state });
 }

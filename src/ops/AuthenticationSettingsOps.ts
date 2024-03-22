@@ -6,6 +6,7 @@ import {
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
 
 export type AuthenticationSettings = {
@@ -89,8 +90,12 @@ export async function readAuthenticationSettings({
 }: {
   state: State;
 }): Promise<AuthenticationSettingsSkeleton> {
-  const settings = await _getAuthenticationSettings({ state });
-  return settings;
+  try {
+    const settings = await _getAuthenticationSettings({ state });
+    return settings;
+  } catch (error) {
+    throw new FrodoError(`Error reading authentication settings`, error);
+  }
 }
 
 export async function updateAuthenticationSettings({
@@ -100,19 +105,23 @@ export async function updateAuthenticationSettings({
   settings: AuthenticationSettingsSkeleton;
   state: State;
 }): Promise<AuthenticationSettingsSkeleton> {
-  debugMessage({
-    message: `AuthenticationSettingsOps.updateAuthenticationSettings: start`,
-    state,
-  });
-  const response = await _putAuthenticationSettings({
-    settings,
-    state,
-  });
-  debugMessage({
-    message: `AuthenticationSettingsOps.updateAuthenticationSettings: end`,
-    state,
-  });
-  return response;
+  try {
+    debugMessage({
+      message: `AuthenticationSettingsOps.updateAuthenticationSettings: start`,
+      state,
+    });
+    const response = await _putAuthenticationSettings({
+      settings,
+      state,
+    });
+    debugMessage({
+      message: `AuthenticationSettingsOps.updateAuthenticationSettings: end`,
+      state,
+    });
+    return response;
+  } catch (error) {
+    throw new FrodoError(`Error updating authentication settings`, error);
+  }
 }
 
 /**
@@ -124,18 +133,22 @@ export async function exportAuthenticationSettings({
 }: {
   state: State;
 }): Promise<AuthenticationSettingsExportInterface> {
-  debugMessage({
-    message: `AuthenticationSettingsOps.exportAuthenticationSettings: start`,
-    state,
-  });
-  const settingsData = await readAuthenticationSettings({ state });
-  const exportData = createAuthenticationSettingsExportTemplate({ state });
-  exportData.authentication = settingsData;
-  debugMessage({
-    message: `AuthenticationSettingsOps.exportAuthenticationSettings: end`,
-    state,
-  });
-  return exportData;
+  try {
+    debugMessage({
+      message: `AuthenticationSettingsOps.exportAuthenticationSettings: start`,
+      state,
+    });
+    const settingsData = await readAuthenticationSettings({ state });
+    const exportData = createAuthenticationSettingsExportTemplate({ state });
+    exportData.authentication = settingsData;
+    debugMessage({
+      message: `AuthenticationSettingsOps.exportAuthenticationSettings: end`,
+      state,
+    });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting authentication settings`, error);
+  }
 }
 
 /**
@@ -151,31 +164,13 @@ export async function importAuthenticationSettings({
   state: State;
 }): Promise<AuthenticationSettingsSkeleton> {
   let response = null;
-  const errors = [];
   try {
     response = await updateAuthenticationSettings({
       settings: importData.authentication,
       state,
     });
+    return response;
   } catch (error) {
-    errors.push(error);
+    throw new FrodoError(`Error reading authentication settings`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors
-      .map(
-        (error) =>
-          `${error.response?.status}${
-            error.response?.data['reason']
-              ? ' ' + error.response?.data['reason']
-              : ''
-          }${
-            error.response?.data['message']
-              ? ' - ' + error.response?.data['message']
-              : ''
-          }`
-      )
-      .join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
-  }
-  return response;
 }

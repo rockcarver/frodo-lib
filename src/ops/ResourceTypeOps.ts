@@ -15,6 +15,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { FrodoError } from './FrodoError';
 import { ExportMetaData } from './OpsTypes';
 
 export type ResourceType = {
@@ -283,7 +284,15 @@ export async function readResourceType({
   resourceTypeUuid: string;
   state: State;
 }) {
-  return _getResourceType({ resourceTypeUuid, state });
+  try {
+    const response = await _getResourceType({ resourceTypeUuid, state });
+    return response;
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading resource type ${resourceTypeUuid}`,
+      error
+    );
+  }
 }
 
 /**
@@ -295,8 +304,12 @@ export async function readResourceTypes({
 }: {
   state: State;
 }): Promise<ResourceTypeSkeleton[]> {
-  const { result } = await _getResourceTypes({ state });
-  return result;
+  try {
+    const { result } = await _getResourceTypes({ state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading resource types`, error);
+  }
 }
 
 /**
@@ -311,18 +324,28 @@ export async function readResourceTypeByName({
   resourceTypeName: string;
   state: State;
 }): Promise<ResourceTypeSkeleton> {
-  const { result } = await _getResourceTypeByName({ resourceTypeName, state });
-  switch (result.length) {
-    case 1:
-      return result[0];
-    case 0:
-      throw new Error(
-        `Resource Type with name ${resourceTypeName} does not exist in realm ${state.getRealm()}`
-      );
-    default:
-      throw new Error(
-        `${result.length} resource types '${resourceTypeName}' found`
-      );
+  try {
+    const { result } = await _getResourceTypeByName({
+      resourceTypeName,
+      state,
+    });
+    switch (result.length) {
+      case 1:
+        return result[0];
+      case 0:
+        throw new FrodoError(
+          `Resource Type with name ${resourceTypeName} does not exist in realm ${state.getRealm()}`
+        );
+      default:
+        throw new FrodoError(
+          `${result.length} resource types '${resourceTypeName}' found`
+        );
+    }
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading resource type ${resourceTypeName}`,
+      error
+    );
   }
 }
 
@@ -340,7 +363,19 @@ export async function updateResourceType({
   resourceTypeData: ResourceTypeSkeleton;
   state: State;
 }): Promise<ResourceTypeSkeleton> {
-  return _putResourceType({ resourceTypeUuid, resourceTypeData, state });
+  try {
+    const response = await _putResourceType({
+      resourceTypeUuid,
+      resourceTypeData,
+      state,
+    });
+    return response;
+  } catch (error) {
+    throw new FrodoError(
+      `Error updating resource type ${resourceTypeUuid}`,
+      error
+    );
+  }
 }
 
 export async function deleteResourceType({
@@ -350,7 +385,15 @@ export async function deleteResourceType({
   resourceTypeUuid: string;
   state: State;
 }) {
-  return _deleteResourceType({ resourceTypeUuid, state });
+  try {
+    const response = await _deleteResourceType({ resourceTypeUuid, state });
+    return response;
+  } catch (error) {
+    throw new FrodoError(
+      `Error deleting resource type ${resourceTypeUuid}`,
+      error
+    );
+  }
 }
 
 /**
@@ -365,10 +408,18 @@ export async function deleteResourceTypeByName({
   resourceTypeName: string;
   state: State;
 }): Promise<ResourceTypeSkeleton> {
-  const resourceTypeUuid = (
-    await readResourceTypeByName({ resourceTypeName, state })
-  ).uuid;
-  return _deleteResourceType({ resourceTypeUuid, state });
+  try {
+    const resourceTypeUuid = (
+      await readResourceTypeByName({ resourceTypeName, state })
+    ).uuid;
+    const response = await _deleteResourceType({ resourceTypeUuid, state });
+    return response;
+  } catch (error) {
+    throw new FrodoError(
+      `Error deleting resource type ${resourceTypeName}`,
+      error
+    );
+  }
 }
 
 /**
@@ -385,30 +436,27 @@ export async function exportResourceType({
 }): Promise<ResourceTypeExportInterface> {
   debugMessage({ message: `ResourceTypeOps.exportResourceType: start`, state });
   const exportData = createResourceTypeExportTemplate({ state });
-  const errors = [];
   try {
     const resourceTypeData = await _getResourceType({
       resourceTypeUuid,
       state,
     });
     exportData.resourcetype[resourceTypeData.uuid] = resourceTypeData;
+    debugMessage({ message: `ResourceTypeOps.exportResourceType: end`, state });
+    return exportData;
   } catch (error) {
-    errors.push(error);
+    if (error.response?.status === 404) {
+      throw new FrodoError(
+        `Resource type ${resourceTypeUuid} does not exist`,
+        error
+      );
+    } else {
+      throw new FrodoError(
+        `Error exporting resource type ${resourceTypeUuid}`,
+        error
+      );
+    }
   }
-  if (errors.length) {
-    const errorMessages = errors
-      .map((error) => {
-        if (error.response?.status === 404) {
-          return `Resource Type with uuid ${resourceTypeUuid} does not exist in realm ${state.getRealm()}`;
-        } else {
-          return error.response?.data?.message || error.message;
-        }
-      })
-      .join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
-  }
-  debugMessage({ message: `ResourceTypeOps.exportResourceType: end`, state });
-  return exportData;
 }
 
 /**
@@ -428,25 +476,23 @@ export async function exportResourceTypeByName({
     state,
   });
   const exportData = createResourceTypeExportTemplate({ state });
-  const errors = [];
   try {
     const resourceTypeData = await readResourceTypeByName({
       resourceTypeName,
       state,
     });
     exportData.resourcetype[resourceTypeData.uuid] = resourceTypeData;
+    debugMessage({
+      message: `ResourceTypeOps.exportResourceTypeByName: end`,
+      state,
+    });
+    return exportData;
   } catch (error) {
-    errors.push(error);
+    throw new FrodoError(
+      `Error exporting resource type ${resourceTypeName}`,
+      error
+    );
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
-  }
-  debugMessage({
-    message: `ResourceTypeOps.exportResourceTypeByName: end`,
-    state,
-  });
-  return exportData;
 }
 
 /**
@@ -460,7 +506,6 @@ export async function exportResourceTypes({
 }): Promise<ResourceTypeExportInterface> {
   debugMessage({ message: `ResourceTypeOps.exportResourceType: start`, state });
   const exportData = createResourceTypeExportTemplate({ state });
-  const errors = [];
   let indicatorId: string;
   try {
     const resourceTypes = await readResourceTypes({ state });
@@ -482,15 +527,17 @@ export async function exportResourceTypes({
       message: `Exported ${resourceTypes.length} resource types.`,
       state,
     });
+    debugMessage({ message: `ResourceTypeOps.exportResourceType: end`, state });
+    return exportData;
   } catch (error) {
-    errors.push(error);
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting resource types`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(`Error exporting resource types`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
-  }
-  debugMessage({ message: `ResourceTypeOps.exportResourceType: end`, state });
-  return exportData;
 }
 
 /**
@@ -532,15 +579,15 @@ export async function importResourceType({
       }
     }
   }
-  if (errors.length) {
-    const errorMessages = errors
-      .map((error) => error.response?.data?.message || error.message)
-      .join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(
+      `Error importing resource type ${resourceTypeUuid}`,
+      errors
+    );
   }
   if (0 === imported.length) {
-    throw new Error(
-      `Import error:\n${resourceTypeUuid} not found in import data!`
+    throw new FrodoError(
+      `Resource type ${resourceTypeUuid} not found in import data`
     );
   }
   return response;
@@ -585,15 +632,15 @@ export async function importResourceTypeByName({
       }
     }
   }
-  if (errors.length) {
-    const errorMessages = errors
-      .map((error) => error.response?.data?.message || error.message)
-      .join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(
+      `Error importing resource type ${resourceTypeName}`,
+      errors
+    );
   }
   if (0 === imported.length) {
-    throw new Error(
-      `Import error:\n${resourceTypeName} not found in import data!`
+    throw new FrodoError(
+      `Resource type ${resourceTypeName} not found in import data`
     );
   }
   return response;
@@ -635,14 +682,11 @@ export async function importFirstResourceType({
     }
     break;
   }
-  if (errors.length) {
-    const errorMessages = errors
-      .map((error) => error.response?.data?.message || error.message)
-      .join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing first resource type`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo resource types found in import data!`);
+    throw new FrodoError(`No resource types found in import data!`);
   }
   return response;
 }
@@ -683,14 +727,11 @@ export async function importResourceTypes({
       errors.push(error);
     }
   }
-  if (errors.length) {
-    const errorMessages = errors
-      .map((error) => error.response?.data?.message || error.message)
-      .join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing resource types`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo resource types found in import data!`);
+    throw new FrodoError(`No resource types found in import data!`);
   }
   return response;
 }
@@ -704,12 +745,22 @@ export async function createResourceType({
   resourceTypeUuid?: string;
   state: State;
 }): Promise<ResourceTypeSkeleton> {
-  if (resourceTypeUuid)
-    return _putResourceType({
-      resourceTypeUuid,
-      resourceTypeData,
-      failIfExists: true,
-      state,
-    });
-  return _createResourceType({ resourceTypeData, state });
+  try {
+    if (resourceTypeUuid)
+      return _putResourceType({
+        resourceTypeUuid,
+        resourceTypeData,
+        failIfExists: true,
+        state,
+      });
+    const response = await _createResourceType({ resourceTypeData, state });
+    return response;
+  } catch (error) {
+    throw new FrodoError(
+      `Error creating resource type${
+        resourceTypeUuid ? ' ' + resourceTypeUuid : ''
+      }`,
+      error
+    );
+  }
 }

@@ -1,6 +1,7 @@
-import { IdObjectSkeletonInterface } from '../api/ApiTypes';
+import { IdObjectSkeletonInterface, PagedResult } from '../api/ApiTypes';
 import {
   createManagedObject as _createManagedObject,
+  DEFAULT_PAGE_SIZE,
   deleteManagedObject as _deleteManagedObject,
   getManagedObject as _getManagedObject,
   type ManagedObjectPatchOperationInterface,
@@ -11,6 +12,7 @@ import {
 } from '../api/ManagedObjectApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
+import { FrodoError } from './FrodoError';
 
 export type ManagedObject = {
   /**
@@ -73,6 +75,22 @@ export type ManagedObject = {
     rev?: string
   ): Promise<IdObjectSkeletonInterface>;
   /**
+   * Partially update multiple managed object through a collection of patch operations.
+   * @param {string} type managed object type, e.g. alpha_user or user
+   * @param {string} filter CREST search filter
+   * @param {ManagedObjectPatchOperationInterface[]} operations collection of patch operations to perform on the object
+   * @param {string} rev managed object revision
+   * @param {number} pageSize page size
+   * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface
+   */
+  updateManagedObjectsProperties(
+    type: string,
+    filter: string,
+    operations: ManagedObjectPatchOperationInterface[],
+    rev?: string,
+    pageSize?: number
+  ): Promise<IdObjectSkeletonInterface[]>;
+  /**
    * Delete managed object
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} id managed object id
@@ -83,6 +101,13 @@ export type ManagedObject = {
     id: string
   ): Promise<IdObjectSkeletonInterface>;
   /**
+   * Delete managed objects by filter
+   * @param {string} type managed object type, e.g. alpha_user or user
+   * @param {string} filter filter
+   * @returns {Promise<number>} a promise that resolves the number of deleted objects
+   */
+  deleteManagedObjects(type: string, filter: string): Promise<number>;
+  /**
    * Query managed objects
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} filter CREST search filter
@@ -92,7 +117,8 @@ export type ManagedObject = {
   queryManagedObjects(
     type: string,
     filter?: string,
-    fields?: string[]
+    fields?: string[],
+    pageSize?: number
   ): Promise<IdObjectSkeletonInterface[]>;
   /**
    * Resolve a managed object's uuid to a human readable username
@@ -159,18 +185,38 @@ export default (state: State): ManagedObject => {
         state,
       });
     },
+    async updateManagedObjectsProperties(
+      type: string,
+      filter: string,
+      operations: ManagedObjectPatchOperationInterface[],
+      rev?: string,
+      pageSize: number = DEFAULT_PAGE_SIZE
+    ): Promise<IdObjectSkeletonInterface[]> {
+      return updateManagedObjectsProperties({
+        type,
+        filter,
+        operations,
+        rev,
+        pageSize,
+        state,
+      });
+    },
     async deleteManagedObject(
       type: string,
       id: string
     ): Promise<IdObjectSkeletonInterface> {
       return deleteManagedObject({ type, id, state });
     },
+    async deleteManagedObjects(type: string, filter: string): Promise<number> {
+      return deleteManagedObjects({ type, filter, state });
+    },
     async queryManagedObjects(
       type: string,
       filter: string = undefined,
-      fields: string[] = []
+      fields: string[] = [],
+      pageSize: number = DEFAULT_PAGE_SIZE
     ): Promise<IdObjectSkeletonInterface[]> {
-      return queryManagedObjects({ type, filter, fields, state });
+      return queryManagedObjects({ type, filter, fields, pageSize, state });
     },
     async resolveUserName(type: string, id: string) {
       return resolveUserName({ type, id, state });
@@ -195,9 +241,16 @@ export async function createManagedObject({
   moData: IdObjectSkeletonInterface;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  if (id)
-    return _putManagedObject({ type, id, moData, failIfExists: true, state });
-  return _createManagedObject({ moType: type, moData, state });
+  try {
+    if (id)
+      return _putManagedObject({ type, id, moData, failIfExists: true, state });
+    return _createManagedObject({ moType: type, moData, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error creating managed ${type} object${id ? ' (' + id + ')' : ''}`,
+      error
+    );
+  }
 }
 
 export async function readManagedObject({
@@ -211,7 +264,11 @@ export async function readManagedObject({
   fields: string[];
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _getManagedObject({ type, id, fields, state });
+  try {
+    return _getManagedObject({ type, id, fields, state });
+  } catch (error) {
+    throw new FrodoError(`Error reading managed ${type} object`, error);
+  }
 }
 
 export async function readManagedObjects({
@@ -223,25 +280,29 @@ export async function readManagedObjects({
   fields: string[];
   state: State;
 }): Promise<IdObjectSkeletonInterface[]> {
-  let managedObjects: IdObjectSkeletonInterface[] = [];
-  let result = {
-    result: [],
-    resultCount: 0,
-    pagedResultsCookie: null,
-    totalPagedResultsPolicy: 'NONE',
-    totalPagedResults: -1,
-    remainingPagedResults: -1,
-  };
-  do {
-    result = await queryAllManagedObjectsByType({
-      type,
-      fields,
-      pageCookie: result.pagedResultsCookie,
-      state,
-    });
-    managedObjects = managedObjects.concat(result.result);
-  } while (result.pagedResultsCookie);
-  return managedObjects;
+  try {
+    let managedObjects: IdObjectSkeletonInterface[] = [];
+    let result = {
+      result: [],
+      resultCount: 0,
+      pagedResultsCookie: null,
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    };
+    do {
+      result = await queryAllManagedObjectsByType({
+        type,
+        fields,
+        pageCookie: result.pagedResultsCookie,
+        state,
+      });
+      managedObjects = managedObjects.concat(result.result);
+    } while (result.pagedResultsCookie);
+    return managedObjects;
+  } catch (error) {
+    throw new FrodoError(`Error reading managed ${type} objects`, error);
+  }
 }
 
 export async function updateManagedObject({
@@ -255,7 +316,14 @@ export async function updateManagedObject({
   moData: IdObjectSkeletonInterface;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _putManagedObject({ type, id, moData, state });
+  try {
+    return _putManagedObject({ type, id, moData, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error updating managed ${type} object (${id})`,
+      error
+    );
+  }
 }
 
 export async function updateManagedObjectProperties({
@@ -271,7 +339,77 @@ export async function updateManagedObjectProperties({
   rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _patchManagedObject({ type, id, operations, rev, state });
+  try {
+    return _patchManagedObject({ type, id, operations, rev, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error updating managed ${type} object properties (${id})`,
+      error
+    );
+  }
+}
+
+export async function updateManagedObjectsProperties({
+  type,
+  filter,
+  operations,
+  rev = null,
+  pageSize = DEFAULT_PAGE_SIZE,
+  state,
+}: {
+  type: string;
+  filter: string;
+  operations: ManagedObjectPatchOperationInterface[];
+  rev?: string;
+  pageSize?: number;
+  state: State;
+}): Promise<IdObjectSkeletonInterface[]> {
+  const result: IdObjectSkeletonInterface[] = [];
+  const errors = [];
+  let page: PagedResult<IdObjectSkeletonInterface> = {
+    result: [],
+    resultCount: 0,
+    pagedResultsCookie: null,
+    totalPagedResultsPolicy: 'NONE',
+    totalPagedResults: -1,
+    remainingPagedResults: -1,
+  };
+  do {
+    try {
+      page = await _queryManagedObjects({
+        type,
+        filter,
+        fields: [],
+        pageSize,
+        pageCookie: page.pagedResultsCookie,
+        state,
+      });
+      for (const obj of page.result) {
+        try {
+          result.push(
+            await _patchManagedObject({
+              type,
+              id: obj._id,
+              operations,
+              rev,
+              state,
+            })
+          );
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+    } catch (error) {
+      errors.push(error);
+    }
+  } while (page.pagedResultsCookie);
+  if (errors.length > 0) {
+    throw new FrodoError(
+      `Error patching "${type}" objects matching filter "${filter}"`,
+      errors
+    );
+  }
+  return result;
 }
 
 export async function deleteManagedObject({
@@ -283,26 +421,105 @@ export async function deleteManagedObject({
   id: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return _deleteManagedObject({ type, id, state });
+  try {
+    return _deleteManagedObject({ type, id, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error deleting managed ${type} object (${id})`,
+      error
+    );
+  }
+}
+
+export async function deleteManagedObjects({
+  type,
+  filter,
+  state,
+}: {
+  type: string;
+  filter: string;
+  state: State;
+}): Promise<number> {
+  let count = 0;
+  const errors = [];
+  let result: PagedResult<IdObjectSkeletonInterface> = {
+    result: [],
+    resultCount: 0,
+    pagedResultsCookie: null,
+    totalPagedResultsPolicy: 'NONE',
+    totalPagedResults: -1,
+    remainingPagedResults: -1,
+  };
+  do {
+    try {
+      result = await _queryManagedObjects({
+        type,
+        filter,
+        fields: ['_id'],
+        pageCookie: result.pagedResultsCookie,
+        state,
+      });
+      for (const obj of result.result) {
+        await deleteManagedObject({ type, id: obj._id, state });
+        count++;
+      }
+    } catch (error) {
+      errors.push(error);
+    }
+  } while (result.pagedResultsCookie);
+  if (errors.length > 0) {
+    throw new FrodoError(
+      `Error deleting "${type}" objects matching filter "${filter}". Successfully deleted ${count} objects.`,
+      errors
+    );
+  }
+  return count;
 }
 
 export async function queryManagedObjects({
   type,
   filter = 'true',
   fields = ['*'],
+  pageSize = DEFAULT_PAGE_SIZE,
   state,
 }: {
   type: string;
   filter?: string;
   fields?: string[];
+  pageSize?: number;
   state: State;
 }): Promise<IdObjectSkeletonInterface[]> {
-  const { result } = await _queryManagedObjects({
-    type,
-    filter,
-    fields,
-    state,
-  });
+  const result: IdObjectSkeletonInterface[] = [];
+  const errors = [];
+  let page: PagedResult<IdObjectSkeletonInterface> = {
+    result: [],
+    resultCount: 0,
+    pagedResultsCookie: null,
+    totalPagedResultsPolicy: 'NONE',
+    totalPagedResults: -1,
+    remainingPagedResults: -1,
+  };
+  do {
+    try {
+      page = await _queryManagedObjects({
+        type,
+        filter,
+        fields,
+        pageSize,
+        pageCookie: page.pagedResultsCookie,
+        state,
+      });
+      result.push(...page.result);
+    } catch (error) {
+      errors.push(error);
+    }
+  } while (page.pagedResultsCookie);
+  if (errors.length > 0) {
+    throw new FrodoError(
+      `Error querying "${type}" objects matching filter "${filter}"`,
+      errors
+    );
+  }
   return result;
 }
 

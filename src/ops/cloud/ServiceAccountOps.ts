@@ -3,6 +3,7 @@ import {
   createManagedObject,
   getManagedObject,
 } from '../../api/ManagedObjectApi';
+import { FrodoError } from '../FrodoError';
 import { State } from '../../shared/State';
 import { debugMessage } from '../../utils/Console';
 import { JwksInterface } from '../JoseOps';
@@ -26,7 +27,7 @@ export type ServiceAccount = {
   createServiceAccount(
     name: string,
     description: string,
-    accountStatus: 'Active' | 'Inactive',
+    accountStatus: 'active' | 'inactive',
     scopes: string[],
     jwks: JwksInterface
   ): Promise<IdObjectSkeletonInterface>;
@@ -60,7 +61,7 @@ export default (state: State): ServiceAccount => {
     async createServiceAccount(
       name: string,
       description: string,
-      accountStatus: 'Active' | 'Inactive',
+      accountStatus: 'active' | 'inactive',
       scopes: string[],
       jwks: JwksInterface
     ): Promise<IdObjectSkeletonInterface> {
@@ -90,7 +91,7 @@ const moType = 'svcacct';
 export type ServiceAccountType = IdObjectSkeletonInterface & {
   name: string;
   description: string;
-  accountStatus: 'Active' | 'Inactive';
+  accountStatus: 'active' | 'inactive';
   scopes: string[];
   jwks: string;
 };
@@ -123,7 +124,7 @@ export async function isServiceAccountsFeatureAvailable({
  * Create service account
  * @param {string} name Human-readable name of service account
  * @param {string} description Description of service account
- * @param {'Active' | 'Inactive'} accountStatus Service account status
+ * @param {'active' | 'inactive'} accountStatus Service account status
  * @param {string[]} scopes Scopes.
  * @param {JwksInterface} jwks Java Web Key Set
  * @param {State} state library state
@@ -139,33 +140,41 @@ export async function createServiceAccount({
 }: {
   name: string;
   description: string;
-  accountStatus: 'Active' | 'Inactive';
+  accountStatus: 'active' | 'inactive';
   scopes: string[];
   jwks: JwksInterface;
   state: State;
 }): Promise<ServiceAccountType> {
-  debugMessage({
-    message: `ServiceAccountOps.createServiceAccount: start`,
-    state,
-  });
-  const payload: ServiceAccountType = {
-    name,
-    description,
-    accountStatus,
-    scopes,
-    jwks: JSON.stringify(jwks),
-  };
-  debugMessage({
-    message: `ServiceAccountOps: createServiceAccount: payload:`,
-    state,
-  });
-  debugMessage({ message: payload, state });
-  const result = await createManagedObject({ moType, moData: payload, state });
-  debugMessage({
-    message: `ServiceAccountOps.createServiceAccount: end`,
-    state,
-  });
-  return result as ServiceAccountType;
+  try {
+    debugMessage({
+      message: `ServiceAccountOps.createServiceAccount: start`,
+      state,
+    });
+    const payload: ServiceAccountType = {
+      name,
+      description,
+      accountStatus,
+      scopes,
+      jwks: JSON.stringify(jwks),
+    };
+    debugMessage({
+      message: `ServiceAccountOps: createServiceAccount: payload:`,
+      state,
+    });
+    debugMessage({ message: payload, state });
+    const result = await createManagedObject({
+      moType,
+      moData: payload,
+      state,
+    });
+    debugMessage({
+      message: `ServiceAccountOps.createServiceAccount: end`,
+      state,
+    });
+    return result as ServiceAccountType;
+  } catch (error) {
+    throw new FrodoError(`Error creating service account ${name}`, error);
+  }
 }
 
 /**
@@ -181,20 +190,27 @@ export async function getServiceAccount({
   serviceAccountId: string;
   state: State;
 }) {
-  debugMessage({
-    message: `ServiceAccountOps.getServiceAccount: start`,
-    state,
-  });
-  const serviceAccount = await getManagedObject({
-    type: moType,
-    id: serviceAccountId,
-    fields: ['*'],
-    state,
-  });
-  debugMessage({ message: serviceAccount, state });
-  debugMessage({
-    message: `ServiceAccountOps.getServiceAccount: end`,
-    state,
-  });
-  return serviceAccount as ServiceAccountType;
+  try {
+    debugMessage({
+      message: `ServiceAccountOps.getServiceAccount: start`,
+      state,
+    });
+    const serviceAccount = await getManagedObject({
+      type: moType,
+      id: serviceAccountId,
+      fields: ['*'],
+      state,
+    });
+    debugMessage({ message: serviceAccount, state });
+    debugMessage({
+      message: `ServiceAccountOps.getServiceAccount: end`,
+      state,
+    });
+    return serviceAccount as ServiceAccountType;
+  } catch (error) {
+    throw new FrodoError(
+      `Error getting service account ${serviceAccountId}`,
+      error
+    );
+  }
 }

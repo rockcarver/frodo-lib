@@ -11,6 +11,7 @@ import {
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
+import { FrodoError } from './FrodoError';
 import { ExportMetaData } from './OpsTypes';
 
 export type ThemeSkeleton = IdObjectSkeletonInterface & {
@@ -379,9 +380,13 @@ export async function readThemes({
   realm?: string;
   state: State;
 }): Promise<ThemeSkeleton[]> {
-  realm = realm ? realm : getCurrentRealmName(state);
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
-  return getRealmThemes({ themes, realm });
+  try {
+    realm = realm ? realm : getCurrentRealmName(state);
+    const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+    return getRealmThemes({ themes, realm });
+  } catch (error) {
+    throw new FrodoError(`Error reading themes`, error);
+  }
 }
 
 /**
@@ -399,20 +404,26 @@ export async function readTheme({
   realm?: string;
   state: State;
 }): Promise<ThemeSkeleton> {
-  realm ? realm : getCurrentRealmName(state);
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
-  const found = getRealmThemes({ themes, realm }).filter(
-    (theme) => theme._id === themeId
-  );
-  if (found.length === 1) {
-    return found[0];
-  }
-  if (found.length > 1) {
-    throw new Error(
-      `Multiple themes with id '${themeId}' found in realm '${realm}'!`
+  try {
+    realm ? realm : getCurrentRealmName(state);
+    const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+    const found = getRealmThemes({ themes, realm }).filter(
+      (theme) => theme._id === themeId
     );
+    if (found.length === 1) {
+      return found[0];
+    }
+    if (found.length > 1) {
+      throw new FrodoError(
+        `Multiple themes with id '${themeId}' found in realm '${realm}'!`
+      );
+    }
+    throw new FrodoError(
+      `Theme with id '${themeId}' not found in realm '${realm}'!`
+    );
+  } catch (error) {
+    throw new FrodoError(`Error reading theme ${themeId}`, error);
   }
-  throw new Error(`Theme with id '${themeId}' not found in realm '${realm}'!`);
 }
 
 /**
@@ -430,20 +441,24 @@ export async function readThemeByName({
   realm?: string;
   state: State;
 }): Promise<ThemeSkeleton> {
-  realm ? realm : getCurrentRealmName(state);
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
-  const found = getRealmThemes({ themes, realm }).filter(
-    (theme) => theme.name === themeName
-  );
-  if (found.length === 1) {
-    return found[0];
-  }
-  if (found.length > 1) {
-    throw new Error(
-      `Multiple themes with the name '${themeName}' found in realm '${realm}'!`
+  try {
+    realm ? realm : getCurrentRealmName(state);
+    const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+    const found = getRealmThemes({ themes, realm }).filter(
+      (theme) => theme.name === themeName
     );
+    if (found.length === 1) {
+      return found[0];
+    }
+    if (found.length > 1) {
+      throw new Error(
+        `Multiple themes with the name '${themeName}' found in realm '${realm}'!`
+      );
+    }
+    throw new Error(`Theme '${themeName}' not found in realm '${realm}'!`);
+  } catch (error) {
+    throw new FrodoError(`Error reading theme ${themeName}`, error);
   }
-  throw new Error(`Theme '${themeName}' not found in realm '${realm}'!`);
 }
 
 /**
@@ -455,30 +470,41 @@ export async function exportThemes({
 }: {
   state: State;
 }): Promise<ThemeExportInterface> {
-  debugMessage({ message: `ThemeOps.exportThemes: start`, state });
-  const exportData = createThemeExportTemplate({ state });
-  const themes = await readThemes({ state });
-  const indicatorId = createProgressIndicator({
-    total: themes.length,
-    message: 'Exporting themes...',
-    state,
-  });
-  for (const theme of themes) {
-    if (!theme._id) theme._id = uuidv4();
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting theme ${theme.name}`,
+  let indicatorId: string;
+  try {
+    debugMessage({ message: `ThemeOps.exportThemes: start`, state });
+    const exportData = createThemeExportTemplate({ state });
+    const themes = await readThemes({ state });
+    indicatorId = createProgressIndicator({
+      total: themes.length,
+      message: 'Exporting themes...',
       state,
     });
-    exportData.theme[theme._id] = theme;
+    for (const theme of themes) {
+      if (!theme._id) theme._id = uuidv4();
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting theme ${theme.name}`,
+        state,
+      });
+      exportData.theme[theme._id] = theme;
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${themes.length} themes.`,
+      state,
+    });
+    debugMessage({ message: `ThemeOps.exportThemes: end`, state });
+    return exportData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting themes.`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(`Error reading themes`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Exported ${themes.length} themes.`,
-    state,
-  });
-  debugMessage({ message: `ThemeOps.exportThemes: end`, state });
-  return exportData;
 }
 
 /**
@@ -502,13 +528,17 @@ export async function createTheme({
   try {
     await readTheme({ themeId, realm, state });
   } catch (error) {
-    const result = await updateTheme({
-      themeId,
-      themeData,
-      realm,
-      state,
-    });
-    return result;
+    try {
+      const result = await updateTheme({
+        themeId,
+        themeData,
+        realm,
+        state,
+      });
+      return result;
+    } catch (error) {
+      throw new FrodoError(`Error creating theme ${themeId}`, error);
+    }
   }
 }
 
@@ -530,40 +560,46 @@ export async function updateTheme({
   realm?: string;
   state: State;
 }): Promise<ThemeSkeleton> {
-  realm ? realm : getCurrentRealmName(state);
-  const data = themeData;
-  data._id = themeId;
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
-  let isNew = true;
-  const realmThemes = getRealmThemes({ themes, realm }).map((theme) => {
-    if (theme._id === themeId) {
-      isNew = false;
-      return data;
+  try {
+    realm ? realm : getCurrentRealmName(state);
+    const data = themeData;
+    data._id = themeId;
+    const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+    let isNew = true;
+    const realmThemes = getRealmThemes({ themes, realm }).map((theme) => {
+      if (theme._id === themeId) {
+        isNew = false;
+        return data;
+      }
+      if (data.isDefault) theme.isDefault = false;
+      return theme;
+    });
+    if (isNew) {
+      realmThemes.push(data);
     }
-    if (data.isDefault) theme.isDefault = false;
-    return theme;
-  });
-  if (isNew) {
-    realmThemes.push(data);
-  }
-  themes.realm[realm] = realmThemes;
-  const found = getRealmThemes({
-    themes: await putConfigEntity({
-      entityId: THEMEREALM_ID,
-      entityData: themes,
-      state,
-    }),
-    realm,
-  }).filter((theme) => theme._id === themeId);
-  if (found.length === 1) {
-    return found[0];
-  }
-  if (found.length > 1) {
-    throw new Error(
-      `Multiple themes with id '${themeId}' found in realm '${realm}'!`
+    themes.realm[realm] = realmThemes;
+    const found = getRealmThemes({
+      themes: await putConfigEntity({
+        entityId: THEMEREALM_ID,
+        entityData: themes,
+        state,
+      }),
+      realm,
+    }).filter((theme) => theme._id === themeId);
+    if (found.length === 1) {
+      return found[0];
+    }
+    if (found.length > 1) {
+      throw new FrodoError(
+        `Multiple themes with id '${themeId}' found in realm '${realm}'!`
+      );
+    }
+    throw new FrodoError(
+      `Theme with id '${themeId}' not saved in realm '${realm}'!`
     );
+  } catch (error) {
+    throw new FrodoError(`Error updating theme ${themeId}`, error);
   }
-  throw new Error(`Theme with id '${themeId}' not saved in realm '${realm}'!`);
 }
 
 /**
@@ -584,40 +620,44 @@ export async function updateThemeByName({
   realm?: string;
   state: State;
 }): Promise<ThemeSkeleton> {
-  realm ? realm : getCurrentRealmName(state);
-  const data = themeData;
-  data.name = themeName;
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
-  let isNew = true;
-  const realmThemes = getRealmThemes({ themes, realm }).map((theme) => {
-    if (theme.name === themeName) {
-      isNew = false;
-      return data;
+  try {
+    realm ? realm : getCurrentRealmName(state);
+    const data = themeData;
+    data.name = themeName;
+    const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+    let isNew = true;
+    const realmThemes = getRealmThemes({ themes, realm }).map((theme) => {
+      if (theme.name === themeName) {
+        isNew = false;
+        return data;
+      }
+      if (data.isDefault) theme.isDefault = false;
+      return theme;
+    });
+    if (isNew) {
+      realmThemes.push(data);
     }
-    if (data.isDefault) theme.isDefault = false;
-    return theme;
-  });
-  if (isNew) {
-    realmThemes.push(data);
+    themes['realm'][realm] = realmThemes;
+    const found = getRealmThemes({
+      themes: await putConfigEntity({
+        entityId: THEMEREALM_ID,
+        entityData: themes,
+        state,
+      }),
+      realm,
+    }).filter((theme) => theme.name === themeName);
+    if (found.length === 1) {
+      return found[0];
+    }
+    if (found.length > 1) {
+      throw new FrodoError(
+        `Multiple themes '${themeName}' found in realm '${realm}'!`
+      );
+    }
+    throw new FrodoError(`Theme '${themeName}' not saved in realm '${realm}'!`);
+  } catch (error) {
+    throw new FrodoError(`Error updating theme ${themeName}`, error);
   }
-  themes['realm'][realm] = realmThemes;
-  const found = getRealmThemes({
-    themes: await putConfigEntity({
-      entityId: THEMEREALM_ID,
-      entityData: themes,
-      state,
-    }),
-    realm,
-  }).filter((theme) => theme.name === themeName);
-  if (found.length === 1) {
-    return found[0];
-  }
-  if (found.length > 1) {
-    throw new Error(
-      `Multiple themes '${themeName}' found in realm '${realm}'!`
-    );
-  }
-  throw new Error(`Theme '${themeName}' not saved in realm '${realm}'!`);
 }
 
 /**
@@ -635,63 +675,67 @@ export async function updateThemes({
   realm?: string;
   state: State;
 }): Promise<Record<string, ThemeSkeleton>> {
-  debugMessage({ message: `ThemeApi.putThemes: start`, state });
-  realm = realm ? realm : getCurrentRealmName(state);
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
-  const allThemeIDs = Object.keys(themeMap);
-  const existingThemeIDs = [];
-  let defaultThemeId = null;
-  // update existing themes
-  let realmThemes = getRealmThemes({ themes, realm }).map((theme) => {
-    if (themeMap[theme._id]) {
-      debugMessage({
-        message: `Update theme: ${theme._id} - ${theme.name}`,
-        state,
-      });
-      existingThemeIDs.push(theme._id);
-      // remember the id of the last default theme
-      if (themeMap[theme._id].isDefault) defaultThemeId = theme._id;
-      return themeMap[theme._id];
-    }
-    return theme;
-  });
-  const newThemeIDs = allThemeIDs.filter(
-    (id) => !existingThemeIDs.includes(id)
-  );
-  // add new themes
-  newThemeIDs.forEach((themeId) => {
-    debugMessage({
-      message: `Add theme: ${themeMap[themeId]._id} - ${themeMap[themeId].name}`,
-      state,
-    });
-    // remember the id of the last default theme
-    if (themeMap[themeId].isDefault) defaultThemeId = themeId;
-    realmThemes.push(themeMap[themeId]);
-  });
-  // if we imported a default theme, flag all the other themes as not default
-  if (defaultThemeId) {
-    realmThemes = realmThemes.map((theme) => {
-      theme.isDefault = theme._id === defaultThemeId;
+  try {
+    debugMessage({ message: `ThemeApi.putThemes: start`, state });
+    realm = realm ? realm : getCurrentRealmName(state);
+    const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+    const allThemeIDs = Object.keys(themeMap);
+    const existingThemeIDs = [];
+    let defaultThemeId = null;
+    // update existing themes
+    let realmThemes = getRealmThemes({ themes, realm }).map((theme) => {
+      if (themeMap[theme._id]) {
+        debugMessage({
+          message: `Update theme: ${theme._id} - ${theme.name}`,
+          state,
+        });
+        existingThemeIDs.push(theme._id);
+        // remember the id of the last default theme
+        if (themeMap[theme._id].isDefault) defaultThemeId = theme._id;
+        return themeMap[theme._id];
+      }
       return theme;
     });
-  }
-  themes.realm[realm] = realmThemes;
-  const updatedThemes: unknown = new Map(
-    getRealmThemes({
-      themes: await putConfigEntity({
-        entityId: THEMEREALM_ID,
-        entityData: themes,
+    const newThemeIDs = allThemeIDs.filter(
+      (id) => !existingThemeIDs.includes(id)
+    );
+    // add new themes
+    newThemeIDs.forEach((themeId) => {
+      debugMessage({
+        message: `Add theme: ${themeMap[themeId]._id} - ${themeMap[themeId].name}`,
         state,
-      }),
-      realm,
-    }).map((theme) => [theme._id, theme])
-  );
-  debugMessage({
-    message: updatedThemes as Record<string, ThemeSkeleton>,
-    state,
-  });
-  debugMessage({ message: `ThemeApi.putThemes: finished`, state });
-  return updatedThemes as Record<string, ThemeSkeleton>;
+      });
+      // remember the id of the last default theme
+      if (themeMap[themeId].isDefault) defaultThemeId = themeId;
+      realmThemes.push(themeMap[themeId]);
+    });
+    // if we imported a default theme, flag all the other themes as not default
+    if (defaultThemeId) {
+      realmThemes = realmThemes.map((theme) => {
+        theme.isDefault = theme._id === defaultThemeId;
+        return theme;
+      });
+    }
+    themes.realm[realm] = realmThemes;
+    const updatedThemes: unknown = new Map(
+      getRealmThemes({
+        themes: await putConfigEntity({
+          entityId: THEMEREALM_ID,
+          entityData: themes,
+          state,
+        }),
+        realm,
+      }).map((theme) => [theme._id, theme])
+    );
+    debugMessage({
+      message: updatedThemes as Record<string, ThemeSkeleton>,
+      state,
+    });
+    debugMessage({ message: `ThemeApi.putThemes: finished`, state });
+    return updatedThemes as Record<string, ThemeSkeleton>;
+  } catch (error) {
+    throw new FrodoError(`Error updating themes`, error);
+  }
 }
 
 /**
@@ -709,15 +753,19 @@ export async function importThemes({
   realm?: string;
   state: State;
 }): Promise<ThemeSkeleton[]> {
-  debugMessage({ message: `ThemeOps.importThemes: start`, state });
-  const map = (await updateThemes({
-    themeMap: importData.theme,
-    realm,
-    state,
-  })) as unknown as Map<string, ThemeSkeleton>;
-  const response = Array.from(map.values());
-  debugMessage({ message: `ThemeOps.importThemes: end`, state });
-  return response;
+  try {
+    debugMessage({ message: `ThemeOps.importThemes: start`, state });
+    const map = (await updateThemes({
+      themeMap: importData.theme,
+      realm,
+      state,
+    })) as unknown as Map<string, ThemeSkeleton>;
+    const response = Array.from(map.values());
+    debugMessage({ message: `ThemeOps.importThemes: end`, state });
+    return response;
+  } catch (error) {
+    throw new FrodoError(`Error importing themes`, error);
+  }
 }
 
 /**
@@ -735,36 +783,40 @@ export async function deleteTheme({
   realm?: string;
   state: State;
 }): Promise<ThemeSkeleton> {
-  realm ? realm : getCurrentRealmName(state);
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
-  const realmThemes = getRealmThemes({ themes, realm });
-  const deletedThemes: ThemeSkeleton[] = [];
-  const finalThemes = realmThemes.filter((theme) => {
-    if (theme._id !== themeId) {
-      return true;
+  try {
+    realm ? realm : getCurrentRealmName(state);
+    const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+    const realmThemes = getRealmThemes({ themes, realm });
+    const deletedThemes: ThemeSkeleton[] = [];
+    const finalThemes = realmThemes.filter((theme) => {
+      if (theme._id !== themeId) {
+        return true;
+      }
+      deletedThemes.push(theme);
+      return false;
+    });
+    if (realmThemes.length === finalThemes.length)
+      throw new FrodoError(`'${themeId}' not found in realm '${realm}'`);
+    themes.realm[realm] = finalThemes;
+    const undeletedThemes = getRealmThemes({
+      themes: await putConfigEntity({
+        entityId: THEMEREALM_ID,
+        entityData: themes,
+        state,
+      }),
+      realm,
+    }).filter((theme) => deletedThemes.includes(theme));
+    if (deletedThemes.length > 0 && undeletedThemes.length === 0) {
+      return deletedThemes[0];
     }
-    deletedThemes.push(theme);
-    return false;
-  });
-  if (realmThemes.length === finalThemes.length)
-    throw new Error(`'${themeId}' not found in realm '${realm}'`);
-  themes.realm[realm] = finalThemes;
-  const undeletedThemes = getRealmThemes({
-    themes: await putConfigEntity({
-      entityId: THEMEREALM_ID,
-      entityData: themes,
-      state,
-    }),
-    realm,
-  }).filter((theme) => deletedThemes.includes(theme));
-  if (deletedThemes.length > 0 && undeletedThemes.length === 0) {
-    return deletedThemes[0];
+    throw new FrodoError(
+      `Theme with id '${undeletedThemes.map(
+        (theme) => theme._id
+      )}' not deleted from realm '${realm}'!`
+    );
+  } catch (error) {
+    throw new FrodoError(`Error deleting theme ${themeId}`, error);
   }
-  throw new Error(
-    `Theme(s) with id(s) '${undeletedThemes.map(
-      (theme) => theme._id
-    )}' not deleted from realm '${realm}'!`
-  );
 }
 
 /**
@@ -782,36 +834,40 @@ export async function deleteThemeByName({
   realm?: string;
   state: State;
 }): Promise<ThemeSkeleton> {
-  realm ? realm : getCurrentRealmName(state);
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
-  const realmThemes = getRealmThemes({ themes, realm });
-  const deletedThemes: ThemeSkeleton[] = [];
-  const finalThemes = realmThemes.filter((theme) => {
-    if (theme.name !== themeName) {
-      return true;
+  try {
+    realm ? realm : getCurrentRealmName(state);
+    const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+    const realmThemes = getRealmThemes({ themes, realm });
+    const deletedThemes: ThemeSkeleton[] = [];
+    const finalThemes = realmThemes.filter((theme) => {
+      if (theme.name !== themeName) {
+        return true;
+      }
+      deletedThemes.push(theme);
+      return false;
+    });
+    if (realmThemes.length === finalThemes.length)
+      throw new FrodoError(`'${themeName}' not found in realm '${realm}'`);
+    themes.realm[realm] = finalThemes;
+    const undeletedThemes = getRealmThemes({
+      themes: await putConfigEntity({
+        entityId: THEMEREALM_ID,
+        entityData: themes,
+        state,
+      }),
+      realm,
+    }).filter((theme) => deletedThemes.includes(theme));
+    if (deletedThemes.length > 0 && undeletedThemes.length === 0) {
+      return deletedThemes[0];
     }
-    deletedThemes.push(theme);
-    return false;
-  });
-  if (realmThemes.length === finalThemes.length)
-    throw new Error(`'${themeName}' not found in realm '${realm}'`);
-  themes.realm[realm] = finalThemes;
-  const undeletedThemes = getRealmThemes({
-    themes: await putConfigEntity({
-      entityId: THEMEREALM_ID,
-      entityData: themes,
-      state,
-    }),
-    realm,
-  }).filter((theme) => deletedThemes.includes(theme));
-  if (deletedThemes.length > 0 && undeletedThemes.length === 0) {
-    return deletedThemes[0];
+    throw new FrodoError(
+      `Theme(s) with id(s) '${undeletedThemes.map(
+        (theme) => theme._id
+      )}' not deleted from realm '${realm}'!`
+    );
+  } catch (error) {
+    throw new FrodoError(`Error deleting theme ${themeName}`, error);
   }
-  throw new Error(
-    `Theme(s) with id(s) '${undeletedThemes.map(
-      (theme) => theme._id
-    )}' not deleted from realm '${realm}'!`
-  );
 }
 
 /**
@@ -826,16 +882,24 @@ export async function deleteThemes({
   realm?: string;
   state: State;
 }): Promise<ThemeSkeleton[]> {
-  realm ? realm : getCurrentRealmName(state);
-  const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
-  const realmThemes = themes.realm[realm];
-  if (!realmThemes || realmThemes.length == 0)
-    throw new Error(`No theme configuration found for realm '${realm}'`);
-  const deletedThemes: ThemeSkeleton[] = [];
-  for (const theme of realmThemes) {
-    deletedThemes.push(theme);
+  try {
+    realm ? realm : getCurrentRealmName(state);
+    const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
+    const realmThemes = themes.realm[realm];
+    if (!realmThemes || realmThemes.length == 0)
+      throw new FrodoError(`No theme configuration found for realm '${realm}'`);
+    const deletedThemes: ThemeSkeleton[] = [];
+    for (const theme of realmThemes) {
+      deletedThemes.push(theme);
+    }
+    themes.realm[realm] = [];
+    await putConfigEntity({
+      entityId: THEMEREALM_ID,
+      entityData: themes,
+      state,
+    });
+    return deletedThemes;
+  } catch (error) {
+    throw new FrodoError(`Error deleting themes`, error);
   }
-  themes.realm[realm] = [];
-  await putConfigEntity({ entityId: THEMEREALM_ID, entityData: themes, state });
-  return deletedThemes;
 }

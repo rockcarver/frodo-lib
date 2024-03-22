@@ -29,7 +29,7 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { state } from '../index';
+import { FrodoError, state } from '../index';
 import * as ScriptOps from './ScriptOps';
 import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 import { type ScriptSkeleton } from '../../types/api/ScriptApi';
@@ -317,26 +317,26 @@ describe('ScriptOps', () => {
       },
       script: {
         '01e1a3c0-038b-4c16-956a-6c9d89328cff': {
-          _id: "01e1a3c0-038b-4c16-956a-6c9d89328cff",
-          context: "AUTHENTICATION_TREE_DECISION_NODE",
-          createdBy: "null",
+          _id: '01e1a3c0-038b-4c16-956a-6c9d89328cff',
+          context: 'AUTHENTICATION_TREE_DECISION_NODE',
+          createdBy: 'null',
           creationDate: 0,
           default: true,
-          description: "Default global script for a scripted decision node",
-          evaluatorVersion: "1.0",
-          language: "JAVASCRIPT",
-          lastModifiedBy: "null",
+          description: 'Default global script for a scripted decision node',
+          evaluatorVersion: '1.0',
+          language: 'JAVASCRIPT',
+          lastModifiedBy: 'null',
           lastModifiedDate: 0,
-          name: "Authentication Tree Decision Node Script",
+          name: 'Authentication Tree Decision Node Script',
           script: [
-            "/*",
-            "  - Data made available by nodes that have already executed are available in the sharedState variable.",
-            "  - The script should set outcome to either \"true\" or \"false\".",
-            " */",
-            "",
-            "outcome = \"true\";",
-            ""
-          ]
+            '/*',
+            '  - Data made available by nodes that have already executed are available in the sharedState variable.',
+            '  - The script should set outcome to either "true" or "false".',
+            ' */',
+            '',
+            'outcome = "true";',
+            '',
+          ],
         },
       },
     },
@@ -474,14 +474,20 @@ describe('ScriptOps', () => {
     });
 
     test('1: Export all scripts', async () => {
-      const response = await ScriptOps.exportScripts({ includeDefault: false, state });
+      const response = await ScriptOps.exportScripts({
+        includeDefault: false,
+        state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
     });
 
     test('2: Export all scripts, including default scripts', async () => {
-      const response = await ScriptOps.exportScripts({ includeDefault: true, state });
+      const response = await ScriptOps.exportScripts({
+        includeDefault: true,
+        state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -500,7 +506,7 @@ describe('ScriptOps', () => {
         importData: import1.data,
         options: {
           reUuid: false,
-          includeDefault: true
+          includeDefault: true,
         },
         state,
       });
@@ -519,15 +525,19 @@ describe('ScriptOps', () => {
 
     test(`3: Import no scripts when excluding default scripts and only default scripts given`, async () => {
       expect.assertions(1);
-      await expect(ScriptOps.importScripts({
-        scriptName: '',
-        importData: import2.data,
-        options: {
-          reUuid: false,
-          includeDefault: false
-        },
-        state,
-      })).rejects.toThrow("Import error:\nNo scripts found in import data!");
+      try {
+        await ScriptOps.importScripts({
+          scriptName: '',
+          importData: import2.data,
+          options: {
+            reUuid: false,
+            includeDefault: false,
+          },
+          state,
+        });
+      } catch (error) {
+        expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
+      }
     });
   });
 
@@ -538,7 +548,10 @@ describe('ScriptOps', () => {
 
     test(`1: delete script by id`, async () => {
       expect.assertions(1);
-      const outcome = await ScriptOps.deleteScript({scriptId: script1.id, state});
+      const outcome = await ScriptOps.deleteScript({
+        scriptId: script1.id,
+        state,
+      });
       expect(outcome).toBeTruthy();
     });
   });
@@ -550,7 +563,10 @@ describe('ScriptOps', () => {
 
     test(`1: delete script by name`, async () => {
       expect.assertions(1);
-      const outcome = await ScriptOps.deleteScriptByName({scriptName: script2.name, state});
+      const outcome = await ScriptOps.deleteScriptByName({
+        scriptName: script2.name,
+        state,
+      });
       expect(outcome).toBeTruthy();
     });
   });
@@ -563,7 +579,7 @@ describe('ScriptOps', () => {
     //TODO: Generate mock for this test (skip for meantime)
     test.skip(`1: delete all scripts`, async () => {
       expect.assertions(1);
-      const outcome = await ScriptOps.deleteScripts({state});
+      const outcome = await ScriptOps.deleteScripts({ state });
       expect(outcome).toBeTruthy();
     });
   });

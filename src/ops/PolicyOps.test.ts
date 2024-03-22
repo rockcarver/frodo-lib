@@ -35,7 +35,7 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { state } from '../index';
+import { FrodoError, state } from '../index';
 import * as PolicySetApi from '../api/PolicySetApi';
 import * as PoliciesApi from '../api/PoliciesApi';
 import * as ScriptOps from './ScriptOps';
@@ -809,7 +809,7 @@ describe('PolicyOps', () => {
         try {
           await PolicyOps.readPolicy({ policyId: 'DoesNotExist', state });
         } catch (error) {
-          expect(error.response.data).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -913,7 +913,7 @@ describe('PolicyOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -1032,7 +1032,7 @@ describe('PolicyOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -1122,7 +1122,7 @@ describe('PolicyOps', () => {
         try {
           await PolicyOps.deletePolicy({ policyId: 'DoesNotExist', state });
         } catch (error) {
-          expect(error.response.data).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });

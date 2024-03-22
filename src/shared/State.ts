@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 
 import { FeatureInterface } from '../api/cloud/FeatureApi';
 import { UserSessionMetaType } from '../ops/AuthenticateOps';
+import { FrodoError } from '../ops/FrodoError';
 import { JwkRsa } from '../ops/JoseOps';
 import { AccessTokenMetaType } from '../ops/OAuth2OidcOps';
 import {
@@ -131,6 +132,8 @@ export type State = {
     type?: string,
     newline?: boolean
   ) => void;
+  setErrorHandler(handler: (error: Error, message?: string) => void): void;
+  getErrorHandler(): (error: Error, message?: string) => void;
   setVerboseHandler(handler: (message: string | object) => void): void;
   getVerboseHandler(): (message: string | object) => void;
   setVerbose(verbose: boolean): void;
@@ -407,6 +410,13 @@ export default (initialState: StateInterface): State => {
       return globalState.printHandler;
     },
 
+    setErrorHandler(handler: (error: Error, message?: string) => void) {
+      globalState.errorHandler = handler;
+    },
+    getErrorHandler() {
+      return globalState.errorHandler;
+    },
+
     setVerboseHandler(handler: (message: string | object) => void) {
       globalState.verboseHandler = handler;
     },
@@ -491,6 +501,7 @@ export interface StateInterface {
     type?: string,
     newline?: boolean
   ) => void;
+  errorHandler?: (error: Error, message: string) => void;
   verboseHandler?: (message: string | object) => void;
   verbose?: boolean;
   debugHandler?: (message: string | object) => void;
@@ -514,6 +525,42 @@ const globalState: StateInterface = {
       console.dir(message, { depth: 3 });
     } else {
       console.log(message);
+    }
+  },
+  errorHandler: (error: Error, message?: string) => {
+    if (message) process.stderr.write('' + message['brightRed']);
+    switch (error.name) {
+      case 'FrodoError':
+        process.stderr.write(
+          '' + (error as FrodoError).getCombinedMessage()['brightRed']
+        );
+        break;
+
+      case 'AxiosError': {
+        const code = error['code'];
+        const status = error['response'] ? error['response'].status : null;
+        const message = error['response']
+          ? error['response'].data
+            ? error['response'].data.message
+            : null
+          : null;
+        const detail = error['response']
+          ? error['response'].data
+            ? error['response'].data.detail
+            : null
+          : null;
+        let errorMessage = 'Network error';
+        errorMessage += code ? `\n  Code: ${code}` : '';
+        errorMessage += status ? `\n  Status: ${status}` : '';
+        errorMessage += message ? `\n  Message: ${message}` : '';
+        errorMessage += detail ? `\n  Detail: ${detail}` : '';
+        process.stderr.write(errorMessage['brightRed']);
+        break;
+      }
+
+      default:
+        process.stderr.write(error.message['brightRed']);
+        break;
     }
   },
   verboseHandler: (message: string | object) => {

@@ -35,6 +35,14 @@ exports[`VariablesOps exportVariable() 2: Export variable2 without decoding 1`] 
 }
 `;
 
+exports[`VariablesOps exportVariable() 3: Export variable3 (non-existent) 1`] = `
+"Error exporting variable esv-frodo-test-variable-3
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: The variable does not exist"
+`;
+
 exports[`VariablesOps exportVariables() 1: Export all variables 1`] = `
 {
   "meta": Any<Object>,

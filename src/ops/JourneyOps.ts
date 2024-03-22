@@ -68,6 +68,7 @@ import {
   readEmailTemplate,
   updateEmailTemplate,
 } from './EmailTemplateOps';
+import { FrodoError } from './FrodoError';
 import {
   findOrphanedNodes as _findOrphanedNodes,
   isCloudOnlyNode,
@@ -275,15 +276,15 @@ export type Journey = {
   /**
    * Enable a journey
    * @param journeyId journey id/name
-   * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+   * @returns {Promise<TreeSkeleton>} the updated tree/journey object
    */
-  enableJourney(journeyId: string): Promise<boolean>;
+  enableJourney(journeyId: string): Promise<TreeSkeleton>;
   /**
    * Disable a journey
    * @param journeyId journey id/name
-   * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+   * @returns {Promise<TreeSkeleton>} the updated tree/journey object
    */
-  disableJourney(journeyId: string): Promise<boolean>;
+  disableJourney(journeyId: string): Promise<TreeSkeleton>;
 
   // Deprecated
 
@@ -459,10 +460,10 @@ export default (state: State): Journey => {
     async deleteJourneys(options: { deep: boolean; verbose: boolean }) {
       return deleteJourneys({ options, state });
     },
-    async enableJourney(journeyId: string): Promise<boolean> {
+    async enableJourney(journeyId: string): Promise<TreeSkeleton> {
       return enableJourney({ journeyId, state });
     },
-    async disableJourney(journeyId: string): Promise<boolean> {
+    async disableJourney(journeyId: string): Promise<TreeSkeleton> {
       return disableJourney({ journeyId, state });
     },
 
@@ -947,20 +948,16 @@ export async function exportJourney({
           try {
             allSaml2Providers = await readSaml2ProviderStubs({ state });
           } catch (error) {
-            error.message = `Error reading saml2 providers: ${
-              error.response?.data?.message || error.message
-            }`;
-            errors.push(error);
+            errors.push(new FrodoError(`Error reading saml2 providers`, error));
           }
         }
         if (!allCirclesOfTrust) {
           try {
             allCirclesOfTrust = await readCirclesOfTrust({ state });
           } catch (error) {
-            error.message = `Error reading circles of trust: ${
-              error.response?.data?.message || error.message
-            }`;
-            errors.push(error);
+            errors.push(
+              new FrodoError(`Error reading circles of trust`, error)
+            );
           }
         }
         saml2ConfigPromises.push(
@@ -1074,10 +1071,9 @@ export async function exportJourney({
                 });
                 emailTemplatePromises.push(emailTemplate);
               } catch (error) {
-                error.message = `Error reading email template ${
-                  innerNodeObject.emailTemplateName
-                }: ${error.response?.data?.message || error.message}`;
-                errors.push(error);
+                errors.push(
+                  new FrodoError(`Error reading email template`, error)
+                );
               }
             }
           }
@@ -1088,20 +1084,18 @@ export async function exportJourney({
               try {
                 allSaml2Providers = await readSaml2ProviderStubs({ state });
               } catch (error) {
-                error.message = `Error reading saml2 providers: ${
-                  error.response?.data?.message || error.message
-                }`;
-                errors.push(error);
+                errors.push(
+                  new FrodoError(`Error reading saml2 providers`, error)
+                );
               }
             }
             if (!allCirclesOfTrust) {
               try {
                 allCirclesOfTrust = await readCirclesOfTrust({ state });
               } catch (error) {
-                error.message = `Error reading circles of trust: ${
-                  error.response?.data?.message || error.message
-                }`;
-                errors.push(error);
+                errors.push(
+                  new FrodoError(`Error reading circles of trust`, error)
+                );
               }
             }
             saml2ConfigPromises.push(
@@ -1138,14 +1132,11 @@ export async function exportJourney({
             }
           }
         } else if (settledPromise.status === 'rejected') {
-          errors.push(new Error(settledPromise.reason));
+          errors.push(new FrodoError(settledPromise.reason));
         }
       }
     } catch (error) {
-      error.message = `Error reading inner nodes: ${
-        error.response?.data?.message || error.message
-      }`;
-      errors.push(error);
+      errors.push(new FrodoError(`Error reading inner nodes`, error));
     }
 
     // Process email templates
@@ -1177,10 +1168,7 @@ export async function exportJourney({
         }
       }
     } catch (error) {
-      error.message = `Error reading email templates: ${
-        error.response?.data?.message || error.message
-      }`;
-      errors.push(error);
+      errors.push(new FrodoError(`Error reading email templates`, error));
     }
 
     // Process SAML2 providers and circles of trust
@@ -1223,10 +1211,7 @@ export async function exportJourney({
         }
       }
     } catch (error) {
-      error.message = `Error reading saml2 dependencies: ${
-        error.response?.data?.message || error.message
-      }`;
-      errors.push(error);
+      errors.push(new FrodoError(`Error reading saml2 dependencies`, error));
     }
 
     // Process socialIdentityProviders
@@ -1264,10 +1249,9 @@ export async function exportJourney({
         }
       }
     } catch (error) {
-      error.message = `Error reading social identity providers: ${
-        error.response?.data?.message || error.message
-      }`;
-      errors.push(error);
+      errors.push(
+        new FrodoError(`Error reading social identity providers`, error)
+      );
     }
 
     // Process scripts
@@ -1291,10 +1275,7 @@ export async function exportJourney({
         }
       }
     } catch (error) {
-      error.message = `Error reading scripts: ${
-        error.response?.data?.message || error.message
-      }`;
-      errors.push(error);
+      errors.push(new FrodoError(`Error reading scripts`, error));
     }
 
     // Process themes
@@ -1323,10 +1304,7 @@ export async function exportJourney({
           }
         }
       } catch (error) {
-        error.message = `Error reading themes: ${
-          error.response?.data?.message || error.message
-        }`;
-        errors.push(error);
+        errors.push(new FrodoError(`Error reading themes`, error));
       }
     }
     if (verbose)
@@ -1337,14 +1315,10 @@ export async function exportJourney({
         state,
       });
   } catch (error) {
-    error.message = `Error exporting journey ${journeyId}: ${
-      error.response?.data?.message || error.message
-    }`;
     errors.push(error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error exporting journey ${journeyId}`, errors);
   }
   debugMessage({
     message: `JourneyOps.exportJourney: end [journey=${journeyId}]`,
@@ -1369,41 +1343,56 @@ export async function exportJourneys({
   options?: TreeExportOptions;
   state: State;
 }): Promise<MultiTreeExportInterface> {
-  const trees = await readJourneys({ state });
-  const multiTreeExport = createMultiTreeExportTemplate({ state });
-  const indicatorId = createProgressIndicator({
-    total: trees.length,
-    message: 'Exporting journeys...',
-    state,
-  });
-  for (const tree of trees) {
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting journey ${tree._id}`,
+  const errors: Error[] = [];
+  let indicatorId: string;
+  try {
+    const trees = await readJourneys({ state });
+    const multiTreeExport = createMultiTreeExportTemplate({ state });
+    indicatorId = createProgressIndicator({
+      total: trees.length,
+      message: 'Exporting journeys...',
       state,
     });
-    try {
-      const exportData: SingleTreeExportInterface = await exportJourney({
-        journeyId: tree._id,
-        options,
-        state,
-      });
-      delete exportData.meta;
-      multiTreeExport.trees[tree._id] = exportData;
-    } catch (error) {
-      printMessage({
-        message: `Error exporting journey ${tree._id}: ${error}`,
-        type: 'error',
-        state,
-      });
+    for (const tree of trees) {
+      try {
+        updateProgressIndicator({
+          id: indicatorId,
+          message: `Exporting journey ${tree._id}`,
+          state,
+        });
+        const exportData: SingleTreeExportInterface = await exportJourney({
+          journeyId: tree._id,
+          options,
+          state,
+        });
+        delete exportData.meta;
+        multiTreeExport.trees[tree._id] = exportData;
+      } catch (error) {
+        errors.push(error);
+      }
     }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error exporting journeys`, errors);
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${trees.length} journeys.`,
+      state,
+    });
+    return multiTreeExport;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting journeys.`,
+      status: 'fail',
+      state,
+    });
+    // re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error exporting journeys`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Exported ${trees.length} journeys.`,
-    state,
-  });
-  return multiTreeExport;
 }
 
 /**
@@ -1415,9 +1404,13 @@ export async function readJourneys({
 }: {
   state: State;
 }): Promise<TreeSkeleton[]> {
-  const { result } = await getTrees({ state });
-  result.sort((a, b) => a._id.localeCompare(b._id));
-  return result;
+  try {
+    const { result } = await getTrees({ state });
+    result.sort((a, b) => a._id.localeCompare(b._id));
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading journeys`, error);
+  }
 }
 
 /**
@@ -1432,8 +1425,12 @@ export async function readJourney({
   journeyId: string;
   state: State;
 }): Promise<TreeSkeleton> {
-  const response = await getTree({ id: journeyId, state });
-  return response;
+  try {
+    const response = await getTree({ id: journeyId, state });
+    return response;
+  } catch (error) {
+    throw new FrodoError(`Error reading journey ${journeyId}`, error);
+  }
 }
 
 /**
@@ -1454,15 +1451,19 @@ export async function createJourney({
   try {
     await readJourney({ journeyId, state });
   } catch (error) {
-    const result = await putTree({
-      treeId: journeyId,
-      treeData: journeyData,
-      state,
-    });
-    debugMessage({ message: `JourneyOps.createJourney: end`, state });
-    return result;
+    try {
+      const result = await putTree({
+        treeId: journeyId,
+        treeData: journeyData,
+        state,
+      });
+      debugMessage({ message: `JourneyOps.createJourney: end`, state });
+      return result;
+    } catch (error) {
+      throw new FrodoError(`Error creating journey ${journeyId}`, error);
+    }
   }
-  throw new Error(`Journey ${journeyId} already exists!`);
+  throw new FrodoError(`Journey ${journeyId} already exists!`);
 }
 
 /**
@@ -1479,12 +1480,16 @@ export async function updateJourney({
   journeyData: TreeSkeleton;
   state: State;
 }): Promise<TreeSkeleton> {
-  const response = await putTree({
-    treeId: journeyId,
-    treeData: journeyData,
-    state,
-  });
-  return response;
+  try {
+    const response = await putTree({
+      treeId: journeyId,
+      treeData: journeyData,
+      state,
+    });
+    return response;
+  } catch (error) {
+    throw new FrodoError(`Error updating journey ${journeyId}`, error);
+  }
 }
 
 /**
@@ -1506,664 +1511,667 @@ export async function importJourney({
   const errors = [];
   const imported = [];
 
-  const { reUuid, deps } = options;
-  const verbose = state.getVerbose();
-  if (verbose)
-    printMessage({
-      message: `- ${importData.tree._id}\n`,
-      type: 'info',
-      newline: false,
-      state,
-    });
-  let newUuid = '';
-  const uuidMap: { [k: string]: string } = {};
-  const treeId = importData.tree._id;
-
-  // Process scripts
-  if (
-    deps &&
-    importData.scripts &&
-    Object.entries(importData.scripts).length > 0
-  ) {
-    if (verbose)
-      printMessage({ message: '  - Scripts:', newline: false, state });
-    for (const [scriptId, scriptObject] of Object.entries(importData.scripts)) {
-      if (verbose)
-        printMessage({
-          message: `\n    - ${scriptId} (${scriptObject['name']})`,
-          type: 'info',
-          newline: false,
-          state,
-        });
-      // is the script stored as an array of strings or just b64 blob?
-      if (Array.isArray(scriptObject['script'])) {
-        scriptObject['script'] = convertTextArrayToBase64(
-          scriptObject['script']
-        );
-      } else if (!isBase64Encoded(scriptObject['script'])) {
-        scriptObject['script'] = encode(JSON.parse(scriptObject['script']));
-      }
-      try {
-        await updateScript({ scriptId, scriptData: scriptObject, state });
-      } catch (error) {
-        error.message = `Error importing script ${
-          scriptObject['name']
-        } (${scriptId}) in journey ${treeId}: ${
-          error.response?.data?.message || error.message
-        }`;
-        errors.push(error);
-      }
-      if (verbose) printMessage({ message: '', state });
-    }
-  }
-
-  // Process email templates
-  if (
-    deps &&
-    importData.emailTemplates &&
-    Object.entries(importData.emailTemplates).length > 0
-  ) {
+  try {
+    const { reUuid, deps } = options;
+    const verbose = state.getVerbose();
     if (verbose)
       printMessage({
-        message: '\n  - Email templates:',
+        message: `- ${importData.tree._id}\n`,
+        type: 'info',
         newline: false,
         state,
       });
-    for (const [templateId, templateData] of Object.entries(
-      importData.emailTemplates
-    )) {
+    let newUuid = '';
+    const uuidMap: { [k: string]: string } = {};
+    const treeId = importData.tree._id;
+
+    // Process scripts
+    if (
+      deps &&
+      importData.scripts &&
+      Object.entries(importData.scripts).length > 0
+    ) {
       if (verbose)
-        printMessage({
-          message: `\n    - ${templateId}`,
-          type: 'info',
-          newline: false,
-          state,
-        });
-      try {
-        await updateEmailTemplate({ templateId, templateData, state });
-      } catch (error) {
-        error.message = `Error importing email templates: ${
-          error.response?.data?.message || error.message
-        }`;
-        errors.push(error);
+        printMessage({ message: '  - Scripts:', newline: false, state });
+      for (const [scriptId, scriptObject] of Object.entries(
+        importData.scripts
+      )) {
+        if (verbose)
+          printMessage({
+            message: `\n    - ${scriptId} (${scriptObject['name']})`,
+            type: 'info',
+            newline: false,
+            state,
+          });
+        // is the script stored as an array of strings or just b64 blob?
+        if (Array.isArray(scriptObject['script'])) {
+          scriptObject['script'] = convertTextArrayToBase64(
+            scriptObject['script']
+          );
+        } else if (!isBase64Encoded(scriptObject['script'])) {
+          scriptObject['script'] = encode(JSON.parse(scriptObject['script']));
+        }
+        try {
+          await updateScript({ scriptId, scriptData: scriptObject, state });
+        } catch (error) {
+          errors.push(
+            new FrodoError(
+              `Error importing script ${scriptObject['name']} (${scriptId}) in journey ${treeId}`,
+              error
+            )
+          );
+        }
+        if (verbose) printMessage({ message: '', state });
       }
-      if (verbose) printMessage({ message: '', state });
     }
-  }
 
-  // Process themes
-  if (deps && importData.themes && importData.themes.length > 0) {
-    if (verbose)
-      printMessage({ message: '\n  - Themes:', newline: false, state });
-    const themes: Record<string, ThemeSkeleton> = {};
-    for (const theme of importData.themes) {
+    // Process email templates
+    if (
+      deps &&
+      importData.emailTemplates &&
+      Object.entries(importData.emailTemplates).length > 0
+    ) {
       if (verbose)
         printMessage({
-          message: `\n    - ${theme['_id']} (${theme['name']})`,
-          type: 'info',
+          message: '\n  - Email templates:',
           newline: false,
           state,
         });
-      themes[theme['_id']] = theme;
+      for (const [templateId, templateData] of Object.entries(
+        importData.emailTemplates
+      )) {
+        if (verbose)
+          printMessage({
+            message: `\n    - ${templateId}`,
+            type: 'info',
+            newline: false,
+            state,
+          });
+        try {
+          await updateEmailTemplate({ templateId, templateData, state });
+        } catch (error) {
+          errors.push(new FrodoError(`Error importing email templates`, error));
+        }
+        if (verbose) printMessage({ message: '', state });
+      }
     }
-    try {
-      await updateThemes({ themeMap: themes, state });
-    } catch (error) {
-      error.message = `Error importing themes: ${
-        error.response?.data?.message || error.message
-      }`;
-      errors.push(error);
-    }
-  }
 
-  // Process social providers
-  if (
-    deps &&
-    importData.socialIdentityProviders &&
-    Object.entries(importData.socialIdentityProviders).length > 0
-  ) {
-    if (verbose)
-      printMessage({
-        message: '\n  - OAuth2/OIDC (social) identity providers:',
-        newline: false,
-        state,
-      });
-    for (const [providerId, providerData] of Object.entries(
-      importData.socialIdentityProviders
-    )) {
+    // Process themes
+    if (deps && importData.themes && importData.themes.length > 0) {
       if (verbose)
-        printMessage({
-          message: `\n    - ${providerId}`,
-          type: 'info',
-          newline: false,
-          state,
-        });
+        printMessage({ message: '\n  - Themes:', newline: false, state });
+      const themes: Record<string, ThemeSkeleton> = {};
+      for (const theme of importData.themes) {
+        if (verbose)
+          printMessage({
+            message: `\n    - ${theme['_id']} (${theme['name']})`,
+            type: 'info',
+            newline: false,
+            state,
+          });
+        themes[theme['_id']] = theme;
+      }
       try {
-        await putProviderByTypeAndId({
-          type: providerData['_type']['_id'],
-          id: providerId,
-          providerData,
+        await updateThemes({ themeMap: themes, state });
+      } catch (error) {
+        errors.push(new FrodoError(`Error importing themes`, error));
+      }
+    }
+
+    // Process social providers
+    if (
+      deps &&
+      importData.socialIdentityProviders &&
+      Object.entries(importData.socialIdentityProviders).length > 0
+    ) {
+      if (verbose)
+        printMessage({
+          message: '\n  - OAuth2/OIDC (social) identity providers:',
+          newline: false,
           state,
         });
-      } catch (error) {
+      for (const [providerId, providerData] of Object.entries(
+        importData.socialIdentityProviders
+      )) {
+        if (verbose)
+          printMessage({
+            message: `\n    - ${providerId}`,
+            type: 'info',
+            newline: false,
+            state,
+          });
+        try {
+          await putProviderByTypeAndId({
+            type: providerData['_type']['_id'],
+            id: providerId,
+            providerData,
+            state,
+          });
+        } catch (error) {
+          if (
+            error.response?.status === 500 &&
+            error.response?.data?.message ===
+              'Unable to update SMS config: Data validation failed for the attribute, Redirect after form post URL'
+          ) {
+            providerData['redirectAfterFormPostURI'] = '';
+            try {
+              await putProviderByTypeAndId({
+                type: providerData['_type']['_id'],
+                id: providerId,
+                providerData,
+                state,
+              });
+            } catch (importError2) {
+              throw new FrodoError(
+                `Error importing provider ${providerId} in journey ${treeId}`,
+                importError2
+              );
+            }
+          } else {
+            errors.push(
+              new FrodoError(
+                `Error importing provider ${providerId} in journey ${treeId}`,
+                error
+              )
+            );
+          }
+        }
+      }
+    }
+
+    // Process saml providers
+    if (
+      deps &&
+      importData.saml2Entities &&
+      Object.entries(importData.saml2Entities).length > 0
+    ) {
+      if (verbose)
+        printMessage({
+          message: '\n  - SAML2 entity providers:',
+          newline: false,
+          state,
+        });
+      for (const [, providerData] of Object.entries(importData.saml2Entities)) {
+        delete providerData['_rev'];
+        const entityId = providerData['entityId'];
+        const entityLocation = providerData['entityLocation'];
+        if (verbose)
+          printMessage({
+            message: `\n    - ${entityLocation} ${entityId}`,
+            type: 'info',
+            newline: false,
+            state,
+          });
+        let metaData = null;
+        if (entityLocation === 'remote') {
+          if (Array.isArray(providerData['base64EntityXML'])) {
+            metaData = convertTextArrayToBase64Url(
+              providerData['base64EntityXML']
+            );
+          } else {
+            metaData = providerData['base64EntityXML'];
+          }
+        }
+        delete providerData['entityLocation'];
+        delete providerData['base64EntityXML'];
+        // create the provider if it doesn't already exist, or just update it
         if (
-          error.response?.status === 500 &&
-          error.response?.data?.message ===
-            'Unable to update SMS config: Data validation failed for the attribute, Redirect after form post URL'
+          (
+            await queryProviderStubs({
+              filter: `entityId eq '${entityId}'`,
+              fields: ['location'],
+              state,
+            })
+          ).resultCount === 0
         ) {
-          providerData['redirectAfterFormPostURI'] = '';
           try {
-            await putProviderByTypeAndId({
-              type: providerData['_type']['_id'],
-              id: providerId,
+            await createProvider({
+              location: entityLocation,
               providerData,
+              metaData,
               state,
             });
-          } catch (importError2) {
-            printMessage({
-              message: error.response?.data?.message || error,
-              type: 'error',
-              state,
-            });
-            throw new Error(
-              `Error importing provider ${providerId} in journey ${treeId}: ${error}`
+          } catch (error) {
+            errors.push(
+              new FrodoError(`Error creating provider ${entityId}`, error)
             );
           }
         } else {
-          error.message = `\nError importing provider ${providerId} in journey ${treeId}: ${
-            error.response?.data?.message || error.message
-          }`;
-          errors.push(error);
-        }
-      }
-    }
-  }
-
-  // Process saml providers
-  if (
-    deps &&
-    importData.saml2Entities &&
-    Object.entries(importData.saml2Entities).length > 0
-  ) {
-    if (verbose)
-      printMessage({
-        message: '\n  - SAML2 entity providers:',
-        newline: false,
-        state,
-      });
-    for (const [, providerData] of Object.entries(importData.saml2Entities)) {
-      delete providerData['_rev'];
-      const entityId = providerData['entityId'];
-      const entityLocation = providerData['entityLocation'];
-      if (verbose)
-        printMessage({
-          message: `\n    - ${entityLocation} ${entityId}`,
-          type: 'info',
-          newline: false,
-          state,
-        });
-      let metaData = null;
-      if (entityLocation === 'remote') {
-        if (Array.isArray(providerData['base64EntityXML'])) {
-          metaData = convertTextArrayToBase64Url(
-            providerData['base64EntityXML']
-          );
-        } else {
-          metaData = providerData['base64EntityXML'];
-        }
-      }
-      delete providerData['entityLocation'];
-      delete providerData['base64EntityXML'];
-      // create the provider if it doesn't already exist, or just update it
-      if (
-        (
-          await queryProviderStubs({
-            filter: `entityId eq '${entityId}'`,
-            fields: ['location'],
-            state,
-          })
-        ).resultCount === 0
-      ) {
-        try {
-          await createProvider({
-            location: entityLocation,
-            providerData,
-            metaData,
-            state,
-          });
-        } catch (error) {
-          error.message = `Error creating provider ${entityId}: ${
-            error.response?.data?.message || error.message
-          }`;
-          errors.push(error);
-        }
-      } else {
-        try {
-          await updateProvider({
-            location: entityLocation,
-            providerData,
-            state,
-          });
-        } catch (error) {
-          error.message = `Error updating provider ${entityId}: ${
-            error.response?.data?.message || error.message
-          }`;
-          errors.push(error);
-        }
-      }
-    }
-  }
-
-  // Process circles of trust
-  if (
-    deps &&
-    importData.circlesOfTrust &&
-    Object.entries(importData.circlesOfTrust).length > 0
-  ) {
-    if (verbose)
-      printMessage({
-        message: '\n  - SAML2 circles of trust:',
-        newline: false,
-        state,
-      });
-    for (const [cotId, cotData] of Object.entries(importData.circlesOfTrust)) {
-      delete cotData['_rev'];
-      if (verbose)
-        printMessage({
-          message: `\n    - ${cotId}`,
-          type: 'info',
-          newline: false,
-          state,
-        });
-      try {
-        await createCircleOfTrust({ cotData, state });
-      } catch (error) {
-        if (error.response?.status === 409 || error.response?.status === 500) {
           try {
-            await updateCircleOfTrust({ cotId, cotData, state });
-          } catch (updateCotErr) {
-            printMessage({
-              message: error.response?.data?.message || error,
-              type: 'error',
+            await updateProvider({
+              location: entityLocation,
+              providerData,
               state,
             });
-            printMessage({
-              message: updateCotErr.response?.data?.message || updateCotErr,
-              type: 'error',
-              state,
-            });
-            throw new Error(`Error creating/updating circle of trust ${cotId}`);
+          } catch (error) {
+            errors.push(
+              new FrodoError(`Error updating provider ${entityId}`, error)
+            );
           }
-        } else {
-          error.message = `Error creating circle of trust ${cotId}: ${
-            error.response?.data?.message || error.message
-          }`;
-          errors.push(error);
         }
       }
     }
-  }
 
-  // Process inner nodes
-  let innerNodes = {};
-  if (
-    importData.innerNodes &&
-    Object.entries(importData.innerNodes).length > 0
-  ) {
-    innerNodes = importData.innerNodes;
-  }
-  // old export file format
-  else if (
-    importData.innernodes &&
-    Object.entries(importData.innernodes).length > 0
-  ) {
-    innerNodes = importData.innernodes;
-  }
-  if (Object.entries(innerNodes).length > 0) {
-    if (verbose)
-      printMessage({
-        message: '\n  - Inner nodes:',
-        type: 'text',
-        newline: false,
-        state,
-      });
-    for (const [innerNodeId, innerNodeData] of Object.entries(innerNodes)) {
-      delete innerNodeData['_rev'];
-      const nodeType = innerNodeData['_type']['_id'];
-      if (!reUuid) {
-        newUuid = innerNodeId;
-      } else {
-        newUuid = uuidv4();
-        uuidMap[innerNodeId] = newUuid;
-      }
-      innerNodeData['_id'] = newUuid;
-
-      if (verbose)
-        printMessage({
-          message: `\n    - ${newUuid}${reUuid ? '*' : ''} (${nodeType})`,
-          type: 'info',
-          newline: false,
-          state,
-        });
-
-      // If the node has an identityResource config setting
-      // and the identityResource ends in 'user'
-      // and the node's identityResource is the same as the tree's identityResource
-      // change it to the current realm managed user identityResource otherwise leave it alone.
-      if (
-        innerNodeData['identityResource'] &&
-        innerNodeData['identityResource'].endsWith('user') &&
-        innerNodeData['identityResource'] === importData.tree.identityResource
-      ) {
-        innerNodeData['identityResource'] =
-          `managed/${getCurrentRealmManagedUser({
-            state,
-          })}`;
-        if (verbose)
-          printMessage({
-            message: `\n      - identityResource: ${innerNodeData['identityResource']}`,
-            type: 'info',
-            newline: false,
-            state,
-          });
-      }
-      try {
-        await putNode({
-          nodeId: newUuid,
-          nodeType,
-          nodeData: innerNodeData as NodeSkeleton,
-          state,
-        });
-      } catch (nodeImportError) {
-        if (
-          nodeImportError.response?.status === 400 &&
-          nodeImportError.response?.data?.message ===
-            'Data validation failed for the attribute, Script'
-        ) {
-          nodeImportError.message = `Missing script ${
-            innerNodeData['script']
-          } referenced by inner node ${innerNodeId}${
-            innerNodeId === newUuid ? '' : ` [${newUuid}]`
-          } (${innerNodeData['_type']['_id']}) in journey ${treeId}: ${
-            nodeImportError.message
-          }`;
-          errors.push(nodeImportError);
-        } else if (
-          nodeImportError.response?.status === 400 &&
-          nodeImportError.response?.data?.message ===
-            'Invalid attribute specified.'
-        ) {
-          const { validAttributes } = nodeImportError.response.data.detail;
-          validAttributes.push('_id');
-          for (const attribute of Object.keys(innerNodeData)) {
-            if (!validAttributes.includes(attribute)) {
-              if (verbose)
-                printMessage({
-                  message: `\n      - Removing invalid attribute: ${attribute}`,
-                  type: 'warn',
-                  newline: false,
-                  state,
-                });
-              delete innerNodeData[attribute];
-            }
-          }
-          try {
-            await putNode({
-              nodeId: newUuid,
-              nodeType,
-              nodeData: innerNodeData as NodeSkeleton,
-              state,
-            });
-          } catch (nodeImportError2) {
-            printMessage({
-              message: nodeImportError2.response.data,
-              type: 'error',
-              state,
-            });
-            nodeImportError2.message = `Error importing node ${innerNodeId}${
-              innerNodeId === newUuid ? '' : ` [${newUuid}]`
-            } in journey ${treeId}: ${
-              nodeImportError2.response?.data?.message ||
-              nodeImportError2.message
-            }`;
-            errors.push(nodeImportError2);
-          }
-        } else {
-          nodeImportError.message = `Error importing inner node ${innerNodeId}${
-            innerNodeId === newUuid ? '' : ` [${newUuid}]`
-          } in journey ${treeId}: ${
-            nodeImportError.response?.data?.message || nodeImportError.message
-          }`;
-          errors.push(nodeImportError);
-        }
-      }
-      if (verbose) printMessage({ message: '', state });
-    }
-  }
-
-  // Process nodes
-  if (importData.nodes && Object.entries(importData.nodes).length > 0) {
-    if (verbose)
-      printMessage({ message: '\n  - Nodes:', newline: false, state });
-    // eslint-disable-next-line prefer-const
-    for (let [nodeId, nodeData] of Object.entries(importData.nodes)) {
-      delete nodeData['_rev'];
-      const nodeType = nodeData['_type']['_id'];
-      if (!reUuid) {
-        newUuid = nodeId;
-      } else {
-        newUuid = uuidv4();
-        uuidMap[nodeId] = newUuid;
-      }
-      nodeData['_id'] = newUuid;
-
-      if (nodeType === 'PageNode' && reUuid) {
-        for (const [, inPageNodeData] of Object.entries(nodeData['nodes'])) {
-          const currentId = inPageNodeData['_id'];
-          nodeData = JSON.parse(
-            JSON.stringify(nodeData).replaceAll(currentId, uuidMap[currentId])
-          );
-        }
-      }
-
-      if (verbose)
-        printMessage({
-          message: `\n    - ${newUuid}${reUuid ? '*' : ''} (${nodeType})`,
-          type: 'info',
-          newline: false,
-          state,
-        });
-
-      // If the node has an identityResource config setting
-      // and the identityResource ends in 'user'
-      // and the node's identityResource is the same as the tree's identityResource
-      // change it to the current realm managed user identityResource otherwise leave it alone.
-      if (
-        nodeData.identityResource &&
-        nodeData.identityResource.endsWith('user') &&
-        nodeData.identityResource === importData.tree.identityResource
-      ) {
-        nodeData['identityResource'] = `managed/${getCurrentRealmManagedUser({
-          state,
-        })}`;
-        if (verbose)
-          printMessage({
-            message: `\n      - identityResource: ${nodeData['identityResource']}`,
-            type: 'info',
-            newline: false,
-            state,
-          });
-      }
-      try {
-        await putNode({ nodeId: newUuid, nodeType, nodeData, state });
-      } catch (nodeImportError) {
-        if (
-          nodeImportError.response?.status === 400 &&
-          nodeImportError.response?.data?.message ===
-            'Data validation failed for the attribute, Script'
-        ) {
-          nodeImportError.message = `Missing script ${
-            nodeData['script']
-          } referenced by node ${nodeId}${
-            nodeId === newUuid ? '' : ` [${newUuid}]`
-          } (${nodeData['_type']['_id']}) in journey ${treeId}: ${
-            nodeImportError.message
-          }`;
-          errors.push(nodeImportError);
-        } else if (
-          nodeImportError.response?.status === 400 &&
-          nodeImportError.response?.data?.message ===
-            'Invalid attribute specified.'
-        ) {
-          const { validAttributes } = nodeImportError.response.data.detail;
-          validAttributes.push('_id');
-          for (const attribute of Object.keys(nodeData)) {
-            if (!validAttributes.includes(attribute)) {
-              if (verbose)
-                printMessage({
-                  message: `\n      - Removing invalid attribute: ${attribute}`,
-                  type: 'warn',
-                  newline: false,
-                  state,
-                });
-              delete nodeData[attribute];
-            }
-          }
-          try {
-            await putNode({ nodeId: newUuid, nodeType, nodeData, state });
-          } catch (nodeImportError2) {
-            nodeImportError2.message = `Error importing node ${nodeId}${
-              nodeId === newUuid ? '' : ` [${newUuid}]`
-            } in journey ${treeId}: ${nodeImportError2.message}`;
-            errors.push(nodeImportError2);
-          }
-        } else {
-          nodeImportError.message = `Error importing node ${nodeId}${
-            nodeId === newUuid ? '' : ` [${newUuid}]`
-          } in journey ${treeId}: ${
-            nodeImportError.response?.data?.message || nodeImportError.message
-          }`;
-          errors.push(nodeImportError);
-        }
-      }
-      if (verbose) printMessage({ message: '', state });
-    }
-  }
-
-  // Process tree
-  if (verbose) printMessage({ message: '\n  - Flow', newline: false, state });
-
-  if (reUuid) {
-    let journeyText = JSON.stringify(importData.tree, null, 2);
-    for (const [oldId, newId] of Object.entries(uuidMap)) {
-      journeyText = journeyText.replaceAll(oldId, newId);
-    }
-    importData.tree = JSON.parse(journeyText);
-  }
-
-  // If the tree has an identityResource config setting
-  // and the identityResource ends in 'user'
-  // Set the identityResource for the tree to the selected resource.
-  if (
-    (importData.tree.identityResource &&
-      (importData.tree['identityResource'] as string).endsWith('user')) ||
-    state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
-    state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
-  ) {
-    importData.tree.identityResource = `managed/${getCurrentRealmManagedUser({
-      state,
-    })}`;
-    if (verbose)
-      printMessage({
-        message: `\n    - identityResource: ${importData.tree.identityResource}`,
-        type: 'info',
-        newline: false,
-        state,
-      });
-  }
-
-  // Process tree nodes
-  const serverTreeObject = await updateCoordinates({
-    tree: importData.tree,
-    nodesAttributeName: 'nodes',
-    serverTree: null,
-    state: state,
-  });
-  // Process tree static nodes
-  await updateCoordinates({
-    tree: importData.tree,
-    nodesAttributeName: 'staticNodes',
-    serverTree: serverTreeObject,
-    state: state,
-  });
-
-  delete importData.tree._rev;
-  try {
-    response = await putTree({
-      treeId,
-      treeData: importData.tree,
-      state,
-    });
-    imported.push(treeId);
-    if (verbose)
-      printMessage({
-        message: `\n    - Done`,
-        type: 'info',
-        newline: true,
-        state,
-      });
-  } catch (importError) {
+    // Process circles of trust
     if (
-      importError.response?.status === 400 &&
-      importError.response?.data?.message === 'Invalid attribute specified.'
+      deps &&
+      importData.circlesOfTrust &&
+      Object.entries(importData.circlesOfTrust).length > 0
     ) {
-      const { validAttributes } = importError.response.data.detail;
-      validAttributes.push('_id');
-      for (const attribute of Object.keys(importData.tree)) {
-        if (!validAttributes.includes(attribute)) {
+      if (verbose)
+        printMessage({
+          message: '\n  - SAML2 circles of trust:',
+          newline: false,
+          state,
+        });
+      for (const [cotId, cotData] of Object.entries(
+        importData.circlesOfTrust
+      )) {
+        delete cotData['_rev'];
+        if (verbose)
+          printMessage({
+            message: `\n    - ${cotId}`,
+            type: 'info',
+            newline: false,
+            state,
+          });
+        try {
+          await createCircleOfTrust({ cotData, state });
+        } catch (error) {
+          if (
+            error.response?.status === 409 ||
+            error.response?.status === 500
+          ) {
+            try {
+              await updateCircleOfTrust({ cotId, cotData, state });
+            } catch (updateCotErr) {
+              errors.push(
+                new FrodoError(
+                  `Error updating circle of trust ${cotId}`,
+                  updateCotErr
+                )
+              );
+            }
+          } else {
+            errors.push(
+              new FrodoError(`Error creating circle of trust ${cotId}`, error)
+            );
+          }
+        }
+      }
+    }
+
+    // Process inner nodes
+    let innerNodes = {};
+    if (
+      importData.innerNodes &&
+      Object.entries(importData.innerNodes).length > 0
+    ) {
+      innerNodes = importData.innerNodes;
+    }
+    // old export file format
+    else if (
+      importData.innernodes &&
+      Object.entries(importData.innernodes).length > 0
+    ) {
+      innerNodes = importData.innernodes;
+    }
+    if (Object.entries(innerNodes).length > 0) {
+      if (verbose)
+        printMessage({
+          message: '\n  - Inner nodes:',
+          type: 'text',
+          newline: false,
+          state,
+        });
+      for (const [innerNodeId, innerNodeData] of Object.entries(innerNodes)) {
+        delete innerNodeData['_rev'];
+        const nodeType = innerNodeData['_type']['_id'];
+        if (!reUuid) {
+          newUuid = innerNodeId;
+        } else {
+          newUuid = uuidv4();
+          uuidMap[innerNodeId] = newUuid;
+        }
+        innerNodeData['_id'] = newUuid;
+
+        if (verbose)
+          printMessage({
+            message: `\n    - ${newUuid}${reUuid ? '*' : ''} (${nodeType})`,
+            type: 'info',
+            newline: false,
+            state,
+          });
+
+        // If the node has an identityResource config setting
+        // and the identityResource ends in 'user'
+        // and the node's identityResource is the same as the tree's identityResource
+        // change it to the current realm managed user identityResource otherwise leave it alone.
+        if (
+          innerNodeData['identityResource'] &&
+          innerNodeData['identityResource'].endsWith('user') &&
+          innerNodeData['identityResource'] === importData.tree.identityResource
+        ) {
+          innerNodeData['identityResource'] =
+            `managed/${getCurrentRealmManagedUser({
+              state,
+            })}`;
           if (verbose)
             printMessage({
-              message: `\n    - Removing invalid attribute: ${attribute}`,
-              type: 'warn',
+              message: `\n      - identityResource: ${innerNodeData['identityResource']}`,
+              type: 'info',
               newline: false,
               state,
             });
-          delete importData.tree[attribute];
         }
-      }
-      try {
-        response = await putTree({
-          treeId,
-          treeData: importData.tree,
-          state,
-        });
-        imported.push(treeId);
-        if (verbose)
-          printMessage({
-            message: `\n    - Done`,
-            type: 'info',
-            newline: true,
+        try {
+          await putNode({
+            nodeId: newUuid,
+            nodeType,
+            nodeData: innerNodeData as NodeSkeleton,
             state,
           });
-      } catch (importError2) {
-        importError2.message = `Error importing journey flow ${treeId}: ${
-          importError2.response?.data?.message || importError2.message
-        }`;
-        errors.push(importError2);
+        } catch (nodeImportError) {
+          if (
+            nodeImportError.response?.status === 400 &&
+            nodeImportError.response?.data?.message ===
+              'Data validation failed for the attribute, Script'
+          ) {
+            errors.push(
+              new FrodoError(
+                `Missing script ${
+                  innerNodeData['script']
+                } referenced by inner node ${innerNodeId}${
+                  innerNodeId === newUuid ? '' : ` [${newUuid}]`
+                } (${innerNodeData['_type']['_id']}) in journey ${treeId}`,
+                nodeImportError
+              )
+            );
+          } else if (
+            nodeImportError.response?.status === 400 &&
+            nodeImportError.response?.data?.message ===
+              'Invalid attribute specified.'
+          ) {
+            const { validAttributes } = nodeImportError.response.data.detail;
+            validAttributes.push('_id');
+            for (const attribute of Object.keys(innerNodeData)) {
+              if (!validAttributes.includes(attribute)) {
+                if (verbose)
+                  printMessage({
+                    message: `\n      - Removing invalid attribute: ${attribute}`,
+                    type: 'warn',
+                    newline: false,
+                    state,
+                  });
+                delete innerNodeData[attribute];
+              }
+            }
+            try {
+              await putNode({
+                nodeId: newUuid,
+                nodeType,
+                nodeData: innerNodeData as NodeSkeleton,
+                state,
+              });
+            } catch (nodeImportError2) {
+              errors.push(
+                new FrodoError(
+                  `Error importing node ${innerNodeId}${
+                    innerNodeId === newUuid ? '' : ` [${newUuid}]`
+                  } in journey ${treeId}`,
+                  nodeImportError2
+                )
+              );
+            }
+          } else {
+            errors.push(
+              new FrodoError(
+                `Error importing inner node ${innerNodeId}${
+                  innerNodeId === newUuid ? '' : ` [${newUuid}]`
+                } in journey ${treeId}`,
+                nodeImportError
+              )
+            );
+          }
+        }
+        if (verbose) printMessage({ message: '', state });
       }
-    } else {
-      importError.message = `\nError importing journey flow ${treeId}: ${
-        importError.response?.data?.message || importError.message
-      }`;
-      errors.push(importError);
     }
+
+    // Process nodes
+    if (importData.nodes && Object.entries(importData.nodes).length > 0) {
+      if (verbose)
+        printMessage({ message: '\n  - Nodes:', newline: false, state });
+      // eslint-disable-next-line prefer-const
+      for (let [nodeId, nodeData] of Object.entries(importData.nodes)) {
+        delete nodeData['_rev'];
+        const nodeType = nodeData['_type']['_id'];
+        if (!reUuid) {
+          newUuid = nodeId;
+        } else {
+          newUuid = uuidv4();
+          uuidMap[nodeId] = newUuid;
+        }
+        nodeData['_id'] = newUuid;
+
+        if (nodeType === 'PageNode' && reUuid) {
+          for (const [, inPageNodeData] of Object.entries(nodeData['nodes'])) {
+            const currentId = inPageNodeData['_id'];
+            nodeData = JSON.parse(
+              JSON.stringify(nodeData).replaceAll(currentId, uuidMap[currentId])
+            );
+          }
+        }
+
+        if (verbose)
+          printMessage({
+            message: `\n    - ${newUuid}${reUuid ? '*' : ''} (${nodeType})`,
+            type: 'info',
+            newline: false,
+            state,
+          });
+
+        // If the node has an identityResource config setting
+        // and the identityResource ends in 'user'
+        // and the node's identityResource is the same as the tree's identityResource
+        // change it to the current realm managed user identityResource otherwise leave it alone.
+        if (
+          nodeData.identityResource &&
+          nodeData.identityResource.endsWith('user') &&
+          nodeData.identityResource === importData.tree.identityResource
+        ) {
+          nodeData['identityResource'] = `managed/${getCurrentRealmManagedUser({
+            state,
+          })}`;
+          if (verbose)
+            printMessage({
+              message: `\n      - identityResource: ${nodeData['identityResource']}`,
+              type: 'info',
+              newline: false,
+              state,
+            });
+        }
+        try {
+          await putNode({ nodeId: newUuid, nodeType, nodeData, state });
+        } catch (nodeImportError) {
+          if (
+            nodeImportError.response?.status === 400 &&
+            nodeImportError.response?.data?.message ===
+              'Data validation failed for the attribute, Script'
+          ) {
+            errors.push(
+              new FrodoError(
+                `Missing script ${
+                  nodeData['script']
+                } referenced by node ${nodeId}${
+                  nodeId === newUuid ? '' : ` [${newUuid}]`
+                } (${nodeData['_type']['_id']}) in journey ${treeId}`,
+                nodeImportError
+              )
+            );
+          } else if (
+            nodeImportError.response?.status === 400 &&
+            nodeImportError.response?.data?.message ===
+              'Invalid attribute specified.'
+          ) {
+            const { validAttributes } = nodeImportError.response.data.detail;
+            validAttributes.push('_id');
+            for (const attribute of Object.keys(nodeData)) {
+              if (!validAttributes.includes(attribute)) {
+                if (verbose)
+                  printMessage({
+                    message: `\n      - Removing invalid attribute: ${attribute}`,
+                    type: 'warn',
+                    newline: false,
+                    state,
+                  });
+                delete nodeData[attribute];
+              }
+            }
+            try {
+              await putNode({ nodeId: newUuid, nodeType, nodeData, state });
+            } catch (nodeImportError2) {
+              errors.push(
+                new FrodoError(
+                  `Error importing node ${nodeId}${
+                    nodeId === newUuid ? '' : ` [${newUuid}]`
+                  } in journey ${treeId}`,
+                  nodeImportError2
+                )
+              );
+            }
+          } else {
+            errors.push(
+              new FrodoError(
+                `Error importing node ${nodeId}${
+                  nodeId === newUuid ? '' : ` [${newUuid}]`
+                } in journey ${treeId}`,
+                nodeImportError
+              )
+            );
+          }
+        }
+        if (verbose) printMessage({ message: '', state });
+      }
+    }
+
+    // Process tree
+    if (verbose) printMessage({ message: '\n  - Flow', newline: false, state });
+
+    if (reUuid) {
+      let journeyText = JSON.stringify(importData.tree, null, 2);
+      for (const [oldId, newId] of Object.entries(uuidMap)) {
+        journeyText = journeyText.replaceAll(oldId, newId);
+      }
+      importData.tree = JSON.parse(journeyText);
+    }
+
+    // If the tree has an identityResource config setting
+    // and the identityResource ends in 'user'
+    // Set the identityResource for the tree to the selected resource.
+    if (
+      (importData.tree.identityResource &&
+        (importData.tree['identityResource'] as string).endsWith('user')) ||
+      state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+      state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
+    ) {
+      importData.tree.identityResource = `managed/${getCurrentRealmManagedUser({
+        state,
+      })}`;
+      if (verbose)
+        printMessage({
+          message: `\n    - identityResource: ${importData.tree.identityResource}`,
+          type: 'info',
+          newline: false,
+          state,
+        });
+    }
+
+    // Process tree nodes
+    const serverTreeObject = await updateCoordinates({
+      tree: importData.tree,
+      nodesAttributeName: 'nodes',
+      serverTree: null,
+      state: state,
+    });
+    // Process tree static nodes
+    await updateCoordinates({
+      tree: importData.tree,
+      nodesAttributeName: 'staticNodes',
+      serverTree: serverTreeObject,
+      state: state,
+    });
+
+    delete importData.tree._rev;
+    try {
+      response = await putTree({
+        treeId,
+        treeData: importData.tree,
+        state,
+      });
+      imported.push(treeId);
+      if (verbose)
+        printMessage({
+          message: `\n    - Done`,
+          type: 'info',
+          newline: true,
+          state,
+        });
+    } catch (importError) {
+      if (
+        importError.response?.status === 400 &&
+        importError.response?.data?.message === 'Invalid attribute specified.'
+      ) {
+        const { validAttributes } = importError.response.data.detail;
+        validAttributes.push('_id');
+        for (const attribute of Object.keys(importData.tree)) {
+          if (!validAttributes.includes(attribute)) {
+            if (verbose)
+              printMessage({
+                message: `\n    - Removing invalid attribute: ${attribute}`,
+                type: 'warn',
+                newline: false,
+                state,
+              });
+            delete importData.tree[attribute];
+          }
+        }
+        try {
+          response = await putTree({
+            treeId,
+            treeData: importData.tree,
+            state,
+          });
+          imported.push(treeId);
+          if (verbose)
+            printMessage({
+              message: `\n    - Done`,
+              type: 'info',
+              newline: true,
+              state,
+            });
+        } catch (importError2) {
+          errors.push(
+            new FrodoError(
+              `Error importing journey flow ${treeId}`,
+              importError2
+            )
+          );
+        }
+      } else {
+        errors.push(
+          new FrodoError(`Error importing journey flow ${treeId}`, importError)
+        );
+      }
+    }
+  } catch (error) {
+    errors.push(error);
   }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing journey`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo journey found in import data!`);
+    throw new FrodoError(`No journey found in import data`);
   }
   return response;
 }
@@ -2338,7 +2346,9 @@ export async function importJourneys({
   const errors = [];
   const imported = [];
   const installedJourneys = (await readJourneys({ state })).map((x) => x._id);
-  const unresolvedJourneys = {};
+  const unresolvedJourneys: {
+    [k: string]: string[];
+  } = {};
   const resolvedJourneys = [];
   let indicatorId = createProgressIndicator({
     total: undefined,
@@ -2365,17 +2375,19 @@ export async function importJourneys({
       id: indicatorId,
       message: `${
         Object.keys(unresolvedJourneys).length
-      } journeys with unresolved dependencies:`,
+      } journeys with unresolved dependencies`,
       status: 'fail',
       state,
     });
+    const message: string[] = [
+      `${
+        Object.keys(unresolvedJourneys).length
+      } journeys with unresolved dependencies:`,
+    ];
     for (const journey of Object.keys(unresolvedJourneys)) {
-      printMessage({
-        message: `  - ${journey} requires ${unresolvedJourneys[journey]}`,
-        type: 'info',
-        state,
-      });
+      message.push(`  - ${journey} requires ${unresolvedJourneys[journey]}`);
     }
+    throw new FrodoError(message.join('\n'));
   }
   indicatorId = createProgressIndicator({
     total: resolvedJourneys.length,
@@ -2397,23 +2409,20 @@ export async function importJourneys({
       errors.push(error);
     }
   }
-  if (errors.length) {
-    const errorMessages = errors
-      .map((error) => error.response?.data?.message || error.message)
-      .join('\n');
+  if (errors.length > 0) {
     stopProgressIndicator({
       id: indicatorId,
-      message: 'Error importing journeys!',
+      message: 'Error importing journeys',
       state,
     });
-    throw new Error(`Import error:\n${errorMessages}`);
+    throw new FrodoError(`Error importing journeys`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo clients found in import data!`);
+    throw new FrodoError(`No journeys found in import data!`);
   }
   stopProgressIndicator({
     id: indicatorId,
-    message: 'Finished Importing Journeys',
+    message: 'Finished importing journeys',
     state,
   });
   return response;
@@ -2478,7 +2487,10 @@ export const onlineTreeExportResolver: TreeExportResolverInterface =
  * @returns {TreeExportResolverInterface} tree export
  */
 export const fileByIdTreeExportResolver: TreeExportResolverInterface =
-  async function (treeId: string, state: State) {
+  async function (
+    treeId: string,
+    state: State
+  ): Promise<SingleTreeExportInterface> {
     debugMessage({ message: `fileByIdTreeExportResolver(${treeId})`, state });
     let treeExport = createSingleTreeExportTemplate({ state });
     const files = findFilesByName(getTypedFilename(`${treeId}`, 'journey'));
@@ -2498,10 +2510,7 @@ export const fileByIdTreeExportResolver: TreeExportResolverInterface =
         treeExport = jsonData.trees[treeId];
       }
     } catch (error) {
-      debugMessage({
-        message: `fileByIdTreeExportResolver: unable to resolve '${treeId}' to a file.`,
-        state,
-      });
+      throw new FrodoError(`Unable to resolve '${treeId}' to a file`, error);
     }
     return treeExport;
   };
@@ -2539,7 +2548,7 @@ export function createFileParamTreeExportResolver(
           treeExport = await fileByIdTreeExportResolver(treeId, state);
         }
       } catch (error) {
-        //
+        debugMessage({ message: error.message, state });
       }
       return treeExport;
     };
@@ -2623,7 +2632,7 @@ export function isCustomJourney({
 }: {
   journey: SingleTreeExportInterface;
   state: State;
-}) {
+}): boolean {
   debugMessage({ message: `JourneyOps.isCustomJourney: start`, state });
   const nodeList = Object.values(journey.nodes).concat(
     Object.values(journey.innerNodes)
@@ -2646,7 +2655,7 @@ export function isCustomJourney({
  * @param {SingleTreeExportInterface} journey Journey/tree configuration object
  * @returns {boolean} True if the journey/tree contains any custom nodes, false otherwise.
  */
-export function isPremiumJourney(journey: SingleTreeExportInterface) {
+export function isPremiumJourney(journey: SingleTreeExportInterface): boolean {
   const nodeList = Object.values(journey.nodes).concat(
     Object.values(journey.innerNodes)
   );
@@ -2663,7 +2672,9 @@ export function isPremiumJourney(journey: SingleTreeExportInterface) {
  * @param {SingleTreeExportInterface} journey Journey/tree configuration object
  * @returns {boolean} True if the journey/tree contains any cloud-only nodes, false otherwise.
  */
-export function isCloudOnlyJourney(journey: SingleTreeExportInterface) {
+export function isCloudOnlyJourney(
+  journey: SingleTreeExportInterface
+): boolean {
   const nodeList = Object.values(journey.nodes).concat(
     Object.values(journey.innerNodes)
   );
@@ -2945,58 +2956,73 @@ export async function deleteJourneys({
   };
   state: State;
 }) {
-  const { verbose } = options;
-  const status: DeleteJourneysStatus = {};
-  const trees = (await getTrees({ state })).result;
-  const indicatorId = createProgressIndicator({
-    total: trees.length,
-    message: 'Deleting journeys...',
-    state,
-  });
-  for (const tree of trees) {
-    if (verbose) printMessage({ message: '', state });
-    options['progress'] = false;
-    status[tree._id] = await deleteJourney({
-      journeyId: tree._id,
-      options,
+  let indicatorId: string;
+  try {
+    const { verbose } = options;
+    const status: DeleteJourneysStatus = {};
+    const trees = (await getTrees({ state })).result;
+    indicatorId = createProgressIndicator({
+      total: trees.length,
+      message: 'Deleting journeys...',
       state,
     });
-    updateProgressIndicator({ id: indicatorId, message: `${tree._id}`, state });
-    // introduce a 100ms wait to allow the progress bar to update before the next verbose message prints from the async function
-    if (verbose)
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => {
-        setTimeout(r, 100);
+    for (const tree of trees) {
+      if (verbose) printMessage({ message: '', state });
+      options['progress'] = false;
+      status[tree._id] = await deleteJourney({
+        journeyId: tree._id,
+        options,
+        state,
       });
-  }
-  let journeyCount = 0;
-  let journeyErrorCount = 0;
-  let nodeCount = 0;
-  let nodeErrorCount = 0;
-  for (const journey of Object.keys(status)) {
-    journeyCount += 1;
-    if (status[journey].status === 'error') journeyErrorCount += 1;
-    for (const node of Object.keys(status[journey].nodes)) {
-      nodeCount += 1;
-      if (status[journey].nodes[node].status === 'error') nodeErrorCount += 1;
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `${tree._id}`,
+        state,
+      });
+      // introduce a 100ms wait to allow the progress bar to update before the next verbose message prints from the async function
+      if (verbose)
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => {
+          setTimeout(r, 100);
+        });
     }
+    let journeyCount = 0;
+    let journeyErrorCount = 0;
+    let nodeCount = 0;
+    let nodeErrorCount = 0;
+    for (const journey of Object.keys(status)) {
+      journeyCount += 1;
+      if (status[journey].status === 'error') journeyErrorCount += 1;
+      for (const node of Object.keys(status[journey].nodes)) {
+        nodeCount += 1;
+        if (status[journey].nodes[node].status === 'error') nodeErrorCount += 1;
+      }
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Deleted ${
+        journeyCount - journeyErrorCount
+      }/${journeyCount} journeys and ${
+        nodeCount - nodeErrorCount
+      }/${nodeCount} nodes.`,
+      state,
+    });
+    return status;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error deleting journeys`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(`Error deleting journeys`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Deleted ${
-      journeyCount - journeyErrorCount
-    }/${journeyCount} journeys and ${
-      nodeCount - nodeErrorCount
-    }/${nodeCount} nodes.`,
-    state,
-  });
-  return status;
 }
 
 /**
  * Enable a journey
  * @param journeyId journey id/name
- * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+ * @returns {Promise<TreeSkeleton>} updated tree/journey object
  */
 export async function enableJourney({
   journeyId,
@@ -3004,7 +3030,7 @@ export async function enableJourney({
 }: {
   journeyId: string;
   state: State;
-}): Promise<boolean> {
+}): Promise<TreeSkeleton> {
   try {
     const treeObject = await getTree({ id: journeyId, state });
     treeObject['enabled'] = true;
@@ -3014,17 +3040,16 @@ export async function enableJourney({
       treeData: treeObject,
       state,
     });
-    return newTreeObject['enabled'] === true;
+    return newTreeObject;
   } catch (error) {
-    printMessage({ message: error.response.data, type: 'error', state });
-    return false;
+    throw new FrodoError(`Error enabling journey ${journeyId}`, error);
   }
 }
 
 /**
  * Disable a journey
  * @param journeyId journey id/name
- * @returns {Promise<boolean>} true if the operation was successful, false otherwise
+ * @returns {Promise<TreeSkeleton>} true if the operation was successful, false otherwise
  */
 export async function disableJourney({
   journeyId,
@@ -3032,7 +3057,7 @@ export async function disableJourney({
 }: {
   journeyId: string;
   state: State;
-}): Promise<boolean> {
+}): Promise<TreeSkeleton> {
   try {
     const treeObject = await getTree({ id: journeyId, state });
     treeObject['enabled'] = false;
@@ -3042,9 +3067,8 @@ export async function disableJourney({
       treeData: treeObject,
       state,
     });
-    return newTreeObject['enabled'] === false;
+    return newTreeObject;
   } catch (error) {
-    printMessage({ message: error.response.data, type: 'error', state });
-    return false;
+    throw new FrodoError(`Error disabling journey ${journeyId}`, error);
   }
 }

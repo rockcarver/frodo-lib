@@ -15,7 +15,6 @@ import { State } from '../shared/State';
 import {
   createProgressIndicator,
   debugMessage,
-  printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
   verboseMessage,
@@ -27,6 +26,7 @@ import {
 } from '../utils/ExportImportUtils';
 import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
 import { isScriptValid } from '../utils/ScriptValidationUtils';
+import { FrodoError } from './FrodoError';
 
 export type Script = {
   /**
@@ -305,8 +305,12 @@ export async function readScripts({
 }: {
   state: State;
 }): Promise<ScriptSkeleton[]> {
-  const { result } = await _getScripts({ state });
-  return result;
+  try {
+    const { result } = await _getScripts({ state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading scripts`, error);
+  }
 }
 
 /**
@@ -320,7 +324,11 @@ export async function readScript({
   scriptId: string;
   state: State;
 }): Promise<ScriptSkeleton> {
-  return _getScript({ scriptId, state });
+  try {
+    return _getScript({ scriptId, state });
+  } catch (error) {
+    throw new FrodoError(`Error reading script ${scriptId}`, error);
+  }
 }
 
 /**
@@ -335,14 +343,18 @@ export async function readScriptByName({
   scriptName: string;
   state: State;
 }): Promise<ScriptSkeleton> {
-  const { result } = await _getScriptByName({ scriptName, state });
-  switch (result.length) {
-    case 1:
-      return result[0];
-    case 0:
-      throw new Error(`Script '${scriptName}' not found`);
-    default:
-      throw new Error(`${result.length} scripts '${scriptName}' found`);
+  try {
+    const { result } = await _getScriptByName({ scriptName, state });
+    switch (result.length) {
+      case 1:
+        return result[0];
+      case 0:
+        throw new FrodoError(`Script '${scriptName}' not found`);
+      default:
+        throw new FrodoError(`${result.length} scripts '${scriptName}' found`);
+    }
+  } catch (error) {
+    throw new FrodoError(`Error reading script ${scriptName}`, error);
   }
 }
 
@@ -368,15 +380,19 @@ export async function createScript({
   try {
     await _getScript({ scriptId, state });
   } catch (error) {
-    const result = await updateScript({
-      scriptId,
-      scriptData,
-      state,
-    });
-    debugMessage({ message: `ScriptOps.createOAuth2Client: end`, state });
-    return result;
+    try {
+      const result = await updateScript({
+        scriptId,
+        scriptData,
+        state,
+      });
+      debugMessage({ message: `ScriptOps.createOAuth2Client: end`, state });
+      return result;
+    } catch (error) {
+      throw new FrodoError(`Error creating script`, error);
+    }
   }
-  throw new Error(`Script ${scriptData._id} already exists!`);
+  throw new FrodoError(`Script ${scriptData._id} already exists!`);
 }
 
 /**
@@ -413,7 +429,7 @@ export async function updateScript({
         message: `Saved script as ${newName}`,
         state,
       });
-    } else throw error;
+    } else throw new FrodoError(`Error updating script`, error);
   }
   return result;
 }
@@ -430,7 +446,11 @@ export async function deleteScript({
   scriptId: string;
   state: State;
 }): Promise<ScriptSkeleton> {
-  return _deleteScript({ scriptId, state });
+  try {
+    return _deleteScript({ scriptId, state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting script ${scriptId}`, error);
+  }
 }
 
 /**
@@ -445,7 +465,11 @@ export async function deleteScriptByName({
   scriptName: string;
   state: State;
 }): Promise<ScriptSkeleton> {
-  return _deleteScriptByName({ scriptName, state });
+  try {
+    return _deleteScriptByName({ scriptName, state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting script ${scriptName}`, error);
+  }
 }
 
 /**
@@ -457,7 +481,11 @@ export async function deleteScripts({
 }: {
   state: State;
 }): Promise<ScriptSkeleton[]> {
-  return _deleteScripts({ state });
+  try {
+    return _deleteScripts({ state });
+  } catch (error) {
+    throw new FrodoError(`Error deleting scripts`, error);
+  }
 }
 
 /**
@@ -472,13 +500,17 @@ export async function exportScript({
   scriptId: string;
   state: State;
 }): Promise<ScriptExportInterface> {
-  debugMessage({ message: `ScriptOps.exportScriptById: start`, state });
-  const scriptData = await _getScript({ scriptId, state });
-  scriptData.script = convertBase64TextToArray(scriptData.script);
-  const exportData = createScriptExportTemplate({ state });
-  exportData.script[scriptData._id] = scriptData;
-  debugMessage({ message: `ScriptOps.exportScriptById: end`, state });
-  return exportData;
+  try {
+    debugMessage({ message: `ScriptOps.exportScriptById: start`, state });
+    const scriptData = await _getScript({ scriptId, state });
+    scriptData.script = convertBase64TextToArray(scriptData.script);
+    const exportData = createScriptExportTemplate({ state });
+    exportData.script[scriptData._id] = scriptData;
+    debugMessage({ message: `ScriptOps.exportScriptById: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting script ${scriptId}`, error);
+  }
 }
 
 /**
@@ -493,13 +525,17 @@ export async function exportScriptByName({
   scriptName: string;
   state: State;
 }): Promise<ScriptExportInterface> {
-  debugMessage({ message: `ScriptOps.exportScriptByName: start`, state });
-  const scriptData = await readScriptByName({ scriptName, state });
-  scriptData.script = convertBase64TextToArray(scriptData.script as string);
-  const exportData = createScriptExportTemplate({ state });
-  exportData.script[scriptData._id] = scriptData;
-  debugMessage({ message: `ScriptOps.exportScriptByName: end`, state });
-  return exportData;
+  try {
+    debugMessage({ message: `ScriptOps.exportScriptByName: start`, state });
+    const scriptData = await readScriptByName({ scriptName, state });
+    scriptData.script = convertBase64TextToArray(scriptData.script as string);
+    const exportData = createScriptExportTemplate({ state });
+    exportData.script[scriptData._id] = scriptData;
+    debugMessage({ message: `ScriptOps.exportScriptByName: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(`Error exporting script ${scriptName}`, error);
+  }
 }
 
 /**
@@ -514,34 +550,59 @@ export async function exportScripts({
   includeDefault: boolean;
   state: State;
 }): Promise<ScriptExportInterface> {
-  let scriptList = await readScripts({ state });
-  if (!includeDefault)
-    scriptList = scriptList.filter((script) => !script.default);
-  const exportData = createScriptExportTemplate({ state });
-  const indicatorId = createProgressIndicator({
-    total: scriptList.length,
-    message: `Exporting ${scriptList.length} scripts...`,
-    state,
-  });
-  for (const script of scriptList) {
-    updateProgressIndicator({
+  const errors: Error[] = [];
+  let indicatorId: string;
+  try {
+    let scriptList = await readScripts({ state });
+    if (!includeDefault)
+      scriptList = scriptList.filter((script) => !script.default);
+    const exportData = createScriptExportTemplate({ state });
+    indicatorId = createProgressIndicator({
+      total: scriptList.length,
+      message: `Exporting ${scriptList.length} scripts...`,
+      state,
+    });
+    for (const script of scriptList) {
+      try {
+        updateProgressIndicator({
+          id: indicatorId,
+          message: `Reading script ${script.name}`,
+          state,
+        });
+        const scriptData = await readScriptByName({
+          scriptName: script.name,
+          state,
+        });
+        scriptData.script = convertBase64TextToArray(
+          scriptData.script as string
+        );
+        exportData.script[scriptData._id] = scriptData;
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    if (errors.length > 0) {
+      throw new FrodoError(``, errors);
+    }
+    stopProgressIndicator({
       id: indicatorId,
-      message: `Reading script ${script.name}`,
+      message: `Exported ${scriptList.length} scripts.`,
       state,
     });
-    const scriptData = await readScriptByName({
-      scriptName: script.name,
+    return exportData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting scripts`,
+      status: 'fail',
       state,
     });
-    scriptData.script = convertBase64TextToArray(scriptData.script as string);
-    exportData.script[scriptData._id] = scriptData;
+    // re-throw previously caught error
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error exporting scripts`, error);
   }
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Exported ${scriptList.length} scripts.`,
-    state,
-  });
-  return exportData;
 }
 
 /**
@@ -568,44 +629,40 @@ export async function importScripts({
   validate?: boolean;
   state: State;
 }): Promise<ScriptSkeleton[]> {
-  debugMessage({ message: `ScriptOps.importScripts: start`, state });
-  const response = [];
   const errors = [];
-  const imported = [];
-  for (const existingId of Object.keys(importData.script)) {
-    try {
-      const scriptData = importData.script[existingId];
-      if (!options.includeDefault && scriptData.default) continue;
-      let newId = existingId;
-      if (options.reUuid) {
-        newId = uuidv4();
-        debugMessage({
-          message: `ScriptOps.importScripts: Re-uuid-ing script ${scriptData.name} ${existingId} => ${newId}...`,
-          state,
-        });
-        scriptData._id = newId;
-      }
-      if (scriptName) {
-        debugMessage({
-          message: `ScriptOps.importScripts: Renaming script ${scriptData.name} => ${scriptName}...`,
-          state,
-        });
-        scriptData.name = scriptName;
-      }
-      if (validate) {
-        if (!isScriptValid({ scriptData, state })) {
-          {
-            const message = `Error importing script '${scriptData.name}': Script is not valid`;
-            printMessage({
-              message,
-              type: 'error',
-              state,
-            });
-            throw new Error(message);
+  try {
+    debugMessage({ message: `ScriptOps.importScripts: start`, state });
+    const response = [];
+    const imported = [];
+    for (const existingId of Object.keys(importData.script)) {
+      try {
+        const scriptData = importData.script[existingId];
+        if (!options.includeDefault && scriptData.default) continue;
+        let newId = existingId;
+        if (options.reUuid) {
+          newId = uuidv4();
+          debugMessage({
+            message: `ScriptOps.importScripts: Re-uuid-ing script ${scriptData.name} ${existingId} => ${newId}...`,
+            state,
+          });
+          scriptData._id = newId;
+        }
+        if (scriptName) {
+          debugMessage({
+            message: `ScriptOps.importScripts: Renaming script ${scriptData.name} => ${scriptName}...`,
+            state,
+          });
+          scriptData.name = scriptName;
+        }
+        if (validate) {
+          if (!isScriptValid({ scriptData, state })) {
+            errors.push(
+              new FrodoError(
+                `Error importing script '${scriptData.name}': Script is not valid`
+              )
+            );
           }
         }
-      }
-      try {
         await updateScript({
           scriptId: newId,
           scriptData,
@@ -615,19 +672,20 @@ export async function importScripts({
       } catch (error) {
         errors.push(error);
       }
-    } catch (error) {
-      errors.push(error);
     }
+    if (errors.length > 0) {
+      throw new FrodoError(`Error importing scripts`, errors);
+    }
+    if (0 === imported.length) {
+      throw new FrodoError(`No scripts found in import data`);
+    }
+    debugMessage({ message: `ScriptOps.importScripts: end`, state });
+    return response;
+  } catch (error) {
+    // re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(`Error importing scripts`, error);
   }
-  if (errors.length) {
-    const errorMessages = errors
-      .map((error) => error.response?.data?.message || error.message)
-      .join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
-  }
-  if (0 === imported.length) {
-    throw new Error(`Import error:\nNo scripts found in import data!`);
-  }
-  debugMessage({ message: `ScriptOps.importScripts: end`, state });
-  return response;
 }

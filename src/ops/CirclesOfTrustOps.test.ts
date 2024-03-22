@@ -543,7 +543,6 @@ describe('CirclesOfTrustOps', () => {
           state,
         });
         expect(response).toMatchSnapshot();
-        expect(response).toBeFalsy();
       });
     }
   });
@@ -580,7 +579,6 @@ describe('CirclesOfTrustOps', () => {
           state,
         });
         expect(response).toMatchSnapshot();
-        expect(response).toBeFalsy();
       });
     }
   });

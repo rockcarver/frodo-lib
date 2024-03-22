@@ -6,6 +6,7 @@ import {
 } from '../../api/cloud/AdminFederationProvidersApi';
 import { getConfigEntity, putConfigEntity } from '../../api/IdmConfigApi';
 import { SocialIdpSkeleton } from '../../api/SocialIdentityProvidersApi';
+import { FrodoError } from '../FrodoError';
 import { State } from '../../shared/State';
 import { debugMessage } from '../../utils/Console';
 import { getMetadata } from '../../utils/ExportImportUtils';
@@ -269,8 +270,12 @@ export async function readAdminFederationProviders({
 }: {
   state: State;
 }): Promise<SocialIdpSkeleton[]> {
-  const { result } = await _getAdminFederationProviders({ state });
-  return result;
+  try {
+    const { result } = await _getAdminFederationProviders({ state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading admin federation providers.`, error);
+  }
 }
 
 /**
@@ -293,10 +298,12 @@ export async function readAdminFederationProvider({
     case 1:
       return foundProviders[0];
     case 0:
-      throw new Error(`Provider '${providerId}' not found`);
+      throw new FrodoError(
+        `Admin federation provider '${providerId}' not found`
+      );
     default:
-      throw new Error(
-        `${foundProviders.length} providers '${providerId}' found`
+      throw new FrodoError(
+        `${foundProviders.length} admin federation providers '${providerId}' found`
       );
   }
 }
@@ -331,7 +338,9 @@ export async function createAdminFederationProvider({
     });
     return result;
   }
-  throw new Error(`Provider ${providerId} already exists!`);
+  throw new FrodoError(
+    `Admin federation provider ${providerId} already exists!`
+  );
 }
 
 export async function updateAdminFederationProvider({
@@ -390,7 +399,10 @@ export async function updateAdminFederationProvider({
       return response;
     } else {
       // re-throw unhandleable error
-      throw importError;
+      throw new FrodoError(
+        `Error updating admin federation provider`,
+        importError
+      );
     }
   }
 }
@@ -419,9 +431,9 @@ export async function deleteAdminFederationProvider({
         state,
       });
     case 0:
-      throw new Error(`Provider '${providerId}' not found`);
+      throw new FrodoError(`Provider '${providerId}' not found`);
     default:
-      throw new Error(
+      throw new FrodoError(
         `${foundProviders.length} providers '${providerId}' found`
       );
   }
@@ -457,8 +469,10 @@ export async function exportAdminFederationProvider({
     errors.push(error);
   }
   if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
+    throw new FrodoError(
+      `Error exporting admin federation provider ${providerId}`,
+      errors
+    );
   }
   debugMessage({
     message: `AdminFederationOps.exportAdminFederationProvider: end`,
@@ -500,8 +514,7 @@ export async function exportAdminFederationProviders({
     errors.push(error);
   }
   if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Export error:\n${errorMessages}`);
+    throw new FrodoError(`Error exporting admin federation providers`, errors);
   }
   debugMessage({
     message: `AdminFederationOps.exportAdminFederationProviders: end`,
@@ -551,11 +564,15 @@ export async function importAdminFederationProvider({
     }
   }
   if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+    throw new FrodoError(
+      `Error importing admin federation provider ${providerId}`,
+      errors
+    );
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\n${providerId} not found in import data!`);
+    throw new FrodoError(
+      `Admin federation provider ${providerId} not found in import data!`
+    );
   }
   return response;
 }
@@ -596,11 +613,13 @@ export async function importFirstAdminFederationProvider({
     }
   }
   if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+    throw new FrodoError(
+      `Error importing first admin federation provider`,
+      errors
+    );
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo providers found in import data!`);
+    throw new FrodoError(`No admin federation providers found in import data`);
   }
   return response;
 }
@@ -643,11 +662,10 @@ export async function importAdminFederationProviders({
     }
   }
   if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Import error:\n${errorMessages}`);
+    throw new FrodoError(`Error importing admin federation providers`, errors);
   }
   if (0 === imported.length) {
-    throw new Error(`Import error:\nNo providers found in import data!`);
+    throw new FrodoError(`No providers found in import data`);
   }
   return response;
 }

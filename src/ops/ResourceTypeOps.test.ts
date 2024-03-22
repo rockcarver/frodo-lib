@@ -35,7 +35,7 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { state } from '../index';
+import { FrodoError, state } from '../index';
 import * as ResourceTypeOps from './ResourceTypeOps';
 import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 import { type ResourceTypeSkeleton } from '../api/ResourceTypesApi';
@@ -341,7 +341,7 @@ describe('ResourceTypeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.response.data).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -367,7 +367,7 @@ describe('ResourceTypeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -393,7 +393,7 @@ describe('ResourceTypeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.response.data).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -421,7 +421,7 @@ describe('ResourceTypeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.response.data).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -449,7 +449,7 @@ describe('ResourceTypeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -477,7 +477,7 @@ describe('ResourceTypeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -520,7 +520,7 @@ describe('ResourceTypeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -550,7 +550,7 @@ describe('ResourceTypeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -613,7 +613,7 @@ describe('ResourceTypeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.response.data).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });
@@ -639,7 +639,7 @@ describe('ResourceTypeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.message).toMatchSnapshot();
+          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
         }
       });
     });

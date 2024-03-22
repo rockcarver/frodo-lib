@@ -3,6 +3,7 @@ import { getServerVersionInfo } from '../api/ServerInfoApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getServiceAccount } from './cloud/ServiceAccountOps';
+import { FrodoError } from './FrodoError';
 
 export type Info = {
   /**
@@ -74,18 +75,22 @@ async function getAuthenticatedSubject(state: State): Promise<string> {
  * @returns {Promise<PlatformInfo>} a promise that resolves to a json blob with information about the instance and tokens
  */
 export async function getInfo(state: State): Promise<PlatformInfo> {
-  const info: PlatformInfo = {
-    host: state.getHost(),
-    amVersion: await getAmVersion(state),
-    authenticatedSubject: await getAuthenticatedSubject(state),
-    deploymentType: state.getDeploymentType(),
-    cookieName: state.getCookieName(),
-    sessionToken: state.getCookieValue(),
-    // only add bearerToken if we have it
-    ...(state.getBearerToken() && { bearerToken: state.getBearerToken() }),
-    // only add cloud env info if deployment type is cloud
-    ...(state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
-      (await getCloudInfo(state))),
-  };
-  return info;
+  try {
+    const info: PlatformInfo = {
+      host: state.getHost(),
+      amVersion: await getAmVersion(state),
+      authenticatedSubject: await getAuthenticatedSubject(state),
+      deploymentType: state.getDeploymentType(),
+      cookieName: state.getCookieName(),
+      sessionToken: state.getCookieValue(),
+      // only add bearerToken if we have it
+      ...(state.getBearerToken() && { bearerToken: state.getBearerToken() }),
+      // only add cloud env info if deployment type is cloud
+      ...(state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
+        (await getCloudInfo(state))),
+    };
+    return info;
+  } catch (error) {
+    throw new FrodoError(`Error getting info`, error);
+  }
 }
