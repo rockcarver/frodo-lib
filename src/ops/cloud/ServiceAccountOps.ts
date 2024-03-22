@@ -3,9 +3,9 @@ import {
   createManagedObject,
   getManagedObject,
 } from '../../api/ManagedObjectApi';
-import { FrodoError } from '../FrodoError';
 import { State } from '../../shared/State';
 import { debugMessage } from '../../utils/Console';
+import { FrodoError } from '../FrodoError';
 import { JwksInterface } from '../JoseOps';
 import { hasFeature } from './FeatureOps';
 

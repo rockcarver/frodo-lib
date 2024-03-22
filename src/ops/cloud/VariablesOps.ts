@@ -7,7 +7,6 @@ import {
   VariableExpressionType,
   VariableSkeleton,
 } from '../../api/cloud/VariablesApi';
-import { FrodoError } from '../FrodoError';
 import { State } from '../../shared/State';
 import { decode } from '../../utils/Base64Utils';
 import {
@@ -17,6 +16,7 @@ import {
   updateProgressIndicator,
 } from '../../utils/Console';
 import { getMetadata } from '../../utils/ExportImportUtils';
+import { FrodoError } from '../FrodoError';
 import { ExportMetaData } from '../OpsTypes';
 
 export type Variable = {

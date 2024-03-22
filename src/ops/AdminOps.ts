@@ -14,7 +14,6 @@ import {
   clientCredentialsGrant,
 } from '../api/OAuth2OIDCApi';
 import { OAuth2TrustedJwtIssuerSkeleton } from '../api/OAuth2TrustedJwtIssuerApi';
-import { FrodoError } from './FrodoError';
 import {
   readOAuth2Client,
   readOAuth2Clients,
@@ -28,6 +27,7 @@ import {
   getCurrentRealmPath,
 } from '../utils/ForgeRockUtils';
 import { cloneDeep, get, isEqualJson, stringify } from '../utils/JsonUtils';
+import { FrodoError } from './FrodoError';
 import {
   createJwkRsa,
   createJwks,

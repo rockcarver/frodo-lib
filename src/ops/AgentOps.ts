@@ -8,7 +8,6 @@ import {
   getAgentsByType,
   putAgentByTypeAndId,
 } from '../api/AgentApi';
-import { FrodoError } from './FrodoError';
 import { State } from '../shared/State';
 import {
   createProgressIndicator,
@@ -17,6 +16,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
 
 export type Agent = {

@@ -3,7 +3,6 @@ import os from 'os';
 import path from 'path';
 
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
-import { FrodoError } from './FrodoError';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { debugMessage, printMessage, verboseMessage } from '../utils/Console';
@@ -13,6 +12,7 @@ import {
   createServiceAccount,
   getServiceAccount,
 } from './cloud/ServiceAccountOps';
+import { FrodoError } from './FrodoError';
 import { createJwkRsa, createJwks, getJwkRsaPublic, JwkRsa } from './JoseOps';
 
 export type ConnectionProfile = {

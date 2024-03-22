@@ -26,12 +26,8 @@ import {
 } from '../utils/ExportImportUtils';
 import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
-import {
-  createPolicySet,
-  readPolicySet,
-  updatePolicySet,
-} from './PolicySetOps';
-import { createResourceType, updateResourceType } from './ResourceTypeOps';
+import { readPolicySet, updatePolicySet } from './PolicySetOps';
+import { updateResourceType } from './ResourceTypeOps';
 import { readScript, updateScript } from './ScriptOps';
 
 export type Policy = {

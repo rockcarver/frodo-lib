@@ -12,8 +12,8 @@ import {
   type LogEventSkeleton,
   tail as _tail,
 } from '../../api/cloud/LogApi';
-import { FrodoError } from '../FrodoError';
 import { State } from '../../shared/State';
+import { FrodoError } from '../FrodoError';
 
 export type Log = {
   /**
