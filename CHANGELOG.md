@@ -7,25 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-74] - 2024-03-23
+
 ### Fixed
 
 -   \#391: Frodo now creates service accounts with all allowed scopes:
-    - `fr:am:*`
-    - `fr:idc:analytics:*`
-    - `fr:autoaccess:*`
-    - `fr:idc:certificate:*`
-    - `fr:idc:certificate:read`
-    - `fr:idc:content-security-policy:*`
-    - `fr:idc:custom-domain:*`
-    - `fr:idc:esv:*`
-    - `fr:idc:esv:read`
-    - `fr:idc:esv:restart`
-    - `fr:idc:esv:update`
-    - `fr:idm:*`
-    - `fr:iga:*`
-    - `fr:idc:promotion:*`
-    - `fr:idc:release:*`
-    - `fr:idc:sso-cookie:*`
+    -   `fr:am:*`
+    -   `fr:idc:analytics:*`
+    -   `fr:autoaccess:*`
+    -   `fr:idc:certificate:*`
+    -   `fr:idc:certificate:read`
+    -   `fr:idc:content-security-policy:*`
+    -   `fr:idc:custom-domain:*`
+    -   `fr:idc:esv:*`
+    -   `fr:idc:esv:read`
+    -   `fr:idc:esv:restart`
+    -   `fr:idc:esv:update`
+    -   `fr:idm:*`
+    -   `fr:iga:*`
+    -   `fr:idc:promotion:*`
+    -   `fr:idc:release:*`
+    -   `fr:idc:sso-cookie:*`
 
 ## [2.0.0-73] - 2024-03-22
 
@@ -1417,7 +1419,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-73...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-74...HEAD
+
+[2.0.0-74]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-73...v2.0.0-74
 
 [2.0.0-73]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-72...v2.0.0-73
 
