@@ -61,6 +61,8 @@ export type State = {
   getServiceAccountId(): string;
   setServiceAccountJwk(jwk: JwkRsa): void;
   getServiceAccountJwk(): JwkRsa;
+  setServiceAccountScope(scope: string): void;
+  getServiceAccountScope(): string;
   setUseBearerTokenForAmApis(useBearerTokenForAmApis: boolean): void;
   getUseBearerTokenForAmApis(): boolean;
   setBearerTokenMeta(token: AccessTokenMetaType): void;
@@ -262,6 +264,12 @@ export default (initialState: StateInterface): State => {
           ? JSON.parse(process.env.FRODO_SA_JWK)
           : undefined)
       );
+    },
+    setServiceAccountScope(scope: string): void {
+      state.serviceAccountScope = scope;
+    },
+    getServiceAccountScope(): string {
+      return state.serviceAccountScope;
     },
 
     setUseBearerTokenForAmApis(useBearerTokenForAmApis: boolean) {
@@ -478,6 +486,7 @@ export interface StateInterface {
   // service account settings
   serviceAccountId?: string;
   serviceAccountJwk?: JwkRsa;
+  serviceAccountScope?: string;
   // bearer token settings
   useBearerTokenForAmApis?: boolean;
   bearerToken?: AccessTokenMetaType;
