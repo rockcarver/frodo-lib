@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+-   \#391: Frodo now creates service accounts with all allowed scopes:
+    - `fr:am:*`
+    - `fr:idc:analytics:*`
+    - `fr:autoaccess:*`
+    - `fr:idc:certificate:*`
+    - `fr:idc:certificate:read`
+    - `fr:idc:content-security-policy:*`
+    - `fr:idc:custom-domain:*`
+    - `fr:idc:esv:*`
+    - `fr:idc:esv:read`
+    - `fr:idc:esv:restart`
+    - `fr:idc:esv:update`
+    - `fr:idm:*`
+    - `fr:iga:*`
+    - `fr:idc:promotion:*`
+    - `fr:idc:release:*`
+    - `fr:idc:sso-cookie:*`
+
 ## [2.0.0-73] - 2024-03-22
 
 ### Fixed
