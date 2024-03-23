@@ -10,8 +10,14 @@ import { encodeBase64Url } from '../utils/Base64Utils';
 import { debugMessage, verboseMessage } from '../utils/Console';
 import { isValidUrl, parseUrl } from '../utils/ExportImportUtils';
 import { CallbackHandler } from './CallbackOps';
-import { getServiceAccount } from './cloud/ServiceAccountOps';
-import { getConnectionProfile } from './ConnectionProfileOps';
+import {
+  getServiceAccount,
+  SERVICE_ACCOUNT_DEFAULT_SCOPES,
+} from './cloud/ServiceAccountOps';
+import {
+  getConnectionProfile,
+  saveConnectionProfile,
+} from './ConnectionProfileOps';
 import { FrodoError } from './FrodoError';
 import { createSignedJwtToken, JwkRsa } from './JoseOps';
 import {
@@ -99,7 +105,7 @@ const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
 
 const cloudIdmAdminScopes = 'openid fr:idm:* fr:idc:esv:*';
 const forgeopsIdmAdminScopes = 'openid fr:idm:*';
-const serviceAccountScopes = 'fr:am:* fr:idm:* fr:idc:esv:*';
+const serviceAccountDefaultScopes = SERVICE_ACCOUNT_DEFAULT_SCOPES.join(' '); //'fr:am:* fr:idm:* fr:idc:esv:*';
 
 const fidcClientId = 'idmAdminClient';
 const forgeopsClientId = 'idm-admin-ui';
@@ -695,13 +701,40 @@ export async function getFreshSaBearerToken({
   saJwk = saJwk ? saJwk : state.getServiceAccountJwk();
   const payload = createPayload(saId, state.getHost());
   const jwt = await createSignedJwtToken(payload, saJwk);
-  const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${serviceAccountScopes}`;
-  const response = await accessToken({
-    amBaseUrl: state.getHost(),
-    data: bodyFormData,
-    config: {},
-    state,
-  });
+  const scope = state.getServiceAccountScope() || serviceAccountDefaultScopes;
+  const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${scope}`;
+  let response: AccessTokenMetaType;
+  try {
+    response = await accessToken({
+      amBaseUrl: state.getHost(),
+      data: bodyFormData,
+      config: {},
+      state,
+    });
+  } catch (error) {
+    const err: FrodoError = error as FrodoError;
+    if (
+      err.isHttpError &&
+      err.httpErrorMessage === 'invalid_scope' &&
+      err.httpDescription?.startsWith('Unsupported scope for service account: ')
+    ) {
+      const invalidScopes: string[] = err.httpDescription
+        .substring(39)
+        .split(',');
+      const finalScopes: string[] = scope.split(' ').filter((el) => {
+        return !invalidScopes.includes(el);
+      });
+      const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${finalScopes.join(
+        ' '
+      )}`;
+      response = await accessToken({
+        amBaseUrl: state.getHost(),
+        data: bodyFormData,
+        config: {},
+        state,
+      });
+    }
+  }
   if ('access_token' in response) {
     debugMessage({
       message: `AuthenticateOps.getFreshSaBearerToken: end`,
@@ -911,6 +944,7 @@ export async function getTokens({
   if (!state.getHost()) {
     throw new FrodoError(`No host specified`);
   }
+  let usingConnectionProfile: boolean = false;
   try {
     // if username/password on cli are empty, try to read from connections.json
     if (
@@ -920,6 +954,7 @@ export async function getTokens({
       !state.getServiceAccountJwk()
     ) {
       const conn = await getConnectionProfile({ state });
+      usingConnectionProfile = true;
       state.setHost(conn.tenant);
       state.setDeploymentType(conn.deploymentType);
       state.setUsername(conn.username);
@@ -930,6 +965,7 @@ export async function getTokens({
       );
       state.setServiceAccountId(conn.svcacctId);
       state.setServiceAccountJwk(conn.svcacctJwk);
+      state.setServiceAccountScope(conn.svcacctScope);
     }
 
     // if host is not a valid URL, try to locate a valid URL and deployment type from connections.json
@@ -955,6 +991,9 @@ export async function getTokens({
       try {
         const token = await getSaBearerToken({ state });
         state.setBearerTokenMeta(token);
+        if (usingConnectionProfile && !token.from_cache) {
+          saveConnectionProfile({ host: state.getHost(), state });
+        }
         state.setUseBearerTokenForAmApis(true);
         await determineDeploymentTypeAndDefaultRealmAndVersion(state);
       } catch (saErr) {

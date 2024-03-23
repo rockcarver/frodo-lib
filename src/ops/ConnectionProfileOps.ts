@@ -11,6 +11,7 @@ import { isValidUrl, saveJsonToFile } from '../utils/ExportImportUtils';
 import {
   createServiceAccount,
   getServiceAccount,
+  SERVICE_ACCOUNT_DEFAULT_SCOPES,
 } from './cloud/ServiceAccountOps';
 import { FrodoError } from './FrodoError';
 import { createJwkRsa, createJwks, getJwkRsaPublic, JwkRsa } from './JoseOps';
@@ -121,6 +122,7 @@ export interface SecureConnectionProfileInterface {
   svcacctId?: string | null;
   encodedSvcacctJwk?: string | null;
   svcacctName?: string | null;
+  svcacctScope?: string | null;
 }
 
 export interface ConnectionProfileInterface {
@@ -135,6 +137,7 @@ export interface ConnectionProfileInterface {
   svcacctId?: string | null;
   svcacctJwk?: JwkRsa;
   svcacctName?: string | null;
+  svcacctScope?: string | null;
 }
 
 export interface ConnectionsFileInterface {
@@ -373,6 +376,7 @@ export async function getConnectionProfileByHost({
     svcacctJwk: profiles[0].encodedSvcacctJwk
       ? await dataProtection.decrypt(profiles[0].encodedSvcacctJwk)
       : null,
+    svcacctScope: profiles[0].svcacctScope ? profiles[0].svcacctScope : null,
   };
 }
 
@@ -486,10 +490,17 @@ export async function saveConnectionProfile({
         ).name;
       }
     }
-    if (state.getServiceAccountJwk())
+    if (state.getServiceAccountJwk()) {
       profile.encodedSvcacctJwk = await dataProtection.encrypt(
         state.getServiceAccountJwk()
       );
+    }
+    if (
+      state.getBearerTokenMeta() &&
+      state.getBearerTokenMeta().scope !== profile.svcacctScope
+    ) {
+      profile.svcacctScope = state.getBearerTokenMeta().scope;
+    }
     // update existing service account profile
     if (state.getBearerToken() && profile.svcacctId && !profile.svcacctName) {
       profile.svcacctName = (
@@ -624,7 +635,7 @@ export async function addNewServiceAccount({
       state,
     });
     const description = `${state.getUsername()}'s Frodo Service Account`;
-    const scope = ['fr:am:*', 'fr:idm:*', 'fr:idc:esv:*'];
+    const scope = SERVICE_ACCOUNT_DEFAULT_SCOPES;
     const jwkPrivate = await createJwkRsa();
     const jwkPublic = await getJwkRsaPublic(jwkPrivate);
     const jwks = createJwks(jwkPublic);
