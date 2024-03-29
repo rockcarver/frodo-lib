@@ -496,6 +496,7 @@ export async function saveConnectionProfile({
       );
     }
     if (
+      state.getUseBearerTokenForAmApis() &&
       state.getBearerTokenMeta() &&
       state.getBearerTokenMeta().scope !== profile.svcacctScope
     ) {
