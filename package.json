@@ -119,13 +119,12 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@pollyjs/adapter-node-http": "^6.0.5",
-    "@pollyjs/core": "^6.0.5",
-    "@pollyjs/persister-fs": "^6.0.5",
+    "@pollyjs/adapter-node-http": "^6.0.6",
+    "@pollyjs/core": "^6.0.6",
+    "@pollyjs/persister-fs": "^6.0.6",
     "agentkeepalive": "^4.2.1",
-    "axios": "0.27.2",
-    "axios-mock-adapter": "^1.21.2",
-    "axios-retry": "^3.3.1",
+    "axios": "1.6.8",
+    "axios-retry": "^4.1.0",
     "colors": "^1.4.0",
     "esprima": "^4.0.1",
     "fs-extra": "^11.1.1",
@@ -135,7 +134,7 @@
     "qs": "^6.10.3",
     "replaceall": "^0.1.6",
     "slugify": "^1.6.5",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.22.5",
@@ -157,6 +156,7 @@
     "@types/uuid": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "^6.5.0",
     "@typescript-eslint/parser": "^6.5.0",
+    "axios-mock-adapter": "^1.22.0",
     "babel-jest": "^29.3.1",
     "babel-plugin-add-import-extension": "^1.6.0",
     "babel-plugin-transform-import-meta": "^2.1.1",

@@ -4,6 +4,7 @@ import axios, {
   AxiosInstance,
   AxiosProxyConfig,
   AxiosRequestConfig,
+  RawAxiosRequestHeaders,
 } from 'axios';
 import axiosRetry from 'axios-retry';
 import { randomUUID } from 'crypto';
@@ -217,7 +218,7 @@ export function generateOauth2Api({
   authenticate?: boolean;
   state: State;
 }) {
-  let headers = {
+  let headers: RawAxiosRequestHeaders = {
     'User-Agent': userAgent,
     'X-ForgeRock-TransactionId': transactionId,
     // only add API version if we have it

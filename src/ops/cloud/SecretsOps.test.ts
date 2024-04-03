@@ -37,7 +37,7 @@ import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { state } from '../../index';
 import * as SecretsOps from './SecretsOps';
 import axios, { AxiosError } from 'axios';
-import { FrodoError } from '../../FrodoError';
+import { FrodoError } from '../FrodoError';
 
 autoSetupPolly();
 

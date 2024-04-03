@@ -38,7 +38,7 @@ import { state } from '../../index';
 import * as VariablesOps from './VariablesOps';
 import axios, { AxiosError } from 'axios';
 import { VariableExpressionType } from '../../api/cloud/VariablesApi';
-import { FrodoError } from '../../FrodoError';
+import { FrodoError } from '../FrodoError';
 
 autoSetupPolly();
 
