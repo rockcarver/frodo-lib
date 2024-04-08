@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+-   \#392: Implemented error handling pattern for methods with unusual amounts of REST calls like `frodo.config.exportFullConfiguration` and `frodo.config.importFullConfiguration`
+
 ## [2.0.0-75] - 2024-03-29
 
 ### Fixed

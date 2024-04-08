@@ -13,6 +13,7 @@ import {
   putConfigEntity as _putConfigEntity,
 } from '../api/IdmConfigApi';
 import { ConnectorServerStatusInterface } from '../api/IdmSystemApi';
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
   createProgressIndicator,
@@ -364,12 +365,38 @@ export async function readConfigEntity({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return getConfigEntity({ entityId, state });
+    const result = await getConfigEntity({ entityId, state });
+    return result;
   } catch (error) {
     throw new FrodoError(`Error reading config entity ${entityId}`, error);
   }
 }
 
+const AIC_PROTECTED_ENTITIES: string[] = [
+  'emailTemplate/frEmailUpdated',
+  'emailTemplate/frForgotUsername',
+  'emailTemplate/frOnboarding',
+  'emailTemplate/frPasswordUpdated',
+  'emailTemplate/frProfileUpdated',
+  'emailTemplate/frResetPassword',
+  'emailTemplate/frUsernameUpdated',
+];
+
+const IDM_UNAVAILABLE_ENTITIES = [
+  'script',
+  'notificationFactory',
+  'apiVersion',
+  'metrics',
+  'repo.init',
+  'endpoint/validateQueryFilter',
+  'endpoint/oauthproxy',
+  'external.rest',
+  'scheduler',
+  'org.apache.felix.fileinstall/openidm',
+  'cluster',
+  'endpoint/mappingDetails',
+  'fieldPolicy/teammember',
+];
 /**
  * Export all IDM config entities
  * @returns {ConfigEntityExportInterface} promise resolving to a ConfigEntityExportInterface object
@@ -397,38 +424,24 @@ export async function exportConfigEntities({
       entityPromises.push(
         readConfigEntity({ entityId: configEntity._id, state }).catch(
           (readConfigEntityError) => {
+            const error: FrodoError = readConfigEntityError;
             if (
+              // operation is not available in ForgeRock Identity Cloud
               !(
-                readConfigEntityError.response?.status === 403 &&
-                readConfigEntityError.response?.data?.message ===
+                error.httpStatus === 403 &&
+                error.httpMessage ===
                   'This operation is not available in ForgeRock Identity Cloud.'
               ) &&
+              // list of config entities, which do not exist by default or ever.
               !(
-                // list of config entities, which do not exist by default or ever.
-                (
-                  [
-                    'script',
-                    'notificationFactory',
-                    'apiVersion',
-                    'metrics',
-                    'repo.init',
-                    'endpoint/validateQueryFilter',
-                    'endpoint/oauthproxy',
-                    'external.rest',
-                    'scheduler',
-                    'org.apache.felix.fileinstall/openidm',
-                    'cluster',
-                    'endpoint/mappingDetails',
-                    'fieldPolicy/teammember',
-                  ].includes(configEntity._id) &&
-                  readConfigEntityError.response?.status === 404 &&
-                  readConfigEntityError.response?.data?.reason === 'Not Found'
-                )
+                IDM_UNAVAILABLE_ENTITIES.includes(configEntity._id) &&
+                error.httpStatus === 404 &&
+                error.httpErrorReason === 'Not Found'
               ) &&
               // https://bugster.forgerock.org/jira/browse/OPENIDM-18270
               !(
-                readConfigEntityError.response?.status === 404 &&
-                readConfigEntityError.response?.data?.message ===
+                error.httpStatus === 404 &&
+                error.httpMessage ===
                   'No configuration exists for id org.apache.felix.fileinstall/openidm'
               )
             ) {
@@ -504,7 +517,8 @@ export async function updateConfigEntity({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _putConfigEntity({ entityId, entityData, state });
+    const result = await _putConfigEntity({ entityId, entityData, state });
+    return result;
   } catch (error) {
     throw new FrodoError(`Error updating config entity ${entityId}`, error);
   }
@@ -522,7 +536,6 @@ export async function importConfigEntities({
   debugMessage({ message: `IdmConfigOps.importConfigEntities: start`, state });
   const response = [];
   const errors = [];
-  const imported = [];
   for (const entityId of Object.keys(importData.config)) {
     try {
       debugMessage({
@@ -534,28 +547,36 @@ export async function importConfigEntities({
         options.validate &&
         !areScriptHooksValid({ jsonData: entityData, state })
       ) {
-        errors.push(
-          Error(`Invalid script hook in the config object '${entityId}'`)
+        throw new FrodoError(
+          `Invalid script hook in the config object '${entityId}'`
         );
-      } else {
-        const result: IdObjectSkeletonInterface | PromiseRejectedResult =
-          await updateConfigEntity({ entityId, entityData, state });
-        if (result.status === 'rejected') {
-          errors.push(Error(`- ${result.reason}`));
-        } else {
-          response.push(result);
+      }
+      try {
+        const result = await updateConfigEntity({
+          entityId,
+          entityData,
+          state,
+        });
+        response.push(result);
+      } catch (error) {
+        if (
+          // protected entities (e.g. root realm email templates)
+          !(
+            state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
+            AIC_PROTECTED_ENTITIES.includes(entityId) &&
+            error.httpStatus === 403 &&
+            error.httpCode === 'ERR_BAD_REQUEST'
+          )
+        ) {
+          throw error;
         }
       }
-      imported.push(entityId);
-    } catch (e) {
-      errors.push(e);
+    } catch (error) {
+      errors.push(error);
     }
   }
   if (errors.length > 0) {
     throw new FrodoError(`Error importing config entities`, errors);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No config entities found in import data!`);
   }
   debugMessage({ message: `IdmConfigOps.importConfigEntities: end`, state });
   return response;

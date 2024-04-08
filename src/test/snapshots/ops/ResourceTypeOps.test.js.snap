@@ -25,6 +25,7 @@ exports[`ResourceTypeOps createResourceType() 2: Create existing resource type [
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 409
+    Reason: Conflict
     Message: Resource Type e219144d-8d94-47b6-8789-3a7b820d6cde already exists"
 `;
 
@@ -35,6 +36,7 @@ exports[`ResourceTypeOps deleteResourceType() 2: Delete non-existing resource ty
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
+    Reason: Not Found
     Message: Resource Type 00000000-0000-0000-0000-000000000000 does not exist in realm /alpha"
 `;
 
@@ -79,6 +81,7 @@ exports[`ResourceTypeOps exportResourceType() 2: Export non-existing resource ty
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
+    Reason: Not Found
     Message: Resource Type 00000000-0000-0000-0000-000000000000 does not exist in realm /alpha"
 `;
 
@@ -532,6 +535,7 @@ exports[`ResourceTypeOps readResourceType() 2: Get non-existing resource type by
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
+    Reason: Not Found
     Message: Resource Type 00000000-0000-0000-0000-000000000000 does not exist in realm /alpha"
 `;
 
@@ -850,5 +854,6 @@ exports[`ResourceTypeOps updateResourceType() 2: Update non-existing resource ty
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
+    Reason: Not Found
     Message: Resource Type 05e5fdb6-435e-43d9-b707-c73f7f347358 does not exist in realm /alpha"
 `;

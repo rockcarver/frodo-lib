@@ -795,7 +795,6 @@ export async function importOAuth2Clients({
 }): Promise<OAuth2ClientSkeleton[]> {
   const response = [];
   const errors = [];
-  const imported = [];
   for (const id of Object.keys(importData.application)) {
     try {
       const clientData = importData.application[id];
@@ -807,16 +806,12 @@ export async function importOAuth2Clients({
       response.push(
         await updateOAuth2Client({ clientId: id, clientData, state })
       );
-      imported.push(id);
     } catch (error) {
       errors.push(error);
     }
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing oauth2 clients`);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No oauth2 clients found in import data!`);
+    throw new FrodoError(`Error importing oauth2 clients`, errors);
   }
   return response;
 }

@@ -499,7 +499,7 @@ async function putFullServices({
         });
       }
       if (result) results.push(result);
-      printMessage({ message: `Imported: ${id}`, type: 'info', state });
+      debugMessage({ message: `Imported: ${id}`, state });
     } catch (error) {
       errors.push(error);
     }

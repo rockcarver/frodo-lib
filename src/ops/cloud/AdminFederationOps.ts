@@ -637,7 +637,6 @@ export async function importAdminFederationProviders({
 }): Promise<SocialIdpSkeleton[]> {
   const response = [];
   const errors = [];
-  const imported = [];
   for (const idpId of Object.keys(importData.idp)) {
     try {
       response.push(
@@ -656,16 +655,12 @@ export async function importAdminFederationProviders({
           state,
         });
       }
-      imported.push(idpId);
     } catch (error) {
       errors.push(error);
     }
   }
   if (errors.length) {
     throw new FrodoError(`Error importing admin federation providers`, errors);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No providers found in import data`);
   }
   return response;
 }

@@ -2344,7 +2344,6 @@ export async function importJourneys({
 }): Promise<TreeSkeleton[]> {
   const response = [];
   const errors = [];
-  const imported = [];
   const installedJourneys = (await readJourneys({ state })).map((x) => x._id);
   const unresolvedJourneys: {
     [k: string]: string[];
@@ -2403,7 +2402,6 @@ export async function importJourneys({
           state,
         })
       );
-      imported.push(tree);
       updateProgressIndicator({ id: indicatorId, message: `${tree}`, state });
     } catch (error) {
       errors.push(error);
@@ -2416,9 +2414,6 @@ export async function importJourneys({
       state,
     });
     throw new FrodoError(`Error importing journeys`, errors);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No journeys found in import data!`);
   }
   stopProgressIndicator({
     id: indicatorId,

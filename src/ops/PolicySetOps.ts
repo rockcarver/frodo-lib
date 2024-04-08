@@ -911,7 +911,6 @@ export async function importPolicySets({
 }) {
   let response = null;
   const errors = [];
-  const imported = [];
   for (const id of Object.keys(importData.policyset)) {
     try {
       const policySetData = importData.policyset[id];
@@ -929,11 +928,9 @@ export async function importPolicySets({
       }
       try {
         response = await _createPolicySet({ policySetData, state });
-        imported.push(id);
       } catch (error) {
         if (error.response?.status === 409) {
           response = await _updatePolicySet({ policySetData, state });
-          imported.push(id);
         } else throw error;
       }
       if (options.deps) {
@@ -953,9 +950,6 @@ export async function importPolicySets({
   }
   if (errors.length > 0) {
     throw new FrodoError(`Error importing policy sets`, errors);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No policy sets found in import data!`);
   }
   return response;
 }

@@ -707,7 +707,6 @@ export async function importCirclesOfTrust({
 }): Promise<CircleOfTrustSkeleton[]> {
   const responses = [];
   const errors = [];
-  const imported = [];
   try {
     entityProviders = entityProviders.map((id) => `${id}|saml2`);
     const validEntityIds = await readSaml2EntityIds({ state });
@@ -736,7 +735,6 @@ export async function importCirclesOfTrust({
                 cotData,
                 state,
               });
-              imported.push(cotId);
               responses.push(response);
             } catch (createError) {
               if ((createError as FrodoError).httpStatus === 409) {
@@ -770,7 +768,6 @@ export async function importCirclesOfTrust({
                     cotData: existingCot,
                     state,
                   });
-                  imported.push(cotId);
                   responses.push(response);
                 } else {
                   debugMessage({
@@ -848,20 +845,14 @@ export async function importCirclesOfTrust({
         });
         errors.push(error);
       }
-      imported.push(cotId);
     }
     if (errors.length > 0) {
       throw new FrodoError(`Error importing circles of trust`);
     }
-    if (0 === imported.length) {
-      throw new Error(
-        `Import error:\nNo circles of trust found in import data!`
-      );
-    }
     return responses;
   } catch (error) {
     // just re-throw previously caught errors
-    if (errors.length > 0 || imported.length == 0) {
+    if (errors.length > 0) {
       throw error;
     }
     throw new FrodoError(`Error importing circles of trust`, error);

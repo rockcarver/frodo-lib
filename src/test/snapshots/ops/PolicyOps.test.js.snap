@@ -12,6 +12,7 @@ exports[`PolicyOps deletePolicy() 2: Delete non-existing policy [DoesNotExist] 1
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
+    Reason: Not Found
     Message: Policy DoesNotExist does not exist."
 `;
 
@@ -2787,6 +2788,7 @@ exports[`PolicyOps exportPolicy() 3: Export non-existing policy [DoesNotExist] 1
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
+    Reason: Not Found
     Message: Policy DoesNotExist does not exist."
 `;
 
@@ -4129,6 +4131,7 @@ exports[`PolicyOps readPolicy() 2: Get non-existing policy [DoesNotExist] 1`] = 
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
+    Reason: Not Found
     Message: Policy DoesNotExist does not exist."
 `;
 

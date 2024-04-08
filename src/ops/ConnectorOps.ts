@@ -681,7 +681,6 @@ export async function importConnectors({
 }): Promise<ConnectorSkeleton[]> {
   const response = [];
   const errors = [];
-  const imported = [];
   for (const key of Object.keys(importData.connector)) {
     try {
       if (options.deps) {
@@ -694,16 +693,12 @@ export async function importConnectors({
           state,
         })
       );
-      imported.push(key);
     } catch (error) {
       errors.push(error);
     }
   }
   if (errors.length > 0) {
     throw new FrodoError(`Error importing connectors`, errors);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No connectors not found in import data!`);
   }
   return response;
 }

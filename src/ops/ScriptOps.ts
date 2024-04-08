@@ -611,7 +611,7 @@ export async function exportScripts({
  * @param {ScriptExportInterface} importData Script import data
  * @param {ScriptImportOptions} options Script import options
  * @param {boolean} validate If true, validates Javascript scripts to ensure no errors exist in them. Default: false
- * @returns {Promise<boolean>} true if no errors occurred during import, false otherwise
+ * @returns {Promise<ScriptSkeleton[]>} true if no errors occurred during import, false otherwise
  */
 export async function importScripts({
   scriptName,
@@ -633,7 +633,6 @@ export async function importScripts({
   try {
     debugMessage({ message: `ScriptOps.importScripts: start`, state });
     const response = [];
-    const imported = [];
     for (const existingId of Object.keys(importData.script)) {
       try {
         const scriptData = importData.script[existingId];
@@ -663,21 +662,18 @@ export async function importScripts({
             );
           }
         }
-        await updateScript({
+        const result = await updateScript({
           scriptId: newId,
           scriptData,
           state,
         });
-        imported.push(newId);
+        response.push(result);
       } catch (error) {
         errors.push(error);
       }
     }
     if (errors.length > 0) {
       throw new FrodoError(`Error importing scripts`, errors);
-    }
-    if (0 === imported.length) {
-      throw new FrodoError(`No scripts found in import data`);
     }
     debugMessage({ message: `ScriptOps.importScripts: end`, state });
     return response;

@@ -1381,7 +1381,6 @@ export async function importApplications({
 }): Promise<ApplicationSkeleton[]> {
   const response = [];
   const errors = [];
-  const imported = [];
   try {
     for (const applicationId of Object.keys(importData.managedApplication)) {
       const applicationData = importData.managedApplication[applicationId];
@@ -1402,7 +1401,6 @@ export async function importApplications({
             state,
           })
         );
-        imported.push(applicationId);
       } catch (error) {
         errors.push(error);
       }
@@ -1410,15 +1408,10 @@ export async function importApplications({
     if (errors.length) {
       throw new FrodoError(`Error importing applications`, errors);
     }
-    if (0 === imported.length) {
-      throw new FrodoError(
-        `Import error:\nNo applications found in import data!`
-      );
-    }
     return response;
   } catch (error) {
     // just re-throw previously caught errors
-    if (errors.length > 0 || imported.length == 0) {
+    if (errors.length > 0) {
       throw error;
     }
     throw new FrodoError(`Error importing applications`, error);
