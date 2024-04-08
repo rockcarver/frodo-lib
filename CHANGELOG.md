@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-76] - 2024-04-08
+
 ### Fixed
 
 -   \#392: Implemented error handling pattern for methods with unusual amounts of REST calls like `frodo.config.exportFullConfiguration` and `frodo.config.importFullConfiguration`
@@ -1429,7 +1431,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-75...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-76...HEAD
+
+[2.0.0-76]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-75...v2.0.0-76
 
 [2.0.0-75]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-74...v2.0.0-75
 
