@@ -691,7 +691,6 @@ export async function importOAuth2TrustedJwtIssuers({
 }): Promise<OAuth2TrustedJwtIssuerSkeleton[]> {
   const response = [];
   const errors = [];
-  const imported = [];
   for (const id of Object.keys(importData.trustedJwtIssuer)) {
     try {
       const issuerData = importData.trustedJwtIssuer[id];
@@ -700,16 +699,12 @@ export async function importOAuth2TrustedJwtIssuers({
       response.push(
         await updateOAuth2TrustedJwtIssuer({ issuerId: id, issuerData, state })
       );
-      imported.push(id);
     } catch (error) {
       errors.push(error);
     }
   }
   if (errors.length > 0) {
     throw new FrodoError(`Error importing trusted issuers`, errors);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No trusted issuers found in import data!`);
   }
   return response;
 }

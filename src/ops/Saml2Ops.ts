@@ -13,12 +13,7 @@ import {
 } from '../api/Saml2Api';
 import { getScript, type ScriptSkeleton } from '../api/ScriptApi';
 import { State } from '../shared/State';
-import {
-  decode,
-  decodeBase64Url,
-  encode,
-  encodeBase64Url,
-} from '../utils/Base64Utils';
+import { decodeBase64Url, encode, encodeBase64Url } from '../utils/Base64Utils';
 import {
   createProgressIndicator,
   debugMessage,
@@ -1031,7 +1026,6 @@ export async function importSaml2Providers({
   debugMessage({ message: `Saml2Ops.importSaml2Providers: start`, state });
   const response = [];
   const errors = [];
-  const imported = [];
   try {
     // find providers in hosted and in remote and map locations
     const hostedIds = Object.keys(importData.saml.hosted);
@@ -1047,7 +1041,6 @@ export async function importSaml2Providers({
       const location: Saml2ProiderLocation = hostedIds.includes(entityId64)
         ? 'hosted'
         : 'remote';
-      const entityId = decode(entityId64);
       const providerData = importData.saml[location][entityId64];
       if (options.deps) {
         try {
@@ -1070,13 +1063,11 @@ export async function importSaml2Providers({
         response.push(
           await _createProvider({ location, providerData, metaData, state })
         );
-        imported.push(entityId);
       } catch (createProviderErr) {
         try {
           response.push(
             await _updateProvider({ location, providerData, state })
           );
-          imported.push(entityId);
         } catch (error) {
           errors.push(error);
         }
@@ -1091,9 +1082,6 @@ export async function importSaml2Providers({
       throw error;
     }
     throw new FrodoError(`Error importing saml2 providers`, error);
-  }
-  if (0 === imported.length) {
-    throw new Error(`No providers found in import data!`);
   }
   debugMessage({ message: `Saml2Ops.importSaml2Providers: end`, state });
   return response;

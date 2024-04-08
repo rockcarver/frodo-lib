@@ -515,18 +515,17 @@ describe('ScriptOps', () => {
 
     test(`2: Import script by name`, async () => {
       expect.assertions(1);
-      const outcome = await ScriptOps.importScripts({
+      const result = await ScriptOps.importScripts({
         scriptName: import1.name,
         importData: import1.data,
         state,
       });
-      expect(outcome).toBeTruthy();
+      expect(result).toMatchSnapshot();
     });
 
     test(`3: Import no scripts when excluding default scripts and only default scripts given`, async () => {
       expect.assertions(1);
-      try {
-        await ScriptOps.importScripts({
+        const result = await ScriptOps.importScripts({
           scriptName: '',
           importData: import2.data,
           options: {
@@ -535,9 +534,7 @@ describe('ScriptOps', () => {
           },
           state,
         });
-      } catch (error) {
-        expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
-      }
+        expect(result).toMatchSnapshot();
     });
   });
 

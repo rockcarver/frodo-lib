@@ -122,12 +122,8 @@ export async function putConfigEntity({
     getHostBaseUrl(state.getHost()),
     entityId
   );
-  try {
-    const { data } = await generateIdmApi({ state }).put(urlString, entityData);
-    return data;
-  } catch (error) {
-    throw Error(`Error on config entity ${entityId}: ${error}`);
-  }
+  const { data } = await generateIdmApi({ state }).put(urlString, entityData);
+  return data;
 }
 
 /**

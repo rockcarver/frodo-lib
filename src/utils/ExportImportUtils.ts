@@ -14,7 +14,7 @@ import {
   encode,
   encodeBase64Url,
 } from './Base64Utils';
-import { debugMessage, printError, printMessage } from './Console';
+import { debugMessage, printMessage } from './Console';
 import { deleteDeepByKey, stringify } from './JsonUtils';
 
 export type ExportImport = {
@@ -600,16 +600,17 @@ export function isValidUrl(urlString: string): boolean {
 export async function exportOrImportWithErrorHandling<
   P extends { state: State },
   R,
->(func: (params: P) => Promise<R>, parameters: P): Promise<R | null> {
+>(
+  func: (params: P) => Promise<R>,
+  parameters: P,
+  errors: Error[]
+): Promise<R | null> {
   try {
     return await func(parameters);
   } catch (error) {
-    printError({
-      error,
-      // eslint-disable-next-line prefer-rest-params
-      message: `Error in ${arguments[0]}`,
-      state: parameters.state,
-    });
+    if (errors && Array.isArray(errors)) {
+      errors.push(error);
+    }
     return null;
   }
 }

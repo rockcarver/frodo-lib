@@ -872,7 +872,6 @@ export async function importSocialIdentityProviders({
 }): Promise<SocialIdpSkeleton[]> {
   const response = [];
   const errors = [];
-  const imported = [];
   for (const idpId of Object.keys(importData.idp)) {
     try {
       if (options.deps && importData.idp[idpId].transform) {
@@ -897,16 +896,12 @@ export async function importSocialIdentityProviders({
           state,
         })
       );
-      imported.push(idpId);
     } catch (error) {
       errors.push(error);
     }
   }
   if (errors.length > 0) {
     throw new FrodoError(`Error importing providers`);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No providers found in import data!`);
   }
   return response;
 }

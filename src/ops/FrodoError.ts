@@ -5,7 +5,8 @@ export class FrodoError extends Error {
   httpStatus: number;
   httpMessage: string;
   httpDetail: string;
-  httpErrorMessage: string;
+  httpErrorText: string;
+  httpErrorReason: string;
   httpDescription: string;
 
   constructor(message: string, originalErrors: Error | Error[] = null) {
@@ -40,9 +41,14 @@ export class FrodoError extends Error {
           ? error['response'].data.detail
           : null
         : null;
-      this.httpErrorMessage = error['response']
+      this.httpErrorText = error['response']
         ? error['response'].data
           ? error['response'].data.error
+          : null
+        : null;
+      this.httpErrorReason = error['response']
+        ? error['response'].data
+          ? error['response'].data.reason
           : null
         : null;
       this.httpDescription = error['response']
@@ -75,8 +81,11 @@ export class FrodoError extends Error {
             combinedMessage += this.httpStatus
               ? `\n    Status: ${this.httpStatus}`
               : '';
-            combinedMessage += this.httpErrorMessage
-              ? `\n    Error: ${this.httpErrorMessage}`
+            combinedMessage += this.httpErrorText
+              ? `\n    Error: ${this.httpErrorText}`
+              : '';
+            combinedMessage += this.httpErrorReason
+              ? `\n    Reason: ${this.httpErrorReason}`
               : '';
             combinedMessage += this.httpMessage
               ? `\n    Message: ${this.httpMessage}`

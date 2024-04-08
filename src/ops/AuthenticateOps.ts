@@ -715,7 +715,7 @@ export async function getFreshSaBearerToken({
     const err: FrodoError = error as FrodoError;
     if (
       err.isHttpError &&
-      err.httpErrorMessage === 'invalid_scope' &&
+      err.httpErrorText === 'invalid_scope' &&
       err.httpDescription?.startsWith('Unsupported scope for service account: ')
     ) {
       const invalidScopes: string[] = err.httpDescription

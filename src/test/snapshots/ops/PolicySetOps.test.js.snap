@@ -59,6 +59,7 @@ exports[`PolicySetOps createPolicySet() 2: Create existing policy set [FrodoTest
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 409
+    Reason: Conflict
     Message: Application already exists"
 `;
 
@@ -69,6 +70,7 @@ exports[`PolicySetOps deletePolicySet() 2: Delete non-existing policy set [DoesN
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
+    Reason: Not Found
     Message: DoesNotExist application not found in realm."
 `;
 
@@ -201,6 +203,7 @@ exports[`PolicySetOps exportPolicySet() 3: Export non-existing policy set [DoesN
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
+    Reason: Not Found
     Message: Unable to retrieve application under realm /alpha."
 `;
 
@@ -909,6 +912,7 @@ exports[`PolicySetOps readPolicySet() 2: Get non-existing policy set [DoesNotExi
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
+    Reason: Not Found
     Message: Unable to retrieve application under realm /alpha."
 `;
 
@@ -1333,5 +1337,6 @@ exports[`PolicySetOps updatePolicySet() 2: Update non-existing policy set [Frodo
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
+    Reason: Not Found
     Message: FrodoTestPolicySet6 not found."
 `;

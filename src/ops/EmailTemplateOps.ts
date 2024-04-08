@@ -392,7 +392,6 @@ export async function importEmailTemplates({
   });
   const response = [];
   const errors = [];
-  const imported = [];
   for (const templateId of Object.keys(importData.emailTemplate)) {
     try {
       debugMessage({
@@ -406,16 +405,12 @@ export async function importEmailTemplates({
           state,
         })
       );
-      imported.push(templateId);
     } catch (e) {
       errors.push(e);
     }
   }
   if (errors.length > 0) {
     throw new FrodoError(`Error importing email templates`, errors);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No email templates found in import data`);
   }
   debugMessage({
     message: `EmailTemplateOps.importEmailTemplates: end`,

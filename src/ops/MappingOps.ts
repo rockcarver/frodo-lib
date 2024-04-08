@@ -937,7 +937,6 @@ export async function importMappings({
 }): Promise<MappingSkeleton[]> {
   const response = [];
   const errors = [];
-  const imported = [];
   for (const key of Object.keys(importData.mapping)) {
     try {
       if (options.deps) {
@@ -950,16 +949,12 @@ export async function importMappings({
           state,
         })
       );
-      imported.push(key);
     } catch (error) {
       errors.push(error);
     }
   }
   if (errors.length > 0) {
     throw new FrodoError(`Error importing mappings`, errors);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No mappings found in import data!`);
   }
   return response;
 }

@@ -704,7 +704,6 @@ export async function importResourceTypes({
 }) {
   const response = [];
   const errors = [];
-  const imported = [];
   for (const id of Object.keys(importData.resourcetype)) {
     try {
       const resourceTypeData = importData.resourcetype[id];
@@ -722,16 +721,12 @@ export async function importResourceTypes({
           );
         else throw createError;
       }
-      imported.push(id);
     } catch (error) {
       errors.push(error);
     }
   }
   if (errors.length > 0) {
     throw new FrodoError(`Error importing resource types`, errors);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No resource types found in import data!`);
   }
   return response;
 }

@@ -44,6 +44,7 @@ import {
   exportEmailTemplates,
   importEmailTemplates,
 } from './EmailTemplateOps';
+import { FrodoError } from './FrodoError';
 import { exportConfigEntities, importConfigEntities } from './IdmConfigOps';
 import {
   exportSocialIdentityProviders,
@@ -68,19 +69,23 @@ export type Config = {
   /**
    * Export full configuration
    * @param {FullExportOptions} options export options
+   * @param {Error[]} collectErrors optional parameters to collect erros instead of having the function throw. Pass an empty array to collect errors and report on them but have the function perform all it can and return the export data even if it encounters errors.
    * @returns {Promise<IdObjectSkeletonInterface>} a promise resolving to a full export object
    */
   exportFullConfiguration(
-    options: FullExportOptions
+    options: FullExportOptions,
+    collectErrors?: Error[]
   ): Promise<FullExportInterface>;
   /**
    * Import full configuration
    * @param {FullExportInterface} importData import data
    * @param {FullImportOptions} options import options
+   * @param {Error[]} collectErrors optional parameters to collect erros instead of having the function throw. Pass an empty array to collect errors and report on them but have the function perform all it can and return the export data even if it encounters errors.
    */
   importFullConfiguration(
     importData: FullExportInterface,
-    options: FullImportOptions
+    options: FullImportOptions,
+    collectErrors?: Error[]
   ): Promise<void>;
 };
 
@@ -92,9 +97,10 @@ export default (state: State): Config => {
         noDecode: false,
         coords: true,
         includeDefault: false,
-      }
+      },
+      collectErrors: Error[]
     ) {
-      return exportFullConfiguration({ options, state });
+      return exportFullConfiguration({ options, collectErrors, state });
     },
     async importFullConfiguration(
       importData: FullExportInterface,
@@ -105,11 +111,13 @@ export default (state: State): Config => {
         global: false,
         realm: false,
         includeDefault: false,
-      }
+      },
+      collectErrors: Error[]
     ) {
       return importFullConfiguration({
         importData,
         options,
+        collectErrors,
         state,
       });
     },
@@ -207,23 +215,33 @@ export async function exportFullConfiguration({
     coords: true,
     includeDefault: false,
   },
+  collectErrors,
   state,
 }: {
   options: FullExportOptions;
+  collectErrors?: Error[];
   state: State;
 }): Promise<FullExportInterface> {
+  let errors: Error[] = [];
+  let throwErrors: boolean = true;
+  if (collectErrors && Array.isArray(collectErrors)) {
+    throwErrors = false;
+    errors = collectErrors;
+  }
   const { useStringArrays, noDecode, coords, includeDefault } = options;
   const stateObj = { state };
   //Export saml2 providers and circle of trusts
   let saml = (
     (await exportOrImportWithErrorHandling(
       exportSaml2Providers,
-      stateObj
+      stateObj,
+      errors
     )) as CirclesOfTrustExportInterface
   )?.saml;
   const cotExport = await exportOrImportWithErrorHandling(
     exportCirclesOfTrust,
-    stateObj
+    stateObj,
+    errors
   );
   if (saml) {
     saml.cot = cotExport?.saml.cot;
@@ -231,93 +249,150 @@ export async function exportFullConfiguration({
     saml = cotExport?.saml;
   }
   //Create full export
-  return {
+  const fullExport = {
     meta: getMetadata(stateObj),
-    agents: (await exportOrImportWithErrorHandling(exportAgents, stateObj))
-      ?.agents,
+    agents: (
+      await exportOrImportWithErrorHandling(exportAgents, stateObj, errors)
+    )?.agents,
     application: (
-      await exportOrImportWithErrorHandling(exportOAuth2Clients, {
-        options: { deps: false, useStringArrays },
-        state,
-      })
+      await exportOrImportWithErrorHandling(
+        exportOAuth2Clients,
+        {
+          options: { deps: false, useStringArrays },
+          state,
+        },
+        errors
+      )
     )?.application,
     authentication: (
       await exportOrImportWithErrorHandling(
         exportAuthenticationSettings,
-        stateObj
+        stateObj,
+        errors
       )
     )?.authentication,
     config: (
-      await exportOrImportWithErrorHandling(exportConfigEntities, stateObj)
+      await exportOrImportWithErrorHandling(
+        exportConfigEntities,
+        stateObj,
+        errors
+      )
     )?.config,
     emailTemplate: (
-      await exportOrImportWithErrorHandling(exportEmailTemplates, stateObj)
+      await exportOrImportWithErrorHandling(
+        exportEmailTemplates,
+        stateObj,
+        errors
+      )
     )?.emailTemplate,
     idp: (
       await exportOrImportWithErrorHandling(
         exportSocialIdentityProviders,
-        stateObj
+        stateObj,
+        errors
       )
     )?.idp,
     managedApplication: (
-      await exportOrImportWithErrorHandling(exportApplications, {
-        options: { deps: false, useStringArrays },
-        state,
-      })
+      await exportOrImportWithErrorHandling(
+        exportApplications,
+        {
+          options: { deps: false, useStringArrays },
+          state,
+        },
+        errors
+      )
     )?.managedApplication,
     policy: (
-      await exportOrImportWithErrorHandling(exportPolicies, {
-        options: { deps: false, prereqs: false, useStringArrays },
-        state,
-      })
+      await exportOrImportWithErrorHandling(
+        exportPolicies,
+        {
+          options: { deps: false, prereqs: false, useStringArrays },
+          state,
+        },
+        errors
+      )
     )?.policy,
     policyset: (
-      await exportOrImportWithErrorHandling(exportPolicySets, {
-        options: { deps: false, prereqs: false, useStringArrays },
-        state,
-      })
+      await exportOrImportWithErrorHandling(
+        exportPolicySets,
+        {
+          options: { deps: false, prereqs: false, useStringArrays },
+          state,
+        },
+        errors
+      )
     )?.policyset,
     resourcetype: (
-      await exportOrImportWithErrorHandling(exportResourceTypes, stateObj)
+      await exportOrImportWithErrorHandling(
+        exportResourceTypes,
+        stateObj,
+        errors
+      )
     )?.resourcetype,
     saml,
     script: (
-      await exportOrImportWithErrorHandling(exportScripts, {
-        includeDefault,
-        state,
-      })
+      await exportOrImportWithErrorHandling(
+        exportScripts,
+        {
+          includeDefault,
+          state,
+        },
+        errors
+      )
     )?.script,
-    secrets: (await exportOrImportWithErrorHandling(exportSecrets, stateObj))
-      ?.secrets,
+    secrets: (
+      await exportOrImportWithErrorHandling(exportSecrets, stateObj, errors)
+    )?.secrets,
     service: {
       ...(
-        await exportOrImportWithErrorHandling(exportServices, {
-          globalConfig: true,
-          state,
-        })
+        await exportOrImportWithErrorHandling(
+          exportServices,
+          {
+            globalConfig: true,
+            state,
+          },
+          errors
+        )
       )?.service,
       ...(
-        await exportOrImportWithErrorHandling(exportServices, {
-          globalConfig: false,
-          state,
-        })
+        await exportOrImportWithErrorHandling(
+          exportServices,
+          {
+            globalConfig: false,
+            state,
+          },
+          errors
+        )
       )?.service,
     },
-    theme: (await exportOrImportWithErrorHandling(exportThemes, stateObj))
-      ?.theme,
+    theme: (
+      await exportOrImportWithErrorHandling(exportThemes, stateObj, errors)
+    )?.theme,
     trees: (
-      await exportOrImportWithErrorHandling(exportJourneys, {
-        options: { deps: false, useStringArrays, coords },
-        state,
-      })
+      await exportOrImportWithErrorHandling(
+        exportJourneys,
+        {
+          options: { deps: false, useStringArrays, coords },
+          state,
+        },
+        errors
+      )
     )?.trees,
     variables: (
-      await exportOrImportWithErrorHandling(exportVariables, {
-        noDecode,
-        state,
-      })
+      await exportOrImportWithErrorHandling(
+        exportVariables,
+        {
+          noDecode,
+          state,
+        },
+        errors
+      )
     )?.variables,
   };
+  if (throwErrors && errors.length > 0) {
+    throw new FrodoError(`Error exporting full config`, errors);
+  }
+  return fullExport;
 }
 
 /**
@@ -335,12 +410,20 @@ export async function importFullConfiguration({
     realm: false,
     includeDefault: false,
   },
+  collectErrors,
   state,
 }: {
   importData: FullExportInterface;
   options: FullImportOptions;
+  collectErrors?: Error[];
   state: State;
 }): Promise<void> {
+  let errors: Error[] = [];
+  let throwErrors: boolean = true;
+  if (collectErrors && Array.isArray(collectErrors)) {
+    throwErrors = false;
+    errors = collectErrors;
+  }
   const {
     reUuidJourneys,
     reUuidScripts,
@@ -360,161 +443,228 @@ export async function importFullConfiguration({
     message: `Importing Scripts...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importScripts, {
-    scriptName: '',
-    importData,
-    options: {
-      reUuid: reUuidScripts,
-      includeDefault,
+  await exportOrImportWithErrorHandling(
+    importScripts,
+    {
+      scriptName: '',
+      importData,
+      options: {
+        reUuid: reUuidScripts,
+        includeDefault,
+      },
+      validate: false,
+      state,
     },
-    validate: false,
-    state,
-  });
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Authentication Settings...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importAuthenticationSettings, {
-    importData,
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importAuthenticationSettings,
+    {
+      importData,
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Agents...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importAgents, { importData, state });
+  await exportOrImportWithErrorHandling(
+    importAgents,
+    { importData, state },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing IDM Config Entities...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importConfigEntities, {
-    importData,
-    options: { validate: false },
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importConfigEntities,
+    {
+      importData,
+      options: { validate: false },
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Email Templates...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importEmailTemplates, {
-    importData,
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importEmailTemplates,
+    {
+      importData,
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Resource Types...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importResourceTypes, {
-    importData,
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importResourceTypes,
+    {
+      importData,
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Circles of Trust...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importCirclesOfTrust, {
-    importData,
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importCirclesOfTrust,
+    {
+      importData,
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Services...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importServices, {
-    importData,
-    options: { clean: cleanServices, global, realm },
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importServices,
+    {
+      importData,
+      options: { clean: cleanServices, global, realm },
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Themes...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importThemes, {
-    importData,
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importThemes,
+    {
+      importData,
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Saml2 Providers...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importSaml2Providers, {
-    importData,
-    options: { deps: false },
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importSaml2Providers,
+    {
+      importData,
+      options: { deps: false },
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Social Identity Providers...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importSocialIdentityProviders, {
-    importData,
-    options: { deps: false },
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importSocialIdentityProviders,
+    {
+      importData,
+      options: { deps: false },
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing OAuth2 Clients...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importOAuth2Clients, {
-    importData,
-    options: { deps: false },
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importOAuth2Clients,
+    {
+      importData,
+      options: { deps: false },
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Applications...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importApplications, {
-    importData,
-    options: { deps: false },
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importApplications,
+    {
+      importData,
+      options: { deps: false },
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Policy Sets...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importPolicySets, {
-    importData,
-    options: { deps: false, prereqs: false },
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importPolicySets,
+    {
+      importData,
+      options: { deps: false, prereqs: false },
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Policies...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importPolicies, {
-    importData,
-    options: { deps: false, prereqs: false },
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importPolicies,
+    {
+      importData,
+      options: { deps: false, prereqs: false },
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Journeys...`,
     state,
   });
-  await exportOrImportWithErrorHandling(importJourneys, {
-    importData,
-    options: { deps: false, reUuid: reUuidJourneys },
-    state,
-  });
+  await exportOrImportWithErrorHandling(
+    importJourneys,
+    {
+      importData,
+      options: { deps: false, reUuid: reUuidJourneys },
+      state,
+    },
+    errors
+  );
   stopProgressIndicator({
     id: indicatorId,
     message: 'Finished Importing Everything!',
     status: 'success',
     state,
   });
+  if (throwErrors && errors.length > 0) {
+    throw new FrodoError(`Error importing full config`, errors);
+  }
 }

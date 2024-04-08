@@ -1180,7 +1180,6 @@ export async function importPolicies({
 }): Promise<PolicySkeleton[]> {
   const response = [];
   const errors = [];
-  const imported = [];
   for (const id of Object.keys(importData.policy)) {
     try {
       const policyData = importData.policy[id];
@@ -1203,7 +1202,6 @@ export async function importPolicies({
         response.push(
           await updatePolicy({ policyId: policyData._id, policyData, state })
         );
-        imported.push(id);
       } catch (error) {
         errors.push(error);
       }
@@ -1224,9 +1222,6 @@ export async function importPolicies({
   }
   if (errors.length > 0) {
     throw new FrodoError(`Error importing policies`, errors);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No policies found in import data`);
   }
   return response;
 }
