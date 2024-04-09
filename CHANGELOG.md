@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+-   Improved filtering out secrets from recordings
+
 ## [2.0.0-76] - 2024-04-08
 
 ### Fixed

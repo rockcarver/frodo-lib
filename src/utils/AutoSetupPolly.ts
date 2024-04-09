@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 
 import { state } from '../index';
 import { getTokens } from '../ops/AuthenticateOps';
-import { encode, isBase64Encoded } from './Base64Utils';
+import { decode, encode, isBase64Encoded } from './Base64Utils';
 
 const { setupPolly } = pollyJest;
 
@@ -88,7 +88,7 @@ export function filterRecording(recording: {
     headers: [{ name: string; value: string }];
     postData: { text: any };
   };
-  response: { content: { text: any } };
+  response: { content: { mimeType: string; text: any } };
 }) {
   // request headers
   if (recording.request?.headers) {
@@ -125,13 +125,47 @@ export function filterRecording(recording: {
   // response body
   if (recording.response?.content?.text) {
     let body = recording.response.content.text;
-    try {
-      const json = JSON.parse(body);
-      if (json['access_token']) json['access_token'] = '<access token>';
-      if (json['id_token']) json['id_token'] = '<id token>';
-      body = JSON.stringify(json);
-    } catch (error) {
-      // ignore
+    // JSON content
+    if (
+      recording.response.content.mimeType === 'application/json;charset=UTF-8'
+    ) {
+      try {
+        const json = JSON.parse(body);
+        if (json['access_token']) json['access_token'] = '<access token>';
+        if (json['id_token']) json['id_token'] = '<id token>';
+        if (json.accessKey) json.accessKey = '<access key>';
+        if (json.result) {
+          for (const obj of json.result) {
+            // check for scripts
+            if (obj.script) {
+              try {
+                let script = decode(obj.script);
+                script = script.replace(
+                  /(var .*?(?:Sid|sid|Secret|secret|PhoneNumberFrom) = (?:"|'))(.*?)((?:"|'))/g,
+                  '$1<secret>$3'
+                );
+                obj.script = encode(script);
+              } catch (error) {
+                //
+              }
+            }
+          }
+        }
+        body = JSON.stringify(json);
+      } catch (error) {
+        // ignore
+      }
+    }
+    // Text and XML content
+    if (recording.response.content.mimeType === 'text/xml;charset=utf-8') {
+      try {
+        body = body.replace(
+          /<ds:X509Certificate>.+?<\/ds:X509Certificate>/gs,
+          `<ds:X509Certificate>${encode('<certificate>')}</ds:X509Certificate>`
+        );
+      } catch (error) {
+        // ignore
+      }
     }
     recording.response.content.text = body;
   }
