@@ -1509,7 +1509,6 @@ export async function importJourney({
 }): Promise<TreeSkeleton> {
   let response = null;
   const errors = [];
-  const imported = [];
 
   try {
     const { reUuid, deps } = options;
@@ -2109,7 +2108,6 @@ export async function importJourney({
         treeData: importData.tree,
         state,
       });
-      imported.push(treeId);
       if (verbose)
         printMessage({
           message: `\n    - Done`,
@@ -2142,7 +2140,6 @@ export async function importJourney({
             treeData: importData.tree,
             state,
           });
-          imported.push(treeId);
           if (verbose)
             printMessage({
               message: `\n    - Done`,
@@ -2169,9 +2166,6 @@ export async function importJourney({
   }
   if (errors.length > 0) {
     throw new FrodoError(`Error importing journey`, errors);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No journey found in import data`);
   }
   return response;
 }
