@@ -60,7 +60,10 @@ import {
   getMetadata,
   getTypedFilename,
 } from '../utils/ExportImportUtils';
-import { getCurrentRealmManagedUser } from '../utils/ForgeRockUtils';
+import {
+  getCurrentRealmManagedUser,
+  getCurrentRealmName,
+} from '../utils/ForgeRockUtils';
 import { findInArray } from '../utils/JsonUtils';
 import { readCirclesOfTrust } from './CirclesOfTrustOps';
 import {
@@ -1863,6 +1866,23 @@ export async function importJourney({
               state,
             });
         }
+        //special case nodes referencing PingOne Service
+        if (innerNodeData['tntpPingOneConfigName']) {
+          const p1ServiceName = (
+            innerNodeData['tntpPingOneConfigName'] as string
+          ).replace(
+            /(.+?\[\/)(.+?)(])/g,
+            '$1' + getCurrentRealmName(state) + '$3'
+          );
+          innerNodeData['tntpPingOneConfigName'] = p1ServiceName;
+          if (verbose)
+            printMessage({
+              message: `\n      - tntpPingOneConfigName: ${p1ServiceName}`,
+              type: 'info',
+              newline: false,
+              state,
+            });
+        }
         try {
           await putNode({
             nodeId: newUuid,
@@ -1985,6 +2005,23 @@ export async function importJourney({
           if (verbose)
             printMessage({
               message: `\n      - identityResource: ${nodeData['identityResource']}`,
+              type: 'info',
+              newline: false,
+              state,
+            });
+        }
+        //special case nodes referencing PingOne Service
+        if (nodeData['tntpPingOneConfigName']) {
+          const p1ServiceName = (
+            nodeData['tntpPingOneConfigName'] as string
+          ).replace(
+            /(.+?\[\/)(.+?)(])/g,
+            '$1' + getCurrentRealmName(state) + '$3'
+          );
+          nodeData['tntpPingOneConfigName'] = p1ServiceName;
+          if (verbose)
+            printMessage({
+              message: `\n      - tntpPingOneConfigName: ${p1ServiceName}`,
               type: 'info',
               newline: false,
               state,
