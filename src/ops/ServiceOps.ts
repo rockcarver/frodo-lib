@@ -760,6 +760,8 @@ export async function importService({
         globalConfig: true,
         state,
       });
+      debugMessage({ message: `ServiceOps.importService: end`, state });
+      return result;
     }
     if (
       options.realm ||
@@ -772,9 +774,12 @@ export async function importService({
         globalConfig: false,
         state,
       });
+      debugMessage({ message: `ServiceOps.importService: end`, state });
+      return result;
     }
-    debugMessage({ message: `ServiceOps.importService: end`, state });
-    return result;
+    throw new FrodoError(
+      `Nothing to do! If the service you are attempting to import is a global service, make sure to specify so explicitly or if the service was exported from a different realm, make sure to explicitly specify to import into the current realm. Current options:\nExplicitly import into current realm: ${options.realm}\nExported from realm: ${serviceData.location}\nGlobal service: ${options.global}`
+    );
   } catch (error) {
     throw new FrodoError(`Error importing service ${serviceId}`, error);
   }
