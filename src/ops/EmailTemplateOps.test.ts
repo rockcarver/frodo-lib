@@ -33,6 +33,7 @@ import { state } from '../index';
 import * as IdmConfigApi from '../api/IdmConfigApi';
 import * as EmailTemplateOps from './EmailTemplateOps';
 import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { EmailTemplateExportInterface, EmailTemplateSkeleton } from './EmailTemplateOps';
 
 const ctx = autoSetupPolly();
 
@@ -200,11 +201,12 @@ describe('EmailTemplateOps', () => {
     });
 
     test(`1: importEmailTemplates`, async () => {
-      const importData = {
+      const importData: EmailTemplateExportInterface = {
         emailTemplate: {
-          [template1.id]: template1,
-          [template2.id]: template2,
-          [template3.id]: template3
+          // TODO: the polly recording needs the test to use the data this way, but it's quite likely that we should be using `template.data`
+          [template1.id]: template1 as unknown as EmailTemplateSkeleton,
+          [template2.id]: template2 as unknown as EmailTemplateSkeleton,
+          [template3.id]: template3 as unknown as EmailTemplateSkeleton
         }
       }
       const response = await EmailTemplateOps.importEmailTemplates({
