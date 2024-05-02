@@ -1,9 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
 import { generateReleaseApi } from '../api/BaseApi';
 import { State } from '../shared/State';
+import { getVersionFromPackage } from '../shared/Version';
 
 export type Version = {
   getVersion(): string;
@@ -27,15 +24,9 @@ export default (state: State): Version => {
   };
 };
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const pkg = JSON.parse(
-  fs.readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8')
-);
-
 export function getVersion({ state }: { state: State }) {
   // must initialize state to avoid library initialization issues
-  if (state) return `${pkg.version}`;
+  if (state) return getVersionFromPackage();
 }
 
 export async function getAllVersions({
