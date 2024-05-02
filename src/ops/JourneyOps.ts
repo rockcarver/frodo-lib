@@ -60,7 +60,10 @@ import {
   getMetadata,
   getTypedFilename,
 } from '../utils/ExportImportUtils';
-import { getCurrentRealmManagedUser } from '../utils/ForgeRockUtils';
+import {
+  getCurrentRealmManagedUser,
+  getCurrentRealmName,
+} from '../utils/ForgeRockUtils';
 import { findInArray } from '../utils/JsonUtils';
 import { readCirclesOfTrust } from './CirclesOfTrustOps';
 import {
@@ -1509,7 +1512,6 @@ export async function importJourney({
 }): Promise<TreeSkeleton> {
   let response = null;
   const errors = [];
-  const imported = [];
 
   try {
     const { reUuid, deps } = options;
@@ -1864,6 +1866,23 @@ export async function importJourney({
               state,
             });
         }
+        //special case nodes referencing PingOne Service
+        if (innerNodeData['tntpPingOneConfigName']) {
+          const p1ServiceName = (
+            innerNodeData['tntpPingOneConfigName'] as string
+          ).replace(
+            /(.+?\[\/)(.+?)(])/g,
+            '$1' + getCurrentRealmName(state) + '$3'
+          );
+          innerNodeData['tntpPingOneConfigName'] = p1ServiceName;
+          if (verbose)
+            printMessage({
+              message: `\n      - tntpPingOneConfigName: ${p1ServiceName}`,
+              type: 'info',
+              newline: false,
+              state,
+            });
+        }
         try {
           await putNode({
             nodeId: newUuid,
@@ -1991,6 +2010,23 @@ export async function importJourney({
               state,
             });
         }
+        //special case nodes referencing PingOne Service
+        if (nodeData['tntpPingOneConfigName']) {
+          const p1ServiceName = (
+            nodeData['tntpPingOneConfigName'] as string
+          ).replace(
+            /(.+?\[\/)(.+?)(])/g,
+            '$1' + getCurrentRealmName(state) + '$3'
+          );
+          nodeData['tntpPingOneConfigName'] = p1ServiceName;
+          if (verbose)
+            printMessage({
+              message: `\n      - tntpPingOneConfigName: ${p1ServiceName}`,
+              type: 'info',
+              newline: false,
+              state,
+            });
+        }
         try {
           await putNode({ nodeId: newUuid, nodeType, nodeData, state });
         } catch (nodeImportError) {
@@ -2109,7 +2145,6 @@ export async function importJourney({
         treeData: importData.tree,
         state,
       });
-      imported.push(treeId);
       if (verbose)
         printMessage({
           message: `\n    - Done`,
@@ -2142,7 +2177,6 @@ export async function importJourney({
             treeData: importData.tree,
             state,
           });
-          imported.push(treeId);
           if (verbose)
             printMessage({
               message: `\n    - Done`,
@@ -2169,9 +2203,6 @@ export async function importJourney({
   }
   if (errors.length > 0) {
     throw new FrodoError(`Error importing journey`, errors);
-  }
-  if (0 === imported.length) {
-    throw new FrodoError(`No journey found in import data`);
   }
   return response;
 }
