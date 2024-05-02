@@ -110,6 +110,6 @@ export class FrodoError extends Error {
   }
 
   toString() {
-    this.getCombinedMessage();
+    return this.getCombinedMessage();
   }
 }

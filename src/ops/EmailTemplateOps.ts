@@ -370,7 +370,7 @@ export async function updateEmailTemplate({
       state,
     });
   } catch (error) {
-    throw new FrodoError(`Error updting email template ${templateId}`, error);
+    throw new FrodoError(`Error updating email template ${templateId}`, error);
   }
 }
 
