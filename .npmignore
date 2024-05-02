@@ -1,9 +1,6 @@
-.babelrc.js
 .eslintrc
 .github/
 .prettierrc
-babel.config.cjs.json
-babel.config.esm.json
 cjs/**/*.test.js
 cjs/test/
 CODE_OF_CONDUCT.md

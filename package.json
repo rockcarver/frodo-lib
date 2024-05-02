@@ -2,14 +2,14 @@
   "name": "@rockcarver/frodo-lib",
   "version": "2.0.0-79",
   "type": "commonjs",
-  "main": "./cjs/index.js",
-  "module": "./esm/index.js",
-  "types": "./types/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "require": "./cjs/index.js",
-      "default": "./esm/index.js",
-      "import": "./esm/index.js"
+      "require": "./dist/index.js",
+      "default": "./dist/esm/index.js",
+      "import": "./dist/esm/index.js"
     }
   },
   "scripts": {
@@ -20,18 +20,10 @@
     "test:record_noauth": "NODE_OPTIONS=--experimental-vm-modules FRODO_POLLY_MODE=record_noauth npx jest --verbose=true --silent=false --updateSnapshot --testPathIgnorePatterns cjs --testPathPattern",
     "test:update": "NODE_OPTIONS=--experimental-vm-modules npx jest --verbose=true --silent=false --updateSnapshot --testPathPattern",
     "lint": "eslint --ext .ts --ignore-path .gitignore .",
-    "clean-esm": "rimraf esm",
-    "transpile-esm": "babel --out-dir esm --extensions \".ts\" --source-maps --config-file ./babel.config.esm.json src && echo {\\\"type\\\": \\\"module\\\"} > esm/package.json",
-    "resources-esm": "copyfiles -u 1 \"src/**/*.json\" esm",
-    "clean-cjs": "rimraf cjs",
-    "transpile-cjs": "babel --out-dir cjs --extensions \".ts\" --source-maps --config-file ./babel.config.cjs.json src",
-    "resources-cjs": "copyfiles -u 1 \"src/**/*.json\" cjs",
-    "clean-types": "rimraf types",
-    "generate-types": "tsc",
-    "build": "npm run clean-esm && npm run transpile-esm && npm run resources-esm && npm run clean-cjs && npm run transpile-cjs && npm run resources-cjs && npm run clean-types && npm run generate-types",
-    "watch": "babel --watch --out-dir esm --extensions \".ts\" --source-maps --config-file ./babel.config.esm.json src",
-    "watch-cjs": "babel --watch --out-dir cjs --extensions \".ts\" --source-maps --config-file ./babel.config.cjs.json src",
-    "doc": "npx typedoc"
+    "clean-dist": "rimraf dist",
+    "build": "npm run clean-dist && npx tsup ./src/index.ts --legacy-output --format esm,cjs --dts",
+    "doc": "npx typedoc",
+    "prettier:fix": "npm run prettier write"
   },
   "description": "A library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.",
   "keywords": [
@@ -49,7 +41,7 @@
     "devops"
   ],
   "engines": {
-    "node": ">=16"
+    "node": ">=18.17.0"
   },
   "repository": {
     "type": "git",
@@ -121,14 +113,6 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.22.5",
-    "@babel/core": "^7.20.2",
-    "@babel/eslint-parser": "^7.19.1",
-    "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
-    "@babel/plugin-syntax-import-assertions": "^7.20.0",
-    "@babel/plugin-transform-modules-commonjs": "^7.19.6",
-    "@babel/preset-env": "^7.20.2",
-    "@babel/preset-typescript": "^7.18.6",
     "@jest/globals": "^29.0.1",
     "@types/esprima": "^4.0.3",
     "@types/fs-extra": "^11.0.1",
@@ -140,8 +124,6 @@
     "@types/uuid": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "^6.5.0",
     "@typescript-eslint/parser": "^6.5.0",
-    "babel-plugin-add-import-extension": "^1.6.0",
-    "babel-plugin-transform-import-meta": "^2.1.1",
     "copyfiles": "^2.4.1",
     "del": "6.1.1",
     "eslint": "^8.28.0",
@@ -156,10 +138,11 @@
     "loglevel": "^1.8.1",
     "map-stream": "^0.0.7",
     "mock-fs": "^5.2.0",
-    "prettier": "^3.0.3",
+    "prettier": "^3.2.5",
     "rimraf": "^5.0.1",
     "setup-polly-jest": "^0.11.0",
     "ts-jest": "^29.1.2",
+    "tsup": "^8.0.2",
     "typedoc": "^0.25.0",
     "typedoc-plugin-missing-exports": "^2.0.0",
     "typescript": "^5.2.2"
