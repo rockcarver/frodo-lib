@@ -8,8 +8,8 @@
   "exports": {
     ".": {
       "require": "./cjs/index.js",
-      "default": "./esm/index.js",
-      "import": "./esm/index.js"
+      "import": "./esm/index.js",
+      "default": "./esm/index.js"
     }
   },
   "scripts": {
