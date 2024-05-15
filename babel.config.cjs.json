@@ -9,9 +9,5 @@
       }
     ],
     "@babel/preset-typescript"
-  ],
-  "plugins": [
-    ["babel-plugin-transform-import-meta"],
-    ["babel-plugin-add-import-extension"]
   ]
 }

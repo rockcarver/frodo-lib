@@ -41,7 +41,7 @@ import * as PolicySetOps from './PolicySetOps';
 import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
 import { type PolicySetSkeleton } from '../api/PolicySetApi';
 import { cloneDeep } from '../utils/JsonUtils';
-import { PolicySetExportInterface } from '../../types/ops/PolicySetOps';
+import { PolicySetExportInterface } from './PolicySetOps';
 
 const ctx = autoSetupPolly();
 

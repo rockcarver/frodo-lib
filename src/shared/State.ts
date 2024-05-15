@@ -1,8 +1,4 @@
 /* eslint-disable no-console */
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
 import { FeatureInterface } from '../api/cloud/FeatureApi';
 import { UserSessionMetaType } from '../ops/AuthenticateOps';
 import { FrodoError } from '../ops/FrodoError';
@@ -13,12 +9,7 @@ import {
   ProgressIndicatorType,
 } from '../utils/Console';
 import { cloneDeep } from '../utils/JsonUtils';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const pkg = JSON.parse(
-  fs.readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8')
-);
+import { getPackageVersion } from './Version';
 
 export type State = {
   /**
@@ -312,7 +303,7 @@ export default (initialState: StateInterface): State => {
       state.frodoVersion = version;
     },
     getFrodoVersion() {
-      return state.frodoVersion || `v${pkg.version} [${process.version}]`;
+      return state.frodoVersion || getPackageVersion();
     },
 
     setConnectionProfilesPath(path: string) {

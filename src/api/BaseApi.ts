@@ -7,13 +7,11 @@ import axios, {
 } from 'axios';
 import axiosRetry from 'axios-retry';
 import { randomUUID } from 'crypto';
-import fs from 'fs';
 import HttpsProxyAgent from 'https-proxy-agent';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 import _curlirize from '../ext/axios-curlirize/curlirize';
 import StateImpl, { State } from '../shared/State';
+import { getUserAgent } from '../shared/Version';
 import { curlirizeMessage, printMessage } from '../utils/Console';
 import { mergeDeep } from '../utils/JsonUtils';
 import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
@@ -21,12 +19,6 @@ import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
 if (process.env.FRODO_MOCK) {
   setupPollyForFrodoLib({ state: StateImpl({}) });
 }
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const pkg = JSON.parse(
-  fs.readFileSync(path.resolve(__dirname, '../../package.json'), 'utf8')
-);
 
 axiosRetry(axios, {
   retries: 3,
@@ -43,7 +35,7 @@ const maxSockets = 100;
 const maxFreeSockets = 10;
 const freeSocketTimeout = 30000;
 
-const userAgent = `${pkg.name}/${pkg.version}`;
+const userAgent = getUserAgent();
 const transactionId = `frodo-${randomUUID()}`;
 let httpAgent, httpsAgent;
 

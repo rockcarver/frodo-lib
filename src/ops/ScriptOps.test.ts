@@ -29,10 +29,10 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { FrodoError, state } from '../index';
+import { state } from '../index';
 import * as ScriptOps from './ScriptOps';
 import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
-import { type ScriptSkeleton } from '../../types/api/ScriptApi';
+import { ScriptSkeleton } from '../api/ScriptApi';
 
 const ctx = autoSetupPolly();
 

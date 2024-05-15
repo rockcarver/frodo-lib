@@ -1,6 +1,4 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath, URL } from 'url';
+import { URL } from 'url';
 import util from 'util';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -39,6 +37,12 @@ import {
 import { accessTokenRfc7523AuthZGrant } from './OAuth2OidcOps';
 import { updateOAuth2TrustedJwtIssuer } from './OAuth2TrustedJwtIssuerOps';
 import { getRealmManagedOrganization } from './OrganizationOps';
+import templateIpAddresses from './templates/autoaccess/IPAddresses.json';
+import templateUserAgents from './templates/autoaccess/UserAgents.json';
+import templateUsernames from './templates/autoaccess/Usernames.json';
+import GENERIC_EXTENSION_ATTRIBUTES from './templates/cloud/GenericExtensionAttributesTemplate.json';
+import OAUTH2_CLIENT from './templates/OAuth2ClientTemplate.json';
+import OAUTH2_ISSUER from './templates/OAuth2TrustedJwtIssuerTemplate.json';
 
 export type Admin = {
   generateRfc7523AuthZGrantArtefacts(
@@ -336,30 +340,6 @@ export default (state: State): Admin => {
     },
   };
 };
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const OAUTH2_CLIENT: OAuth2ClientSkeleton = JSON.parse(
-  fs.readFileSync(
-    path.resolve(__dirname, './templates/OAuth2ClientTemplate.json'),
-    'utf8'
-  )
-);
-const OAUTH2_ISSUER: OAuth2TrustedJwtIssuerSkeleton = JSON.parse(
-  fs.readFileSync(
-    path.resolve(__dirname, './templates/OAuth2TrustedJwtIssuerTemplate.json'),
-    'utf8'
-  )
-);
-const GENERIC_EXTENSION_ATTRIBUTES = JSON.parse(
-  fs.readFileSync(
-    path.resolve(
-      __dirname,
-      './templates/cloud/GenericExtensionAttributesTemplate.json'
-    ),
-    'utf8'
-  )
-);
 
 const protectedClients = ['ui', 'idm-provisioning'];
 const protectedSubjects = ['amadmin', 'autoid-resource-server'];
@@ -1572,27 +1552,6 @@ export async function repairOrgModel({
     });
   }
 }
-
-const templateUsernames: string[] = JSON.parse(
-  fs.readFileSync(
-    path.resolve(__dirname, './templates/autoaccess/Usernames.json'),
-    'utf8'
-  )
-);
-
-const templateUserAgents: string[] = JSON.parse(
-  fs.readFileSync(
-    path.resolve(__dirname, './templates/autoaccess/UserAgents.json'),
-    'utf8'
-  )
-);
-
-const templateIpAddresses: string[] = JSON.parse(
-  fs.readFileSync(
-    path.resolve(__dirname, './templates/autoaccess/IPAddresses.json'),
-    'utf8'
-  )
-);
 
 export function getUniqueValues(values: string[]): string[] {
   return [...new Set(values)].filter((it) => it);
