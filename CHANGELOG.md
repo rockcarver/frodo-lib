@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- \#409: Importing applications does not import required mappings
+
 ## [2.0.0-82] - 2024-05-15
 
 ## [2.0.0-81] - 2024-05-14

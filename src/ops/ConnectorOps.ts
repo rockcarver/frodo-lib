@@ -14,7 +14,7 @@ import {
 import { getMetadata } from '../utils/ExportImportUtils';
 import { FrodoError } from './FrodoError';
 import { readConfigEntitiesByType } from './IdmConfigOps';
-import { MappingSkeleton, readMappings } from './MappingOps';
+import { MappingSkeleton, readMappings, updateMapping } from './MappingOps';
 import { ExportMetaData } from './OpsTypes';
 
 export type Connector = {
@@ -597,14 +597,20 @@ export async function importConnector({
   for (const key of Object.keys(importData.connector)) {
     if (key === connectorId) {
       try {
-        if (options.deps) {
-          //
-        }
         response = await updateConnector({
           connectorId,
           connectorData: importData.connector[connectorId],
           state,
         });
+        if (options.deps) {
+          for (const connKey of Object.keys(importData.mapping)) {
+            response = await updateMapping({
+              mappingId: importData.mapping[connKey]._id,
+              mappingData: importData.mapping[connKey],
+              state,
+            });
+          }
+        }
         imported.push(key);
       } catch (error) {
         errors.push(error);
