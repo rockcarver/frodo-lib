@@ -467,10 +467,15 @@ export async function updateMapping({
       let mappings = await readMappings({ state });
       mappings = mappings.map((mapping) => {
         if (mappingId == mapping._id) {
+          // update existing mapping with incoming
           return mappingData;
         }
         return mapping;
       });
+      if (mappings.findIndex((mapping) => mapping._id == mappingId) == -1) {
+        // incoming mapping does not exist, add it as new in the array
+        mappings.push(mappingData);
+      }
       const sync = await putConfigEntity({
         entityId: 'sync',
         entityData: { mappings },
