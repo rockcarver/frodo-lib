@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-83] - 2024-05-20
+
 ### Fixed
 
-- \#409: Importing applications does not import required mappings
+-   \#409: Importing applications does not import required mappings
 
 ## [2.0.0-82] - 2024-05-15
 
@@ -1451,7 +1453,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-82...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-83...HEAD
+
+[2.0.0-83]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-82...v2.0.0-83
 
 [2.0.0-82]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-81...v2.0.0-82
 
