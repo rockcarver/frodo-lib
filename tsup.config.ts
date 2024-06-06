@@ -1,14 +1,14 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  // entryPoints: ['src/index.ts'],
-  entry: ['src/**/*.ts'], //include all files under src
+  entry: ['src/index.ts'], //include all files under src
   format: ['esm', 'cjs'], // generate cjs and esm files
   dts: true, // generate dts files
   splitting: true,
   sourcemap: true,
   clean: true,
   bundle: true,
+  legacyOutput: true,
   external: [
     // list all the dev dependencies, which do NOT need to be bundled as indicated in package.json (_devDependencies)
     '@jest/globals',
