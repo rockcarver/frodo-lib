@@ -177,14 +177,39 @@ function getFrodoCommand({ state }: { state: State }) {
     if (
       !process.argv[1].endsWith('frodo') &&
       !process.argv[1].endsWith('frodo.exe') &&
-      !process.argv[1].endsWith('app.js')
+      !process.argv[1].endsWith('app.cjs')
     ) {
       cmd =
         path.parse(process.argv[1]).name.replace('-', '/') +
         '/' +
         getFrodoArgsId({ start: 2, state });
     } else {
-      cmd = process.argv[2] + '/' + getFrodoArgsId({ start: 3, state });
+      cmd = process.argv[2] + '/';
+      let i = 3;
+      if (cmd === 'info/') {
+        cmd += getFrodoArgsId({ start: 3, state });
+      } else {
+        if (
+          process.argv[i] === 'export' ||
+          process.argv[i] === 'import' ||
+          process.argv[i] === 'list' ||
+          process.argv[i] === 'delete' ||
+          process.argv[i] === 'count' ||
+          process.argv[i] === 'describe' ||
+          process.argv[i] === 'enable' ||
+          process.argv[i] === 'disable'
+        ) {
+          cmd += process.argv[i++] + '/';
+        }
+        let firstParamIndex = process.argv.findIndex((a) => a.startsWith('-'));
+        firstParamIndex =
+          firstParamIndex === -1 ? process.argv.length : firstParamIndex;
+        cmd += process.argv.slice(i, firstParamIndex).join('-');
+        if (!cmd.endsWith('/')) {
+          cmd += '/';
+        }
+        cmd += getFrodoArgsId({ start: firstParamIndex, state });
+      }
     }
   } catch (error) {
     printMessage({
