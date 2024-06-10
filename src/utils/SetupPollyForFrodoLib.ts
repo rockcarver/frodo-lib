@@ -177,7 +177,7 @@ function getFrodoCommand({ state }: { state: State }) {
     if (
       !process.argv[1].endsWith('frodo') &&
       !process.argv[1].endsWith('frodo.exe') &&
-      !process.argv[1].endsWith('app.js')
+      !process.argv[1].endsWith('app.cjs')
     ) {
       cmd =
         path.parse(process.argv[1]).name.replace('-', '/') +
