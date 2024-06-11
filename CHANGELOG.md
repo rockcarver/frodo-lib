@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+-   Updated dependencies
+-   Updated examples
+
 ## [2.0.0-84] - 2024-06-11
+
+### Changed
+
+-   Updated dependencies, in particular axios
+-   Pipeline changes
 
 ## [2.0.0-83] - 2024-05-20
 
