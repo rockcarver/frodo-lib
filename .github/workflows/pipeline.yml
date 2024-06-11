@@ -64,18 +64,8 @@ jobs:
         id: version-from-tag
         run: echo "version=$(echo '${{ steps.version-bump.outputs.newTag }}' | sed 's/v//')" >> "$GITHUB_OUTPUT"
 
-      - name: Generate types
-        run: npm run generate-types
-
-      - name: Build esm
-        run: |
-          npm run transpile-esm
-          npm run resources-esm
-
-      - name: Build cjs
-        run: |
-          npm run transpile-cjs
-          npm run resources-cjs
+      - name: Build esm, cjs, types
+        run: npm run build
 
       - name: Build docs
         run: |
@@ -88,7 +78,7 @@ jobs:
         run: npm audit --omit dev --audit-level high
 
       - name: Zip build artifacts
-        run: zip -r build.zip esm cjs mocks package.json package-lock.json snapshotResolve.js types docs
+        run: zip -r build.zip dist mocks package.json package-lock.json snapshotResolve.js types docs
 
       - uses: actions/upload-artifact@v3
         with:

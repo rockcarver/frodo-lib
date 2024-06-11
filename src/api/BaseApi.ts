@@ -7,7 +7,7 @@ import axios, {
 } from 'axios';
 import axiosRetry from 'axios-retry';
 import { randomUUID } from 'crypto';
-import HttpsProxyAgent from 'https-proxy-agent';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 import _curlirize from '../ext/axios-curlirize/curlirize';
 import StateImpl, { State } from '../shared/State';
@@ -61,15 +61,11 @@ function getHttpsAgent(allowInsecureConnection: boolean): Agent.HttpsAgent {
   };
   const httpsProxy = process.env.HTTPS_PROXY || process.env.https_proxy;
   if (httpsProxy) {
-    // https://github.com/axios/axios/issues/3459
+    // https://github.com/axios/axios/issues/3459#issuecomment-766171276
     // eslint-disable-next-line no-console
     console.error(`Using proxy ${httpsProxy}`['yellow']);
-    const parsed = new URL(httpsProxy);
-    options['host'] = parsed.hostname;
-    options['port'] = parsed.port;
-    options['protocol'] = parsed.protocol;
     options.rejectUnauthorized = !allowInsecureConnection;
-    httpsAgent = HttpsProxyAgent(options);
+    httpsAgent = new HttpsProxyAgent(httpsProxy, options);
     return httpsAgent;
   }
   httpsAgent = new Agent.HttpsAgent({
@@ -209,7 +205,7 @@ export function generateOauth2Api({
   authenticate?: boolean;
   state: State;
 }) {
-  let headers = {
+  let headers: { [key: string]: any } = {
     'User-Agent': userAgent,
     'X-ForgeRock-TransactionId': transactionId,
     // only add API version if we have it
