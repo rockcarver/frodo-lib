@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "module": "ES6",
     "allowSyntheticDefaultImports": true
   },
-  "exclude": ["node_modules", "examples", "dist"],
-  "include": ["src/**/*"]
+  "exclude": ["node_modules"]
 }
