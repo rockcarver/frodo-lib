@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-85] - 2024-06-11
+
 ### Changed
 
 -   Updated dependencies
@@ -1465,7 +1467,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-84...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-85...HEAD
+
+[2.0.0-85]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-84...v2.0.0-85
 
 [2.0.0-84]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-83...v2.0.0-84
 
