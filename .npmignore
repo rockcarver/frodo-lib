@@ -1,20 +1,18 @@
 .eslintrc
 .github/
+.nvmrc
 .prettierrc
-cjs/**/*.test.js
-cjs/test/
 CODE_OF_CONDUCT.md
+PIPELINE.md
 docs/
-esm/**/*.test.js
-esm/test/
-jest.config.cjs.json
-jest.config.esm.json
+jest.config.js
 jsconfig.json
 resources/
 snapshotResolve.js
 src/*
 test/*
 tsconfig.json
+tsup.config.ts
 
 # Logs
 logs
