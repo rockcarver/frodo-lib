@@ -532,8 +532,8 @@ async function exportOAuth2ClientDependencies(
           } catch (error) {
             if (
               !(
-                error.response?.status === 403 &&
-                error.response?.data?.message ===
+                (error as FrodoError).httpStatus === 403 &&
+                (error as FrodoError).httpMessage ===
                   'This operation is not available in ForgeRock Identity Cloud.'
               )
             ) {

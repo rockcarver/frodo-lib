@@ -475,7 +475,11 @@ describe('ScriptOps', () => {
 
     test('1: Export all scripts', async () => {
       const response = await ScriptOps.exportScripts({
-        includeDefault: false,
+        options: {
+          includeLibraries: false,
+          includeDefault: false,
+          useStringArrays: true,
+        },
         state,
       });
       expect(response).toMatchSnapshot({
@@ -485,7 +489,11 @@ describe('ScriptOps', () => {
 
     test('2: Export all scripts, including default scripts', async () => {
       const response = await ScriptOps.exportScripts({
-        includeDefault: true,
+        options: {
+          includeLibraries: false,
+          includeDefault: true,
+          useStringArrays: true,
+        },
         state,
       });
       expect(response).toMatchSnapshot({
@@ -525,16 +533,16 @@ describe('ScriptOps', () => {
 
     test(`3: Import no scripts when excluding default scripts and only default scripts given`, async () => {
       expect.assertions(1);
-        const result = await ScriptOps.importScripts({
-          scriptName: '',
-          importData: import2.data,
-          options: {
-            reUuid: false,
-            includeDefault: false,
-          },
-          state,
-        });
-        expect(result).toMatchSnapshot();
+      const result = await ScriptOps.importScripts({
+        scriptName: '',
+        importData: import2.data,
+        options: {
+          reUuid: false,
+          includeDefault: false,
+        },
+        state,
+      });
+      expect(result).toMatchSnapshot();
     });
   });
 

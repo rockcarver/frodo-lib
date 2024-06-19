@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+-   \#402: Library scripts are now treated as dependencies during script and journey exports and imports.
+
 ## [2.0.0-85] - 2024-06-11
 
 ### Changed

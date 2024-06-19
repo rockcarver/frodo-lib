@@ -24,7 +24,7 @@ import {
   type Saml2ProviderSkeleton,
   updateProvider,
 } from '../api/Saml2Api';
-import { getScript, type ScriptSkeleton } from '../api/ScriptApi';
+import { type ScriptSkeleton } from '../api/ScriptApi';
 import {
   getSocialIdentityProviders,
   putProviderByTypeAndId,
@@ -81,7 +81,12 @@ import {
 } from './NodeOps';
 import { type ExportMetaData } from './OpsTypes';
 import { readSaml2ProviderStubs } from './Saml2Ops';
-import { updateScript } from './ScriptOps';
+import {
+  getLibraryScriptNames,
+  readScript,
+  readScriptByName,
+  updateScript,
+} from './ScriptOps';
 import { readThemes, type ThemeSkeleton, updateThemes } from './ThemeOps';
 
 export type Journey = {
@@ -920,7 +925,7 @@ export async function exportJourney({
         hasScriptDependency(nodeObject) &&
         nodeObject.script !== emptyScriptPlaceholder
       ) {
-        scriptPromises.push(getScript({ scriptId: nodeObject.script, state }));
+        scriptPromises.push(readScript({ scriptId: nodeObject.script, state }));
       }
 
       // frodo supports email templates in platform deployments
@@ -1055,7 +1060,7 @@ export async function exportJourney({
           // handle script node types
           if (deps && hasScriptDependency(innerNodeObject)) {
             scriptPromises.push(
-              getScript({ scriptId: innerNodeObject.script, state })
+              readScript({ scriptId: innerNodeObject.script, state })
             );
           }
 
@@ -1244,7 +1249,7 @@ export async function exportJourney({
                 state,
               });
             scriptPromises.push(
-              getScript({ scriptId: socialProvider.transform, state })
+              readScript({ scriptId: socialProvider.transform, state })
             );
             exportData.socialIdentityProviders[socialProvider._id] =
               socialProvider;
@@ -1262,6 +1267,7 @@ export async function exportJourney({
       printMessage({ message: '\n  - Scripts:', newline: false, state });
     try {
       const scriptObjects = await Promise.all(scriptPromises);
+      const name2uuid: { [key: string]: string } = {};
       for (const scriptObject of scriptObjects) {
         if (scriptObject) {
           if (verbose)
@@ -1275,6 +1281,22 @@ export async function exportJourney({
             ? convertBase64TextToArray(scriptObject.script)
             : JSON.stringify(decode(scriptObject.script));
           exportData.scripts[scriptObject._id] = scriptObject;
+
+          // handle library scripts
+          const scriptNames = getLibraryScriptNames(scriptObject);
+          for (const scriptName of scriptNames) {
+            if (name2uuid[scriptName] === undefined) {
+              const libScriptObject = await readScriptByName({
+                scriptName,
+                state,
+              });
+              name2uuid[scriptName] = libScriptObject._id;
+              libScriptObject.script = useStringArrays
+                ? convertBase64TextToArray(libScriptObject.script as string)
+                : JSON.stringify(decode(scriptObject.script));
+              exportData.scripts[libScriptObject._id] = libScriptObject;
+            }
+          }
         }
       }
     } catch (error) {

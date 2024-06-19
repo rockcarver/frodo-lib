@@ -334,7 +334,7 @@ export async function exportFullConfiguration({
       await exportOrImportWithErrorHandling(
         exportScripts,
         {
-          includeDefault,
+          options: { includeLibraries: false, includeDefault, useStringArrays },
           state,
         },
         errors
