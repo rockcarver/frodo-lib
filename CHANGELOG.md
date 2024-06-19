@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-86] - 2024-06-19
+
 ### Changed
 
 -   \#402: Library scripts are now treated as dependencies during script and journey exports and imports.
@@ -1471,7 +1473,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed problem with adding connection profiles
 -   Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-85...HEAD
+[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-86...HEAD
+
+[2.0.0-86]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-85...v2.0.0-86
 
 [2.0.0-85]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-84...v2.0.0-85
 
