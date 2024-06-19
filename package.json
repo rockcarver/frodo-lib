@@ -25,7 +25,7 @@
     "build": "npx tsup && npm run clean-types && npm run generate-types",
     "doc": "npx typedoc",
     "prettier:fix": "npm run prettier write",
-    "dev": "npx tsup --watch src"
+    "dev": "npx tsup --watch src --onSuccess 'npx tsup --dts-only'"
   },
   "description": "A library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.",
   "keywords": [
