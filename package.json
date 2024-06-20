@@ -29,6 +29,8 @@
   },
   "description": "A library to manage ForgeRock Identity Cloud tenants, ForgeOps deployments, and classic deployments.",
   "keywords": [
+    "ping",
+    "pingone",
     "forgerock",
     "library",
     "am",
@@ -37,6 +39,7 @@
     "openidm",
     "forgeops",
     "identity cloud",
+    "advanced identity cloud",
     "export",
     "import",
     "ci/cd",
