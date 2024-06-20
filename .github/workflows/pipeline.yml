@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: 16
+  NODE_VERSION: 18
 
 jobs:
   build:
@@ -60,11 +60,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Update package-log.json
+        run: npm i --package-lock-only
+
       - name: Version From Tag
         id: version-from-tag
         run: echo "version=$(echo '${{ steps.version-bump.outputs.newTag }}' | sed 's/v//')" >> "$GITHUB_OUTPUT"
 
-      - name: Build esm, cjs, types
+      - name: Build library
         run: npm run build
 
       - name: Build docs
@@ -75,7 +78,7 @@ jobs:
         run: npm run lint
 
       - name: Security Audit
-        run: npm audit --omit dev --audit-level high
+        run: npm audit --audit-level high
 
       - name: Zip build artifacts
         run: zip -r build.zip dist mocks package.json package-lock.json snapshotResolve.js types docs
@@ -91,17 +94,17 @@ jobs:
       newVersion: ${{ steps.version-from-tag.outputs.version }}
       preRelease: ${{ contains(steps.version-bump.outputs.newTag, '-') }}
 
-  smoke-tests:
-    name: 'Smoke Tests'
+  test:
+    name: 'Test'
     # You must use a Linux environment when using service containers or container jobs
     runs-on: ubuntu-latest
     needs: [build]
     strategy:
       matrix:
-        node-version: [20, 18, 16]
+        node-version: [22, 20, 18]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
-    # Service containers to run with `smoke-tests`
+    # Service containers to run with `test`
     services:
       # Label used to access the service container
       squid:
@@ -168,7 +171,7 @@ jobs:
 
   npm-release:
     if: github.ref == 'refs/heads/main'
-    needs: [build, smoke-tests]
+    needs: [build, test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -188,7 +191,7 @@ jobs:
 
       - name: Pre-Release
         if: ${{ fromJSON(needs.build.outputs.preRelease) }}
-        uses: JS-DevTools/npm-publish@v1
+        uses: JS-DevTools/npm-publish@v3
         with:
           access: public
           tag: 'next'
@@ -196,7 +199,7 @@ jobs:
 
       - name: Release
         if: ${{ ! fromJSON(needs.build.outputs.preRelease) }}
-        uses: JS-DevTools/npm-publish@v1
+        uses: JS-DevTools/npm-publish@v3
         with:
           access: public
           token: ${{ secrets.NPM_ACCESS_TOKEN }}
