@@ -2,7 +2,7 @@
 
 # Frodo Library 2.x - @rockcarver/frodo-lib
 
-ForgeROck DO library, frodo-lib, a hybrid (ESM and CJS) library to manage PingOne Advanced Identity Cloud tenants, ForgeOps deployments, and classic deployments.
+A hybrid (ESM and CJS) library to manage PingOne Advanced Identity Cloud environments, ForgeOps deployments, and classic deployments.
 
 Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the command line tool to manage ForgeRock deployments.
 
@@ -99,7 +99,7 @@ The 2.x version of the library automatically refreshes session and access tokens
 
 For those who want to contribute or are just curious about the build process.
 
-- Make sure you have Node.js v16 or newer (v18 or v19 preferred) and npm.
+- Make sure you have **Node.js 18** or newer (**20** or **22** preferred) and npm installed.
 - Clone this repo
   ```console
   git clone https://github.com/rockcarver/frodo-lib.git
