@@ -7,42 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-88] - 2024-06-21
+
 ### Changed
 
--   Pipeline hygene
+- Pipeline hygene
 
 ## [2.0.0-87] - 2024-06-20
 
 ### Changed
 
--   \#417: Added support for node 22
--   \#363: Updated information in README
+- \#417: Added support for node 22
+- \#363: Updated information in README
 
 ## [2.0.0-86] - 2024-06-19
 
 ### Changed
 
--   \#402: Library scripts are now treated as dependencies during script and journey exports and imports.
+- \#402: Library scripts are now treated as dependencies during script and journey exports and imports.
 
 ## [2.0.0-85] - 2024-06-11
 
 ### Changed
 
--   Updated dependencies
--   Updated examples
+- Updated dependencies
+- Updated examples
 
 ## [2.0.0-84] - 2024-06-11
 
 ### Changed
 
--   Updated dependencies, in particular axios
--   Pipeline changes
+- Updated dependencies, in particular axios
+- Pipeline changes
 
 ## [2.0.0-83] - 2024-05-20
 
 ### Fixed
 
--   \#409: Importing applications does not import required mappings
+- \#409: Importing applications does not import required mappings
 
 ## [2.0.0-82] - 2024-05-15
 
@@ -58,48 +60,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--   Improved filtering out secrets from recordings
+- Improved filtering out secrets from recordings
 
 ## [2.0.0-76] - 2024-04-08
 
 ### Fixed
 
--   \#392: Implemented error handling pattern for methods with unusual amounts of REST calls like `frodo.config.exportFullConfiguration` and `frodo.config.importFullConfiguration`
+- \#392: Implemented error handling pattern for methods with unusual amounts of REST calls like `frodo.config.exportFullConfiguration` and `frodo.config.importFullConfiguration`
 
 ## [2.0.0-75] - 2024-03-29
 
 ### Fixed
 
--   \#397: Service accounts now use the proper scopes when created using the `frodo conn save` command
+- \#397: Service accounts now use the proper scopes when created using the `frodo conn save` command
 
 ## [2.0.0-74] - 2024-03-23
 
 ### Fixed
 
--   \#391: Frodo now creates service accounts with all allowed scopes:
-    -   `fr:am:*`
-    -   `fr:idc:analytics:*`
-    -   `fr:autoaccess:*`
-    -   `fr:idc:certificate:*`
-    -   `fr:idc:certificate:read`
-    -   `fr:idc:content-security-policy:*`
-    -   `fr:idc:custom-domain:*`
-    -   `fr:idc:esv:*`
-    -   `fr:idc:esv:read`
-    -   `fr:idc:esv:restart`
-    -   `fr:idc:esv:update`
-    -   `fr:idm:*`
-    -   `fr:iga:*`
-    -   `fr:idc:promotion:*`
-    -   `fr:idc:release:*`
-    -   `fr:idc:sso-cookie:*`
+- \#391: Frodo now creates service accounts with all allowed scopes:
+  - `fr:am:*`
+  - `fr:idc:analytics:*`
+  - `fr:autoaccess:*`
+  - `fr:idc:certificate:*`
+  - `fr:idc:certificate:read`
+  - `fr:idc:content-security-policy:*`
+  - `fr:idc:custom-domain:*`
+  - `fr:idc:esv:*`
+  - `fr:idc:esv:read`
+  - `fr:idc:esv:restart`
+  - `fr:idc:esv:update`
+  - `fr:idm:*`
+  - `fr:iga:*`
+  - `fr:idc:promotion:*`
+  - `fr:idc:release:*`
+  - `fr:idc:sso-cookie:*`
 
 ## [2.0.0-73] - 2024-03-22
 
 ### Fixed
 
--   \#393: Frodo now again properly imports oauth2 clients exported from an older AM version without provider overrides.
--   \#390: Frodo now uses its own error type `FrodoError` for all ops layer errors.
+- \#393: Frodo now again properly imports oauth2 clients exported from an older AM version without provider overrides.
+- \#390: Frodo now uses its own error type `FrodoError` for all ops layer errors.
 
 ## [2.0.0-72] - 2024-02-10
 
@@ -109,13 +111,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   Pipeline changes
+- Pipeline changes
 
 ## [2.0.0-69] - 2024-02-01
 
 ### Changed
 
--   Pipeline changes
+- Pipeline changes
 
 ## [2.0.0-68] - 2024-01-31
 
@@ -127,7 +129,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   rockcarver/frodo-cli#360: Frodo now saves the deployment type in connection profiles.
+- rockcarver/frodo-cli#360: Frodo now saves the deployment type in connection profiles.
 
 ## [2.0.0-64] - 2024-01-16
 
@@ -135,7 +137,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--   Polly recording names can have an optional cli parameter value as well
+- Polly recording names can have an optional cli parameter value as well
 
 ## [2.0.0-62] - 2024-01-13
 
@@ -145,11 +147,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   Added tests for Saml export with and without deps
+- Added tests for Saml export with and without deps
 
 ### Fixed
 
--   Saml metadata is no more considered a dependency and will always be exportd
+- Saml metadata is no more considered a dependency and will always be exportd
 
 ## [2.0.0-59] - 2024-01-05
 
@@ -177,25 +179,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   rockcarver/frodo-cli#217: Support for authentication settings through new `frodo.authn.settings` module.
+- rockcarver/frodo-cli#217: Support for authentication settings through new `frodo.authn.settings` module.
 
 ## [2.0.0-47] - 2023-11-02
 
 ### Added
 
--   \#53: Frodo Library now uses a file-based secure token cache to persist session and access tokens for re-use. The cached tokens are protected by the credential that was used to obtain them. Session tokens are encrypted using the hashed password as the master key, access tokens are encrypted using the hashed JWK private key as the master key. Therefore only users and processes with the correct credentials can access the tokens in the cache.
+- \#53: Frodo Library now uses a file-based secure token cache to persist session and access tokens for re-use. The cached tokens are protected by the credential that was used to obtain them. Session tokens are encrypted using the hashed password as the master key, access tokens are encrypted using the hashed JWK private key as the master key. Therefore only users and processes with the correct credentials can access the tokens in the cache.
 
-    -   There is a new TokenCache module with accessible functions for frodo clients (like frodo-cli) to use.
-    -   The State module has been extended to host meta data like expiration time for sessions and tokens and a new boolean field indicating if the library should make use of the new token cache or not: `state.getUseTokenCache(): boolean` and `state.setUseTokenCache(useTokenCache: boolean): void`.
-    -   The new default behavior is to always use the new token cache.
+  - There is a new TokenCache module with accessible functions for frodo clients (like frodo-cli) to use.
+  - The State module has been extended to host meta data like expiration time for sessions and tokens and a new boolean field indicating if the library should make use of the new token cache or not: `state.getUseTokenCache(): boolean` and `state.setUseTokenCache(useTokenCache: boolean): void`.
+  - The new default behavior is to always use the new token cache.
 
--   \#340: Frodo Library now autotomatically refreshes expired session and access tokens.
+- \#340: Frodo Library now autotomatically refreshes expired session and access tokens.
 
-    -   The new default behavior is to automatically refresh tokens. However, if an application prefers to handle that on its own, it can call the `frodo.login.getTokens()` functino with a new `autoRefresh: boolean` parameter.
+  - The new default behavior is to automatically refresh tokens. However, if an application prefers to handle that on its own, it can call the `frodo.login.getTokens()` functino with a new `autoRefresh: boolean` parameter.
 
 ### Fixed
 
--   rockcarver/frodo-cli#316: Frodo Library now properly exports scripts referenced by the `Device Match` node if the `Use Custom Matching Script` option is selected.
+- rockcarver/frodo-cli#316: Frodo Library now properly exports scripts referenced by the `Device Match` node if the `Use Custom Matching Script` option is selected.
 
 ## [2.0.0-46] - 2023-10-25
 
@@ -257,7 +259,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--   \#272: Frodo now supports the `expressionType` property when creating ESV variables in Identity Cloud.
+- \#272: Frodo now supports the `expressionType` property when creating ESV variables in Identity Cloud.
 
 ## [2.0.0-17] - 2023-07-18
 
@@ -271,28 +273,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   Usage examples in /path/to/frodo-lib/examples
-    -   ESM - Sample code is using ECMAScript modules
-    -   CJS - Sample code is using CommonJS modules
+- Usage examples in /path/to/frodo-lib/examples
+  - ESM - Sample code is using ECMAScript modules
+  - CJS - Sample code is using CommonJS modules
 
 ### Changed
 
--   Fix import/require resolution issues for library users. Developers using the library can now:
+- Fix import/require resolution issues for library users. Developers using the library can now:
 
-    -   ESM:
+  - ESM:
 
-        Member style import any other modules from the library:
+    Member style import any other modules from the library:
 
-        ```javascript
-        import { frodo, state, FrodoLib } from '@rockcarver/frodo-lib';
-        ```
-    -   CJS:
+    ```javascript
+    import { frodo, state, FrodoLib } from '@rockcarver/frodo-lib';
+    ```
+  - CJS:
 
-        Member style require any other modules from the library"
+    Member style require any other modules from the library"
 
-        ```javascript
-        const { frodo, state, FrodoLib } = require('@rockcarver/frodo-lib');
-        ```
+    ```javascript
+    const { frodo, state, FrodoLib } = require('@rockcarver/frodo-lib');
+    ```
 
 ## [2.0.0-12] - 2023-07-05
 
@@ -308,7 +310,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   rockcarver/frodo-cli#251: Support for Identity Cloud admin federation configuration through new module `AdminFederation`.
+- rockcarver/frodo-cli#251: Support for Identity Cloud admin federation configuration through new module `AdminFederation`.
 
 ## [2.0.0-6] - 2023-06-21
 
@@ -326,7 +328,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   rockcarver/frodo-cli#251: Support for Identity Cloud admin federation configuration through new module `AdminFederation`.
+- rockcarver/frodo-cli#251: Support for Identity Cloud admin federation configuration through new module `AdminFederation`.
 
 ## [1.0.1-1] - 2023-06-28
 
@@ -334,61 +336,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   rockcarver/frodo-cli#251: Support for Identity Cloud admin federation configuration through new module `AdminFederation`.
+- rockcarver/frodo-cli#251: Support for Identity Cloud admin federation configuration through new module `AdminFederation`.
 
 ## [1.0.0] - 2023-06-05
 
 ### Changed
 
--   Promote Frodo Library 0.19.2 to 1.0.0.
+- Promote Frodo Library 0.19.2 to 1.0.0.
 
 ## [0.19.2] - 2023-05-25
 
 ### Changed
 
--   \#248: Frodo Library now exports all essential log api functions through the LogOps module export `Log`.
+- \#248: Frodo Library now exports all essential log api functions through the LogOps module export `Log`.
 
 ## [0.19.1] - 2023-05-21
 
 ### Added
 
--   Support for authorization policies, policy sets, and resource types through new exported modules:
-    -   ResourceType
-    -   PolicySet
-    -   Policy
+- Support for authorization policies, policy sets, and resource types through new exported modules:
+  - ResourceType
+  - PolicySet
+  - Policy
 
 ### Changed
 
--   Updated dependencies
--   rockcarver/frodo-cli#213: More debug logging for connection profile lookup by a unique substring. Use --debug to see the additional output. This is not yet a solution for rockcarver/frodo-cli#213 but should help identify the root cause.
--   rockcarver/frodo-cli#216: More debug logging for the 2fa process and proper detection of unsupported webauthn factor.
+- Updated dependencies
+- rockcarver/frodo-cli#213: More debug logging for connection profile lookup by a unique substring. Use --debug to see the additional output. This is not yet a solution for rockcarver/frodo-cli#213 but should help identify the root cause.
+- rockcarver/frodo-cli#216: More debug logging for the 2fa process and proper detection of unsupported webauthn factor.
 
 ### Fixed
 
--   \#236: Frodo now properly handles logging in as a tenant admin when admin federation is enabled.
--   \#225: Always output original log event JSON in tailLogs function (`frodo logs tail` command in the cli)
--   rockcarver/frodo-cli#218: Frodo now allows 3 errors when polling for status during a `frodo esv apply` before aborting.
+- \#236: Frodo now properly handles logging in as a tenant admin when admin federation is enabled.
+- \#225: Always output original log event JSON in tailLogs function (`frodo logs tail` command in the cli)
+- rockcarver/frodo-cli#218: Frodo now allows 3 errors when polling for status during a `frodo esv apply` before aborting.
 
 ## [0.19.0] - 2023-05-21
 
 ### Added
 
--   Support for authorization policies, policy sets, and resource types through new exported modules:
-    -   ResourceType
-    -   PolicySet
-    -   Policy
+- Support for authorization policies, policy sets, and resource types through new exported modules:
+  - ResourceType
+  - PolicySet
+  - Policy
 
 ### Changed
 
--   Updated dependencies
--   rockcarver/frodo-cli#213: More debug logging for connection profile lookup by a unique substring. Use --debug to see the additional output. This is not yet a solution for rockcarver/frodo-cli#213 but should help identify the root cause.
--   rockcarver/frodo-cli#216: More debug logging for the 2fa process and proper detection of unsupported webauthn factor.
+- Updated dependencies
+- rockcarver/frodo-cli#213: More debug logging for connection profile lookup by a unique substring. Use --debug to see the additional output. This is not yet a solution for rockcarver/frodo-cli#213 but should help identify the root cause.
+- rockcarver/frodo-cli#216: More debug logging for the 2fa process and proper detection of unsupported webauthn factor.
 
 ### Fixed
 
--   \#236: Frodo now properly handles logging in as a tenant admin when admin federation is enabled.
--   \#225: Always output original log event JSON in tailLogs function (`frodo logs tail` command in the cli)
--   rockcarver/frodo-cli#218: Frodo now allows 3 errors when polling for status during a `frodo esv apply` before aborting.
+- \#236: Frodo now properly handles logging in as a tenant admin when admin federation is enabled.
+- \#225: Always output original log event JSON in tailLogs function (`frodo logs tail` command in the cli)
+- rockcarver/frodo-cli#218: Frodo now allows 3 errors when polling for status during a `frodo esv apply` before aborting.
 
 ## [0.18.9-7] - 2023-05-21
 
@@ -400,7 +402,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--   \#236: Frodo now properly handles logging in as a tenant admin when admin federation is enabled.
+- \#236: Frodo now properly handles logging in as a tenant admin when admin federation is enabled.
 
 ## [0.18.9-3] - 2023-04-18
 
@@ -410,20 +412,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--   rockcarver/frodo-cli#218: Frodo now allows 3 errors when polling for status during a `frodo esv apply` before aborting.
+- rockcarver/frodo-cli#218: Frodo now allows 3 errors when polling for status during a `frodo esv apply` before aborting.
 
 ## [0.18.9-0] - 2023-03-23
 
 ### Changed
 
--   rockcarver/frodo-cli#213: More debug logging for connection profile lookup by a unique substring. Use --debug to see the additional output. This is not yet a solution for rockcarver/frodo-cli#213 but should help identify the root cause.
--   rockcarver/frodo-cli#216: More debug logging for the 2fa process and proper detection of unsupported webauthn factor.
+- rockcarver/frodo-cli#213: More debug logging for connection profile lookup by a unique substring. Use --debug to see the additional output. This is not yet a solution for rockcarver/frodo-cli#213 but should help identify the root cause.
+- rockcarver/frodo-cli#216: More debug logging for the 2fa process and proper detection of unsupported webauthn factor.
 
 ## [0.18.8] - 2023-02-17
 
 ### Added
 
--   Support for node 19.
+- Support for node 19.
 
 ## [0.18.7] - 2023-02-16
 
@@ -431,35 +433,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   Updated dependencies.
+- Updated dependencies.
 
 ## [0.18.5] - 2023-02-14
 
 ### Fixed
 
--   rockcarver/frodo-cli#196 and rockcarver/frodo-cli#197: Frodo now properly detects Encore environments as ForgeOps environments and obtains an access token for IDM APIs.
+- rockcarver/frodo-cli#196 and rockcarver/frodo-cli#197: Frodo now properly detects Encore environments as ForgeOps environments and obtains an access token for IDM APIs.
 
 ## [0.18.4] - 2023-02-11
 
 ### Fixed
 
--   rockcarver/frodo-cli#195: Backend support to fix issue: `Authenticate.getTokens` API now supports new `forceLoginAsUser` param to force logging in as a user even if a service account is available.
+- rockcarver/frodo-cli#195: Backend support to fix issue: `Authenticate.getTokens` API now supports new `forceLoginAsUser` param to force logging in as a user even if a service account is available.
 
 ## [0.18.3] - 2023-01-27
 
 ### Changed
 
--   rockcarver/frodo-cli#192: Backend support for better error handling and reporting in frodo-cli
+- rockcarver/frodo-cli#192: Backend support for better error handling and reporting in frodo-cli
 
 ## [0.18.2] - 2023-01-25
 
 ### Added
 
--   rockcarver/frodo-cli#52: Library support for script extract and watch functionality
+- rockcarver/frodo-cli#52: Library support for script extract and watch functionality
 
 ### Fixed
 
--   rockcarver/frodo-cli#190: Frodo now properly imports previously exported saml providers.
+- rockcarver/frodo-cli#190: Frodo now properly imports previously exported saml providers.
 
 ## [0.18.2-0] - 2023-01-24
 
@@ -467,110 +469,110 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   Return service account name when calling `ConnectionProfile.getConnectionProfileByHost`.
--   Save missing service account name when calling `ConnectionProfile.saveConnectionProfile`.
+- Return service account name when calling `ConnectionProfile.getConnectionProfileByHost`.
+- Save missing service account name when calling `ConnectionProfile.saveConnectionProfile`.
 
 ### Fixed
 
--   \#165: Frodo now properly lists saved connections in those circumstances where this wasn't the case.
+- \#165: Frodo now properly lists saved connections in those circumstances where this wasn't the case.
 
 ## [0.18.1-0] - 2023-01-16
 
 ### Fixed
 
--   \#165: Frodo now properly lists saved connections in those circumstances where this wasn't the case. 
+- \#165: Frodo now properly lists saved connections in those circumstances where this wasn't the case. 
 
 ## [0.18.0] - 2023-01-13
 
 ### Added
 
--   \#68: Support final implementation of Identity Cloud service accounts. Service accounts are the future way for applications to authenticate to Identity Cloud environments without using a personal tenant admin account. Tenant admins can create any number of service accounts and assign sets of privileges to each account. Frodo Library can create service accounts with the required privileges or can use existing service accounts.
+- \#68: Support final implementation of Identity Cloud service accounts. Service accounts are the future way for applications to authenticate to Identity Cloud environments without using a personal tenant admin account. Tenant admins can create any number of service accounts and assign sets of privileges to each account. Frodo Library can create service accounts with the required privileges or can use existing service accounts.
 
-    To create a service account use the new ServiceAccount API:
+  To create a service account use the new ServiceAccount API:
 
-    ```js
-    import { createJwkRsa, createJwks, getJwkRsaPublic } from './JoseOps';
-    import { createServiceAccount, isServiceAccountsFeatureAvailable } from './ServiceAccountOps';
+  ```js
+  import { createJwkRsa, createJwks, getJwkRsaPublic } from './JoseOps';
+  import { createServiceAccount, isServiceAccountsFeatureAvailable } from './ServiceAccountOps';
 
-    // check if the tenant supports service accounts
-    if (isServiceAccountsFeatureAvailable()) {
-        const name = 'sa';
-        const description = 'service account';
-        const accountStatus = 'Active';
-        const scopes = ['fr:am:*', 'fr:idm:*', 'fr:idc:esv:*'];
-        // create a java web key (JWK) using RSA
-        const jwk = await createJwkRsa();
-        // extract only the public key as a JWK from the full JWK
-        const publicJwk = await getJwkRsaPublic(jwk);
-        // create a java wek key set (JWKS) from the public JWK
-        const jwks = await createJwks(publicJwk);
-        // create service account
-        const payload = await ServiceAccount.createServiceAccount(
-            name,
-            description,
-            accountStatus,
-            scopes,
-            jwks
-        );
-        // uuid of new service account if creation succeeded
-        const saId = payload._id;
-    }
-    ```
+  // check if the tenant supports service accounts
+  if (isServiceAccountsFeatureAvailable()) {
+      const name = 'sa';
+      const description = 'service account';
+      const accountStatus = 'Active';
+      const scopes = ['fr:am:*', 'fr:idm:*', 'fr:idc:esv:*'];
+      // create a java web key (JWK) using RSA
+      const jwk = await createJwkRsa();
+      // extract only the public key as a JWK from the full JWK
+      const publicJwk = await getJwkRsaPublic(jwk);
+      // create a java wek key set (JWKS) from the public JWK
+      const jwks = await createJwks(publicJwk);
+      // create service account
+      const payload = await ServiceAccount.createServiceAccount(
+          name,
+          description,
+          accountStatus,
+          scopes,
+          jwks
+      );
+      // uuid of new service account if creation succeeded
+      const saId = payload._id;
+  }
+  ```
 
-    To use a service account set the following state variables:
+  To use a service account set the following state variables:
 
-    ```js
-    import { state } from '@rockcarver/frodo-lib';
+  ```js
+  import { state } from '@rockcarver/frodo-lib';
 
-    // setting both, id and jwk, instruct the library to use the service account
-    state.setServiceAccountId(saId);
-    state.setServiceAccountJwk(jwk);
-    ```
+  // setting both, id and jwk, instruct the library to use the service account
+  state.setServiceAccountId(saId);
+  state.setServiceAccountJwk(jwk);
+  ```
 
--   Add support for additional environment variables:
+- Add support for additional environment variables:
 
--   `FRODO_SA_ID`: Service account's uuid. If set, must also set `FRODO_SA_JWK`.
+- `FRODO_SA_ID`: Service account's uuid. If set, must also set `FRODO_SA_JWK`.
 
--   `FRODO_SA_JWK`: Service account's java web key (jwk) as single-line string. Jwk must contain private key! If set, must also set `FRODO_SA_ID`.
+- `FRODO_SA_JWK`: Service account's java web key (jwk) as single-line string. Jwk must contain private key! If set, must also set `FRODO_SA_ID`.
 
--   `FRODO_AUTHENTICATION_SERVICE=journey`: Specify a login journey for frodo to use.
+- `FRODO_AUTHENTICATION_SERVICE=journey`: Specify a login journey for frodo to use.
 
--   `FRODO_MOCK=1`: Enable mocking. If enabled, frodo-lib replays recorded API responses instead of connecting to a platform instance.
+- `FRODO_MOCK=1`: Enable mocking. If enabled, frodo-lib replays recorded API responses instead of connecting to a platform instance.
 
--   `FRODO_POLLY_LOG_LEVEL=info`: Frodo mock engine log level (`trace`, `debug`, `info`, `warn`, `error`, `silent`). This is helpful for troubleshooting the mock capability, only.
+- `FRODO_POLLY_LOG_LEVEL=info`: Frodo mock engine log level (`trace`, `debug`, `info`, `warn`, `error`, `silent`). This is helpful for troubleshooting the mock capability, only.
 
-    Environment variables added in 0.17.1:
+  Environment variables added in 0.17.1:
 
-    -   `FRODO_HOST`
-    -   `FRODO_REALM`
-    -   `FRODO_USERNAME`
-    -   `FRODO_PASSWORD`
-    -   `FRODO_SA_ID`
-    -   `FRODO_SA_JWK`
-    -   `FRODO_LOG_KEY`
-    -   `FRODO_LOG_SECRET`
-    -   `FRODO_DEBUG`
+  - `FRODO_HOST`
+  - `FRODO_REALM`
+  - `FRODO_USERNAME`
+  - `FRODO_PASSWORD`
+  - `FRODO_SA_ID`
+  - `FRODO_SA_JWK`
+  - `FRODO_LOG_KEY`
+  - `FRODO_LOG_SECRET`
+  - `FRODO_DEBUG`
 
--   Add new `InfoOps` module (exported as `Info`) to obtain details about the connected platform instance.
+- Add new `InfoOps` module (exported as `Info`) to obtain details about the connected platform instance.
 
--   Add support to delete IDM config entities
+- Add support to delete IDM config entities
 
--   Add function to check RCS status
+- Add function to check RCS status
 
--   Add mock mode for library to allow unit testing of clients using the library, like frodo-cli. This initial release contains minimal mock data. Enable mock mode using `FRODO_MOCK=1`.
+- Add mock mode for library to allow unit testing of clients using the library, like frodo-cli. This initial release contains minimal mock data. Enable mock mode using `FRODO_MOCK=1`.
 
--   Updated list of contributors in package.json
+- Updated list of contributors in package.json
 
--   More automated tests
+- More automated tests
 
 ### Changed
 
--   Ongoing refactoring of code base:
-    -   Migrate automated tests from ForgeRockApiMockEngine to Polly.js and snapshots.
+- Ongoing refactoring of code base:
+  - Migrate automated tests from ForgeRockApiMockEngine to Polly.js and snapshots.
 
 ### Fixed
 
--   Bug fixes
+- Bug fixes
 
 ## [0.17.8-3] - 2023-01-12
 
@@ -600,168 +602,168 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   \#68: Support upcoming Identity Cloud service accounts. Service accounts are the future way to authenticate to Identity Cloud environments without using a personal tenant admin account. Tenant admins can create any number of service accounts and assign sets of privileges to each account. Frodo Library can create service accounts with the required privileges or can use existing service accounts.
+- \#68: Support upcoming Identity Cloud service accounts. Service accounts are the future way to authenticate to Identity Cloud environments without using a personal tenant admin account. Tenant admins can create any number of service accounts and assign sets of privileges to each account. Frodo Library can create service accounts with the required privileges or can use existing service accounts.
 
-    To create a service account use the new ServiceAccount API:
+  To create a service account use the new ServiceAccount API:
 
-    ```js
-    import { createJwkRsa, createJwks, getJwkRsaPublic } from './JoseOps';
-    import { createServiceAccount, isServiceAccountsFeatureAvailable } from './ServiceAccountOps';
+  ```js
+  import { createJwkRsa, createJwks, getJwkRsaPublic } from './JoseOps';
+  import { createServiceAccount, isServiceAccountsFeatureAvailable } from './ServiceAccountOps';
 
-    // check if the tenant supports service accounts
-    if (isServiceAccountsFeatureAvailable()) {
-        const name = 'sa';
-        const description = 'service account';
-        const accountStatus = 'Active';
-        const scopes = ['fr:am:*', 'fr:idm:*', 'fr:idc:esv:*'];
-        // create a java web key (JWK) using RSA
-        const jwk = await createJwkRsa();
-        // extract only the public key as a JWK from the full JWK
-        const publicJwk = await getJwkRsaPublic(jwk);
-        // create a java wek key set (JWKS) from the public JWK
-        const jwks = await createJwks(publicJwk);
-        // create service account
-        const payload = await ServiceAccount.createServiceAccount(
-            name,
-            description,
-            accountStatus,
-            scopes,
-            jwks
-        );
-        // uuid of new service account if creation succeeded
-        const saId = payload._id;
-    }
-    ```
+  // check if the tenant supports service accounts
+  if (isServiceAccountsFeatureAvailable()) {
+      const name = 'sa';
+      const description = 'service account';
+      const accountStatus = 'Active';
+      const scopes = ['fr:am:*', 'fr:idm:*', 'fr:idc:esv:*'];
+      // create a java web key (JWK) using RSA
+      const jwk = await createJwkRsa();
+      // extract only the public key as a JWK from the full JWK
+      const publicJwk = await getJwkRsaPublic(jwk);
+      // create a java wek key set (JWKS) from the public JWK
+      const jwks = await createJwks(publicJwk);
+      // create service account
+      const payload = await ServiceAccount.createServiceAccount(
+          name,
+          description,
+          accountStatus,
+          scopes,
+          jwks
+      );
+      // uuid of new service account if creation succeeded
+      const saId = payload._id;
+  }
+  ```
 
-    To use a service account set the following state variables:
+  To use a service account set the following state variables:
 
-    ```js
-    import { state } from '@rockcarver/frodo-lib';
+  ```js
+  import { state } from '@rockcarver/frodo-lib';
 
-    // setting both, id and jwk, instruct the library to use the service account
-    state.setServiceAccountId(saId);
-    state.setServiceAccountJwk(jwk);
-    ```
+  // setting both, id and jwk, instruct the library to use the service account
+  state.setServiceAccountId(saId);
+  state.setServiceAccountJwk(jwk);
+  ```
 
--   \#154: Frodo-specific transaction id in all API requests: `frodo-<random uuid>`
+- \#154: Frodo-specific transaction id in all API requests: `frodo-<random uuid>`
 
--   Support AM realm and global services.
+- Support AM realm and global services.
 
-    ```js
-    import { Service } from '@rockcarver/frodo-lib';
+  ```js
+  import { Service } from '@rockcarver/frodo-lib';
 
-    const {
-        createServiceExportTemplate,
-        deleteFullServices,
-        deleteFullService,
-        getListOfServices,
-        getFullServices,
-        exportServices,
-        exportService,
-        importServices,
-        importService,
-    } = Service;
-    ```
+  const {
+      createServiceExportTemplate,
+      deleteFullServices,
+      deleteFullService,
+      getListOfServices,
+      getFullServices,
+      exportServices,
+      exportService,
+      importServices,
+      importService,
+  } = Service;
+  ```
 
--   Support import IDM configuration.
+- Support import IDM configuration.
 
-    ```js
-    import { Idm } from '@rockcarver/frodo-lib';
+  ```js
+  import { Idm } from '@rockcarver/frodo-lib';
 
-    const { putConfigEntity } = Idm;
-    ```
+  const { putConfigEntity } = Idm;
+  ```
 
--   \#139: Support for Agents / Gateways.
+- \#139: Support for Agents / Gateways.
 
-    ```js
-    import { Agent } from '@rockcarver/frodo-lib';
+  ```js
+  import { Agent } from '@rockcarver/frodo-lib';
 
-    const {
-        AGENT_TYPE_IG,
-        AGENT_TYPE_JAVA,
-        AGENT_TYPE_WEB,
-        createAgentExportTemplate,
-        getAgents,
-        getIdentityGatewayAgents,
-        getJavaAgents,
-        getWebAgents,
-        exportAgents,
-        exportIdentityGatewayAgents,
-        exportJavaAgents,
-        exportWebAgents,
-        exportAgent,
-        exportIdentityGatewayAgent,
-        exportJavaAgent,
-        exportWebAgent,
-        importAgents,
-        importIdentityGatewayAgents,
-        importJavaAgents,
-        importWebAgents,
-        importAgent,
-        importIdentityGatewayAgent,
-        importJavaAgent,
-        importWebAgent,
-    } = Agent;
-    ```
+  const {
+      AGENT_TYPE_IG,
+      AGENT_TYPE_JAVA,
+      AGENT_TYPE_WEB,
+      createAgentExportTemplate,
+      getAgents,
+      getIdentityGatewayAgents,
+      getJavaAgents,
+      getWebAgents,
+      exportAgents,
+      exportIdentityGatewayAgents,
+      exportJavaAgents,
+      exportWebAgents,
+      exportAgent,
+      exportIdentityGatewayAgent,
+      exportJavaAgent,
+      exportWebAgent,
+      importAgents,
+      importIdentityGatewayAgents,
+      importJavaAgents,
+      importWebAgents,
+      importAgent,
+      importIdentityGatewayAgent,
+      importJavaAgent,
+      importWebAgent,
+  } = Agent;
+  ```
 
--   \#180: Allow all connection parameters to be supplied using environment variables for secure CI/CD:
-    -   `FRODO_HOST`
-    -   `FRODO_REALM`
-    -   `FRODO_USERNAME`
-    -   `FRODO_PASSWORD`
-    -   `FRODO_SA_ID`
-    -   `FRODO_SA_JWK`
-    -   `FRODO_LOG_KEY`
-    -   `FRODO_LOG_SECRET`
-    -   `FRODO_DEBUG`
+- \#180: Allow all connection parameters to be supplied using environment variables for secure CI/CD:
+  - `FRODO_HOST`
+  - `FRODO_REALM`
+  - `FRODO_USERNAME`
+  - `FRODO_PASSWORD`
+  - `FRODO_SA_ID`
+  - `FRODO_SA_JWK`
+  - `FRODO_LOG_KEY`
+  - `FRODO_LOG_SECRET`
+  - `FRODO_DEBUG`
 
--   \#141: Add curlirizer support for troubleshooting. The library can output curl commands for every REST API call it makes. Clients can use this functionality by registering a curlirize handler and enabling the feature:
+- \#141: Add curlirizer support for troubleshooting. The library can output curl commands for every REST API call it makes. Clients can use this functionality by registering a curlirize handler and enabling the feature:
 
-    ```js
-    import { state } from '@rockcarver/frodo-lib';
+  ```js
+  import { state } from '@rockcarver/frodo-lib';
 
-    /**
-     * Output a curlirize message
-     * @param {string} message the message
-     */
-    export function curlirizeMessage(message) {
-        if (!message) return;
-        console.error(message['brightBlue']);
-    }
+  /**
+   * Output a curlirize message
+   * @param {string} message the message
+   */
+  export function curlirizeMessage(message) {
+      if (!message) return;
+      console.error(message['brightBlue']);
+  }
 
-    state.setCurlirizeHandler(curlirizeMessage);
-    ```
+  state.setCurlirizeHandler(curlirizeMessage);
+  ```
 
--   Added new `raw` Saml2 API functions that use the classic (pre 7.0.0) SAML REST APIs. This allows Frodo to export and import SAML entity providers from pre 7 platform instances.
+- Added new `raw` Saml2 API functions that use the classic (pre 7.0.0) SAML REST APIs. This allows Frodo to export and import SAML entity providers from pre 7 platform instances.
 
-    ```js
-    import { Saml2 } from '@rockcarver/frodo-lib';
+  ```js
+  import { Saml2 } from '@rockcarver/frodo-lib';
 
-    const {
-        getRawProviders,
-        getRawProvider,
-        putRawProvider,
-    } = Saml2;
-    ```
+  const {
+      getRawProviders,
+      getRawProvider,
+      putRawProvider,
+  } = Saml2;
+  ```
 
--   More automated tests
+- More automated tests
 
 ### Changed
 
--   rockcarver/frodo-cli#110: Migrate from .frodorc to Connections.json
--   Adjust default output:
-    -   rockcarver/frodo-cli#109: Suppress am version output
-    -   rockcarver/frodo-cli#102: Verbosity of connection string used
-    -   rockcarver/frodo-cli#106: Handle non-unique connection name used in cli
--   Ongoing refactoring of code base:
-    -   \#133: Move cli functions from frodo-lib to frodo-cli
-    -   Refactored Email Template and Theme functionality in lib to remove fs operations from frodo-lib
--   Updated package dependencies
+- rockcarver/frodo-cli#110: Migrate from .frodorc to Connections.json
+- Adjust default output:
+  - rockcarver/frodo-cli#109: Suppress am version output
+  - rockcarver/frodo-cli#102: Verbosity of connection string used
+  - rockcarver/frodo-cli#106: Handle non-unique connection name used in cli
+- Ongoing refactoring of code base:
+  - \#133: Move cli functions from frodo-lib to frodo-cli
+  - Refactored Email Template and Theme functionality in lib to remove fs operations from frodo-lib
+- Updated package dependencies
 
 ### Fixed
 
--   \#194: Default realm is not properly detected and leading to errors
--   \#137: Error fetching logs with txId
+- \#194: Default realm is not properly detected and leading to errors
+- \#137: Error fetching logs with txId
 
 ## [0.17.0] - 2022-12-18 [YANKED]
 
@@ -785,9 +787,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.16.2-11] - 2022-11-22
 
--   \#154: Add frodo specific transactionId to all API requests
--   rockcarver/frodo-cli#110: Migrate from .frodorc to Connections.json
--   Refactored Email Template and Theme functionality in lib to remove fs operations
+- \#154: Add frodo specific transactionId to all API requests
+- rockcarver/frodo-cli#110: Migrate from .frodorc to Connections.json
+- Refactored Email Template and Theme functionality in lib to remove fs operations
 
 ## [0.16.2-10] - 2022-11-22
 
@@ -813,10 +815,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--   \#137: Error fetching logs with txId
--   rockcarver/frodo-cli#109: Suppress am version output
--   rockcarver/frodo-cli#102: Verbosity of connection string used
--   rockcarver/frodo-cli#106: Handle non-unique connection name used in cli
+- \#137: Error fetching logs with txId
+- rockcarver/frodo-cli#109: Suppress am version output
+- rockcarver/frodo-cli#102: Verbosity of connection string used
+- rockcarver/frodo-cli#106: Handle non-unique connection name used in cli
 
 ## [0.16.2-0] - 2022-10-22
 
@@ -824,121 +826,121 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
--   rockcarver/frodo-cli#95: Error tailing logs with txId
+- rockcarver/frodo-cli#95: Error tailing logs with txId
 
 ## [0.16.1] - 2022-10-18
 
 ### Changed
 
--   Changelog entry update to trigger minor release
+- Changelog entry update to trigger minor release
 
 ## [0.16.0] - 2022-10-18
 
 ### Added
 
--   Ability to fetch historical logs from ID Cloud
+- Ability to fetch historical logs from ID Cloud
 
 ## [0.15.2] - 2022-10-17
 
 ### Added
 
--   fileByIdTreeExportResolver now supports resolving journey files from subdirectories.
+- fileByIdTreeExportResolver now supports resolving journey files from subdirectories.
 
 ## [0.15.1] - 2022-10-16
 
 ### Added
 
--   Backend support for rockcarver/frodo-cli#86:
-    -   Added field and getters/setters for outputFile to session
-    -   Added function to append text to file to ExportImportUtils.ts
+- Backend support for rockcarver/frodo-cli#86:
+  - Added field and getters/setters for outputFile to session
+  - Added function to append text to file to ExportImportUtils.ts
 
 ## [0.15.0] - 2022-10-14
 
 ### Added
 
--   rockcarver/frodo-cli#82: Added version update checking
+- rockcarver/frodo-cli#82: Added version update checking
 
 ### Changed
 
--   Exposed more api layer modules
+- Exposed more api layer modules
 
 ## [0.14.2-0] - 2022-10-11
 
 ### Added
 
--   rockcarver/frodo-cli#82: Added version update checking
+- rockcarver/frodo-cli#82: Added version update checking
 
 ## [0.14.1] - 2022-10-11
 
 ### Changed
 
--   Release name is now prefixed with `Frodo Libray` for clarity in notifications.
+- Release name is now prefixed with `Frodo Libray` for clarity in notifications.
 
 ### Added
 
--   rockcarver/frodo-cli#70: Added ability to create custom logging noise filters
--   \#119, #121: Library modules can now produce verbose output Embedding code has to register a verboseHandler and enable verbose flag in session.
--   \#120, #122: Library modules can now produce debug output. Embedding code has to register a debugHandler and enable debug flag in session.
+- rockcarver/frodo-cli#70: Added ability to create custom logging noise filters
+- \#119, #121: Library modules can now produce verbose output Embedding code has to register a verboseHandler and enable verbose flag in session.
+- \#120, #122: Library modules can now produce debug output. Embedding code has to register a debugHandler and enable debug flag in session.
 
 ### Fixed
 
--   \#116: Frodo now properly imports themes.
+- \#116: Frodo now properly imports themes.
 
 ## [0.14.0] - 2022-10-11
 
 ### Added
 
--   rockcarver/frodo-cli#70: Added ability to create custom logging noise filters
--   \#119, #121: Library modules can now produce verbose output Embedding code has to register a verboseHandler and enable verbose flag in session.
--   \#120, #122: Library modules can now produce debug output. Embedding code has to register a debugHandler and enable debug flag in session.
+- rockcarver/frodo-cli#70: Added ability to create custom logging noise filters
+- \#119, #121: Library modules can now produce verbose output Embedding code has to register a verboseHandler and enable verbose flag in session.
+- \#120, #122: Library modules can now produce debug output. Embedding code has to register a debugHandler and enable debug flag in session.
 
 ### Fixed
 
--   \#116: Frodo now properly imports themes.
+- \#116: Frodo now properly imports themes.
 
 ## [0.13.2-0] - 2022-10-04
 
 ### Added
 
--   rockcarver/frodo-cli#70: Added ability to create custom logging noise filters
+- rockcarver/frodo-cli#70: Added ability to create custom logging noise filters
 
 ## [0.13.1] - 2022-10-04
 
 ### Fixed
 
--   \#113: Frodo now properly enables and disables journeys.
+- \#113: Frodo now properly enables and disables journeys.
 
 ## [0.13.0] - 2022-10-04
 
 ### Added
 
--   \#110: Added `enableJourney` and `disableJourney` funtions to `JourneyOps.ts` in support of new `frodo-cli` commands `frodo journey enable` and `frodo journey disable`
+- \#110: Added `enableJourney` and `disableJourney` funtions to `JourneyOps.ts` in support of new `frodo-cli` commands `frodo journey enable` and `frodo journey disable`
 
 ### Fixed
 
--   \#109: Autonomous Access nodes are now properly classified as `premium` and `cloud`.
+- \#109: Autonomous Access nodes are now properly classified as `premium` and `cloud`.
 
 ## [0.12.7] - 2022-10-02
 
 ### Changed
 
--   \#107: Frodo now sets identityResource on import when the target is ID Cloud or ForgeOps but the import file was exported from a classic deployment
--   Better journey import resiliency by handling `400 - invalid attribute` errors and retrying without the attributes. This is necessary to import journeys exported from a different version requiring different configuration options. Use the `--verbose` parameter to see when invalid attributes are being removed on import.
+- \#107: Frodo now sets identityResource on import when the target is ID Cloud or ForgeOps but the import file was exported from a classic deployment
+- Better journey import resiliency by handling `400 - invalid attribute` errors and retrying without the attributes. This is necessary to import journeys exported from a different version requiring different configuration options. Use the `--verbose` parameter to see when invalid attributes are being removed on import.
 
 ## [0.12.6] - 2022-09-30
 
 ### Added
 
--   \#104: Enhanced `frodo journey describe` command to include more details
+- \#104: Enhanced `frodo journey describe` command to include more details
 
 ## [0.12.5] - 2022-09-29
 
 ### Fixed
 
--   \#98: Frodo now properly runs `frodo idm export -A -D ./idm <host>` command
--   \#100: Frodo now properly handles nested realms when specified as `/parent/child`
--   \#101: Frodo now properly sets the identity resource when the realm was specified with a leading slash
--   \#102: Frodo now properly replaces existing themes on import when the realm was specified with a leading slash
+- \#98: Frodo now properly runs `frodo idm export -A -D ./idm <host>` command
+- \#100: Frodo now properly handles nested realms when specified as `/parent/child`
+- \#101: Frodo now properly sets the identity resource when the realm was specified with a leading slash
+- \#102: Frodo now properly replaces existing themes on import when the realm was specified with a leading slash
 
 ## [0.12.5-0] - 2022-09-19
 
@@ -946,77 +948,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   Frodo now allows two new parameters when adding a connection profile:
+- Frodo now allows two new parameters when adding a connection profile:
 
-    \--authentication-service [service] Name of the authentication service/tree to use.
+  \--authentication-service [service] Name of the authentication service/tree to use.
 
-    \--authentication-header-overrides [headers] Map of headers: {"host":"am.example.com:8081"}.
+  \--authentication-header-overrides [headers] Map of headers: {"host":"am.example.com:8081"}.
 
-    These parameters are currently only supported in the `frodo conn add` command and the configuration elements will be automatically applied to commands issued using that connection profile.
+  These parameters are currently only supported in the `frodo conn add` command and the configuration elements will be automatically applied to commands issued using that connection profile.
 
-        % frodo conn add https://platform.example.com:9443/am username password --authentication-service ldapService --authentication-header-overrides '{"host":"am.example.com:8081"}' -k
-        ForgeOps deployment detected.
-        Connected to ForgeRock Access Management 7.2.0 Build 64ef7ebc01ed3df1a1264d7b0400351bc101361f (2022-June-27 08:15)
-        Saving creds in /Users/vscheuber/.frodo/.frodorc...
-        Updating connection profile https://platform.example.com:9443/am
-        Advanced setting: Authentication Service: ldapService
-        Advanced setting: Authentication Header Overrides:
-        { host: 'am.example.com:8081' }
-        %
+      % frodo conn add https://platform.example.com:9443/am username password --authentication-service ldapService --authentication-header-overrides '{"host":"am.example.com:8081"}' -k
+      ForgeOps deployment detected.
+      Connected to ForgeRock Access Management 7.2.0 Build 64ef7ebc01ed3df1a1264d7b0400351bc101361f (2022-June-27 08:15)
+      Saving creds in /Users/vscheuber/.frodo/.frodorc...
+      Updating connection profile https://platform.example.com:9443/am
+      Advanced setting: Authentication Service: ldapService
+      Advanced setting: Authentication Header Overrides:
+      { host: 'am.example.com:8081' }
+      %
 
-    After the connection profile is created with the additional parameters, the environment can be accessed as usual. In this case it requires the `-k` parameter for every command, as the environment uses a self-signed certificate.
+  After the connection profile is created with the additional parameters, the environment can be accessed as usual. In this case it requires the `-k` parameter for every command, as the environment uses a self-signed certificate.
 
-        % frodo journey list platform alpha -k
-        ForgeOps deployment detected.
-        Connected to ForgeRock Access Management 7.2.0 Build 64ef7ebc01ed3df1a1264d7b0400351bc101361f (2022-June-27 08:15)
-        Listing journeys in realm "alpha"...
-        Agent
-        Example
-        Facebook-ProvisionIDMAccount
-        Google-AnonymousUser
-        Google-DynamicAccountCreation
-        HmacOneTimePassword
-        PersistentCookie
-        PlatformForgottenUsername
-        PlatformLogin
-        PlatformProgressiveProfile
-        PlatformRegistration
-        PlatformResetPassword
-        PlatformUpdatePassword
-        RetryLimit
-        %
+      % frodo journey list platform alpha -k
+      ForgeOps deployment detected.
+      Connected to ForgeRock Access Management 7.2.0 Build 64ef7ebc01ed3df1a1264d7b0400351bc101361f (2022-June-27 08:15)
+      Listing journeys in realm "alpha"...
+      Agent
+      Example
+      Facebook-ProvisionIDMAccount
+      Google-AnonymousUser
+      Google-DynamicAccountCreation
+      HmacOneTimePassword
+      PersistentCookie
+      PlatformForgottenUsername
+      PlatformLogin
+      PlatformProgressiveProfile
+      PlatformRegistration
+      PlatformResetPassword
+      PlatformUpdatePassword
+      RetryLimit
+      %
 
 ### Fixed
 
--   \#94: Frodo can now connect to improperly configured platform instances
+- \#94: Frodo can now connect to improperly configured platform instances
 
 ## [0.12.3] - 2022-09-16
 
 ### Fixed
 
--   \#92: `frodo email template list <host>` now runs properly
+- \#92: `frodo email template list <host>` now runs properly
 
 ## [0.12.2] - 2022-09-15
 
 ### Added
 
--   More unit and regression tests
+- More unit and regression tests
 
 ### Changed
 
--   Typify code and restructure api and ops layers for library use. As frodo-lib prepares to be a real library for backend use, some of the existing functions will change to cater to that new role. This is an ongoing effort over the next few patch and minor releases.
+- Typify code and restructure api and ops layers for library use. As frodo-lib prepares to be a real library for backend use, some of the existing functions will change to cater to that new role. This is an ongoing effort over the next few patch and minor releases.
 
 ### Fixed
 
--   \#33: Describing all journeys in a realm (`frodo journey describe <host>`) now runs properly
--   \#69: AM version is now included in export meta data. This will help identify if an export is suitable for import into a target environment based on both origin and target versions.
--   \#70: AM version is now stored properly in session storage
--   \#71: Importing applications into Catalyst demo environments now works properly
--   \#78: `frodo journey list -l <host>` now runs properly
--   \#80: `frodo idp export -A <host>` now runs properly
--   \#83: `frodo saml export -A <host>` now runs properly
--   \#85: `frodo journey export -A <host>` now runs properly
--   \#90: Exporting journeys from bravo realm of a cloud tenant now works properly
+- \#33: Describing all journeys in a realm (`frodo journey describe <host>`) now runs properly
+- \#69: AM version is now included in export meta data. This will help identify if an export is suitable for import into a target environment based on both origin and target versions.
+- \#70: AM version is now stored properly in session storage
+- \#71: Importing applications into Catalyst demo environments now works properly
+- \#78: `frodo journey list -l <host>` now runs properly
+- \#80: `frodo idp export -A <host>` now runs properly
+- \#83: `frodo saml export -A <host>` now runs properly
+- \#85: `frodo journey export -A <host>` now runs properly
+- \#90: Exporting journeys from bravo realm of a cloud tenant now works properly
 
 ## [0.12.2-10] - 2022-09-15
 
@@ -1044,11 +1046,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   \#4: New status and progress framework (reworked Console.js to be client-independent)
+- \#4: New status and progress framework (reworked Console.js to be client-independent)
 
 ### Fixed
 
--   \#22: Fixed a pipeline issue that broke `frodo-cli` binary builds.
+- \#22: Fixed a pipeline issue that broke `frodo-cli` binary builds.
 
 ## [0.12.1-0] - 2022-08-27 [YANKED]
 
@@ -1058,7 +1060,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   \#19: `frodo-lib` is now a typescript project.
+- \#19: `frodo-lib` is now a typescript project.
 
 ## [0.11.1-7] - 2022-08-21
 
@@ -1070,7 +1072,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   \#10: `frodo-lib` is now a hybrid npm package supporting both ES modules and CommonJS modules.
+- \#10: `frodo-lib` is now a hybrid npm package supporting both ES modules and CommonJS modules.
 
 ## [0.11.1-3] - 2022-08-18
 
@@ -1084,22 +1086,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   \#1: Split frodo into frodo-lib and frodo-cli
--   \#5: Removed all cli artifacts
--   \#2: Made frodo-lib a true library
--   \#3: Updated pipeline to build the library package
+- \#1: Split frodo into frodo-lib and frodo-cli
+- \#5: Removed all cli artifacts
+- \#2: Made frodo-lib a true library
+- \#3: Updated pipeline to build the library package
 
 ## [0.10.4] - 2022-08-13
 
 ### Added
 
--   \#376: Frodo is now being published as an npm package: @rockcarver/frodo-cli.
--   \#317: Binary archive names now include the release version.
--   \#369: Added backwards compatibilty with node 16 and 14. Binaries are still built using the latest node version (18). Smoke tests run against all supported versions (18, 16, 14).
+- \#376: Frodo is now being published as an npm package: @rockcarver/frodo-cli.
+- \#317: Binary archive names now include the release version.
+- \#369: Added backwards compatibilty with node 16 and 14. Binaries are still built using the latest node version (18). Smoke tests run against all supported versions (18, 16, 14).
 
 ### Fixed
 
--   \#368: Progress bar no longer overrides verbose output on journey import.
+- \#368: Progress bar no longer overrides verbose output on journey import.
 
 ## [0.10.3] - 2022-08-13 [YANKED]
 
@@ -1129,89 +1131,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   \#205: Added `--no-deps` option to `journey export`/`import` commands. This allows users to omit all external dependencies from a journey export and/or import. One use case where this comes in handy is when using frodo as a CI/CD tool to extract and deploy individual configuration artifacts and it is desirable to not mingle multiple types of configuration in a single file but keep each type of configuration in its own file for version and change control.
--   Added `--verbose` option to `journey export` command.
--   \#341: Added initial smoke tests to validate basic functionality.
+- \#205: Added `--no-deps` option to `journey export`/`import` commands. This allows users to omit all external dependencies from a journey export and/or import. One use case where this comes in handy is when using frodo as a CI/CD tool to extract and deploy individual configuration artifacts and it is desirable to not mingle multiple types of configuration in a single file but keep each type of configuration in its own file for version and change control.
+- Added `--verbose` option to `journey export` command.
+- \#341: Added initial smoke tests to validate basic functionality.
 
 ### Changed
 
--   \#363: Frodo now performs dependency resolution and reports unresolved dependencies on single journey imports.
--   \#364: Frodo now uses a spinner and no longer a progress bar to indicate progress on single journey imports.
--   Internal restructuring (#158, #159, #164, #165)
--   Updated PIPELINE.md with latest pipeline changes
+- \#363: Frodo now performs dependency resolution and reports unresolved dependencies on single journey imports.
+- \#364: Frodo now uses a spinner and no longer a progress bar to indicate progress on single journey imports.
+- Internal restructuring (#158, #159, #164, #165)
+- Updated PIPELINE.md with latest pipeline changes
 
 ### Fixed
 
--   \#359: Frodo now properly exports themes from forgeops deployments.
--   \#362: Frodo now properly imports journeys with email templates.
--   \#357: Frodo no longer throws an error and exits occasionally when running the `frodo log tail` command.
--   \#355: Frodo now properly imports social IDPs into 7.1 environments when using the `frodo journey import` command.
--   \#353: Frodo now properly imports social IDPs when using the `frodo journey import` command.
--   \#351: Frodo now properly shows IDM messages using the `frodo logs tail` command.
--   \#349: Frodo now properly exports journeys from classic deployments
+- \#359: Frodo now properly exports themes from forgeops deployments.
+- \#362: Frodo now properly imports journeys with email templates.
+- \#357: Frodo no longer throws an error and exits occasionally when running the `frodo log tail` command.
+- \#355: Frodo now properly imports social IDPs into 7.1 environments when using the `frodo journey import` command.
+- \#353: Frodo now properly imports social IDPs when using the `frodo journey import` command.
+- \#351: Frodo now properly shows IDM messages using the `frodo logs tail` command.
+- \#349: Frodo now properly exports journeys from classic deployments
 
 ## [0.9.2-12] - 2022-08-09
 
 ### Fixed
 
--   \#359: Frodo now properly exports themes from forgeops deployments.
+- \#359: Frodo now properly exports themes from forgeops deployments.
 
 ## [0.9.2-11] - 2022-08-09
 
 ### Changed
 
--   \#363: Frodo now performs dependency resolution and reports unresolved dependencies on single journey imports.
--   \#364: Frodo now uses a spinner and no longer a progress bar to indicate progress on single journey imports.
+- \#363: Frodo now performs dependency resolution and reports unresolved dependencies on single journey imports.
+- \#364: Frodo now uses a spinner and no longer a progress bar to indicate progress on single journey imports.
 
 ### Fixed
 
--   \#362: Frodo now properly imports journeys with email templates.
+- \#362: Frodo now properly imports journeys with email templates.
 
 ## [0.9.2-10] - 2022-08-05
 
 ### Fixed
 
--   \#357: Frodo no longer throws an error and exits occasionally when running the `frodo log tail` command.
+- \#357: Frodo no longer throws an error and exits occasionally when running the `frodo log tail` command.
 
 ## [0.9.2-9] - 2022-07-30
 
 ### Fixed
 
--   \#355: Frodo now properly imports social IDPs into 7.1 environments when using the `frodo journey import` command.
+- \#355: Frodo now properly imports social IDPs into 7.1 environments when using the `frodo journey import` command.
 
 ## [0.9.2-8] - 2022-07-28
 
 ### Fixed
 
--   \#353: Frodo now properly imports social IDPs when using the `frodo journey import` command.
+- \#353: Frodo now properly imports social IDPs when using the `frodo journey import` command.
 
 ## [0.9.2-7] - 2022-07-28
 
 ### Fixed
 
--   \#351: Frodo now properly shows IDM messages using the `frodo logs tail` command.
+- \#351: Frodo now properly shows IDM messages using the `frodo logs tail` command.
 
 ## [0.9.2-6] - 2022-07-27
 
 ### Fixed
 
--   \#349: Frodo now properly exports journeys from classic deployments
+- \#349: Frodo now properly exports journeys from classic deployments
 
 ## [0.9.2-5] - 2022-07-23
 
 ### Changed
 
--   Internal restructuring (#158, #159, #164, #165)
+- Internal restructuring (#158, #159, #164, #165)
 
 ## [0.9.2-4] - 2022-07-22
 
 ### Added
 
--   \#341: Added initial smoke tests to validate basic functionality
+- \#341: Added initial smoke tests to validate basic functionality
 
 ### Changed
 
--   Updated PIPELINE.md with latest pipeline changes
+- Updated PIPELINE.md with latest pipeline changes
 
 ## [0.9.2-3] - 2022-07-22 [YANKED]
 
@@ -1225,27 +1227,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   \#311: Added explicit support for network proxies (`HTTPS_PROXY=<protocol>://<host>:<port>`)
-    Frodo now supports using system enviroment variable `HTTPS_PROXY` (and `HTTP_PROXY`) to connect through a network proxy.
+- \#311: Added explicit support for network proxies (`HTTPS_PROXY=<protocol>://<host>:<port>`)
+  Frodo now supports using system enviroment variable `HTTPS_PROXY` (and `HTTP_PROXY`) to connect through a network proxy.
 
 ### Changed
 
--   Changes to `frodo realm describe` command:
-    -   The realm argument now exclusively determines the realm
-    -   Removed `-n`/`--name` parameter
--   Internal restructuring (#167)
+- Changes to `frodo realm describe` command:
+  - The realm argument now exclusively determines the realm
+  - Removed `-n`/`--name` parameter
+- Internal restructuring (#167)
 
 ### Fixed
 
--   \#329: Fixed help info for `esv apply` command
--   \#335: Fixed error when running `idm list` command
--   \#338: Frodo now successfully authenticates with or without using a proxy
+- \#329: Fixed help info for `esv apply` command
+- \#335: Fixed error when running `idm list` command
+- \#338: Frodo now successfully authenticates with or without using a proxy
 
 ## [0.9.1-1] - 2022-07-21
 
 ### Fixed
 
--   \#338: Frodo now successfully authenticates with or without using a proxy
+- \#338: Frodo now successfully authenticates with or without using a proxy
 
 ## [0.9.1-0] - 2022-07-21 [YANKED]
 
@@ -1255,27 +1257,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   Changed `idm` sub-commands to align with other commands:
-    -   The sub-commands `export`, `exportAll`, and `exportAllRaw` have been collapsed into one: `export`
-        -   `idm export -A` (`--all-separate`) is now the way to export all idm configuration.
-            -   Options `-e` and `-E` select old `exportAll` functionality with variable replacement and filtering
-            -   Omitting options `-e` and `-E`, selects the old `exportAllRaw` functionality without variable replacement and without filtering
-    -   Renamed sample resource files for `idm export` command:
-        -   `<frodo home>/resources/sampleEntitiesFile.json`
-        -   `<frodo home>/resources/sampleEnvFile.env`
-    -   The `-N`/`--name` option of the count command has been renamed to `-m`/`--managed-object`
--   Internal restructuring (#137)
+- Changed `idm` sub-commands to align with other commands:
+  - The sub-commands `export`, `exportAll`, and `exportAllRaw` have been collapsed into one: `export`
+    - `idm export -A` (`--all-separate`) is now the way to export all idm configuration.
+      - Options `-e` and `-E` select old `exportAll` functionality with variable replacement and filtering
+      - Omitting options `-e` and `-E`, selects the old `exportAllRaw` functionality without variable replacement and without filtering
+  - Renamed sample resource files for `idm export` command:
+    - `<frodo home>/resources/sampleEntitiesFile.json`
+    - `<frodo home>/resources/sampleEnvFile.env`
+  - The `-N`/`--name` option of the count command has been renamed to `-m`/`--managed-object`
+- Internal restructuring (#137)
 
 ### Fixed
 
--   \#325: Frodo now gracefully reports and skips node types causing errors during pruning
--   \#331: Frodo now correctly counts managed objects when using the `idm count` command
+- \#325: Frodo now gracefully reports and skips node types causing errors during pruning
+- \#331: Frodo now correctly counts managed objects when using the `idm count` command
 
 ## [0.8.2-1] - 2022-07-16
 
 ### Fixed
 
--   \#325: Frodo now gracefully reports and skips node types causing errors during pruning
+- \#325: Frodo now gracefully reports and skips node types causing errors during pruning
 
 ## [0.8.2-0] - 2022-07-16 [YANKED]
 
@@ -1283,16 +1285,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   New `-l`/`--long` option to script list command
+- New `-l`/`--long` option to script list command
 
 ### Changed
 
--   Changed default behavior of `frodo conn add` to validate connection details by default and renamed parameter from `--validate` to `--no-validate` to allow disabling validation
--   Internal restructuring (#169)
+- Changed default behavior of `frodo conn add` to validate connection details by default and renamed parameter from `--validate` to `--no-validate` to allow disabling validation
+- Internal restructuring (#169)
 
 ### Fixed
 
--   \#324: Frodo now includes themes assigned at journey level in journey exports
+- \#324: Frodo now includes themes assigned at journey level in journey exports
 
 ## [0.8.1-0] - 2022-07-14 [YANKED]
 
@@ -1300,19 +1302,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   \#320: Frodo now identifies itself through the User-Agent header `<name>/<version>` (e.g. `frodo/0.7.1-1`)
+- \#320: Frodo now identifies itself through the User-Agent header `<name>/<version>` (e.g. `frodo/0.7.1-1`)
 
 ### Changed
 
--   Renamed `realm details` to `realm describe` but registered `realm details` as an alias for backwards compatibility
--   Changes to application command
-    -   Renamed command to `app` but registered `application` as an alias for backwards compatibility
-    -   Renamed option `-i`/`--id` to `-i`/`--app-id`. Short version is not impacted by rename.
--   Internal restructuring (#133, #134, #141 #142, #146)
+- Renamed `realm details` to `realm describe` but registered `realm details` as an alias for backwards compatibility
+- Changes to application command
+  - Renamed command to `app` but registered `application` as an alias for backwards compatibility
+  - Renamed option `-i`/`--id` to `-i`/`--app-id`. Short version is not impacted by rename.
+- Internal restructuring (#133, #134, #141 #142, #146)
 
 ### Fixed
 
--   \#319: frodo admin create-oauth2-client-with-admin-privileges --llt properly handles name collisions
+- \#319: frodo admin create-oauth2-client-with-admin-privileges --llt properly handles name collisions
 
 ## [0.7.1-1] - 2022-07-11
 
@@ -1322,27 +1324,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   CHANGELOG.md
--   `conn describe` command to describe connection profiles
-    -   `--show-secrets` option to `conn describe` command to show clear-text secrets
--   `--validate` option to `conn add` command to validate credentials before adding
+- CHANGELOG.md
+- `conn describe` command to describe connection profiles
+  - `--show-secrets` option to `conn describe` command to show clear-text secrets
+- `--validate` option to `conn add` command to validate credentials before adding
 
 ### Changed
 
--   Adapted true semantic versioning
--   Pipeline changes
-    -   Automated updating changelog using keep a changelog format in CHANGELOG.md
-    -   Automated version bump (SemVer format) using PR comments to trigger prerelease, patch, minor, or major bumps
-    -   Automated release notes extraction from CHANGELOG.md
-    -   Automated GitHub release creation
-    -   Renamed frodo.yml to pipeline.yml
--   Renamed connections command to `conn` with aliases `connection` and `connections` for backwards compatibility
--   Internal restructuring (#160, #135)
+- Adapted true semantic versioning
+- Pipeline changes
+  - Automated updating changelog using keep a changelog format in CHANGELOG.md
+  - Automated version bump (SemVer format) using PR comments to trigger prerelease, patch, minor, or major bumps
+  - Automated release notes extraction from CHANGELOG.md
+  - Automated GitHub release creation
+  - Renamed frodo.yml to pipeline.yml
+- Renamed connections command to `conn` with aliases `connection` and `connections` for backwards compatibility
+- Internal restructuring (#160, #135)
 
 ### Fixed
 
--   \#280: Fixed missing -k/--insecure param in application sub-commands #280
--   \#310: No longer storing connection profiles unless explicitly instructed to
+- \#280: Fixed missing -k/--insecure param in application sub-commands #280
+- \#310: No longer storing connection profiles unless explicitly instructed to
 
 ## [0.6.4-4] - 2022-07-10 [YANKED]
 
@@ -1364,7 +1366,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   Changed archive step of Windows binary build to use 7zip
+- Changed archive step of Windows binary build to use 7zip
 
 ## 0.6.1 alpha 22 - 0.6.1 alpha 25 [YANKED]
 
@@ -1372,85 +1374,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   Added theme delete command
--   Theme list e2e tests
--   Theme delete e2e tests
--   Added esv command
-    -   esv secret - Manage secrets.
-    -   esv variable - Manage variables.
-    -   esv apply - Apply pending changes.
--   Updated all dependencies to the latest versions
+- Added theme delete command
+- Theme list e2e tests
+- Theme delete e2e tests
+- Added esv command
+  - esv secret - Manage secrets.
+  - esv variable - Manage variables.
+  - esv apply - Apply pending changes.
+- Updated all dependencies to the latest versions
 
 ### Changed
 
--   Moved secret command under new esv command
+- Moved secret command under new esv command
 
 ## 0.6.1 alpha 20 - 2022-06-23
 
 ### Added
 
--   Added journey delete command
--   journey list e2e tests
--   journey delete e2e tests
+- Added journey delete command
+- journey list e2e tests
+- journey delete e2e tests
 
 ### Changed
 
--   Allow progressbar output to be captured in redirects
+- Allow progressbar output to be captured in redirects
 
 ### Fixed
 
--   Journey import fixes
--   Journey export bug fix
--   Fix theme import issues when using /alpha or /bravo instead of alpha or bravo
--   Fix admin create-oauth2-client-with-admin-privileges command
+- Journey import fixes
+- Journey export bug fix
+- Fix theme import issues when using /alpha or /bravo instead of alpha or bravo
+- Fix admin create-oauth2-client-with-admin-privileges command
 
 ## 0.6.1 alpha 19 - 2022-06-14
 
 ### Added
 
--   First stab at e2e testing of journey command
--   saml command enhancements
+- First stab at e2e testing of journey command
+- saml command enhancements
 
 ### Fixed
 
--   Detect and remove invalid tree attributes on import
--   Fixed issue where overriding deployment type would fail to detect the default realm
--   Fix theme import -A
+- Detect and remove invalid tree attributes on import
+- Fixed issue where overriding deployment type would fail to detect the default realm
+- Fix theme import -A
 
 ## 0.6.1 alpha 18 - 2022-06-10
 
 ### Added
 
--   \--txid parameter with the logs commands to filter log output by transactionId
+- \--txid parameter with the logs commands to filter log output by transactionId
 
 ### Fixed
 
--   Bug in idm exportAllRaw
+- Bug in idm exportAllRaw
 
 ## 0.6.1 alpha 17 - 2022-06-08
 
 ### Added
 
--   New saml command to manage entity providers and circles of trust
+- New saml command to manage entity providers and circles of trust
 
 ### Changed
 
--   Updates to journey export/import commands
-    -   Support for social identity providers
-    -   Support for themes
-    -   Support for SAML entity providers
-    -   Support for SAML circles of trust
-    -   Breaking changes in journey sub-commands
-        -   export
-            -   \-t/--tree renamed to -i/--journey-id
-        -   import
-            -   \-t/--tree renamed to -i/--journey-id
-            -   \-i/--journey-id is now only used to select the journey to import if there are multiple journeys in the import file
-            -   \-n (No re-UUID) removed
-            -   new flag --re-uuid with inversed behavior of removed -n flag. Frodo by default no longer generates new UUIDs for nodes on import
--   Scalability enhancements to journey prune command. The changes allow the prune command to scale to many thousands of orphaned node configuration objects in an AM instance
--   Updated readme
--   Miscellaneous bug fixes
+- Updates to journey export/import commands
+  - Support for social identity providers
+  - Support for themes
+  - Support for SAML entity providers
+  - Support for SAML circles of trust
+  - Breaking changes in journey sub-commands
+    - export
+      - \-t/--tree renamed to -i/--journey-id
+    - import
+      - \-t/--tree renamed to -i/--journey-id
+      - \-i/--journey-id is now only used to select the journey to import if there are multiple journeys in the import file
+      - \-n (No re-UUID) removed
+      - new flag --re-uuid with inversed behavior of removed -n flag. Frodo by default no longer generates new UUIDs for nodes on import
+- Scalability enhancements to journey prune command. The changes allow the prune command to scale to many thousands of orphaned node configuration objects in an AM instance
+- Updated readme
+- Miscellaneous bug fixes
 
 ## 0.6.1 alpha 14 - 0.6.1 alpha 16 [YANKED]
 
@@ -1458,510 +1460,271 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   New script command to export and import scripts
--   New email_templates command to manage email templates
--   New application command to export and import oauth2 clients
--   New realm command to manage realms
--   New secret command to manage Identity Cloud secrets
--   New theme command to manage hosted pages UI themes
--   New admin command to perform advanced administrative tasks
--   Encrypt the password value in the connection profile
--   Added progress bars/spinners for long running operations
--   Added version option -v, --version
--   Auto provisioning of log API keys
--   Added initial unit testing
+- New script command to export and import scripts
+- New email_templates command to manage email templates
+- New application command to export and import oauth2 clients
+- New realm command to manage realms
+- New secret command to manage Identity Cloud secrets
+- New theme command to manage hosted pages UI themes
+- New admin command to perform advanced administrative tasks
+- Encrypt the password value in the connection profile
+- Added progress bars/spinners for long running operations
+- Added version option -v, --version
+- Auto provisioning of log API keys
+- Added initial unit testing
 
 ### Changed
 
--   Improved performance of journey command (multi-threading)
--   Consolidated settings under one folder (~/.frodo)
--   Proposed new code formatting (prettier) and style (eslint) rules
--   Updated readme
--   Update to node 18
+- Improved performance of journey command (multi-threading)
+- Consolidated settings under one folder (~/.frodo)
+- Proposed new code formatting (prettier) and style (eslint) rules
+- Updated readme
+- Update to node 18
 
 ### Fixed
 
--   Fixed problem with adding connection profiles
--   Miscellaneous bug fixes
+- Fixed problem with adding connection profiles
+- Miscellaneous bug fixes
 
-[Unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-87...HEAD
-
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-88...HEAD
+[2.0.0-88]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-87...v2.0.0-88
 [2.0.0-87]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-86...v2.0.0-87
-
 [2.0.0-86]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-85...v2.0.0-86
-
 [2.0.0-85]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-84...v2.0.0-85
-
 [2.0.0-84]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-83...v2.0.0-84
-
 [2.0.0-83]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-82...v2.0.0-83
-
 [2.0.0-82]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-81...v2.0.0-82
-
 [2.0.0-81]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-80...v2.0.0-81
-
 [2.0.0-80]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-79...v2.0.0-80
-
 [2.0.0-79]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-78...v2.0.0-79
-
 [2.0.0-78]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-77...v2.0.0-78
-
 [2.0.0-77]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-76...v2.0.0-77
-
 [2.0.0-76]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-75...v2.0.0-76
-
 [2.0.0-75]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-74...v2.0.0-75
-
 [2.0.0-74]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-73...v2.0.0-74
-
 [2.0.0-73]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-72...v2.0.0-73
-
 [2.0.0-72]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-71...v2.0.0-72
-
 [2.0.0-71]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-70...v2.0.0-71
-
 [2.0.0-70]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-69...v2.0.0-70
-
 [2.0.0-69]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-68...v2.0.0-69
-
 [2.0.0-68]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-67...v2.0.0-68
-
 [2.0.0-67]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-66...v2.0.0-67
-
 [2.0.0-66]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-65...v2.0.0-66
-
 [2.0.0-65]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-64...v2.0.0-65
-
 [2.0.0-64]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-63...v2.0.0-64
-
 [2.0.0-63]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-62...v2.0.0-63
-
 [2.0.0-62]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-61...v2.0.0-62
-
 [2.0.0-61]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-60...v2.0.0-61
-
 [2.0.0-60]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-59...v2.0.0-60
-
 [2.0.0-59]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-58...v2.0.0-59
-
 [2.0.0-58]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-57...v2.0.0-58
-
 [2.0.0-57]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-56...v2.0.0-57
-
 [2.0.0-56]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-55...v2.0.0-56
-
 [2.0.0-55]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-54...v2.0.0-55
-
 [2.0.0-54]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-53...v2.0.0-54
-
 [2.0.0-53]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-52...v2.0.0-53
-
 [2.0.0-52]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-51...v2.0.0-52
-
 [2.0.0-51]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-50...v2.0.0-51
-
 [2.0.0-50]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-49...v2.0.0-50
-
 [2.0.0-49]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-48...v2.0.0-49
-
 [2.0.0-48]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-47...v2.0.0-48
-
 [2.0.0-47]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-46...v2.0.0-47
-
 [2.0.0-46]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-45...v2.0.0-46
-
 [2.0.0-45]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-44...v2.0.0-45
-
 [2.0.0-44]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-43...v2.0.0-44
-
 [2.0.0-43]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-42...v2.0.0-43
-
 [2.0.0-42]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-41...v2.0.0-42
-
 [2.0.0-41]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-40...v2.0.0-41
-
 [2.0.0-40]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-39...v2.0.0-40
-
 [2.0.0-39]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-38...v2.0.0-39
-
 [2.0.0-38]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-37...v2.0.0-38
-
 [2.0.0-37]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-36...v2.0.0-37
-
 [2.0.0-36]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-35...v2.0.0-36
-
 [2.0.0-35]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-34...v2.0.0-35
-
 [2.0.0-34]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-33...v2.0.0-34
-
 [2.0.0-33]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-32...v2.0.0-33
-
 [2.0.0-32]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-31...v2.0.0-32
-
 [2.0.0-31]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-30...v2.0.0-31
-
 [2.0.0-30]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-29...v2.0.0-30
-
 [2.0.0-29]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-28...v2.0.0-29
-
 [2.0.0-28]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-27...v2.0.0-28
-
 [2.0.0-27]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-26...v2.0.0-27
-
 [2.0.0-26]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-25...v2.0.0-26
-
 [2.0.0-25]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-24...v2.0.0-25
-
 [2.0.0-24]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-23...v2.0.0-24
-
 [2.0.0-23]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-22...v2.0.0-23
-
 [2.0.0-22]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-21...v2.0.0-22
-
 [2.0.0-21]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-20...v2.0.0-21
-
 [2.0.0-20]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-19...v2.0.0-20
-
 [2.0.0-19]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-18...v2.0.0-19
-
 [2.0.0-18]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-17...v2.0.0-18
-
 [2.0.0-17]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-16...v2.0.0-17
-
 [2.0.0-16]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-15...v2.0.0-16
-
 [2.0.0-15]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-14...v2.0.0-15
-
 [2.0.0-14]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-13...v2.0.0-14
-
 [2.0.0-13]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-12...v2.0.0-13
-
 [2.0.0-12]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-11...v2.0.0-12
-
 [2.0.0-11]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-10...v2.0.0-11
-
 [2.0.0-10]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-9...v2.0.0-10
-
 [2.0.0-9]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-8...v2.0.0-9
-
 [2.0.0-8]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-7...v2.0.0-8
-
 [2.0.0-7]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-6...v2.0.0-7
-
 [2.0.0-6]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-5...v2.0.0-6
-
 [2.0.0-5]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-4...v2.0.0-5
-
 [2.0.0-4]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-3...v2.0.0-4
-
 [2.0.0-3]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-2...v2.0.0-3
-
 [2.0.0-2]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-1...v2.0.0-2
-
 [2.0.0-1]: https://github.com/rockcarver/frodo-lib/compare/v0.19.2...v2.0.0-1
-
 [1.1.0]: https://github.com/rockcarver/frodo-lib/compare/v1.0.1-1...v1.1.0
-
 [1.0.1-1]: https://github.com/rockcarver/frodo-lib/compare/v1.0.1-0...v1.0.1-1
-
 [1.0.1-0]: https://github.com/rockcarver/frodo-lib/compare/v1.0.0...v1.0.1-0
-
 [1.0.0]: https://github.com/rockcarver/frodo-lib/compare/v0.19.2...v1.0.0
-
 [0.19.2]: https://github.com/rockcarver/frodo-lib/compare/v0.19.1...v0.19.2
-
 [0.19.1]: https://github.com/rockcarver/frodo-lib/compare/v0.19.0...v0.19.1
-
 [0.19.0]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-7...v0.19.0
-
 [0.18.9-7]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-6...v0.18.9-7
-
 [0.18.9-6]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-5...v0.18.9-6
-
 [0.18.9-5]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-4...v0.18.9-5
-
 [0.18.9-4]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-3...v0.18.9-4
-
 [0.18.9-3]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-2...v0.18.9-3
-
 [0.18.9-2]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-1...v0.18.9-2
-
 [0.18.9-1]: https://github.com/rockcarver/frodo-lib/compare/v0.18.9-0...v0.18.9-1
-
 [0.18.9-0]: https://github.com/rockcarver/frodo-lib/compare/v0.18.8...v0.18.9-0
-
 [0.18.8]: https://github.com/rockcarver/frodo-lib/compare/v0.18.7...v0.18.8
-
 [0.18.7]: https://github.com/rockcarver/frodo-lib/compare/v0.18.6...v0.18.7
-
 [0.18.6]: https://github.com/rockcarver/frodo-lib/compare/v0.18.5...v0.18.6
-
 [0.18.5]: https://github.com/rockcarver/frodo-lib/compare/v0.18.4...v0.18.5
-
 [0.18.4]: https://github.com/rockcarver/frodo-lib/compare/v0.18.3...v0.18.4
-
 [0.18.3]: https://github.com/rockcarver/frodo-lib/compare/v0.18.2...v0.18.3
-
 [0.18.2]: https://github.com/rockcarver/frodo-lib/compare/v0.18.2-0...v0.18.2
-
 [0.18.2-0]: https://github.com/rockcarver/frodo-lib/compare/v0.18.1...v0.18.2-0
-
 [0.18.1]: https://github.com/rockcarver/frodo-lib/compare/v0.18.1-0...v0.18.1
-
 [0.18.1-0]: https://github.com/rockcarver/frodo-lib/compare/v0.18.0...v0.18.1-0
-
 [0.18.0]: https://github.com/rockcarver/frodo-lib/compare/v0.17.8-3...v0.18.0
-
 [0.17.8-3]: https://github.com/rockcarver/frodo-lib/compare/v0.17.8-2...v0.17.8-3
-
 [0.17.8-2]: https://github.com/rockcarver/frodo-lib/compare/v0.17.8-1...v0.17.8-2
-
 [0.17.8-1]: https://github.com/rockcarver/frodo-lib/compare/v0.17.8-0...v0.17.8-1
-
 [0.17.8-0]: https://github.com/rockcarver/frodo-lib/compare/v0.17.7...v0.17.8-0
-
 [0.17.7]: https://github.com/rockcarver/frodo-lib/compare/v0.17.6...v0.17.7
-
 [0.17.6]: https://github.com/rockcarver/frodo-lib/compare/v0.17.5...v0.17.6
-
 [0.17.5]: https://github.com/rockcarver/frodo-lib/compare/v0.17.5-0...v0.17.5
-
 [0.17.5-0]: https://github.com/rockcarver/frodo-lib/compare/v0.17.4...v0.17.5-0
-
 [0.17.4]: https://github.com/rockcarver/frodo-lib/compare/v0.17.3...v0.17.4
-
 [0.17.3]: https://github.com/rockcarver/frodo-lib/compare/v0.17.2...v0.17.3
-
 [0.17.2]: https://github.com/rockcarver/frodo-lib/compare/v0.17.2-0...v0.17.2
-
 [0.17.2-0]: https://github.com/rockcarver/frodo-lib/compare/v0.17.1...v0.17.2-0
-
 [0.17.1]: https://github.com/rockcarver/frodo-lib/compare/v0.17.0...v0.17.1
-
 [0.17.0]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-20...v0.17.0
-
 [0.16.2-20]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-19...v0.16.2-20
-
 [0.16.2-19]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-18...v0.16.2-19
-
 [0.16.2-18]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-17...v0.16.2-18
-
 [0.16.2-17]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-16...v0.16.2-17
-
 [0.16.2-16]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-15...v0.16.2-16
-
 [0.16.2-15]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-14...v0.16.2-15
-
 [0.16.2-14]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-13...v0.16.2-14
-
 [0.16.2-13]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-12...v0.16.2-13
-
 [0.16.2-12]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-11...v0.16.2-12
-
 [0.16.2-11]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-10...v0.16.2-11
-
 [0.16.2-10]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-9...v0.16.2-10
-
 [0.16.2-9]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-8...v0.16.2-9
-
 [0.16.2-8]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-7...v0.16.2-8
-
 [0.16.2-7]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-6...v0.16.2-7
-
 [0.16.2-6]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-5...v0.16.2-6
-
 [0.16.2-5]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-0...v0.16.2-5
-
 [0.16.2-0]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-4...v0.16.2-0
-
 [0.16.2-4]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-3...v0.16.2-4
-
 [0.16.2-3]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-2...v0.16.2-3
-
 [0.16.2-2]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-1...v0.16.2-2
-
 [0.16.2-1]: https://github.com/rockcarver/frodo-lib/compare/v0.16.2-0...v0.16.2-1
-
 [0.16.2-0]: https://github.com/rockcarver/frodo-lib/compare/v0.16.1...v0.16.2-0
-
 [0.16.1]: https://github.com/rockcarver/frodo-lib/compare/v0.16.0...v0.16.1
-
 [0.16.0]: https://github.com/rockcarver/frodo-lib/compare/v0.15.3-0...v0.16.0
-
 [0.15.3-0]: https://github.com/rockcarver/frodo-lib/compare/v0.15.2...v0.15.3-0
-
 [0.15.2]: https://github.com/rockcarver/frodo-lib/compare/v0.15.1...v0.15.2
-
 [0.15.1]: https://github.com/rockcarver/frodo-lib/compare/v0.15.0...v0.15.1
-
 [0.15.0]: https://github.com/rockcarver/frodo-lib/compare/v0.14.2-0...v0.15.0
-
 [0.14.2-0]: https://github.com/rockcarver/frodo-lib/compare/v0.14.1...v0.14.2-0
-
 [0.14.1]: https://github.com/rockcarver/frodo-lib/compare/v0.14.0...v0.14.1
-
 [0.14.0]: https://github.com/rockcarver/frodo-lib/compare/v0.13.2-0...v0.14.0
-
 [0.13.2-0]: https://github.com/rockcarver/frodo-lib/compare/v0.13.1...v0.13.2-0
-
 [0.13.1]: https://github.com/rockcarver/frodo-lib/compare/v0.13.0...v0.13.1
-
 [0.13.0]: https://github.com/rockcarver/frodo-lib/compare/v0.12.7...v0.13.0
-
 [0.12.7]: https://github.com/rockcarver/frodo-lib/compare/v0.12.6...v0.12.7
-
 [0.12.6]: https://github.com/rockcarver/frodo-lib/compare/v0.12.5...v0.12.6
-
 [0.12.5]: https://github.com/rockcarver/frodo-lib/compare/v0.12.5-0...v0.12.5
-
 [0.12.5-0]: https://github.com/rockcarver/frodo-lib/compare/v0.12.4...v0.12.5-0
-
 [0.12.4]: https://github.com/rockcarver/frodo-lib/compare/v0.12.3...v0.12.4
-
 [0.12.3]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2...v0.12.3
-
 [0.12.2]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2-10...v0.12.2
-
 [0.12.2-10]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2-9...v0.12.2-10
-
 [0.12.2-9]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2-8...v0.12.2-9
-
 [0.12.2-8]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2-7...v0.12.2-8
-
 [0.12.2-7]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2-6...v0.12.2-7
-
 [0.12.2-6]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2-5...v0.12.2-6
-
 [0.12.2-5]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2-4...v0.12.2-5
-
 [0.12.2-4]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2-3...v0.12.2-4
-
 [0.12.2-3]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2-2...v0.12.2-3
-
 [0.12.2-2]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2-1...v0.12.2-2
-
 [0.12.2-1]: https://github.com/rockcarver/frodo-lib/compare/v0.12.2-0...v0.12.2-1
-
 [0.12.2-0]: https://github.com/rockcarver/frodo-lib/compare/v0.12.1...v0.12.2-0
-
 [0.12.1]: https://github.com/rockcarver/frodo-lib/compare/v0.12.1-0...v0.12.1
-
 [0.12.1-0]: https://github.com/rockcarver/frodo-lib/compare/v0.12.0...v0.12.1-0
-
 [0.12.0]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-8...v0.12.0
-
 [0.11.1-8]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-7...v0.11.1-8
-
 [0.11.1-7]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-6...v0.11.1-7
-
 [0.11.1-6]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-5...v0.11.1-6
-
 [0.11.1-5]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-4...v0.11.1-5
-
 [0.11.1-4]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-3...v0.11.1-4
-
 [0.11.1-3]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-2...v0.11.1-3
-
 [0.11.1-2]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-1...v0.11.1-2
-
 [0.11.1-1]: https://github.com/rockcarver/frodo-lib/compare/v0.11.1-0...v0.11.1-1
-
 [0.11.1-0]: https://github.com/rockcarver/frodo-lib/compare/v0.10.4...v0.11.1-0
-
 [0.10.4]: https://github.com/rockcarver/frodo/compare/v0.10.3...v0.10.4
-
 [0.10.3]: https://github.com/rockcarver/frodo/compare/v0.10.3-0...v0.10.3
-
 [0.10.3-0]: https://github.com/rockcarver/frodo/compare/v0.10.2...v0.10.3-0
-
 [0.10.2]: https://github.com/rockcarver/frodo/compare/v0.10.2-0...v0.10.2
-
 [0.10.2-0]: https://github.com/rockcarver/frodo/compare/v0.10.1...v0.10.2-0
-
 [0.10.1]: https://github.com/rockcarver/frodo/compare/v0.10.0...v0.10.1
-
 [0.10.0]: https://github.com/rockcarver/frodo/compare/v0.9.3-7...v0.10.0
-
 [0.9.3-7]: https://github.com/rockcarver/frodo/compare/v0.9.3-6...v0.9.3-7
-
 [0.9.3-6]: https://github.com/rockcarver/frodo/compare/v0.9.3-5...v0.9.3-6
-
 [0.9.3-5]: https://github.com/rockcarver/frodo/compare/v0.9.3-4...v0.9.3-5
-
 [0.9.3-4]: https://github.com/rockcarver/frodo/compare/v0.9.3-3...v0.9.3-4
-
 [0.9.3-3]: https://github.com/rockcarver/frodo/compare/v0.9.3-2...v0.9.3-3
-
 [0.9.3-2]: https://github.com/rockcarver/frodo/compare/v0.9.3-1...v0.9.3-2
-
 [0.9.3-1]: https://github.com/rockcarver/frodo/compare/v0.9.3-0...v0.9.3-1
-
 [0.9.3-0]: https://github.com/rockcarver/frodo/compare/v0.9.2...v0.9.3-0
-
 [0.9.2]: https://github.com/rockcarver/frodo/compare/v0.9.2-12...v0.9.2
-
 [0.9.2-12]: https://github.com/rockcarver/frodo/compare/v0.9.2-11...v0.9.2-12
-
 [0.9.2-11]: https://github.com/rockcarver/frodo/compare/v0.9.2-10...v0.9.2-11
-
 [0.9.2-10]: https://github.com/rockcarver/frodo/compare/v0.9.2-9...v0.9.2-10
-
 [0.9.2-9]: https://github.com/rockcarver/frodo/compare/v0.9.2-8...v0.9.2-9
-
 [0.9.2-8]: https://github.com/rockcarver/frodo/compare/v0.9.2-7...v0.9.2-8
-
 [0.9.2-7]: https://github.com/rockcarver/frodo/compare/v0.9.2-6...v0.9.2-7
-
 [0.9.2-6]: https://github.com/rockcarver/frodo/compare/v0.9.2-5...v0.9.2-6
-
 [0.9.2-5]: https://github.com/rockcarver/frodo/compare/v0.9.2-4...v0.9.2-5
-
 [0.9.2-4]: https://github.com/rockcarver/frodo/compare/v0.9.2-3...v0.9.2-4
-
 [0.9.2-3]: https://github.com/rockcarver/frodo/compare/v0.9.2-2...v0.9.2-3
-
 [0.9.2-2]: https://github.com/rockcarver/frodo/compare/v0.9.2-1...v0.9.2-2
-
 [0.9.2-1]: https://github.com/rockcarver/frodo/compare/v0.9.2-0...v0.9.2-1
-
 [0.9.2-0]: https://github.com/rockcarver/frodo/compare/v0.9.1...v0.9.2-0
-
 [0.9.1]: https://github.com/rockcarver/frodo/compare/v0.9.1-1...v0.9.1
-
 [0.9.1-1]: https://github.com/rockcarver/frodo/compare/v0.9.1-0...v0.9.1-1
-
 [0.9.1-0]: https://github.com/rockcarver/frodo/compare/v0.9.0...v0.9.1-0
-
 [0.9.0]: https://github.com/rockcarver/frodo/compare/v0.8.2...v0.9.0
-
 [0.8.2]: https://github.com/rockcarver/frodo/compare/v0.8.2-1...v0.8.2
-
 [0.8.2-1]: https://github.com/rockcarver/frodo/compare/v0.8.2-0...v0.8.2-1
-
 [0.8.2-0]: https://github.com/rockcarver/frodo/compare/v0.8.1...v0.8.2-0
-
 [0.8.1]: https://github.com/rockcarver/frodo/compare/v0.8.1-0...v0.8.1
-
 [0.8.1-0]: https://github.com/rockcarver/frodo/compare/v0.8.0...v0.8.1-0
-
 [0.8.0]: https://github.com/rockcarver/frodo/compare/v0.7.1-1...v0.8.0
-
 [0.7.1-1]: https://github.com/rockcarver/frodo/compare/v0.7.1-0...v0.7.1-1
-
 [0.7.1-0]: https://github.com/rockcarver/frodo/compare/v0.7.0...v0.7.1-0
-
 [0.7.0]: https://github.com/rockcarver/frodo/compare/v0.6.4-4...v0.7.0
-
 [0.6.4-4]: https://github.com/rockcarver/frodo/compare/v0.6.4-3...v0.6.4-4
-
 [0.6.4-3]: https://github.com/rockcarver/frodo/compare/v0.6.4-2...v0.6.4-3
-
 [0.6.4-2]: https://github.com/rockcarver/frodo/compare/v0.6.4-1...v0.6.4-2
-
 [0.6.4-1]: https://github.com/rockcarver/frodo/compare/v0.6.4-0...v0.6.4-1
-
 [0.6.4-0]: https://github.com/rockcarver/frodo/compare/v0.6.3...v0.6.4-0
-
 [0.6.3]: https://github.com/rockcarver/frodo/compare/v0.6.3-alpha.51...v0.6.3
-
 [0.6.3-alpha.51]: https://github.com/rockcarver/frodo/compare/6137b8b19f1c22af40af5afbf7a2e6c5a95b61cb...v0.6.3-alpha.51
