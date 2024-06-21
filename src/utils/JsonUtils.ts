@@ -182,7 +182,7 @@ export function getPaths(o: any, prefix = '', delim = '.'): string[] {
     }
     // function
     else if (typeof o[k] === 'function') {
-      const func: string = o[k].toString();
+      const func: string = o[k].toString().replace(/^(function|async) /g, '');
       const p = prefix + func.substring(0, func.indexOf('{')).trim();
       paths.push(p);
     }
