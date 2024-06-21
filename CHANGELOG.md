@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+-   Pipeline hygene
+
 ## [2.0.0-87] - 2024-06-20
+
+### Changed
+
+-   \#417: Added support for node 22
+-   \#363: Updated information in README
 
 ## [2.0.0-86] - 2024-06-19
 

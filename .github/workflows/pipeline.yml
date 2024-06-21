@@ -39,6 +39,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      - name: Update package-log.json before version bump
+        run: npm i --package-lock-only
+
       - name: Install dependencies
         run: npm ci
 
@@ -60,7 +63,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update package-log.json
+      - name: Update package-log.json after version bump
         run: npm i --package-lock-only
 
       - name: Version From Tag
@@ -234,7 +237,7 @@ jobs:
         run: echo ${{ github.sha }} > Release.txt
 
       - name: Update Changelog
-        uses: thomaseizinger/keep-a-changelog-new-release@v2
+        uses: thomaseizinger/keep-a-changelog-new-release@v3
         with:
           tag: ${{ needs.build.outputs.newTag }}
 
@@ -260,7 +263,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md package.json docs
+          git add CHANGELOG.md package.json package-lock.json docs
           git commit --message "Updated changelog, version, and docs for release ${{ needs.build.outputs.newTag }}"
           git push
 
