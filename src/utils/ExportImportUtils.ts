@@ -567,7 +567,8 @@ export function parseUrl(href: string): any {
     r.origin = r.protocol + '//' + r.host;
   }
   if (r.search.length > 2) {
-    const query = r.search.indexOf('?') === 0 ? r.search.substring(1) : r.search;
+    const query =
+      r.search.indexOf('?') === 0 ? r.search.substring(1) : r.search;
     const vars = query.split('&');
     for (let i = 0; i < vars.length; i++) {
       const pair = vars[i].split('=');
