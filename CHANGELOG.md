@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-89] - 2024-06-27
+
 ### Added
 
 - Frodo now supports exporting (and importing) of ESV secret values. To leave stuartship of secret values with the cloud environment where they belong, frodo will always encrypt values using either encryption keys from the source environment (default) or the target environment (export option). Frodo will never export secrets in the clear. However, frodo supports importing clear values (as well as importing encrypted values).
@@ -1492,7 +1494,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-88...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-89...HEAD
+[2.0.0-89]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-88...v2.0.0-89
 [2.0.0-88]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-87...v2.0.0-88
 [2.0.0-87]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-86...v2.0.0-87
 [2.0.0-86]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-85...v2.0.0-86
