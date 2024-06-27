@@ -37,6 +37,7 @@ import { autoSetupPolly } from '../../utils/AutoSetupPolly';
 import { state } from '../../index';
 import * as SecretsOps from './SecretsOps';
 import { FrodoError } from '../FrodoError';
+import { printError } from '../../utils/Console';
 
 autoSetupPolly();
 
@@ -126,7 +127,6 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
     encoding: 'pem',
     useInPlaceholders: true,
   };
-
   const secret5 = {
     id: 'esv-frodo-test-secret-5',
     value: '0nbVGkrNnIm4o5WKzYS/dL3/eo/k9EnSBH2QOOm5dLM=',
@@ -134,12 +134,221 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
     encoding: 'base64hmac',
     useInPlaceholders: false,
   };
+  const secret6 = {
+    id: 'esv-frodo-test-secret-6',
+    value: 'value6',
+    description: 'description6',
+    encoding: 'generic',
+    useInPlaceholders: true,
+  };
+  const secret7 = {
+    id: 'esv-frodo-test-secret-7',
+    value: 'value7',
+    description: 'description7',
+    encoding: 'generic',
+    useInPlaceholders: true,
+  };
+  const secret8 = {
+    id: 'esv-frodo-test-secret-8',
+    value: 'value8',
+    description: 'description8',
+    encoding: 'generic',
+    useInPlaceholders: true,
+  };
+  const secret9 = {
+    id: 'esv-frodo-test-secret-9',
+    value: 'value9',
+    description: 'description9',
+    encoding: 'generic',
+    useInPlaceholders: true,
+  };
+  const secret10 = {
+    id: 'esv-frodo-test-secret-10',
+    value: 'value10',
+    description: 'description10',
+    encoding: 'generic',
+    useInPlaceholders: true,
+  };
+  const secret11 = {
+    id: 'esv-frodo-test-secret-11',
+    value: 'value11',
+    description: 'description11',
+    encoding: 'generic',
+    useInPlaceholders: true,
+  };
+  const secret6Export: SecretsOps.SecretsExportInterface = {
+    meta: {
+      exportDate: '2024-06-26T17:21:25.297Z',
+      exportTool: 'frodo',
+      exportToolVersion: 'v2.0.0-88 [v20.5.1]',
+      exportedBy: 'volker.scheuber@forgerock.com',
+      origin: 'https://openam-frodo-dev.forgeblocks.com/am',
+      originAmVersion: '7.6.0',
+    },
+    secrets: {
+      'esv-frodo-test-secret-6': {
+        _id: 'esv-frodo-test-secret-6',
+        activeVersion: '1',
+        description: 'description6',
+        encoding: 'generic',
+        lastChangeDate: '2024-06-26T17:06:44.729068Z',
+        lastChangedBy: 'Frodo-SA-1701393386423',
+        loaded: true,
+        loadedVersion: '1',
+        useInPlaceholders: true,
+      },
+    },
+  };
+  const secret7Export: SecretsOps.SecretsExportInterface = {
+    meta: {
+      exportDate: '2024-06-26T17:21:25.297Z',
+      exportTool: 'frodo',
+      exportToolVersion: 'v2.0.0-88 [v20.5.1]',
+      exportedBy: 'volker.scheuber@forgerock.com',
+      origin: 'https://openam-frodo-dev.forgeblocks.com/am',
+      originAmVersion: '7.6.0',
+    },
+    secrets: {
+      'esv-frodo-test-secret-7': {
+        _id: 'esv-frodo-test-secret-7',
+        activeValue: {
+          $crypto: {
+            type: 'x-simple-encryption',
+            value: {
+              cipher: 'AES/CBC/PKCS5Padding',
+              data: 'pVE6Y1Va4V1DB50A10mqkQ==',
+              iv: '2GjZJDuomoZeBOkr4MWBGQ==',
+              keySize: 16,
+              mac: 'A2TT/N3gBzWdQjhHo3QPjg==',
+              purpose: 'idm.password.encryption',
+              salt: 'Osc1v2DpgdnE6Bqf8SH5ng==',
+              stableId: 'openidm-sym-default',
+            },
+          },
+        },
+        activeVersion: '1',
+        description: 'description7',
+        encoding: 'generic',
+        lastChangeDate: '2024-06-26T17:06:45.868234Z',
+        lastChangedBy: 'Frodo-SA-1701393386423',
+        loaded: true,
+        loadedVersion: '1',
+        useInPlaceholders: true,
+      },
+    },
+  };
+  const secret89Export: SecretsOps.SecretsExportInterface = {
+    meta: {
+      exportDate: '2024-06-26T17:21:25.297Z',
+      exportTool: 'frodo',
+      exportToolVersion: 'v2.0.0-88 [v20.5.1]',
+      exportedBy: 'volker.scheuber@forgerock.com',
+      origin: 'https://openam-frodo-dev.forgeblocks.com/am',
+      originAmVersion: '7.6.0',
+    },
+    secrets: {
+      'esv-frodo-test-secret-8': {
+        _id: 'esv-frodo-test-secret-8',
+        activeVersion: '1',
+        description: 'description8',
+        encoding: 'generic',
+        lastChangeDate: '2024-06-26T17:06:46.979708Z',
+        lastChangedBy: 'Frodo-SA-1701393386423',
+        loaded: true,
+        loadedVersion: '1',
+        useInPlaceholders: true,
+      },
+      'esv-frodo-test-secret-9': {
+        _id: 'esv-frodo-test-secret-9',
+        activeVersion: '1',
+        description: 'description9',
+        encoding: 'generic',
+        lastChangeDate: '2024-06-26T17:06:47.977012Z',
+        lastChangedBy: 'Frodo-SA-1701393386423',
+        loaded: true,
+        loadedVersion: '1',
+        useInPlaceholders: true,
+      },
+    },
+  };
+  const secret1011Export: SecretsOps.SecretsExportInterface = {
+    meta: {
+      exportDate: '2024-06-26T17:21:07.599Z',
+      exportTool: 'frodo',
+      exportToolVersion: 'v2.0.0-88 [v20.5.1]',
+      exportedBy: 'volker.scheuber@forgerock.com',
+      origin: 'https://openam-frodo-dev.forgeblocks.com/am',
+      originAmVersion: '7.6.0',
+    },
+    secrets: {
+      'esv-frodo-test-secret-10': {
+        _id: 'esv-frodo-test-secret-10',
+        activeValue: {
+          $crypto: {
+            type: 'x-simple-encryption',
+            value: {
+              cipher: 'AES/CBC/PKCS5Padding',
+              data: 'SZ8gU3fq5dGlbhPgd7kT3Q==',
+              iv: 'KCOai4hfGovwyrSswB9mow==',
+              keySize: 16,
+              mac: 'lJdfWa1DkNkxcHBMfqlXuw==',
+              purpose: 'idm.password.encryption',
+              salt: 'bqeoBikq1SB1c+ThqqQDaw==',
+              stableId: 'openidm-sym-default',
+            },
+          },
+        },
+        activeVersion: '1',
+        description: 'description10',
+        encoding: 'generic',
+        lastChangeDate: '2024-06-26T17:06:48.875277Z',
+        lastChangedBy: 'Frodo-SA-1701393386423',
+        loaded: true,
+        loadedVersion: '1',
+        useInPlaceholders: true,
+      },
+      'esv-frodo-test-secret-11': {
+        _id: 'esv-frodo-test-secret-11',
+        activeValue: {
+          $crypto: {
+            type: 'x-simple-encryption',
+            value: {
+              cipher: 'AES/CBC/PKCS5Padding',
+              data: 'Sxb6VWMMUCQ/qBmYB08kCA==',
+              iv: '7rayASsrtPPg+VAojLADdQ==',
+              keySize: 16,
+              mac: 'nx2l6Sx4k8nk3DDVXb5rqQ==',
+              purpose: 'idm.password.encryption',
+              salt: 'i4CP2IeVdFR9vTXvs69/RA==',
+              stableId: 'openidm-sym-default',
+            },
+          },
+        },
+        activeVersion: '1',
+        description: 'description11',
+        encoding: 'generic',
+        lastChangeDate: '2024-06-26T17:06:49.924701Z',
+        lastChangedBy: 'Frodo-SA-1701393386423',
+        loaded: true,
+        loadedVersion: '1',
+        useInPlaceholders: true,
+      },
+    },
+  };
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
       await stageSecret(secret1);
       await stageSecret(secret2);
       await stageSecret(secret3, false);
+      await stageSecret(secret4, false);
+      await stageSecret(secret5, false);
+      await stageSecret(secret6, false);
+      await stageSecret(secret7, false);
+      await stageSecret(secret8, false);
+      await stageSecret(secret9, false);
+      await stageSecret(secret10, false);
+      await stageSecret(secret11, false);
     }
   });
   // in recording mode, remove test data after recording
@@ -150,6 +359,12 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
       await stageSecret(secret3, false);
       await stageSecret(secret4, false);
       await stageSecret(secret5, false);
+      await stageSecret(secret6, false);
+      await stageSecret(secret7, false);
+      await stageSecret(secret8, false);
+      await stageSecret(secret9, false);
+      await stageSecret(secret10, false);
+      await stageSecret(secret11, false);
     }
   });
 
@@ -175,6 +390,16 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
 
     test('1: Export all secrets', async () => {
       const response = await SecretsOps.exportSecrets({ state: state });
+      expect(response).toMatchSnapshot({
+        meta: expect.any(Object),
+      });
+    });
+
+    test('2: Export all secrets including active values', async () => {
+      const response = await SecretsOps.exportSecrets({
+        options: { includeActiveValues: true, target: '' },
+        state: state,
+      });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -215,6 +440,80 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
         expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
       }
     });
+
+    test('4: Export secret2 including active value', async () => {
+      try {
+        const response = await SecretsOps.exportSecret({
+          secretId: secret2.id,
+          options: { includeActiveValues: true },
+          state: state,
+        });
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
+      } catch (error) {
+        console.dir(error);
+        // fail("Command should've succeeded");
+      }
+    });
+  });
+
+  describe('importSecret()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsOps.importSecret).toBeDefined();
+    });
+
+    test('1: Import secret6', async () => {
+      try {
+        const response = await SecretsOps.importSecret({
+          secretId: secret6.id,
+          importData: secret6Export,
+          state: state,
+        });
+        expect(response).toMatchSnapshot();
+      } catch (error) {
+        console.dir(error);
+        // fail("Command should've succeeded");
+      }
+    });
+
+    test('2: Import secret7 including active value', async () => {
+      try {
+        const response = await SecretsOps.importSecret({
+          secretId: secret7.id,
+          importData: secret7Export,
+          options: { includeActiveValues: true },
+          state: state,
+        });
+        expect(response).toMatchSnapshot();
+      } catch (error) {
+        console.dir(error);
+        // fail("Command should've succeeded");
+      }
+    });
+  });
+
+  describe('importSecrets()', () => {
+    test('0: Method is implemented', async () => {
+      expect(SecretsOps.importSecrets).toBeDefined();
+    });
+
+    test('1: Import all secrets (secret8 and secret9)', async () => {
+      const response = await SecretsOps.importSecrets({
+        importData: secret89Export,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test('2: Import all secrets (secret10 and secret11) including active values', async () => {
+      const response = await SecretsOps.importSecrets({
+        importData: secret1011Export,
+        options: { includeActiveValues: true },
+        state: state,
+      });
+      expect(response).toMatchSnapshot();
+    });
   });
 
   describe('createSecret()', () => {
@@ -239,7 +538,7 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
       expect(response).toMatchSnapshot();
     });
 
-    test(`3: Create base64hmac encoded secret: ${secret5.id} - success`, async () => {
+    test(`2: Create base64hmac encoded secret: ${secret5.id} - success`, async () => {
       const response = await SecretsOps.createSecret({
         secretId: secret5.id,
         value: secret5.value,

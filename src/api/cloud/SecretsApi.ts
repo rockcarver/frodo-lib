@@ -30,7 +30,7 @@ const getApiConfig = () => ({
  * @see
  * {@link https://backstage.forgerock.com/docs/idcloud/latest/tenants/esvs.html#encoding_format | ForgeRock Documentation}
  */
-export type SecretEncodingType = 'generic' | 'pem' | 'base64hmac';
+export type SecretEncodingType = 'generic' | 'pem' | 'base64hmac' | 'base64aes';
 
 /**
  * Secret object skeleton
@@ -44,6 +44,7 @@ export type SecretSkeleton = IdObjectSkeletonInterface & {
   loaded?: boolean;
   loadedVersion?: string;
   activeVersion?: string;
+  activeValue?: any;
 };
 
 export type VersionOfSecretStatus = 'DISABLED' | 'ENABLED' | 'DESTROYED';

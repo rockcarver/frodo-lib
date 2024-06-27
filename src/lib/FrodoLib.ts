@@ -25,6 +25,8 @@ import ConnectionProfileOps, {
 import ConnectorOps, { Connector } from '../ops/ConnectorOps';
 import EmailTemplateOps, { EmailTemplate } from '../ops/EmailTemplateOps';
 import IdmConfigOps, { IdmConfig } from '../ops/IdmConfigOps';
+import IdmCryptoOps, { IdmCrypto } from '../ops/IdmCryptoOps';
+import IdmScriptOps, { IdmScript } from '../ops/IdmScriptOps';
 import IdmSystemOps, { IdmSystem } from '../ops/IdmSystemOps';
 import IdpOps, { Idp } from '../ops/IdpOps';
 import InfoOps, { Info } from '../ops/InfoOps';
@@ -105,10 +107,12 @@ export type Frodo = {
   idm: {
     config: IdmConfig;
     connector: Connector;
+    crypto: IdmCrypto;
     managed: ManagedObject;
     mapping: Mapping;
     organization: Organization;
     recon: Recon;
+    script: IdmScript;
     system: IdmSystem;
   };
 
@@ -246,10 +250,12 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     idm: {
       config: IdmConfigOps(state),
       connector: ConnectorOps(state),
+      crypto: IdmCryptoOps(state),
       managed: ManagedObjectOps(state),
       mapping: MappingOps(state),
       organization: OrganizationOps(state),
       recon: ReconOps(state),
+      script: IdmScriptOps(state),
       system: IdmSystemOps(state),
     },
 
