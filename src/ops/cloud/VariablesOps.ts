@@ -48,6 +48,24 @@ export type Variable = {
    */
   exportVariables(noDecode: boolean): Promise<VariablesExportInterface>;
   /**
+   * Import variable by id
+   * @param {string} policyId policy id
+   * @param {VariablesExportInterface} importData import data
+   * @returns {Promise<VariableSkeleton>} imported variable object
+   */
+  importVariable(
+    variableId: string,
+    importData: VariablesExportInterface
+  ): Promise<VariableSkeleton>;
+  /**
+   * Import variables
+   * @param {VariablesExportInterface} importData import data
+   * @returns {Promise<VariableSkeleton[]>} array of imported variable objects
+   */
+  importVariables(
+    importData: VariablesExportInterface
+  ): Promise<VariableSkeleton[]>;
+  /**
    * Create variable
    * @param {string} variableId variable id/name
    * @param {string} value variable value
@@ -150,10 +168,10 @@ export type Variable = {
 
 export default (state: State): Variable => {
   return {
-    readVariable(variableId: string): Promise<VariableSkeleton> {
+    async readVariable(variableId: string): Promise<VariableSkeleton> {
       return readVariable({ variableId, state });
     },
-    readVariables(): Promise<VariableSkeleton[]> {
+    async readVariables(): Promise<VariableSkeleton[]> {
       return readVariables({ state });
     },
     async exportVariable(
@@ -162,10 +180,23 @@ export default (state: State): Variable => {
     ): Promise<VariablesExportInterface> {
       return exportVariable({ variableId, noDecode, state });
     },
-    exportVariables(noDecode: boolean): Promise<VariablesExportInterface> {
+    async exportVariables(
+      noDecode: boolean
+    ): Promise<VariablesExportInterface> {
       return exportVariables({ noDecode, state });
     },
-    createVariable(
+    async importVariable(
+      variableId: string,
+      importData: VariablesExportInterface
+    ): Promise<VariableSkeleton> {
+      return importVariable({ variableId, importData, state });
+    },
+    async importVariables(
+      importData: VariablesExportInterface
+    ): Promise<VariableSkeleton[]> {
+      return importVariables({ importData, state });
+    },
+    async createVariable(
       variableId: string,
       value: string,
       description: string,
@@ -179,7 +210,7 @@ export default (state: State): Variable => {
         state,
       });
     },
-    updateVariable(
+    async updateVariable(
       variableId: string,
       value: string,
       description: string,
@@ -193,7 +224,7 @@ export default (state: State): Variable => {
         state,
       });
     },
-    updateVariableDescription(
+    async updateVariableDescription(
       variableId: string,
       description: string
     ): Promise<any> {
@@ -203,19 +234,19 @@ export default (state: State): Variable => {
         state,
       });
     },
-    deleteVariable(variableId: string): Promise<VariableSkeleton> {
+    async deleteVariable(variableId: string): Promise<VariableSkeleton> {
       return deleteVariable({ variableId, state });
     },
 
     // Deprecated
 
-    getVariable(variableId: string): Promise<VariableSkeleton> {
+    async getVariable(variableId: string): Promise<VariableSkeleton> {
       return readVariable({ variableId, state });
     },
-    getVariables(): Promise<VariableSkeleton[]> {
+    async getVariables(): Promise<VariableSkeleton[]> {
       return readVariables({ state });
     },
-    putVariable(
+    async putVariable(
       variableId: string,
       value: string,
       description: string,
@@ -229,7 +260,7 @@ export default (state: State): Variable => {
         state,
       });
     },
-    setVariableDescription(
+    async setVariableDescription(
       variableId: string,
       description: string
     ): Promise<any> {
@@ -345,6 +376,96 @@ export async function exportVariables({
   } catch (error) {
     throw new FrodoError(`Error exporting variables`, error);
   }
+}
+
+/**
+ * Import variable
+ * @param {string} variableId variable id/name
+ * @param {VariablesExportInterface} importData import data
+ * @returns {Promise<VariableSkeleton[]>} array of imported variable objects
+ */
+export async function importVariable({
+  variableId,
+  importData,
+  state,
+}: {
+  variableId: string;
+  importData: VariablesExportInterface;
+  state: State;
+}): Promise<VariableSkeleton> {
+  let response = null;
+  const errors = [];
+  const imported = [];
+  for (const id of Object.keys(importData.variables)) {
+    if (id === variableId || !variableId) {
+      try {
+        const variableData = importData.variables[id];
+        delete variableData._rev;
+        try {
+          response = await updateVariable({
+            variableId: variableData._id,
+            value: variableData.valueBase64,
+            description: variableData.description,
+            expressionType: variableData.expressionType,
+            state,
+          });
+          imported.push(id);
+        } catch (error) {
+          errors.push(error);
+        }
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+  }
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing variable ${variableId}`, errors);
+  }
+  if (0 === imported.length) {
+    throw new FrodoError(`Variable ${variableId} not found in import data`);
+  }
+  return response;
+}
+
+/**
+ * Import variables
+ * @param {VariablesExportInterface} importData import data
+ * @returns {Promise<VariableSkeleton[]>} array of imported variable objects
+ */
+export async function importVariables({
+  importData,
+  state,
+}: {
+  importData: VariablesExportInterface;
+  state: State;
+}): Promise<VariableSkeleton[]> {
+  const response = [];
+  const errors = [];
+  for (const id of Object.keys(importData.variables)) {
+    try {
+      const variableData = importData.variables[id];
+      delete variableData._rev;
+      try {
+        response.push(
+          await updateVariable({
+            variableId: variableData._id,
+            value: variableData.valueBase64,
+            description: variableData.description,
+            expressionType: variableData.expressionType,
+            state,
+          })
+        );
+      } catch (error) {
+        errors.push(error);
+      }
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing variables`, errors);
+  }
+  return response;
 }
 
 export async function createVariable({

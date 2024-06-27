@@ -168,7 +168,7 @@ export function mergeDeep(obj1: any, obj2: any): any {
 /**
  * Get all paths for an object
  * This function was explicitly created for the shell command in the Frodo CLI
- * and has some special casing that may not leave it generic enough to be used 
+ * and has some special casing that may not leave it generic enough to be used
  * for what its name implies.
  * @param {any} o object
  * @param {string} prefix prefix (path calculated up to this point). Only needed for recursion or to add a global prefix to all paths.

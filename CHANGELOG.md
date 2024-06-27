@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Frodo now supports exporting (and importing) of ESV secret values. To leave stuartship of secret values with the cloud environment where they belong, frodo will always encrypt values using either encryption keys from the source environment (default) or the target environment (export option). Frodo will never export secrets in the clear. However, frodo supports importing clear values (as well as importing encrypted values).
+- \#387: Support import of ESVs (variables and secrets)
+- \#394: Support for `base64aes` encoding for ESV secrets
+
 ## [2.0.0-88] - 2024-06-21
 
 ### Changed
