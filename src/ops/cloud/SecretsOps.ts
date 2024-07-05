@@ -16,7 +16,12 @@ import {
 import FrodoLib from '../../lib/FrodoLib';
 import { State } from '../../shared/State';
 import { decode, encode, isBase64Encoded } from '../../utils/Base64Utils';
-import { debugMessage } from '../../utils/Console';
+import {
+  createProgressIndicator,
+  debugMessage,
+  stopProgressIndicator,
+  updateProgressIndicator,
+} from '../../utils/Console';
 import { getMetadata } from '../../utils/ExportImportUtils';
 import { FrodoError } from '../FrodoError';
 import { decrypt, decryptMap, isEncrypted } from '../IdmCryptoOps';
@@ -551,7 +556,7 @@ export function createSecretsExportTemplate({
 
 export async function exportSecret({
   secretId,
-  options = { includeActiveValues: false, target: '' },
+  options = { includeActiveValues: false, target: null },
   state,
 }: {
   secretId: string;
@@ -579,23 +584,23 @@ export async function exportSecret({
 }
 
 export async function exportSecrets({
-  options = { includeActiveValues: false, target: '' },
+  options = { includeActiveValues: false, target: null },
   state,
 }: {
   options?: SecretExportOptions;
   state: State;
 }): Promise<SecretsExportInterface> {
-  // let indicatorId: string;
+  let indicatorId: string;
   try {
     debugMessage({ message: `SecretsOps.exportSecrets: start`, state });
     const { includeActiveValues, target } = options;
     const exportData = createSecretsExportTemplate({ state });
     const secrets = await readSecrets({ state });
-    // indicatorId = createProgressIndicator({
-    //   total: secrets.length,
-    //   message: 'Exporting secrets...',
-    //   state,
-    // });
+    indicatorId = createProgressIndicator({
+      total: secrets.length,
+      message: 'Exporting secrets...',
+      state,
+    });
     if (includeActiveValues) {
       const mapOfSecrets = await readSecretValues({
         secretIds: secrets.map((s) => s._id),
@@ -603,38 +608,38 @@ export async function exportSecrets({
         state,
       });
       for (const secret of secrets) {
-        // updateProgressIndicator({
-        //   id: indicatorId,
-        //   message: `Exporting secret ${secret._id}`,
-        //   state,
-        // });
+        updateProgressIndicator({
+          id: indicatorId,
+          message: `Exporting secret ${secret._id}`,
+          state,
+        });
         secret.activeValue = mapOfSecrets[secret._id];
         exportData.secrets[secret._id] = secret;
       }
     } else {
       for (const secret of secrets) {
-        // updateProgressIndicator({
-        //   id: indicatorId,
-        //   message: `Exporting secret ${secret._id}`,
-        //   state,
-        // });
+        updateProgressIndicator({
+          id: indicatorId,
+          message: `Exporting secret ${secret._id}`,
+          state,
+        });
         exportData.secrets[secret._id] = secret;
       }
     }
-    // stopProgressIndicator({
-    //   id: indicatorId,
-    //   message: `Exported ${secrets.length} secrets.`,
-    //   state,
-    // });
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${secrets.length} secrets.`,
+      state,
+    });
     debugMessage({ message: `SecretsOps.exportSecrets: end`, state });
     return exportData;
   } catch (error) {
-    // stopProgressIndicator({
-    //   id: indicatorId,
-    //   message: `Error exporting secrets`,
-    //   status: 'fail',
-    //   state,
-    // });
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting secrets`,
+      status: 'fail',
+      state,
+    });
     throw new FrodoError(`Error exporting secrets`, error);
   }
 }
@@ -796,7 +801,7 @@ export async function readSecretValue({
 export async function readSecretValues({
   secretIds,
   decrypt = false,
-  target,
+  target = null,
   state,
 }: {
   secretIds: string[];
@@ -804,7 +809,10 @@ export async function readSecretValues({
   target?: string;
   state: State;
 }): Promise<{ [key: string]: string }> {
-  debugMessage({ message: `SecretsOps.readSecretValues: start`, state });
+  debugMessage({
+    message: `SecretsOps.readSecretValues: start [decrypt=${decrypt}, target='${target}']`,
+    state,
+  });
   let script = 'var secrets = {}\n';
   script += 'for (var i = 0; i < secretIds.length; i++) {\n';
   script +=

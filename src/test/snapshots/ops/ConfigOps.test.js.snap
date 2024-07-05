@@ -31283,7 +31283,6 @@ a{
       "lastChangedBy": "sandeep.chaturvedi@forgerock.com",
       "loaded": true,
       "value": "ON",
-      "valueBase64": "T04=",
     },
     "esv-test-var": {
       "_id": "esv-test-var",
@@ -31293,7 +31292,6 @@ a{
       "lastChangedBy": "unknown (76618ff6-e851-433e-9704-9d2852a17b7a)",
       "loaded": true,
       "value": "true",
-      "valueBase64": "dHJ1ZQ==",
     },
     "esv-test-variable-belphegor": {
       "_id": "esv-test-variable-belphegor",
@@ -31303,7 +31301,6 @@ a{
       "lastChangedBy": "phales@trivir.com",
       "loaded": true,
       "value": "1000000000000066600000000000001",
-      "valueBase64": "MTAwMDAwMDAwMDAwMDA2NjYwMDAwMDAwMDAwMDAwMQ==",
     },
     "esv-test-variable-light": {
       "_id": "esv-test-variable-light",
@@ -31313,7 +31310,6 @@ a{
       "lastChangedBy": "phales@trivir.com",
       "loaded": true,
       "value": "299792458",
-      "valueBase64": "Mjk5NzkyNDU4",
     },
   },
 }
