@@ -33,14 +33,14 @@
  * in case things don't function as expected
  */
 
-import { autoSetupPolly } from '../../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../../utils/AutoSetupPolly';
 import { state } from '../../index';
 import * as VariablesOps from './VariablesOps';
 import { VariableExpressionType } from '../../api/cloud/VariablesApi';
 import { FrodoError } from '../FrodoError';
 import { encode } from '../../utils/Base64Utils';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 async function stageVariable(
   variable: {
@@ -122,25 +122,25 @@ describe('VariablesOps', () => {
     expressionType: 'string',
   };
   const variable5Export: VariablesOps.VariablesExportInterface = {
-    "meta": {
-      "exportDate": "2024-07-03T03:29:28.835Z",
-      "exportTool": "frodo",
-      "exportToolVersion": "v2.0.0-89 [v20.5.1]",
-      "exportedBy": "volker.scheuber@forgerock.com",
-      "origin": "https://openam-frodo-dev.forgeblocks.com/am",
-      "originAmVersion": "7.6.0"
+    meta: {
+      exportDate: '2024-07-03T03:29:28.835Z',
+      exportTool: 'frodo',
+      exportToolVersion: 'v2.0.0-89 [v20.5.1]',
+      exportedBy: 'volker.scheuber@forgerock.com',
+      origin: 'https://openam-frodo-dev.forgeblocks.com/am',
+      originAmVersion: '7.6.0',
     },
-    "variables": {
-      "esv-frodo-test-variable-5": {
-        "_id": "esv-frodo-test-variable-5",
-        "description": "description5",
-        "expressionType": "string",
-        "lastChangeDate": "2024-07-03T03:28:19.227876Z",
-        "lastChangedBy": "volker.scheuber@forgerock.com",
-        "loaded": false,
-        "value": "value5"
-      }
-    }
+    variables: {
+      'esv-frodo-test-variable-5': {
+        _id: 'esv-frodo-test-variable-5',
+        description: 'description5',
+        expressionType: 'string',
+        lastChangeDate: '2024-07-03T03:28:19.227876Z',
+        lastChangedBy: 'volker.scheuber@forgerock.com',
+        loaded: false,
+        value: 'value5',
+      },
+    },
   };
   const variable6 = {
     id: 'esv-frodo-test-variable-6',
@@ -149,25 +149,25 @@ describe('VariablesOps', () => {
     expressionType: 'string',
   };
   const variable6Export: VariablesOps.VariablesExportInterface = {
-    "meta": {
-      "exportDate": "2024-07-03T03:29:28.835Z",
-      "exportTool": "frodo",
-      "exportToolVersion": "v2.0.0-89 [v20.5.1]",
-      "exportedBy": "volker.scheuber@forgerock.com",
-      "origin": "https://openam-frodo-dev.forgeblocks.com/am",
-      "originAmVersion": "7.6.0"
+    meta: {
+      exportDate: '2024-07-03T03:29:28.835Z',
+      exportTool: 'frodo',
+      exportToolVersion: 'v2.0.0-89 [v20.5.1]',
+      exportedBy: 'volker.scheuber@forgerock.com',
+      origin: 'https://openam-frodo-dev.forgeblocks.com/am',
+      originAmVersion: '7.6.0',
     },
-    "variables": {
-      "esv-frodo-test-variable-6": {
-        "_id": "esv-frodo-test-variable-6",
-        "description": "description6",
-        "expressionType": "string",
-        "lastChangeDate": "2024-07-03T03:28:19.227876Z",
-        "lastChangedBy": "volker.scheuber@forgerock.com",
-        "loaded": false,
-        "value": "value6"
-      }
-    }
+    variables: {
+      'esv-frodo-test-variable-6': {
+        _id: 'esv-frodo-test-variable-6',
+        description: 'description6',
+        expressionType: 'string',
+        lastChangeDate: '2024-07-03T03:28:19.227876Z',
+        lastChangedBy: 'volker.scheuber@forgerock.com',
+        loaded: false,
+        value: 'value6',
+      },
+    },
   };
   const variable7 = {
     id: 'esv-frodo-test-variable-7',
@@ -176,25 +176,25 @@ describe('VariablesOps', () => {
     expressionType: 'string',
   };
   const variable7Export: VariablesOps.VariablesExportInterface = {
-    "meta": {
-      "exportDate": "2024-07-03T03:29:28.835Z",
-      "exportTool": "frodo",
-      "exportToolVersion": "v2.0.0-89 [v20.5.1]",
-      "exportedBy": "volker.scheuber@forgerock.com",
-      "origin": "https://openam-frodo-dev.forgeblocks.com/am",
-      "originAmVersion": "7.6.0"
+    meta: {
+      exportDate: '2024-07-03T03:29:28.835Z',
+      exportTool: 'frodo',
+      exportToolVersion: 'v2.0.0-89 [v20.5.1]',
+      exportedBy: 'volker.scheuber@forgerock.com',
+      origin: 'https://openam-frodo-dev.forgeblocks.com/am',
+      originAmVersion: '7.6.0',
     },
-    "variables": {
-      "esv-frodo-test-variable-7": {
-        "_id": "esv-frodo-test-variable-7",
-        "description": "description7",
-        "expressionType": "string",
-        "lastChangeDate": "2024-07-03T03:28:19.227876Z",
-        "lastChangedBy": "volker.scheuber@forgerock.com",
-        "loaded": false,
-        "value": "value7"
-      }
-    }
+    variables: {
+      'esv-frodo-test-variable-7': {
+        _id: 'esv-frodo-test-variable-7',
+        description: 'description7',
+        expressionType: 'string',
+        lastChangeDate: '2024-07-03T03:28:19.227876Z',
+        lastChangedBy: 'volker.scheuber@forgerock.com',
+        loaded: false,
+        value: 'value7',
+      },
+    },
   };
   const variable8 = {
     id: 'esv-frodo-test-variable-8',
@@ -209,36 +209,36 @@ describe('VariablesOps', () => {
     expressionType: 'string',
   };
   const variables89Export: VariablesOps.VariablesExportInterface = {
-    "meta": {
-      "exportDate": "2024-07-03T03:48:18.901Z",
-      "exportTool": "frodo",
-      "exportToolVersion": "v2.0.0-89 [v20.5.1]",
-      "exportedBy": "volker.scheuber@forgerock.com",
-      "origin": "https://openam-frodo-dev.forgeblocks.com/am",
-      "originAmVersion": "7.6.0"
+    meta: {
+      exportDate: '2024-07-03T03:48:18.901Z',
+      exportTool: 'frodo',
+      exportToolVersion: 'v2.0.0-89 [v20.5.1]',
+      exportedBy: 'volker.scheuber@forgerock.com',
+      origin: 'https://openam-frodo-dev.forgeblocks.com/am',
+      originAmVersion: '7.6.0',
     },
-    "variables": {
-      "esv-frodo-test-variable-8": {
-        "_id": "esv-frodo-test-variable-8",
-        "description": "description8",
-        "expressionType": "string",
-        "lastChangeDate": "2024-07-03T03:46:04.882539Z",
-        "lastChangedBy": "Frodo-SA-1701393386423",
-        "loaded": false,
-        "value": "value8",
-        "valueBase64": "dmFsdWU4"
+    variables: {
+      'esv-frodo-test-variable-8': {
+        _id: 'esv-frodo-test-variable-8',
+        description: 'description8',
+        expressionType: 'string',
+        lastChangeDate: '2024-07-03T03:46:04.882539Z',
+        lastChangedBy: 'Frodo-SA-1701393386423',
+        loaded: false,
+        value: 'value8',
+        valueBase64: 'dmFsdWU4',
       },
-      "esv-frodo-test-variable-9": {
-        "_id": "esv-frodo-test-variable-9",
-        "description": "description9",
-        "expressionType": "string",
-        "lastChangeDate": "2024-07-03T03:46:05.676501Z",
-        "lastChangedBy": "Frodo-SA-1701393386423",
-        "loaded": false,
-        "value": "value9",
-        "valueBase64": "dmFsdWU5"
-      }
-    }
+      'esv-frodo-test-variable-9': {
+        _id: 'esv-frodo-test-variable-9',
+        description: 'description9',
+        expressionType: 'string',
+        lastChangeDate: '2024-07-03T03:46:05.676501Z',
+        lastChangedBy: 'Frodo-SA-1701393386423',
+        loaded: false,
+        value: 'value9',
+        valueBase64: 'dmFsdWU5',
+      },
+    },
   };
   const variable10 = {
     id: 'esv-frodo-test-variable-10',
@@ -253,36 +253,36 @@ describe('VariablesOps', () => {
     expressionType: 'string',
   };
   const variables1011Export: VariablesOps.VariablesExportInterface = {
-    "meta": {
-      "exportDate": "2024-07-03T03:48:18.901Z",
-      "exportTool": "frodo",
-      "exportToolVersion": "v2.0.0-89 [v20.5.1]",
-      "exportedBy": "volker.scheuber@forgerock.com",
-      "origin": "https://openam-frodo-dev.forgeblocks.com/am",
-      "originAmVersion": "7.6.0"
+    meta: {
+      exportDate: '2024-07-03T03:48:18.901Z',
+      exportTool: 'frodo',
+      exportToolVersion: 'v2.0.0-89 [v20.5.1]',
+      exportedBy: 'volker.scheuber@forgerock.com',
+      origin: 'https://openam-frodo-dev.forgeblocks.com/am',
+      originAmVersion: '7.6.0',
     },
-    "variables": {
-      "esv-frodo-test-variable-10": {
-        "_id": "esv-frodo-test-variable-10",
-        "description": "description10",
-        "expressionType": "string",
-        "lastChangeDate": "2024-07-03T03:45:51.06282Z",
-        "lastChangedBy": "Frodo-SA-1701393386423",
-        "loaded": false,
-        "value": "value10",
-        "valueBase64": "dmFsdWUxMA=="
+    variables: {
+      'esv-frodo-test-variable-10': {
+        _id: 'esv-frodo-test-variable-10',
+        description: 'description10',
+        expressionType: 'string',
+        lastChangeDate: '2024-07-03T03:45:51.06282Z',
+        lastChangedBy: 'Frodo-SA-1701393386423',
+        loaded: false,
+        value: 'value10',
+        valueBase64: 'dmFsdWUxMA==',
       },
-      "esv-frodo-test-variable-11": {
-        "_id": "esv-frodo-test-variable-11",
-        "description": "description11",
-        "expressionType": "string",
-        "lastChangeDate": "2024-07-03T03:45:52.248873Z",
-        "lastChangedBy": "Frodo-SA-1701393386423",
-        "loaded": false,
-        "value": "value11",
-        "valueBase64": "dmFsdWUxMQ=="
-      }
-    }
+      'esv-frodo-test-variable-11': {
+        _id: 'esv-frodo-test-variable-11',
+        description: 'description11',
+        expressionType: 'string',
+        lastChangeDate: '2024-07-03T03:45:52.248873Z',
+        lastChangedBy: 'Frodo-SA-1701393386423',
+        loaded: false,
+        value: 'value11',
+        valueBase64: 'dmFsdWUxMQ==',
+      },
+    },
   };
   const variable12 = {
     id: 'esv-frodo-test-variable-12',
@@ -332,6 +332,14 @@ describe('VariablesOps', () => {
     description: 'description19',
     expressionType: 'string',
   };
+  // filter out secrets when recording
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
+    }
+  });
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {

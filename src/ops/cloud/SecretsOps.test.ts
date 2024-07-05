@@ -33,13 +33,13 @@
  * in case things don't function as expected
  */
 
-import { autoSetupPolly } from '../../utils/AutoSetupPolly';
+import { autoSetupPolly, filterRecording } from '../../utils/AutoSetupPolly';
 import { state } from '../../index';
 import * as SecretsOps from './SecretsOps';
 import { FrodoError } from '../FrodoError';
 import { printError } from '../../utils/Console';
 
-autoSetupPolly();
+const ctx = autoSetupPolly();
 
 async function stageSecret(
   secret: {
@@ -335,6 +335,14 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
       },
     },
   };
+  // filter out secrets when recording
+  beforeEach(async () => {
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
+    }
+  });
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
