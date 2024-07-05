@@ -1,5 +1,49 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`VariablesOps createVariable() 1: Create variable12 (pre-encoded) 1`] = `
+{
+  "_id": "esv-frodo-test-variable-12",
+  "description": "description12",
+  "expressionType": "string",
+  "lastChangeDate": "2024-07-03T04:10:05.719644322Z",
+  "lastChangedBy": "Frodo-SA-1701393386423",
+  "loaded": false,
+  "valueBase64": "dmFsdWUxMg==",
+}
+`;
+
+exports[`VariablesOps createVariable() 2: Create variable13 (not encoded) 1`] = `
+{
+  "_id": "esv-frodo-test-variable-13",
+  "description": "description13",
+  "expressionType": "string",
+  "lastChangeDate": "2024-07-03T04:10:06.824903102Z",
+  "lastChangedBy": "Frodo-SA-1701393386423",
+  "loaded": false,
+  "valueBase64": "dmFsdWUxMw==",
+}
+`;
+
+exports[`VariablesOps deleteVariable() 1: Delete variable19 1`] = `
+{
+  "_id": "esv-frodo-test-variable-19",
+  "description": "description19",
+  "expressionType": "string",
+  "lastChangeDate": "2024-07-03T04:09:53.428262Z",
+  "lastChangedBy": "Frodo-SA-1701393386423",
+  "loaded": false,
+  "valueBase64": "dmFsdWUxOQ==",
+}
+`;
+
+exports[`VariablesOps deleteVariable() 2: Delete variable3 (non-existent) 1`] = `
+"Error deleting variable esv-frodo-test-variable-3
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: The variable does not exist"
+`;
+
 exports[`VariablesOps exportVariable() 1: Export variable1 1`] = `
 {
   "meta": Any<Object>,
@@ -8,11 +52,10 @@ exports[`VariablesOps exportVariable() 1: Export variable1 1`] = `
       "_id": "esv-frodo-test-variable-1",
       "description": "description1",
       "expressionType": "string",
-      "lastChangeDate": "2023-10-24T17:40:50.223Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
+      "lastChangeDate": "2024-07-03T04:09:45.503914Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
       "loaded": false,
       "value": "value1",
-      "valueBase64": "dmFsdWUx",
     },
   },
 }
@@ -26,8 +69,8 @@ exports[`VariablesOps exportVariable() 2: Export variable2 without decoding 1`] 
       "_id": "esv-frodo-test-variable-2",
       "description": "description2",
       "expressionType": "int",
-      "lastChangeDate": "2023-10-24T17:40:54.286Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
+      "lastChangeDate": "2024-07-03T04:09:46.765137Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
       "loaded": false,
       "valueBase64": "NDI=",
     },
@@ -47,160 +90,68 @@ exports[`VariablesOps exportVariables() 1: Export all variables 1`] = `
 {
   "meta": Any<Object>,
   "variables": {
-    "esv-blue-piller": {
-      "_id": "esv-blue-piller",
-      "description": "Zion membership criteria.",
-      "expressionType": "bool",
-      "lastChangeDate": "2023-07-18T22:21:38.640Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "value": "false",
-      "valueBase64": "ZmFsc2U=",
-    },
     "esv-frodo-test-variable-1": {
       "_id": "esv-frodo-test-variable-1",
       "description": "description1",
       "expressionType": "string",
-      "lastChangeDate": "2023-10-24T17:40:50.223Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
+      "lastChangeDate": "2024-07-03T04:09:45.503914Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
       "loaded": false,
       "value": "value1",
-      "valueBase64": "dmFsdWUx",
+    },
+    "esv-frodo-test-variable-14": {
+      "_id": "esv-frodo-test-variable-14",
+      "description": "description14",
+      "expressionType": "string",
+      "lastChangeDate": "2024-07-03T04:09:49.457874Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
+      "loaded": false,
+      "value": "value14",
+    },
+    "esv-frodo-test-variable-15": {
+      "_id": "esv-frodo-test-variable-15",
+      "description": "description15",
+      "expressionType": "string",
+      "lastChangeDate": "2024-07-03T04:09:50.646982Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
+      "loaded": false,
+      "value": "value15",
+    },
+    "esv-frodo-test-variable-18": {
+      "_id": "esv-frodo-test-variable-18",
+      "description": "description18",
+      "expressionType": "string",
+      "lastChangeDate": "2024-07-03T04:09:52.187861Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
+      "loaded": false,
+      "value": "value18",
+    },
+    "esv-frodo-test-variable-19": {
+      "_id": "esv-frodo-test-variable-19",
+      "description": "description19",
+      "expressionType": "string",
+      "lastChangeDate": "2024-07-03T04:09:53.428262Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
+      "loaded": false,
+      "value": "value19",
     },
     "esv-frodo-test-variable-2": {
       "_id": "esv-frodo-test-variable-2",
       "description": "description2",
       "expressionType": "int",
-      "lastChangeDate": "2023-10-24T17:40:54.286Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
+      "lastChangeDate": "2024-07-03T04:09:46.765137Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
       "loaded": false,
       "value": "42",
-      "valueBase64": "NDI=",
     },
-    "esv-ipv4-cidr-access-rules": {
-      "_id": "esv-ipv4-cidr-access-rules",
-      "description": "IPv4 CIDR access rules:
-{
-  "allow": [
-    "address/mask"
-  ]
-}",
-      "expressionType": "",
-      "lastChangeDate": "2022-08-25T22:54:28.551Z",
-      "lastChangedBy": "8efaa5b6-8c98-4489-9b21-ee41f5589ab7",
-      "loaded": true,
-      "value": "{  "allow": [    "150.128.0.0/16",    "139.35.0.0/16",    "101.216.0.0/16",    "99.72.28.182/32"  ]}",
-      "valueBase64": "eyAgImFsbG93IjogWyAgICAiMTUwLjEyOC4wLjAvMTYiLCAgICAiMTM5LjM1LjAuMC8xNiIsICAgICIxMDEuMjE2LjAuMC8xNiIsICAgICI5OS43Mi4yOC4xODIvMzIiICBdfQ==",
-    },
-    "esv-nebuchadnezzar-crew": {
-      "_id": "esv-nebuchadnezzar-crew",
-      "description": "The crew of the Nebuchadnezzar hovercraft.",
-      "expressionType": "array",
-      "lastChangeDate": "2023-07-18T21:59:58.974Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "value": "["Morpheus","Trinity","Link","Tank","Dozer","Apoc","Cypher","Mouse","Neo","Switch"]",
-      "valueBase64": "WyJNb3JwaGV1cyIsIlRyaW5pdHkiLCJMaW5rIiwiVGFuayIsIkRvemVyIiwiQXBvYyIsIkN5cGhlciIsIk1vdXNlIiwiTmVvIiwiU3dpdGNoIl0=",
-    },
-    "esv-nebuchadnezzar-crew-structure": {
-      "_id": "esv-nebuchadnezzar-crew-structure",
-      "description": "The structure of the crew of the Nebuchadnezzar hovercraft.",
-      "expressionType": "object",
-      "lastChangeDate": "2023-07-18T22:09:54.630Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "value": "{"Captain":"Morpheus","FirstMate":"Trinity","Operator":["Link","Tank"],"Medic":"Dozer","Crewmen":["Apoc","Cypher","Mouse","Neo","Switch"]}",
-      "valueBase64": "eyJDYXB0YWluIjoiTW9ycGhldXMiLCJGaXJzdE1hdGUiOiJUcmluaXR5IiwiT3BlcmF0b3IiOlsiTGluayIsIlRhbmsiXSwiTWVkaWMiOiJEb3plciIsIkNyZXdtZW4iOlsiQXBvYyIsIkN5cGhlciIsIk1vdXNlIiwiTmVvIiwiU3dpdGNoIl19",
-    },
-    "esv-neo-age": {
-      "_id": "esv-neo-age",
-      "description": "Neo's age in the matrix.",
+    "esv-test-variable-light": {
+      "_id": "esv-test-variable-light",
+      "description": "Test variable containing the speed of light in meters per second (as an int).",
       "expressionType": "int",
-      "lastChangeDate": "2023-07-18T22:21:23.578Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
+      "lastChangeDate": "2023-12-14T15:34:13.446903Z",
+      "lastChangedBy": "phales@trivir.com",
       "loaded": true,
-      "value": "28",
-      "valueBase64": "Mjg=",
-    },
-    "esv-test-var": {
-      "_id": "esv-test-var",
-      "description": "this is a test description",
-      "expressionType": "",
-      "lastChangeDate": "2022-09-02T04:23:56.075Z",
-      "lastChangedBy": "8efaa5b6-8c98-4489-9b21-ee41f5589ab7",
-      "loaded": true,
-      "value": "this is a test variable",
-      "valueBase64": "dGhpcyBpcyBhIHRlc3QgdmFyaWFibGU=",
-    },
-    "esv-test-var-1": {
-      "_id": "esv-test-var-1",
-      "description": "test var one",
-      "expressionType": "string",
-      "lastChangeDate": "2023-08-09T17:42:41.684Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "value": "test var 1 value2",
-      "valueBase64": "dGVzdCB2YXIgMSB2YWx1ZTI=",
-    },
-    "esv-test-var-2": {
-      "_id": "esv-test-var-2",
-      "description": "A temporary test variable",
-      "expressionType": "string",
-      "lastChangeDate": "2023-08-02T21:09:01.847Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "value": "testval",
-      "valueBase64": "dGVzdHZhbA==",
-    },
-    "esv-test-var-3": {
-      "_id": "esv-test-var-3",
-      "description": "This is a test variable",
-      "expressionType": "int",
-      "lastChangeDate": "2023-10-17T22:22:52.023Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "value": "42",
-      "valueBase64": "NDI=",
-    },
-    "esv-test-var-pi": {
-      "_id": "esv-test-var-pi",
-      "description": "This is another test variable.",
-      "expressionType": "number",
-      "lastChangeDate": "2023-10-17T22:28:44.529Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "value": "3.1415926",
-      "valueBase64": "My4xNDE1OTI2",
-    },
-    "esv-test-var-pi-string": {
-      "_id": "esv-test-var-pi-string",
-      "description": "This is another test variable.",
-      "expressionType": "string",
-      "lastChangeDate": "2023-10-18T22:05:30.300Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "value": "3.1415926",
-      "valueBase64": "My4xNDE1OTI2",
-    },
-    "esv-trinity-phone": {
-      "_id": "esv-trinity-phone",
-      "description": "In the opening of The Matrix (1999), the phone number Trinity is calling from is traced to (312)-555-0690",
-      "expressionType": "string",
-      "lastChangeDate": "2023-07-18T20:33:28.922Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "value": "(312)-555-0690",
-      "valueBase64": "KDMxMiktNTU1LTA2OTA=",
-    },
-    "esv-volkerstestvariable1": {
-      "_id": "esv-volkerstestvariable1",
-      "description": "variable created for api testing",
-      "expressionType": "",
-      "lastChangeDate": "2022-11-30T00:13:52.478Z",
-      "lastChangedBy": "10ecab02-f357-4522-bc17-dfcc64744064",
-      "loaded": true,
-      "value": "for jest",
-      "valueBase64": "Zm9yIGplc3Q=",
+      "value": "299792458",
     },
   },
 }
@@ -210,146 +161,381 @@ exports[`VariablesOps exportVariables() 2: Export all variables without decoding
 {
   "meta": Any<Object>,
   "variables": {
-    "esv-blue-piller": {
-      "_id": "esv-blue-piller",
-      "description": "Zion membership criteria.",
-      "expressionType": "bool",
-      "lastChangeDate": "2023-07-18T22:21:38.640Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "valueBase64": "ZmFsc2U=",
-    },
     "esv-frodo-test-variable-1": {
       "_id": "esv-frodo-test-variable-1",
       "description": "description1",
       "expressionType": "string",
-      "lastChangeDate": "2023-10-24T17:40:50.223Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
+      "lastChangeDate": "2024-07-03T04:09:45.503914Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
       "loaded": false,
       "valueBase64": "dmFsdWUx",
+    },
+    "esv-frodo-test-variable-14": {
+      "_id": "esv-frodo-test-variable-14",
+      "description": "description14",
+      "expressionType": "string",
+      "lastChangeDate": "2024-07-03T04:09:49.457874Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
+      "loaded": false,
+      "valueBase64": "dmFsdWUxNA==",
+    },
+    "esv-frodo-test-variable-15": {
+      "_id": "esv-frodo-test-variable-15",
+      "description": "description15",
+      "expressionType": "string",
+      "lastChangeDate": "2024-07-03T04:09:50.646982Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
+      "loaded": false,
+      "valueBase64": "dmFsdWUxNQ==",
+    },
+    "esv-frodo-test-variable-18": {
+      "_id": "esv-frodo-test-variable-18",
+      "description": "description18",
+      "expressionType": "string",
+      "lastChangeDate": "2024-07-03T04:09:52.187861Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
+      "loaded": false,
+      "valueBase64": "dmFsdWUxOA==",
+    },
+    "esv-frodo-test-variable-19": {
+      "_id": "esv-frodo-test-variable-19",
+      "description": "description19",
+      "expressionType": "string",
+      "lastChangeDate": "2024-07-03T04:09:53.428262Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
+      "loaded": false,
+      "valueBase64": "dmFsdWUxOQ==",
     },
     "esv-frodo-test-variable-2": {
       "_id": "esv-frodo-test-variable-2",
       "description": "description2",
       "expressionType": "int",
-      "lastChangeDate": "2023-10-24T17:40:54.286Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
+      "lastChangeDate": "2024-07-03T04:09:46.765137Z",
+      "lastChangedBy": "Frodo-SA-1701393386423",
       "loaded": false,
       "valueBase64": "NDI=",
     },
-    "esv-ipv4-cidr-access-rules": {
-      "_id": "esv-ipv4-cidr-access-rules",
-      "description": "IPv4 CIDR access rules:
-{
-  "allow": [
-    "address/mask"
-  ]
-}",
-      "expressionType": "",
-      "lastChangeDate": "2022-08-25T22:54:28.551Z",
-      "lastChangedBy": "8efaa5b6-8c98-4489-9b21-ee41f5589ab7",
-      "loaded": true,
-      "valueBase64": "eyAgImFsbG93IjogWyAgICAiMTUwLjEyOC4wLjAvMTYiLCAgICAiMTM5LjM1LjAuMC8xNiIsICAgICIxMDEuMjE2LjAuMC8xNiIsICAgICI5OS43Mi4yOC4xODIvMzIiICBdfQ==",
-    },
-    "esv-nebuchadnezzar-crew": {
-      "_id": "esv-nebuchadnezzar-crew",
-      "description": "The crew of the Nebuchadnezzar hovercraft.",
-      "expressionType": "array",
-      "lastChangeDate": "2023-07-18T21:59:58.974Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "valueBase64": "WyJNb3JwaGV1cyIsIlRyaW5pdHkiLCJMaW5rIiwiVGFuayIsIkRvemVyIiwiQXBvYyIsIkN5cGhlciIsIk1vdXNlIiwiTmVvIiwiU3dpdGNoIl0=",
-    },
-    "esv-nebuchadnezzar-crew-structure": {
-      "_id": "esv-nebuchadnezzar-crew-structure",
-      "description": "The structure of the crew of the Nebuchadnezzar hovercraft.",
-      "expressionType": "object",
-      "lastChangeDate": "2023-07-18T22:09:54.630Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "valueBase64": "eyJDYXB0YWluIjoiTW9ycGhldXMiLCJGaXJzdE1hdGUiOiJUcmluaXR5IiwiT3BlcmF0b3IiOlsiTGluayIsIlRhbmsiXSwiTWVkaWMiOiJEb3plciIsIkNyZXdtZW4iOlsiQXBvYyIsIkN5cGhlciIsIk1vdXNlIiwiTmVvIiwiU3dpdGNoIl19",
-    },
-    "esv-neo-age": {
-      "_id": "esv-neo-age",
-      "description": "Neo's age in the matrix.",
+    "esv-test-variable-light": {
+      "_id": "esv-test-variable-light",
+      "description": "Test variable containing the speed of light in meters per second (as an int).",
       "expressionType": "int",
-      "lastChangeDate": "2023-07-18T22:21:23.578Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
+      "lastChangeDate": "2023-12-14T15:34:13.446903Z",
+      "lastChangedBy": "phales@trivir.com",
       "loaded": true,
-      "valueBase64": "Mjg=",
-    },
-    "esv-test-var": {
-      "_id": "esv-test-var",
-      "description": "this is a test description",
-      "expressionType": "",
-      "lastChangeDate": "2022-09-02T04:23:56.075Z",
-      "lastChangedBy": "8efaa5b6-8c98-4489-9b21-ee41f5589ab7",
-      "loaded": true,
-      "valueBase64": "dGhpcyBpcyBhIHRlc3QgdmFyaWFibGU=",
-    },
-    "esv-test-var-1": {
-      "_id": "esv-test-var-1",
-      "description": "test var one",
-      "expressionType": "string",
-      "lastChangeDate": "2023-08-09T17:42:41.684Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "valueBase64": "dGVzdCB2YXIgMSB2YWx1ZTI=",
-    },
-    "esv-test-var-2": {
-      "_id": "esv-test-var-2",
-      "description": "A temporary test variable",
-      "expressionType": "string",
-      "lastChangeDate": "2023-08-02T21:09:01.847Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "valueBase64": "dGVzdHZhbA==",
-    },
-    "esv-test-var-3": {
-      "_id": "esv-test-var-3",
-      "description": "This is a test variable",
-      "expressionType": "int",
-      "lastChangeDate": "2023-10-17T22:22:52.023Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "valueBase64": "NDI=",
-    },
-    "esv-test-var-pi": {
-      "_id": "esv-test-var-pi",
-      "description": "This is another test variable.",
-      "expressionType": "number",
-      "lastChangeDate": "2023-10-17T22:28:44.529Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "valueBase64": "My4xNDE1OTI2",
-    },
-    "esv-test-var-pi-string": {
-      "_id": "esv-test-var-pi-string",
-      "description": "This is another test variable.",
-      "expressionType": "string",
-      "lastChangeDate": "2023-10-18T22:05:30.300Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "valueBase64": "My4xNDE1OTI2",
-    },
-    "esv-trinity-phone": {
-      "_id": "esv-trinity-phone",
-      "description": "In the opening of The Matrix (1999), the phone number Trinity is calling from is traced to (312)-555-0690",
-      "expressionType": "string",
-      "lastChangeDate": "2023-07-18T20:33:28.922Z",
-      "lastChangedBy": "b672336b-41ef-428d-ae4a-e0c082875377",
-      "loaded": true,
-      "valueBase64": "KDMxMiktNTU1LTA2OTA=",
-    },
-    "esv-volkerstestvariable1": {
-      "_id": "esv-volkerstestvariable1",
-      "description": "variable created for api testing",
-      "expressionType": "",
-      "lastChangeDate": "2022-11-30T00:13:52.478Z",
-      "lastChangedBy": "10ecab02-f357-4522-bc17-dfcc64744064",
-      "loaded": true,
-      "valueBase64": "Zm9yIGplc3Q=",
+      "valueBase64": "Mjk5NzkyNDU4",
     },
   },
 }
 `;
+
+exports[`VariablesOps importVariable() 1: Import variable4 1`] = `
+{
+  "_id": "esv-frodo-test-variable-4",
+  "description": "description4",
+  "expressionType": "string",
+  "lastChangeDate": "2024-07-03T04:09:57.898740932Z",
+  "lastChangedBy": "Frodo-SA-1701393386423",
+  "loaded": false,
+  "valueBase64": "dmFsdWU0",
+}
+`;
+
+exports[`VariablesOps importVariable() 2: Import variable5 (decoded) 1`] = `
+{
+  "_id": "esv-frodo-test-variable-5",
+  "description": "description5",
+  "expressionType": "string",
+  "lastChangeDate": "2024-07-03T04:09:58.705095993Z",
+  "lastChangedBy": "Frodo-SA-1701393386423",
+  "loaded": false,
+  "valueBase64": "dmFsdWU1",
+}
+`;
+
+exports[`VariablesOps importVariable() 3: Import first variable6 1`] = `
+{
+  "_id": "esv-frodo-test-variable-6",
+  "description": "description6",
+  "expressionType": "string",
+  "lastChangeDate": "2024-07-03T04:09:59.681529329Z",
+  "lastChangedBy": "Frodo-SA-1701393386423",
+  "loaded": false,
+  "valueBase64": "dmFsdWU2",
+}
+`;
+
+exports[`VariablesOps importVariable() 4: Import first variable7 (decoded) 1`] = `
+{
+  "_id": "esv-frodo-test-variable-7",
+  "description": "description7",
+  "expressionType": "string",
+  "lastChangeDate": "2024-07-03T04:10:00.558993642Z",
+  "lastChangedBy": "Frodo-SA-1701393386423",
+  "loaded": false,
+  "valueBase64": "dmFsdWU3",
+}
+`;
+
+exports[`VariablesOps importVariables() 1: Import all variables 1`] = `
+[
+  {
+    "_id": "esv-frodo-test-variable-8",
+    "description": "description8",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:10:01.605958533Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "valueBase64": "dmFsdWU4",
+  },
+  {
+    "_id": "esv-frodo-test-variable-9",
+    "description": "description9",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:10:02.520655713Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "valueBase64": "dmFsdWU5",
+  },
+]
+`;
+
+exports[`VariablesOps importVariables() 2: Import all variables (decoded) 1`] = `
+[
+  {
+    "_id": "esv-frodo-test-variable-10",
+    "description": "description10",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:10:03.580024352Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "valueBase64": "dmFsdWUxMA==",
+  },
+  {
+    "_id": "esv-frodo-test-variable-11",
+    "description": "description11",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:10:04.583252701Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "valueBase64": "dmFsdWUxMQ==",
+  },
+]
+`;
+
+exports[`VariablesOps readVariable() 1: Read variable1 1`] = `
+{
+  "_id": "esv-frodo-test-variable-1",
+  "description": "description1",
+  "expressionType": "string",
+  "lastChangeDate": "2024-07-03T04:09:45.503914Z",
+  "lastChangedBy": "Frodo-SA-1701393386423",
+  "loaded": false,
+  "value": "value1",
+}
+`;
+
+exports[`VariablesOps readVariable() 2: Read variable2 without decoding 1`] = `
+{
+  "_id": "esv-frodo-test-variable-2",
+  "description": "description2",
+  "expressionType": "int",
+  "lastChangeDate": "2024-07-03T04:09:46.765137Z",
+  "lastChangedBy": "Frodo-SA-1701393386423",
+  "loaded": false,
+  "valueBase64": "NDI=",
+}
+`;
+
+exports[`VariablesOps readVariable() 3: Read variable3 (non-existent) 1`] = `
+"Error reading variable esv-frodo-test-variable-3
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 404
+    Message: The variable does not exist"
+`;
+
+exports[`VariablesOps readVariables() 1: Read all variables 1`] = `
+[
+  {
+    "_id": "esv-frodo-test-variable-1",
+    "description": "description1",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:09:45.503914Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "value": "value1",
+  },
+  {
+    "_id": "esv-frodo-test-variable-14",
+    "description": "description14",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:09:49.457874Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "value": "value14",
+  },
+  {
+    "_id": "esv-frodo-test-variable-15",
+    "description": "description15",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:09:50.646982Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "value": "value15",
+  },
+  {
+    "_id": "esv-frodo-test-variable-18",
+    "description": "description18",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:09:52.187861Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "value": "value18",
+  },
+  {
+    "_id": "esv-frodo-test-variable-19",
+    "description": "description19",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:09:53.428262Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "value": "value19",
+  },
+  {
+    "_id": "esv-frodo-test-variable-2",
+    "description": "description2",
+    "expressionType": "int",
+    "lastChangeDate": "2024-07-03T04:09:46.765137Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "value": "42",
+  },
+  {
+    "_id": "esv-test-variable-light",
+    "description": "Test variable containing the speed of light in meters per second (as an int).",
+    "expressionType": "int",
+    "lastChangeDate": "2023-12-14T15:34:13.446903Z",
+    "lastChangedBy": "phales@trivir.com",
+    "loaded": true,
+    "value": "299792458",
+  },
+]
+`;
+
+exports[`VariablesOps readVariables() 2: Read all variables without decoding 1`] = `
+[
+  {
+    "_id": "esv-frodo-test-variable-1",
+    "description": "description1",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:09:45.503914Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "valueBase64": "dmFsdWUx",
+  },
+  {
+    "_id": "esv-frodo-test-variable-14",
+    "description": "description14",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:09:49.457874Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "valueBase64": "dmFsdWUxNA==",
+  },
+  {
+    "_id": "esv-frodo-test-variable-15",
+    "description": "description15",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:09:50.646982Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "valueBase64": "dmFsdWUxNQ==",
+  },
+  {
+    "_id": "esv-frodo-test-variable-18",
+    "description": "description18",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:09:52.187861Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "valueBase64": "dmFsdWUxOA==",
+  },
+  {
+    "_id": "esv-frodo-test-variable-19",
+    "description": "description19",
+    "expressionType": "string",
+    "lastChangeDate": "2024-07-03T04:09:53.428262Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "valueBase64": "dmFsdWUxOQ==",
+  },
+  {
+    "_id": "esv-frodo-test-variable-2",
+    "description": "description2",
+    "expressionType": "int",
+    "lastChangeDate": "2024-07-03T04:09:46.765137Z",
+    "lastChangedBy": "Frodo-SA-1701393386423",
+    "loaded": false,
+    "valueBase64": "NDI=",
+  },
+  {
+    "_id": "esv-test-variable-light",
+    "description": "Test variable containing the speed of light in meters per second (as an int).",
+    "expressionType": "int",
+    "lastChangeDate": "2023-12-14T15:34:13.446903Z",
+    "lastChangedBy": "phales@trivir.com",
+    "loaded": true,
+    "valueBase64": "Mjk5NzkyNDU4",
+  },
+]
+`;
+
+exports[`VariablesOps updateVariable() 1: Update existing variable14 (pre-encoded) 1`] = `
+{
+  "_id": "esv-frodo-test-variable-14",
+  "description": "description14",
+  "expressionType": "string",
+  "lastChangeDate": "2024-07-03T04:09:49.457874Z",
+  "lastChangedBy": "Frodo-SA-1701393386423",
+  "loaded": false,
+  "valueBase64": "dmFsdWUxNA==",
+}
+`;
+
+exports[`VariablesOps updateVariable() 2: Update existing variable15 (not encoded) 1`] = `
+{
+  "_id": "esv-frodo-test-variable-15",
+  "description": "description15",
+  "expressionType": "string",
+  "lastChangeDate": "2024-07-03T04:09:50.646982Z",
+  "lastChangedBy": "Frodo-SA-1701393386423",
+  "loaded": false,
+  "valueBase64": "dmFsdWUxNQ==",
+}
+`;
+
+exports[`VariablesOps updateVariable() 3: Update/create non-existing variable16 (pre-encoded) 1`] = `
+{
+  "_id": "esv-frodo-test-variable-16",
+  "description": "description16",
+  "expressionType": "string",
+  "lastChangeDate": "2024-07-03T04:10:09.402716019Z",
+  "lastChangedBy": "Frodo-SA-1701393386423",
+  "loaded": false,
+  "valueBase64": "dmFsdWUxNg==",
+}
+`;
+
+exports[`VariablesOps updateVariable() 4: Update/create non-existing variable17 (not encoded) 1`] = `
+{
+  "_id": "esv-frodo-test-variable-17",
+  "description": "description17",
+  "expressionType": "string",
+  "lastChangeDate": "2024-07-03T04:10:10.447749339Z",
+  "lastChangedBy": "Frodo-SA-1701393386423",
+  "loaded": false,
+  "valueBase64": "dmFsdWUxNw==",
+}
+`;
+
+exports[`VariablesOps updateVariableDescription() 1: Update variable18 description 1`] = `""`;

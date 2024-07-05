@@ -37,8 +37,8 @@ import {
   exportCirclesOfTrust,
   importCirclesOfTrust,
 } from './CirclesOfTrustOps';
-import { exportSecrets } from './cloud/SecretsOps';
-import { exportVariables } from './cloud/VariablesOps';
+import { exportSecrets, importSecrets } from './cloud/SecretsOps';
+import { exportVariables, importVariables } from './cloud/VariablesOps';
 import {
   EmailTemplateSkeleton,
   exportEmailTemplates,
@@ -97,6 +97,7 @@ export default (state: State): Config => {
         noDecode: false,
         coords: true,
         includeDefault: false,
+        includeActiveValues: true,
       },
       collectErrors: Error[]
     ) {
@@ -111,6 +112,7 @@ export default (state: State): Config => {
         global: false,
         realm: false,
         includeDefault: false,
+        includeActiveValues: true,
       },
       collectErrors: Error[]
     ) {
@@ -144,6 +146,14 @@ export interface FullExportOptions {
    * Include default scripts in export if true
    */
   includeDefault: boolean;
+  /**
+   * Include active and loaded secret values
+   */
+  includeActiveValues: boolean;
+  /**
+   * Host URL of target environment to encrypt secret values for
+   */
+  target?: string;
 }
 
 /**
@@ -174,6 +184,14 @@ export interface FullImportOptions {
    * Include default scripts in import if true
    */
   includeDefault: boolean;
+  /**
+   * Include active secret values
+   */
+  includeActiveValues: boolean;
+  /**
+   * Host URL of source environment to decrypt secret values from
+   */
+  source?: string;
 }
 
 export interface FullExportInterface {
@@ -214,6 +232,8 @@ export async function exportFullConfiguration({
     noDecode: false,
     coords: true,
     includeDefault: false,
+    includeActiveValues: true,
+    target: '',
   },
   collectErrors,
   state,
@@ -228,7 +248,14 @@ export async function exportFullConfiguration({
     throwErrors = false;
     errors = collectErrors;
   }
-  const { useStringArrays, noDecode, coords, includeDefault } = options;
+  const {
+    useStringArrays,
+    noDecode,
+    coords,
+    includeDefault,
+    includeActiveValues,
+    target,
+  } = options;
   const stateObj = { state };
   //Export saml2 providers and circle of trusts
   let saml = (
@@ -341,7 +368,11 @@ export async function exportFullConfiguration({
       )
     )?.script,
     secrets: (
-      await exportOrImportWithErrorHandling(exportSecrets, stateObj, errors)
+      await exportOrImportWithErrorHandling(
+        exportSecrets,
+        { options: { includeActiveValues, target }, state },
+        errors
+      )
     )?.secrets,
     service: {
       ...(
@@ -409,6 +440,8 @@ export async function importFullConfiguration({
     global: false,
     realm: false,
     includeDefault: false,
+    includeActiveValues: true,
+    source: '',
   },
   collectErrors,
   state,
@@ -431,13 +464,48 @@ export async function importFullConfiguration({
     global,
     realm,
     includeDefault,
+    includeActiveValues,
+    source,
   } = options;
   const indicatorId = createProgressIndicator({
-    total: 16,
+    total: 18,
     message: 'Importing everything...',
     state,
   });
-  // Order of imports matter here since we want dependencies to be imported first. For example, journeys depend on a lot of things, so they are last, and many things depend on scripts, so they are first.
+  // Order of imports matter here since we want dependencies to be imported first. For example, journeys depend on a lot of things, so they are last, and many things depend on scripts, which depend on variables and secrets, so they are first.
+  updateProgressIndicator({
+    id: indicatorId,
+    message: `Importing Secrets...`,
+    state,
+  });
+  await exportOrImportWithErrorHandling(
+    importSecrets,
+    {
+      importData,
+      options: {
+        includeActiveValues,
+        source,
+      },
+      state,
+    },
+    errors
+  );
+  updateProgressIndicator({
+    id: indicatorId,
+    message: `Importing Variables...`,
+    state,
+  });
+  await exportOrImportWithErrorHandling(
+    importVariables,
+    {
+      importData,
+      options: {
+        includeActiveValues,
+      },
+      state,
+    },
+    errors
+  );
   updateProgressIndicator({
     id: indicatorId,
     message: `Importing Scripts...`,

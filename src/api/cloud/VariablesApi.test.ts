@@ -32,6 +32,7 @@
 import * as VariablesApi from './VariablesApi';
 import { autoSetupPolly, filterRecording } from '../../utils/AutoSetupPolly';
 import { state } from '../../index';
+import { encode } from '../../utils/Base64Utils';
 
 const ctx = autoSetupPolly();
 
@@ -60,7 +61,7 @@ async function stageVariable(variable: TestVariable, create = true) {
       try {
         await VariablesApi.putVariable({
           variableId: variable.name,
-          value: variable.value,
+          valueBase64: encode(variable.value),
           description: variable.description,
           expressionType: variable.type,
           state,
@@ -240,7 +241,7 @@ describe('VariablesApi', () => {
     test(`1: Create new variable with default type (string): ${var4.name} - success`, async () => {
       const response = await VariablesApi.putVariable({
         variableId: var4.name,
-        value: var4.value,
+        valueBase64: encode(var4.value),
         description: var4.description,
         expressionType: var4.type,
         state,
@@ -251,7 +252,7 @@ describe('VariablesApi', () => {
     test(`2: Create new string variable (explicit type): ${var5.name} - success`, async () => {
       const response = await VariablesApi.putVariable({
         variableId: var5.name,
-        value: var5.value,
+        valueBase64: encode(var5.value),
         description: var5.description,
         expressionType: var5.type,
         state,
@@ -262,7 +263,7 @@ describe('VariablesApi', () => {
     test(`3: Create new array variable: ${var6.name} - success`, async () => {
       const response = await VariablesApi.putVariable({
         variableId: var6.name,
-        value: var6.value,
+        valueBase64: encode(var6.value),
         description: var6.description,
         expressionType: var6.type,
         state,
@@ -284,7 +285,7 @@ describe('VariablesApi', () => {
     test(`5: Create new bool variable: ${var8.name} - success`, async () => {
       const response = await VariablesApi.putVariable({
         variableId: var8.name,
-        value: var8.value,
+        valueBase64: encode(var8.value),
         description: var8.description,
         expressionType: var8.type,
         state,
@@ -295,7 +296,7 @@ describe('VariablesApi', () => {
     test(`6: Create new int variable: ${var9.name} - success`, async () => {
       const response = await VariablesApi.putVariable({
         variableId: var9.name,
-        value: var9.value,
+        valueBase64: encode(var9.value),
         description: var9.description,
         expressionType: var9.type,
         state,
@@ -306,7 +307,7 @@ describe('VariablesApi', () => {
     test(`7: Create new keyvaluelist variable: ${var10.name} - success`, async () => {
       const response = await VariablesApi.putVariable({
         variableId: var10.name,
-        value: var10.value,
+        valueBase64: encode(var10.value),
         description: var10.description,
         expressionType: var10.type,
         state,
@@ -317,7 +318,7 @@ describe('VariablesApi', () => {
     test(`8: Create new list variable: ${var11.name} - success`, async () => {
       const response = await VariablesApi.putVariable({
         variableId: var11.name,
-        value: var11.value,
+        valueBase64: encode(var11.value),
         description: var11.description,
         expressionType: var11.type,
         state,
@@ -328,7 +329,7 @@ describe('VariablesApi', () => {
     test(`9: Create new number variable: ${var12.name} - success`, async () => {
       const response = await VariablesApi.putVariable({
         variableId: var12.name,
-        value: var12.value,
+        valueBase64: encode(var12.value),
         description: var12.description,
         expressionType: var12.type,
         state,
@@ -339,7 +340,7 @@ describe('VariablesApi', () => {
     test(`10: Create new object variable: ${var13.name} - success`, async () => {
       const response = await VariablesApi.putVariable({
         variableId: var13.name,
-        value: var13.value,
+        valueBase64: encode(var13.value),
         description: var13.description,
         expressionType: var13.type,
         state,

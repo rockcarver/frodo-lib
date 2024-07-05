@@ -1,7 +1,6 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { encode } from '../../utils/Base64Utils';
 import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface, PagedResult } from '../ApiTypes';
 import { generateEnvApi } from '../BaseApi';
@@ -52,7 +51,8 @@ export type VariableExpressionType =
  * Variable object skeleton
  */
 export type VariableSkeleton = IdObjectSkeletonInterface & {
-  valueBase64: string;
+  valueBase64?: string;
+  value?: string;
   description?: string;
   loaded?: boolean;
   lastChangedBy?: string;
@@ -111,25 +111,25 @@ export async function getVariable({
 /**
  * Create or update variable by id/name
  * @param {string} variableId variable id/name
- * @param {string} value variable value
+ * @param {string} valueBase64 base64-encoded variable value
  * @param {string} description variable description
  * @returns {Promise<unknown>} a promise that resolves to a variable object
  */
 export async function putVariable({
   variableId,
-  value,
+  valueBase64,
   description = '',
   expressionType = 'string',
   state,
 }: {
   variableId: string;
-  value: string;
+  valueBase64: string;
   description?: string;
   expressionType?: VariableExpressionType;
   state: State;
 }): Promise<VariableSkeleton> {
   const variableData: VariableSkeleton = {
-    valueBase64: encode(value),
+    valueBase64,
     description,
     expressionType,
   };

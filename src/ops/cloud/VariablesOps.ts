@@ -8,7 +8,7 @@ import {
   VariableSkeleton,
 } from '../../api/cloud/VariablesApi';
 import { State } from '../../shared/State';
-import { decode } from '../../utils/Base64Utils';
+import { decode, encode } from '../../utils/Base64Utils';
 import {
   createProgressIndicator,
   debugMessage,
@@ -23,33 +23,38 @@ export type Variable = {
   /**
    * Read variable by id/name
    * @param {string} variableId variable id/name
+   * @param {boolean} noDecode Do not decode value (default: false)
    * @returns {Promise<VariableSkeleton>} a promise that resolves to a variable object
    */
-  readVariable(variableId: string): Promise<VariableSkeleton>;
+  readVariable(
+    variableId: string,
+    noDecode?: boolean
+  ): Promise<VariableSkeleton>;
   /**
    * Read all variables
+   * @param {boolean} noDecode Do not decode values (default: false)
    * @returns {Promise<VariableSkeleton[]>} a promise that resolves to an array of variable objects
    */
-  readVariables(): Promise<VariableSkeleton[]>;
+  readVariables(noDecode?: boolean): Promise<VariableSkeleton[]>;
   /**
    * Export variable. The response can be saved to file as is.
-   * @param variableId variable id/name
-   * @param noDecode Do not include decoded variable value in export
+   * @param {string} variableId variable id/name
+   * @param {boolean} noDecode Do not decode value (default: false)
    * @returns {Promise<VariablesExportInterface>} Promise resolving to a VariablesExportInterface object.
    */
   exportVariable(
     variableId: string,
-    noDecode: boolean
+    noDecode?: boolean
   ): Promise<VariablesExportInterface>;
   /**
    * Export all variables
-   * @param noDecode Do not include decoded variable value in export
+   * @param {boolean} noDecode Do not decode values (default: false)
    * @returns {Promise<VariablesExportInterface>} Promise resolving to an VariablesExportInterface object.
    */
-  exportVariables(noDecode: boolean): Promise<VariablesExportInterface>;
+  exportVariables(noDecode?: boolean): Promise<VariablesExportInterface>;
   /**
    * Import variable by id
-   * @param {string} policyId policy id
+   * @param {string} variableId variable id/name
    * @param {VariablesExportInterface} importData import data
    * @returns {Promise<VariableSkeleton>} imported variable object
    */
@@ -71,13 +76,15 @@ export type Variable = {
    * @param {string} value variable value
    * @param {string} description variable description
    * @param {VariableExpressionType} expressionType type of the value
+   * @param {boolean} noEncode do not encode if passing a pre-encoded (base64) value
    * @returns {Promise<VariableSkeleton>} a promise that resolves to a variable object
    */
   createVariable(
     variableId: string,
     value: string,
     description: string,
-    expressionType?: VariableExpressionType
+    expressionType?: VariableExpressionType,
+    noEncode?: boolean
   ): Promise<VariableSkeleton>;
   /**
    * Update or create variable
@@ -85,13 +92,15 @@ export type Variable = {
    * @param {string} value variable value
    * @param {string} description variable description
    * @param {VariableExpressionType} expressionType type of the value
+   * @param {boolean} noEncode do not encode if passing a pre-encoded (base64) value
    * @returns {Promise<VariableSkeleton>} a promise that resolves to a variable object
    */
   updateVariable(
     variableId: string,
     value: string,
     description: string,
-    expressionType?: VariableExpressionType
+    expressionType?: VariableExpressionType,
+    noEncode?: boolean
   ): Promise<VariableSkeleton>;
   /**
    * Update variable description
@@ -136,7 +145,7 @@ export type Variable = {
   /**
    * Create variable
    * @param {string} variableId variable id/name
-   * @param {string} value variable value
+   * @param {string} valueBase64 base64-encoded variable value
    * @param {string} description variable description
    * @param {VariableExpressionType} expressionType type of the value
    * @returns {Promise<VariableSkeleton>} a promise that resolves to a variable object
@@ -148,7 +157,7 @@ export type Variable = {
    */
   putVariable(
     variableId: string,
-    value: string,
+    valueBase64: string,
     description: string,
     expressionType?: VariableExpressionType
   ): Promise<VariableSkeleton>;
@@ -168,20 +177,25 @@ export type Variable = {
 
 export default (state: State): Variable => {
   return {
-    async readVariable(variableId: string): Promise<VariableSkeleton> {
-      return readVariable({ variableId, state });
+    async readVariable(
+      variableId: string,
+      noDecode: boolean = false
+    ): Promise<VariableSkeleton> {
+      return readVariable({ variableId, noDecode, state });
     },
-    async readVariables(): Promise<VariableSkeleton[]> {
-      return readVariables({ state });
+    async readVariables(
+      noDecode: boolean = false
+    ): Promise<VariableSkeleton[]> {
+      return readVariables({ noDecode, state });
     },
     async exportVariable(
       variableId: string,
-      noDecode: boolean
+      noDecode: boolean = false
     ): Promise<VariablesExportInterface> {
       return exportVariable({ variableId, noDecode, state });
     },
     async exportVariables(
-      noDecode: boolean
+      noDecode: boolean = false
     ): Promise<VariablesExportInterface> {
       return exportVariables({ noDecode, state });
     },
@@ -199,28 +213,32 @@ export default (state: State): Variable => {
     async createVariable(
       variableId: string,
       value: string,
-      description: string,
-      expressionType: VariableExpressionType = 'string'
+      description: string = '',
+      expressionType: VariableExpressionType = 'string',
+      noEncode: boolean = false
     ): Promise<VariableSkeleton> {
       return createVariable({
         variableId,
         value,
         description,
         expressionType,
+        noEncode,
         state,
       });
     },
     async updateVariable(
       variableId: string,
       value: string,
-      description: string,
-      expressionType: VariableExpressionType = 'string'
+      description: string = '',
+      expressionType: VariableExpressionType = 'string',
+      noEncode: boolean = false
     ): Promise<VariableSkeleton> {
       return updateVariable({
         variableId,
         value,
         description,
         expressionType,
+        noEncode,
         state,
       });
     },
@@ -241,22 +259,23 @@ export default (state: State): Variable => {
     // Deprecated
 
     async getVariable(variableId: string): Promise<VariableSkeleton> {
-      return readVariable({ variableId, state });
+      return readVariable({ variableId, noDecode: true, state });
     },
     async getVariables(): Promise<VariableSkeleton[]> {
-      return readVariables({ state });
+      return readVariables({ noDecode: true, state });
     },
     async putVariable(
       variableId: string,
-      value: string,
+      valueBase64: string,
       description: string,
       expressionType: VariableExpressionType = 'string'
     ): Promise<VariableSkeleton> {
       return updateVariable({
         variableId,
-        value,
+        value: valueBase64,
         description,
         expressionType,
+        noEncode: true,
         state,
       });
     },
@@ -291,25 +310,42 @@ export function createVariablesExportTemplate({
 
 export async function readVariable({
   variableId,
+  noDecode = false,
   state,
 }: {
   variableId: string;
+  noDecode?: boolean;
   state: State;
 }): Promise<VariableSkeleton> {
   try {
-    return _getVariable({ variableId, state });
+    const variable = await _getVariable({ variableId, state });
+    if (!noDecode) {
+      variable.value = decode(variable.valueBase64);
+      delete variable.valueBase64;
+    }
+    return variable;
   } catch (error) {
     throw new FrodoError(`Error reading variable ${variableId}`, error);
   }
 }
 
 export async function readVariables({
+  noDecode = false,
   state,
 }: {
+  noDecode?: boolean;
   state: State;
 }): Promise<VariableSkeleton[]> {
   try {
-    return (await _getVariables({ state })).result;
+    const { result } = await _getVariables({ state });
+    if (!noDecode) {
+      result.map((variable) => {
+        variable.value = decode(variable.valueBase64);
+        delete variable.valueBase64;
+        return variable;
+      });
+    }
+    return result;
   } catch (error) {
     throw new FrodoError(`Error reading variables`, error);
   }
@@ -330,6 +366,7 @@ export async function exportVariable({
     const variable = await _getVariable({ variableId, state });
     if (!noDecode) {
       variable.value = decode(variable.valueBase64);
+      delete variable.valueBase64;
     }
     exportData.variables[variable._id] = variable;
     debugMessage({ message: `VariablesOps.exportVariable: end`, state });
@@ -349,7 +386,7 @@ export async function exportVariables({
   try {
     debugMessage({ message: `VariablesOps.exportVariables: start`, state });
     const exportData = createVariablesExportTemplate({ state });
-    const variables = await readVariables({ state });
+    const variables = await readVariables({ noDecode, state });
     const indicatorId = createProgressIndicator({
       total: variables.length,
       message: 'Exporting variables...',
@@ -361,9 +398,6 @@ export async function exportVariables({
         message: `Exporting variable ${variable._id}`,
         state,
       });
-      if (!noDecode) {
-        variable.value = decode(variable.valueBase64);
-      }
       exportData.variables[variable._id] = variable;
     }
     stopProgressIndicator({
@@ -389,7 +423,7 @@ export async function importVariable({
   importData,
   state,
 }: {
-  variableId: string;
+  variableId?: string;
   importData: VariablesExportInterface;
   state: State;
 }): Promise<VariableSkeleton> {
@@ -399,20 +433,21 @@ export async function importVariable({
   for (const id of Object.keys(importData.variables)) {
     if (id === variableId || !variableId) {
       try {
-        const variableData = importData.variables[id];
-        delete variableData._rev;
-        try {
-          response = await updateVariable({
-            variableId: variableData._id,
-            value: variableData.valueBase64,
-            description: variableData.description,
-            expressionType: variableData.expressionType,
-            state,
-          });
-          imported.push(id);
-        } catch (error) {
-          errors.push(error);
+        const variable = importData.variables[id];
+        delete variable._rev;
+        if (variable.value) {
+          variable.valueBase64 = encode(variable.value);
+          delete variable.value;
         }
+        response = await updateVariable({
+          variableId: variable._id,
+          value: variable.value ? variable.value : variable.valueBase64,
+          description: variable.description,
+          expressionType: variable.expressionType || 'string',
+          noEncode: variable.value ? false : true,
+          state,
+        });
+        imported.push(id);
       } catch (error) {
         errors.push(error);
       }
@@ -442,24 +477,23 @@ export async function importVariables({
   const response = [];
   const errors = [];
   for (const id of Object.keys(importData.variables)) {
+    const variable = importData.variables[id];
+    delete variable._rev;
     try {
-      const variableData = importData.variables[id];
-      delete variableData._rev;
-      try {
-        response.push(
-          await updateVariable({
-            variableId: variableData._id,
-            value: variableData.valueBase64,
-            description: variableData.description,
-            expressionType: variableData.expressionType,
-            state,
-          })
-        );
-      } catch (error) {
-        errors.push(error);
-      }
+      response.push(
+        await updateVariable({
+          variableId: variable._id,
+          value: variable.value ? variable.value : variable.valueBase64,
+          description: variable.description,
+          expressionType: variable.expressionType || 'string',
+          noEncode: variable.value ? false : true,
+          state,
+        })
+      );
     } catch (error) {
-      errors.push(error);
+      errors.push(
+        new FrodoError(`Error importing variable ${variable._id}`, error)
+      );
     }
   }
   if (errors.length > 0) {
@@ -473,12 +507,14 @@ export async function createVariable({
   value,
   description,
   expressionType,
+  noEncode = false,
   state,
 }: {
   variableId: string;
   value: string;
   description?: string;
   expressionType?: VariableExpressionType;
+  noEncode?: boolean;
   state: State;
 }): Promise<VariableSkeleton> {
   debugMessage({
@@ -491,7 +527,7 @@ export async function createVariable({
     try {
       const result = await _putVariable({
         variableId,
-        value,
+        valueBase64: noEncode ? value : encode(value),
         description,
         expressionType,
         state,
@@ -513,22 +549,25 @@ export async function updateVariable({
   value,
   description,
   expressionType,
+  noEncode = false,
   state,
 }: {
   variableId: string;
   value: string;
   description?: string;
   expressionType?: VariableExpressionType;
+  noEncode?: boolean;
   state: State;
 }): Promise<VariableSkeleton> {
   try {
-    return _putVariable({
+    const result = await _putVariable({
       variableId,
-      value,
+      valueBase64: noEncode ? value : encode(value),
       description,
       expressionType,
       state,
     });
+    return result;
   } catch (error) {
     throw new FrodoError(`Error updating variable ${variableId}`, error);
   }
@@ -544,11 +583,12 @@ export async function updateVariableDescription({
   state: State;
 }): Promise<any> {
   try {
-    return _setVariableDescription({
+    const result = await _setVariableDescription({
       variableId,
       description,
       state,
     });
+    return result;
   } catch (error) {
     throw new FrodoError(
       `Error updating description of variable ${variableId}`,
@@ -565,7 +605,8 @@ export async function deleteVariable({
   state: State;
 }): Promise<VariableSkeleton> {
   try {
-    return _deleteVariable({ variableId, state });
+    const result = await _deleteVariable({ variableId, state });
+    return result;
   } catch (error) {
     throw new FrodoError(`Error deleting variable ${variableId}`, error);
   }
