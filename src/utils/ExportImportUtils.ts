@@ -325,9 +325,21 @@ export function getFilePath({
   mkdirs: boolean;
   state: State;
 }): string {
-  return state.getDirectory()
+  const path = state.getDirectory()
     ? `${getWorkingDirectory({ mkdirs, state })}/${fileName}`
     : fileName;
+  // If the fileName contains directories, make those directories.
+  if (mkdirs && fileName.includes('/')) {
+    const dir = path.substring(0, path.lastIndexOf('/'));
+    if (!fs.existsSync(dir)) {
+      debugMessage({
+        message: `ExportImportUtils.getFilePath: creating directory '${dir}'`,
+        state,
+      });
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  }
+  return path;
 }
 
 /**
