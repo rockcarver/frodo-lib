@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-92] - 2024-07-10
+
 ### Added
 
 - rockcarver/frodo-cli#404: Frodo now saves the allowInsecureConnection state option in connection profiles.
@@ -1506,7 +1508,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-91...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-92...HEAD
+[2.0.0-92]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-91...v2.0.0-92
 [2.0.0-91]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-90...v2.0.0-91
 [2.0.0-90]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-89...v2.0.0-90
 [2.0.0-89]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-88...v2.0.0-89
