@@ -37,11 +37,11 @@ export async function getAllVersions({
   state: State;
 }) {
   const reqPromises = [];
-  endpoints.forEach((item) => {
+  for (const item of endpoints) {
     reqPromises.push(
       generateReleaseApi({ baseUrl: item.base, state }).get(item.path)
     );
-  });
+  }
   const result = await Promise.allSettled(reqPromises);
   return result;
 }

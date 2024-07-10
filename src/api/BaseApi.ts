@@ -54,8 +54,16 @@ function getHttpAgent() {
  * Helper method to create properly configured httpsAgent
  * @returns {Agent.HttpsAgent} appropriate httpsAgent
  */
-function getHttpsAgent(allowInsecureConnection: boolean): Agent.HttpsAgent {
-  if (httpsAgent) return httpsAgent;
+function getHttpsAgent(
+  allowInsecureConnection: boolean,
+  shareAgent: boolean = true
+): Agent.HttpsAgent | HttpsProxyAgent<string> {
+  if (httpsAgent && shareAgent) return httpsAgent;
+  let agent: Agent.HttpsAgent | HttpsProxyAgent<string>;
+  if (allowInsecureConnection) {
+    // eslint-disable-next-line no-console
+    console.error(`Allowing insecure connection`['yellow']);
+  }
   const options = {
     rejectUnauthorized: !allowInsecureConnection,
   };
@@ -65,17 +73,19 @@ function getHttpsAgent(allowInsecureConnection: boolean): Agent.HttpsAgent {
     // eslint-disable-next-line no-console
     console.error(`Using proxy ${httpsProxy}`['yellow']);
     options.rejectUnauthorized = !allowInsecureConnection;
-    httpsAgent = new HttpsProxyAgent(httpsProxy, options);
-    return httpsAgent;
+    agent = new HttpsProxyAgent(httpsProxy, options);
+    if (shareAgent) httpsAgent = agent;
+    return agent;
   }
-  httpsAgent = new Agent.HttpsAgent({
+  agent = new Agent.HttpsAgent({
     ...options,
     maxSockets,
     maxFreeSockets,
     timeout,
     freeSocketTimeout,
   });
-  return httpsAgent;
+  if (shareAgent) httpsAgent = agent;
+  return agent;
 }
 
 /**
@@ -459,7 +469,7 @@ export function generateReleaseApi({
     },
     ...requestOverride,
     httpAgent: getHttpAgent(),
-    httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+    httpsAgent: getHttpsAgent(false, false),
     proxy: getProxy(),
   };
 
