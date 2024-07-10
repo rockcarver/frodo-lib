@@ -88,14 +88,21 @@ export type Mapping = {
   /**
    * Export mapping
    * @param {string} mappingId id of the mapping (new: 'mapping/\<name>', legacy: 'sync/\<name>')
+   * @param {MappingExportOptions} options export options
    * @returns {Promise<MappingExportInterface>} a promise that resolves to a MappingExportInterface object
    */
-  exportMapping(mappingId: string): Promise<MappingExportInterface>;
+  exportMapping(
+    mappingId: string,
+    options?: MappingExportOptions
+  ): Promise<MappingExportInterface>;
   /**
    * Export all mappings
+   * @param {MappingExportOptions} options export options
    * @returns {Promise<MappingExportInterface>} a promise that resolves to a MappingExportInterface object
    */
-  exportMappings(): Promise<MappingExportInterface>;
+  exportMappings(
+    options?: MappingExportOptions
+  ): Promise<MappingExportInterface>;
   /**
    * Import mapping
    * @param {string} mappingId id of the mapping (new: 'mapping/\<name>', legacy: 'sync/\<name>')
@@ -128,6 +135,13 @@ export type Mapping = {
     importData: MappingExportInterface,
     options?: MappingImportOptions
   ): Promise<MappingSkeleton[]>;
+  /**
+   * Helper that returns a boolean indicating whether the mapping is a legacy mapping or not given the id
+   * @param {string} mappingId the mapping id
+   * @returns {boolean} true if the mapping is a legacy mapping, false otherwise
+   * @throws {FrodoError} if the id is invalid
+   */
+  isLegacyMapping(mappingId: string): boolean;
 };
 
 export default (state: State): Mapping => {
@@ -184,11 +198,16 @@ export default (state: State): Mapping => {
     async deleteMapping(mappingId: string): Promise<MappingSkeleton> {
       return deleteMapping({ mappingId, state });
     },
-    async exportMapping(mappingId: string): Promise<MappingExportInterface> {
-      return exportMapping({ mappingId, state });
+    async exportMapping(
+      mappingId: string,
+      options: MappingExportOptions = { deps: true, useStringArrays: true }
+    ): Promise<MappingExportInterface> {
+      return exportMapping({ mappingId, options, state });
     },
-    async exportMappings(): Promise<MappingExportInterface> {
-      return exportMappings({ state });
+    async exportMappings(
+      options: MappingExportOptions = { deps: true, useStringArrays: true }
+    ): Promise<MappingExportInterface> {
+      return exportMappings({ options, state });
     },
     async importMapping(
       mappingId: string,
@@ -209,6 +228,7 @@ export default (state: State): Mapping => {
     ): Promise<MappingSkeleton[]> {
       return importMappings({ importData, options, state });
     },
+    isLegacyMapping,
   };
 };
 
@@ -249,11 +269,17 @@ export type MappingSkeleton = IdObjectSkeletonInterface & {
   properties?: MappingProperty[];
   source?: string;
   target?: string;
+  syncAfter?: string[];
+};
+
+export type SyncSkeleton = IdObjectSkeletonInterface & {
+  mappings: MappingSkeleton[];
 };
 
 export interface MappingExportInterface {
   meta?: ExportMetaData;
   mapping: Record<string, MappingSkeleton>;
+  sync: SyncSkeleton;
 }
 
 /**
@@ -268,6 +294,14 @@ export interface MappingExportOptions {
    * Include any dependencies.
    */
   deps: boolean;
+  /**
+   * limit mappings to connector
+   */
+  connectorId?: string;
+  /**
+   * limit mappings to managed object type
+   */
+  moType?: string;
 }
 
 /**
@@ -288,6 +322,10 @@ export function createMappingExportTemplate({
   return {
     meta: getMetadata({ state }),
     mapping: {},
+    sync: {
+      id: 'sync',
+      mappings: [],
+    },
   } as MappingExportInterface;
 }
 
@@ -313,6 +351,12 @@ export async function readSyncMappings({
       it._id = `sync/${it.name}`;
       return it;
     });
+    //Add syncAfter property to mappings, according to the ordering
+    const syncAfter = [];
+    for (const mapping of mappings) {
+      mapping.syncAfter = syncAfter.slice();
+      syncAfter.push(mapping.name);
+    }
     debugMessage({
       message: `MappingOps.readLegacyMappings: end`,
       state,
@@ -324,7 +368,39 @@ export async function readSyncMappings({
 }
 
 /**
- * Read mappings
+ * Read the new mappings that are not legacy (i.e. those not from sync.json)
+ * @returns {Promise<MappingSkeleton[]>} a promise that resolves to an array of mapping objects
+ */
+export async function readNewMappings({
+  state,
+}: {
+  state: State;
+}): Promise<MappingSkeleton[]> {
+  try {
+    debugMessage({
+      message: `MappingOps.readNewMappings: start`,
+      state,
+    });
+    const mapping = (await readConfigEntitiesByType({
+      type: 'mapping',
+      state,
+    })) as MappingSkeleton[];
+    const mappings = mapping.map((it) => {
+      it._id = `mapping/${it.name}`;
+      return it;
+    });
+    debugMessage({
+      message: `MappingOps.readNewMappings: end`,
+      state,
+    });
+    return sortMappings(mappings);
+  } catch (error) {
+    throw new FrodoError(`Error reading new mappings`, error);
+  }
+}
+
+/**
+ * Read mappings in order of which they are synced.
  * @param {string} connectorId limit mappings to connector
  * @param {string} moType limit mappings to managed object type
  * @returns {Promise<MappingSkeleton[]>} a promise that resolves to an array of mapping objects
@@ -345,12 +421,8 @@ export async function readMappings({
       }, moType=${moType ? moType : 'all'}]`,
       state,
     });
-    let mappings = (await readConfigEntitiesByType({
-      type: 'mapping',
-      state,
-    })) as MappingSkeleton[];
-    const legacyMappings = await readSyncMappings({ state });
-    mappings = mappings.concat(legacyMappings);
+    let mappings = await readSyncMappings({ state });
+    mappings = mappings.concat(await readNewMappings({ state }));
     if (connectorId)
       mappings = mappings.filter(
         (mapping) =>
@@ -367,7 +439,7 @@ export async function readMappings({
       message: `MappingOps.readMappings: end`,
       state,
     });
-    return mappings;
+    return sortMappings(mappings);
   } catch (error) {
     throw new FrodoError(`Error reading mappings`, error);
   }
@@ -385,23 +457,11 @@ export async function readMapping({
   mappingId: string;
   state: State;
 }): Promise<MappingSkeleton> {
-  if (mappingId.startsWith('sync/')) {
-    const mappings = await readSyncMappings({ state });
-    for (const mapping of mappings) {
-      if (mapping._id === mappingId) return mapping;
-    }
-    throw new FrodoError(`Mapping '${mappingId}' not found!`);
-  } else if (mappingId.startsWith('mapping/')) {
-    const mapping = await readConfigEntity({
-      entityId: mappingId,
-      state,
-    });
-    return mapping as MappingSkeleton;
-  } else {
-    throw new FrodoError(
-      `Invalid mapping id ${mappingId}. Must start with 'sync/' or 'mapping/'`
-    );
+  const mappings = await readMappings({ state });
+  for (const mapping of mappings) {
+    if (mapping._id === mappingId) return mapping;
   }
+  throw new FrodoError(`Mapping '${mappingId}' not found!`);
 }
 
 /**
@@ -462,17 +522,17 @@ export async function updateMapping({
   mappingData: MappingSkeleton;
   state: State;
 }): Promise<MappingSkeleton> {
-  if (mappingId.startsWith('sync/')) {
+  if (isLegacyMapping(mappingId)) {
     try {
-      let mappings = await readMappings({ state });
+      let mappings = await readSyncMappings({ state });
       mappings = mappings.map((mapping) => {
-        if (mappingId == mapping._id) {
+        if (mappingId === mapping._id) {
           // update existing mapping with incoming
           return mappingData;
         }
         return mapping;
       });
-      if (mappings.findIndex((mapping) => mapping._id == mappingId) == -1) {
+      if (mappings.findIndex((mapping) => mapping._id === mappingId) === -1) {
         // incoming mapping does not exist, add it as new in the array
         mappings.push(mappingData);
       }
@@ -493,7 +553,7 @@ export async function updateMapping({
     throw new FrodoError(
       `Mapping ${mappingId} not found after successful update!`
     );
-  } else if (mappingId.startsWith('mapping/')) {
+  } else {
     try {
       const mapping = await putConfigEntity({
         entityId: mappingId,
@@ -504,10 +564,6 @@ export async function updateMapping({
     } catch (error) {
       throw new FrodoError(`Error updating mapping ${mappingId}`, error);
     }
-  } else {
-    throw new FrodoError(
-      `Invalid mapping id ${mappingId}. Must start with 'sync/' or 'mapping/'`
-    );
   }
 }
 
@@ -561,15 +617,11 @@ export async function deleteMappings({
         mappings: [],
         state,
       });
-      for (const mapping of mappings.filter((it) =>
-        it._id.startsWith('sync/')
-      )) {
+      for (const mapping of mappings.filter((it) => isLegacyMapping(it._id))) {
         deletedMappings.push(mapping);
       }
       // delete all the new mappings
-      for (const mapping of mappings.filter((it) =>
-        it._id.startsWith('mapping/')
-      )) {
+      for (const mapping of mappings.filter((it) => !isLegacyMapping(it._id))) {
         deletedMappings.push(
           await deleteMapping({ mappingId: mapping._id, state })
         );
@@ -603,7 +655,7 @@ export async function deleteMappings({
       }
       // filter only sync mappings
       const legacyMappingIdsToDelete = mappingsToDelete
-        .filter((it) => it._id.startsWith('sync/'))
+        .filter((it) => isLegacyMapping(it._id))
         .map((it) => it._id);
       debugMessage({
         message: `MappingOps.deleteMappings: selected ${
@@ -627,9 +679,7 @@ export async function deleteMappings({
         mappings: updatedLegacyMappings,
         state,
       });
-      for (const mapping of mappings.filter((it) =>
-        it._id.startsWith('sync/')
-      )) {
+      for (const mapping of mappings.filter((it) => isLegacyMapping(it._id))) {
         deletedMappings.push(mapping);
       }
       debugMessage({
@@ -645,9 +695,7 @@ export async function deleteMappings({
         legacyMappingIdsToDelete.includes(mapping._id)
       );
       // delete all the new mappings
-      for (const mapping of mappings.filter((it) =>
-        it._id.startsWith('mapping/')
-      )) {
+      for (const mapping of mappings.filter((it) => !isLegacyMapping(it._id))) {
         deletedMappings.push(
           await deleteMapping({ mappingId: mapping._id, state })
         );
@@ -694,8 +742,8 @@ export async function deleteMapping({
 }): Promise<MappingSkeleton> {
   try {
     debugMessage({ message: `MappingOps.deleteMapping: start`, state });
-    if (mappingId.startsWith('sync/')) {
-      const mappings = await readMappings({ state });
+    if (isLegacyMapping(mappingId)) {
+      const mappings = await readSyncMappings({ state });
       const mappingsToDelete = mappings.filter(
         (mapping) => mapping._id === mappingId
       );
@@ -751,17 +799,13 @@ export async function deleteMapping({
       debugMessage({ message: `MappingOps.deleteMapping: end`, state });
       // otherwise return deleted mapping
       return mappingsToDelete[0];
-    } else if (mappingId.startsWith('mapping/')) {
+    } else {
       const mapping = await deleteConfigEntity({
         entityId: mappingId,
         state,
       });
       debugMessage({ message: `MappingOps.deleteMapping: end`, state });
       return mapping as MappingSkeleton;
-    } else {
-      throw new FrodoError(
-        `Invalid mapping id ${mappingId}. Must start with 'sync/' or 'mapping/'`
-      );
     }
   } catch (error) {
     throw new FrodoError(`Error deleting mapping ${mappingId}`, error);
@@ -771,20 +815,33 @@ export async function deleteMapping({
 /**
  * Export mapping
  * @param {string} mappingId id of the mapping (new: 'mapping/\<name>', legacy: 'sync/\<name>')
+ * @param {MappingExportOptions} options export options
  * @returns {Promise<MappingExportInterface>} a promise that resolves to a MappingExportInterface object
  */
 export async function exportMapping({
   mappingId,
+  options = { deps: true, useStringArrays: true },
   state,
 }: {
   mappingId: string;
+  options?: MappingExportOptions;
   state: State;
 }): Promise<MappingExportInterface> {
   try {
     debugMessage({ message: `MappingOps.exportMapping: start`, state });
     const mappingData = await readMapping({ mappingId, state });
     const exportData = createMappingExportTemplate({ state });
-    exportData.mapping[mappingData._id] = mappingData;
+    if (options.deps) {
+      // TODO
+    }
+    if (options.useStringArrays) {
+      // TODO
+    }
+    if (isLegacyMapping(mappingId)) {
+      exportData.sync.mappings.push(mappingData);
+    } else {
+      exportData.mapping[mappingId] = mappingData;
+    }
     debugMessage({ message: `MappingOps.exportMapping: end`, state });
     return exportData;
   } catch (error) {
@@ -794,17 +851,24 @@ export async function exportMapping({
 
 /**
  * Export all mappings
+ * @param {MappingExportOptions} options export options
  * @returns {Promise<MappingExportInterface>} a promise that resolves to a MappingExportInterface object
  */
 export async function exportMappings({
+  options = { deps: true, useStringArrays: true },
   state,
 }: {
+  options?: MappingExportOptions;
   state: State;
 }): Promise<MappingExportInterface> {
   let indicatorId: string;
   try {
     const exportData = createMappingExportTemplate({ state });
-    const allMappingsData = await readMappings({ state });
+    const allMappingsData = await readMappings({
+      connectorId: options.connectorId,
+      moType: options.moType,
+      state,
+    });
     indicatorId = createProgressIndicator({
       total: allMappingsData.length,
       message: 'Exporting mappings',
@@ -816,7 +880,17 @@ export async function exportMappings({
         message: `Exporting mapping ${mappingData._id}`,
         state,
       });
-      exportData.mapping[mappingData._id] = mappingData;
+      if (options.deps) {
+        // TODO
+      }
+      if (options.useStringArrays) {
+        // TODO
+      }
+      if (isLegacyMapping(mappingData._id)) {
+        exportData.sync.mappings.push(mappingData);
+      } else {
+        exportData.mapping[mappingData._id] = mappingData;
+      }
     }
     stopProgressIndicator({
       id: indicatorId,
@@ -856,15 +930,20 @@ export async function importMapping({
   let response = null;
   const errors = [];
   const imported = [];
-  for (const key of Object.keys(importData.mapping)) {
+  const isLegacy = isLegacyMapping(mappingId);
+  for (const key of isLegacy
+    ? importData.sync.mappings.map((m) => m._id)
+    : Object.keys(importData.mapping)) {
     if (key === mappingId) {
       try {
         if (options.deps) {
-          //
+          // TODO
         }
         response = await updateMapping({
           mappingId,
-          mappingData: importData.mapping[mappingId],
+          mappingData: isLegacy
+            ? importData.sync.mappings.find((m) => m._id === mappingId)
+            : importData.mapping[mappingId],
           state,
         });
         imported.push(key);
@@ -900,21 +979,31 @@ export async function importFirstMapping({
   let response = null;
   const errors = [];
   const imported = [];
-  for (const key of Object.keys(importData.mapping)) {
+  const mappingIds = Object.keys(importData.mapping);
+  let mappingId;
+  // Sync order starts with mappings in sync.json first before moving on to sync the individual mapping files, so try sync mappings first.
+  // See https://backstage.forgerock.com/docs/idm/7.5/synchronization-guide/mappings.html
+  if (importData.sync?.mappings?.length > 0) {
+    mappingId = importData.sync.mappings[0]._id;
+  } else if (mappingIds.length > 0) {
+    mappingId = mappingIds[0];
+  }
+  if (mappingId) {
     try {
       if (options.deps) {
-        //
+        // TODO
       }
       response = await updateMapping({
-        mappingId: key,
-        mappingData: importData.mapping[key],
+        mappingId,
+        mappingData: isLegacyMapping(mappingId)
+          ? importData.sync.mappings.find((m) => m._id === mappingId)
+          : importData.mapping[mappingId],
         state,
       });
-      imported.push(key);
+      imported.push(mappingId);
     } catch (error) {
       errors.push(error);
     }
-    break;
   }
   if (errors.length > 0) {
     throw new FrodoError(`Error importing first mapping`, errors);
@@ -942,15 +1031,18 @@ export async function importMappings({
 }): Promise<MappingSkeleton[]> {
   const response = [];
   const errors = [];
-  for (const key of Object.keys(importData.mapping)) {
+  const mappings = Object.values(importData.mapping).concat(
+    importData.sync.mappings
+  );
+  for (const mappingData of mappings) {
     try {
       if (options.deps) {
-        //
+        // TODO
       }
       response.push(
         await updateMapping({
-          mappingId: key,
-          mappingData: importData.mapping[key],
+          mappingId: mappingData._id,
+          mappingData,
           state,
         })
       );
@@ -962,4 +1054,69 @@ export async function importMappings({
     throw new FrodoError(`Error importing mappings`, errors);
   }
   return response;
+}
+
+/**
+ * Helper that returns a boolean indicating whether the mapping is a legacy mapping or not given the id
+ * @param {string} mappingId the mapping id
+ * @returns {boolean} true if the mapping is a legacy mapping, false otherwise
+ * @throws {FrodoError} if the id is invalid
+ */
+export function isLegacyMapping(mappingId: string): boolean {
+  if (
+    !mappingId ||
+    (!mappingId.startsWith('sync/') && !mappingId.startsWith('mapping/'))
+  ) {
+    throw new FrodoError(
+      `Invalid mapping id ${mappingId}. Must start with 'sync/' or 'mapping/'`
+    );
+  }
+  return mappingId.startsWith('sync/');
+}
+
+/**
+ * Helper that sorts an array of mappings in place and returns the sorted array. It sorts first by mapping type (legacy mappings come before non-legacy mappings), and then by the syncAfter property.
+ * If syncAfter doesn't exist, it prioritizes mappings without the syncAfter property (note that the behavior that should happen in this instance is not specified in the documentation, at least as of July 9, 2024).
+ *
+ * See sync order documentation: https://backstage.forgerock.com/docs/idm/7.5/synchronization-guide/mappings.html
+ *
+ * Note: According to the documentation, then endpoint /openidm/sync/mappings?_queryFilter=true should return all mappings (legacy and new) in the correct order, which would make this method unnecessary when reading mappings. However, this doesn't
+ * seem to always be the case. The endpoint prioritizes non-legacy mappings over legacy mappings which is opposite what the documentation says the correct sync order should be. Additionally, the endpoint does not always return all the mappings.
+ * In the future, if the endpoint is fixed, we may instead want to use /openidm/sync/mappings?_queryFilter=true to determine correct ordering.
+ *
+ * @param {MappingSkeleton[]} mappings The list of mappings to sort in place
+ * @returns The sorted list of mappings
+ */
+export function sortMappings(mappings: MappingSkeleton[]) {
+  return mappings.sort((m1, m2) => {
+    // Order by mapping type first. Sync (legacy) mappings get synced first according to the documentation: https://backstage.forgerock.com/docs/idm/7.5/synchronization-guide/mappings.html
+    const m1IsLegacy = isLegacyMapping(m1._id);
+    const m2IsLegacy = isLegacyMapping(m2._id);
+    if (m1IsLegacy && !m2IsLegacy) {
+      return -1;
+    }
+    if (m2IsLegacy && !m1IsLegacy) {
+      return 1;
+    }
+    // The reason for sorting by the length of the syncAfter array is because this is how syncAfter works for sync.json mappings when you query the /openidm/sync/mappings?_queryFilter=true endpoint. For example, the last mapping
+    // in sync.json would have a list of all the mappings that get synced prior to it, meaning it would have the longest syncAfter array, while the first mapping would have an empty syncAfter array.
+    if (m1.syncAfter && m2.syncAfter) {
+      if (m1.syncAfter.length < m2.syncAfter.length) {
+        return -1;
+      }
+      if (m1.syncAfter.length > m2.syncAfter.length) {
+        return 1;
+      }
+      return 0;
+    }
+    // Prioritize those mappings that don't have a syncAfter property if none is provided for one of them. The reason for this decision is this is how the /openidm/sync/mappings?_queryFilter=true endpoint orders mappings that don't
+    // have this property, at least according to my observations. The actual behavior for when mappings don't have syncAfter is not specified in the documentation.
+    if (m1.syncAfter) {
+      return 1;
+    }
+    if (m2.syncAfter) {
+      return -1;
+    }
+    return 0;
+  });
 }
