@@ -956,6 +956,7 @@ export async function getTokens({
       const conn = await getConnectionProfile({ state });
       usingConnectionProfile = true;
       state.setHost(conn.tenant);
+      state.setAllowInsecureConnection(conn.allowInsecureConnection);
       state.setDeploymentType(conn.deploymentType);
       state.setUsername(conn.username);
       state.setPassword(conn.password);
@@ -972,6 +973,7 @@ export async function getTokens({
     if (!isValidUrl(state.getHost())) {
       const conn = await getConnectionProfile({ state });
       state.setHost(conn.tenant);
+      state.setAllowInsecureConnection(conn.allowInsecureConnection);
       state.setDeploymentType(conn.deploymentType);
     }
 

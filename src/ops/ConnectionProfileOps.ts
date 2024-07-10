@@ -112,6 +112,7 @@ const fileOptions = {
 
 export interface SecureConnectionProfileInterface {
   tenant: string;
+  allowInsecureConnection?: boolean;
   deploymentType?: string;
   username?: string | null;
   encodedPassword?: string | null;
@@ -127,6 +128,7 @@ export interface SecureConnectionProfileInterface {
 
 export interface ConnectionProfileInterface {
   tenant: string;
+  allowInsecureConnection?: boolean;
   deploymentType?: string;
   username?: string | null;
   password?: string | null;
@@ -356,6 +358,7 @@ export async function getConnectionProfileByHost({
   }
   return {
     tenant: profiles[0].tenant,
+    allowInsecureConnection: profiles[0].allowInsecureConnection,
     deploymentType: profiles[0].deploymentType,
     username: profiles[0].username ? profiles[0].username : null,
     password: profiles[0].encodedPassword
@@ -459,6 +462,10 @@ export async function saveConnectionProfile({
         state,
       });
     }
+
+    // allow insecure connection
+    if (state.getAllowInsecureConnection())
+      profile.allowInsecureConnection = state.getAllowInsecureConnection();
 
     // deployment type
     if (state.getDeploymentType())
