@@ -54,9 +54,10 @@ function defaultMatchRequestsBy() {
   };
 }
 
-function authenticationMatchRequestsBy() {
+function authenticationMatchRequestsBy(pathname: boolean = true) {
   const matchRequestsBy = defaultMatchRequestsBy();
-  matchRequestsBy['body'] = false;
+  matchRequestsBy.body = false;
+  matchRequestsBy.url.pathname = pathname;
   matchRequestsBy.order = true;
   return matchRequestsBy;
 }
@@ -357,10 +358,10 @@ export function setupPollyForFrodoLib({
         .any('/am/saml2/*')
         .recordingName(`${getFrodoCommand({ state })}/saml2`);
       polly.server
-        .any('/openidm/managed/svcacct')
+        .any(['/openidm/managed/svcacct', '/openidm/managed/svcacct/*'])
         .recordingName(`${getFrodoCommand({ state })}/openidm/managed/svcacct`)
         .on('request', (req) => {
-          req.configure({ matchRequestsBy: authenticationMatchRequestsBy() });
+          req.configure({ matchRequestsBy: authenticationMatchRequestsBy(false) });
         });
       polly.server
         .any('/openidm/*')
