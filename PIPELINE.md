@@ -54,85 +54,31 @@ Frodo is currently in a pre-1.0.0 phase. We are striving to release 1.0.0 very s
 
 The trigger event is any `push` to the `main` branch in the repository.
 
-### Smoke Tests
+### Build
 
-This step performs a quick smoke test of the vital functions like login with and without network proxy. All smoke tests must pass or pipeline execution terminates.
+Builds the library, bumps the version, and makes the build artifacts available for processing in subsequent pipeline steps.
 
-### Update Changelog
+### Test
 
-This step calculates the new version but doesn't modify `package.json` and `package-lock.json`. Based on that new version, it creates a new heading in the [CHANGELOG.md](../CHANGELOG.md) file and moves everything from the `Unreleased` section into the new version section. It also creates links to the release tags at the bottom of the [CHANGELOG.md](../CHANGELOG.md) file. Last but not least, it commits the updated [CHANGELOG.md](../CHANGELOG.md) file to the repository.
+Downloads the build artifacts produced in the `Build` step and runs all the automated tests.
 
-#### 3rd-Party Actions
+### npm-release
 
--   [gh-action-bump-version](https://github.com/phips28/gh-action-bump-version): phips28/gh-action-bump-version@master
--   [keep-a-changelog-new-release](https://github.com/thomaseizinger/keep-a-changelog-new-release): thomaseizinger/keep-a-changelog-new-release@1.3.0
-
-### Bump Version
-
-This step calculates the new version and corresponding tag, updates both [package.json](../package.json) and [package-lock.json](../package-lock.json) and commits the changes to the `main` branch.
-
-#### 3rd-Party Actions
-
--   [gh-action-bump-version](https://github.com/phips28/gh-action-bump-version): phips28/gh-action-bump-version@master
-
-### Release Notes
-
-This step extracts the changes under the heading that matches the release version and uses it as the release notes. For pre-releases it also generates a section of changes based on commits that were part of the release.
-
-Good release notes require the contributor and/or maintainer take the time and update the [CHANGELOG.md](../CHANGELOG.md) file. Auto-generated release notes based on commit comments are less than optimal but acceptable for pre-releases.
-
-Patch, minor, and major releases require a carefully curated [CHANGELOG.md](../CHANGELOG.md) file.
-
-#### 3rd-Party Actions
-
--   [submark](https://github.com/dahlia/submark): dahlia/submark@main
-
+Publishes the npm package using the new version tag to [npmjs.com](https://github.com/rockcarver/frodo-lib).
 
 ### Release
 
-This step creates a GitHub release based on the tag created in a previous step and posts a number of artifacts:
+This step creates a GitHub release based on the new version tag and posts a number of artifacts:
 
 -   [CHANGELOG.md](../CHANGELOG.md)
 -   [LICENSE](../LICENSE)
 -   `Release.txt` - Generated for each release containing the git sha of the release
--   `<tag>.zip` -  Generated for each release containing the full repository as a `.zip` archive
--   `<tag>.tar.gz` - Generated for each release containing the full repository as a `.tar.gz` archive
+-   `<new version tag>.zip` -  Generated for each release containing the full repository as a `.zip` archive
+-   `<new version tag>.tar.gz` - Generated for each release containing the full repository as a `.tar.gz` archive
 
-_Note:_ this step does not include the frodo binaries!
+### Doc
 
-#### 3rd-Party Actions
-
--   [action-gh-release](https://github.com/softprops/action-gh-release): softprops/action-gh-release@v1
-
-### Binary Releases
-
-The binaries are built by GitHub runners of the same OS as the binary they are building. That allows the binaries to be executed (tested) as one of the steps in the build process.
-
-The binary builds run in parallel while all the previous steps run in sequence and must complete before the binay builds even kick off.
-
-#### Linux Binary Release
-
-This step builds the Linux binary and adds it to the release created in an earlier step.
-
-#### 3rd-Party Actions
-
--   [action-gh-release](https://github.com/softprops/action-gh-release): softprops/action-gh-release@v1
-
-#### Mac OS Binary Release
-
-This step builds the Mac OS binary and adds it to the release created in an earlier step.
-
-#### 3rd-Party Actions
-
--   [action-gh-release](https://github.com/softprops/action-gh-release): softprops/action-gh-release@v1
-
-#### Windows Binary Release
-
-This step builds the Windows binary and adds it to the release created in an earlier step.
-
-#### 3rd-Party Actions
-
--   [action-gh-release](https://github.com/softprops/action-gh-release): softprops/action-gh-release@v1
+Builds the library API docs and publishes them to [https://rockcarver.github.io/frodo-lib/](https://rockcarver.github.io/frodo-lib/).
 
 ## Pipeline Maintenance
 
