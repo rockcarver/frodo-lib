@@ -1,6 +1,6 @@
-# Contribute to frodo
+# Contribute to Frodo Library (frodo-lib)
 
-Any direct commits to the repository are not allowed. Pull requests (PR) are most welcome. Please fork this repo and develop and test in that fork. Once you feel ready, please create a PR. For any major changes, please open an [issue](https://github.com/rockcarver/frodo/issues) first to discuss what and why you'd like to change.
+Any direct commits to the repository are not allowed. Pull requests (PR) are most welcome. Please fork this repo and develop and test in that fork. Once you feel ready, please create a PR. For any major changes, please open an [issue](https://github.com/rockcarver/frodo-lib/issues) first to discuss what and why you'd like to change.
 
 ## Developing
 
