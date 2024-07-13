@@ -68,7 +68,7 @@ Publishes the npm package using the new version tag to [npmjs.com](https://githu
 
 ### Release
 
-This step creates a GitHub release based on the new version tag and posts a number of artifacts:
+Downloads the build artifacts produced in the `Build` step, updates the changelog, and creates a GitHub release based on the new version tag and posts the following artifacts:
 
 -   [CHANGELOG.md](../CHANGELOG.md)
 -   [LICENSE](../LICENSE)
