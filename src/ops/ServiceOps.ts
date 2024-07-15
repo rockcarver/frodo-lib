@@ -29,7 +29,7 @@ export type Service = {
    */
   getListOfServices(
     globalConfig?: boolean
-  ): Promise<import('../api/ServiceApi').ServiceListItem[]>;
+  ): Promise<import('../api/ServiceApi').AmServiceSkeleton[]>;
   /**
    * Get all services including their descendents.
    * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
@@ -257,7 +257,10 @@ export async function getListOfServices({
 }) {
   try {
     debugMessage({ message: `ServiceOps.getListOfServices: start`, state });
-    const services = (await _getListOfServices({ globalConfig, state })).result;
+    // Filter out the Scripting service entities since they consist of scripts, which are handled in ScriptOps.
+    const services = (
+      await _getListOfServices({ globalConfig, state })
+    ).result.filter((s) => !(s._type && s._type.name === 'Scripting'));
     debugMessage({ message: `ServiceOps.getListOfServices: end`, state });
     return services;
   } catch (error) {
@@ -285,8 +288,7 @@ export async function getFullServices({
       message: `ServiceOps.getFullServices: start, globalConfig=${globalConfig}`,
       state,
     });
-    const serviceList = (await _getListOfServices({ globalConfig, state }))
-      .result;
+    const serviceList = await getListOfServices({ globalConfig, state });
 
     const fullServiceData = await Promise.all(
       serviceList.map(async (listItem) => {
@@ -340,7 +342,7 @@ export async function getFullServices({
  * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise. Default: false.
  * @returns promise resolving to a service object
  */
-async function putFullService({
+export async function putFullService({
   serviceId,
   fullServiceData,
   clean,
@@ -455,7 +457,7 @@ async function putFullService({
  * @param {boolean} realmConfig true if the current realm service is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AmService[]>} promise resolving to an array of service objects
  */
-async function putFullServices({
+export async function putFullServices({
   serviceEntries,
   clean,
   globalConfig = false,
@@ -580,8 +582,7 @@ export async function deleteFullServices({
     state,
   });
   try {
-    const serviceList = (await _getListOfServices({ globalConfig, state }))
-      .result;
+    const serviceList = await getListOfServices({ globalConfig, state });
 
     const deleted: AmServiceSkeleton[] = await Promise.all(
       serviceList.map(async (serviceListItem) => {

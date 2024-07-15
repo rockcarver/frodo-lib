@@ -20,6 +20,7 @@
     "test:record_noauth": "NODE_OPTIONS=--experimental-vm-modules FRODO_POLLY_MODE=record_noauth npx jest --verbose=true --silent=false --updateSnapshot --testPathIgnorePatterns cjs --testPathPattern",
     "test:update": "NODE_OPTIONS=--experimental-vm-modules npx jest --verbose=true --silent=false --updateSnapshot --testPathPattern",
     "lint": "eslint --ext .ts --ignore-path .gitignore .",
+    "lint:fix": "eslint --fix --ext .ts --ignore-path .gitignore .",
     "clean-types": "rimraf types",
     "generate-types": "tsc",
     "build": "npx tsup && npm run clean-types && npm run generate-types",

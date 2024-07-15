@@ -3,9 +3,12 @@ import util from 'util';
 import { State } from '../../shared/State';
 import { getRealmPath } from '../../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../../utils/JsonUtils';
-import { type IdObjectSkeletonInterface, type PagedResult } from '../ApiTypes';
+import {
+  type EntityType,
+  type IdObjectSkeletonInterface,
+  type PagedResult,
+} from '../ApiTypes';
 import { generateAmApi } from '../BaseApi';
-import { type AmServiceType } from '../ServiceApi';
 import { type SocialIdpSkeleton } from '../SocialIdentityProvidersApi';
 
 const getAllProviderTypesURLTemplate =
@@ -43,7 +46,7 @@ export async function getAdminFederationProviderTypes({
   state,
 }: {
   state: State;
-}): Promise<PagedResult<AmServiceType>> {
+}): Promise<PagedResult<EntityType>> {
   const urlString = util.format(
     getAllProviderTypesURLTemplate,
     state.getHost(),

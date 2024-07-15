@@ -323,7 +323,7 @@ export function createMappingExportTemplate({
     meta: getMetadata({ state }),
     mapping: {},
     sync: {
-      id: 'sync',
+      _id: 'sync',
       mappings: [],
     },
   } as MappingExportInterface;

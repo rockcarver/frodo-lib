@@ -4,12 +4,11 @@ import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../utils/JsonUtils';
 import {
-  type IdObjectSkeletonInterface,
+  type AmConfigEntityInterface,
   type NoIdObjectSkeletonInterface,
   type PagedResult,
 } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
-import { type AmServiceType } from './ServiceApi';
 
 const getAllProviderTypesURLTemplate =
   '%s/json%s/realm-config/services/SocialIdentityProviders?_action=getAllTypes';
@@ -26,8 +25,7 @@ const getApiConfig = () => {
   };
 };
 
-export type SocialIdpSkeleton = IdObjectSkeletonInterface & {
-  _type: AmServiceType;
+export type SocialIdpSkeleton = AmConfigEntityInterface & {
   enabled: boolean;
   transform: string;
 };

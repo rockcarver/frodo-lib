@@ -14,6 +14,10 @@ export interface IdObjectSkeletonInterface extends NoIdObjectSkeletonInterface {
   _id?: string;
 }
 
+export interface AmConfigEntityInterface extends IdObjectSkeletonInterface {
+  _type?: EntityType;
+}
+
 export type Readable<Type> = Type;
 
 export type Writable<Type> = {
@@ -32,4 +36,9 @@ export type PagedResult<Type> = {
   totalPagedResultsPolicy: 'EXACT' | 'NONE';
   totalPagedResults: number;
   remainingPagedResults: number;
+};
+
+export type EntityType = IdObjectSkeletonInterface & {
+  name: string;
+  collection: boolean;
 };

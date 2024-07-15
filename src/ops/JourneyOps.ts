@@ -874,10 +874,10 @@ export async function exportJourney({
     const saml2ConfigPromises = [];
     let socialProviderPromise = null;
     let themePromise = null;
-    if (
-      deps &&
-      state.getDeploymentType() !== Constants.CLASSIC_DEPLOYMENT_TYPE_KEY
-    ) {
+    const isPlatformDeployment =
+      state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+      state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
+    if (deps && isPlatformDeployment) {
       themePromise = readThemes({ state });
     }
 
@@ -896,7 +896,7 @@ export async function exportJourney({
         delete nodeInfo['y'];
       }
     }
-    if (!coords) {
+    if (!coords && treeObject.staticNodes) {
       for (const [, nodeInfo] of Object.entries(treeObject.staticNodes)) {
         delete nodeInfo['x'];
         delete nodeInfo['y'];
@@ -929,11 +929,7 @@ export async function exportJourney({
       }
 
       // frodo supports email templates in platform deployments
-      if (
-        (deps &&
-          state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) ||
-        state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
-      ) {
+      if (deps && isPlatformDeployment) {
         if (emailTemplateNodes.includes(nodeType)) {
           try {
             const emailTemplate = await readEmailTemplate({
@@ -1009,12 +1005,7 @@ export async function exportJourney({
           );
         }
         // frodo supports themes in platform deployments
-        if (
-          (deps &&
-            state.getDeploymentType() ===
-              Constants.CLOUD_DEPLOYMENT_TYPE_KEY) ||
-          state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
-        ) {
+        if (deps && isPlatformDeployment) {
           let themeId = false;
 
           if (nodeObject.stage) {
@@ -1065,12 +1056,7 @@ export async function exportJourney({
           }
 
           // frodo supports email templates in platform deployments
-          if (
-            (deps &&
-              state.getDeploymentType() ===
-                Constants.CLOUD_DEPLOYMENT_TYPE_KEY) ||
-            state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
-          ) {
+          if (deps && isPlatformDeployment) {
             if (emailTemplateNodes.includes(innerNodeType)) {
               try {
                 const emailTemplate = await readEmailTemplate({

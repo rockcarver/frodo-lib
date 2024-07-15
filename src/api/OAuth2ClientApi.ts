@@ -4,14 +4,13 @@ import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../utils/JsonUtils';
 import {
-  type IdObjectSkeletonInterface,
+  type AmConfigEntityInterface,
   type NoIdObjectSkeletonInterface,
   type PagedResult,
   type Readable,
   type Writable,
 } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
-import { AmServiceType } from './ServiceApi';
 
 const oauth2ClientURLTemplate = '%s/json%s/realm-config/agents/OAuth2Client/%s';
 const oauth2ClientListURLTemplate =
@@ -23,7 +22,7 @@ const getApiConfig = () => {
   };
 };
 
-export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
+export type OAuth2ClientSkeleton = AmConfigEntityInterface & {
   overrideOAuth2ClientConfig?: {
     [k: string]: string | number | boolean | string[] | object | undefined;
   };
@@ -61,7 +60,6 @@ export type OAuth2ClientSkeleton = IdObjectSkeletonInterface & {
   coreUmaClientConfig?: {
     [k: string]: string | number | boolean | string[] | object | undefined;
   };
-  _type: AmServiceType;
 };
 
 /**
