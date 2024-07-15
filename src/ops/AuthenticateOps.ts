@@ -43,12 +43,14 @@ export type Authenticate = {
    * Get tokens and store them in State
    * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
    * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
+   * @param {string[]} types Array of supported deployment types. The function will throw an error if an unsupported type is detected (default: ['classic', 'cloud', 'forgeops'])
    * @param {CallbackHandler} callbackHandler function allowing the library to collect responses from the user through callbacks
    * @returns {Promise<Tokens>} object containing the tokens
    */
   getTokens(
     forceLoginAsUser?: boolean,
     autoRefresh?: boolean,
+    types?: string[],
     callbackHandler?: CallbackHandler
   ): Promise<Tokens>;
 
@@ -75,11 +77,13 @@ export default (state: State): Authenticate => {
     async getTokens(
       forceLoginAsUser = false,
       autoRefresh = true,
+      types = Constants.DEPLOYMENT_TYPES,
       callbackHandler = null
     ) {
       return getTokens({
         forceLoginAsUser,
         autoRefresh,
+        types,
         callbackHandler,
         state,
       });
@@ -932,15 +936,20 @@ export type Tokens = {
 export async function getTokens({
   forceLoginAsUser = false,
   autoRefresh = true,
+  types = Constants.DEPLOYMENT_TYPES,
   callbackHandler = null,
   state,
 }: {
   forceLoginAsUser?: boolean;
   autoRefresh?: boolean;
+  types?: string[];
   callbackHandler?: CallbackHandler;
   state: State;
 }): Promise<Tokens> {
-  debugMessage({ message: `AuthenticateOps.getTokens: start`, state });
+  debugMessage({
+    message: `AuthenticateOps.getTokens: start, types: ${types}`,
+    state,
+  });
   if (!state.getHost()) {
     throw new FrodoError(`No host specified`);
   }
@@ -967,6 +976,16 @@ export async function getTokens({
       state.setServiceAccountId(conn.svcacctId);
       state.setServiceAccountJwk(conn.svcacctJwk);
       state.setServiceAccountScope(conn.svcacctScope);
+
+      // fail fast if deployment type not applicable
+      if (
+        state.getDeploymentType() &&
+        !types.includes(state.getDeploymentType())
+      ) {
+        throw new FrodoError(
+          `Unsupported deployment type '${state.getDeploymentType()}'`
+        );
+      }
     }
 
     // if host is not a valid URL, try to locate a valid URL and deployment type from connections.json
@@ -975,6 +994,16 @@ export async function getTokens({
       state.setHost(conn.tenant);
       state.setAllowInsecureConnection(conn.allowInsecureConnection);
       state.setDeploymentType(conn.deploymentType);
+
+      // fail fast if deployment type not applicable
+      if (
+        state.getDeploymentType() &&
+        !types.includes(state.getDeploymentType())
+      ) {
+        throw new FrodoError(
+          `Unsupported deployment type '${state.getDeploymentType()}'`
+        );
+      }
     }
 
     // now that we have the full tenant URL we can lookup the cookie name
@@ -998,6 +1027,16 @@ export async function getTokens({
         }
         state.setUseBearerTokenForAmApis(true);
         await determineDeploymentTypeAndDefaultRealmAndVersion(state);
+
+        // fail if deployment type not applicable
+        if (
+          state.getDeploymentType() &&
+          !types.includes(state.getDeploymentType())
+        ) {
+          throw new FrodoError(
+            `Unsupported deployment type: '${state.getDeploymentType()}' not in ${types}`
+          );
+        }
       } catch (saErr) {
         throw new FrodoError(`Service account login error`, saErr);
       }
@@ -1011,6 +1050,17 @@ export async function getTokens({
       const token = await getUserSessionToken(callbackHandler, state);
       if (token) state.setUserSessionTokenMeta(token);
       await determineDeploymentTypeAndDefaultRealmAndVersion(state);
+
+      // fail if deployment type not applicable
+      if (
+        state.getDeploymentType() &&
+        !types.includes(state.getDeploymentType())
+      ) {
+        throw new FrodoError(
+          `Unsupported deployment type '${state.getDeploymentType()}'`
+        );
+      }
+
       if (
         state.getCookieValue() &&
         // !state.getBearerToken() &&
@@ -1050,7 +1100,6 @@ export async function getTokens({
         message: `AuthenticateOps.getTokens: end with tokens`,
         state,
       });
-      // `Connected to ${state.getHost()} [${state.getRealm() ? state.getRealm() : 'root'}] as ${await getLoggedInSubject(state)}`
       return tokens;
     }
   } catch (error) {
