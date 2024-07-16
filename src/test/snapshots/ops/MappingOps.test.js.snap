@@ -35,7 +35,7 @@ exports[`MappingOps createMappingExportTemplate() 1: Create Mapping Export Templ
   "mapping": {},
   "meta": Any<Object>,
   "sync": {
-    "id": "sync",
+    "_id": "sync",
     "mappings": [],
   },
 }
@@ -46,7 +46,7 @@ exports[`MappingOps exportMapping() 1: Should export sync mapping 1`] = `
   "mapping": {},
   "meta": Any<Object>,
   "sync": {
-    "id": "sync",
+    "_id": "sync",
     "mappings": [
       {
         "_id": "sync/mapping1",
@@ -89,7 +89,7 @@ exports[`MappingOps exportMapping() 2: Should export regular mapping 1`] = `
   },
   "meta": Any<Object>,
   "sync": {
-    "id": "sync",
+    "_id": "sync",
     "mappings": [],
   },
 }
@@ -332,7 +332,7 @@ exports[`MappingOps exportMappings() 1: Export mappings 1`] = `
   },
   "meta": Any<Object>,
   "sync": {
-    "id": "sync",
+    "_id": "sync",
     "mappings": [
       {
         "_id": "sync/managedBravo_user_managedBravo_user",

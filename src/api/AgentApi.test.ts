@@ -32,7 +32,8 @@
 import * as AgentApi from './AgentApi';
 import { state } from '../index';
 import { getAgent } from '../test/mocks/ForgeRockApiMockEngine';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 
 const ctx = autoSetupPolly();
 

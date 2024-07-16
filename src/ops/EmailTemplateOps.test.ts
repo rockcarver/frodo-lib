@@ -32,7 +32,8 @@
 import { state } from '../index';
 import * as IdmConfigApi from '../api/IdmConfigApi';
 import * as EmailTemplateOps from './EmailTemplateOps';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 import { EmailTemplateExportInterface, EmailTemplateSkeleton } from './EmailTemplateOps';
 
 const ctx = autoSetupPolly();

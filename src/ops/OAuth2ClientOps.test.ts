@@ -31,7 +31,8 @@
  */
 import { state } from '../index';
 import * as OAuth2ClientOps from './OAuth2ClientOps';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 import { cloneDeep } from '../utils/JsonUtils';
 import { NoIdObjectSkeletonInterface } from '../api/ApiTypes';
 import { OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';

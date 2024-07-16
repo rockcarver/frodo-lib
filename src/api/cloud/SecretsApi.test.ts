@@ -30,7 +30,8 @@
  * in case things don't function as expected
  */
 import * as SecretsApi from './SecretsApi';
-import { autoSetupPolly, filterRecording } from '../../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../../utils/AutoSetupPolly';
+import { filterRecording } from '../../utils/PollyUtils';
 import { state } from '../../index';
 
 const ctx = autoSetupPolly();

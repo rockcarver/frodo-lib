@@ -3,6 +3,19 @@
  *
  * 1. Record API responses
  *
+ *    This step breaks down into 2 phases:
+ *
+ *    Phase 1: Record tests that require cloud deployment
+ *    Phase 2: Record tests that require classic deployment
+ *
+ *    Because certain tests can only be successfully ran in classic deployments and/or
+ *    cloud deployments, they have to be run in groups so that it is possible to record
+ *    each group of tests using their appropriate deployments. Make sure to set the
+ *    FRODO_HOST and FRODO_REALM environment variables when recording to ensure you
+ *    are using the right deployment (by default these are set to the frodo-dev cloud tenant
+ *    and alpha realm respectively). Alternatively, you can use FRODO_DEPLOY=classic to
+ *    use the default settings of host/realm for classic deployments.
+ *
  *    To record API responses, you must call the test:record script and
  *    override all the connection state required to connect to the
  *    env to record from:
@@ -33,7 +46,8 @@
  * in case things don't function as expected
  */
 
-import { autoSetupPolly, filterRecording } from "../utils/AutoSetupPolly";
+import { autoSetupPolly, setDefaultState } from "../utils/AutoSetupPolly";
+import { filterRecording } from '../utils/PollyUtils';
 import * as ConfigOps from "./ConfigOps";
 import { state } from "../index";
 import Constants from '../shared/Constants';
@@ -48,34 +62,107 @@ describe('ConfigOps', () => {
       });
     }
   });
-  describe('exportFullConfiguration()', () => {
-    test('0: Method is implemented', async () => {
-      expect(ConfigOps.exportFullConfiguration).toBeDefined();
-    });
 
-    test('1: Export everything with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
-      // Set deployment type to cloud since it is necessary for exporting applications correctly. It does this automatically when recording the mock, but not when running the test after recording
-      state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
-      const response = await ConfigOps.exportFullConfiguration({ options: { useStringArrays: true, noDecode: false, coords: true, includeDefault: true, includeActiveValues: false }, state });
-      expect(response).toMatchSnapshot({
-        meta: expect.any(Object)
+  // Phase 1
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '1')
+  ) {
+    describe('Cloud Tests', () => {
+      beforeEach(() => {
+        setDefaultState();
+      });
+      describe('exportFullConfiguration()', () => {
+        test('0: Method is implemented', async () => {
+          expect(ConfigOps.exportFullConfiguration).toBeDefined();
+        });
+
+        test('1: Export everything with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: true,
+              noDecode: false,
+              coords: true,
+              includeDefault: true,
+              includeActiveValues: true
+            }, state
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object)
+          });
+        });
+
+        test('2: Export everything without string arrays, decoding variables, excluding journey coordinates and default scripts', async () => {
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: false,
+              noDecode: true,
+              coords: false,
+              includeDefault: false,
+              includeActiveValues: false
+            }, state
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object)
+          });
+        });
+      });
+
+      describe('importFullConfiguration()', () => {
+        test('0: Method is implemented', async () => {
+          expect(ConfigOps.importFullConfiguration).toBeDefined();
+        });
+        // TODO: Write tests for full import
       });
     });
+  }
 
-    test('2: Export everything without string arrays, decoding variables, excluding journey coordinates and default scripts', async () => {
-      // Set deployment type to cloud since it is necessary for exporting applications correctly. It does this automatically when recording the mock, but not when running the test after recording
-      state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
-      const response = await ConfigOps.exportFullConfiguration({ options: { useStringArrays: false, noDecode: true, coords: false, includeDefault: false, includeActiveValues: false }, state });
-      expect(response).toMatchSnapshot({
-        meta: expect.any(Object)
+  // Phase 2
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '2')
+  ) {
+    describe('Classic Tests', () => {
+      beforeEach(() => {
+        setDefaultState(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
+      });
+      describe('exportFullConfiguration()', () => {
+        test('3: Export everything with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: true,
+              noDecode: false,
+              coords: true,
+              includeDefault: true,
+              includeActiveValues: true
+            }, state
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object)
+          });
+        });
+
+        test('4: Export everything without string arrays, decoding variables, excluding journey coordinates and default scripts', async () => {
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: false,
+              noDecode: true,
+              coords: false,
+              includeDefault: false,
+              includeActiveValues: false
+            }, state
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object)
+          });
+        });
+      });
+
+      describe('importFullConfiguration()', () => {
+        // TODO: Write tests for full import
       });
     });
-  });
-
-  describe('importFullConfiguration()', () => {
-    test('0: Method is implemented', async () => {
-      expect(ConfigOps.importFullConfiguration).toBeDefined();
-    });
-    // TODO: Write tests for full import
-  });
+  }
 });

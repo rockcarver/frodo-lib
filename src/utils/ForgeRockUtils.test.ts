@@ -11,11 +11,58 @@ import {
   getCurrentRealmPath,
   getHostBaseUrl,
   getCurrentRealmManagedUser,
+  getConfigPath,
+  getRealmPathGlobal,
+  getRealmUsingExportFormat,
 } from './ForgeRockUtils';
 import { state } from '../index';
 import Constants from '../shared/Constants';
 
 describe('ForgeRockUtils', () => {
+
+  describe('getRealmUsingExportFormat()', () => {
+    test("Should get root realm", () => {
+      const realm = 'root';
+      const testString = getRealmUsingExportFormat(realm);
+      expect(testString).toBe('/');
+    });
+
+    test("Should get alpha realm", () => {
+      const realm = 'root-alpha';
+      const testString = getRealmUsingExportFormat(realm);
+      expect(testString).toBe('/alpha');
+    });
+
+    test("Should handle nested realms", () => {
+      const realm = 'root-alpha-beta-gamma';
+      const testString = getRealmUsingExportFormat(realm);
+      expect(testString).toBe('/alpha/beta/gamma');
+    });
+  });
+
+  describe('getConfigPath()', () => {
+    test("Should get global config path", () => {
+      expect(getConfigPath(true)).toBe("global-config");
+    });
+
+    test("Should get realm config path", () => {
+      expect(getConfigPath(false)).toBe("realm-config");
+    });
+  });
+
+  describe('getRealmPathGlobal()', () => {
+    test("Should return nothing for global", () => {
+      expect(getRealmPathGlobal(true, state)).toBe("");
+    });
+
+    test("Should return current realm path for realm config", () => {
+      const realm = '/parent/child';
+      state.setRealm(realm);
+      const testString = getRealmPathGlobal(false, state);
+      expect(testString).toBe('/realms/root/realms/parent/realms/child');
+    });
+  });
+
   describe('getRealmPath()', () => {
     test("Should prepend realm path to specified realm 'alpha'", () => {
       const realm = 'alpha';

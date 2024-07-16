@@ -34,11 +34,8 @@
  */
 import * as AuthenticateApi from './AuthenticateApi';
 import { state } from '../index';
-import {
-  autoSetupPolly,
-  defaultMatchRequestsBy,
-  filterRecording,
-} from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { defaultMatchRequestsBy, filterRecording } from '../utils/PollyUtils';
 
 // need to modify the default matching rules to allow the mocking to work for an authentication flow.
 const matchConfig = defaultMatchRequestsBy();

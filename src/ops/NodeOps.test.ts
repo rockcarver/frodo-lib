@@ -48,7 +48,8 @@
  */
 import { frodo, state } from '../index';
 import * as NodeOps from './NodeOps';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 import Constants from '../shared/Constants';
 
 const ctx = autoSetupPolly();
@@ -85,23 +86,80 @@ describe('NodeOps', () => {
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '1')
   ) {
-    /*
-      TODO: Create tests for the following functions
 
-      readNodeTypes(): Promise<any>;
-      readNodes(): Promise<NodeSkeleton[]>;
-      readNodesByType(nodeType: string): Promise<NodeSkeleton[]>;
-      readNode(nodeId: string, nodeType: string): Promise<NodeSkeleton>;
-      createNode(nodeType: string, nodeData: NodeSkeleton): Promise<NodeSkeleton>;
-      updateNode(
-        nodeId: string,
-        nodeType: string,
-        nodeData: NodeSkeleton
-      ): Promise<NodeSkeleton>;
-      deleteNode(nodeId: string, nodeType: string): Promise<NodeSkeleton>;
-      findOrphanedNodes(): Promise<NodeSkeleton[]>;
-      removeOrphanedNodes(orphanedNodes: NodeSkeleton[]): Promise<NodeSkeleton[]>;
-    */
+    describe('readNodeTypes()', () => {
+      test('0: Method is implemented', async () => {
+        expect(NodeOps.readNodeTypes).toBeDefined();
+      });
+
+      test('1: Read node types', async () => {
+        const response = await NodeOps.readNodeTypes({ state });
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('readNodes()', () => {
+      test('0: Method is implemented', async () => {
+        expect(NodeOps.readNodes).toBeDefined();
+      });
+
+      test('1: Read nodes', async () => {
+        const response = await NodeOps.readNodes({ state });
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('readNodesByType()', () => {
+      test('0: Method is implemented', async () => {
+        expect(NodeOps.readNodesByType).toBeDefined();
+      });
+
+      test('1: Read nodes of type SelectIdPNode', async () => {
+        const response = await NodeOps.readNodesByType({ nodeType: 'SelectIdPNode', state });
+        expect(response).toMatchSnapshot();
+      });
+    });
+
+    describe('readNode()', () => {
+      test('0: Method is implemented', async () => {
+        expect(NodeOps.readNode).toBeDefined();
+      });
+      //TODO: Create tests
+    });
+
+    describe('createNode()', () => {
+      test('0: Method is implemented', async () => {
+        expect(NodeOps.createNode).toBeDefined();
+      });
+      //TODO: Create tests
+    });
+
+    describe('updateNode()', () => {
+      test('0: Method is implemented', async () => {
+        expect(NodeOps.updateNode).toBeDefined();
+      });
+      //TODO: Create tests
+    });
+
+    describe('deleteNode()', () => {
+      test('0: Method is implemented', async () => {
+        expect(NodeOps.deleteNode).toBeDefined();
+      });
+    });
+
+    describe('removeOrphanedNodes()', () => {
+      test('0: Method is implemented', async () => {
+        expect(NodeOps.removeOrphanedNodes).toBeDefined();
+      });
+    });
+
+    describe('findOrphanedNodes()', () => {
+      test('0: Method is implemented', async () => {
+        expect(NodeOps.findOrphanedNodes).toBeDefined();
+      });
+      //TODO: Create tests
+    });
+
     describe('isPremiumNode()', () => {
       test('0: Method is implemented', async () => {
         expect(NodeOps.isPremiumNode).toBeDefined();
@@ -440,6 +498,20 @@ describe('NodeOps', () => {
         });
         expect(classification).toMatchSnapshot();
       });
+    });
+  }
+  // Phase 2
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '2')
+  ) {
+    describe('deleteNode()', () => {
+      //TODO: Create tests
+    });
+
+    describe('removeOrphanedNodes()', () => {
+      //TODO: Create tests
     });
   }
 });

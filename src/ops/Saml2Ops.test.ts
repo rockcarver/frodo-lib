@@ -55,7 +55,8 @@ import {
   getSaml2ProvidersImportData,
 } from '../test/mocks/ForgeRockApiMockEngine';
 import { encodeBase64Url } from '../utils/Base64Utils';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 const ctx = autoSetupPolly();
 
 state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);

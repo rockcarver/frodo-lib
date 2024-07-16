@@ -31,7 +31,8 @@
  */
 import * as PolicySetApi from './PolicySetApi';
 import { state } from '../index';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 import { type PolicySetSkeleton } from './PolicySetApi';
 import { cloneDeep } from '../utils/JsonUtils';
 

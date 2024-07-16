@@ -33,7 +33,8 @@
  * in case things don't function as expected
  */
 
-import { autoSetupPolly, filterRecording } from '../../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../../utils/AutoSetupPolly';
+import { filterRecording } from '../../utils/PollyUtils';
 import { state } from '../../index';
 import * as VariablesOps from './VariablesOps';
 import { VariableExpressionType } from '../../api/cloud/VariablesApi';

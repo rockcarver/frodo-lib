@@ -46,16 +46,13 @@ import { state } from '../index';
 import * as CirclesOfTrustOps from './CirclesOfTrustOps';
 import * as Saml2Ops from './Saml2Ops';
 import Constants from '../shared/Constants';
-import { Saml2ProiderLocation } from '../api/Saml2Api';
 import {
   getCircleOfTrustRawData,
   getCirclesOfTrustImportData,
-  getSaml2ProviderImportData,
   getSaml2ProvidersImportData,
 } from '../test/mocks/ForgeRockApiMockEngine';
-import { encodeBase64Url } from '../utils/Base64Utils';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
-import { CircleOfTrustSkeleton } from '../api/CirclesOfTrustApi';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 import { getCircleOfTrustImportData } from '../test/mocks/ForgeRockApiMockEngine';
 
 const ctx = autoSetupPolly();

@@ -31,7 +31,8 @@
  */
 import { state } from '../index';
 import * as IdpOps from './IdpOps';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 import { SocialIdpSkeleton } from '../api/SocialIdentityProvidersApi';
 
 const ctx = autoSetupPolly();

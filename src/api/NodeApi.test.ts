@@ -31,7 +31,8 @@
  */
 import * as NodeApi from './NodeApi';
 import { state } from '../index';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 
 const ctx = autoSetupPolly();
 

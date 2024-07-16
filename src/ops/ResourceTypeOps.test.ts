@@ -37,7 +37,8 @@
  */
 import { FrodoError, state } from '../index';
 import * as ResourceTypeOps from './ResourceTypeOps';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 import { type ResourceTypeSkeleton } from '../api/ResourceTypesApi';
 
 const ctx = autoSetupPolly();
