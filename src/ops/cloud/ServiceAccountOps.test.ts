@@ -35,11 +35,8 @@
 import { state } from '../../index';
 import * as ServiceAccountOps from './ServiceAccountOps';
 import { createJwkRsa, createJwks, getJwkRsaPublic } from '../JoseOps';
-import {
-  autoSetupPolly,
-  defaultMatchRequestsBy,
-  filterRecording,
-} from '../../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../../utils/AutoSetupPolly';
+import { defaultMatchRequestsBy, filterRecording } from '../../utils/PollyUtils';
 
 // need to modify the default matching rules to allow the mocking to work for service account tests.
 const matchConfig = defaultMatchRequestsBy();

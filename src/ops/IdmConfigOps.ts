@@ -278,7 +278,7 @@ export interface ConfigEntityImportOptions {
 
 export interface ConfigEntityExportInterface {
   meta?: ExportMetaData;
-  config: Record<string, IdObjectSkeletonInterface>;
+  idm: Record<string, IdObjectSkeletonInterface>;
 }
 
 /**
@@ -292,7 +292,7 @@ export function createConfigEntityExportTemplate({
 }): ConfigEntityExportInterface {
   return {
     meta: getMetadata({ state }),
-    config: {},
+    idm: {},
   } as ConfigEntityExportInterface;
 }
 
@@ -464,7 +464,7 @@ export async function exportConfigEntities({
     const exportData = createConfigEntityExportTemplate({ state });
     for (const result of results) {
       if (result != null) {
-        exportData.config[result._id] = result;
+        exportData.idm[result._id] = result;
       }
     }
     stopProgressIndicator({
@@ -536,13 +536,13 @@ export async function importConfigEntities({
   debugMessage({ message: `IdmConfigOps.importConfigEntities: start`, state });
   const response = [];
   const errors = [];
-  for (const entityId of Object.keys(importData.config)) {
+  for (const entityId of Object.keys(importData.idm)) {
     try {
       debugMessage({
         message: `IdmConfigOps.importConfigEntities: ${entityId}`,
         state,
       });
-      const entityData = importData.config[entityId];
+      const entityData = importData.idm[entityId];
       if (
         options.validate &&
         !areScriptHooksValid({ jsonData: entityData, state })

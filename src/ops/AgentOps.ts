@@ -666,7 +666,7 @@ export function createAgentExportTemplate({
 }
 
 /**
- * Get all agents. Results are sorted aphabetically.
+ * Get all agents. Results are sorted alphabetically.
  * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of agent objects
  */
 export async function readAgents({

@@ -51,7 +51,8 @@ import { FrodoError, state } from '../index';
 import * as IdmConfigApi from '../api/IdmConfigApi';
 import * as ThemeOps from './ThemeOps';
 import { getConfigEntity } from '../test/mocks/ForgeRockApiMockEngine';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 
 const ctx = autoSetupPolly();
 

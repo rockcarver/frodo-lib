@@ -146,3 +146,5935 @@ exports[`NodeOps isPremiumNode() 2: AutonomousAccessDecisionNode is a premium no
 exports[`NodeOps isPremiumNode() 3: AutonomousAccessResultNode is a premium node 1`] = `true`;
 
 exports[`NodeOps isPremiumNode() 4: AutonomousAccessSignalNode is a premium node 1`] = `true`;
+
+exports[`NodeOps readNodeTypes() 1: Read node types 1`] = `
+[
+  {
+    "_id": "ValidatedUsernameNode",
+    "collection": true,
+    "help": "Prompts the user to enter their username and stores the input in a configurable state attribute for platform nodes to consume.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Platform Username",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "ThreatMetrixUpdateReviewNode",
+    "collection": true,
+    "help": "This node calls the ThreatMetrix Update API to update the session with the Final Review Status for the user's session.",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "risk-assessment",
+        "adaptive-authentication",
+        "ThreatMetrix",
+        "LexisNexis",
+      ],
+    },
+    "name": "ThreatMetrix Update Review",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "risk-assessment",
+      "adaptive-authentication",
+      "ThreatMetrix",
+      "LexisNexis",
+    ],
+  },
+  {
+    "_id": "RequestHeaderNode",
+    "collection": true,
+    "help": "Gets headers from the request and sets them into the sharedState.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Request Header Node",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "RemoveSessionPropertiesNode",
+    "collection": true,
+    "help": "Removes the specified properties from a user's session data.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Remove Session Properties",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "IdentityAssertionDecisionNode",
+    "collection": true,
+    "help": "This node redirects the user to an Identity Assertion server, and receives the redirect back. It ensures the communication with the server is secure.",
+    "metadata": {
+      "tags": [
+        "identity assertion",
+        "ig",
+        "kerberos",
+        "windows desktop sso",
+      ],
+    },
+    "name": "Identity Assertion",
+    "tags": [
+      "identity assertion",
+      "ig",
+      "kerberos",
+      "windows desktop sso",
+    ],
+  },
+  {
+    "_id": "product-WriteFederationInformationNode",
+    "collection": true,
+    "help": "Links the SAML2 authenticated user and their local account together.",
+    "metadata": {
+      "tags": [
+        "social",
+        "federation",
+      ],
+    },
+    "name": "Write Federation Information",
+    "tags": [
+      "social",
+      "federation",
+    ],
+  },
+  {
+    "_id": "DuoUniversalPromptNode",
+    "collection": true,
+    "help": "Authenticate with the Duo service using Duo Web SDK v4 ",
+    "metadata": {
+      "tags": [
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Duo Universal Prompt",
+    "tags": [
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "DuoNode",
+    "collection": true,
+    "help": "Authenticate with the Duo service using Duo Web SDK v2 ",
+    "metadata": {
+      "tags": [
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Duo",
+    "tags": [
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "LdapDecisionNode",
+    "collection": true,
+    "help": "Verifies that the provided username and password values exist in a specified LDAP user data store, and whether they are expired or locked out.",
+    "metadata": {
+      "tags": [
+        "basic authn",
+        "basic authentication",
+      ],
+    },
+    "name": "LDAP Decision",
+    "tags": [
+      "basic authn",
+      "basic authentication",
+    ],
+  },
+  {
+    "_id": "LoginCountDecisionNode",
+    "collection": true,
+    "help": "Compares the user's login count property against a specified condition.",
+    "metadata": {
+      "tags": [
+        "behavioral",
+      ],
+    },
+    "name": "Login Count Decision",
+    "tags": [
+      "behavioral",
+    ],
+  },
+  {
+    "_id": "OS_Auth_VDPUserRegisterNode",
+    "collection": true,
+    "help": "Register a user to be authenticated via VOTP.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth VDP User Register",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OS_Auth_CheckActivationNode",
+    "collection": true,
+    "help": "Checks the status of a pending activation.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth Check Activation",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "CookiePresenceDecisionNode",
+    "collection": true,
+    "help": "Checks if a named cookie is present in the incoming authentication request.",
+    "metadata": {
+      "tags": [
+        "contextual",
+      ],
+    },
+    "name": "Cookie Presence Decision Node",
+    "tags": [
+      "contextual",
+    ],
+  },
+  {
+    "_id": "IdentifyExistingUserNode",
+    "collection": true,
+    "help": "Verifies a user with the specified identity attribute exists.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Identify Existing User",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "JumioInitiateNode",
+    "collection": true,
+    "help": "Initiates the Jumio transaction and redirects the user to the Netverify journey",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Jumio Initiate",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OneTimePasswordSmtpSenderNode",
+    "collection": true,
+    "help": "Sends an email containing a generated one-time password to the user.",
+    "metadata": {
+      "tags": [
+        "otp",
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "OTP Email Sender",
+    "tags": [
+      "otp",
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "ThreatMetrixProfilerNode",
+    "collection": true,
+    "help": "This node tags the AM login page with the ThreatMetrix JS to collect information about the event.",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "risk-assessment",
+        "adaptive-authentication",
+        "ThreatMetrix",
+        "LexisNexis",
+      ],
+    },
+    "name": "ThreatMetrix Profiler",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "risk-assessment",
+      "adaptive-authentication",
+      "ThreatMetrix",
+      "LexisNexis",
+    ],
+  },
+  {
+    "_id": "RequiredAttributesDecisionNode",
+    "collection": true,
+    "help": "Determines if all attributes required to create a specified object exist within shared state.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Required Attributes Present",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "SetSessionPropertiesNode",
+    "collection": true,
+    "help": "Sets additional key, value properties to the user's session data.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Set Session Properties",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "AnonymousSessionUpgradeNode",
+    "collection": true,
+    "help": "Enables anonymous sessions to be upgraded.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Anonymous Session Upgrade",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "UsernameCollectorNode",
+    "collection": true,
+    "help": "Prompts the user to enter their username.",
+    "metadata": {
+      "tags": [
+        "basic authn",
+        "basic authentication",
+      ],
+    },
+    "name": "Username Collector",
+    "tags": [
+      "basic authn",
+      "basic authentication",
+    ],
+  },
+  {
+    "_id": "CreateObjectNode",
+    "collection": true,
+    "help": "Creates a specified object with the attributes collected in shared state.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Create Object",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "IotAuthenticationNode",
+    "collection": true,
+    "help": "Authenticate a thing using a signed JWT. Authentication is successful if an identity for the thing exists and the JWT can be successfully verified in accordance with the chosen JWT Authentication Method. Registration is required if no identity exists for the thing.",
+    "metadata": {
+      "tags": [
+        "iot",
+        "things",
+      ],
+    },
+    "name": "Authenticate Thing",
+    "tags": [
+      "iot",
+      "things",
+    ],
+  },
+  {
+    "_id": "PageNode",
+    "collection": true,
+    "help": "Combines multiple nodes that request input into a single page for display to the user.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Page Node",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "LnrsOtpCollectorNode",
+    "collection": true,
+    "help": "Node for Collecting user's OTP",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "LexisNexis",
+        "otp",
+      ],
+    },
+    "name": "LexisNexis OTP Collector",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "LexisNexis",
+      "otp",
+    ],
+  },
+  {
+    "_id": "PingOneProtectInitializeNode",
+    "collection": true,
+    "help": "Initialize the PingOne Protect SDK on the client device, using the configuration provided by the node properties.",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "PingOne Protect Initialize Marketplace",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "DeviceSaveNode",
+    "collection": true,
+    "metadata": {
+      "tags": [
+        "contextual",
+      ],
+    },
+    "name": "Device Profile Save",
+    "tags": [
+      "contextual",
+    ],
+  },
+  {
+    "_id": "VerifyAuthCollectorDecisionNode",
+    "collection": true,
+    "help": "This node collects the one-time password from the user and validates that password against the Twilio Verify service.",
+    "metadata": {
+      "tags": [
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Twilio Verify Collector Decision",
+    "tags": [
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "product-PingOneProtectResultNode",
+    "collection": true,
+    "help": "Update the risk evaluation configuration, and to modify the completion status of the resource when the risk evaluation is still in progress.",
+    "metadata": {
+      "tags": [
+        "risk",
+      ],
+    },
+    "name": "PingOne Protect Result",
+    "tags": [
+      "risk",
+    ],
+  },
+  {
+    "_id": "OS_Auth_VisualCodeStopNode",
+    "collection": true,
+    "help": "Stops displaying the visual code.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth Hide Visual Code",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "PushAuthenticationSenderNode",
+    "collection": true,
+    "help": "Sends push notification messages to a device such as a mobile phone, enabling multi-factor authentication.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "Push Sender",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "IdentityStoreDecisionNode",
+    "collection": true,
+    "help": "Verifies that the username and password values exist in the Identity Store configured in the realm.",
+    "metadata": {
+      "tags": [
+        "basic authn",
+        "basic authentication",
+      ],
+    },
+    "name": "Identity Store Decision",
+    "tags": [
+      "basic authn",
+      "basic authentication",
+    ],
+  },
+  {
+    "_id": "PassthroughAuthenticationNode",
+    "collection": true,
+    "help": "Authenticates an object against a 3rd party via a connector",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Passthrough Authentication",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "AccountLockoutNode",
+    "collection": true,
+    "help": "Locks or unlocks the authenticating user's account profile.",
+    "metadata": {
+      "tags": [
+        "risk",
+      ],
+    },
+    "name": "Account Lockout",
+    "tags": [
+      "risk",
+    ],
+  },
+  {
+    "_id": "DeviceTamperingVerificationNode",
+    "collection": true,
+    "metadata": {
+      "tags": [
+        "contextual",
+      ],
+    },
+    "name": "Device Tampering Verification",
+    "tags": [
+      "contextual",
+    ],
+  },
+  {
+    "_id": "OS_Auth_ValidateTransactionNode",
+    "collection": true,
+    "help": "Transaction validation component for both IAA and OCA use cases.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth Validate Transaction",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OathTokenVerifierNode",
+    "collection": true,
+    "help": "Collects and verify the One-Time Password code provided by the user.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "OATH Token Verifier",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "OS_Auth_VDPGenerateVOTPNode",
+    "collection": true,
+    "help": "If there's VIR10 authenticator assigned to the user, generate a VOTP.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth Generate VOTP",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OneTimePasswordCollectorDecisionNode",
+    "collection": true,
+    "help": "Prompts the user to enter their one-time password and verifies that input.",
+    "metadata": {
+      "tags": [
+        "otp",
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "OTP Collector Decision",
+    "tags": [
+      "otp",
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "QueryFilterDecisionNode",
+    "collection": true,
+    "help": "Checks if a user's profile matches a specified query filter.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Query Filter Decision",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "OS_Auth_VisualCodeNode",
+    "collection": true,
+    "help": "Turns custom message into visual code.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth Visual Code",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "product-Saml2Node",
+    "collection": true,
+    "metadata": {
+      "tags": [
+        "social",
+        "federation",
+      ],
+    },
+    "name": "SAML2 Authentication",
+    "tags": [
+      "social",
+      "federation",
+    ],
+  },
+  {
+    "_id": "OS_Auth_ActivateDeviceNode",
+    "collection": true,
+    "help": "Prompts for the signature returned by DIGIPASS authenticator and finalizes the activation process.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth Activate Device",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "PersistentCookieDecisionNode",
+    "collection": true,
+    "help": "Checks for the existence of the persistent cookie specified in the Persistent cookie name property.",
+    "metadata": {
+      "tags": [
+        "contextual",
+      ],
+    },
+    "name": "Persistent Cookie Decision",
+    "tags": [
+      "contextual",
+    ],
+  },
+  {
+    "_id": "VerifyAuthSenderNode",
+    "collection": true,
+    "help": "This node kicks off the Twilio Verify request via the configured channel to the users device.",
+    "metadata": {
+      "tags": [
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Twilio Verify Sender",
+    "tags": [
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "onfidoRegistrationNode",
+    "collection": true,
+    "help": "Onfido register a user with Onfido using identity verification",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Onfido Registration",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "FingerprintProfilerNode",
+    "collection": true,
+    "help": "The Fingerprint Profiler node injects the client side javascript required for the fingerprinting process.",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Fingerprint Profiler",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "AgentDataStoreDecisionNode",
+    "collection": true,
+    "help": "Verifies that a provided agent ID and password match a web agent or Java agent profile.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Agent Data Store Decision",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "SetCustomCookieNode",
+    "collection": true,
+    "help": "Creates a custom cookie with supplied properties. The Cookie is set in the next response to client.",
+    "metadata": {
+      "tags": [
+        "contextual",
+      ],
+    },
+    "name": "Set Custom Cookie",
+    "tags": [
+      "contextual",
+    ],
+  },
+  {
+    "_id": "SecurID",
+    "collection": true,
+    "help": "The RSA SecurID authentication nodes let administrators integrate RSA SecurID Cloud Authentication Service MFA into a ForgeRock Journey",
+    "metadata": {
+      "tags": [
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "RSA SecurID",
+    "tags": [
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OS_Sample_TransactionCollector",
+    "collection": true,
+    "help": "Sample node, collects transaction data.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Sample Transaction Collector",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "AcceptTermsAndConditionsNode",
+    "collection": true,
+    "help": "Prompts the user to accept or reject the currently active Terms and Conditions.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Accept Terms and Conditions",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "AuthLevelDecisionNode",
+    "collection": true,
+    "help": "Compares the current authentication level value against a configured value.",
+    "metadata": {
+      "tags": [
+        "risk",
+      ],
+    },
+    "name": "Auth Level Decision",
+    "tags": [
+      "risk",
+    ],
+  },
+  {
+    "_id": "product-CertificateValidationNode",
+    "collection": true,
+    "metadata": {
+      "tags": [
+        "contextual",
+      ],
+    },
+    "name": "Certificate Validation Node",
+    "tags": [
+      "contextual",
+    ],
+  },
+  {
+    "_id": "OS_Auth_ValidateEventNode",
+    "collection": true,
+    "help": "Event Validation component for both IAA and OCA use cases.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth Validate Event",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "PollingWaitNode",
+    "collection": true,
+    "help": "Pauses progress of the authentication tree for a specified number of seconds.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Polling Wait Node",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "DeviceLocationMatchNode",
+    "collection": true,
+    "metadata": {
+      "tags": [
+        "contextual",
+      ],
+    },
+    "name": "Device Location Match",
+    "tags": [
+      "contextual",
+    ],
+  },
+  {
+    "_id": "MeterNode",
+    "collection": true,
+    "help": "Increments a specified metric key each time tree evaluation passes through the node.",
+    "metadata": {
+      "tags": [
+        "metrics",
+        "utilities",
+      ],
+    },
+    "name": "Meter",
+    "tags": [
+      "metrics",
+      "utilities",
+    ],
+  },
+  {
+    "_id": "CombinedMultiFactorRegistrationNode",
+    "collection": true,
+    "help": "Allows users of mobile devices to register for both Push and OATH authentication methods.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "Combined MFA Registration",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "OS_Sample_ErrorDisplayNode",
+    "collection": true,
+    "help": "Sample node, displays error message.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Sample Error Display",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OctopusNode",
+    "collection": true,
+    "help": "Octopus Node",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Octopus Node",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "WebAuthnRegistrationNode",
+    "collection": true,
+    "help": "Allows users of supported clients to register FIDO2 devices for use during authentication.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "WebAuthn Registration Node",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "RecoveryCodeCollectorDecisionNode",
+    "collection": true,
+    "help": "Verifies a user's recovery code provided when registering a device for multi-factor authentication.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "Recovery Code Collector Decision",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "iProovNode",
+    "collection": true,
+    "help": "iProov Authentication for use with the iProov Liveness and Generic Presence facial recognition features. Note: Changes in JNPM Settings will require an AM restart",
+    "metadata": {
+      "tags": [
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "iProov Authentication",
+    "tags": [
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "IGCommunication",
+    "collection": true,
+    "help": "This node redirects the user to ForgeRock Identity Gateway (IG), and receives the redirect back from IG ensuring the communication coming back from IG is secure and can only be sent once ",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "Kerberos",
+      ],
+    },
+    "name": "Gateway Communication",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "Kerberos",
+    ],
+  },
+  {
+    "_id": "DeviceProfileCollectorNode",
+    "collection": true,
+    "metadata": {
+      "tags": [
+        "contextual",
+      ],
+    },
+    "name": "Device Profile Collector",
+    "tags": [
+      "contextual",
+    ],
+  },
+  {
+    "_id": "SetFailureUrlNode",
+    "collection": true,
+    "help": "Sets the URL to be redirected to when authentication fails.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Failure URL",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "IdxAuthStatusNode",
+    "collection": true,
+    "help": "Checks the status of an authentication request for an out of band authentication flow",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "IdentityX Auth Request Decision",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "SessionDataNode",
+    "collection": true,
+    "help": "Retrieves the value of a specified key from a user's session data.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Get Session Data",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "SetPersistentCookieNode",
+    "collection": true,
+    "help": "Creates a persistent cookie named after the value specified in the Persistent cookie name property.",
+    "metadata": {
+      "tags": [
+        "contextual",
+      ],
+    },
+    "name": "Set Persistent Cookie",
+    "tags": [
+      "contextual",
+    ],
+  },
+  {
+    "_id": "OidcNode",
+    "collection": true,
+    "help": "Validates an OIDC provider's ID Token and transforms the attributes according to a configured script.",
+    "metadata": {
+      "tags": [
+        "social",
+        "federation",
+      ],
+    },
+    "name": "OIDC ID Token Validator",
+    "tags": [
+      "social",
+      "federation",
+    ],
+  },
+  {
+    "_id": "SocialProviderHandlerNodeV2",
+    "collection": true,
+    "help": "Authenticate a user via a social identity provider and collect useful data from their social profile.",
+    "metadata": {
+      "tags": [
+        "social",
+        "federation",
+        "platform",
+      ],
+    },
+    "name": "Social Provider Handler Node",
+    "tags": [
+      "social",
+      "federation",
+      "platform",
+    ],
+  },
+  {
+    "_id": "DeviceBindingStorageNode",
+    "collection": true,
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "Device Binding Storage Node",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "WebAuthnAuthenticationNode",
+    "collection": true,
+    "help": "Allows users of supported clients to use a registered FIDO device during authentication.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "WebAuthn Authentication Node",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "PushRegistrationNode",
+    "collection": true,
+    "help": "Allows users of mobile devices to register Push Notifications for use during authentication.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "Push Registration",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "TimerStopNode",
+    "collection": true,
+    "help": "Records the time elapsed since tree evaluation passed through the specified Timer Start Node in the specified metric name.",
+    "metadata": {
+      "tags": [
+        "metrics",
+        "utilities",
+      ],
+    },
+    "name": "Timer Stop",
+    "tags": [
+      "metrics",
+      "utilities",
+    ],
+  },
+  {
+    "_id": "product-PingOneProtectEvaluationNode",
+    "collection": true,
+    "help": "Risk evaluations calculate the risk level and other risk-related details associated with an event.",
+    "metadata": {
+      "tags": [
+        "risk",
+        "sdk",
+      ],
+    },
+    "name": "PingOne Protect Evaluation",
+    "tags": [
+      "risk",
+      "sdk",
+    ],
+  },
+  {
+    "_id": "OS_IDV_IdentityVerificationNode",
+    "collection": true,
+    "help": "Performs Identity Verification with OneSpan",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Identity Verification Node",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "EmailTemplateNode",
+    "collection": true,
+    "help": "Sends an email to the user.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Email Template Node",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "EmailSuspendNode",
+    "collection": true,
+    "help": "Sends an email to the user. The email will include a link to return to this node within the tree.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Email Suspend Node",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "OctopusReturnNode",
+    "collection": true,
+    "help": "Octopus Return Node",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Octopus Return Node",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "ThreatMetrixSessionQueryNode",
+    "collection": true,
+    "help": "This node makes a request the ThreatMetrix Session Query API to retrieve a policy decision about the previously generated user session.",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "risk-assessment",
+        "adaptive-authentication",
+        "ThreatMetrix",
+        "LexisNexis",
+      ],
+    },
+    "name": "ThreatMetrix Session Query",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "risk-assessment",
+      "adaptive-authentication",
+      "ThreatMetrix",
+      "LexisNexis",
+    ],
+  },
+  {
+    "_id": "AttributeCollectorNode",
+    "collection": true,
+    "help": "Prompts the user to enter any specified attributes.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Attribute Collector",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "AnonymousUserNode",
+    "collection": true,
+    "help": "Allows users to log in to your application or web site without providing credentials by assuming the identity of a specified, existing user account.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Anonymous User Mapping",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "IdxAuthRequestNode",
+    "collection": true,
+    "help": "Generates an authentication request for an out of band authentication flow",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "IdentityX Auth Request Initiator",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "LnrsOtpDecisionNode",
+    "collection": true,
+    "help": "Node to validate the user entered OTP by calling LexisNexis OTP Service",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "LexisNexis",
+        "otp",
+      ],
+    },
+    "name": "LexisNexis OTP Decision",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "LexisNexis",
+      "otp",
+    ],
+  },
+  {
+    "_id": "product-ReCaptchaNode",
+    "collection": true,
+    "help": "Verifies the response token received from the CAPTCHA verifier in addition to creating a CAPTCHA callback for the UI to interact with, default values are for Google ReCAPTCHA. Note that this has been superceded by the new CAPTCHA node, which should be used in all cases over this node.",
+    "metadata": {
+      "tags": [
+        "risk",
+        "deprecated",
+      ],
+    },
+    "name": "Legacy CAPTCHA",
+    "tags": [
+      "risk",
+      "deprecated",
+    ],
+  },
+  {
+    "_id": "BioCatchSessionProfilerNode",
+    "collection": true,
+    "help": "Injects javascript to collect client data information",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "BioCatch Session Profiler",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OS_Auth_GetUserAuthenticatorNode",
+    "collection": true,
+    "help": "Retrieve the authenticator list of the user.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Get User Authenticator",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "product-CaptchaNode",
+    "collection": true,
+    "help": "Verifies the response token received from the CAPTCHA verifier in addition to creating a CAPTCHA callback for the UI to interact with, default values are for Google ReCAPTCHA.",
+    "metadata": {
+      "tags": [
+        "risk",
+      ],
+    },
+    "name": "CAPTCHA",
+    "tags": [
+      "risk",
+    ],
+  },
+  {
+    "_id": "AttributeValueDecisionNode",
+    "collection": true,
+    "help": "Verifies the user's specified attribute matches a specified condition.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Attribute Value Decision",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "product-PingOneProtectInitializeNode",
+    "collection": true,
+    "help": "Initialize the PingOne Protect SDK on the client device, using the configuration provided by the node properties.",
+    "metadata": {
+      "tags": [
+        "risk",
+        "sdk",
+      ],
+    },
+    "name": "PingOne Protect Initialize",
+    "tags": [
+      "risk",
+      "sdk",
+    ],
+  },
+  {
+    "_id": "OS_Sample_StoreCommandNode",
+    "collection": true,
+    "help": "Sample node, stores the command to a location of your choice.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Sample Store Command",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OneTimePasswordGeneratorNode",
+    "collection": true,
+    "help": "Creates a string of random digits, of the length specified, to be used in one-time password verification.",
+    "metadata": {
+      "tags": [
+        "otp",
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "HOTP Generator",
+    "tags": [
+      "otp",
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "PasswordCollectorNode",
+    "collection": true,
+    "help": "Prompts the user to enter their password.",
+    "metadata": {
+      "tags": [
+        "basic authn",
+        "basic authentication",
+      ],
+    },
+    "name": "Password Collector",
+    "tags": [
+      "basic authn",
+      "basic authentication",
+    ],
+  },
+  {
+    "_id": "ValidatedPasswordNode",
+    "collection": true,
+    "help": "Prompts the user to enter their password and stores the input in a configurable state attribute for platform nodes to consume.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Platform Password",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "AttributePresentDecisionNode",
+    "collection": true,
+    "help": "Checks if an attribute is present on an object regardless of whether the field is private",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Attribute Present Decision",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "OS_Risk_InsertTransactionNode",
+    "collection": true,
+    "help": "Validates the send transaction request and returns a risk response code without sending the adaptive authentication request.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Risk Analytics Send Transaction",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "LnrsOtpSendNode",
+    "collection": true,
+    "help": "Node for user to select type and call LexisNexis to generate OTP",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "LexisNexis",
+        "otp",
+      ],
+    },
+    "name": "LexisNexis OTP Sender",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "LexisNexis",
+      "otp",
+    ],
+  },
+  {
+    "_id": "KbaDecisionNode",
+    "collection": true,
+    "help": "Checks if the number of KBA questions defined for the user meets the minimum required by the system.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "KBA Decision",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "ZeroPageLoginNode",
+    "collection": true,
+    "help": "Checks whether selected headers are provided in the incoming authentication request, and if so, uses their value as the provided username and password.",
+    "metadata": {
+      "tags": [
+        "basic authn",
+        "basic authentication",
+      ],
+    },
+    "name": "Zero Page Login Collector",
+    "tags": [
+      "basic authn",
+      "basic authentication",
+    ],
+  },
+  {
+    "_id": "ProfileCompletenessDecisionNode",
+    "collection": true,
+    "help": "Checks if the user's profile contains a specified percentage of non-null, user-viewable, and user-editable fields.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Profile Completeness Decision",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "PingOneVerifyAuthentication",
+    "collection": true,
+    "help": "The PingOne Verify Authentication node lets administrators integrate PingOne Verify for Authentication functionality in a Journey.  This is done by using a stored picture compared to a live selfie",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "PingOne Verify Authentication",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OS_Auth_UserRegisterNode",
+    "collection": true,
+    "help": "User register component for both IAA and OCA use cases.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth User Register",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "BioCatchSessionNode",
+    "collection": true,
+    "help": "Call the init function of the BioCatch scoring API",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "BioCatch Session",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "SelectIdPNode",
+    "collection": true,
+    "help": "Prompts the user to choose a social ID provider.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Select Identity Provider",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "OS_Auth_GenerateChallengeNode",
+    "collection": true,
+    "help": "Generates a random challenge which will later be presented to the user.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth Generate Challenge",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "JumioDecisionNode",
+    "collection": true,
+    "help": "Retrieves transaction result, updates the shared state and directs the user based on the outcome of the Netverify transaction",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Jumio Decision",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OS_Auth_UserLoginNode",
+    "collection": true,
+    "help": "User login component for both IAA and OCA use cases.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth User Login",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "PingOneProtectResultNode",
+    "collection": true,
+    "help": "Update the risk evaluation configuration, and to modify the completion status of the resource when the risk evaluation is still in progress.",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "PingOne Protect Result Marketplace",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "BioCatchSessionCollectorNode",
+    "collection": true,
+    "help": "Collect the customer session ID",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "BioCatch Session Collector",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "FingerprintResponseNode",
+    "collection": true,
+    "help": "The Fingerprint Response node is used in Zero Trust Mode to fetch the fingerprint and confidence score (server-side)",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Fingerprint Response",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OathDeviceStorageNode",
+    "collection": true,
+    "help": "Stores devices which have previously been saved into the transient state by the OathRegistrationNode.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "OATH Device Storage Node",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "PushWaitNode",
+    "collection": true,
+    "help": "Pauses progress of the authentication tree for a specified number of seconds while waiting for Push Authentication request being processed. For Push-to-Challenge type, displays the number challenge to be selected by the user.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "Push Wait Node",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "PushResultVerifierNode",
+    "collection": true,
+    "help": "Validates the user's response to a previously sent push notification message.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "Push Result Verifier Node",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "DeviceBindingNode",
+    "collection": true,
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "Device Binding",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "TimerStartNode",
+    "collection": true,
+    "help": "Starts a named timer metric.",
+    "metadata": {
+      "tags": [
+        "metrics",
+        "utilities",
+      ],
+    },
+    "name": "Timer Start",
+    "tags": [
+      "metrics",
+      "utilities",
+    ],
+  },
+  {
+    "_id": "GetAuthenticatorAppNode",
+    "collection": true,
+    "help": "Presents a custom, localized message to the user with links to the Authenticator on App stores.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "Get Authenticator App",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "IdxMobileValidateAuthRequestNode",
+    "collection": true,
+    "help": "Accepts a signed authentication request from a mobile device and validates that signed authentication",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "IdentityX Mobile Auth Request Validate",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "DebugNode",
+    "collection": true,
+    "help": "Activate debug mode to output tree data to debug logs. Optionally, enable the debug popup to display debug logs as you traverse through the login tree",
+    "metadata": {
+      "tags": [],
+    },
+    "name": "Debug Node",
+    "tags": [],
+  },
+  {
+    "_id": "ConsentNode",
+    "collection": true,
+    "help": "Prompts the user to provide consent to sharing their profile data.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Consent Collector",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "IdxMobileAuthRequestNode",
+    "collection": true,
+    "help": "Generates an authentication request for an end user authenticating on a mobile device, and passes it to the mobile device",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "IdentityX Mobile Auth Request",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "MultiFactorRegistrationOptionsNode",
+    "collection": true,
+    "help": "Presents a custom, localized message to the user and prompts the user to choose to register, skip or opt-out the second factor authentication method",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "MFA Registration Options",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "ChoiceCollectorNode",
+    "collection": true,
+    "help": "Presents the user with two or more options defined within the node's configuration.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Choice Collector",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "PingOneVerifyProofing",
+    "collection": true,
+    "help": "The PingOne Verify Proofing node lets administrators integrate PingOne Verify for proofing functionality within a Journey",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "PingOne Verify Proofing",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "RecoveryCodeDisplayNode",
+    "collection": true,
+    "help": "Retrieves generated recovery codes from the transient state and presents them to the user, for safe-keeping.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "Recovery Code Display Node",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "IntuneNode",
+    "collection": true,
+    "help": "This node integrates with Microsoft Intune via Graph API. It evaluates the device's compliance posture and returns the result. It can also save device information to the SharedState that subsequent nodes could use.",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Microsoft Intune",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OS_Auth_CheckSessionStatusNode",
+    "collection": true,
+    "help": "Checks the status of a request session.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth Check Session Status",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "onfidoCheckNode",
+    "collection": true,
+    "help": "Onfido get result of a check",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Onfido Check",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "IotRegistrationNode",
+    "collection": true,
+    "help": "Register a thing using a signed JWT. Registration is successful if the JWT can be successfully verified in accordance with the chosen JWT Registration Method. The JWT claims are used to create a new identity for a thing.",
+    "metadata": {
+      "tags": [
+        "iot",
+        "things",
+      ],
+    },
+    "name": "Register Thing",
+    "tags": [
+      "iot",
+      "things",
+    ],
+  },
+  {
+    "_id": "product-CertificateUserExtractorNode",
+    "collection": true,
+    "metadata": {
+      "tags": [
+        "contextual",
+      ],
+    },
+    "name": "Certificate User Extractor Node",
+    "tags": [
+      "contextual",
+    ],
+  },
+  {
+    "_id": "QueryParameterNode",
+    "collection": true,
+    "help": "Gets query parameters from the URL of the request and sets them into the sharedState.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Query Parameter Node",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "RESTNode",
+    "collection": true,
+    "help": "Extend the functionality of your Journey by invoking any third party service",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "HTTP Client",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OathRegistrationNode",
+    "collection": true,
+    "help": "Allows users of mobile devices to register One-Time Password for use during authentication.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "OATH Registration",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "SocialProviderHandlerNode",
+    "collection": true,
+    "help": "This node is deprecated. Please use the Social Provider Handler Node. Authenticate a user via a social identity provider and collect useful data from their social profile.",
+    "metadata": {
+      "tags": [
+        "social",
+        "federation",
+        "platform",
+        "deprecated",
+      ],
+    },
+    "name": "Legacy Social Provider Handler Node",
+    "tags": [
+      "social",
+      "federation",
+      "platform",
+      "deprecated",
+    ],
+  },
+  {
+    "_id": "OptOutMultiFactorAuthenticationNode",
+    "collection": true,
+    "help": "Set skippable attribute on the authenticating user's account profile.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "Opt-out Multi-Factor Authentication",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "ConfigProviderNode",
+    "collection": true,
+    "help": "Allows dynamic resolution of configuration based on the tree context at the point this node is executed.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Configuration Provider",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "IdxSponsorUser",
+    "collection": true,
+    "help": "Enables sponsorship (enrollment) of an end user",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "IdentityX Sponsor User",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "TimeSinceDecisionNode",
+    "collection": true,
+    "help": "Checks if a specified amount of time has passed since the user was registered.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Time Since Decision",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "MetadataNode",
+    "collection": true,
+    "help": "Returns selected attributes from the shared state as metadata",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "State metadata",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "DataStoreDecisionNode",
+    "collection": true,
+    "help": "Verifies that the username and password values exist in the data store configured in the realm.",
+    "metadata": {
+      "tags": [
+        "basic authn",
+        "basic authentication",
+      ],
+    },
+    "name": "Data Store Decision",
+    "tags": [
+      "basic authn",
+      "basic authentication",
+    ],
+  },
+  {
+    "_id": "DeviceGeoFencingNode",
+    "collection": true,
+    "metadata": {
+      "tags": [
+        "contextual",
+      ],
+    },
+    "name": "Device Geofencing",
+    "tags": [
+      "contextual",
+    ],
+  },
+  {
+    "_id": "OneTimePasswordSmsSenderNode",
+    "collection": true,
+    "help": "Uses an email-to-SMS gateway provider to send an SMS message containing a generated one-time password to the user.",
+    "metadata": {
+      "tags": [
+        "otp",
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "OTP SMS Sender",
+    "tags": [
+      "otp",
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "AccountActiveDecisionNode",
+    "collection": true,
+    "help": "Checks if the current user's account is active.",
+    "metadata": {
+      "tags": [
+        "risk",
+      ],
+    },
+    "name": "Account Active Decision",
+    "tags": [
+      "risk",
+    ],
+  },
+  {
+    "_id": "SetSuccessUrlNode",
+    "collection": true,
+    "help": "Sets the URL to be redirected to when authentication succeeds.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Success URL",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "DeviceSigningVerifierNode",
+    "collection": true,
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "Device Signing Verifier",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "OS_Auth_VDPAssignAuthenticatorNode",
+    "collection": true,
+    "help": "Assign VIR10 authenticator to user.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth Assign Authenticator",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "product-CertificateCollectorNode",
+    "collection": true,
+    "metadata": {
+      "tags": [
+        "contextual",
+      ],
+    },
+    "name": "Certificate Collector Node",
+    "tags": [
+      "contextual",
+    ],
+  },
+  {
+    "_id": "OS_Auth_AddDeviceNode",
+    "collection": true,
+    "help": "Prompts for the device code and continues the process.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Auth Add Device",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "PingOneIdentityProviderHandlerNode",
+    "collection": true,
+    "help": "This node performs an OIDC request to PingOne to delegate the user flow from Identity Cloud to PingOne using a standard OIDC redirect.",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "PingOne",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "VerifyAuthLookupNode",
+    "collection": true,
+    "help": "This node will do a lookup and check if the provided phone number is valid mobile carrier. False outcome can occur if the phone number is not found, or if the phone number is not a mobile number. ",
+    "metadata": {
+      "tags": [
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Twilio Verify Lookup",
+    "tags": [
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "ThreatMetrixReviewStatusNode",
+    "collection": true,
+    "help": "This node analyzes the response from the ThreatMetrix Session Query Node and routes to the Pass, Challenge, Review or Reject node outcomes.",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "risk-assessment",
+        "adaptive-authentication",
+        "ThreatMetrix",
+        "LexisNexis",
+      ],
+    },
+    "name": "ThreatMetrix Review Status",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "risk-assessment",
+      "adaptive-authentication",
+      "ThreatMetrix",
+      "LexisNexis",
+    ],
+  },
+  {
+    "_id": "DisplayUserNameNode",
+    "collection": true,
+    "help": "Presents the user's username for use in username retrieval trees.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Display Username",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "WebAuthnDeviceStorageNode",
+    "collection": true,
+    "help": "Stores devices which have previously been saved into the transient state by the WebAuthnRegistrationNode.",
+    "metadata": {
+      "tags": [
+        "mfa",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "WebAuthn Device Storage Node",
+    "tags": [
+      "mfa",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "IdxCheckEnrollmentStatus",
+    "collection": true,
+    "help": "Checks to ensure the username provided is enrolled. This node contains the configuration parameters for the IdentityX integration, so it is required to be added to the tree in order for the other nodes to work",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "multi-factor authentication",
+      ],
+    },
+    "name": "IdentityX Check Enrollment Status",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "multi-factor authentication",
+    ],
+  },
+  {
+    "_id": "IncrementLoginCountNode",
+    "collection": true,
+    "help": "Increments the successful login count property of a user.",
+    "metadata": {
+      "tags": [
+        "behavioral",
+      ],
+    },
+    "name": "Increment Login Count",
+    "tags": [
+      "behavioral",
+    ],
+  },
+  {
+    "_id": "ModifyAuthLevelNode",
+    "collection": true,
+    "help": "Increases or decreases the current authentication level value.",
+    "metadata": {
+      "tags": [
+        "risk",
+      ],
+    },
+    "name": "Modify Auth Level",
+    "tags": [
+      "risk",
+    ],
+  },
+  {
+    "_id": "RetryLimitDecisionNode",
+    "collection": true,
+    "help": "Allows the specified number of passes through to the Retry outcome path, before continuing tree evaluation along the Reject outcome path.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Retry Limit Decision",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "TermsAndConditionsDecisionNode",
+    "collection": true,
+    "help": "Verifies the user has accepted the active set of Terms and Conditions.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Terms and Conditions Decision",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "KbaVerifyNode",
+    "collection": true,
+    "help": "Presents KBA questions to the user, collects answers to those questions, and verifies the input against the user's stored answers.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "KBA Verification",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "ThreatMetrixReasonCodeNode",
+    "collection": true,
+    "help": "This node analyzes the response from the ThreatMetrix Session Query Node and checks to see if an individual reason code has been returned. These reason codes correspond to ThreatMetrix Rule Names within a ThreatMetrix Policy.",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+        "risk-assessment",
+        "adaptive-authentication",
+        "ThreatMetrix",
+        "LexisNexis",
+      ],
+    },
+    "name": "ThreatMetrix Reason Code",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+      "risk-assessment",
+      "adaptive-authentication",
+      "ThreatMetrix",
+      "LexisNexis",
+    ],
+  },
+  {
+    "_id": "InnerTreeEvaluatorNode",
+    "collection": true,
+    "help": "Allows the nesting and evaluation of authentication trees as children within a parent tree.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Inner Tree Evaluator",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "PatchObjectNode",
+    "collection": true,
+    "help": "Patches an object with the attributes within shared state.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "Patch Object",
+    "tags": [
+      "identity management",
+    ],
+  },
+  {
+    "_id": "MessageNode",
+    "collection": true,
+    "help": "Presents a custom, localized message to the user and prompts them to choose a positive or negative answer.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Message Node",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "PingOneProtectEvaluationNode",
+    "collection": true,
+    "help": "Risk evaluations calculate the risk level and other risk-related details associated with an event.",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "PingOne Protect Evaluation Marketplace",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "VerifyAuthIdentifierNode",
+    "collection": true,
+    "help": "This node will pull an attribute from the user's profile and store it in the shared state. False outcome can occur if the identifier is not found on the user profile. ",
+    "metadata": {
+      "tags": [
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "Twilio Identifier",
+    "tags": [
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "OS_Risk_CDDCNode",
+    "collection": true,
+    "help": "Collects the end user?s device fingerprint and browser data. ",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Risk CDDC",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "RegisterLogoutWebhookNode",
+    "collection": true,
+    "help": "Registers the specified webhook to trigger when a user's session ends.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Register Logout Webhook",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "ScriptedDecisionNode",
+    "collection": true,
+    "help": "Executes a script and continues along the path matching the result.",
+    "metadata": {
+      "tags": [
+        "utilities",
+      ],
+    },
+    "name": "Scripted Decision",
+    "tags": [
+      "utilities",
+    ],
+  },
+  {
+    "_id": "DeviceMatchNode",
+    "collection": true,
+    "metadata": {
+      "tags": [
+        "contextual",
+      ],
+    },
+    "name": "Device Match",
+    "tags": [
+      "contextual",
+    ],
+  },
+  {
+    "_id": "OS_Sample_AttributesCollector",
+    "collection": true,
+    "help": "Sample node, collects custom attributes in shared state.",
+    "metadata": {
+      "tags": [
+        "OneSpan",
+        "multi-factor authentication",
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "OneSpan Sample Attributes Collector",
+    "tags": [
+      "OneSpan",
+      "multi-factor authentication",
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "DaVinciNode",
+    "collection": true,
+    "help": "Execute a PingOne DaVinci flow policy that does not have a UI component.",
+    "metadata": {
+      "tags": [
+        "marketplace",
+        "trustnetwork",
+      ],
+    },
+    "name": "PingOne DaVinci API",
+    "tags": [
+      "marketplace",
+      "trustnetwork",
+    ],
+  },
+  {
+    "_id": "product-KerberosNode",
+    "collection": true,
+    "help": "Enables Windows desktop single sign on such that a user who has already authenticated with a Kerberos Key Distribution Center can authenticate to AM",
+    "metadata": {
+      "tags": [
+        "basic authn",
+        "basic authentication",
+        "kerberos",
+        "windows",
+      ],
+    },
+    "name": "Kerberos Node",
+    "tags": [
+      "basic authn",
+      "basic authentication",
+      "kerberos",
+      "windows",
+    ],
+  },
+  {
+    "_id": "KbaCreateNode",
+    "collection": true,
+    "help": "Collects KBA question and answer definitions from user and saves the provided input.",
+    "metadata": {
+      "tags": [
+        "identity management",
+      ],
+    },
+    "name": "KBA Definition",
+    "tags": [
+      "identity management",
+    ],
+  },
+]
+`;
+
+exports[`NodeOps readNodes() 1: Read nodes 1`] = `
+[
+  {
+    "_id": "7a351800-fb7e-4145-903c-388554747556",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "ValidatedUsernameNode",
+      "collection": true,
+      "name": "Platform Username",
+    },
+    "usernameAttribute": "userName",
+    "validateInput": false,
+  },
+  {
+    "_id": "7fcaf48e-a754-4959-858b-05b2933b825f",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "ValidatedUsernameNode",
+      "collection": true,
+      "name": "Platform Username",
+    },
+    "usernameAttribute": "userName",
+    "validateInput": true,
+  },
+  {
+    "_id": "7354982f-57b6-4b04-9ddc-f1dd1e1e07d0",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "ValidatedUsernameNode",
+      "collection": true,
+      "name": "Platform Username",
+    },
+    "usernameAttribute": "userName",
+    "validateInput": false,
+  },
+  {
+    "_id": "8afdaec3-275e-4301-bb53-34f03e6a4b29",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "LoginCountDecisionNode",
+      "collection": true,
+      "name": "Login Count Decision",
+    },
+    "amount": 3,
+    "identityAttribute": "userName",
+    "interval": "AT",
+  },
+  {
+    "_id": "21b8ddf3-0203-4ae1-ab05-51cf3a3a707a",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "IdentifyExistingUserNode",
+      "collection": true,
+      "name": "Identify Existing User",
+    },
+    "identifier": "userName",
+    "identityAttribute": "mail",
+  },
+  {
+    "_id": "bf9ea8d5-9802-4f26-9664-a21840faac23",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "IdentifyExistingUserNode",
+      "collection": true,
+      "name": "Identify Existing User",
+    },
+    "identifier": "userName",
+    "identityAttribute": "mail",
+  },
+  {
+    "_id": "ad5dcbb3-7335-49b7-b3e7-7d850bb88237",
+    "_outcomes": [
+      {
+        "displayName": "Created",
+        "id": "CREATED",
+      },
+      {
+        "displayName": "Failed",
+        "id": "FAILURE",
+      },
+    ],
+    "_type": {
+      "_id": "CreateObjectNode",
+      "collection": true,
+      "name": "Create Object",
+    },
+    "identityResource": "managed/alpha_user",
+  },
+  {
+    "_id": "a12bc72f-ad97-4f1e-a789-a1fa3dd566c8",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "PageNode",
+      "collection": true,
+      "name": "Page Node",
+    },
+    "nodes": [
+      {
+        "_id": "7354982f-57b6-4b04-9ddc-f1dd1e1e07d0",
+        "displayName": "Platform Username",
+        "nodeType": "ValidatedUsernameNode",
+      },
+      {
+        "_id": "0c80c39b-4813-4e67-b4fb-5a0bba85f994",
+        "displayName": "Platform Password",
+        "nodeType": "ValidatedPasswordNode",
+      },
+    ],
+    "pageDescription": {
+      "en": "New here? <a href="#/service/Registration">Create an account</a><br><a href="#/service/ForgottenUsername">Forgot username?</a><a href="#/service/ResetPassword"> Forgot password?</a>",
+    },
+    "pageHeader": {
+      "en": "Sign In",
+    },
+  },
+  {
+    "_id": "5d6cd20e-5074-43de-8832-fddd95fb078e",
+    "_outcomes": [
+      {
+        "displayName": "one",
+        "id": "one",
+      },
+      {
+        "displayName": "two",
+        "id": "two",
+      },
+      {
+        "displayName": "three",
+        "id": "three",
+      },
+    ],
+    "_type": {
+      "_id": "PageNode",
+      "collection": true,
+      "name": "Page Node",
+    },
+    "nodes": [
+      {
+        "_id": "a566e474-99f3-46e4-9e70-682402bfaa84",
+        "displayName": "Choice Collector",
+        "nodeType": "ChoiceCollectorNode",
+      },
+    ],
+    "pageDescription": {},
+    "pageHeader": {},
+    "stage": "{"ChoiceCallback":[{"id":"a566e474-99f3-46e4-9e70-682402bfaa84","displayType":"radio"}]}",
+  },
+  {
+    "_id": "0c091c49-f3af-48fb-ac6f-07fba0499dd6",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "PageNode",
+      "collection": true,
+      "name": "Page Node",
+    },
+    "nodes": [
+      {
+        "_id": "7fcaf48e-a754-4959-858b-05b2933b825f",
+        "displayName": "Platform Username",
+        "nodeType": "ValidatedUsernameNode",
+      },
+      {
+        "_id": "d3ce2036-1523-4ce8-b1a2-895a2a036667",
+        "displayName": "Attribute Collector",
+        "nodeType": "AttributeCollectorNode",
+      },
+      {
+        "_id": "3d8709a1-f09f-4d1f-8094-2850e472c1db",
+        "displayName": "Platform Password",
+        "nodeType": "ValidatedPasswordNode",
+      },
+      {
+        "_id": "120c69d3-90b4-4ad4-b7af-380e8b119340",
+        "displayName": "KBA Definition",
+        "nodeType": "KbaCreateNode",
+      },
+      {
+        "_id": "b4a0e915-c15d-4b83-9c9d-18347d645976",
+        "displayName": "Accept Terms and Conditions",
+        "nodeType": "AcceptTermsAndConditionsNode",
+      },
+    ],
+    "pageDescription": {
+      "en": "Signing up is fast and easy.<br>Already have an account? <a href='#/service/Login'>Sign In</a>",
+    },
+    "pageHeader": {
+      "en": "Sign Up",
+    },
+    "stage": "{"ValidatedCreatePasswordCallback":[{"id":"3d8709a1-f09f-4d1f-8094-2850e472c1db","confirmPassword":true,"policyDisplayCheckmark":true}]}",
+  },
+  {
+    "_id": "a5aecad8-854a-4ed5-b719-ff6c90e858c0",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "PageNode",
+      "collection": true,
+      "name": "Page Node",
+    },
+    "nodes": [
+      {
+        "_id": "0a042e10-b22e-4e02-86c4-65e26e775f7a",
+        "displayName": "Attribute Collector",
+        "nodeType": "AttributeCollectorNode",
+      },
+    ],
+    "pageDescription": {},
+    "pageHeader": {
+      "en": "Please select your preferences",
+    },
+  },
+  {
+    "_id": "d018fcd1-4e22-4160-8c41-63bee51c9cb3",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "PageNode",
+      "collection": true,
+      "name": "Page Node",
+    },
+    "nodes": [
+      {
+        "_id": "21a99653-a7a7-47ee-b650-f493a84bba09",
+        "displayName": "Platform Password",
+        "nodeType": "ValidatedPasswordNode",
+      },
+    ],
+    "pageDescription": {
+      "en": "Enter new password",
+    },
+    "pageHeader": {
+      "en": "Update Password",
+    },
+  },
+  {
+    "_id": "20237b34-26cb-4a0b-958f-abb422290d42",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "PageNode",
+      "collection": true,
+      "name": "Page Node",
+    },
+    "nodes": [
+      {
+        "_id": "fe2962fc-4db3-4066-8624-553649afc438",
+        "displayName": "Platform Password",
+        "nodeType": "ValidatedPasswordNode",
+      },
+    ],
+    "pageDescription": {
+      "en": "Enter current password",
+    },
+    "pageHeader": {
+      "en": "Verify Existing Password",
+    },
+  },
+  {
+    "_id": "e4c752f9-c625-48c9-9644-a58802fa9e9c",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "PageNode",
+      "collection": true,
+      "name": "Page Node",
+    },
+    "nodes": [
+      {
+        "_id": "009c19c8-9572-47bb-adb2-1f092c559a43",
+        "displayName": "Platform Password",
+        "nodeType": "ValidatedPasswordNode",
+      },
+    ],
+    "pageDescription": {
+      "en": "Change password",
+    },
+    "pageHeader": {
+      "en": "Reset Password",
+    },
+  },
+  {
+    "_id": "731c5810-020b-45c8-a7fc-3c21903ae2b3",
+    "_outcomes": [
+      {
+        "displayName": "Social Authentication",
+        "id": "socialAuthentication",
+      },
+      {
+        "displayName": "Local Authentication",
+        "id": "localAuthentication",
+      },
+    ],
+    "_type": {
+      "_id": "PageNode",
+      "collection": true,
+      "name": "Page Node",
+    },
+    "nodes": [
+      {
+        "_id": "dd16c8d4-baca-4ae0-bcd8-fb98b9040524",
+        "displayName": "Password",
+        "nodeType": "ValidatedPasswordNode",
+      },
+      {
+        "_id": "038f9b2a-36b2-489b-9e03-386c9a62ea21",
+        "displayName": "Select IDP",
+        "nodeType": "SelectIdPNode",
+      },
+    ],
+    "pageDescription": {},
+    "pageHeader": {},
+  },
+  {
+    "_id": "278bf084-9eea-46fe-8ce9-2600dde3b046",
+    "_outcomes": [
+      {
+        "displayName": "Social Authentication",
+        "id": "socialAuthentication",
+      },
+      {
+        "displayName": "Local Authentication",
+        "id": "localAuthentication",
+      },
+    ],
+    "_type": {
+      "_id": "PageNode",
+      "collection": true,
+      "name": "Page Node",
+    },
+    "nodes": [
+      {
+        "_id": "7a351800-fb7e-4145-903c-388554747556",
+        "displayName": "Username",
+        "nodeType": "ValidatedUsernameNode",
+      },
+      {
+        "_id": "804e6a68-1720-442b-926a-007e90f02782",
+        "displayName": "Password",
+        "nodeType": "ValidatedPasswordNode",
+      },
+      {
+        "_id": "228a44d5-fd78-4278-8999-fdd470ea7ebf",
+        "displayName": "Select IDP",
+        "nodeType": "SelectIdPNode",
+      },
+    ],
+    "pageDescription": {},
+    "pageHeader": {},
+  },
+  {
+    "_id": "cc3e1ed2-25f1-47bf-83c6-17084f8b2b2b",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "PageNode",
+      "collection": true,
+      "name": "Page Node",
+    },
+    "nodes": [
+      {
+        "_id": "276afa7c-a680-4cf4-a5f6-d6c78191f5c9",
+        "displayName": "Attribute Collector",
+        "nodeType": "AttributeCollectorNode",
+      },
+    ],
+    "pageDescription": {
+      "en": "Enter your email address or <a href="#/service/Login">Sign in</a>",
+    },
+    "pageHeader": {
+      "en": "Reset Password",
+    },
+  },
+  {
+    "_id": "5e2a7c95-94af-4b23-8724-deb13853726a",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "PageNode",
+      "collection": true,
+      "name": "Page Node",
+    },
+    "nodes": [
+      {
+        "_id": "9f1e8d94-4922-481b-9e14-212b66548900",
+        "displayName": "Attribute Collector",
+        "nodeType": "AttributeCollectorNode",
+      },
+    ],
+    "pageDescription": {
+      "en": "Enter your email address or <a href="#/service/Login">Sign in</a>",
+    },
+    "pageHeader": {
+      "en": "Forgotten Username",
+    },
+  },
+  {
+    "_id": "fc7e47cd-c679-4211-8e05-a36654f23c67",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "TRUE",
+      },
+      {
+        "displayName": "False",
+        "id": "FALSE",
+      },
+      {
+        "displayName": "Locked",
+        "id": "LOCKED",
+      },
+      {
+        "displayName": "Cancelled",
+        "id": "CANCELLED",
+      },
+      {
+        "displayName": "Expired",
+        "id": "EXPIRED",
+      },
+    ],
+    "_type": {
+      "_id": "IdentityStoreDecisionNode",
+      "collection": true,
+      "name": "Identity Store Decision",
+    },
+    "minimumPasswordLength": 8,
+    "mixedCaseForPasswordChangeMessages": false,
+    "useUniversalIdForUsername": true,
+  },
+  {
+    "_id": "343e745f-923a-43c4-8675-649a490fd0a3",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "TRUE",
+      },
+      {
+        "displayName": "False",
+        "id": "FALSE",
+      },
+      {
+        "displayName": "Locked",
+        "id": "LOCKED",
+      },
+      {
+        "displayName": "Cancelled",
+        "id": "CANCELLED",
+      },
+      {
+        "displayName": "Expired",
+        "id": "EXPIRED",
+      },
+    ],
+    "_type": {
+      "_id": "IdentityStoreDecisionNode",
+      "collection": true,
+      "name": "Identity Store Decision",
+    },
+    "minimumPasswordLength": 8,
+    "mixedCaseForPasswordChangeMessages": false,
+    "useUniversalIdForUsername": false,
+  },
+  {
+    "_id": "7f0c2aee-8c74-4d02-82a6-9d4ed9d11708",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "TRUE",
+      },
+      {
+        "displayName": "False",
+        "id": "FALSE",
+      },
+      {
+        "displayName": "Locked",
+        "id": "LOCKED",
+      },
+      {
+        "displayName": "Cancelled",
+        "id": "CANCELLED",
+      },
+      {
+        "displayName": "Expired",
+        "id": "EXPIRED",
+      },
+    ],
+    "_type": {
+      "_id": "IdentityStoreDecisionNode",
+      "collection": true,
+      "name": "Identity Store Decision",
+    },
+    "minimumPasswordLength": 8,
+    "mixedCaseForPasswordChangeMessages": false,
+    "useUniversalIdForUsername": false,
+  },
+  {
+    "_id": "51e8c4c1-3509-4635-90e6-d2cc31c4a6a5",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "AccountLockoutNode",
+      "collection": true,
+      "name": "Account Lockout",
+    },
+    "lockAction": "LOCK",
+  },
+  {
+    "_id": "a1f45b44-5bf7-4c57-aa3f-75c619c7db8e",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "QueryFilterDecisionNode",
+      "collection": true,
+      "name": "Query Filter Decision",
+    },
+    "identityAttribute": "userName",
+    "queryFilter": "!(/preferences pr) or /preferences/marketing eq false or /preferences/updates eq false",
+  },
+  {
+    "_id": "64157fca-bd5b-4405-a4c8-64ffd98a5461",
+    "_outcomes": [
+      {
+        "displayName": "Account exists",
+        "id": "ACCOUNT_EXISTS",
+      },
+      {
+        "displayName": "No account exists",
+        "id": "NO_ACCOUNT",
+      },
+    ],
+    "_type": {
+      "_id": "product-Saml2Node",
+      "collection": true,
+      "name": "SAML2 Authentication",
+    },
+    "allowCreate": true,
+    "authComparison": "MINIMUM",
+    "authnContextClassRef": [],
+    "authnContextDeclRef": [],
+    "binding": "HTTP_ARTIFACT",
+    "forceAuthn": false,
+    "idpEntityId": "urn:federation:MicrosoftOnline",
+    "isPassive": false,
+    "metaAlias": "/alpha/iSPAzure",
+    "nameIdFormat": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+    "requestBinding": "HTTP_REDIRECT",
+  },
+  {
+    "_id": "b4a0e915-c15d-4b83-9c9d-18347d645976",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "AcceptTermsAndConditionsNode",
+      "collection": true,
+      "name": "Accept Terms and Conditions",
+    },
+  },
+  {
+    "_id": "d1b79744-493a-44fe-bc26-7d324a8caa4e",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "SessionDataNode",
+      "collection": true,
+      "name": "Get Session Data",
+    },
+    "sessionDataKey": "UserToken",
+    "sharedStateKey": "userName",
+  },
+  {
+    "_id": "bf153f37-83dd-4f39-aa0c-74135430242e",
+    "_outcomes": [
+      {
+        "displayName": "Email Sent",
+        "id": "EMAIL_SENT",
+      },
+      {
+        "displayName": "Email Not Sent",
+        "id": "EMAIL_NOT_SENT",
+      },
+    ],
+    "_type": {
+      "_id": "EmailTemplateNode",
+      "collection": true,
+      "name": "Email Template Node",
+    },
+    "emailAttribute": "mail",
+    "emailTemplateName": "welcome",
+    "identityAttribute": "userName",
+  },
+  {
+    "_id": "466f8b54-07fb-4e31-a11d-a6842618cc37",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "EmailSuspendNode",
+      "collection": true,
+      "name": "Email Suspend Node",
+    },
+    "emailAttribute": "mail",
+    "emailSuspendMessage": {
+      "en": "An email has been sent to the address you entered. Click the link in that email to proceed.",
+    },
+    "emailTemplateName": "registration",
+    "identityAttribute": "userName",
+    "objectLookup": false,
+  },
+  {
+    "_id": "d9a79f01-2ce3-4be2-a28a-975f35c3c8ca",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "EmailSuspendNode",
+      "collection": true,
+      "name": "Email Suspend Node",
+    },
+    "emailAttribute": "mail",
+    "emailSuspendMessage": {
+      "en": "An email has been sent to the address you entered. Click the link in that email to proceed.",
+    },
+    "emailTemplateName": "forgottenUsername",
+    "identityAttribute": "mail",
+    "objectLookup": true,
+  },
+  {
+    "_id": "06c97be5-7fdd-4739-aea1-ecc7fe082865",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "EmailSuspendNode",
+      "collection": true,
+      "name": "Email Suspend Node",
+    },
+    "emailAttribute": "mail",
+    "emailSuspendMessage": {
+      "en": "An email has been sent to the address you entered. Click the link in that email to proceed.",
+    },
+    "emailTemplateName": "resetPassword",
+    "identityAttribute": "mail",
+    "objectLookup": true,
+  },
+  {
+    "_id": "a3d97b53-e38a-4b24-aed0-a021050eb744",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "EmailSuspendNode",
+      "collection": true,
+      "name": "Email Suspend Node",
+    },
+    "emailAttribute": "mail",
+    "emailSuspendMessage": {
+      "en": "An email has been sent to your address, please verify your email address to update your password. Click the link in that email to proceed.",
+    },
+    "emailTemplateName": "updatePassword",
+    "identityAttribute": "userName",
+    "objectLookup": true,
+  },
+  {
+    "_id": "9f1e8d94-4922-481b-9e14-212b66548900",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "AttributeCollectorNode",
+      "collection": true,
+      "name": "Attribute Collector",
+    },
+    "attributesToCollect": [
+      "mail",
+    ],
+    "identityAttribute": "mail",
+    "required": true,
+    "validateInputs": false,
+  },
+  {
+    "_id": "276afa7c-a680-4cf4-a5f6-d6c78191f5c9",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "AttributeCollectorNode",
+      "collection": true,
+      "name": "Attribute Collector",
+    },
+    "attributesToCollect": [
+      "mail",
+    ],
+    "identityAttribute": "mail",
+    "required": true,
+    "validateInputs": false,
+  },
+  {
+    "_id": "0a042e10-b22e-4e02-86c4-65e26e775f7a",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "AttributeCollectorNode",
+      "collection": true,
+      "name": "Attribute Collector",
+    },
+    "attributesToCollect": [
+      "preferences/updates",
+      "preferences/marketing",
+    ],
+    "identityAttribute": "userName",
+    "required": false,
+    "validateInputs": false,
+  },
+  {
+    "_id": "d3ce2036-1523-4ce8-b1a2-895a2a036667",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "AttributeCollectorNode",
+      "collection": true,
+      "name": "Attribute Collector",
+    },
+    "attributesToCollect": [
+      "givenName",
+      "sn",
+      "mail",
+      "preferences/marketing",
+      "preferences/updates",
+    ],
+    "identityAttribute": "userName",
+    "required": true,
+    "validateInputs": true,
+  },
+  {
+    "_id": "009c19c8-9572-47bb-adb2-1f092c559a43",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "ValidatedPasswordNode",
+      "collection": true,
+      "name": "Platform Password",
+    },
+    "passwordAttribute": "password",
+    "validateInput": true,
+  },
+  {
+    "_id": "3d8709a1-f09f-4d1f-8094-2850e472c1db",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "ValidatedPasswordNode",
+      "collection": true,
+      "name": "Platform Password",
+    },
+    "passwordAttribute": "password",
+    "validateInput": true,
+  },
+  {
+    "_id": "dd16c8d4-baca-4ae0-bcd8-fb98b9040524",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "ValidatedPasswordNode",
+      "collection": true,
+      "name": "Platform Password",
+    },
+    "passwordAttribute": "password",
+    "validateInput": false,
+  },
+  {
+    "_id": "0c80c39b-4813-4e67-b4fb-5a0bba85f994",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "ValidatedPasswordNode",
+      "collection": true,
+      "name": "Platform Password",
+    },
+    "passwordAttribute": "password",
+    "validateInput": false,
+  },
+  {
+    "_id": "804e6a68-1720-442b-926a-007e90f02782",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "ValidatedPasswordNode",
+      "collection": true,
+      "name": "Platform Password",
+    },
+    "passwordAttribute": "password",
+    "validateInput": false,
+  },
+  {
+    "_id": "21a99653-a7a7-47ee-b650-f493a84bba09",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "ValidatedPasswordNode",
+      "collection": true,
+      "name": "Platform Password",
+    },
+    "passwordAttribute": "password",
+    "validateInput": true,
+  },
+  {
+    "_id": "fe2962fc-4db3-4066-8624-553649afc438",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "ValidatedPasswordNode",
+      "collection": true,
+      "name": "Platform Password",
+    },
+    "passwordAttribute": "password",
+    "validateInput": false,
+  },
+  {
+    "_id": "0f0904e6-1da3-4cdb-9abf-0d2545016fab",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "AttributePresentDecisionNode",
+      "collection": true,
+      "name": "Attribute Present Decision",
+    },
+    "identityAttribute": "userName",
+    "presentAttribute": "password",
+  },
+  {
+    "_id": "228a44d5-fd78-4278-8999-fdd470ea7ebf",
+    "_outcomes": [
+      {
+        "displayName": "Social Authentication",
+        "id": "socialAuthentication",
+      },
+      {
+        "displayName": "Local Authentication",
+        "id": "localAuthentication",
+      },
+    ],
+    "_type": {
+      "_id": "SelectIdPNode",
+      "collection": true,
+      "name": "Select Identity Provider",
+    },
+    "filteredProviders": [],
+    "identityAttribute": "mail",
+    "includeLocalAuthentication": true,
+    "offerOnlyExisting": false,
+    "passwordAttribute": "password",
+  },
+  {
+    "_id": "038f9b2a-36b2-489b-9e03-386c9a62ea21",
+    "_outcomes": [
+      {
+        "displayName": "Social Authentication",
+        "id": "socialAuthentication",
+      },
+      {
+        "displayName": "Local Authentication",
+        "id": "localAuthentication",
+      },
+    ],
+    "_type": {
+      "_id": "SelectIdPNode",
+      "collection": true,
+      "name": "Select Identity Provider",
+    },
+    "filteredProviders": [],
+    "identityAttribute": "mail",
+    "includeLocalAuthentication": true,
+    "offerOnlyExisting": false,
+    "passwordAttribute": "password",
+  },
+  {
+    "_id": "a566e474-99f3-46e4-9e70-682402bfaa84",
+    "_outcomes": [
+      {
+        "displayName": "one",
+        "id": "one",
+      },
+      {
+        "displayName": "two",
+        "id": "two",
+      },
+      {
+        "displayName": "three",
+        "id": "three",
+      },
+    ],
+    "_type": {
+      "_id": "ChoiceCollectorNode",
+      "collection": true,
+      "name": "Choice Collector",
+    },
+    "choices": [
+      "one",
+      "two",
+      "three",
+    ],
+    "defaultChoice": "one",
+    "prompt": "Choice?",
+  },
+  {
+    "_id": "d5cc2d52-6ce4-452d-85ea-3a5b50218b67",
+    "_outcomes": [
+      {
+        "displayName": "Account exists",
+        "id": "ACCOUNT_EXISTS",
+      },
+      {
+        "displayName": "No account exists",
+        "id": "NO_ACCOUNT",
+      },
+    ],
+    "_type": {
+      "_id": "SocialProviderHandlerNode",
+      "collection": true,
+      "name": "Legacy Social Provider Handler Node",
+    },
+    "clientType": "BROWSER",
+    "script": "77+977+9PNuG77+977+977+9Hnfvv70724/vv73vv73vv71+de+/vXbvv73vv703f++/vQ==",
+    "usernameAttribute": "userName",
+  },
+  {
+    "_id": "7d1deabe-cd98-49c8-943f-ca12305775f3",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "DataStoreDecisionNode",
+      "collection": true,
+      "name": "Data Store Decision",
+    },
+  },
+  {
+    "_id": "97a15eb2-a015-4b6d-81a0-be78c3aa1a3b",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "IncrementLoginCountNode",
+      "collection": true,
+      "name": "Increment Login Count",
+    },
+    "identityAttribute": "userName",
+  },
+  {
+    "_id": "bba3e0d8-8525-4e82-bf48-ac17f7988917",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "IncrementLoginCountNode",
+      "collection": true,
+      "name": "Increment Login Count",
+    },
+    "identityAttribute": "userName",
+  },
+  {
+    "_id": "2119f332-0f69-4088-a7a1-6582bf0f2001",
+    "_outcomes": [
+      {
+        "displayName": "Retry",
+        "id": "Retry",
+      },
+      {
+        "displayName": "Reject",
+        "id": "Reject",
+      },
+    ],
+    "_type": {
+      "_id": "RetryLimitDecisionNode",
+      "collection": true,
+      "name": "Retry Limit Decision",
+    },
+    "incrementUserAttributeOnFailure": true,
+    "retryLimit": 5,
+  },
+  {
+    "_id": "e62d7a4d-2012-4a2a-a6ef-d6a0e0d552d9",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "InnerTreeEvaluatorNode",
+      "collection": true,
+      "name": "Inner Tree Evaluator",
+    },
+    "tree": "j06",
+  },
+  {
+    "_id": "f17ecb7c-abc3-4523-9943-4cbdd90305cb",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "InnerTreeEvaluatorNode",
+      "collection": true,
+      "name": "Inner Tree Evaluator",
+    },
+    "tree": "j04",
+  },
+  {
+    "_id": "00e75aa0-2f9b-4895-9257-d515286fd64b",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "InnerTreeEvaluatorNode",
+      "collection": true,
+      "name": "Inner Tree Evaluator",
+    },
+    "tree": "j03",
+  },
+  {
+    "_id": "33b24514-3e50-4180-8f08-ab6f4e51b07e",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "InnerTreeEvaluatorNode",
+      "collection": true,
+      "name": "Inner Tree Evaluator",
+    },
+    "tree": "ProgressiveProfile",
+  },
+  {
+    "_id": "66026170-5088-4fcd-a6c8-ed89d7a5c79d",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "InnerTreeEvaluatorNode",
+      "collection": true,
+      "name": "Inner Tree Evaluator",
+    },
+    "tree": "j07",
+  },
+  {
+    "_id": "409c251f-c23b-411d-9009-d3b3d26d1b90",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "InnerTreeEvaluatorNode",
+      "collection": true,
+      "name": "Inner Tree Evaluator",
+    },
+    "tree": "j05",
+  },
+  {
+    "_id": "6df24fdd-0b6c-4def-bf42-77af998f28b8",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "InnerTreeEvaluatorNode",
+      "collection": true,
+      "name": "Inner Tree Evaluator",
+    },
+    "tree": "j08",
+  },
+  {
+    "_id": "c7fcf7ae-1ab5-474b-b5b0-272e10468fbd",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "InnerTreeEvaluatorNode",
+      "collection": true,
+      "name": "Inner Tree Evaluator",
+    },
+    "tree": "j09",
+  },
+  {
+    "_id": "b93ce36e-1976-4610-b24f-8d6760b5463b",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "InnerTreeEvaluatorNode",
+      "collection": true,
+      "name": "Inner Tree Evaluator",
+    },
+    "tree": "Login",
+  },
+  {
+    "_id": "bb1e96af-f316-4eb0-b1c6-36b3f1af9e35",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "InnerTreeEvaluatorNode",
+      "collection": true,
+      "name": "Inner Tree Evaluator",
+    },
+    "tree": "j00",
+  },
+  {
+    "_id": "56899fef-92a1-4f2a-ade3-973c81eb3af1",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "InnerTreeEvaluatorNode",
+      "collection": true,
+      "name": "Inner Tree Evaluator",
+    },
+    "tree": "j01",
+  },
+  {
+    "_id": "bcb8c535-5ecd-4d3d-b970-26816de96bf2",
+    "_outcomes": [
+      {
+        "displayName": "True",
+        "id": "true",
+      },
+      {
+        "displayName": "False",
+        "id": "false",
+      },
+    ],
+    "_type": {
+      "_id": "InnerTreeEvaluatorNode",
+      "collection": true,
+      "name": "Inner Tree Evaluator",
+    },
+    "tree": "j02",
+  },
+  {
+    "_id": "989f0bf8-a328-4217-b82b-5275d79ca8bd",
+    "_outcomes": [
+      {
+        "displayName": "Patched",
+        "id": "PATCHED",
+      },
+      {
+        "displayName": "Failed",
+        "id": "FAILURE",
+      },
+    ],
+    "_type": {
+      "_id": "PatchObjectNode",
+      "collection": true,
+      "name": "Patch Object",
+    },
+    "identityAttribute": "mail",
+    "identityResource": "managed/alpha_user",
+    "ignoredFields": [],
+    "patchAsObject": false,
+  },
+  {
+    "_id": "423a959a-a1b9-498a-b0f7-596b6b6e775a",
+    "_outcomes": [
+      {
+        "displayName": "Patched",
+        "id": "PATCHED",
+      },
+      {
+        "displayName": "Failed",
+        "id": "FAILURE",
+      },
+    ],
+    "_type": {
+      "_id": "PatchObjectNode",
+      "collection": true,
+      "name": "Patch Object",
+    },
+    "identityAttribute": "userName",
+    "identityResource": "managed/alpha_user",
+    "ignoredFields": [],
+    "patchAsObject": false,
+  },
+  {
+    "_id": "3990ce1f-cce6-435b-ae1c-f138e89411c1",
+    "_outcomes": [
+      {
+        "displayName": "Patched",
+        "id": "PATCHED",
+      },
+      {
+        "displayName": "Failed",
+        "id": "FAILURE",
+      },
+    ],
+    "_type": {
+      "_id": "PatchObjectNode",
+      "collection": true,
+      "name": "Patch Object",
+    },
+    "identityAttribute": "userName",
+    "identityResource": "managed/alpha_user",
+    "ignoredFields": [
+      "userName",
+    ],
+    "patchAsObject": false,
+  },
+  {
+    "_id": "3a92300d-6d64-451d-8156-30cb51781026",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "9603ef52-30f0-4ddc-b3c0-28dac83c7bdb",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "3c1e8d61-0c48-44ba-86dc-52e9555b6aeb",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "11f1c31c-50a9-4717-8213-420f6932481f",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "e90ae257-c279-46e0-9b43-5ecd89784d77",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "e0983ead-4918-48f6-858d-9aff0f03759c",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "56b82371-0c61-4dc3-8d06-c1158415b8f9",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "f129f0df-b49e-453b-97fb-db508e3893ce",
+    "_outcomes": [
+      {
+        "displayName": "shared and level",
+        "id": "shared and level",
+      },
+      {
+        "displayName": "shared only",
+        "id": "shared only",
+      },
+      {
+        "displayName": "level only",
+        "id": "level only",
+      },
+      {
+        "displayName": "none",
+        "id": "none",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "outcomes": [
+      "shared and level",
+      "shared only",
+      "level only",
+      "none",
+    ],
+    "outputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+  },
+  {
+    "_id": "3c106772-ace7-4808-8f3a-9840de8f67f0",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "1d59caff-243c-45bd-b7d0-6dcc563989c5",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "97ef9d96-99e7-4d2d-b6c6-4177b5397ead",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "d90dd9f8-8b12-4e90-abaf-228ecc0174a7",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "ac6ee166-73c0-4f73-b8db-4fe8ff6a25c0",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "da878771-421c-463f-aad7-4d5f2ad5e59a",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "bb294e05-6b6b-4478-b46f-b8d9e7711c66",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "e0cfbd13-6f1e-4924-9d2d-0f7c23507172",
+    "_outcomes": [
+      {
+        "displayName": "shared and level",
+        "id": "shared and level",
+      },
+      {
+        "displayName": "shared only",
+        "id": "shared only",
+      },
+      {
+        "displayName": "level only",
+        "id": "level only",
+      },
+      {
+        "displayName": "none",
+        "id": "none",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "outcomes": [
+      "shared and level",
+      "shared only",
+      "level only",
+      "none",
+    ],
+    "outputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+  },
+  {
+    "_id": "69ae8ec1-de43-44ac-98e5-733db80ac176",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "ba503a1e-633e-4d0d-ba18-c9a9b1105b5b",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+977+977+9351677+977+977+977+977+9N92v77+977+977+977+977+9TV3vv71b14fvv70=",
+  },
+  {
+    "_id": "d17ffaa1-2c61-4abd-9bb1-2559160d0a5c",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "6674b4ac-dd89-4e13-9440-6f81194e3a22",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "01d3785f-7fb4-44a7-9458-72c380a9818f",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "4416aff7-3ebd-47e6-9831-c2f6bbe3ae24",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "f57cf53c-b4c6-48f7-84e8-91f535a2e8f8",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "040b6c89-313b-4664-92e0-6732017384b8",
+    "_outcomes": [
+      {
+        "displayName": "shared and level",
+        "id": "shared and level",
+      },
+      {
+        "displayName": "shared only",
+        "id": "shared only",
+      },
+      {
+        "displayName": "level only",
+        "id": "level only",
+      },
+      {
+        "displayName": "none",
+        "id": "none",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "outcomes": [
+      "shared and level",
+      "shared only",
+      "level only",
+      "none",
+    ],
+    "outputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+  },
+  {
+    "_id": "f2fe740c-cd75-460a-8baa-fe4b52ecc947",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "8c5e9cb5-471b-4dd6-b150-ecaaeda98195",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "35a4f94b-c895-46b9-bc0a-93cf59233759",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "87ced99b-bfa5-40d4-ba07-c8fc31f6cc6d",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "44b8651c-7c1e-41f1-b9a6-2e441b0ce05a",
+    "_outcomes": [
+      {
+        "displayName": "shared and level",
+        "id": "shared and level",
+      },
+      {
+        "displayName": "shared only",
+        "id": "shared only",
+      },
+      {
+        "displayName": "level only",
+        "id": "level only",
+      },
+      {
+        "displayName": "none",
+        "id": "none",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "outcomes": [
+      "shared and level",
+      "shared only",
+      "level only",
+      "none",
+    ],
+    "outputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+  },
+  {
+    "_id": "2dbd2d37-c659-48cf-8357-c9fc1166e3a7",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "40afb384-e9b6-4dcb-acde-04de109474c8",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "042b600b-71cb-45a8-93ae-a6f57b16a6e5",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "e2c39477-847a-4df2-9c5d-b449a752638b",
+    "_outcomes": [
+      {
+        "displayName": "known",
+        "id": "known",
+      },
+      {
+        "displayName": "unknown",
+        "id": "unknown",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "known",
+      "unknown",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9f1t177+9PO+/ve+/vXbvv73vv70c77+9b++/vd+d77+977+977+977+977+977+977+977+9Gg==",
+  },
+  {
+    "_id": "f5c317ce-fabd-4a10-9907-c71cea037844",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "8096649e-973e-4209-88ce-e1d87ae2bb96",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "c91d626e-1156-41bd-b1fb-d292f640fba6",
+    "_outcomes": [
+      {
+        "displayName": "shared and level",
+        "id": "shared and level",
+      },
+      {
+        "displayName": "shared only",
+        "id": "shared only",
+      },
+      {
+        "displayName": "level only",
+        "id": "level only",
+      },
+      {
+        "displayName": "none",
+        "id": "none",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "outcomes": [
+      "shared and level",
+      "shared only",
+      "level only",
+      "none",
+    ],
+    "outputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+  },
+  {
+    "_id": "13b12fe6-cf53-46a4-a83d-0a3c1fda814f",
+    "_outcomes": [
+      {
+        "displayName": "shared and level",
+        "id": "shared and level",
+      },
+      {
+        "displayName": "shared only",
+        "id": "shared only",
+      },
+      {
+        "displayName": "level only",
+        "id": "level only",
+      },
+      {
+        "displayName": "none",
+        "id": "none",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "outcomes": [
+      "shared and level",
+      "shared only",
+      "level only",
+      "none",
+    ],
+    "outputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+  },
+  {
+    "_id": "bdfbe97c-1ff4-4162-85bc-47f6f14b2c66",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "513a2ab4-f0b8-4f94-b840-6fe14796cc84",
+    "_outcomes": [
+      {
+        "displayName": "shared and level",
+        "id": "shared and level",
+      },
+      {
+        "displayName": "shared only",
+        "id": "shared only",
+      },
+      {
+        "displayName": "level only",
+        "id": "level only",
+      },
+      {
+        "displayName": "none",
+        "id": "none",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "outcomes": [
+      "shared and level",
+      "shared only",
+      "level only",
+      "none",
+    ],
+    "outputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+  },
+  {
+    "_id": "59b06306-a886-443d-92df-7a27a60c394e",
+    "_outcomes": [
+      {
+        "displayName": "shared and level",
+        "id": "shared and level",
+      },
+      {
+        "displayName": "shared only",
+        "id": "shared only",
+      },
+      {
+        "displayName": "level only",
+        "id": "level only",
+      },
+      {
+        "displayName": "none",
+        "id": "none",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "outcomes": [
+      "shared and level",
+      "shared only",
+      "level only",
+      "none",
+    ],
+    "outputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+  },
+  {
+    "_id": "cbb3d506-b267-4b99-9edd-363e90aac997",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "948e21f4-c512-450a-9d42-e0d629217834",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "d9a06d3a-7e3f-4244-9a32-63ffa0d26e00",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "a0782616-84b7-4bf5-87ed-a01fb3018563",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "89ce5d57-82fa-4d58-8d15-0329f7dbd7e7",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "fe8f27df-8a27-4d88-9196-834ce398b2b7",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "fae7424e-13c9-45bd-b3a2-045773671a3f",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "2de08e9e-bf7b-4fa1-8265-59a8e4a3f7c3",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "300feda0-3248-49a9-b60f-01df802b2229",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "6f9de973-9ed4-41f5-b43d-4036041e2b96",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+  },
+  {
+    "_id": "d10104e9-1f8d-4da6-a110-28d879d13959",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "39b48197-f4be-42b9-800a-866587b4b9b5",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "622179cb-98f1-484a-820d-9a0df6e45e95",
+    "_outcomes": [
+      {
+        "displayName": "shared and level",
+        "id": "shared and level",
+      },
+      {
+        "displayName": "shared only",
+        "id": "shared only",
+      },
+      {
+        "displayName": "level only",
+        "id": "level only",
+      },
+      {
+        "displayName": "none",
+        "id": "none",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "outcomes": [
+      "shared and level",
+      "shared only",
+      "level only",
+      "none",
+    ],
+    "outputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+  },
+  {
+    "_id": "251f35c3-1a32-4520-be10-1f4af9600935",
+    "_outcomes": [
+      {
+        "displayName": "shared and level",
+        "id": "shared and level",
+      },
+      {
+        "displayName": "shared only",
+        "id": "shared only",
+      },
+      {
+        "displayName": "level only",
+        "id": "level only",
+      },
+      {
+        "displayName": "none",
+        "id": "none",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "outcomes": [
+      "shared and level",
+      "shared only",
+      "level only",
+      "none",
+    ],
+    "outputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+  },
+  {
+    "_id": "e92d5139-b8a6-43dc-9b13-95ba1d0dc53c",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "d429b2b5-b215-46a5-b239-4994df65cb8b",
+    "_outcomes": [
+      {
+        "displayName": "shared and level",
+        "id": "shared and level",
+      },
+      {
+        "displayName": "shared only",
+        "id": "shared only",
+      },
+      {
+        "displayName": "level only",
+        "id": "level only",
+      },
+      {
+        "displayName": "none",
+        "id": "none",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "outcomes": [
+      "shared and level",
+      "shared only",
+      "level only",
+      "none",
+    ],
+    "outputs": [
+      "*",
+      "mode",
+      "level",
+    ],
+    "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+  },
+  {
+    "_id": "8d7d64ee-da20-461f-a2ca-206b7479dd67",
+    "_outcomes": [
+      {
+        "displayName": "true",
+        "id": "true",
+      },
+    ],
+    "_type": {
+      "_id": "ScriptedDecisionNode",
+      "collection": true,
+      "name": "Scripted Decision",
+    },
+    "inputs": [
+      "*",
+    ],
+    "outcomes": [
+      "true",
+    ],
+    "outputs": [
+      "*",
+    ],
+    "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+  },
+  {
+    "_id": "120c69d3-90b4-4ad4-b7af-380e8b119340",
+    "_outcomes": [
+      {
+        "displayName": "Outcome",
+        "id": "outcome",
+      },
+    ],
+    "_type": {
+      "_id": "KbaCreateNode",
+      "collection": true,
+      "name": "KBA Definition",
+    },
+    "allowUserDefinedQuestions": true,
+    "message": {
+      "en": "Select a security question",
+    },
+  },
+]
+`;
+
+exports[`NodeOps readNodesByType() 1: Read nodes of type SelectIdPNode 1`] = `
+[
+  {
+    "_id": "228a44d5-fd78-4278-8999-fdd470ea7ebf",
+    "_outcomes": [
+      {
+        "displayName": "Social Authentication",
+        "id": "socialAuthentication",
+      },
+      {
+        "displayName": "Local Authentication",
+        "id": "localAuthentication",
+      },
+    ],
+    "_rev": "-1175277026",
+    "_type": {
+      "_id": "SelectIdPNode",
+      "collection": true,
+      "name": "Select Identity Provider",
+    },
+    "filteredProviders": [],
+    "identityAttribute": "mail",
+    "includeLocalAuthentication": true,
+    "offerOnlyExisting": false,
+    "passwordAttribute": "password",
+  },
+  {
+    "_id": "038f9b2a-36b2-489b-9e03-386c9a62ea21",
+    "_outcomes": [
+      {
+        "displayName": "Social Authentication",
+        "id": "socialAuthentication",
+      },
+      {
+        "displayName": "Local Authentication",
+        "id": "localAuthentication",
+      },
+    ],
+    "_rev": "-409686295",
+    "_type": {
+      "_id": "SelectIdPNode",
+      "collection": true,
+      "name": "Select Identity Provider",
+    },
+    "filteredProviders": [],
+    "identityAttribute": "mail",
+    "includeLocalAuthentication": true,
+    "offerOnlyExisting": false,
+    "passwordAttribute": "password",
+  },
+]
+`;

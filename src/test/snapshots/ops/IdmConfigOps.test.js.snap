@@ -2,7 +2,7 @@
 
 exports[`IdmConfigOps exportConfigEntities() 1: Export config entities 1`] = `
 {
-  "config": {
+  "idm": {
     "access": {
       "_id": "access",
       "configs": [

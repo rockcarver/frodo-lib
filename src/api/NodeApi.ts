@@ -4,13 +4,13 @@ import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../utils/JsonUtils';
 import {
+  AmConfigEntityInterface,
   type IdObjectSkeletonInterface,
   type NoIdObjectSkeletonInterface,
   type PagedResult,
   type QueryResult,
 } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
-import { type AmServiceType } from './ServiceApi';
 
 const queryAllNodeTypesURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/nodes?_action=getAllTypes';
@@ -49,8 +49,7 @@ export interface InnerNodeRefSkeletonInterface {
   nodeType: string;
 }
 
-export type NodeSkeleton = IdObjectSkeletonInterface & {
-  _type: AmServiceType;
+export type NodeSkeleton = AmConfigEntityInterface & {
   nodes?: InnerNodeRefSkeletonInterface[];
   tree?: string;
   identityResource?: string;

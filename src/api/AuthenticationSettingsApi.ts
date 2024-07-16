@@ -56,8 +56,8 @@ export async function getAuthenticationSettings({
 }
 
 /**
- * Put authentiction settings
- * @param {AuthenticationSettingsSkeleton} settings authentiction settings object
+ * Put authentication settings
+ * @param {AuthenticationSettingsSkeleton} settings authentication settings object
  * @returns {Promise<AuthenticationSettingsSkeleton>} a promise that resolves to an authentiction settings object
  */
 export async function putAuthenticationSettings({

@@ -31,7 +31,8 @@
  */
 import * as ResourceTypesApi from './ResourceTypesApi';
 import { state } from '../index';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 import { type ResourceTypeSkeleton } from './ResourceTypesApi';
 
 const ctx = autoSetupPolly();

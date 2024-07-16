@@ -49,7 +49,8 @@
 import { state } from '../index';
 import * as JourneyOps from './JourneyOps';
 import { getJourney } from '../test/mocks/ForgeRockApiMockEngine';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 import Constants from '../shared/Constants';
 
 const ctx = autoSetupPolly();

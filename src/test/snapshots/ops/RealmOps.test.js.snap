@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`RealmOps getRealms() 1: Get Realms 1`] = `
+[
+  {
+    "_id": "L2FscGhh",
+    "_rev": "362268810",
+    "active": true,
+    "aliases": [],
+    "name": "alpha",
+    "parentPath": "/",
+  },
+  {
+    "_id": "L2JyYXZv",
+    "_rev": "480875699",
+    "active": true,
+    "aliases": [],
+    "name": "bravo",
+    "parentPath": "/",
+  },
+]
+`;

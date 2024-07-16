@@ -3,9 +3,8 @@ import util from 'util';
 import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
-import { type IdObjectSkeletonInterface, type PagedResult } from './ApiTypes';
+import { type AmConfigEntityInterface, type PagedResult } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
-import { type AmServiceType } from './ServiceApi';
 
 const circleOfTrustByIdURLTemplate =
   '%s/json%s/realm-config/federation/circlesoftrust/%s';
@@ -20,10 +19,9 @@ const getApiConfig = () => {
   };
 };
 
-export type CircleOfTrustSkeleton = IdObjectSkeletonInterface & {
+export type CircleOfTrustSkeleton = AmConfigEntityInterface & {
   status?: string;
   trustedProviders?: string[];
-  _type?: AmServiceType;
 };
 
 /**

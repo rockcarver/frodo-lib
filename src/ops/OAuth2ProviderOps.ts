@@ -13,7 +13,7 @@ export type OAuth2Provider = {
    * Read oauth2 provider
    * @returns {Promise<OAuth2ProviderSkeleton>} a promise resolving to an oauth2 provider object
    */
-  readOAuth2Provider(): Promise<OAuth2ProviderSkeleton>;
+  readOAuth2Provider(): Promise<OAuth2ProviderSkeleton | null>;
   /**
    * Create oauth2 provider
    * @param {OAuth2ProviderSkeleton} providerData oauth2 provider data
@@ -52,7 +52,7 @@ export type OAuth2Provider = {
 
 export default (state: State): OAuth2Provider => {
   return {
-    async readOAuth2Provider(): Promise<OAuth2ProviderSkeleton> {
+    async readOAuth2Provider(): Promise<OAuth2ProviderSkeleton | null> {
       return readOAuth2Provider({ state });
     },
     async createOAuth2Provider(
@@ -81,11 +81,16 @@ export async function readOAuth2Provider({
   state,
 }: {
   state: State;
-}): Promise<OAuth2ProviderSkeleton> {
+}): Promise<OAuth2ProviderSkeleton | null> {
   try {
     return _getOAuth2Provider({ state });
   } catch (error) {
-    throw new FrodoError(`Error reading oauth2 provider`, error);
+    if (error.httpStatus === 404 || error.response?.status === 404) {
+      // return null if no provider exists
+      return null;
+    } else {
+      throw new FrodoError(`Error reading oauth2 provider`, error);
+    }
   }
 }
 

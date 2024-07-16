@@ -32,9 +32,10 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { autoSetupPolly, filterRecording } from "../utils/AutoSetupPolly";
+import { autoSetupPolly } from "../utils/AutoSetupPolly";
+import { filterRecording } from "../utils/PollyUtils";
 import * as MappingOps from "./MappingOps";
-import {state} from "../lib/FrodoLib";
+import { state } from "../lib/FrodoLib";
 import { MappingSkeleton} from "./MappingOps";
 
 const ctx = autoSetupPolly();

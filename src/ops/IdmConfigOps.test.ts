@@ -32,7 +32,8 @@
 import { state } from '../index';
 import * as IdmConfigApi from '../api/IdmConfigApi';
 import * as IdmConfigOps from './IdmConfigOps';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 
 const ctx = autoSetupPolly();
@@ -224,7 +225,7 @@ describe('IdmConfigOps', () => {
 
     test(`1: ImportConfigEntities no validate`, async () => {
       const importData = {
-        config: {
+        idm: {
           [configEntity1.id]: configEntity1,
           [configEntity2.id]: configEntity2,
           [configEntity3.id]: configEntity3
@@ -242,7 +243,7 @@ describe('IdmConfigOps', () => {
 
     test(`2: ImportConfigEntities validate`, async () => {
       const importData = {
-        config: {
+        idm: {
           [configEntity1.id]: configEntity1,
           [configEntity2.id]: configEntity2,
           [configEntity3.id]: configEntity3

@@ -38,7 +38,8 @@
 import { FrodoError, state } from '../index';
 import * as PolicySetApi from '../api/PolicySetApi';
 import * as PolicySetOps from './PolicySetOps';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 import { type PolicySetSkeleton } from '../api/PolicySetApi';
 import { cloneDeep } from '../utils/JsonUtils';
 import { PolicySetExportInterface } from './PolicySetOps';

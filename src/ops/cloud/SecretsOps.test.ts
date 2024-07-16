@@ -33,11 +33,11 @@
  * in case things don't function as expected
  */
 
-import { autoSetupPolly, filterRecording } from '../../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../../utils/AutoSetupPolly';
+import { filterRecording } from '../../utils/PollyUtils';
 import { state } from '../../index';
 import * as SecretsOps from './SecretsOps';
 import { FrodoError } from '../FrodoError';
-import { printError } from '../../utils/Console';
 
 const ctx = autoSetupPolly();
 

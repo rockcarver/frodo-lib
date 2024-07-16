@@ -50,7 +50,8 @@ import { state } from '../index';
 import * as AgentApi from '../api/AgentApi';
 import * as AgentOps from './AgentOps';
 import { getAgent } from '../test/mocks/ForgeRockApiMockEngine';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 import { FrodoError } from './FrodoError';
 
 const ctx = autoSetupPolly();

@@ -13,6 +13,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { get, mergeDeep } from '../utils/JsonUtils';
 import {
   CirclesOfTrustExportInterface,
@@ -436,7 +437,7 @@ export function createApplicationExportTemplate({
 export function getRealmManagedApplication({ state }: { state: State }) {
   let realmManagedOrg = 'application';
   if (state.getDeploymentType() === constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
-    realmManagedOrg = `${state.getRealm()}_application`;
+    realmManagedOrg = `${getCurrentRealmName(state)}_application`;
   }
   return realmManagedOrg;
 }

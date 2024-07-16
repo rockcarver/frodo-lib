@@ -1,15 +1,16 @@
 import util from 'util';
 
 import { State } from '../shared/State';
-import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
-import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
+import { getConfigPath, getRealmPathGlobal } from '../utils/ForgeRockUtils';
+import { AmConfigEntityInterface, PagedResult } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 
 const serviceURLTemplate = '%s/json%s/%s/services/%s';
 const serviceURLNextDescendentsTemplate =
   '%s/json%s/%s/services/%s?_action=nextdescendents';
 const serviceURLNextDescendentTemplate = '%s/json%s/%s/services/%s/%s/%s';
-const serviceListURLTemplate = '%s/json%s/%s/services?_queryFilter=true';
+//Use _action=nextdescendents since it works on all deployments
+const serviceListURLTemplate = '%s/json%s/%s/services?_action=nextdescendents';
 const apiVersion = 'protocol=2.0,resource=1.0';
 
 function getApiConfig() {
@@ -18,27 +19,7 @@ function getApiConfig() {
   };
 }
 
-export interface ServiceListItem {
-  /**
-   * The identifier for the service - used to construct the subpath for the service
-   */
-  _id: string;
-  /**
-   * The user-facing name of the service
-   */
-  name: string;
-  /**
-   * The revision number of the service
-   */
-  _rev: string;
-}
-
-export type AmServiceType = IdObjectSkeletonInterface & {
-  name: string;
-};
-
-export type AmServiceSkeleton = IdObjectSkeletonInterface & {
-  _type: AmServiceType;
+export type AmServiceSkeleton = AmConfigEntityInterface & {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 };
@@ -57,28 +38,6 @@ export interface FullService extends AmServiceSkeleton {
 }
 
 /**
- * Helper function to get the realm path required for the API call considering if the request
- * should obtain the realm config or the global config of the service in question
- * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise.
- * @returns {string} The realm path to be used for the request
- */
-function getRealmPath(globalConfig: boolean, state: State): string {
-  if (globalConfig) return '';
-  return getCurrentRealmPath(state);
-}
-
-/**
- * Helper function to get the config path required for the API call considering if the request
- * should obtain the realm config or the global config of the service in question
- * @param {boolean} globalConfig true if the global service is the target of the operation, false otherwise.
- * @returns {string} The config path to be used for the request
- */
-function getConfigPath(globalConfig: boolean): string {
-  if (globalConfig) return 'global-config';
-  return 'realm-config';
-}
-
-/**
  * Get a list of services
  * @param {boolean} globalConfig true if the global list of services is requested, false otherwise. Default: false.
  * @returns {Promise<ServiceListItem[]>} a promise resolving to an array of service list items.
@@ -89,16 +48,17 @@ export async function getListOfServices({
 }: {
   globalConfig: boolean;
   state: State;
-}): Promise<PagedResult<ServiceListItem>> {
+}): Promise<PagedResult<AmServiceSkeleton>> {
   const urlString = util.format(
     serviceListURLTemplate,
     state.getHost(),
-    getRealmPath(globalConfig, state),
+    getRealmPathGlobal(globalConfig, state),
     getConfigPath(globalConfig)
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get<
-    PagedResult<ServiceListItem>
-  >(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).post<PagedResult<AmServiceSkeleton>>(urlString, undefined, {
     withCredentials: true,
   });
   return data;
@@ -122,7 +82,7 @@ export async function getService({
   const urlString = util.format(
     serviceURLTemplate,
     state.getHost(),
-    getRealmPath(globalConfig, state),
+    getRealmPathGlobal(globalConfig, state),
     getConfigPath(globalConfig),
     serviceId
   );
@@ -153,14 +113,14 @@ export async function getServiceDescendents({
   const urlString = util.format(
     serviceURLNextDescendentsTemplate,
     state.getHost(),
-    getRealmPath(globalConfig, state),
+    getRealmPathGlobal(globalConfig, state),
     getConfigPath(globalConfig),
     serviceId
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
     state,
-  }).post<ServiceNextDescendentResponse>(urlString, {
+  }).post<ServiceNextDescendentResponse>(urlString, undefined, {
     withCredentials: true,
   });
   return data.result as ServiceNextDescendent[];
@@ -187,7 +147,7 @@ export async function putService({
   const urlString = util.format(
     serviceURLTemplate,
     state.getHost(),
-    getRealmPath(globalConfig, state),
+    getRealmPathGlobal(globalConfig, state),
     getConfigPath(globalConfig),
     serviceId
   );
@@ -228,7 +188,7 @@ export async function putServiceNextDescendent({
   const urlString = util.format(
     serviceURLNextDescendentTemplate,
     state.getHost(),
-    getRealmPath(globalConfig, state),
+    getRealmPathGlobal(globalConfig, state),
     getConfigPath(globalConfig),
     serviceId,
     serviceType,
@@ -262,7 +222,7 @@ export async function deleteService({
   const urlString = util.format(
     serviceURLTemplate,
     state.getHost(),
-    getRealmPath(globalConfig, state),
+    getRealmPathGlobal(globalConfig, state),
     getConfigPath(globalConfig),
     serviceId
   );
@@ -299,7 +259,7 @@ export async function deleteServiceNextDescendent({
   const urlString = util.format(
     serviceURLNextDescendentTemplate,
     state.getHost(),
-    getRealmPath(globalConfig, state),
+    getRealmPathGlobal(globalConfig, state),
     getConfigPath(globalConfig),
     serviceId,
     serviceType,

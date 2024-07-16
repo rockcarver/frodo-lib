@@ -31,7 +31,8 @@
  */
 import { state } from '../index';
 import * as ScriptOps from './ScriptOps';
-import { autoSetupPolly, filterRecording } from '../utils/AutoSetupPolly';
+import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import { filterRecording } from '../utils/PollyUtils';
 import { ScriptSkeleton } from '../api/ScriptApi';
 
 const ctx = autoSetupPolly();

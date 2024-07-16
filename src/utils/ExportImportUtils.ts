@@ -14,7 +14,7 @@ import {
   encode,
   encodeBase64Url,
 } from './Base64Utils';
-import { debugMessage, printMessage } from './Console';
+import { debugMessage, printMessage, updateProgressIndicator } from './Console';
 import { deleteDeepByKey, stringify } from './JsonUtils';
 
 export type ExportImport = {
@@ -426,7 +426,7 @@ export function saveTextToFile({
   state: State;
 }): boolean {
   try {
-    fs.writeFileSync(filename, data);
+    fs.writeFileSync(filename, data + (data.endsWith('\n') ? '' : '\n'));
     return true;
   } catch (err) {
     printMessage({
@@ -605,25 +605,68 @@ export function isValidUrl(urlString: string): boolean {
 }
 
 /**
- * Performs an export or import given a function with its parameters with custom error handling that will just print the error if one is thrown and return null.
+ * Helper that performs an export or import given a function with its parameters with custom error handling that will just print the error if one is thrown and return null.
  * @param func The export or import function.
  * @param parameters The parameters to call the export or import function with. By default, it is { state }.
+ * @param {Error[]} errors Parameter to collect errors that occur.
+ * @param perform Performs and returns the export if true, otherwise returns null. Default: true
  * @returns {Promise<R | null>} Returns the result of the export or import function, or null if an error is thrown
  */
-export async function exportOrImportWithErrorHandling<
-  P extends { state: State },
-  R,
->(
+async function exportOrImportWithErrorHandling<P extends { state: State }, R>(
   func: (params: P) => Promise<R>,
   parameters: P,
-  errors: Error[]
+  errors: Error[],
+  perform: boolean = true
 ): Promise<R | null> {
   try {
-    return await func(parameters);
+    return perform ? await func(parameters) : null;
   } catch (error) {
     if (errors && Array.isArray(errors)) {
       errors.push(error);
     }
     return null;
   }
+}
+
+/**
+ * Performs an export given a function with its parameters with custom error handling that will just print the error if one is thrown and return null.
+ * @param func The export function.
+ * @param parameters The parameters to call the export function with. By default, it is { state }.
+ * @param errors Parameter to collect errors that occur.
+ * @param perform Performs and returns the export if true, otherwise returns null. Default: true
+ * @returns {Promise<R | null>} Returns the result of the export function, or null if an error is thrown or perform is false
+ */
+export async function exportWithErrorHandling<P extends { state: State }, R>(
+  func: (params: P) => Promise<R>,
+  parameters: P,
+  errors: Error[],
+  perform: boolean = true
+): Promise<R | null> {
+  return exportOrImportWithErrorHandling(func, parameters, errors, perform);
+}
+
+/**
+ * Performs an import given a function with its parameters with custom error handling that will just print the error if one is thrown and return null.
+ * @param func The import function.
+ * @param parameters The parameters to call the import function with. By default, it is { state }.
+ * @param errors Parameter to collect errors that occur.
+ * @param id Indicator id for the progress indicator
+ * @param type The type (plural) of the entities being imported
+ * @param perform Performs and returns the export if true, otherwise returns null. Default: true
+ * @returns {Promise<R | null>} Returns the result of the import function, or null if an error is thrown
+ */
+export async function importWithErrorHandling<P extends { state: State }, R>(
+  func: (params: P) => Promise<R>,
+  parameters: P,
+  errors: Error[],
+  id: string,
+  type: string,
+  perform: boolean = true
+): Promise<R | null> {
+  updateProgressIndicator({
+    id,
+    message: perform ? `Importing ${type}...` : `Skipping ${type}...`,
+    state: parameters.state,
+  });
+  return exportOrImportWithErrorHandling(func, parameters, errors, perform);
 }

@@ -3,9 +3,8 @@ import util from 'util';
 import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
-import { type IdObjectSkeletonInterface } from './ApiTypes';
+import { type AmConfigEntityInterface } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
-import { type AmServiceType } from './ServiceApi';
 
 const oAuth2ProviderServiceURLTemplate =
   '%s/json%s/realm-config/services/oauth-oidc';
@@ -20,7 +19,7 @@ const getApiConfig = () => {
   };
 };
 
-export type OAuth2ProviderSkeleton = IdObjectSkeletonInterface & {
+export type OAuth2ProviderSkeleton = AmConfigEntityInterface & {
   advancedOIDCConfig: {
     supportedRequestParameterEncryptionEnc?: string[];
     authorisedOpenIdConnectSSOClients?: string[];
@@ -159,7 +158,6 @@ export type OAuth2ProviderSkeleton = IdObjectSkeletonInterface & {
     cibaAuthReqIdLifetime: number;
     [k: string]: string | number | boolean | string[] | object | undefined;
   };
-  _type?: AmServiceType;
   [k: string]: string | number | boolean | string[] | object | undefined;
 };
 
