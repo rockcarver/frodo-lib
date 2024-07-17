@@ -62,18 +62,26 @@ switch (process.env.FRODO_POLLY_MODE) {
 export function setDefaultState(
   deployment = Constants.CLOUD_DEPLOYMENT_TYPE_KEY
 ) {
+  const classicHostUrl = 'http://openam-frodo-dev.classic.com:8080/am';
+  const classicRealm = '';
+  const cloudHostUrl = 'https://openam-frodo-dev.forgeblocks.com/am';
+  const cloudRealm = 'alpha';
   switch (process.env.FRODO_DEPLOY || deployment) {
     case Constants.CLASSIC_DEPLOYMENT_TYPE_KEY:
       state.setHost(
-        process.env.FRODO_HOST || 'http://openam-frodo-dev.classic.com:8080/am'
+        process.env.FRODO_HOST === cloudHostUrl
+          ? classicHostUrl
+          : process.env.FRODO_HOST || classicHostUrl
       );
-      state.setRealm(process.env.FRODO_REALM || '');
+      state.setRealm(
+        process.env.FRODO_REALM === cloudRealm
+          ? classicRealm
+          : process.env.FRODO_REALM || classicRealm
+      );
       break;
     default:
-      state.setHost(
-        process.env.FRODO_HOST || 'https://openam-frodo-dev.forgeblocks.com/am'
-      );
-      state.setRealm(process.env.FRODO_REALM || 'alpha');
+      state.setHost(process.env.FRODO_HOST || cloudHostUrl);
+      state.setRealm(process.env.FRODO_REALM || cloudRealm);
       break;
   }
   state.setDeploymentType(process.env.FRODO_DEPLOY || deployment);
