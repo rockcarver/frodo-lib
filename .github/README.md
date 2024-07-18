@@ -27,6 +27,25 @@ Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the comma
 
 Removing the singleton pattern and introducing multi-instantiability forced a radical redesign of the core library functions while striving to maintain the basic usage pattern. The library is now exposing two main types describing its modules ([Frodo](https://rockcarver.github.io/frodo-lib/types/Reference.Frodo.html)) and state ([State](https://rockcarver.github.io/frodo-lib/types/Reference.State.html)). Each module in turn exports all its collection of functions as a type as well. Exposing the library structure as types enables auto-completion for both JS and TS developers with properly configured IDEs like Visual Studio Code or other and also serves as an abstraction layer between what the library exposes vs what and how it's implemented.
 
+#### New `FrodoError` Class
+
+All the errors thrown by the library are of the class `FrodoError`, introduced in 2.x. The new error class addresses the following challenges of earlier library versions:
+
+- Allows applications using the library to determine if the error originated in the library or is an unexpected and unhandled error from deeper down the stack.
+- Nesting of errors:
+
+  When the library throws because it caught an error thrown deeper down the stack, it wraps the caught `Error` in a `FrodoError`.
+
+- Nesting of arrays of errors
+
+  The library supports many operation that require a number of actions to occur in a row or in parallel. Often these operations are REST API calls and any of those calls may fail for any reason. To preserve status of every operation, `FrodoError` can also wrap an array of errors, each of which may be another instance of `FrodoError` wrapping an individual or an array of errors.
+
+- Provides a stack-like combined error message concatenating the messages of all wrapped errors and nested errors.
+
+- Includes standardized fields to surface network errors in case the `Error` on top of the stack is an `AxiosError`.
+
+- The new `printError` function recognizes `FrodoError` and prints a uniformly formatted expression of the error including an interpretation of the fields for network stack errors.
+
 ### New Modules
 
 The following modules have been updated and/or added since [1.x](https://github.com/rockcarver/frodo-lib/tree/1.x):
