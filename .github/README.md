@@ -89,6 +89,21 @@ You can change the default location of the cache file (`~/.frodo/TokenCache.json
 
 The 2.x version of the library automatically refreshes session and access tokens before they expire. Combined with the new token cache, the library will maintain a set of valid tokens in `state` at all times until it is shut down. If you do not want to automatically refresh tokens, set the `autoRefresh` parameter (2nd param) of your `frodo.login.getTokens()` call to `false`.
 
+### Node.js Versions
+
+- Dropped support for Node.js 14 and 16.
+- Kept supporting Node.js 18.
+- Added support for Node.js 20 and 22.
+
+| Node.js |      frodo-lib 1.x | ***frodo-lib 2.x*** |      frodo-lib 3.x |
+| :-----: | :----------------: | :----------------: | :----------------: |
+|   14    | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: |
+|   16    | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: |
+|   18    | :white_check_mark: | :white_check_mark: | :heavy_minus_sign: |
+|   20    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: |
+|   22    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: |
+|   24    | :heavy_minus_sign: | :heavy_minus_sign: | :white_check_mark: |
+
 ## Considerations
 
 ### Platform Passwords And Secrets
