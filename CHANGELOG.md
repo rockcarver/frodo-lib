@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Multi-Instantiability
 
-2.x introduces breaking changes to support multiple instances of the library to run concurrently and connect to multiple different ForgeRock Identity Platform instances at the same time. [1.x](https://github.com/rockcarver/frodo-lib/tree/1.x) operates using a global singleton, making it impossible to connect to more than one platform instance at a time.
+2.x introduces breaking changes to support multiple instances of the library to run concurrently and connect to multiple different Ping Identity Platform instances at the same time. [1.x](https://github.com/rockcarver/frodo-lib/tree/1.x) operates using a global singleton, making it impossible to connect to more than one platform instance at a time.
 
 #### New Library Structure
 

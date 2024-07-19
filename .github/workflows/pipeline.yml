@@ -214,7 +214,7 @@ jobs:
       - name: Add next tag
         if: ${{ ! fromJSON(needs.build.outputs.preRelease) }}
         run: |
-          export INPUT_TOKEN=${{ secrets.NPM_ACCESS_TOKEN }}
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_ACCESS_TOKEN }}" >> ~/.npmrc
           npm whoami
           npm dist-tag add @rockcarver/frodo-lib@${{ needs.build.outputs.newVersion }} next
 
