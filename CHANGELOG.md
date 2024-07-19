@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2024-07-19
+
 ### Changed
 
 #### Multi-Instantiability
@@ -22,6 +24,7 @@ Removing the singleton pattern and introducing multi-instantiability forced a ra
 All the errors thrown by the library are of the class `FrodoError`, introduced in 2.x. The new error class addresses the following challenges of earlier library versions:
 
 - Allows applications using the library to determine if the error originated in the library or is an unexpected and unhandled error from deeper down the stack.
+
 - Nesting of errors:
 
   When the library throws because it caught an error thrown deeper down the stack, it wraps the caught `Error` in a `FrodoError`.
@@ -104,14 +107,14 @@ The 2.x version of the library automatically refreshes session and access tokens
 - Kept supporting Node.js 18.
 - Added support for Node.js 20 and 22.
 
-| Node.js |   frodo-lib 1.x    | **_frodo-lib 2.x_** |   frodo-lib 3.x    |
+| Node.js |    frodo-lib 1.x   | **_frodo-lib 2.x_** |    frodo-lib 3.x   |
 | :-----: | :----------------: | :-----------------: | :----------------: |
-|   14    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
-|   16    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
-|   18    | :white_check_mark: | :white_check_mark:  | :heavy_minus_sign: |
-|   20    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
-|   22    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
-|   24    | :heavy_minus_sign: | :heavy_minus_sign:  | :white_check_mark: |
+|    14   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
+|    16   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
+|    18   | :white_check_mark: |  :white_check_mark: | :heavy_minus_sign: |
+|    20   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
+|    22   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
+|    24   | :heavy_minus_sign: |  :heavy_minus_sign: | :white_check_mark: |
 
 ### Considerations
 
@@ -1638,7 +1641,8 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-96...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-96...v2.0.0
 [2.0.0-96]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-95...v2.0.0-96
 [2.0.0-95]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-94...v2.0.0-95
 [2.0.0-94]: https://github.com/rockcarver/frodo-lib/compare/v2.0.0-93...v2.0.0-94
