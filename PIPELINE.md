@@ -1,6 +1,6 @@
 # Frodo Library Release Pipeline
 
-The Frodo Library project uses a fully automated release [pipeline](../.github/workflows/pipeline.yml) based on GitHub workflows:
+The Frodo Library project uses a fully automated release [pipeline](../.github/workflows/pipeline.yml) based on GitHub workflows and actions ([check GitHub services status](https://www.githubstatus.com/)):
 
 ![Frodo Library Release Pipeline Workflow](resources/images/release_pipeline.png)
 
@@ -45,8 +45,6 @@ Maintainers must use an appropriate trigger phrase (see: [Every Push Triggers A 
 Maintainers must adhere to the [guidelines set forth by the npm project](https://docs.npmjs.com/about-semantic-versioning#incrementing-semantic-versions-in-published-packages) to determine the appropriate release type:
 
 ![NPM Versioning Guidelines](resources/images/npm_versioning_guidelines.png)
-
-Frodo is currently in a pre-1.0.0 phase. We are striving to release 1.0.0 very soon.
 
 ## Current Pipeline Explained
 
