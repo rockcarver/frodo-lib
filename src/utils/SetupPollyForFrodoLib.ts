@@ -249,6 +249,13 @@ export function setupPollyForFrodoLib({
         .any('/am/json/*')
         .recordingName(`${getFrodoCommand({ state })}/am`);
       polly.server
+        .any(['/am/json/*/authenticate', '/am/json/*/sessions'])
+        .on('request', (req) => {
+          req.configure({
+            matchRequestsBy: authenticationMatchRequestsBy(),
+          });
+        });
+      polly.server
         .any('/am/saml2/*')
         .recordingName(`${getFrodoCommand({ state })}/saml2`);
       polly.server
