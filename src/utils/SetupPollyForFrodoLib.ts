@@ -8,7 +8,11 @@ import path from 'path';
 
 import { State } from '../shared/State';
 import { debugMessage, printMessage } from './Console';
-import { defaultMatchRequestsBy, filterRecording } from './PollyUtils';
+import {
+  defaultMatchRequestsBy,
+  filterRecording,
+  Recording,
+} from './PollyUtils';
 
 const FRODO_MOCK_HOSTS = process.env.FRODO_MOCK_HOSTS
   ? process.env.FRODO_MOCK_HOSTS.split(',')
@@ -249,11 +253,24 @@ export function setupPollyForFrodoLib({
         .any('/am/json/*')
         .recordingName(`${getFrodoCommand({ state })}/am`);
       polly.server
-        .any(['/am/json/*/authenticate', '/am/json/*/sessions'])
+        .any([
+          '/am/json/*/authenticate',
+          '/am/json/*/sessions/?_action=getSessionInfo',
+        ])
         .on('request', (req) => {
           req.configure({
             matchRequestsBy: authenticationMatchRequestsBy(),
           });
+        });
+      polly.server
+        .any('/am/json/*/sessions/?_action=getSessionInfo')
+        .on('beforeReplay', (_, recording: Recording) => {
+          // Set session expiration to be a day in advance of the current day so it's not expired.
+          const body = JSON.parse(recording.response.content.text);
+          const date = new Date();
+          date.setDate(date.getDate() + 1);
+          body.maxIdleExpirationTime = date.toISOString();
+          recording.response.content.text = JSON.stringify(body);
         });
       polly.server
         .any('/am/saml2/*')
