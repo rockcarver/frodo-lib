@@ -1,5 +1,22 @@
 import { decode, encode, isBase64Encoded } from './Base64Utils';
 
+export type Recording = {
+  request: {
+    headers: [{ name: string; value: string }];
+    postData: { mimeType: string; text: any };
+  };
+  response: {
+    content: { mimeType: string; text: any };
+    cookies: {
+      httpOnly: boolean;
+      name: string;
+      path: string;
+      value: string;
+    }[];
+    headers: [{ name: string; value: string }];
+  };
+};
+
 export function defaultMatchRequestsBy(protocol: boolean = true) {
   return {
     method: true,
@@ -19,22 +36,7 @@ export function defaultMatchRequestsBy(protocol: boolean = true) {
   };
 }
 
-export function filterRecording(recording: {
-  request: {
-    headers: [{ name: string; value: string }];
-    postData: { mimeType: string; text: any };
-  };
-  response: {
-    content: { mimeType: string; text: any };
-    cookies: {
-      httpOnly: boolean;
-      name: string;
-      path: string;
-      value: string;
-    }[];
-    headers: [{ name: string; value: string }];
-  };
-}) {
+export function filterRecording(recording: Recording) {
   // request headers
   if (recording.request?.headers) {
     recording.request.headers.forEach(obfuscateHeader);
