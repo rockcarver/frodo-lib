@@ -33,7 +33,6 @@ export default defineConfig({
     'eslint-plugin-simple-import-sort',
     'jest',
     'jest-jasmine2',
-    'loglevel',
     'map-stream',
     'mock-fs',
     'prettier',
