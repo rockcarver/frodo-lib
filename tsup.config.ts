@@ -36,7 +36,6 @@ export default defineConfig({
     'jest-jasmine2',
     'map-stream',
     'mock-fs',
-    'node-forge',
     'prettier',
     'rimraf',
     'setup-polly-jest',
