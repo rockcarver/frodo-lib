@@ -18,6 +18,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { cloneDeep } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
 
@@ -360,6 +361,7 @@ export async function putFullService({
       message: `ServiceOps.putFullService: start, serviceId=${serviceId}, globalConfig=${globalConfig}`,
       state,
     });
+    const fullServiceDataCopy = cloneDeep(fullServiceData);
     const nextDescendents = fullServiceData.nextDescendents;
 
     delete fullServiceData.nextDescendents;
@@ -388,8 +390,14 @@ export async function putFullService({
     // delete location field before adding or updating the service
     delete fullServiceData.location;
 
+    // special-case email service, which may contain circular dependency
+    if (serviceId === 'email' && fullServiceData.transportType) {
+      // delete transport type so we can set it later from fullServiceDataCopy
+      delete fullServiceData.transportType;
+    }
+
     // create service first
-    const result = await putService({
+    let result = await putService({
       serviceId,
       serviceData: fullServiceData,
       globalConfig,
@@ -433,7 +441,24 @@ export async function putFullService({
         return result;
       })
     );
+
+    // special-case email service, which may contain circular dependency
+    if (serviceId === 'email' && fullServiceDataCopy.transportType) {
+      // delete transport type so we can set it later from fullServiceDataCopy
+      fullServiceData.transportType = fullServiceDataCopy.transportType;
+
+      // create service first
+      result = await putService({
+        serviceId,
+        serviceData: fullServiceData,
+        globalConfig,
+        state,
+      });
+    }
+
+    // finally add nextDescendentResult
     result.nextDescendents = nextDescendentResult;
+
     debugMessage({
       message: `ServiceOps.putFullService: end (w/ descendents)`,
       state,
