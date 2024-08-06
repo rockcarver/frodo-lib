@@ -10,6 +10,9 @@ import CirclesOfTrustOps, { CirclesOfTrust } from '../ops/CirclesOfTrustOps';
 import AdminFederationOps, {
   AdminFederation,
 } from '../ops/cloud/AdminFederationOps';
+import EnvCertificatesOps, {
+  EnvCertificate,
+} from '../ops/cloud/EnvCertificatesOps';
 import EnvCSRsOps, { EnvCSR } from '../ops/cloud/EnvCSRsOps';
 import EsvCountOps, { EsvCount } from '../ops/cloud/EsvCountOps';
 import FeatureOps, { Feature } from '../ops/cloud/FeatureOps';
@@ -91,6 +94,7 @@ export type Frodo = {
   cloud: {
     adminFed: AdminFederation;
     env: {
+      cert: EnvCertificate;
       csr: EnvCSR;
     };
     esvCount: EsvCount;
@@ -238,6 +242,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     cloud: {
       adminFed: AdminFederationOps(state),
       env: {
+        cert: EnvCertificatesOps(state),
         csr: EnvCSRsOps(state),
       },
       esvCount: EsvCountOps(state),

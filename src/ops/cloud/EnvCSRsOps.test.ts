@@ -461,7 +461,7 @@ csr7.id:          ${csr7._stagingId}\n\
 
   describe('deleteCSRs()', () => {
     test('0: Method is implemented', async () => {
-      expect(EnvCSRsOps.deleteCSR).toBeDefined();
+      expect(EnvCSRsOps.deleteCSRs).toBeDefined();
     });
 
     test(`1: Delete all CSRs - success`, async () => {

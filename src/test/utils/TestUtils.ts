@@ -1,38 +1,162 @@
+/* eslint-disable no-console */
+import { isIP } from 'net';
 import forge from 'node-forge';
 
-let key = '';
-key += '-----BEGIN RSA PRIVATE KEY-----\n';
-key += 'MIIEpAIBAAKCAQEAng+4KFn/zzksNx9vJj2K6qSDiPqEtsZz3zOhuUZ9O0ot9HFk\n';
-key += 'w73tsBwGMbM3RdyB0jIlBPtsxD1z99QKQOXx8Ifl6JWgR84BMFkBtAr8BRj4uzRq\n';
-key += 'jcl4qo6UiFkGdcgeBd/ROvmmHpcoe+6IM9cc4pkeTiOlQh2A5PqTO34v042qPpTg\n';
-key += 'aKMORArgCiIi1LZ5zM/JKMn5TtL6/T5dokKTJ65bASLMEG8cjSiuqcsfavb0rLnP\n';
-key += '/lRyg0sicLHNSqUoHs9fA9j2dQxLi0HOVLQuFlFgxFWOyEomGh2y3OttGbROVWUS\n';
-key += '0k2oNNS+3T3U2wjIGtu0Y9pes6UPxanYqUL2TQIDAQABAoIBAAHnSWzTxsTE/TDT\n';
-key += 'BC978NkqEyfXG7GTIAsZ6HFxlV7U6qBLAsJ5XjstRVp974U79UbOYOuM33Hhr3Dw\n';
-key += 'CFYcm5iC6evZBflph2NnKjMNkALvCY1jDk8tR1B+xQE28pQRiS59ZSjRF02czjMJ\n';
-key += 'vejDPqa03wPswAj3ByA/EbqjyMDtqvA7iFfep/bBzmzvPqD4bwhVUTwcFLRpxlHQ\n';
-key += 'Ws79QShhTWPO15fsLadtXNSGXlPkVf46R96OV4GQvzNLl81itMKzfqTVS4dpYJIn\n';
-key += 'ZMEdE8cm9lMaNnD/dZ3jELXbpMceW+QM2KAp/TaP8A8PgGt2a4oEeC8ixDYyBI6q\n';
-key += 'BqHovtECgYEAyivRrwQ30JLxZZEE5dmhRgYQPKNP/74AQ6YjOEiM1PylzjOkaC0q\n';
-key += 'SdxsiPwR0FCXa3P39MQSqEGNFoVeChtXlybHb7um0WFw8cc57widpvYGDEhxLszv\n';
-key += 'E7k3jCqgGIMn2ZjXb9BchaXtw/pd+iRm+5HTxwtF16rAQ5GwKe4adxkCgYEAyCVW\n';
-key += 'HeAh0Luxvb55JI/e3r0LWkd8Mo8DahdHfXzk2NomTdcNVmqabj5Qp86ogCjwLOiH\n';
-key += 'TzKpyHhvUALxcrSzcgAchG1P8dXjj1+NygyI2QeY1tjam67slpMmKP3t92j+7qxg\n';
-key += 'hn4X6jXIV59zoXw+f9UR+2DmZIjeMirxGUjZI1UCgYAL1vEarMaQAmr8pbeBtnMJ\n';
-key += 'ZMWCp5XBxmDBlXMukqEcwAb9wmx4ZVy6opwAkbKBXpbfhhUZUno9PEmE7h6JvPwu\n';
-key += 'L+kyE+07CdfRcPdllj2VT4cfJQbr1LiTkR89qClkBhpJVfgX5j3k3cjE1161jXgy\n';
-key += 'd2HNoE1gyfEkg92rNvR50QKBgQC/32tLgM9qOEYRTUT91B8pEbqMdfOO1KPFVUPn\n';
-key += '/Y+2hIwsG3ph2hjqjzrrZKcNFjIKG3F8b2ltEmhEIE4wVSOiqpCsM89sXEyn6kcX\n';
-key += '6CRZS3sunP4WOf/96luu+KDliva7AO4YgVGT6rOBrQ9BRMb17eIrR54Xy06Ycapp\n';
-key += 'PvlLcQKBgQDCNhjxMTmZ5nmdgLz/keLMD66UIR0IagN4f/KTI03iAZuXqfXH6Krh\n';
-key += 'Etl8aNHPnF047ZhlJWZZ+zKapPZVpIVFtnGN3hKTBga4I/yGz11B9JLX6P1CKOK3\n';
-key += '1RO/QYLVcY4EEm+wkmVbpyzQTmAfPOyA3cwC22s4tQn/yXRWkGGSig==\n';
-key += '-----END RSA PRIVATE KEY-----';
+import { CSR } from '../../api/cloud/EnvCSRsApi';
+import { FrodoError } from '../../ops/FrodoError';
+
+const pki = forge.pki;
+
+const privateKey =
+  '-----BEGIN RSA PRIVATE KEY-----\r\n' +
+  'MIIEogIBAAKCAQEAm/kYQnXXlWEf9XkmeSolcuBWYkieScyQO8ePq2++GmZSKy3+\r\n' +
+  'J9ClCPigPq+y8ycFLS/ztQGiz/2LKvOlFzv3nmfxDXr21NrMYoqUyXsbf+MXIWif\r\n' +
+  '9h9akeHXeOsNypnfnYHZ9K7acQGa5/yMsxm8PlvCBzneQPwksC3hXzS0oyu4ja+J\r\n' +
+  '5+OMDqCyzLO9+T4fzEOIWB83NymXx5oJo10x4jk8ptb76nZELHz2wu0SPZHWMOp8\r\n' +
+  'xOGd7h0QEIqqachEAASvSArpNWxAzV35ajjIOXyE5oujuWbV6tw0tnKXs3onlRum\r\n' +
+  'H/LfERv3Cwu+q4yYYLMrVkCJLR7+ohwqs3YUHwIDAQABAoIBABoor1xqJjOL/A+v\r\n' +
+  '93dnzasUG/jU5BNNhz03bY2bqp8D3TEXwCIOWLeF9148Gn+0YiZfffi0IwnOJLqZ\r\n' +
+  '7WzVpmR/W0re/inZ3mCCjIy0JHsQ666zPOzK+mYwIfLKPWBm6T2h6xuh/cnpMoFI\r\n' +
+  '9pINNWih/As5NeDhSQfxUfSlQsyAxALzoR08GA+exNnMShMHiQs9dPPDFjk5Jsjn\r\n' +
+  '/sJ+fnr/YT2zcQe7FjMfBY1nmH/dv+TvNi+BueWly6S93cZFxM6iZ/IuUT/e6P0L\r\n' +
+  'q05oEdxMOgh3ZPdl0PucZkJusc+n9SWxqGB1DPyT/mp+7GpMTlCnKDNAoGWEuEHM\r\n' +
+  '6I/OSqECgYEA1SJby8dHAMmA2h9LwcMp2vu7HIp7kOT5K5DFRXrLYicQGcCp6l+Q\r\n' +
+  'pKvzUPAFAsomRChQcQu7DnqtaNaUtDTEr4lt9jxQVVxj01NiPqYecF0HqTuuwzqM\r\n' +
+  'ihHjktHkGxMNcE/zaiqXOdmyPEUND24G2eUIj861nTzmb0KwDj3BkqECgYEAu1et\r\n' +
+  'mMWw+YjzcXx7Ey4cdyascod5nDqcNkWCaAhCaflfm5b7u79Ga8HFFOYnH0oYvhhp\r\n' +
+  '5qycUgxA9c72hTV6kgUcg7g8sVpN6zZmz+aNgnaFyGDSwjjwY+uSVLYUvZOJ5GF4\r\n' +
+  'ua3YczVROlZC57cVTjMO6Zcmx5n5AUCU34a47r8CgYBv3PmrCauFiT0cvoJHb0Rf\r\n' +
+  'j/HT+AcEtHjm2bQAVIO8v13e9lT4EzJai3lISMGIhkrxSOt3eb2yysaLGNyxfGSi\r\n' +
+  '8RGKxHsxYi1us/wDf7LILLuhohaGlws+SEdWPt1nLGfIQ94xIat/jHfU1DUXnRrx\r\n' +
+  'cBk/STHfFiCn0quOvfEEIQKBgDUvyTssNPhDJ0o62v4xAyfYtPC3AZGXGi5WQZWj\r\n' +
+  'cqd/guM7VDCTNzz0gC1UwhqiALBHYhl5O9AXZoHixh4/dpLqHJRQw/pd9u0mPr4b\r\n' +
+  'aGV3nLestWkqnSThBmRCZVUFBArwmUOt1Vuv8WWsg8YhNk1DNaKfpQTZ89WlLh7f\r\n' +
+  'srUlAoGAB1v7XQtrpczNCzqr3bgLpIpXMZ7y6IxNkKmkHfjnHxPBMxfAdqTxRx1w\r\n' +
+  'rWEvwlOUqzgWTxCG9DiPl1cTIrY3l20WS25D+nqAQkYJcvUfdcz/oCPQFmtRHbpr\r\n' +
+  'ZbGLhu2hrCr7NLXdnUC45bSnJrrRhyHwnVr3qqEz4XfjpJJjDAo=\r\n' +
+  '-----END RSA PRIVATE KEY-----\r\n';
+const publicKey =
+  '-----BEGIN PUBLIC KEY-----\r\n' +
+  'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAm/kYQnXXlWEf9XkmeSol\r\n' +
+  'cuBWYkieScyQO8ePq2++GmZSKy3+J9ClCPigPq+y8ycFLS/ztQGiz/2LKvOlFzv3\r\n' +
+  'nmfxDXr21NrMYoqUyXsbf+MXIWif9h9akeHXeOsNypnfnYHZ9K7acQGa5/yMsxm8\r\n' +
+  'PlvCBzneQPwksC3hXzS0oyu4ja+J5+OMDqCyzLO9+T4fzEOIWB83NymXx5oJo10x\r\n' +
+  '4jk8ptb76nZELHz2wu0SPZHWMOp8xOGd7h0QEIqqachEAASvSArpNWxAzV35ajjI\r\n' +
+  'OXyE5oujuWbV6tw0tnKXs3onlRumH/LfERv3Cwu+q4yYYLMrVkCJLR7+ohwqs3YU\r\n' +
+  'HwIDAQAB\r\n' +
+  '-----END PUBLIC KEY-----\r\n';
+
+export function getPrivateKey(): string {
+  return privateKey;
+}
+
+export function getPublicKey(): string {
+  return publicKey;
+}
+
+export function createSelfSignedCertificate(csr: CSR): string {
+  const cert = forge.pki.createCertificate();
+  cert.publicKey = pki.publicKeyFromPem(publicKey);
+  cert.serialNumber = csr.serialNumber || '01';
+  cert.validity.notBefore = new Date();
+  cert.validity.notAfter = new Date();
+  cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
+  const attrs = [
+    {
+      name: 'commonName',
+      value: csr.commonName,
+    },
+    {
+      name: 'countryName',
+      value: csr.country,
+    },
+    {
+      shortName: 'ST',
+      value: csr.state,
+    },
+    {
+      name: 'localityName',
+      value: csr.city,
+    },
+    {
+      name: 'organizationName',
+      value: csr.organization,
+    },
+    {
+      shortName: 'OU',
+      value: csr.organizationalUnit,
+    },
+  ];
+  cert.setSubject(attrs);
+  cert.setIssuer(attrs);
+  const ext: any[] = [
+    {
+      name: 'basicConstraints',
+      cA: true /*,
+    pathLenConstraint: 4*/,
+    },
+    {
+      name: 'keyUsage',
+      keyCertSign: true,
+      digitalSignature: true,
+      nonRepudiation: true,
+      keyEncipherment: true,
+      dataEncipherment: true,
+    },
+    {
+      name: 'extKeyUsage',
+      serverAuth: true,
+      clientAuth: true,
+      codeSigning: true,
+      emailProtection: true,
+      timeStamping: true,
+    },
+    {
+      name: 'nsCertType',
+      client: true,
+      server: true,
+      email: true,
+      objsign: true,
+      sslCA: true,
+      emailCA: true,
+      objCA: true,
+    },
+    {
+      name: 'subjectKeyIdentifier',
+    },
+  ];
+  const altNames = [];
+  for (const subjectAlternativeName of csr.subjectAlternativeNames) {
+    if (isIP(subjectAlternativeName)) {
+      altNames.push({
+        type: 7, // IP
+        ip: subjectAlternativeName,
+      });
+    } else {
+      altNames.push({
+        type: 6, // URI
+        value: subjectAlternativeName,
+      });
+    }
+  }
+  ext.push({
+    name: 'subjectAltName',
+    altNames,
+  });
+  cert.setExtensions(ext);
+  // FIXME: add authorityKeyIdentifier extension
+
+  // self-sign certificate
+  cert.sign(pki.privateKeyFromPem(privateKey));
+
+  // PEM-format keys and cert
+  const pem = forge.pki.certificateToPem(cert);
+
+  return pem;
+}
 
 export function issueSelfSignedCertificate(csrpem: string): string {
-  const pki = forge.pki;
   const csr = pki.certificationRequestFromPem(csrpem);
-  // eslint-disable-next-line no-console
   // console.debug(`subject attributes:`, csr.subject);
 
   const cert = pki.createCertificate();
@@ -70,10 +194,51 @@ export function issueSelfSignedCertificate(csrpem: string): string {
   cert.setExtensions(extensions);
 
   // self-sign certificate
-  cert.sign(pki.privateKeyFromPem(key));
+  cert.sign(pki.privateKeyFromPem(privateKey));
 
   // convert a Forge certificate to PEM
   const certpem = pki.certificateToPem(cert);
 
   return certpem;
+}
+
+/**
+ * Prints an error message from an error object and an optional custom message
+ *
+ * @param error error object
+ */
+export function printError(error: Error, message?: string) {
+  if (message) console.debug('' + message);
+  switch (error.name) {
+    case 'FrodoError':
+      console.debug('' + (error as FrodoError).getCombinedMessage());
+      console.debug(error.stack);
+      break;
+
+    case 'AxiosError': {
+      const code = error['code'];
+      const status = error['response'] ? error['response'].status : null;
+      const message = error['response']
+        ? error['response'].data
+          ? error['response'].data.message
+          : null
+        : null;
+      const detail = error['response']
+        ? error['response'].data
+          ? error['response'].data.detail
+          : null
+        : null;
+      let errorMessage = 'HTTP client error';
+      errorMessage += code ? `\n  Code: ${code}` : '';
+      errorMessage += status ? `\n  Status: ${status}` : '';
+      errorMessage += message ? `\n  Message: ${message}` : '';
+      errorMessage += detail ? `\n  Detail: ${detail}` : '';
+      console.debug(errorMessage);
+      break;
+    }
+
+    default:
+      console.debug(error.message);
+      break;
+  }
 }
