@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- \#432 - Support for Advanced Identitty Cloud ESV Count API (Location in library: `frodo.cloud.esvCount`)
+- \#433 - Support for Advanced Identitty Cloud Environment Certificate API  (Location in library: `frodo.cloud.env.cert`)
+- \#434 - Support for Advanced Identitty Cloud Environment CSR API (Location in library: `frodo.cloud.env.csr`)
+
+### Fixed
+
+- rockcarver/frodo-cli#428: Frodo Library now includes the `loglevel` dependency.
+
 ## [2.0.1] - 2024-08-05
 
 ### Fixed
