@@ -1,0 +1,358 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EnvCertificatesOps activateCertificate() 1: Activate existing certificate - success 1`] = `
+{
+  "active": true,
+  "expireTime": "2025-08-06T02:48:27Z",
+  "id": "ccrt-b3729622-714a-4e57-9630-7bf88b016678",
+  "issuer": "CN=frodo-dev8.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "live": false,
+  "subject": "CN=frodo-dev8.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "subjectAlternativeNames": null,
+  "validFromTime": "2024-08-06T02:48:27Z",
+}
+`;
+
+exports[`EnvCertificatesOps activateCertificate() 2: Activate existing certificate and wait until live - success 1`] = `
+{
+  "active": true,
+  "expireTime": "2025-08-06T02:48:27Z",
+  "id": "ccrt-10b36a92-5257-4d5c-bed6-12fc78aa25a3",
+  "issuer": "CN=frodo-dev8a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "live": true,
+  "subject": "CN=frodo-dev8a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "subjectAlternativeNames": null,
+  "validFromTime": "2024-08-06T02:48:27Z",
+}
+`;
+
+exports[`EnvCertificatesOps activateCertificate() 3: Activate non-existing certificate - error 1`] = `[FrodoError: Error updating certificate certificate-does-not-exist]`;
+
+exports[`EnvCertificatesOps createCertificate() 1: Create new certificate (inactive) - success 1`] = `
+{
+  "active": false,
+  "expireTime": "2025-08-06T02:48:27Z",
+  "id": "ccrt-cf865bde-d767-4e32-ad5b-4f5b1f01dc28",
+  "issuer": "CN=frodo-dev4.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "live": false,
+  "subject": "CN=frodo-dev4.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "subjectAlternativeNames": null,
+  "validFromTime": "2024-08-06T02:48:27Z",
+}
+`;
+
+exports[`EnvCertificatesOps createCertificate() 2: Create new certificate (active) - success 1`] = `
+{
+  "active": true,
+  "expireTime": "2025-08-06T02:48:27Z",
+  "id": "ccrt-e44c2938-6ad2-4793-9176-ddecff4b58c6",
+  "issuer": "CN=frodo-dev5.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "live": false,
+  "subject": "CN=frodo-dev5.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "subjectAlternativeNames": null,
+  "validFromTime": "2024-08-06T02:48:27Z",
+}
+`;
+
+exports[`EnvCertificatesOps deactivateCertificate() 1: Deactivate existing certificate - success 1`] = `
+{
+  "active": false,
+  "expireTime": "2025-08-06T02:48:27Z",
+  "id": "ccrt-33c74d96-e14e-4f8a-b928-3b7468afa959",
+  "issuer": "CN=frodo-dev9.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "live": true,
+  "subject": "CN=frodo-dev9.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "subjectAlternativeNames": null,
+  "validFromTime": "2024-08-06T02:48:27Z",
+}
+`;
+
+exports[`EnvCertificatesOps deactivateCertificate() 2: Deactivate existing certificate and wait until offline - success 1`] = `
+{
+  "active": false,
+  "expireTime": "2025-08-06T02:48:27Z",
+  "id": "ccrt-c0bc87aa-54eb-42be-bbf6-75d3b64a4755",
+  "issuer": "CN=frodo-dev9a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "live": false,
+  "subject": "CN=frodo-dev9a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "subjectAlternativeNames": null,
+  "validFromTime": "2024-08-06T02:48:27Z",
+}
+`;
+
+exports[`EnvCertificatesOps deactivateCertificate() 3: Deactivate non-existing certificate - error 1`] = `[FrodoError: Error updating certificate certificate-does-not-exist]`;
+
+exports[`EnvCertificatesOps deleteCertificate() 1: Delete existing inactive certificate - success 1`] = `
+{
+  "active": false,
+  "expireTime": "2025-08-06T02:48:26Z",
+  "id": "ccrt-d4a09ab8-c0ed-4310-9618-6cf3122386a2",
+  "issuer": "CN=frodo-dev3.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "live": false,
+  "subject": "CN=frodo-dev3.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "subjectAlternativeNames": null,
+  "validFromTime": "2024-08-06T02:48:26Z",
+}
+`;
+
+exports[`EnvCertificatesOps deleteCertificate() 2: Delete existing active and live certificate - error 1`] = `[FrodoError: Error deleting certificate ccrt-094b98be-e88d-4a47-b950-c8dccc420013]`;
+
+exports[`EnvCertificatesOps deleteCertificate() 3: Force delete existing active and live certificate - success 1`] = `
+{
+  "active": false,
+  "expireTime": "2025-08-06T02:48:27Z",
+  "id": "ccrt-031423ec-ac94-42c4-a92c-c56792d61f3f",
+  "issuer": "CN=frodo-dev7.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "live": false,
+  "subject": "CN=frodo-dev7.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "subjectAlternativeNames": null,
+  "validFromTime": "2024-08-06T02:48:27Z",
+}
+`;
+
+exports[`EnvCertificatesOps deleteCertificate() 4: Delete non-existing certificate - error 1`] = `[FrodoError: Error deleting certificate certificate-does-not-exist]`;
+
+exports[`EnvCertificatesOps deleteCertificates() 1: Delete all (inactive) certificates - success 1`] = `
+[
+  {
+    "active": false,
+    "expireTime": "2025-08-06T03:00:38Z",
+    "id": "ccrt-4597115e-39d8-4fd8-802f-403c8b95985c",
+    "issuer": "CN=frodo-dev12b.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": false,
+    "subject": "CN=frodo-dev12b.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T03:00:38Z",
+  },
+  {
+    "active": false,
+    "expireTime": "2025-08-06T03:00:38Z",
+    "id": "ccrt-8f0af0d3-b1f3-4b9c-82f8-ad078faf4ed4",
+    "issuer": "CN=frodo-dev12.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": false,
+    "subject": "CN=frodo-dev12.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T03:00:38Z",
+  },
+  {
+    "active": false,
+    "expireTime": "2025-08-06T03:00:38Z",
+    "id": "ccrt-b3ad07f9-39a1-421d-8cb6-46d510dde6d8",
+    "issuer": "CN=frodo-dev12a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": false,
+    "subject": "CN=frodo-dev12a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T03:00:38Z",
+  },
+]
+`;
+
+exports[`EnvCertificatesOps deleteCertificates() 2: Delete all (active and live) certificates - error 1`] = `[FrodoError: Error deleting certificates]`;
+
+exports[`EnvCertificatesOps deleteCertificates() 3: Force delete all (active and live) certificates - success 1`] = `
+[
+  {
+    "active": false,
+    "expireTime": "2025-08-06T03:09:08Z",
+    "id": "ccrt-19d21025-c2dc-446b-a1bb-2ed880247ce2",
+    "issuer": "CN=frodo-dev14.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": false,
+    "subject": "CN=frodo-dev14.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T03:09:08Z",
+  },
+  {
+    "active": false,
+    "expireTime": "2025-08-06T03:09:09Z",
+    "id": "ccrt-536f4f4e-1ea0-459b-9656-a9fd57d0f9dc",
+    "issuer": "CN=frodo-dev14b.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": false,
+    "subject": "CN=frodo-dev14b.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T03:09:09Z",
+  },
+  {
+    "active": false,
+    "expireTime": "2025-08-06T03:09:09Z",
+    "id": "ccrt-d2d59cd6-9f31-46a9-84b0-90b077aa9b59",
+    "issuer": "CN=frodo-dev14a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": false,
+    "subject": "CN=frodo-dev14a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T03:09:09Z",
+  },
+]
+`;
+
+exports[`EnvCertificatesOps isCertificateActive() 3: Check if non-existing certificate is active - error 1`] = `[FrodoError: Error reading certificate certificate-does-not-exist]`;
+
+exports[`EnvCertificatesOps isCertificateLive() 1: Check if existing active certificate is already live - success 1`] = `true`;
+
+exports[`EnvCertificatesOps isCertificateLive() 1: Check if existing inactive certificate is still live - success 1`] = `false`;
+
+exports[`EnvCertificatesOps isCertificateLive() 2: Check if non-existing certificate is live - error 1`] = `[FrodoError: Error reading certificate certificate-does-not-exist]`;
+
+exports[`EnvCertificatesOps readCertificate() 1: Read existing certificate - success 1`] = `
+{
+  "active": false,
+  "expireTime": "2025-08-06T02:48:26Z",
+  "id": "ccrt-cfa8ea7d-3917-46a4-9b89-a05164b03233",
+  "issuer": "CN=frodo-dev1.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "live": false,
+  "subject": "CN=frodo-dev1.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "subjectAlternativeNames": null,
+  "validFromTime": "2024-08-06T02:48:26Z",
+}
+`;
+
+exports[`EnvCertificatesOps readCertificate() 2: Read non-existing certificate - error 1`] = `[FrodoError: Error reading certificate esv-does-not-exist]`;
+
+exports[`EnvCertificatesOps readCertificates() 1: Read all certificates - success 1`] = `
+[
+  {
+    "active": true,
+    "expireTime": "2025-08-06T02:48:27Z",
+    "id": "ccrt-031423ec-ac94-42c4-a92c-c56792d61f3f",
+    "issuer": "CN=frodo-dev7.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": true,
+    "subject": "CN=frodo-dev7.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T02:48:27Z",
+  },
+  {
+    "active": true,
+    "expireTime": "2025-08-06T02:48:27Z",
+    "id": "ccrt-065f0531-2444-4e80-b1ed-9f6fdb2ccf8c",
+    "issuer": "CN=frodo-dev10.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": true,
+    "subject": "CN=frodo-dev10.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T02:48:27Z",
+  },
+  {
+    "active": true,
+    "expireTime": "2025-08-06T02:48:27Z",
+    "id": "ccrt-094b98be-e88d-4a47-b950-c8dccc420013",
+    "issuer": "CN=frodo-dev6.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": true,
+    "subject": "CN=frodo-dev6.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T02:48:27Z",
+  },
+  {
+    "active": false,
+    "expireTime": "2025-08-06T02:48:27Z",
+    "id": "ccrt-10b36a92-5257-4d5c-bed6-12fc78aa25a3",
+    "issuer": "CN=frodo-dev8a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": false,
+    "subject": "CN=frodo-dev8a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T02:48:27Z",
+  },
+  {
+    "active": false,
+    "expireTime": "2025-08-06T02:48:26Z",
+    "id": "ccrt-117a46d7-2504-4667-83ca-b11543c7909c",
+    "issuer": "CN=frodo-dev2.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": false,
+    "subject": "CN=frodo-dev2.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T02:48:26Z",
+  },
+  {
+    "active": true,
+    "expireTime": "2025-08-06T02:48:27Z",
+    "id": "ccrt-33c74d96-e14e-4f8a-b928-3b7468afa959",
+    "issuer": "CN=frodo-dev9.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": true,
+    "subject": "CN=frodo-dev9.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T02:48:27Z",
+  },
+  {
+    "active": false,
+    "expireTime": "2025-08-06T02:48:27Z",
+    "id": "ccrt-755aa779-0715-4cf3-940c-e46e246898d2",
+    "issuer": "CN=frodo-dev10a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": false,
+    "subject": "CN=frodo-dev10a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T02:48:27Z",
+  },
+  {
+    "active": true,
+    "expireTime": "2025-08-06T02:48:27Z",
+    "id": "ccrt-8181cca4-4f8d-48b0-a522-a2c1de4bc7f0",
+    "issuer": "CN=frodo-dev11.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": true,
+    "subject": "CN=frodo-dev11.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T02:48:27Z",
+  },
+  {
+    "active": false,
+    "expireTime": "2025-08-06T02:48:27Z",
+    "id": "ccrt-b0bf8790-4333-401a-84b3-b54782fd0fe2",
+    "issuer": "CN=frodo-dev11a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": false,
+    "subject": "CN=frodo-dev11a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T02:48:27Z",
+  },
+  {
+    "active": false,
+    "expireTime": "2025-08-06T02:48:27Z",
+    "id": "ccrt-b3729622-714a-4e57-9630-7bf88b016678",
+    "issuer": "CN=frodo-dev8.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": false,
+    "subject": "CN=frodo-dev8.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T02:48:27Z",
+  },
+  {
+    "active": true,
+    "expireTime": "2025-08-06T02:48:27Z",
+    "id": "ccrt-c0bc87aa-54eb-42be-bbf6-75d3b64a4755",
+    "issuer": "CN=frodo-dev9a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": true,
+    "subject": "CN=frodo-dev9a.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T02:48:27Z",
+  },
+  {
+    "active": false,
+    "expireTime": "2025-08-06T02:48:26Z",
+    "id": "ccrt-cfa8ea7d-3917-46a4-9b89-a05164b03233",
+    "issuer": "CN=frodo-dev1.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": false,
+    "subject": "CN=frodo-dev1.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T02:48:26Z",
+  },
+  {
+    "active": false,
+    "expireTime": "2025-08-06T02:48:26Z",
+    "id": "ccrt-d4a09ab8-c0ed-4310-9618-6cf3122386a2",
+    "issuer": "CN=frodo-dev3.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "live": false,
+    "subject": "CN=frodo-dev3.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+    "subjectAlternativeNames": null,
+    "validFromTime": "2024-08-06T02:48:26Z",
+  },
+]
+`;
+
+exports[`EnvCertificatesOps updateCertificate() 1: Update existing certificate to active - success 1`] = `
+{
+  "active": true,
+  "expireTime": "2025-08-06T02:48:26Z",
+  "id": "ccrt-117a46d7-2504-4667-83ca-b11543c7909c",
+  "issuer": "CN=frodo-dev2.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "live": false,
+  "subject": "CN=frodo-dev2.mytestrun.com,OU=Frodo Library,O=Rockcarver,L=Georgetown,ST=Texas,C=US",
+  "subjectAlternativeNames": null,
+  "validFromTime": "2024-08-06T02:48:26Z",
+}
+`;
+
+exports[`EnvCertificatesOps updateCertificate() 2: Update non-existing certificate to active - error 1`] = `[FrodoError: Error updating certificate certificate-does-not-exist]`;

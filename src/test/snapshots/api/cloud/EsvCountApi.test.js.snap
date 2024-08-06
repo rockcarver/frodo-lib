@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[` EsvCountApi getEsvCount() 1: Get ESV count 1`] = `
+{
+  "secrets": 16,
+  "variables": 14,
+}
+`;
