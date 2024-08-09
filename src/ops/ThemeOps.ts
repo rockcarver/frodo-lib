@@ -579,11 +579,11 @@ export async function updateTheme({
     }
     themes.realm[realm] = realmThemes;
     const found = getRealmThemes({
-      themes: await putConfigEntity({
+      themes: (await putConfigEntity({
         entityId: THEMEREALM_ID,
         entityData: themes,
         state,
-      }),
+      })) as UiThemeRealmObject,
       realm,
     }).filter((theme) => theme._id === themeId);
     if (found.length === 1) {
@@ -639,11 +639,11 @@ export async function updateThemeByName({
     }
     themes['realm'][realm] = realmThemes;
     const found = getRealmThemes({
-      themes: await putConfigEntity({
+      themes: (await putConfigEntity({
         entityId: THEMEREALM_ID,
         entityData: themes,
         state,
-      }),
+      })) as UiThemeRealmObject,
       realm,
     }).filter((theme) => theme.name === themeName);
     if (found.length === 1) {
@@ -719,11 +719,11 @@ export async function updateThemes({
     themes.realm[realm] = realmThemes;
     const updatedThemes: unknown = new Map(
       getRealmThemes({
-        themes: await putConfigEntity({
+        themes: (await putConfigEntity({
           entityId: THEMEREALM_ID,
           entityData: themes,
           state,
-        }),
+        })) as UiThemeRealmObject,
         realm,
       }).map((theme) => [theme._id, theme])
     );
@@ -799,11 +799,11 @@ export async function deleteTheme({
       throw new FrodoError(`'${themeId}' not found in realm '${realm}'`);
     themes.realm[realm] = finalThemes;
     const undeletedThemes = getRealmThemes({
-      themes: await putConfigEntity({
+      themes: (await putConfigEntity({
         entityId: THEMEREALM_ID,
         entityData: themes,
         state,
-      }),
+      })) as UiThemeRealmObject,
       realm,
     }).filter((theme) => deletedThemes.includes(theme));
     if (deletedThemes.length > 0 && undeletedThemes.length === 0) {
@@ -850,11 +850,11 @@ export async function deleteThemeByName({
       throw new FrodoError(`'${themeName}' not found in realm '${realm}'`);
     themes.realm[realm] = finalThemes;
     const undeletedThemes = getRealmThemes({
-      themes: await putConfigEntity({
+      themes: (await putConfigEntity({
         entityId: THEMEREALM_ID,
         entityData: themes,
         state,
-      }),
+      })) as UiThemeRealmObject,
       realm,
     }).filter((theme) => deletedThemes.includes(theme));
     if (deletedThemes.length > 0 && undeletedThemes.length === 0) {

@@ -66,21 +66,25 @@ export type IdmConfig = {
    * Create config entity
    * @param {string} entityId config entity id/name
    * @param {IdObjectSkeletonInterface} entityData config entity data
+   * @param {boolean} wait delay the response until an OSGi service event confirms the change has been consumed by the corresponding service or the request times out.
    * @returns {IdObjectSkeletonInterface} promise resolving to a config entity
    */
   createConfigEntity(
     entityId: string,
-    entityData: IdObjectSkeletonInterface
+    entityData: IdObjectSkeletonInterface,
+    wait?: boolean
   ): Promise<IdObjectSkeletonInterface>;
   /**
    * Update or create config entity
    * @param {string} entityId config entity id/name
    * @param {IdObjectSkeletonInterface} entityData config entity data
+   * @param {boolean} wait delay the response until an OSGi service event confirms the change has been consumed by the corresponding service or the request times out.
    * @returns {IdObjectSkeletonInterface} promise resolving to a config entity
    */
   updateConfigEntity(
     entityId: string,
-    entityData: IdObjectSkeletonInterface
+    entityData: IdObjectSkeletonInterface,
+    wait?: boolean
   ): Promise<IdObjectSkeletonInterface>;
   /**
    * Import idm config entities.
@@ -206,15 +210,17 @@ export default (state: State): IdmConfig => {
     },
     async createConfigEntity(
       entityId: string,
-      entityData: IdObjectSkeletonInterface
+      entityData: IdObjectSkeletonInterface,
+      wait: boolean = false
     ): Promise<IdObjectSkeletonInterface> {
-      return createConfigEntity({ entityId, entityData, state });
+      return createConfigEntity({ entityId, entityData, wait, state });
     },
     async updateConfigEntity(
       entityId: string,
-      entityData: IdObjectSkeletonInterface
+      entityData: IdObjectSkeletonInterface,
+      wait: boolean = false
     ): Promise<IdObjectSkeletonInterface> {
-      return updateConfigEntity({ entityId, entityData, state });
+      return updateConfigEntity({ entityId, entityData, wait, state });
     },
     async importConfigEntities(
       importData: ConfigEntityExportInterface,
@@ -482,10 +488,12 @@ export async function exportConfigEntities({
 export async function createConfigEntity({
   entityId,
   entityData,
+  wait = false,
   state,
 }: {
   entityId: string;
   entityData: IdObjectSkeletonInterface;
+  wait?: boolean;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   debugMessage({ message: `IdmConfigOps.createConfigEntity: start`, state });
@@ -496,6 +504,7 @@ export async function createConfigEntity({
       const result = await updateConfigEntity({
         entityId,
         entityData,
+        wait,
         state,
       });
       debugMessage({ message: `IdmConfigOps.createConfigEntity: end`, state });
@@ -510,14 +519,21 @@ export async function createConfigEntity({
 export async function updateConfigEntity({
   entityId,
   entityData,
+  wait = false,
   state,
 }: {
   entityId: string;
   entityData: IdObjectSkeletonInterface;
+  wait?: boolean;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    const result = await _putConfigEntity({ entityId, entityData, state });
+    const result = await _putConfigEntity({
+      entityId,
+      entityData,
+      wait,
+      state,
+    });
     return result;
   } catch (error) {
     throw new FrodoError(`Error updating config entity ${entityId}`, error);

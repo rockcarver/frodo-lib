@@ -541,10 +541,12 @@ export async function updateMapping({
         entityData: { mappings },
         state,
       });
-      for (const mapping of sync.mappings.map((it: MappingSkeleton) => {
-        it._id = `sync/${it.name}`;
-        return it;
-      })) {
+      for (const mapping of (sync.mappings as MappingSkeleton[]).map(
+        (it: MappingSkeleton) => {
+          it._id = `sync/${it.name}`;
+          return it;
+        }
+      )) {
         if (mapping._id === mappingId) return mapping;
       }
     } catch (error) {
@@ -560,7 +562,7 @@ export async function updateMapping({
         entityData: mappingData,
         state,
       });
-      return mapping;
+      return mapping as MappingSkeleton;
     } catch (error) {
       throw new FrodoError(`Error updating mapping ${mappingId}`, error);
     }
@@ -585,7 +587,7 @@ export async function updateLegacyMappings({
       entityData: { mappings },
       state,
     });
-    return sync.mappings;
+    return sync.mappings as MappingSkeleton[];
   } catch (error) {
     throw new FrodoError(`Error updating legacy mappings`, error);
   }

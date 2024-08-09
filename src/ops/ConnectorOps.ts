@@ -419,11 +419,12 @@ export async function updateConnector({
   state: State;
 }): Promise<ConnectorSkeleton> {
   try {
-    return putConfigEntity({
+    const connector = await putConfigEntity({
       entityId: `${CONNECTOR_TYPE}/${connectorId}`,
       entityData: connectorData,
       state,
     });
+    return connector as ConnectorSkeleton;
   } catch (error) {
     throw new FrodoError(`Error updating connector ${connectorId}`, error);
   }
@@ -453,10 +454,10 @@ export async function deleteConnectors({
           state,
         });
         result.push(
-          await deleteConfigEntity({
+          (await deleteConfigEntity({
             entityId: connector['_id'],
             state,
-          })
+          })) as ConnectorSkeleton
         );
       } catch (error) {
         errors.push(error);
@@ -492,10 +493,11 @@ export async function deleteConnector({
   state: State;
 }): Promise<ConnectorSkeleton> {
   try {
-    return deleteConfigEntity({
+    const connector = await deleteConfigEntity({
       entityId: `${CONNECTOR_TYPE}/${connectorId}`,
       state,
     });
+    return connector as ConnectorSkeleton;
   } catch (error) {
     throw new FrodoError(`Error deleting connector ${connectorId}`, error);
   }

@@ -110,12 +110,63 @@ describe('IdmConfigOps', () => {
       },
     },
   };
+  const configEntity4 = {
+    id: 'emailTemplate/FrodoTestConfigEntity4',
+    data: {
+      defaultLocale: 'en',
+      displayName: 'Frodo Test Email Template Four',
+      enabled: true,
+      from: '',
+      message: {
+        en: '<html><body><h3>You started a login or profile update that requires MFA. </h3><h4><a href="{{object.resumeURI}}">Click to Proceed</a></h4></body></html>',
+      },
+      mimeType: 'text/html',
+      subject: {
+        en: 'Multi-Factor Email for Identity Cloud login',
+      },
+    },
+  };
+  const configEntity5 = {
+    id: 'emailTemplate/FrodoTestConfigEntity5',
+    data: {
+      defaultLocale: 'en',
+      displayName: 'Frodo Test Email Template Five',
+      enabled: true,
+      from: '',
+      message: {
+        en: '<html><body><h3>You started a login or profile update that requires MFA. </h3><h4><a href="{{object.resumeURI}}">Click to Proceed</a></h4></body></html>',
+      },
+      mimeType: 'text/html',
+      subject: {
+        en: 'Multi-Factor Email for Identity Cloud login',
+      },
+    },
+  };
+  const configEntity6 = {
+    id: 'emailTemplate/FrodoTestConfigEntity6',
+    data: {
+      defaultLocale: 'en',
+      displayName: 'Frodo Test Email Template Six',
+      enabled: true,
+      from: '',
+      message: {
+        en: '<html><body><h3>You started a login or profile update that requires MFA. </h3><h4><a href="{{object.resumeURI}}">Click to Proceed</a></h4></body></html>',
+      },
+      mimeType: 'text/html',
+      subject: {
+        en: 'Multi-Factor Email for Identity Cloud login',
+      },
+    },
+  };
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
       await stageConfigEntity(configEntity1);
       await stageConfigEntity(configEntity2);
       await stageConfigEntity(configEntity3, false);
+      await stageConfigEntity(configEntity4, false);
+      await stageConfigEntity(configEntity5, false);
+      await stageConfigEntity(configEntity6, false);
     }
   });
   // in recording mode, remove test data after recording
@@ -124,6 +175,9 @@ describe('IdmConfigOps', () => {
       await stageConfigEntity(configEntity1, false);
       await stageConfigEntity(configEntity2, false);
       await stageConfigEntity(configEntity3, false);
+      await stageConfigEntity(configEntity4, false);
+      await stageConfigEntity(configEntity5, false);
+      await stageConfigEntity(configEntity6, false);
     }
   });
 
@@ -198,8 +252,33 @@ describe('IdmConfigOps', () => {
     test('1: Export config entities', async () => {
       const response = await IdmConfigOps.exportConfigEntities({ state });
       expect(response).toMatchSnapshot({
-        meta: expect.any(Object)
+        meta: expect.any(Object),
       });
+    });
+  });
+
+  describe('createConfigEntity()', () => {
+    test('0: Method is implemented', async () => {
+      expect(IdmConfigOps.createConfigEntity).toBeDefined();
+    });
+
+    test(`1: Create a config entity '${configEntity5.id}'`, async () => {
+      const response = await IdmConfigOps.createConfigEntity({
+        entityId: configEntity5.id,
+        entityData: configEntity5.data,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`2: Create a config entity '${configEntity6.id}' and wait for completion`, async () => {
+      const response = await IdmConfigOps.createConfigEntity({
+        entityId: configEntity6.id,
+        entityData: configEntity6.data,
+        wait: true,
+        state,
+      });
+      expect(response).toMatchSnapshot();
     });
   });
 
@@ -216,6 +295,16 @@ describe('IdmConfigOps', () => {
       });
       expect(response).toMatchSnapshot();
     });
+
+    test(`2: Update a config entity '${configEntity4.id}' and wait for completion`, async () => {
+      const response = await IdmConfigOps.updateConfigEntity({
+        entityId: configEntity4.id,
+        entityData: configEntity4.data,
+        wait: true,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
   });
 
   describe('importConfigEntities()', () => {
@@ -228,13 +317,13 @@ describe('IdmConfigOps', () => {
         idm: {
           [configEntity1.id]: configEntity1,
           [configEntity2.id]: configEntity2,
-          [configEntity3.id]: configEntity3
-        }
-      }
+          [configEntity3.id]: configEntity3,
+        },
+      };
       const response = await IdmConfigOps.importConfigEntities({
         importData,
         options: {
-          validate: false
+          validate: false,
         },
         state,
       });
@@ -246,13 +335,13 @@ describe('IdmConfigOps', () => {
         idm: {
           [configEntity1.id]: configEntity1,
           [configEntity2.id]: configEntity2,
-          [configEntity3.id]: configEntity3
-        }
-      }
+          [configEntity3.id]: configEntity3,
+        },
+      };
       const response = await IdmConfigOps.importConfigEntities({
         importData,
         options: {
-          validate: true
+          validate: true,
         },
         state,
       });

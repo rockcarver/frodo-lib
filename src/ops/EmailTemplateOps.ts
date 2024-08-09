@@ -364,11 +364,12 @@ export async function updateEmailTemplate({
   state: State;
 }): Promise<EmailTemplateSkeleton> {
   try {
-    return putConfigEntity({
+    const template = await putConfigEntity({
       entityId: `${EMAIL_TEMPLATE_TYPE}/${templateId}`,
       entityData: templateData,
       state,
     });
+    return template as EmailTemplateSkeleton;
   } catch (error) {
     throw new FrodoError(`Error updating email template ${templateId}`, error);
   }
@@ -443,10 +444,10 @@ export async function deleteEmailTemplates({
           state,
         });
         result.push(
-          await deleteConfigEntity({
+          (await deleteConfigEntity({
             entityId: template['_id'],
             state,
-          })
+          })) as EmailTemplateSkeleton
         );
       } catch (error) {
         errors.push(error);
@@ -482,10 +483,11 @@ export async function deleteEmailTemplate({
   state: State;
 }): Promise<EmailTemplateSkeleton> {
   try {
-    return deleteConfigEntity({
+    const template = await deleteConfigEntity({
       entityId: `${EMAIL_TEMPLATE_TYPE}/${templateId}`,
       state,
     });
+    return template as EmailTemplateSkeleton;
   } catch (error) {
     throw new FrodoError(`Error deleting email template ${templateId}`, error);
   }
