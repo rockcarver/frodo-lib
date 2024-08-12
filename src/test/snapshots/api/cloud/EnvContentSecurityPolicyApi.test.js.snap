@@ -1,0 +1,125 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EnvContentSecurityPolicyApi getEnforcedContentSecurityPolicy() 1: Get enforced content security policy - success 1`] = `
+{
+  "active": true,
+  "directives": {
+    "frame-ancestors": [
+      "'self'",
+    ],
+    "referrer": [
+      "'no-referrer'",
+      "'none-when-downgrade'",
+      "'origin'",
+      "'origin-when-cross-origin'",
+      "'unsafe-url'",
+    ],
+    "sandbox": [
+      "'allow-forms'",
+      "'allow-same-origin'",
+      "'allow-scripts'",
+      "'allow-top-navigation'",
+      "'allow-popups'",
+      "'allow-pointer-lock'",
+    ],
+    "script-src": [
+      "'self'",
+      "'unsafe-eval'",
+      "'unsafe-inline'",
+    ],
+  },
+}
+`;
+
+exports[`EnvContentSecurityPolicyApi getReportOnlyContentSecurityPolicy() 1: Get report-only content security policy - success 1`] = `
+{
+  "active": true,
+  "directives": {
+    "frame-ancestors": [
+      "'self'",
+    ],
+    "referrer": [
+      "'no-referrer'",
+      "'none-when-downgrade'",
+      "'origin'",
+      "'origin-when-cross-origin'",
+      "'unsafe-url'",
+    ],
+    "sandbox": [
+      "'allow-forms'",
+      "'allow-same-origin'",
+      "'allow-scripts'",
+      "'allow-top-navigation'",
+      "'allow-popups'",
+      "'allow-pointer-lock'",
+    ],
+    "script-src": [
+      "'self'",
+      "'unsafe-eval'",
+      "'unsafe-inline'",
+    ],
+  },
+}
+`;
+
+exports[`EnvContentSecurityPolicyApi setEnforcedContentSecurityPolicy() 1: Set enforced content security policy - success 1`] = `
+{
+  "active": true,
+  "directives": {
+    "frame-ancestors": [
+      "'self'",
+    ],
+    "referrer": [
+      "'no-referrer'",
+      "'none-when-downgrade'",
+      "'origin'",
+      "'origin-when-cross-origin'",
+      "'unsafe-url'",
+    ],
+    "sandbox": [
+      "'allow-forms'",
+      "'allow-same-origin'",
+      "'allow-scripts'",
+      "'allow-top-navigation'",
+      "'allow-popups'",
+      "'allow-pointer-lock'",
+    ],
+    "script-src": [
+      "'self'",
+      "'unsafe-eval'",
+      "'unsafe-inline'",
+    ],
+  },
+}
+`;
+
+exports[`EnvContentSecurityPolicyApi setReportOnlyContentSecurityPolicy() 1: Set report-only content security policy - success 1`] = `
+{
+  "active": true,
+  "directives": {
+    "frame-ancestors": [
+      "'self'",
+    ],
+    "referrer": [
+      "'no-referrer'",
+      "'none-when-downgrade'",
+      "'origin'",
+      "'origin-when-cross-origin'",
+      "'unsafe-url'",
+    ],
+    "sandbox": [
+      "'allow-forms'",
+      "'allow-same-origin'",
+      "'allow-scripts'",
+      "'allow-top-navigation'",
+      "'allow-popups'",
+      "'allow-pointer-lock'",
+    ],
+    "script-src": [
+      "'self'",
+      "'unsafe-eval'",
+      "'unsafe-inline'",
+    ],
+  },
+}
+`;
