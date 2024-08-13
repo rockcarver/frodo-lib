@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - createConfigEntity
   - updateConfigEntity
 
+- \#450: Mitigated [CVE-2024-39338](https://github.com/advisories/GHSA-8hc4-vh64-cxmj)
+
 ## [2.0.2] - 2024-08-06
 
 ### Added
