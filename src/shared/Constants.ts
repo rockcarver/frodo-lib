@@ -33,6 +33,62 @@ const FRODO_CONNECTION_PROFILES_PATH_KEY = 'FRODO_CONNECTION_PROFILES_PATH';
 const FRODO_MASTER_KEY_PATH_KEY = 'FRODO_MASTER_KEY_PATH';
 const FRODO_MASTER_KEY_KEY = 'FRODO_MASTER_KEY';
 const FRODO_TOKEN_CACHE_PATH_KEY = 'FRODO_TOKEN_CACHE_PATH';
+const AVAILABLE_SCOPES = {
+  OpenIdScope: 'openid',
+  ProfileScope: 'profile',
+  AmFullScope: 'fr:am:*',
+  IdmFullScope: 'fr:idm:*',
+  AutoAccessFullScope: 'fr:autoaccess:*',
+  IGAFullScope: 'fr:iga:*',
+  AnalyticsFullScope: 'fr:idc:analytics:*',
+
+  // AMIntrospectRealmTokenScope lets you introspect scopes _from the same realm_, there is a separate scope to introspect tokens from _all_ realms
+  AMIntrospectRealmTokenScope: 'am-introspect-all-tokens',
+
+  // Special AM scopes (used by resource servers)
+  AMIntrospectAllTokens: 'am-introspect-all-tokens',
+  AMIntrospectAllTokensAnyRealm: 'am-introspect-all-tokens-any-realm',
+
+  // Certificate scopes
+  CertificateFullScope: 'fr:idc:certificate:*',
+  CertificateReadScope: 'fr:idc:certificate:read',
+
+  // ESV API scopes
+  ESVFullScope: 'fr:idc:esv:*',
+  ESVReadScope: 'fr:idc:esv:read',
+  ESVUpdateScope: 'fr:idc:esv:update',
+  ESVRestartScope: 'fr:idc:esv:restart',
+
+  // Content security policy scopes
+  ContentSecurityPolicyFullScope: 'fr:idc:content-security-policy:*',
+
+  // Federation scopes
+  FederationFullScope: 'fr:idc:federation:*',
+  FederationReadScope: 'fr:idc:federation:read',
+
+  // Release scopes
+  ReleaseFullScope: 'fr:idc:release:*',
+
+  // SSOCookie scopes
+  SSOCookieFullScope: 'fr:idc:sso-cookie:*',
+
+  // CustomDomainFullScope Custom domain scopes
+  CustomDomainFullScope: 'fr:idc:custom-domain:*',
+
+  // Promotion scopes
+  PromotionScope: 'fr:idc:promotion:*',
+
+  // WAF scopes
+  WafFullScope: 'fr:idc:advanced-gateway:*',
+  WafReadScope: 'fr:idc:advanced-gateway:read',
+  WafWriteScope: 'fr:idc:advanced-gateway:write',
+
+  // Cookie Domains scopes
+  CookieDomainsFullScope: 'fr:idc:cookie-domain:*',
+
+  // Admin Federation Enforcement
+  FederationEnforcementFullScope: 'fr:idc:federation:*',
+};
 
 export default {
   DEFAULT_REALM_KEY,
@@ -46,4 +102,5 @@ export default {
   FRODO_MASTER_KEY_PATH_KEY,
   FRODO_MASTER_KEY_KEY,
   FRODO_TOKEN_CACHE_PATH_KEY,
+  AVAILABLE_SCOPES,
 };

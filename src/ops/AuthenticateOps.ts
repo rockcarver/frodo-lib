@@ -107,9 +107,29 @@ export default (state: State): Authenticate => {
 const adminClientPassword = 'doesnotmatter';
 const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
 
-const cloudIdmAdminScopes = 'openid fr:idm:* fr:idc:esv:*';
-const forgeopsIdmAdminScopes = 'openid fr:idm:*';
-const serviceAccountDefaultScopes = SERVICE_ACCOUNT_DEFAULT_SCOPES.join(' '); //'fr:am:* fr:idm:* fr:idc:esv:*';
+const s = Constants.AVAILABLE_SCOPES;
+const CLOUD_ADMIN_DEFAULT_SCOPES: string[] = [
+  s.AnalyticsFullScope,
+  s.AutoAccessFullScope,
+  s.CertificateFullScope,
+  s.ContentSecurityPolicyFullScope,
+  s.CookieDomainsFullScope,
+  s.CustomDomainFullScope,
+  s.ESVFullScope,
+  s.FederationEnforcementFullScope,
+  s.IdmFullScope,
+  s.IGAFullScope,
+  s.OpenIdScope,
+  s.PromotionScope,
+  s.ReleaseFullScope,
+  s.SSOCookieFullScope,
+  s.WafFullScope,
+];
+const FORGEOPS_ADMIN_DEFAULT_SCOPES: string[] = [s.IdmFullScope, s.OpenIdScope];
+
+const cloudAdminScopes = CLOUD_ADMIN_DEFAULT_SCOPES.join(' ');
+const forgeopsAdminScopes = FORGEOPS_ADMIN_DEFAULT_SCOPES.join(' ');
+const serviceAccountDefaultScopes = SERVICE_ACCOUNT_DEFAULT_SCOPES.join(' ');
 
 const fidcClientId = 'idmAdminClient';
 const forgeopsClientId = 'idm-admin-ui';
@@ -120,7 +140,7 @@ let adminClientId = fidcClientId;
  * @param {State} state library state
  * @returns {string} cookie name
  */
-async function determineCookieName(state: State) {
+async function determineCookieName(state: State): Promise<string> {
   const data = await getServerInfo({ state });
   debugMessage({
     message: `AuthenticateOps.determineCookieName: cookieName=${data.cookieName}`,
@@ -309,7 +329,7 @@ async function determineDeploymentType(state: State): Promise<string> {
           [state.getCookieName()]: state.getCookieValue(),
         },
       };
-      let bodyFormData = `redirect_uri=${redirectURL}&scope=${cloudIdmAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+      let bodyFormData = `redirect_uri=${redirectURL}&scope=${cloudAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
 
       deploymentType = Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
       try {
@@ -332,7 +352,7 @@ async function determineDeploymentType(state: State): Promise<string> {
           deploymentType = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
         } else {
           try {
-            bodyFormData = `redirect_uri=${redirectURL}&scope=${forgeopsIdmAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+            bodyFormData = `redirect_uri=${redirectURL}&scope=${forgeopsAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
             await authorize({
               amBaseUrl: state.getHost(),
               data: bodyFormData,
@@ -524,8 +544,8 @@ async function getAuthCode(
   try {
     const bodyFormData = `redirect_uri=${redirectURL}&scope=${
       state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY
-        ? cloudIdmAdminScopes
-        : forgeopsIdmAdminScopes
+        ? cloudAdminScopes
+        : forgeopsAdminScopes
     }&response_type=code&client_id=${adminClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
     const config = {
       headers: {
@@ -934,7 +954,7 @@ export type Tokens = {
  * @returns {Promise<Tokens>} object containing the tokens
  */
 export async function getTokens({
-  forceLoginAsUser = false,
+  forceLoginAsUser = process.env.FRODO_FORCE_LOGIN_AS_USER ? true : false,
   autoRefresh = true,
   types = Constants.DEPLOYMENT_TYPES,
   callbackHandler = null,

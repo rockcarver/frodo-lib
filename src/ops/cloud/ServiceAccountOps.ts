@@ -3,6 +3,7 @@ import {
   createManagedObject,
   getManagedObject,
 } from '../../api/ManagedObjectApi';
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { debugMessage } from '../../utils/Console';
 import { FrodoError } from '../FrodoError';
@@ -88,86 +89,46 @@ export default (state: State): ServiceAccount => {
 
 const moType = 'svcacct';
 
-// Scopes
-const scopes = {
-  OpenIdScope: 'openid',
-  ProfileScope: 'profile',
-  AmFullScope: 'fr:am:*',
-  IdmFullScope: 'fr:idm:*',
-  AutoAccessFullScope: 'fr:autoaccess:*',
-  IGAFullScope: 'fr:iga:*',
-  AnalyticsFullScope: 'fr:idc:analytics:*',
-
-  // AMIntrospectRealmTokenScope lets you introspect scopes _from the same realm_, there is a separate scope to introspect tokens from _all_ realms
-  AMIntrospectRealmTokenScope: 'am-introspect-all-tokens',
-
-  // Special AM scopes (used by resource servers)
-  AMIntrospectAllTokens: 'am-introspect-all-tokens',
-  AMIntrospectAllTokensAnyRealm: 'am-introspect-all-tokens-any-realm',
-
-  // Certificate scopes
-  CertificateFullScope: 'fr:idc:certificate:*',
-  CertificateReadScope: 'fr:idc:certificate:read',
-
-  // ESV API scopes
-  ESVFullScope: 'fr:idc:esv:*',
-  ESVReadScope: 'fr:idc:esv:read',
-  ESVUpdateScope: 'fr:idc:esv:update',
-  ESVRestartScope: 'fr:idc:esv:restart',
-
-  // Content security policy scopes
-  ContentSecurityPolicyFullScope: 'fr:idc:content-security-policy:*',
-
-  // Federation scopes
-  FederationFullScope: 'fr:idc:federation:*',
-  FederationReadScope: 'fr:idc:federation:read',
-
-  // Release scopes
-  ReleaseFullScope: 'fr:idc:release:*',
-
-  // SSOCookie scopes
-  SSOCookieFullScope: 'fr:idc:sso-cookie:*',
-
-  // CustomDomainFullScope Custom domain scopes
-  CustomDomainFullScope: 'fr:idc:custom-domain:*',
-
-  // Promotion scopes
-  PromotionScope: 'fr:idc:promotion:*',
-};
+const s = Constants.AVAILABLE_SCOPES;
 
 export const SERVICE_ACCOUNT_ALLOWED_SCOPES: string[] = [
-  scopes.AmFullScope,
-  scopes.AnalyticsFullScope,
-  scopes.AutoAccessFullScope,
-  scopes.CertificateFullScope,
-  scopes.CertificateReadScope,
-  scopes.ContentSecurityPolicyFullScope,
-  scopes.CustomDomainFullScope,
-  scopes.ESVFullScope,
-  scopes.ESVReadScope,
-  scopes.ESVRestartScope,
-  scopes.ESVUpdateScope,
-  scopes.IdmFullScope,
-  scopes.IGAFullScope,
-  scopes.PromotionScope,
-  scopes.ReleaseFullScope,
-  scopes.SSOCookieFullScope,
+  s.AmFullScope,
+  s.AnalyticsFullScope,
+  s.AutoAccessFullScope,
+  s.CertificateFullScope,
+  s.CertificateReadScope,
+  s.ContentSecurityPolicyFullScope,
+  s.CustomDomainFullScope,
+  s.ESVFullScope,
+  s.ESVReadScope,
+  s.ESVRestartScope,
+  s.ESVUpdateScope,
+  s.IdmFullScope,
+  s.IGAFullScope,
+  s.PromotionScope,
+  s.ReleaseFullScope,
+  s.SSOCookieFullScope,
+  s.WafFullScope,
+  s.WafReadScope,
+  s.WafWriteScope,
+  s.CookieDomainsFullScope,
 ];
 
 export const SERVICE_ACCOUNT_DEFAULT_SCOPES: string[] = [
-  scopes.AmFullScope,
-  scopes.AnalyticsFullScope,
-  scopes.AutoAccessFullScope,
-  scopes.CertificateFullScope,
-  scopes.CertificateReadScope,
-  scopes.ContentSecurityPolicyFullScope,
-  scopes.CustomDomainFullScope,
-  scopes.ESVFullScope,
-  scopes.IdmFullScope,
-  scopes.IGAFullScope,
-  scopes.PromotionScope,
-  scopes.ReleaseFullScope,
-  scopes.SSOCookieFullScope,
+  s.AmFullScope,
+  s.AnalyticsFullScope,
+  s.AutoAccessFullScope,
+  s.CertificateFullScope,
+  s.ContentSecurityPolicyFullScope,
+  s.CookieDomainsFullScope,
+  s.CustomDomainFullScope,
+  s.ESVFullScope,
+  s.IdmFullScope,
+  s.IGAFullScope,
+  s.PromotionScope,
+  s.ReleaseFullScope,
+  s.SSOCookieFullScope,
+  s.WafFullScope,
 ];
 
 export type ServiceAccountType = IdObjectSkeletonInterface & {
