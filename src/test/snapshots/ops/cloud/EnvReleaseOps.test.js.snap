@@ -1,0 +1,7 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EnvReleaseOps readRelease() 1: Get release info - success 1`] = `
+{
+  "currentVersion": "14467.0",
+}
+`;

@@ -103,24 +103,27 @@ export async function getConfigEntity({
 
 /**
  * Put IDM config entity
- * @param {string} entityId config entity id
- * @param {string} entityData config entity object
- * @param {boolean} failIfExists fail if exists
- * @returns {Promise<unknown>} a promise that resolves to an IDM config entity
+ * @param {object} params config parameters
+ * @param {string} params.entityId config entity id
+ * @param {string} params.entityData config entity object
+ * @param {boolean} params.wait delay the response until an OSGi service event confirms the change has been consumed by the corresponding service or the request times out.
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IDM config entity
  */
 export async function putConfigEntity({
   entityId,
   entityData,
+  wait = false,
   state,
 }: {
   entityId: string;
   entityData: string | IdObjectSkeletonInterface;
+  wait?: boolean;
   state: State;
-}) {
+}): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     idmConfigURLTemplate,
     getHostBaseUrl(state.getHost()),
-    entityId
+    wait ? `${entityId}?waitForCompletion=true` : entityId
   );
   const { data } = await generateIdmApi({ state }).put(urlString, entityData);
   return data;
@@ -129,7 +132,7 @@ export async function putConfigEntity({
 /**
  * Delete IDM config entity
  * @param {string} entityId config entity id
- * @returns {Promise<unknown>} a promise that resolves to an IDM config entity
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IDM config entity
  */
 export async function deleteConfigEntity({
   entityId,
@@ -137,7 +140,7 @@ export async function deleteConfigEntity({
 }: {
   entityId: string;
   state: State;
-}) {
+}): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     idmConfigURLTemplate,
     getHostBaseUrl(state.getHost()),

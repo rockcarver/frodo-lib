@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EnvFederationEnforcementApi getFederationEnforcement() 1: Get federation enforcement - success 1`] = `
+{
+  "groups": "non-global",
+}
+`;
+
+exports[`EnvFederationEnforcementApi setFederationEnforcement() 1: Set federation enforcement - success 1`] = `
+{
+  "groups": "non-global",
+}
+`;

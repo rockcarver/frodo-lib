@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EnvSSOCookieConfigApi getSSOCookieConfig() 1: Get SSO Cookie Config - success 1`] = `
+{
+  "name": "6ac6499e9da2071",
+}
+`;
+
+exports[`EnvSSOCookieConfigApi resetSSOCookieConfig() 1: Reset custom SSO cookie config - success 1`] = `
+{
+  "name": "6ac6499e9da2071",
+}
+`;
+
+exports[`EnvSSOCookieConfigApi setSSOCookieConfig() 1: Set custom SSO cookie config - success 1`] = `
+{
+  "name": "myCustomTestCookieName",
+}
+`;

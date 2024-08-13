@@ -1,0 +1,249 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EnvContentSecurityPolicyOps disableEnforcedContentSecurityPolicy() 1: Disable enforced content security policy - success 1`] = `
+{
+  "active": false,
+  "directives": {
+    "frame-ancestors": [
+      "'self'",
+    ],
+    "referrer": [
+      "'no-referrer'",
+      "'none-when-downgrade'",
+      "'origin'",
+      "'origin-when-cross-origin'",
+      "'unsafe-url'",
+    ],
+    "sandbox": [
+      "'allow-forms'",
+      "'allow-same-origin'",
+      "'allow-scripts'",
+      "'allow-top-navigation'",
+      "'allow-popups'",
+      "'allow-pointer-lock'",
+    ],
+    "script-src": [
+      "'self'",
+      "'unsafe-eval'",
+      "'unsafe-inline'",
+    ],
+  },
+}
+`;
+
+exports[`EnvContentSecurityPolicyOps disableReportOnlyContentSecurityPolicy() 1: Disable report-only content security policy - success 1`] = `
+{
+  "active": false,
+  "directives": {
+    "frame-ancestors": [
+      "'self'",
+    ],
+    "referrer": [
+      "'no-referrer'",
+      "'none-when-downgrade'",
+      "'origin'",
+      "'origin-when-cross-origin'",
+      "'unsafe-url'",
+    ],
+    "sandbox": [
+      "'allow-forms'",
+      "'allow-same-origin'",
+      "'allow-scripts'",
+      "'allow-top-navigation'",
+      "'allow-popups'",
+      "'allow-pointer-lock'",
+    ],
+    "script-src": [
+      "'self'",
+      "'unsafe-eval'",
+      "'unsafe-inline'",
+    ],
+  },
+}
+`;
+
+exports[`EnvContentSecurityPolicyOps enableEnforcedContentSecurityPolicy() 1: Enable enforced content security policy - success 1`] = `
+{
+  "active": true,
+  "directives": {
+    "frame-ancestors": [
+      "'self'",
+    ],
+    "referrer": [
+      "'no-referrer'",
+      "'none-when-downgrade'",
+      "'origin'",
+      "'origin-when-cross-origin'",
+      "'unsafe-url'",
+    ],
+    "sandbox": [
+      "'allow-forms'",
+      "'allow-same-origin'",
+      "'allow-scripts'",
+      "'allow-top-navigation'",
+      "'allow-popups'",
+      "'allow-pointer-lock'",
+    ],
+    "script-src": [
+      "'self'",
+      "'unsafe-eval'",
+      "'unsafe-inline'",
+    ],
+  },
+}
+`;
+
+exports[`EnvContentSecurityPolicyOps enableReportOnlyContentSecurityPolicy() 1: Enable report-only content security policy - success 1`] = `
+{
+  "active": true,
+  "directives": {
+    "frame-ancestors": [
+      "'self'",
+    ],
+    "referrer": [
+      "'no-referrer'",
+      "'none-when-downgrade'",
+      "'origin'",
+      "'origin-when-cross-origin'",
+      "'unsafe-url'",
+    ],
+    "sandbox": [
+      "'allow-forms'",
+      "'allow-same-origin'",
+      "'allow-scripts'",
+      "'allow-top-navigation'",
+      "'allow-popups'",
+      "'allow-pointer-lock'",
+    ],
+    "script-src": [
+      "'self'",
+      "'unsafe-eval'",
+      "'unsafe-inline'",
+    ],
+  },
+}
+`;
+
+exports[`EnvContentSecurityPolicyOps readEnforcedContentSecurityPolicy() 1: Get enforced content security policy - success 1`] = `
+{
+  "active": true,
+  "directives": {
+    "frame-ancestors": [
+      "'self'",
+    ],
+    "referrer": [
+      "'no-referrer'",
+      "'none-when-downgrade'",
+      "'origin'",
+      "'origin-when-cross-origin'",
+      "'unsafe-url'",
+    ],
+    "sandbox": [
+      "'allow-forms'",
+      "'allow-same-origin'",
+      "'allow-scripts'",
+      "'allow-top-navigation'",
+      "'allow-popups'",
+      "'allow-pointer-lock'",
+    ],
+    "script-src": [
+      "'self'",
+      "'unsafe-eval'",
+      "'unsafe-inline'",
+    ],
+  },
+}
+`;
+
+exports[`EnvContentSecurityPolicyOps readReportOnlyContentSecurityPolicy() 1: Get report-only content security policy - success 1`] = `
+{
+  "active": true,
+  "directives": {
+    "frame-ancestors": [
+      "'self'",
+    ],
+    "referrer": [
+      "'no-referrer'",
+      "'none-when-downgrade'",
+      "'origin'",
+      "'origin-when-cross-origin'",
+      "'unsafe-url'",
+    ],
+    "sandbox": [
+      "'allow-forms'",
+      "'allow-same-origin'",
+      "'allow-scripts'",
+      "'allow-top-navigation'",
+      "'allow-popups'",
+      "'allow-pointer-lock'",
+    ],
+    "script-src": [
+      "'self'",
+      "'unsafe-eval'",
+      "'unsafe-inline'",
+    ],
+  },
+}
+`;
+
+exports[`EnvContentSecurityPolicyOps updateEnforcedContentSecurityPolicy() 1: Set enforced content security policy - success 1`] = `
+{
+  "active": true,
+  "directives": {
+    "frame-ancestors": [
+      "'self'",
+    ],
+    "referrer": [
+      "'no-referrer'",
+      "'none-when-downgrade'",
+      "'origin'",
+      "'origin-when-cross-origin'",
+      "'unsafe-url'",
+    ],
+    "sandbox": [
+      "'allow-forms'",
+      "'allow-same-origin'",
+      "'allow-scripts'",
+      "'allow-top-navigation'",
+      "'allow-popups'",
+      "'allow-pointer-lock'",
+    ],
+    "script-src": [
+      "'self'",
+      "'unsafe-eval'",
+      "'unsafe-inline'",
+    ],
+  },
+}
+`;
+
+exports[`EnvContentSecurityPolicyOps updateReportOnlyContentSecurityPolicy() 1: Set report-only content security policy - success 1`] = `
+{
+  "active": true,
+  "directives": {
+    "frame-ancestors": [
+      "'self'",
+    ],
+    "referrer": [
+      "'no-referrer'",
+      "'none-when-downgrade'",
+      "'origin'",
+      "'origin-when-cross-origin'",
+      "'unsafe-url'",
+    ],
+    "sandbox": [
+      "'allow-forms'",
+      "'allow-same-origin'",
+      "'allow-scripts'",
+      "'allow-top-navigation'",
+      "'allow-popups'",
+      "'allow-pointer-lock'",
+    ],
+    "script-src": [
+      "'self'",
+      "'unsafe-eval'",
+      "'unsafe-inline'",
+    ],
+  },
+}
+`;

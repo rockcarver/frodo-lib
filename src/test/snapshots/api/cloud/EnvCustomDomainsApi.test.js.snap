@@ -1,0 +1,30 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EnvCustomDomainsApi getCustomDomains() 1: Get custom domains - success 1`] = `
+{
+  "domains": [
+    "frodo.mytestrun.com",
+    "frodo.mytest.run",
+  ],
+}
+`;
+
+exports[`EnvCustomDomainsApi setCookieDomains() 1: Set custom domains - success 1`] = `
+{
+  "domains": [
+    "frodo.mytestrun.com",
+    "frodo.mytest.run",
+  ],
+}
+`;
+
+exports[`EnvCustomDomainsApi verifyCNAME() 1: Verify CNAME for custom domain frodo.doesnotexist.com - error 1`] = `
+{
+  "code": 400,
+  "message": "CNAME validation failed",
+}
+`;
+
+exports[`EnvCustomDomainsApi verifyCNAME() 1: Verify CNAME for custom domain frodo.mytest.run - success 1`] = `""`;
+
+exports[`EnvCustomDomainsApi verifyCNAME() 1: Verify CNAME for custom domain frodo.mytestrun.com - success 1`] = `""`;

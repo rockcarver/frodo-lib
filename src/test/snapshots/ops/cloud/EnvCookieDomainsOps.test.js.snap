@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EnvCookieDomainsOps readCookieDomains() 1: Read cookie domains - success 1`] = `
+{
+  "domains": [
+    "mytestrun.com",
+    "mytest.run",
+  ],
+}
+`;
+
+exports[`EnvCookieDomainsOps updateCookieDomains() 1: Update cookie domains - success 1`] = `
+{
+  "domains": [
+    "mytestrun.com",
+    "mytest.run",
+  ],
+}
+`;

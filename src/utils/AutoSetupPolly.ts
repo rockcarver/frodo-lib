@@ -33,7 +33,11 @@ switch (process.env.FRODO_POLLY_MODE) {
   // record mock responses from a real env: `npm run test:record`
   case 'record': {
     setDefaultState();
-    if (!(await getTokens({ forceLoginAsUser: false, state })))
+    if (
+      !(await getTokens({
+        state,
+      }))
+    )
       throw new Error(
         `Unable to record mock responses from '${state.getHost()}'`
       );

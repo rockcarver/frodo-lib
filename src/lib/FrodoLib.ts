@@ -13,7 +13,23 @@ import AdminFederationOps, {
 import EnvCertificatesOps, {
   EnvCertificate,
 } from '../ops/cloud/EnvCertificatesOps';
+import EnvContentSecurityOps, {
+  EnvContentSecurityPolicy,
+} from '../ops/cloud/EnvContentSecurityPolicyOps';
+import EnvCookieDomainsOps, {
+  EnvCookieDomains,
+} from '../ops/cloud/EnvCookieDomainsOps';
 import EnvCSRsOps, { EnvCSR } from '../ops/cloud/EnvCSRsOps';
+import EnvCustomDomainsOps, {
+  EnvCustomDomains,
+} from '../ops/cloud/EnvCustomDomainsOps';
+import EnvFederationEnforcementOps, {
+  EnvFederationEnforcement,
+} from '../ops/cloud/EnvFederationEnforcementOps';
+import EnvReleaseOps, { EnvRelease } from '../ops/cloud/EnvReleaseOps';
+import EnvSSOCookieConfigOps, {
+  EnvSSOCookieConfig,
+} from '../ops/cloud/EnvSSOCookieConfigOps';
 import EsvCountOps, { EsvCount } from '../ops/cloud/EsvCountOps';
 import FeatureOps, { Feature } from '../ops/cloud/FeatureOps';
 import LogOps, { Log } from '../ops/cloud/LogOps';
@@ -93,10 +109,15 @@ export type Frodo = {
 
   cloud: {
     adminFed: AdminFederation;
-    env: {
-      cert: EnvCertificate;
-      csr: EnvCSR;
-    };
+    env: EnvContentSecurityPolicy &
+      EnvCookieDomains &
+      EnvCustomDomains &
+      EnvFederationEnforcement &
+      EnvRelease &
+      EnvSSOCookieConfig & {
+        cert: EnvCertificate;
+        csr: EnvCSR;
+      };
     esvCount: EsvCount;
     feature: Feature;
     log: Log;
@@ -242,6 +263,12 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     cloud: {
       adminFed: AdminFederationOps(state),
       env: {
+        ...EnvContentSecurityOps(state),
+        ...EnvCookieDomainsOps(state),
+        ...EnvCustomDomainsOps(state),
+        ...EnvFederationEnforcementOps(state),
+        ...EnvReleaseOps(state),
+        ...EnvSSOCookieConfigOps(state),
         cert: EnvCertificatesOps(state),
         csr: EnvCSRsOps(state),
       },

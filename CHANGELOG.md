@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- \#435 - Support for Advanced Identitty Cloud Environment Content Security Policy API
+- \#436 - Support for Advanced Identitty Cloud Environment Cookie Domains API
+- \#437 - Support for Advanced Identitty Cloud Environment Custom Domains API
+- \#438 - Support for Advanced Identitty Cloud Environment Federation Enforcement API
+- \#439 - Support for Advanced Identitty Cloud Environment Release API
+- \#440 - Support for Advanced Identitty Cloud Environment SSO Cookie API
+
+### Fixed
+
+- \#448: Frodo Library now accepts an additional optional boolean param `wait`, which if provided delays the response until an OSGi service event confirms the change has been consumed by the corresponding service or the request times out, to the following `frodo.idm.config` functions:
+
+  - createConfigEntity
+  - updateConfigEntity
+
+- \#450: Mitigated [CVE-2024-39338](https://github.com/advisories/GHSA-8hc4-vh64-cxmj)
+
 ## [2.0.2] - 2024-08-06
 
 ### Added

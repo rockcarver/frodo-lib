@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EnvCookieDomainsApi getCookieDomains() 1: Get cookie domains - success 1`] = `
+{
+  "domains": [
+    "mytestrun.com",
+    "mytest.run",
+  ],
+}
+`;
+
+exports[`EnvCookieDomainsApi setCookieDomains() 1: Set cookie domains - success 1`] = `
+{
+  "domains": [
+    "mytestrun.com",
+    "mytest.run",
+  ],
+}
+`;
