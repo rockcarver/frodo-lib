@@ -12,7 +12,7 @@ import {
 } from '../api/ScriptApi';
 import { type ExportMetaData } from '../ops/OpsTypes';
 import { State } from '../shared/State';
-import { decode } from '../utils/Base64Utils';
+import { decode, encode, isBase64Encoded } from '../utils/Base64Utils';
 import {
   createProgressIndicator,
   debugMessage,
@@ -42,6 +42,8 @@ export type Script = {
   readScripts(): Promise<ScriptSkeleton[]>;
   /**
    * Get the names of library scripts required by the input script object
+   *
+   * @param {ScriptSkeleton} scriptObj the script object
    * @returns an array of required library script names
    */
   getLibraryScriptNames(scriptObj: ScriptSkeleton): string[];
@@ -87,7 +89,7 @@ export type Script = {
   deleteScript(scriptId: string): Promise<ScriptSkeleton>;
   /**
    * Delete script by name
-   * @param {String} scriptId script name
+   * @param {String} scriptName script name
    * @returns {Promise<ScriptSkeleton>} a promise that resolves to a script object
    */
   deleteScriptByName(scriptName: string): Promise<ScriptSkeleton>;
@@ -98,13 +100,14 @@ export type Script = {
   deleteScripts(): Promise<ScriptSkeleton[]>;
   /**
    * Export all scripts
-   * @param options script export options
+   * @param {ScriptExportOptions} options script export options
    * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
    */
   exportScripts(options?: ScriptExportOptions): Promise<ScriptExportInterface>;
   /**
    * Export script by id
    * @param {string} scriptId script uuid
+   * @param {ScriptExportOptions} options script export options
    * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
    */
   exportScript(
@@ -114,6 +117,7 @@ export type Script = {
   /**
    * Export script by name
    * @param {string} scriptName script name
+   * @param {ScriptExportOptions} options script export options
    * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
    */
   exportScriptByName(
@@ -122,13 +126,15 @@ export type Script = {
   ): Promise<ScriptExportInterface>;
   /**
    * Import scripts
+   * @param {string} scriptId Optional id of script. If supplied, only the script of that id is imported. Takes priority over scriptName if both are provided.
    * @param {string} scriptName Optional name of script. If supplied, only the script of that name is imported
    * @param {ScriptExportInterface} importData Script import data
    * @param {ScriptImportOptions} options Script import options
    * @param {boolean} validate If true, validates Javascript scripts to ensure no errors exist in them. Default: false
-   * @returns {Promise<ScriptSkeleton[]>} true if no errors occurred during import, false otherwise
+   * @returns {Promise<ScriptSkeleton[]>} the imported scripts
    */
   importScripts(
+    scriptId: string,
     scriptName: string,
     importData: ScriptExportInterface,
     options?: ScriptImportOptions,
@@ -229,7 +235,7 @@ export default (state: State): Script => {
     async exportScript(
       scriptId: string,
       options: ScriptExportOptions = {
-        includeLibraries: true,
+        deps: true,
         includeDefault: true,
         useStringArrays: true,
       }
@@ -239,7 +245,7 @@ export default (state: State): Script => {
     async exportScriptByName(
       scriptName: string,
       options: ScriptExportOptions = {
-        includeLibraries: true,
+        deps: true,
         includeDefault: true,
         useStringArrays: true,
       }
@@ -248,7 +254,7 @@ export default (state: State): Script => {
     },
     async exportScripts(
       options: ScriptExportOptions = {
-        includeLibraries: true,
+        deps: true,
         includeDefault: false,
         useStringArrays: true,
       }
@@ -256,15 +262,18 @@ export default (state: State): Script => {
       return exportScripts({ options, state });
     },
     async importScripts(
+      scriptId: string,
       scriptName: string,
       importData: ScriptExportInterface,
       options = {
+        deps: true,
         reUuid: false,
         includeDefault: false,
       },
       validate = false
     ): Promise<ScriptSkeleton[]> {
       return importScripts({
+        scriptId,
         scriptName,
         importData,
         options,
@@ -303,6 +312,10 @@ export interface ScriptExportInterface {
  */
 export interface ScriptImportOptions {
   /**
+   * Include dependency (library) scripts in export
+   */
+  deps: boolean;
+  /**
    * Generate new UUIDs for all scripts during import.
    */
   reUuid: boolean;
@@ -317,11 +330,11 @@ export interface ScriptImportOptions {
  */
 export interface ScriptExportOptions {
   /**
-   * Include library scripts in export
+   * Include dependency (library) scripts in export
    */
-  includeLibraries: boolean;
+  deps: boolean;
   /**
-   * Include default scripts in import if true
+   * Include default scripts in export if true
    */
   includeDefault: boolean;
   /**
@@ -364,7 +377,9 @@ export async function readScripts({
 
 /**
  * Get the names of library scripts required by the input script object
- * @returns an array of required library script names
+ *
+ * @param {ScriptSkeleton} scriptObj the script object
+ * @returns {string[]} an array of required library script names
  */
 export function getLibraryScriptNames(scriptObj: ScriptSkeleton): string[] {
   const script = Array.isArray(scriptObj.script)
@@ -376,8 +391,65 @@ export function getLibraryScriptNames(scriptObj: ScriptSkeleton): string[] {
 }
 
 /**
+ * Gets all library scripts for a given script recursively
+ *
+ * @param {ScriptSkeleton} scriptData the script object
+ * @returns {ScriptSkeleton[]} all the library scripts needed for the given script
+ */
+export async function getLibraryScripts({
+  scriptData,
+  state,
+}: {
+  scriptData: ScriptSkeleton;
+  state: State;
+}): Promise<ScriptSkeleton[]> {
+  const scripts = await getLibraryScriptsRecurse({
+    scriptData,
+    scripts: {},
+    state,
+  });
+  return Object.values(scripts);
+}
+
+/**
+ * Recursive helper method for getting library scripts
+ *
+ * @param {ScriptSkeleton} scriptData the script object
+ */
+async function getLibraryScriptsRecurse({
+  scriptData,
+  scripts = {},
+  state,
+}: {
+  scriptData: ScriptSkeleton;
+  scripts: Record<string, ScriptSkeleton>;
+  state: State;
+}): Promise<Record<string, ScriptSkeleton>> {
+  const scriptNames = getLibraryScriptNames(scriptData);
+  const scriptObjs = await Promise.all(
+    scriptNames
+      // Filter is necessary here to prevent infinite recursion if there is a circular dependency
+      .filter((scriptName) => !(scriptName in scripts))
+      .map((scriptName) => readScriptByName({ scriptName, state }))
+  );
+  for (const scriptObj of scriptObjs) {
+    scripts[scriptObj.name] = scriptObj;
+  }
+  for (const scriptObj of scriptObjs) {
+    await getLibraryScriptsRecurse({
+      scriptData: scriptObj,
+      scripts,
+      state,
+    });
+  }
+  return scripts;
+}
+
+/**
  * Get script
- * @returns {Promise<ScriptSkeleto>} a promise that resolves to an array of script objects
+ *
+ * @param {string} scriptId the script id
+ * @returns {Promise<ScriptSkeleton>} a promise that resolves to an array of script objects
  */
 export async function readScript({
   scriptId,
@@ -387,8 +459,7 @@ export async function readScript({
   state: State;
 }): Promise<ScriptSkeleton> {
   try {
-    const result = await _getScript({ scriptId, state });
-    return result;
+    return await _getScript({ scriptId, state });
   } catch (error) {
     throw new FrodoError(`Error reading script ${scriptId}`, error);
   }
@@ -423,6 +494,8 @@ export async function readScriptByName({
 
 /**
  * Create script
+ * @param {string} scriptId the script id
+ * @param {string} scriptName the script name
  * @param {ScriptSkeleton} scriptData script object
  * @returns {Promise<ScriptSkeleton>} a promise resolving to a script object
  */
@@ -477,6 +550,8 @@ export async function updateScript({
   try {
     if (Array.isArray(scriptData.script)) {
       scriptData.script = convertTextArrayToBase64(scriptData.script);
+    } else if (!isBase64Encoded(scriptData.script)) {
+      scriptData.script = encode(JSON.parse(scriptData.script));
     }
     result = await _putScript({ scriptId, scriptData, state });
   } catch (error) {
@@ -518,7 +593,7 @@ export async function deleteScript({
 
 /**
  * Delete script by name
- * @param {String} scriptId script name
+ * @param {String} scriptName script name
  * @returns {Promise<ScriptSkeleton>} a promise that resolves to a script object
  */
 export async function deleteScriptByName({
@@ -553,13 +628,15 @@ export async function deleteScripts({
 
 /**
  * Export script by id
+ *
  * @param {string} scriptId script uuid
+ * @param {ScriptExportOptions} options script export options
  * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
  */
 export async function exportScript({
   scriptId,
   options = {
-    includeLibraries: true,
+    deps: true,
     includeDefault: true,
     useStringArrays: true,
   },
@@ -571,25 +648,8 @@ export async function exportScript({
 }): Promise<ScriptExportInterface> {
   try {
     debugMessage({ message: `ScriptOps.exportScriptById: start`, state });
-    const { includeLibraries } = options;
-    const scriptData = await _getScript({ scriptId, state });
-    scriptData.script = convertBase64TextToArray(scriptData.script);
-    const exportData = createScriptExportTemplate({ state });
-    exportData.script[scriptData._id] = scriptData;
-    // handle library scripts
-    if (includeLibraries) {
-      const scriptNames = getLibraryScriptNames(scriptData);
-      for (const scriptName of scriptNames) {
-        const libScriptObject = await readScriptByName({
-          scriptName,
-          state,
-        });
-        libScriptObject.script = convertBase64TextToArray(
-          libScriptObject.script as string
-        );
-        exportData.script[libScriptObject._id] = libScriptObject;
-      }
-    }
+    const scriptData = await readScript({ scriptId, state });
+    const exportData = prepareScriptExport({ scriptData, options, state });
     debugMessage({ message: `ScriptOps.exportScriptById: end`, state });
     return exportData;
   } catch (error) {
@@ -599,13 +659,15 @@ export async function exportScript({
 
 /**
  * Export script by name
+ *
  * @param {string} scriptName script name
+ * @param {ScriptExportOptions} options script export options
  * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
  */
 export async function exportScriptByName({
   scriptName,
   options = {
-    includeLibraries: true,
+    deps: true,
     includeDefault: true,
     useStringArrays: true,
   },
@@ -617,25 +679,8 @@ export async function exportScriptByName({
 }): Promise<ScriptExportInterface> {
   try {
     debugMessage({ message: `ScriptOps.exportScriptByName: start`, state });
-    const { includeLibraries } = options;
     const scriptData = await readScriptByName({ scriptName, state });
-    scriptData.script = convertBase64TextToArray(scriptData.script as string);
-    const exportData = createScriptExportTemplate({ state });
-    exportData.script[scriptData._id] = scriptData;
-    // handle library scripts
-    if (includeLibraries) {
-      const scriptNames = getLibraryScriptNames(scriptData);
-      for (const scriptName of scriptNames) {
-        const libScriptObject = await readScriptByName({
-          scriptName,
-          state,
-        });
-        libScriptObject.script = convertBase64TextToArray(
-          libScriptObject.script as string
-        );
-        exportData.script[libScriptObject._id] = libScriptObject;
-      }
-    }
+    const exportData = prepareScriptExport({ scriptData, options, state });
     debugMessage({ message: `ScriptOps.exportScriptByName: end`, state });
     return exportData;
   } catch (error) {
@@ -645,12 +690,13 @@ export async function exportScriptByName({
 
 /**
  * Export all scripts
- @param includeDefault true to include default scripts in export, false otherwise. Default: false
+ *
+ * @param {ScriptExportOptions} options script export options
  * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
  */
 export async function exportScripts({
   options = {
-    includeLibraries: true,
+    deps: true,
     includeDefault: false,
     useStringArrays: true,
   },
@@ -662,7 +708,7 @@ export async function exportScripts({
   const errors: Error[] = [];
   let indicatorId: string;
   try {
-    const { includeLibraries, includeDefault } = options;
+    const { includeDefault, useStringArrays } = options;
     let scriptList = await readScripts({ state });
     if (!includeDefault)
       scriptList = scriptList.filter((script) => !script.default);
@@ -672,39 +718,17 @@ export async function exportScripts({
       message: `Exporting ${scriptList.length} scripts...`,
       state,
     });
-    const name2uuid: { [key: string]: string } = {};
-    for (const script of scriptList) {
+    for (const scriptData of scriptList) {
       try {
         updateProgressIndicator({
           id: indicatorId,
-          message: `Reading script ${script.name}`,
+          message: `Reading script ${scriptData.name}`,
           state,
         });
-        const scriptData = await readScriptByName({
-          scriptName: script.name,
-          state,
+        exportData.script[scriptData._id] = prepareScriptForExport({
+          scriptData,
+          useStringArrays,
         });
-        scriptData.script = convertBase64TextToArray(
-          scriptData.script as string
-        );
-        exportData.script[scriptData._id] = scriptData;
-        // handle library scripts
-        if (includeLibraries) {
-          const scriptNames = getLibraryScriptNames(scriptData);
-          for (const scriptName of scriptNames) {
-            if (name2uuid[scriptName] === undefined) {
-              const libScriptObject = await readScriptByName({
-                scriptName,
-                state,
-              });
-              name2uuid[scriptName] = libScriptObject._id;
-              libScriptObject.script = convertBase64TextToArray(
-                libScriptObject.script as string
-              );
-              exportData.script[libScriptObject._id] = libScriptObject;
-            }
-          }
-        }
       } catch (error) {
         errors.push(error);
       }
@@ -735,23 +759,27 @@ export async function exportScripts({
 
 /**
  * Import scripts
+ * @param {string} scriptId Optional id of script. If supplied, only the script of that id is imported. Takes priority over scriptName if both are provided.
  * @param {string} scriptName Optional name of script. If supplied, only the script of that name is imported
  * @param {ScriptExportInterface} importData Script import data
  * @param {ScriptImportOptions} options Script import options
  * @param {boolean} validate If true, validates Javascript scripts to ensure no errors exist in them. Default: false
- * @returns {Promise<ScriptSkeleton[]>} true if no errors occurred during import, false otherwise
+ * @returns {Promise<ScriptSkeleton[]>} the imported scripts
  */
 export async function importScripts({
+  scriptId,
   scriptName,
   importData,
   options = {
+    deps: true,
     reUuid: false,
     includeDefault: false,
   },
   validate = false,
   state,
 }: {
-  scriptName: string;
+  scriptId?: string;
+  scriptName?: string;
   importData: ScriptExportInterface;
   options?: ScriptImportOptions;
   validate?: boolean;
@@ -764,7 +792,13 @@ export async function importScripts({
     for (const existingId of Object.keys(importData.script)) {
       try {
         const scriptData = importData.script[existingId];
-        if (!options.includeDefault && scriptData.default) continue;
+        const isDefault = !options.includeDefault && scriptData.default;
+        // Only import script if the scriptName matches the current script. Note this only applies if we are not importing dependencies since if there are dependencies then we want to import all the scripts in the file.
+        const shouldNotImportScript =
+          !options.deps &&
+          ((scriptId && scriptId !== scriptData._id) ||
+            (!scriptId && scriptName && scriptName !== scriptData.name));
+        if (isDefault || shouldNotImportScript) continue;
         let newId = existingId;
         if (options.reUuid) {
           newId = uuidv4();
@@ -773,13 +807,6 @@ export async function importScripts({
             state,
           });
           scriptData._id = newId;
-        }
-        if (scriptName) {
-          debugMessage({
-            message: `ScriptOps.importScripts: Renaming script ${scriptData.name} => ${scriptName}...`,
-            state,
-          });
-          scriptData.name = scriptName;
         }
         if (validate) {
           if (!isScriptValid({ scriptData, state })) {
@@ -812,4 +839,63 @@ export async function importScripts({
     }
     throw new FrodoError(`Error importing scripts`, error);
   }
+}
+
+/**
+ * Helper to export a single script (along with any library scripts if applicable)
+ *
+ * @param {ScriptSkeleton} scriptData The script data to export
+ * @param {ScriptExportOptions} options script export options
+ * @returns {Promise<ScriptExportInterface>} the script export
+ */
+async function prepareScriptExport({
+  scriptData,
+  options = {
+    deps: true,
+    includeDefault: true,
+    useStringArrays: true,
+  },
+  state,
+}: {
+  scriptData: ScriptSkeleton;
+  options?: ScriptExportOptions;
+  state: State;
+}): Promise<ScriptExportInterface> {
+  const { deps, useStringArrays } = options;
+  const exportData = createScriptExportTemplate({ state });
+  exportData.script[scriptData._id] = prepareScriptForExport({
+    scriptData,
+    useStringArrays,
+  });
+  // handle library scripts
+  if (deps) {
+    for (const script of await getLibraryScripts({ scriptData, state })) {
+      exportData.script[script._id] = prepareScriptForExport({
+        scriptData: script,
+        useStringArrays,
+      });
+    }
+  }
+  return exportData;
+}
+
+/**
+ * Helper to prepare a single script for export
+ *
+ * @param {ScriptSkeleton} scriptData the script data to prepare for export
+ * @param {ScriptExportOptions} options script export options
+ * @returns {ScriptSkeleton} the prepared script data
+ */
+function prepareScriptForExport({
+  scriptData,
+  useStringArrays,
+}: {
+  scriptData: ScriptSkeleton;
+  useStringArrays: boolean;
+}): ScriptSkeleton {
+  scriptData.script = convertBase64TextToArray(scriptData.script as string);
+  if (!useStringArrays) {
+    scriptData.script = scriptData.script.join('\n');
+  }
+  return scriptData;
 }

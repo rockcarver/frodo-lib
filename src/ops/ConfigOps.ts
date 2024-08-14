@@ -427,7 +427,7 @@ export async function exportFullConfiguration({
           exportScripts,
           {
             options: {
-              includeLibraries: false,
+              deps: false,
               includeDefault,
               useStringArrays,
             },
@@ -617,6 +617,7 @@ export async function importFullConfiguration({
         scriptName: '',
         importData: importData.realm[realm],
         options: {
+          deps: false,
           reUuid: reUuidScripts,
           includeDefault,
         },
