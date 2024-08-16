@@ -13889,7 +13889,27 @@ exports[`ScriptOps importScripts() 2: Import script by name 1`] = `
 ]
 `;
 
-exports[`ScriptOps importScripts() 3: Import no scripts when excluding default scripts and only default scripts given 1`] = `[]`;
+exports[`ScriptOps importScripts() 3: Import script by id 1`] = `
+[
+  {
+    "_id": "5b3e4dd2-8060-4029-9ec1-6867932ab939",
+    "_rev": "-134762788",
+    "context": "AUTHENTICATION_TREE_DECISION_NODE",
+    "createdBy": "id=7a031a92-f70d-4b30-9d70-da7cfb1d9c93,ou=user,ou=am-config",
+    "creationDate": 1723668133912,
+    "default": false,
+    "description": "Check if username has already been collected.",
+    "evaluatorVersion": "1.0",
+    "language": "JAVASCRIPT",
+    "lastModifiedBy": "id=7a031a92-f70d-4b30-9d70-da7cfb1d9c93,ou=user,ou=am-config",
+    "lastModifiedDate": 1723668133912,
+    "name": "FrodoTestScript5",
+    "script": "LyogQ2hlY2sgVXNlcm5hbWUKICoKICogQXV0aG9yOiB2b2xrZXIuc2NoZXViZXJAZm9yZ2Vyb2NrLmNvbQogKiAKICogQ2hlY2sgaWYgdXNlcm5hbWUgaGFzIGFscmVhZHkgYmVlbiBjb2xsZWN0ZWQuCiAqIFJldHVybiAia25vd24iIGlmIHllcywgInVua25vd24iIG90aGVyd2lzZS4KICogCiAqIFRoaXMgc2NyaXB0IGRvZXMgbm90IG5lZWQgdG8gYmUgcGFyYW1ldHJpemVkLiBJdCB3aWxsIHdvcmsgcHJvcGVybHkgYXMgaXMuCiAqIAogKiBUaGUgU2NyaXB0ZWQgRGVjaXNpb24gTm9kZSBuZWVkcyB0aGUgZm9sbG93aW5nIG91dGNvbWVzIGRlZmluZWQ6CiAqIC0ga25vd24KICogLSB1bmtub3duCiAqLwooZnVuY3Rpb24gKCkgewogICAgaWYgKG51bGwgIT0gc2hhcmVkU3RhdGUuZ2V0KCJ1c2VybmFtZSIpKSB7CiAgICAgICAgb3V0Y29tZSA9ICJrbm93biI7CiAgICB9CiAgICBlbHNlIHsKICAgICAgICBvdXRjb21lID0gInVua25vd24iOwogICAgfQp9KCkpOw==",
+  },
+]
+`;
+
+exports[`ScriptOps importScripts() 4: Import no scripts when excluding default scripts and only default scripts given 1`] = `[]`;
 
 exports[`ScriptOps readScript() 1: Read script by id 'c9cb4b1e-1cd3-4e5b-8f56-140f83ba9f6d' 1`] = `
 {
