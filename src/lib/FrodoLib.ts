@@ -108,7 +108,7 @@ export type Frodo = {
     resourceType: ResourceType;
   };
 
-  cloud: {
+  cloud: EsvCount & {
     adminFed: AdminFederation;
     env: EnvContentSecurityPolicy &
       EnvCookieDomains &
@@ -120,6 +120,9 @@ export type Frodo = {
         csr: EnvCSR;
         promotion: EnvPromotion;
       };
+    /**
+     * @deprecated since v2.0.4 use {@link frodo.cloud.getEsvCount | frodo.cloud.getEsvCount} instead
+     */
     esvCount: EsvCount;
     feature: Feature;
     log: Log;
@@ -263,6 +266,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     },
 
     cloud: {
+      ...EsvCountOps(state),
       adminFed: AdminFederationOps(state),
       env: {
         ...EnvContentSecurityOps(state),
