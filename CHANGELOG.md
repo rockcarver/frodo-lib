@@ -7,18 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- \#247 - Support for Advanced Identitty Cloud Environment Promotion API (Location in library: `frodo.cloud.env.promotion`)
+
+### Changed
+
+- Deprecated old location of ESV Count API `frodo.cloud.esvCount.getEsvCount` and added new location `frodo.cloud.getEsvCount`
+
 ## [2.0.4-0] - 2024-08-16
 
 ## [2.0.3] - 2024-08-13
 
 ### Added
 
-- \#435 - Support for Advanced Identitty Cloud Environment Content Security Policy API
-- \#436 - Support for Advanced Identitty Cloud Environment Cookie Domains API
-- \#437 - Support for Advanced Identitty Cloud Environment Custom Domains API
-- \#438 - Support for Advanced Identitty Cloud Environment Federation Enforcement API
-- \#439 - Support for Advanced Identitty Cloud Environment Release API
-- \#440 - Support for Advanced Identitty Cloud Environment SSO Cookie API
+- \#435 - Support for Advanced Identitty Cloud Environment Content Security Policy API (Location in library: `frodo.cloud.env`)
+- \#436 - Support for Advanced Identitty Cloud Environment Cookie Domains API (Location in library: `frodo.cloud.env`)
+- \#437 - Support for Advanced Identitty Cloud Environment Custom Domains API (Location in library: `frodo.cloud.env`)
+- \#438 - Support for Advanced Identitty Cloud Environment Federation Enforcement API (Location in library: `frodo.cloud.env`)
+- \#439 - Support for Advanced Identitty Cloud Environment Release API (Location in library: `frodo.cloud.env`)
+- \#440 - Support for Advanced Identitty Cloud Environment SSO Cookie API (Location in library: `frodo.cloud.env`)
 
 ### Fixed
 
