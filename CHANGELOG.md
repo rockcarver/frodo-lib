@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2024-08-19
+
 ### Added
 
 - Improvements to script handling:
@@ -15,14 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implementing `useStringArrays` in exports and allowing imports to support single-string scripts in addition to string array scripts.
 
 - \#247 - Support for Advanced Identitty Cloud Environment Promotion API (Location in library: `frodo.cloud.env.promotion`)
+
 - \#432 - Support for Advanced Identitty Cloud ESV Count API (Location in library: `frodo.cloud`)
+
 - \#433 - Support for Advanced Identitty Cloud Environment Certificate API  (Location in library: `frodo.cloud.env.cert`)
+
 - \#434 - Support for Advanced Identitty Cloud Environment CSR API (Location in library: `frodo.cloud.env.csr`)
+
 - \#435 - Support for Advanced Identitty Cloud Environment Content Security Policy API (Location in library: `frodo.cloud.env`)
+
 - \#436 - Support for Advanced Identitty Cloud Environment Cookie Domains API (Location in library: `frodo.cloud.env`)
+
 - \#437 - Support for Advanced Identitty Cloud Environment Custom Domains API (Location in library: `frodo.cloud.env`)
+
 - \#438 - Support for Advanced Identitty Cloud Environment Federation Enforcement API (Location in library: `frodo.cloud.env`)
+
 - \#439 - Support for Advanced Identitty Cloud Environment Release API (Location in library: `frodo.cloud.env`)
+
 - \#440 - Support for Advanced Identitty Cloud Environment SSO Cookie API (Location in library: `frodo.cloud.env`)
 
 ### Fixed
@@ -38,7 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - updateConfigEntity
 
 - \#450: Mitigated [CVE-2024-39338](https://github.com/advisories/GHSA-8hc4-vh64-cxmj)
+
 - rockcarver/frodo-cli#428: Frodo Library now includes the `loglevel` dependency.
+
 - rockcarver/frodo-cli#430: Frodo now properly supports exporting and importing of the email service with secondary configurations.
 
 ## [2.0.4] - 2024-08-19
@@ -1735,7 +1748,8 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.0.4...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/rockcarver/frodo-lib/compare/v2.0.4...v2.1.0
 [2.0.4]: https://github.com/rockcarver/frodo-lib/compare/v2.0.4-0...v2.0.4
 [2.0.4-0]: https://github.com/rockcarver/frodo-lib/compare/v2.0.3...v2.0.4-0
 [2.0.3]: https://github.com/rockcarver/frodo-lib/compare/v2.0.2...v2.0.3
