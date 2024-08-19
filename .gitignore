@@ -1,6 +1,9 @@
 types
 dist
 
+# MacOS Desktop Services Store
+.DS_Store
+
 # test artifacts
 iSPAzure.metadata.xml
 urn:federation:MicrosoftOnline.metadata.xml
