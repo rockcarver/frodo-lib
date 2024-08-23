@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed the issue where the types were not specified correctly for consumers using ESM modules. When attempting to consume frodo with the tsconfig of `NodeNext` for `module` and `moduleResolution`, or `ESNext` for `module` and `Bundler` for `moduleResolution`, it was unable to determine types.
+
 ## [2.1.1-0] - 2024-08-23
 
 ## [2.1.0] - 2024-08-19
