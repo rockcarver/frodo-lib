@@ -8,7 +8,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   bundle: true,
-  legacyOutput: true,
+  legacyOutput: false,
   external: [
     // list all the dev dependencies, which do NOT need to be bundled as indicated in package.json (_devDependencies)
     '@jest/globals',
