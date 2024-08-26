@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../shared/State';
-import { getHostBaseUrl } from '../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 
@@ -133,7 +133,7 @@ export async function deleteRealm({
 }): Promise<RealmSkeleton> {
   const urlString = util.format(
     realmURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     realmId
   );
   const { data } = await generateAmApi({

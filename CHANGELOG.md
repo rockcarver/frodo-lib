@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Improve support for custom platform deployments (non-forgeops or customized forgeops)
+
+  - rockcarver/frodo-cli#429: Added state functions to support custom oauth2 clients for IDM API calls:
+  
+    - `state.setAdminClientId(clientId: string): void`
+    - `state.getAdminClientId(): string`
+    - `state.setAdminRedirectUri(redirectUri: string): void`
+    - `state.getAdminRedirectUri(): string`
+
+  - rockcarver/frodo-cli#359: Added state functions to support custom IDM host URLs for all IDM API calls (e.g. platform deployments hosting AM and IDM on/in different DNS hosts/domains):
+  
+    - `state.setIdmHost(host: string): void`
+    - `state.getIdmHost(): string`
+
 ## [2.1.1] - 2024-08-23
 
 ### Fixed

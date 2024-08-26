@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { NoIdObjectSkeletonInterface } from '../ApiTypes';
 import { generateEnvApi } from '../BaseApi';
 
@@ -41,7 +41,7 @@ export async function getCertificates({
 }): Promise<CertificateResponse[]> {
   const urlString = util.format(
     certificatesURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -74,7 +74,7 @@ export async function createCertificate({
 }): Promise<CertificateResponse> {
   const urlString = util.format(
     certificatesURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -103,7 +103,7 @@ export async function deleteCertificate({
 }): Promise<CertificateResponse> {
   const urlString = util.format(
     certificateByIdURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     certificateId
   );
   const { data } = await generateEnvApi({
@@ -131,7 +131,7 @@ export async function getCertificate({
 }): Promise<CertificateResponse> {
   const urlString = util.format(
     certificateByIdURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     certificateId
   );
   const { data } = await generateEnvApi({
@@ -162,7 +162,7 @@ export async function updateCertificate({
 }): Promise<CertificateResponse> {
   const urlString = util.format(
     certificateByIdURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     certificateId
   );
   const { data } = await generateEnvApi({

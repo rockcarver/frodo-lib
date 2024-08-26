@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import {
   type NoIdObjectSkeletonInterface,
   type PagedResult,
@@ -56,7 +56,7 @@ export async function getLogApiKey({
 }): Promise<LogApiKey> {
   const urlString = util.format(
     logsAPIKeyURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     keyId
   );
   const { data } = await generateLogKeysApi({ state }).get(urlString);
@@ -74,7 +74,7 @@ export async function getLogApiKeys({
 }): Promise<PagedResult<LogApiKey>> {
   const urlString = util.format(
     logsGetAPIKeysURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateLogKeysApi({ state }).get(urlString);
   return data;
@@ -91,7 +91,7 @@ export async function getSources({
 }): Promise<PagedResult<string>> {
   const urlString = util.format(
     logsSourcesURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateLogApi({ state }).get(urlString);
   return data;
@@ -121,7 +121,7 @@ export async function isLogApiKeyValid({
     };
     const urlString = util.format(
       logsSourcesURLTemplate,
-      getHostBaseUrl(state.getHost())
+      getHostOnlyUrl(state.getHost())
     );
     await generateLogApi({ requestOverride, state }).get(urlString);
     return true;
@@ -144,7 +144,7 @@ export async function createLogApiKey({
 }): Promise<LogApiKey> {
   const urlString = util.format(
     logsCreateAPIKeyAndSecretURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateLogKeysApi({ state }).post(urlString, {
     name: keyName,
@@ -166,7 +166,7 @@ export async function deleteLogApiKey({
 }): Promise<unknown> {
   const urlString = util.format(
     logsAPIKeyURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     keyId
   );
   const { data } = await generateLogKeysApi({ state }).delete(urlString, {
@@ -192,7 +192,7 @@ export async function tail({
 }): Promise<PagedResult<LogEventSkeleton>> {
   let urlString = util.format(
     logsTailURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     encodeURIComponent(source)
   );
   if (cookie) {
@@ -225,7 +225,7 @@ export async function fetch({
 }): Promise<PagedResult<LogEventSkeleton>> {
   let urlString = util.format(
     logsFetchURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     encodeURIComponent(source),
     startTs,
     endTs

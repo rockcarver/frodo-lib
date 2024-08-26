@@ -1,19 +1,18 @@
 import util from 'util';
 
 import { State } from '../shared/State';
-import { getHostBaseUrl } from '../utils/ForgeRockUtils';
+import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface } from './ApiTypes';
 import { generateIdmApi } from './BaseApi';
 
 const apiVersion = 'resource=1.0';
 const apiConfig = { headers: { 'Accept-API-Version': apiVersion } };
 
-const reconUrlTemplate = '%s/openidm/recon';
-const reconByIdUrlTemplate = '%s/openidm/recon/%s';
-const startReconUrlTemplate = '%s/openidm/recon?_action=recon&mapping=%s';
-const startReconByIdUrlTemplate =
-  '%s/openidm/recon?_action=reconById&mapping=%s&id=%s';
-const cancelReconUrlTemplate = '%s/openidm/recon/%s?_action=cancel';
+const reconUrlTemplate = '%s/recon';
+const reconByIdUrlTemplate = '%s/recon/%s';
+const startReconUrlTemplate = '%s/recon?_action=recon&mapping=%s';
+const startReconByIdUrlTemplate = '%s/recon?_action=reconById&mapping=%s&id=%s';
+const cancelReconUrlTemplate = '%s/recon/%s?_action=cancel';
 
 export type ReconType = IdObjectSkeletonInterface & {
   mapping: string;
@@ -153,10 +152,7 @@ export async function getRecons({
 }: {
   state: State;
 }): Promise<ReconType[]> {
-  const urlString = util.format(
-    reconUrlTemplate,
-    getHostBaseUrl(state.getHost())
-  );
+  const urlString = util.format(reconUrlTemplate, getIdmBaseUrl(state));
   const { data } = await generateIdmApi({
     requestOverride: apiConfig,
     state,
@@ -173,7 +169,7 @@ export async function getRecon({
 }): Promise<ReconType> {
   const urlString = util.format(
     reconByIdUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     reconId
   );
   const { data } = await generateIdmApi({
@@ -192,7 +188,7 @@ export async function startRecon({
 }): Promise<ReconStatusType> {
   const urlString = util.format(
     startReconUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     mappingName
   );
   const { data } = await generateIdmApi({
@@ -213,7 +209,7 @@ export async function startReconById({
 }): Promise<ReconStatusType> {
   const urlString = util.format(
     startReconByIdUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     mappingName,
     objectId
   );
@@ -233,7 +229,7 @@ export async function cancelRecon({
 }): Promise<ReconStatusType> {
   const urlString = util.format(
     cancelReconUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     reconId
   );
   const { data } = await generateIdmApi({

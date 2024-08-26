@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 
 const cookieDomainsURLTemplate = '%s/environment/cookie-domains';
@@ -31,7 +31,7 @@ export async function getCookieDomains({
 }): Promise<CookieDomains> {
   const urlString = util.format(
     cookieDomainsURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -58,7 +58,7 @@ export async function setCookieDomains({
 }): Promise<CookieDomains> {
   const urlString = util.format(
     cookieDomainsURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),

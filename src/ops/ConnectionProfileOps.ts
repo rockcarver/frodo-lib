@@ -51,6 +51,17 @@ export type ConnectionProfile = {
    */
   getConnectionProfile(): Promise<ConnectionProfileInterface>;
   /**
+   * Load a connection profile into library state
+   * @param {string} host AM host URL or unique substring
+   * @returns {Promise<boolean>} A promise resolving to true if successful
+   */
+  loadConnectionProfileByHost(host: string): Promise<boolean>;
+  /**
+   * Load a connection profile into library state
+   * @returns {Promise<boolean>} A promise resolving to true if successful
+   */
+  loadConnectionProfile(): Promise<boolean>;
+  /**
    * Save connection profile
    * @param {string} host host url for new profiles or unique substring for existing profiles
    * @returns {Promise<boolean>} true if the operation succeeded, false otherwise
@@ -94,6 +105,12 @@ export default (state: State): ConnectionProfile => {
     async getConnectionProfile(): Promise<ConnectionProfileInterface> {
       return getConnectionProfile({ state });
     },
+    async loadConnectionProfileByHost(host: string): Promise<boolean> {
+      return loadConnectionProfileByHost({ host, state });
+    },
+    async loadConnectionProfile(): Promise<boolean> {
+      return loadConnectionProfile({ state });
+    },
     async saveConnectionProfile(host: string): Promise<boolean> {
       return saveConnectionProfile({ host, state });
     },
@@ -112,6 +129,7 @@ const fileOptions = {
 
 export interface SecureConnectionProfileInterface {
   tenant: string;
+  idmHost?: string;
   allowInsecureConnection?: boolean;
   deploymentType?: string;
   username?: string | null;
@@ -120,6 +138,8 @@ export interface SecureConnectionProfileInterface {
   encodedLogApiSecret?: string | null;
   authenticationService?: string | null;
   authenticationHeaderOverrides?: Record<string, string>;
+  adminClientId?: string | null;
+  adminClientRedirectUri?: string | null;
   svcacctId?: string | null;
   encodedSvcacctJwk?: string | null;
   svcacctName?: string | null;
@@ -128,6 +148,7 @@ export interface SecureConnectionProfileInterface {
 
 export interface ConnectionProfileInterface {
   tenant: string;
+  idmHost?: string;
   allowInsecureConnection?: boolean;
   deploymentType?: string;
   username?: string | null;
@@ -136,6 +157,8 @@ export interface ConnectionProfileInterface {
   logApiSecret?: string | null;
   authenticationService?: string | null;
   authenticationHeaderOverrides?: Record<string, string>;
+  adminClientId?: string | null;
+  adminClientRedirectUri?: string | null;
   svcacctId?: string | null;
   svcacctJwk?: JwkRsa;
   svcacctName?: string | null;
@@ -358,6 +381,7 @@ export async function getConnectionProfileByHost({
   }
   return {
     tenant: profiles[0].tenant,
+    idmHost: profiles[0].idmHost ? profiles[0].idmHost : null,
     allowInsecureConnection: profiles[0].allowInsecureConnection,
     deploymentType: profiles[0].deploymentType,
     username: profiles[0].username ? profiles[0].username : null,
@@ -374,6 +398,10 @@ export async function getConnectionProfileByHost({
     authenticationHeaderOverrides: profiles[0].authenticationHeaderOverrides
       ? profiles[0].authenticationHeaderOverrides
       : {},
+    adminClientId: profiles[0].adminClientId ? profiles[0].adminClientId : null,
+    adminClientRedirectUri: profiles[0].adminClientRedirectUri
+      ? profiles[0].adminClientRedirectUri
+      : null,
     svcacctName: profiles[0].svcacctName ? profiles[0].svcacctName : null,
     svcacctId: profiles[0].svcacctId ? profiles[0].svcacctId : null,
     svcacctJwk: profiles[0].encodedSvcacctJwk
@@ -385,7 +413,9 @@ export async function getConnectionProfileByHost({
 
 /**
  * Get connection profile
- * @returns {Object} connection profile or null
+ * @param {Object} params Params object
+ * @param {State} params.state State object
+ * @returns {Promise<ConnectionProfileInterface>} A promise resolving to a connection profile or null
  */
 export async function getConnectionProfile({
   state,
@@ -393,6 +423,53 @@ export async function getConnectionProfile({
   state: State;
 }): Promise<ConnectionProfileInterface> {
   return getConnectionProfileByHost({ host: state.getHost(), state });
+}
+
+/**
+ * Load a connection profile into library state
+ * @param {Object} params Params object
+ * @param {string} params.host AM host URL or unique substring
+ * @param {State} params.state State object
+ * @returns {Promise<boolean>} A promise resolving to true if successful
+ */
+export async function loadConnectionProfileByHost({
+  host,
+  state,
+}: {
+  host: string;
+  state: State;
+}): Promise<boolean> {
+  const conn = await getConnectionProfileByHost({ host, state });
+  state.setHost(conn.tenant);
+  state.setIdmHost(state.getIdmHost() || conn.idmHost);
+  state.setAllowInsecureConnection(conn.allowInsecureConnection);
+  state.setDeploymentType(state.getDeploymentType() || conn.deploymentType);
+  state.setAdminClientId(state.getAdminClientId() || conn.adminClientId);
+  state.setAdminClientRedirectUri(
+    state.getAdminClientRedirectUri() || conn.adminClientRedirectUri
+  );
+  state.setUsername(conn.username);
+  state.setPassword(conn.password);
+  state.setAuthenticationService(conn.authenticationService);
+  state.setAuthenticationHeaderOverrides(conn.authenticationHeaderOverrides);
+  state.setServiceAccountId(conn.svcacctId);
+  state.setServiceAccountJwk(conn.svcacctJwk);
+  state.setServiceAccountScope(conn.svcacctScope);
+  return true;
+}
+
+/**
+ * Load a connection profile into library state
+ * @param {Object} params Params object
+ * @param {State} params.state State object
+ * @returns {Promise<boolean>} A promise resolving to true if successful
+ */
+export async function loadConnectionProfile({
+  state,
+}: {
+  state: State;
+}): Promise<boolean> {
+  return loadConnectionProfileByHost({ host: state.getHost(), state });
 }
 
 /**
@@ -463,6 +540,9 @@ export async function saveConnectionProfile({
       });
     }
 
+    // idm host
+    if (state.getIdmHost()) profile.idmHost = state.getIdmHost();
+
     // allow insecure connection
     if (state.getAllowInsecureConnection())
       profile.allowInsecureConnection = state.getAllowInsecureConnection();
@@ -470,6 +550,14 @@ export async function saveConnectionProfile({
     // deployment type
     if (state.getDeploymentType())
       profile.deploymentType = state.getDeploymentType();
+
+    // admin client id
+    if (state.getAdminClientId())
+      profile.adminClientId = state.getAdminClientId();
+
+    // admin client redirect uri
+    if (state.getAdminClientRedirectUri())
+      profile.adminClientRedirectUri = state.getAdminClientRedirectUri();
 
     // user account
     if (state.getUsername()) profile.username = state.getUsername();

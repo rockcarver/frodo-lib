@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { NoIdObjectSkeletonInterface } from '../ApiTypes';
 import { generateEnvApi } from '../BaseApi';
 
@@ -137,7 +137,7 @@ export async function getCSRs({
 }): Promise<CSRResponse[]> {
   const urlString = util.format(
     csrsURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -164,7 +164,7 @@ export async function createCSR({
 }): Promise<CSRResponse> {
   const urlString = util.format(
     csrsURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -189,7 +189,7 @@ export async function deleteCSR({
 }): Promise<CSRResponse> {
   const urlString = util.format(
     csrByIdURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     csrId
   );
   const { data } = await generateEnvApi({
@@ -217,7 +217,7 @@ export async function getCSR({
 }): Promise<CSRResponse> {
   const urlString = util.format(
     csrByIdURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     csrId
   );
   const { data } = await generateEnvApi({
@@ -248,7 +248,7 @@ export async function updateCSR({
 }): Promise<CSRResponse> {
   const urlString = util.format(
     csrByIdURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     csrId
   );
   const { data } = await generateEnvApi({

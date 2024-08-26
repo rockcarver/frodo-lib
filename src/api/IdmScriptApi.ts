@@ -1,10 +1,10 @@
 import util from 'util';
 
 import { State } from '../shared/State';
-import { getHostBaseUrl } from '../utils/ForgeRockUtils';
+import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import { generateIdmApi } from './BaseApi';
 
-const scriptActionsUrlTemplate = '%s/openidm/script?_action=%s';
+const scriptActionsUrlTemplate = '%s/script?_action=%s';
 
 /**
  * Test connector servers
@@ -19,7 +19,7 @@ export async function compileScript({
 }): Promise<string | object> {
   const urlString = util.format(
     scriptActionsUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     'compile'
   );
   const postData = {
@@ -44,7 +44,7 @@ export async function evaluateScript({
 }): Promise<any> {
   const urlString = util.format(
     scriptActionsUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     'eval'
   );
   const postData = {

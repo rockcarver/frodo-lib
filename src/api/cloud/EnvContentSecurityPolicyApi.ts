@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 
 const enforcedPolicyURLTemplate =
@@ -109,7 +109,7 @@ export async function getEnforcedContentSecurityPolicy({
 }): Promise<ContentSecurityPolicy> {
   const urlString = util.format(
     enforcedPolicyURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -136,7 +136,7 @@ export async function setEnforcedContentSecurityPolicy({
 }): Promise<ContentSecurityPolicy> {
   const urlString = util.format(
     enforcedPolicyURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -156,7 +156,7 @@ export async function getReportOnlyContentSecurityPolicy({
 }): Promise<ContentSecurityPolicy> {
   const urlString = util.format(
     reportOnlyPolicyURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -183,7 +183,7 @@ export async function setReportOnlyContentSecurityPolicy({
 }): Promise<ContentSecurityPolicy> {
   const urlString = util.format(
     reportOnlyPolicyURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),

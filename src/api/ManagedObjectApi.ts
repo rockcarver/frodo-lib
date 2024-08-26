@@ -1,14 +1,14 @@
 import util from 'util';
 
 import { State } from '../shared/State';
-import { getHostBaseUrl } from '../utils/ForgeRockUtils';
+import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
 import { generateIdmApi } from './BaseApi';
 
-const createManagedObjectURLTemplate = '%s/openidm/managed/%s?_action=create';
-const managedObjectByIdURLTemplate = '%s/openidm/managed/%s/%s';
-const queryAllManagedObjectURLTemplate = `%s/openidm/managed/%s?_queryFilter=true&_pageSize=%s`;
-const queryManagedObjectURLTemplate = `%s/openidm/managed/%s?_queryFilter=%s&_pageSize=%s`;
+const createManagedObjectURLTemplate = '%s/managed/%s?_action=create';
+const managedObjectByIdURLTemplate = '%s/managed/%s/%s';
+const queryAllManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=true&_pageSize=%s`;
+const queryManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=%s`;
 
 export const DEFAULT_PAGE_SIZE: number = 1000;
 
@@ -51,7 +51,7 @@ export async function getManagedObject({
   const fieldsParam = `_fields=${fields.join(',')}`;
   const urlString = util.format(
     `${managedObjectByIdURLTemplate}?${fieldsParam}`,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     type,
     id
   );
@@ -79,7 +79,7 @@ export async function createManagedObject({
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     createManagedObjectURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     moType
   );
   const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
@@ -112,7 +112,7 @@ export async function putManagedObject({
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     managedObjectByIdURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     type,
     id
   );
@@ -150,7 +150,7 @@ export async function patchManagedObject({
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     managedObjectByIdURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     type,
     id
   );
@@ -193,7 +193,7 @@ export async function queryManagedObjects({
           pageCookie
         )}`
       : `${queryManagedObjectURLTemplate}&${fieldsParam}`,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     type,
     encodeURIComponent(filter),
     pageSize
@@ -233,7 +233,7 @@ export async function queryAllManagedObjectsByType({
     : `${queryAllManagedObjectURLTemplate}${fieldsParam}`;
   const urlString = util.format(
     urlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     type,
     pageSize
   );
@@ -258,7 +258,7 @@ export async function deleteManagedObject({
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     managedObjectByIdURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     type,
     id
   );

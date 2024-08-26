@@ -3,7 +3,7 @@ import util from 'util';
 import { State } from '../../shared/State';
 import {
   getCurrentRealmName,
-  getHostBaseUrl,
+  getHostOnlyUrl,
 } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 
@@ -40,7 +40,7 @@ export async function verifyCNAME({
 }): Promise<''> {
   const urlString = util.format(
     verifyCNAMEURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -60,7 +60,7 @@ export async function getCustomDomains({
 }): Promise<CustomDomains> {
   const urlString = util.format(
     customDomainsURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     getCurrentRealmName(state)
   );
   const { data } = await generateEnvApi({
@@ -88,7 +88,7 @@ export async function setCustomDomains({
 }): Promise<CustomDomains> {
   const urlString = util.format(
     customDomainsURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     getCurrentRealmName(state)
   );
   const { data } = await generateEnvApi({

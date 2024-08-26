@@ -1,3 +1,4 @@
+tsup.config.bundled_*.mjs
 types
 dist
 
