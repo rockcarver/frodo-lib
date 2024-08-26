@@ -7,19 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.2-0] - 2024-08-26
+
 ### Added
 
 - Improve support for custom platform deployments (non-forgeops or customized forgeops)
 
   - rockcarver/frodo-cli#429: Added state functions to support custom oauth2 clients for IDM API calls:
-  
+
     - `state.setAdminClientId(clientId: string): void`
     - `state.getAdminClientId(): string`
     - `state.setAdminRedirectUri(redirectUri: string): void`
     - `state.getAdminRedirectUri(): string`
 
   - rockcarver/frodo-cli#359: Added state functions to support custom IDM host URLs for all IDM API calls (e.g. platform deployments hosting AM and IDM on/in different DNS hosts/domains):
-  
+
     - `state.setIdmHost(host: string): void`
     - `state.getIdmHost(): string`
 
@@ -1772,7 +1774,8 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.1.1...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.1.2-0...HEAD
+[2.1.2-0]: https://github.com/rockcarver/frodo-lib/compare/v2.1.1...v2.1.2-0
 [2.1.1]: https://github.com/rockcarver/frodo-lib/compare/v2.1.1-0...v2.1.1
 [2.1.1-0]: https://github.com/rockcarver/frodo-lib/compare/v2.1.0...v2.1.1-0
 [2.1.0]: https://github.com/rockcarver/frodo-lib/compare/v2.0.4...v2.1.0
