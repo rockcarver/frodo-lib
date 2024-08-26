@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 
 const releaseURLTemplate = '%s/environment/release';
@@ -32,7 +32,7 @@ export async function getRelease({
 }): Promise<Release> {
   const urlString = util.format(
     releaseURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),

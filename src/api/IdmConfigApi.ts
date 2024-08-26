@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../shared/State';
-import { getHostBaseUrl } from '../utils/ForgeRockUtils';
+import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import {
   IdObjectSkeletonInterface,
   NoIdObjectSkeletonInterface,
@@ -9,9 +9,9 @@ import {
 } from './ApiTypes';
 import { generateIdmApi } from './BaseApi';
 
-const idmAllConfigURLTemplate = '%s/openidm/config';
-const idmConfigURLTemplate = '%s/openidm/config/%s';
-const idmConfigEntityQueryTemplate = '%s/openidm/config?_queryFilter=%s';
+const idmAllConfigURLTemplate = '%s/config';
+const idmConfigURLTemplate = '%s/config/%s';
+const idmConfigEntityQueryTemplate = '%s/config?_queryFilter=%s';
 
 export type IdmConfigStub = IdObjectSkeletonInterface & {
   _id: string;
@@ -33,10 +33,7 @@ export async function getConfigStubs({
 }: {
   state: State;
 }): Promise<IdmConfigStubs> {
-  const urlString = util.format(
-    idmAllConfigURLTemplate,
-    getHostBaseUrl(state.getHost())
-  );
+  const urlString = util.format(idmAllConfigURLTemplate, getIdmBaseUrl(state));
   const { data } = await generateIdmApi({ state }).get(urlString);
   return data;
 }
@@ -52,7 +49,7 @@ export async function getConfigEntities({
 }): Promise<PagedResult<IdObjectSkeletonInterface>> {
   const urlString = util.format(
     idmConfigEntityQueryTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     'true'
   );
   const { data } = await generateIdmApi({ state }).get(urlString);
@@ -73,7 +70,7 @@ export async function getConfigEntitiesByType({
 }): Promise<PagedResult<NoIdObjectSkeletonInterface>> {
   const urlString = util.format(
     idmConfigEntityQueryTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     encodeURIComponent(`_id sw '${type}'`)
   );
   const { data } = await generateIdmApi({ state }).get(urlString);
@@ -94,7 +91,7 @@ export async function getConfigEntity({
 }) {
   const urlString = util.format(
     idmConfigURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     entityId
   );
   const { data } = await generateIdmApi({ state }).get(urlString);
@@ -122,7 +119,7 @@ export async function putConfigEntity({
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     idmConfigURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     wait ? `${entityId}?waitForCompletion=true` : entityId
   );
   const { data } = await generateIdmApi({ state }).put(urlString, entityData);
@@ -143,7 +140,7 @@ export async function deleteConfigEntity({
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     idmConfigURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     entityId
   );
   const { data } = await generateIdmApi({ state }).delete(urlString, {

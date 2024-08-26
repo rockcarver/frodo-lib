@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateAmApi } from '../BaseApi';
 
 const envInfoURLTemplate = '%s/environment/info';
@@ -37,7 +37,7 @@ export async function getEnvInfo({
 }): Promise<EnvInfoInterface> {
   const urlString = util.format(
     envInfoURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),

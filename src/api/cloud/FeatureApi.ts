@@ -2,7 +2,7 @@ import util from 'util';
 
 import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
 import { State } from '../../shared/State';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateAmApi } from '../BaseApi';
 
 const envInfoURLTemplate = '%s/feature?_queryFilter=true';
@@ -25,7 +25,7 @@ export async function getFeatures({ state }: { state: State }): Promise<{
 }> {
   const urlString = util.format(
     envInfoURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
     urlString,

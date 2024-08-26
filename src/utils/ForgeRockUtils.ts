@@ -9,6 +9,30 @@ export type FRUtils = {
   getCurrentRealmName(): string;
   getCurrentRealmManagedUser(): string;
   getRealmName(realm: string): string;
+  /**
+   * Get host URL without path and query params
+   * @param {string} url tenant URL with path and query params
+   * @returns {string} AM host URL without path and query params
+   */
+  getHostUrl(url: string): string;
+  /**
+   * Get IDM base URL
+   * @returns {string} IDM host URL without path and query params
+   */
+  getIdmBaseUrl(): string;
+
+  // deprecated
+
+  /**
+   * Get host URL without path and query params
+   * @param {string} url tenant URL with path and query params
+   * @returns {string} AM host URL without path and query params
+   * @deprecated since v2.1.2 use {@link FRUtils.getHostUrl | getHostUrl} instead
+   * ```javascript
+   * getHostUrl(url: string): string
+   * ```
+   * @group Deprecated
+   */
   getHostBaseUrl(url: string): string;
 };
 
@@ -17,29 +41,32 @@ export default (state: State): FRUtils => {
     applyNameCollisionPolicy(name: string): string {
       return applyNameCollisionPolicy(name);
     },
-
     getRealmPath(realm: string): string {
       return getRealmPath(realm);
     },
-
     getCurrentRealmPath(): string {
       return getCurrentRealmPath(state);
     },
-
     getCurrentRealmName(): string {
       return getCurrentRealmName(state);
     },
-
     getCurrentRealmManagedUser(): string {
       return getCurrentRealmManagedUser({ state });
     },
-
     getRealmName(realm: string): string {
       return getRealmName(realm);
     },
+    getHostUrl(url: string): string {
+      return getHostOnlyUrl(url);
+    },
+    getIdmBaseUrl(): string {
+      return getIdmBaseUrl(state);
+    },
+
+    // deprecated
 
     getHostBaseUrl(url: string): string {
-      return getHostBaseUrl(url);
+      return getHostOnlyUrl(url);
     },
   };
 };
@@ -187,11 +214,23 @@ export function getRealmName(realm: string): string {
 }
 
 /**
- * Get tenant base URL
- * @param {string} url tenant URL with path and query params
- * @returns {string} tenant base URL without path and query params
+ * Get host-only URL without path and query params
+ * @param {string} url URL with path and query params
+ * @returns {string} AM host URL without path and query params
  */
-export function getHostBaseUrl(url: string): string {
+export function getHostOnlyUrl(url: string): string {
   const parsedUrl = new URL(url);
   return `${parsedUrl.protocol}//${parsedUrl.host}`;
+}
+
+/**
+ * Get IDM base URL
+ * @param {State} state State object
+ * @returns {string} IDM host URL without path and query params
+ */
+export function getIdmBaseUrl(state: State): string {
+  if (state.getIdmHost()) {
+    return state.getIdmHost();
+  }
+  return `${getHostOnlyUrl(state.getHost())}/openidm`;
 }

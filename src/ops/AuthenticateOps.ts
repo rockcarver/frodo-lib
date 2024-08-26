@@ -16,6 +16,7 @@ import {
 } from './cloud/ServiceAccountOps';
 import {
   getConnectionProfile,
+  loadConnectionProfile,
   saveConnectionProfile,
 } from './ConnectionProfileOps';
 import { FrodoError } from './FrodoError';
@@ -296,32 +297,54 @@ function determineDefaultRealm(state: State) {
  * @returns {Promise<string>} deployment type
  */
 async function determineDeploymentType(state: State): Promise<string> {
+  debugMessage({
+    message: `AuthenticateOps.determineDeploymentType: start`,
+    state,
+  });
   const cookieValue = state.getCookieValue();
   let deploymentType = state.getDeploymentType();
 
   switch (deploymentType) {
     case Constants.CLOUD_DEPLOYMENT_TYPE_KEY:
+      adminClientId = state.getAdminClientId() || fidcClientId;
+      debugMessage({
+        message: `AuthenticateOps.determineDeploymentType: end [type=${deploymentType}]`,
+        state,
+      });
       return deploymentType;
 
     case Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY:
-      adminClientId = forgeopsClientId;
+      adminClientId = state.getAdminClientId() || forgeopsClientId;
+      debugMessage({
+        message: `AuthenticateOps.determineDeploymentType: end [type=${deploymentType}]`,
+        state,
+      });
       return deploymentType;
 
     case Constants.CLASSIC_DEPLOYMENT_TYPE_KEY:
+      debugMessage({
+        message: `AuthenticateOps.determineDeploymentType: end [type=${deploymentType}]`,
+        state,
+      });
       return deploymentType;
 
     // detect deployment type
     default: {
       // if we are using a service account, we know it's cloud
-      if (state.getUseBearerTokenForAmApis())
+      if (state.getUseBearerTokenForAmApis()) {
+        debugMessage({
+          message: `AuthenticateOps.determineDeploymentType: end [type=${Constants.CLOUD_DEPLOYMENT_TYPE_KEY}]`,
+          state,
+        });
         return Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
+      }
 
       const verifier = encodeBase64Url(randomBytes(32));
       const challenge = encodeBase64Url(
         createHash('sha256').update(verifier).digest()
       );
       const challengeMethod = 'S256';
-      const redirectURL = url.resolve(state.getHost(), redirectUrlTemplate);
+      const redirectUri = url.resolve(state.getHost(), redirectUrlTemplate);
 
       const config = {
         maxRedirects: 0,
@@ -329,7 +352,7 @@ async function determineDeploymentType(state: State): Promise<string> {
           [state.getCookieName()]: state.getCookieValue(),
         },
       };
-      let bodyFormData = `redirect_uri=${redirectURL}&scope=${cloudAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+      let bodyFormData = `redirect_uri=${redirectUri}&scope=${cloudAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
 
       deploymentType = Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
       try {
@@ -352,7 +375,7 @@ async function determineDeploymentType(state: State): Promise<string> {
           deploymentType = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
         } else {
           try {
-            bodyFormData = `redirect_uri=${redirectURL}&scope=${forgeopsAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+            bodyFormData = `redirect_uri=${redirectUri}&scope=${forgeopsAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
             await authorize({
               amBaseUrl: state.getHost(),
               data: bodyFormData,
@@ -364,7 +387,8 @@ async function determineDeploymentType(state: State): Promise<string> {
               ex.response?.status === 302 &&
               ex.response.headers?.location?.indexOf('code=') > -1
             ) {
-              adminClientId = forgeopsClientId;
+              // maybe we don't want to run through the auto-detect code if we get a custom admin client id?
+              adminClientId = state.getAdminClientId() || forgeopsClientId;
               verboseMessage({
                 message: `ForgeOps deployment`['brightCyan'] + ` detected.`,
                 state,
@@ -379,6 +403,10 @@ async function determineDeploymentType(state: State): Promise<string> {
           }
         }
       }
+      debugMessage({
+        message: `AuthenticateOps.determineDeploymentType: end [type=${deploymentType}]`,
+        state,
+      });
       return deploymentType;
     }
   }
@@ -529,20 +557,20 @@ async function getUserSessionToken(
 
 /**
  * Helper function to obtain an oauth2 authorization code
- * @param {string} redirectURL oauth2 redirect uri
+ * @param {string} redirectUri oauth2 redirect uri
  * @param {string} codeChallenge PKCE code challenge
  * @param {string} codeChallengeMethod PKCE code challenge method
  * @param {State} state library state
  * @returns {string} oauth2 authorization code or null
  */
 async function getAuthCode(
-  redirectURL: string,
+  redirectUri: string,
   codeChallenge: string,
   codeChallengeMethod: string,
   state: State
 ): Promise<string> {
   try {
-    const bodyFormData = `redirect_uri=${redirectURL}&scope=${
+    const bodyFormData = `redirect_uri=${redirectUri}&scope=${
       state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY
         ? cloudAdminScopes
         : forgeopsAdminScopes
@@ -598,9 +626,12 @@ async function getFreshUserBearerToken({
       createHash('sha256').update(verifier).digest()
     );
     const challengeMethod = 'S256';
-    const redirectURL = url.resolve(state.getHost(), redirectUrlTemplate);
+    const redirectUri = url.resolve(
+      state.getHost(),
+      state.getAdminClientRedirectUri() || redirectUrlTemplate
+    );
     const authCode = await getAuthCode(
-      redirectURL,
+      redirectUri,
       challenge,
       challengeMethod,
       state
@@ -613,7 +644,7 @@ async function getFreshUserBearerToken({
           password: adminClientPassword,
         },
       };
-      const bodyFormData = `redirect_uri=${redirectURL}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
+      const bodyFormData = `redirect_uri=${redirectUri}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
       response = await accessToken({
         amBaseUrl: state.getHost(),
         data: bodyFormData,
@@ -621,7 +652,7 @@ async function getFreshUserBearerToken({
         state,
       });
     } else {
-      const bodyFormData = `client_id=${adminClientId}&redirect_uri=${redirectURL}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
+      const bodyFormData = `client_id=${adminClientId}&redirect_uri=${redirectUri}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
       response = await accessToken({
         amBaseUrl: state.getHost(),
         data: bodyFormData,
@@ -982,20 +1013,7 @@ export async function getTokens({
       !state.getServiceAccountId() &&
       !state.getServiceAccountJwk()
     ) {
-      const conn = await getConnectionProfile({ state });
-      usingConnectionProfile = true;
-      state.setHost(conn.tenant);
-      state.setAllowInsecureConnection(conn.allowInsecureConnection);
-      state.setDeploymentType(conn.deploymentType);
-      state.setUsername(conn.username);
-      state.setPassword(conn.password);
-      state.setAuthenticationService(conn.authenticationService);
-      state.setAuthenticationHeaderOverrides(
-        conn.authenticationHeaderOverrides
-      );
-      state.setServiceAccountId(conn.svcacctId);
-      state.setServiceAccountJwk(conn.svcacctJwk);
-      state.setServiceAccountScope(conn.svcacctScope);
+      usingConnectionProfile = await loadConnectionProfile({ state });
 
       // fail fast if deployment type not applicable
       if (
@@ -1032,6 +1050,8 @@ export async function getTokens({
     // use service account to login?
     if (
       !forceLoginAsUser &&
+      (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+        state.getDeploymentType() === undefined) &&
       state.getServiceAccountId() &&
       state.getServiceAccountJwk()
     ) {
@@ -1041,7 +1061,7 @@ export async function getTokens({
       });
       try {
         const token = await getSaBearerToken({ state });
-        state.setBearerTokenMeta(token);
+        if (token) state.setBearerTokenMeta(token);
         if (usingConnectionProfile && !token.from_cache) {
           saveConnectionProfile({ host: state.getHost(), state });
         }
@@ -1069,6 +1089,9 @@ export async function getTokens({
       });
       const token = await getUserSessionToken(callbackHandler, state);
       if (token) state.setUserSessionTokenMeta(token);
+      if (usingConnectionProfile && !token.from_cache) {
+        saveConnectionProfile({ host: state.getHost(), state });
+      }
       await determineDeploymentTypeAndDefaultRealmAndVersion(state);
 
       // fail if deployment type not applicable

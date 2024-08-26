@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface, PagedResult } from '../ApiTypes';
 import { generateEnvApi } from '../BaseApi';
 
@@ -86,7 +86,7 @@ export async function getSecrets({
 }): Promise<PagedResult<SecretSkeleton>> {
   const urlString = util.format(
     secretsListURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -111,7 +111,7 @@ export async function getSecret({
 }): Promise<SecretSkeleton> {
   const urlString = util.format(
     secretURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     secretId
   );
   const { data } = await generateEnvApi({
@@ -155,7 +155,7 @@ export async function putSecret({
   };
   const urlString = util.format(
     secretURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     secretId
   );
   const { data } = await generateEnvApi({
@@ -184,7 +184,7 @@ export async function setSecretDescription({
 }): Promise<any> {
   const urlString = util.format(
     secretSetDescriptionURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     secretId
   );
   const { data } = await generateEnvApi({
@@ -208,7 +208,7 @@ export async function deleteSecret({
 }) {
   const urlString = util.format(
     secretURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     secretId
   );
   const { data } = await generateEnvApi({
@@ -234,7 +234,7 @@ export async function getSecretVersions({
 }): Promise<VersionOfSecretSkeleton[]> {
   const urlString = util.format(
     secretListVersionsURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     secretId
   );
   const { data } = await generateEnvApi({
@@ -263,7 +263,7 @@ export async function createNewVersionOfSecret({
 }): Promise<VersionOfSecretSkeleton> {
   const urlString = util.format(
     secretCreateNewVersionURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     secretId
   );
   const { data } = await generateEnvApi({
@@ -290,7 +290,7 @@ export async function getVersionOfSecret({
 }): Promise<VersionOfSecretSkeleton> {
   const urlString = util.format(
     secretGetVersionURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     secretId,
     version
   );
@@ -323,7 +323,7 @@ export async function setStatusOfVersionOfSecret({
 }): Promise<VersionOfSecretSkeleton> {
   const urlString = util.format(
     secretVersionStatusURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     secretId,
     version
   );
@@ -351,7 +351,7 @@ export async function deleteVersionOfSecret({
 }): Promise<VersionOfSecretSkeleton> {
   const urlString = util.format(
     secretGetVersionURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     secretId,
     version
   );

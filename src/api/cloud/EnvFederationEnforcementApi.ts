@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 
 const federationEnforcementURLTemplate =
@@ -32,7 +32,7 @@ export async function getFederationEnforcement({
 }): Promise<FederationEnforcement> {
   const urlString = util.format(
     federationEnforcementURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -59,7 +59,7 @@ export async function setFederationEnforcement({
 }): Promise<FederationEnforcement> {
   const urlString = util.format(
     federationEnforcementURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),

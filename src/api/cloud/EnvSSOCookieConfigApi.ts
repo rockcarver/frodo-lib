@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 
 const ssoCookieConfigURLTemplate = '%s/environment/sso-cookie';
@@ -32,7 +32,7 @@ export async function getSSOCookieConfig({
 }): Promise<SSOCookieConfig> {
   const urlString = util.format(
     ssoCookieConfigURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -56,7 +56,7 @@ export async function resetSSOCookieConfig({
 }): Promise<SSOCookieConfig> {
   const urlString = util.format(
     resetSsoCookieConfigURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -81,7 +81,7 @@ export async function setSSOCookieConfig({
 }): Promise<SSOCookieConfig> {
   const urlString = util.format(
     ssoCookieConfigURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),

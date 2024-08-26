@@ -27,6 +27,16 @@ export type State = {
    * @returns the AM host base URL
    */
   getHost(): string;
+  /**
+   * Set the IDM host base URL
+   * @param host Identity Management base URL, e.g.: https://cdk.iam.example.com/openidm. To use a connection profile, just specify a unique substring.
+   */
+  setIdmHost(host: string): void;
+  /**
+   * Get the IDM host base URL
+   * @returns the IDM host base URL
+   */
+  getIdmHost(): string;
   setUsername(username: string): void;
   getUsername(): string;
   setPassword(password: string): void;
@@ -35,6 +45,10 @@ export type State = {
   getRealm(): string;
   setDeploymentType(type: string): void;
   getDeploymentType(): string;
+  setAdminClientId(type: string): void;
+  getAdminClientId(): string;
+  setAdminClientRedirectUri(type: string): void;
+  getAdminClientRedirectUri(): string;
   setAllowInsecureConnection(allowInsecureConnection: boolean): void;
   getAllowInsecureConnection(): boolean;
   setCookieName(name: string): void;
@@ -165,6 +179,12 @@ export default (initialState: StateInterface): State => {
     getHost() {
       return state.host || process.env.FRODO_HOST;
     },
+    setIdmHost(host: string) {
+      state.idmHost = host;
+    },
+    getIdmHost() {
+      return state.idmHost || process.env.FRODO_IDM_HOST;
+    },
 
     setUsername(username: string) {
       state.username = username;
@@ -192,6 +212,21 @@ export default (initialState: StateInterface): State => {
     },
     getDeploymentType() {
       return state.deploymentType;
+    },
+
+    setAdminClientId(clientId: string) {
+      state.adminClientId = clientId;
+    },
+    getAdminClientId() {
+      return state.adminClientId || process.env.FRODO_LOGIN_CLIENT_ID;
+    },
+    setAdminClientRedirectUri(redirectUri: string) {
+      state.adminClientRedirectUri = redirectUri;
+    },
+    getAdminClientRedirectUri() {
+      return (
+        state.adminClientRedirectUri || process.env.FRODO_LOGIN_REDIRECT_URI
+      );
     },
 
     setAllowInsecureConnection(allowInsecureConnection: boolean) {
@@ -461,10 +496,13 @@ export default (initialState: StateInterface): State => {
 export interface StateInterface {
   // connection settings
   host?: string;
+  idmHost?: string;
   username?: string;
   password?: string;
   realm?: string;
   deploymentType?: string;
+  adminClientId?: string;
+  adminClientRedirectUri?: string;
   allowInsecureConnection?: boolean;
   // customize authentication
   authenticationHeaderOverrides?: Record<string, string>;

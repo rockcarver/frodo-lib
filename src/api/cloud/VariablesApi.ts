@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface, PagedResult } from '../ApiTypes';
 import { generateEnvApi } from '../BaseApi';
 
@@ -71,7 +71,7 @@ export async function getVariables({
 }): Promise<PagedResult<VariableSkeleton>> {
   const urlString = util.format(
     variablesListURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -96,7 +96,7 @@ export async function getVariable({
 }): Promise<VariableSkeleton> {
   const urlString = util.format(
     variableURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     variableId
   );
   const { data } = await generateEnvApi({
@@ -135,7 +135,7 @@ export async function putVariable({
   };
   const urlString = util.format(
     variableURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     variableId
   );
   const { data } = await generateEnvApi({
@@ -164,7 +164,7 @@ export async function setVariableDescription({
 }): Promise<any> {
   const urlString = util.format(
     variableSetDescriptionURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     variableId
   );
   const { data } = await generateEnvApi({
@@ -188,7 +188,7 @@ export async function deleteVariable({
 }): Promise<VariableSkeleton> {
   const urlString = util.format(
     variableURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     variableId
   );
   const { data } = await generateEnvApi({

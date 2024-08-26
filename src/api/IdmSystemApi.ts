@@ -1,20 +1,18 @@
 import util from 'util';
 
 import { State } from '../shared/State';
-import { getHostBaseUrl } from '../utils/ForgeRockUtils';
+import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
 import { generateIdmApi } from './BaseApi';
 
-const systemActionsUrlTemplate = '%s/openidm/system?_action=%s';
-const systemTestUrlTemplate = '%s/openidm/system/%s?_action=test';
-const systemObjectActionsUrlTemplate = '%s/openidm/system/%s/%s?_action=%s';
+const systemActionsUrlTemplate = '%s/system?_action=%s';
+const systemTestUrlTemplate = '%s/system/%s?_action=test';
+const systemObjectActionsUrlTemplate = '%s/system/%s/%s?_action=%s';
 const systemRunScriptUrlTemplate =
-  '%s/openidm/system/%s?_action=script&scriptId=%s&scriptExecuteMode=resource';
-const systemQueryAllUrlTemplate =
-  '%s/openidm/system/%s/%s?_queryId=query-all-ids';
-const systemQueryByFilterUrlTemplate =
-  '%s/openidm/system/%s/%s?_queryFilter=%s';
-const systemObjectUrlTemplate = '%s/openidm/system/%s/%s/%s';
+  '%s/system/%s?_action=script&scriptId=%s&scriptExecuteMode=resource';
+const systemQueryAllUrlTemplate = '%s/system/%s/%s?_queryId=query-all-ids';
+const systemQueryByFilterUrlTemplate = '%s/system/%s/%s?_queryFilter=%s';
+const systemObjectUrlTemplate = '%s/system/%s/%s/%s';
 
 export const DEFAULT_PAGE_SIZE: number = 1000;
 
@@ -54,7 +52,7 @@ export async function testConnectorServers({
 }): Promise<TestConnectorServersInterface> {
   const urlString = util.format(
     systemActionsUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     'testConnectorServers'
   );
   const { data } = await generateIdmApi({ state, requestOverride: {} }).post(
@@ -70,7 +68,7 @@ export async function readAvailableSystems({
 }): Promise<SystemStatusInterface[]> {
   const urlString = util.format(
     systemActionsUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     'test'
   );
   const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
@@ -88,7 +86,7 @@ export async function readSystemStatus({
 }): Promise<SystemStatusInterface> {
   const urlString = util.format(
     systemTestUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     systemName
   );
   const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
@@ -112,7 +110,7 @@ export async function authenticateSystemObject({
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     systemObjectActionsUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     systemName,
     systemObjectType,
     'authenticate'
@@ -135,7 +133,7 @@ export async function runSystemScript({
 }) {
   const urlString = util.format(
     systemRunScriptUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     systemName,
     scriptName
   );
@@ -167,7 +165,7 @@ export async function queryAllSystemObjectIds({
     : `${systemQueryAllUrlTemplate}${pagingParams}`;
   const urlString = util.format(
     urlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     systemName,
     systemObjectType
   );
@@ -201,7 +199,7 @@ export async function querySystemObjects({
     : `${systemQueryByFilterUrlTemplate}${pagingParams}${fieldsParam}`;
   const urlString = util.format(
     urlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     systemName,
     systemObjectType,
     decodeURIComponent(filter) === filter ? encodeURIComponent(filter) : filter
@@ -228,7 +226,7 @@ export async function getSystemObject({
   const fieldsParam = `_fields=${fields.join(',')}`;
   const urlString = util.format(
     `${systemObjectUrlTemplate}?${fieldsParam}`,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     systemName,
     systemObjectType,
     systemObjectId
@@ -252,7 +250,7 @@ export async function createSystemObject({
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     systemObjectActionsUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     systemName,
     systemObjectType,
     'create'
@@ -281,7 +279,7 @@ export async function putSystemObject({
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     systemObjectUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     systemName,
     systemObjectType,
     systemObjectId
@@ -325,7 +323,7 @@ export async function patchSystemObject({
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     systemObjectUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     systemName,
     systemObjectType,
     systemObjectId
@@ -350,7 +348,7 @@ export async function deleteSystemObject({
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
     systemObjectUrlTemplate,
-    getHostBaseUrl(state.getHost()),
+    getIdmBaseUrl(state),
     systemName,
     systemObjectType,
     systemObjectId

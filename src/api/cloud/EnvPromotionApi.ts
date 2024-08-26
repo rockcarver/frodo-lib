@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../../shared/State';
-import { getHostBaseUrl } from '../../utils/ForgeRockUtils';
+import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 
 const promotionURLTemplate = '%s/environment/promotion';
@@ -157,7 +157,7 @@ export async function lockEnvironment({
 }): Promise<LockResponse> {
   const urlString = util.format(
     lockEnvURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -182,7 +182,7 @@ export async function unlockEnvironment({
 }): Promise<LockResponse> {
   const urlString = util.format(
     unlockEnvByIdURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     promotionId
   );
   const { data } = await generateEnvApi({
@@ -205,7 +205,7 @@ export async function getLockStatus({
 }): Promise<LockStatus> {
   const urlString = util.format(
     lockStatusURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -232,7 +232,7 @@ export async function promoteConfiguration({
 }): Promise<PromotionResponse> {
   const urlString = util.format(
     lockEnvURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -254,7 +254,7 @@ export async function getPromotionStatus({
 }): Promise<PromotionStatus> {
   const urlString = util.format(
     promoteEnvURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -278,7 +278,7 @@ export async function getLastPromotionReport({
 }): Promise<PromotionReport> {
   const urlString = util.format(
     reportURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -305,7 +305,7 @@ export async function getPromotionReport({
 }): Promise<PromotionReport> {
   const urlString = util.format(
     reportByIdURLTemplate,
-    getHostBaseUrl(state.getHost()),
+    getHostOnlyUrl(state.getHost()),
     reportId
   );
   const { data } = await generateEnvApi({
@@ -332,7 +332,7 @@ export async function getProvisionalPromotionReport({
 }): Promise<PromotionReport> {
   const urlString = util.format(
     provisionalPromotionReportURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -356,7 +356,7 @@ export async function getProvisionalRollbackReport({
 }): Promise<PromotionReport> {
   const urlString = util.format(
     provisionalRollbackReportURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -380,7 +380,7 @@ export async function getPromotionReports({
 }): Promise<PromotionReportStub[]> {
   const urlString = util.format(
     reportsURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
@@ -407,7 +407,7 @@ export async function rollbackPromotion({
 }): Promise<RollbackResponse> {
   const urlString = util.format(
     rollbackURLTemplate,
-    getHostBaseUrl(state.getHost())
+    getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
