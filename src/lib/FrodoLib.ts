@@ -1,6 +1,7 @@
 // instantiable modules
 import AdminOps, { Admin } from '../ops/AdminOps';
 import AgentOps, { Agent } from '../ops/AgentOps';
+import ApiOps, { ApiFactory } from '../ops/ApiFactoryOps';
 import ApplicationOps, { Application } from '../ops/ApplicationOps';
 import AuthenticateOps, { Authenticate } from '../ops/AuthenticateOps';
 import AuthenticationSettingsOps, {
@@ -139,6 +140,8 @@ export type Frodo = {
   email: {
     template: EmailTemplate;
   };
+
+  factory: ApiFactory;
 
   idm: {
     config: IdmConfig;
@@ -295,6 +298,8 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     email: {
       template: EmailTemplateOps(state),
     },
+
+    factory: ApiOps(state),
 
     idm: {
       config: IdmConfigOps(state),

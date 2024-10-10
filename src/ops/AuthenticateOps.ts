@@ -350,6 +350,7 @@ async function determineDeploymentType(state: State): Promise<string> {
         maxRedirects: 0,
         headers: {
           [state.getCookieName()]: state.getCookieValue(),
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
       };
       let bodyFormData = `redirect_uri=${redirectUri}&scope=${cloudAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;

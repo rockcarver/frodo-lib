@@ -7,9 +7,7 @@ import { generateAmApi } from '../BaseApi';
 
 const envInfoURLTemplate = '%s/feature?_queryFilter=true';
 
-const getApiConfig = () => ({
-  path: `/feature`,
-});
+const getApiConfig = () => ({});
 
 export interface FeatureInterface extends IdObjectSkeletonInterface {
   installedVersion: string;
