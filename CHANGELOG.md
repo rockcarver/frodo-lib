@@ -7,23 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2024-10-10
+
 ### Added
 
 - Expose API factory to developers using Frodo Library to configure AIC, ForgeOps, and PingAM deployments.
 
   Under `frodo.factory` developers now have access to:
 
-    - `generateAmApi`: Generates an AM Axios API instance
-    - `generateOauth2Api`: Generates an OAuth2 Axios API instance
-    - `generateIdmApi`: Generates an IDM Axios API instance
-    - `generateLogKeysApi`: Generates a LogKeys API Axios instance
-    - `generateLogApi`: Generates a Log API Axios instance
-    - `generateEnvApi`: Generates an Axios instance for the Identity Cloud Environment API
-    - `generateReleaseApi`: Generates a release (Github or Npm) Axios API instance
+  - `generateAmApi`: Generates an AM Axios API instance
+  - `generateOauth2Api`: Generates an OAuth2 Axios API instance
+  - `generateIdmApi`: Generates an IDM Axios API instance
+  - `generateLogKeysApi`: Generates a LogKeys API Axios instance
+  - `generateLogApi`: Generates a Log API Axios instance
+  - `generateEnvApi`: Generates an Axios instance for the Identity Cloud Environment API
+  - `generateReleaseApi`: Generates a release (Github or Npm) Axios API instance
 
 ### Fixed
 
-  - rockcarver/frodo-cli#445: Fixed an issue introduced with an update to Advanced Identity Cloud which renamed scopes for an upcoming feature and broke Frodo Library in a number of places.
+- rockcarver/frodo-cli#445: Fixed an issue introduced with an update to Advanced Identity Cloud which renamed scopes for an upcoming feature and broke Frodo Library in a number of places.
 
 ## [2.1.2-0] - 2024-08-26
 
@@ -1792,7 +1794,8 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.1.2-0...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/rockcarver/frodo-lib/compare/v2.1.2-0...v2.2.0
 [2.1.2-0]: https://github.com/rockcarver/frodo-lib/compare/v2.1.1...v2.1.2-0
 [2.1.1]: https://github.com/rockcarver/frodo-lib/compare/v2.1.1-0...v2.1.1
 [2.1.1-0]: https://github.com/rockcarver/frodo-lib/compare/v2.1.0...v2.1.1-0
