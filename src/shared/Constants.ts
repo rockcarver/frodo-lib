@@ -79,9 +79,9 @@ const AVAILABLE_SCOPES = {
   PromotionScope: 'fr:idc:promotion:*',
 
   // WAF scopes
-  WafFullScope: 'fr:idc:advanced-gateway:*',
-  WafReadScope: 'fr:idc:advanced-gateway:read',
-  WafWriteScope: 'fr:idc:advanced-gateway:write',
+  WafFullScope: 'fr:idc:proxy-connect:*',
+  WafReadScope: 'fr:idc:proxy-connect:read',
+  WafWriteScope: 'fr:idc:proxy-connect:write',
 
   // Cookie Domains scopes
   CookieDomainsFullScope: 'fr:idc:cookie-domain:*',
