@@ -81,10 +81,6 @@ export default (state: State): FRUtils => {
     getIdmBaseUrl(): string {
       return getIdmBaseUrl(state);
     },
-    getRealmUsingExportFormat(realm: string): string {
-      return getRealmUsingExportFormat(realm);
-    },
-
     // deprecated
 
     getHostBaseUrl(url: string): string {
