@@ -551,7 +551,7 @@ export async function updateScript({
     if (Array.isArray(scriptData.script)) {
       scriptData.script = convertTextArrayToBase64(scriptData.script);
     } else if (!isBase64Encoded(scriptData.script)) {
-      scriptData.script = encode(JSON.parse(scriptData.script));
+      scriptData.script = encode(scriptData.script);
     }
     result = await _putScript({ scriptId, scriptData, state });
   } catch (error) {

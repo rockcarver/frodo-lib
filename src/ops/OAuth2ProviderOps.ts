@@ -83,7 +83,7 @@ export async function readOAuth2Provider({
   state: State;
 }): Promise<OAuth2ProviderSkeleton | null> {
   try {
-    return _getOAuth2Provider({ state });
+    return await _getOAuth2Provider({ state });
   } catch (error) {
     if (error.httpStatus === 404 || error.response?.status === 404) {
       // return null if no provider exists

@@ -534,7 +534,7 @@ async function exportOAuth2ClientDependencies(
               !(
                 (error as FrodoError).httpStatus === 403 &&
                 (error as FrodoError).httpMessage ===
-                  'This operation is not available in ForgeRock Identity Cloud.'
+                  'This operation is not available in PingOne Advanced Identity Cloud.'
               )
             ) {
               throw new FrodoError(
@@ -670,7 +670,11 @@ async function importOAuth2ClientDependencies(
     for (const key of Object.keys(clientData['overrideOAuth2ClientConfig'])) {
       if (key.endsWith('Script')) {
         const scriptId = clientData['overrideOAuth2ClientConfig'][key];
-        if (scriptId !== '[Empty]' && importData.script[scriptId]) {
+        if (
+          scriptId !== '[Empty]' &&
+          importData.script &&
+          importData.script[scriptId]
+        ) {
           try {
             const scriptData: ScriptSkeleton = importData.script[scriptId];
             await updateScript({ scriptId, scriptData, state });

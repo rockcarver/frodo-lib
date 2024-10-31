@@ -27,7 +27,7 @@ export type Agent = {
   createAgentExportTemplate(): AgentExportInterface;
   /**
    * Read all agents.
-   * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of agent objects
+   * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array of agent objects
    */
   readAgents(): Promise<AgentSkeleton[]>;
   /**
@@ -146,48 +146,49 @@ export type Agent = {
   exportAgents(): Promise<AgentExportInterface>;
   /**
    * Export all identity gateway agents. The response can be saved to file as is.
-   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
    */
   exportIdentityGatewayAgents(): Promise<AgentExportInterface>;
   /**
    * Export all java agents. The response can be saved to file as is.
-   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
    */
   exportJavaAgents(): Promise<AgentExportInterface>;
   /**
    * Export all web agents. The response can be saved to file as is.
-   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
    */
   exportWebAgents(): Promise<AgentExportInterface>;
   /**
    * Export agent. The response can be saved to file as is.
    * @param agentId agent id/name
-   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
    */
   exportAgent(agentId: string): Promise<AgentExportInterface>;
   /**
    * Export identity gateway agent. The response can be saved to file as is.
    * @param agentId agent id/name
-   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
    */
   exportIdentityGatewayAgent(agentId: string): Promise<AgentExportInterface>;
   /**
    * Export java agent. The response can be saved to file as is.
    * @param agentId agent id/name
-   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
    */
   exportJavaAgent(agentId: string): Promise<AgentExportInterface>;
   /**
    * Export web agent. The response can be saved to file as is.
    * @param agentId agent id/name
-   * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+   * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
    */
   exportWebAgent(agentId: string): Promise<AgentExportInterface>;
   /**
    * Import agents. The import data is usually read from an agent export file.
    * @param {AgentExportInterface} importData agent import data.
+   * @returns {Promise<AgentSkeleton[]>} The agents that were imported.
    */
-  importAgents(importData: AgentExportInterface): Promise<void>;
+  importAgents(importData: AgentExportInterface): Promise<AgentSkeleton[]>;
   /**
    * Import identity gateway agents. The import data is usually read from an agent export file.
    * @param {AgentExportInterface} importData agent import data.
@@ -207,39 +208,42 @@ export type Agent = {
    * Import agent. The import data is usually read from an agent export file.
    * @param {string} agentId agent id/name
    * @param {AgentExportInterface} importData agent import data.
-   * @returns {Promise} Promise resolving to an agent object.
+   * @returns {Promise<AgentSkeleton>} Promise resolving to an agent object.
    */
-  importAgent(agentId: string, importData: AgentExportInterface): Promise<any>;
+  importAgent(
+    agentId: string,
+    importData: AgentExportInterface
+  ): Promise<AgentSkeleton>;
   /**
    * Import identity gateway agent. The import data is usually read from an agent export file.
    * @param {string} agentId agent id/name
    * @param {AgentExportInterface} importData agent import data.
-   * @returns {Promise} Promise resolving to an agent object.
+   * @returns {Promise<AgentSkeleton>} Promise resolving to an agent object.
    */
   importIdentityGatewayAgent(
     agentId: string,
     importData: AgentExportInterface
-  ): Promise<any>;
+  ): Promise<AgentSkeleton>;
   /**
    * Import java agent. The import data is usually read from an agent export file.
    * @param {string} agentId agent id/name
    * @param {AgentExportInterface} importData agent import data.
-   * @returns {Promise} Promise resolving to an agent object.
+   * @returns {Promise<AgentSkeleton>} Promise resolving to an agent object.
    */
   importJavaAgent(
     agentId: string,
     importData: AgentExportInterface
-  ): Promise<any>;
+  ): Promise<AgentSkeleton>;
   /**
    * Import java agent. The import data is usually read from an agent export file.
    * @param {string} agentId agent id/name
    * @param {AgentExportInterface} importData agent import data.
-   * @returns {Promise} Promise resolving to an agent object.
+   * @returns {Promise<AgentSkeleton>} Promise resolving to an agent object.
    */
   importWebAgent(
     agentId: string,
     importData: AgentExportInterface
-  ): Promise<any>;
+  ): Promise<AgentSkeleton>;
   /**
    * Delete all agents
    */
@@ -281,7 +285,7 @@ export type Agent = {
 
   /**
    * Get all agents.
-   * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of agent objects
+   * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array of agent objects
    * @deprecated since v2.0.0 use {@link Agent.readAgents | readAgents} instead
    * ```javascript
    * readAgents(): Promise<AgentSkeleton[]>
@@ -533,7 +537,9 @@ export default (state: State): Agent => {
     async exportWebAgent(agentId: string): Promise<AgentExportInterface> {
       return exportWebAgent({ agentId, state });
     },
-    async importAgents(importData: AgentExportInterface): Promise<void> {
+    async importAgents(
+      importData: AgentExportInterface
+    ): Promise<AgentSkeleton[]> {
       return importAgents({ importData, state });
     },
     async importIdentityGatewayAgents(
@@ -647,8 +653,14 @@ export default (state: State): Agent => {
 
 export interface AgentExportInterface {
   meta?: ExportMetaData;
-  agents: Record<string, AgentSkeleton>;
+  agent: Record<string, AgentSkeleton>;
 }
+
+const agentTypes: AgentType[] = [
+  'IdentityGatewayAgent',
+  'J2EEAgent',
+  'WebAgent',
+];
 
 /**
  * Create an empty agent export template
@@ -661,13 +673,13 @@ export function createAgentExportTemplate({
 }): AgentExportInterface {
   return {
     meta: getMetadata({ state }),
-    agents: {},
+    agent: {},
   } as AgentExportInterface;
 }
 
 /**
  * Get all agents. Results are sorted alphabetically.
- * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of agent objects
+ * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array of agent objects
  */
 export async function readAgents({
   state,
@@ -677,14 +689,18 @@ export async function readAgents({
   try {
     debugMessage({ message: `AgentOps.readAgents: start`, state });
     let agents = [];
-    const resolved = await Promise.all([
-      getAgentsByType({ agentType: 'IdentityGatewayAgent', state }),
-      getAgentsByType({ agentType: 'J2EEAgent', state }),
-      getAgentsByType({ agentType: 'WebAgent', state }),
-    ]);
-    agents = agents.concat(resolved[0].result);
-    agents = agents.concat(resolved[1].result);
-    agents = agents.concat(resolved[2].result);
+    const resolved = await Promise.all(
+      agentTypes.map((agentType) =>
+        getAgentsByType({ agentType, state }).catch((err) => {
+          if (err.httpStatus !== 501 && err.response?.status !== 501) {
+            throw err;
+          } else {
+            return { result: [] };
+          }
+        })
+      )
+    );
+    agents = agents.concat(...resolved.map((response) => response.result));
     agents.sort((a, b) => a._id.localeCompare(b._id));
     debugMessage({ message: `AgentOps.readAgents: end`, state });
     return agents;
@@ -1149,7 +1165,7 @@ export async function exportAgents({
         message: `Exporting agent ${agent._id}`,
         state,
       });
-      exportData.agents[agent._id] = agent;
+      exportData.agent[agent._id] = agent;
     }
     stopProgressIndicator({
       id: indicatorId,
@@ -1171,7 +1187,7 @@ export async function exportAgents({
 
 /**
  * Export all identity gateway agents. The response can be saved to file as is.
- * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+ * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
  */
 export async function exportIdentityGatewayAgents({
   state,
@@ -1197,7 +1213,7 @@ export async function exportIdentityGatewayAgents({
         message: `Exporting IG agent ${agent._id}`,
         state,
       });
-      exportData.agents[agent._id] = agent;
+      exportData.agent[agent._id] = agent;
     }
     stopProgressIndicator({
       id: indicatorId,
@@ -1222,7 +1238,7 @@ export async function exportIdentityGatewayAgents({
 
 /**
  * Export all java agents. The response can be saved to file as is.
- * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+ * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
  */
 export async function exportJavaAgents({
   state,
@@ -1245,7 +1261,7 @@ export async function exportJavaAgents({
         message: `Exporting Java agent ${agent._id}`,
         state,
       });
-      exportData.agents[agent._id] = agent;
+      exportData.agent[agent._id] = agent;
     }
     stopProgressIndicator({
       id: indicatorId,
@@ -1267,7 +1283,7 @@ export async function exportJavaAgents({
 
 /**
  * Export all web agents. The response can be saved to file as is.
- * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+ * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
  */
 export async function exportWebAgents({
   state,
@@ -1290,7 +1306,7 @@ export async function exportWebAgents({
         message: `Exporting web agent ${agent._id}`,
         state,
       });
-      exportData.agents[agent._id] = agent;
+      exportData.agent[agent._id] = agent;
     }
     stopProgressIndicator({
       id: indicatorId,
@@ -1313,7 +1329,7 @@ export async function exportWebAgents({
 /**
  * Export agent. The response can be saved to file as is.
  * @param agentId agent id/name
- * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+ * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
  */
 export async function exportAgent({
   agentId,
@@ -1326,7 +1342,7 @@ export async function exportAgent({
     debugMessage({ message: `AgentOps.exportAgent: start`, state });
     const exportData = createAgentExportTemplate({ state });
     const agentObject = await readAgent({ agentId, state });
-    exportData.agents[agentId] = agentObject;
+    exportData.agent[agentId] = agentObject;
     debugMessage({ message: `AgentOps.exportAgent: end`, state });
     return exportData;
   } catch (error) {
@@ -1337,7 +1353,7 @@ export async function exportAgent({
 /**
  * Export identity gateway agent. The response can be saved to file as is.
  * @param agentId agent id/name
- * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+ * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
  */
 export async function exportIdentityGatewayAgent({
   agentId,
@@ -1356,7 +1372,7 @@ export async function exportIdentityGatewayAgent({
       gatewayId: agentId,
       state,
     });
-    exportData.agents[agentId] = agentObject;
+    exportData.agent[agentId] = agentObject;
     debugMessage({
       message: `AgentOps.exportIdentityGatewayAgent: end`,
       state,
@@ -1373,7 +1389,7 @@ export async function exportIdentityGatewayAgent({
 /**
  * Export java agent. The response can be saved to file as is.
  * @param agentId agent id/name
- * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+ * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
  */
 export async function exportJavaAgent({
   agentId,
@@ -1386,7 +1402,7 @@ export async function exportJavaAgent({
     debugMessage({ message: `AgentOps.exportJavaAgent: start`, state });
     const exportData = createAgentExportTemplate({ state });
     const agentObject = await readJavaAgent({ agentId, state });
-    exportData.agents[agentId] = agentObject;
+    exportData.agent[agentId] = agentObject;
     debugMessage({ message: `AgentOps.exportJavaAgent: end`, state });
     return exportData;
   } catch (error) {
@@ -1397,7 +1413,7 @@ export async function exportJavaAgent({
 /**
  * Export web agent. The response can be saved to file as is.
  * @param agentId agent id/name
- * @returns {Promise<AgentExportInterface} Promise resolving to an AgentExportInterface object.
+ * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
  */
 export async function exportWebAgent({
   agentId,
@@ -1410,7 +1426,7 @@ export async function exportWebAgent({
     debugMessage({ message: `AgentOps.exportWebAgent: start`, state });
     const exportData = createAgentExportTemplate({ state });
     const agentObject = await readWebAgent({ agentId, state });
-    exportData.agents[agentId] = agentObject;
+    exportData.agent[agentId] = agentObject;
     debugMessage({ message: `AgentOps.exportWebAgent: end`, state });
     return exportData;
   } catch (error) {
@@ -1421,6 +1437,7 @@ export async function exportWebAgent({
 /**
  * Import agents. The import data is usually read from an agent export file.
  * @param {AgentExportInterface} importData agent import data.
+ * @returns {Promise<AgentSkeleton[]>} The agents that were imported.
  */
 export async function importAgents({
   importData,
@@ -1428,37 +1445,43 @@ export async function importAgents({
 }: {
   importData: AgentExportInterface;
   state: State;
-}): Promise<void> {
+}): Promise<AgentSkeleton[]> {
+  const response: AgentSkeleton[] = [];
   const errors: Error[] = [];
   try {
     debugMessage({ message: `AgentOps.importAgents: start`, state });
-    for (const agentId of Object.keys(importData.agents)) {
+    for (const agentId of Object.keys(importData.agent)) {
       let agentType: AgentType;
       try {
-        agentType = importData.agents[agentId]._type._id as AgentType;
+        agentType = importData.agent[agentId]._type._id as AgentType;
         debugMessage({
           message: `AgentOps.importAgents: ${agentId} [${agentType}]`,
           state,
         });
-        await putAgentByTypeAndId({
-          agentType,
-          agentId,
-          agentData: importData.agents[agentId],
-          state,
-        });
-      } catch (error) {
-        errors.push(
-          new FrodoError(
-            `Error importing agent ${agentId} of type ${agentType}`,
-            error
-          )
+        response.push(
+          await putAgentByTypeAndId({
+            agentType,
+            agentId,
+            agentData: importData.agent[agentId],
+            state,
+          })
         );
+      } catch (error) {
+        if (error.httpStatus !== 501 && error.response?.status !== 501) {
+          errors.push(
+            new FrodoError(
+              `Error importing agent ${agentId} of type ${agentType}`,
+              error
+            )
+          );
+        }
       }
     }
     if (errors.length > 0) {
       throw new FrodoError(`Error importing agents`, errors);
     }
     debugMessage({ message: `AgentOps.importAgents: end`, state });
+    return response;
   } catch (error) {
     // just re-throw previously caught errors
     if (errors.length > 0) {
@@ -1485,10 +1508,10 @@ export async function importIdentityGatewayAgents({
       message: `AgentOps.importIdentityGatewayAgents: start`,
       state,
     });
-    for (const agentId of Object.keys(importData.agents)) {
+    for (const agentId of Object.keys(importData.agent)) {
       let agentType: AgentType;
       try {
-        agentType = importData.agents[agentId]._type._id as AgentType;
+        agentType = importData.agent[agentId]._type._id as AgentType;
         if (agentType !== 'IdentityGatewayAgent')
           throw new FrodoError(
             `Wrong agent type! Expected 'IdentityGatewayAgent' but got '${agentType}'.`
@@ -1496,7 +1519,7 @@ export async function importIdentityGatewayAgents({
         await putAgentByTypeAndId({
           agentType,
           agentId,
-          agentData: importData.agents[agentId],
+          agentData: importData.agent[agentId],
           state,
         });
       } catch (error) {
@@ -1538,10 +1561,10 @@ export async function importJavaAgents({
   const errors: Error[] = [];
   try {
     debugMessage({ message: `AgentOps.importJavaAgents: start`, state });
-    for (const agentId of Object.keys(importData.agents)) {
+    for (const agentId of Object.keys(importData.agent)) {
       let agentType: AgentType;
       try {
-        agentType = importData.agents[agentId]._type._id as AgentType;
+        agentType = importData.agent[agentId]._type._id as AgentType;
         if (agentType !== 'J2EEAgent')
           throw new FrodoError(
             `Wrong agent type! Expected 'J2EEAgent' but got '${agentType}'.`
@@ -1549,7 +1572,7 @@ export async function importJavaAgents({
         await putAgentByTypeAndId({
           agentType,
           agentId,
-          agentData: importData.agents[agentId],
+          agentData: importData.agent[agentId],
           state,
         });
       } catch (error) {
@@ -1588,10 +1611,10 @@ export async function importWebAgents({
   const errors: Error[] = [];
   try {
     debugMessage({ message: `AgentOps.importWebAgents: start`, state });
-    for (const agentId of Object.keys(importData.agents)) {
+    for (const agentId of Object.keys(importData.agent)) {
       let agentType: AgentType;
       try {
-        agentType = importData.agents[agentId]._type._id as AgentType;
+        agentType = importData.agent[agentId]._type._id as AgentType;
         if (agentType !== 'WebAgent')
           throw new FrodoError(
             `Wrong agent type! Expected 'WebAgent' but got '${agentType}'.`
@@ -1599,7 +1622,7 @@ export async function importWebAgents({
         await putAgentByTypeAndId({
           agentType,
           agentId,
-          agentData: importData.agents[agentId],
+          agentData: importData.agent[agentId],
           state,
         });
       } catch (error) {
@@ -1628,7 +1651,7 @@ export async function importWebAgents({
  * Import agent. The import data is usually read from an agent export file.
  * @param {string} agentId agent id/name
  * @param {AgentExportInterface} importData agent import data.
- * @returns {Promise} Promise resolving to an agent object.
+ * @returns {Promise<AgentSkeleton>} Promise resolving to an agent object.
  */
 export async function importAgent({
   agentId,
@@ -1638,14 +1661,14 @@ export async function importAgent({
   agentId: string;
   importData: AgentExportInterface;
   state: State;
-}) {
+}): Promise<AgentSkeleton> {
   try {
     debugMessage({ message: `AgentOps.importAgent: start`, state });
-    const agentType = importData.agents[agentId]?._type._id as AgentType;
+    const agentType = importData.agent[agentId]?._type._id as AgentType;
     const result = await putAgentByTypeAndId({
       agentType,
       agentId,
-      agentData: importData.agents[agentId],
+      agentData: importData.agent[agentId],
       state,
     });
     debugMessage({ message: `AgentOps.importAgent: end`, state });
@@ -1659,7 +1682,7 @@ export async function importAgent({
  * Import identity gateway agent. The import data is usually read from an agent export file.
  * @param {string} agentId agent id/name
  * @param {AgentExportInterface} importData agent import data.
- * @returns {Promise} Promise resolving to an agent object.
+ * @returns {Promise<AgentSkeleton>} Promise resolving to an agent object.
  */
 export async function importIdentityGatewayAgent({
   agentId,
@@ -1669,13 +1692,13 @@ export async function importIdentityGatewayAgent({
   agentId: string;
   importData: AgentExportInterface;
   state: State;
-}) {
+}): Promise<AgentSkeleton> {
   try {
     debugMessage({
       message: `AgentOps.importIdentityGatewayAgent: start`,
       state,
     });
-    const agentType = importData.agents[agentId]?._type._id as AgentType;
+    const agentType = importData.agent[agentId]?._type._id as AgentType;
     if (agentType !== 'IdentityGatewayAgent')
       throw new FrodoError(
         `Wrong agent type! Expected 'IdentityGatewayAgent' but got '${agentType}'.`
@@ -1683,7 +1706,7 @@ export async function importIdentityGatewayAgent({
     const result = await putAgentByTypeAndId({
       agentType,
       agentId,
-      agentData: importData.agents[agentId],
+      agentData: importData.agent[agentId],
       state,
     });
     debugMessage({
@@ -1703,7 +1726,7 @@ export async function importIdentityGatewayAgent({
  * Import java agent. The import data is usually read from an agent export file.
  * @param {string} agentId agent id/name
  * @param {AgentExportInterface} importData agent import data.
- * @returns {Promise} Promise resolving to an agent object.
+ * @returns {Promise<AgentSkeleton>} Promise resolving to an agent object.
  */
 export async function importJavaAgent({
   agentId,
@@ -1713,10 +1736,10 @@ export async function importJavaAgent({
   agentId: string;
   importData: AgentExportInterface;
   state: State;
-}) {
+}): Promise<AgentSkeleton> {
   try {
     debugMessage({ message: `AgentOps.importJavaAgent: start`, state });
-    const agentType = importData.agents[agentId]?._type._id as AgentType;
+    const agentType = importData.agent[agentId]?._type._id as AgentType;
     if (agentType !== 'J2EEAgent')
       throw new FrodoError(
         `Wrong agent type! Expected 'J2EEAgent' but got '${agentType}'.`
@@ -1724,7 +1747,7 @@ export async function importJavaAgent({
     const result = await putAgentByTypeAndId({
       agentType,
       agentId,
-      agentData: importData.agents[agentId],
+      agentData: importData.agent[agentId],
       state,
     });
     debugMessage({ message: `AgentOps.importJavaAgent: end`, state });
@@ -1738,7 +1761,7 @@ export async function importJavaAgent({
  * Import java agent. The import data is usually read from an agent export file.
  * @param {string} agentId agent id/name
  * @param {AgentExportInterface} importData agent import data.
- * @returns {Promise} Promise resolving to an agent object.
+ * @returns {Promise<AgentSkeleton>} Promise resolving to an agent object.
  */
 export async function importWebAgent({
   agentId,
@@ -1748,10 +1771,10 @@ export async function importWebAgent({
   agentId: string;
   importData: AgentExportInterface;
   state: State;
-}) {
+}): Promise<AgentSkeleton> {
   try {
     debugMessage({ message: `AgentOps.importWebAgent: start`, state });
-    const agentType = importData.agents[agentId]?._type._id as AgentType;
+    const agentType = importData.agent[agentId]?._type._id as AgentType;
     if (agentType !== 'WebAgent')
       throw new FrodoError(
         `Wrong agent type! Expected 'WebAgent' but got '${agentType}'.`
@@ -1759,7 +1782,7 @@ export async function importWebAgent({
     const result = await putAgentByTypeAndId({
       agentType,
       agentId,
-      agentData: importData.agents[agentId],
+      agentData: importData.agent[agentId],
       state,
     });
     debugMessage({ message: `AgentOps.importWebAgent: end`, state });
@@ -1913,7 +1936,7 @@ export async function deleteWebAgents({ state }: { state: State }) {
           state,
         });
         await deleteAgentByTypeAndId({
-          agentType: agent['_type']['_id'],
+          agentType: agent['_type']['_id'] as AgentType,
           agentId: agent['_id'],
           state,
         });
@@ -2003,7 +2026,7 @@ export async function deleteIdentityGatewayAgent({
         state,
       });
       await deleteAgentByTypeAndId({
-        agentType: agent['_type']['_id'],
+        agentType: agent['_type']['_id'] as AgentType,
         agentId: agent['_id'],
         state,
       });
@@ -2047,7 +2070,7 @@ export async function deleteJavaAgent({
         state,
       });
       await deleteAgentByTypeAndId({
-        agentType: agent['_type']['_id'],
+        agentType: agent['_type']['_id'] as AgentType,
         agentId: agent['_id'],
         state,
       });
@@ -2085,7 +2108,7 @@ export async function deleteWebAgent({
         state,
       });
       await deleteAgentByTypeAndId({
-        agentType: agent['_type']['_id'],
+        agentType: agent['_type']['_id'] as AgentType,
         agentId: agent['_id'],
         state,
       });

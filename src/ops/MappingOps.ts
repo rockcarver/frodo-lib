@@ -1033,9 +1033,13 @@ export async function importMappings({
 }): Promise<MappingSkeleton[]> {
   const response = [];
   const errors = [];
-  const mappings = Object.values(importData.mapping).concat(
-    importData.sync.mappings
-  );
+  let mappings = [];
+  if (importData.mapping) {
+    mappings = mappings.concat(Object.values(importData.mapping));
+  }
+  if (importData.sync && Array.isArray(importData.sync.mappings)) {
+    mappings = mappings.concat(importData.sync.mappings);
+  }
   for (const mappingData of mappings) {
     try {
       if (options.deps) {

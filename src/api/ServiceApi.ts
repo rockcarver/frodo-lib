@@ -151,13 +151,13 @@ export async function putService({
     getConfigPath(globalConfig),
     serviceId
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
-    urlString,
-    serviceData,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).put(urlString, serviceData, {
+    withCredentials: true,
+    headers: serviceId.startsWith('federation/') ? { 'If-Match': '*' } : {},
+  });
   return data;
 }
 
@@ -194,13 +194,13 @@ export async function putServiceNextDescendent({
     serviceType,
     serviceNextDescendentId
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
-    urlString,
-    serviceNextDescendentData,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    state,
+  }).put(urlString, serviceNextDescendentData, {
+    withCredentials: true,
+    headers: serviceId.startsWith('federation/') ? { 'If-Match': '*' } : {},
+  });
   return data;
 }
 

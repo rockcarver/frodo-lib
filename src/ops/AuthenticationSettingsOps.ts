@@ -171,6 +171,6 @@ export async function importAuthenticationSettings({
     });
     return response;
   } catch (error) {
-    throw new FrodoError(`Error reading authentication settings`, error);
+    throw new FrodoError(`Error importing authentication settings`, error);
   }
 }

@@ -480,7 +480,7 @@ export default (state: State): Secret => {
 
 export interface SecretsExportInterface {
   meta?: ExportMetaData;
-  secrets: Record<string, SecretSkeleton>;
+  secret: Record<string, SecretSkeleton>;
 }
 
 /**
@@ -550,7 +550,7 @@ export function createSecretsExportTemplate({
 }): SecretsExportInterface {
   return {
     meta: getMetadata({ state }),
-    secrets: {},
+    secret: {},
   } as SecretsExportInterface;
 }
 
@@ -575,7 +575,7 @@ export async function exportSecret({
         state,
       });
     }
-    exportData.secrets[secret._id] = secret;
+    exportData.secret[secret._id] = secret;
     debugMessage({ message: `SecretsOps.exportSecret: end`, state });
     return exportData;
   } catch (error) {
@@ -614,7 +614,7 @@ export async function exportSecrets({
           state,
         });
         secret.activeValue = mapOfSecrets[secret._id];
-        exportData.secrets[secret._id] = secret;
+        exportData.secret[secret._id] = secret;
       }
     } else {
       for (const secret of secrets) {
@@ -623,7 +623,7 @@ export async function exportSecrets({
           message: `Exporting secret ${secret._id}`,
           state,
         });
-        exportData.secrets[secret._id] = secret;
+        exportData.secret[secret._id] = secret;
       }
     }
     stopProgressIndicator({
@@ -979,10 +979,10 @@ export async function importSecret({
   const { includeActiveValues, source } = options;
   const errors = [];
   const imported = [];
-  for (const id of Object.keys(importData.secrets)) {
+  for (const id of Object.keys(importData.secret)) {
     if (id === secretId || !secretId) {
       try {
-        const secretData = importData.secrets[id];
+        const secretData = importData.secret[id];
         delete secretData._rev;
         try {
           response = await createSecret({
@@ -1066,14 +1066,14 @@ export async function importSecrets({
   const { includeActiveValues, source } = options;
   const errors = [];
   const resolvedSecretValues = await resolveSecretValues({
-    secrets: Object.values(importData.secrets),
+    secrets: Object.values(importData.secret),
     includeActiveValues,
     source,
     state,
   });
-  for (const id of Object.keys(importData.secrets)) {
+  for (const id of Object.keys(importData.secret)) {
     try {
-      const secretData = importData.secrets[id];
+      const secretData = importData.secret[id];
       delete secretData._rev;
       try {
         response.push(

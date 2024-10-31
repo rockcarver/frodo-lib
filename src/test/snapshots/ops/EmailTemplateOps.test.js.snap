@@ -3,41 +3,6 @@
 exports[`EmailTemplateOps exportEmailTemplates() 1: Export email templates 1`] = `
 {
   "emailTemplate": {
-    "FraudNotification": {
-      "_id": "emailTemplate/FraudNotification",
-      "defaultLocale": "en",
-      "displayName": "Fraud Notification",
-      "enabled": true,
-      "from": "saas@forgerock.com",
-      "html": {
-        "en": "<div class="content"><p>Hello {{object.givenName}} {{object.sn}},</p><p>we blocked an attempt to access your Expanse account from a suspicious device!</p><p>Your Expanse Security Team.</p></div>",
-      },
-      "message": {
-        "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: red; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>Hello {{object.givenName}} {{object.sn}},</p><p>we blocked an attempt to access your Expanse account from a suspicious device!</p><p>Your Expanse Security Team.</p></div></body></html>",
-      },
-      "mimeType": "text/html",
-      "styles": "body {
- background-color: #324054;
- color: #455469;
- padding: 60px;
- text-align: center 
-}
- a {
- text-decoration: none;
- color: #109cf1;
-}
- .content {
- background-color: red;
- border-radius: 4px;
- margin: 0 auto;
- padding: 48px;
- width: 235px 
-}
- ",
-      "subject": {
-        "en": "Fraud alert from your Expanse Account!",
-      },
-    },
     "FrodoTestEmailTemplate1": {
       "_id": "emailTemplate/FrodoTestEmailTemplate1",
       "defaultLocale": "en",
@@ -68,21 +33,21 @@ exports[`EmailTemplateOps exportEmailTemplates() 1: Export email templates 1`] =
         "en": "One-Time Password for login",
       },
     },
-    "MobileEmailOTP": {
-      "_id": "emailTemplate/MobileEmailOTP",
+    "baselineDemoEmailVerification": {
+      "_id": "emailTemplate/baselineDemoEmailVerification",
       "defaultLocale": "en",
-      "displayName": "Mobile Email OTP",
+      "displayName": "Baseline Demo Email Verification",
       "enabled": true,
-      "from": "saas@forgerock.com",
+      "from": "security@example.com",
       "html": {
-        "en": "<div class="content"><h3 id="thisisyouronetimepassword">This is your one-time password:</h3><h4 id="objectfrunindexedinteger5">{{object.frUnindexedInteger5}}</h4></div>",
+        "en": "<div class="content"><h1 id="emailverification">Email Verification</h1><p><br></p><p>Hello,</p><p>Great to have you on board.</p><p><br></p><hr><h5 id="verifyyouraccount">Verify Your Account</h5><p>Finish the steps of verification for the account by clicking the button below. <br></p><p><br></p><p><row><a href="{{object.resumeURI}}" title="" class="button">Click Here to Verify Your Account</a></row></p><p>This link will expire in 24 hours.</p><p><br></p><p>-- The ForgeRock Team</p><p><a href="https://www.forgerock.com">www.forgerock.com</a></p><p>201 Mission St Suite 2900</p><p>San Francisco, CA 94105</p><p><a href="mailto:support@forgerock.com">support@forgerock.com</a></p><hr><p>If you did not request for this email, please ignore and we won't email you again.</p><p>ForgeRock | <a href="https: www.forgerock.com=">Privacy Policy</a></p></div>",
       },
       "message": {
-        "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><h3 id="thisisyouronetimepassword">This is your one-time password:</h3><h4 id="objectfrunindexedinteger5">{{object.frUnindexedInteger5}}</h4></div></body></html>",
+        "en": "<html><head></head><body style="background-color: #f6f6f6; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 600px;"><h1 id="emailverification" style="font-size: 40px; text-align: center;">Email Verification</h1><p><br></p><p>Hello,</p><p>Great to have you on board.</p><p><br></p><hr><h5 id="verifyyouraccount" style="font-size: 24px;">Verify Your Account</h5><p>Finish the steps of verfication for the account by clicking the button below. <br></p><p><br></p><p><row><a href="{{object.resumeURI}}" title class="button" style="background-color: #109cf1; border: none; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px;">Click Here to Verify Your Account</a></row></p><p>This link will expire in 24 hours.</p><p><br></p><p>-- The ForgeRock Team</p><p><a href="https://www.forgerock.com" style="text-decoration: none; color: #109cf1;">www.forgerock.com</a></p><p>201 Mission St Suite 2900</p><p>San Francisco, CA 94105</p><p><a href="mailto:support@forgerock.com" style="text-decoration: none; color: #109cf1;">support@forgerock.com</a></p><hr><p>If you did not request for this email, please ignore and we won't email you again.</p><p>ForgeRock | <a href="https: www.forgerock.com=" style="text-decoration: none; color: #109cf1;">Privacy Policy</a></p></div></body></html>",
       },
       "mimeType": "text/html",
       "styles": "body {
- background-color: #324054;
+ background-color: #f6f6f6;
  color: #455469;
  padding: 60px;
  text-align: center 
@@ -91,34 +56,64 @@ exports[`EmailTemplateOps exportEmailTemplates() 1: Export email templates 1`] =
  text-decoration: none;
  color: #109cf1;
 }
+ h1 {
+ font-size: 40px;
+ text-align: center;
+}
+ h2 {
+ font-size: 36px;
+}
+ h3 {
+ font-size: 32px;
+}
+ h4 {
+ font-size: 28px;
+}
+ h5 {
+ font-size: 24px;
+}
+ h6 {
+ font-size: 20px;
+}
  .content {
  background-color: #fff;
  border-radius: 4px;
  margin: 0 auto;
  padding: 48px;
- width: 235px 
+ width: 600px 
+}
+ .button {
+ background-color: #109cf1;
+ border: none;
+ color: white;
+ padding: 15px 32px;
+ text-align: center;
+ text-decoration: none;
+ display: inline-block;
+ font-size: 16px;
 }
  ",
       "subject": {
-        "en": "One-Time Password for Login",
+        "en": "Please verify your email address",
       },
+      "templateId": "baselineDemoEmailVerification",
     },
-    "UnknownDeviceNotification": {
-      "_id": "emailTemplate/UnknownDeviceNotification",
+    "baselineDemoMagicLink": {
+      "_id": "emailTemplate/baselineDemoMagicLink",
       "defaultLocale": "en",
-      "displayName": "Unknown Device Notification",
+      "displayName": "Baseline Demo Magic Link",
       "enabled": true,
-      "from": "saas@forgerock.com",
+      "from": "security@example.com",
       "html": {
-        "en": "<div class="content"><p>Hello {{object.givenName}} {{object.sn}},</p><p>your Expanse account was accessed from an unknown device!</p><p>Your Expanse Security Team.</p></div>",
+        "en": "<div class="content"><h1 id="welcomeback">Welcome back</h1><p><br></p><p>Hello,</p><p>You're receiving this email because you requested a link to sign you into your account.</p><p><br></p><hr><p><row><a href="{{object.resumeURI}}" title="" class="button">Finish Signing In</a></row></p><p>This link will expire in 24 hours.</p><p><br></p><p>-- The ForgeRock Team</p><p><a href="https://www.forgerock.com">www.forgerock.com</a></p><p>201 Mission St Suite 2900</p><p>San Francisco, CA 94105</p><p><a href="mailto:support@forgerock.com">support@forgerock.com</a></p><hr><p>If you did not request for this email, please ignore and we won't email you again.</p><p>ForgeRock | <a href="https: www.forgerock.com=">Privacy Policy</a></p></div>",
       },
       "message": {
-        "en": "<html><head></head><body style="background-color: #324054; color: black; padding: 60px; text-align: center;"><div class="content" style="background-color: orange; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>Hello {{object.givenName}} {{object.sn}},</p><p>your Expanse account was accessed from an unknown device!</p><p>Your Expanse Security Team.</p></div></body></html>",
+        "en": "<html><head></head><body><div class="content"><h1 id="welcomeback">Welcome back</h1><p><br></p><p>Hello,</p><p>You're receiving this email because you requested a link to sign you into your account.</p><p><br></p><hr><p><row><a href="{{object.resumeURI}}" title class="button">Finish Signing In</a></row></p><p>This link will expire in 24 hours.</p><p><br></p><p>-- The ForgeRock Team</p><p><a href="https://www.forgerock.com">www.forgerock.com</a></p><p>201 Mission St Suite 2900</p><p>San Francisco, CA 94105</p><p><a href="mailto:support@forgerock.com">support@forgerock.com</a></p><hr><p>If you did not request for this email, please ignore and we won't email you again.</p><p>ForgeRock | <a href="https: www.forgerock.com=">Privacy Policy</a></p></div></body></html>",
       },
       "mimeType": "text/html",
       "styles": "body {
- background-color: #324054;
- color: black;
+ background-color: #f6f6f6;
+ color: #455469;
  padding: 60px;
  text-align: center 
 }
@@ -126,64 +121,247 @@ exports[`EmailTemplateOps exportEmailTemplates() 1: Export email templates 1`] =
  text-decoration: none;
  color: #109cf1;
 }
+ h1 {
+ font-size: 40px;
+ text-align: center;
+}
+ h2 {
+ font-size: 36px;
+}
+ h3 {
+ font-size: 32px;
+}
+ h4 {
+ font-size: 28px;
+}
+ h5 {
+ font-size: 24px;
+}
+ h6 {
+ font-size: 20px;
+}
  .content {
- background-color: orange;
+ background-color: #fff;
  border-radius: 4px;
  margin: 0 auto;
  padding: 48px;
- width: 235px 
+ width: 600px 
+}
+ .button {
+ background-color: #109cf1;
+ border: none;
+ color: white;
+ padding: 15px 32px;
+ text-align: center;
+ text-decoration: none;
+ display: inline-block;
+ font-size: 16px;
 }
  ",
       "subject": {
-        "en": "Your Expanse account was accessed from an unknown device!",
+        "en": "Your sign-in link",
       },
+      "templateId": "baselineDemoMagicLink",
     },
-    "Welcome": {
-      "_id": "emailTemplate/Welcome",
+    "forgottenUsername": {
+      "_id": "emailTemplate/forgottenUsername",
       "defaultLocale": "en",
-      "displayName": "Welcome",
       "enabled": true,
-      "from": "saas@forgerock.com",
+      "from": "",
       "html": {
-        "en": "<div class="content"><p>Welcome to Expanse, {{object.givenName}}!</p><p><a href="https://openam-huntington-dev.forgeblocks.com/am/XUI/?realm=/alpha#/service/Login">Access your account</a> with your new username: {{object.userName}}</p><p>We are looking forward to servicing all your banking needs!</p><p>Your Expanse Team.</p></div>",
+        "en": "<html><body>{{#if object.userName}}<p>Your username is '{{object.userName}}'.</p>{{else}}If you received this email in error, please disregard.{{/if}}<p><a href="{{object.resumeURI}}">Click here to login</a></p></body></html>",
+        "fr": "<html><body>{{#if object.userName}}<p>Votre nom d'utilisateur est '{{object.userName}}'.</p>{{else}}Si vous avez reçu cet e-mail par erreur, veuillez ne pas en tenir compte.{{/if}}<p><a href="{{object.resumeURI}}">Cliquez ici pour vous connecter</a></p></body></html>",
       },
       "message": {
-        "en": "<html><head></head><body style="background-color: #324054; color: black; padding: 10px; text-align: left;"><div class="content" style="background-color: #ffffff; border-radius: 4px; margin: 0 auto; padding: 10px; width: 300px;"><p>Welcome to Expanse, {{object.givenName}}!</p><p><a href="https://openam-huntington-dev.forgeblocks.com/am/XUI/?realm=/alpha#/service/Login" style="text-decoration: none; color: #109cf1;">Access your account</a> with your new username: {{object.userName}}</p><p>We are looking forward to servicing all your banking needs!</p><p>Your Expanse Team.</p></div></body></html>",
+        "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>{{#if object.userName}}Your username is '{{object.userName}}'.</p><p>{{else}}If you received this email in error, please disregard.{{/if}}</p><p><a href="{{object.resumeURI}}" style="text-decoration: none; color: #109cf1;">Click here to login</a></p></div></body></html>",
+        "fr": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;">{{#if object.userName}}<p>Votre nom d'utilisateur est '{{object.userName}}'.</p>{{else}}Si vous avez reçu cet e-mail par erreur, veuillez ne pas en tenir compte.{{/if}}<p><a href="{{object.resumeURI}}" style="text-decoration: none; color: #109cf1;">Cliquez ici pour vous connecter</a></p></div></body></html>",
+      },
+      "mimeType": "text/html",
+      "styles": "body{background-color:#324054;color:#5e6d82;padding:60px;text-align:center}a{text-decoration:none;color:#109cf1}.content{background-color:#fff;border-radius:4px;margin:0 auto;padding:48px;width:235px}",
+      "subject": {
+        "en": "Account Information - username",
+        "fr": "Informations sur le compte - nom d'utilisateur",
+      },
+    },
+    "frEmailUpdated": {
+      "_id": "emailTemplate/frEmailUpdated",
+      "defaultLocale": "en",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="display:block;height:50px;width:45px;margin:0 auto 16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Your account email has changed</h1></div><p>Your ForgeRock Identity Cloud email has been changed. If you did not request this change, please contact ForgeRock support.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "Your email has been updated",
+      },
+    },
+    "frForgotUsername": {
+      "_id": "emailTemplate/frForgotUsername",
+      "defaultLocale": "en",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="height:50px;margin-bottom:16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Forgot your username?</h1></div><p>Your username is <b>{{ object.userName }}</b>.</p><p style="text-align:center"><a href="{{ object.resumeURI }}" style="background-color:#109cf1;border-radius:4px;color:#fff;display:inline-block;margin:16px 0;padding:13px 22px;text-decoration:none">Sign In to Your Account</a></p><p>If you didn't request this, please ignore this email.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "Forgot Username",
+      },
+    },
+    "frOnboarding": {
+      "_id": "emailTemplate/frOnboarding",
+      "defaultLocale": "en",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="display:block;height:50px;width:45px;margin:0 auto 16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Your account is ready</h1></div><p>Your ForgeRock Identity Cloud account is ready. Click the button below to complete registration and access your environment.</p><p style="text-align:center"><a href="{{ object.resumeURI }}" style="background-color:#109cf1;border-radius:4px;color:#fff;display:inline-block;margin:16px 0;padding:13px 22px;text-decoration:none">Complete Registration</a></p><p>If you did not request this account, please contact ForgeRock support.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "Complete your ForgeRock Identity Cloud registration",
+      },
+    },
+    "frPasswordUpdated": {
+      "_id": "emailTemplate/frPasswordUpdated",
+      "defaultLocale": "en",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="display:block;height:50px;width:45px;margin:0 auto 16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Your account password has changed</h1></div><p>Your ForgeRock Identity Cloud password has been changed. If you did not request this change, please contact ForgeRock support.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "Your password has been updated",
+      },
+    },
+    "frProfileUpdated": {
+      "_id": "emailTemplate/frProfileUpdated",
+      "defaultLocale": "en",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="display:block;height:50px;width:45px;margin:0 auto 16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Your account profile has changed</h1></div><p>Your ForgeRock Identity Cloud profile has been changed. If you did not request this change, please contact ForgeRock support.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "Your profile has been updated",
+      },
+    },
+    "frResetPassword": {
+      "_id": "emailTemplate/frResetPassword",
+      "defaultLocale": "en",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="display:block;height:50px;width:45px;margin:0 auto 16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Reset your password</h1></div><p>It seems you have forgotten the password for your ForgeRock Identity Cloud account. Click the button below to reset your password and access your environment.</p><p style="text-align:center"><a href="{{ object.resumeURI }}" style="background-color:#109cf1;border-radius:4px;color:#fff;display:inline-block;margin:16px 0;padding:13px 22px;text-decoration:none">Reset Password</a></p><p>If you did not request to reset your password, please contact ForgeRock support.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "Reset your password",
+      },
+    },
+    "frUsernameUpdated": {
+      "_id": "emailTemplate/frUsernameUpdated",
+      "defaultLocale": "en",
+      "enabled": true,
+      "from": "",
+      "message": {
+        "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="display:block;height:50px;width:45px;margin:0 auto 16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Your account username has changed</h1></div><p>Your ForgeRock Identity Cloud username has been changed. If you did not request this change, please contact ForgeRock support.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
+      },
+      "mimeType": "text/html",
+      "subject": {
+        "en": "Your username has been updated",
+      },
+    },
+    "idv": {
+      "_id": "emailTemplate/idv",
+      "defaultLocale": "en",
+      "description": "Identity Verification Invitation",
+      "displayName": "idv",
+      "enabled": true,
+      "from": "",
+      "html": {
+        "en": "<div class="content"><h3 id="clickthelinkbelowtoverifyyouridentity">Click the link below to verify your identity:</h3><p><a href="{{object.resumeURI}}">Verify my identity now</a></p></div>",
+        "fr": "<html><body><h3>Ceci est votre mail d'inscription.</h3><p><a href="{{object.resumeURI}}">Lien de vérification email</a></p></body></html>",
+      },
+      "message": {
+        "en": "<html><head></head><body style="background-color: #324054; color: #5e6d82; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><h3 id="clickthelinkbelowtoverifyyouridentity">Click the link below to verify your identity:</h3><p><a href="{{object.resumeURI}}" style="text-decoration: none; color: #109cf1;">Verify my identity now</a></p></div></body></html>",
+        "fr": "<html><head></head><body style="background-color: #324054; color: #5e6d82; padding: 60px; text-align: center;"><h3>Ceci est votre mail d'inscription.</h3><p><a href="{{object.resumeURI}}" style="text-decoration: none; color: #109cf1;">Lien de vérification email</a></p></body></html>",
+      },
+      "mimeType": "text/html",
+      "name": "registration",
+      "styles": "body{background-color:#324054;color:#5e6d82;padding:60px;text-align:center}a{text-decoration:none;color:#109cf1}.content{background-color:#fff;border-radius:4px;margin:0 auto;padding:48px;width:235px}",
+      "subject": {
+        "en": "You have been invited to verify your identity",
+        "fr": "Créer un nouveau compte",
+      },
+      "templateId": "idv",
+    },
+    "joiner": {
+      "_id": "emailTemplate/joiner",
+      "advancedEditor": true,
+      "defaultLocale": "en",
+      "description": "This email will be sent onCreate of user to the external eMail address provided during creation. An OTP will also be sent to Telephone Number provided during creation to validate the user.  The user will then be able to set their password and ForgeRock Push Authenticator",
+      "displayName": "Joiner",
+      "enabled": true,
+      "from": ""Encore HR" <no-reply@encore.com>",
+      "html": {
+        "en": "",
+      },
+      "message": {
+        "en": "<html>
+  <head></head>
+  <body style="background-color:#324054;color:#455469;padding:60px;text-align:center">
+    <div class="content" style="background-color:#fff;border-radius:4px;margin:0 auto;padding:48px;width:500px">
+      <p>
+        <img src="https://encore.forgerock.com/media/logos/encore-icon-dark-logo.png" width="125" title="Welcome to Encore" />
+      </p>
+      <h1 id="welcometoencore">Welcome to Encore {{object.givenName}} {{object.sn}}</h1>
+      <p>Please click on the link below to validate your phone number with a One Time Code that will be sent via SMS or called to you depending on your phone type. </p>
+      <p>You will see your UserName and have the ability to set your password that will be used to login to Encore resources.  </p>
+      <p>As we believe in enhanced security, you will also be setting up a Push Notification for future use.</p>
+      <a href="https://openam-volker-demo.forgeblocks.com/am/XUI/?realm=alpha&amp;authIndexType=service&amp;authIndexValue=wks-NEO&amp;userName={{object.userName}}">Click to Join Encore</a>
+    </div>
+  </body>
+</html>",
       },
       "mimeType": "text/html",
       "styles": "body {
- background-color: #324054;
- color: black;
- padding: 10px;
- text-align: left 
+   background-color: #324054;
+   color: #455469;
+   padding: 60px;
+   text-align: center 
 }
  a {
- text-decoration: none;
- color: #109cf1;
+   text-decoration: none;
+   color: #109cf1;
 }
  .content {
- background-color: #ffffff;
- border-radius: 4px;
- margin: 0 auto;
- padding: 10px;
- width: 300px 
+   background-color: #fff;
+   border-radius: 4px;
+   margin: 0 auto;
+   padding: 48px;
+   width: 235px 
 }
  ",
       "subject": {
-        "en": "Your registration with Expanse",
+        "en": "Welcome to Encore!",
       },
+      "templateId": "joiner",
     },
-    "activation": {
-      "_id": "emailTemplate/activation",
+    "registerPasswordlessDevice": {
+      "_id": "emailTemplate/registerPasswordlessDevice",
       "defaultLocale": "en",
-      "displayName": "Activation",
+      "description": "",
+      "displayName": "Register Passwordless Device",
       "enabled": true,
-      "from": ""ForgeRock Identity Cloud Team" <saas@forgerock.com>",
+      "from": ""ForgeRock Identity Cloud" <no-reply@forgerock.com>",
       "html": {
-        "en": "<div class="content"><p>Welcome {{object.givenName}}.</p><p>Your username is '{{object.userName}}'.</p></div>",
+        "en": "<div class="content"><h1 id="welcomeback">Welcome back</h1><p><img src="https://tinyurl.com/3mwewu3v" alt="alt text" title="Passwordless Registration"></p><p><br></p><p>Hello,</p><p>You're receiving this email because you requested a link to register a new passwordless device.</p><p><br></p><hr><p><a href="{{object.resumeURI}}">Register New Device</a></p><p>This link will expire in 24 hours.</p><p><br></p><p>-- The ForgeRock Team</p><p><a href="https://www.forgerock.com">www.forgerock.com</a></p><p>201 Mission St Suite 2900</p><p>San Francisco, CA 94105</p><p><a href="mailto:support@forgerock.com">support@forgerock.com</a></p><hr><p>If you did not request for this email, please ignore and we won't email you again.</p><p>ForgeRock | <a href="https: www.forgerock.com=">Privacy Policy</a></p></div>",
       },
       "message": {
-        "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>Welcome {{object.givenName}}.</p><p>Your username is '{{object.userName}}'.</p></div></body></html>",
+        "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><h1 id="welcomeback">Welcome back</h1><p><img src="https://tinyurl.com/3mwewu3v" alt="alt text" title="Passwordless Registration"></p><p><br></p><p>Hello,</p><p>You're receiving this email because you requested a link to register a new passwordless device.</p><p><br></p><hr><p><a href="{{object.resumeURI}}" style="text-decoration: none; color: #109cf1;">Register New Device</a></p><p>This link will expire in 24 hours.</p><p><br></p><p>-- The ForgeRock Team</p><p><a href="https://www.forgerock.com" style="text-decoration: none; color: #109cf1;">www.forgerock.com</a></p><p>201 Mission St Suite 2900</p><p>San Francisco, CA 94105</p><p><a href="mailto:support@forgerock.com" style="text-decoration: none; color: #109cf1;">support@forgerock.com</a></p><hr><p>If you did not request for this email, please ignore and we won't email you again.</p><p>ForgeRock | <a href="https: www.forgerock.com=" style="text-decoration: none; color: #109cf1;">Privacy Policy</a></p></div></body></html>",
       },
       "mimeType": "text/html",
       "styles": "body {
@@ -207,355 +385,29 @@ a {
 }
 ",
       "subject": {
-        "en": "Your J.P. Morgan account has been activated",
+        "en": "Your magic link is here - register new WebAuthN device",
       },
-      "templateId": "activation",
+      "templateId": "registerPasswordlessDevice",
     },
-    "arvestUnknownDeviceNotification": {
-      "_id": "emailTemplate/arvestUnknownDeviceNotification",
-      "defaultLocale": "en",
-      "description": "",
-      "displayName": "Arvest Unknown Device Notification",
-      "enabled": true,
-      "from": ""Arvest IT Security " <admin@arvest-demo.com>",
-      "html": {
-        "en": "<div class="content"><p>Hello {{object.givenName}} {{object.sn}},</p><p>your Arvest account was accessed from an unknown device!</p><p>Your Arvest Cyber Security Team.</p></div>",
-      },
-      "message": {
-        "en": "<html><head></head><body style="background-color: #324054; color: black; padding: 60px; text-align: center;"><div class="content" style="background-color: orange; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>Hello {{object.givenName}} {{object.sn}},</p><p>your Arvest account was accessed from an unknown device!</p><p>Your Arvest Cyber Security Team.</p></div></body></html>",
-      },
-      "mimeType": "text/html",
-      "styles": "body {
- background-color: #324054;
- color: black;
- padding: 60px;
- text-align: center 
-}
- a {
- text-decoration: none;
- color: #109cf1;
-}
- .content {
- background-color: orange;
- border-radius: 4px;
- margin: 0 auto;
- padding: 48px;
- width: 235px 
-}
- ",
-      "subject": {
-        "en": "Your Arvest Bank account was accessed from an unknown device!",
-      },
-      "templateId": "arvestUnknownDeviceNotification",
-    },
-    "arvestWelcome": {
-      "_id": "emailTemplate/arvestWelcome",
-      "defaultLocale": "en",
-      "description": "",
-      "displayName": "ArvestWelcome",
-      "enabled": true,
-      "from": ""Arvest Admin" <admin@idcloud-demo.com>",
-      "html": {
-        "en": "<div class="content"><p>Welcome to Arvest Bank, {{object.givenName}}!</p><p><a href="https://openam-idcloud-demo.forgeblocks.com/am/XUI/?realm=/alpha#/service/IBX_Login">Access your account</a> with your new username: {{object.userName}}</p><p>We are looking forward to servicing all your banking needs!</p><p>Your Arvest Team</p></div>",
-      },
-      "message": {
-        "en": "<html><head></head><body style="background-color: #324054; color: black; padding: 10px; text-align: left;"><div class="content" style="background-color: #ffffff; border-radius: 4px; margin: 0 auto; padding: 10px; width: 300px;"><p>Welcome to Arvest Bank, {{object.givenName}}!</p><p><a href="https://openam-idcloud-demo.forgeblocks.com/am/XUI/?realm=/alpha#/service/IBX_Login" style="text-decoration: none; color: #109cf1;">Access your account</a> with your new username: {{object.userName}}</p><p>We are looking forward to servicing all your banking needs!</p><p>Your Arvest Team</p></div></body></html>",
-      },
-      "mimeType": "text/html",
-      "name": "Welcome",
-      "styles": "body {
- background-color: #324054;
- color: black;
- padding: 10px;
- text-align: left 
-}
- a {
- text-decoration: none;
- color: #109cf1;
-}
- .content {
- background-color: #ffffff;
- border-radius: 4px;
- margin: 0 auto;
- padding: 10px;
- width: 300px 
-}
- ",
-      "subject": {
-        "en": "Your registration with Arvest Bank",
-      },
-      "templateId": "arvestWelcome",
-    },
-    "ebInvitation": {
-      "_id": "emailTemplate/ebInvitation",
-      "advancedEditor": true,
-      "defaultLocale": "en",
-      "description": "",
-      "displayName": "EBInvitation",
-      "enabled": true,
-      "from": ""J.P Morgan " <>",
-      "html": {
-        "en": "",
-      },
-      "message": {
-        "en": "<html>
-  <head></head>
-  <body style="display: 'flex'; textAlign: 'center'; color: #455469; font-family: 'Open Sans';">
-    <div class="content" style="textAlign: 'center'">
-      <p> Dear {{object.givenName}}, </p>
-      <h4 style="font-weight: 400; font-style: normal;">You have been invited to join
-        <b>JPMC Embedded Banking</b>
-      </h4>
-      <table>
-        <tr>
-          <td style="text-decoration: none; color: white; background: #155c93; font-						style: normal; font-weight: 700; font-size: 14px; line-height: 22px; border-					radius: 3px; padding: 15px">
-            <a href={{object.resumeURI}} style="text-decoration: none; color: white">ACCEPT INVITE</a>
-          </td>
-        </tr>
-      </table>
-      <h6 style="color: #999999; font-family: Inter; font-style: normal; font-weight: 400; font-size: 12px; line-height: 16px">Copyright © 2022 of J.P. Morgan Chase & Co.</h6>
-    </div>
-  </body>
-</html>
- ",
-      },
-      "mimeType": "text/html",
-      "name": "invitation",
-      "styles": "body {
-   margin: 0;
-   padding: 0;
-   color: #455469;
-   font-family: 'Open Sans';
-}
- table {
-   width:100%;
-   border-collapse:collapse;
-   border:0;
-   border-spacing:0;
-   background:#ffffff;
-   text-align: center;
-}
- tbody {
-}
- ",
-      "subject": {
-        "en": "You're invited to join the JPMC Embedded Banking",
-      },
-      "templateId": "ebInvitation",
-    },
-    "forgottenUsername": {
-      "_id": "emailTemplate/forgottenUsername",
+    "registration": {
+      "_id": "emailTemplate/registration",
       "defaultLocale": "en",
       "enabled": true,
       "from": "",
       "html": {
-        "en": "<html><body>{{#if object.userName}}<p>Your username is '{{object.userName}}'.</p>{{else}}If you received this email in error, please disregard.{{/if}}<p><a href="{{object.resumeURI}}">Click here to login</a></p></body></html>",
-        "fr": "<html><body>{{#if object.userName}}<p>Votre nom d'utilisateur est '{{object.userName}}'.</p>{{else}}Si vous avez reçu cet e-mail par erreur, veuillez ne pas en tenir compte.{{/if}}<p><a href="{{object.resumeURI}}">Cliquez ici pour vous connecter</a></p></body></html>",
+        "en": "<html><body><h3>This is your registration email.</h3><p><a href="{{object.resumeURI}}">Email verification link</a></p></body></html>",
+        "fr": "<html><body><h3>Ceci est votre mail d'inscription.</h3><p><a href="{{object.resumeURI}}">Lien de vérification email</a></p></body></html>",
       },
       "message": {
-        "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>{{#if object.userName}}Your username is '{{object.userName}}'.</p><p>{{else}}If you received this email in error, please disregard.{{/if}}</p><p><a href="{{object.resumeURI}}" style="text-decoration: none; color: #109cf1;">Click here to login</a></p></div></body></html>",
-        "fr": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;">{{#if object.userName}}<p>Votre nom d'utilisateur est '{{object.userName}}'.</p>{{else}}Si vous avez reçu cet e-mail par erreur, veuillez ne pas en tenir compte.{{/if}}<p><a href="{{object.resumeURI}}" style="text-decoration: none; color: #109cf1;">Cliquez ici pour vous connecter</a></p></div></body></html>",
+        "en": "<html><head></head><body style="background-color: #324054; color: #5e6d82; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><h3>This is your registration email.</h3><p><a href="{{object.resumeURI}}" style="text-decoration: none; color: #109cf1;">Email verification link</a></p></div></body></html>",
+        "fr": "<html><head></head><body style="background-color: #324054; color: #5e6d82; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><h3>Ceci est votre mail d'inscription.</h3><p><a href="{{object.resumeURI}}" style="text-decoration: none; color: #109cf1;">Lien de vérification email</a></p></div></body></html>",
       },
       "mimeType": "text/html",
       "styles": "body{background-color:#324054;color:#5e6d82;padding:60px;text-align:center}a{text-decoration:none;color:#109cf1}.content{background-color:#fff;border-radius:4px;margin:0 auto;padding:48px;width:235px}",
       "subject": {
-        "en": "Account Information - username",
-        "fr": "Informations sur le compte - nom d'utilisateur",
-      },
-    },
-    "multiFactorEmailLink": {
-      "_id": "emailTemplate/multiFactorEmailLink",
-      "defaultLocale": "en",
-      "enabled": true,
-      "from": "",
-      "message": {
-        "en": "<html><body><h3>You started a login or profile update that requires MFA. </h3><h4><a href="{{object.resumeURI}}">Click to Proceed</a></h4></body></html>",
-      },
-      "mimeType": "text/html",
-      "subject": {
-        "en": "Multi-Factor Email for Identity Cloud login",
-      },
-    },
-    "oneTimePassword": {
-      "_id": "emailTemplate/oneTimePassword",
-      "defaultLocale": "en",
-      "enabled": true,
-      "from": "",
-      "message": {
-        "en": "<h3>This is your one-time password:</h3><h4>{{object.description}}</a></h4>",
-      },
-      "mimeType": "text/html",
-      "subject": {
-        "en": "One-Time Password for login",
-      },
-    },
-    "profileUpdateNotification": {
-      "_id": "emailTemplate/profileUpdateNotification",
-      "defaultLocale": "en",
-      "displayName": "Profile Update Notification",
-      "enabled": true,
-      "from": "saas@forgerock.com",
-      "html": {
-        "en": "<div class="content"><p>Hello {{object.givenName}},</p><p>your user profile has been updated. If you did not make those changes yourself or requested them, please contact us immediately.</p><p>Kindest regards.</p></div>",
-      },
-      "message": {
-        "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>Hello {{object.givenName}},</p><p>your user profile has been updated. If you did not make those changes yourself or requested them, please contact us immediately.</p><p>Kindest regards.</p></div></body></html>",
-      },
-      "mimeType": "text/html",
-      "styles": "body {
- background-color: #324054;
- color: #455469;
- padding: 60px;
- text-align: center 
-}
- a {
- text-decoration: none;
- color: #109cf1;
-}
- .content {
- background-color: #fff;
- border-radius: 4px;
- margin: 0 auto;
- padding: 48px;
- width: 235px 
-}
- ",
-      "subject": {
-        "en": "Your user profile has been updated",
-      },
-    },
-    "profileUpdateNotificationEmailChange": {
-      "_id": "emailTemplate/profileUpdateNotificationEmailChange",
-      "defaultLocale": "en",
-      "displayName": "Email Address Change Notification",
-      "enabled": true,
-      "from": "saas@forgerock.com",
-      "html": {
-        "en": "<div class="content"><p>Hello {{object.givenName}},</p><p>your user profile has been updated and your email address has changed. This email is sent to the old address we had on file. If you did not make those changes yourself or requested them, please contact us immediately.</p><p>Old: {{object.frUnindexedString5}}<br>
-New: {{object.mail}}</p><p>Kindest regards.</p></div>",
-      },
-      "message": {
-        "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: left;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>Hello {{object.givenName}},</p><p>your user profile has been updated and your email address has changed. This email is sent to the old address we had on file. If you did not make those changes yourself or requested them, please contact us immediately.</p><p>Old: {{object.frUnindexedString5}}<br>
-New: {{object.mail}}</p><p>Kindest regards.</p></div></body></html>",
-      },
-      "mimeType": "text/html",
-      "styles": "body {
- background-color: #324054;
- color: #455469;
- padding: 60px;
- text-align: left 
-}
- a {
- text-decoration: none;
- color: #109cf1;
-}
- .content {
- background-color: #fff;
- border-radius: 4px;
- margin: 0 auto;
- padding: 48px;
- width: 235px 
-}
- ",
-      "subject": {
-        "en": "You email address and profile has been updated",
-      },
-    },
-    "registration": {
-      "_id": "emailTemplate/registration",
-      "advancedEditor": true,
-      "defaultLocale": "en",
-      "displayName": "registration",
-      "enabled": true,
-      "from": ""J.P Morgan" <sass@forgerock.com>",
-      "html": {
-        "en": "",
-        "fr": "",
-      },
-      "message": {
-        "en": "<html>
-  <head></head>
-  <body style="color: #455469; text-align: center; font-family: 'Open Sans'; width: 400px; margin: auto;">
-    <div class="content" style="background-color: #fff; border-radius: 4px;">
-      <h4 id="youhavebeeninvitedtojoinjpmcembeddedbanking" style="font-style: normal; font-weight: 400;">You have been invited to join 
-        
-        <strong>JPMC Developer Console</strong>
-      </h4>
-      <p>
-        <a href="{{object.resumeURI}}" style="text-decoration: none; color: white; background-color: #1A7B99; padding: 10px">ACCEPT INVITE</a>
-      </p>
-      <h6 id="copyright2022ofjpmorganchaseco" style="color: #999999; font-family: 'Inter'; -font-style: normal; font-weight: 400; font-size: 12px; line-height: 16px;">Copyright © 2022 of J.P. Morgan Chase & Co.</h6>
-    </div>
-  </body>
-</html>",
-        "fr": "<html><head></head><body style="color: #455469; text-align: center; font-family: 'Open Sans'; width: 400px; margin: auto;"><div class="content" style="background-color: #fff; border-radius: 4px;"><h3 id="ceciestvotremaildinscription" style="text-align: left;">Ceci est votre mail d'inscription.</h3><p><a href="{{object.resumeURI}}" style="text-decoration: none; color: white;">Lien de vérification email</a></p></div></body></html>",
-      },
-      "mimeType": "text/html",
-      "styles": "body {
-   color: #455469;
-   text-align: center;
-   font-family: 'Open Sans';
-   width: 400px;
-   margin: auto;
-}
- td {
-   text-decoration: none;
-   color: white;
-   background: #155C93;
-   font-style: normal;
-   font-weight: 700;
-   font-size: 14px;
-   line-height: 22px;
-   border-radius: 3px;
-   padding: 15px;
-}
- .content {
-   background-color: #fff;
-   border-radius: 4px;
-}
- h2 {
-   margin: 50px;
-}
- h3 {
-   text-align: left;
-}
- h4 {
-   font-style: normal;
-   font-weight: 400;
-}
- h5 {
-   color: #666666;
-   font-family: 'Inter';
-   font-style: normal;
-   font-weight: 400;
-   font-size: 16px;
-   line-height: 24px;
-}
- h6 {
-   color: #999999;
-   font-family: 'Inter';
-   -font-style: normal;
-   font-weight: 400;
-   font-size: 12px;
-   line-height: 16px;
-}
- table {
-   margin: auto;
-   background-color: #dedddc;
-}
- tr {
-   background-color: #dedddc;
-}
-
-a {
-  text-decoration: none;
-  color: white;
-} ",
-      "subject": {
-        "en": "You're invited to join JPMC Embedded Banking",
+        "en": "Register new account",
         "fr": "Créer un nouveau compte",
       },
-      "templateId": "registration",
     },
     "resetPassword": {
       "_id": "emailTemplate/resetPassword",
@@ -709,43 +561,134 @@ exports[`EmailTemplateOps readEmailTemplate() 1: Read email template 'FrodoTestE
 exports[`EmailTemplateOps readEmailTemplates() 1: Read all email templates 1`] = `
 [
   {
-    "_id": "emailTemplate/activation",
+    "_id": "emailTemplate/baselineDemoEmailVerification",
     "defaultLocale": "en",
-    "displayName": "Activation",
-    "emailTemplate": {},
+    "displayName": "Baseline Demo Email Verification",
     "enabled": true,
-    "from": ""ForgeRock Identity Cloud Team" <saas@forgerock.com>",
+    "from": "security@example.com",
     "html": {
-      "en": "<div class="content"><p>Welcome {{object.givenName}}.</p><p>Your username is '{{object.userName}}'.</p></div>",
+      "en": "<div class="content"><h1 id="emailverification">Email Verification</h1><p><br></p><p>Hello,</p><p>Great to have you on board.</p><p><br></p><hr><h5 id="verifyyouraccount">Verify Your Account</h5><p>Finish the steps of verification for the account by clicking the button below. <br></p><p><br></p><p><row><a href="{{object.resumeURI}}" title="" class="button">Click Here to Verify Your Account</a></row></p><p>This link will expire in 24 hours.</p><p><br></p><p>-- The ForgeRock Team</p><p><a href="https://www.forgerock.com">www.forgerock.com</a></p><p>201 Mission St Suite 2900</p><p>San Francisco, CA 94105</p><p><a href="mailto:support@forgerock.com">support@forgerock.com</a></p><hr><p>If you did not request for this email, please ignore and we won't email you again.</p><p>ForgeRock | <a href="https: www.forgerock.com=">Privacy Policy</a></p></div>",
     },
     "message": {
-      "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>Welcome {{object.givenName}}.</p><p>Your username is '{{object.userName}}'.</p></div></body></html>",
+      "en": "<html><head></head><body style="background-color: #f6f6f6; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 600px;"><h1 id="emailverification" style="font-size: 40px; text-align: center;">Email Verification</h1><p><br></p><p>Hello,</p><p>Great to have you on board.</p><p><br></p><hr><h5 id="verifyyouraccount" style="font-size: 24px;">Verify Your Account</h5><p>Finish the steps of verfication for the account by clicking the button below. <br></p><p><br></p><p><row><a href="{{object.resumeURI}}" title class="button" style="background-color: #109cf1; border: none; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px;">Click Here to Verify Your Account</a></row></p><p>This link will expire in 24 hours.</p><p><br></p><p>-- The ForgeRock Team</p><p><a href="https://www.forgerock.com" style="text-decoration: none; color: #109cf1;">www.forgerock.com</a></p><p>201 Mission St Suite 2900</p><p>San Francisco, CA 94105</p><p><a href="mailto:support@forgerock.com" style="text-decoration: none; color: #109cf1;">support@forgerock.com</a></p><hr><p>If you did not request for this email, please ignore and we won't email you again.</p><p>ForgeRock | <a href="https: www.forgerock.com=" style="text-decoration: none; color: #109cf1;">Privacy Policy</a></p></div></body></html>",
     },
     "mimeType": "text/html",
     "styles": "body {
-	background-color: #324054;
-	color: #455469;
-	padding: 60px;
-	text-align: center
+ background-color: #f6f6f6;
+ color: #455469;
+ padding: 60px;
+ text-align: center 
 }
-
-a {
-	text-decoration: none;
-	color: #109cf1;
+ a {
+ text-decoration: none;
+ color: #109cf1;
 }
-
-.content {
-	background-color: #fff;
-	border-radius: 4px;
-	margin: 0 auto;
-	padding: 48px;
-	width: 235px
+ h1 {
+ font-size: 40px;
+ text-align: center;
 }
-",
+ h2 {
+ font-size: 36px;
+}
+ h3 {
+ font-size: 32px;
+}
+ h4 {
+ font-size: 28px;
+}
+ h5 {
+ font-size: 24px;
+}
+ h6 {
+ font-size: 20px;
+}
+ .content {
+ background-color: #fff;
+ border-radius: 4px;
+ margin: 0 auto;
+ padding: 48px;
+ width: 600px 
+}
+ .button {
+ background-color: #109cf1;
+ border: none;
+ color: white;
+ padding: 15px 32px;
+ text-align: center;
+ text-decoration: none;
+ display: inline-block;
+ font-size: 16px;
+}
+ ",
     "subject": {
-      "en": "Your J.P. Morgan account has been activated",
+      "en": "Please verify your email address",
     },
-    "templateId": "activation",
+    "templateId": "baselineDemoEmailVerification",
+  },
+  {
+    "_id": "emailTemplate/baselineDemoMagicLink",
+    "defaultLocale": "en",
+    "displayName": "Baseline Demo Magic Link",
+    "enabled": true,
+    "from": "security@example.com",
+    "html": {
+      "en": "<div class="content"><h1 id="welcomeback">Welcome back</h1><p><br></p><p>Hello,</p><p>You're receiving this email because you requested a link to sign you into your account.</p><p><br></p><hr><p><row><a href="{{object.resumeURI}}" title="" class="button">Finish Signing In</a></row></p><p>This link will expire in 24 hours.</p><p><br></p><p>-- The ForgeRock Team</p><p><a href="https://www.forgerock.com">www.forgerock.com</a></p><p>201 Mission St Suite 2900</p><p>San Francisco, CA 94105</p><p><a href="mailto:support@forgerock.com">support@forgerock.com</a></p><hr><p>If you did not request for this email, please ignore and we won't email you again.</p><p>ForgeRock | <a href="https: www.forgerock.com=">Privacy Policy</a></p></div>",
+    },
+    "message": {
+      "en": "<html><head></head><body><div class="content"><h1 id="welcomeback">Welcome back</h1><p><br></p><p>Hello,</p><p>You're receiving this email because you requested a link to sign you into your account.</p><p><br></p><hr><p><row><a href="{{object.resumeURI}}" title class="button">Finish Signing In</a></row></p><p>This link will expire in 24 hours.</p><p><br></p><p>-- The ForgeRock Team</p><p><a href="https://www.forgerock.com">www.forgerock.com</a></p><p>201 Mission St Suite 2900</p><p>San Francisco, CA 94105</p><p><a href="mailto:support@forgerock.com">support@forgerock.com</a></p><hr><p>If you did not request for this email, please ignore and we won't email you again.</p><p>ForgeRock | <a href="https: www.forgerock.com=">Privacy Policy</a></p></div></body></html>",
+    },
+    "mimeType": "text/html",
+    "styles": "body {
+ background-color: #f6f6f6;
+ color: #455469;
+ padding: 60px;
+ text-align: center 
+}
+ a {
+ text-decoration: none;
+ color: #109cf1;
+}
+ h1 {
+ font-size: 40px;
+ text-align: center;
+}
+ h2 {
+ font-size: 36px;
+}
+ h3 {
+ font-size: 32px;
+}
+ h4 {
+ font-size: 28px;
+}
+ h5 {
+ font-size: 24px;
+}
+ h6 {
+ font-size: 20px;
+}
+ .content {
+ background-color: #fff;
+ border-radius: 4px;
+ margin: 0 auto;
+ padding: 48px;
+ width: 600px 
+}
+ .button {
+ background-color: #109cf1;
+ border: none;
+ color: white;
+ padding: 15px 32px;
+ text-align: center;
+ text-decoration: none;
+ display: inline-block;
+ font-size: 16px;
+}
+ ",
+    "subject": {
+      "en": "Your sign-in link",
+    },
+    "templateId": "baselineDemoMagicLink",
   },
   {
     "_id": "emailTemplate/forgottenUsername",
@@ -768,38 +711,29 @@ a {
     },
   },
   {
-    "_id": "emailTemplate/FraudNotification",
+    "_id": "emailTemplate/frEmailUpdated",
     "defaultLocale": "en",
-    "displayName": "Fraud Notification",
     "enabled": true,
-    "from": "saas@forgerock.com",
-    "html": {
-      "en": "<div class="content"><p>Hello {{object.givenName}} {{object.sn}},</p><p>we blocked an attempt to access your Expanse account from a suspicious device!</p><p>Your Expanse Security Team.</p></div>",
-    },
+    "from": "",
     "message": {
-      "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: red; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>Hello {{object.givenName}} {{object.sn}},</p><p>we blocked an attempt to access your Expanse account from a suspicious device!</p><p>Your Expanse Security Team.</p></div></body></html>",
+      "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="display:block;height:50px;width:45px;margin:0 auto 16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Your account email has changed</h1></div><p>Your ForgeRock Identity Cloud email has been changed. If you did not request this change, please contact ForgeRock support.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
     },
     "mimeType": "text/html",
-    "styles": "body {
- background-color: #324054;
- color: #455469;
- padding: 60px;
- text-align: center 
-}
- a {
- text-decoration: none;
- color: #109cf1;
-}
- .content {
- background-color: red;
- border-radius: 4px;
- margin: 0 auto;
- padding: 48px;
- width: 235px 
-}
- ",
     "subject": {
-      "en": "Fraud alert from your Expanse Account!",
+      "en": "Your email has been updated",
+    },
+  },
+  {
+    "_id": "emailTemplate/frForgotUsername",
+    "defaultLocale": "en",
+    "enabled": true,
+    "from": "",
+    "message": {
+      "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="height:50px;margin-bottom:16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Forgot your username?</h1></div><p>Your username is <b>{{ object.userName }}</b>.</p><p style="text-align:center"><a href="{{ object.resumeURI }}" style="background-color:#109cf1;border-radius:4px;color:#fff;display:inline-block;margin:16px 0;padding:13px 22px;text-decoration:none">Sign In to Your Account</a></p><p>If you didn't request this, please ignore this email.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
+    },
+    "mimeType": "text/html",
+    "subject": {
+      "en": "Forgot Username",
     },
   },
   {
@@ -833,137 +767,184 @@ a {
     },
   },
   {
-    "_id": "emailTemplate/MobileEmailOTP",
-    "defaultLocale": "en",
-    "displayName": "Mobile Email OTP",
-    "enabled": true,
-    "from": "saas@forgerock.com",
-    "html": {
-      "en": "<div class="content"><h3 id="thisisyouronetimepassword">This is your one-time password:</h3><h4 id="objectfrunindexedinteger5">{{object.frUnindexedInteger5}}</h4></div>",
-    },
-    "message": {
-      "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><h3 id="thisisyouronetimepassword">This is your one-time password:</h3><h4 id="objectfrunindexedinteger5">{{object.frUnindexedInteger5}}</h4></div></body></html>",
-    },
-    "mimeType": "text/html",
-    "styles": "body {
- background-color: #324054;
- color: #455469;
- padding: 60px;
- text-align: center 
-}
- a {
- text-decoration: none;
- color: #109cf1;
-}
- .content {
- background-color: #fff;
- border-radius: 4px;
- margin: 0 auto;
- padding: 48px;
- width: 235px 
-}
- ",
-    "subject": {
-      "en": "One-Time Password for Login",
-    },
-  },
-  {
-    "_id": "emailTemplate/multiFactorEmailLink",
+    "_id": "emailTemplate/frOnboarding",
     "defaultLocale": "en",
     "enabled": true,
     "from": "",
     "message": {
-      "en": "<html><body><h3>You started a login or profile update that requires MFA. </h3><h4><a href="{{object.resumeURI}}">Click to Proceed</a></h4></body></html>",
+      "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="display:block;height:50px;width:45px;margin:0 auto 16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Your account is ready</h1></div><p>Your ForgeRock Identity Cloud account is ready. Click the button below to complete registration and access your environment.</p><p style="text-align:center"><a href="{{ object.resumeURI }}" style="background-color:#109cf1;border-radius:4px;color:#fff;display:inline-block;margin:16px 0;padding:13px 22px;text-decoration:none">Complete Registration</a></p><p>If you did not request this account, please contact ForgeRock support.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
     },
     "mimeType": "text/html",
     "subject": {
-      "en": "Multi-Factor Email for Identity Cloud login",
+      "en": "Complete your ForgeRock Identity Cloud registration",
     },
   },
   {
-    "_id": "emailTemplate/oneTimePassword",
+    "_id": "emailTemplate/frPasswordUpdated",
     "defaultLocale": "en",
     "enabled": true,
     "from": "",
     "message": {
-      "en": "<h3>This is your one-time password:</h3><h4>{{object.description}}</a></h4>",
+      "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="display:block;height:50px;width:45px;margin:0 auto 16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Your account password has changed</h1></div><p>Your ForgeRock Identity Cloud password has been changed. If you did not request this change, please contact ForgeRock support.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
     },
     "mimeType": "text/html",
     "subject": {
-      "en": "One-Time Password for login",
+      "en": "Your password has been updated",
     },
   },
   {
-    "_id": "emailTemplate/profileUpdateNotification",
+    "_id": "emailTemplate/frProfileUpdated",
     "defaultLocale": "en",
-    "displayName": "Profile Update Notification",
     "enabled": true,
-    "from": "saas@forgerock.com",
-    "html": {
-      "en": "<div class="content"><p>Hello {{object.givenName}},</p><p>your user profile has been updated. If you did not make those changes yourself or requested them, please contact us immediately.</p><p>Kindest regards.</p></div>",
-    },
+    "from": "",
     "message": {
-      "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>Hello {{object.givenName}},</p><p>your user profile has been updated. If you did not make those changes yourself or requested them, please contact us immediately.</p><p>Kindest regards.</p></div></body></html>",
+      "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="display:block;height:50px;width:45px;margin:0 auto 16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Your account profile has changed</h1></div><p>Your ForgeRock Identity Cloud profile has been changed. If you did not request this change, please contact ForgeRock support.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
     },
     "mimeType": "text/html",
-    "styles": "body {
- background-color: #324054;
- color: #455469;
- padding: 60px;
- text-align: center 
-}
- a {
- text-decoration: none;
- color: #109cf1;
-}
- .content {
- background-color: #fff;
- border-radius: 4px;
- margin: 0 auto;
- padding: 48px;
- width: 235px 
-}
- ",
     "subject": {
-      "en": "Your user profile has been updated",
+      "en": "Your profile has been updated",
     },
   },
   {
-    "_id": "emailTemplate/profileUpdateNotificationEmailChange",
+    "_id": "emailTemplate/frResetPassword",
     "defaultLocale": "en",
-    "displayName": "Email Address Change Notification",
     "enabled": true,
-    "from": "saas@forgerock.com",
+    "from": "",
+    "message": {
+      "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="display:block;height:50px;width:45px;margin:0 auto 16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Reset your password</h1></div><p>It seems you have forgotten the password for your ForgeRock Identity Cloud account. Click the button below to reset your password and access your environment.</p><p style="text-align:center"><a href="{{ object.resumeURI }}" style="background-color:#109cf1;border-radius:4px;color:#fff;display:inline-block;margin:16px 0;padding:13px 22px;text-decoration:none">Reset Password</a></p><p>If you did not request to reset your password, please contact ForgeRock support.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
+    },
+    "mimeType": "text/html",
+    "subject": {
+      "en": "Reset your password",
+    },
+  },
+  {
+    "_id": "emailTemplate/frUsernameUpdated",
+    "defaultLocale": "en",
+    "enabled": true,
+    "from": "",
+    "message": {
+      "en": "<html><head><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap);@media screen{.webfont{font-family:"Open Sans","Google Sans",Helvetica,Arial,sans-serif;font-size:15px;font-weight:400}}</style></head><body style="background-color:#f6f8fa;margin:0;padding:0"><div class="webfont" style="background-color:#f6f8fa;color:#5e6d82;padding:48px 0"><div style="margin:0 auto;max-width:600px"><div style="background-color:#fff;border-radius:4px;line-height:1.5"><div style="padding:48px"><div style="text-align:center"><img src="https://www.forgerock.com/img/ForgeRock_Logobug_RGB.png" style="display:block;height:50px;width:45px;margin:0 auto 16px" alt="ForgeRock Logo"><h1 style="font-size:30px;font-weight:300;line-height:1.2;margin-bottom:24px">Your account username has changed</h1></div><p>Your ForgeRock Identity Cloud username has been changed. If you did not request this change, please contact ForgeRock support.</p><p>Thanks,<br>The ForgeRock Team</p></div></div><div style="font-size:13px;margin-top:24px;line-height:1.7;text-align:center">&copy; 2001-{{ object.currentYear }} ForgeRock Inc&reg;, All Rights Reserved.<br>201 Mission St Suite 2900, San Francisco, CA 94105<br><a style="color:#109cf1;text-decoration:none" href="https://www.forgerock.com/privacy-policy">Privacy Policy</a></div></div></div></body></html>",
+    },
+    "mimeType": "text/html",
+    "subject": {
+      "en": "Your username has been updated",
+    },
+  },
+  {
+    "_id": "emailTemplate/idv",
+    "defaultLocale": "en",
+    "description": "Identity Verification Invitation",
+    "displayName": "idv",
+    "enabled": true,
+    "from": "",
     "html": {
-      "en": "<div class="content"><p>Hello {{object.givenName}},</p><p>your user profile has been updated and your email address has changed. This email is sent to the old address we had on file. If you did not make those changes yourself or requested them, please contact us immediately.</p><p>Old: {{object.frUnindexedString5}}<br>
-New: {{object.mail}}</p><p>Kindest regards.</p></div>",
+      "en": "<div class="content"><h3 id="clickthelinkbelowtoverifyyouridentity">Click the link below to verify your identity:</h3><p><a href="{{object.resumeURI}}">Verify my identity now</a></p></div>",
+      "fr": "<html><body><h3>Ceci est votre mail d'inscription.</h3><p><a href="{{object.resumeURI}}">Lien de vérification email</a></p></body></html>",
     },
     "message": {
-      "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: left;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>Hello {{object.givenName}},</p><p>your user profile has been updated and your email address has changed. This email is sent to the old address we had on file. If you did not make those changes yourself or requested them, please contact us immediately.</p><p>Old: {{object.frUnindexedString5}}<br>
-New: {{object.mail}}</p><p>Kindest regards.</p></div></body></html>",
+      "en": "<html><head></head><body style="background-color: #324054; color: #5e6d82; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><h3 id="clickthelinkbelowtoverifyyouridentity">Click the link below to verify your identity:</h3><p><a href="{{object.resumeURI}}" style="text-decoration: none; color: #109cf1;">Verify my identity now</a></p></div></body></html>",
+      "fr": "<html><head></head><body style="background-color: #324054; color: #5e6d82; padding: 60px; text-align: center;"><h3>Ceci est votre mail d'inscription.</h3><p><a href="{{object.resumeURI}}" style="text-decoration: none; color: #109cf1;">Lien de vérification email</a></p></body></html>",
+    },
+    "mimeType": "text/html",
+    "name": "registration",
+    "styles": "body{background-color:#324054;color:#5e6d82;padding:60px;text-align:center}a{text-decoration:none;color:#109cf1}.content{background-color:#fff;border-radius:4px;margin:0 auto;padding:48px;width:235px}",
+    "subject": {
+      "en": "You have been invited to verify your identity",
+      "fr": "Créer un nouveau compte",
+    },
+    "templateId": "idv",
+  },
+  {
+    "_id": "emailTemplate/joiner",
+    "advancedEditor": true,
+    "defaultLocale": "en",
+    "description": "This email will be sent onCreate of user to the external eMail address provided during creation. An OTP will also be sent to Telephone Number provided during creation to validate the user.  The user will then be able to set their password and ForgeRock Push Authenticator",
+    "displayName": "Joiner",
+    "enabled": true,
+    "from": ""Encore HR" <no-reply@encore.com>",
+    "html": {
+      "en": "",
+    },
+    "message": {
+      "en": "<html>
+  <head></head>
+  <body style="background-color:#324054;color:#455469;padding:60px;text-align:center">
+    <div class="content" style="background-color:#fff;border-radius:4px;margin:0 auto;padding:48px;width:500px">
+      <p>
+        <img src="https://encore.forgerock.com/media/logos/encore-icon-dark-logo.png" width="125" title="Welcome to Encore" />
+      </p>
+      <h1 id="welcometoencore">Welcome to Encore {{object.givenName}} {{object.sn}}</h1>
+      <p>Please click on the link below to validate your phone number with a One Time Code that will be sent via SMS or called to you depending on your phone type. </p>
+      <p>You will see your UserName and have the ability to set your password that will be used to login to Encore resources.  </p>
+      <p>As we believe in enhanced security, you will also be setting up a Push Notification for future use.</p>
+      <a href="https://openam-volker-demo.forgeblocks.com/am/XUI/?realm=alpha&amp;authIndexType=service&amp;authIndexValue=wks-NEO&amp;userName={{object.userName}}">Click to Join Encore</a>
+    </div>
+  </body>
+</html>",
     },
     "mimeType": "text/html",
     "styles": "body {
- background-color: #324054;
- color: #455469;
- padding: 60px;
- text-align: left 
+   background-color: #324054;
+   color: #455469;
+   padding: 60px;
+   text-align: center 
 }
  a {
- text-decoration: none;
- color: #109cf1;
+   text-decoration: none;
+   color: #109cf1;
 }
  .content {
- background-color: #fff;
- border-radius: 4px;
- margin: 0 auto;
- padding: 48px;
- width: 235px 
+   background-color: #fff;
+   border-radius: 4px;
+   margin: 0 auto;
+   padding: 48px;
+   width: 235px 
 }
  ",
     "subject": {
-      "en": "You email address and profile has been updated",
+      "en": "Welcome to Encore!",
     },
+    "templateId": "joiner",
+  },
+  {
+    "_id": "emailTemplate/registerPasswordlessDevice",
+    "defaultLocale": "en",
+    "description": "",
+    "displayName": "Register Passwordless Device",
+    "enabled": true,
+    "from": ""ForgeRock Identity Cloud" <no-reply@forgerock.com>",
+    "html": {
+      "en": "<div class="content"><h1 id="welcomeback">Welcome back</h1><p><img src="https://tinyurl.com/3mwewu3v" alt="alt text" title="Passwordless Registration"></p><p><br></p><p>Hello,</p><p>You're receiving this email because you requested a link to register a new passwordless device.</p><p><br></p><hr><p><a href="{{object.resumeURI}}">Register New Device</a></p><p>This link will expire in 24 hours.</p><p><br></p><p>-- The ForgeRock Team</p><p><a href="https://www.forgerock.com">www.forgerock.com</a></p><p>201 Mission St Suite 2900</p><p>San Francisco, CA 94105</p><p><a href="mailto:support@forgerock.com">support@forgerock.com</a></p><hr><p>If you did not request for this email, please ignore and we won't email you again.</p><p>ForgeRock | <a href="https: www.forgerock.com=">Privacy Policy</a></p></div>",
+    },
+    "message": {
+      "en": "<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><h1 id="welcomeback">Welcome back</h1><p><img src="https://tinyurl.com/3mwewu3v" alt="alt text" title="Passwordless Registration"></p><p><br></p><p>Hello,</p><p>You're receiving this email because you requested a link to register a new passwordless device.</p><p><br></p><hr><p><a href="{{object.resumeURI}}" style="text-decoration: none; color: #109cf1;">Register New Device</a></p><p>This link will expire in 24 hours.</p><p><br></p><p>-- The ForgeRock Team</p><p><a href="https://www.forgerock.com" style="text-decoration: none; color: #109cf1;">www.forgerock.com</a></p><p>201 Mission St Suite 2900</p><p>San Francisco, CA 94105</p><p><a href="mailto:support@forgerock.com" style="text-decoration: none; color: #109cf1;">support@forgerock.com</a></p><hr><p>If you did not request for this email, please ignore and we won't email you again.</p><p>ForgeRock | <a href="https: www.forgerock.com=" style="text-decoration: none; color: #109cf1;">Privacy Policy</a></p></div></body></html>",
+    },
+    "mimeType": "text/html",
+    "styles": "body {
+	background-color: #324054;
+	color: #455469;
+	padding: 60px;
+	text-align: center
+}
+
+a {
+	text-decoration: none;
+	color: #109cf1;
+}
+
+.content {
+	background-color: #fff;
+	border-radius: 4px;
+	margin: 0 auto;
+	padding: 48px;
+	width: 235px
+}
+",
+    "subject": {
+      "en": "Your magic link is here - register new WebAuthN device",
+    },
+    "templateId": "registerPasswordlessDevice",
   },
   {
     "_id": "emailTemplate/registration",
@@ -998,41 +979,6 @@ New: {{object.mail}}</p><p>Kindest regards.</p></div></body></html>",
     "subject": {
       "en": "Reset your password",
       "fr": "Réinitialisez votre mot de passe",
-    },
-  },
-  {
-    "_id": "emailTemplate/UnknownDeviceNotification",
-    "defaultLocale": "en",
-    "displayName": "Unknown Device Notification",
-    "enabled": true,
-    "from": "saas@forgerock.com",
-    "html": {
-      "en": "<div class="content"><p>Hello {{object.givenName}} {{object.sn}},</p><p>your Expanse account was accessed from an unknown device!</p><p>Your Expanse Security Team.</p></div>",
-    },
-    "message": {
-      "en": "<html><head></head><body style="background-color: #324054; color: black; padding: 60px; text-align: center;"><div class="content" style="background-color: orange; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p>Hello {{object.givenName}} {{object.sn}},</p><p>your Expanse account was accessed from an unknown device!</p><p>Your Expanse Security Team.</p></div></body></html>",
-    },
-    "mimeType": "text/html",
-    "styles": "body {
- background-color: #324054;
- color: black;
- padding: 60px;
- text-align: center 
-}
- a {
- text-decoration: none;
- color: #109cf1;
-}
- .content {
- background-color: orange;
- border-radius: 4px;
- margin: 0 auto;
- padding: 48px;
- width: 235px 
-}
- ",
-    "subject": {
-      "en": "Your Expanse account was accessed from an unknown device!",
     },
   },
   {

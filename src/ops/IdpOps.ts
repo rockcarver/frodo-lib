@@ -665,7 +665,9 @@ export async function exportSocialIdentityProvider({
           scriptId: idpData.transform,
           state,
         });
-        scriptData.script = convertBase64TextToArray(scriptData.script);
+        scriptData.script = convertBase64TextToArray(
+          scriptData.script as string
+        );
         exportData.script[idpData.transform] = scriptData;
       } catch (error) {
         throw new FrodoError(`Error reading script ${idpData.transform}`);
@@ -713,7 +715,9 @@ export async function exportSocialIdentityProviders({
             state,
           });
           if (options.useStringArrays) {
-            scriptData.script = convertBase64TextToArray(scriptData.script);
+            scriptData.script = convertBase64TextToArray(
+              scriptData.script as string
+            );
           }
           exportData.script[idpData.transform] = scriptData;
         }
@@ -874,7 +878,11 @@ export async function importSocialIdentityProviders({
   const errors = [];
   for (const idpId of Object.keys(importData.idp)) {
     try {
-      if (options.deps && importData.idp[idpId].transform) {
+      if (
+        options.deps &&
+        importData.idp[idpId].transform &&
+        importData.script
+      ) {
         try {
           const scriptId = importData.idp[idpId].transform as string;
           const scriptData = { ...importData.script[scriptId as string] };
@@ -901,7 +909,7 @@ export async function importSocialIdentityProviders({
     }
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing providers`);
+    throw new FrodoError(`Error importing providers`, errors);
   }
   return response;
 }

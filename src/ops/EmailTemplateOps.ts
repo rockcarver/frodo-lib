@@ -4,6 +4,7 @@ import {
   getConfigEntity,
   putConfigEntity,
 } from '../api/IdmConfigApi';
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
   createProgressIndicator,
@@ -13,7 +14,10 @@ import {
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { FrodoError } from './FrodoError';
-import { readConfigEntitiesByType } from './IdmConfigOps';
+import {
+  AIC_PROTECTED_ENTITIES,
+  readConfigEntitiesByType,
+} from './IdmConfigOps';
 import { ExportMetaData } from './OpsTypes';
 
 export type EmailTemplate = {
@@ -407,7 +411,19 @@ export async function importEmailTemplates({
         })
       );
     } catch (e) {
-      errors.push(e);
+      if (
+        // protected entities (e.g. root realm email templates)
+        !(
+          state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
+          AIC_PROTECTED_ENTITIES.includes(
+            `${EMAIL_TEMPLATE_TYPE}/${templateId}`
+          ) &&
+          e.httpStatus === 403 &&
+          e.httpCode === 'ERR_BAD_REQUEST'
+        )
+      ) {
+        errors.push(e);
+      }
     }
   }
   if (errors.length > 0) {

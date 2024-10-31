@@ -47,7 +47,7 @@ exports[`VariablesOps deleteVariable() 2: Delete variable3 (non-existent) 1`] = 
 exports[`VariablesOps exportVariable() 1: Export variable1 1`] = `
 {
   "meta": Any<Object>,
-  "variables": {
+  "variable": {
     "esv-frodo-test-variable-1": {
       "_id": "esv-frodo-test-variable-1",
       "description": "description1",
@@ -64,7 +64,7 @@ exports[`VariablesOps exportVariable() 1: Export variable1 1`] = `
 exports[`VariablesOps exportVariable() 2: Export variable2 without decoding 1`] = `
 {
   "meta": Any<Object>,
-  "variables": {
+  "variable": {
     "esv-frodo-test-variable-2": {
       "_id": "esv-frodo-test-variable-2",
       "description": "description2",
@@ -89,7 +89,7 @@ exports[`VariablesOps exportVariable() 3: Export variable3 (non-existent) 1`] = 
 exports[`VariablesOps exportVariables() 1: Export all variables 1`] = `
 {
   "meta": Any<Object>,
-  "variables": {
+  "variable": {
     "esv-frodo-test-variable-1": {
       "_id": "esv-frodo-test-variable-1",
       "description": "description1",
@@ -160,7 +160,7 @@ exports[`VariablesOps exportVariables() 1: Export all variables 1`] = `
 exports[`VariablesOps exportVariables() 2: Export all variables without decoding 1`] = `
 {
   "meta": Any<Object>,
-  "variables": {
+  "variable": {
     "esv-frodo-test-variable-1": {
       "_id": "esv-frodo-test-variable-1",
       "description": "description1",

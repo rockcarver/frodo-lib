@@ -2,7 +2,7 @@ import { parseScript } from 'esprima';
 
 import { type ScriptSkeleton } from '../api/ScriptApi';
 import { State } from '../shared/State';
-import { decode } from './Base64Utils';
+import { decode, isBase64Encoded } from './Base64Utils';
 import { printMessage } from './Console';
 
 export type ScriptValidation = {
@@ -126,9 +126,14 @@ export function isScriptValid({
   state: State;
 }): boolean {
   if (scriptData.language === 'JAVASCRIPT') {
-    const script = Array.isArray(scriptData.script)
-      ? scriptData.script.join('\n')
-      : decode(scriptData.script as string);
+    let script;
+    if (Array.isArray(scriptData.script)) {
+      script = scriptData.script.join('\n');
+    } else if (isBase64Encoded(scriptData.script)) {
+      script = decode(scriptData.script as string);
+    } else {
+      script = scriptData.script;
+    }
     return isValidJs({ javascriptSource: script, state });
   }
   return true;

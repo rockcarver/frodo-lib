@@ -104,7 +104,7 @@ describe('VariablesOps', () => {
       origin: 'https://openam-frodo-dev.forgeblocks.com/am',
       originAmVersion: '7.6.0',
     },
-    variables: {
+    variable: {
       'esv-frodo-test-variable-4': {
         _id: 'esv-frodo-test-variable-4',
         description: 'description4',
@@ -131,7 +131,7 @@ describe('VariablesOps', () => {
       origin: 'https://openam-frodo-dev.forgeblocks.com/am',
       originAmVersion: '7.6.0',
     },
-    variables: {
+    variable: {
       'esv-frodo-test-variable-5': {
         _id: 'esv-frodo-test-variable-5',
         description: 'description5',
@@ -158,7 +158,7 @@ describe('VariablesOps', () => {
       origin: 'https://openam-frodo-dev.forgeblocks.com/am',
       originAmVersion: '7.6.0',
     },
-    variables: {
+    variable: {
       'esv-frodo-test-variable-6': {
         _id: 'esv-frodo-test-variable-6',
         description: 'description6',
@@ -185,7 +185,7 @@ describe('VariablesOps', () => {
       origin: 'https://openam-frodo-dev.forgeblocks.com/am',
       originAmVersion: '7.6.0',
     },
-    variables: {
+    variable: {
       'esv-frodo-test-variable-7': {
         _id: 'esv-frodo-test-variable-7',
         description: 'description7',
@@ -218,7 +218,7 @@ describe('VariablesOps', () => {
       origin: 'https://openam-frodo-dev.forgeblocks.com/am',
       originAmVersion: '7.6.0',
     },
-    variables: {
+    variable: {
       'esv-frodo-test-variable-8': {
         _id: 'esv-frodo-test-variable-8',
         description: 'description8',
@@ -262,7 +262,7 @@ describe('VariablesOps', () => {
       origin: 'https://openam-frodo-dev.forgeblocks.com/am',
       originAmVersion: '7.6.0',
     },
-    variables: {
+    variable: {
       'esv-frodo-test-variable-10': {
         _id: 'esv-frodo-test-variable-10',
         description: 'description10',
@@ -400,7 +400,7 @@ describe('VariablesOps', () => {
         VariablesOps.createVariablesExportTemplate({ state: state })
       ).toStrictEqual({
         meta: expect.any(Object),
-        variables: {},
+        variable: {},
       });
     });
   });

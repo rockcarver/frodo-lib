@@ -76,7 +76,6 @@ export async function getCircleOfTrust({
 
 /**
  * Create a circle of trust
- * @param {string} cotId circle of trust id/name
  * @param {CircleOfTrustSkeleton} cotData Object representing a SAML circle of trust
  * @returns {Promise<CircleOfTrustSkeleton>} a promise that resolves to a saml2 circle of trust object
  */

@@ -747,7 +747,7 @@ async function importDependencies({
     // connectors and mappings
     if (isProvisioningApplication(applicationData)) {
       const connectorId = getConnectorId(applicationData);
-      if (connectorId) {
+      if (connectorId && importData.connector) {
         try {
           await importConnector({
             connectorId,

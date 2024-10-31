@@ -286,7 +286,7 @@ describe('AgentOps', () => {
         expect(AgentOps.createAgentExportTemplate).toBeDefined();
       });
 
-      test('1: Read all agent types', async () => {
+      test('1: Create Agent Export Template', async () => {
         const response = AgentOps.createAgentExportTemplate({ state });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
@@ -631,7 +631,7 @@ describe('AgentOps', () => {
         };
         const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
-          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
         }
         await AgentOps.importAgents({ importData: exportData, state });
         expect(true).toBeTruthy();
@@ -650,7 +650,7 @@ describe('AgentOps', () => {
         };
         const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
-          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
         }
         await AgentOps.importIdentityGatewayAgents({
           importData: exportData,
@@ -666,7 +666,7 @@ describe('AgentOps', () => {
         };
         const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
-          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
         }
         expect.assertions(2);
         try {
@@ -693,7 +693,7 @@ describe('AgentOps', () => {
         };
         const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
-          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
         }
         await AgentOps.importJavaAgents({ importData: exportData, state });
         expect(true).toBeTruthy();
@@ -706,7 +706,7 @@ describe('AgentOps', () => {
         };
         const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
-          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
         }
         expect.assertions(2);
         try {
@@ -730,7 +730,7 @@ describe('AgentOps', () => {
         };
         const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
-          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
         }
         await AgentOps.importWebAgents({ importData: exportData, state });
         expect(true).toBeTruthy();
@@ -743,7 +743,7 @@ describe('AgentOps', () => {
         };
         const exportData = AgentOps.createAgentExportTemplate({ state });
         for (const agentId of Object.keys(agents)) {
-          exportData.agents[agentId] = getAgent(agents[agentId], agentId);
+          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
         }
         expect.assertions(2);
         try {
@@ -762,7 +762,7 @@ describe('AgentOps', () => {
 
       test('1: Import gateway agent', async () => {
         const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agents[gateway6.id] = getAgent(gateway6.type, gateway6.id);
+        exportData.agent[gateway6.id] = getAgent(gateway6.type, gateway6.id);
         await AgentOps.importAgent({
           agentId: gateway6.id,
           importData: exportData,
@@ -773,7 +773,7 @@ describe('AgentOps', () => {
 
       test('2: Import java agent', async () => {
         const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agents[java6.id] = getAgent(java6.type, java6.id);
+        exportData.agent[java6.id] = getAgent(java6.type, java6.id);
         await AgentOps.importAgent({
           agentId: java6.id,
           importData: exportData,
@@ -784,7 +784,7 @@ describe('AgentOps', () => {
 
       test('3: Import web agent', async () => {
         const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agents[web6.id] = getAgent(web6.type, web6.id);
+        exportData.agent[web6.id] = getAgent(web6.type, web6.id);
         await AgentOps.importAgent({
           agentId: web6.id,
           importData: exportData,
@@ -801,7 +801,7 @@ describe('AgentOps', () => {
 
       test(`1: Import ${gateway7.type} '${gateway7.id}'`, async () => {
         const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agents[gateway7.id] = getAgent(gateway7.type, gateway7.id);
+        exportData.agent[gateway7.id] = getAgent(gateway7.type, gateway7.id);
         await AgentOps.importIdentityGatewayAgent({
           agentId: gateway7.id,
           importData: exportData,
@@ -812,7 +812,7 @@ describe('AgentOps', () => {
 
       test('2: Import gateway agent with wrong type', async () => {
         const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agents[java7.id] = getAgent(java7.type, java7.id);
+        exportData.agent[java7.id] = getAgent(java7.type, java7.id);
         expect.assertions(2);
         try {
           await AgentOps.importIdentityGatewayAgent({
@@ -834,7 +834,7 @@ describe('AgentOps', () => {
 
       test(`1: Import ${java7.type} '${java7.id}'`, async () => {
         const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agents[java7.id] = getAgent(java7.type, java7.id);
+        exportData.agent[java7.id] = getAgent(java7.type, java7.id);
         await AgentOps.importJavaAgent({
           agentId: java7.id,
           importData: exportData,
@@ -845,7 +845,7 @@ describe('AgentOps', () => {
 
       test('2: Import java agent with wrong type', async () => {
         const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agents[web7.id] = getAgent(web7.type, web7.id);
+        exportData.agent[web7.id] = getAgent(web7.type, web7.id);
         expect.assertions(2);
         try {
           await AgentOps.importJavaAgent({
@@ -867,7 +867,7 @@ describe('AgentOps', () => {
 
       test(`1: Import ${web7.type} '${web7.id}'`, async () => {
         const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agents[web7.id] = getAgent(web7.type, web7.id);
+        exportData.agent[web7.id] = getAgent(web7.type, web7.id);
         await AgentOps.importWebAgent({
           agentId: web7.id,
           importData: exportData,
@@ -878,7 +878,7 @@ describe('AgentOps', () => {
 
       test('2: Import web agent with wrong type', async () => {
         const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agents[gateway7.id] = getAgent(gateway7.type, gateway7.id);
+        exportData.agent[gateway7.id] = getAgent(gateway7.type, gateway7.id);
         expect.assertions(2);
         try {
           await AgentOps.importWebAgent({

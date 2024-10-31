@@ -294,7 +294,7 @@ export default (state: State): Variable => {
 
 export interface VariablesExportInterface {
   meta?: ExportMetaData;
-  variables: Record<string, VariableSkeleton>;
+  variable: Record<string, VariableSkeleton>;
 }
 
 export function createVariablesExportTemplate({
@@ -304,7 +304,7 @@ export function createVariablesExportTemplate({
 }): VariablesExportInterface {
   return {
     meta: getMetadata({ state }),
-    variables: {},
+    variable: {},
   } as VariablesExportInterface;
 }
 
@@ -368,7 +368,7 @@ export async function exportVariable({
       variable.value = decode(variable.valueBase64);
       delete variable.valueBase64;
     }
-    exportData.variables[variable._id] = variable;
+    exportData.variable[variable._id] = variable;
     debugMessage({ message: `VariablesOps.exportVariable: end`, state });
     return exportData;
   } catch (error) {
@@ -398,7 +398,7 @@ export async function exportVariables({
         message: `Exporting variable ${variable._id}`,
         state,
       });
-      exportData.variables[variable._id] = variable;
+      exportData.variable[variable._id] = variable;
     }
     stopProgressIndicator({
       id: indicatorId,
@@ -430,10 +430,10 @@ export async function importVariable({
   let response = null;
   const errors = [];
   const imported = [];
-  for (const id of Object.keys(importData.variables)) {
+  for (const id of Object.keys(importData.variable)) {
     if (id === variableId || !variableId) {
       try {
-        const variable = importData.variables[id];
+        const variable = importData.variable[id];
         delete variable._rev;
         if (variable.value) {
           variable.valueBase64 = encode(variable.value);
@@ -476,8 +476,8 @@ export async function importVariables({
 }): Promise<VariableSkeleton[]> {
   const response = [];
   const errors = [];
-  for (const id of Object.keys(importData.variables)) {
-    const variable = importData.variables[id];
+  for (const id of Object.keys(importData.variable)) {
+    const variable = importData.variable[id];
     delete variable._rev;
     try {
       response.push(

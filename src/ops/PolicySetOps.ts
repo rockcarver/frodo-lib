@@ -99,11 +99,12 @@ export type PolicySet = {
    * Import policy sets
    * @param {PolicySetExportInterface} importData import data
    * @param {PolicySetImportOptions} options import options
+   * @returns {any[]} The imported policy sets
    */
   importPolicySets(
     importData: PolicySetExportInterface,
     options?: PolicySetImportOptions
-  ): Promise<any>;
+  ): Promise<any[]>;
 
   // Deprecated
 
@@ -899,6 +900,7 @@ export async function importFirstPolicySet({
  * Import policy sets
  * @param {PolicySetExportInterface} importData import data
  * @param {PolicySetImportOptions} options import options
+ * @returns {any[]} The imported policy sets
  */
 export async function importPolicySets({
   importData,
@@ -908,8 +910,8 @@ export async function importPolicySets({
   importData: PolicySetExportInterface;
   options?: PolicySetImportOptions;
   state: State;
-}) {
-  let response = null;
+}): Promise<any[]> {
+  const response: any[] = [];
   const errors = [];
   for (const id of Object.keys(importData.policyset)) {
     try {
@@ -927,10 +929,10 @@ export async function importPolicySets({
         }
       }
       try {
-        response = await _createPolicySet({ policySetData, state });
+        response.push(await _createPolicySet({ policySetData, state }));
       } catch (error) {
         if (error.response?.status === 409) {
-          response = await _updatePolicySet({ policySetData, state });
+          response.push(await _updatePolicySet({ policySetData, state }));
         } else throw error;
       }
       if (options.deps) {

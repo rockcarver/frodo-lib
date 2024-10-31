@@ -171,6 +171,11 @@ describe('JourneyOps', () => {
       process.env.FRODO_RECORD_PHASE === '1')
   ) {
     describe('updateCoordinates()', () => {
+      const node1 = '5883ff1e-80dd-49f5-a609-120303e1b0cd';
+      const node2 = '59129227-f192-4ff4-a7b4-bc7690b82d4f';
+      const node5 = '6a1aa88f-25f8-4d40-8008-bfc6684b2a58';
+      const node6 = '8b1a8dc8-338f-46af-a4c5-6fe7cf6a2cf5';
+
       test('0: Method is implemented', async () => {
         expect(JourneyOps.updateCoordinates).toBeDefined();
       });
@@ -190,8 +195,8 @@ describe('JourneyOps', () => {
       test('2: Update coordinates with server coordinates when server tree exists', async () => {
         const journey = getJourney(journey10.id);
         const tree = JSON.parse(JSON.stringify(journey.tree));
-        delete tree.nodes.node1.x;
-        delete tree.nodes.node2.y;
+        delete tree.nodes[node1].x;
+        delete tree.nodes[node2].y;
         const serverTree = await JourneyOps.updateCoordinates({
           tree: tree,
           nodesAttributeName: "nodes",
@@ -207,10 +212,10 @@ describe('JourneyOps', () => {
       test('3: Updates coordinates to 0 if serverTree does not exist', async () => {
         const journey = getJourney(journey11.id);
         const expectedTree = JSON.parse(JSON.stringify(journey.tree));
-        expectedTree.nodes.node5.x = 0;
-        expectedTree.nodes.node5.y = 0;
-        expectedTree.nodes.node6.x = 0;
-        expectedTree.nodes.node6.y = 0;
+        expectedTree.nodes[node5].x = 0;
+        expectedTree.nodes[node5].y = 0;
+        expectedTree.nodes[node6].x = 0;
+        expectedTree.nodes[node6].y = 0;
         const tree = JSON.parse(JSON.stringify(journey.tree));
         expect(await JourneyOps.updateCoordinates({
           tree: tree,
@@ -224,10 +229,10 @@ describe('JourneyOps', () => {
       test('4: Updates coordinates to 0 if serverTree nodes do not exist', async () => {
         const journey = getJourney(journey10NoCoords.id);
         const expectedTree = JSON.parse(JSON.stringify(journey.tree));
-        expectedTree.nodes.node1.x = 0;
-        expectedTree.nodes.node1.y = 0;
-        expectedTree.nodes.node2.x = 0;
-        expectedTree.nodes.node2.y = 0;
+        expectedTree.nodes[node1].x = 0;
+        expectedTree.nodes[node1].y = 0;
+        expectedTree.nodes[node2].x = 0;
+        expectedTree.nodes[node2].y = 0;
         const serverTree = JSON.parse(JSON.stringify(journey.tree));
         delete serverTree.nodes;
         const tree = JSON.parse(JSON.stringify(journey.tree));
@@ -244,19 +249,19 @@ describe('JourneyOps', () => {
         const journey = getJourney(journey10.id);
         const journeyNoCoords = getJourney(journey10NoCoords.id);
         const expectedTree = JSON.parse(JSON.stringify(journey.tree));
-        expectedTree.nodes.node1.x = 0;
-        expectedTree.nodes.node2.y = 0;
-        expectedTree.nodes.node2.x = 1001;
+        expectedTree.nodes[node1].x = 0;
+        expectedTree.nodes[node2].y = 0;
+        expectedTree.nodes[node2].x = 1001;
         expectedTree.staticNodes.node3.y = 0;
         expectedTree.staticNodes.node4.x = 0;
         expectedTree.staticNodes.node4.y = 1002;
         const serverTree = JSON.parse(JSON.stringify(journey.tree));
-        delete serverTree.nodes.node1.x;
-        delete serverTree.nodes.node2.y;
+        delete serverTree.nodes[node1].x;
+        delete serverTree.nodes[node2].y;
         delete serverTree.staticNodes.node3.y;
         delete serverTree.staticNodes.node4.x;
         const tree = JSON.parse(JSON.stringify(journeyNoCoords.tree));
-        tree.nodes.node2.x = 1001;
+        tree.nodes[node2].x = 1001;
         tree.staticNodes.node4.y = 1002;
         expect(await JourneyOps.updateCoordinates({
           tree: tree,
@@ -348,14 +353,14 @@ describe('JourneyOps', () => {
         });
       });
 
-      test('1: Export journeys w/ dependencies', async () => {
+      test('2: Export journeys w/ dependencies', async () => {
         const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true, coords: true }, state });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
       });
 
-      test('1: Export journeys w/ dependencies and w/o coordinates', async () => {
+      test('3: Export journeys w/ dependencies and w/o coordinates', async () => {
         const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true, coords: false }, state });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),

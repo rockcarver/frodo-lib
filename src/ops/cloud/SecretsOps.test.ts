@@ -185,7 +185,7 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
       origin: 'https://openam-frodo-dev.forgeblocks.com/am',
       originAmVersion: '7.6.0',
     },
-    secrets: {
+    secret: {
       'esv-frodo-test-secret-6': {
         _id: 'esv-frodo-test-secret-6',
         activeVersion: '1',
@@ -208,7 +208,7 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
       origin: 'https://openam-frodo-dev.forgeblocks.com/am',
       originAmVersion: '7.6.0',
     },
-    secrets: {
+    secret: {
       'esv-frodo-test-secret-7': {
         _id: 'esv-frodo-test-secret-7',
         activeValue: {
@@ -246,7 +246,7 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
       origin: 'https://openam-frodo-dev.forgeblocks.com/am',
       originAmVersion: '7.6.0',
     },
-    secrets: {
+    secret: {
       'esv-frodo-test-secret-8': {
         _id: 'esv-frodo-test-secret-8',
         activeVersion: '1',
@@ -280,7 +280,7 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
       origin: 'https://openam-frodo-dev.forgeblocks.com/am',
       originAmVersion: '7.6.0',
     },
-    secrets: {
+    secret: {
       'esv-frodo-test-secret-10': {
         _id: 'esv-frodo-test-secret-10',
         activeValue: {
@@ -386,7 +386,7 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
         SecretsOps.createSecretsExportTemplate({ state: state })
       ).toStrictEqual({
         meta: expect.any(Object),
-        secrets: {},
+        secret: {},
       });
     });
   });
