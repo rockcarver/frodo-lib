@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add governance API factory under `frodo.factory`:
+
+  - `generateGovernanceApi`: Generates a Governance Axios API instance
+
+### Fixed
+
+Fixes and improvements to imports and exports:
+
+-   Updated test timeouts from 90000 to 120000 milliseconds (to accommodate the bigger exports/imports in the future)
+-   Updated resource versions of different exports/imports to the latest ones
+-   Updated comments and type information to be more accurate and fix typos
+-   Fixed TrustedJWTIssuer exports/imports (since these will be included as part of the full config export/import in the future PR)
+-   Fixed service imports to work for federation services
+-   Updated exports for agents and esv secrets/variables to have a singular instead of plural type (i.e. `agents` => `agent`, `secrets` => `secret`, `variables` => `variable`). The reason for this is to make them more consistent with the rest of the exports which are also singular, and also because secrets plural will be used for exporting AM secret config in the future.
+-   For full exports, duplicate config is now deleted from the IDM exports since themes, email templates, and mappings are all handled separately.
+-   Fixed full imports to only import if the full import config contains the items being imported rather than erroring out.
+-   Fixed full imports to return the config items that were imported
+-   Fixed email template imports/exports. For exports, there was a bug with the api where not all email templates were being exported using “emailTemplate” as the type, but it was fixed by using “emailTemplat” as the type instead (not sure why this works, but it’s the best solution I could find to fix the problem).
+-   Moved functionality for handling env substitution and entity filters from CLI to lib for IDM exports/imports.
+-   Fixed a few bugs with importing/exporting journeys. The main issue that was found was that if you were importing a journey containing nodes that are not supported by the current deployment (e.g. IDM journey nodes from cloud being imported into a classic deployment of AM), the journey would still be imported. This would cause an error to be thrown on export of the journey preventing it as well as other journeys from being exported on full export. The fix here was to just prevent the import of the journey if this happens by erroring out to prevent those errors from happening on export.
+-   Fixed a few bugs with script imports to allow each of the 3 types of imports to work (i.e. if scripts are a single unencoded string, if scripts are a single encoded string, and if scripts are a decoded array).
+
 ## [2.2.1-0] - 2024-10-31
 
 ## [2.2.0] - 2024-10-10

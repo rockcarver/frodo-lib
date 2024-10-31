@@ -759,11 +759,12 @@ export async function exportScripts({
 
 /**
  * Import scripts
- * @param {string} scriptId Optional id of script. If supplied, only the script of that id is imported. Takes priority over scriptName if both are provided.
- * @param {string} scriptName Optional name of script. If supplied, only the script of that name is imported
- * @param {ScriptExportInterface} importData Script import data
- * @param {ScriptImportOptions} options Script import options
- * @param {boolean} validate If true, validates Javascript scripts to ensure no errors exist in them. Default: false
+ * @param {object} params Params object.
+ * @param {string} params.scriptId Optional id of script. If supplied, only the script of that id is imported. Takes priority over scriptName if both are provided.
+ * @param {string} params.scriptName Optional name of script. If supplied, only the script of that name is imported
+ * @param {ScriptExportInterface} params.importData Script import data
+ * @param {ScriptImportOptions} params.options Script import options
+ * @param {boolean} params.validate If true, validates Javascript scripts to ensure no errors exist in them. Default: false
  * @returns {Promise<ScriptSkeleton[]>} the imported scripts
  */
 export async function importScripts({
@@ -795,10 +796,15 @@ export async function importScripts({
         const isDefault = !options.includeDefault && scriptData.default;
         // Only import script if the scriptName matches the current script. Note this only applies if we are not importing dependencies since if there are dependencies then we want to import all the scripts in the file.
         const shouldNotImportScript =
-          !options.deps &&
-          ((scriptId && scriptId !== scriptData._id) ||
-            (!scriptId && scriptName && scriptName !== scriptData.name));
+          (!options.deps &&
+            ((scriptId && scriptId !== scriptData._id) ||
+              (!scriptId && scriptName && scriptName !== scriptData.name))) ||
+          !(!scriptId && !scriptName);
         if (isDefault || shouldNotImportScript) continue;
+        debugMessage({
+          message: `ScriptOps.importScripts: Importing script ${scriptData.name} (${existingId})`,
+          state,
+        });
         let newId = existingId;
         if (options.reUuid) {
           newId = uuidv4();
