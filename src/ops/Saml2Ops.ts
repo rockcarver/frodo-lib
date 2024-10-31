@@ -427,7 +427,7 @@ async function exportDependencies({
         scriptId: attrMapperScriptId,
         state,
       });
-      scriptData.script = convertBase64TextToArray(scriptData.script);
+      scriptData.script = convertBase64TextToArray(scriptData.script as string);
       fileData.script[attrMapperScriptId] = scriptData;
     } catch (error) {
       errors.push(
@@ -447,7 +447,7 @@ async function exportDependencies({
         scriptId: idpAdapterScriptId,
         state,
       });
-      scriptData.script = convertBase64TextToArray(scriptData.script);
+      scriptData.script = convertBase64TextToArray(scriptData.script as string);
       fileData.script[idpAdapterScriptId] = scriptData;
     } catch (error) {
       errors.push(new FrodoError(`Error getting idp adapter script`, error));
@@ -465,7 +465,7 @@ async function exportDependencies({
         scriptId: spAdapterScriptId,
         state,
       });
-      scriptData.script = convertBase64TextToArray(scriptData.script);
+      scriptData.script = convertBase64TextToArray(scriptData.script as string);
       fileData.script[spAdapterScriptId] = scriptData;
     } catch (error) {
       errors.push(new FrodoError(`Error getting sp adapter script`, error));

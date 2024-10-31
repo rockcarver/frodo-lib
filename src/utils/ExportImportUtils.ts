@@ -325,6 +325,7 @@ export function getFilePath({
   mkdirs: boolean;
   state: State;
 }): string {
+  fileName = fileName.replaceAll('\\', '/').replaceAll('C:', '');
   const path = state.getDirectory()
     ? `${getWorkingDirectory({ mkdirs, state })}/${fileName}`
     : fileName;
@@ -497,7 +498,7 @@ export async function readFiles(directory: string): Promise<
 
   const filePathsNested = await Promise.all(
     items.map(async (entity) => {
-      const path = join(directory, entity);
+      const path = join(directory, entity).replaceAll('\\', '/');
       const isDirectory = (await lstat(path)).isDirectory();
 
       if (isDirectory) {

@@ -15,7 +15,7 @@ import { generateAmApi } from './BaseApi';
 const oauth2TrustedJwtIssuerURLTemplate =
   '%s/json%s/realm-config/agents/TrustedJwtIssuer/%s';
 const oauth2TrustedJwtIssuerListURLTemplate =
-  '%s/json%s/realm-config/agents/OAuth2Client?_queryFilter=true';
+  '%s/json%s/realm-config/agents/TrustedJwtIssuer?_queryFilter=true';
 const apiVersion = 'protocol=2.0,resource=1.0';
 const getApiConfig = () => {
   return {
@@ -41,7 +41,7 @@ export type OAuth2TrustedJwtIssuerSkeleton = IdObjectSkeletonInterface & {
 
 /**
  * Get OAuth2 Trusted JWT Issuers
- * @returns {Promise<PagedResult>} a promise that resolves to a PagedResults object containing an array of oauth2client objects
+ * @returns {Promise<PagedResult>} a promise that resolves to a PagedResults object containing an array of oauth2TrustedJwtIssuer objects
  */
 export async function getOAuth2TrustedJwtIssuers({
   state,
@@ -64,8 +64,8 @@ export async function getOAuth2TrustedJwtIssuers({
 
 /**
  * Get OAuth2 Trusted JWT Issuer
- * @param {string} id client id
- * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to an oauth2 client object
+ * @param {string} id oauth2 trusted jwt issuer id
+ * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to an oauth2TrustedJwtIssuer object
  */
 export async function getOAuth2TrustedJwtIssuer({
   id,
@@ -93,7 +93,7 @@ export async function getOAuth2TrustedJwtIssuer({
  * Put OAuth2 Trusted JWT Issuer
  * @param {string} id issuer id
  * @param {OAuth2TrustedJwtIssuerSkeleton} issuerData TrustedJwtIssuer object
- * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to an oauth2 client object
+ * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to an oauth2TrustedJwtIssuer object
  */
 export async function putOAuth2TrustedJwtIssuer({
   id,
@@ -106,9 +106,9 @@ export async function putOAuth2TrustedJwtIssuer({
 }): Promise<OAuth2TrustedJwtIssuerSkeleton> {
   // until we figure out a way to use transport keys in Frodo,
   // we'll have to drop those encrypted attributes.
-  const client = deleteDeepByKey(issuerData, '-encrypted');
-  delete client._provider;
-  delete client._rev;
+  const issuer = deleteDeepByKey(issuerData, '-encrypted');
+  delete issuer._provider;
+  delete issuer._rev;
   const urlString = util.format(
     oauth2TrustedJwtIssuerURLTemplate,
     state.getHost(),
@@ -117,7 +117,7 @@ export async function putOAuth2TrustedJwtIssuer({
   );
   const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
     urlString,
-    client,
+    issuer,
     {
       withCredentials: true,
     }

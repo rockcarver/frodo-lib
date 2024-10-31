@@ -244,6 +244,28 @@ describe('IdmConfigOps', () => {
     });
   });
 
+  describe('exportConfigEntity()', () => {
+    test('0: Method is implemented', async () => {
+      expect(IdmConfigOps.exportConfigEntity).toBeDefined();
+    });
+
+    test('1: Export config entities', async () => {
+      const response = await IdmConfigOps.exportConfigEntity({ entityId: configEntity1.id, state });
+      expect(response).toMatchSnapshot({
+        meta: expect.any(Object),
+      });
+    });
+
+    test('2: Export config entities with env replacement', async () => {
+      const response = await IdmConfigOps.exportConfigEntity({ entityId: configEntity1.id, options: {
+        envReplaceParams: [['english', 'en']]
+      }, state });
+      expect(response).toMatchSnapshot({
+        meta: expect.any(Object),
+      });
+    });
+  });
+
   describe('exportConfigEntities()', () => {
     test('0: Method is implemented', async () => {
       expect(IdmConfigOps.exportConfigEntities).toBeDefined();
@@ -342,6 +364,48 @@ describe('IdmConfigOps', () => {
         importData,
         options: {
           validate: true,
+        },
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`3: ImportConfigEntities with env replacement and entitiesToImport options`, async () => {
+      const importData = {
+        idm: {
+          [configEntity1.id]: configEntity1,
+          [configEntity2.id]: configEntity2,
+          [configEntity3.id]: configEntity3,
+        },
+      };
+      const response = await IdmConfigOps.importConfigEntities({
+        importData,
+        options: {
+          entitiesToImport: [
+            configEntity1.id,
+            configEntity2.id
+          ],
+          envReplaceParams: [['en', 'english']],
+          validate: false,
+        },
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`4: ImportConfigEntities with single entity`, async () => {
+      const importData = {
+        idm: {
+          [configEntity1.id]: configEntity1,
+          [configEntity2.id]: configEntity2,
+          [configEntity3.id]: configEntity3,
+        },
+      };
+      const response = await IdmConfigOps.importConfigEntities({
+        importData,
+        entityId: configEntity2.id,
+        options: {
+          validate: false,
         },
         state,
       });

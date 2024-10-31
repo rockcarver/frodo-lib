@@ -669,6 +669,9 @@ export async function updateCoordinates({
   serverTree: TreeSkeleton | null;
   state: State;
 }): Promise<TreeSkeleton | null> {
+  if (!tree[nodesAttributeName]) {
+    return serverTree;
+  }
   const nodeEntries = Object.entries(
     tree[nodesAttributeName] as
       | NodeRefSkeletonInterface
@@ -1505,7 +1508,7 @@ export async function updateJourney({
 
 /**
  * Import a tree with all dependencies from a `SingleTreeExportInterface` object (typically read from a file)
- * @param {SingleTreeExportInterface} treeObject tree object containing tree and all its dependencies
+ * @param {SingleTreeExportInterface} importData tree object containing tree and all its dependencies
  * @param {TreeImportOptions} options import options
  * @returns {Promise<TreeSkeleton>} a promise that resolves to true if no errors occurred during import
  */
@@ -1559,7 +1562,7 @@ export async function importJourney({
             scriptObject['script']
           );
         } else if (!isBase64Encoded(scriptObject['script'])) {
-          scriptObject['script'] = encode(JSON.parse(scriptObject['script']));
+          scriptObject['script'] = encode(scriptObject['script']);
         }
         try {
           await updateScript({ scriptId, scriptData: scriptObject, state });
@@ -1904,15 +1907,13 @@ export async function importJourney({
             nodeImportError.response?.data?.message ===
               'Data validation failed for the attribute, Script'
           ) {
-            errors.push(
-              new FrodoError(
-                `Missing script ${
-                  innerNodeData['script']
-                } referenced by inner node ${innerNodeId}${
-                  innerNodeId === newUuid ? '' : ` [${newUuid}]`
-                } (${innerNodeData['_type']['_id']}) in journey ${treeId}`,
-                nodeImportError
-              )
+            throw new FrodoError(
+              `Missing script ${
+                innerNodeData['script']
+              } referenced by inner node ${innerNodeId}${
+                innerNodeId === newUuid ? '' : ` [${newUuid}]`
+              } (${innerNodeData['_type']['_id']}) in journey ${treeId}`,
+              nodeImportError
             );
           } else if (
             nodeImportError.response?.status === 400 &&
@@ -1941,23 +1942,26 @@ export async function importJourney({
                 state,
               });
             } catch (nodeImportError2) {
-              errors.push(
-                new FrodoError(
-                  `Error importing node ${innerNodeId}${
-                    innerNodeId === newUuid ? '' : ` [${newUuid}]`
-                  } in journey ${treeId}`,
-                  nodeImportError2
-                )
-              );
-            }
-          } else {
-            errors.push(
-              new FrodoError(
-                `Error importing inner node ${innerNodeId}${
+              throw new FrodoError(
+                `Error importing node ${innerNodeId}${
                   innerNodeId === newUuid ? '' : ` [${newUuid}]`
                 } in journey ${treeId}`,
-                nodeImportError
-              )
+                nodeImportError2
+              );
+            }
+          } else if (nodeImportError.response?.status === 404) {
+            throw new FrodoError(
+              `Unable to import node ${innerNodeId}${
+                innerNodeId === newUuid ? '' : ` [${newUuid}]`
+              } in journey ${treeId} because its type ${(innerNodeData as NodeSkeleton)._type._id} doesn't exist in deployment`,
+              nodeImportError
+            );
+          } else {
+            throw new FrodoError(
+              `Error importing inner node ${innerNodeId}${
+                innerNodeId === newUuid ? '' : ` [${newUuid}]`
+              } in journey ${treeId}`,
+              nodeImportError
             );
           }
         }
@@ -2043,15 +2047,13 @@ export async function importJourney({
             nodeImportError.response?.data?.message ===
               'Data validation failed for the attribute, Script'
           ) {
-            errors.push(
-              new FrodoError(
-                `Missing script ${
-                  nodeData['script']
-                } referenced by node ${nodeId}${
-                  nodeId === newUuid ? '' : ` [${newUuid}]`
-                } (${nodeData['_type']['_id']}) in journey ${treeId}`,
-                nodeImportError
-              )
+            throw new FrodoError(
+              `Missing script ${
+                nodeData['script']
+              } referenced by node ${nodeId}${
+                nodeId === newUuid ? '' : ` [${newUuid}]`
+              } (${nodeData['_type']['_id']}) in journey ${treeId}`,
+              nodeImportError
             );
           } else if (
             nodeImportError.response?.status === 400 &&
@@ -2075,23 +2077,26 @@ export async function importJourney({
             try {
               await putNode({ nodeId: newUuid, nodeType, nodeData, state });
             } catch (nodeImportError2) {
-              errors.push(
-                new FrodoError(
-                  `Error importing node ${nodeId}${
-                    nodeId === newUuid ? '' : ` [${newUuid}]`
-                  } in journey ${treeId}`,
-                  nodeImportError2
-                )
-              );
-            }
-          } else {
-            errors.push(
-              new FrodoError(
+              throw new FrodoError(
                 `Error importing node ${nodeId}${
                   nodeId === newUuid ? '' : ` [${newUuid}]`
                 } in journey ${treeId}`,
-                nodeImportError
-              )
+                nodeImportError2
+              );
+            }
+          } else if (nodeImportError.response?.status === 404) {
+            throw new FrodoError(
+              `Unable to import node ${nodeId}${
+                nodeId === newUuid ? '' : ` [${newUuid}]`
+              } in journey ${treeId} because its type ${nodeData._type._id} doesn't exist in deployment`,
+              nodeImportError
+            );
+          } else {
+            throw new FrodoError(
+              `Error importing node ${nodeId}${
+                nodeId === newUuid ? '' : ` [${newUuid}]`
+              } in journey ${treeId}`,
+              nodeImportError
             );
           }
         }
@@ -2210,7 +2215,10 @@ export async function importJourney({
     errors.push(error);
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing journey`, errors);
+    throw new FrodoError(
+      `Error importing journey${importData && importData.tree && importData.tree._id ? ` '${importData.tree._id}'` : ''}`,
+      errors
+    );
   }
   return response;
 }

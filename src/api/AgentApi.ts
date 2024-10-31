@@ -4,7 +4,11 @@ import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../utils/JsonUtils';
-import { type AmConfigEntityInterface, EntityType } from './ApiTypes';
+import {
+  type AmConfigEntityInterface,
+  EntityType,
+  PagedResult,
+} from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 
 const getAgentTypesURLTemplate =
@@ -64,7 +68,7 @@ export async function getAgentTypes({ state }: { state: State }) {
 /**
  * Get agents
  * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
- * @returns {Promise} a promise that resolves to an object containing an array of agent objects of the specified type
+ * @returns {Promise<PagedResult<AgentSkeleton>>} a promise that resolves to an object containing an array of agent objects of the specified type
  */
 export async function getAgentsByType({
   agentType,
@@ -72,7 +76,7 @@ export async function getAgentsByType({
 }: {
   agentType: AgentType;
   state: State;
-}) {
+}): Promise<PagedResult<AgentSkeleton>> {
   debugMessage({ message: `AgentApi.getAgentsByType: start`, state });
   const urlString = util.format(
     agentListURLTemplate,
@@ -92,9 +96,13 @@ export async function getAgentsByType({
 
 /**
  * Get all agents
- * @returns {Promise} a promise that resolves to an object containing an array of agent objects
+ * @returns {Promise<PagedResult<AgentSkeleton>>} a promise that resolves to an object containing an array of agent objects
  */
-export async function getAgents({ state }: { state: State }) {
+export async function getAgents({
+  state,
+}: {
+  state: State;
+}): Promise<PagedResult<AgentSkeleton>> {
   debugMessage({ message: `AgentApi.getAgents: start`, state });
   const urlString = util.format(
     getAllAgentsURLTemplate,
@@ -118,7 +126,7 @@ export async function getAgents({ state }: { state: State }) {
 /**
  * Find agent by id
  * @param {string} agentId agent id
- * @returns {Promise} a promise that resolves to an array with one or zero agent objects
+ * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array with one or zero agent objects
  */
 export async function findAgentById({
   agentId,
@@ -126,7 +134,7 @@ export async function findAgentById({
 }: {
   agentId: string;
   state: State;
-}) {
+}): Promise<AgentSkeleton[]> {
   debugMessage({ message: `AgentApi.findAgentById: start`, state });
   const urlString = util.format(
     queryAgentURLTemplate,
@@ -148,7 +156,7 @@ export async function findAgentById({
  * Find agent by id
  * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
  * @param {string} agentId agent id
- * @returns {Promise} a promise that resolves to an array with one or zero agent objects
+ * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array with one or zero agent objects
  */
 export async function findAgentByTypeAndId({
   agentType,
@@ -158,7 +166,7 @@ export async function findAgentByTypeAndId({
   agentType: AgentType;
   agentId: string;
   state: State;
-}) {
+}): Promise<AgentSkeleton[]> {
   debugMessage({ message: `AgentApi.findAgentById: start`, state });
   const urlString = util.format(
     queryAgentByTypeURLTemplate,
@@ -181,7 +189,7 @@ export async function findAgentByTypeAndId({
  * Get agent
  * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
  * @param {string} agentId agent id
- * @returns {Promise} a promise that resolves to an object containing an agent object of the specified type
+ * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an agent object of the specified type
  */
 export async function getAgentByTypeAndId({
   agentType,
@@ -214,8 +222,8 @@ export async function getAgentByTypeAndId({
  * Put agent
  * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
  * @param {string} agentId agent id
- * @param {Object} agentData agent object
- * @returns {Promise} a promise that resolves to an object containing an agent object
+ * @param {AgentSkeleton} agentData agent object
+ * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an agent object
  */
 export async function putAgentByTypeAndId({
   agentType,
@@ -227,7 +235,7 @@ export async function putAgentByTypeAndId({
   agentId: string;
   agentData: AgentSkeleton;
   state: State;
-}) {
+}): Promise<AgentSkeleton> {
   debugMessage({ message: `AgentApi.putAgentByTypeAndId: start`, state });
   // until we figure out a way to use transport keys in Frodo,
   // we'll have to drop those encrypted attributes.
@@ -254,9 +262,9 @@ export async function putAgentByTypeAndId({
 
 /**
  * Delete agent
- * @param agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
- * @param agentId agent id
- * @returns a promise that resolves to an object containing an agent object
+ * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
+ * @param {string} agentId agent id
+ * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an agent object
  */
 export async function deleteAgentByTypeAndId({
   agentType,
@@ -266,7 +274,7 @@ export async function deleteAgentByTypeAndId({
   agentType: AgentType;
   agentId: string;
   state: State;
-}) {
+}): Promise<AgentSkeleton> {
   debugMessage({ message: `AgentApi.deleteAgentByTypeAndId: start`, state });
   const urlString = util.format(
     agentURLTemplate,

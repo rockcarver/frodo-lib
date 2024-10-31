@@ -359,7 +359,7 @@ export async function deleteNode({
 
 /**
  * Find all node configuration objects that are no longer referenced by any tree
- * @returns {Promise<unknown[]>} a promise that resolves to an array of orphaned nodes
+ * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array of orphaned nodes
  */
 export async function findOrphanedNodes({
   state,
@@ -380,7 +380,7 @@ export async function findOrphanedNodes({
     state,
   });
   try {
-    types = (await _getNodeTypes({ state })).result;
+    types = await readNodeTypes({ state });
   } catch (error) {
     throw new FrodoError(`Error retrieving all available node types`, error);
   }

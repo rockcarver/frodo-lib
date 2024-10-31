@@ -5,7 +5,7 @@ module.exports = {
   testEnvironment: 'node',
   snapshotResolver: '<rootDir>/snapshotResolve.js',
   testMatch: ['**/?(*.)(test).ts'],
-  testTimeout: 90000,
+  testTimeout: 120000,
   extensionsToTreatAsEsm: ['.ts'],
   transform: {
     '^.+\\.tsx?$': ['ts-jest', { useESM: true }]

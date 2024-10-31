@@ -32,7 +32,8 @@ export type ScriptContext =
   | 'OIDC_CLAIMS'
   | 'SAML2_IDP_ADAPTER'
   | 'SAML2_IDP_ATTRIBUTE_MAPPER'
-  | 'OAUTH2_MAY_ACT';
+  | 'OAUTH2_MAY_ACT'
+  | 'LIBRARY';
 
 export type ScriptSkeleton = IdObjectSkeletonInterface & {
   name: string;
@@ -72,7 +73,7 @@ export async function getScripts({
 /**
  * Get script by name
  * @param {String} scriptName script name
- * @returns {Promise} a promise that resolves to an object containing a script object
+ * @returns {Promise<PagedResult<ScriptSkeleton>>} a promise that resolves to an object containing a script object
  */
 export async function getScriptByName({
   scriptName,
@@ -98,7 +99,7 @@ export async function getScriptByName({
 /**
  * Get script by id
  * @param {String} scriptId script uuid/name
- * @returns {Promise} a promise that resolves to a script object
+ * @returns {Promise<ScriptSkeleton>} a promise that resolves to a script object
  */
 export async function getScript({
   scriptId,
@@ -106,7 +107,7 @@ export async function getScript({
 }: {
   scriptId: string;
   state: State;
-}) {
+}): Promise<ScriptSkeleton> {
   const urlString = util.format(
     scriptURLTemplate,
     state.getHost(),
@@ -126,7 +127,7 @@ export async function getScript({
  * Put script
  * @param {string} scriptId script uuid
  * @param {Object} scriptData script object
- * @returns {Promise} a promise that resolves to an object containing a script object
+ * @returns {Promise<ScriptSkeleton>} a promise that resolves to an object containing a script object
  */
 export async function putScript({
   scriptId,
@@ -136,7 +137,7 @@ export async function putScript({
   scriptId: string;
   scriptData: ScriptSkeleton;
   state: State;
-}) {
+}): Promise<ScriptSkeleton> {
   const urlString = util.format(
     scriptURLTemplate,
     state.getHost(),
@@ -156,7 +157,7 @@ export async function putScript({
 /**
  * Delete script by id
  * @param {String} scriptId script uuid
- * @returns {Promise<ScriptSkeleton>>} a promise that resolves to a script object
+ * @returns {Promise<ScriptSkeleton>} a promise that resolves to a script object
  */
 export async function deleteScript({
   scriptId,
@@ -205,7 +206,7 @@ export async function deleteScriptByName({
 
 /**
  * Delete all non-default scripts
- * @returns {Promise<ScriptSkeleton[]>>} a promise that resolves to an array of script objects
+ * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
  */
 export async function deleteScripts({
   state,

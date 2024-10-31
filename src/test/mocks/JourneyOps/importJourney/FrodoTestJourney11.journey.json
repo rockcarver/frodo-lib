@@ -1,17 +1,51 @@
 {
+  "nodes": {
+    "6a1aa88f-25f8-4d40-8008-bfc6684b2a58": {
+      "_id": "6a1aa88f-25f8-4d40-8008-bfc6684b2a58",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome"
+        }
+      ],
+      "_type": {
+        "_id": "ValidatedUsernameNode",
+        "collection": true,
+        "name": "Platform Username"
+      },
+      "usernameAttribute": "userName",
+      "validateInput": false
+    },
+    "8b1a8dc8-338f-46af-a4c5-6fe7cf6a2cf5": {
+      "_id": "8b1a8dc8-338f-46af-a4c5-6fe7cf6a2cf5",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome"
+        }
+      ],
+      "_type": {
+        "_id": "ValidatedUsernameNode",
+        "collection": true,
+        "name": "Platform Username"
+      },
+      "usernameAttribute": "userName",
+      "validateInput": false
+    }
+  },
   "tree": {
     "_id": "FrodoTestJourney11",
-    "entryNodeId": "node5",
+    "entryNodeId": "6a1aa88f-25f8-4d40-8008-bfc6684b2a58",
     "nodes": {
-      "node5": {
+      "6a1aa88f-25f8-4d40-8008-bfc6684b2a58": {
         "connections": {},
         "displayName": "name3",
-        "nodeType": "type3"
+        "nodeType": "ValidatedUsernameNode"
       },
-      "node6": {
+      "8b1a8dc8-338f-46af-a4c5-6fe7cf6a2cf5": {
         "connections": {},
         "displayName": "name4",
-        "nodeType": "type4"
+        "nodeType": "ValidatedUsernameNode"
       }
     },
     "staticNodes": {

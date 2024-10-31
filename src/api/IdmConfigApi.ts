@@ -1,5 +1,6 @@
 import util from 'util';
 
+import { EMAIL_TEMPLATE_TYPE } from '../ops/EmailTemplateOps';
 import { State } from '../shared/State';
 import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import {
@@ -68,6 +69,10 @@ export async function getConfigEntitiesByType({
   type: string;
   state: State;
 }): Promise<PagedResult<NoIdObjectSkeletonInterface>> {
+  // Due to a bug (as of Ping IDM 7.5.0) with the query filter for email templates (it happens using both sw or co), in order to get all the email templates you need to use 'emailTemplat' instead.
+  if (type === EMAIL_TEMPLATE_TYPE) {
+    type = EMAIL_TEMPLATE_TYPE.substring(0, EMAIL_TEMPLATE_TYPE.length - 1);
+  }
   const urlString = util.format(
     idmConfigEntityQueryTemplate,
     getIdmBaseUrl(state),

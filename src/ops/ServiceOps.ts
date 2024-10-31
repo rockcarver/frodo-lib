@@ -312,7 +312,7 @@ export async function getFullServices({
             !(
               error.response?.status === 403 &&
               error.response?.data?.message ===
-                'This operation is not available in ForgeRock Identity Cloud.'
+                'This operation is not available in PingOne Advanced Identity Cloud.'
             )
           ) {
             const message = error.response?.data?.message;
@@ -622,7 +622,7 @@ export async function deleteFullServices({
             !(
               error.response?.status === 403 &&
               error.response?.data?.message ===
-                'This operation is not available in ForgeRock Identity Cloud.'
+                'This operation is not available in PingOne Advanced Identity Cloud.'
             )
           ) {
             const message = error.response?.data?.message;
