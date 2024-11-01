@@ -101,7 +101,9 @@ function getProxy(): AxiosProxyConfig | false {
 
 /**
  * Customize curlirize output
- * @param request axios request object
+ * @param {object} params Params object
+ * @param params.request axios request object
+ * @param {State} params.state State object
  */
 function curlirize(request, state: State) {
   _curlirize(request, (result, err: Error | AxiosError) => {
@@ -117,7 +119,20 @@ function curlirize(request, state: State) {
             err.response?.data['message']
               ? ' - ' + err.response?.data['message']
               : ''
+          }${
+            err.response?.data['error']
+              ? ' - ' + err.response?.data['error']
+              : ''
+          }${
+            err.response?.data['error_description']
+              ? ' - ' + err.response?.data['error_description']
+              : ''
           }`,
+          type: 'error',
+          state,
+        });
+        printMessage({
+          message: err.response?.headers ? err.response.headers : '',
           type: 'error',
           state,
         });
@@ -139,11 +154,13 @@ function curlirize(request, state: State) {
 
 /**
  * Generates an AM Axios API instance
- * @param {ResourceConfig} resource Takes an object takes a resource object. example:
- * @param {AxiosRequestConfig} requestOverride Takes an object of AXIOS parameters that can be used to either
+ * @param {object} params Params object
+ * @param {ResourceConfig} params.resource Takes an object takes a resource object. example:
+ * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either
  * add on extra information or override default properties https://github.com/axios/axios#request-config
+ * @param {State} params.state State object
  *
- * @returns {AxiosInstance}
+ * @returns {AxiosInstance} Returns a reaady to use Axios instance
  */
 export function generateAmApi({
   resource,
@@ -153,7 +170,7 @@ export function generateAmApi({
   resource: ResourceConfig;
   requestOverride?: AxiosRequestConfig;
   state: State;
-}) {
+}): AxiosInstance {
   const headers = {
     'User-Agent': userAgent,
     'X-ForgeRock-TransactionId': transactionId,
@@ -200,11 +217,13 @@ export function generateAmApi({
 
 /**
  * Generates an OAuth2 Axios API instance
- * @param {ResourceConfig} resource Resource config object.
- * @param {AxiosRequestConfig} requestOverride Takes an object of AXIOS parameters that can be used to either
+ * @param {object} params Params object
+ * @param {ResourceConfig} params.resource Resource config object.
+ * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either
  * add on extra information or override default properties https://github.com/axios/axios#request-config
+ * @param {State} params.state State object
  *
- * @returns {AxiosInstance}
+ * @returns {AxiosInstance} Returns a reaady to use Axios instance
  */
 export function generateOauth2Api({
   resource,
@@ -216,7 +235,7 @@ export function generateOauth2Api({
   requestOverride?: AxiosRequestConfig;
   authenticate?: boolean;
   state: State;
-}) {
+}): AxiosInstance {
   let headers: { [key: string]: any } = {
     'User-Agent': userAgent,
     'X-ForgeRock-TransactionId': transactionId,
@@ -268,10 +287,12 @@ export function generateOauth2Api({
 
 /**
  * Generates an IDM Axios API instance
- * @param {AxiosRequestConfig} requestOverride Takes an object of AXIOS parameters that can be used to either add
+ * @param {object} params Params object
+ * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
  * on extra information or override default properties https://github.com/axios/axios#request-config
+ * @param {State} params.state State object
  *
- * @returns {AxiosInstance}
+ * @returns {AxiosInstance} Returns a reaady to use Axios instance
  */
 export function generateIdmApi({
   requestOverride = {},
@@ -279,7 +300,7 @@ export function generateIdmApi({
 }: {
   requestOverride?: AxiosRequestConfig;
   state: State;
-}) {
+}): AxiosInstance {
   const requestDetails = mergeDeep(
     {
       // baseURL: getTenantURL(storage.session.getTenant()),
@@ -312,10 +333,12 @@ export function generateIdmApi({
 
 /**
  * Generates a LogKeys API Axios instance
- * @param {AxiosRequestConfig} requestOverride Takes an object of AXIOS parameters that can be used to either add
+ * @param {object} params Params object
+ * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
  * on extra information or override default properties https://github.com/axios/axios#request-config
+ * @param {State} params.state State object
  *
- * @returns {AxiosInstance}
+ * @returns {AxiosInstance} Returns a reaady to use Axios instance
  */
 export function generateLogKeysApi({
   requestOverride = {},
@@ -323,7 +346,7 @@ export function generateLogKeysApi({
 }: {
   requestOverride?: AxiosRequestConfig;
   state: State;
-}) {
+}): AxiosInstance {
   const headers = {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
@@ -355,10 +378,12 @@ export function generateLogKeysApi({
 
 /**
  * Generates a Log API Axios instance
- * @param {AxiosRequestConfig} requestOverride Takes an object of AXIOS parameters that can be used to either add
+ * @param {object} params Params object
+ * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
  * on extra information or override default properties https://github.com/axios/axios#request-config
+ * @param {State} params.state State object
  *
- * @returns {AxiosInstance}
+ * @returns {AxiosInstance} Returns a reaady to use Axios instance
  */
 export function generateLogApi({
   requestOverride = {},
@@ -366,7 +391,7 @@ export function generateLogApi({
 }: {
   requestOverride?: AxiosRequestConfig;
   state: State;
-}) {
+}): AxiosInstance {
   const headers = {
     'User-Agent': userAgent,
     'X-API-Key': state.getLogApiKey(),
@@ -396,11 +421,13 @@ export function generateLogApi({
 
 /**
  * Generates an Axios instance for the Identity Cloud Environment API
- * @param {ResourceConfig} resource Resource config object.
- * @param {AxiosRequestConfig} requestOverride Takes an object of AXIOS parameters that can be used to either add
+ * @param {object} params Params object
+ * @param {ResourceConfig} params.resource Resource config object.
+ * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
  * on extra information or override default properties https://github.com/axios/axios#request-config
+ * @param {State} params.state State object
  *
- * @returns {AxiosInstance}
+ * @returns {AxiosInstance} Returns a reaady to use Axios instance
  */
 export function generateEnvApi({
   resource,
@@ -442,11 +469,61 @@ export function generateEnvApi({
 }
 
 /**
- * Generates a release (Github or Npm) Axios API instance
- * @param {AxiosRequestConfig} requestOverride Takes an object of AXIOS parameters that can be used to either add
+ * Generates an Axios instance for the Identity Cloud Governance API
+ * @param {object} params Params object
+ * @param {ResourceConfig} params.resource Resource config object.
+ * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
  * on extra information or override default properties https://github.com/axios/axios#request-config
+ * @param {State} params.state State object
  *
- * @returns {AxiosInstance}
+ * @returns {AxiosInstance} Returns a reaady to use Axios instance
+ */
+export function generateGovernanceApi({
+  resource,
+  requestOverride = {},
+  state,
+}: {
+  resource: ResourceConfig;
+  requestOverride?: AxiosRequestConfig;
+  state: State;
+}): AxiosInstance {
+  const headers = {
+    'User-Agent': userAgent,
+    'Content-Type': 'application/json',
+    // only add API version if we have it
+    ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
+    // only add authorization header if we have a bearer token
+    ...(state.getBearerToken() && {
+      Authorization: `Bearer ${state.getBearerToken()}`,
+    }),
+  };
+  const requestDetails = {
+    timeout,
+    headers,
+    ...requestOverride,
+    httpAgent: getHttpAgent(),
+    httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+    proxy: getProxy(),
+  };
+
+  const request = axios.create(requestDetails);
+
+  // enable curlirizer output in debug mode
+  if (state.getCurlirize()) {
+    curlirize(request, state);
+  }
+
+  return request;
+}
+
+/**
+ * Generates a release (Github or Npm) Axios API instance
+ * @param {object} params Params object
+ * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
+ * on extra information or override default properties https://github.com/axios/axios#request-config
+ * @param {State} params.state State object
+ *
+ * @returns {AxiosInstance} Returns a reaady to use Axios instance
  */
 export function generateReleaseApi({
   baseUrl,

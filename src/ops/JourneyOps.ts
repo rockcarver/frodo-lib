@@ -588,6 +588,10 @@ const scriptedNodesConditions = {
     return nodeConfig.useScript;
   },
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  PingOneVerifyCompletionDecisionNode: (nodeConfig: NodeSkeleton): boolean => {
+    return nodeConfig.useFilterScript;
+  },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   ScriptedDecisionNode: (_nodeConfig: NodeSkeleton): boolean => {
     return true;
   },

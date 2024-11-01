@@ -57,6 +57,7 @@ export type NodeSkeleton = AmConfigEntityInterface & {
   emailTemplateName?: string;
   filteredProviders?: string[];
   useScript?: boolean;
+  useFilterScript?: boolean;
 };
 
 export type NodeTypeSkeleton = IdObjectSkeletonInterface & {
