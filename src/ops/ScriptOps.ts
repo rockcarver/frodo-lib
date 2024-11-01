@@ -796,10 +796,9 @@ export async function importScripts({
         const isDefault = !options.includeDefault && scriptData.default;
         // Only import script if the scriptName matches the current script. Note this only applies if we are not importing dependencies since if there are dependencies then we want to import all the scripts in the file.
         const shouldNotImportScript =
-          (!options.deps &&
-            ((scriptId && scriptId !== scriptData._id) ||
-              (!scriptId && scriptName && scriptName !== scriptData.name))) ||
-          !(!scriptId && !scriptName);
+          !options.deps &&
+          ((scriptId && scriptId !== scriptData._id) ||
+            (!scriptId && scriptName && scriptName !== scriptData.name));
         if (isDefault || shouldNotImportScript) continue;
         debugMessage({
           message: `ScriptOps.importScripts: Importing script ${scriptData.name} (${existingId})`,
