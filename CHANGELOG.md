@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.3.1-0] - 2024-11-05
-
 ### Added
 
 - Add governance API factory under `frodo.factory`:
@@ -31,31 +29,9 @@ Fixes and improvements to imports and exports:
 - Fixed a few bugs with importing/exporting journeys. The main issue that was found was that if you were importing a journey containing nodes that are not supported by the current deployment (e.g. IDM journey nodes from cloud being imported into a classic deployment of AM), the journey would still be imported. This would cause an error to be thrown on export of the journey preventing it as well as other journeys from being exported on full export. The fix here was to just prevent the import of the journey if this happens by erroring out to prevent those errors from happening on export.
 - Fixed a few bugs with script imports to allow each of the 3 types of imports to work (i.e. if scripts are a single unencoded string, if scripts are a single encoded string, and if scripts are a decoded array).
 
-## [2.3.0] - 2024-11-01
+## [2.3.1-0] - 2024-11-05 [YANKED]
 
-### Added
-
-- Add governance API factory under `frodo.factory`:
-
-  - `generateGovernanceApi`: Generates a Governance Axios API instance
-
-### Fixed
-
-Fixes and improvements to imports and exports:
-
-- Updated test timeouts from 90000 to 120000 milliseconds (to accommodate the bigger exports/imports in the future)
-- Updated resource versions of different exports/imports to the latest ones
-- Updated comments and type information to be more accurate and fix typos
-- Fixed TrustedJWTIssuer exports/imports (since these will be included as part of the full config export/import in the future PR)
-- Fixed service imports to work for federation services
-- Updated exports for agents and esv secrets/variables to have a singular instead of plural type (i.e. `agents` => `agent`, `secrets` => `secret`, `variables` => `variable`). The reason for this is to make them more consistent with the rest of the exports which are also singular, and also because secrets plural will be used for exporting AM secret config in the future.
-- For full exports, duplicate config is now deleted from the IDM exports since themes, email templates, and mappings are all handled separately.
-- Fixed full imports to only import if the full import config contains the items being imported rather than erroring out.
-- Fixed full imports to return the config items that were imported
-- Fixed email template imports/exports. For exports, there was a bug with the api where not all email templates were being exported using “emailTemplate” as the type, but it was fixed by using “emailTemplat” as the type instead (not sure why this works, but it’s the best solution I could find to fix the problem).
-- Moved functionality for handling env substitution and entity filters from CLI to lib for IDM exports/imports.
-- Fixed a few bugs with importing/exporting journeys. The main issue that was found was that if you were importing a journey containing nodes that are not supported by the current deployment (e.g. IDM journey nodes from cloud being imported into a classic deployment of AM), the journey would still be imported. This would cause an error to be thrown on export of the journey preventing it as well as other journeys from being exported on full export. The fix here was to just prevent the import of the journey if this happens by erroring out to prevent those errors from happening on export.
-- Fixed a few bugs with script imports to allow each of the 3 types of imports to work (i.e. if scripts are a single unencoded string, if scripts are a single encoded string, and if scripts are a decoded array).
+## [2.3.0] - 2024-11-01 [YANKED]
 
 ## [2.2.1-0] - 2024-10-31
 
@@ -118,7 +94,7 @@ Fixes and improvements to imports and exports:
 
 - \#432 - Support for Advanced Identitty Cloud ESV Count API (Location in library: `frodo.cloud`)
 
-- \#433 - Support for Advanced Identitty Cloud Environment Certificate API  (Location in library: `frodo.cloud.env.cert`)
+- \#433 - Support for Advanced Identitty Cloud Environment Certificate API (Location in library: `frodo.cloud.env.cert`)
 
 - \#434 - Support for Advanced Identitty Cloud Environment CSR API (Location in library: `frodo.cloud.env.csr`)
 
@@ -189,7 +165,7 @@ Fixes and improvements to imports and exports:
 ### Added
 
 - \#432 - Support for Advanced Identitty Cloud ESV Count API (Location in library: `frodo.cloud.esvCount`)
-- \#433 - Support for Advanced Identitty Cloud Environment Certificate API  (Location in library: `frodo.cloud.env.cert`)
+- \#433 - Support for Advanced Identitty Cloud Environment Certificate API (Location in library: `frodo.cloud.env.cert`)
 - \#434 - Support for Advanced Identitty Cloud Environment CSR API (Location in library: `frodo.cloud.env.csr`)
 
 ### Fixed
@@ -312,14 +288,14 @@ The 2.x version of the library automatically refreshes session and access tokens
 - Kept supporting Node.js 18.
 - Added support for Node.js 20 and 22.
 
-| Node.js |    frodo-lib 1.x   | **_frodo-lib 2.x_** |    frodo-lib 3.x   |
+| Node.js |   frodo-lib 1.x    | **_frodo-lib 2.x_** |   frodo-lib 3.x    |
 | :-----: | :----------------: | :-----------------: | :----------------: |
-|    14   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
-|    16   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
-|    18   | :white_check_mark: |  :white_check_mark: | :heavy_minus_sign: |
-|    20   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
-|    22   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
-|    24   | :heavy_minus_sign: |  :heavy_minus_sign: | :white_check_mark: |
+|   14    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
+|   16    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
+|   18    | :white_check_mark: | :white_check_mark:  | :heavy_minus_sign: |
+|   20    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
+|   22    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
+|   24    | :heavy_minus_sign: | :heavy_minus_sign:  | :white_check_mark: |
 
 ### Considerations
 
