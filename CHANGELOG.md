@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.1-0] - 2024-11-05
+
 ### Added
 
 - Add governance API factory under `frodo.factory`:
@@ -20,8 +22,8 @@ Fixes and improvements to imports and exports:
 - Updated comments and type information to be more accurate and fix typos
 - Fixed TrustedJWTIssuer exports/imports (since these will be included as part of the full config export/import in the future PR)
 - Fixed service imports to work for federation services
-- ***BREAKING***: Updated exports for agents and esv secrets/variables to have a singular instead of plural type (i.e. `agents` => `agent`, `secrets` => `secret`, `variables` => `variable`). The reason for this is to make them more consistent with the rest of the exports which are also singular, and also because secrets plural will be used for exporting AM secret config in the future.
-- ***BREAKING***: For full exports, duplicate config is now deleted from the IDM exports since themes, email templates, and mappings are all handled separately.
+- **_BREAKING_**: Updated exports for agents and esv secrets/variables to have a singular instead of plural type (i.e. `agents` => `agent`, `secrets` => `secret`, `variables` => `variable`). The reason for this is to make them more consistent with the rest of the exports which are also singular, and also because secrets plural will be used for exporting AM secret config in the future.
+- **_BREAKING_**: For full exports, duplicate config is now deleted from the IDM exports since themes, email templates, and mappings are all handled separately.
 - Fixed full imports to only import if the full import config contains the items being imported rather than erroring out.
 - Fixed full imports to return the config items that were imported
 - Fixed email template imports/exports. For exports, there was a bug with the api where not all email templates were being exported using “emailTemplate” as the type, but it was fixed by using “emailTemplat” as the type instead (not sure why this works, but it’s the best solution I could find to fix the problem).
@@ -1844,7 +1846,8 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.3.0...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.3.1-0...HEAD
+[2.3.1-0]: https://github.com/rockcarver/frodo-lib/compare/v2.3.0...v2.3.1-0
 [2.3.0]: https://github.com/rockcarver/frodo-lib/compare/v2.2.1-0...v2.3.0
 [2.2.1-0]: https://github.com/rockcarver/frodo-lib/compare/v2.2.0...v2.2.1-0
 [2.2.0]: https://github.com/rockcarver/frodo-lib/compare/v2.1.2-0...v2.2.0
