@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2024-11-05
+
 ### Added
 
 - Add governance API factory under `frodo.factory`:
@@ -288,14 +290,14 @@ The 2.x version of the library automatically refreshes session and access tokens
 - Kept supporting Node.js 18.
 - Added support for Node.js 20 and 22.
 
-| Node.js |   frodo-lib 1.x    | **_frodo-lib 2.x_** |   frodo-lib 3.x    |
+| Node.js |    frodo-lib 1.x   | **_frodo-lib 2.x_** |    frodo-lib 3.x   |
 | :-----: | :----------------: | :-----------------: | :----------------: |
-|   14    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
-|   16    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
-|   18    | :white_check_mark: | :white_check_mark:  | :heavy_minus_sign: |
-|   20    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
-|   22    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
-|   24    | :heavy_minus_sign: | :heavy_minus_sign:  | :white_check_mark: |
+|    14   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
+|    16   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
+|    18   | :white_check_mark: |  :white_check_mark: | :heavy_minus_sign: |
+|    20   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
+|    22   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
+|    24   | :heavy_minus_sign: |  :heavy_minus_sign: | :white_check_mark: |
 
 ### Considerations
 
@@ -1822,7 +1824,8 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v2.3.1-0...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/rockcarver/frodo-lib/compare/v2.3.1-0...v3.0.0
 [2.3.1-0]: https://github.com/rockcarver/frodo-lib/compare/v2.3.0...v2.3.1-0
 [2.3.0]: https://github.com/rockcarver/frodo-lib/compare/v2.2.1-0...v2.3.0
 [2.2.1-0]: https://github.com/rockcarver/frodo-lib/compare/v2.2.0...v2.2.1-0
