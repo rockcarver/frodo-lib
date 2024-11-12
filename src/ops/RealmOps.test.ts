@@ -48,6 +48,19 @@ describe('RealmOps', () => {
     }
   });
 
+  describe('createRealmExportTemplate()', () => {
+    test('0: Method is implemented', async () => {
+      expect(RealmOps.createRealmExportTemplate).toBeDefined();
+    });
+
+    test('1: Create Realm Export Template', async () => {
+      const response = RealmOps.createRealmExportTemplate({ state });
+      expect(response).toMatchSnapshot({
+        meta: expect.any(Object),
+      });
+    });
+  });
+
   describe('getRealms()', () => {
     test('0: Method is implemented', async () => {
       expect(RealmOps.getRealms).toBeDefined();
@@ -56,6 +69,19 @@ describe('RealmOps', () => {
     test('1: Get Realms', async () => {
       const response = await RealmOps.getRealms({ state });
       expect(response).toMatchSnapshot();
+    });
+  });
+
+  describe('exportRealms()', () => {
+    test('0: Method is implemented', async () => {
+      expect(RealmOps.exportRealms).toBeDefined();
+    });
+
+    test('1: Export Realms', async () => {
+      const response = await RealmOps.exportRealms({ state });
+      expect(response).toMatchSnapshot({
+        meta: expect.any(Object),
+      });
     });
   });
 
@@ -69,6 +95,13 @@ describe('RealmOps', () => {
   describe('updateRealm()', () => {
     test('0: Method is implemented', async () => {
       expect(RealmOps.updateRealm).toBeDefined();
+    });
+    //TODO: create tests
+  });
+
+  describe('importRealms()', () => {
+    test('0: Method is implemented', async () => {
+      expect(RealmOps.importRealms).toBeDefined();
     });
     //TODO: create tests
   });
