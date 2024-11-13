@@ -3,6 +3,19 @@
  *
  * 1. Record API responses
  *
+ *    This step breaks down into 2 phases:
+ *
+ *    Phase 1: Record tests that require cloud deployment
+ *    Phase 2: Record tests that require classic deployment
+ *
+ *    Because certain tests can only be successfully ran in classic deployments and/or
+ *    cloud deployments, they have to be run in groups so that it is possible to record
+ *    each group of tests using their appropriate deployments. Make sure to set the
+ *    FRODO_HOST and FRODO_REALM environment variables when recording to ensure you
+ *    are using the right deployment (by default these are set to the frodo-dev cloud tenant
+ *    and alpha realm respectively). Alternatively, you can use FRODO_DEPLOY=classic to
+ *    use the default settings of host/realm for classic deployments.
+ *
  *    To record API responses, you must call the test:record script and
  *    override all the connection state required to connect to the
  *    env to record from:
@@ -32,10 +45,11 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
-import { autoSetupPolly } from "../utils/AutoSetupPolly";
+import { autoSetupPolly, setDefaultState } from "../utils/AutoSetupPolly";
 import { filterRecording } from "../utils/PollyUtils";
 import * as AuthenticationSettingsOps from "./AuthenticationSettingsOps";
 import { state } from "../lib/FrodoLib";
+import Constants from "../shared/Constants";
 
 const ctx = autoSetupPolly();
 
@@ -48,54 +62,113 @@ describe('AuthenticationSettingsOps', () => {
     }
   });
 
-  describe('createAuthenticationSettingsExportTemplate()', () => {
-    test('0: Method is implemented', async () => {
-      expect(AuthenticationSettingsOps.createAuthenticationSettingsExportTemplate).toBeDefined();
-    });
+  // Phase 1
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '1')
+  ) {
+    describe('Cloud Tests', () => {
+      beforeEach(() => {
+        setDefaultState();
+      });
+      describe('createAuthenticationSettingsExportTemplate()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AuthenticationSettingsOps.createAuthenticationSettingsExportTemplate).toBeDefined();
+        });
 
-    test('1: Create AuthenticationSettings Export Template', async () => {
-      const response = AuthenticationSettingsOps.createAuthenticationSettingsExportTemplate({state});
-      expect(response).toMatchSnapshot({
-        meta: expect.any(Object),
+        test('1: Create AuthenticationSettings Export Template', async () => {
+          const response = AuthenticationSettingsOps.createAuthenticationSettingsExportTemplate({state});
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+      });
+
+      describe('readAuthenticationSettings()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AuthenticationSettingsOps.readAuthenticationSettings).toBeDefined();
+        });
+
+        test('1: Read Realm AuthenticationSettings', async () => {
+          const response = await AuthenticationSettingsOps.readAuthenticationSettings({globalConfig: false, state});
+          expect(response).toMatchSnapshot();
+        });
+      });
+
+      describe('updateAuthenticationSettings()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AuthenticationSettingsOps.updateAuthenticationSettings).toBeDefined();
+        });
+        //TODO: create tests (globalConfig = false)
+      });
+
+      describe('exportAuthenticationSettings()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AuthenticationSettingsOps.exportAuthenticationSettings).toBeDefined();
+        });
+
+        test('1: Export Realm AuthenticationSettings', async () => {
+          const response = await AuthenticationSettingsOps.exportAuthenticationSettings({globalConfig: false, state});
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+      });
+
+      describe('importAuthenticationSettings()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AuthenticationSettingsOps.importAuthenticationSettings).toBeDefined();
+        });
+        //TODO: create tests (globalConfig = false)
       });
     });
-  });
+  }
+  // Phase 2
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '2')
+  ) {
+    describe('Classic Tests', () => {
+      beforeEach(() => {
+        setDefaultState(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
+      });
+      describe('readAuthenticationSettings()', () => {
+        test('2: Read Global AuthenticationSettings', async () => {
+          const response = await AuthenticationSettingsOps.readAuthenticationSettings({globalConfig: true, state });
+          expect(response).toMatchSnapshot();
+        });
 
-  describe('readAuthenticationSettings()', () => {
-    test('0: Method is implemented', async () => {
-      expect(AuthenticationSettingsOps.readAuthenticationSettings).toBeDefined();
-    });
+        test('3: Read Realm AuthenticationSettings', async () => {
+          const response = await AuthenticationSettingsOps.readAuthenticationSettings({globalConfig: false, state });
+          expect(response).toMatchSnapshot();
+        });
+      });
 
-    test('1: Read Realm AuthenticationSettings', async () => {
-      const response = await AuthenticationSettingsOps.readAuthenticationSettings({ state });
-      expect(response).toMatchSnapshot();
-    });
-  });
+      describe('updateAuthenticationSettings()', () => {
+        //TODO: create tests (globalConfig = true)
+      });
 
-  describe('updateAuthenticationSettings()', () => {
-    test('0: Method is implemented', async () => {
-      expect(AuthenticationSettingsOps.updateAuthenticationSettings).toBeDefined();
-    });
-    //TODO: create tests
-  });
+      describe('exportAuthenticationSettings()', () => {
+        test('2: Export Global AuthenticationSettings', async () => {
+          const response = await AuthenticationSettingsOps.exportAuthenticationSettings({globalConfig: true, state });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
 
-  describe('exportAuthenticationSettings()', () => {
-    test('0: Method is implemented', async () => {
-      expect(AuthenticationSettingsOps.exportAuthenticationSettings).toBeDefined();
-    });
+        test('3: Export Realm AuthenticationSettings', async () => {
+          const response = await AuthenticationSettingsOps.exportAuthenticationSettings({globalConfig: false, state });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+      });
 
-    test('1: Export Realm AuthenticationSettings', async () => {
-      const response = await AuthenticationSettingsOps.exportAuthenticationSettings({ state });
-      expect(response).toMatchSnapshot({
-        meta: expect.any(Object),
+      describe('importAuthenticationSettings()', () => {
+        //TODO: create tests (globalConfig = true)
       });
     });
-  });
-
-  describe('importAuthenticationSettings()', () => {
-    test('0: Method is implemented', async () => {
-      expect(AuthenticationSettingsOps.importAuthenticationSettings).toBeDefined();
-    });
-    //TODO: create tests
-  });
+  }
 });
