@@ -379,9 +379,9 @@ function getHostKey(state: State): string {
   return uuidv5(state.getHost(), uuidv5.URL);
 }
 
-function getRealmKey(state: State): string {
+function getRealmKey(): string {
   // currently frodo only supports sessions and tokens minted in the root realm
-  return uuidv5('/' || state.getRealm(), UUIDV5_NAMESPACE);
+  return uuidv5('/', UUIDV5_NAMESPACE);
 }
 
 function getTypeKey(tokenType: tokenType): string {
@@ -418,7 +418,7 @@ export async function readToken({
     const data = fs.readFileSync(filename, 'utf8');
     const tokenCache: TokenCacheInterface = JSON.parse(data);
     const hostKey = getHostKey(state);
-    const realmKey = getRealmKey(state);
+    const realmKey = getRealmKey();
     const typeKey = getTypeKey(tokenType);
     const subjectKey = getSubjectKey(tokenType, state);
     if (get(tokenCache, [hostKey, realmKey, typeKey, subjectKey])) {
@@ -520,7 +520,7 @@ export async function saveUserSessionToken({
     const tokenCache: TokenCacheInterface = JSON.parse(data);
     purgeExpiredTokens(tokenCache, state);
     const hostKey = getHostKey(state);
-    const realmKey = getRealmKey(state);
+    const realmKey = getRealmKey();
     const typeKey = getTypeKey('userSession');
     const subjectKey = getSubjectKey('userSession', state);
     const dataProtection = new DataProtection({
@@ -603,7 +603,7 @@ export async function saveUserBearerToken({
     const tokenCache: TokenCacheInterface = JSON.parse(data);
     purgeExpiredTokens(tokenCache, state);
     const hostKey = getHostKey(state);
-    const realmKey = getRealmKey(state);
+    const realmKey = getRealmKey();
     const typeKey = getTypeKey('userBearer');
     const subjectKey = getSubjectKey('userBearer', state);
     const dataProtection = new DataProtection({
@@ -686,7 +686,7 @@ export async function saveSaBearerToken({
     const tokenCache: TokenCacheInterface = JSON.parse(data);
     purgeExpiredTokens(tokenCache, state);
     const hostKey = getHostKey(state);
-    const realmKey = getRealmKey(state);
+    const realmKey = getRealmKey();
     const typeKey = getTypeKey('saBearer');
     const subjectKey = getSubjectKey('saBearer', state);
     const dataProtection = new DataProtection({
