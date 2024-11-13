@@ -14,11 +14,14 @@ import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
   createProgressIndicator,
+  debugMessage,
   printError,
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
+import { getMetadata } from '../utils/ExportImportUtils';
 import { FrodoError } from './FrodoError';
+import { ExportMetaData } from './OpsTypes';
 
 export type Node = {
   /**
@@ -44,6 +47,11 @@ export type Node = {
    * @returns {Promise<NodeSkeleton>} a promise that resolves to a node object
    */
   readNode(nodeId: string, nodeType: string): Promise<NodeSkeleton>;
+  /**
+   * Export all nodes
+   * @returns {Promise<NodeExportInterface>} a promise that resolves to an array of node objects
+   */
+  exportNodes(): Promise<NodeExportInterface>;
   /**
    * Create node by type
    * @param {string} nodeType node type
@@ -136,6 +144,9 @@ export default (state: State): Node => {
     async readNode(nodeId: string, nodeType: string): Promise<NodeSkeleton> {
       return readNode({ nodeId, nodeType, state });
     },
+    async exportNodes(): Promise<NodeExportInterface> {
+      return exportNodes({ state });
+    },
     async createNode(
       nodeType: string,
       nodeData: NodeSkeleton
@@ -180,6 +191,26 @@ export default (state: State): Node => {
     },
   };
 };
+
+export interface NodeExportInterface {
+  meta?: ExportMetaData;
+  node: Record<string, NodeSkeleton>;
+}
+
+/**
+ * Create an empty node export template
+ * @returns {NodeExportInterface} an empty node export template
+ */
+export function createNodeExportTemplate({
+  state,
+}: {
+  state: State;
+}): NodeExportInterface {
+  return {
+    meta: getMetadata({ state }),
+    node: {},
+  };
+}
 
 export type NodeClassificationType =
   | 'standard'
@@ -273,6 +304,51 @@ export async function readNode({
     return _getNode({ nodeId, nodeType, state });
   } catch (error) {
     throw new FrodoError(`Error reading ${nodeType} node ${nodeId}`, error);
+  }
+}
+
+/**
+ * Export all nodes
+ * @returns {Promise<NodeExportInterface>} a promise that resolves to an array of node objects
+ */
+export async function exportNodes({
+  state,
+}: {
+  state: State;
+}): Promise<NodeExportInterface> {
+  let indicatorId: string;
+  try {
+    debugMessage({ message: `NodeOps.exportNodes: start`, state });
+    const exportData = createNodeExportTemplate({ state });
+    const nodes = await readNodes({ state });
+    indicatorId = createProgressIndicator({
+      total: nodes.length,
+      message: 'Exporting nodes...',
+      state,
+    });
+    for (const node of nodes) {
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting node ${node._id}`,
+        state,
+      });
+      exportData.node[node._id] = node;
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${nodes.length} nodes.`,
+      state,
+    });
+    debugMessage({ message: `NodeOps.exportNodes: end`, state });
+    return exportData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting nodes.`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(`Error reading nodes`, error);
   }
 }
 
