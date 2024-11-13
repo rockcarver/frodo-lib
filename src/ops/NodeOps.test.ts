@@ -87,6 +87,19 @@ describe('NodeOps', () => {
       process.env.FRODO_RECORD_PHASE === '1')
   ) {
 
+    describe('createNodeExportTemplate()', () => {
+      test('0: Method is implemented', async () => {
+        expect(NodeOps.createNodeExportTemplate).toBeDefined();
+      });
+
+      test('1: Create Node Export Template', async () => {
+        const response = NodeOps.createNodeExportTemplate({ state });
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
+      });
+    });
+
     describe('readNodeTypes()', () => {
       test('0: Method is implemented', async () => {
         expect(NodeOps.readNodeTypes).toBeDefined();
@@ -125,6 +138,19 @@ describe('NodeOps', () => {
         expect(NodeOps.readNode).toBeDefined();
       });
       //TODO: Create tests
+    });
+
+    describe('exportNodes()', () => {
+      test('0: Method is implemented', async () => {
+        expect(NodeOps.exportNodes).toBeDefined();
+      });
+
+      test('1: Export nodes', async () => {
+        const response = await NodeOps.exportNodes({ state });
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
+      });
     });
 
     describe('createNode()', () => {

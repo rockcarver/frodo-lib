@@ -1,5 +1,3064 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`NodeOps createNodeExportTemplate() 1: Create Node Export Template 1`] = `
+{
+  "meta": Any<Object>,
+  "node": {},
+}
+`;
+
+exports[`NodeOps exportNodes() 1: Export nodes 1`] = `
+{
+  "meta": Any<Object>,
+  "node": {
+    "009c19c8-9572-47bb-adb2-1f092c559a43": {
+      "_id": "009c19c8-9572-47bb-adb2-1f092c559a43",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "ValidatedPasswordNode",
+        "collection": true,
+        "name": "Platform Password",
+      },
+      "passwordAttribute": "password",
+      "validateInput": true,
+    },
+    "00e75aa0-2f9b-4895-9257-d515286fd64b": {
+      "_id": "00e75aa0-2f9b-4895-9257-d515286fd64b",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "InnerTreeEvaluatorNode",
+        "collection": true,
+        "name": "Inner Tree Evaluator",
+      },
+      "tree": "j03",
+    },
+    "01d3785f-7fb4-44a7-9458-72c380a9818f": {
+      "_id": "01d3785f-7fb4-44a7-9458-72c380a9818f",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "038f9b2a-36b2-489b-9e03-386c9a62ea21": {
+      "_id": "038f9b2a-36b2-489b-9e03-386c9a62ea21",
+      "_outcomes": [
+        {
+          "displayName": "Social Authentication",
+          "id": "socialAuthentication",
+        },
+        {
+          "displayName": "Local Authentication",
+          "id": "localAuthentication",
+        },
+      ],
+      "_type": {
+        "_id": "SelectIdPNode",
+        "collection": true,
+        "name": "Select Identity Provider",
+      },
+      "filteredProviders": [],
+      "identityAttribute": "mail",
+      "includeLocalAuthentication": true,
+      "offerOnlyExisting": false,
+      "passwordAttribute": "password",
+    },
+    "040b6c89-313b-4664-92e0-6732017384b8": {
+      "_id": "040b6c89-313b-4664-92e0-6732017384b8",
+      "_outcomes": [
+        {
+          "displayName": "shared and level",
+          "id": "shared and level",
+        },
+        {
+          "displayName": "shared only",
+          "id": "shared only",
+        },
+        {
+          "displayName": "level only",
+          "id": "level only",
+        },
+        {
+          "displayName": "none",
+          "id": "none",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "outcomes": [
+        "shared and level",
+        "shared only",
+        "level only",
+        "none",
+      ],
+      "outputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+    },
+    "042b600b-71cb-45a8-93ae-a6f57b16a6e5": {
+      "_id": "042b600b-71cb-45a8-93ae-a6f57b16a6e5",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "06c97be5-7fdd-4739-aea1-ecc7fe082865": {
+      "_id": "06c97be5-7fdd-4739-aea1-ecc7fe082865",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "EmailSuspendNode",
+        "collection": true,
+        "name": "Email Suspend Node",
+      },
+      "emailAttribute": "mail",
+      "emailSuspendMessage": {
+        "en": "An email has been sent to the address you entered. Click the link in that email to proceed.",
+      },
+      "emailTemplateName": "resetPassword",
+      "identityAttribute": "mail",
+      "objectLookup": true,
+    },
+    "0a042e10-b22e-4e02-86c4-65e26e775f7a": {
+      "_id": "0a042e10-b22e-4e02-86c4-65e26e775f7a",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "AttributeCollectorNode",
+        "collection": true,
+        "name": "Attribute Collector",
+      },
+      "attributesToCollect": [
+        "preferences/updates",
+        "preferences/marketing",
+      ],
+      "identityAttribute": "userName",
+      "required": false,
+      "validateInputs": false,
+    },
+    "0c091c49-f3af-48fb-ac6f-07fba0499dd6": {
+      "_id": "0c091c49-f3af-48fb-ac6f-07fba0499dd6",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "PageNode",
+        "collection": true,
+        "name": "Page Node",
+      },
+      "nodes": [
+        {
+          "_id": "7fcaf48e-a754-4959-858b-05b2933b825f",
+          "displayName": "Platform Username",
+          "nodeType": "ValidatedUsernameNode",
+        },
+        {
+          "_id": "d3ce2036-1523-4ce8-b1a2-895a2a036667",
+          "displayName": "Attribute Collector",
+          "nodeType": "AttributeCollectorNode",
+        },
+        {
+          "_id": "3d8709a1-f09f-4d1f-8094-2850e472c1db",
+          "displayName": "Platform Password",
+          "nodeType": "ValidatedPasswordNode",
+        },
+        {
+          "_id": "120c69d3-90b4-4ad4-b7af-380e8b119340",
+          "displayName": "KBA Definition",
+          "nodeType": "KbaCreateNode",
+        },
+        {
+          "_id": "b4a0e915-c15d-4b83-9c9d-18347d645976",
+          "displayName": "Accept Terms and Conditions",
+          "nodeType": "AcceptTermsAndConditionsNode",
+        },
+      ],
+      "pageDescription": {
+        "en": "Signing up is fast and easy.<br>Already have an account? <a href='#/service/Login'>Sign In</a>",
+      },
+      "pageHeader": {
+        "en": "Sign Up",
+      },
+      "stage": "{"ValidatedCreatePasswordCallback":[{"id":"3d8709a1-f09f-4d1f-8094-2850e472c1db","confirmPassword":true,"policyDisplayCheckmark":true}]}",
+    },
+    "0c80c39b-4813-4e67-b4fb-5a0bba85f994": {
+      "_id": "0c80c39b-4813-4e67-b4fb-5a0bba85f994",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "ValidatedPasswordNode",
+        "collection": true,
+        "name": "Platform Password",
+      },
+      "passwordAttribute": "password",
+      "validateInput": false,
+    },
+    "0f0904e6-1da3-4cdb-9abf-0d2545016fab": {
+      "_id": "0f0904e6-1da3-4cdb-9abf-0d2545016fab",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "AttributePresentDecisionNode",
+        "collection": true,
+        "name": "Attribute Present Decision",
+      },
+      "identityAttribute": "userName",
+      "presentAttribute": "password",
+    },
+    "11f1c31c-50a9-4717-8213-420f6932481f": {
+      "_id": "11f1c31c-50a9-4717-8213-420f6932481f",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "120c69d3-90b4-4ad4-b7af-380e8b119340": {
+      "_id": "120c69d3-90b4-4ad4-b7af-380e8b119340",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "KbaCreateNode",
+        "collection": true,
+        "name": "KBA Definition",
+      },
+      "allowUserDefinedQuestions": true,
+      "message": {
+        "en": "Select a security question",
+      },
+    },
+    "13b12fe6-cf53-46a4-a83d-0a3c1fda814f": {
+      "_id": "13b12fe6-cf53-46a4-a83d-0a3c1fda814f",
+      "_outcomes": [
+        {
+          "displayName": "shared and level",
+          "id": "shared and level",
+        },
+        {
+          "displayName": "shared only",
+          "id": "shared only",
+        },
+        {
+          "displayName": "level only",
+          "id": "level only",
+        },
+        {
+          "displayName": "none",
+          "id": "none",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "outcomes": [
+        "shared and level",
+        "shared only",
+        "level only",
+        "none",
+      ],
+      "outputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+    },
+    "1d59caff-243c-45bd-b7d0-6dcc563989c5": {
+      "_id": "1d59caff-243c-45bd-b7d0-6dcc563989c5",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "20237b34-26cb-4a0b-958f-abb422290d42": {
+      "_id": "20237b34-26cb-4a0b-958f-abb422290d42",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "PageNode",
+        "collection": true,
+        "name": "Page Node",
+      },
+      "nodes": [
+        {
+          "_id": "fe2962fc-4db3-4066-8624-553649afc438",
+          "displayName": "Platform Password",
+          "nodeType": "ValidatedPasswordNode",
+        },
+      ],
+      "pageDescription": {
+        "en": "Enter current password",
+      },
+      "pageHeader": {
+        "en": "Verify Existing Password",
+      },
+    },
+    "2119f332-0f69-4088-a7a1-6582bf0f2001": {
+      "_id": "2119f332-0f69-4088-a7a1-6582bf0f2001",
+      "_outcomes": [
+        {
+          "displayName": "Retry",
+          "id": "Retry",
+        },
+        {
+          "displayName": "Reject",
+          "id": "Reject",
+        },
+      ],
+      "_type": {
+        "_id": "RetryLimitDecisionNode",
+        "collection": true,
+        "name": "Retry Limit Decision",
+      },
+      "incrementUserAttributeOnFailure": true,
+      "retryLimit": 5,
+    },
+    "21a99653-a7a7-47ee-b650-f493a84bba09": {
+      "_id": "21a99653-a7a7-47ee-b650-f493a84bba09",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "ValidatedPasswordNode",
+        "collection": true,
+        "name": "Platform Password",
+      },
+      "passwordAttribute": "password",
+      "validateInput": true,
+    },
+    "21b8ddf3-0203-4ae1-ab05-51cf3a3a707a": {
+      "_id": "21b8ddf3-0203-4ae1-ab05-51cf3a3a707a",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "IdentifyExistingUserNode",
+        "collection": true,
+        "name": "Identify Existing User",
+      },
+      "identifier": "userName",
+      "identityAttribute": "mail",
+    },
+    "228a44d5-fd78-4278-8999-fdd470ea7ebf": {
+      "_id": "228a44d5-fd78-4278-8999-fdd470ea7ebf",
+      "_outcomes": [
+        {
+          "displayName": "Social Authentication",
+          "id": "socialAuthentication",
+        },
+        {
+          "displayName": "Local Authentication",
+          "id": "localAuthentication",
+        },
+      ],
+      "_type": {
+        "_id": "SelectIdPNode",
+        "collection": true,
+        "name": "Select Identity Provider",
+      },
+      "filteredProviders": [],
+      "identityAttribute": "mail",
+      "includeLocalAuthentication": true,
+      "offerOnlyExisting": false,
+      "passwordAttribute": "password",
+    },
+    "251f35c3-1a32-4520-be10-1f4af9600935": {
+      "_id": "251f35c3-1a32-4520-be10-1f4af9600935",
+      "_outcomes": [
+        {
+          "displayName": "shared and level",
+          "id": "shared and level",
+        },
+        {
+          "displayName": "shared only",
+          "id": "shared only",
+        },
+        {
+          "displayName": "level only",
+          "id": "level only",
+        },
+        {
+          "displayName": "none",
+          "id": "none",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "outcomes": [
+        "shared and level",
+        "shared only",
+        "level only",
+        "none",
+      ],
+      "outputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+    },
+    "276afa7c-a680-4cf4-a5f6-d6c78191f5c9": {
+      "_id": "276afa7c-a680-4cf4-a5f6-d6c78191f5c9",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "AttributeCollectorNode",
+        "collection": true,
+        "name": "Attribute Collector",
+      },
+      "attributesToCollect": [
+        "mail",
+      ],
+      "identityAttribute": "mail",
+      "required": true,
+      "validateInputs": false,
+    },
+    "278bf084-9eea-46fe-8ce9-2600dde3b046": {
+      "_id": "278bf084-9eea-46fe-8ce9-2600dde3b046",
+      "_outcomes": [
+        {
+          "displayName": "Social Authentication",
+          "id": "socialAuthentication",
+        },
+        {
+          "displayName": "Local Authentication",
+          "id": "localAuthentication",
+        },
+      ],
+      "_type": {
+        "_id": "PageNode",
+        "collection": true,
+        "name": "Page Node",
+      },
+      "nodes": [
+        {
+          "_id": "7a351800-fb7e-4145-903c-388554747556",
+          "displayName": "Username",
+          "nodeType": "ValidatedUsernameNode",
+        },
+        {
+          "_id": "804e6a68-1720-442b-926a-007e90f02782",
+          "displayName": "Password",
+          "nodeType": "ValidatedPasswordNode",
+        },
+        {
+          "_id": "228a44d5-fd78-4278-8999-fdd470ea7ebf",
+          "displayName": "Select IDP",
+          "nodeType": "SelectIdPNode",
+        },
+      ],
+      "pageDescription": {},
+      "pageHeader": {},
+    },
+    "2dbd2d37-c659-48cf-8357-c9fc1166e3a7": {
+      "_id": "2dbd2d37-c659-48cf-8357-c9fc1166e3a7",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "2de08e9e-bf7b-4fa1-8265-59a8e4a3f7c3": {
+      "_id": "2de08e9e-bf7b-4fa1-8265-59a8e4a3f7c3",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "300feda0-3248-49a9-b60f-01df802b2229": {
+      "_id": "300feda0-3248-49a9-b60f-01df802b2229",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "33b24514-3e50-4180-8f08-ab6f4e51b07e": {
+      "_id": "33b24514-3e50-4180-8f08-ab6f4e51b07e",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "InnerTreeEvaluatorNode",
+        "collection": true,
+        "name": "Inner Tree Evaluator",
+      },
+      "tree": "ProgressiveProfile",
+    },
+    "343e745f-923a-43c4-8675-649a490fd0a3": {
+      "_id": "343e745f-923a-43c4-8675-649a490fd0a3",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "TRUE",
+        },
+        {
+          "displayName": "False",
+          "id": "FALSE",
+        },
+        {
+          "displayName": "Locked",
+          "id": "LOCKED",
+        },
+        {
+          "displayName": "Cancelled",
+          "id": "CANCELLED",
+        },
+        {
+          "displayName": "Expired",
+          "id": "EXPIRED",
+        },
+      ],
+      "_type": {
+        "_id": "IdentityStoreDecisionNode",
+        "collection": true,
+        "name": "Identity Store Decision",
+      },
+      "minimumPasswordLength": 8,
+      "mixedCaseForPasswordChangeMessages": false,
+      "useUniversalIdForUsername": false,
+    },
+    "35a4f94b-c895-46b9-bc0a-93cf59233759": {
+      "_id": "35a4f94b-c895-46b9-bc0a-93cf59233759",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "3990ce1f-cce6-435b-ae1c-f138e89411c1": {
+      "_id": "3990ce1f-cce6-435b-ae1c-f138e89411c1",
+      "_outcomes": [
+        {
+          "displayName": "Patched",
+          "id": "PATCHED",
+        },
+        {
+          "displayName": "Failed",
+          "id": "FAILURE",
+        },
+      ],
+      "_type": {
+        "_id": "PatchObjectNode",
+        "collection": true,
+        "name": "Patch Object",
+      },
+      "identityAttribute": "userName",
+      "identityResource": "managed/alpha_user",
+      "ignoredFields": [
+        "userName",
+      ],
+      "patchAsObject": false,
+    },
+    "39b48197-f4be-42b9-800a-866587b4b9b5": {
+      "_id": "39b48197-f4be-42b9-800a-866587b4b9b5",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "3a92300d-6d64-451d-8156-30cb51781026": {
+      "_id": "3a92300d-6d64-451d-8156-30cb51781026",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "3c106772-ace7-4808-8f3a-9840de8f67f0": {
+      "_id": "3c106772-ace7-4808-8f3a-9840de8f67f0",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "3c1e8d61-0c48-44ba-86dc-52e9555b6aeb": {
+      "_id": "3c1e8d61-0c48-44ba-86dc-52e9555b6aeb",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "3d8709a1-f09f-4d1f-8094-2850e472c1db": {
+      "_id": "3d8709a1-f09f-4d1f-8094-2850e472c1db",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "ValidatedPasswordNode",
+        "collection": true,
+        "name": "Platform Password",
+      },
+      "passwordAttribute": "password",
+      "validateInput": true,
+    },
+    "409c251f-c23b-411d-9009-d3b3d26d1b90": {
+      "_id": "409c251f-c23b-411d-9009-d3b3d26d1b90",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "InnerTreeEvaluatorNode",
+        "collection": true,
+        "name": "Inner Tree Evaluator",
+      },
+      "tree": "j05",
+    },
+    "40afb384-e9b6-4dcb-acde-04de109474c8": {
+      "_id": "40afb384-e9b6-4dcb-acde-04de109474c8",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "423a959a-a1b9-498a-b0f7-596b6b6e775a": {
+      "_id": "423a959a-a1b9-498a-b0f7-596b6b6e775a",
+      "_outcomes": [
+        {
+          "displayName": "Patched",
+          "id": "PATCHED",
+        },
+        {
+          "displayName": "Failed",
+          "id": "FAILURE",
+        },
+      ],
+      "_type": {
+        "_id": "PatchObjectNode",
+        "collection": true,
+        "name": "Patch Object",
+      },
+      "identityAttribute": "userName",
+      "identityResource": "managed/alpha_user",
+      "ignoredFields": [],
+      "patchAsObject": false,
+    },
+    "4416aff7-3ebd-47e6-9831-c2f6bbe3ae24": {
+      "_id": "4416aff7-3ebd-47e6-9831-c2f6bbe3ae24",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "44b8651c-7c1e-41f1-b9a6-2e441b0ce05a": {
+      "_id": "44b8651c-7c1e-41f1-b9a6-2e441b0ce05a",
+      "_outcomes": [
+        {
+          "displayName": "shared and level",
+          "id": "shared and level",
+        },
+        {
+          "displayName": "shared only",
+          "id": "shared only",
+        },
+        {
+          "displayName": "level only",
+          "id": "level only",
+        },
+        {
+          "displayName": "none",
+          "id": "none",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "outcomes": [
+        "shared and level",
+        "shared only",
+        "level only",
+        "none",
+      ],
+      "outputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+    },
+    "466f8b54-07fb-4e31-a11d-a6842618cc37": {
+      "_id": "466f8b54-07fb-4e31-a11d-a6842618cc37",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "EmailSuspendNode",
+        "collection": true,
+        "name": "Email Suspend Node",
+      },
+      "emailAttribute": "mail",
+      "emailSuspendMessage": {
+        "en": "An email has been sent to the address you entered. Click the link in that email to proceed.",
+      },
+      "emailTemplateName": "registration",
+      "identityAttribute": "userName",
+      "objectLookup": false,
+    },
+    "513a2ab4-f0b8-4f94-b840-6fe14796cc84": {
+      "_id": "513a2ab4-f0b8-4f94-b840-6fe14796cc84",
+      "_outcomes": [
+        {
+          "displayName": "shared and level",
+          "id": "shared and level",
+        },
+        {
+          "displayName": "shared only",
+          "id": "shared only",
+        },
+        {
+          "displayName": "level only",
+          "id": "level only",
+        },
+        {
+          "displayName": "none",
+          "id": "none",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "outcomes": [
+        "shared and level",
+        "shared only",
+        "level only",
+        "none",
+      ],
+      "outputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+    },
+    "51e8c4c1-3509-4635-90e6-d2cc31c4a6a5": {
+      "_id": "51e8c4c1-3509-4635-90e6-d2cc31c4a6a5",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "AccountLockoutNode",
+        "collection": true,
+        "name": "Account Lockout",
+      },
+      "lockAction": "LOCK",
+    },
+    "56899fef-92a1-4f2a-ade3-973c81eb3af1": {
+      "_id": "56899fef-92a1-4f2a-ade3-973c81eb3af1",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "InnerTreeEvaluatorNode",
+        "collection": true,
+        "name": "Inner Tree Evaluator",
+      },
+      "tree": "j01",
+    },
+    "56b82371-0c61-4dc3-8d06-c1158415b8f9": {
+      "_id": "56b82371-0c61-4dc3-8d06-c1158415b8f9",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "59b06306-a886-443d-92df-7a27a60c394e": {
+      "_id": "59b06306-a886-443d-92df-7a27a60c394e",
+      "_outcomes": [
+        {
+          "displayName": "shared and level",
+          "id": "shared and level",
+        },
+        {
+          "displayName": "shared only",
+          "id": "shared only",
+        },
+        {
+          "displayName": "level only",
+          "id": "level only",
+        },
+        {
+          "displayName": "none",
+          "id": "none",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "outcomes": [
+        "shared and level",
+        "shared only",
+        "level only",
+        "none",
+      ],
+      "outputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+    },
+    "5d6cd20e-5074-43de-8832-fddd95fb078e": {
+      "_id": "5d6cd20e-5074-43de-8832-fddd95fb078e",
+      "_outcomes": [
+        {
+          "displayName": "one",
+          "id": "one",
+        },
+        {
+          "displayName": "two",
+          "id": "two",
+        },
+        {
+          "displayName": "three",
+          "id": "three",
+        },
+      ],
+      "_type": {
+        "_id": "PageNode",
+        "collection": true,
+        "name": "Page Node",
+      },
+      "nodes": [
+        {
+          "_id": "a566e474-99f3-46e4-9e70-682402bfaa84",
+          "displayName": "Choice Collector",
+          "nodeType": "ChoiceCollectorNode",
+        },
+      ],
+      "pageDescription": {},
+      "pageHeader": {},
+      "stage": "{"ChoiceCallback":[{"id":"a566e474-99f3-46e4-9e70-682402bfaa84","displayType":"radio"}]}",
+    },
+    "5e2a7c95-94af-4b23-8724-deb13853726a": {
+      "_id": "5e2a7c95-94af-4b23-8724-deb13853726a",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "PageNode",
+        "collection": true,
+        "name": "Page Node",
+      },
+      "nodes": [
+        {
+          "_id": "9f1e8d94-4922-481b-9e14-212b66548900",
+          "displayName": "Attribute Collector",
+          "nodeType": "AttributeCollectorNode",
+        },
+      ],
+      "pageDescription": {
+        "en": "Enter your email address or <a href="#/service/Login">Sign in</a>",
+      },
+      "pageHeader": {
+        "en": "Forgotten Username",
+      },
+    },
+    "622179cb-98f1-484a-820d-9a0df6e45e95": {
+      "_id": "622179cb-98f1-484a-820d-9a0df6e45e95",
+      "_outcomes": [
+        {
+          "displayName": "shared and level",
+          "id": "shared and level",
+        },
+        {
+          "displayName": "shared only",
+          "id": "shared only",
+        },
+        {
+          "displayName": "level only",
+          "id": "level only",
+        },
+        {
+          "displayName": "none",
+          "id": "none",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "outcomes": [
+        "shared and level",
+        "shared only",
+        "level only",
+        "none",
+      ],
+      "outputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+    },
+    "64157fca-bd5b-4405-a4c8-64ffd98a5461": {
+      "_id": "64157fca-bd5b-4405-a4c8-64ffd98a5461",
+      "_outcomes": [
+        {
+          "displayName": "Account exists",
+          "id": "ACCOUNT_EXISTS",
+        },
+        {
+          "displayName": "No account exists",
+          "id": "NO_ACCOUNT",
+        },
+      ],
+      "_type": {
+        "_id": "product-Saml2Node",
+        "collection": true,
+        "name": "SAML2 Authentication",
+      },
+      "allowCreate": true,
+      "authComparison": "MINIMUM",
+      "authnContextClassRef": [],
+      "authnContextDeclRef": [],
+      "binding": "HTTP_ARTIFACT",
+      "forceAuthn": false,
+      "idpEntityId": "urn:federation:MicrosoftOnline",
+      "isPassive": false,
+      "metaAlias": "/alpha/iSPAzure",
+      "nameIdFormat": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+      "requestBinding": "HTTP_REDIRECT",
+    },
+    "66026170-5088-4fcd-a6c8-ed89d7a5c79d": {
+      "_id": "66026170-5088-4fcd-a6c8-ed89d7a5c79d",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "InnerTreeEvaluatorNode",
+        "collection": true,
+        "name": "Inner Tree Evaluator",
+      },
+      "tree": "j07",
+    },
+    "6674b4ac-dd89-4e13-9440-6f81194e3a22": {
+      "_id": "6674b4ac-dd89-4e13-9440-6f81194e3a22",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "69ae8ec1-de43-44ac-98e5-733db80ac176": {
+      "_id": "69ae8ec1-de43-44ac-98e5-733db80ac176",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "6df24fdd-0b6c-4def-bf42-77af998f28b8": {
+      "_id": "6df24fdd-0b6c-4def-bf42-77af998f28b8",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "InnerTreeEvaluatorNode",
+        "collection": true,
+        "name": "Inner Tree Evaluator",
+      },
+      "tree": "j08",
+    },
+    "6f9de973-9ed4-41f5-b43d-4036041e2b96": {
+      "_id": "6f9de973-9ed4-41f5-b43d-4036041e2b96",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "731c5810-020b-45c8-a7fc-3c21903ae2b3": {
+      "_id": "731c5810-020b-45c8-a7fc-3c21903ae2b3",
+      "_outcomes": [
+        {
+          "displayName": "Social Authentication",
+          "id": "socialAuthentication",
+        },
+        {
+          "displayName": "Local Authentication",
+          "id": "localAuthentication",
+        },
+      ],
+      "_type": {
+        "_id": "PageNode",
+        "collection": true,
+        "name": "Page Node",
+      },
+      "nodes": [
+        {
+          "_id": "dd16c8d4-baca-4ae0-bcd8-fb98b9040524",
+          "displayName": "Password",
+          "nodeType": "ValidatedPasswordNode",
+        },
+        {
+          "_id": "038f9b2a-36b2-489b-9e03-386c9a62ea21",
+          "displayName": "Select IDP",
+          "nodeType": "SelectIdPNode",
+        },
+      ],
+      "pageDescription": {},
+      "pageHeader": {},
+    },
+    "7354982f-57b6-4b04-9ddc-f1dd1e1e07d0": {
+      "_id": "7354982f-57b6-4b04-9ddc-f1dd1e1e07d0",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "ValidatedUsernameNode",
+        "collection": true,
+        "name": "Platform Username",
+      },
+      "usernameAttribute": "userName",
+      "validateInput": false,
+    },
+    "7a351800-fb7e-4145-903c-388554747556": {
+      "_id": "7a351800-fb7e-4145-903c-388554747556",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "ValidatedUsernameNode",
+        "collection": true,
+        "name": "Platform Username",
+      },
+      "usernameAttribute": "userName",
+      "validateInput": false,
+    },
+    "7d1deabe-cd98-49c8-943f-ca12305775f3": {
+      "_id": "7d1deabe-cd98-49c8-943f-ca12305775f3",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "DataStoreDecisionNode",
+        "collection": true,
+        "name": "Data Store Decision",
+      },
+    },
+    "7f0c2aee-8c74-4d02-82a6-9d4ed9d11708": {
+      "_id": "7f0c2aee-8c74-4d02-82a6-9d4ed9d11708",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "TRUE",
+        },
+        {
+          "displayName": "False",
+          "id": "FALSE",
+        },
+        {
+          "displayName": "Locked",
+          "id": "LOCKED",
+        },
+        {
+          "displayName": "Cancelled",
+          "id": "CANCELLED",
+        },
+        {
+          "displayName": "Expired",
+          "id": "EXPIRED",
+        },
+      ],
+      "_type": {
+        "_id": "IdentityStoreDecisionNode",
+        "collection": true,
+        "name": "Identity Store Decision",
+      },
+      "minimumPasswordLength": 8,
+      "mixedCaseForPasswordChangeMessages": false,
+      "useUniversalIdForUsername": false,
+    },
+    "7fcaf48e-a754-4959-858b-05b2933b825f": {
+      "_id": "7fcaf48e-a754-4959-858b-05b2933b825f",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "ValidatedUsernameNode",
+        "collection": true,
+        "name": "Platform Username",
+      },
+      "usernameAttribute": "userName",
+      "validateInput": true,
+    },
+    "804e6a68-1720-442b-926a-007e90f02782": {
+      "_id": "804e6a68-1720-442b-926a-007e90f02782",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "ValidatedPasswordNode",
+        "collection": true,
+        "name": "Platform Password",
+      },
+      "passwordAttribute": "password",
+      "validateInput": false,
+    },
+    "8096649e-973e-4209-88ce-e1d87ae2bb96": {
+      "_id": "8096649e-973e-4209-88ce-e1d87ae2bb96",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "87ced99b-bfa5-40d4-ba07-c8fc31f6cc6d": {
+      "_id": "87ced99b-bfa5-40d4-ba07-c8fc31f6cc6d",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "89ce5d57-82fa-4d58-8d15-0329f7dbd7e7": {
+      "_id": "89ce5d57-82fa-4d58-8d15-0329f7dbd7e7",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "8afdaec3-275e-4301-bb53-34f03e6a4b29": {
+      "_id": "8afdaec3-275e-4301-bb53-34f03e6a4b29",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "LoginCountDecisionNode",
+        "collection": true,
+        "name": "Login Count Decision",
+      },
+      "amount": 3,
+      "identityAttribute": "userName",
+      "interval": "AT",
+    },
+    "8c5e9cb5-471b-4dd6-b150-ecaaeda98195": {
+      "_id": "8c5e9cb5-471b-4dd6-b150-ecaaeda98195",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "8d7d64ee-da20-461f-a2ca-206b7479dd67": {
+      "_id": "8d7d64ee-da20-461f-a2ca-206b7479dd67",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "948e21f4-c512-450a-9d42-e0d629217834": {
+      "_id": "948e21f4-c512-450a-9d42-e0d629217834",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "9603ef52-30f0-4ddc-b3c0-28dac83c7bdb": {
+      "_id": "9603ef52-30f0-4ddc-b3c0-28dac83c7bdb",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "97a15eb2-a015-4b6d-81a0-be78c3aa1a3b": {
+      "_id": "97a15eb2-a015-4b6d-81a0-be78c3aa1a3b",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "IncrementLoginCountNode",
+        "collection": true,
+        "name": "Increment Login Count",
+      },
+      "identityAttribute": "userName",
+    },
+    "97ef9d96-99e7-4d2d-b6c6-4177b5397ead": {
+      "_id": "97ef9d96-99e7-4d2d-b6c6-4177b5397ead",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "989f0bf8-a328-4217-b82b-5275d79ca8bd": {
+      "_id": "989f0bf8-a328-4217-b82b-5275d79ca8bd",
+      "_outcomes": [
+        {
+          "displayName": "Patched",
+          "id": "PATCHED",
+        },
+        {
+          "displayName": "Failed",
+          "id": "FAILURE",
+        },
+      ],
+      "_type": {
+        "_id": "PatchObjectNode",
+        "collection": true,
+        "name": "Patch Object",
+      },
+      "identityAttribute": "mail",
+      "identityResource": "managed/alpha_user",
+      "ignoredFields": [],
+      "patchAsObject": false,
+    },
+    "9f1e8d94-4922-481b-9e14-212b66548900": {
+      "_id": "9f1e8d94-4922-481b-9e14-212b66548900",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "AttributeCollectorNode",
+        "collection": true,
+        "name": "Attribute Collector",
+      },
+      "attributesToCollect": [
+        "mail",
+      ],
+      "identityAttribute": "mail",
+      "required": true,
+      "validateInputs": false,
+    },
+    "a0782616-84b7-4bf5-87ed-a01fb3018563": {
+      "_id": "a0782616-84b7-4bf5-87ed-a01fb3018563",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "a12bc72f-ad97-4f1e-a789-a1fa3dd566c8": {
+      "_id": "a12bc72f-ad97-4f1e-a789-a1fa3dd566c8",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "PageNode",
+        "collection": true,
+        "name": "Page Node",
+      },
+      "nodes": [
+        {
+          "_id": "7354982f-57b6-4b04-9ddc-f1dd1e1e07d0",
+          "displayName": "Platform Username",
+          "nodeType": "ValidatedUsernameNode",
+        },
+        {
+          "_id": "0c80c39b-4813-4e67-b4fb-5a0bba85f994",
+          "displayName": "Platform Password",
+          "nodeType": "ValidatedPasswordNode",
+        },
+      ],
+      "pageDescription": {
+        "en": "New here? <a href="#/service/Registration">Create an account</a><br><a href="#/service/ForgottenUsername">Forgot username?</a><a href="#/service/ResetPassword"> Forgot password?</a>",
+      },
+      "pageHeader": {
+        "en": "Sign In",
+      },
+    },
+    "a1f45b44-5bf7-4c57-aa3f-75c619c7db8e": {
+      "_id": "a1f45b44-5bf7-4c57-aa3f-75c619c7db8e",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "QueryFilterDecisionNode",
+        "collection": true,
+        "name": "Query Filter Decision",
+      },
+      "identityAttribute": "userName",
+      "queryFilter": "!(/preferences pr) or /preferences/marketing eq false or /preferences/updates eq false",
+    },
+    "a3d97b53-e38a-4b24-aed0-a021050eb744": {
+      "_id": "a3d97b53-e38a-4b24-aed0-a021050eb744",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "EmailSuspendNode",
+        "collection": true,
+        "name": "Email Suspend Node",
+      },
+      "emailAttribute": "mail",
+      "emailSuspendMessage": {
+        "en": "An email has been sent to your address, please verify your email address to update your password. Click the link in that email to proceed.",
+      },
+      "emailTemplateName": "updatePassword",
+      "identityAttribute": "userName",
+      "objectLookup": true,
+    },
+    "a566e474-99f3-46e4-9e70-682402bfaa84": {
+      "_id": "a566e474-99f3-46e4-9e70-682402bfaa84",
+      "_outcomes": [
+        {
+          "displayName": "one",
+          "id": "one",
+        },
+        {
+          "displayName": "two",
+          "id": "two",
+        },
+        {
+          "displayName": "three",
+          "id": "three",
+        },
+      ],
+      "_type": {
+        "_id": "ChoiceCollectorNode",
+        "collection": true,
+        "name": "Choice Collector",
+      },
+      "choices": [
+        "one",
+        "two",
+        "three",
+      ],
+      "defaultChoice": "one",
+      "prompt": "Choice?",
+    },
+    "a5aecad8-854a-4ed5-b719-ff6c90e858c0": {
+      "_id": "a5aecad8-854a-4ed5-b719-ff6c90e858c0",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "PageNode",
+        "collection": true,
+        "name": "Page Node",
+      },
+      "nodes": [
+        {
+          "_id": "0a042e10-b22e-4e02-86c4-65e26e775f7a",
+          "displayName": "Attribute Collector",
+          "nodeType": "AttributeCollectorNode",
+        },
+      ],
+      "pageDescription": {},
+      "pageHeader": {
+        "en": "Please select your preferences",
+      },
+    },
+    "ac6ee166-73c0-4f73-b8db-4fe8ff6a25c0": {
+      "_id": "ac6ee166-73c0-4f73-b8db-4fe8ff6a25c0",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "ad5dcbb3-7335-49b7-b3e7-7d850bb88237": {
+      "_id": "ad5dcbb3-7335-49b7-b3e7-7d850bb88237",
+      "_outcomes": [
+        {
+          "displayName": "Created",
+          "id": "CREATED",
+        },
+        {
+          "displayName": "Failed",
+          "id": "FAILURE",
+        },
+      ],
+      "_type": {
+        "_id": "CreateObjectNode",
+        "collection": true,
+        "name": "Create Object",
+      },
+      "identityResource": "managed/alpha_user",
+    },
+    "b4a0e915-c15d-4b83-9c9d-18347d645976": {
+      "_id": "b4a0e915-c15d-4b83-9c9d-18347d645976",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "AcceptTermsAndConditionsNode",
+        "collection": true,
+        "name": "Accept Terms and Conditions",
+      },
+    },
+    "b93ce36e-1976-4610-b24f-8d6760b5463b": {
+      "_id": "b93ce36e-1976-4610-b24f-8d6760b5463b",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "InnerTreeEvaluatorNode",
+        "collection": true,
+        "name": "Inner Tree Evaluator",
+      },
+      "tree": "Login",
+    },
+    "ba503a1e-633e-4d0d-ba18-c9a9b1105b5b": {
+      "_id": "ba503a1e-633e-4d0d-ba18-c9a9b1105b5b",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+977+977+9351677+977+977+977+977+9N92v77+977+977+977+977+9TV3vv71b14fvv70=",
+    },
+    "bb1e96af-f316-4eb0-b1c6-36b3f1af9e35": {
+      "_id": "bb1e96af-f316-4eb0-b1c6-36b3f1af9e35",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "InnerTreeEvaluatorNode",
+        "collection": true,
+        "name": "Inner Tree Evaluator",
+      },
+      "tree": "j00",
+    },
+    "bb294e05-6b6b-4478-b46f-b8d9e7711c66": {
+      "_id": "bb294e05-6b6b-4478-b46f-b8d9e7711c66",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "bba3e0d8-8525-4e82-bf48-ac17f7988917": {
+      "_id": "bba3e0d8-8525-4e82-bf48-ac17f7988917",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "IncrementLoginCountNode",
+        "collection": true,
+        "name": "Increment Login Count",
+      },
+      "identityAttribute": "userName",
+    },
+    "bcb8c535-5ecd-4d3d-b970-26816de96bf2": {
+      "_id": "bcb8c535-5ecd-4d3d-b970-26816de96bf2",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "InnerTreeEvaluatorNode",
+        "collection": true,
+        "name": "Inner Tree Evaluator",
+      },
+      "tree": "j02",
+    },
+    "bdfbe97c-1ff4-4162-85bc-47f6f14b2c66": {
+      "_id": "bdfbe97c-1ff4-4162-85bc-47f6f14b2c66",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "bf153f37-83dd-4f39-aa0c-74135430242e": {
+      "_id": "bf153f37-83dd-4f39-aa0c-74135430242e",
+      "_outcomes": [
+        {
+          "displayName": "Email Sent",
+          "id": "EMAIL_SENT",
+        },
+        {
+          "displayName": "Email Not Sent",
+          "id": "EMAIL_NOT_SENT",
+        },
+      ],
+      "_type": {
+        "_id": "EmailTemplateNode",
+        "collection": true,
+        "name": "Email Template Node",
+      },
+      "emailAttribute": "mail",
+      "emailTemplateName": "welcome",
+      "identityAttribute": "userName",
+    },
+    "bf9ea8d5-9802-4f26-9664-a21840faac23": {
+      "_id": "bf9ea8d5-9802-4f26-9664-a21840faac23",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "IdentifyExistingUserNode",
+        "collection": true,
+        "name": "Identify Existing User",
+      },
+      "identifier": "userName",
+      "identityAttribute": "mail",
+    },
+    "c7fcf7ae-1ab5-474b-b5b0-272e10468fbd": {
+      "_id": "c7fcf7ae-1ab5-474b-b5b0-272e10468fbd",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "InnerTreeEvaluatorNode",
+        "collection": true,
+        "name": "Inner Tree Evaluator",
+      },
+      "tree": "j09",
+    },
+    "c91d626e-1156-41bd-b1fb-d292f640fba6": {
+      "_id": "c91d626e-1156-41bd-b1fb-d292f640fba6",
+      "_outcomes": [
+        {
+          "displayName": "shared and level",
+          "id": "shared and level",
+        },
+        {
+          "displayName": "shared only",
+          "id": "shared only",
+        },
+        {
+          "displayName": "level only",
+          "id": "level only",
+        },
+        {
+          "displayName": "none",
+          "id": "none",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "outcomes": [
+        "shared and level",
+        "shared only",
+        "level only",
+        "none",
+      ],
+      "outputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+    },
+    "cbb3d506-b267-4b99-9edd-363e90aac997": {
+      "_id": "cbb3d506-b267-4b99-9edd-363e90aac997",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "cc3e1ed2-25f1-47bf-83c6-17084f8b2b2b": {
+      "_id": "cc3e1ed2-25f1-47bf-83c6-17084f8b2b2b",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "PageNode",
+        "collection": true,
+        "name": "Page Node",
+      },
+      "nodes": [
+        {
+          "_id": "276afa7c-a680-4cf4-a5f6-d6c78191f5c9",
+          "displayName": "Attribute Collector",
+          "nodeType": "AttributeCollectorNode",
+        },
+      ],
+      "pageDescription": {
+        "en": "Enter your email address or <a href="#/service/Login">Sign in</a>",
+      },
+      "pageHeader": {
+        "en": "Reset Password",
+      },
+    },
+    "d018fcd1-4e22-4160-8c41-63bee51c9cb3": {
+      "_id": "d018fcd1-4e22-4160-8c41-63bee51c9cb3",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "PageNode",
+        "collection": true,
+        "name": "Page Node",
+      },
+      "nodes": [
+        {
+          "_id": "21a99653-a7a7-47ee-b650-f493a84bba09",
+          "displayName": "Platform Password",
+          "nodeType": "ValidatedPasswordNode",
+        },
+      ],
+      "pageDescription": {
+        "en": "Enter new password",
+      },
+      "pageHeader": {
+        "en": "Update Password",
+      },
+    },
+    "d10104e9-1f8d-4da6-a110-28d879d13959": {
+      "_id": "d10104e9-1f8d-4da6-a110-28d879d13959",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "d17ffaa1-2c61-4abd-9bb1-2559160d0a5c": {
+      "_id": "d17ffaa1-2c61-4abd-9bb1-2559160d0a5c",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "d1b79744-493a-44fe-bc26-7d324a8caa4e": {
+      "_id": "d1b79744-493a-44fe-bc26-7d324a8caa4e",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "SessionDataNode",
+        "collection": true,
+        "name": "Get Session Data",
+      },
+      "sessionDataKey": "UserToken",
+      "sharedStateKey": "userName",
+    },
+    "d3ce2036-1523-4ce8-b1a2-895a2a036667": {
+      "_id": "d3ce2036-1523-4ce8-b1a2-895a2a036667",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "AttributeCollectorNode",
+        "collection": true,
+        "name": "Attribute Collector",
+      },
+      "attributesToCollect": [
+        "givenName",
+        "sn",
+        "mail",
+        "preferences/marketing",
+        "preferences/updates",
+      ],
+      "identityAttribute": "userName",
+      "required": true,
+      "validateInputs": true,
+    },
+    "d429b2b5-b215-46a5-b239-4994df65cb8b": {
+      "_id": "d429b2b5-b215-46a5-b239-4994df65cb8b",
+      "_outcomes": [
+        {
+          "displayName": "shared and level",
+          "id": "shared and level",
+        },
+        {
+          "displayName": "shared only",
+          "id": "shared only",
+        },
+        {
+          "displayName": "level only",
+          "id": "level only",
+        },
+        {
+          "displayName": "none",
+          "id": "none",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "outcomes": [
+        "shared and level",
+        "shared only",
+        "level only",
+        "none",
+      ],
+      "outputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+    },
+    "d5cc2d52-6ce4-452d-85ea-3a5b50218b67": {
+      "_id": "d5cc2d52-6ce4-452d-85ea-3a5b50218b67",
+      "_outcomes": [
+        {
+          "displayName": "Account exists",
+          "id": "ACCOUNT_EXISTS",
+        },
+        {
+          "displayName": "No account exists",
+          "id": "NO_ACCOUNT",
+        },
+      ],
+      "_type": {
+        "_id": "SocialProviderHandlerNode",
+        "collection": true,
+        "name": "Legacy Social Provider Handler Node",
+      },
+      "clientType": "BROWSER",
+      "script": "77+977+9PNuG77+977+977+9Hnfvv70724/vv73vv73vv71+de+/vXbvv73vv703f++/vQ==",
+      "usernameAttribute": "userName",
+    },
+    "d90dd9f8-8b12-4e90-abaf-228ecc0174a7": {
+      "_id": "d90dd9f8-8b12-4e90-abaf-228ecc0174a7",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "d9a06d3a-7e3f-4244-9a32-63ffa0d26e00": {
+      "_id": "d9a06d3a-7e3f-4244-9a32-63ffa0d26e00",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "d9a79f01-2ce3-4be2-a28a-975f35c3c8ca": {
+      "_id": "d9a79f01-2ce3-4be2-a28a-975f35c3c8ca",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "EmailSuspendNode",
+        "collection": true,
+        "name": "Email Suspend Node",
+      },
+      "emailAttribute": "mail",
+      "emailSuspendMessage": {
+        "en": "An email has been sent to the address you entered. Click the link in that email to proceed.",
+      },
+      "emailTemplateName": "forgottenUsername",
+      "identityAttribute": "mail",
+      "objectLookup": true,
+    },
+    "da878771-421c-463f-aad7-4d5f2ad5e59a": {
+      "_id": "da878771-421c-463f-aad7-4d5f2ad5e59a",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "dd16c8d4-baca-4ae0-bcd8-fb98b9040524": {
+      "_id": "dd16c8d4-baca-4ae0-bcd8-fb98b9040524",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "ValidatedPasswordNode",
+        "collection": true,
+        "name": "Platform Password",
+      },
+      "passwordAttribute": "password",
+      "validateInput": false,
+    },
+    "e0983ead-4918-48f6-858d-9aff0f03759c": {
+      "_id": "e0983ead-4918-48f6-858d-9aff0f03759c",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "e0cfbd13-6f1e-4924-9d2d-0f7c23507172": {
+      "_id": "e0cfbd13-6f1e-4924-9d2d-0f7c23507172",
+      "_outcomes": [
+        {
+          "displayName": "shared and level",
+          "id": "shared and level",
+        },
+        {
+          "displayName": "shared only",
+          "id": "shared only",
+        },
+        {
+          "displayName": "level only",
+          "id": "level only",
+        },
+        {
+          "displayName": "none",
+          "id": "none",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "outcomes": [
+        "shared and level",
+        "shared only",
+        "level only",
+        "none",
+      ],
+      "outputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+    },
+    "e2c39477-847a-4df2-9c5d-b449a752638b": {
+      "_id": "e2c39477-847a-4df2-9c5d-b449a752638b",
+      "_outcomes": [
+        {
+          "displayName": "known",
+          "id": "known",
+        },
+        {
+          "displayName": "unknown",
+          "id": "unknown",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "known",
+        "unknown",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9f1t177+9PO+/ve+/vXbvv73vv70c77+9b++/vd+d77+977+977+977+977+977+977+977+9Gg==",
+    },
+    "e4c752f9-c625-48c9-9644-a58802fa9e9c": {
+      "_id": "e4c752f9-c625-48c9-9644-a58802fa9e9c",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "PageNode",
+        "collection": true,
+        "name": "Page Node",
+      },
+      "nodes": [
+        {
+          "_id": "009c19c8-9572-47bb-adb2-1f092c559a43",
+          "displayName": "Platform Password",
+          "nodeType": "ValidatedPasswordNode",
+        },
+      ],
+      "pageDescription": {
+        "en": "Change password",
+      },
+      "pageHeader": {
+        "en": "Reset Password",
+      },
+    },
+    "e62d7a4d-2012-4a2a-a6ef-d6a0e0d552d9": {
+      "_id": "e62d7a4d-2012-4a2a-a6ef-d6a0e0d552d9",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "InnerTreeEvaluatorNode",
+        "collection": true,
+        "name": "Inner Tree Evaluator",
+      },
+      "tree": "j06",
+    },
+    "e90ae257-c279-46e0-9b43-5ecd89784d77": {
+      "_id": "e90ae257-c279-46e0-9b43-5ecd89784d77",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "e92d5139-b8a6-43dc-9b13-95ba1d0dc53c": {
+      "_id": "e92d5139-b8a6-43dc-9b13-95ba1d0dc53c",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "f129f0df-b49e-453b-97fb-db508e3893ce": {
+      "_id": "f129f0df-b49e-453b-97fb-db508e3893ce",
+      "_outcomes": [
+        {
+          "displayName": "shared and level",
+          "id": "shared and level",
+        },
+        {
+          "displayName": "shared only",
+          "id": "shared only",
+        },
+        {
+          "displayName": "level only",
+          "id": "level only",
+        },
+        {
+          "displayName": "none",
+          "id": "none",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "outcomes": [
+        "shared and level",
+        "shared only",
+        "level only",
+        "none",
+      ],
+      "outputs": [
+        "*",
+        "mode",
+        "level",
+      ],
+      "script": "77+977+9ae+/ve+/ve+/ve+/vV5777+9OG/fm++/vU8+77+977+9Ne+/ve+/ve+/veuWug==",
+    },
+    "f17ecb7c-abc3-4523-9943-4cbdd90305cb": {
+      "_id": "f17ecb7c-abc3-4523-9943-4cbdd90305cb",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "true",
+        },
+        {
+          "displayName": "False",
+          "id": "false",
+        },
+      ],
+      "_type": {
+        "_id": "InnerTreeEvaluatorNode",
+        "collection": true,
+        "name": "Inner Tree Evaluator",
+      },
+      "tree": "j04",
+    },
+    "f2fe740c-cd75-460a-8baa-fe4b52ecc947": {
+      "_id": "f2fe740c-cd75-460a-8baa-fe4b52ecc947",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+    "f57cf53c-b4c6-48f7-84e8-91f535a2e8f8": {
+      "_id": "f57cf53c-b4c6-48f7-84e8-91f535a2e8f8",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "f5c317ce-fabd-4a10-9907-c71cea037844": {
+      "_id": "f5c317ce-fabd-4a10-9907-c71cea037844",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "fae7424e-13c9-45bd-b3a2-045773671a3f": {
+      "_id": "fae7424e-13c9-45bd-b3a2-045773671a3f",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "1b52a++/ve+/ve+/ve+/vTXvv73vv700fe+/ve+/ve+/vca+15bvv73vv73vv73vv71777+9NQ==",
+    },
+    "fc7e47cd-c679-4211-8e05-a36654f23c67": {
+      "_id": "fc7e47cd-c679-4211-8e05-a36654f23c67",
+      "_outcomes": [
+        {
+          "displayName": "True",
+          "id": "TRUE",
+        },
+        {
+          "displayName": "False",
+          "id": "FALSE",
+        },
+        {
+          "displayName": "Locked",
+          "id": "LOCKED",
+        },
+        {
+          "displayName": "Cancelled",
+          "id": "CANCELLED",
+        },
+        {
+          "displayName": "Expired",
+          "id": "EXPIRED",
+        },
+      ],
+      "_type": {
+        "_id": "IdentityStoreDecisionNode",
+        "collection": true,
+        "name": "Identity Store Decision",
+      },
+      "minimumPasswordLength": 8,
+      "mixedCaseForPasswordChangeMessages": false,
+      "useUniversalIdForUsername": true,
+    },
+    "fe2962fc-4db3-4066-8624-553649afc438": {
+      "_id": "fe2962fc-4db3-4066-8624-553649afc438",
+      "_outcomes": [
+        {
+          "displayName": "Outcome",
+          "id": "outcome",
+        },
+      ],
+      "_type": {
+        "_id": "ValidatedPasswordNode",
+        "collection": true,
+        "name": "Platform Password",
+      },
+      "passwordAttribute": "password",
+      "validateInput": false,
+    },
+    "fe8f27df-8a27-4d88-9196-834ce398b2b7": {
+      "_id": "fe8f27df-8a27-4d88-9196-834ce398b2b7",
+      "_outcomes": [
+        {
+          "displayName": "true",
+          "id": "true",
+        },
+      ],
+      "_type": {
+        "_id": "ScriptedDecisionNode",
+        "collection": true,
+        "name": "Scripted Decision",
+      },
+      "inputs": [
+        "*",
+      ],
+      "outcomes": [
+        "true",
+      ],
+      "outputs": [
+        "*",
+      ],
+      "script": "77+9Vzbvv71ue++/ve+/ve+/vXPvv70654+8b++/ve+/vXNu77+977+977+9OW/vv73vv70=",
+    },
+  },
+}
+`;
+
 exports[`NodeOps getNodeClassification() 1: Classification of "PageNode" is "standard" 1`] = `
 [
   "standard",
