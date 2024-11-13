@@ -11,13 +11,18 @@ const serviceURLNextDescendentsTemplate =
 const serviceURLNextDescendentTemplate = '%s/json%s/%s/services/%s/%s/%s';
 //Use _action=nextdescendents since it works on all deployments
 const serviceListURLTemplate = '%s/json%s/%s/services?_action=nextdescendents';
-const apiVersion = 'protocol=2.0,resource=1.0';
+const apiVersion = 'protocol=2.0,resource=%s';
+const globalVersion = '1.0';
+const realmVersion = '1.0';
 
-function getApiConfig() {
+const getApiConfig = (globalConfig: boolean) => {
   return {
-    apiVersion,
+    apiVersion: util.format(
+      apiVersion,
+      globalConfig ? globalVersion : realmVersion
+    ),
   };
-}
+};
 
 export type AmServiceSkeleton = AmConfigEntityInterface & {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,7 +61,7 @@ export async function getListOfServices({
     getConfigPath(globalConfig)
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(),
+    resource: getApiConfig(globalConfig),
     state,
   }).post<PagedResult<AmServiceSkeleton>>(urlString, undefined, {
     withCredentials: true,
@@ -87,7 +92,7 @@ export async function getService({
     serviceId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(),
+    resource: getApiConfig(globalConfig),
     state,
   }).get<AmServiceSkeleton>(urlString, {
     withCredentials: true,
@@ -118,7 +123,7 @@ export async function getServiceDescendents({
     serviceId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(),
+    resource: getApiConfig(globalConfig),
     state,
   }).post<ServiceNextDescendentResponse>(urlString, undefined, {
     withCredentials: true,
@@ -152,7 +157,7 @@ export async function putService({
     serviceId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(),
+    resource: getApiConfig(globalConfig),
     state,
   }).put(urlString, serviceData, {
     withCredentials: true,
@@ -195,7 +200,7 @@ export async function putServiceNextDescendent({
     serviceNextDescendentId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(),
+    resource: getApiConfig(globalConfig),
     state,
   }).put(urlString, serviceNextDescendentData, {
     withCredentials: true,
@@ -227,7 +232,7 @@ export async function deleteService({
     serviceId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(),
+    resource: getApiConfig(globalConfig),
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -266,7 +271,7 @@ export async function deleteServiceNextDescendent({
     serviceNextDescendentId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(),
+    resource: getApiConfig(globalConfig),
     state,
   }).delete(urlString, {
     withCredentials: true,
