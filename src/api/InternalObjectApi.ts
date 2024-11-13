@@ -9,22 +9,22 @@ import {
 } from './ApiTypes';
 import { generateIdmApi } from './BaseApi';
 
-const createManagedObjectURLTemplate = '%s/managed/%s?_action=create';
-const managedObjectByIdURLTemplate = '%s/managed/%s/%s';
-const queryAllManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=true&_pageSize=%s`;
-const queryManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=%s`;
+const createInternalObjectURLTemplate = '%s/internal/%s?_action=create';
+const internalObjectByIdURLTemplate = '%s/internal/%s/%s';
+const queryAllInternalObjectURLTemplate = `%s/internal/%s?_queryFilter=true&_pageSize=%s`;
+const queryInternalObjectURLTemplate = `%s/internal/%s?_queryFilter=%s&_pageSize=%s`;
 
 export const DEFAULT_PAGE_SIZE: number = 1000;
 
 /**
- * Get managed object
- * @param {string} type managed object type, e.g. alpha_user or user
- * @param {string} id managed object id
+ * Get internal object
+ * @param {string} type internal object type, e.g. alpha_user or user
+ * @param {string} id internal object id
  * @param {string[]} id array of fields to include
  * @param {State} state library state
  * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an ObjectSkeletonInterface
  */
-export async function getManagedObject({
+export async function getInternalObject({
   type,
   id,
   fields = ['*'],
@@ -37,7 +37,7 @@ export async function getManagedObject({
 }): Promise<IdObjectSkeletonInterface> {
   const fieldsParam = `_fields=${fields.join(',')}`;
   const urlString = util.format(
-    `${managedObjectByIdURLTemplate}?${fieldsParam}`,
+    `${internalObjectByIdURLTemplate}?${fieldsParam}`,
     getIdmBaseUrl(state),
     type,
     id
@@ -49,56 +49,56 @@ export async function getManagedObject({
 }
 
 /**
- * Create managed object with server-generated id
- * @param {string} moType managed object type
- * @param {IdObjectSkeletonInterface} moData managed object data
+ * Create internal object with server-generated id
+ * @param {string} ioType internal object type
+ * @param {IdObjectSkeletonInterface} ioData internal object data
  * @param {State} state library state
- * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a internal object
  */
-export async function createManagedObject({
-  moType,
-  moData,
+export async function createInternalObject({
+  ioType,
+  ioData,
   state,
 }: {
-  moType: string;
-  moData: IdObjectSkeletonInterface;
+  ioType: string;
+  ioData: IdObjectSkeletonInterface;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
-    createManagedObjectURLTemplate,
+    createInternalObjectURLTemplate,
     getIdmBaseUrl(state),
-    moType
+    ioType
   );
   const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
     urlString,
-    moData
+    ioData
   );
   return data;
 }
 
 /**
- * Create or update managed object
- * @param {string} id managed object id
- * @param {IdObjectSkeletonInterface} moData managed object
+ * Create or update internal object
+ * @param {string} id internal object id
+ * @param {IdObjectSkeletonInterface} ioData internal object
  * @param {boolean} failIfExists fail if exists
  * @param {State} state library state
- * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a internal object
  */
-export async function putManagedObject({
+export async function putInternalObject({
   type,
   id,
-  moData,
+  ioData,
   failIfExists = false,
   state,
 }: {
   type: string;
   id: string;
-  moData: IdObjectSkeletonInterface;
+  ioData: IdObjectSkeletonInterface;
   failIfExists?: boolean;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
-    managedObjectByIdURLTemplate,
+    internalObjectByIdURLTemplate,
     getIdmBaseUrl(state),
     type,
     id
@@ -108,21 +108,21 @@ export async function putManagedObject({
     : {};
   const { data } = await generateIdmApi({ requestOverride, state }).put(
     urlString,
-    moData
+    ioData
   );
   return data;
 }
 
 /**
- * Partially update a managed object, with an array of operations.
- * @param {string} type managed object type
- * @param {string} id managed object id
+ * Partially update an internal object, with an array of operations.
+ * @param {string} type internal object type
+ * @param {string} id internal object id
  * @param {PatchOperationInterface[]} operations array of operations
  * @param {string} rev revision
  * @param {State} state library state
- * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing an internal object
  */
-export async function patchManagedObject({
+export async function patchInternalObject({
   type,
   id,
   operations: operations,
@@ -136,7 +136,7 @@ export async function patchManagedObject({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
-    managedObjectByIdURLTemplate,
+    internalObjectByIdURLTemplate,
     getIdmBaseUrl(state),
     type,
     id
@@ -150,15 +150,15 @@ export async function patchManagedObject({
 }
 
 /**
- * Query managed object
- * @param {string} type managed object type, e.g. alpha_user or user
+ * Query internal object
+ * @param {string} type internal object type, e.g. alpha_user or user
  * @param {string} filter CREST search filter
  * @param {string[]} id array of fields to include
  * @param {string} pageCookie paged results cookie
  * @param {State} state library state
  * @returns {Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an ObjectSkeletonInterface
  */
-export async function queryManagedObjects({
+export async function queryInternalObjects({
   type,
   filter,
   fields = ['*'],
@@ -176,10 +176,10 @@ export async function queryManagedObjects({
   const fieldsParam = `_fields=${fields.join(',')}`;
   const urlString = util.format(
     pageCookie
-      ? `${queryManagedObjectURLTemplate}&${fieldsParam}&_pagedResultsCookie=${encodeURIComponent(
+      ? `${queryInternalObjectURLTemplate}&${fieldsParam}&_pagedResultsCookie=${encodeURIComponent(
           pageCookie
         )}`
-      : `${queryManagedObjectURLTemplate}&${fieldsParam}`,
+      : `${queryInternalObjectURLTemplate}&${fieldsParam}`,
     getIdmBaseUrl(state),
     type,
     encodeURIComponent(filter),
@@ -192,13 +192,13 @@ export async function queryManagedObjects({
 }
 
 /**
- * Query managed objects
- * @param {string} type managed object type
+ * Query internal objects
+ * @param {string} type internal object type
  * @param {string[]} fields fields to retrieve
  * @param {string} pageCookie paged results cookie
- * @returns {Promise<{result: any[]; resultCount: number; pagedResultsCookie: any; totalPagedResultsPolicy: string; totalPagedResults: number; remainingPagedResults: number;}>} a promise that resolves to managed objects of the desired type
+ * @returns {Promise<{result: any[]; resultCount: number; pagedResultsCookie: any; totalPagedResultsPolicy: string; totalPagedResults: number; remainingPagedResults: number;}>} a promise that resolves to internal objects of the desired type
  */
-export async function queryAllManagedObjectsByType({
+export async function queryAllInternalObjectsByType({
   type,
   fields = [],
   pageSize = DEFAULT_PAGE_SIZE,
@@ -214,10 +214,10 @@ export async function queryAllManagedObjectsByType({
   const fieldsParam =
     fields.length > 0 ? `&_fields=${fields.join(',')}` : '&_fields=_id';
   const urlTemplate = pageCookie
-    ? `${queryAllManagedObjectURLTemplate}${fieldsParam}&_pagedResultsCookie=${encodeURIComponent(
+    ? `${queryAllInternalObjectURLTemplate}${fieldsParam}&_pagedResultsCookie=${encodeURIComponent(
         pageCookie
       )}`
-    : `${queryAllManagedObjectURLTemplate}${fieldsParam}`;
+    : `${queryAllInternalObjectURLTemplate}${fieldsParam}`;
   const urlString = util.format(
     urlTemplate,
     getIdmBaseUrl(state),
@@ -229,12 +229,12 @@ export async function queryAllManagedObjectsByType({
 }
 
 /**
- * Delete managed object
- * @param {string} id managed object id
+ * Delete internal object
+ * @param {string} id internal object id
  * @param {State} state library state
- * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a internal object
  */
-export async function deleteManagedObject({
+export async function deleteInternalObject({
   type,
   id,
   state,
@@ -244,7 +244,7 @@ export async function deleteManagedObject({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   const urlString = util.format(
-    managedObjectByIdURLTemplate,
+    internalObjectByIdURLTemplate,
     getIdmBaseUrl(state),
     type,
     id
