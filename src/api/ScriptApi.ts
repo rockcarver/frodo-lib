@@ -9,6 +9,8 @@ const scriptURLTemplate = '%s/json%s/scripts/%s';
 const scriptListURLTemplate = '%s/json%s/scripts?_queryFilter=true';
 const scriptQueryURLTemplate =
   '%s/json%s/scripts?_queryFilter=name+eq+%%22%s%%22';
+const libraryConfigQueryURLTemplate =
+  '%s/json%s/libraries?_queryFilter=name+eq+%%22%s%%22';
 const apiVersion = 'protocol=2.0,resource=1.0';
 const getApiConfig = () => {
   return {
@@ -46,6 +48,20 @@ export type ScriptSkeleton = IdObjectSkeletonInterface & {
   creationDate: number;
   lastModifiedBy: string;
   lastModifiedDate: number;
+  exports?: {
+    arity?: number;
+    id: string;
+    type: string;
+  }[];
+};
+
+export type LibraryScriptConfigSkeleton = IdObjectSkeletonInterface & {
+  name: string;
+  exports: {
+    arity?: number;
+    id: string;
+    type: string;
+  }[];
 };
 
 /**
@@ -120,6 +136,32 @@ export async function getScript({
       withCredentials: true,
     }
   );
+  return data;
+}
+
+/**
+ * Get library script config by name
+ * @param {String} scriptName script name
+ * @returns {Promise<PagedResult<LibraryScriptConfigSkeleton>>} a promise that resolves to an object containing the library script config
+ */
+export async function getLibraryScriptConfigByName({
+  scriptName,
+  state,
+}: {
+  scriptName: string;
+  state: State;
+}): Promise<PagedResult<LibraryScriptConfigSkeleton>> {
+  const urlString = util.format(
+    libraryConfigQueryURLTemplate,
+    state.getHost(),
+    getCurrentRealmPath(state),
+    encodeURIComponent(scriptName)
+  );
+  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get<
+    PagedResult<LibraryScriptConfigSkeleton>
+  >(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 

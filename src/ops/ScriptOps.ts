@@ -4,6 +4,7 @@ import {
   deleteScript as _deleteScript,
   deleteScriptByName as _deleteScriptByName,
   deleteScripts as _deleteScripts,
+  getLibraryScriptConfigByName,
   getScript as _getScript,
   getScriptByName as _getScriptByName,
   getScripts as _getScripts,
@@ -725,9 +726,10 @@ export async function exportScripts({
           message: `Reading script ${scriptData.name}`,
           state,
         });
-        exportData.script[scriptData._id] = prepareScriptForExport({
+        exportData.script[scriptData._id] = await prepareScriptForExport({
           scriptData,
           useStringArrays,
+          state,
         });
       } catch (error) {
         errors.push(error);
@@ -868,16 +870,18 @@ async function prepareScriptExport({
 }): Promise<ScriptExportInterface> {
   const { deps, useStringArrays } = options;
   const exportData = createScriptExportTemplate({ state });
-  exportData.script[scriptData._id] = prepareScriptForExport({
+  exportData.script[scriptData._id] = await prepareScriptForExport({
     scriptData,
     useStringArrays,
+    state,
   });
   // handle library scripts
   if (deps) {
     for (const script of await getLibraryScripts({ scriptData, state })) {
-      exportData.script[script._id] = prepareScriptForExport({
+      exportData.script[script._id] = await prepareScriptForExport({
         scriptData: script,
         useStringArrays,
+        state,
       });
     }
   }
@@ -891,16 +895,29 @@ async function prepareScriptExport({
  * @param {ScriptExportOptions} options script export options
  * @returns {ScriptSkeleton} the prepared script data
  */
-function prepareScriptForExport({
+async function prepareScriptForExport({
   scriptData,
   useStringArrays,
+  state,
 }: {
   scriptData: ScriptSkeleton;
   useStringArrays: boolean;
-}): ScriptSkeleton {
+  state: State;
+}): Promise<ScriptSkeleton> {
   scriptData.script = convertBase64TextToArray(scriptData.script as string);
   if (!useStringArrays) {
     scriptData.script = scriptData.script.join('\n');
+  }
+  if (scriptData.context === 'LIBRARY') {
+    const { result } = await getLibraryScriptConfigByName({
+      scriptName: scriptData.name,
+      state,
+    });
+    const config = result.find((s) => s._id === scriptData._id);
+    return {
+      ...scriptData,
+      ...config,
+    };
   }
   return scriptData;
 }
