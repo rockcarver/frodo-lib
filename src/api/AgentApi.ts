@@ -2,7 +2,11 @@ import util from 'util';
 
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
-import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
+import {
+  getConfigPath,
+  getCurrentRealmPath,
+  getRealmPathGlobal,
+} from '../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../utils/JsonUtils';
 import {
   type AmConfigEntityInterface,
@@ -13,32 +17,56 @@ import { generateAmApi } from './BaseApi';
 
 const getAgentTypesURLTemplate =
   '%s/json%s/realm-config/agents?_action=getAllTypes';
-const getAllAgentsURLTemplate =
-  '%s/json%s/realm-config/agents?_action=nextdescendents';
+const getAllAgentsURLTemplate = '%s/json%s/%s/agents?_action=nextdescendents';
 const queryAgentURLTemplate =
   "%s/json%s/realm-config/agents?_queryFilter=_id+eq+'%s'";
 const queryAgentByTypeURLTemplate =
   "%s/json%s/realm-config/agents/%s?_queryFilter=_id+eq+'%s'";
-const agentURLTemplate = '%s/json%s/realm-config/agents/%s/%s';
+const agentURLTemplate = '%s/json%s/%s/agents/%s/%s';
 const agentListURLTemplate =
   '%s/json%s/realm-config/agents/%s?_queryFilter=true';
-const apiVersion = 'protocol=2.1,resource=1.0';
-const getApiConfig = () => {
+const agentGroupURLTemplate = '%s/json%s/realm-config/agents/groups/%s/%s';
+const agentGroupsURLTemplate =
+  '%s/json%s/realm-config/agents/groups?_action=nextdescendents';
+
+const apiVersion = 'protocol=2.1,resource=%s';
+const globalVersion = '1.0';
+const realmVersion = '1.0';
+
+const getApiConfig = (globalConfig) => {
   return {
-    apiVersion,
+    apiVersion: util.format(
+      apiVersion,
+      globalConfig ? globalVersion : realmVersion
+    ),
   };
 };
 
+export type PolicyAgentType = '2.2_Agent';
 export type GatewayAgentType = 'IdentityGatewayAgent';
 export type JavaAgentType = 'J2EEAgent';
+export type OAuth2ThingType = 'OAuth2Thing';
+export type RemoteConsentAgentType = 'RemoteConsentAgent';
+export type SharedAgentType = 'SharedAgent';
+export type SoapSTSAgentType = 'SoapSTSAgent';
+export type SoftwarePublisherType = 'SoftwarePublisher';
 export type WebAgentType = 'WebAgent';
+
 export type AgentType =
+  | PolicyAgentType
   | GatewayAgentType
   | JavaAgentType
+  | OAuth2ThingType
+  | RemoteConsentAgentType
+  | SharedAgentType
+  | SoapSTSAgentType
+  | SoftwarePublisherType
   | WebAgentType
   | EntityType;
 
 export type AgentSkeleton = AmConfigEntityInterface;
+
+export type AgentGroupSkeleton = AmConfigEntityInterface;
 
 /**
  * Get agent types
@@ -52,7 +80,7 @@ export async function getAgentTypes({ state }: { state: State }) {
     getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(),
+    resource: getApiConfig(false),
     state,
   }).post(
     urlString,
@@ -67,7 +95,7 @@ export async function getAgentTypes({ state }: { state: State }) {
 
 /**
  * Get agents
- * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
+ * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent, etc.)
  * @returns {Promise<PagedResult<AgentSkeleton>>} a promise that resolves to an object containing an array of agent objects of the specified type
  */
 export async function getAgentsByType({
@@ -84,33 +112,37 @@ export async function getAgentsByType({
     getCurrentRealmPath(state),
     agentType
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(false),
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   debugMessage({ message: `AgentApi.getAgentsByType: end`, state });
   return data;
 }
 
 /**
  * Get all agents
+ * @param {boolean} globalConfig true if the global agents is the target of the operation, false otherwise. default: false
  * @returns {Promise<PagedResult<AgentSkeleton>>} a promise that resolves to an object containing an array of agent objects
  */
 export async function getAgents({
   state,
+  globalConfig = false,
 }: {
   state: State;
+  globalConfig?: boolean;
 }): Promise<PagedResult<AgentSkeleton>> {
   debugMessage({ message: `AgentApi.getAgents: start`, state });
   const urlString = util.format(
     getAllAgentsURLTemplate,
     state.getHost(),
-    getCurrentRealmPath(state)
+    getRealmPathGlobal(globalConfig, state),
+    getConfigPath(globalConfig)
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(),
+    resource: getApiConfig(globalConfig),
     state,
   }).post(
     urlString,
@@ -142,19 +174,19 @@ export async function findAgentById({
     getCurrentRealmPath(state),
     agentId
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(false),
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   debugMessage({ message: `AgentApi.findAgentById: end`, state });
   return data.result;
 }
 
 /**
  * Find agent by id
- * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
+ * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent, etc.)
  * @param {string} agentId agent id
  * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array with one or zero agent objects
  */
@@ -175,29 +207,32 @@ export async function findAgentByTypeAndId({
     agentType,
     agentId
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(false),
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   debugMessage({ message: `AgentApi.findAgentById: end`, state });
   return data.result;
 }
 
 /**
  * Get agent
- * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
+ * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent, etc.)
  * @param {string} agentId agent id
+ * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an agent object of the specified type
  */
 export async function getAgentByTypeAndId({
   agentType,
   agentId,
+  globalConfig = false,
   state,
 }: {
   agentType: AgentType;
   agentId: string;
+  globalConfig: boolean;
   state: State;
 }) {
   debugMessage({ message: `AgentApi.getAgentByTypeAndId: start`, state });
@@ -205,35 +240,39 @@ export async function getAgentByTypeAndId({
     agentURLTemplate,
     state.getHost(),
     getCurrentRealmPath(state),
-    agentType,
-    agentId
+    getConfigPath(globalConfig),
+    globalConfig ? agentId : agentType,
+    globalConfig ? '' : agentId
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(globalConfig),
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   debugMessage({ message: `AgentApi.getAgentByTypeAndId: end`, state });
   return data;
 }
 
 /**
  * Put agent
- * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
+ * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent, etc.)
  * @param {string} agentId agent id
  * @param {AgentSkeleton} agentData agent object
+ * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an agent object
  */
 export async function putAgentByTypeAndId({
   agentType,
   agentId,
   agentData,
+  globalConfig = false,
   state,
 }: {
   agentType: AgentType;
   agentId: string;
   agentData: AgentSkeleton;
+  globalConfig: boolean;
   state: State;
 }): Promise<AgentSkeleton> {
   debugMessage({ message: `AgentApi.putAgentByTypeAndId: start`, state });
@@ -246,23 +285,59 @@ export async function putAgentByTypeAndId({
     agentURLTemplate,
     state.getHost(),
     getCurrentRealmPath(state),
-    agentType,
-    agentId
+    getConfigPath(globalConfig),
+    globalConfig ? agentId : agentType,
+    globalConfig ? '' : agentId
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
-    urlString,
-    agent,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(globalConfig),
+    state,
+  }).put(urlString, agent, {
+    withCredentials: true,
+  });
   debugMessage({ message: `AgentApi.putAgentByTypeAndId: end`, state });
   return data;
 }
 
 /**
+ * Put agent group
+ * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent, etc.)
+ * @param {string} agentGroupId agent group id
+ * @param {AgentGroupSkeleton} agentGroupData agent group object
+ * @returns {Promise<AgentGroupSkeleton>} a promise that resolves to an object containing an agent group object
+ */
+export async function putAgentGroupByTypeAndId({
+  agentType,
+  agentGroupId,
+  agentGroupData,
+  state,
+}: {
+  agentType: AgentType;
+  agentGroupId: string;
+  agentGroupData: AgentGroupSkeleton;
+  state: State;
+}): Promise<AgentGroupSkeleton> {
+  debugMessage({ message: `AgentApi.putAgentGroupByTypeAndId: start`, state });
+  const urlString = util.format(
+    agentGroupURLTemplate,
+    state.getHost(),
+    getCurrentRealmPath(state),
+    agentType,
+    agentGroupId
+  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(false),
+    state,
+  }).put(urlString, agentGroupData, {
+    withCredentials: true,
+  });
+  debugMessage({ message: `AgentApi.putAgentGroupByTypeAndId: end`, state });
+  return data;
+}
+
+/**
  * Delete agent
- * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent)
+ * @param {string} agentType agent type (IdentityGatewayAgent, J2EEAgent, WebAgent, etc.)
  * @param {string} agentId agent id
  * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an agent object
  */
@@ -280,15 +355,45 @@ export async function deleteAgentByTypeAndId({
     agentURLTemplate,
     state.getHost(),
     getCurrentRealmPath(state),
+    getConfigPath(false),
     agentType,
     agentId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(),
+    resource: getApiConfig(false),
     state,
   }).delete(urlString, {
     withCredentials: true,
   });
   debugMessage({ message: `AgentApi.deleteAgentByTypeAndId: end`, state });
+  return data;
+}
+
+/**
+ * Get all agent groups
+ * @returns {Promise<PagedResult<AgentGroupSkeleton>>} a promise that resolves to an object containing an array of agent group objects
+ */
+export async function getAgentGroups({
+  state,
+}: {
+  state: State;
+}): Promise<PagedResult<AgentGroupSkeleton>> {
+  debugMessage({ message: `AgentApi.getAgentGroups: start`, state });
+  const urlString = util.format(
+    agentGroupsURLTemplate,
+    state.getHost(),
+    getCurrentRealmPath(state)
+  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(false),
+    state,
+  }).post(
+    urlString,
+    {},
+    {
+      withCredentials: true,
+    }
+  );
+  debugMessage({ message: `AgentApi.getAgentGroups: end`, state });
   return data;
 }
