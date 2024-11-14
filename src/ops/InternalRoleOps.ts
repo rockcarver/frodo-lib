@@ -72,29 +72,24 @@ export type InternalRole = {
   /**
    * Delete internal role
    * @param {string} roleId internal role uuid
-   * @param {boolean} deep deep delete (remove dependencies)
    * @returns {Promise<InternalRoleSkeleton>} a promise that resolves to an internal role object
    */
   deleteInternalRole(
-    roleId: string,
-    deep?: boolean
+    roleId: string
   ): Promise<InternalRoleSkeleton>;
   /**
    * Delete internal role by name
    * @param {string} roleName internal role name
-   * @param {boolean} deep deep delete (remove dependencies)
    * @returns {Promise<InternalRoleSkeleton>} a promise that resolves to an internal role object
    */
   deleteInternalRoleByName(
-    roleName: string,
-    deep?: boolean
+    roleName: string
   ): Promise<InternalRoleSkeleton>;
   /**
    * Delete all internal roles
-   * @param {boolean} deep deep delete (remove dependencies)
    * @returns {Promise<InternalRoleSkeleton[]>} a promise that resolves to an array of internal role objects
    */
-  deleteInternalRoles(deep?: boolean): Promise<InternalRoleSkeleton[]>;
+  deleteInternalRoles(): Promise<InternalRoleSkeleton[]>;
   /**
    * Query internal roles
    * @param filter CREST search filter
