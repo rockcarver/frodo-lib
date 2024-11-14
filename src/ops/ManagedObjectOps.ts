@@ -1,10 +1,13 @@
-import { IdObjectSkeletonInterface, PagedResult } from '../api/ApiTypes';
+import {
+  IdObjectSkeletonInterface,
+  PagedResult,
+  PatchOperationInterface,
+} from '../api/ApiTypes';
 import {
   createManagedObject as _createManagedObject,
   DEFAULT_PAGE_SIZE,
   deleteManagedObject as _deleteManagedObject,
   getManagedObject as _getManagedObject,
-  type ManagedObjectPatchOperationInterface,
   patchManagedObject as _patchManagedObject,
   putManagedObject as _putManagedObject,
   queryAllManagedObjectsByType,
@@ -64,21 +67,21 @@ export type ManagedObject = {
    * Partially update managed object through a collection of patch operations.
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} id managed object id
-   * @param {ManagedObjectPatchOperationInterface[]} operations collection of patch operations to perform on the object
+   * @param {PatchOperationInterface[]} operations collection of patch operations to perform on the object
    * @param {string} rev managed object revision
    * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface
    */
   updateManagedObjectProperties(
     type: string,
     id: string,
-    operations: ManagedObjectPatchOperationInterface[],
+    operations: PatchOperationInterface[],
     rev?: string
   ): Promise<IdObjectSkeletonInterface>;
   /**
    * Partially update multiple managed object through a collection of patch operations.
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} filter CREST search filter
-   * @param {ManagedObjectPatchOperationInterface[]} operations collection of patch operations to perform on the object
+   * @param {PatchOperationInterface[]} operations collection of patch operations to perform on the object
    * @param {string} rev managed object revision
    * @param {number} pageSize page size
    * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface
@@ -86,7 +89,7 @@ export type ManagedObject = {
   updateManagedObjectsProperties(
     type: string,
     filter: string,
-    operations: ManagedObjectPatchOperationInterface[],
+    operations: PatchOperationInterface[],
     rev?: string,
     pageSize?: number
   ): Promise<IdObjectSkeletonInterface[]>;
@@ -174,7 +177,7 @@ export default (state: State): ManagedObject => {
     async updateManagedObjectProperties(
       type: string,
       id: string,
-      operations: ManagedObjectPatchOperationInterface[],
+      operations: PatchOperationInterface[],
       rev?: string
     ): Promise<IdObjectSkeletonInterface> {
       return updateManagedObjectProperties({
@@ -188,7 +191,7 @@ export default (state: State): ManagedObject => {
     async updateManagedObjectsProperties(
       type: string,
       filter: string,
-      operations: ManagedObjectPatchOperationInterface[],
+      operations: PatchOperationInterface[],
       rev?: string,
       pageSize: number = DEFAULT_PAGE_SIZE
     ): Promise<IdObjectSkeletonInterface[]> {
@@ -335,7 +338,7 @@ export async function updateManagedObjectProperties({
 }: {
   type: string;
   id: string;
-  operations: ManagedObjectPatchOperationInterface[];
+  operations: PatchOperationInterface[];
   rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
@@ -359,7 +362,7 @@ export async function updateManagedObjectsProperties({
 }: {
   type: string;
   filter: string;
-  operations: ManagedObjectPatchOperationInterface[];
+  operations: PatchOperationInterface[];
   rev?: string;
   pageSize?: number;
   state: State;

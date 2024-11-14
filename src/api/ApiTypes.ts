@@ -42,3 +42,20 @@ export type EntityType = IdObjectSkeletonInterface & {
   name: string;
   collection: boolean;
 };
+
+/**
+ * See {@link https://backstage.forgerock.com/docs/idm/7.5/crest/crest-patch.html}.
+ */
+export interface PatchOperationInterface {
+  operation:
+    | 'add'
+    | 'copy'
+    | 'increment'
+    | 'move'
+    | 'remove'
+    | 'replace'
+    | 'transform';
+  field: string;
+  value?: any;
+  from?: string;
+}
