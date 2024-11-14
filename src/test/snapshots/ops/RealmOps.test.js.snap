@@ -1,5 +1,36 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`RealmOps createRealmExportTemplate() 1: Create Realm Export Template 1`] = `
+{
+  "meta": Any<Object>,
+  "realm": {},
+}
+`;
+
+exports[`RealmOps exportRealms() 1: Export Realms 1`] = `
+{
+  "meta": Any<Object>,
+  "realm": {
+    "L2FscGhh": {
+      "_id": "L2FscGhh",
+      "_rev": "362268810",
+      "active": true,
+      "aliases": [],
+      "name": "alpha",
+      "parentPath": "/",
+    },
+    "L2JyYXZv": {
+      "_id": "L2JyYXZv",
+      "_rev": "480875699",
+      "active": true,
+      "aliases": [],
+      "name": "bravo",
+      "parentPath": "/",
+    },
+  },
+}
+`;
+
 exports[`RealmOps getRealms() 1: Get Realms 1`] = `
 [
   {
