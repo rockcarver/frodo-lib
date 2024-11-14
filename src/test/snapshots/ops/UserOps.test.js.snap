@@ -1,0 +1,771 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`UserOps createUserExportTemplate() 1: Create User Export Template 1`] = `
+{
+  "meta": Any<Object>,
+  "user": {},
+}
+`;
+
+exports[`UserOps createUserGroupExportTemplate() 1: Create User Group Export Template 1`] = `
+{
+  "meta": Any<Object>,
+  "userGroup": {},
+}
+`;
+
+exports[`UserOps exportUserGroups() 1: Export User Groups 1`] = `
+{
+  "meta": Any<Object>,
+  "userGroup": {
+    "test-group": {
+      "_id": "test-group",
+      "_rev": "581192241",
+      "cn": [
+        "test-group",
+      ],
+      "dn": [
+        "cn=test-group,ou=groups,o=alpha,o=root,ou=identities",
+      ],
+      "members": {
+        "uniqueMember": [
+          "346459bf-4159-4c4c-b929-f9ff5acc2f53",
+        ],
+      },
+      "objectclass": [
+        "top",
+        "groupofuniquenames",
+      ],
+      "privileges": {
+        "AgentAdmin": true,
+        "ApplicationModifyAccess": true,
+        "ApplicationReadAccess": true,
+        "ApplicationTypesReadAccess": true,
+        "CacheAdmin": false,
+        "ConditionTypesReadAccess": true,
+        "DecisionCombinersReadAccess": true,
+        "EntitlementRestAccess": false,
+        "FederationAdmin": false,
+        "LogAdmin": false,
+        "LogRead": true,
+        "LogWrite": true,
+        "PolicyAdmin": false,
+        "PrivilegeRestAccess": true,
+        "PrivilegeRestReadAccess": true,
+        "RealmAdmin": false,
+        "RealmReadAccess": true,
+        "ResourceTypeModifyAccess": false,
+        "ResourceTypeReadAccess": false,
+        "SessionPropertyModifyAccess": false,
+        "SubjectAttributesReadAccess": false,
+        "SubjectTypesReadAccess": false,
+      },
+      "realm": "/alpha",
+      "universalid": [
+        "id=test-group,ou=group,o=alpha,ou=services,ou=am-config",
+      ],
+      "username": "test-group",
+    },
+  },
+}
+`;
+
+exports[`UserOps exportUsers() 1: Export Users 1`] = `
+{
+  "meta": Any<Object>,
+  "user": {
+    "146c2230-9448-4442-b86d-eb4a81a0121d": {
+      "_id": "146c2230-9448-4442-b86d-eb4a81a0121d",
+      "_rev": "-1",
+      "cn": [
+        "Scheuber Volker",
+      ],
+      "config": {
+        "devices": {
+          "2fa": {
+            "binding": [],
+            "oath": [],
+            "push": [],
+            "webauthn": [],
+          },
+          "profile": [],
+          "trusted": [],
+        },
+        "groups": [],
+        "oauth2": {
+          "applications": [],
+        },
+        "services": [
+          {
+            "_id": "dashboard",
+          },
+        ],
+      },
+      "createTimestamp": [
+        "20231201013952Z",
+      ],
+      "dn": [
+        "fr-idm-uuid=146c2230-9448-4442-b86d-eb4a81a0121d,ou=user,o=alpha,o=root,ou=identities",
+      ],
+      "fr-idm-custom-attrs": [
+        "{}",
+      ],
+      "fr-idm-uuid": [
+        "146c2230-9448-4442-b86d-eb4a81a0121d",
+      ],
+      "givenName": [
+        "Scheuber",
+      ],
+      "inetUserStatus": [
+        "Active",
+      ],
+      "mail": [
+        "vscheuber@gmail.com",
+      ],
+      "modifyTimestamp": [
+        "20231207213130Z",
+      ],
+      "objectClass": [
+        "iplanet-am-managed-person",
+        "inetuser",
+        "inetOrgPerson",
+        "sunFMSAML2NameIdentifier",
+        "devicePrintProfilesContainer",
+        "fr-ext-attrs",
+        "iplanet-am-user-service",
+        "iPlanetPreferences",
+        "pushDeviceProfilesContainer",
+        "forgerock-am-dashboard-service",
+        "top",
+        "kbaInfoContainer",
+        "person",
+        "organizationalPerson",
+        "oathDeviceProfilesContainer",
+        "sunAMAuthAccountLockout",
+        "webauthnDeviceProfilesContainer",
+        "deviceProfilesContainer",
+        "iplanet-am-auth-configuration-service",
+        "fr-idm-hybrid-obj",
+        "fr-idm-managed-user-explicit",
+      ],
+      "realm": "/alpha",
+      "sn": [
+        "Volker",
+      ],
+      "uid": [
+        "vscheuber@gmail.com",
+      ],
+      "universalid": [
+        "id=146c2230-9448-4442-b86d-eb4a81a0121d,ou=user,o=alpha,ou=services,ou=am-config",
+      ],
+      "username": "vscheuber@gmail.com",
+    },
+    "346459bf-4159-4c4c-b929-f9ff5acc2f53": {
+      "_id": "346459bf-4159-4c4c-b929-f9ff5acc2f53",
+      "_rev": "-1",
+      "cn": [
+        "Test User",
+      ],
+      "config": {
+        "devices": {
+          "2fa": {
+            "binding": [],
+            "oath": [],
+            "push": [],
+            "webauthn": [],
+          },
+          "profile": [],
+          "trusted": [],
+        },
+        "groups": [
+          {
+            "_id": "test-group",
+            "_rev": "-2100625394",
+            "groupname": "test-group",
+          },
+        ],
+        "oauth2": {
+          "applications": [],
+        },
+        "services": [
+          {
+            "_id": "dashboard",
+          },
+        ],
+      },
+      "createTimestamp": [
+        "20240718171624Z",
+      ],
+      "dn": [
+        "fr-idm-uuid=346459bf-4159-4c4c-b929-f9ff5acc2f53,ou=user,o=alpha,o=root,ou=identities",
+      ],
+      "fr-idm-custom-attrs": [
+        "{"effectiveApplications":[]}",
+      ],
+      "fr-idm-uuid": [
+        "346459bf-4159-4c4c-b929-f9ff5acc2f53",
+      ],
+      "givenName": [
+        "Test",
+      ],
+      "inetUserStatus": [
+        "Active",
+      ],
+      "isMemberOf": [
+        "cn=test-group,ou=groups,o=alpha,o=root,ou=identities",
+      ],
+      "mail": [
+        "test@test.com",
+      ],
+      "modifyTimestamp": [
+        "20240718171625Z",
+      ],
+      "objectClass": [
+        "iplanet-am-managed-person",
+        "inetuser",
+        "inetOrgPerson",
+        "sunFMSAML2NameIdentifier",
+        "devicePrintProfilesContainer",
+        "fr-ext-attrs",
+        "iplanet-am-user-service",
+        "iPlanetPreferences",
+        "pushDeviceProfilesContainer",
+        "forgerock-am-dashboard-service",
+        "top",
+        "kbaInfoContainer",
+        "person",
+        "organizationalPerson",
+        "oathDeviceProfilesContainer",
+        "sunAMAuthAccountLockout",
+        "webauthnDeviceProfilesContainer",
+        "deviceProfilesContainer",
+        "iplanet-am-auth-configuration-service",
+        "fr-idm-hybrid-obj",
+        "fr-idm-managed-user-explicit",
+      ],
+      "realm": "/alpha",
+      "sn": [
+        "User",
+      ],
+      "uid": [
+        "test",
+      ],
+      "universalid": [
+        "id=346459bf-4159-4c4c-b929-f9ff5acc2f53,ou=user,o=alpha,ou=services,ou=am-config",
+      ],
+      "username": "test",
+    },
+    "58612ba5-a53d-4b3e-9715-1740d397e56e": {
+      "_id": "58612ba5-a53d-4b3e-9715-1740d397e56e",
+      "_rev": "-1",
+      "cn": [
+        "James Kirk",
+      ],
+      "config": {
+        "devices": {
+          "2fa": {
+            "binding": [],
+            "oath": [],
+            "push": [],
+            "webauthn": [],
+          },
+          "profile": [],
+          "trusted": [],
+        },
+        "groups": [],
+        "oauth2": {
+          "applications": [],
+        },
+        "services": [
+          {
+            "_id": "dashboard",
+          },
+        ],
+      },
+      "createTimestamp": [
+        "20240108232406Z",
+      ],
+      "dn": [
+        "fr-idm-uuid=58612ba5-a53d-4b3e-9715-1740d397e56e,ou=user,o=alpha,o=root,ou=identities",
+      ],
+      "fr-idm-custom-attrs": [
+        "{}",
+      ],
+      "fr-idm-preferences": [
+        "{"updates":false,"marketing":false}",
+      ],
+      "fr-idm-uuid": [
+        "58612ba5-a53d-4b3e-9715-1740d397e56e",
+      ],
+      "givenName": [
+        "James",
+      ],
+      "inetUserStatus": [
+        "Active",
+      ],
+      "mail": [
+        "jtkirk@ufp.org",
+      ],
+      "modifyTimestamp": [
+        "20240122164335Z",
+      ],
+      "objectClass": [
+        "iplanet-am-managed-person",
+        "inetuser",
+        "inetOrgPerson",
+        "sunFMSAML2NameIdentifier",
+        "devicePrintProfilesContainer",
+        "fr-ext-attrs",
+        "iplanet-am-user-service",
+        "iPlanetPreferences",
+        "pushDeviceProfilesContainer",
+        "forgerock-am-dashboard-service",
+        "top",
+        "kbaInfoContainer",
+        "person",
+        "organizationalPerson",
+        "oathDeviceProfilesContainer",
+        "sunAMAuthAccountLockout",
+        "webauthnDeviceProfilesContainer",
+        "deviceProfilesContainer",
+        "iplanet-am-auth-configuration-service",
+        "fr-idm-hybrid-obj",
+        "fr-idm-managed-user-explicit",
+      ],
+      "realm": "/alpha",
+      "sn": [
+        "Kirk",
+      ],
+      "uid": [
+        "kirk",
+      ],
+      "universalid": [
+        "id=58612ba5-a53d-4b3e-9715-1740d397e56e,ou=user,o=alpha,ou=services,ou=am-config",
+      ],
+      "username": "kirk",
+    },
+    "9f528ec5-4e5a-4c0b-ac56-74f194c97276": {
+      "_id": "9f528ec5-4e5a-4c0b-ac56-74f194c97276",
+      "_rev": "-1",
+      "cn": [
+        "Montgomery Scott",
+      ],
+      "config": {
+        "devices": {
+          "2fa": {
+            "binding": [],
+            "oath": [],
+            "push": [],
+            "webauthn": [],
+          },
+          "profile": [],
+          "trusted": [],
+        },
+        "groups": [],
+        "oauth2": {
+          "applications": [],
+        },
+        "services": [
+          {
+            "_id": "dashboard",
+          },
+        ],
+      },
+      "createTimestamp": [
+        "20240108232723Z",
+      ],
+      "dn": [
+        "fr-idm-uuid=9f528ec5-4e5a-4c0b-ac56-74f194c97276,ou=user,o=alpha,o=root,ou=identities",
+      ],
+      "fr-idm-custom-attrs": [
+        "{}",
+      ],
+      "fr-idm-managed-organization-member": [
+        "{"firstResourceCollection":"managed/alpha_user","firstResourceId":"9f528ec5-4e5a-4c0b-ac56-74f194c97276","firstPropertyName":"memberOfOrg","secondResourceCollection":"managed/alpha_organization","secondResourceId":"dfe53b12-798c-4408-839b-fa7fd8ccd672","secondPropertyName":"members","properties":{},"_id":"fd7ec2b5-59c4-4755-8bbe-8a848875ddf5-121714","_rev":"fd7ec2b5-59c4-4755-8bbe-8a848875ddf5-121715"}uid=dfe53b12-798c-4408-839b-fa7fd8ccd672,ou=organization,o=alpha,o=root,ou=identities",
+      ],
+      "fr-idm-managed-user-memberoforgid": [
+        "dfe53b12-798c-4408-839b-fa7fd8ccd672",
+      ],
+      "fr-idm-uuid": [
+        "9f528ec5-4e5a-4c0b-ac56-74f194c97276",
+      ],
+      "givenName": [
+        "Montgomery",
+      ],
+      "inetUserStatus": [
+        "Active",
+      ],
+      "mail": [
+        "mscott@ufa.org",
+      ],
+      "modifyTimestamp": [
+        "20240108232735Z",
+      ],
+      "objectClass": [
+        "iplanet-am-managed-person",
+        "inetuser",
+        "inetOrgPerson",
+        "sunFMSAML2NameIdentifier",
+        "devicePrintProfilesContainer",
+        "fr-ext-attrs",
+        "iplanet-am-user-service",
+        "iPlanetPreferences",
+        "pushDeviceProfilesContainer",
+        "forgerock-am-dashboard-service",
+        "top",
+        "kbaInfoContainer",
+        "person",
+        "organizationalPerson",
+        "oathDeviceProfilesContainer",
+        "sunAMAuthAccountLockout",
+        "webauthnDeviceProfilesContainer",
+        "deviceProfilesContainer",
+        "iplanet-am-auth-configuration-service",
+        "fr-idm-hybrid-obj",
+        "fr-idm-managed-user-explicit",
+      ],
+      "realm": "/alpha",
+      "sn": [
+        "Scott",
+      ],
+      "uid": [
+        "scotty",
+      ],
+      "universalid": [
+        "id=9f528ec5-4e5a-4c0b-ac56-74f194c97276,ou=user,o=alpha,ou=services,ou=am-config",
+      ],
+      "username": "scotty",
+    },
+  },
+}
+`;
+
+exports[`UserOps readUserGroups() 1: Read User Groups 1`] = `
+[
+  {
+    "_id": "test-group",
+    "_rev": "581192241",
+    "cn": [
+      "test-group",
+    ],
+    "dn": [
+      "cn=test-group,ou=groups,o=alpha,o=root,ou=identities",
+    ],
+    "members": {
+      "uniqueMember": [
+        "346459bf-4159-4c4c-b929-f9ff5acc2f53",
+      ],
+    },
+    "objectclass": [
+      "top",
+      "groupofuniquenames",
+    ],
+    "privileges": {
+      "AgentAdmin": true,
+      "ApplicationModifyAccess": true,
+      "ApplicationReadAccess": true,
+      "ApplicationTypesReadAccess": true,
+      "CacheAdmin": false,
+      "ConditionTypesReadAccess": true,
+      "DecisionCombinersReadAccess": true,
+      "EntitlementRestAccess": false,
+      "FederationAdmin": false,
+      "LogAdmin": false,
+      "LogRead": true,
+      "LogWrite": true,
+      "PolicyAdmin": false,
+      "PrivilegeRestAccess": true,
+      "PrivilegeRestReadAccess": true,
+      "RealmAdmin": false,
+      "RealmReadAccess": true,
+      "ResourceTypeModifyAccess": false,
+      "ResourceTypeReadAccess": false,
+      "SessionPropertyModifyAccess": false,
+      "SubjectAttributesReadAccess": false,
+      "SubjectTypesReadAccess": false,
+    },
+    "realm": "/alpha",
+    "universalid": [
+      "id=test-group,ou=group,o=alpha,ou=services,ou=am-config",
+    ],
+    "username": "test-group",
+  },
+]
+`;
+
+exports[`UserOps readUsers() 1: Read Users 1`] = `
+[
+  {
+    "_id": "9f528ec5-4e5a-4c0b-ac56-74f194c97276",
+    "_rev": "-1",
+    "cn": [
+      "Montgomery Scott",
+    ],
+    "createTimestamp": [
+      "20240108232723Z",
+    ],
+    "dn": [
+      "fr-idm-uuid=9f528ec5-4e5a-4c0b-ac56-74f194c97276,ou=user,o=alpha,o=root,ou=identities",
+    ],
+    "fr-idm-custom-attrs": [
+      "{}",
+    ],
+    "fr-idm-managed-organization-member": [
+      "{"firstResourceCollection":"managed/alpha_user","firstResourceId":"9f528ec5-4e5a-4c0b-ac56-74f194c97276","firstPropertyName":"memberOfOrg","secondResourceCollection":"managed/alpha_organization","secondResourceId":"dfe53b12-798c-4408-839b-fa7fd8ccd672","secondPropertyName":"members","properties":{},"_id":"fd7ec2b5-59c4-4755-8bbe-8a848875ddf5-121714","_rev":"fd7ec2b5-59c4-4755-8bbe-8a848875ddf5-121715"}uid=dfe53b12-798c-4408-839b-fa7fd8ccd672,ou=organization,o=alpha,o=root,ou=identities",
+    ],
+    "fr-idm-managed-user-memberoforgid": [
+      "dfe53b12-798c-4408-839b-fa7fd8ccd672",
+    ],
+    "fr-idm-uuid": [
+      "9f528ec5-4e5a-4c0b-ac56-74f194c97276",
+    ],
+    "givenName": [
+      "Montgomery",
+    ],
+    "inetUserStatus": [
+      "Active",
+    ],
+    "mail": [
+      "mscott@ufa.org",
+    ],
+    "modifyTimestamp": [
+      "20240108232735Z",
+    ],
+    "objectClass": [
+      "iplanet-am-managed-person",
+      "inetuser",
+      "inetOrgPerson",
+      "sunFMSAML2NameIdentifier",
+      "devicePrintProfilesContainer",
+      "fr-ext-attrs",
+      "iplanet-am-user-service",
+      "iPlanetPreferences",
+      "pushDeviceProfilesContainer",
+      "forgerock-am-dashboard-service",
+      "top",
+      "kbaInfoContainer",
+      "person",
+      "organizationalPerson",
+      "oathDeviceProfilesContainer",
+      "sunAMAuthAccountLockout",
+      "webauthnDeviceProfilesContainer",
+      "deviceProfilesContainer",
+      "iplanet-am-auth-configuration-service",
+      "fr-idm-hybrid-obj",
+      "fr-idm-managed-user-explicit",
+    ],
+    "realm": "/alpha",
+    "sn": [
+      "Scott",
+    ],
+    "uid": [
+      "scotty",
+    ],
+    "universalid": [
+      "id=9f528ec5-4e5a-4c0b-ac56-74f194c97276,ou=user,o=alpha,ou=services,ou=am-config",
+    ],
+    "username": "scotty",
+  },
+  {
+    "_id": "58612ba5-a53d-4b3e-9715-1740d397e56e",
+    "_rev": "-1",
+    "cn": [
+      "James Kirk",
+    ],
+    "createTimestamp": [
+      "20240108232406Z",
+    ],
+    "dn": [
+      "fr-idm-uuid=58612ba5-a53d-4b3e-9715-1740d397e56e,ou=user,o=alpha,o=root,ou=identities",
+    ],
+    "fr-idm-custom-attrs": [
+      "{}",
+    ],
+    "fr-idm-preferences": [
+      "{"updates":false,"marketing":false}",
+    ],
+    "fr-idm-uuid": [
+      "58612ba5-a53d-4b3e-9715-1740d397e56e",
+    ],
+    "givenName": [
+      "James",
+    ],
+    "inetUserStatus": [
+      "Active",
+    ],
+    "mail": [
+      "jtkirk@ufp.org",
+    ],
+    "modifyTimestamp": [
+      "20240122164335Z",
+    ],
+    "objectClass": [
+      "iplanet-am-managed-person",
+      "inetuser",
+      "inetOrgPerson",
+      "sunFMSAML2NameIdentifier",
+      "devicePrintProfilesContainer",
+      "fr-ext-attrs",
+      "iplanet-am-user-service",
+      "iPlanetPreferences",
+      "pushDeviceProfilesContainer",
+      "forgerock-am-dashboard-service",
+      "top",
+      "kbaInfoContainer",
+      "person",
+      "organizationalPerson",
+      "oathDeviceProfilesContainer",
+      "sunAMAuthAccountLockout",
+      "webauthnDeviceProfilesContainer",
+      "deviceProfilesContainer",
+      "iplanet-am-auth-configuration-service",
+      "fr-idm-hybrid-obj",
+      "fr-idm-managed-user-explicit",
+    ],
+    "realm": "/alpha",
+    "sn": [
+      "Kirk",
+    ],
+    "uid": [
+      "kirk",
+    ],
+    "universalid": [
+      "id=58612ba5-a53d-4b3e-9715-1740d397e56e,ou=user,o=alpha,ou=services,ou=am-config",
+    ],
+    "username": "kirk",
+  },
+  {
+    "_id": "346459bf-4159-4c4c-b929-f9ff5acc2f53",
+    "_rev": "-1",
+    "cn": [
+      "Test User",
+    ],
+    "createTimestamp": [
+      "20240718171624Z",
+    ],
+    "dn": [
+      "fr-idm-uuid=346459bf-4159-4c4c-b929-f9ff5acc2f53,ou=user,o=alpha,o=root,ou=identities",
+    ],
+    "fr-idm-custom-attrs": [
+      "{"effectiveApplications":[]}",
+    ],
+    "fr-idm-uuid": [
+      "346459bf-4159-4c4c-b929-f9ff5acc2f53",
+    ],
+    "givenName": [
+      "Test",
+    ],
+    "inetUserStatus": [
+      "Active",
+    ],
+    "isMemberOf": [
+      "cn=test-group,ou=groups,o=alpha,o=root,ou=identities",
+    ],
+    "mail": [
+      "test@test.com",
+    ],
+    "modifyTimestamp": [
+      "20240718171625Z",
+    ],
+    "objectClass": [
+      "iplanet-am-managed-person",
+      "inetuser",
+      "inetOrgPerson",
+      "sunFMSAML2NameIdentifier",
+      "devicePrintProfilesContainer",
+      "fr-ext-attrs",
+      "iplanet-am-user-service",
+      "iPlanetPreferences",
+      "pushDeviceProfilesContainer",
+      "forgerock-am-dashboard-service",
+      "top",
+      "kbaInfoContainer",
+      "person",
+      "organizationalPerson",
+      "oathDeviceProfilesContainer",
+      "sunAMAuthAccountLockout",
+      "webauthnDeviceProfilesContainer",
+      "deviceProfilesContainer",
+      "iplanet-am-auth-configuration-service",
+      "fr-idm-hybrid-obj",
+      "fr-idm-managed-user-explicit",
+    ],
+    "realm": "/alpha",
+    "sn": [
+      "User",
+    ],
+    "uid": [
+      "test",
+    ],
+    "universalid": [
+      "id=346459bf-4159-4c4c-b929-f9ff5acc2f53,ou=user,o=alpha,ou=services,ou=am-config",
+    ],
+    "username": "test",
+  },
+  {
+    "_id": "146c2230-9448-4442-b86d-eb4a81a0121d",
+    "_rev": "-1",
+    "cn": [
+      "Scheuber Volker",
+    ],
+    "createTimestamp": [
+      "20231201013952Z",
+    ],
+    "dn": [
+      "fr-idm-uuid=146c2230-9448-4442-b86d-eb4a81a0121d,ou=user,o=alpha,o=root,ou=identities",
+    ],
+    "fr-idm-custom-attrs": [
+      "{}",
+    ],
+    "fr-idm-uuid": [
+      "146c2230-9448-4442-b86d-eb4a81a0121d",
+    ],
+    "givenName": [
+      "Scheuber",
+    ],
+    "inetUserStatus": [
+      "Active",
+    ],
+    "mail": [
+      "vscheuber@gmail.com",
+    ],
+    "modifyTimestamp": [
+      "20231207213130Z",
+    ],
+    "objectClass": [
+      "iplanet-am-managed-person",
+      "inetuser",
+      "inetOrgPerson",
+      "sunFMSAML2NameIdentifier",
+      "devicePrintProfilesContainer",
+      "fr-ext-attrs",
+      "iplanet-am-user-service",
+      "iPlanetPreferences",
+      "pushDeviceProfilesContainer",
+      "forgerock-am-dashboard-service",
+      "top",
+      "kbaInfoContainer",
+      "person",
+      "organizationalPerson",
+      "oathDeviceProfilesContainer",
+      "sunAMAuthAccountLockout",
+      "webauthnDeviceProfilesContainer",
+      "deviceProfilesContainer",
+      "iplanet-am-auth-configuration-service",
+      "fr-idm-hybrid-obj",
+      "fr-idm-managed-user-explicit",
+    ],
+    "realm": "/alpha",
+    "sn": [
+      "Volker",
+    ],
+    "uid": [
+      "vscheuber@gmail.com",
+    ],
+    "universalid": [
+      "id=146c2230-9448-4442-b86d-eb4a81a0121d,ou=user,o=alpha,ou=services,ou=am-config",
+    ],
+    "username": "vscheuber@gmail.com",
+  },
+]
+`;

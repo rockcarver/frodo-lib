@@ -76,6 +76,7 @@ import ServiceOps, { Service } from '../ops/ServiceOps';
 import SessionOps, { Session } from '../ops/SessionOps';
 import ThemeOps, { Theme } from '../ops/ThemeOps';
 import TokenCacheOps, { TokenCache } from '../ops/TokenCacheOps';
+import UserOps, { User } from '../ops/UserOps';
 import VersionUtils, { Version } from '../ops/VersionUtils';
 // non-instantiable modules
 import ConstantsImpl, { Constants } from '../shared/Constants';
@@ -178,6 +179,8 @@ export type Frodo = {
   session: Session;
 
   theme: Theme;
+
+  user: User;
 
   utils: FRUtils &
     ScriptValidation &
@@ -336,6 +339,8 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     session: SessionOps(state),
 
     theme: ThemeOps(state),
+
+    user: UserOps(state),
 
     utils: {
       ...ForgeRockUtils(state),
