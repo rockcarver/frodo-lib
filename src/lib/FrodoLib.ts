@@ -77,6 +77,7 @@ import ReconOps, { Recon } from '../ops/ReconOps';
 import ResourceTypeOps, { ResourceType } from '../ops/ResourceTypeOps';
 import Saml2Ops, { Saml2 } from '../ops/Saml2Ops';
 import ScriptOps, { Script } from '../ops/ScriptOps';
+import ScriptTypeOps, { ScriptType } from '../ops/ScriptTypeOps';
 import ServiceOps, { Service } from '../ops/ServiceOps';
 import SessionOps, { Session } from '../ops/SessionOps';
 import ThemeOps, { Theme } from '../ops/ThemeOps';
@@ -187,6 +188,7 @@ export type Frodo = {
   };
 
   script: Script;
+  scriptType: ScriptType;
   server: Server;
   secretStore: SecretStore;
   service: Service;
@@ -357,6 +359,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     },
 
     script: ScriptOps(state),
+    scriptType: ScriptTypeOps(state),
     server: ServerOps(state),
     secretStore: SecretStoreOps(state),
     service: ServiceOps(state),
