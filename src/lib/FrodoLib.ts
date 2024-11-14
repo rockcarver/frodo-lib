@@ -8,6 +8,7 @@ import AuthenticationSettingsOps, {
   AuthenticationSettings,
 } from '../ops/AuthenticationSettingsOps';
 import CirclesOfTrustOps, { CirclesOfTrust } from '../ops/CirclesOfTrustOps';
+import ServerOps, { Server } from '../ops/classic/ServerOps';
 import AdminFederationOps, {
   AdminFederation,
 } from '../ops/cloud/AdminFederationOps';
@@ -175,6 +176,7 @@ export type Frodo = {
   };
 
   script: Script;
+  server: Server;
   service: Service;
   session: Session;
 
@@ -335,6 +337,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     },
 
     script: ScriptOps(state),
+    server: ServerOps(state),
     service: ServiceOps(state),
     session: SessionOps(state),
 
