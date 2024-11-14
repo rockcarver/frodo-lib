@@ -1,0 +1,36 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`SiteOps createSiteExportTemplate() 1: Create Site Export Template 1`] = `
+{
+  "meta": Any<Object>,
+  "site": {},
+}
+`;
+
+exports[`SiteOps exportSites() 1: Export Sites 1`] = `
+{
+  "meta": Any<Object>,
+  "site": {
+    "testsite": {
+      "_id": "testsite",
+      "_rev": "868179817",
+      "secondaryURLs": [],
+      "servers": [],
+      "url": "http://testurl.com:8080",
+    },
+  },
+}
+`;
+
+exports[`SiteOps readSites() 1: Read Sites 1`] = `
+[
+  {
+    "_id": "testsite",
+    "_rev": "868179817",
+    "id": "02",
+    "secondaryURLs": [],
+    "servers": [],
+    "url": "http://testurl.com:8080",
+  },
+]
+`;
