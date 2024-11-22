@@ -74,17 +74,13 @@ export type InternalRole = {
    * @param {string} roleId internal role uuid
    * @returns {Promise<InternalRoleSkeleton>} a promise that resolves to an internal role object
    */
-  deleteInternalRole(
-    roleId: string
-  ): Promise<InternalRoleSkeleton>;
+  deleteInternalRole(roleId: string): Promise<InternalRoleSkeleton>;
   /**
    * Delete internal role by name
    * @param {string} roleName internal role name
    * @returns {Promise<InternalRoleSkeleton>} a promise that resolves to an internal role object
    */
-  deleteInternalRoleByName(
-    roleName: string
-  ): Promise<InternalRoleSkeleton>;
+  deleteInternalRoleByName(roleName: string): Promise<InternalRoleSkeleton>;
   /**
    * Delete all internal roles
    * @returns {Promise<InternalRoleSkeleton[]>} a promise that resolves to an array of internal role objects
