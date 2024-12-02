@@ -14,6 +14,10 @@ import {
   Recording,
 } from './PollyUtils';
 
+const FRODO_TEST_NAME = process.env.FRODO_TEST_NAME 
+  ? process.env.FRODO_TEST_NAME
+  : null
+
 const FRODO_MOCK_HOSTS = process.env.FRODO_MOCK_HOSTS
   ? process.env.FRODO_MOCK_HOSTS.split(',')
   : [
@@ -102,7 +106,13 @@ function getFrodoArgsId({ start, state }: { start: number; state: State }) {
   result.push(`${args.length}`);
   const paramsId = params.join('_');
   if (paramsId) result.push(paramsId);
-  const argsId = result.join('_');
+  const argsId = (process.env.FRODO_TEST_NAME) ? FRODO_TEST_NAME : result.join('_');
+  if(process.env.FRODO_TEST_NAME) {
+    debugMessage({
+      message: `FRODO_TEST_NAME=${FRODO_TEST_NAME}`,
+      state
+    })
+  }
   if (mode !== MODES.RECORD)
     debugMessage({
       message: `SetupPollyForFrodoLib.getFrodoArgsId: argsId=${argsId}`,

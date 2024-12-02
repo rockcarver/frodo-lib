@@ -9,6 +9,7 @@ export type FRUtils = {
   getCurrentRealmName(): string;
   getCurrentRealmManagedUser(): string;
   getRealmName(realm: string): string;
+  getRealmUsingExportFormat(realm: string): string;
   /**
    * Gets the list of realms to be used for exports in special format.
    * e.g. if the realm is normally '/first/second', then it will return 'root-first-second'.
@@ -80,7 +81,6 @@ export default (state: State): FRUtils => {
     getIdmBaseUrl(): string {
       return getIdmBaseUrl(state);
     },
-
     // deprecated
 
     getHostBaseUrl(url: string): string {
