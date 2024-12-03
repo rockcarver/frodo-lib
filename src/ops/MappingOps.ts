@@ -276,6 +276,10 @@ export type SyncSkeleton = IdObjectSkeletonInterface & {
   mappings: MappingSkeleton[];
 };
 
+export type ManagedSkeleton = IdObjectSkeletonInterface & {
+  objects: MappingSkeleton[];
+};
+
 export interface MappingExportInterface {
   meta?: ExportMetaData;
   mapping: Record<string, MappingSkeleton>;
