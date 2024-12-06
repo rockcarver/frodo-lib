@@ -1272,7 +1272,8 @@ export async function exportJourney({
             });
           scriptObject.script = useStringArrays
             ? convertBase64TextToArray(scriptObject.script)
-            : JSON.stringify(decode(scriptObject.script));
+            : // Stringify necessary to export journey scripts in the same format as Ping AIC
+              JSON.stringify(decode(scriptObject.script));
           exportData.scripts[scriptObject._id] = scriptObject;
 
           // handle library scripts
@@ -1286,7 +1287,8 @@ export async function exportJourney({
               name2uuid[scriptName] = libScriptObject._id;
               libScriptObject.script = useStringArrays
                 ? convertBase64TextToArray(libScriptObject.script as string)
-                : JSON.stringify(decode(scriptObject.script));
+                : // Stringify necessary to export journey scripts in the same format as Ping AIC
+                  JSON.stringify(decode(scriptObject.script));
               exportData.scripts[libScriptObject._id] = libScriptObject;
             }
           }
@@ -1566,7 +1568,8 @@ export async function importJourney({
             scriptObject['script']
           );
         } else if (!isBase64Encoded(scriptObject['script'])) {
-          scriptObject['script'] = encode(scriptObject['script']);
+          // JSON.parse is necessary to import scripts, otherwise it imports them as a single string
+          scriptObject['script'] = encode(JSON.parse(scriptObject['script']));
         }
         try {
           await updateScript({ scriptId, scriptData: scriptObject, state });
