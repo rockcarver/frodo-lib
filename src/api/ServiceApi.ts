@@ -190,6 +190,14 @@ export async function putServiceNextDescendent({
   globalConfig?: boolean;
   state: State;
 }): Promise<ServiceNextDescendent> {
+  // If performing an update (not create), idp updates will throw an HTTP 500 error unless the redirectAfterFormPostURI attribute has a value.
+  // If no redirectAfterFormPostURI is provided, importing with an empty string as its value will perform the same function without the 500 error.
+  if (
+    serviceId === 'SocialIdentityProviders' &&
+    serviceNextDescendentData.redirectAfterFormPostURI === undefined
+  ) {
+    serviceNextDescendentData.redirectAfterFormPostURI = '';
+  }
   const urlString = util.format(
     serviceURLNextDescendentTemplate,
     state.getHost(),
