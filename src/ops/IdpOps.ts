@@ -1,4 +1,3 @@
-import { type NoIdObjectSkeletonInterface } from '../api/ApiTypes';
 import { getScript, type ScriptSkeleton } from '../api/ScriptApi';
 import {
   deleteProviderByTypeAndId,
@@ -463,7 +462,7 @@ export async function createSocialIdentityProvider({
 }: {
   providerType: string;
   providerId: string;
-  providerData: SocialIdpSkeleton | NoIdObjectSkeletonInterface;
+  providerData: SocialIdpSkeleton;
   state: State;
 }): Promise<SocialIdpSkeleton> {
   debugMessage({
@@ -500,7 +499,7 @@ export async function updateSocialIdentityProvider({
 }: {
   providerType: string;
   providerId: string;
-  providerData: SocialIdpSkeleton | NoIdObjectSkeletonInterface;
+  providerData: SocialIdpSkeleton;
   state: State;
 }): Promise<SocialIdpSkeleton> {
   debugMessage({
