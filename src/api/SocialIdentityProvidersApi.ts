@@ -3,11 +3,7 @@ import util from 'util';
 import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../utils/JsonUtils';
-import {
-  type AmConfigEntityInterface,
-  type NoIdObjectSkeletonInterface,
-  type PagedResult,
-} from './ApiTypes';
+import { type AmConfigEntityInterface, type PagedResult } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 
 const getAllProviderTypesURLTemplate =
@@ -26,8 +22,32 @@ const getApiConfig = () => {
 };
 
 export type SocialIdpSkeleton = AmConfigEntityInterface & {
+  authenticationIdKey: string;
+  authorizationEndpoint: string;
+  clientAuthenticationMethod: string;
+  clientId: string;
+  clientSecret?: string | null;
+  clientSecretLabelIdentifier?: string;
   enabled: boolean;
+  introspectEndpoint?: string;
+  issuerComparisonCheckType: string;
+  jwksUriEndpoint?: string;
+  jwtEncryptionAlgorithm: string;
+  jwtEncryptionMethod: string;
+  jwtSigningAlgorithm: string;
+  pkceMethod: string;
+  privateKeyJwtExpTime: number;
+  redirectAfterFormPostURI?: string;
+  redirectURI: string;
+  responseMode: string;
+  revocationCheckOptions: string[];
+  scopeDelimiter: string;
+  scopes: string[];
+  tokenEndpoint: string;
   transform: string;
+  uiConfig: Record<string, string>;
+  useCustomTrustStore: boolean;
+  userInfoEndpoint?: string;
 };
 
 /**
@@ -142,7 +162,7 @@ export async function getProviderByTypeAndId({
  * Get social identity provider by type and id
  * @param {String} type social identity provider type
  * @param {String} id social identity provider id/name
- * @param {Object} providerData a social identity provider object
+ * @param {SocialIdpSkeleton} providerData a social identity provider object
  * @returns {Promise} a promise that resolves to an object containing a social identity provider
  */
 export async function putProviderByTypeAndId({
@@ -153,9 +173,14 @@ export async function putProviderByTypeAndId({
 }: {
   type: string;
   id: string;
-  providerData: SocialIdpSkeleton | NoIdObjectSkeletonInterface;
+  providerData: SocialIdpSkeleton;
   state: State;
 }) {
+  // If performing an update (not create), idp updates will throw an HTTP 500 error unless the redirectAfterFormPostURI attribute has a value.
+  // If no redirectAfterFormPostURI is provided, importing with an empty string as its value will perform the same function without the 500 error.
+  if (providerData.redirectAfterFormPostURI === undefined) {
+    providerData.redirectAfterFormPostURI = '';
+  }
   // until we figure out a way to use transport keys in Frodo,
   // we'll have to drop those encrypted attributes.
   const cleanData = deleteDeepByKey(providerData, '-encrypted');
