@@ -494,178 +494,174 @@ export async function exportFullConfiguration({
       ...config.global,
     } as FullGlobalExportInterface;
 
-    // Clean up duplicates
-    if (globalConfig.idm) {
-      Object.keys(globalConfig.idm)
-        .filter(
-          (k) =>
-            k === 'ui/themerealm' ||
-            k === 'sync' ||
-            k.startsWith('mapping/') ||
-            k.startsWith('emailTemplate/')
-        )
-        .forEach((k) => delete globalConfig.idm[k]);
-    }
+  //Clean up global duplicates
+  if (globalConfig.idm) {
+    Object.keys(globalConfig.idm)
+      .filter(
+        (k) =>
+          k === 'ui/themerealm' ||
+          k === 'sync' ||
+          k.startsWith('mapping/') ||
+          k.startsWith('emailTemplate/')
+      )
+      .forEach((k) => delete globalConfig.idm[k]);
   }
 
   const realmConfig = {};
-  if (!onlyGlobal || onlyRealm) {
-    // Export realm configs
-    const activeRealm = state.getRealm();
-    for (const realm of Object.keys(config.realm)) {
-      const currentRealm = getRealmUsingExportFormat(realm);
-      if (
-        onlyRealm &&
-        (activeRealm.startsWith('/') ? activeRealm : '/' + activeRealm) !==
-          currentRealm
-      ) {
-        continue;
-      }
-      state.setRealm(currentRealm);
-      // Export saml2 providers and circle of trusts
-      let saml = (
-        (await exportWithErrorHandling(
-          exportSaml2Providers,
-          stateObj,
-          errors
-        )) as CirclesOfTrustExportInterface
-      )?.saml;
-      const cotExport = await exportWithErrorHandling(
-        exportCirclesOfTrust,
+  const currentRealm = state.getRealm();
+  for (const realm of Object.keys(config.realm)) {
+    state.setRealm(getRealmUsingExportFormat(realm));
+    //Export saml2 providers and circle of trusts
+    let saml = (
+      (await exportWithErrorHandling(
+        exportSaml2Providers,
         stateObj,
         errors
-      );
-      if (saml) {
-        saml.cot = cotExport?.saml.cot;
-      } else {
-        saml = cotExport?.saml;
-      }
-      realmConfig[realm] = {
-        agentGroup: (
-          await exportWithErrorHandling(exportAgentGroups, stateObj, errors)
-        )?.agentGroup,
-        agent: (
-          await exportWithErrorHandling(exportAgents, realmStateObj, errors)
-        )?.agent,
-        application: (
-          await exportWithErrorHandling(
-            exportOAuth2Clients,
-            {
-              options: { deps: false, useStringArrays },
-              state,
-            },
-            errors
-          )
-        )?.application,
-        authentication: (
-          await exportWithErrorHandling(
-            exportAuthenticationSettings,
-            realmStateObj,
-            errors
-          )
-        )?.authentication,
-        idp: (
-          await exportWithErrorHandling(
-            exportSocialIdentityProviders,
-            stateObj,
-            errors
-          )
-        )?.idp,
-        trees: (
-          await exportWithErrorHandling(
-            exportJourneys,
-            {
-              options: { deps: false, useStringArrays, coords },
-              state,
-            },
-            errors
-          )
-        )?.trees,
-        managedApplication: (
-          await exportWithErrorHandling(
-            exportApplications,
-            {
-              options: { deps: false, useStringArrays },
-              state,
-            },
-            errors,
-            isPlatformDeployment
-          )
-        )?.managedApplication,
-        policy: (
-          await exportWithErrorHandling(
-            exportPolicies,
-            {
-              options: { deps: false, prereqs: false, useStringArrays },
-              state,
-            },
-            errors
-          )
-        )?.policy,
-        policyset: (
-          await exportWithErrorHandling(
-            exportPolicySets,
-            {
-              options: { deps: false, prereqs: false, useStringArrays },
-              state,
-            },
-            errors
-          )
-        )?.policyset,
-        resourcetype: (
-          await exportWithErrorHandling(exportResourceTypes, stateObj, errors)
-        )?.resourcetype,
-        saml,
-        script: (
-          await exportWithErrorHandling(
-            exportScripts,
-            {
-              options: {
-                deps: false,
-                includeDefault,
-                useStringArrays,
-              },
-              state,
-            },
-            errors
-          )
-        )?.script,
-        secretstore: (
-          await exportWithErrorHandling(
-            exportSecretStores,
-            realmStateObj,
-            errors,
-            isClassicDeployment
-          )
-        )?.secretstore,
-        service: (
-          await exportWithErrorHandling(exportServices, realmStateObj, errors)
-        )?.service,
-        theme: (
-          await exportWithErrorHandling(
-            exportThemes,
-            {
-              state,
-            },
-            errors,
-            isPlatformDeployment
-          )
-        )?.theme,
-        trustedJwtIssuer: (
-          await exportWithErrorHandling(
-            exportOAuth2TrustedJwtIssuers,
-            {
-              options: { deps: false, useStringArrays },
-              state,
-            },
-            errors
-          )
-        )?.trustedJwtIssuer,
-        ...config.realm[realm],
-      };
+      )) as CirclesOfTrustExportInterface
+    )?.saml;
+    const cotExport = await exportWithErrorHandling(
+      exportCirclesOfTrust,
+      stateObj,
+      errors
+    );
+    if (saml) {
+      saml.cot = cotExport?.saml.cot;
+    } else {
+      saml = cotExport?.saml;
     }
-    state.setRealm(activeRealm);
+    realmConfig[realm] = {
+      agentGroup: (
+        await exportWithErrorHandling(exportAgentGroups, stateObj, errors)
+      )?.agentGroup,
+      agent: (
+        await exportWithErrorHandling(exportAgents, realmStateObj, errors)
+      )?.agent,
+      application: (
+        await exportWithErrorHandling(
+          exportOAuth2Clients,
+          {
+            options: { deps: false, useStringArrays },
+            state,
+          },
+          errors
+        )
+      )?.application,
+      authentication: (
+        await exportWithErrorHandling(
+          exportAuthenticationSettings,
+          realmStateObj,
+          errors
+        )
+      )?.authentication,
+      idp: (
+        await exportWithErrorHandling(
+          exportSocialIdentityProviders,
+          stateObj,
+          errors
+        )
+      )?.idp,
+      trees: (
+        await exportWithErrorHandling(
+          exportJourneys,
+          {
+            options: { deps: false, useStringArrays, coords },
+            state,
+          },
+          errors
+        )
+      )?.trees,
+      managedApplication: (
+        await exportWithErrorHandling(
+          exportApplications,
+          {
+            options: { deps: false, useStringArrays },
+            state,
+          },
+          errors,
+          isPlatformDeployment
+        )
+      )?.managedApplication,
+      policy: (
+        await exportWithErrorHandling(
+          exportPolicies,
+          {
+            options: { deps: false, prereqs: false, useStringArrays },
+            state,
+          },
+          errors
+        )
+      )?.policy,
+      policyset: (
+        await exportWithErrorHandling(
+          exportPolicySets,
+          {
+            options: { deps: false, prereqs: false, useStringArrays },
+            state,
+          },
+          errors
+        )
+      )?.policyset,
+      resourcetype: (
+        await exportWithErrorHandling(exportResourceTypes, stateObj, errors)
+      )?.resourcetype,
+      saml,
+      script: (
+        await exportWithErrorHandling(
+          exportScripts,
+          {
+            options: {
+              deps: false,
+              includeDefault,
+              useStringArrays,
+            },
+            state,
+          },
+          errors
+        )
+      )?.script,
+      secretstore: (
+        await exportWithErrorHandling(
+          exportSecretStores,
+          realmStateObj,
+          errors,
+          isClassicDeployment
+        )
+      )?.secretstore,
+      service: (
+        await exportWithErrorHandling(exportServices, realmStateObj, errors)
+      )?.service,
+      theme: (
+        await exportWithErrorHandling(
+          exportThemes,
+          {
+            state,
+          },
+          errors,
+          isPlatformDeployment
+        )
+      )?.theme,
+      trustedJwtIssuer: (
+        await exportWithErrorHandling(
+          exportOAuth2TrustedJwtIssuers,
+          {
+            options: { deps: false, useStringArrays },
+            state,
+          },
+          errors
+        )
+      )?.trustedJwtIssuer,
+      ...config.realm[realm],
+    };
+    //Clean up realm duplicates
+    if (
+      realmConfig[realm].service &&
+      realmConfig[realm].service['SocialIdentityProviders']
+    ) {
+      delete realmConfig[realm].service['SocialIdentityProviders']
+        .nextDescendents;
+    }
   }
+  state.setRealm(currentRealm);
 
   if (throwErrors && errors.length > 0) {
     throw new FrodoError(`Error exporting full config`, errors);
