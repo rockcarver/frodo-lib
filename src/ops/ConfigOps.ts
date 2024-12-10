@@ -663,6 +663,14 @@ export async function exportFullConfiguration({
         )?.trustedJwtIssuer,
         ...config.realm[realm],
       };
+      //Clean up realm duplicates
+      if (
+        realmConfig[realm].service &&
+        realmConfig[realm].service['SocialIdentityProviders']
+      ) {
+        delete realmConfig[realm].service['SocialIdentityProviders']
+          .nextDescendents;
+      }
     }
     state.setRealm(activeRealm);
   }
