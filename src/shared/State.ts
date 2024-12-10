@@ -45,6 +45,8 @@ export type State = {
   getPassword(): string;
   setRealm(realm: string): void;
   getRealm(): string;
+  setUseRealmPrefixOnManagedObjects(useRealmPrefixOnManagedObjects: boolean): void;
+  getUseRealmPrefixOnManagedObjects(): boolean;
   setDeploymentType(type: string): void;
   getDeploymentType(): string;
   setAdminClientId(type: string): void;
@@ -209,6 +211,13 @@ export default (initialState: StateInterface): State => {
     },
     getRealm() {
       return state.realm || process.env.FRODO_REALM;
+    },
+
+    setUseRealmPrefixOnManagedObjects(useRealmPrefixOnManagedObjects: boolean) {
+      state.useRealmPrefixOnManagedObjects = useRealmPrefixOnManagedObjects;
+    },
+    getUseRealmPrefixOnManagedObjects() {
+      return state.useRealmPrefixOnManagedObjects || false;
     },
 
     setDeploymentType(type: string) {
@@ -432,6 +441,12 @@ export default (initialState: StateInterface): State => {
     getStopProgressHandler() {
       return state.stopProgressHandler;
     },
+    // setUseRealmPrefixOnManagedObjects(useRealmPrefixOnManagedObjects: boolean) {
+    //   state.useRealmPrefixOnManagedObjects = useRealmPrefixOnManagedObjects;
+    // },
+    // getUseRealmPrefixOnManagedObjects() {
+    //   return state.useRealmPrefixOnManagedObjects;
+    // },
 
     // global state
 
@@ -510,6 +525,7 @@ export interface StateInterface {
   username?: string;
   password?: string;
   realm?: string;
+  useRealmPrefixOnManagedObjects?: boolean;
   deploymentType?: string;
   adminClientId?: string;
   adminClientRedirectUri?: string;

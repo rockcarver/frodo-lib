@@ -1,6 +1,7 @@
 import { getRealms } from '../ops/RealmOps';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
+import { debugMessage } from '../utils/Console';
 
 export type FRUtils = {
   applyNameCollisionPolicy(name: string): string;
@@ -211,8 +212,15 @@ export function getCurrentRealmManagedUser({
   state: State;
 }): string {
   let realmManagedUser = 'user';
-  if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
+  if (
+    state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+    state.getUseRealmPrefixOnManagedObjects() === true
+  ) {
     realmManagedUser = `${getCurrentRealmName(state)}_user`;
+    debugMessage({
+      message: `DeploymentType === cloud or UseRealmPrefixOnManagedObjects is true, returning '${realmManagedUser}'`,
+      state: state,
+    });
   }
   return realmManagedUser;
 }

@@ -435,11 +435,18 @@ export function createApplicationExportTemplate({
 }
 
 export function getRealmManagedApplication({ state }: { state: State }) {
-  let realmManagedOrg = 'application';
-  if (state.getDeploymentType() === constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
-    realmManagedOrg = `${getCurrentRealmName(state)}_application`;
+  let realmManagedApp = 'application';
+  if (
+    state.getDeploymentType() === constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+    state.getUseRealmPrefixOnManagedObjects() === true
+  ) {
+    realmManagedApp = `${getCurrentRealmName(state)}_application`;
+    debugMessage({
+      message: `DeploymentType === cloud or UseRealmPrefixOnManagedObjects is true, returning '${realmManagedApp}'`,
+      state: state,
+    });
   }
-  return realmManagedOrg;
+  return realmManagedApp;
 }
 
 export async function createApplication({
