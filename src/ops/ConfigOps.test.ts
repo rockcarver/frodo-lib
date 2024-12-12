@@ -85,7 +85,10 @@ describe('ConfigOps', () => {
               noDecode: false,
               coords: true,
               includeDefault: true,
-              includeActiveValues: true
+              includeActiveValues: true,
+              includeReadOnly: true,
+              onlyRealm: false,
+              onlyGlobal: false,
             }, state
           });
           expect(response).toMatchSnapshot({
@@ -100,7 +103,64 @@ describe('ConfigOps', () => {
               noDecode: true,
               coords: false,
               includeDefault: false,
-              includeActiveValues: false
+              includeActiveValues: false,
+              includeReadOnly: true,
+              onlyRealm: false,
+              onlyGlobal: false,
+            }, state
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object)
+          });
+        });
+
+        test('3: Export only importable config with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: true,
+              noDecode: false,
+              coords: true,
+              includeDefault: true,
+              includeActiveValues: true,
+              includeReadOnly: false,
+              onlyRealm: false,
+              onlyGlobal: false,
+            }, state
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object)
+          });
+        });
+  
+        test('4: Export only alpha realm config with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: true,
+              noDecode: false,
+              coords: true,
+              includeDefault: true,
+              includeActiveValues: true,
+              includeReadOnly: true,
+              onlyRealm: true,
+              onlyGlobal: false,
+            }, state
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object)
+          });
+        });
+  
+        test('5: Export only global config with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: true,
+              noDecode: false,
+              coords: true,
+              includeDefault: true,
+              includeActiveValues: true,
+              includeReadOnly: true,
+              onlyRealm: false,
+              onlyGlobal: true,
             }, state
           });
           expect(response).toMatchSnapshot({
@@ -129,14 +189,17 @@ describe('ConfigOps', () => {
         setDefaultState(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
       });
       describe('exportFullConfiguration()', () => {
-        test('3: Export everything with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
+        test('6: Export everything with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
           const response = await ConfigOps.exportFullConfiguration({
             options: {
               useStringArrays: true,
               noDecode: false,
               coords: true,
               includeDefault: true,
-              includeActiveValues: true
+              includeActiveValues: true,
+              includeReadOnly: true,
+              onlyRealm: false,
+              onlyGlobal: false,
             }, state
           });
           expect(response).toMatchSnapshot({
@@ -144,14 +207,71 @@ describe('ConfigOps', () => {
           });
         });
 
-        test('4: Export everything without string arrays, decoding variables, excluding journey coordinates and default scripts', async () => {
+        test('7: Export everything without string arrays, decoding variables, excluding journey coordinates and default scripts', async () => {
           const response = await ConfigOps.exportFullConfiguration({
             options: {
               useStringArrays: false,
               noDecode: true,
               coords: false,
               includeDefault: false,
-              includeActiveValues: false
+              includeActiveValues: false,
+              includeReadOnly: true,
+              onlyRealm: false,
+              onlyGlobal: false,
+            }, state
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object)
+          });
+        });
+
+        test('8: Export only importable with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: true,
+              noDecode: false,
+              coords: true,
+              includeDefault: true,
+              includeActiveValues: true,
+              includeReadOnly: false,
+              onlyRealm: false,
+              onlyGlobal: false,
+            }, state
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object)
+          });
+        });
+
+        test('9: Export only root realm config with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: true,
+              noDecode: false,
+              coords: true,
+              includeDefault: true,
+              includeActiveValues: true,
+              includeReadOnly: true,
+              onlyRealm: true,
+              onlyGlobal: false,
+            }, state
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object)
+          });
+        });
+
+        test('10: Export only global config with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: true,
+              noDecode: false,
+              coords: true,
+              includeDefault: true,
+              includeActiveValues: true,
+              includeReadOnly: true,
+              onlyRealm: false,
+              onlyGlobal: true,
             }, state
           });
           expect(response).toMatchSnapshot({
