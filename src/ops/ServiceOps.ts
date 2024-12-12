@@ -405,7 +405,7 @@ export async function putFullService({
     });
 
     // return fast if no next descendents supplied
-    if (nextDescendents.length === 0) {
+    if (!nextDescendents || nextDescendents.length === 0) {
       debugMessage({
         message: `ServiceOps.putFullService: end (w/o descendents)`,
         state,
