@@ -146,6 +146,10 @@ export default (state: State): Config => {
         coords: true,
         includeDefault: false,
         includeActiveValues: true,
+        target: '',
+        includeReadOnly: false,
+        onlyRealm: false,
+        onlyGlobal: false,
       },
       collectErrors: Error[]
     ) {
@@ -200,6 +204,18 @@ export interface FullExportOptions {
    * Host URL of target environment to encrypt secret values for
    */
   target?: string;
+  /**
+   * Include read only config in export if true
+   */
+  includeReadOnly: boolean;
+  /**
+   * Export config only for the current realm
+   */
+  onlyRealm: boolean;
+  /**
+   * Export only global config
+   */
+  onlyGlobal: boolean;
 }
 
 /**
@@ -295,6 +311,9 @@ export async function exportFullConfiguration({
     includeDefault: false,
     includeActiveValues: true,
     target: '',
+    includeReadOnly: false,
+    onlyRealm: false,
+    onlyGlobal: false,
   },
   collectErrors,
   state,
@@ -316,6 +335,9 @@ export async function exportFullConfiguration({
     includeDefault,
     includeActiveValues,
     target,
+    includeReadOnly,
+    onlyRealm,
+    onlyGlobal,
   } = options;
   const stateObj = { state };
   const globalStateObj = { globalConfig: true, state };
@@ -328,293 +350,322 @@ export async function exportFullConfiguration({
     state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
   const isPlatformDeployment = isCloudDeployment || isForgeOpsDeployment;
 
-  const config = await exportAmConfigEntities(stateObj);
+  const config = await exportAmConfigEntities({
+    includeReadOnly,
+    onlyRealm,
+    onlyGlobal,
+    state,
+  });
 
-  //Export mappings
-  const mappings = await exportWithErrorHandling(
-    exportMappings,
-    {
-      options: {
-        useStringArrays,
-        deps: false,
-        connectorId: undefined,
-        moType: undefined,
+  let globalConfig = {} as FullGlobalExportInterface;
+  if (!onlyRealm || onlyGlobal) {
+    // Export mappings
+    const mappings = await exportWithErrorHandling(
+      exportMappings,
+      {
+        options: {
+          useStringArrays,
+          deps: false,
+          connectorId: undefined,
+          moType: undefined,
+        },
+        state,
       },
-      state,
-    },
-    errors,
-    isPlatformDeployment
-  );
-
-  //Export servers and server properties
-  const serverExport = await exportWithErrorHandling(
-    exportServers,
-    { options: { includeDefault: true }, state },
-    errors,
-    isClassicDeployment
-  );
-  if (serverExport) {
-    delete serverExport.meta;
-  }
-
-  //Export global config
-  const globalConfig = {
-    agent: (
-      await exportWithErrorHandling(
-        exportAgents,
-        globalStateObj,
-        errors,
-        isClassicDeployment
-      )
-    )?.agent,
-    authentication: (
-      await exportWithErrorHandling(
-        exportAuthenticationSettings,
-        globalStateObj,
-        errors,
-        isClassicDeployment
-      )
-    )?.authentication,
-    emailTemplate: (
-      await exportWithErrorHandling(
-        exportEmailTemplates,
-        stateObj,
-        errors,
-        isPlatformDeployment
-      )
-    )?.emailTemplate,
-    idm: (
-      await exportWithErrorHandling(
-        exportConfigEntities,
-        {
-          options: {
-            envReplaceParams: undefined,
-            entitiesToExport: undefined,
-          },
-          state,
-        },
-        errors,
-        isPlatformDeployment
-      )
-    )?.idm,
-    internalRole: (
-      await exportWithErrorHandling(
-        exportInternalRoles,
-        stateObj,
-        errors,
-        isPlatformDeployment
-      )
-    )?.internalRole,
-    mapping: mappings?.mapping,
-    realm: (await exportWithErrorHandling(exportRealms, stateObj, errors))
-      ?.realm,
-    scripttype: (
-      await exportWithErrorHandling(exportScriptTypes, stateObj, errors)
-    )?.scripttype,
-    secret: (
-      await exportWithErrorHandling(
-        exportSecrets,
-        { options: { includeActiveValues, target }, state },
-        errors,
-        isCloudDeployment
-      )
-    )?.secret,
-    secretstore: (
-      await exportWithErrorHandling(
-        exportSecretStores,
-        globalStateObj,
-        errors,
-        isClassicDeployment
-      )
-    )?.secretstore,
-    server: serverExport,
-    service: (
-      await exportWithErrorHandling(exportServices, globalStateObj, errors)
-    )?.service,
-    site: (
-      await exportWithErrorHandling(
-        exportSites,
-        stateObj,
-        errors,
-        isClassicDeployment
-      )
-    )?.site,
-    sync: mappings?.sync,
-    variable: (
-      await exportWithErrorHandling(
-        exportVariables,
-        {
-          noDecode,
-          state,
-        },
-        errors,
-        isCloudDeployment
-      )
-    )?.variable,
-    ...config.global,
-  };
-
-  //Clean up duplicates
-  if (globalConfig.idm) {
-    Object.keys(globalConfig.idm)
-      .filter(
-        (k) =>
-          k === 'ui/themerealm' ||
-          k === 'sync' ||
-          k.startsWith('mapping/') ||
-          k.startsWith('emailTemplate/')
-      )
-      .forEach((k) => delete globalConfig.idm[k]);
-  }
-
-  //Export realm configs
-  const realmConfig = {};
-  const currentRealm = state.getRealm();
-  for (const realm of Object.keys(config.realm)) {
-    state.setRealm(getRealmUsingExportFormat(realm));
-    //Export saml2 providers and circle of trusts
-    let saml = (
-      (await exportWithErrorHandling(
-        exportSaml2Providers,
-        stateObj,
-        errors
-      )) as CirclesOfTrustExportInterface
-    )?.saml;
-    const cotExport = await exportWithErrorHandling(
-      exportCirclesOfTrust,
-      stateObj,
-      errors
+      errors,
+      isPlatformDeployment
     );
-    if (saml) {
-      saml.cot = cotExport?.saml.cot;
-    } else {
-      saml = cotExport?.saml;
+
+    // Export servers and server properties
+    const serverExport = await exportWithErrorHandling(
+      exportServers,
+      { options: { includeDefault: true }, state },
+      errors,
+      isClassicDeployment
+    );
+    if (serverExport) {
+      delete serverExport.meta;
     }
-    realmConfig[realm] = {
-      agentGroup: (
-        await exportWithErrorHandling(exportAgentGroups, stateObj, errors)
-      )?.agentGroup,
+
+    // Export global config
+    globalConfig = {
       agent: (
-        await exportWithErrorHandling(exportAgents, realmStateObj, errors)
-      )?.agent,
-      application: (
         await exportWithErrorHandling(
-          exportOAuth2Clients,
-          {
-            options: { deps: false, useStringArrays },
-            state,
-          },
-          errors
+          exportAgents,
+          globalStateObj,
+          errors,
+          isClassicDeployment
         )
-      )?.application,
+      )?.agent,
       authentication: (
         await exportWithErrorHandling(
           exportAuthenticationSettings,
-          realmStateObj,
-          errors
+          globalStateObj,
+          errors,
+          isClassicDeployment
         )
       )?.authentication,
-      idp: (
+      emailTemplate: (
         await exportWithErrorHandling(
-          exportSocialIdentityProviders,
+          exportEmailTemplates,
           stateObj,
-          errors
+          errors,
+          isPlatformDeployment
         )
-      )?.idp,
-      trees: (
+      )?.emailTemplate,
+      idm: (
         await exportWithErrorHandling(
-          exportJourneys,
+          exportConfigEntities,
           {
-            options: { deps: false, useStringArrays, coords },
-            state,
-          },
-          errors
-        )
-      )?.trees,
-      managedApplication: (
-        await exportWithErrorHandling(
-          exportApplications,
-          {
-            options: { deps: false, useStringArrays },
+            options: {
+              envReplaceParams: undefined,
+              entitiesToExport: undefined,
+            },
             state,
           },
           errors,
           isPlatformDeployment
         )
-      )?.managedApplication,
-      policy: (
+      )?.idm,
+      internalRole: (
         await exportWithErrorHandling(
-          exportPolicies,
-          {
-            options: { deps: false, prereqs: false, useStringArrays },
-            state,
-          },
-          errors
+          exportInternalRoles,
+          stateObj,
+          errors,
+          isPlatformDeployment
         )
-      )?.policy,
-      policyset: (
+      )?.internalRole,
+      mapping: mappings?.mapping,
+      realm: (
         await exportWithErrorHandling(
-          exportPolicySets,
-          {
-            options: { deps: false, prereqs: false, useStringArrays },
-            state,
-          },
-          errors
+          exportRealms,
+          stateObj,
+          errors,
+          includeReadOnly || isClassicDeployment
         )
-      )?.policyset,
-      resourcetype: (
-        await exportWithErrorHandling(exportResourceTypes, stateObj, errors)
-      )?.resourcetype,
-      saml,
-      script: (
+      )?.realm,
+      scripttype: (
         await exportWithErrorHandling(
-          exportScripts,
-          {
-            options: {
-              deps: false,
-              includeDefault,
-              useStringArrays,
-            },
-            state,
-          },
-          errors
+          exportScriptTypes,
+          stateObj,
+          errors,
+          includeReadOnly || isClassicDeployment
         )
-      )?.script,
+      )?.scripttype,
+      secret: (
+        await exportWithErrorHandling(
+          exportSecrets,
+          { options: { includeActiveValues, target }, state },
+          errors,
+          isCloudDeployment
+        )
+      )?.secret,
       secretstore: (
         await exportWithErrorHandling(
           exportSecretStores,
-          realmStateObj,
+          globalStateObj,
           errors,
           isClassicDeployment
         )
       )?.secretstore,
+      server: serverExport,
       service: (
-        await exportWithErrorHandling(exportServices, realmStateObj, errors)
+        await exportWithErrorHandling(exportServices, globalStateObj, errors)
       )?.service,
-      theme: (
+      site: (
         await exportWithErrorHandling(
-          exportThemes,
+          exportSites,
+          stateObj,
+          errors,
+          isClassicDeployment
+        )
+      )?.site,
+      sync: mappings?.sync,
+      variable: (
+        await exportWithErrorHandling(
+          exportVariables,
           {
+            noDecode,
             state,
           },
           errors,
-          isPlatformDeployment
+          isCloudDeployment
         )
-      )?.theme,
-      trustedJwtIssuer: (
-        await exportWithErrorHandling(
-          exportOAuth2TrustedJwtIssuers,
-          {
-            options: { deps: false, useStringArrays },
-            state,
-          },
-          errors
+      )?.variable,
+      ...config.global,
+    } as FullGlobalExportInterface;
+
+    // Clean up duplicates
+    if (globalConfig.idm) {
+      Object.keys(globalConfig.idm)
+        .filter(
+          (k) =>
+            k === 'ui/themerealm' ||
+            k === 'sync' ||
+            k.startsWith('mapping/') ||
+            k.startsWith('emailTemplate/')
         )
-      )?.trustedJwtIssuer,
-      ...config.realm[realm],
-    };
+        .forEach((k) => delete globalConfig.idm[k]);
+    }
   }
-  state.setRealm(currentRealm);
+
+  const realmConfig = {};
+  if (!onlyGlobal || onlyRealm) {
+    // Export realm configs
+    const activeRealm = state.getRealm();
+    for (const realm of Object.keys(config.realm)) {
+      const currentRealm = getRealmUsingExportFormat(realm);
+      if (
+        onlyRealm &&
+        (activeRealm.startsWith('/') ? activeRealm : '/' + activeRealm) !==
+          currentRealm
+      ) {
+        continue;
+      }
+      state.setRealm(currentRealm);
+      // Export saml2 providers and circle of trusts
+      let saml = (
+        (await exportWithErrorHandling(
+          exportSaml2Providers,
+          stateObj,
+          errors
+        )) as CirclesOfTrustExportInterface
+      )?.saml;
+      const cotExport = await exportWithErrorHandling(
+        exportCirclesOfTrust,
+        stateObj,
+        errors
+      );
+      if (saml) {
+        saml.cot = cotExport?.saml.cot;
+      } else {
+        saml = cotExport?.saml;
+      }
+      realmConfig[realm] = {
+        agentGroup: (
+          await exportWithErrorHandling(exportAgentGroups, stateObj, errors)
+        )?.agentGroup,
+        agent: (
+          await exportWithErrorHandling(exportAgents, realmStateObj, errors)
+        )?.agent,
+        application: (
+          await exportWithErrorHandling(
+            exportOAuth2Clients,
+            {
+              options: { deps: false, useStringArrays },
+              state,
+            },
+            errors
+          )
+        )?.application,
+        authentication: (
+          await exportWithErrorHandling(
+            exportAuthenticationSettings,
+            realmStateObj,
+            errors
+          )
+        )?.authentication,
+        idp: (
+          await exportWithErrorHandling(
+            exportSocialIdentityProviders,
+            stateObj,
+            errors
+          )
+        )?.idp,
+        trees: (
+          await exportWithErrorHandling(
+            exportJourneys,
+            {
+              options: { deps: false, useStringArrays, coords },
+              state,
+            },
+            errors
+          )
+        )?.trees,
+        managedApplication: (
+          await exportWithErrorHandling(
+            exportApplications,
+            {
+              options: { deps: false, useStringArrays },
+              state,
+            },
+            errors,
+            isPlatformDeployment
+          )
+        )?.managedApplication,
+        policy: (
+          await exportWithErrorHandling(
+            exportPolicies,
+            {
+              options: { deps: false, prereqs: false, useStringArrays },
+              state,
+            },
+            errors
+          )
+        )?.policy,
+        policyset: (
+          await exportWithErrorHandling(
+            exportPolicySets,
+            {
+              options: { deps: false, prereqs: false, useStringArrays },
+              state,
+            },
+            errors
+          )
+        )?.policyset,
+        resourcetype: (
+          await exportWithErrorHandling(exportResourceTypes, stateObj, errors)
+        )?.resourcetype,
+        saml,
+        script: (
+          await exportWithErrorHandling(
+            exportScripts,
+            {
+              options: {
+                deps: false,
+                includeDefault,
+                useStringArrays,
+              },
+              state,
+            },
+            errors
+          )
+        )?.script,
+        secretstore: (
+          await exportWithErrorHandling(
+            exportSecretStores,
+            realmStateObj,
+            errors,
+            isClassicDeployment
+          )
+        )?.secretstore,
+        service: (
+          await exportWithErrorHandling(exportServices, realmStateObj, errors)
+        )?.service,
+        theme: (
+          await exportWithErrorHandling(
+            exportThemes,
+            {
+              state,
+            },
+            errors,
+            isPlatformDeployment
+          )
+        )?.theme,
+        trustedJwtIssuer: (
+          await exportWithErrorHandling(
+            exportOAuth2TrustedJwtIssuers,
+            {
+              options: { deps: false, useStringArrays },
+              state,
+            },
+            errors
+          )
+        )?.trustedJwtIssuer,
+        ...config.realm[realm],
+      };
+    }
+    state.setRealm(activeRealm);
+  }
 
   if (throwErrors && errors.length > 0) {
     throw new FrodoError(`Error exporting full config`, errors);
@@ -852,7 +903,7 @@ export async function importFullConfiguration({
       errors,
       indicatorId,
       'Agents',
-      !!importData.global.agent
+      isClassicDeployment && !!importData.global.agent
     )
   );
   response.push(

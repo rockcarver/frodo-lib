@@ -27,9 +27,16 @@ export type AmConfig = {
   ): Promise<ConfigEntityExportInterface>;
   /**
    * Export all other AM config entities
+   * @param {boolean} includeReadOnly Include read only config in the export
+   * @param {boolean} onlyRealm Export config only from the active realm. If onlyGlobal is also active, then it will also export the global config.
+   * @param {boolean} onlyGlobal Export global config only. If onlyRealm is also active, then it will also export the active realm config.
    * @returns {Promise<ConfigEntityExportInterface>} promise resolving to a ConfigEntityExportInterface object
    */
-  exportAmConfigEntities(): Promise<ConfigEntityExportInterface>;
+  exportAmConfigEntities(
+    includeReadOnly: boolean,
+    onlyRealm: boolean,
+    onlyGlobal: boolean
+  ): Promise<ConfigEntityExportInterface>;
   /**
    * Import all other AM config entities
    * @param {ConfigEntityExportInterface} importData The config import data
@@ -47,8 +54,17 @@ export default (state: State): AmConfig => {
     ): Promise<ConfigEntityExportInterface> {
       return createConfigEntityExportTemplate({ realms, state });
     },
-    async exportAmConfigEntities(): Promise<ConfigEntityExportInterface> {
-      return exportAmConfigEntities({ state });
+    async exportAmConfigEntities(
+      includeReadOnly = false,
+      onlyRealm = false,
+      onlyGlobal = false
+    ): Promise<ConfigEntityExportInterface> {
+      return exportAmConfigEntities({
+        includeReadOnly,
+        onlyRealm,
+        onlyGlobal,
+        state,
+      });
     },
     async importAmConfigEntities(
       importData: ConfigEntityExportInterface
@@ -91,11 +107,20 @@ export async function createConfigEntityExportTemplate({
 
 /**
  * Export all other AM config entities
+ * @param {boolean} includeReadOnly Include read only config in the export
+ * @param {boolean} onlyRealm Export config only from the active realm. If onlyGlobal is also active, then it will also export the global config.
+ * @param {boolean} onlyGlobal Export global config only. If onlyRealm is also active, then it will also export the active realm config.
  * @returns {Promise<ConfigEntityExportInterface>} promise resolving to a ConfigEntityExportInterface object
  */
 export async function exportAmConfigEntities({
+  includeReadOnly = false,
+  onlyRealm = false,
+  onlyGlobal = false,
   state,
 }: {
+  includeReadOnly: boolean;
+  onlyRealm: boolean;
+  onlyGlobal: boolean;
   state: State;
 }): Promise<ConfigEntityExportInterface> {
   let indicatorId: string;
@@ -104,7 +129,12 @@ export async function exportAmConfigEntities({
       message: `AmConfigOps.exportAmConfigEntities: start`,
       state,
     });
-    const entities = await getConfigEntities({ state });
+    const entities = await getConfigEntities({
+      includeReadOnly,
+      onlyRealm,
+      onlyGlobal,
+      state,
+    });
     const exportData = await createConfigEntityExportTemplate({
       state,
       realms: Object.keys(entities.realm),

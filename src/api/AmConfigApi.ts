@@ -269,11 +269,20 @@ export async function getConfigEntity({
 
 /**
  * Get all other AM config entities
+ * @param {boolean} includeReadOnly Include read only config in the export
+ * @param {boolean} onlyRealm Get config only from the active realm. If onlyGlobal is also active, then it will also get the global config.
+ * @param {boolean} onlyGlobal Get global config only. If onlyRealm is also active, then it will also get the active realm config.
  * @returns {Promise<ConfigSkeleton>} a promise that resolves to a config object containing global and realm config entities
  */
 export async function getConfigEntities({
+  includeReadOnly = false,
+  onlyRealm = false,
+  onlyGlobal = false,
   state,
 }: {
+  includeReadOnly: boolean;
+  onlyRealm: boolean;
+  onlyGlobal: boolean;
   state: State;
 }): Promise<ConfigSkeleton> {
   const realms = await getRealmsForExport({ state });
@@ -283,10 +292,14 @@ export async function getConfigEntities({
     realm: Object.fromEntries(realms.map((r) => [r, {}])),
   } as ConfigSkeleton;
   for (const [key, entityInfo] of Object.entries(AM_ENTITIES)) {
+    if (!includeReadOnly && entityInfo.readonly) {
+      continue;
+    }
     const deploymentAllowed =
       entityInfo.deployments &&
       entityInfo.deployments.includes(state.getDeploymentType());
     if (
+      (onlyGlobal || !onlyRealm) &&
       entityInfo.global &&
       ((entityInfo.global.deployments &&
         entityInfo.global.deployments.includes(state.getDeploymentType())) ||
@@ -314,12 +327,21 @@ export async function getConfigEntities({
       }
     }
     if (
+      (!onlyGlobal || onlyRealm) &&
       entityInfo.realm &&
       ((entityInfo.realm.deployments &&
         entityInfo.realm.deployments.includes(state.getDeploymentType())) ||
         (entityInfo.realm.deployments == undefined && deploymentAllowed))
     ) {
+      const activeRealm = state.getRealm();
       for (let i = 0; i < realms.length; i++) {
+        if (
+          onlyRealm &&
+          (activeRealm.startsWith('/') ? activeRealm : '/' + activeRealm) !==
+            stateRealms[i]
+        ) {
+          continue;
+        }
         try {
           entities.realm[realms[i]][key] = await getConfigEntity({
             state,
