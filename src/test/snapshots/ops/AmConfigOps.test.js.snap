@@ -1,8 +1,994 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`AmConfigOps Classic Tests exportAmConfigEntities() 2: Export AM Config Entities 1`] = `
+exports[`AmConfigOps Classic Tests exportAmConfigEntities() 5: Export AM Config Entities 1`] = `
 {
   "global": {
+    "authenticationChains": {
+      "EMPTY": {
+        "_id": "",
+        "_rev": "1147129562",
+        "_type": {
+          "_id": "EMPTY",
+          "collection": false,
+          "name": "Authentication Configuration",
+        },
+        "dynamic": {
+          "authChainConfiguration": "[Empty]",
+        },
+      },
+    },
+    "authenticationModules": {
+      "accountactivecheck": {
+        "_id": "accountactivecheck",
+        "_type": {
+          "_id": "accountactivecheck",
+          "collection": false,
+          "name": "Account Active Check",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+        },
+      },
+      "activedirectory": {
+        "_id": "activedirectory",
+        "_type": {
+          "_id": "activedirectory",
+          "collection": false,
+          "name": "Active Directory",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "connectionHeartbeatInterval": 1,
+          "connectionHeartbeatTimeUnit": "MINUTES",
+          "openam-auth-ldap-connection-mode": "LDAP",
+          "operationTimeout": 0,
+          "primaryLdapServer": [
+            "localhost:50636",
+          ],
+          "profileAttributeMappings": [],
+          "returnUserDN": true,
+          "searchScope": "SUBTREE",
+          "secondaryLdapServer": [],
+          "stopLdapbindAfterInmemoryLockedEnabled": false,
+          "trustAllServerCertificates": false,
+          "userBindDN": "cn=Directory Manager",
+          "userProfileRetrievalAttribute": "uid",
+          "userSearchAttributes": [
+            "uid",
+          ],
+          "userSearchStartDN": [
+            "dc=openam,dc=forgerock,dc=org",
+          ],
+        },
+      },
+      "adaptiverisk": {
+        "_id": "adaptiverisk",
+        "_type": {
+          "_id": "adaptiverisk",
+          "collection": false,
+          "name": "Adaptive Risk ",
+        },
+        "defaults": {
+          "attributecheck": {
+            "invertProfileRiskAttributeScore": false,
+            "profileRiskAttributeCheckEnabled": false,
+            "profileRiskAttributeScore": 1,
+          },
+          "authfailed": {
+            "failedAuthenticationCheckEnabled": false,
+            "failureScore": 1,
+            "invertFailureScore": false,
+          },
+          "devicecookie": {
+            "deviceCookieCheckEnabled": false,
+            "deviceCookieName": "Device",
+            "deviceCookieScore": 1,
+            "invertDeviceCookieScore": false,
+            "saveDeviceCookieValueOnSuccessfulLogin": false,
+          },
+          "general": {
+            "authenticationLevel": 0,
+            "riskThreshold": 1,
+          },
+          "geolocation": {
+            "geolocationCheckEnabled": false,
+            "geolocationScore": 1,
+            "invertGeolocationScore": false,
+          },
+          "iphistory": {
+            "invertIPHistoryScore": false,
+            "ipHistoryCheckEnabled": false,
+            "ipHistoryCount": 5,
+            "ipHistoryProfileAttribute": "iphistory",
+            "ipHistoryScore": 1,
+            "saveSuccessfulIP": false,
+          },
+          "iprange": {
+            "invertIPRangeScoreEnabled": false,
+            "ipRange": [
+              "10.0.0.0/24",
+            ],
+            "ipRangeCheckEnabled": false,
+            "ipRangeScore": 1,
+          },
+          "knowncookie": {
+            "createKnownCookieOnSuccessfulLogin": false,
+            "invertKnownCookieScore": false,
+            "knownCookieCheckEnabled": false,
+            "knownCookieScore": 1,
+          },
+          "lastlogin": {
+            "invertTimeSinceLastLoginScore": false,
+            "saveLastLoginTimeOnSuccessfulLogin": false,
+            "timeSinceLastLoginCheckEnabled": false,
+            "timeSinceLastLoginScore": 1,
+          },
+          "requestheader": {
+            "invertRequestHeaderScore": false,
+            "requestHeaderCheckEnabled": false,
+            "requestHeaderScore": 1,
+          },
+        },
+      },
+      "amster": {
+        "_id": "amster",
+        "_type": {
+          "_id": "amster",
+          "collection": false,
+          "name": "ForgeRock Amster",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "authorizedKeys": "/home/prestonhales/am/security/keys/amster/authorized_keys",
+          "enabled": true,
+        },
+      },
+      "anonymous": {
+        "_id": "anonymous",
+        "_type": {
+          "_id": "anonymous",
+          "collection": false,
+          "name": "Anonymous",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "caseSensitiveUsernameMatchingEnabled": false,
+          "defaultAnonymousUsername": "anonymous",
+          "validAnonymousUsers": [],
+        },
+      },
+      "authJwtPoP": {
+        "_id": "authJwtPoP",
+        "_type": {
+          "_id": "authJwtPoP",
+          "collection": false,
+          "name": "JWT Proof of Possession (PoP)",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "enableTlsSessionBinding": true,
+          "responseEncryptionCipher": "A128GCM",
+          "responseEncryptionMethod": "ECDHE",
+        },
+      },
+      "authPush": {
+        "_id": "authPush",
+        "_type": {
+          "_id": "authPush",
+          "collection": false,
+          "name": "ForgeRock Authenticator (Push)",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "pushMessage": "Login attempt from {{user}} at {{issuer}}",
+          "timeoutInMilliSecconds": 120000,
+        },
+      },
+      "authPushReg": {
+        "_id": "authPushReg",
+        "_type": {
+          "_id": "authPushReg",
+          "collection": false,
+          "name": "ForgeRock Authenticator (Push) Registration",
+        },
+        "defaults": {
+          "appleLink": "https://itunes.apple.com/app/forgerock-authenticator/id1038442926",
+          "authenticationLevel": 0,
+          "bgcolour": "#519387",
+          "googleLink": "https://play.google.com/store/apps/details?id=com.forgerock.authenticator",
+          "issuer": "ForgeRock",
+          "timeoutInMilliSecconds": 120000,
+        },
+      },
+      "authSaml": {
+        "_id": "authSaml",
+        "_type": {
+          "_id": "authSaml",
+          "collection": false,
+          "name": "SAML2",
+        },
+        "defaults": {
+          "allowCreate": "true",
+          "authComparison": "exact",
+          "authenticationLevel": 0,
+          "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact",
+          "entityName": "http://",
+          "forceAuthn": "false",
+          "isPassive": "false",
+          "metaAlias": "/sp",
+          "nameIdFormat": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+          "reqBinding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+          "sloEnabled": "false",
+          "sloRelay": "http://",
+        },
+      },
+      "authSocialInstagram": {
+        "_id": "authSocialInstagram",
+        "_type": {
+          "_id": "authSocialInstagram",
+          "collection": false,
+          "name": "Social Auth Instagram",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperClass": "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|*|instagram-",
+            "accountMapperConfiguration": [
+              "id=uid",
+            ],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [
+              "id=uid",
+              "full_name=sn",
+              "username=cn",
+              "username=givenName",
+            ],
+            "attributeMappingClasses": [
+              "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|uid|instagram-",
+            ],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "authenticationLevel": 0,
+            "authorizeEndpoint": "https://api.instagram.com/oauth/authorize",
+            "logoutBehaviour": "prompt",
+            "logoutServiceUrl": "https://instagram.com/accounts/logout",
+            "provider": "Instagram",
+            "scope": [
+              "basic",
+            ],
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "subjectProperty": "id",
+            "tokenEndpoint": "https://api.instagram.com/oauth/access_token",
+            "userInfoEndpoint": "https://api.instagram.com/v1/users/self",
+            "usesBasicAuth": false,
+          },
+        },
+      },
+      "authSocialOAuth2": {
+        "_id": "authSocialOAuth2",
+        "_type": {
+          "_id": "authSocialOAuth2",
+          "collection": false,
+          "name": "Social Auth OAuth2",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperConfiguration": [],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [],
+            "attributeMappingClasses": [],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "promptPasswordFlag": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "authenticationLevel": 0,
+            "logoutBehaviour": "prompt",
+            "mixUpMitigation": false,
+            "scope": [],
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "usesBasicAuth": true,
+          },
+          "emailSettings": {
+            "emailGateway": "org.forgerock.openam.authentication.modules.oauth2.DefaultEmailGatewayImpl",
+            "smtpHost": "localhost",
+            "smtpPort": "25",
+          },
+        },
+      },
+      "authSocialOpenID": {
+        "_id": "authSocialOpenID",
+        "_type": {
+          "_id": "authSocialOpenID",
+          "collection": false,
+          "name": "Social Auth OpenID",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperConfiguration": [],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [],
+            "attributeMappingClasses": [],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "promptPasswordFlag": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "authenticationLevel": 0,
+            "logoutBehaviour": "prompt",
+            "mixUpMitigation": false,
+            "scope": [
+              "openid",
+            ],
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "usesBasicAuth": true,
+          },
+          "emailSettings": {
+            "emailGateway": "org.forgerock.openam.authentication.modules.oauth2.DefaultEmailGatewayImpl",
+            "smtpHost": "localhost",
+            "smtpPort": "25",
+          },
+        },
+      },
+      "authSocialTwitter": {
+        "_id": "authSocialTwitter",
+        "_type": {
+          "_id": "authSocialTwitter",
+          "collection": false,
+          "name": "Social Auth Twitter",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperClass": "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|*|twitter-",
+            "accountMapperConfiguration": [
+              "id_str=uid",
+            ],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [
+              "full_name=sn",
+              "username=cn",
+              "id_str=uid",
+              "username=givenName",
+            ],
+            "attributeMappingClasses": [
+              "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|uid|twitter-",
+            ],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "authenticationLevel": 0,
+            "authorizeEndpoint": "https://api.twitter.com/oauth/authenticate",
+            "provider": "Twitter",
+            "requestTokenEndpoint": "https://api.twitter.com/oauth/request_token",
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "subjectProperty": "id_str",
+            "tokenEndpoint": "https://api.twitter.com/oauth/access_token",
+            "userInfoEndpoint": "https://api.twitter.com/1.1/account/verify_credentials.json",
+            "usesBasicAuth": false,
+          },
+        },
+      },
+      "authSocialVk": {
+        "_id": "authSocialVk",
+        "_type": {
+          "_id": "authSocialVk",
+          "collection": false,
+          "name": "Social Auth VKontakte",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperClass": "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|uid|vkontakte-",
+            "accountMapperConfiguration": [
+              "id=uid",
+            ],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [
+              "first_name=givenName",
+              "first_name=cn",
+              "id=uid",
+              "last_name=sn",
+              "email=mail",
+            ],
+            "attributeMappingClasses": [
+              "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|uid|vkontakte-",
+            ],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "promptPasswordFlag": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "apiVersion": "5.73",
+            "authorizeEndpoint": "https://oauth.vk.com/authorize",
+            "forgerock-am-auth-socialauthvk-auth-level": 0,
+            "provider": "VKontakte",
+            "scope": [
+              "email",
+            ],
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "subjectProperty": "id",
+            "tokenEndpoint": "https://oauth.vk.com/access_token",
+            "userInfoEndpoint": "https://api.vk.com/method/users.get",
+          },
+          "emailSettings": {
+            "emailGateway": "org.forgerock.openam.authentication.modules.oauth2.DefaultEmailGatewayImpl",
+            "smtpHost": "localhost",
+            "smtpPort": "25",
+          },
+        },
+      },
+      "authSocialWeChat": {
+        "_id": "authSocialWeChat",
+        "_type": {
+          "_id": "authSocialWeChat",
+          "collection": false,
+          "name": "Social Auth WeChat",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperClass": "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|*|wechat-",
+            "accountMapperConfiguration": [
+              "openid=uid",
+            ],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [
+              "nickname=givenName",
+              "openid=uid",
+              "nickname=cn",
+              "nickname=sn",
+            ],
+            "attributeMappingClasses": [
+              "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|uid|wechat-",
+            ],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "promptPasswordFlag": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "authenticationLevel": 0,
+            "authorizeEndpoint": "https://open.weixin.qq.com/connect/qrconnect",
+            "provider": "WeChat",
+            "scope": [
+              "snsapi_login",
+            ],
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "subjectProperty": "openid",
+            "tokenEndpoint": "https://api.wechat.com/sns/oauth2/access_token",
+            "userInfoEndpoint": "https://api.wechat.com/sns/userinfo",
+            "usesBasicAuth": false,
+          },
+          "emailSettings": {
+            "emailGateway": "org.forgerock.openam.authentication.modules.oauth2.DefaultEmailGatewayImpl",
+            "smtpHost": "localhost",
+            "smtpPort": "25",
+          },
+        },
+      },
+      "authSocialWeChatMobile": {
+        "_id": "authSocialWeChatMobile",
+        "_type": {
+          "_id": "authSocialWeChatMobile",
+          "collection": false,
+          "name": "Social Auth WeChat Mobile",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperClass": "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|*|wechat-",
+            "accountMapperConfiguration": [
+              "openid=uid",
+            ],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [
+              "nickname=givenName",
+              "openid=uid",
+              "nickname=cn",
+              "nickname=sn",
+            ],
+            "attributeMappingClasses": [
+              "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|uid|wechat-",
+            ],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "promptPasswordFlag": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "authenticationLevel": 0,
+            "provider": "WeChat",
+            "scope": [
+              "snsapi_userinfo",
+            ],
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "subjectProperty": "openid",
+            "userInfoEndpoint": "https://api.wechat.com/sns/userinfo",
+          },
+          "emailSettings": {
+            "emailGateway": "org.forgerock.openam.authentication.modules.oauth2.DefaultEmailGatewayImpl",
+            "smtpHost": "localhost",
+            "smtpPort": "25",
+          },
+        },
+      },
+      "authenticatoroath": {
+        "_id": "authenticatoroath",
+        "_type": {
+          "_id": "authenticatoroath",
+          "collection": false,
+          "name": "ForgeRock Authenticator (OATH)",
+        },
+        "defaults": {
+          "addChecksumToOtpEnabled": "False",
+          "authenticationLevel": 0,
+          "frOathOtpMaxRetry": 3,
+          "hotpWindowSize": 100,
+          "minimumSecretKeyLength": 32,
+          "oathAlgorithm": "HOTP",
+          "passwordLength": "6",
+          "totpMaximumClockDrift": 5,
+          "totpTimeStepInterval": 30,
+          "totpTimeStepsInWindow": 2,
+          "truncationOffset": -1,
+        },
+      },
+      "certificate": {
+        "_id": "certificate",
+        "_type": {
+          "_id": "certificate",
+          "collection": false,
+          "name": "Certificate",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "cacheCRLsInMemory": true,
+          "certificateAttributeProfileMappingExtension": "none",
+          "certificateAttributeToProfileMapping": "subject CN",
+          "certificateLdapServers": [
+            "localhost:50636",
+          ],
+          "crlMatchingCertificateAttribute": "CN",
+          "iplanet-am-auth-cert-gw-cert-preferred": false,
+          "ldapCertificateAttribute": "CN",
+          "ldapSearchStartDN": [],
+          "matchCACertificateToCRL": false,
+          "matchCertificateInLdap": false,
+          "matchCertificateToCRL": false,
+          "ocspValidationEnabled": false,
+          "sslEnabled": false,
+          "trustedRemoteHosts": [
+            "none",
+          ],
+          "updateCRLsFromDistributionPoint": true,
+          "userBindDN": "cn=Directory Manager",
+        },
+      },
+      "datastore": {
+        "_id": "datastore",
+        "_type": {
+          "_id": "datastore",
+          "collection": false,
+          "name": "Data Store",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+        },
+      },
+      "deviceidmatch": {
+        "_id": "deviceidmatch",
+        "_type": {
+          "_id": "deviceidmatch",
+          "collection": false,
+          "name": "Device Id (Match)",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "clientScript": "157298c0-7d31-4059-a95b-eeb08473b7e5",
+          "clientScriptEnabled": true,
+          "serverScript": "703dab1a-1921-4981-98dd-b8e5349d8548",
+        },
+      },
+      "deviceidsave": {
+        "_id": "deviceidsave",
+        "_type": {
+          "_id": "deviceidsave",
+          "collection": false,
+          "name": "Device Id (Save)",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "autoStoreProfiles": false,
+          "maxProfilesAllowed": 5,
+        },
+      },
+      "federation": {
+        "_id": "federation",
+        "_type": {
+          "_id": "federation",
+          "collection": false,
+          "name": "Federation",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+        },
+      },
+      "hotp": {
+        "_id": "hotp",
+        "_type": {
+          "_id": "hotp",
+          "collection": false,
+          "name": "HOTP",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "autoSendOTP": false,
+          "otpDeliveryMethod": "SMS and E-mail",
+          "otpLength": "8",
+          "otpMaxRetry": 3,
+          "otpValidityDuration": 5,
+          "smsGatewayClass": "com.sun.identity.authentication.modules.hotp.DefaultSMSGatewayImpl",
+          "smtpFromAddress": "no-reply@openam.org",
+          "smtpHostPort": 465,
+          "smtpHostname": "smtp.gmail.com",
+          "smtpSslEnabled": "SSL",
+          "smtpUserPassword": null,
+          "smtpUsername": "opensso.sun",
+          "userProfileEmailAttribute": "mail",
+          "userProfileTelephoneAttribute": "telephoneNumber",
+        },
+      },
+      "httpbasic": {
+        "_id": "httpbasic",
+        "_type": {
+          "_id": "httpbasic",
+          "collection": false,
+          "name": "HTTP Basic",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+        },
+      },
+      "jdbc": {
+        "_id": "jdbc",
+        "_type": {
+          "_id": "jdbc",
+          "collection": false,
+          "name": "JDBC",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "connectionPoolJndiName": "java:comp/env/jdbc/samplePool",
+          "connectionType": "JNDI",
+          "jdbcDriver": "com.mysql.jdbc.Driver",
+          "jdbcUrl": "jdbc:mysql://127.0.0.1:3306/test",
+          "password": null,
+          "passwordColumn": "PASSWORD_COLUMN",
+          "passwordStatement": "select PASSWORD_COLUMN from TABLE where USERNAME_COLUMN = ?",
+          "passwordTransformClass": "com.sun.identity.authentication.modules.jdbc.ClearTextTransform",
+          "username": "root",
+        },
+      },
+      "ldap": {
+        "_id": "ldap",
+        "_type": {
+          "_id": "ldap",
+          "collection": false,
+          "name": "LDAP",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "beheraPasswordPolicySupportEnabled": true,
+          "connectionHeartbeatInterval": 10,
+          "connectionHeartbeatTimeUnit": "SECONDS",
+          "minimumPasswordLength": "8",
+          "openam-auth-ldap-connection-mode": "LDAP",
+          "operationTimeout": 0,
+          "primaryLdapServer": [
+            "localhost:50636",
+          ],
+          "profileAttributeMappings": [],
+          "returnUserDN": true,
+          "searchScope": "SUBTREE",
+          "secondaryLdapServer": [],
+          "stopLdapbindAfterInmemoryLockedEnabled": false,
+          "trustAllServerCertificates": false,
+          "userBindDN": "cn=Directory Manager",
+          "userProfileRetrievalAttribute": "uid",
+          "userSearchAttributes": [
+            "uid",
+          ],
+          "userSearchStartDN": [
+            "dc=openam,dc=forgerock,dc=org",
+          ],
+        },
+      },
+      "membership": {
+        "_id": "membership",
+        "_type": {
+          "_id": "membership",
+          "collection": false,
+          "name": "Membership",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "defaultUserRoles": [],
+          "defaultUserStatus": "Active",
+          "minimumPasswordLength": 8,
+        },
+      },
+      "msisdn": {
+        "_id": "msisdn",
+        "_type": {
+          "_id": "msisdn",
+          "collection": false,
+          "name": "MSISDN",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "baseSearchDN": [
+            "dc=openam,dc=forgerock,dc=org",
+          ],
+          "ldapProviderUrl": [
+            "localhost:50636",
+          ],
+          "ldapSslEnabled": false,
+          "ldapUserBindDN": "cn=Directory Manager",
+          "msisdnParameterNames": [],
+          "msisdnRequestSearchLocations": [
+            "searchRequest",
+            "searchParam",
+            "searchCookie",
+          ],
+          "msisdnUserNamingAttribute": "uid",
+          "returnUserDN": true,
+          "trustedGatewayIPAddresses": [],
+          "userProfileMsisdnAttribute": "sunIdentityMSISDNNumber",
+        },
+      },
+      "oath": {
+        "_id": "oath",
+        "_type": {
+          "_id": "oath",
+          "collection": false,
+          "name": "OATH",
+        },
+        "defaults": {
+          "addChecksum": "False",
+          "authenticationLevel": 0,
+          "forgerock-oath-maximum-clock-drift": 0,
+          "forgerock-oath-sharedsecret-implementation-class": "org.forgerock.openam.authentication.modules.oath.plugins.DefaultSharedSecretProvider",
+          "hotpWindowSize": 100,
+          "minimumSecretKeyLength": "32",
+          "oathAlgorithm": "HOTP",
+          "oathOtpMaxRetry": 3,
+          "passwordLength": "6",
+          "stepsInWindow": 2,
+          "timeStepSize": 30,
+          "truncationOffset": -1,
+        },
+      },
+      "oauth2": {
+        "_id": "oauth2",
+        "_type": {
+          "_id": "oauth2",
+          "collection": false,
+          "name": "Legacy OAuth 2.0 / OpenID Connect",
+        },
+        "defaults": {
+          "accessTokenEndpointUrl": "https://graph.facebook.com/oauth/access_token",
+          "accessTokenParameterName": "access_token",
+          "accountMapperClass": "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper",
+          "accountMapperConfiguration": [
+            "id=facebook-id",
+            "email=mail",
+          ],
+          "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+          "anonymousUserName": "anonymous",
+          "attributeMapperConfiguration": [
+            "first_name=givenname",
+            "id=facebook-id",
+            "email=facebook-email",
+            "last_name=facebook-lname",
+            "first_name=facebook-fname",
+            "name=cn",
+            "email=mail",
+            "last_name=sn",
+          ],
+          "attributeMappingClasses": [
+            "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper",
+          ],
+          "authenticationEndpointUrl": "https://www.facebook.com/dialog/oauth",
+          "authenticationLevel": 0,
+          "createAccount": true,
+          "logoutBehaviour": "prompt",
+          "mailGatewayClass": "org.forgerock.openam.authentication.modules.oauth2.DefaultEmailGatewayImpl",
+          "mapToAnonymousUser": false,
+          "mixUpMitigation": false,
+          "promptForPassword": true,
+          "saveAttributesInSession": true,
+          "scope": "email,read_stream",
+          "smtpFromAddress": "info@forgerock.com",
+          "smtpHostName": "localhost",
+          "smtpHostPort": "25",
+          "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+          "userProfileServiceUrl": "https://graph.facebook.com/me",
+        },
+      },
+      "openidconnect": {
+        "_id": "openidconnect",
+        "_type": {
+          "_id": "openidconnect",
+          "collection": false,
+          "name": "OpenID Connect id_token bearer",
+        },
+        "defaults": {
+          "acceptedAuthorizedParties": [
+            "http://www.example.com/authorized/party",
+            "AuthorizedPartyExample",
+          ],
+          "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+          "audienceName": "example",
+          "cryptoContextType": ".well-known/openid-configuration_url",
+          "cryptoContextValue": "https://accounts.google.com/.well-known/openid-configuration",
+          "idTokenHeaderName": "oidc_id_token",
+          "idTokenIssuer": "accounts.google.com",
+          "jwtToLdapAttributeMappings": [
+            "sub=uid",
+            "email=mail",
+          ],
+          "principalMapperClass": "org.forgerock.openam.authentication.modules.oidc.JwtAttributeMapper",
+          "useSubClaimIfNoMatch": false,
+        },
+      },
+      "persistentcookie": {
+        "_id": "persistentcookie",
+        "_type": {
+          "_id": "persistentcookie",
+          "collection": false,
+          "name": "Persistent Cookie",
+        },
+        "defaults": {
+          "cookieName": "session-jwt",
+          "enforceClientIP": false,
+          "idleTimeout": 5,
+          "maxLife": 5,
+          "useHttpOnlyCookie": true,
+          "useSecureCookie": true,
+        },
+      },
+      "radius": {
+        "_id": "radius",
+        "_type": {
+          "_id": "radius",
+          "collection": false,
+          "name": "RADIUS",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "healthCheckInterval": 5,
+          "primaryRadiusServers": [
+            "127.0.0.1",
+          ],
+          "secondaryRadiusServers": [
+            "127.0.0.1",
+          ],
+          "serverPortNumber": 1645,
+          "serverTimeout": 3,
+          "stopRadiusbindAfterInmemoryLockedEnabled": false,
+        },
+      },
+      "sae": {
+        "_id": "sae",
+        "_type": {
+          "_id": "sae",
+          "collection": false,
+          "name": "SAE",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+        },
+      },
+      "scripted": {
+        "_id": "scripted",
+        "_type": {
+          "_id": "scripted",
+          "collection": false,
+          "name": "Scripted Module",
+        },
+        "defaults": {
+          "authenticationLevel": 1,
+          "clientScript": "[Empty]",
+          "clientScriptEnabled": true,
+          "serverScript": "7e3d7067-d50f-4674-8c76-a3e13a810c33",
+        },
+      },
+      "securid": {
+        "_id": "securid",
+        "_type": {
+          "_id": "securid",
+          "collection": false,
+          "name": "SecurID",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "serverConfigPath": "/home/prestonhales/am/config/auth/ace/data",
+        },
+      },
+      "windowsdesktopsso": {
+        "_id": "windowsdesktopsso",
+        "_type": {
+          "_id": "windowsdesktopsso",
+          "collection": false,
+          "name": "Windows Desktop SSO",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "kerberosServiceIsinitiator": true,
+          "lookupUserInRealm": false,
+          "returnPrincipalWithDomainName": false,
+          "trustedKerberosRealms": [],
+        },
+      },
+      "windowsnt": {
+        "_id": "windowsnt",
+        "_type": {
+          "_id": "windowsnt",
+          "collection": false,
+          "name": "Windows NT",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+        },
+      },
+    },
+    "authenticationTreesConfiguration": {
+      "EMPTY": {
+        "_id": "",
+        "_rev": "1047121059",
+        "_type": {
+          "_id": "EMPTY",
+          "collection": false,
+          "name": "Authentication Trees Configuration",
+        },
+      },
+    },
+    "secrets": {
+      "GlobalSecrets": {
+        "_id": "GlobalSecrets",
+        "_type": {
+          "_id": "GlobalSecrets",
+          "collection": false,
+          "name": "Global Secrets Settings",
+        },
+        "storeTypes": [
+          "EnvironmentAndSystemPropertySecretStore",
+          "KeyStoreSecretStore",
+          "GoogleSecretManagerSecretStoreProvider",
+          "GoogleKeyManagementServiceSecretStore",
+          "HsmSecretStore",
+          "FileSystemSecretStore",
+        ],
+      },
+    },
     "serverInformation": {
       "*": {
         "_id": "*",
@@ -43,6 +1029,17 @@ exports[`AmConfigOps Classic Tests exportAmConfigEntities() 2: Export AM Config 
         "fullVersion": "ForgeRock Access Management 7.5.0 Build 89116d59a1ebe73ed1931dd3649adb7f217cd06b (2024-March-28 16:00)",
         "revision": "89116d59a1ebe73ed1931dd3649adb7f217cd06b",
         "version": "7.5.0",
+      },
+    },
+    "webhookService": {
+      "webhooks": {
+        "_id": "",
+        "_rev": "-124688335",
+        "_type": {
+          "_id": "webhooks",
+          "collection": false,
+          "name": "Webhook Service",
+        },
       },
     },
   },
@@ -726,6 +1723,18 @@ exports[`AmConfigOps Classic Tests exportAmConfigEntities() 2: Export AM Config 
             "name": "Webhook Service",
           },
           "body": "hello",
+          "headers": {
+            "accept": "*/*",
+          },
+        },
+        "Webhook 2": {
+          "_id": "Webhook 2",
+          "_rev": "-169939214",
+          "_type": {
+            "_id": "webhooks",
+            "collection": true,
+            "name": "Webhook Service",
+          },
           "headers": {
             "accept": "*/*",
           },
@@ -2105,6 +3114,2051 @@ exports[`AmConfigOps Classic Tests exportAmConfigEntities() 2: Export AM Config 
 }
 `;
 
+exports[`AmConfigOps Classic Tests exportAmConfigEntities() 6: Export importable AM Config Entities 1`] = `
+{
+  "global": {
+    "authenticationChains": {
+      "EMPTY": {
+        "_id": "",
+        "_rev": "1147129562",
+        "_type": {
+          "_id": "EMPTY",
+          "collection": false,
+          "name": "Authentication Configuration",
+        },
+        "dynamic": {
+          "authChainConfiguration": "[Empty]",
+        },
+      },
+    },
+    "authenticationTreesConfiguration": {
+      "EMPTY": {
+        "_id": "",
+        "_rev": "1047121059",
+        "_type": {
+          "_id": "EMPTY",
+          "collection": false,
+          "name": "Authentication Trees Configuration",
+        },
+      },
+    },
+    "webhookService": {
+      "webhooks": {
+        "_id": "",
+        "_rev": "-124688335",
+        "_type": {
+          "_id": "webhooks",
+          "collection": false,
+          "name": "Webhook Service",
+        },
+      },
+    },
+  },
+  "meta": Any<Object>,
+  "realm": {
+    "root": {
+      "authenticationChains": {
+        "amsterService": {
+          "_id": "amsterService",
+          "_rev": "644917310",
+          "_type": {
+            "_id": "EMPTY",
+            "collection": true,
+            "name": "Authentication Configuration",
+          },
+          "authChainConfiguration": [
+            {
+              "criteria": "REQUIRED",
+              "module": "Amster",
+              "options": {},
+            },
+          ],
+          "loginFailureUrl": [],
+          "loginPostProcessClass": [],
+          "loginSuccessUrl": [],
+        },
+        "ldapService": {
+          "_id": "ldapService",
+          "_rev": "357765346",
+          "_type": {
+            "_id": "EMPTY",
+            "collection": true,
+            "name": "Authentication Configuration",
+          },
+          "authChainConfiguration": [
+            {
+              "criteria": "REQUIRED",
+              "module": "DataStore",
+              "options": {},
+            },
+          ],
+          "loginFailureUrl": [],
+          "loginPostProcessClass": [],
+          "loginSuccessUrl": [],
+        },
+      },
+      "webhookService": {
+        "Cool Webhook": {
+          "_id": "Cool Webhook",
+          "_rev": "1386996185",
+          "_type": {
+            "_id": "webhooks",
+            "collection": true,
+            "name": "Webhook Service",
+          },
+          "body": "body",
+          "headers": {
+            "accept": "*/*",
+            "cool": "test",
+          },
+          "url": "test",
+        },
+        "Test Webhook": {
+          "_id": "Test Webhook",
+          "_rev": "2105362594",
+          "_type": {
+            "_id": "webhooks",
+            "collection": true,
+            "name": "Webhook Service",
+          },
+          "body": "hello",
+          "headers": {
+            "accept": "*/*",
+          },
+        },
+        "Webhook 2": {
+          "_id": "Webhook 2",
+          "_rev": "-169939214",
+          "_type": {
+            "_id": "webhooks",
+            "collection": true,
+            "name": "Webhook Service",
+          },
+          "headers": {
+            "accept": "*/*",
+          },
+        },
+      },
+      "wsEntity": {
+        "ws": {
+          "_id": "ws",
+          "_rev": "720692750",
+          "_type": {
+            "_id": "ws",
+            "collection": true,
+            "name": "Entity Descriptor ",
+          },
+        },
+      },
+    },
+    "root-first": {
+      "authenticationChains": {
+        "amsterService": {
+          "_id": "amsterService",
+          "_rev": "644917310",
+          "_type": {
+            "_id": "EMPTY",
+            "collection": true,
+            "name": "Authentication Configuration",
+          },
+          "authChainConfiguration": [
+            {
+              "criteria": "REQUIRED",
+              "module": "Amster",
+              "options": {},
+            },
+          ],
+          "loginFailureUrl": [],
+          "loginPostProcessClass": [],
+          "loginSuccessUrl": [],
+        },
+        "ldapService": {
+          "_id": "ldapService",
+          "_rev": "357765346",
+          "_type": {
+            "_id": "EMPTY",
+            "collection": true,
+            "name": "Authentication Configuration",
+          },
+          "authChainConfiguration": [
+            {
+              "criteria": "REQUIRED",
+              "module": "DataStore",
+              "options": {},
+            },
+          ],
+          "loginFailureUrl": [],
+          "loginPostProcessClass": [],
+          "loginSuccessUrl": [],
+        },
+      },
+      "webhookService": {
+        "webhooks": {
+          "_id": "webhooks",
+          "_rev": "1954901829",
+          "_type": {
+            "_id": "webhooks",
+            "collection": true,
+            "name": "Webhook Service",
+          },
+          "headers": {
+            "accept": "*/*",
+          },
+        },
+      },
+      "wsEntity": {
+        "ws": {
+          "_id": "ws",
+          "_rev": "720692750",
+          "_type": {
+            "_id": "ws",
+            "collection": true,
+            "name": "Entity Descriptor ",
+          },
+        },
+      },
+    },
+    "root-first-second": {
+      "authenticationChains": {
+        "amsterService": {
+          "_id": "amsterService",
+          "_rev": "644917310",
+          "_type": {
+            "_id": "EMPTY",
+            "collection": true,
+            "name": "Authentication Configuration",
+          },
+          "authChainConfiguration": [
+            {
+              "criteria": "REQUIRED",
+              "module": "Amster",
+              "options": {},
+            },
+          ],
+          "loginFailureUrl": [],
+          "loginPostProcessClass": [],
+          "loginSuccessUrl": [],
+        },
+        "ldapService": {
+          "_id": "ldapService",
+          "_rev": "357765346",
+          "_type": {
+            "_id": "EMPTY",
+            "collection": true,
+            "name": "Authentication Configuration",
+          },
+          "authChainConfiguration": [
+            {
+              "criteria": "REQUIRED",
+              "module": "DataStore",
+              "options": {},
+            },
+          ],
+          "loginFailureUrl": [],
+          "loginPostProcessClass": [],
+          "loginSuccessUrl": [],
+        },
+      },
+      "webhookService": {
+        "webhooks": {
+          "_id": "webhooks",
+          "_rev": "1954901829",
+          "_type": {
+            "_id": "webhooks",
+            "collection": true,
+            "name": "Webhook Service",
+          },
+          "headers": {
+            "accept": "*/*",
+          },
+        },
+      },
+      "wsEntity": {
+        "ws": {
+          "_id": "ws",
+          "_rev": "720692750",
+          "_type": {
+            "_id": "ws",
+            "collection": true,
+            "name": "Entity Descriptor ",
+          },
+        },
+      },
+    },
+  },
+}
+`;
+
+exports[`AmConfigOps Classic Tests exportAmConfigEntities() 7: Export root realm AM Config Entities 1`] = `
+{
+  "global": {},
+  "meta": Any<Object>,
+  "realm": {
+    "root": {
+      "applicationTypes": {
+        "iPlanetAMWebAgentService": {
+          "_id": "iPlanetAMWebAgentService",
+          "actions": {
+            "DELETE": true,
+            "GET": true,
+            "HEAD": true,
+            "OPTIONS": true,
+            "PATCH": true,
+            "POST": true,
+            "PUT": true,
+          },
+          "applicationClassName": "com.sun.identity.entitlement.Application",
+          "name": "iPlanetAMWebAgentService",
+          "resourceComparator": "com.sun.identity.entitlement.URLResourceName",
+          "saveIndex": "org.forgerock.openam.entitlement.indextree.TreeSaveIndex",
+          "searchIndex": "org.forgerock.openam.entitlement.indextree.TreeSearchIndex",
+        },
+        "sunAMDelegationService": {
+          "_id": "sunAMDelegationService",
+          "actions": {
+            "DELEGATE": true,
+            "MODIFY": true,
+            "READ": true,
+          },
+          "applicationClassName": "com.sun.identity.entitlement.Application",
+          "name": "sunAMDelegationService",
+          "resourceComparator": "com.sun.identity.entitlement.RegExResourceName",
+          "saveIndex": "com.sun.identity.entitlement.opensso.DelegationResourceNameIndexGenerator",
+          "searchIndex": "com.sun.identity.entitlement.opensso.DelegationResourceNameSplitter",
+        },
+        "umaApplicationType": {
+          "_id": "umaApplicationType",
+          "actions": {},
+          "applicationClassName": "com.sun.identity.entitlement.Application",
+          "name": "umaApplicationType",
+          "resourceComparator": "org.forgerock.openam.uma.UmaPolicyResourceMatcher",
+          "saveIndex": "org.forgerock.openam.uma.UmaPolicySaveIndex",
+          "searchIndex": "org.forgerock.openam.uma.UmaPolicySearchIndex",
+        },
+      },
+      "authenticationChains": {
+        "amsterService": {
+          "_id": "amsterService",
+          "_rev": "644917310",
+          "_type": {
+            "_id": "EMPTY",
+            "collection": true,
+            "name": "Authentication Configuration",
+          },
+          "authChainConfiguration": [
+            {
+              "criteria": "REQUIRED",
+              "module": "Amster",
+              "options": {},
+            },
+          ],
+          "loginFailureUrl": [],
+          "loginPostProcessClass": [],
+          "loginSuccessUrl": [],
+        },
+        "ldapService": {
+          "_id": "ldapService",
+          "_rev": "357765346",
+          "_type": {
+            "_id": "EMPTY",
+            "collection": true,
+            "name": "Authentication Configuration",
+          },
+          "authChainConfiguration": [
+            {
+              "criteria": "REQUIRED",
+              "module": "DataStore",
+              "options": {},
+            },
+          ],
+          "loginFailureUrl": [],
+          "loginPostProcessClass": [],
+          "loginSuccessUrl": [],
+        },
+      },
+      "authenticationModules": {
+        "amster": {
+          "_id": "amster",
+          "_type": {
+            "_id": "amster",
+            "collection": true,
+            "name": "ForgeRock Amster",
+          },
+          "authenticationLevel": 0,
+          "authorizedKeys": "/home/prestonhales/am/security/keys/amster/authorized_keys",
+          "enabled": true,
+        },
+        "datastore": {
+          "_id": "datastore",
+          "_type": {
+            "_id": "datastore",
+            "collection": true,
+            "name": "Data Store",
+          },
+          "authenticationLevel": 0,
+        },
+        "federation": {
+          "_id": "federation",
+          "_type": {
+            "_id": "federation",
+            "collection": true,
+            "name": "Federation",
+          },
+          "authenticationLevel": 0,
+        },
+        "hotp": {
+          "_id": "hotp",
+          "_type": {
+            "_id": "hotp",
+            "collection": true,
+            "name": "HOTP",
+          },
+          "authenticationLevel": 0,
+          "autoSendOTP": false,
+          "otpDeliveryMethod": "SMS and E-mail",
+          "otpLength": "8",
+          "otpMaxRetry": 3,
+          "otpValidityDuration": 5,
+          "smsGatewayClass": "com.sun.identity.authentication.modules.hotp.DefaultSMSGatewayImpl",
+          "smtpFromAddress": "no-reply@openam.org",
+          "smtpHostPort": 465,
+          "smtpHostname": "smtp.gmail.com",
+          "smtpSslEnabled": "SSL",
+          "smtpUserPassword": null,
+          "smtpUsername": "opensso.sun",
+          "userProfileEmailAttribute": "mail",
+          "userProfileTelephoneAttribute": "telephoneNumber",
+        },
+        "ldap": {
+          "_id": "ldap",
+          "_type": {
+            "_id": "ldap",
+            "collection": true,
+            "name": "LDAP",
+          },
+          "authenticationLevel": 0,
+          "beheraPasswordPolicySupportEnabled": true,
+          "connectionHeartbeatInterval": 10,
+          "connectionHeartbeatTimeUnit": "SECONDS",
+          "minimumPasswordLength": "8",
+          "openam-auth-ldap-connection-mode": "LDAPS",
+          "operationTimeout": 0,
+          "primaryLdapServer": [
+            "localhost:50636",
+          ],
+          "profileAttributeMappings": [],
+          "returnUserDN": true,
+          "searchScope": "SUBTREE",
+          "secondaryLdapServer": [],
+          "stopLdapbindAfterInmemoryLockedEnabled": false,
+          "trustAllServerCertificates": false,
+          "userBindDN": "cn=Directory Manager",
+          "userBindPassword": null,
+          "userProfileRetrievalAttribute": "uid",
+          "userSearchAttributes": [
+            "uid",
+          ],
+          "userSearchStartDN": [
+            "dc=openam,dc=forgerock,dc=org",
+          ],
+        },
+        "oath": {
+          "_id": "oath",
+          "_type": {
+            "_id": "oath",
+            "collection": true,
+            "name": "OATH",
+          },
+          "addChecksum": "False",
+          "authenticationLevel": 0,
+          "forgerock-oath-maximum-clock-drift": 0,
+          "forgerock-oath-sharedsecret-implementation-class": "org.forgerock.openam.authentication.modules.oath.plugins.DefaultSharedSecretProvider",
+          "hotpWindowSize": 100,
+          "minimumSecretKeyLength": "32",
+          "oathAlgorithm": "HOTP",
+          "oathOtpMaxRetry": 3,
+          "passwordLength": "6",
+          "stepsInWindow": 2,
+          "timeStepSize": 30,
+          "truncationOffset": -1,
+        },
+        "sae": {
+          "_id": "sae",
+          "_type": {
+            "_id": "sae",
+            "collection": true,
+            "name": "SAE",
+          },
+          "authenticationLevel": 0,
+        },
+      },
+      "conditionTypes": {
+        "AMIdentityMembership": {
+          "_id": "AMIdentityMembership",
+          "config": {
+            "properties": {
+              "amIdentityName": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "AMIdentityMembership",
+        },
+        "AND": {
+          "_id": "AND",
+          "config": {
+            "properties": {
+              "conditions": {
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": true,
+          "title": "AND",
+        },
+        "AuthLevel": {
+          "_id": "AuthLevel",
+          "config": {
+            "properties": {
+              "authLevel": {
+                "type": "integer",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "AuthLevel",
+        },
+        "AuthScheme": {
+          "_id": "AuthScheme",
+          "config": {
+            "properties": {
+              "applicationIdleTimeout": {
+                "type": "integer",
+              },
+              "applicationName": {
+                "type": "string",
+              },
+              "authScheme": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "AuthScheme",
+        },
+        "AuthenticateToRealm": {
+          "_id": "AuthenticateToRealm",
+          "config": {
+            "properties": {
+              "authenticateToRealm": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "AuthenticateToRealm",
+        },
+        "AuthenticateToService": {
+          "_id": "AuthenticateToService",
+          "config": {
+            "properties": {
+              "authenticateToService": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "AuthenticateToService",
+        },
+        "IPv4": {
+          "_id": "IPv4",
+          "config": {
+            "properties": {
+              "dnsName": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+              "endIp": {
+                "type": "string",
+              },
+              "startIp": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "IPv4",
+        },
+        "IPv6": {
+          "_id": "IPv6",
+          "config": {
+            "properties": {
+              "dnsName": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+              "endIp": {
+                "type": "string",
+              },
+              "startIp": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "IPv6",
+        },
+        "LDAPFilter": {
+          "_id": "LDAPFilter",
+          "config": {
+            "properties": {
+              "ldapFilter": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "LDAPFilter",
+        },
+        "LEAuthLevel": {
+          "_id": "LEAuthLevel",
+          "config": {
+            "properties": {
+              "authLevel": {
+                "type": "integer",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "LEAuthLevel",
+        },
+        "NOT": {
+          "_id": "NOT",
+          "config": {
+            "properties": {
+              "condition": {
+                "properties": {},
+                "type": "object",
+              },
+            },
+            "type": "object",
+          },
+          "logical": true,
+          "title": "NOT",
+        },
+        "OAuth2Scope": {
+          "_id": "OAuth2Scope",
+          "config": {
+            "properties": {
+              "requiredScopes": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "OAuth2Scope",
+        },
+        "OR": {
+          "_id": "OR",
+          "config": {
+            "properties": {
+              "conditions": {
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": true,
+          "title": "OR",
+        },
+        "Policy": {
+          "_id": "Policy",
+          "config": {
+            "properties": {
+              "className": {
+                "type": "string",
+              },
+              "properties": {
+                "type": "object",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "Policy",
+        },
+        "ResourceEnvIP": {
+          "_id": "ResourceEnvIP",
+          "config": {
+            "properties": {
+              "resourceEnvIPConditionValue": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "ResourceEnvIP",
+        },
+        "Script": {
+          "_id": "Script",
+          "config": {
+            "properties": {
+              "scriptId": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "Script",
+        },
+        "Session": {
+          "_id": "Session",
+          "config": {
+            "properties": {
+              "maxSessionTime": {
+                "type": "integer",
+              },
+              "terminateSession": {
+                "required": true,
+                "type": "boolean",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "Session",
+        },
+        "SessionProperty": {
+          "_id": "SessionProperty",
+          "config": {
+            "properties": {
+              "ignoreValueCase": {
+                "required": true,
+                "type": "boolean",
+              },
+              "properties": {
+                "type": "object",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "SessionProperty",
+        },
+        "SimpleTime": {
+          "_id": "SimpleTime",
+          "config": {
+            "properties": {
+              "endDate": {
+                "type": "string",
+              },
+              "endDay": {
+                "type": "string",
+              },
+              "endTime": {
+                "type": "string",
+              },
+              "enforcementTimeZone": {
+                "type": "string",
+              },
+              "startDate": {
+                "type": "string",
+              },
+              "startDay": {
+                "type": "string",
+              },
+              "startTime": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "SimpleTime",
+        },
+        "Transaction": {
+          "_id": "Transaction",
+          "config": {
+            "properties": {
+              "authenticationStrategy": {
+                "type": "string",
+              },
+              "strategySpecifier": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "Transaction",
+        },
+      },
+      "decisionCombiners": {
+        "DenyOverride": {
+          "_id": "DenyOverride",
+          "title": "DenyOverride",
+        },
+      },
+      "secrets": {},
+      "subjectAttributes": {
+        "undefined": "iplanet-am-user-login-status",
+      },
+      "subjectTypes": {
+        "AND": {
+          "_id": "AND",
+          "config": {
+            "properties": {
+              "subjects": {
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": true,
+          "title": "AND",
+        },
+        "AuthenticatedUsers": {
+          "_id": "AuthenticatedUsers",
+          "config": {
+            "properties": {},
+            "type": "object",
+          },
+          "logical": false,
+          "title": "AuthenticatedUsers",
+        },
+        "Identity": {
+          "_id": "Identity",
+          "config": {
+            "properties": {
+              "subjectValues": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "Identity",
+        },
+        "JwtClaim": {
+          "_id": "JwtClaim",
+          "config": {
+            "properties": {
+              "claimName": {
+                "type": "string",
+              },
+              "claimValue": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "JwtClaim",
+        },
+        "NONE": {
+          "_id": "NONE",
+          "config": {
+            "properties": {},
+            "type": "object",
+          },
+          "logical": false,
+          "title": "NONE",
+        },
+        "NOT": {
+          "_id": "NOT",
+          "config": {
+            "properties": {
+              "subject": {
+                "properties": {},
+                "type": "object",
+              },
+            },
+            "type": "object",
+          },
+          "logical": true,
+          "title": "NOT",
+        },
+        "OR": {
+          "_id": "OR",
+          "config": {
+            "properties": {
+              "subjects": {
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": true,
+          "title": "OR",
+        },
+        "Policy": {
+          "_id": "Policy",
+          "config": {
+            "properties": {
+              "className": {
+                "type": "string",
+              },
+              "name": {
+                "type": "string",
+              },
+              "values": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "Policy",
+        },
+      },
+      "webhookService": {
+        "Cool Webhook": {
+          "_id": "Cool Webhook",
+          "_rev": "1386996185",
+          "_type": {
+            "_id": "webhooks",
+            "collection": true,
+            "name": "Webhook Service",
+          },
+          "body": "body",
+          "headers": {
+            "accept": "*/*",
+            "cool": "test",
+          },
+          "url": "test",
+        },
+        "Test Webhook": {
+          "_id": "Test Webhook",
+          "_rev": "2105362594",
+          "_type": {
+            "_id": "webhooks",
+            "collection": true,
+            "name": "Webhook Service",
+          },
+          "body": "hello",
+          "headers": {
+            "accept": "*/*",
+          },
+        },
+        "Webhook 2": {
+          "_id": "Webhook 2",
+          "_rev": "-169939214",
+          "_type": {
+            "_id": "webhooks",
+            "collection": true,
+            "name": "Webhook Service",
+          },
+          "headers": {
+            "accept": "*/*",
+          },
+        },
+      },
+      "wsEntity": {
+        "ws": {
+          "_id": "ws",
+          "_rev": "720692750",
+          "_type": {
+            "_id": "ws",
+            "collection": true,
+            "name": "Entity Descriptor ",
+          },
+        },
+      },
+    },
+    "root-first": {},
+    "root-first-second": {},
+  },
+}
+`;
+
+exports[`AmConfigOps Classic Tests exportAmConfigEntities() 8: Export global AM Config Entities 1`] = `
+{
+  "global": {
+    "authenticationChains": {
+      "EMPTY": {
+        "_id": "",
+        "_rev": "1147129562",
+        "_type": {
+          "_id": "EMPTY",
+          "collection": false,
+          "name": "Authentication Configuration",
+        },
+        "dynamic": {
+          "authChainConfiguration": "[Empty]",
+        },
+      },
+    },
+    "authenticationModules": {
+      "accountactivecheck": {
+        "_id": "accountactivecheck",
+        "_type": {
+          "_id": "accountactivecheck",
+          "collection": false,
+          "name": "Account Active Check",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+        },
+      },
+      "activedirectory": {
+        "_id": "activedirectory",
+        "_type": {
+          "_id": "activedirectory",
+          "collection": false,
+          "name": "Active Directory",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "connectionHeartbeatInterval": 1,
+          "connectionHeartbeatTimeUnit": "MINUTES",
+          "openam-auth-ldap-connection-mode": "LDAP",
+          "operationTimeout": 0,
+          "primaryLdapServer": [
+            "localhost:50636",
+          ],
+          "profileAttributeMappings": [],
+          "returnUserDN": true,
+          "searchScope": "SUBTREE",
+          "secondaryLdapServer": [],
+          "stopLdapbindAfterInmemoryLockedEnabled": false,
+          "trustAllServerCertificates": false,
+          "userBindDN": "cn=Directory Manager",
+          "userProfileRetrievalAttribute": "uid",
+          "userSearchAttributes": [
+            "uid",
+          ],
+          "userSearchStartDN": [
+            "dc=openam,dc=forgerock,dc=org",
+          ],
+        },
+      },
+      "adaptiverisk": {
+        "_id": "adaptiverisk",
+        "_type": {
+          "_id": "adaptiverisk",
+          "collection": false,
+          "name": "Adaptive Risk ",
+        },
+        "defaults": {
+          "attributecheck": {
+            "invertProfileRiskAttributeScore": false,
+            "profileRiskAttributeCheckEnabled": false,
+            "profileRiskAttributeScore": 1,
+          },
+          "authfailed": {
+            "failedAuthenticationCheckEnabled": false,
+            "failureScore": 1,
+            "invertFailureScore": false,
+          },
+          "devicecookie": {
+            "deviceCookieCheckEnabled": false,
+            "deviceCookieName": "Device",
+            "deviceCookieScore": 1,
+            "invertDeviceCookieScore": false,
+            "saveDeviceCookieValueOnSuccessfulLogin": false,
+          },
+          "general": {
+            "authenticationLevel": 0,
+            "riskThreshold": 1,
+          },
+          "geolocation": {
+            "geolocationCheckEnabled": false,
+            "geolocationScore": 1,
+            "invertGeolocationScore": false,
+          },
+          "iphistory": {
+            "invertIPHistoryScore": false,
+            "ipHistoryCheckEnabled": false,
+            "ipHistoryCount": 5,
+            "ipHistoryProfileAttribute": "iphistory",
+            "ipHistoryScore": 1,
+            "saveSuccessfulIP": false,
+          },
+          "iprange": {
+            "invertIPRangeScoreEnabled": false,
+            "ipRange": [
+              "10.0.0.0/24",
+            ],
+            "ipRangeCheckEnabled": false,
+            "ipRangeScore": 1,
+          },
+          "knowncookie": {
+            "createKnownCookieOnSuccessfulLogin": false,
+            "invertKnownCookieScore": false,
+            "knownCookieCheckEnabled": false,
+            "knownCookieScore": 1,
+          },
+          "lastlogin": {
+            "invertTimeSinceLastLoginScore": false,
+            "saveLastLoginTimeOnSuccessfulLogin": false,
+            "timeSinceLastLoginCheckEnabled": false,
+            "timeSinceLastLoginScore": 1,
+          },
+          "requestheader": {
+            "invertRequestHeaderScore": false,
+            "requestHeaderCheckEnabled": false,
+            "requestHeaderScore": 1,
+          },
+        },
+      },
+      "amster": {
+        "_id": "amster",
+        "_type": {
+          "_id": "amster",
+          "collection": false,
+          "name": "ForgeRock Amster",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "authorizedKeys": "/home/prestonhales/am/security/keys/amster/authorized_keys",
+          "enabled": true,
+        },
+      },
+      "anonymous": {
+        "_id": "anonymous",
+        "_type": {
+          "_id": "anonymous",
+          "collection": false,
+          "name": "Anonymous",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "caseSensitiveUsernameMatchingEnabled": false,
+          "defaultAnonymousUsername": "anonymous",
+          "validAnonymousUsers": [],
+        },
+      },
+      "authJwtPoP": {
+        "_id": "authJwtPoP",
+        "_type": {
+          "_id": "authJwtPoP",
+          "collection": false,
+          "name": "JWT Proof of Possession (PoP)",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "enableTlsSessionBinding": true,
+          "responseEncryptionCipher": "A128GCM",
+          "responseEncryptionMethod": "ECDHE",
+        },
+      },
+      "authPush": {
+        "_id": "authPush",
+        "_type": {
+          "_id": "authPush",
+          "collection": false,
+          "name": "ForgeRock Authenticator (Push)",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "pushMessage": "Login attempt from {{user}} at {{issuer}}",
+          "timeoutInMilliSecconds": 120000,
+        },
+      },
+      "authPushReg": {
+        "_id": "authPushReg",
+        "_type": {
+          "_id": "authPushReg",
+          "collection": false,
+          "name": "ForgeRock Authenticator (Push) Registration",
+        },
+        "defaults": {
+          "appleLink": "https://itunes.apple.com/app/forgerock-authenticator/id1038442926",
+          "authenticationLevel": 0,
+          "bgcolour": "#519387",
+          "googleLink": "https://play.google.com/store/apps/details?id=com.forgerock.authenticator",
+          "issuer": "ForgeRock",
+          "timeoutInMilliSecconds": 120000,
+        },
+      },
+      "authSaml": {
+        "_id": "authSaml",
+        "_type": {
+          "_id": "authSaml",
+          "collection": false,
+          "name": "SAML2",
+        },
+        "defaults": {
+          "allowCreate": "true",
+          "authComparison": "exact",
+          "authenticationLevel": 0,
+          "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact",
+          "entityName": "http://",
+          "forceAuthn": "false",
+          "isPassive": "false",
+          "metaAlias": "/sp",
+          "nameIdFormat": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+          "reqBinding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+          "sloEnabled": "false",
+          "sloRelay": "http://",
+        },
+      },
+      "authSocialInstagram": {
+        "_id": "authSocialInstagram",
+        "_type": {
+          "_id": "authSocialInstagram",
+          "collection": false,
+          "name": "Social Auth Instagram",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperClass": "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|*|instagram-",
+            "accountMapperConfiguration": [
+              "id=uid",
+            ],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [
+              "id=uid",
+              "full_name=sn",
+              "username=cn",
+              "username=givenName",
+            ],
+            "attributeMappingClasses": [
+              "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|uid|instagram-",
+            ],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "authenticationLevel": 0,
+            "authorizeEndpoint": "https://api.instagram.com/oauth/authorize",
+            "logoutBehaviour": "prompt",
+            "logoutServiceUrl": "https://instagram.com/accounts/logout",
+            "provider": "Instagram",
+            "scope": [
+              "basic",
+            ],
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "subjectProperty": "id",
+            "tokenEndpoint": "https://api.instagram.com/oauth/access_token",
+            "userInfoEndpoint": "https://api.instagram.com/v1/users/self",
+            "usesBasicAuth": false,
+          },
+        },
+      },
+      "authSocialOAuth2": {
+        "_id": "authSocialOAuth2",
+        "_type": {
+          "_id": "authSocialOAuth2",
+          "collection": false,
+          "name": "Social Auth OAuth2",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperConfiguration": [],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [],
+            "attributeMappingClasses": [],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "promptPasswordFlag": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "authenticationLevel": 0,
+            "logoutBehaviour": "prompt",
+            "mixUpMitigation": false,
+            "scope": [],
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "usesBasicAuth": true,
+          },
+          "emailSettings": {
+            "emailGateway": "org.forgerock.openam.authentication.modules.oauth2.DefaultEmailGatewayImpl",
+            "smtpHost": "localhost",
+            "smtpPort": "25",
+          },
+        },
+      },
+      "authSocialOpenID": {
+        "_id": "authSocialOpenID",
+        "_type": {
+          "_id": "authSocialOpenID",
+          "collection": false,
+          "name": "Social Auth OpenID",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperConfiguration": [],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [],
+            "attributeMappingClasses": [],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "promptPasswordFlag": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "authenticationLevel": 0,
+            "logoutBehaviour": "prompt",
+            "mixUpMitigation": false,
+            "scope": [
+              "openid",
+            ],
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "usesBasicAuth": true,
+          },
+          "emailSettings": {
+            "emailGateway": "org.forgerock.openam.authentication.modules.oauth2.DefaultEmailGatewayImpl",
+            "smtpHost": "localhost",
+            "smtpPort": "25",
+          },
+        },
+      },
+      "authSocialTwitter": {
+        "_id": "authSocialTwitter",
+        "_type": {
+          "_id": "authSocialTwitter",
+          "collection": false,
+          "name": "Social Auth Twitter",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperClass": "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|*|twitter-",
+            "accountMapperConfiguration": [
+              "id_str=uid",
+            ],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [
+              "full_name=sn",
+              "username=cn",
+              "id_str=uid",
+              "username=givenName",
+            ],
+            "attributeMappingClasses": [
+              "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|uid|twitter-",
+            ],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "authenticationLevel": 0,
+            "authorizeEndpoint": "https://api.twitter.com/oauth/authenticate",
+            "provider": "Twitter",
+            "requestTokenEndpoint": "https://api.twitter.com/oauth/request_token",
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "subjectProperty": "id_str",
+            "tokenEndpoint": "https://api.twitter.com/oauth/access_token",
+            "userInfoEndpoint": "https://api.twitter.com/1.1/account/verify_credentials.json",
+            "usesBasicAuth": false,
+          },
+        },
+      },
+      "authSocialVk": {
+        "_id": "authSocialVk",
+        "_type": {
+          "_id": "authSocialVk",
+          "collection": false,
+          "name": "Social Auth VKontakte",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperClass": "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|uid|vkontakte-",
+            "accountMapperConfiguration": [
+              "id=uid",
+            ],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [
+              "first_name=givenName",
+              "first_name=cn",
+              "id=uid",
+              "last_name=sn",
+              "email=mail",
+            ],
+            "attributeMappingClasses": [
+              "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|uid|vkontakte-",
+            ],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "promptPasswordFlag": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "apiVersion": "5.73",
+            "authorizeEndpoint": "https://oauth.vk.com/authorize",
+            "forgerock-am-auth-socialauthvk-auth-level": 0,
+            "provider": "VKontakte",
+            "scope": [
+              "email",
+            ],
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "subjectProperty": "id",
+            "tokenEndpoint": "https://oauth.vk.com/access_token",
+            "userInfoEndpoint": "https://api.vk.com/method/users.get",
+          },
+          "emailSettings": {
+            "emailGateway": "org.forgerock.openam.authentication.modules.oauth2.DefaultEmailGatewayImpl",
+            "smtpHost": "localhost",
+            "smtpPort": "25",
+          },
+        },
+      },
+      "authSocialWeChat": {
+        "_id": "authSocialWeChat",
+        "_type": {
+          "_id": "authSocialWeChat",
+          "collection": false,
+          "name": "Social Auth WeChat",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperClass": "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|*|wechat-",
+            "accountMapperConfiguration": [
+              "openid=uid",
+            ],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [
+              "nickname=givenName",
+              "openid=uid",
+              "nickname=cn",
+              "nickname=sn",
+            ],
+            "attributeMappingClasses": [
+              "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|uid|wechat-",
+            ],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "promptPasswordFlag": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "authenticationLevel": 0,
+            "authorizeEndpoint": "https://open.weixin.qq.com/connect/qrconnect",
+            "provider": "WeChat",
+            "scope": [
+              "snsapi_login",
+            ],
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "subjectProperty": "openid",
+            "tokenEndpoint": "https://api.wechat.com/sns/oauth2/access_token",
+            "userInfoEndpoint": "https://api.wechat.com/sns/userinfo",
+            "usesBasicAuth": false,
+          },
+          "emailSettings": {
+            "emailGateway": "org.forgerock.openam.authentication.modules.oauth2.DefaultEmailGatewayImpl",
+            "smtpHost": "localhost",
+            "smtpPort": "25",
+          },
+        },
+      },
+      "authSocialWeChatMobile": {
+        "_id": "authSocialWeChatMobile",
+        "_type": {
+          "_id": "authSocialWeChatMobile",
+          "collection": false,
+          "name": "Social Auth WeChat Mobile",
+        },
+        "defaults": {
+          "accountProvisioning": {
+            "accountMapperClass": "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|*|wechat-",
+            "accountMapperConfiguration": [
+              "openid=uid",
+            ],
+            "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+            "anonymousUserName": "anonymous",
+            "attributeMapperConfiguration": [
+              "nickname=givenName",
+              "openid=uid",
+              "nickname=cn",
+              "nickname=sn",
+            ],
+            "attributeMappingClasses": [
+              "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper|uid|wechat-",
+            ],
+            "createAccount": true,
+            "enableRegistrationService": false,
+            "mapToAnonymousUser": false,
+            "promptPasswordFlag": false,
+            "saveAttributesInSession": true,
+          },
+          "core": {
+            "authenticationLevel": 0,
+            "provider": "WeChat",
+            "scope": [
+              "snsapi_userinfo",
+            ],
+            "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+            "subjectProperty": "openid",
+            "userInfoEndpoint": "https://api.wechat.com/sns/userinfo",
+          },
+          "emailSettings": {
+            "emailGateway": "org.forgerock.openam.authentication.modules.oauth2.DefaultEmailGatewayImpl",
+            "smtpHost": "localhost",
+            "smtpPort": "25",
+          },
+        },
+      },
+      "authenticatoroath": {
+        "_id": "authenticatoroath",
+        "_type": {
+          "_id": "authenticatoroath",
+          "collection": false,
+          "name": "ForgeRock Authenticator (OATH)",
+        },
+        "defaults": {
+          "addChecksumToOtpEnabled": "False",
+          "authenticationLevel": 0,
+          "frOathOtpMaxRetry": 3,
+          "hotpWindowSize": 100,
+          "minimumSecretKeyLength": 32,
+          "oathAlgorithm": "HOTP",
+          "passwordLength": "6",
+          "totpMaximumClockDrift": 5,
+          "totpTimeStepInterval": 30,
+          "totpTimeStepsInWindow": 2,
+          "truncationOffset": -1,
+        },
+      },
+      "certificate": {
+        "_id": "certificate",
+        "_type": {
+          "_id": "certificate",
+          "collection": false,
+          "name": "Certificate",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "cacheCRLsInMemory": true,
+          "certificateAttributeProfileMappingExtension": "none",
+          "certificateAttributeToProfileMapping": "subject CN",
+          "certificateLdapServers": [
+            "localhost:50636",
+          ],
+          "crlMatchingCertificateAttribute": "CN",
+          "iplanet-am-auth-cert-gw-cert-preferred": false,
+          "ldapCertificateAttribute": "CN",
+          "ldapSearchStartDN": [],
+          "matchCACertificateToCRL": false,
+          "matchCertificateInLdap": false,
+          "matchCertificateToCRL": false,
+          "ocspValidationEnabled": false,
+          "sslEnabled": false,
+          "trustedRemoteHosts": [
+            "none",
+          ],
+          "updateCRLsFromDistributionPoint": true,
+          "userBindDN": "cn=Directory Manager",
+        },
+      },
+      "datastore": {
+        "_id": "datastore",
+        "_type": {
+          "_id": "datastore",
+          "collection": false,
+          "name": "Data Store",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+        },
+      },
+      "deviceidmatch": {
+        "_id": "deviceidmatch",
+        "_type": {
+          "_id": "deviceidmatch",
+          "collection": false,
+          "name": "Device Id (Match)",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "clientScript": "157298c0-7d31-4059-a95b-eeb08473b7e5",
+          "clientScriptEnabled": true,
+          "serverScript": "703dab1a-1921-4981-98dd-b8e5349d8548",
+        },
+      },
+      "deviceidsave": {
+        "_id": "deviceidsave",
+        "_type": {
+          "_id": "deviceidsave",
+          "collection": false,
+          "name": "Device Id (Save)",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "autoStoreProfiles": false,
+          "maxProfilesAllowed": 5,
+        },
+      },
+      "federation": {
+        "_id": "federation",
+        "_type": {
+          "_id": "federation",
+          "collection": false,
+          "name": "Federation",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+        },
+      },
+      "hotp": {
+        "_id": "hotp",
+        "_type": {
+          "_id": "hotp",
+          "collection": false,
+          "name": "HOTP",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "autoSendOTP": false,
+          "otpDeliveryMethod": "SMS and E-mail",
+          "otpLength": "8",
+          "otpMaxRetry": 3,
+          "otpValidityDuration": 5,
+          "smsGatewayClass": "com.sun.identity.authentication.modules.hotp.DefaultSMSGatewayImpl",
+          "smtpFromAddress": "no-reply@openam.org",
+          "smtpHostPort": 465,
+          "smtpHostname": "smtp.gmail.com",
+          "smtpSslEnabled": "SSL",
+          "smtpUserPassword": null,
+          "smtpUsername": "opensso.sun",
+          "userProfileEmailAttribute": "mail",
+          "userProfileTelephoneAttribute": "telephoneNumber",
+        },
+      },
+      "httpbasic": {
+        "_id": "httpbasic",
+        "_type": {
+          "_id": "httpbasic",
+          "collection": false,
+          "name": "HTTP Basic",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+        },
+      },
+      "jdbc": {
+        "_id": "jdbc",
+        "_type": {
+          "_id": "jdbc",
+          "collection": false,
+          "name": "JDBC",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "connectionPoolJndiName": "java:comp/env/jdbc/samplePool",
+          "connectionType": "JNDI",
+          "jdbcDriver": "com.mysql.jdbc.Driver",
+          "jdbcUrl": "jdbc:mysql://127.0.0.1:3306/test",
+          "password": null,
+          "passwordColumn": "PASSWORD_COLUMN",
+          "passwordStatement": "select PASSWORD_COLUMN from TABLE where USERNAME_COLUMN = ?",
+          "passwordTransformClass": "com.sun.identity.authentication.modules.jdbc.ClearTextTransform",
+          "username": "root",
+        },
+      },
+      "ldap": {
+        "_id": "ldap",
+        "_type": {
+          "_id": "ldap",
+          "collection": false,
+          "name": "LDAP",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "beheraPasswordPolicySupportEnabled": true,
+          "connectionHeartbeatInterval": 10,
+          "connectionHeartbeatTimeUnit": "SECONDS",
+          "minimumPasswordLength": "8",
+          "openam-auth-ldap-connection-mode": "LDAP",
+          "operationTimeout": 0,
+          "primaryLdapServer": [
+            "localhost:50636",
+          ],
+          "profileAttributeMappings": [],
+          "returnUserDN": true,
+          "searchScope": "SUBTREE",
+          "secondaryLdapServer": [],
+          "stopLdapbindAfterInmemoryLockedEnabled": false,
+          "trustAllServerCertificates": false,
+          "userBindDN": "cn=Directory Manager",
+          "userProfileRetrievalAttribute": "uid",
+          "userSearchAttributes": [
+            "uid",
+          ],
+          "userSearchStartDN": [
+            "dc=openam,dc=forgerock,dc=org",
+          ],
+        },
+      },
+      "membership": {
+        "_id": "membership",
+        "_type": {
+          "_id": "membership",
+          "collection": false,
+          "name": "Membership",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "defaultUserRoles": [],
+          "defaultUserStatus": "Active",
+          "minimumPasswordLength": 8,
+        },
+      },
+      "msisdn": {
+        "_id": "msisdn",
+        "_type": {
+          "_id": "msisdn",
+          "collection": false,
+          "name": "MSISDN",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "baseSearchDN": [
+            "dc=openam,dc=forgerock,dc=org",
+          ],
+          "ldapProviderUrl": [
+            "localhost:50636",
+          ],
+          "ldapSslEnabled": false,
+          "ldapUserBindDN": "cn=Directory Manager",
+          "msisdnParameterNames": [],
+          "msisdnRequestSearchLocations": [
+            "searchRequest",
+            "searchParam",
+            "searchCookie",
+          ],
+          "msisdnUserNamingAttribute": "uid",
+          "returnUserDN": true,
+          "trustedGatewayIPAddresses": [],
+          "userProfileMsisdnAttribute": "sunIdentityMSISDNNumber",
+        },
+      },
+      "oath": {
+        "_id": "oath",
+        "_type": {
+          "_id": "oath",
+          "collection": false,
+          "name": "OATH",
+        },
+        "defaults": {
+          "addChecksum": "False",
+          "authenticationLevel": 0,
+          "forgerock-oath-maximum-clock-drift": 0,
+          "forgerock-oath-sharedsecret-implementation-class": "org.forgerock.openam.authentication.modules.oath.plugins.DefaultSharedSecretProvider",
+          "hotpWindowSize": 100,
+          "minimumSecretKeyLength": "32",
+          "oathAlgorithm": "HOTP",
+          "oathOtpMaxRetry": 3,
+          "passwordLength": "6",
+          "stepsInWindow": 2,
+          "timeStepSize": 30,
+          "truncationOffset": -1,
+        },
+      },
+      "oauth2": {
+        "_id": "oauth2",
+        "_type": {
+          "_id": "oauth2",
+          "collection": false,
+          "name": "Legacy OAuth 2.0 / OpenID Connect",
+        },
+        "defaults": {
+          "accessTokenEndpointUrl": "https://graph.facebook.com/oauth/access_token",
+          "accessTokenParameterName": "access_token",
+          "accountMapperClass": "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper",
+          "accountMapperConfiguration": [
+            "id=facebook-id",
+            "email=mail",
+          ],
+          "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+          "anonymousUserName": "anonymous",
+          "attributeMapperConfiguration": [
+            "first_name=givenname",
+            "id=facebook-id",
+            "email=facebook-email",
+            "last_name=facebook-lname",
+            "first_name=facebook-fname",
+            "name=cn",
+            "email=mail",
+            "last_name=sn",
+          ],
+          "attributeMappingClasses": [
+            "org.forgerock.openam.authentication.modules.common.mapping.JsonAttributeMapper",
+          ],
+          "authenticationEndpointUrl": "https://www.facebook.com/dialog/oauth",
+          "authenticationLevel": 0,
+          "createAccount": true,
+          "logoutBehaviour": "prompt",
+          "mailGatewayClass": "org.forgerock.openam.authentication.modules.oauth2.DefaultEmailGatewayImpl",
+          "mapToAnonymousUser": false,
+          "mixUpMitigation": false,
+          "promptForPassword": true,
+          "saveAttributesInSession": true,
+          "scope": "email,read_stream",
+          "smtpFromAddress": "info@forgerock.com",
+          "smtpHostName": "localhost",
+          "smtpHostPort": "25",
+          "ssoProxyUrl": "http://localhost:8080/am/oauth2c/OAuthProxy.jsp",
+          "userProfileServiceUrl": "https://graph.facebook.com/me",
+        },
+      },
+      "openidconnect": {
+        "_id": "openidconnect",
+        "_type": {
+          "_id": "openidconnect",
+          "collection": false,
+          "name": "OpenID Connect id_token bearer",
+        },
+        "defaults": {
+          "acceptedAuthorizedParties": [
+            "http://www.example.com/authorized/party",
+            "AuthorizedPartyExample",
+          ],
+          "accountProviderClass": "org.forgerock.openam.authentication.modules.common.mapping.DefaultAccountProvider",
+          "audienceName": "example",
+          "cryptoContextType": ".well-known/openid-configuration_url",
+          "cryptoContextValue": "https://accounts.google.com/.well-known/openid-configuration",
+          "idTokenHeaderName": "oidc_id_token",
+          "idTokenIssuer": "accounts.google.com",
+          "jwtToLdapAttributeMappings": [
+            "sub=uid",
+            "email=mail",
+          ],
+          "principalMapperClass": "org.forgerock.openam.authentication.modules.oidc.JwtAttributeMapper",
+          "useSubClaimIfNoMatch": false,
+        },
+      },
+      "persistentcookie": {
+        "_id": "persistentcookie",
+        "_type": {
+          "_id": "persistentcookie",
+          "collection": false,
+          "name": "Persistent Cookie",
+        },
+        "defaults": {
+          "cookieName": "session-jwt",
+          "enforceClientIP": false,
+          "idleTimeout": 5,
+          "maxLife": 5,
+          "useHttpOnlyCookie": true,
+          "useSecureCookie": true,
+        },
+      },
+      "radius": {
+        "_id": "radius",
+        "_type": {
+          "_id": "radius",
+          "collection": false,
+          "name": "RADIUS",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "healthCheckInterval": 5,
+          "primaryRadiusServers": [
+            "127.0.0.1",
+          ],
+          "secondaryRadiusServers": [
+            "127.0.0.1",
+          ],
+          "serverPortNumber": 1645,
+          "serverTimeout": 3,
+          "stopRadiusbindAfterInmemoryLockedEnabled": false,
+        },
+      },
+      "sae": {
+        "_id": "sae",
+        "_type": {
+          "_id": "sae",
+          "collection": false,
+          "name": "SAE",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+        },
+      },
+      "scripted": {
+        "_id": "scripted",
+        "_type": {
+          "_id": "scripted",
+          "collection": false,
+          "name": "Scripted Module",
+        },
+        "defaults": {
+          "authenticationLevel": 1,
+          "clientScript": "[Empty]",
+          "clientScriptEnabled": true,
+          "serverScript": "7e3d7067-d50f-4674-8c76-a3e13a810c33",
+        },
+      },
+      "securid": {
+        "_id": "securid",
+        "_type": {
+          "_id": "securid",
+          "collection": false,
+          "name": "SecurID",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "serverConfigPath": "/home/prestonhales/am/config/auth/ace/data",
+        },
+      },
+      "windowsdesktopsso": {
+        "_id": "windowsdesktopsso",
+        "_type": {
+          "_id": "windowsdesktopsso",
+          "collection": false,
+          "name": "Windows Desktop SSO",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+          "kerberosServiceIsinitiator": true,
+          "lookupUserInRealm": false,
+          "returnPrincipalWithDomainName": false,
+          "trustedKerberosRealms": [],
+        },
+      },
+      "windowsnt": {
+        "_id": "windowsnt",
+        "_type": {
+          "_id": "windowsnt",
+          "collection": false,
+          "name": "Windows NT",
+        },
+        "defaults": {
+          "authenticationLevel": 0,
+        },
+      },
+    },
+    "authenticationTreesConfiguration": {
+      "EMPTY": {
+        "_id": "",
+        "_rev": "1047121059",
+        "_type": {
+          "_id": "EMPTY",
+          "collection": false,
+          "name": "Authentication Trees Configuration",
+        },
+      },
+    },
+    "secrets": {
+      "GlobalSecrets": {
+        "_id": "GlobalSecrets",
+        "_type": {
+          "_id": "GlobalSecrets",
+          "collection": false,
+          "name": "Global Secrets Settings",
+        },
+        "storeTypes": [
+          "EnvironmentAndSystemPropertySecretStore",
+          "KeyStoreSecretStore",
+          "GoogleSecretManagerSecretStoreProvider",
+          "GoogleKeyManagementServiceSecretStore",
+          "HsmSecretStore",
+          "FileSystemSecretStore",
+        ],
+      },
+    },
+    "serverInformation": {
+      "*": {
+        "_id": "*",
+        "_rev": "1352294770",
+        "cookieName": "iPlanetDirectoryPro",
+        "domains": [
+          null,
+        ],
+        "fileBasedConfiguration": false,
+        "forgotPassword": "false",
+        "forgotUsername": "false",
+        "kbaEnabled": "false",
+        "lang": "en-US",
+        "protectedUserAttributes": [
+          "telephoneNumber",
+          "mail",
+        ],
+        "realm": "/",
+        "referralsEnabled": "false",
+        "secureCookie": false,
+        "selfRegistration": "false",
+        "socialImplementations": [],
+        "successfulUserRegistrationDestination": "default",
+        "userIdAttributes": [],
+        "xuiUserSessionValidationEnabled": true,
+        "zeroPageLogin": {
+          "allowedWithoutReferer": true,
+          "enabled": false,
+          "refererWhitelist": [],
+        },
+      },
+    },
+    "serverVersion": {
+      "version": {
+        "_id": "version",
+        "_rev": "-1772220916",
+        "date": "2024-March-28 16:00",
+        "fullVersion": "ForgeRock Access Management 7.5.0 Build 89116d59a1ebe73ed1931dd3649adb7f217cd06b (2024-March-28 16:00)",
+        "revision": "89116d59a1ebe73ed1931dd3649adb7f217cd06b",
+        "version": "7.5.0",
+      },
+    },
+    "webhookService": {
+      "webhooks": {
+        "_id": "",
+        "_rev": "-124688335",
+        "_type": {
+          "_id": "webhooks",
+          "collection": false,
+          "name": "Webhook Service",
+        },
+      },
+    },
+  },
+  "meta": Any<Object>,
+  "realm": {
+    "root": {},
+    "root-first": {},
+    "root-first-second": {},
+  },
+}
+`;
+
 exports[`AmConfigOps Cloud Tests createConfigEntityExportTemplate() 1: Create AM Config Export Template 1`] = `
 {
   "global": {},
@@ -2133,7 +5187,7 @@ exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 1: Export AM Config En
     "serverInformation": {
       "*": {
         "_id": "*",
-        "_rev": "-1019531729",
+        "_rev": "-1326577700",
         "cookieName": "6ac6499e9da2071",
         "domains": [
           "openam-frodo-dev.forgeblocks.com",
@@ -2153,7 +5207,9 @@ exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 1: Export AM Config En
         "selfRegistration": "false",
         "socialImplementations": [],
         "successfulUserRegistrationDestination": "default",
-        "userIdAttributes": [],
+        "userIdAttributes": [
+          "fr-idm-uuid",
+        ],
         "xuiUserSessionValidationEnabled": true,
         "zeroPageLogin": {
           "allowedWithoutReferer": true,
@@ -2165,10 +5221,10 @@ exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 1: Export AM Config En
     "serverVersion": {
       "version": {
         "_id": "version",
-        "_rev": "355151460",
-        "date": "2024-September-23 14:30",
-        "fullVersion": "ForgeRock Access Management 7.6.0-SNAPSHOT Build 493165657bbb9390016bd43ca767a46f23d8d24a (2024-September-23 14:30)",
-        "revision": "493165657bbb9390016bd43ca767a46f23d8d24a",
+        "_rev": "-1964495080",
+        "date": "2024-November-15 10:51",
+        "fullVersion": "ForgeRock Access Management 7.6.0-SNAPSHOT Build 7cab9c08465b06ed66fff4b458eef61d6b6825da (2024-November-15 10:51)",
+        "revision": "7cab9c08465b06ed66fff4b458eef61d6b6825da",
         "version": "7.6.0-SNAPSHOT",
       },
     },
@@ -2219,15 +5275,6 @@ exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 1: Export AM Config En
       },
       "authenticationChains": {},
       "authenticationModules": {
-        "Federation": {
-          "_id": "Federation",
-          "_type": {
-            "_id": "federation",
-            "collection": true,
-            "name": "Federation",
-          },
-          "authenticationLevel": 0,
-        },
         "amster": {
           "_id": "amster",
           "_type": {
@@ -3431,6 +6478,710 @@ exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 1: Export AM Config En
       "webhookService": {},
       "wsEntity": {},
     },
+  },
+}
+`;
+
+exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 2: Export importable AM Config Entities 1`] = `
+{
+  "global": {},
+  "meta": Any<Object>,
+  "realm": {
+    "root-alpha": {
+      "authenticationChains": {},
+      "webhookService": {},
+      "wsEntity": {},
+    },
+    "root-bravo": {
+      "authenticationChains": {},
+      "webhookService": {},
+      "wsEntity": {},
+    },
+  },
+}
+`;
+
+exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 3: Export alpha realm AM Config Entities 1`] = `
+{
+  "global": {},
+  "meta": Any<Object>,
+  "realm": {
+    "root-alpha": {
+      "applicationTypes": {
+        "iPlanetAMWebAgentService": {
+          "_id": "iPlanetAMWebAgentService",
+          "actions": {
+            "DELETE": true,
+            "GET": true,
+            "HEAD": true,
+            "OPTIONS": true,
+            "PATCH": true,
+            "POST": true,
+            "PUT": true,
+          },
+          "applicationClassName": "com.sun.identity.entitlement.Application",
+          "name": "iPlanetAMWebAgentService",
+          "resourceComparator": "com.sun.identity.entitlement.URLResourceName",
+          "saveIndex": "org.forgerock.openam.entitlement.indextree.TreeSaveIndex",
+          "searchIndex": "org.forgerock.openam.entitlement.indextree.TreeSearchIndex",
+        },
+        "sunAMDelegationService": {
+          "_id": "sunAMDelegationService",
+          "actions": {
+            "DELEGATE": true,
+            "MODIFY": true,
+            "READ": true,
+          },
+          "applicationClassName": "com.sun.identity.entitlement.Application",
+          "name": "sunAMDelegationService",
+          "resourceComparator": "com.sun.identity.entitlement.RegExResourceName",
+          "saveIndex": "com.sun.identity.entitlement.opensso.DelegationResourceNameIndexGenerator",
+          "searchIndex": "com.sun.identity.entitlement.opensso.DelegationResourceNameSplitter",
+        },
+        "umaApplicationType": {
+          "_id": "umaApplicationType",
+          "actions": {},
+          "applicationClassName": "com.sun.identity.entitlement.Application",
+          "name": "umaApplicationType",
+          "resourceComparator": "org.forgerock.openam.uma.UmaPolicyResourceMatcher",
+          "saveIndex": "org.forgerock.openam.uma.UmaPolicySaveIndex",
+          "searchIndex": "org.forgerock.openam.uma.UmaPolicySearchIndex",
+        },
+      },
+      "authenticationChains": {},
+      "authenticationModules": {
+        "amster": {
+          "_id": "amster",
+          "_type": {
+            "_id": "amster",
+            "collection": true,
+            "name": "ForgeRock Amster",
+          },
+          "authenticationLevel": 0,
+          "authorizedKeys": "/home/forgerock/openam/security/keys/amster/authorized_keys",
+          "enabled": true,
+        },
+        "datastore": {
+          "_id": "datastore",
+          "_type": {
+            "_id": "datastore",
+            "collection": true,
+            "name": "Data Store",
+          },
+          "authenticationLevel": 0,
+        },
+        "federation": {
+          "_id": "federation",
+          "_type": {
+            "_id": "federation",
+            "collection": true,
+            "name": "Federation",
+          },
+          "authenticationLevel": 0,
+        },
+        "hotp": {
+          "_id": "hotp",
+          "_type": {
+            "_id": "hotp",
+            "collection": true,
+            "name": "HOTP",
+          },
+          "authenticationLevel": 0,
+          "autoSendOTP": false,
+          "otpDeliveryMethod": "SMS and E-mail",
+          "otpLength": "8",
+          "otpMaxRetry": 3,
+          "otpValidityDuration": 5,
+          "smsGatewayClass": "com.sun.identity.authentication.modules.hotp.DefaultSMSGatewayImpl",
+          "smtpFromAddress": "no-reply@openam.org",
+          "smtpHostPort": 465,
+          "smtpHostname": "smtp.gmail.com",
+          "smtpSslEnabled": "SSL",
+          "smtpUserPassword": null,
+          "smtpUsername": "opensso.sun",
+          "userProfileEmailAttribute": "mail",
+          "userProfileTelephoneAttribute": "telephoneNumber",
+        },
+        "ldap": {
+          "_id": "ldap",
+          "_type": {
+            "_id": "ldap",
+            "collection": true,
+            "name": "LDAP",
+          },
+          "authenticationLevel": 0,
+          "beheraPasswordPolicySupportEnabled": true,
+          "connectionHeartbeatInterval": 10,
+          "connectionHeartbeatTimeUnit": "SECONDS",
+          "minimumPasswordLength": "8",
+          "openam-auth-ldap-connection-mode": "LDAP",
+          "operationTimeout": 0,
+          "primaryLdapServer": [
+            "userstore-1.userstore:1389",
+            "userstore-0.userstore:1389",
+            "userstore-2.userstore:1389",
+          ],
+          "profileAttributeMappings": [],
+          "returnUserDN": true,
+          "searchScope": "SUBTREE",
+          "secondaryLdapServer": [],
+          "stopLdapbindAfterInmemoryLockedEnabled": false,
+          "trustAllServerCertificates": false,
+          "userBindDN": "uid=admin",
+          "userBindPassword": null,
+          "userProfileRetrievalAttribute": "uid",
+          "userSearchAttributes": [
+            "uid",
+          ],
+          "userSearchStartDN": [
+            "ou=identities",
+          ],
+        },
+        "oath": {
+          "_id": "oath",
+          "_type": {
+            "_id": "oath",
+            "collection": true,
+            "name": "OATH",
+          },
+          "addChecksum": "False",
+          "authenticationLevel": 0,
+          "forgerock-oath-maximum-clock-drift": 0,
+          "forgerock-oath-sharedsecret-implementation-class": "org.forgerock.openam.authentication.modules.oath.plugins.DefaultSharedSecretProvider",
+          "hotpWindowSize": 100,
+          "minimumSecretKeyLength": "32",
+          "oathAlgorithm": "HOTP",
+          "oathOtpMaxRetry": 3,
+          "passwordLength": "6",
+          "stepsInWindow": 2,
+          "timeStepSize": 30,
+          "truncationOffset": -1,
+        },
+        "sae": {
+          "_id": "sae",
+          "_type": {
+            "_id": "sae",
+            "collection": true,
+            "name": "SAE",
+          },
+          "authenticationLevel": 0,
+        },
+      },
+      "conditionTypes": {
+        "AMIdentityMembership": {
+          "_id": "AMIdentityMembership",
+          "config": {
+            "properties": {
+              "amIdentityName": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "AMIdentityMembership",
+        },
+        "AND": {
+          "_id": "AND",
+          "config": {
+            "properties": {
+              "conditions": {
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": true,
+          "title": "AND",
+        },
+        "AuthLevel": {
+          "_id": "AuthLevel",
+          "config": {
+            "properties": {
+              "authLevel": {
+                "type": "integer",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "AuthLevel",
+        },
+        "AuthScheme": {
+          "_id": "AuthScheme",
+          "config": {
+            "properties": {
+              "applicationIdleTimeout": {
+                "type": "integer",
+              },
+              "applicationName": {
+                "type": "string",
+              },
+              "authScheme": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "AuthScheme",
+        },
+        "AuthenticateToRealm": {
+          "_id": "AuthenticateToRealm",
+          "config": {
+            "properties": {
+              "authenticateToRealm": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "AuthenticateToRealm",
+        },
+        "AuthenticateToService": {
+          "_id": "AuthenticateToService",
+          "config": {
+            "properties": {
+              "authenticateToService": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "AuthenticateToService",
+        },
+        "IPv4": {
+          "_id": "IPv4",
+          "config": {
+            "properties": {
+              "dnsName": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+              "endIp": {
+                "type": "string",
+              },
+              "startIp": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "IPv4",
+        },
+        "IPv6": {
+          "_id": "IPv6",
+          "config": {
+            "properties": {
+              "dnsName": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+              "endIp": {
+                "type": "string",
+              },
+              "startIp": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "IPv6",
+        },
+        "LDAPFilter": {
+          "_id": "LDAPFilter",
+          "config": {
+            "properties": {
+              "ldapFilter": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "LDAPFilter",
+        },
+        "LEAuthLevel": {
+          "_id": "LEAuthLevel",
+          "config": {
+            "properties": {
+              "authLevel": {
+                "type": "integer",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "LEAuthLevel",
+        },
+        "NOT": {
+          "_id": "NOT",
+          "config": {
+            "properties": {
+              "condition": {
+                "properties": {},
+                "type": "object",
+              },
+            },
+            "type": "object",
+          },
+          "logical": true,
+          "title": "NOT",
+        },
+        "OAuth2Scope": {
+          "_id": "OAuth2Scope",
+          "config": {
+            "properties": {
+              "requiredScopes": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "OAuth2Scope",
+        },
+        "OR": {
+          "_id": "OR",
+          "config": {
+            "properties": {
+              "conditions": {
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": true,
+          "title": "OR",
+        },
+        "Policy": {
+          "_id": "Policy",
+          "config": {
+            "properties": {
+              "className": {
+                "type": "string",
+              },
+              "properties": {
+                "type": "object",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "Policy",
+        },
+        "ResourceEnvIP": {
+          "_id": "ResourceEnvIP",
+          "config": {
+            "properties": {
+              "resourceEnvIPConditionValue": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "ResourceEnvIP",
+        },
+        "Script": {
+          "_id": "Script",
+          "config": {
+            "properties": {
+              "scriptId": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "Script",
+        },
+        "Session": {
+          "_id": "Session",
+          "config": {
+            "properties": {
+              "maxSessionTime": {
+                "type": "integer",
+              },
+              "terminateSession": {
+                "required": true,
+                "type": "boolean",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "Session",
+        },
+        "SessionProperty": {
+          "_id": "SessionProperty",
+          "config": {
+            "properties": {
+              "ignoreValueCase": {
+                "required": true,
+                "type": "boolean",
+              },
+              "properties": {
+                "type": "object",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "SessionProperty",
+        },
+        "SimpleTime": {
+          "_id": "SimpleTime",
+          "config": {
+            "properties": {
+              "endDate": {
+                "type": "string",
+              },
+              "endDay": {
+                "type": "string",
+              },
+              "endTime": {
+                "type": "string",
+              },
+              "enforcementTimeZone": {
+                "type": "string",
+              },
+              "startDate": {
+                "type": "string",
+              },
+              "startDay": {
+                "type": "string",
+              },
+              "startTime": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "SimpleTime",
+        },
+        "Transaction": {
+          "_id": "Transaction",
+          "config": {
+            "properties": {
+              "authenticationStrategy": {
+                "type": "string",
+              },
+              "strategySpecifier": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "Transaction",
+        },
+      },
+      "decisionCombiners": {
+        "DenyOverride": {
+          "_id": "DenyOverride",
+          "title": "DenyOverride",
+        },
+      },
+      "secrets": {},
+      "subjectAttributes": {
+        "undefined": "iplanet-am-user-login-status",
+      },
+      "subjectTypes": {
+        "AND": {
+          "_id": "AND",
+          "config": {
+            "properties": {
+              "subjects": {
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": true,
+          "title": "AND",
+        },
+        "AuthenticatedUsers": {
+          "_id": "AuthenticatedUsers",
+          "config": {
+            "properties": {},
+            "type": "object",
+          },
+          "logical": false,
+          "title": "AuthenticatedUsers",
+        },
+        "Identity": {
+          "_id": "Identity",
+          "config": {
+            "properties": {
+              "subjectValues": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "Identity",
+        },
+        "JwtClaim": {
+          "_id": "JwtClaim",
+          "config": {
+            "properties": {
+              "claimName": {
+                "type": "string",
+              },
+              "claimValue": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "JwtClaim",
+        },
+        "NONE": {
+          "_id": "NONE",
+          "config": {
+            "properties": {},
+            "type": "object",
+          },
+          "logical": false,
+          "title": "NONE",
+        },
+        "NOT": {
+          "_id": "NOT",
+          "config": {
+            "properties": {
+              "subject": {
+                "properties": {},
+                "type": "object",
+              },
+            },
+            "type": "object",
+          },
+          "logical": true,
+          "title": "NOT",
+        },
+        "OR": {
+          "_id": "OR",
+          "config": {
+            "properties": {
+              "subjects": {
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": true,
+          "title": "OR",
+        },
+        "Policy": {
+          "_id": "Policy",
+          "config": {
+            "properties": {
+              "className": {
+                "type": "string",
+              },
+              "name": {
+                "type": "string",
+              },
+              "values": {
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+            },
+            "type": "object",
+          },
+          "logical": false,
+          "title": "Policy",
+        },
+      },
+      "webhookService": {},
+      "wsEntity": {},
+    },
+    "root-bravo": {},
+  },
+}
+`;
+
+exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 4: Export global AM Config Entities 1`] = `
+{
+  "global": {
+    "serverInformation": {
+      "*": {
+        "_id": "*",
+        "_rev": "-1326577700",
+        "cookieName": "6ac6499e9da2071",
+        "domains": [
+          "openam-frodo-dev.forgeblocks.com",
+        ],
+        "fileBasedConfiguration": true,
+        "forgotPassword": "false",
+        "forgotUsername": "false",
+        "kbaEnabled": "false",
+        "lang": "en-US",
+        "protectedUserAttributes": [
+          "telephoneNumber",
+          "mail",
+        ],
+        "realm": "/",
+        "referralsEnabled": "false",
+        "secureCookie": true,
+        "selfRegistration": "false",
+        "socialImplementations": [],
+        "successfulUserRegistrationDestination": "default",
+        "userIdAttributes": [
+          "fr-idm-uuid",
+        ],
+        "xuiUserSessionValidationEnabled": true,
+        "zeroPageLogin": {
+          "allowedWithoutReferer": true,
+          "enabled": false,
+          "refererWhitelist": [],
+        },
+      },
+    },
+    "serverVersion": {
+      "version": {
+        "_id": "version",
+        "_rev": "-1964495080",
+        "date": "2024-November-15 10:51",
+        "fullVersion": "ForgeRock Access Management 7.6.0-SNAPSHOT Build 7cab9c08465b06ed66fff4b458eef61d6b6825da (2024-November-15 10:51)",
+        "revision": "7cab9c08465b06ed66fff4b458eef61d6b6825da",
+        "version": "7.6.0-SNAPSHOT",
+      },
+    },
+  },
+  "meta": Any<Object>,
+  "realm": {
+    "root-alpha": {},
+    "root-bravo": {},
   },
 }
 `;

@@ -98,9 +98,28 @@ describe('AmConfigOps', () => {
         });
 
         test('1: Export AM Config Entities', async () => {
-          // Set deployment type to cloud since it is necessary for exporting everything correctly. It does this automatically when recording the mock, but not when running the test after recording
-          state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
-          const response = await AmConfigOps.exportAmConfigEntities({state});
+          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: true, onlyRealm: false, onlyGlobal: false, state });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+
+        test('2: Export importable AM Config Entities', async () => {
+          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: false, onlyRealm: false, onlyGlobal: false, state });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+
+        test('3: Export alpha realm AM Config Entities', async () => {
+          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: true, onlyRealm: true, onlyGlobal: false, state });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+
+        test('4: Export global AM Config Entities', async () => {
+          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: true, onlyRealm: false, onlyGlobal: true, state });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
@@ -129,10 +148,29 @@ describe('AmConfigOps', () => {
       });
 
       describe('exportAmConfigEntities()', () => {
-        test('2: Export AM Config Entities', async () => {
-          // Set deployment type to cloud since it is necessary for exporting everything correctly. It does this automatically when recording the mock, but not when running the test after recording
-          state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
-          const response = await AmConfigOps.exportAmConfigEntities({state});
+        test('5: Export AM Config Entities', async () => {
+          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: true, onlyRealm: false, onlyGlobal: false, state });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+
+        test('6: Export importable AM Config Entities', async () => {
+          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: false, onlyRealm: false, onlyGlobal: false, state });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+
+        test('7: Export root realm AM Config Entities', async () => {
+          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: true, onlyRealm: true, onlyGlobal: false, state });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+
+        test('8: Export global AM Config Entities', async () => {
+          const response = await AmConfigOps.exportAmConfigEntities({ includeReadOnly: true, onlyRealm: false, onlyGlobal: true, state });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
