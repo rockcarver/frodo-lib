@@ -133,6 +133,30 @@ export type IdmConfig = {
    * @returns {IdObjectSkeletonInterface} promise resolving to a config entity
    */
   deleteConfigEntity(entityId: string): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Read a idm sub config entity.
+   * @param {string} entityId entity id for the parent config entity of the sub config entity that is being read
+   * @param {string} name name of the sub config entity that is being read
+   * @param {ConfigEntityExportOptions} options export options
+   * @returns {Promise<IdObjectSkeletonInterface>} a promise resolving to a sub config entity object
+   */
+  readSubConfigEntity(
+    entityId: string,
+    name: string,
+    options?: ConfigEntityExportOptions
+  ): Promise<NoIdObjectSkeletonInterface>;
+  /**
+   * Import a idm sub config entity.
+   * @param {string} entityId entity id for parent config entity of the sub config that is being updated
+   * @param {NoIdObjectSkeletonInterface} updatedSubConfigEntity the updated sub config entity
+   * @param {ConfigEntityImportOptions} options import options
+   * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects
+   */
+  importSubConfigEntity(
+    entityId: string,
+    updatedSubConfigEntity: IdObjectSkeletonInterface,
+    options?: ConfigEntityImportOptions
+  ): Promise<IdObjectSkeletonInterface[]>;
 
   // Deprecated
 
@@ -273,6 +297,33 @@ export default (state: State): IdmConfig => {
       entityId: string
     ): Promise<IdObjectSkeletonInterface> {
       return deleteConfigEntity({ entityId, state });
+    },
+    async readSubConfigEntity(
+      entityId: string,
+      name: string,
+      options: ConfigEntityExportOptions = {
+        envReplaceParams: undefined,
+        entitiesToExport: undefined,
+      }
+    ): Promise<NoIdObjectSkeletonInterface> {
+      return readSubConfigEntity({
+        entityId,
+        name,
+        options,
+        state,
+      });
+    },
+    async importSubConfigEntity(
+      entityId: string,
+      updatedSubConfigEntity: IdObjectSkeletonInterface,
+      options: ConfigEntityImportOptions = { validate: false }
+    ): Promise<IdObjectSkeletonInterface[]> {
+      return importSubConfigEntity({
+        entityId,
+        updatedSubConfigEntity,
+        options,
+        state,
+      });
     },
 
     // Deprecated
@@ -813,6 +864,102 @@ export async function deleteConfigEntity({
     return _deleteConfigEntity({ entityId, state });
   } catch (error) {
     throw new FrodoError(`Error deleting config entity ${entityId}`, error);
+  }
+}
+
+export async function readSubConfigEntity({
+  entityId,
+  name,
+  options = { envReplaceParams: undefined, entitiesToExport: undefined },
+  state,
+}: {
+  entityId: string;
+  name: string;
+  options?: ConfigEntityExportOptions;
+  state: State;
+}): Promise<NoIdObjectSkeletonInterface> {
+  try {
+    const entity = substituteEntityWithEnv(
+      await readConfigEntity({ entityId, state }),
+      options.envReplaceParams
+    );
+
+    const subEntityKey = Object.keys(entity).find((key) => key !== '_id');
+
+    if (!Array.isArray(entity[subEntityKey])) {
+      throw new FrodoError(`Error reading sub config ${entityId} ${name}`);
+    }
+
+    const subEntity = (
+      entity[subEntityKey] as NoIdObjectSkeletonInterface[]
+    ).find((item) => item.name === name);
+
+    if (!subEntity) {
+      throw new FrodoError(`Error reading sub config ${entityId} ${name}`);
+    }
+    return subEntity;
+  } catch (error) {
+    printError(error);
+  }
+}
+
+export async function importSubConfigEntity({
+  entityId,
+  updatedSubConfigEntity,
+  options = {
+    envReplaceParams: undefined,
+    entitiesToImport: undefined,
+    validate: false,
+  },
+  state,
+}: {
+  entityId: string;
+  updatedSubConfigEntity: IdObjectSkeletonInterface;
+  options: ConfigEntityImportOptions;
+  state: State;
+}): Promise<IdObjectSkeletonInterface[]> {
+  try {
+    const entityExport = await exportConfigEntity({
+      entityId,
+      state,
+    });
+
+    const subEntityKey = Object.keys(entityExport.idm?.[entityId]).find(
+      (key) => key !== '_id'
+    );
+
+    if (!Array.isArray(entityExport.idm?.[entityId]?.[subEntityKey])) {
+      throw new FrodoError(`Error importing sub config of ${entityId}`);
+    }
+
+    const existingSubEntityIndex = (
+      entityExport.idm?.[entityId]?.[
+        subEntityKey
+      ] as NoIdObjectSkeletonInterface[]
+    ).findIndex((item) => item.name === updatedSubConfigEntity.name);
+
+    if (existingSubEntityIndex !== -1) {
+      (
+        entityExport.idm[entityId][
+          subEntityKey
+        ] as NoIdObjectSkeletonInterface[]
+      )[existingSubEntityIndex] = updatedSubConfigEntity;
+    } else {
+      (
+        entityExport.idm[entityId][
+          subEntityKey
+        ] as NoIdObjectSkeletonInterface[]
+      ).push(updatedSubConfigEntity);
+    }
+
+    return importConfigEntities({
+      entityId,
+      importData: entityExport,
+      options,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(`Error importing sub config ${entityId}`, error);
   }
 }
 
