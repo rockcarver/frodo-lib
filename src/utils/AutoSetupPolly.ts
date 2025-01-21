@@ -67,7 +67,7 @@ export function setDefaultState(
   deployment = Constants.CLOUD_DEPLOYMENT_TYPE_KEY
 ) {
   const classicHostUrl = 'http://openam-frodo-dev.classic.com:8080/am';
-  const classicRealm = '';
+  const classicRealm = '/';
   const cloudHostUrl = 'https://openam-frodo-dev.forgeblocks.com/am';
   const cloudRealm = 'alpha';
   switch (process.env.FRODO_DEPLOY || deployment) {
