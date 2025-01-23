@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.1] - 2025-01-23
+
 ### Changed
 
 - Support for new export options for full config exports. By default, the full exports will now only export "importable" config, i.e. the non-read only config, unless otherwise specified by the read only flag. However, just as it was before, all realms and global config will be exported by default unless otherwise specified by the new flags for realm only and global only.
@@ -20,7 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Improved IdP imports where not including the redirectAfterFormPostURI attribute in the import would cause it to throw an HTTP 500 error.
 - Updated dependencies with vulnerabilities
-
 
 ## [3.0.1-7] - 2025-01-22
 
@@ -1855,7 +1856,8 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v3.0.1-7...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v3.0.1...HEAD
+[3.0.1]: https://github.com/rockcarver/frodo-lib/compare/v3.0.1-7...v3.0.1
 [3.0.1-7]: https://github.com/rockcarver/frodo-lib/compare/v3.0.1-6...v3.0.1-7
 [3.0.1-6]: https://github.com/rockcarver/frodo-lib/compare/v3.0.1-5...v3.0.1-6
 [3.0.1-5]: https://github.com/rockcarver/frodo-lib/compare/v3.0.1-4...v3.0.1-5
