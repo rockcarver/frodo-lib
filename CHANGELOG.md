@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Support for new export options for full config exports. By default, the full exports will now only export "importable" config, i.e. the non-read only config, unless otherwise specified by the read only flag. However, just as it was before, all realms and global config will be exported by default unless otherwise specified by the new flags for realm only and global only.
+- Removes duplicate IdP config exported as part of the SocialIdentityProviders service in the full config export since they are already exported separately. The service is still exported, but the nextDescendents field is deleted before returning the full export.
+
+### Added
+
+- New functions to read and import individual config schemas. For example, read or import just the user_role schema from the managed objects entity.
+
+### Fixed
+
+- Improved IdP imports where not including the redirectAfterFormPostURI attribute in the import would cause it to throw an HTTP 500 error.
+- Updated dependencies with vulnerabilities
+
+
 ## [3.0.1-7] - 2025-01-22
 
 ## [3.0.1-6] - 2025-01-22
