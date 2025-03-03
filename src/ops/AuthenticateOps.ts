@@ -119,12 +119,10 @@ const CLOUD_ADMIN_DEFAULT_SCOPES: string[] = [
   s.ESVFullScope,
   s.FederationEnforcementFullScope,
   s.IdmFullScope,
-  s.IGAFullScope,
   s.OpenIdScope,
   s.PromotionScope,
   s.ReleaseFullScope,
   s.SSOCookieFullScope,
-  s.WafFullScope,
 ];
 const FORGEOPS_ADMIN_DEFAULT_SCOPES: string[] = [s.IdmFullScope, s.OpenIdScope];
 

@@ -104,13 +104,9 @@ export const SERVICE_ACCOUNT_ALLOWED_SCOPES: string[] = [
   s.ESVRestartScope,
   s.ESVUpdateScope,
   s.IdmFullScope,
-  s.IGAFullScope,
   s.PromotionScope,
   s.ReleaseFullScope,
   s.SSOCookieFullScope,
-  s.WafFullScope,
-  s.WafReadScope,
-  s.WafWriteScope,
   s.CookieDomainsFullScope,
 ];
 
@@ -124,11 +120,9 @@ export const SERVICE_ACCOUNT_DEFAULT_SCOPES: string[] = [
   s.CustomDomainFullScope,
   s.ESVFullScope,
   s.IdmFullScope,
-  s.IGAFullScope,
   s.PromotionScope,
   s.ReleaseFullScope,
   s.SSOCookieFullScope,
-  s.WafFullScope,
 ];
 
 export type ServiceAccountType = IdObjectSkeletonInterface & {
