@@ -39,7 +39,6 @@ const AVAILABLE_SCOPES = {
   AmFullScope: 'fr:am:*',
   IdmFullScope: 'fr:idm:*',
   AutoAccessFullScope: 'fr:autoaccess:*',
-  IGAFullScope: 'fr:iga:*',
   AnalyticsFullScope: 'fr:idc:analytics:*',
 
   // AMIntrospectRealmTokenScope lets you introspect scopes _from the same realm_, there is a separate scope to introspect tokens from _all_ realms
@@ -77,11 +76,6 @@ const AVAILABLE_SCOPES = {
 
   // Promotion scopes
   PromotionScope: 'fr:idc:promotion:*',
-
-  // WAF scopes
-  WafFullScope: 'fr:idc:proxy-connect:*',
-  WafReadScope: 'fr:idc:proxy-connect:read',
-  WafWriteScope: 'fr:idc:proxy-connect:write',
 
   // Cookie Domains scopes
   CookieDomainsFullScope: 'fr:idc:cookie-domain:*',
