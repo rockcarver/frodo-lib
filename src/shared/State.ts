@@ -1,4 +1,6 @@
 /* eslint-disable no-console */
+import { IAxiosRetryConfig } from 'axios-retry';
+
 import { FeatureInterface } from '../api/cloud/FeatureApi';
 import { UserSessionMetaType } from '../ops/AuthenticateOps';
 import { FrodoError } from '../ops/FrodoError';
@@ -149,6 +151,8 @@ export type State = {
   getDebugHandler(): (message: string | object) => void;
   setDebug(debug: boolean): void;
   getDebug(): boolean;
+  getAxiosRetryConfig(): IAxiosRetryConfig;
+  setAxiosRetryConfig(axiosRetryConfig: IAxiosRetryConfig): void;
   /**
    * Reset the state to default values
    */
@@ -476,6 +480,12 @@ export default (initialState: StateInterface): State => {
     getDebug(): boolean {
       return globalState.debug || process.env.FRODO_DEBUG !== undefined;
     },
+    getAxiosRetryConfig(): IAxiosRetryConfig {
+      return globalState.axiosRetryConfig;
+    },
+    setAxiosRetryConfig(axiosRetryConfig: IAxiosRetryConfig) {
+      globalState.axiosRetryConfig = axiosRetryConfig;
+    },
     reset(): void {
       for (const key of Object.keys(state)) {
         state[key] = globalState[key];
@@ -553,6 +563,7 @@ export interface StateInterface {
   ) => string;
   updateProgressHandler?: (id: string, message: string) => void;
   stopProgressHandler?: (id: string, message: string, status?: string) => void;
+  axiosRetryConfig?: IAxiosRetryConfig;
 }
 
 const globalState: StateInterface = {
