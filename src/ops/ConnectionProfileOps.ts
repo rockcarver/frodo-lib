@@ -8,6 +8,7 @@ import { State } from '../shared/State';
 import { debugMessage, printMessage, verboseMessage } from '../utils/Console';
 import DataProtection from '../utils/DataProtection';
 import { isValidUrl, saveJsonToFile } from '../utils/ExportImportUtils';
+import { readServiceAccountScopes } from './cloud/EnvServiceAccountScopesOps';
 import {
   createServiceAccount,
   getServiceAccount,
@@ -731,7 +732,13 @@ export async function addNewServiceAccount({
       state,
     });
     const description = `${state.getUsername()}'s Frodo Service Account`;
-    const scope = SERVICE_ACCOUNT_DEFAULT_SCOPES;
+    const availableScopes = (await readServiceAccountScopes({
+      flatten: true,
+      state,
+    })) as string[];
+    const scope = SERVICE_ACCOUNT_DEFAULT_SCOPES.filter((scope) =>
+      availableScopes.includes(scope)
+    );
     const jwkPrivate = await createJwkRsa();
     const jwkPublic = await getJwkRsaPublic(jwkPrivate);
     const jwks = createJwks(jwkPublic);
