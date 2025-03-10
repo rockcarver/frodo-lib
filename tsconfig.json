@@ -110,7 +110,6 @@
     "out": "./docs",
     "readme": ".github/README.md",
     "excludeExternals": true,
-    "hideParameterTypesInTitle": false,
     "includeVersion": true,
     "disableSources": false,
     "hideGenerator": true,
