@@ -108,9 +108,9 @@ export const SERVICE_ACCOUNT_ALLOWED_SCOPES: string[] = [
   s.PromotionScope,
   s.ReleaseFullScope,
   s.SSOCookieFullScope,
-  s.WafFullScope,
-  s.WafReadScope,
-  s.WafWriteScope,
+  s.ProxyConnectFullScope,
+  s.ProxyConnectReadScope,
+  s.ProxyConnectWriteScope,
   s.CookieDomainsFullScope,
 ];
 
@@ -128,7 +128,7 @@ export const SERVICE_ACCOUNT_DEFAULT_SCOPES: string[] = [
   s.PromotionScope,
   s.ReleaseFullScope,
   s.SSOCookieFullScope,
-  s.WafFullScope,
+  s.ProxyConnectFullScope,
 ];
 
 export type ServiceAccountType = IdObjectSkeletonInterface & {

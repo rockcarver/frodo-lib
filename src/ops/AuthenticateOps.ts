@@ -117,14 +117,14 @@ const CLOUD_ADMIN_DEFAULT_SCOPES: string[] = [
   s.CookieDomainsFullScope,
   s.CustomDomainFullScope,
   s.ESVFullScope,
-  s.FederationEnforcementFullScope,
+  s.AdminFederationFullScope,
   s.IdmFullScope,
   s.IGAFullScope,
   s.OpenIdScope,
   s.PromotionScope,
   s.ReleaseFullScope,
   s.SSOCookieFullScope,
-  s.WafFullScope,
+  s.ProxyConnectFullScope,
 ];
 const FORGEOPS_ADMIN_DEFAULT_SCOPES: string[] = [s.IdmFullScope, s.OpenIdScope];
 
@@ -353,7 +353,7 @@ async function determineDeploymentType(state: State): Promise<string> {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       };
-      let bodyFormData = `redirect_uri=${redirectUri}&scope=${cloudAdminScopes}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+      let bodyFormData = `redirect_uri=${redirectUri}&scope=${s.OpenIdScope}&response_type=code&client_id=${fidcClientId}&csrf=${cookieValue}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
 
       deploymentType = Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
       try {
@@ -376,7 +376,7 @@ async function determineDeploymentType(state: State): Promise<string> {
           deploymentType = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
         } else {
           try {
-            bodyFormData = `redirect_uri=${redirectUri}&scope=${forgeopsAdminScopes}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
+            bodyFormData = `redirect_uri=${redirectUri}&scope=${s.OpenIdScope}&response_type=code&client_id=${forgeopsClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${challenge}&code_challenge_method=${challengeMethod}`;
             await authorize({
               amBaseUrl: state.getHost(),
               data: bodyFormData,

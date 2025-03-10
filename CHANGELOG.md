@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- rockcarver/frodo-cli#479: Fixes issues introduced by a recent PingOne Advanced Identity Cloud release (16747.0 on 27 Feb 2025) which prevented Frodo from correctly determining the deployment type of `cloud` and led to failures in the `frodo conn save` and `frodo conn add` commands when Frodo was attempting to create service accounts with scopes that are not available in an environment.
+- Updated dependencies with vulnerabilities
+
 ## [3.0.1] - 2025-01-23
 
 ### Changed

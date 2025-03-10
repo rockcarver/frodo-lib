@@ -34,14 +34,6 @@ const FRODO_MASTER_KEY_PATH_KEY = 'FRODO_MASTER_KEY_PATH';
 const FRODO_MASTER_KEY_KEY = 'FRODO_MASTER_KEY';
 const FRODO_TOKEN_CACHE_PATH_KEY = 'FRODO_TOKEN_CACHE_PATH';
 const AVAILABLE_SCOPES = {
-  OpenIdScope: 'openid',
-  ProfileScope: 'profile',
-  AmFullScope: 'fr:am:*',
-  IdmFullScope: 'fr:idm:*',
-  AutoAccessFullScope: 'fr:autoaccess:*',
-  IGAFullScope: 'fr:iga:*',
-  AnalyticsFullScope: 'fr:idc:analytics:*',
-
   // AMIntrospectRealmTokenScope lets you introspect scopes _from the same realm_, there is a separate scope to introspect tokens from _all_ realms
   AMIntrospectRealmTokenScope: 'am-introspect-all-tokens',
 
@@ -49,45 +41,80 @@ const AVAILABLE_SCOPES = {
   AMIntrospectAllTokens: 'am-introspect-all-tokens',
   AMIntrospectAllTokensAnyRealm: 'am-introspect-all-tokens-any-realm',
 
-  // Certificate scopes
+  OpenIdScope: 'openid',
+  ProfileScope: 'profile',
+
+  // All Access Management APIs
+  AmFullScope: 'fr:am:*',
+
+  // All Auto Access APIs
+  AutoAccessFullScope: 'fr:autoaccess:*',
+
+  // All Analytics APIs
+  AnalyticsFullScope: 'fr:idc:analytics:*',
+
+  // All TLS certificate APIs
   CertificateFullScope: 'fr:idc:certificate:*',
+
+  // Read TLS certificates
   CertificateReadScope: 'fr:idc:certificate:read',
 
-  // ESV API scopes
-  ESVFullScope: 'fr:idc:esv:*',
-  ESVReadScope: 'fr:idc:esv:read',
-  ESVUpdateScope: 'fr:idc:esv:update',
-  ESVRestartScope: 'fr:idc:esv:restart',
-
-  // Content security policy scopes
+  // All content security policy APIs
   ContentSecurityPolicyFullScope: 'fr:idc:content-security-policy:*',
 
-  // Federation scopes
-  FederationFullScope: 'fr:idc:federation:*',
-  FederationReadScope: 'fr:idc:federation:read',
-
-  // Release scopes
-  ReleaseFullScope: 'fr:idc:release:*',
-
-  // SSOCookie scopes
-  SSOCookieFullScope: 'fr:idc:sso-cookie:*',
-
-  // CustomDomainFullScope Custom domain scopes
-  CustomDomainFullScope: 'fr:idc:custom-domain:*',
-
-  // Promotion scopes
-  PromotionScope: 'fr:idc:promotion:*',
-
-  // WAF scopes
-  WafFullScope: 'fr:idc:proxy-connect:*',
-  WafReadScope: 'fr:idc:proxy-connect:read',
-  WafWriteScope: 'fr:idc:proxy-connect:write',
-
-  // Cookie Domains scopes
+  // All cookie domain APIs
   CookieDomainsFullScope: 'fr:idc:cookie-domain:*',
 
-  // Admin Federation Enforcement
-  FederationEnforcementFullScope: 'fr:idc:federation:*',
+  // All custom domain APIs
+  CustomDomainFullScope: 'fr:idc:custom-domain:*',
+
+  // All dataset deletion APIs
+  DatasetDeletionFullScope: 'fr:idc:dataset:*',
+
+  // All ESV APIs
+  ESVFullScope: 'fr:idc:esv:*',
+
+  // Read ESVs, excluding values of secrets
+  ESVReadScope: 'fr:idc:esv:read',
+
+  // Create, modify, and delete ESVs
+  ESVUpdateScope: 'fr:idc:esv:update',
+
+  // Restart workloads that consume ESVs
+  ESVRestartScope: 'fr:idc:esv:restart',
+
+  // Create, modify, and delete Admin Federation configuration
+  AdminFederationFullScope: 'fr:idc:federation:*',
+
+  // Read Admin Federation configuration
+  AdminFederationReadScope: 'fr:idc:federation:read',
+
+  // All mTLS APIs
+  MTLSFullScope: 'fr:idc:mtls:*',
+
+  // All configuration promotion APIs
+  PromotionScope: 'fr:idc:promotion:*',
+
+  // All Proxy Connect APIs
+  ProxyConnectFullScope: 'fr:idc:proxy-connect:*',
+
+  // Read Proxy Connect configuration
+  ProxyConnectReadScope: 'fr:idc:proxy-connect:read',
+
+  // Create and update Proxy Connect configuration
+  ProxyConnectWriteScope: 'fr:idc:proxy-connect:write',
+
+  // All product release APIs
+  ReleaseFullScope: 'fr:idc:release:*',
+
+  // All SSO cookie APIs
+  SSOCookieFullScope: 'fr:idc:sso-cookie:*',
+
+  // All Identity Management APIs
+  IdmFullScope: 'fr:idm:*',
+
+  // All Governance APIs
+  IGAFullScope: 'fr:iga:*',
 };
 
 export default {

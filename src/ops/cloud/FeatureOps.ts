@@ -7,10 +7,10 @@ import { debugMessage } from '../../utils/Console';
 
 export type Feature = {
   /**
-   * Get all features
+   * Read all features
    * @returns {Promise<FeatureInterface[]>} a promise that resolves to an array of feature objects
    */
-  getFeatures(): Promise<FeatureInterface[]>;
+  readFeatures(): Promise<FeatureInterface[]>;
   /**
    * Check if feature is available
    * @param {string} featureId feature id (e.g. 'service-accounts')
@@ -22,11 +22,11 @@ export type Feature = {
 export default (state: State): Feature => {
   return {
     /**
-     * Get all features
+     * Read all features
      * @returns {Promise<FeatureInterface[]>} a promise that resolves to an array of feature objects
      */
-    async getFeatures(): Promise<FeatureInterface[]> {
-      return getFeatures({ state });
+    async readFeatures(): Promise<FeatureInterface[]> {
+      return readFeatures({ state });
     },
 
     /**
@@ -41,10 +41,10 @@ export default (state: State): Feature => {
 };
 
 /**
- * Get all features
+ * Read all features
  * @returns {Promise<FeatureInterface[]>} a promise that resolves to an array of feature objects
  */
-export async function getFeatures({
+export async function readFeatures({
   state,
 }: {
   state: State;
@@ -72,7 +72,7 @@ export async function hasFeature({
   featureId: string;
   state: State;
 }): Promise<boolean> {
-  if (typeof state.getFeatures() === 'undefined') await getFeatures({ state });
+  if (typeof state.getFeatures() === 'undefined') await readFeatures({ state });
   const featureIds = state.getFeatures().map((feature) => feature._id);
   return featureIds.includes(featureId);
 }
