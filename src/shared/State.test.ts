@@ -110,6 +110,26 @@ describe('State', () => {
     });
   });
 
+  describe('getAxiosRetryConfig()/setAxiosRetryConfig()', () => {
+    test('0: Method getAxiosRetryConfig is implemented', () => {
+      expect(state.getAxiosRetryConfig).toBeDefined();
+    });
+
+    test('1: Method setAxiosRetryConfig is implemented', () => {
+      expect(state.setAxiosRetryConfig).toBeDefined();
+    });
+
+    test("2: axiosRetryConfig value should be undefined if it hasn't been set before or defined if set explicitly", () => {
+      const retryConfig = {
+        retries: 3
+      };
+
+      expect(state.getAxiosRetryConfig()).toBeUndefined();
+      state.setAxiosRetryConfig(retryConfig);
+      expect(state.getAxiosRetryConfig()).toEqual(retryConfig);
+    });
+  });
+
   // setDeploymentType,
   // getDeploymentType,
 

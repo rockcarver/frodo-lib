@@ -22,13 +22,6 @@ if (process.env.FRODO_MOCK) {
   setupPollyForFrodoLib({ state: StateImpl({}) });
 }
 
-axiosRetry(axios, {
-  retries: 3,
-  shouldResetTimeout: true,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  retryCondition: (_error) => true, // retry no matter what
-});
-
 // all agents
 const timeout = 30000;
 
@@ -97,6 +90,29 @@ function getHttpsAgent(
 function getProxy(): AxiosProxyConfig | false {
   if (process.env.HTTPS_PROXY || process.env.https_proxy) return false;
   return null;
+}
+
+/**
+ * Creates an Axios instance and if retry config is set either on the global state or the request config, then
+ * interceptors are applied.
+ *
+ * Request config takes precedence over any global config. Config is applied in its entirety and not merged.
+ * @param {State} state State object
+ * @param {AxiosRequestConfig} requestConfig Axios request object
+ */
+function createAxiosInstance(
+  state: State,
+  requestConfig: AxiosRequestConfig
+): AxiosInstance {
+  const axiosInstance = axios.create(requestConfig);
+
+  const globalRetryConfig = state.getAxiosRetryConfig();
+  const requestRetryConfig = requestConfig['axios-retry'];
+  if (!!globalRetryConfig || !!requestRetryConfig) {
+    axiosRetry(axiosInstance, requestRetryConfig ?? globalRetryConfig);
+  }
+
+  return axiosInstance;
 }
 
 /**
@@ -205,7 +221,7 @@ export function generateAmApi({
     requestOverride
   );
 
-  const request = axios.create(requestDetails);
+  const request = createAxiosInstance(state, requestDetails);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
@@ -275,7 +291,7 @@ export function generateOauth2Api({
     proxy: getProxy(),
   };
 
-  const request = axios.create(requestDetails);
+  const request = createAxiosInstance(state, requestDetails);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
@@ -321,7 +337,7 @@ export function generateIdmApi({
     requestOverride
   );
 
-  const request = axios.create(requestDetails);
+  const request = createAxiosInstance(state, requestDetails);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
@@ -366,7 +382,7 @@ export function generateLogKeysApi({
     requestOverride
   );
 
-  const request = axios.create(requestDetails);
+  const request = createAxiosInstance(state, requestDetails);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
@@ -409,7 +425,7 @@ export function generateLogApi({
     requestOverride
   );
 
-  const request = axios.create(requestDetails);
+  const request = createAxiosInstance(state, requestDetails);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
@@ -458,7 +474,7 @@ export function generateEnvApi({
     proxy: getProxy(),
   };
 
-  const request = axios.create(requestDetails);
+  const request = createAxiosInstance(state, requestDetails);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
@@ -506,7 +522,7 @@ export function generateGovernanceApi({
     proxy: getProxy(),
   };
 
-  const request = axios.create(requestDetails);
+  const request = createAxiosInstance(state, requestDetails);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
@@ -547,7 +563,7 @@ export function generateReleaseApi({
     proxy: getProxy(),
   };
 
-  const request = axios.create(requestDetails);
+  const request = createAxiosInstance(state, requestDetails);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
