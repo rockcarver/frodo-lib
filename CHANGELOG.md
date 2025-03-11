@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.3] - 2025-03-11
+
 ### Fixed
 
 - rockcarver/frodo-cli#479: Fixes issues introduced by a recent PingOne Advanced Identity Cloud release (16747.0 on 27 Feb 2025) which prevented Frodo from correctly determining the deployment type of `cloud` and led to failures when adding connection profiles and creating service accounts.
@@ -1867,7 +1869,8 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v3.0.2...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v3.0.3...HEAD
+[3.0.3]: https://github.com/rockcarver/frodo-lib/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/rockcarver/frodo-lib/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/rockcarver/frodo-lib/compare/v3.0.1-7...v3.0.1
 [3.0.1-7]: https://github.com/rockcarver/frodo-lib/compare/v3.0.1-6...v3.0.1-7
