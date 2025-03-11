@@ -10,6 +10,7 @@ import { encodeBase64Url } from '../utils/Base64Utils';
 import { debugMessage, verboseMessage } from '../utils/Console';
 import { isValidUrl, parseUrl } from '../utils/ExportImportUtils';
 import { CallbackHandler } from './CallbackOps';
+import { readServiceAccountScopes } from './cloud/EnvServiceAccountScopesOps';
 import {
   getServiceAccount,
   SERVICE_ACCOUNT_DEFAULT_SCOPES,
@@ -109,6 +110,20 @@ const adminClientPassword = 'doesnotmatter';
 const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
 
 const s = Constants.AVAILABLE_SCOPES;
+const CLOUD_ADMIN_MINIMAL_SCOPES: string[] = [
+  s.AnalyticsFullScope,
+  s.CertificateFullScope,
+  s.ContentSecurityPolicyFullScope,
+  s.CookieDomainsFullScope,
+  s.CustomDomainFullScope,
+  s.ESVFullScope,
+  s.AdminFederationFullScope,
+  s.IdmFullScope,
+  s.OpenIdScope,
+  s.PromotionScope,
+  s.ReleaseFullScope,
+  s.SSOCookieFullScope,
+];
 const CLOUD_ADMIN_DEFAULT_SCOPES: string[] = [
   s.AnalyticsFullScope,
   s.AutoAccessFullScope,
@@ -127,8 +142,6 @@ const CLOUD_ADMIN_DEFAULT_SCOPES: string[] = [
   s.ProxyConnectFullScope,
 ];
 const FORGEOPS_ADMIN_DEFAULT_SCOPES: string[] = [s.IdmFullScope, s.OpenIdScope];
-
-const cloudAdminScopes = CLOUD_ADMIN_DEFAULT_SCOPES.join(' ');
 const forgeopsAdminScopes = FORGEOPS_ADMIN_DEFAULT_SCOPES.join(' ');
 const serviceAccountDefaultScopes = SERVICE_ACCOUNT_DEFAULT_SCOPES.join(' ');
 
@@ -556,6 +569,51 @@ async function getUserSessionToken(
   return token;
 }
 
+async function getAdminUserScopes({ state }: { state: State }) {
+  debugMessage({
+    message: `AuthenticateOps.getAdminUserScopes: start`,
+    state,
+  });
+  if (state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY) {
+    debugMessage({
+      message: `AuthenticateOps.getAdminUserScopes: end with forgeops scopes ${forgeopsAdminScopes}`,
+      state,
+    });
+    return forgeopsAdminScopes;
+  } else if (
+    state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY
+  ) {
+    try {
+      const availableScopes = (await readServiceAccountScopes({
+        flatten: true,
+        state,
+      })) as string[];
+      availableScopes.push(s.OpenIdScope);
+      const cloudAdminScopes = CLOUD_ADMIN_DEFAULT_SCOPES.filter((scope) =>
+        availableScopes.includes(scope)
+      );
+      debugMessage({
+        message: `AuthenticateOps.getAdminUserScopes: end with cloud scopes ${cloudAdminScopes.join(' ')}`,
+        state,
+      });
+      return cloudAdminScopes.join(' ');
+    } catch (error) {
+      debugMessage({
+        message: `AuthenticateOps.getAdminUserScopes: end with minimal cloud scopes ${CLOUD_ADMIN_MINIMAL_SCOPES.join(' ')}`,
+        state,
+      });
+      return CLOUD_ADMIN_MINIMAL_SCOPES.join(' ');
+    }
+  }
+  debugMessage({
+    message: `AuthenticateOps.getAdminUserScopes: end without scopes: Unsupported deployment type: ${state.getDeploymentType()}, expected ${Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY} or ${Constants.CLOUD_DEPLOYMENT_TYPE_KEY}`,
+    state,
+  });
+  throw new FrodoError(
+    `Unsupported deployment type: ${state.getDeploymentType()}, expected ${Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY} or ${Constants.CLOUD_DEPLOYMENT_TYPE_KEY}`
+  );
+}
+
 /**
  * Helper function to obtain an oauth2 authorization code
  * @param {string} redirectUri oauth2 redirect uri
@@ -570,12 +628,14 @@ async function getAuthCode(
   codeChallengeMethod: string,
   state: State
 ): Promise<string> {
+  debugMessage({
+    message: `AuthenticateOps.getAuthCode: start`,
+    state,
+  });
   try {
-    const bodyFormData = `redirect_uri=${redirectUri}&scope=${
-      state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY
-        ? cloudAdminScopes
-        : forgeopsAdminScopes
-    }&response_type=code&client_id=${adminClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
+    const bodyFormData = `redirect_uri=${redirectUri}&scope=${await getAdminUserScopes(
+      { state }
+    )}&response_type=code&client_id=${adminClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
     const config = {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -599,10 +659,22 @@ async function getAuthCode(
     const redirectLocationURL = response.headers?.location;
     const queryObject = url.parse(redirectLocationURL, true).query;
     if ('code' in queryObject) {
+      debugMessage({
+        message: `AuthenticateOps.getAuthCode: end with code`,
+        state,
+      });
       return queryObject.code as string;
     }
+    debugMessage({
+      message: `AuthenticateOps.getAuthCode: end without code`,
+      state,
+    });
     throw new FrodoError(`Authz code not found`);
   } catch (error) {
+    debugMessage({
+      message: `AuthenticateOps.getAuthCode: end without code`,
+      state,
+    });
     throw new FrodoError(`Error getting authz code`, error);
   }
 }
