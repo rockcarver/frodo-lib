@@ -600,6 +600,10 @@ const scriptedNodesConditions = {
     return true;
   },
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  SocialProviderHandlerNodeV2: (_nodeConfig: NodeSkeleton): boolean => {
+    return true;
+  },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   CustomScriptNode: (_nodeConfig: NodeSkeleton): boolean => {
     return true;
   },
