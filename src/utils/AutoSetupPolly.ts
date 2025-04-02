@@ -1,4 +1,3 @@
-import NodeHttpAdapter from '@pollyjs/adapter-node-http';
 import { Polly } from '@pollyjs/core';
 import FSPersister from '@pollyjs/persister-fs';
 import { MODES } from '@pollyjs/utils';
@@ -10,11 +9,12 @@ import { fileURLToPath } from 'url';
 import { state } from '../index';
 import { getTokens } from '../ops/AuthenticateOps';
 import Constants from '../shared/Constants';
+import { FrodoNodeHttpAdapter } from './FrodoNodeHttpAdapter';
 import { defaultMatchRequestsBy } from './PollyUtils';
 
 const { setupPolly } = pollyJest;
 
-Polly.register(NodeHttpAdapter);
+Polly.register(FrodoNodeHttpAdapter);
 Polly.register(FSPersister);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

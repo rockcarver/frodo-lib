@@ -2,6 +2,7 @@ import { decode, encode, isBase64Encoded } from './Base64Utils';
 
 export type Recording = {
   request: {
+    url: string;
     headers: [{ name: string; value: string }];
     postData: { mimeType: string; text: any };
   };
@@ -37,6 +38,13 @@ export function defaultMatchRequestsBy(protocol: boolean = true) {
 }
 
 export function filterRecording(recording: Recording) {
+  // proxy request url - proxied requests are recorded as: http://proxy-host:proxy-port/https://host/path
+  // e.g. http://127.0.0.1:3128/https://openam-frodo-dev.forgeblocks.com/environment/release
+  // to keep recordings the same whether or not a proxy was used, we must remove the proxy from the url
+  if (recording.request?.url) {
+    recording.request.url = cleanupProxyRequestUrl(recording.request.url);
+  }
+
   // request headers
   if (recording.request?.headers) {
     recording.request.headers.forEach(obfuscateHeader);
@@ -145,4 +153,12 @@ function obfuscateXmlString(xml: string): string {
   } catch (error) {
     // ignore
   }
+}
+
+export function cleanupProxyRequestUrl(url: string): string {
+  const re = /https??:\/\//g;
+  const results = (url || '').match(re) || [];
+  const count = results.length;
+  if (count <= 1) return url;
+  return url.substring(url.lastIndexOf(results[1]));
 }

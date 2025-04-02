@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New methods on State to allow setting global retry config as an [IAxiosRetryConfig](https://github.com/softonic/axios-retry/blob/4019333df603bf1bb27dae9311a96dd8edbe102b/src/index.ts#L10) object. Default is to have no retry config to maintain current behaviour.
+
+### Fixed
+
+- rockcarver/frodo-cli#477: Frodo Library now properly includes the transformation script for both `Social Provider Handler Node` and `Legacy Social Provider Handler Node`.
+- rockcarver/frodo-cli#482: Frodo Library now properly honors the NO_PROXY environment variable in addition to HTTP_PROXY and HTTPS_PROXY.
+
 ## [3.0.4-0] - 2025-03-31
 
 ## [3.0.3] - 2025-03-11
