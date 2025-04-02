@@ -160,7 +160,7 @@ jobs:
           FRODO_SA_ID: ${{ vars.FIDC_TENANT_SA_ID }}
           FRODO_SA_JWK: ${{ secrets.FIDC_TENANT_SA_JWK }}
         run: |
-          npm run test:debug
+          npm run test
 
       - name: Proxy Tests
         env:
@@ -170,7 +170,7 @@ jobs:
           FRODO_SA_ID: ${{ vars.FIDC_TENANT_SA_ID }}
           FRODO_SA_JWK: ${{ secrets.FIDC_TENANT_SA_JWK }}
         run: |
-          npm run test:only
+          npm run test
 
       - name: Security Audit
         run: |
