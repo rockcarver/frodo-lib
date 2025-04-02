@@ -1,5 +1,4 @@
 /* eslint-disable no-console */
-import NodeHttpAdapter from '@pollyjs/adapter-node-http';
 import { Polly } from '@pollyjs/core';
 import FSPersister from '@pollyjs/persister-fs';
 import { MODES } from '@pollyjs/utils';
@@ -8,15 +7,16 @@ import path from 'path';
 
 import { State } from '../shared/State';
 import { debugMessage, printMessage } from './Console';
+import { FrodoNodeHttpAdapter } from './FrodoNodeHttpAdapter';
 import {
   defaultMatchRequestsBy,
   filterRecording,
   Recording,
 } from './PollyUtils';
 
-const FRODO_TEST_NAME = process.env.FRODO_TEST_NAME 
+const FRODO_TEST_NAME = process.env.FRODO_TEST_NAME
   ? process.env.FRODO_TEST_NAME
-  : null
+  : null;
 
 const FRODO_MOCK_HOSTS = process.env.FRODO_MOCK_HOSTS
   ? process.env.FRODO_MOCK_HOSTS.split(',')
@@ -36,7 +36,7 @@ const recordingsDir = process.env.FRODO_MOCK_DIR
   : 'test/e2e/mocks';
 
 if (process.env.FRODO_MOCK) {
-  Polly.register(NodeHttpAdapter);
+  Polly.register(FrodoNodeHttpAdapter);
   Polly.register(FSPersister);
   if (process.env.FRODO_MOCK === 'record') {
     mode = MODES.RECORD;
@@ -106,12 +106,14 @@ function getFrodoArgsId({ start, state }: { start: number; state: State }) {
   result.push(`${args.length}`);
   const paramsId = params.join('_');
   if (paramsId) result.push(paramsId);
-  const argsId = (process.env.FRODO_TEST_NAME) ? FRODO_TEST_NAME : result.join('_');
-  if(process.env.FRODO_TEST_NAME) {
+  const argsId = process.env.FRODO_TEST_NAME
+    ? FRODO_TEST_NAME
+    : result.join('_');
+  if (process.env.FRODO_TEST_NAME) {
     debugMessage({
       message: `FRODO_TEST_NAME=${FRODO_TEST_NAME}`,
-      state
-    })
+      state,
+    });
   }
   if (mode !== MODES.RECORD)
     debugMessage({

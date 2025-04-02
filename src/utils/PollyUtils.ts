@@ -155,7 +155,7 @@ function obfuscateXmlString(xml: string): string {
   }
 }
 
-function cleanupProxyRequestUrl(url: string): string {
+export function cleanupProxyRequestUrl(url: string): string {
   const re = /https??:\/\//g;
   const results = (url || '').match(re) || [];
   const count = results.length;
