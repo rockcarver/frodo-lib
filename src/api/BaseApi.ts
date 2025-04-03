@@ -27,7 +27,7 @@ const timeout = 30000;
 // agentkeepalive
 const maxSockets = 100;
 const maxFreeSockets = 10;
-const keepAlive = true;
+const keepAlive = false;
 
 const userAgent = getUserAgent();
 const transactionId = `frodo-${randomUUID()}`;
@@ -72,8 +72,7 @@ function getHttpsAgent(
  * @returns {AxiosProxyConfig | false} axios proxy config or false
  */
 function getProxy(): AxiosProxyConfig | false {
-  // if (process.env.HTTPS_PROXY || process.env.https_proxy) return false;
-  return null;
+  return false;
 }
 
 /**
