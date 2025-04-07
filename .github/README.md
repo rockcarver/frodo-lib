@@ -8,7 +8,7 @@ Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the comma
 
 ## Quick Nav
 
-- [New in 2.x & 3.x](#new-in-2x-&-3.x)
+- [New in 2.x & 3.x](#new-in-2x--3.x)
 - [Considerations](#considerations)
 - [Installing](#installing)
 - [Using the library](#using-the-library)
