@@ -114,14 +114,14 @@ The 2.x version of the library automatically refreshes session and access tokens
 - Kept supporting Node.js 18.
 - Added support for Node.js 20 and 22.
 
-| Node.js |      frodo-lib 1.x | ***frodo-lib 2.x*** |      frodo-lib 3.x |
-| :-----: | :----------------: | :----------------: | :----------------: |
-|   14    | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: |
-|   16    | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: |
-|   18    | :white_check_mark: | :white_check_mark: | :heavy_minus_sign: |
-|   20    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: |
-|   22    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: |
-|   24    | :heavy_minus_sign: | :heavy_minus_sign: | :white_check_mark: |
+| Node.js |      frodo-lib 1.x |      frodo-lib 2.x | ***frodo-lib 3.x*** |      frodo-lib 4.x |
+| :-----: | :----------------: | :----------------: | :----------------: | :----------------: |
+|   14    | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: |
+|   16    | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: |
+|   18    | :white_check_mark: | :white_check_mark: | :white_check_mark: | :heavy_minus_sign: |
+|   20    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+|   22    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+|   24    | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :white_check_mark: |
 
 ## Considerations
 
