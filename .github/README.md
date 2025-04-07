@@ -1,6 +1,6 @@
 <!-- README.md for GitHub; the one for NPM is ../README.md. -->
 
-# Frodo Library 2.x - @rockcarver/frodo-lib
+# Frodo Library 2.x & 3.x - @rockcarver/frodo-lib
 
 A hybrid (ESM and CJS) library to manage PingOne Advanced Identity Cloud environments, ForgeOps deployments, and classic deployments.
 
@@ -8,7 +8,7 @@ Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the comma
 
 ## Quick Nav
 
-- [New in 2.x](#new-in-2x)
+- [New in 2.x & 3.x](#new-in-2x-&-3.x)
 - [Considerations](#considerations)
 - [Installing](#installing)
 - [Using the library](#using-the-library)
@@ -17,7 +17,9 @@ Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the comma
 - [Contributing](#contributing)
 - [Maintaining](#maintaining)
 
-## New In 2.x
+## New In 2.x & 3.x
+
+Frodo Library 2.0 introduced a host of new capabilities and a much improved structure. The 3.0 release followed unexpectedly soon after due to a breaking change in the format of the `frodo config export` command. For all intents and purpose, 2.x and 3.x are the same except for that breaking change.
 
 ### Multi-Instantiability
 
