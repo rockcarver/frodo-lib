@@ -35,6 +35,7 @@ import * as IdmConfigOps from './IdmConfigOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
+import { getResults } from '../utils/ExportImportUtils';
 
 const ctx = autoSetupPolly();
 
@@ -272,10 +273,11 @@ describe('IdmConfigOps', () => {
     });
 
     test('1: Export config entities', async () => {
-      const response = await IdmConfigOps.exportConfigEntities({ state });
-      expect(response).toMatchSnapshot({
+      const results = await getResults(IdmConfigOps.exportConfigEntities, { state });
+      expect(results.result).toMatchSnapshot({
         meta: expect.any(Object),
       });
+      expect(results.error?.getCombinedMessage()).toMatchSnapshot();
     });
   });
 
@@ -342,14 +344,15 @@ describe('IdmConfigOps', () => {
           [configEntity3.id]: configEntity3,
         },
       };
-      const response = await IdmConfigOps.importConfigEntities({
+      const results = await getResults(IdmConfigOps.importConfigEntities, {
         importData,
         options: {
           validate: false,
         },
         state,
       });
-      expect(response).toMatchSnapshot();
+      expect(results.result).toMatchSnapshot();
+      expect(results.error?.getCombinedMessage()).toMatchSnapshot();
     });
 
     test(`2: ImportConfigEntities validate`, async () => {
@@ -360,14 +363,15 @@ describe('IdmConfigOps', () => {
           [configEntity3.id]: configEntity3,
         },
       };
-      const response = await IdmConfigOps.importConfigEntities({
+      const results = await getResults(IdmConfigOps.importConfigEntities, {
         importData,
         options: {
           validate: true,
         },
         state,
       });
-      expect(response).toMatchSnapshot();
+      expect(results.result).toMatchSnapshot();
+      expect(results.error?.getCombinedMessage()).toMatchSnapshot();
     });
 
     test(`3: ImportConfigEntities with env replacement and entitiesToImport options`, async () => {
@@ -378,7 +382,7 @@ describe('IdmConfigOps', () => {
           [configEntity3.id]: configEntity3,
         },
       };
-      const response = await IdmConfigOps.importConfigEntities({
+      const results = await getResults(IdmConfigOps.importConfigEntities, {
         importData,
         options: {
           entitiesToImport: [
@@ -390,7 +394,8 @@ describe('IdmConfigOps', () => {
         },
         state,
       });
-      expect(response).toMatchSnapshot();
+      expect(results.result).toMatchSnapshot();
+      expect(results.error?.getCombinedMessage()).toMatchSnapshot();
     });
 
     test(`4: ImportConfigEntities with single entity`, async () => {
@@ -401,7 +406,7 @@ describe('IdmConfigOps', () => {
           [configEntity3.id]: configEntity3,
         },
       };
-      const response = await IdmConfigOps.importConfigEntities({
+      const results = await getResults(IdmConfigOps.importConfigEntities, {
         importData,
         entityId: configEntity2.id,
         options: {
@@ -409,7 +414,8 @@ describe('IdmConfigOps', () => {
         },
         state,
       });
-      expect(response).toMatchSnapshot();
+      expect(results.result).toMatchSnapshot();
+      expect(results.error?.getCombinedMessage()).toMatchSnapshot();
     });
   });
 });

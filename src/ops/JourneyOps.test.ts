@@ -52,6 +52,7 @@ import { getJourney } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
 import Constants from '../shared/Constants';
+import { getResults } from '../utils/ExportImportUtils';
 
 const ctx = autoSetupPolly();
 
@@ -347,24 +348,27 @@ describe('JourneyOps', () => {
       });
 
       test('1: Export journeys w/o dependencies', async () => {
-        const response = await JourneyOps.exportJourneys({ options: { deps: false, useStringArrays: true, coords: true }, state });
-        expect(response).toMatchSnapshot({
-          meta: expect.any(Object),
+        const results = await getResults(JourneyOps.exportJourneys, { options: { deps: false, useStringArrays: true, coords: true }, state });
+        expect(results.result).toMatchSnapshot({
+          meta: expect.any(Object)
         });
+        expect(results.error?.getCombinedMessage()).toMatchSnapshot();
       });
 
       test('2: Export journeys w/ dependencies', async () => {
-        const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true, coords: true }, state });
-        expect(response).toMatchSnapshot({
-          meta: expect.any(Object),
+        const results = await getResults(JourneyOps.exportJourneys, { options: { deps: true, useStringArrays: true, coords: true }, state });
+        expect(results.result).toMatchSnapshot({
+          meta: expect.any(Object)
         });
+        expect(results.error?.getCombinedMessage()).toMatchSnapshot();
       });
 
       test('3: Export journeys w/ dependencies and w/o coordinates', async () => {
-        const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true, coords: false }, state });
-        expect(response).toMatchSnapshot({
-          meta: expect.any(Object),
+        const results = await getResults(JourneyOps.exportJourneys, { options: { deps: true, useStringArrays: true, coords: false }, state });
+        expect(results.result).toMatchSnapshot({
+          meta: expect.any(Object)
         });
+        expect(results.error?.getCombinedMessage()).toMatchSnapshot();
       });
     });
 

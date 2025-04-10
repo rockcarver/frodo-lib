@@ -12,7 +12,7 @@ import {
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
-import { getMetadata } from '../utils/ExportImportUtils';
+import { getMetadata, getResults } from '../utils/ExportImportUtils';
 import { getRealmsForExport } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import { ExportMetaData } from './OpsTypes';
@@ -123,62 +123,64 @@ export async function exportAmConfigEntities({
   onlyGlobal: boolean;
   state: State;
 }): Promise<ConfigEntityExportInterface> {
-  let indicatorId: string;
-  try {
-    debugMessage({
-      message: `AmConfigOps.exportAmConfigEntities: start`,
-      state,
-    });
-    const entities = await getConfigEntities({
-      includeReadOnly,
-      onlyRealm,
-      onlyGlobal,
-      state,
-    });
-    const exportData = await createConfigEntityExportTemplate({
-      state,
-      realms: Object.keys(entities.realm),
-    });
-    const totalEntities =
-      Object.keys(entities.global).length +
-      Object.values(entities.realm).reduce(
-        (total, realmEntities) => total + Object.keys(realmEntities).length,
-        0
-      );
-    indicatorId = createProgressIndicator({
-      total: totalEntities,
-      message: 'Exporting am config entities...',
-      state,
-    });
-    exportData.global = processConfigEntitiesForExport({
-      state,
-      indicatorId,
-      entities: entities.global,
-    });
-    Object.entries(entities.realm).forEach(
-      ([key, value]) =>
-        (exportData.realm[key] = processConfigEntitiesForExport({
-          state,
-          indicatorId,
-          entities: value,
-        }))
+  debugMessage({
+    message: `AmConfigOps.exportAmConfigEntities: start`,
+    state,
+  });
+  const results = await getResults(getConfigEntities, {
+    includeReadOnly,
+    onlyRealm,
+    onlyGlobal,
+    state,
+  });
+  const exportData = await createConfigEntityExportTemplate({
+    state,
+    realms: Object.keys(results.result.realm),
+  });
+  const totalEntities =
+    Object.keys(results.result.global).length +
+    Object.values(results.result.realm).reduce(
+      (total, realmEntities) => total + Object.keys(realmEntities).length,
+      0
     );
-    stopProgressIndicator({
-      id: indicatorId,
-      message: `Exported ${totalEntities} am config entities.`,
-      state,
-    });
-    debugMessage({ message: `AmConfigOps.exportAmConfigEntities: end`, state });
-    return exportData;
-  } catch (error) {
+  const indicatorId = createProgressIndicator({
+    total: totalEntities,
+    message: 'Exporting am config entities...',
+    state,
+  });
+  exportData.global = processConfigEntitiesForExport({
+    state,
+    indicatorId,
+    entities: results.result.global,
+  });
+  Object.entries(results.result.realm).forEach(
+    ([key, value]) =>
+      (exportData.realm[key] = processConfigEntitiesForExport({
+        state,
+        indicatorId,
+        entities: value,
+      }))
+  );
+  stopProgressIndicator({
+    id: indicatorId,
+    message: `Exported ${totalEntities} am config entities.`,
+    state,
+  });
+  debugMessage({ message: `AmConfigOps.exportAmConfigEntities: end`, state });
+  if (results.error) {
     stopProgressIndicator({
       id: indicatorId,
       message: `Error exporting am config entities.`,
       status: 'fail',
       state,
     });
-    throw new FrodoError(`Error exporting am config entities`, error);
+    throw new FrodoError(
+      `Error exporting am config entities`,
+      results.error,
+      exportData
+    );
   }
+  return exportData;
 }
 
 /**
@@ -197,23 +199,26 @@ export async function importAmConfigEntities({
     message: `ServiceOps.importAmConfigEntities: start`,
     state,
   });
-  try {
-    const result = await putConfigEntities({
-      config: importData as unknown as ConfigSkeleton,
-      state,
-    });
-    debugMessage({ message: `AmConfigOps.importAmConfigEntities: end`, state });
-    // If no import was accomplished, return null
-    if (
-      Object.keys(result.global).length === 0 &&
-      !Object.values(result.realm).find((r) => Object.keys(r).length > 0)
-    ) {
-      return null;
-    }
-    return result;
-  } catch (error) {
-    throw new FrodoError(`Error importing am config entities`, error);
+  const results = await getResults(putConfigEntities, {
+    config: importData as unknown as ConfigSkeleton,
+    state,
+  });
+  debugMessage({ message: `AmConfigOps.importAmConfigEntities: end`, state });
+  // If no import was accomplished, return null
+  if (
+    Object.keys(results.result.global).length === 0 &&
+    !Object.values(results.result.realm).find((r) => Object.keys(r).length > 0)
+  ) {
+    results.result = null;
   }
+  if (results.error) {
+    throw new FrodoError(
+      `Error importing am config entities`,
+      results.error,
+      results.result
+    );
+  }
+  return results.result;
 }
 
 /**

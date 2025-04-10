@@ -9390,6 +9390,8 @@ exports[`JourneyOps exportJourneys() 1: Export journeys w/o dependencies 1`] = `
 }
 `;
 
+exports[`JourneyOps exportJourneys() 1: Export journeys w/o dependencies 2`] = `undefined`;
+
 exports[`JourneyOps exportJourneys() 2: Export journeys w/ dependencies 1`] = `
 {
   "meta": Any<Object>,
@@ -18749,6 +18751,8 @@ a{
 }
 `;
 
+exports[`JourneyOps exportJourneys() 2: Export journeys w/ dependencies 2`] = `undefined`;
+
 exports[`JourneyOps exportJourneys() 3: Export journeys w/ dependencies and w/o coordinates 1`] = `
 {
   "meta": Any<Object>,
@@ -27593,6 +27597,8 @@ a{
   },
 }
 `;
+
+exports[`JourneyOps exportJourneys() 3: Export journeys w/ dependencies and w/o coordinates 2`] = `undefined`;
 
 exports[`JourneyOps getJourneys() 1: Get all journeys 1`] = `
 [

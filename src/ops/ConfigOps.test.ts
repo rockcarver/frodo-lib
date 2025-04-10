@@ -51,6 +51,7 @@ import { filterRecording } from '../utils/PollyUtils';
 import * as ConfigOps from "./ConfigOps";
 import { state } from "../index";
 import Constants from '../shared/Constants';
+import { getResults } from "../utils/ExportImportUtils";
 
 const ctx = autoSetupPolly();
 
@@ -79,7 +80,7 @@ describe('ConfigOps', () => {
         });
 
         test('1: Export everything with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
-          const response = await ConfigOps.exportFullConfiguration({
+          const results = await getResults(ConfigOps.exportFullConfiguration, {
             options: {
               useStringArrays: true,
               noDecode: false,
@@ -91,13 +92,14 @@ describe('ConfigOps', () => {
               onlyGlobal: false,
             }, state
           });
-          expect(response).toMatchSnapshot({
+          expect(results.result).toMatchSnapshot({
             meta: expect.any(Object)
           });
+          expect(results.error?.getCombinedMessage()).toMatchSnapshot();
         });
 
         test('2: Export everything without string arrays, decoding variables, excluding journey coordinates and default scripts', async () => {
-          const response = await ConfigOps.exportFullConfiguration({
+          const results = await getResults(ConfigOps.exportFullConfiguration, {
             options: {
               useStringArrays: false,
               noDecode: true,
@@ -109,13 +111,14 @@ describe('ConfigOps', () => {
               onlyGlobal: false,
             }, state
           });
-          expect(response).toMatchSnapshot({
+          expect(results.result).toMatchSnapshot({
             meta: expect.any(Object)
           });
+          expect(results.error?.getCombinedMessage()).toMatchSnapshot();
         });
 
         test('3: Export only importable config with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
-          const response = await ConfigOps.exportFullConfiguration({
+          const results = await getResults(ConfigOps.exportFullConfiguration, {
             options: {
               useStringArrays: true,
               noDecode: false,
@@ -127,13 +130,14 @@ describe('ConfigOps', () => {
               onlyGlobal: false,
             }, state
           });
-          expect(response).toMatchSnapshot({
+          expect(results.result).toMatchSnapshot({
             meta: expect.any(Object)
           });
+          expect(results.error?.getCombinedMessage()).toMatchSnapshot();
         });
   
         test('4: Export only alpha realm config with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
-          const response = await ConfigOps.exportFullConfiguration({
+          const results = await getResults(ConfigOps.exportFullConfiguration, {
             options: {
               useStringArrays: true,
               noDecode: false,
@@ -145,13 +149,14 @@ describe('ConfigOps', () => {
               onlyGlobal: false,
             }, state
           });
-          expect(response).toMatchSnapshot({
+          expect(results.result).toMatchSnapshot({
             meta: expect.any(Object)
           });
+          expect(results.error?.getCombinedMessage()).toMatchSnapshot();
         });
   
         test('5: Export only global config with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
-          const response = await ConfigOps.exportFullConfiguration({
+          const results = await getResults(ConfigOps.exportFullConfiguration, {
             options: {
               useStringArrays: true,
               noDecode: false,
@@ -163,9 +168,10 @@ describe('ConfigOps', () => {
               onlyGlobal: true,
             }, state
           });
-          expect(response).toMatchSnapshot({
+          expect(results.result).toMatchSnapshot({
             meta: expect.any(Object)
           });
+          expect(results.error?.getCombinedMessage()).toMatchSnapshot();
         });
       });
 
@@ -190,7 +196,7 @@ describe('ConfigOps', () => {
       });
       describe('exportFullConfiguration()', () => {
         test('6: Export everything with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
-          const response = await ConfigOps.exportFullConfiguration({
+          const results = await getResults(ConfigOps.exportFullConfiguration, {
             options: {
               useStringArrays: true,
               noDecode: false,
@@ -202,13 +208,14 @@ describe('ConfigOps', () => {
               onlyGlobal: false,
             }, state
           });
-          expect(response).toMatchSnapshot({
+          expect(results.result).toMatchSnapshot({
             meta: expect.any(Object)
           });
+          expect(results.error?.getCombinedMessage()).toMatchSnapshot();
         });
 
         test('7: Export everything without string arrays, decoding variables, excluding journey coordinates and default scripts', async () => {
-          const response = await ConfigOps.exportFullConfiguration({
+          const results = await getResults(ConfigOps.exportFullConfiguration, {
             options: {
               useStringArrays: false,
               noDecode: true,
@@ -220,13 +227,14 @@ describe('ConfigOps', () => {
               onlyGlobal: false,
             }, state
           });
-          expect(response).toMatchSnapshot({
+          expect(results.result).toMatchSnapshot({
             meta: expect.any(Object)
           });
+          expect(results.error?.getCombinedMessage()).toMatchSnapshot();
         });
 
         test('8: Export only importable with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
-          const response = await ConfigOps.exportFullConfiguration({
+          const results = await getResults(ConfigOps.exportFullConfiguration, {
             options: {
               useStringArrays: true,
               noDecode: false,
@@ -238,13 +246,14 @@ describe('ConfigOps', () => {
               onlyGlobal: false,
             }, state
           });
-          expect(response).toMatchSnapshot({
+          expect(results.result).toMatchSnapshot({
             meta: expect.any(Object)
           });
+          expect(results.error?.getCombinedMessage()).toMatchSnapshot();
         });
 
         test('9: Export only root realm config with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
-          const response = await ConfigOps.exportFullConfiguration({
+          const results = await getResults(ConfigOps.exportFullConfiguration, {
             options: {
               useStringArrays: true,
               noDecode: false,
@@ -256,13 +265,14 @@ describe('ConfigOps', () => {
               onlyGlobal: false,
             }, state
           });
-          expect(response).toMatchSnapshot({
+          expect(results.result).toMatchSnapshot({
             meta: expect.any(Object)
           });
+          expect(results.error?.getCombinedMessage()).toMatchSnapshot();
         });
 
         test('10: Export only global config with string arrays, decoding variables, including journey coordinates and default scripts', async () => {
-          const response = await ConfigOps.exportFullConfiguration({
+          const results = await getResults(ConfigOps.exportFullConfiguration, {
             options: {
               useStringArrays: true,
               noDecode: false,
@@ -274,9 +284,10 @@ describe('ConfigOps', () => {
               onlyGlobal: true,
             }, state
           });
-          expect(response).toMatchSnapshot({
+          expect(results.result).toMatchSnapshot({
             meta: expect.any(Object)
           });
+          expect(results.error?.getCombinedMessage()).toMatchSnapshot();
         });
       });
 

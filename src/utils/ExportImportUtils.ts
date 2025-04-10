@@ -5,6 +5,7 @@ import { Reader } from 'properties-reader';
 import replaceall from 'replaceall';
 import slugify from 'slugify';
 
+import { FrodoError } from '../ops/FrodoError';
 import { ExportMetaData } from '../ops/OpsTypes';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
@@ -119,6 +120,19 @@ export type ExportImport = {
    * @returns {boolean} true if a valid URL, false otherwise
    */
   isValidUrl(urlString: string): boolean;
+  /**
+   * Helper that calls a function that can return partial results. It returns any results of calling the function, including those that are part of the FrodoError if one is thrown, which error is also returned.
+   * @param func The function to call
+   * @param parameters The parameters for the function
+   * @returns The results of calling the function, along with the error if one was thrown
+   */
+  getResults<R>(
+    func: (...params: any) => Promise<R>,
+    ...parameters: any
+  ): Promise<{
+    result: R;
+    error: FrodoError | undefined;
+  }>;
 };
 
 export default (state: State): ExportImport => {
@@ -207,6 +221,15 @@ export default (state: State): ExportImport => {
     },
     isValidUrl(urlString: string): boolean {
       return isValidUrl(urlString);
+    },
+    getResults<R>(
+      func: (...params: any) => Promise<R>,
+      ...parameters: any
+    ): Promise<{
+      result: R;
+      error: FrodoError | undefined;
+    }> {
+      return getResults(func, ...parameters);
     },
   };
 };
@@ -619,14 +642,14 @@ async function exportOrImportWithErrorHandling<P extends { state: State }, R>(
   errors: Error[],
   perform: boolean = true
 ): Promise<R | null> {
-  try {
-    return perform ? await func(parameters) : null;
-  } catch (error) {
-    if (errors && Array.isArray(errors)) {
-      errors.push(error);
-    }
+  if (!perform) {
     return null;
   }
+  const results = await getResults(func, parameters);
+  if (results.error && errors && Array.isArray(errors)) {
+    errors.push(results.error);
+  }
+  return results.result;
 }
 
 /**
@@ -670,4 +693,32 @@ export async function importWithErrorHandling<P extends { state: State }, R>(
     state: parameters.state,
   });
   return exportOrImportWithErrorHandling(func, parameters, errors, perform);
+}
+
+/**
+ * Helper that calls a function that can return partial results. It returns any results of calling the function, including those that are part of the FrodoError if one is thrown, which error is also returned.
+ * @param func The function to call
+ * @param parameters The parameters for the function
+ * @returns The results of calling the function, along with the error if one was thrown
+ */
+export async function getResults<R>(
+  func: (...params: any) => Promise<R>,
+  ...parameters: any
+): Promise<{
+  result: R;
+  error: FrodoError | undefined;
+}> {
+  const retVal = {
+    result: undefined,
+    error: undefined,
+  };
+  try {
+    retVal.result = await func(...parameters);
+  } catch (error) {
+    if (typeof error.getPartialResults === 'function') {
+      retVal.result = (error as FrodoError).getPartialResults();
+    }
+    retVal.error = error;
+  }
+  return retVal;
 }
