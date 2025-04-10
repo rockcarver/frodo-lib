@@ -21,7 +21,6 @@ import {
   createProgressIndicator,
   debugMessage,
   printError,
-  printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
@@ -554,6 +553,8 @@ export async function exportConfigEntities({
   state: State;
 }): Promise<ConfigEntityExportInterface> {
   let indicatorId: string;
+  const errors = [];
+  const exportData = createConfigEntityExportTemplate({ state });
   try {
     let configurations = await readConfigEntities({ state });
     if (options.entitiesToExport && options.entitiesToExport.length > 0) {
@@ -597,22 +598,12 @@ export async function exportConfigEntities({
                   'No configuration exists for id org.apache.felix.fileinstall/openidm'
               )
             ) {
-              printMessage({
-                message: readConfigEntityError.response?.data,
-                type: 'error',
-                state,
-              });
-              printMessage({
-                message: `Error getting config entity ${configEntity._id}: ${readConfigEntityError}`,
-                type: 'error',
-                state,
-              });
+              errors.push(readConfigEntityError);
             }
           }
         )
       );
     }
-    const exportData = createConfigEntityExportTemplate({ state });
     (await Promise.all(entityPromises))
       .filter((c) => c)
       .forEach((entity) => {
@@ -628,10 +619,23 @@ export async function exportConfigEntities({
       status: 'success',
       state,
     });
-    return exportData;
   } catch (error) {
-    printError(error);
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting config entities`,
+      status: 'success',
+      state,
+    });
+    errors.push(error);
   }
+  if (errors.length > 0) {
+    throw new FrodoError(
+      'Errors exporting config entities',
+      errors,
+      exportData
+    );
+  }
+  return exportData;
 }
 
 export async function createConfigEntity({
@@ -756,10 +760,10 @@ export async function importConfigEntities({
       errors.push(error);
     }
   }
-  if (errors.length > 0) {
-    throw new FrodoError(`Error importing config entities`, errors);
-  }
   debugMessage({ message: `IdmConfigOps.importConfigEntities: end`, state });
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing config entities`, errors, response);
+  }
   return response;
 }
 

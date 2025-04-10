@@ -3114,6 +3114,8 @@ exports[`AmConfigOps Classic Tests exportAmConfigEntities() 5: Export AM Config 
 }
 `;
 
+exports[`AmConfigOps Classic Tests exportAmConfigEntities() 5: Export AM Config Entities 2`] = `undefined`;
+
 exports[`AmConfigOps Classic Tests exportAmConfigEntities() 6: Export importable AM Config Entities 1`] = `
 {
   "global": {
@@ -3388,6 +3390,8 @@ exports[`AmConfigOps Classic Tests exportAmConfigEntities() 6: Export importable
   },
 }
 `;
+
+exports[`AmConfigOps Classic Tests exportAmConfigEntities() 6: Export importable AM Config Entities 2`] = `undefined`;
 
 exports[`AmConfigOps Classic Tests exportAmConfigEntities() 7: Export root realm AM Config Entities 1`] = `
 {
@@ -4106,6 +4110,8 @@ exports[`AmConfigOps Classic Tests exportAmConfigEntities() 7: Export root realm
   },
 }
 `;
+
+exports[`AmConfigOps Classic Tests exportAmConfigEntities() 7: Export root realm AM Config Entities 2`] = `undefined`;
 
 exports[`AmConfigOps Classic Tests exportAmConfigEntities() 8: Export global AM Config Entities 1`] = `
 {
@@ -5158,6 +5164,8 @@ exports[`AmConfigOps Classic Tests exportAmConfigEntities() 8: Export global AM 
   },
 }
 `;
+
+exports[`AmConfigOps Classic Tests exportAmConfigEntities() 8: Export global AM Config Entities 2`] = `undefined`;
 
 exports[`AmConfigOps Cloud Tests createConfigEntityExportTemplate() 1: Create AM Config Export Template 1`] = `
 {
@@ -6482,6 +6490,8 @@ exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 1: Export AM Config En
 }
 `;
 
+exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 1: Export AM Config Entities 2`] = `undefined`;
+
 exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 2: Export importable AM Config Entities 1`] = `
 {
   "global": {},
@@ -6500,6 +6510,8 @@ exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 2: Export importable A
   },
 }
 `;
+
+exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 2: Export importable AM Config Entities 2`] = `undefined`;
 
 exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 3: Export alpha realm AM Config Entities 1`] = `
 {
@@ -7130,6 +7142,8 @@ exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 3: Export alpha realm 
 }
 `;
 
+exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 3: Export alpha realm AM Config Entities 2`] = `undefined`;
+
 exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 4: Export global AM Config Entities 1`] = `
 {
   "global": {
@@ -7185,3 +7199,5 @@ exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 4: Export global AM Co
   },
 }
 `;
+
+exports[`AmConfigOps Cloud Tests exportAmConfigEntities() 4: Export global AM Config Entities 2`] = `undefined`;

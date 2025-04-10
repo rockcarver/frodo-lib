@@ -117,23 +117,19 @@ export type Config = {
   /**
    * Export full configuration
    * @param {FullExportOptions} options export options
-   * @param {Error[]} collectErrors optional parameter to collect errors instead of having the function throw. Pass an empty array to collect errors and report on them but have the function perform all it can and return the export data even if it encounters errors.
    * @returns {Promise<FullExportInterface>} a promise resolving to a full export object
    */
   exportFullConfiguration(
-    options: FullExportOptions,
-    collectErrors?: Error[]
+    options: FullExportOptions
   ): Promise<FullExportInterface>;
   /**
    * Import full configuration
    * @param {FullExportInterface} importData import data
    * @param {FullImportOptions} options import options
-   * @param {Error[]} collectErrors optional parameter to collect errors instead of having the function throw. Pass an empty array to collect errors and report on them but have the function perform all it can and return the export data even if it encounters errors.
    */
   importFullConfiguration(
     importData: FullExportInterface,
-    options: FullImportOptions,
-    collectErrors?: Error[]
+    options: FullImportOptions
   ): Promise<(object | any[])[]>;
 };
 
@@ -150,10 +146,9 @@ export default (state: State): Config => {
         includeReadOnly: false,
         onlyRealm: false,
         onlyGlobal: false,
-      },
-      collectErrors: Error[]
+      }
     ) {
-      return exportFullConfiguration({ options, collectErrors, state });
+      return exportFullConfiguration({ options, state });
     },
     async importFullConfiguration(
       importData: FullExportInterface,
@@ -163,13 +158,11 @@ export default (state: State): Config => {
         cleanServices: false,
         includeDefault: false,
         includeActiveValues: true,
-      },
-      collectErrors: Error[]
+      }
     ): Promise<(object | any[])[]> {
       return importFullConfiguration({
         importData,
         options,
-        collectErrors,
         state,
       });
     },
@@ -301,7 +294,6 @@ export interface FullRealmExportInterface extends AmConfigEntitiesInterface {
 /**
  * Export full configuration
  * @param {FullExportOptions} options export options
- * @param {Error[]} collectErrors optional parameter to collect errors instead of having the function throw. Pass an empty array to collect errors and report on them but have the function perform all it can and return the export data even if it encounters errors.
  */
 export async function exportFullConfiguration({
   options = {
@@ -315,19 +307,12 @@ export async function exportFullConfiguration({
     onlyRealm: false,
     onlyGlobal: false,
   },
-  collectErrors,
   state,
 }: {
   options: FullExportOptions;
-  collectErrors?: Error[];
   state: State;
 }): Promise<FullExportInterface> {
-  let errors: Error[] = [];
-  let throwErrors: boolean = true;
-  if (collectErrors && Array.isArray(collectErrors)) {
-    throwErrors = false;
-    errors = collectErrors;
-  }
+  const errors: Error[] = [];
   const {
     useStringArrays,
     noDecode,
@@ -350,12 +335,16 @@ export async function exportFullConfiguration({
     state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
   const isPlatformDeployment = isCloudDeployment || isForgeOpsDeployment;
 
-  const config = await exportAmConfigEntities({
-    includeReadOnly,
-    onlyRealm,
-    onlyGlobal,
-    state,
-  });
+  const config = await exportWithErrorHandling(
+    exportAmConfigEntities,
+    {
+      includeReadOnly,
+      onlyRealm,
+      onlyGlobal,
+      state,
+    },
+    errors
+  );
 
   let globalConfig = {} as FullGlobalExportInterface;
   if (!onlyRealm || onlyGlobal) {
@@ -675,22 +664,23 @@ export async function exportFullConfiguration({
     state.setRealm(activeRealm);
   }
 
-  if (throwErrors && errors.length > 0) {
-    throw new FrodoError(`Error exporting full config`, errors);
-  }
-
-  return {
+  const fullConfig = {
     meta: getMetadata(stateObj),
     global: globalConfig as FullGlobalExportInterface,
     realm: realmConfig,
   };
+
+  if (errors.length > 0) {
+    throw new FrodoError(`Error exporting full config`, errors, fullConfig);
+  }
+
+  return fullConfig;
 }
 
 /**
  * Import full configuration
  * @param {FullExportInterface} importData import data
  * @param {FullImportOptions} options import options
- * @param {Error[]} collectErrors optional parameter to collect errors instead of having the function throw. Pass an empty array to collect errors and report on them but have the function perform all it can and return the export data even if it encounters errors.
  */
 export async function importFullConfiguration({
   importData,
@@ -702,21 +692,14 @@ export async function importFullConfiguration({
     includeActiveValues: true,
     source: '',
   },
-  collectErrors,
   state,
 }: {
   importData: FullExportInterface;
   options: FullImportOptions;
-  collectErrors?: Error[];
   state: State;
 }): Promise<(object | any[])[]> {
-  const response: (object | any[])[] = [];
-  let errors: Error[] = [];
-  let throwErrors: boolean = true;
-  if (collectErrors && Array.isArray(collectErrors)) {
-    throwErrors = false;
-    errors = collectErrors;
-  }
+  let response: (object | any[])[] = [];
+  const errors: Error[] = [];
   const isClassicDeployment =
     state.getDeploymentType() === Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
   const isCloudDeployment =
@@ -1216,21 +1199,22 @@ export async function importFullConfiguration({
       'Other AM Config Entities'
     )
   );
-  stopProgressIndicator({
-    id: indicatorId,
-    message: `Finished Importing all other AM config entities!`,
-    status: 'success',
-    state,
-  });
-  if (throwErrors && errors.length > 0) {
-    throw new FrodoError(`Error importing full config`, errors);
-  }
   // Filter out any null or empty results
-  return response.filter(
+  response = response.filter(
     (o) =>
       o &&
       (!Array.isArray(o) || o.length > 0) &&
       (!(o as ServerExportInterface).server ||
         Object.keys((o as ServerExportInterface).server).length > 0)
   );
+  stopProgressIndicator({
+    id: indicatorId,
+    message: `Finished Importing all other AM config entities!`,
+    status: 'success',
+    state,
+  });
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing full config`, errors, response);
+  }
+  return response;
 }

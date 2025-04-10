@@ -1369,9 +1369,9 @@ export async function exportJourneys({
 }): Promise<MultiTreeExportInterface> {
   const errors: Error[] = [];
   let indicatorId: string;
+  const multiTreeExport = createMultiTreeExportTemplate({ state });
   try {
     const trees = await readJourneys({ state });
-    const multiTreeExport = createMultiTreeExportTemplate({ state });
     indicatorId = createProgressIndicator({
       total: trees.length,
       message: 'Exporting journeys...',
@@ -1395,15 +1395,11 @@ export async function exportJourneys({
         errors.push(error);
       }
     }
-    if (errors.length > 0) {
-      throw new FrodoError(`Error exporting journeys`, errors);
-    }
     stopProgressIndicator({
       id: indicatorId,
       message: `Exported ${trees.length} journeys.`,
       state,
     });
-    return multiTreeExport;
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
@@ -1411,12 +1407,12 @@ export async function exportJourneys({
       status: 'fail',
       state,
     });
-    // re-throw previously caught errors
-    if (errors.length > 0) {
-      throw error;
-    }
-    throw new FrodoError(`Error exporting journeys`, error);
+    errors.push(error);
   }
+  if (errors.length > 0) {
+    throw new FrodoError(`Error exporting journeys`, errors, multiTreeExport);
+  }
+  return multiTreeExport;
 }
 
 /**
@@ -2471,7 +2467,7 @@ export async function importJourneys({
       message: 'Error importing journeys',
       state,
     });
-    throw new FrodoError(`Error importing journeys`, errors);
+    throw new FrodoError(`Error importing journeys`, errors, response);
   }
   stopProgressIndicator({
     id: indicatorId,

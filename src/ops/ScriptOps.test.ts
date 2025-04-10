@@ -34,6 +34,7 @@ import * as ScriptOps from './ScriptOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
 import { ScriptSkeleton } from '../api/ScriptApi';
+import { getResults } from '../utils/ExportImportUtils';
 
 const ctx = autoSetupPolly();
 
@@ -477,7 +478,7 @@ describe('ScriptOps', () => {
     });
 
     test('1: Export all scripts', async () => {
-      const response = await ScriptOps.exportScripts({
+      const results = await getResults(ScriptOps.exportScripts, {
         options: {
           deps: false,
           includeDefault: false,
@@ -485,13 +486,14 @@ describe('ScriptOps', () => {
         },
         state,
       });
-      expect(response).toMatchSnapshot({
-        meta: expect.any(Object),
+      expect(results.result).toMatchSnapshot({
+        meta: expect.any(Object)
       });
+      expect(results.error?.getCombinedMessage()).toMatchSnapshot();
     });
 
     test('2: Export all scripts, including default scripts', async () => {
-      const response = await ScriptOps.exportScripts({
+      const results = await getResults(ScriptOps.exportScripts, {
         options: {
           deps: false,
           includeDefault: true,
@@ -499,9 +501,10 @@ describe('ScriptOps', () => {
         },
         state,
       });
-      expect(response).toMatchSnapshot({
-        meta: expect.any(Object),
+      expect(results.result).toMatchSnapshot({
+        meta: expect.any(Object)
       });
+      expect(results.error?.getCombinedMessage()).toMatchSnapshot();
     });
   });
 
@@ -511,8 +514,7 @@ describe('ScriptOps', () => {
     });
 
     test(`1: Import all scripts`, async () => {
-      expect.assertions(1);
-      const outcome = await ScriptOps.importScripts({
+      const results = await getResults(ScriptOps.importScripts, {
         scriptId: '',
         scriptName: '',
         importData: import1.data,
@@ -523,34 +525,34 @@ describe('ScriptOps', () => {
         },
         state,
       });
-      expect(outcome).toBeTruthy();
+      expect(results.result).toMatchSnapshot();
+      expect(results.error?.getCombinedMessage()).toMatchSnapshot();
     });
 
     test(`2: Import script by name`, async () => {
-      expect.assertions(1);
-      const result = await ScriptOps.importScripts({
+      const results = await getResults(ScriptOps.importScripts, {
         scriptId: '',
         scriptName: import1.name,
         importData: import1.data,
         state,
       });
-      expect(result).toMatchSnapshot();
+      expect(results.result).toMatchSnapshot();
+      expect(results.error?.getCombinedMessage()).toMatchSnapshot();
     });
 
     test(`3: Import script by id`, async () => {
-      expect.assertions(1);
-      const result = await ScriptOps.importScripts({
+      const results = await getResults(ScriptOps.importScripts, {
         scriptId: import1.id,
         scriptName: '',
         importData: import1.data,
         state,
       });
-      expect(result).toMatchSnapshot();
+      expect(results.result).toMatchSnapshot();
+      expect(results.error?.getCombinedMessage()).toMatchSnapshot();
     });
 
     test(`4: Import no scripts when excluding default scripts and only default scripts given`, async () => {
-      expect.assertions(1);
-      const result = await ScriptOps.importScripts({
+      const results = await getResults(ScriptOps.importScripts, {
         scriptId: '',
         scriptName: '',
         importData: import2.data,
@@ -561,7 +563,8 @@ describe('ScriptOps', () => {
         },
         state,
       });
-      expect(result).toMatchSnapshot();
+      expect(results.result).toMatchSnapshot();
+      expect(results.error?.getCombinedMessage()).toMatchSnapshot();
     });
   });
 

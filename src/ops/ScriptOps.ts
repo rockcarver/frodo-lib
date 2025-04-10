@@ -708,12 +708,12 @@ export async function exportScripts({
 }): Promise<ScriptExportInterface> {
   const errors: Error[] = [];
   let indicatorId: string;
+  const exportData = createScriptExportTemplate({ state });
   try {
     const { includeDefault, useStringArrays } = options;
     let scriptList = await readScripts({ state });
     if (!includeDefault)
       scriptList = scriptList.filter((script) => !script.default);
-    const exportData = createScriptExportTemplate({ state });
     indicatorId = createProgressIndicator({
       total: scriptList.length,
       message: `Exporting ${scriptList.length} scripts...`,
@@ -735,15 +735,11 @@ export async function exportScripts({
         errors.push(error);
       }
     }
-    if (errors.length > 0) {
-      throw new FrodoError(``, errors);
-    }
     stopProgressIndicator({
       id: indicatorId,
       message: `Exported ${scriptList.length} scripts.`,
       state,
     });
-    return exportData;
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
@@ -751,12 +747,12 @@ export async function exportScripts({
       status: 'fail',
       state,
     });
-    // re-throw previously caught error
-    if (errors.length > 0) {
-      throw error;
-    }
-    throw new FrodoError(`Error exporting scripts`, error);
+    errors.push(error);
   }
+  if (errors.length > 0) {
+    throw new FrodoError(`Error exporting scripts`, errors, exportData);
+  }
+  return exportData;
 }
 
 /**
@@ -788,64 +784,56 @@ export async function importScripts({
   validate?: boolean;
   state: State;
 }): Promise<ScriptSkeleton[]> {
+  debugMessage({ message: `ScriptOps.importScripts: start`, state });
   const errors = [];
-  try {
-    debugMessage({ message: `ScriptOps.importScripts: start`, state });
-    const response = [];
-    for (const existingId of Object.keys(importData.script)) {
-      try {
-        const scriptData = importData.script[existingId];
-        const isDefault = !options.includeDefault && scriptData.default;
-        // Only import script if the scriptName matches the current script. Note this only applies if we are not importing dependencies since if there are dependencies then we want to import all the scripts in the file.
-        const shouldNotImportScript =
-          !options.deps &&
-          ((scriptId && scriptId !== scriptData._id) ||
-            (!scriptId && scriptName && scriptName !== scriptData.name));
-        if (isDefault || shouldNotImportScript) continue;
+  const response = [];
+  for (const existingId of Object.keys(importData.script)) {
+    try {
+      const scriptData = importData.script[existingId];
+      const isDefault = !options.includeDefault && scriptData.default;
+      // Only import script if the scriptName matches the current script. Note this only applies if we are not importing dependencies since if there are dependencies then we want to import all the scripts in the file.
+      const shouldNotImportScript =
+        !options.deps &&
+        ((scriptId && scriptId !== scriptData._id) ||
+          (!scriptId && scriptName && scriptName !== scriptData.name));
+      if (isDefault || shouldNotImportScript) continue;
+      debugMessage({
+        message: `ScriptOps.importScripts: Importing script ${scriptData.name} (${existingId})`,
+        state,
+      });
+      let newId = existingId;
+      if (options.reUuid) {
+        newId = uuidv4();
         debugMessage({
-          message: `ScriptOps.importScripts: Importing script ${scriptData.name} (${existingId})`,
+          message: `ScriptOps.importScripts: Re-uuid-ing script ${scriptData.name} ${existingId} => ${newId}...`,
           state,
         });
-        let newId = existingId;
-        if (options.reUuid) {
-          newId = uuidv4();
-          debugMessage({
-            message: `ScriptOps.importScripts: Re-uuid-ing script ${scriptData.name} ${existingId} => ${newId}...`,
-            state,
-          });
-          scriptData._id = newId;
-        }
-        if (validate) {
-          if (!isScriptValid({ scriptData, state })) {
-            errors.push(
-              new FrodoError(
-                `Error importing script '${scriptData.name}': Script is not valid`
-              )
-            );
-          }
-        }
-        const result = await updateScript({
-          scriptId: newId,
-          scriptData,
-          state,
-        });
-        response.push(result);
-      } catch (error) {
-        errors.push(error);
+        scriptData._id = newId;
       }
+      if (validate) {
+        if (!isScriptValid({ scriptData, state })) {
+          errors.push(
+            new FrodoError(
+              `Error importing script '${scriptData.name}': Script is not valid`
+            )
+          );
+        }
+      }
+      const result = await updateScript({
+        scriptId: newId,
+        scriptData,
+        state,
+      });
+      response.push(result);
+    } catch (error) {
+      errors.push(error);
     }
-    if (errors.length > 0) {
-      throw new FrodoError(`Error importing scripts`, errors);
-    }
-    debugMessage({ message: `ScriptOps.importScripts: end`, state });
-    return response;
-  } catch (error) {
-    // re-throw previously caught errors
-    if (errors.length > 0) {
-      throw error;
-    }
-    throw new FrodoError(`Error importing scripts`, error);
   }
+  debugMessage({ message: `ScriptOps.importScripts: end`, state });
+  if (errors.length > 0) {
+    throw new FrodoError(`Error importing scripts`, errors, response);
+  }
+  return response;
 }
 
 /**

@@ -1,6 +1,6 @@
+import { FrodoError } from '../ops/FrodoError';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
-import { printError, printMessage } from '../utils/Console';
 import {
   getRealmPathGlobal,
   getRealmsForExport,
@@ -259,11 +259,10 @@ export async function getConfigEntity({
     state.setRealm(currentRealm);
     return data;
   } catch (error) {
-    printError({
-      error,
-      message: `Error getting config entity from resource path '${urlString}'`,
-      state,
-    });
+    throw new FrodoError(
+      `Error getting config entity from resource path '${urlString}'`,
+      error
+    );
   }
 }
 
@@ -291,6 +290,7 @@ export async function getConfigEntities({
     global: {},
     realm: Object.fromEntries(realms.map((r) => [r, {}])),
   } as ConfigSkeleton;
+  const errors = [];
   for (const [key, entityInfo] of Object.entries(AM_ENTITIES)) {
     if (!includeReadOnly && entityInfo.readonly) {
       continue;
@@ -319,11 +319,12 @@ export async function getConfigEntities({
             : entityInfo.action,
         });
       } catch (e) {
-        printMessage({
-          message: `Error getting '${key}' from resource path '${entityInfo.global.path}': ${e.message}`,
-          type: 'error',
-          state,
-        });
+        errors.push(
+          new FrodoError(
+            `Error getting '${key}' from resource path '${entityInfo.global.path}': ${e.message}`,
+            e
+          )
+        );
       }
     }
     if (
@@ -357,14 +358,18 @@ export async function getConfigEntities({
               : entityInfo.action,
           });
         } catch (e) {
-          printMessage({
-            message: `Error getting '${key}' from resource path '${entityInfo.realm.path}': ${e.message}`,
-            type: 'error',
-            state,
-          });
+          errors.push(
+            new FrodoError(
+              `Error getting '${key}' from resource path '${entityInfo.realm.path}': ${e.message}`,
+              e
+            )
+          );
         }
       }
     }
+  }
+  if (errors.length > 0) {
+    throw new FrodoError('Errors getting config entities', errors, entities);
   }
   return entities;
 }
@@ -418,11 +423,10 @@ export async function putConfigEntity({
     state.setRealm(currentRealm);
     return data;
   } catch (error) {
-    printError({
-      error,
-      message: `Error putting config entity at resource path '${urlString}'`,
-      state,
-    });
+    throw new FrodoError(
+      `Error putting config entity at resource path '${urlString}'`,
+      error
+    );
   }
 }
 
@@ -444,6 +448,7 @@ export async function putConfigEntities({
     global: {},
     realm: Object.fromEntries(realms.map((r) => [r, {}])),
   } as ConfigSkeleton;
+  const errors = [];
   for (const [key, entityInfo] of Object.entries(AM_ENTITIES)) {
     if (entityInfo.readonly) {
       continue;
@@ -459,11 +464,11 @@ export async function putConfigEntities({
       config.global &&
       config.global[key]
     ) {
-      try {
-        for (const [id, entityData] of Object.entries(config.global[key])) {
-          if (!entities.global[key]) {
-            entities.global[key] = {};
-          }
+      for (const [id, entityData] of Object.entries(config.global[key])) {
+        if (!entities.global[key]) {
+          entities.global[key] = {};
+        }
+        try {
           entities.global[key][id] = await putConfigEntity({
             state,
             entityData: entityData as ConfigEntitySkeleton,
@@ -474,13 +479,14 @@ export async function putConfigEntities({
             protocol: entityInfo.global.protocol,
             ifMatch: entityInfo.global.ifMatch,
           });
+        } catch (e) {
+          errors.push(
+            new FrodoError(
+              `Error putting entity '${id}' of type '${key}' to global resource path '${entityInfo.global.path}': ${e.message}`,
+              e
+            )
+          );
         }
-      } catch (e) {
-        printMessage({
-          message: `Error putting '${key}' from resource path '${entityInfo.global.path}': ${e.message}`,
-          type: 'error',
-          state,
-        });
       }
     }
     if (
@@ -493,13 +499,13 @@ export async function putConfigEntities({
         if (!config.realm[realms[i]][key]) {
           continue;
         }
-        try {
-          for (const [id, entityData] of Object.entries(
-            config.realm[realms[i]][key]
-          )) {
-            if (!entities.realm[realms[i]][key]) {
-              entities.realm[realms[i]][key] = {};
-            }
+        for (const [id, entityData] of Object.entries(
+          config.realm[realms[i]][key]
+        )) {
+          if (!entities.realm[realms[i]][key]) {
+            entities.realm[realms[i]][key] = {};
+          }
+          try {
             entities.realm[realms[i]][key][id] = await putConfigEntity({
               state,
               entityData: entityData as ConfigEntitySkeleton,
@@ -511,16 +517,19 @@ export async function putConfigEntities({
               ifMatch: entityInfo.realm.ifMatch,
               realm: stateRealms[i],
             });
+          } catch (e) {
+            errors.push(
+              new FrodoError(
+                `Error putting entity '${id}' of type '${key}' to realm resource path '${entityInfo.realm.path}': ${e.message}`
+              )
+            );
           }
-        } catch (e) {
-          printMessage({
-            message: `Error putting '${key}' from resource path '${entityInfo.realm.path}': ${e.message}`,
-            type: 'error',
-            state,
-          });
         }
       }
     }
+  }
+  if (errors.length > 0) {
+    throw new FrodoError('Errors putting config entities', errors, entities);
   }
   return entities;
 }

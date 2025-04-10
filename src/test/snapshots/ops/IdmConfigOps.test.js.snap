@@ -16123,6 +16123,16 @@ isGoogleEligible;
 }
 `;
 
+exports[`IdmConfigOps exportConfigEntities() 1: Export config entities 2`] = `
+"Errors exporting config entities
+  Error reading config entity fidc/federation-EntraID
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 403
+    Reason: Forbidden
+    Message: Access denied"
+`;
+
 exports[`IdmConfigOps exportConfigEntity() 1: Export config entities 1`] = `
 {
   "idm": {
@@ -16229,6 +16239,8 @@ exports[`IdmConfigOps importConfigEntities() 1: ImportConfigEntities no validate
 ]
 `;
 
+exports[`IdmConfigOps importConfigEntities() 1: ImportConfigEntities no validate 2`] = `undefined`;
+
 exports[`IdmConfigOps importConfigEntities() 2: ImportConfigEntities validate 1`] = `
 [
   {
@@ -16287,6 +16299,8 @@ exports[`IdmConfigOps importConfigEntities() 2: ImportConfigEntities validate 1`
 ]
 `;
 
+exports[`IdmConfigOps importConfigEntities() 2: ImportConfigEntities validate 2`] = `undefined`;
+
 exports[`IdmConfigOps importConfigEntities() 3: ImportConfigEntities with env replacement and entitiesToImport options 1`] = `
 [
   {
@@ -16328,6 +16342,8 @@ exports[`IdmConfigOps importConfigEntities() 3: ImportConfigEntities with env re
 ]
 `;
 
+exports[`IdmConfigOps importConfigEntities() 3: ImportConfigEntities with env replacement and entitiesToImport options 2`] = `undefined`;
+
 exports[`IdmConfigOps importConfigEntities() 4: ImportConfigEntities with single entity 1`] = `
 [
   {
@@ -16349,6 +16365,8 @@ exports[`IdmConfigOps importConfigEntities() 4: ImportConfigEntities with single
   },
 ]
 `;
+
+exports[`IdmConfigOps importConfigEntities() 4: ImportConfigEntities with single entity 2`] = `undefined`;
 
 exports[`IdmConfigOps readConfigEntities() 1: Read all config entities 1`] = `
 [
