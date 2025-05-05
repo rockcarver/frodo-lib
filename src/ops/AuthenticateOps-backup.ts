@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'crypto';
 import url from 'url';
 import { v4 } from 'uuid';
 
-import { step, stepIdm } from '../api/AuthenticateApi';
+import { step } from '../api/AuthenticateApi';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
@@ -15,8 +15,6 @@ import {
   getServiceAccount,
   SERVICE_ACCOUNT_DEFAULT_SCOPES,
 } from './cloud/ServiceAccountOps';
-import axios from 'axios';
-import https from 'https';
 import {
   getConnectionProfile,
   loadConnectionProfile,
@@ -41,8 +39,6 @@ import {
   saveUserBearerToken,
   saveUserSessionToken,
 } from './TokenCacheOps';
-import { getConfigEntities } from '../api/IdmConfigApi';
-import { generateIdmApi } from '../api/BaseApi';
 
 export type Authenticate = {
   /**
@@ -165,16 +161,6 @@ async function determineCookieName(state: State): Promise<string> {
     state,
   });
   return data.cookieName;
-}
-
-async function determineCookieValueIdm(state: State): Promise<string> {
-  const idmResponse = await stepIdm({ body: {}, config: {}, state });
-  const jwt = idmResponse.headers['set-cookie'][0].split(';')[0].split('=')[1];
-  debugMessage({
-    message: `AuthenticateOps.determineCookieNameIdm: cookieName = ${jwt}`,
-    state,
-  });
-  return jwt
 }
 
 /**
@@ -355,13 +341,6 @@ async function determineDeploymentType(state: State): Promise<string> {
       });
       return deploymentType;
 
-    case Constants.IDM_DEPLOYMENT_TYPE_KEY:
-      debugMessage({
-        message: `AuthenticateOps.determineDeploymentType: end [type=${deploymentType}]`,
-        state,
-      });
-      return deploymentType;
-
     // detect deployment type
     default: {
       // if we are using a service account, we know it's cloud
@@ -391,7 +370,6 @@ async function determineDeploymentType(state: State): Promise<string> {
 
       deploymentType = Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
       try {
-
         await authorize({
           amBaseUrl: state.getHost(),
           data: bodyFormData,
@@ -400,7 +378,6 @@ async function determineDeploymentType(state: State): Promise<string> {
         });
       } catch (e) {
         // debugMessage(e.response);
-        // If error is in that condition after sending Authorize
         if (
           e.response?.status === 302 &&
           e.response.headers?.location?.indexOf('code=') > -1
@@ -432,36 +409,10 @@ async function determineDeploymentType(state: State): Promise<string> {
               });
               deploymentType = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
             } else {
-              try {
-                //I need to check if it is idm here 
-             
-                const idmresponse = await stepIdm({ body: {}, config: {}, state })
-                // console.log("status = " + idmresponse.status)
-                // console.log(" authlogin = " + idmresponse.data.authorization.authLogin)
-
-                verboseMessage({
-                  message: `idm response =  ${JSON.stringify(idmresponse.status, null, 2)} + ${idmresponse.data.authorization.authLogin}`,
-                  state
-                })
-                if (idmresponse.status === 200 && idmresponse.data?.authorization.authLogin) {
-                  verboseMessage({
-                    message: `Ping Identity IDM deployment`['brightCyan'] + ` detected.`,
-                    state,
-                  });
-                  deploymentType = Constants.IDM_DEPLOYMENT_TYPE_KEY
-                  verboseMessage({
-                    message: "deployment type in determine =" + deploymentType,
-                    state,});
-                } else {
-                  throw new Error('Not IDM');
-                }
-              }
-              catch {
-                verboseMessage({
-                  message: `Classic deployment`['brightCyan'] + ` detected.`,
-                  state,
-                });
-              }
+              verboseMessage({
+                message: `Classic deployment`['brightCyan'] + ` detected.`,
+                state,
+              });
             }
           }
         }
@@ -470,35 +421,10 @@ async function determineDeploymentType(state: State): Promise<string> {
         message: `AuthenticateOps.determineDeploymentType: end [type=${deploymentType}]`,
         state,
       });
-
       return deploymentType;
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * Helper function to extract the semantic version string from a version info object
@@ -522,9 +448,6 @@ export type UserSessionMetaType = {
   expires: number;
   from_cache?: boolean;
 };
-
-
-
 
 /**
  * Helper function to authenticate and obtain and store session cookie
@@ -867,7 +790,7 @@ function createPayload(serviceAccountId: string, host: string) {
   const u = parseUrl(host);
   const aud = `${u.origin}:${
     u.port ? u.port : u.protocol === 'https' ? '443' : '80'
-    }${u.pathname}/oauth2/access_token`;
+  }${u.pathname}/oauth2/access_token`;
 
   // Cross platform way of setting JWT expiry time 3 minutes in the future, expressed as number of seconds since EPOCH
   const exp = Math.floor(new Date().getTime() / 1000 + 180);
@@ -1087,9 +1010,9 @@ function scheduleAutoRefresh(
         : state.getUseBearerTokenForAmApis()
           ? state.getBearerTokenMeta()?.expires
           : Math.min(
-            state.getBearerTokenMeta()?.expires,
-            state.getUserSessionTokenMeta()?.expires
-          );
+              state.getBearerTokenMeta()?.expires,
+              state.getUserSessionTokenMeta()?.expires
+            );
     let timeout = expires - Date.now() - 1000 * 25;
     if (timeout < 1000 * 30) {
       debugMessage({
@@ -1126,39 +1049,6 @@ export type Tokens = {
   host?: string;
   realm?: string;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * Get tokens
@@ -1208,7 +1098,6 @@ export async function getTokens({
         );
       }
     }
-    //username and password empty if ended
 
     // if host is not a valid URL, try to locate a valid URL and deployment type from connections.json
     if (!isValidUrl(state.getHost())) {
@@ -1216,6 +1105,7 @@ export async function getTokens({
       state.setHost(conn.tenant);
       state.setAllowInsecureConnection(conn.allowInsecureConnection);
       state.setDeploymentType(conn.deploymentType);
+
       // fail fast if deployment type not applicable
       if (
         state.getDeploymentType() &&
@@ -1226,30 +1116,10 @@ export async function getTokens({
         );
       }
     }
-    if (state.getDeploymentType() === undefined) {
-      const depType = await determineDeploymentType(state);
-      if(depType === Constants.IDM_DEPLOYMENT_TYPE_KEY){
-        state.setDeploymentType(depType)    
-      }
-    }
-      determineDefaultRealm(state);
 
-    // console.log("deployment type  = " + state.getDeploymentType());
-    // const detype = await determineDeploymentType(state)
-    // console.log(detype)
-    // console.log("deploymenttype  - == " + state.getDeploymentType());
-
-
-    //check if it is idm deployment type, then it will just do some stuff for idm and break 
-    if (state.getDeploymentType() !== Constants.IDM_DEPLOYMENT_TYPE_KEY) {
-      // now that we have the full tenant URL we can lookup the cookie name
-      state.setCookieName(await determineCookieName(state));
-    }
-
-
-
-
-
+    // now that we have the full tenant URL we can lookup the cookie name
+    state.setCookieName(await determineCookieName(state));
+    
     // use service account to login?
     if (
       !forceLoginAsUser &&
@@ -1284,67 +1154,43 @@ export async function getTokens({
         throw new FrodoError(`Service account login error`, saErr);
       }
     }
-
-
-
-
-
     // use user account to login
     else if (state.getUsername() && state.getPassword()) {
       debugMessage({
         message: `AuthenticateOps.getTokens: Authenticating with user account ${state.getUsername()}`,
         state,
       });
-
-      // if logging into on prem idm 
-      if (state.getDeploymentType() === Constants.IDM_DEPLOYMENT_TYPE_KEY) {
-        const token: Tokens = {
-          subject: state.getUsername(),
-          host: state.getHost(),
-          realm: state.getRealm() ? state.getRealm() : 'root',
-        };
-        //console.log(" token realm is = " + token.realm)
-        saveConnectionProfile({ host: state.getHost(), state })
-       // console.log("successfully saved the new connection profile with " + state.getHost());
-        return token
-        
-        
+      const token = await getUserSessionToken(callbackHandler, state);
+      if (token) state.setUserSessionTokenMeta(token);
+      if (usingConnectionProfile && !token.from_cache) {
+        saveConnectionProfile({ host: state.getHost(), state });
       }
-      else {
-        const token = await getUserSessionToken(callbackHandler, state);
-        if (token) state.setUserSessionTokenMeta(token);
-        if (usingConnectionProfile && !token.from_cache) {
-          saveConnectionProfile({ host: state.getHost(), state });
-        }
-        await determineDeploymentTypeAndDefaultRealmAndVersion(state);
+      await determineDeploymentTypeAndDefaultRealmAndVersion(state);
 
-        // fail if deployment type not applicable
-        if (
-          state.getDeploymentType() &&
-          !types.includes(state.getDeploymentType())
-        ) {
-          throw new FrodoError(
-            `Unsupported deployment type '${state.getDeploymentType()}'`
-          );
-        }
+      // fail if deployment type not applicable
+      if (
+        state.getDeploymentType() &&
+        !types.includes(state.getDeploymentType())
+      ) {
+        throw new FrodoError(
+          `Unsupported deployment type '${state.getDeploymentType()}'`
+        );
+      }
 
-        if (
-          state.getCookieValue() &&
-          // !state.getBearerToken() &&
-          (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
-            state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY)
-        ) {
-          const accessToken = await getUserBearerToken(state);
-          if (accessToken) state.setBearerTokenMeta(accessToken);
-        }
+      if (
+        state.getCookieValue() &&
+        // !state.getBearerToken() &&
+        (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+          state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY)
+      ) {
+        const accessToken = await getUserBearerToken(state);
+        if (accessToken) state.setBearerTokenMeta(accessToken);
       }
     }
     // incomplete or no credentials
     else {
       throw new FrodoError(`Incomplete or no credentials`);
     }
-
-
     if (
       state.getCookieValue() ||
       (state.getUseBearerTokenForAmApis() && state.getBearerToken())

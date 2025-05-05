@@ -566,7 +566,7 @@ export async function saveConnectionProfile({
       profile.encodedPassword = await dataProtection.encrypt(
         state.getPassword()
       );
-
+      
     // log API
     if (state.getLogApiKey()) profile.logApiKey = state.getLogApiKey();
     if (state.getLogApiSecret())
