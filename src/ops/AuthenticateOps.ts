@@ -434,11 +434,7 @@ async function determineDeploymentType(state: State): Promise<string> {
             } else {
               try {
                 //I need to check if it is idm here 
-             
                 const idmresponse = await stepIdm({ body: {}, config: {}, state })
-                // console.log("status = " + idmresponse.status)
-                // console.log(" authlogin = " + idmresponse.data.authorization.authLogin)
-
                 verboseMessage({
                   message: `idm response =  ${JSON.stringify(idmresponse.status, null, 2)} + ${idmresponse.data.authorization.authLogin}`,
                   state
@@ -475,30 +471,6 @@ async function determineDeploymentType(state: State): Promise<string> {
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * Helper function to extract the semantic version string from a version info object
@@ -1126,40 +1098,6 @@ export type Tokens = {
   host?: string;
   realm?: string;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * Get tokens
  * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
@@ -1226,30 +1164,14 @@ export async function getTokens({
         );
       }
     }
-    if (state.getDeploymentType() === undefined) {
-      const depType = await determineDeploymentType(state);
-      if(depType === Constants.IDM_DEPLOYMENT_TYPE_KEY){
-        state.setDeploymentType(depType)    
-      }
+    if(state.getHost().endsWith('openidm')){
+       state.setDeploymentType(await determineDeploymentType(state))
     }
-      determineDefaultRealm(state);
-
-    // console.log("deployment type  = " + state.getDeploymentType());
-    // const detype = await determineDeploymentType(state)
-    // console.log(detype)
-    // console.log("deploymenttype  - == " + state.getDeploymentType());
-
-
     //check if it is idm deployment type, then it will just do some stuff for idm and break 
-    if (state.getDeploymentType() !== Constants.IDM_DEPLOYMENT_TYPE_KEY) {
+    else {
       // now that we have the full tenant URL we can lookup the cookie name
       state.setCookieName(await determineCookieName(state));
     }
-
-
-
-
-
     // use service account to login?
     if (
       !forceLoginAsUser &&
@@ -1284,18 +1206,12 @@ export async function getTokens({
         throw new FrodoError(`Service account login error`, saErr);
       }
     }
-
-
-
-
-
     // use user account to login
     else if (state.getUsername() && state.getPassword()) {
       debugMessage({
         message: `AuthenticateOps.getTokens: Authenticating with user account ${state.getUsername()}`,
         state,
       });
-
       // if logging into on prem idm 
       if (state.getDeploymentType() === Constants.IDM_DEPLOYMENT_TYPE_KEY) {
         const token: Tokens = {
@@ -1303,12 +1219,8 @@ export async function getTokens({
           host: state.getHost(),
           realm: state.getRealm() ? state.getRealm() : 'root',
         };
-        //console.log(" token realm is = " + token.realm)
         saveConnectionProfile({ host: state.getHost(), state })
-       // console.log("successfully saved the new connection profile with " + state.getHost());
-        return token
-        
-        
+        return token 
       }
       else {
         const token = await getUserSessionToken(callbackHandler, state);
@@ -1343,8 +1255,6 @@ export async function getTokens({
     else {
       throw new FrodoError(`Incomplete or no credentials`);
     }
-
-
     if (
       state.getCookieValue() ||
       (state.getUseBearerTokenForAmApis() && state.getBearerToken())

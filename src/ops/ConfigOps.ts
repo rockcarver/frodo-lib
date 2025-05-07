@@ -349,18 +349,19 @@ export async function exportFullConfiguration({
   const isForgeOpsDeployment =
     state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
   const isPlatformDeployment = isCloudDeployment || isForgeOpsDeployment;
-  const isIdmDeployment = state.getDeploymentType() ===Constants.IDM_DEPLOYMENT_TYPE_KEY;
-  const isexceptIdm = isPlatformDeployment || isClassicDeployment;
-
-  const config = await exportAmConfigEntities({
-    includeReadOnly,
-    onlyRealm,
-    onlyGlobal,
-    state,
-  });
+  const isIdmDeployment = state.getDeploymentType() === Constants.IDM_DEPLOYMENT_TYPE_KEY;
+  let config = {} as ConfigEntityExportInterface 
+  if (!isIdmDeployment) {
+      config = await exportAmConfigEntities({
+      includeReadOnly,
+      onlyRealm,
+      onlyGlobal,
+      state,
+    });
+  }
 
   let globalConfig = {} as FullGlobalExportInterface;
-  if (!onlyRealm || onlyGlobal) {  
+  if (!onlyRealm || onlyGlobal) {
     // Export mappings
     const mappings = await exportWithErrorHandling(
       exportMappings,
@@ -471,7 +472,12 @@ export async function exportFullConfiguration({
       )?.secretstore,
       server: serverExport,
       service: (
-        await exportWithErrorHandling(exportServices, globalStateObj, errors)
+        await exportWithErrorHandling(
+          exportServices,
+          globalStateObj, 
+          errors,
+          !isIdmDeployment
+        )
       )?.service,
       site: (
         await exportWithErrorHandling(
@@ -518,8 +524,7 @@ export async function exportFullConfiguration({
       const currentRealm = getRealmUsingExportFormat(realm);
       if (
         onlyRealm &&
-        (activeRealm.startsWith('/') ? activeRealm : '/' + activeRealm) !==
-          currentRealm
+        (activeRealm.startsWith('/') ? activeRealm : '/' + activeRealm) !== currentRealm
       ) {
         continue;
       }
@@ -727,6 +732,7 @@ export async function importFullConfiguration({
     state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
   const isPlatformDeployment = isCloudDeployment || isForgeOpsDeployment;
   const isIdmDeployment = state.getDeploymentType() === Constants.IDM_DEPLOYMENT_TYPE_KEY;
+
   const {
     reUuidJourneys,
     reUuidScripts,
@@ -904,7 +910,7 @@ export async function importFullConfiguration({
       errors,
       indicatorId,
       'Services',
-      !!importData.global.service
+      !isIdmDeployment && !!importData.global.service
     )
   );
   response.push(

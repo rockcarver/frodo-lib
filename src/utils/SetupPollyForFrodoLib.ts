@@ -26,6 +26,7 @@ const FRODO_MOCK_HOSTS = process.env.FRODO_MOCK_HOSTS
       'https://openam-volker-demo.forgeblocks.com',
       'https://nightly.gcp.forgeops.com',
       'http://openam-frodo-dev.classic.com:8080',
+      'http://openidm-frodo-dev.classic.com:9080'
     ];
 
 let recordIfMissing = false;
