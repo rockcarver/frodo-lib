@@ -58,6 +58,7 @@ import {
   convertTextArrayToBase64Url,
   findFilesByName,
   getMetadata,
+  getResult,
   getTypedFilename,
 } from '../utils/ExportImportUtils';
 import {
@@ -79,7 +80,7 @@ import {
   isPremiumNode,
   removeOrphanedNodes as _removeOrphanedNodes,
 } from './NodeOps';
-import { type ExportMetaData } from './OpsTypes';
+import { type ExportMetaData, ResultCallback } from './OpsTypes';
 import { readSaml2ProviderStubs } from './Saml2Ops';
 import {
   getLibraryScriptNames,
@@ -113,10 +114,12 @@ export type Journey = {
   /**
    * Create export data for all trees/journeys with all their nodes and dependencies. The export data can be written to a file as is.
    * @param {TreeExportOptions} options export options
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {Promise<MultiTreeExportInterface>} a promise that resolves to an object containing the trees and all their nodes and dependencies
    */
   exportJourneys(
-    options?: TreeExportOptions
+    options?: TreeExportOptions,
+    resultCallback?: ResultCallback<SingleTreeExportInterface>
   ): Promise<MultiTreeExportInterface>;
   /**
    * Read all journeys without dependencies.
@@ -176,10 +179,12 @@ export type Journey = {
    * Import journeys
    * @param {MultiTreeExportInterface} importData map of trees object
    * @param {TreeImportOptions} options import options
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
    */
   importJourneys(
     importData: MultiTreeExportInterface,
-    options: TreeImportOptions
+    options: TreeImportOptions,
+    resultCallback?: ResultCallback<TreeSkeleton>
   ): Promise<TreeSkeleton[]>;
   /**
    * Get the node reference obbject for a node object. Node reference objects
@@ -276,11 +281,15 @@ export type Journey = {
   /**
    * Delete all journeys
    * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
    */
-  deleteJourneys(options: {
-    deep: boolean;
-    verbose: boolean;
-  }): Promise<DeleteJourneysStatus>;
+  deleteJourneys(
+    options: {
+      deep: boolean;
+      verbose: boolean;
+    },
+    resultCallback?: ResultCallback<DeleteJourneyStatus>
+  ): Promise<DeleteJourneysStatus>;
   /**
    * Enable a journey
    * @param journeyId journey id/name
@@ -371,9 +380,10 @@ export default (state: State): Journey => {
         useStringArrays: true,
         deps: true,
         coords: true,
-      }
+      },
+      resultCallback = void 0
     ): Promise<MultiTreeExportInterface> {
-      return exportJourneys({ options, state });
+      return exportJourneys({ options, resultCallback, state });
     },
     async readJourneys(): Promise<TreeSkeleton[]> {
       return readJourneys({ state });
@@ -416,9 +426,15 @@ export default (state: State): Journey => {
     },
     async importJourneys(
       treesMap: MultiTreeExportInterface,
-      options: TreeImportOptions
+      options: TreeImportOptions,
+      resultCallback = void 0
     ): Promise<TreeSkeleton[]> {
-      return importJourneys({ importData: treesMap, options, state });
+      return importJourneys({
+        importData: treesMap,
+        options,
+        resultCallback,
+        state,
+      });
     },
     getNodeRef(
       nodeObj: NodeSkeleton,
@@ -465,8 +481,11 @@ export default (state: State): Journey => {
     ) {
       return deleteJourney({ journeyId, options, state });
     },
-    async deleteJourneys(options: { deep: boolean; verbose: boolean }) {
-      return deleteJourneys({ options, state });
+    async deleteJourneys(
+      options: { deep: boolean; verbose: boolean },
+      resultCallback = void 0
+    ) {
+      return deleteJourneys({ options, resultCallback, state });
     },
     async enableJourney(journeyId: string): Promise<TreeSkeleton> {
       return enableJourney({ journeyId, state });
@@ -1354,6 +1373,7 @@ export async function exportJourney({
 /**
  * Create export data for all trees/journeys with all their nodes and dependencies. The export data can be written to a file as is.
  * @param {TreeExportOptions} options export options
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
  * @returns {Promise<MultiTreeExportInterface>} a promise that resolves to an object containing the trees and all their nodes and dependencies
  */
 export async function exportJourneys({
@@ -1362,61 +1382,45 @@ export async function exportJourneys({
     deps: true,
     coords: true,
   },
+  resultCallback = void 0,
   state,
 }: {
   options?: TreeExportOptions;
+  resultCallback?: ResultCallback<SingleTreeExportInterface>;
   state: State;
 }): Promise<MultiTreeExportInterface> {
-  const errors: Error[] = [];
-  let indicatorId: string;
-  try {
-    const trees = await readJourneys({ state });
-    const multiTreeExport = createMultiTreeExportTemplate({ state });
-    indicatorId = createProgressIndicator({
-      total: trees.length,
-      message: 'Exporting journeys...',
+  const multiTreeExport = createMultiTreeExportTemplate({ state });
+  const trees = await readJourneys({ state });
+  const indicatorId = createProgressIndicator({
+    total: trees.length,
+    message: 'Exporting journeys...',
+    state,
+  });
+  for (const tree of trees) {
+    updateProgressIndicator({
+      id: indicatorId,
+      message: `Exporting journey ${tree._id}`,
       state,
     });
-    for (const tree of trees) {
-      try {
-        updateProgressIndicator({
-          id: indicatorId,
-          message: `Exporting journey ${tree._id}`,
-          state,
-        });
-        const exportData: SingleTreeExportInterface = await exportJourney({
-          journeyId: tree._id,
-          options,
-          state,
-        });
-        delete exportData.meta;
-        multiTreeExport.trees[tree._id] = exportData;
-      } catch (error) {
-        errors.push(error);
+    const exportData: SingleTreeExportInterface = await getResult(
+      resultCallback,
+      `Error exporting the journey ${tree._id}`,
+      exportJourney,
+      {
+        journeyId: tree._id,
+        options,
+        state,
       }
-    }
-    if (errors.length > 0) {
-      throw new FrodoError(`Error exporting journeys`, errors);
-    }
-    stopProgressIndicator({
-      id: indicatorId,
-      message: `Exported ${trees.length} journeys.`,
-      state,
-    });
-    return multiTreeExport;
-  } catch (error) {
-    stopProgressIndicator({
-      id: indicatorId,
-      message: `Error exporting journeys.`,
-      status: 'fail',
-      state,
-    });
-    // re-throw previously caught errors
-    if (errors.length > 0) {
-      throw error;
-    }
-    throw new FrodoError(`Error exporting journeys`, error);
+    );
+    delete exportData.meta;
+    multiTreeExport.trees[tree._id] = exportData;
   }
+  stopProgressIndicator({
+    id: indicatorId,
+    message: `Exported ${trees.length} journeys.`,
+    state,
+  });
+  return multiTreeExport;
 }
 
 /**
@@ -2390,18 +2394,20 @@ export async function resolveDependencies(
  * Import journeys
  * @param {MultiTreeExportInterface} importData map of trees object
  * @param {TreeImportOptions} options import options
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
  */
 export async function importJourneys({
   importData,
   options,
+  resultCallback = void 0,
   state,
 }: {
   importData: MultiTreeExportInterface;
   options: TreeImportOptions;
+  resultCallback?: ResultCallback<TreeSkeleton>;
   state: State;
 }): Promise<TreeSkeleton[]> {
   const response = [];
-  const errors = [];
   const installedJourneys = (await readJourneys({ state })).map((x) => x._id);
   const unresolvedJourneys: {
     [k: string]: string[];
@@ -2452,26 +2458,18 @@ export async function importJourneys({
     state,
   });
   for (const tree of resolvedJourneys) {
-    try {
-      response.push(
-        await importJourney({
-          importData: importData.trees[tree],
-          options,
-          state,
-        })
-      );
-      updateProgressIndicator({ id: indicatorId, message: `${tree}`, state });
-    } catch (error) {
-      errors.push(error);
-    }
-  }
-  if (errors.length > 0) {
-    stopProgressIndicator({
-      id: indicatorId,
-      message: 'Error importing journeys',
-      state,
-    });
-    throw new FrodoError(`Error importing journeys`, errors);
+    const result = await getResult(
+      resultCallback,
+      `Error importing the journey ${tree._id}`,
+      importJourney,
+      {
+        importData: importData.trees[tree],
+        options,
+        state,
+      }
+    );
+    response.push(result);
+    updateProgressIndicator({ id: indicatorId, message: `${tree}`, state });
   }
   stopProgressIndicator({
     id: indicatorId,
@@ -2998,28 +2996,30 @@ export type DeleteJourneysStatus = {
 /**
  * Delete all journeys
  * @param {Object} options deep=true also delete all the nodes and inner nodes, verbose=true print verbose info
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
  */
 export async function deleteJourneys({
   options,
+  resultCallback = void 0,
   state,
 }: {
   options?: {
     deep: boolean;
     verbose: boolean;
   };
+  resultCallback: ResultCallback<DeleteJourneyStatus>;
   state: State;
 }) {
-  let indicatorId: string;
-  try {
-    const { verbose } = options;
-    const status: DeleteJourneysStatus = {};
-    const trees = (await getTrees({ state })).result;
-    indicatorId = createProgressIndicator({
-      total: trees.length,
-      message: 'Deleting journeys...',
-      state,
-    });
-    for (const tree of trees) {
+  const { verbose } = options;
+  const status: DeleteJourneysStatus = {};
+  const trees = (await getTrees({ state })).result;
+  const indicatorId = createProgressIndicator({
+    total: trees.length,
+    message: 'Deleting journeys...',
+    state,
+  });
+  for (const tree of trees) {
+    try {
       if (verbose) printMessage({ message: '', state });
       options['progress'] = false;
       status[tree._id] = await deleteJourney({
@@ -3038,38 +3038,39 @@ export async function deleteJourneys({
         await new Promise((r) => {
           setTimeout(r, 100);
         });
-    }
-    let journeyCount = 0;
-    let journeyErrorCount = 0;
-    let nodeCount = 0;
-    let nodeErrorCount = 0;
-    for (const journey of Object.keys(status)) {
-      journeyCount += 1;
-      if (status[journey].status === 'error') journeyErrorCount += 1;
-      for (const node of Object.keys(status[journey].nodes)) {
-        nodeCount += 1;
-        if (status[journey].nodes[node].status === 'error') nodeErrorCount += 1;
+    } catch (e) {
+      if (resultCallback) {
+        resultCallback(e, undefined);
+      } else {
+        throw new FrodoError(`Error deleting the journey ${tree._id}`, e);
       }
     }
-    stopProgressIndicator({
-      id: indicatorId,
-      message: `Deleted ${
-        journeyCount - journeyErrorCount
-      }/${journeyCount} journeys and ${
-        nodeCount - nodeErrorCount
-      }/${nodeCount} nodes.`,
-      state,
-    });
-    return status;
-  } catch (error) {
-    stopProgressIndicator({
-      id: indicatorId,
-      message: `Error deleting journeys`,
-      status: 'fail',
-      state,
-    });
-    throw new FrodoError(`Error deleting journeys`, error);
   }
+  let journeyCount = 0;
+  let journeyErrorCount = 0;
+  let nodeCount = 0;
+  let nodeErrorCount = 0;
+  for (const journey of Object.keys(status)) {
+    journeyCount += 1;
+    if (status[journey].status === 'error') journeyErrorCount += 1;
+    for (const node of Object.keys(status[journey].nodes)) {
+      nodeCount += 1;
+      if (status[journey].nodes[node].status === 'error') nodeErrorCount += 1;
+    }
+    if (resultCallback) {
+      resultCallback(undefined, status[journey]);
+    }
+  }
+  stopProgressIndicator({
+    id: indicatorId,
+    message: `Deleted ${
+      journeyCount - journeyErrorCount
+    }/${journeyCount} journeys and ${
+      nodeCount - nodeErrorCount
+    }/${nodeCount} nodes.`,
+    state,
+  });
+  return status;
 }
 
 /**

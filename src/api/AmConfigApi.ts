@@ -1,6 +1,8 @@
+import { FrodoError } from '../ops/FrodoError';
+import { ResultCallback } from '../ops/OpsTypes';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
-import { printError, printMessage } from '../utils/Console';
+import { getResult } from '../utils/ExportImportUtils';
 import {
   getRealmPathGlobal,
   getRealmsForExport,
@@ -259,11 +261,10 @@ export async function getConfigEntity({
     state.setRealm(currentRealm);
     return data;
   } catch (error) {
-    printError({
-      error,
-      message: `Error getting config entity from resource path '${urlString}'`,
-      state,
-    });
+    throw new FrodoError(
+      `Error getting config entity from resource path '${urlString}'`,
+      error
+    );
   }
 }
 
@@ -272,17 +273,20 @@ export async function getConfigEntity({
  * @param {boolean} includeReadOnly Include read only config in the export
  * @param {boolean} onlyRealm Get config only from the active realm. If onlyGlobal is also active, then it will also get the global config.
  * @param {boolean} onlyGlobal Get global config only. If onlyRealm is also active, then it will also get the active realm config.
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
  * @returns {Promise<ConfigSkeleton>} a promise that resolves to a config object containing global and realm config entities
  */
 export async function getConfigEntities({
   includeReadOnly = false,
   onlyRealm = false,
   onlyGlobal = false,
+  resultCallback = void 0,
   state,
 }: {
   includeReadOnly: boolean;
   onlyRealm: boolean;
   onlyGlobal: boolean;
+  resultCallback: ResultCallback<ConfigEntitySkeleton>;
   state: State;
 }): Promise<ConfigSkeleton> {
   const realms = await getRealmsForExport({ state });
@@ -305,8 +309,11 @@ export async function getConfigEntities({
         entityInfo.global.deployments.includes(state.getDeploymentType())) ||
         (entityInfo.global.deployments == undefined && deploymentAllowed))
     ) {
-      try {
-        entities.global[key] = await getConfigEntity({
+      entities.global[key] = await getResult(
+        resultCallback,
+        `Error getting '${key}' from resource path '${entityInfo.global.path}'`,
+        getConfigEntity,
+        {
           state,
           path: entityInfo.global.path,
           version: entityInfo.global.version,
@@ -317,14 +324,8 @@ export async function getConfigEntities({
           action: entityInfo.global.action
             ? entityInfo.global.action
             : entityInfo.action,
-        });
-      } catch (e) {
-        printMessage({
-          message: `Error getting '${key}' from resource path '${entityInfo.global.path}': ${e.message}`,
-          type: 'error',
-          state,
-        });
-      }
+        }
+      );
     }
     if (
       (!onlyGlobal || onlyRealm) &&
@@ -342,8 +343,11 @@ export async function getConfigEntities({
         ) {
           continue;
         }
-        try {
-          entities.realm[realms[i]][key] = await getConfigEntity({
+        entities.realm[realms[i]][key] = await getResult(
+          resultCallback,
+          `Error getting '${key}' from resource path '${entityInfo.realm.path}'`,
+          getConfigEntity,
+          {
             state,
             path: entityInfo.realm.path,
             version: entityInfo.realm.version,
@@ -355,14 +359,8 @@ export async function getConfigEntities({
             action: entityInfo.realm.action
               ? entityInfo.realm.action
               : entityInfo.action,
-          });
-        } catch (e) {
-          printMessage({
-            message: `Error getting '${key}' from resource path '${entityInfo.realm.path}': ${e.message}`,
-            type: 'error',
-            state,
-          });
-        }
+          }
+        );
       }
     }
   }
@@ -418,24 +416,26 @@ export async function putConfigEntity({
     state.setRealm(currentRealm);
     return data;
   } catch (error) {
-    printError({
-      error,
-      message: `Error putting config entity at resource path '${urlString}'`,
-      state,
-    });
+    throw new FrodoError(
+      `Error putting config entity at resource path '${urlString}'`,
+      error
+    );
   }
 }
 
 /**
  * Put all other AM config entities
  * @param {ConfigSkeleton} config the config object containing global and realm config entities
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
  * @returns {Promise<ConfigSkeleton>} a promise that resolves to a config object containing global and realm config entities
  */
 export async function putConfigEntities({
   config,
+  resultCallback = void 0,
   state,
 }: {
   config: ConfigSkeleton;
+  resultCallback: ResultCallback<ConfigEntitySkeleton>;
   state: State;
 }): Promise<ConfigSkeleton> {
   const realms = config.realm ? Object.keys(config.realm) : [];
@@ -459,12 +459,15 @@ export async function putConfigEntities({
       config.global &&
       config.global[key]
     ) {
-      try {
-        for (const [id, entityData] of Object.entries(config.global[key])) {
-          if (!entities.global[key]) {
-            entities.global[key] = {};
-          }
-          entities.global[key][id] = await putConfigEntity({
+      for (const [id, entityData] of Object.entries(config.global[key])) {
+        if (!entities.global[key]) {
+          entities.global[key] = {};
+        }
+        entities.global[key][id] = await getResult(
+          resultCallback,
+          `Error putting entity '${id}' of type '${key}' to global resource path '${entityInfo.global.path}'`,
+          putConfigEntity,
+          {
             state,
             entityData: entityData as ConfigEntitySkeleton,
             path:
@@ -473,14 +476,8 @@ export async function putConfigEntities({
             version: entityInfo.global.version,
             protocol: entityInfo.global.protocol,
             ifMatch: entityInfo.global.ifMatch,
-          });
-        }
-      } catch (e) {
-        printMessage({
-          message: `Error putting '${key}' from resource path '${entityInfo.global.path}': ${e.message}`,
-          type: 'error',
-          state,
-        });
+          }
+        );
       }
     }
     if (
@@ -493,14 +490,17 @@ export async function putConfigEntities({
         if (!config.realm[realms[i]][key]) {
           continue;
         }
-        try {
-          for (const [id, entityData] of Object.entries(
-            config.realm[realms[i]][key]
-          )) {
-            if (!entities.realm[realms[i]][key]) {
-              entities.realm[realms[i]][key] = {};
-            }
-            entities.realm[realms[i]][key][id] = await putConfigEntity({
+        for (const [id, entityData] of Object.entries(
+          config.realm[realms[i]][key]
+        )) {
+          if (!entities.realm[realms[i]][key]) {
+            entities.realm[realms[i]][key] = {};
+          }
+          entities.realm[realms[i]][key][id] = await getResult(
+            resultCallback,
+            `Error putting entity '${id}' of type '${key}' to realm resource path '${entityInfo.realm.path}'`,
+            putConfigEntity,
+            {
               state,
               entityData: entityData as ConfigEntitySkeleton,
               path:
@@ -510,14 +510,8 @@ export async function putConfigEntities({
               protocol: entityInfo.realm.protocol,
               ifMatch: entityInfo.realm.ifMatch,
               realm: stateRealms[i],
-            });
-          }
-        } catch (e) {
-          printMessage({
-            message: `Error putting '${key}' from resource path '${entityInfo.realm.path}': ${e.message}`,
-            type: 'error',
-            state,
-          });
+            }
+          );
         }
       }
     }

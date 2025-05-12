@@ -52,6 +52,7 @@ import { getJourney } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
 import Constants from '../shared/Constants';
+import { snapshotResultCallback } from '../test/utils/TestUtils';
 
 const ctx = autoSetupPolly();
 
@@ -347,21 +348,21 @@ describe('JourneyOps', () => {
       });
 
       test('1: Export journeys w/o dependencies', async () => {
-        const response = await JourneyOps.exportJourneys({ options: { deps: false, useStringArrays: true, coords: true }, state });
+        const response = await JourneyOps.exportJourneys({ options: { deps: false, useStringArrays: true, coords: true }, resultCallback: snapshotResultCallback, state });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
       });
 
       test('2: Export journeys w/ dependencies', async () => {
-        const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true, coords: true }, state });
+        const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true, coords: true }, resultCallback: snapshotResultCallback, state });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
       });
 
       test('3: Export journeys w/ dependencies and w/o coordinates', async () => {
-        const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true, coords: false }, state });
+        const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true, coords: false }, resultCallback: snapshotResultCallback, state });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
