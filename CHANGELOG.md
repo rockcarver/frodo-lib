@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+This release enables the library to return partial exports when errors occur during exports and imports. This allows for the CLI and other clients to still use the partial exports for exports that were successful.
+
+Note that only a few of the export and import functions were updated, mainly the ones handling journeys, to adress journey export issues reported in the CLI.
+
+Generally, the way it works is to keep an array of errors that occur during exports/imports, and at the end throw a FrodoError with those errors in addition to the partial export object(s). The CLI can then decide when an error occurs if they want to utilize the partial exports when the error is thrown.
+
 ## [3.1.1-0] - 2025-06-17
 
 ## [3.1.0] - 2025-04-04
@@ -363,14 +371,14 @@ The 2.x version of the library automatically refreshes session and access tokens
 - Kept supporting Node.js 18.
 - Added support for Node.js 20 and 22.
 
-| Node.js |    frodo-lib 1.x   | **_frodo-lib 2.x_** |    frodo-lib 3.x   |
+| Node.js |   frodo-lib 1.x    | **_frodo-lib 2.x_** |   frodo-lib 3.x    |
 | :-----: | :----------------: | :-----------------: | :----------------: |
-|    14   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
-|    16   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
-|    18   | :white_check_mark: |  :white_check_mark: | :heavy_minus_sign: |
-|    20   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
-|    22   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
-|    24   | :heavy_minus_sign: |  :heavy_minus_sign: | :white_check_mark: |
+|   14    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
+|   16    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
+|   18    | :white_check_mark: | :white_check_mark:  | :heavy_minus_sign: |
+|   20    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
+|   22    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
+|   24    | :heavy_minus_sign: | :heavy_minus_sign:  | :white_check_mark: |
 
 ### Considerations
 
