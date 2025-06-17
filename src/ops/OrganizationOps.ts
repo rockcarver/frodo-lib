@@ -2,6 +2,7 @@ import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import { queryAllManagedObjectsByType } from '../api/ManagedObjectApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
+import { debugMessage } from '../utils/Console';
 import { FrodoError } from './FrodoError';
 
 export type Organization = {
@@ -53,8 +54,15 @@ export default (state: State): Organization => {
  */
 export function getRealmManagedOrganization({ state }: { state: State }) {
   let realmManagedOrg = 'organization';
-  if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
+  if (
+    state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+    state.getUseRealmPrefixOnManagedObjects() === true
+  ) {
     realmManagedOrg = `${state.getRealm()}_organization`;
+    debugMessage({
+      message: `DeploymentType === cloud or UseRealmPrefixOnManagedObjects is true, returning '${realmManagedOrg}'`,
+      state: state,
+    });
   }
   return realmManagedOrg;
 }
