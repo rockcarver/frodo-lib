@@ -242,3 +242,9 @@ export function printError(error: Error, message?: string) {
       break;
   }
 }
+
+export function snapshotResultCallback(error: FrodoError) {
+  if (error) {
+    expect(error.getCombinedMessage()).toMatchSnapshot();
+  }
+}

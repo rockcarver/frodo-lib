@@ -24,6 +24,7 @@ import {
 } from '../utils/Console';
 import {
   exportWithErrorHandling,
+  getErrorCallback,
   getMetadata,
   importWithErrorHandling,
 } from '../utils/ExportImportUtils';
@@ -71,7 +72,6 @@ import {
   exportEmailTemplates,
   importEmailTemplates,
 } from './EmailTemplateOps';
-import { FrodoError } from './FrodoError';
 import { exportConfigEntities, importConfigEntities } from './IdmConfigOps';
 import {
   exportSocialIdentityProviders,
@@ -98,7 +98,7 @@ import {
   exportOAuth2TrustedJwtIssuers,
   importOAuth2TrustedJwtIssuers,
 } from './OAuth2TrustedJwtIssuerOps';
-import { ExportMetaData } from './OpsTypes';
+import { ExportMetaData, ResultCallback } from './OpsTypes';
 import { exportPolicies, importPolicies } from './PolicyOps';
 import { exportPolicySets, importPolicySets } from './PolicySetOps';
 import { exportRealms, importRealms } from './RealmOps';
@@ -117,23 +117,23 @@ export type Config = {
   /**
    * Export full configuration
    * @param {FullExportOptions} options export options
-   * @param {Error[]} collectErrors optional parameter to collect errors instead of having the function throw. Pass an empty array to collect errors and report on them but have the function perform all it can and return the export data even if it encounters errors.
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {Promise<FullExportInterface>} a promise resolving to a full export object
    */
   exportFullConfiguration(
     options: FullExportOptions,
-    collectErrors?: Error[]
+    resultCallback: ResultCallback<any>
   ): Promise<FullExportInterface>;
   /**
    * Import full configuration
    * @param {FullExportInterface} importData import data
    * @param {FullImportOptions} options import options
-   * @param {Error[]} collectErrors optional parameter to collect errors instead of having the function throw. Pass an empty array to collect errors and report on them but have the function perform all it can and return the export data even if it encounters errors.
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
    */
   importFullConfiguration(
     importData: FullExportInterface,
     options: FullImportOptions,
-    collectErrors?: Error[]
+    resultCallback: ResultCallback<any>
   ): Promise<(object | any[])[]>;
 };
 
@@ -151,9 +151,9 @@ export default (state: State): Config => {
         onlyRealm: false,
         onlyGlobal: false,
       },
-      collectErrors: Error[]
+      resultCallback = void 0
     ) {
-      return exportFullConfiguration({ options, collectErrors, state });
+      return exportFullConfiguration({ options, resultCallback, state });
     },
     async importFullConfiguration(
       importData: FullExportInterface,
@@ -164,12 +164,12 @@ export default (state: State): Config => {
         includeDefault: false,
         includeActiveValues: true,
       },
-      collectErrors: Error[]
+      resultCallback = void 0
     ): Promise<(object | any[])[]> {
       return importFullConfiguration({
         importData,
         options,
-        collectErrors,
+        resultCallback,
         state,
       });
     },
@@ -301,7 +301,7 @@ export interface FullRealmExportInterface extends AmConfigEntitiesInterface {
 /**
  * Export full configuration
  * @param {FullExportOptions} options export options
- * @param {Error[]} collectErrors optional parameter to collect errors instead of having the function throw. Pass an empty array to collect errors and report on them but have the function perform all it can and return the export data even if it encounters errors.
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
  */
 export async function exportFullConfiguration({
   options = {
@@ -315,19 +315,13 @@ export async function exportFullConfiguration({
     onlyRealm: false,
     onlyGlobal: false,
   },
-  collectErrors,
+  resultCallback = void 0,
   state,
 }: {
   options: FullExportOptions;
-  collectErrors?: Error[];
+  resultCallback: ResultCallback<any>;
   state: State;
 }): Promise<FullExportInterface> {
-  let errors: Error[] = [];
-  let throwErrors: boolean = true;
-  if (collectErrors && Array.isArray(collectErrors)) {
-    throwErrors = false;
-    errors = collectErrors;
-  }
   const {
     useStringArrays,
     noDecode,
@@ -349,13 +343,20 @@ export async function exportFullConfiguration({
   const isForgeOpsDeployment =
     state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
   const isPlatformDeployment = isCloudDeployment || isForgeOpsDeployment;
+  const errorCallback = getErrorCallback(resultCallback);
 
-  const config = await exportAmConfigEntities({
-    includeReadOnly,
-    onlyRealm,
-    onlyGlobal,
-    state,
-  });
+  const config = await exportWithErrorHandling(
+    exportAmConfigEntities,
+    {
+      includeReadOnly,
+      onlyRealm,
+      onlyGlobal,
+      errorCallback,
+      state,
+    },
+    'AM Config Entities',
+    resultCallback
+  );
 
   let globalConfig = {} as FullGlobalExportInterface;
   if (!onlyRealm || onlyGlobal) {
@@ -371,7 +372,8 @@ export async function exportFullConfiguration({
         },
         state,
       },
-      errors,
+      'Mappings',
+      resultCallback,
       isPlatformDeployment
     );
 
@@ -379,7 +381,8 @@ export async function exportFullConfiguration({
     const serverExport = await exportWithErrorHandling(
       exportServers,
       { options: { includeDefault: true }, state },
-      errors,
+      'Servers',
+      resultCallback,
       isClassicDeployment
     );
     if (serverExport) {
@@ -392,7 +395,8 @@ export async function exportFullConfiguration({
         await exportWithErrorHandling(
           exportAgents,
           globalStateObj,
-          errors,
+          'Global Agents',
+          resultCallback,
           isClassicDeployment
         )
       )?.agent,
@@ -400,7 +404,8 @@ export async function exportFullConfiguration({
         await exportWithErrorHandling(
           exportAuthenticationSettings,
           globalStateObj,
-          errors,
+          'Global Authentication Settings',
+          resultCallback,
           isClassicDeployment
         )
       )?.authentication,
@@ -408,7 +413,8 @@ export async function exportFullConfiguration({
         await exportWithErrorHandling(
           exportEmailTemplates,
           stateObj,
-          errors,
+          'Email Templates',
+          resultCallback,
           isPlatformDeployment
         )
       )?.emailTemplate,
@@ -420,9 +426,11 @@ export async function exportFullConfiguration({
               envReplaceParams: undefined,
               entitiesToExport: undefined,
             },
+            resultCallback: errorCallback,
             state,
           },
-          errors,
+          'IDM Config Entities',
+          resultCallback,
           isPlatformDeployment
         )
       )?.idm,
@@ -430,7 +438,8 @@ export async function exportFullConfiguration({
         await exportWithErrorHandling(
           exportInternalRoles,
           stateObj,
-          errors,
+          'Internal Roles',
+          resultCallback,
           isPlatformDeployment
         )
       )?.internalRole,
@@ -439,7 +448,8 @@ export async function exportFullConfiguration({
         await exportWithErrorHandling(
           exportRealms,
           stateObj,
-          errors,
+          'Realms',
+          resultCallback,
           includeReadOnly || isClassicDeployment
         )
       )?.realm,
@@ -447,7 +457,8 @@ export async function exportFullConfiguration({
         await exportWithErrorHandling(
           exportScriptTypes,
           stateObj,
-          errors,
+          'Script Types',
+          resultCallback,
           includeReadOnly || isClassicDeployment
         )
       )?.scripttype,
@@ -455,7 +466,8 @@ export async function exportFullConfiguration({
         await exportWithErrorHandling(
           exportSecrets,
           { options: { includeActiveValues, target }, state },
-          errors,
+          'ESV Secrets',
+          resultCallback,
           isCloudDeployment
         )
       )?.secret,
@@ -463,19 +475,26 @@ export async function exportFullConfiguration({
         await exportWithErrorHandling(
           exportSecretStores,
           globalStateObj,
-          errors,
+          'Global Secret Stores',
+          resultCallback,
           isClassicDeployment
         )
       )?.secretstore,
       server: serverExport,
       service: (
-        await exportWithErrorHandling(exportServices, globalStateObj, errors)
+        await exportWithErrorHandling(
+          exportServices,
+          globalStateObj,
+          'Services',
+          resultCallback
+        )
       )?.service,
       site: (
         await exportWithErrorHandling(
           exportSites,
           stateObj,
-          errors,
+          'Sites',
+          resultCallback,
           isClassicDeployment
         )
       )?.site,
@@ -487,7 +506,8 @@ export async function exportFullConfiguration({
             noDecode,
             state,
           },
-          errors,
+          'ESV Variables',
+          resultCallback,
           isCloudDeployment
         )
       )?.variable,
@@ -527,13 +547,15 @@ export async function exportFullConfiguration({
         (await exportWithErrorHandling(
           exportSaml2Providers,
           stateObj,
-          errors
+          'SAML2 Providers',
+          resultCallback
         )) as CirclesOfTrustExportInterface
       )?.saml;
       const cotExport = await exportWithErrorHandling(
         exportCirclesOfTrust,
         stateObj,
-        errors
+        'Circle of Trusts',
+        resultCallback
       );
       if (saml) {
         saml.cot = cotExport?.saml.cot;
@@ -542,10 +564,20 @@ export async function exportFullConfiguration({
       }
       realmConfig[realm] = {
         agentGroup: (
-          await exportWithErrorHandling(exportAgentGroups, stateObj, errors)
+          await exportWithErrorHandling(
+            exportAgentGroups,
+            stateObj,
+            'Agent Groups',
+            resultCallback
+          )
         )?.agentGroup,
         agent: (
-          await exportWithErrorHandling(exportAgents, realmStateObj, errors)
+          await exportWithErrorHandling(
+            exportAgents,
+            realmStateObj,
+            'Agents',
+            resultCallback
+          )
         )?.agent,
         application: (
           await exportWithErrorHandling(
@@ -554,21 +586,24 @@ export async function exportFullConfiguration({
               options: { deps: false, useStringArrays },
               state,
             },
-            errors
+            'OAuth2 Client Applications',
+            resultCallback
           )
         )?.application,
         authentication: (
           await exportWithErrorHandling(
             exportAuthenticationSettings,
             realmStateObj,
-            errors
+            'Authentication Settings',
+            resultCallback
           )
         )?.authentication,
         idp: (
           await exportWithErrorHandling(
             exportSocialIdentityProviders,
             stateObj,
-            errors
+            'Social Identity Providers',
+            resultCallback
           )
         )?.idp,
         trees: (
@@ -576,9 +611,11 @@ export async function exportFullConfiguration({
             exportJourneys,
             {
               options: { deps: false, useStringArrays, coords },
+              resultCallback: errorCallback,
               state,
             },
-            errors
+            'Journeys',
+            resultCallback
           )
         )?.trees,
         managedApplication: (
@@ -588,7 +625,8 @@ export async function exportFullConfiguration({
               options: { deps: false, useStringArrays },
               state,
             },
-            errors,
+            'Applications',
+            resultCallback,
             isPlatformDeployment
           )
         )?.managedApplication,
@@ -599,7 +637,8 @@ export async function exportFullConfiguration({
               options: { deps: false, prereqs: false, useStringArrays },
               state,
             },
-            errors
+            'Policies',
+            resultCallback
           )
         )?.policy,
         policyset: (
@@ -609,11 +648,17 @@ export async function exportFullConfiguration({
               options: { deps: false, prereqs: false, useStringArrays },
               state,
             },
-            errors
+            'Policy Sets',
+            resultCallback
           )
         )?.policyset,
         resourcetype: (
-          await exportWithErrorHandling(exportResourceTypes, stateObj, errors)
+          await exportWithErrorHandling(
+            exportResourceTypes,
+            stateObj,
+            'Resource Types',
+            resultCallback
+          )
         )?.resourcetype,
         saml,
         script: (
@@ -625,21 +670,29 @@ export async function exportFullConfiguration({
                 includeDefault,
                 useStringArrays,
               },
+              resultCallback: errorCallback,
               state,
             },
-            errors
+            'Scripts',
+            resultCallback
           )
         )?.script,
         secretstore: (
           await exportWithErrorHandling(
             exportSecretStores,
             realmStateObj,
-            errors,
+            'Secret Stores',
+            resultCallback,
             isClassicDeployment
           )
         )?.secretstore,
         service: (
-          await exportWithErrorHandling(exportServices, realmStateObj, errors)
+          await exportWithErrorHandling(
+            exportServices,
+            realmStateObj,
+            'Services',
+            resultCallback
+          )
         )?.service,
         theme: (
           await exportWithErrorHandling(
@@ -647,7 +700,8 @@ export async function exportFullConfiguration({
             {
               state,
             },
-            errors,
+            'Themes',
+            resultCallback,
             isPlatformDeployment
           )
         )?.theme,
@@ -658,7 +712,8 @@ export async function exportFullConfiguration({
               options: { deps: false, useStringArrays },
               state,
             },
-            errors
+            'Trusted JWT Issuers',
+            resultCallback
           )
         )?.trustedJwtIssuer,
         ...config.realm[realm],
@@ -675,22 +730,20 @@ export async function exportFullConfiguration({
     state.setRealm(activeRealm);
   }
 
-  if (throwErrors && errors.length > 0) {
-    throw new FrodoError(`Error exporting full config`, errors);
-  }
-
-  return {
+  const fullConfig = {
     meta: getMetadata(stateObj),
     global: globalConfig as FullGlobalExportInterface,
     realm: realmConfig,
   };
+
+  return fullConfig;
 }
 
 /**
  * Import full configuration
  * @param {FullExportInterface} importData import data
  * @param {FullImportOptions} options import options
- * @param {Error[]} collectErrors optional parameter to collect errors instead of having the function throw. Pass an empty array to collect errors and report on them but have the function perform all it can and return the export data even if it encounters errors.
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
  */
 export async function importFullConfiguration({
   importData,
@@ -702,21 +755,15 @@ export async function importFullConfiguration({
     includeActiveValues: true,
     source: '',
   },
-  collectErrors,
+  resultCallback = void 0,
   state,
 }: {
   importData: FullExportInterface;
   options: FullImportOptions;
-  collectErrors?: Error[];
+  resultCallback: ResultCallback<any>;
   state: State;
 }): Promise<(object | any[])[]> {
-  const response: (object | any[])[] = [];
-  let errors: Error[] = [];
-  let throwErrors: boolean = true;
-  if (collectErrors && Array.isArray(collectErrors)) {
-    throwErrors = false;
-    errors = collectErrors;
-  }
+  let response: (object | any[])[] = [];
   const isClassicDeployment =
     state.getDeploymentType() === Constants.CLASSIC_DEPLOYMENT_TYPE_KEY;
   const isCloudDeployment =
@@ -732,6 +779,7 @@ export async function importFullConfiguration({
     includeActiveValues,
     source,
   } = options;
+  const errorCallback = getErrorCallback(resultCallback);
   // Import to global
   let indicatorId = createProgressIndicator({
     total: 14,
@@ -750,9 +798,9 @@ export async function importFullConfiguration({
         },
         state,
       },
-      errors,
       indicatorId,
       'Servers',
+      resultCallback,
       isClassicDeployment && !!importData.global.server
     )
   );
@@ -765,9 +813,9 @@ export async function importFullConfiguration({
         importData: importData.global,
         state,
       },
-      errors,
       indicatorId,
       'Sites',
+      resultCallback,
       isClassicDeployment && !!importData.global.site
     )
   );
@@ -780,9 +828,9 @@ export async function importFullConfiguration({
         importData: importData.global,
         state,
       },
-      errors,
       indicatorId,
       'Realms',
+      resultCallback,
       isClassicDeployment && !!importData.global.realm
     )
   );
@@ -794,9 +842,9 @@ export async function importFullConfiguration({
         importData: importData.global,
         state,
       },
-      errors,
       indicatorId,
       'Script Types',
+      resultCallback,
       isClassicDeployment && !!importData.global.scripttype
     )
   );
@@ -809,9 +857,9 @@ export async function importFullConfiguration({
         secretStoreId: '',
         state,
       },
-      errors,
       indicatorId,
       'Secret Stores',
+      resultCallback,
       isClassicDeployment && !!importData.global.secretstore
     )
   );
@@ -826,9 +874,9 @@ export async function importFullConfiguration({
         },
         state,
       },
-      errors,
       indicatorId,
       'Secrets',
+      resultCallback,
       isCloudDeployment && !!importData.global.secret
     )
   );
@@ -839,9 +887,9 @@ export async function importFullConfiguration({
         importData: importData.global,
         state,
       },
-      errors,
       indicatorId,
       'Variables',
+      resultCallback,
       isCloudDeployment && !!importData.global.variable
     )
   );
@@ -855,11 +903,12 @@ export async function importFullConfiguration({
           entitiesToImport: undefined,
           validate: false,
         },
+        resultCallback: errorCallback,
         state,
       },
-      errors,
       indicatorId,
       'IDM Config Entities',
+      resultCallback,
       isPlatformDeployment && !!importData.global.idm
     )
   );
@@ -870,9 +919,9 @@ export async function importFullConfiguration({
         importData: importData.global,
         state,
       },
-      errors,
       indicatorId,
       'Email Templates',
+      resultCallback,
       isPlatformDeployment && !!importData.global.emailTemplate
     )
   );
@@ -884,9 +933,9 @@ export async function importFullConfiguration({
         options: { deps: false },
         state,
       },
-      errors,
       indicatorId,
       'Mappings',
+      resultCallback,
       isPlatformDeployment
     )
   );
@@ -898,9 +947,9 @@ export async function importFullConfiguration({
         options: { clean: cleanServices, global: true, realm: false },
         state,
       },
-      errors,
       indicatorId,
       'Services',
+      resultCallback,
       !!importData.global.service
     )
   );
@@ -908,9 +957,9 @@ export async function importFullConfiguration({
     await importWithErrorHandling(
       importAgents,
       { importData: importData.global, globalConfig: true, state },
-      errors,
       indicatorId,
       'Agents',
+      resultCallback,
       isClassicDeployment && !!importData.global.agent
     )
   );
@@ -922,9 +971,9 @@ export async function importFullConfiguration({
         globalConfig: true,
         state,
       },
-      errors,
       indicatorId,
       'Authentication Settings',
+      resultCallback,
       isClassicDeployment && !!importData.global.authentication
     )
   );
@@ -935,9 +984,9 @@ export async function importFullConfiguration({
         importData: importData.global,
         state,
       },
-      errors,
       indicatorId,
       'Internal Roles',
+      resultCallback,
       isPlatformDeployment && !!importData.global.internalRole
     )
   );
@@ -969,11 +1018,12 @@ export async function importFullConfiguration({
             includeDefault,
           },
           validate: false,
+          resultCallback: errorCallback,
           state,
         },
-        errors,
         indicatorId,
         'Scripts',
+        resultCallback,
         !!importData.realm[realm].script
       )
     );
@@ -984,9 +1034,9 @@ export async function importFullConfiguration({
           importData: importData.realm[realm],
           state,
         },
-        errors,
         indicatorId,
         'Themes',
+        resultCallback,
         isPlatformDeployment && !!importData.realm[realm].theme
       )
     );
@@ -999,9 +1049,9 @@ export async function importFullConfiguration({
           secretStoreId: '',
           state,
         },
-        errors,
         indicatorId,
         'Secret Stores',
+        resultCallback,
         isClassicDeployment && !!importData.realm[realm].secretstore
       )
     );
@@ -1009,9 +1059,9 @@ export async function importFullConfiguration({
       await importWithErrorHandling(
         importAgentGroups,
         { importData: importData.realm[realm], state },
-        errors,
         indicatorId,
         'Agent Groups',
+        resultCallback,
         !!importData.realm[realm].agentGroup
       )
     );
@@ -1019,9 +1069,9 @@ export async function importFullConfiguration({
       await importWithErrorHandling(
         importAgents,
         { importData: importData.realm[realm], globalConfig: false, state },
-        errors,
         indicatorId,
         'Agents',
+        resultCallback,
         !!importData.realm[realm].agent
       )
     );
@@ -1032,9 +1082,9 @@ export async function importFullConfiguration({
           importData: importData.realm[realm],
           state,
         },
-        errors,
         indicatorId,
         'Resource Types',
+        resultCallback,
         !!importData.realm[realm].resourcetype
       )
     );
@@ -1045,9 +1095,9 @@ export async function importFullConfiguration({
           importData: importData.realm[realm],
           state,
         },
-        errors,
         indicatorId,
         'Circles of Trust',
+        resultCallback,
         !!importData.realm[realm].saml && !!importData.realm[realm].saml.cot
       )
     );
@@ -1059,9 +1109,9 @@ export async function importFullConfiguration({
           options: { deps: false },
           state,
         },
-        errors,
         indicatorId,
         'Saml2 Providers',
+        resultCallback,
         !!importData.realm[realm].saml
       )
     );
@@ -1073,9 +1123,9 @@ export async function importFullConfiguration({
           options: { deps: false },
           state,
         },
-        errors,
         indicatorId,
         'Social Identity Providers',
+        resultCallback,
         !!importData.realm[realm].idp
       )
     );
@@ -1087,9 +1137,9 @@ export async function importFullConfiguration({
           options: { deps: false },
           state,
         },
-        errors,
         indicatorId,
         'OAuth2 Clients',
+        resultCallback,
         !!importData.realm[realm].application
       )
     );
@@ -1100,9 +1150,9 @@ export async function importFullConfiguration({
           importData: importData.realm[realm],
           state,
         },
-        errors,
         indicatorId,
         'Trusted JWT Issuers',
+        resultCallback,
         !!importData.realm[realm].trustedJwtIssuer
       )
     );
@@ -1114,9 +1164,9 @@ export async function importFullConfiguration({
           options: { deps: false },
           state,
         },
-        errors,
         indicatorId,
         'Applications',
+        resultCallback,
         isPlatformDeployment && !!importData.realm[realm].managedApplication
       )
     );
@@ -1128,9 +1178,9 @@ export async function importFullConfiguration({
           options: { deps: false, prereqs: false },
           state,
         },
-        errors,
         indicatorId,
         'Policy Sets',
+        resultCallback,
         !!importData.realm[realm].policyset
       )
     );
@@ -1142,9 +1192,9 @@ export async function importFullConfiguration({
           options: { deps: false, prereqs: false },
           state,
         },
-        errors,
         indicatorId,
         'Policies',
+        resultCallback,
         !!importData.realm[realm].policy
       )
     );
@@ -1154,11 +1204,12 @@ export async function importFullConfiguration({
         {
           importData: importData.realm[realm],
           options: { deps: false, reUuid: reUuidJourneys },
+          resultCallback: errorCallback,
           state,
         },
-        errors,
         indicatorId,
         'Journeys',
+        resultCallback,
         !!importData.realm[realm].trees
       )
     );
@@ -1170,9 +1221,9 @@ export async function importFullConfiguration({
           options: { clean: cleanServices, global: false, realm: true },
           state,
         },
-        errors,
         indicatorId,
         'Services',
+        resultCallback,
         !!importData.realm[realm].service
       )
     );
@@ -1184,9 +1235,9 @@ export async function importFullConfiguration({
           globalConfig: false,
           state,
         },
-        errors,
         indicatorId,
         'Authentication Settings',
+        resultCallback,
         !!importData.realm[realm].authentication
       )
     );
@@ -1209,12 +1260,21 @@ export async function importFullConfiguration({
       importAmConfigEntities,
       {
         importData: importData as unknown as ConfigEntityExportInterface,
+        resultCallback: errorCallback,
         state,
       },
-      errors,
       indicatorId,
-      'Other AM Config Entities'
+      'Other AM Config Entities',
+      resultCallback
     )
+  );
+  // Filter out any null or empty results
+  response = response.filter(
+    (o) =>
+      o &&
+      (!Array.isArray(o) || o.length > 0) &&
+      (!(o as ServerExportInterface).server ||
+        Object.keys((o as ServerExportInterface).server).length > 0)
   );
   stopProgressIndicator({
     id: indicatorId,
@@ -1222,15 +1282,5 @@ export async function importFullConfiguration({
     status: 'success',
     state,
   });
-  if (throwErrors && errors.length > 0) {
-    throw new FrodoError(`Error importing full config`, errors);
-  }
-  // Filter out any null or empty results
-  return response.filter(
-    (o) =>
-      o &&
-      (!Array.isArray(o) || o.length > 0) &&
-      (!(o as ServerExportInterface).server ||
-        Object.keys((o as ServerExportInterface).server).length > 0)
-  );
+  return response;
 }

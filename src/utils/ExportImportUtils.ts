@@ -5,7 +5,8 @@ import { Reader } from 'properties-reader';
 import replaceall from 'replaceall';
 import slugify from 'slugify';
 
-import { ExportMetaData } from '../ops/OpsTypes';
+import { FrodoError } from '../ops/FrodoError';
+import { ErrorFilter, ExportMetaData, ResultCallback } from '../ops/OpsTypes';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
@@ -606,62 +607,47 @@ export function isValidUrl(urlString: string): boolean {
 }
 
 /**
- * Helper that performs an export or import given a function with its parameters with custom error handling that will just print the error if one is thrown and return null.
- * @param func The export or import function.
- * @param parameters The parameters to call the export or import function with. By default, it is { state }.
- * @param {Error[]} errors Parameter to collect errors that occur.
- * @param perform Performs and returns the export if true, otherwise returns null. Default: true
- * @returns {Promise<R | null>} Returns the result of the export or import function, or null if an error is thrown
- */
-async function exportOrImportWithErrorHandling<P extends { state: State }, R>(
-  func: (params: P) => Promise<R>,
-  parameters: P,
-  errors: Error[],
-  perform: boolean = true
-): Promise<R | null> {
-  try {
-    return perform ? await func(parameters) : null;
-  } catch (error) {
-    if (errors && Array.isArray(errors)) {
-      errors.push(error);
-    }
-    return null;
-  }
-}
-
-/**
  * Performs an export given a function with its parameters with custom error handling that will just print the error if one is thrown and return null.
  * @param func The export function.
  * @param parameters The parameters to call the export function with. By default, it is { state }.
- * @param errors Parameter to collect errors that occur.
+ * @param type The type (plural) of the entities being imported
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
  * @param perform Performs and returns the export if true, otherwise returns null. Default: true
  * @returns {Promise<R | null>} Returns the result of the export function, or null if an error is thrown or perform is false
  */
 export async function exportWithErrorHandling<P extends { state: State }, R>(
   func: (params: P) => Promise<R>,
   parameters: P,
-  errors: Error[],
+  type: string,
+  resultCallback = void 0,
   perform: boolean = true
 ): Promise<R | null> {
-  return exportOrImportWithErrorHandling(func, parameters, errors, perform);
+  return perform
+    ? await getResult(
+        resultCallback,
+        `Error Exporting ${type}`,
+        func,
+        parameters
+      )
+    : null;
 }
 
 /**
  * Performs an import given a function with its parameters with custom error handling that will just print the error if one is thrown and return null.
  * @param func The import function.
  * @param parameters The parameters to call the import function with. By default, it is { state }.
- * @param errors Parameter to collect errors that occur.
  * @param id Indicator id for the progress indicator
  * @param type The type (plural) of the entities being imported
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
  * @param perform Performs and returns the export if true, otherwise returns null. Default: true
  * @returns {Promise<R | null>} Returns the result of the import function, or null if an error is thrown
  */
 export async function importWithErrorHandling<P extends { state: State }, R>(
   func: (params: P) => Promise<R>,
   parameters: P,
-  errors: Error[],
   id: string,
   type: string,
+  resultCallback = void 0,
   perform: boolean = true
 ): Promise<R | null> {
   updateProgressIndicator({
@@ -669,5 +655,56 @@ export async function importWithErrorHandling<P extends { state: State }, R>(
     message: perform ? `Importing ${type}...` : `Skipping ${type}...`,
     state: parameters.state,
   });
-  return exportOrImportWithErrorHandling(func, parameters, errors, perform);
+  return perform
+    ? await getResult(
+        resultCallback,
+        `Error Importing ${type}`,
+        func,
+        parameters
+      )
+    : null;
+}
+
+export async function getResult<R>(
+  resultCallback: ResultCallback<R> | undefined,
+  errorMessage: string,
+  func: (...params: any) => Promise<R>,
+  ...parameters: any
+): Promise<R> {
+  try {
+    const result = await func(...parameters);
+    if (resultCallback) {
+      resultCallback(undefined, result);
+    }
+    return result;
+  } catch (e) {
+    const error = errorMessage ? new FrodoError(errorMessage, e) : e;
+    if (resultCallback) {
+      resultCallback(error, undefined);
+    } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Transforms a ResultCallback into another ResultCallback that handles only errors and ignores results.
+ * @param resultCallback The result callback function
+ * @param errorFilter Filter that returns true when the error should be handled, false otherwise
+ * @returns The new result callback function that handles only errors
+ */
+export function getErrorCallback<R>(
+  resultCallback: ResultCallback<R>,
+  errorFilter: ErrorFilter = () => true
+): ResultCallback<R> {
+  return (e: FrodoError) => {
+    if (!e || !errorFilter(e)) {
+      return;
+    }
+    if (resultCallback) {
+      resultCallback(e, undefined);
+      return;
+    }
+    throw e;
+  };
 }

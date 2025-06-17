@@ -20,17 +20,19 @@ import { State } from '../shared/State';
 import {
   createProgressIndicator,
   debugMessage,
-  printError,
-  printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
-import { getMetadata } from '../utils/ExportImportUtils';
+import {
+  getErrorCallback,
+  getMetadata,
+  getResult,
+} from '../utils/ExportImportUtils';
 import { stringify } from '../utils/JsonUtils';
 import { areScriptHooksValid } from '../utils/ScriptValidationUtils';
 import { FrodoError } from './FrodoError';
 import { testConnectorServers as _testConnectorServers } from './IdmSystemOps';
-import { ExportMetaData } from './OpsTypes';
+import { ExportMetaData, ResultCallback } from './OpsTypes';
 
 export type IdmConfig = {
   /**
@@ -73,10 +75,12 @@ export type IdmConfig = {
   /**
    * Export all IDM config entities
    * @param {ConfigEntityExportOptions} options export options
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {ConfigEntityExportInterface} promise resolving to a ConfigEntityExportInterface object
    */
   exportConfigEntities(
-    options?: ConfigEntityExportOptions
+    options?: ConfigEntityExportOptions,
+    resultCallback?: ResultCallback<IdObjectSkeletonInterface>
   ): Promise<ConfigEntityExportInterface>;
   /**
    * Create config entity
@@ -107,25 +111,32 @@ export type IdmConfig = {
    * @param {ConfigEntityExportInterface} importData idm config entity import data.
    * @param {string} entityId Optional entity id that, when provided, will only import the entity of that id from the importData
    * @param {ConfigEntityImportOptions} options import options
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects
    */
   importConfigEntities(
     importData: ConfigEntityExportInterface,
     entityId?: string,
-    options?: ConfigEntityImportOptions
+    options?: ConfigEntityImportOptions,
+    resultCallback?: ResultCallback<IdObjectSkeletonInterface>
   ): Promise<IdObjectSkeletonInterface[]>;
   /**
    * Delete all config entities
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {IdObjectSkeletonInterface[]} promise reolving to an array of config entities
    */
-  deleteConfigEntities(): Promise<IdObjectSkeletonInterface[]>;
+  deleteConfigEntities(
+    resultCallback?: ResultCallback<IdObjectSkeletonInterface>
+  ): Promise<IdObjectSkeletonInterface[]>;
   /**
    * Delete all config entities of a type
    * @param {string} type config entity type
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {IdObjectSkeletonInterface[]} promise resolving to an array of config entities of a type
    */
   deleteConfigEntitiesByType(
-    type: string
+    type: string,
+    resultCallback?: ResultCallback<IdObjectSkeletonInterface>
   ): Promise<IdObjectSkeletonInterface[]>;
   /**
    * Delete config entity
@@ -260,9 +271,10 @@ export default (state: State): IdmConfig => {
       options: ConfigEntityExportOptions = {
         envReplaceParams: undefined,
         entitiesToExport: undefined,
-      }
+      },
+      resultCallback: ResultCallback<IdObjectSkeletonInterface> = void 0
     ): Promise<ConfigEntityExportInterface> {
-      return exportConfigEntities({ options, state });
+      return exportConfigEntities({ options, resultCallback, state });
     },
     async createConfigEntity(
       entityId: string,
@@ -281,17 +293,27 @@ export default (state: State): IdmConfig => {
     async importConfigEntities(
       importData: ConfigEntityExportInterface,
       entityId?: string,
-      options: ConfigEntityImportOptions = { validate: false }
+      options: ConfigEntityImportOptions = { validate: false },
+      resultCallback: ResultCallback<IdObjectSkeletonInterface> = void 0
     ): Promise<IdObjectSkeletonInterface[]> {
-      return importConfigEntities({ entityId, importData, options, state });
+      return importConfigEntities({
+        entityId,
+        importData,
+        options,
+        resultCallback,
+        state,
+      });
     },
-    async deleteConfigEntities(): Promise<IdObjectSkeletonInterface[]> {
-      return deleteConfigEntities({ state });
+    async deleteConfigEntities(
+      resultCallback: ResultCallback<IdObjectSkeletonInterface> = void 0
+    ): Promise<IdObjectSkeletonInterface[]> {
+      return deleteConfigEntities({ resultCallback, state });
     },
     async deleteConfigEntitiesByType(
-      type: string
+      type: string,
+      resultCallback: ResultCallback<IdObjectSkeletonInterface> = void 0
     ): Promise<IdObjectSkeletonInterface[]> {
-      return deleteConfigEntitiesByType({ type, state });
+      return deleteConfigEntitiesByType({ type, resultCallback, state });
     },
     async deleteConfigEntity(
       entityId: string
@@ -537,101 +559,96 @@ export async function exportConfigEntity({
     exportData.idm[entity._id] = entity;
     return exportData;
   } catch (error) {
-    printError(error);
+    throw new FrodoError(`Error getting config entity ${entityId}`, error);
   }
 }
 
 /**
  * Export all IDM config entities
  * @param {ConfigEntityExportOptions} options export options
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
  * @returns {ConfigEntityExportInterface} promise resolving to a ConfigEntityExportInterface object
  */
 export async function exportConfigEntities({
   options = { envReplaceParams: undefined, entitiesToExport: undefined },
+  resultCallback = void 0,
   state,
 }: {
   options?: ConfigEntityExportOptions;
+  resultCallback?: ResultCallback<IdObjectSkeletonInterface>;
   state: State;
 }): Promise<ConfigEntityExportInterface> {
-  let indicatorId: string;
-  try {
-    let configurations = await readConfigEntities({ state });
-    if (options.entitiesToExport && options.entitiesToExport.length > 0) {
-      configurations = configurations.filter((c) =>
-        options.entitiesToExport.includes(c._id)
-      );
-    }
-    indicatorId = createProgressIndicator({
-      total: configurations.length,
-      message: 'Exporting config entities...',
+  const exportData = createConfigEntityExportTemplate({ state });
+  let configurations = await readConfigEntities({ state });
+  if (options.entitiesToExport && options.entitiesToExport.length > 0) {
+    configurations = configurations.filter((c) =>
+      options.entitiesToExport.includes(c._id)
+    );
+  }
+  const indicatorId = createProgressIndicator({
+    total: configurations.length,
+    message: 'Exporting config entities...',
+    state,
+  });
+  const entityPromises: Promise<void | IdObjectSkeletonInterface>[] = [];
+  for (const configEntity of configurations) {
+    updateProgressIndicator({
+      id: indicatorId,
+      message: `Exporting config entity ${configEntity._id}`,
       state,
     });
-    const entityPromises: Promise<void | IdObjectSkeletonInterface>[] = [];
-    for (const configEntity of configurations) {
-      updateProgressIndicator({
-        id: indicatorId,
-        message: `Exporting config entity ${configEntity._id}`,
-        state,
-      });
-      entityPromises.push(
-        readConfigEntity({ entityId: configEntity._id, state }).catch(
-          (readConfigEntityError) => {
-            const error: FrodoError = readConfigEntityError;
-            if (
+    entityPromises.push(
+      getResult(
+        getErrorCallback(
+          resultCallback,
+          (error) =>
+            !(
               // operation is not available in PingOne Advanced Identity Cloud
-              !(
+              (
                 error.httpStatus === 403 &&
                 error.httpMessage ===
                   'This operation is not available in PingOne Advanced Identity Cloud.'
-              ) &&
-              // list of config entities, which do not exist by default or ever.
-              !(
-                IDM_UNAVAILABLE_ENTITIES.includes(configEntity._id) &&
-                error.httpStatus === 404 &&
-                error.httpErrorReason === 'Not Found'
-              ) &&
-              // https://bugster.forgerock.org/jira/browse/OPENIDM-18270
-              !(
-                error.httpStatus === 404 &&
-                error.httpMessage ===
-                  'No configuration exists for id org.apache.felix.fileinstall/openidm'
               )
-            ) {
-              printMessage({
-                message: readConfigEntityError.response?.data,
-                type: 'error',
-                state,
-              });
-              printMessage({
-                message: `Error getting config entity ${configEntity._id}: ${readConfigEntityError}`,
-                type: 'error',
-                state,
-              });
-            }
-          }
-        )
-      );
-    }
-    const exportData = createConfigEntityExportTemplate({ state });
-    (await Promise.all(entityPromises))
-      .filter((c) => c)
-      .forEach((entity) => {
-        exportData.idm[(entity as IdObjectSkeletonInterface)._id] =
-          substituteEntityWithEnv(
-            entity as IdObjectSkeletonInterface,
-            options.envReplaceParams
-          );
-      });
-    stopProgressIndicator({
-      id: indicatorId,
-      message: `Exported ${configurations.length} config entities.`,
-      status: 'success',
-      state,
-    });
-    return exportData;
-  } catch (error) {
-    printError(error);
+            ) &&
+            // list of config entities, which do not exist by default or ever.
+            !(
+              IDM_UNAVAILABLE_ENTITIES.includes(configEntity._id) &&
+              error.httpStatus === 404 &&
+              error.httpErrorReason === 'Not Found'
+            ) &&
+            // https://bugster.forgerock.org/jira/browse/OPENIDM-18270
+            !(
+              error.httpStatus === 404 &&
+              error.httpMessage ===
+                'No configuration exists for id org.apache.felix.fileinstall/openidm'
+            )
+        ),
+        `Error exporting idm config entity ${configEntity._id}`,
+        readConfigEntity,
+        { entityId: configEntity._id, state }
+      )
+    );
   }
+  (await Promise.all(entityPromises))
+    .filter((c) => c)
+    .forEach((entity) => {
+      const substitutedEntity = substituteEntityWithEnv(
+        entity as IdObjectSkeletonInterface,
+        options.envReplaceParams
+      );
+      exportData.idm[(entity as IdObjectSkeletonInterface)._id] =
+        substitutedEntity;
+      if (resultCallback) {
+        resultCallback(undefined, substitutedEntity);
+      }
+    });
+  stopProgressIndicator({
+    id: indicatorId,
+    message: `Exported ${configurations.length} config entities.`,
+    status: 'success',
+    state,
+  });
+  return exportData;
 }
 
 export async function createConfigEntity({
@@ -697,16 +714,17 @@ export async function importConfigEntities({
     entitiesToImport: undefined,
     validate: false,
   },
+  resultCallback = void 0,
   state,
 }: {
   entityId?: string;
   importData: ConfigEntityExportInterface;
   options: ConfigEntityImportOptions;
+  resultCallback?: ResultCallback<IdObjectSkeletonInterface>;
   state: State;
 }): Promise<IdObjectSkeletonInterface[]> {
   debugMessage({ message: `IdmConfigOps.importConfigEntities: start`, state });
   const response = [];
-  const errors = [];
   let ids = Object.keys(importData.idm);
   if (options.entitiesToImport && options.entitiesToImport.length > 0) {
     ids = ids.filter((id) => options.entitiesToImport.includes(id));
@@ -732,40 +750,45 @@ export async function importConfigEntities({
           `Invalid script hook in the config object '${id}'`
         );
       }
-      try {
-        const result = await updateConfigEntity({
-          entityId: id,
-          entityData,
-          state,
-        });
-        response.push(result);
-      } catch (error) {
-        if (
-          // protected entities (e.g. root realm email templates)
-          !(
-            state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
-            AIC_PROTECTED_ENTITIES.includes(id) &&
-            error.httpStatus === 403 &&
-            error.httpCode === 'ERR_BAD_REQUEST'
-          )
-        ) {
-          throw error;
-        }
+      const result = await updateConfigEntity({
+        entityId: id,
+        entityData,
+        state,
+      });
+      response.push(result);
+      if (resultCallback) {
+        resultCallback(undefined, result);
       }
     } catch (error) {
-      errors.push(error);
+      if (
+        // protected entities (e.g. root realm email templates)
+        !(
+          state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
+          AIC_PROTECTED_ENTITIES.includes(id) &&
+          error.httpStatus === 403 &&
+          error.httpCode === 'ERR_BAD_REQUEST'
+        )
+      ) {
+        if (resultCallback) {
+          resultCallback(error, undefined);
+        } else {
+          throw new FrodoError(
+            `Error importing idm config entity ${id}`,
+            error
+          );
+        }
+      }
     }
-  }
-  if (errors.length > 0) {
-    throw new FrodoError(`Error importing config entities`, errors);
   }
   debugMessage({ message: `IdmConfigOps.importConfigEntities: end`, state });
   return response;
 }
 
 export async function deleteConfigEntities({
+  resultCallback = void 0,
   state,
 }: {
+  resultCallback?: ResultCallback<IdObjectSkeletonInterface>;
   state: State;
 }): Promise<IdObjectSkeletonInterface[]> {
   debugMessage({
@@ -773,30 +796,23 @@ export async function deleteConfigEntities({
     state,
   });
   const result: IdObjectSkeletonInterface[] = [];
-  const errors = [];
-  try {
-    const configEntityStubs = await readConfigEntityStubs({ state });
-    for (const configEntityStub of configEntityStubs) {
-      try {
-        debugMessage({
-          message: `IdmConfigOps.deleteConfigEntities: '${configEntityStub['_id']}'`,
+  const configEntityStubs = await readConfigEntityStubs({ state });
+  for (const configEntityStub of configEntityStubs) {
+    debugMessage({
+      message: `IdmConfigOps.deleteConfigEntities: '${configEntityStub['_id']}'`,
+      state,
+    });
+    result.push(
+      await getResult(
+        resultCallback,
+        `Error deleting idm config entity ${configEntityStub._id}`,
+        _deleteConfigEntity,
+        {
+          entityId: configEntityStub['_id'],
           state,
-        });
-        result.push(
-          await _deleteConfigEntity({
-            entityId: configEntityStub['_id'],
-            state,
-          })
-        );
-      } catch (error) {
-        errors.push(error);
-      }
-    }
-  } catch (error) {
-    errors.push(error);
-  }
-  if (errors.length > 0) {
-    throw new FrodoError(`Error deleting config entities`, errors);
+        }
+      )
+    );
   }
   debugMessage({
     message: `IdmConfigOps.deleteConfigEntities: end`,
@@ -807,9 +823,11 @@ export async function deleteConfigEntities({
 
 export async function deleteConfigEntitiesByType({
   type,
+  resultCallback = void 0,
   state,
 }: {
   type: string;
+  resultCallback?: ResultCallback<IdObjectSkeletonInterface>;
   state: State;
 }): Promise<IdObjectSkeletonInterface[]> {
   debugMessage({
@@ -817,40 +835,29 @@ export async function deleteConfigEntitiesByType({
     state,
   });
   const result: IdObjectSkeletonInterface[] = [];
-  const errors: Error[] = [];
-  try {
-    const configEntities = await readConfigEntitiesByType({ type, state });
-    for (const configEntity of configEntities) {
-      try {
-        debugMessage({
-          message: `IdmConfigOps.deleteConfigEntitiesByType: '${configEntity['_id']}'`,
-          state,
-        });
-        result.push(
-          await _deleteConfigEntity({
-            entityId: configEntity['_id'] as string,
-            state,
-          })
-        );
-      } catch (error) {
-        errors.push(error);
-      }
-    }
-    if (errors.length > 0) {
-      throw new FrodoError(`Error deleting config entities by type`, errors);
-    }
+  const configEntities = await readConfigEntitiesByType({ type, state });
+  for (const configEntity of configEntities) {
     debugMessage({
-      message: `IdmConfigOps.deleteConfigEntitiesByType: end`,
+      message: `IdmConfigOps.deleteConfigEntitiesByType: '${configEntity['_id']}'`,
       state,
     });
-    return result;
-  } catch (error) {
-    // re-throw previously caught errors
-    if (errors.length > 0) {
-      throw error;
-    }
-    throw new FrodoError(`Error deleting config entities by type`, error);
+    result.push(
+      await getResult(
+        resultCallback,
+        `Error deleting idm config entity ${configEntity._id}`,
+        _deleteConfigEntity,
+        {
+          entityId: configEntity['_id'] as string,
+          state,
+        }
+      )
+    );
   }
+  debugMessage({
+    message: `IdmConfigOps.deleteConfigEntitiesByType: end`,
+    state,
+  });
+  return result;
 }
 
 export async function deleteConfigEntity({
@@ -899,7 +906,7 @@ export async function readSubConfigEntity({
     }
     return subEntity;
   } catch (error) {
-    printError(error);
+    throw new FrodoError(`Error reading sub config ${entityId} ${name}`, error);
   }
 }
 

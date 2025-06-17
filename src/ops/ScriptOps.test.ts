@@ -34,6 +34,7 @@ import * as ScriptOps from './ScriptOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
 import { ScriptSkeleton } from '../api/ScriptApi';
+import { snapshotResultCallback } from '../test/utils/TestUtils';
 
 const ctx = autoSetupPolly();
 
@@ -483,6 +484,7 @@ describe('ScriptOps', () => {
           includeDefault: false,
           useStringArrays: true,
         },
+        resultCallback: snapshotResultCallback,
         state,
       });
       expect(response).toMatchSnapshot({
@@ -497,6 +499,7 @@ describe('ScriptOps', () => {
           includeDefault: true,
           useStringArrays: true,
         },
+        resultCallback: snapshotResultCallback,
         state,
       });
       expect(response).toMatchSnapshot({
@@ -521,6 +524,7 @@ describe('ScriptOps', () => {
           reUuid: false,
           includeDefault: true,
         },
+        resultCallback: snapshotResultCallback,
         state,
       });
       expect(outcome).toBeTruthy();
@@ -532,6 +536,7 @@ describe('ScriptOps', () => {
         scriptId: '',
         scriptName: import1.name,
         importData: import1.data,
+        resultCallback: snapshotResultCallback,
         state,
       });
       expect(result).toMatchSnapshot();
@@ -543,6 +548,7 @@ describe('ScriptOps', () => {
         scriptId: import1.id,
         scriptName: '',
         importData: import1.data,
+        resultCallback: snapshotResultCallback,
         state,
       });
       expect(result).toMatchSnapshot();
@@ -559,6 +565,7 @@ describe('ScriptOps', () => {
           reUuid: false,
           includeDefault: false,
         },
+        resultCallback: snapshotResultCallback,
         state,
       });
       expect(result).toMatchSnapshot();
@@ -603,7 +610,10 @@ describe('ScriptOps', () => {
     //TODO: Generate mock for this test (skip for meantime)
     test.skip(`1: delete all scripts`, async () => {
       expect.assertions(1);
-      const outcome = await ScriptOps.deleteScripts({ state });
+      const outcome = await ScriptOps.deleteScripts({
+        resultCallback: snapshotResultCallback,
+        state 
+      });
       expect(outcome).toBeTruthy();
     });
   });

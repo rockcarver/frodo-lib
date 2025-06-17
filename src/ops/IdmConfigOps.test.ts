@@ -35,6 +35,7 @@ import * as IdmConfigOps from './IdmConfigOps';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
+import { snapshotResultCallback } from '../test/utils/TestUtils';
 
 const ctx = autoSetupPolly();
 
@@ -272,7 +273,7 @@ describe('IdmConfigOps', () => {
     });
 
     test('1: Export config entities', async () => {
-      const response = await IdmConfigOps.exportConfigEntities({ state });
+      const response = await IdmConfigOps.exportConfigEntities({ resultCallback: snapshotResultCallback, state });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -347,6 +348,7 @@ describe('IdmConfigOps', () => {
         options: {
           validate: false,
         },
+        resultCallback: snapshotResultCallback,
         state,
       });
       expect(response).toMatchSnapshot();
@@ -365,6 +367,7 @@ describe('IdmConfigOps', () => {
         options: {
           validate: true,
         },
+        resultCallback: snapshotResultCallback,
         state,
       });
       expect(response).toMatchSnapshot();
@@ -388,6 +391,7 @@ describe('IdmConfigOps', () => {
           envReplaceParams: [['en', 'english']],
           validate: false,
         },
+        resultCallback: snapshotResultCallback,
         state,
       });
       expect(response).toMatchSnapshot();
@@ -407,6 +411,7 @@ describe('IdmConfigOps', () => {
         options: {
           validate: false,
         },
+        resultCallback: snapshotResultCallback,
         state,
       });
       expect(response).toMatchSnapshot();

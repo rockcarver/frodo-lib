@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   deleteScript as _deleteScript,
   deleteScriptByName as _deleteScriptByName,
-  deleteScripts as _deleteScripts,
   getLibraryScriptConfigByName,
   getScript as _getScript,
   getScriptByName as _getScriptByName,
@@ -11,7 +10,7 @@ import {
   putScript as _putScript,
   type ScriptSkeleton,
 } from '../api/ScriptApi';
-import { type ExportMetaData } from '../ops/OpsTypes';
+import { type ExportMetaData, ResultCallback } from '../ops/OpsTypes';
 import { State } from '../shared/State';
 import { decode, encode, isBase64Encoded } from '../utils/Base64Utils';
 import {
@@ -25,6 +24,7 @@ import {
   convertBase64TextToArray,
   convertTextArrayToBase64,
   getMetadata,
+  getResult,
 } from '../utils/ExportImportUtils';
 import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
 import { isScriptValid } from '../utils/ScriptValidationUtils';
@@ -96,19 +96,27 @@ export type Script = {
   deleteScriptByName(scriptName: string): Promise<ScriptSkeleton>;
   /**
    * Delete all non-default scripts
-   * @returns {Promise<ScriptSkeleton[]>>} a promise that resolves to an array of script objects
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
+   * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
    */
-  deleteScripts(): Promise<ScriptSkeleton[]>;
+  deleteScripts(
+    resultCallback?: ResultCallback<ScriptSkeleton>
+  ): Promise<ScriptSkeleton[]>;
   /**
    * Export all scripts
    * @param {ScriptExportOptions} options script export options
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
    */
-  exportScripts(options?: ScriptExportOptions): Promise<ScriptExportInterface>;
+  exportScripts(
+    options?: ScriptExportOptions,
+    resultCallback?: ResultCallback<ScriptSkeleton>
+  ): Promise<ScriptExportInterface>;
   /**
    * Export script by id
    * @param {string} scriptId script uuid
    * @param {ScriptExportOptions} options script export options
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
    */
   exportScript(
@@ -132,6 +140,7 @@ export type Script = {
    * @param {ScriptExportInterface} importData Script import data
    * @param {ScriptImportOptions} options Script import options
    * @param {boolean} validate If true, validates Javascript scripts to ensure no errors exist in them. Default: false
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {Promise<ScriptSkeleton[]>} the imported scripts
    */
   importScripts(
@@ -139,7 +148,8 @@ export type Script = {
     scriptName: string,
     importData: ScriptExportInterface,
     options?: ScriptImportOptions,
-    validate?: boolean
+    validate?: boolean,
+    resultCallback?: ResultCallback<ScriptSkeleton>
   ): Promise<ScriptSkeleton[]>;
 
   // Deprecated
@@ -230,8 +240,8 @@ export default (state: State): Script => {
     async deleteScriptByName(scriptName: string): Promise<ScriptSkeleton> {
       return deleteScriptByName({ scriptName, state });
     },
-    async deleteScripts(): Promise<ScriptSkeleton[]> {
-      return deleteScripts({ state });
+    async deleteScripts(resultCallback = void 0): Promise<ScriptSkeleton[]> {
+      return deleteScripts({ resultCallback, state });
     },
     async exportScript(
       scriptId: string,
@@ -258,9 +268,10 @@ export default (state: State): Script => {
         deps: true,
         includeDefault: false,
         useStringArrays: true,
-      }
+      },
+      resultCallback = void 0
     ): Promise<ScriptExportInterface> {
-      return exportScripts({ options, state });
+      return exportScripts({ options, resultCallback, state });
     },
     async importScripts(
       scriptId: string,
@@ -271,7 +282,8 @@ export default (state: State): Script => {
         reUuid: false,
         includeDefault: false,
       },
-      validate = false
+      validate = false,
+      resultCallback = void 0
     ): Promise<ScriptSkeleton[]> {
       return importScripts({
         scriptId,
@@ -279,6 +291,7 @@ export default (state: State): Script => {
         importData,
         options,
         validate,
+        resultCallback,
         state,
       });
     },
@@ -613,18 +626,33 @@ export async function deleteScriptByName({
 
 /**
  * Delete all non-default scripts
- * @returns {Promise<ScriptSkeleton[]>>} a promise that resolves to an array of script objects
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
+ * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
  */
 export async function deleteScripts({
+  resultCallback = void 0,
   state,
 }: {
+  resultCallback?: ResultCallback<ScriptSkeleton>;
   state: State;
 }): Promise<ScriptSkeleton[]> {
-  try {
-    return _deleteScripts({ state });
-  } catch (error) {
-    throw new FrodoError(`Error deleting scripts`, error);
+  const result = await readScripts({ state });
+  //Unable to delete default scripts, so filter them out
+  const scripts = result.filter((s) => !s.default);
+  const deletedScripts = [];
+  for (const script of scripts) {
+    const result = await getResult(
+      resultCallback,
+      `Error deleting script ${script.name}`,
+      deleteScript,
+      {
+        scriptId: script._id,
+        state,
+      }
+    );
+    deletedScripts.push(result);
   }
+  return deletedScripts;
 }
 
 /**
@@ -693,6 +721,7 @@ export async function exportScriptByName({
  * Export all scripts
  *
  * @param {ScriptExportOptions} options script export options
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
  * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
  */
 export async function exportScripts({
@@ -701,62 +730,46 @@ export async function exportScripts({
     includeDefault: false,
     useStringArrays: true,
   },
+  resultCallback = void 0,
   state,
 }: {
   options?: ScriptExportOptions;
+  resultCallback: ResultCallback<ScriptSkeleton>;
   state: State;
 }): Promise<ScriptExportInterface> {
-  const errors: Error[] = [];
-  let indicatorId: string;
-  try {
-    const { includeDefault, useStringArrays } = options;
-    let scriptList = await readScripts({ state });
-    if (!includeDefault)
-      scriptList = scriptList.filter((script) => !script.default);
-    const exportData = createScriptExportTemplate({ state });
-    indicatorId = createProgressIndicator({
-      total: scriptList.length,
-      message: `Exporting ${scriptList.length} scripts...`,
+  const { includeDefault, useStringArrays } = options;
+  let scriptList = await readScripts({ state });
+  if (!includeDefault)
+    scriptList = scriptList.filter((script) => !script.default);
+  const exportData = createScriptExportTemplate({ state });
+  const indicatorId = createProgressIndicator({
+    total: scriptList.length,
+    message: `Exporting ${scriptList.length} scripts...`,
+    state,
+  });
+  for (const scriptData of scriptList) {
+    updateProgressIndicator({
+      id: indicatorId,
+      message: `Reading script ${scriptData.name}`,
       state,
     });
-    for (const scriptData of scriptList) {
-      try {
-        updateProgressIndicator({
-          id: indicatorId,
-          message: `Reading script ${scriptData.name}`,
-          state,
-        });
-        exportData.script[scriptData._id] = await prepareScriptForExport({
-          scriptData,
-          useStringArrays,
-          state,
-        });
-      } catch (error) {
-        errors.push(error);
+    exportData.script[scriptData._id] = await getResult(
+      resultCallback,
+      `Error exporting script ${scriptData.name}`,
+      prepareScriptForExport,
+      {
+        scriptData,
+        useStringArrays,
+        state,
       }
-    }
-    if (errors.length > 0) {
-      throw new FrodoError(``, errors);
-    }
-    stopProgressIndicator({
-      id: indicatorId,
-      message: `Exported ${scriptList.length} scripts.`,
-      state,
-    });
-    return exportData;
-  } catch (error) {
-    stopProgressIndicator({
-      id: indicatorId,
-      message: `Error exporting scripts`,
-      status: 'fail',
-      state,
-    });
-    // re-throw previously caught error
-    if (errors.length > 0) {
-      throw error;
-    }
-    throw new FrodoError(`Error exporting scripts`, error);
+    );
   }
+  stopProgressIndicator({
+    id: indicatorId,
+    message: `Exported ${scriptList.length} scripts.`,
+    state,
+  });
+  return exportData;
 }
 
 /**
@@ -767,6 +780,7 @@ export async function exportScripts({
  * @param {ScriptExportInterface} params.importData Script import data
  * @param {ScriptImportOptions} params.options Script import options
  * @param {boolean} params.validate If true, validates Javascript scripts to ensure no errors exist in them. Default: false
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
  * @returns {Promise<ScriptSkeleton[]>} the imported scripts
  */
 export async function importScripts({
@@ -779,6 +793,7 @@ export async function importScripts({
     includeDefault: false,
   },
   validate = false,
+  resultCallback = void 0,
   state,
 }: {
   scriptId?: string;
@@ -786,66 +801,61 @@ export async function importScripts({
   importData: ScriptExportInterface;
   options?: ScriptImportOptions;
   validate?: boolean;
+  resultCallback?: ResultCallback<ScriptSkeleton>;
   state: State;
 }): Promise<ScriptSkeleton[]> {
-  const errors = [];
-  try {
-    debugMessage({ message: `ScriptOps.importScripts: start`, state });
-    const response = [];
-    for (const existingId of Object.keys(importData.script)) {
-      try {
-        const scriptData = importData.script[existingId];
-        const isDefault = !options.includeDefault && scriptData.default;
-        // Only import script if the scriptName matches the current script. Note this only applies if we are not importing dependencies since if there are dependencies then we want to import all the scripts in the file.
-        const shouldNotImportScript =
-          !options.deps &&
-          ((scriptId && scriptId !== scriptData._id) ||
-            (!scriptId && scriptName && scriptName !== scriptData.name));
-        if (isDefault || shouldNotImportScript) continue;
+  debugMessage({ message: `ScriptOps.importScripts: start`, state });
+  const response = [];
+  for (const existingId of Object.keys(importData.script)) {
+    try {
+      const scriptData = importData.script[existingId];
+      const isDefault = !options.includeDefault && scriptData.default;
+      // Only import script if the scriptName matches the current script. Note this only applies if we are not importing dependencies since if there are dependencies then we want to import all the scripts in the file.
+      const shouldNotImportScript =
+        !options.deps &&
+        ((scriptId && scriptId !== scriptData._id) ||
+          (!scriptId && scriptName && scriptName !== scriptData.name));
+      if (isDefault || shouldNotImportScript) continue;
+      debugMessage({
+        message: `ScriptOps.importScripts: Importing script ${scriptData.name} (${existingId})`,
+        state,
+      });
+      let newId = existingId;
+      if (options.reUuid) {
+        newId = uuidv4();
         debugMessage({
-          message: `ScriptOps.importScripts: Importing script ${scriptData.name} (${existingId})`,
+          message: `ScriptOps.importScripts: Re-uuid-ing script ${scriptData.name} ${existingId} => ${newId}...`,
           state,
         });
-        let newId = existingId;
-        if (options.reUuid) {
-          newId = uuidv4();
-          debugMessage({
-            message: `ScriptOps.importScripts: Re-uuid-ing script ${scriptData.name} ${existingId} => ${newId}...`,
-            state,
-          });
-          scriptData._id = newId;
+        scriptData._id = newId;
+      }
+      if (validate) {
+        if (!isScriptValid({ scriptData, state })) {
+          throw new FrodoError(`Script is invalid`);
         }
-        if (validate) {
-          if (!isScriptValid({ scriptData, state })) {
-            errors.push(
-              new FrodoError(
-                `Error importing script '${scriptData.name}': Script is not valid`
-              )
-            );
-          }
-        }
-        const result = await updateScript({
-          scriptId: newId,
-          scriptData,
-          state,
-        });
-        response.push(result);
-      } catch (error) {
-        errors.push(error);
+      }
+      const result = await updateScript({
+        scriptId: newId,
+        scriptData,
+        state,
+      });
+      if (resultCallback) {
+        resultCallback(undefined, result);
+      }
+      response.push(result);
+    } catch (e) {
+      if (resultCallback) {
+        resultCallback(e, undefined);
+      } else {
+        throw new FrodoError(
+          `Error importing script '${importData.script[existingId].name}'`,
+          e
+        );
       }
     }
-    if (errors.length > 0) {
-      throw new FrodoError(`Error importing scripts`, errors);
-    }
-    debugMessage({ message: `ScriptOps.importScripts: end`, state });
-    return response;
-  } catch (error) {
-    // re-throw previously caught errors
-    if (errors.length > 0) {
-      throw error;
-    }
-    throw new FrodoError(`Error importing scripts`, error);
   }
+  debugMessage({ message: `ScriptOps.importScripts: end`, state });
+  return response;
 }
 
 /**

@@ -35,6 +35,16 @@ exports[`IdmConfigOps createConfigEntity() 2: Create a config entity 'emailTempl
 `;
 
 exports[`IdmConfigOps exportConfigEntities() 1: Export config entities 1`] = `
+"Error exporting idm config entity fidc/federation-EntraID
+  Error reading config entity fidc/federation-EntraID
+  HTTP client error
+    Code: ERR_BAD_REQUEST
+    Status: 403
+    Reason: Forbidden
+    Message: Access denied"
+`;
+
+exports[`IdmConfigOps exportConfigEntities() 1: Export config entities 2`] = `
 {
   "idm": {
     "access": {

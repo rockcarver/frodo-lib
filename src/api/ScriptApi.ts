@@ -245,36 +245,3 @@ export async function deleteScriptByName({
     state,
   });
 }
-
-/**
- * Delete all non-default scripts
- * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
- */
-export async function deleteScripts({
-  state,
-}: {
-  state: State;
-}): Promise<ScriptSkeleton[]> {
-  const { result } = await getScripts({ state });
-  //Unable to delete default scripts, so filter them out
-  const scripts = result.filter((s) => !s.default);
-  const deletedScripts = [];
-  const errors = [];
-  for (const script of scripts) {
-    try {
-      deletedScripts.push(
-        await deleteScript({
-          scriptId: script._id,
-          state,
-        })
-      );
-    } catch (error) {
-      errors.push(error);
-    }
-  }
-  if (errors.length) {
-    const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Delete error:\n${errorMessages}`);
-  }
-  return deletedScripts;
-}
