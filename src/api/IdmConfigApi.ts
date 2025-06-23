@@ -60,17 +60,20 @@ export async function getConfigEntities({
 /**
  * Get IDM config entities by type
  * @param {string} type the desired type of config entity
+ * @param {boolean} includeDefault Include default email templates if true, false to exclude them. Default: false
  * @returns {Promise} a promise that resolves to an object containing all IDM config entities of the desired type
  */
 export async function getConfigEntitiesByType({
   type,
+  includeDefault = false,
   state,
 }: {
   type: string;
+  includeDefault?: boolean;
   state: State;
 }): Promise<PagedResult<NoIdObjectSkeletonInterface>> {
-  // Due to a bug (as of Ping IDM 7.5.0) with the query filter for email templates (it happens using both sw or co), in order to get all the email templates you need to use 'emailTemplat' instead.
-  if (type === EMAIL_TEMPLATE_TYPE) {
+  // Due to a bug (as of Ping IDM 7.5.0) with the query filter for email templates (it happens using both sw or co), in order to get all the email templates, including default, you need to use 'emailTemplat' instead.
+  if (type === EMAIL_TEMPLATE_TYPE && includeDefault) {
     type = EMAIL_TEMPLATE_TYPE.substring(0, EMAIL_TEMPLATE_TYPE.length - 1);
   }
   const urlString = util.format(

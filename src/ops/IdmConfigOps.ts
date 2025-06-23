@@ -53,9 +53,13 @@ export type IdmConfig = {
   /**
    * Read all config entities of a type
    * @param {string} type config entity type
+   * @param {boolean} includeDefault Include default email templates if true, false to exclude them. Default: false
    * @returns {IdObjectSkeletonInterface[]} promise resolving to an array of config entities of a type
    */
-  readConfigEntitiesByType(type: string): Promise<IdObjectSkeletonInterface[]>;
+  readConfigEntitiesByType(
+    type: string,
+    includeDefault?: boolean
+  ): Promise<IdObjectSkeletonInterface[]>;
   /**
    * Read config entity
    * @param {string} entityId config entity id/name
@@ -249,9 +253,10 @@ export default (state: State): IdmConfig => {
       return readConfigEntities({ state });
     },
     async readConfigEntitiesByType(
-      type: string
+      type: string,
+      includeDefault: boolean = false
     ): Promise<IdObjectSkeletonInterface[]> {
-      return readConfigEntitiesByType({ type, state });
+      return readConfigEntitiesByType({ type, includeDefault, state });
     },
     async readConfigEntity(
       entityId: string
@@ -478,13 +483,19 @@ export async function readConfigEntities({
 
 export async function readConfigEntitiesByType({
   type,
+  includeDefault = false,
   state,
 }: {
   type: string;
+  includeDefault?: boolean;
   state: State;
 }): Promise<NoIdObjectSkeletonInterface[]> {
   try {
-    const { result } = await _getConfigEntitiesByType({ type, state });
+    const { result } = await _getConfigEntitiesByType({
+      type,
+      includeDefault,
+      state,
+    });
     return result;
   } catch (error) {
     throw new FrodoError(`Error reading config entities by type`, error);

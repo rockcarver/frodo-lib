@@ -190,6 +190,8 @@ function getFrodoCommand({ state }: { state: State }) {
       } else {
         if (
           process.argv[i] === 'export' ||
+          process.argv[i] === 'pull' ||
+          process.argv[i] === 'push' ||
           process.argv[i] === 'import' ||
           process.argv[i] === 'list' ||
           process.argv[i] === 'delete' ||

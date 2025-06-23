@@ -163,7 +163,12 @@ describe('EmailTemplateOps', () => {
     });
 
     test('1: Read all email templates', async () => {
-      const response = await EmailTemplateOps.readEmailTemplates({ state });
+      const response = await EmailTemplateOps.readEmailTemplates({ includeDefault: false, state });
+      expect(response).toMatchSnapshot();
+    });
+
+    test('2: Read all email templates including defaults', async () => {
+      const response = await EmailTemplateOps.readEmailTemplates({ includeDefault: true, state });
       expect(response).toMatchSnapshot();
     });
   });
@@ -174,7 +179,14 @@ describe('EmailTemplateOps', () => {
     });
 
     test('1: Export email templates', async () => {
-      const response = await EmailTemplateOps.exportEmailTemplates({ state });
+      const response = await EmailTemplateOps.exportEmailTemplates({ includeDefault: false, state });
+      expect(response).toMatchSnapshot({
+        meta: expect.any(Object)
+      });
+    });
+
+    test('2: Export email templates with default templates', async () => {
+      const response = await EmailTemplateOps.exportEmailTemplates({ includeDefault: true, state });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object)
       });
