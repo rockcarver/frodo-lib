@@ -28,6 +28,10 @@ export type ExportImport = {
   convertTextArrayToBase64Url(textArray: string[]): any;
   validateImport(metadata: any): boolean;
   getTypedFilename(name: string, type: string, suffix?: string): string;
+  sanitize(
+    name: string,
+    options?: { replacement?: string | ((char: string) => string) }
+  );
   getWorkingDirectory(mkdirs?: boolean): string;
   getFilePath(fileName: string, mkdirs?: boolean): string;
   saveToFile(
@@ -42,12 +46,14 @@ export type ExportImport = {
    * @param {Object} data data object
    * @param {String} filename file name
    * @param {boolean} includeMeta true to include metadata, false otherwise. Default: true
+   * @param {boolean} removeRev Remove the _rev key from objects. Default: true
    * @return {boolean} true if successful, false otherwise
    */
   saveJsonToFile(
     data: object,
     filename: string,
-    includeMeta?: boolean
+    includeMeta?: boolean,
+    removeRev?: boolean
   ): boolean;
   /**
    * Save text data to file
@@ -151,6 +157,12 @@ export default (state: State): ExportImport => {
     getTypedFilename(name: string, type: string, suffix = 'json'): string {
       return getTypedFilename(name, type, suffix);
     },
+    sanitize(
+      name: string,
+      options?: { replacement?: string | ((char: string) => string) }
+    ): string {
+      return sanitize(name, options);
+    },
     getWorkingDirectory(mkdirs = false) {
       return getWorkingDirectory({ mkdirs, state });
     },
@@ -176,9 +188,10 @@ export default (state: State): ExportImport => {
     saveJsonToFile(
       data: object,
       filename: string,
-      includeMeta = true
+      includeMeta = true,
+      removeRev = false
     ): boolean {
-      return saveJsonToFile({ data, filename, includeMeta, state });
+      return saveJsonToFile({ data, filename, includeMeta, removeRev, state });
     },
     saveTextToFile(data: string, filename: string): boolean {
       return saveTextToFile({ data, filename, state });
@@ -289,6 +302,41 @@ export function getTypedFilename(
   return `${slug}.${type}.${suffix}`;
 }
 
+export function sanitize(
+  input: string,
+  options?: {
+    replacement?: string | ((char: string) => string);
+  }
+): string {
+  /* eslint-disable  */
+  const illegalChars = /[\/\?<>\\:\*\|":]/g;
+  const controlChars = /[\x00-\x1f\x80-\x9f]/g;
+  const reservedNames = /^(con|prn|aux|nul|com\d|lpt\d)$/i;
+  /* eslint-enable */
+
+  let replacementFn: (substring: string) => string;
+
+  if (typeof options?.replacement === 'function') {
+    replacementFn = options.replacement;
+  } else {
+    const replacementValue = options?.replacement ?? '';
+    replacementFn = () => replacementValue;
+  }
+
+  let sanitized = input
+    .replace(illegalChars, replacementFn)
+    .replace(controlChars, replacementFn)
+    .replace(/^\.+$/, '');
+
+  sanitized = sanitized.trim();
+
+  if (reservedNames.test(sanitized)) {
+    sanitized = '_' + sanitized;
+  }
+
+  return sanitized;
+}
+
 export function getWorkingDirectory({
   mkdirs = false,
   state,
@@ -387,24 +435,29 @@ export function saveToFile({
  * @param {object} data data object
  * @param {string} filename file name
  * @param {boolean} includeMeta true to include metadata, false otherwise. Default: true
+ * @param {boolean} removeRev Remove the _rev key from objects. Default: true
  * @return {boolean} true if successful, false otherwise
  */
 export function saveJsonToFile({
   data,
   filename,
   includeMeta = true,
+  removeRev = true,
   state,
 }: {
   data: object;
   filename: string;
   includeMeta?: boolean;
+  removeRev?: boolean;
   state: State;
 }): boolean {
   const exportData = data;
   if (includeMeta && !exportData['meta'])
     exportData['meta'] = getMetadata({ state });
   if (!includeMeta && exportData['meta']) delete exportData['meta'];
-  deleteDeepByKey(exportData, '_rev');
+  if (removeRev) {
+    deleteDeepByKey(exportData, '_rev');
+  }
   return saveTextToFile({
     data: stringify(exportData),
     filename,
@@ -428,7 +481,11 @@ export function saveTextToFile({
   state: State;
 }): boolean {
   try {
-    fs.writeFileSync(filename, data + (data.endsWith('\n') ? '' : '\n'));
+    fs.writeFileSync(
+      filename,
+      data + (data.endsWith('\n') ? '' : '\n'),
+      'utf8'
+    );
     return true;
   } catch (err) {
     printMessage({

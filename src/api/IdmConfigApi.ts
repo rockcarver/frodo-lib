@@ -65,12 +65,14 @@ export async function getConfigEntities({
 export async function getConfigEntitiesByType({
   type,
   state,
+  onlyVisibleTemplates,
 }: {
   type: string;
   state: State;
+  onlyVisibleTemplates?: boolean;
 }): Promise<PagedResult<NoIdObjectSkeletonInterface>> {
   // Due to a bug (as of Ping IDM 7.5.0) with the query filter for email templates (it happens using both sw or co), in order to get all the email templates you need to use 'emailTemplat' instead.
-  if (type === EMAIL_TEMPLATE_TYPE) {
+  if (type === EMAIL_TEMPLATE_TYPE && !onlyVisibleTemplates) {
     type = EMAIL_TEMPLATE_TYPE.substring(0, EMAIL_TEMPLATE_TYPE.length - 1);
   }
   const urlString = util.format(

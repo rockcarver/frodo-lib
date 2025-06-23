@@ -1,4 +1,5 @@
 import {
+  getSecretStore,
   getSecretStoreMappings,
   getSecretStores,
   putSecretStore,
@@ -6,6 +7,7 @@ import {
   SecretStoreMappingSkeleton,
   SecretStoreSkeleton,
 } from '../../api/classic/SecretStoreApi';
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import {
   createProgressIndicator,
@@ -27,11 +29,13 @@ export type SecretStore = {
   /**
    * Read secret store by id
    * @param {string} secretStoreId Secret store id
+   * @param {string} secretStoreTypeId Secret store type id
    * @param {boolean} globalConfig true if global secret store is the target of the operation, false otherwise. Default: false.
    * @returns {Promise<SecretStoreSkeleton>} a promise that resolves to a secret store object
    */
   readSecretStore(
     secretStoreId: string,
+    secretStoreTypeId: string,
     globalConfig: boolean
   ): Promise<SecretStoreSkeleton>;
   /**
@@ -55,11 +59,13 @@ export type SecretStore = {
   /**
    * Export a single secret store by id. The response can be saved to file as is.
    * @param {string} secretStoreId Secret store id
+   * @param {string} secretStoreTypeId Secret store type id
    * @param {boolean} globalConfig true if global secret store is the target of the operation, false otherwise. Default: false.
    * @returns {Promise<SecretStoreExportInterface>} Promise resolving to a SecretStoreExportInterface object.
    */
   exportSecretStore(
     secretStoreId: string,
+    secretStoreTypeId: string,
     globalConfig: boolean
   ): Promise<SecretStoreExportInterface>;
   /**
@@ -115,9 +121,15 @@ export default (state: State): SecretStore => {
     },
     async readSecretStore(
       secretStoreId: string,
+      secretStoreTypeId: string,
       globalConfig: boolean = false
     ): Promise<SecretStoreSkeleton> {
-      return readSecretStore({ secretStoreId, globalConfig, state });
+      return readSecretStore({
+        secretStoreId,
+        secretStoreTypeId,
+        globalConfig,
+        state,
+      });
     },
     async readSecretStores(
       globalConfig: boolean = false
@@ -138,9 +150,15 @@ export default (state: State): SecretStore => {
     },
     async exportSecretStore(
       secretStoreId: string,
+      secretStoreTypeId: string,
       globalConfig: boolean = false
     ): Promise<SecretStoreExportInterface> {
-      return exportSecretStore({ secretStoreId, globalConfig, state });
+      return exportSecretStore({
+        secretStoreId,
+        secretStoreTypeId,
+        globalConfig,
+        state,
+      });
     },
     async exportSecretStores(
       globalConfig: boolean = false
@@ -213,28 +231,33 @@ export function createSecretStoreExportTemplate({
 /**
  * Read secret store by id
  * @param {string} secretStoreId Secret store id
+ * @param {string} secretStoreTypeId Secret store type id
  * @param {boolean} globalConfig true if global secret store is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<SecretStoreSkeleton>} a promise that resolves to a secret store object
  */
 export async function readSecretStore({
   secretStoreId,
+  secretStoreTypeId,
   globalConfig = false,
   state,
 }: {
   secretStoreId: string;
+  secretStoreTypeId: string;
   globalConfig: boolean;
   state: State;
 }): Promise<SecretStoreSkeleton> {
   try {
-    const found = (await readSecretStores({ globalConfig, state })).filter(
-      (secretStore) => secretStore._id === secretStoreId
-    );
-    if (found.length === 1) {
-      return found[0];
-    }
-    throw new Error(`Secret store with id '${secretStoreId}' not found!`);
+    return await getSecretStore({
+      secretStoreId,
+      secretStoreTypeId,
+      globalConfig,
+      state,
+    });
   } catch (error) {
-    throw new FrodoError(`Error reading secret store ${secretStoreId}`, error);
+    throw new FrodoError(
+      `Error reading secret store ${secretStoreId} of type ${secretStoreTypeId}`,
+      error
+    );
   }
 }
 
@@ -312,21 +335,25 @@ export async function readSecretStoreMappings({
 /**
  * Export a single secret store by id. The response can be saved to file as is.
  * @param {string} secretStoreId Secret store id
+ * @param {string} secretStoreTypeId Secret store type id
  * @param {boolean} globalConfig true if global secret store is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<SecretStoreExportInterface>} Promise resolving to a SecretStoreExportInterface object.
  */
 export async function exportSecretStore({
   secretStoreId,
+  secretStoreTypeId,
   globalConfig = false,
   state,
 }: {
   secretStoreId: string;
+  secretStoreTypeId: string;
   globalConfig: boolean;
   state: State;
 }): Promise<SecretStoreExportInterface> {
   try {
     const secretStore = (await readSecretStore({
       secretStoreId,
+      secretStoreTypeId,
       globalConfig,
       state,
     })) as SecretStoreExportSkeleton;
@@ -366,8 +393,22 @@ export async function exportSecretStores({
       message: `SecretStoreOps.exportSecretStores: start`,
       state,
     });
+    const isCloudDeployment =
+      state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
     const exportData = createSecretStoreExportTemplate({ state });
-    const secretStores = await readSecretStores({ globalConfig, state });
+    if (isCloudDeployment && globalConfig) {
+      return exportData;
+    }
+    const secretStores = isCloudDeployment
+      ? [
+          await readSecretStore({
+            secretStoreId: 'ESV',
+            secretStoreTypeId: 'GoogleSecretManagerSecretStoreProvider',
+            globalConfig,
+            state,
+          }),
+        ]
+      : await readSecretStores({ globalConfig, state });
     indicatorId = createProgressIndicator({
       total: secretStores.length,
       message: 'Exporting secret stores...',
@@ -511,13 +552,18 @@ export async function importSecretStores({
           }
           mappings = await Promise.all(mappings);
         }
-        delete secretStore.mappings;
-        const result = await updateSecretStore({
-          secretStoreData: secretStore,
-          globalConfig,
-          state,
-        });
-        result.mappings = mappings;
+        const isCloudDeployment =
+          state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
+        let result = secretStore;
+        if (!isCloudDeployment) {
+          delete secretStore.mappings;
+          result = (await updateSecretStore({
+            secretStoreData: secretStore,
+            globalConfig,
+            state,
+          })) as SecretStoreExportSkeleton;
+          result.mappings = mappings;
+        }
         response.push(result);
       } catch (error) {
         errors.push(error);

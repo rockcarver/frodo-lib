@@ -38,6 +38,41 @@ export type SecretStoreMappingSkeleton = IdObjectSkeletonInterface & {
 };
 
 /**
+ * Get secret store
+ * @param {string} secretStoreId Secret store id
+ * @param {string} secretStoreTypeId Secret store type id
+ * @param {boolean} globalConfig true if the secret store is global, false otherwise. Default: false.
+ * @returns {Promise<SecretStoreMappingSkeleton>} a promise that resolves to an array of secret store mapping objects
+ */
+export async function getSecretStore({
+  secretStoreId,
+  secretStoreTypeId,
+  globalConfig = false,
+  state,
+}: {
+  secretStoreId: string;
+  secretStoreTypeId: string;
+  globalConfig: boolean;
+  state: State;
+}): Promise<PagedResult<SecretStoreMappingSkeleton>> {
+  const urlString = util.format(
+    secretStoreURLTemplate,
+    state.getHost(),
+    getRealmPathGlobal(globalConfig, state),
+    getConfigPath(globalConfig),
+    secretStoreTypeId,
+    secretStoreId
+  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(globalConfig),
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+/**
  * Get all secret stores
  * @param {boolean} globalConfig true if the secret store is global, false otherwise. Default: false.
  * @returns {Promise<PagedResult<SecretStoreSkeleton>>} a promise that resolves to an array of secret store objects

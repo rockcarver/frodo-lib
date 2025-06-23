@@ -34,7 +34,9 @@ export type EmailTemplate = {
    * Get all email templates
    * @returns {Promise<EmailTemplateSkeleton[]>} a promise that resolves to an array of email template objects
    */
-  readEmailTemplates(): Promise<EmailTemplateSkeleton[]>;
+  readEmailTemplates(
+    onlyVisibleTemplates?: boolean
+  ): Promise<EmailTemplateSkeleton[]>;
   /**
    * Get email template
    * @param {string} templateId id/name of the email template without the type prefix
@@ -133,8 +135,8 @@ export default (state: State): EmailTemplate => {
     createEmailTemplateExportTemplate(): EmailTemplateExportInterface {
       return createEmailTemplateExportTemplate({ state });
     },
-    async readEmailTemplates(): Promise<any> {
-      return readEmailTemplates({ state });
+    async readEmailTemplates(onlyVisibleTemplates?): Promise<any> {
+      return readEmailTemplates({ state, onlyVisibleTemplates });
     },
     async readEmailTemplate(templateId: string): Promise<any> {
       return readEmailTemplate({ templateId, state });
@@ -222,13 +224,16 @@ export function createEmailTemplateExportTemplate({
  */
 export async function readEmailTemplates({
   state,
+  onlyVisibleTemplates,
 }: {
   state: State;
+  onlyVisibleTemplates?: boolean;
 }): Promise<EmailTemplateSkeleton[]> {
   try {
     const templates = await readConfigEntitiesByType({
       type: EMAIL_TEMPLATE_TYPE,
       state,
+      onlyVisibleTemplates,
     });
     return templates as EmailTemplateSkeleton[];
   } catch (error) {
