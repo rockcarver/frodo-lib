@@ -87,7 +87,6 @@ import ScriptOps, { Script } from '../ops/ScriptOps';
 import ScriptTypeOps, { ScriptType } from '../ops/ScriptTypeOps';
 import ServiceOps, { Service } from '../ops/ServiceOps';
 import SessionOps, { Session } from '../ops/SessionOps';
-import TermsAndConditionsOps, { Terms } from '../ops/TermsAndConditionsOps';
 import ThemeOps, { Theme } from '../ops/ThemeOps';
 import TokenCacheOps, { TokenCache } from '../ops/TokenCacheOps';
 import UserOps, { User } from '../ops/UserOps';
@@ -208,8 +207,6 @@ export type Frodo = {
   site: Site;
 
   theme: Theme;
-
-  terms: Terms;
 
   user: User;
 
@@ -385,8 +382,6 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     site: SiteOps(state),
 
     theme: ThemeOps(state),
-
-    terms: TermsAndConditionsOps(state),
 
     user: UserOps(state),
 
