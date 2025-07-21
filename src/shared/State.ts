@@ -45,7 +45,9 @@ export type State = {
   getPassword(): string;
   setRealm(realm: string): void;
   getRealm(): string;
-  setUseRealmPrefixOnManagedObjects(useRealmPrefixOnManagedObjects: boolean): void;
+  setUseRealmPrefixOnManagedObjects(
+    useRealmPrefixOnManagedObjects: boolean
+  ): void;
   getUseRealmPrefixOnManagedObjects(): boolean;
   setDeploymentType(type: string): void;
   getDeploymentType(): string;

@@ -86,13 +86,17 @@ export type Log = {
    * @param {string} startTs start timestamp
    * @param {string} endTs end timestamp
    * @param {string} cookie paged results cookie
+   * @param {string} txid transaction id
+   * @param {string} filter query filter
    * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
    */
   fetch(
     source: string,
     startTs: string,
     endTs: string,
-    cookie: string
+    cookie: string,
+    txid: string,
+    filter: string
   ): Promise<PagedResult<LogEventSkeleton>>;
 };
 
@@ -138,9 +142,11 @@ export default (state: State): Log => {
       source: string,
       startTs: string,
       endTs: string,
-      cookie: string
+      cookie: string,
+      txid: string,
+      filter: string
     ): Promise<PagedResult<LogEventSkeleton>> {
-      return fetch({ source, startTs, endTs, cookie, state });
+      return fetch({ source, startTs, endTs, cookie, txid, filter, state });
     },
   };
 };
@@ -575,6 +581,8 @@ export async function tail({
  * @param {string} startTs start timestamp
  * @param {string} endTs end timestamp
  * @param {string} cookie paged results cookie
+ * @param {string} txid transaction id
+ * @param {string} filter query filter
  * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
  */
 export async function fetch({
@@ -582,16 +590,20 @@ export async function fetch({
   startTs,
   endTs,
   cookie,
+  txid,
+  filter,
   state,
 }: {
   source: string;
   startTs: string;
   endTs: string;
   cookie: string;
+  txid: string;
+  filter: string;
   state: State;
 }): Promise<PagedResult<LogEventSkeleton>> {
   try {
-    return _fetch({ source, startTs, endTs, cookie, state });
+    return _fetch({ source, startTs, endTs, cookie, txid, filter, state });
   } catch (error) {
     throw new FrodoError(`Error fetching logs`, error);
   }

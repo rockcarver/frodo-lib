@@ -410,6 +410,43 @@ export function generateLogApi({
 
   const request = createAxiosInstance(state, requestConfig);
 
+  // add a response interceptor for HTTP 429 errors from log API
+  request.interceptors.response.use(
+    (response) => {
+      // If the response is successful, simply return it
+      return response;
+    },
+    async (error) => {
+      const originalRequest = error.config;
+      const status = error.response ? error.response.status : null;
+
+      // Check if the error is a 429 Too Many Requests
+      // and if the Retry-After header is present
+      if (
+        status === 429 &&
+        error.response.headers['retry-after'] &&
+        !originalRequest._retry
+      ) {
+        originalRequest._retry = true; // Mark the request as retried to prevent infinite loops
+
+        const retryAfterSeconds = parseInt(
+          error.response.headers['retry-after'],
+          10
+        );
+        const delayMs = (retryAfterSeconds + 1) * 1000;
+
+        // Wait for the specified duration
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+        // Retry the original request
+        return request(originalRequest);
+      }
+
+      // For other errors, or if no Retry-After header is found,
+      // or if the request has already been retried, reject the promise
+      return Promise.reject(error);
+    }
+  );
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
     curlirize(request, state);
