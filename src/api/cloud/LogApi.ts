@@ -9,8 +9,7 @@ import {
 import { generateLogApi, generateLogKeysApi } from '../BaseApi';
 
 const logsTailURLTemplate = '%s/monitoring/logs/tail?source=%s';
-const logsFetchURLTemplate =
-  '%s/monitoring/logs?source=%s&beginTime=%s&endTime=%s';
+const logsFetchURLTemplate = '%s/monitoring/logs?source=%s';
 const logsSourcesURLTemplate = '%s/monitoring/logs/sources';
 const logsCreateAPIKeyAndSecretURLTemplate = '%s/keys?_action=create';
 const logsGetAPIKeysURLTemplate = '%s/keys';
@@ -208,6 +207,8 @@ export async function tail({
  * @param {string} startTs start timestamp
  * @param {string} endTs end timestamp
  * @param {string} cookie paged results cookie
+ * @param {string} transactionId transaction id
+ * @param {string} queryFilter query filter
  * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
  */
 export async function fetch({
@@ -215,21 +216,33 @@ export async function fetch({
   startTs,
   endTs,
   cookie,
+  txid,
+  filter,
   state,
 }: {
   source: string;
   startTs: string;
   endTs: string;
   cookie: string;
+  txid: string;
+  filter: string;
   state: State;
 }): Promise<PagedResult<LogEventSkeleton>> {
   let urlString = util.format(
     logsFetchURLTemplate,
     getHostOnlyUrl(state.getHost()),
-    encodeURIComponent(source),
-    startTs,
-    endTs
+    encodeURIComponent(source)
   );
+  if (startTs && endTs) {
+    urlString += `&beginTime=${startTs}&endTime=${endTs}`;
+  }
+  if (txid) {
+    urlString += `&transactionId=${txid}`;
+  }
+  if (filter) {
+    const filterParam = `_queryFilter=${filter}`;
+    urlString += `&${encodeURIComponent(filterParam)}`;
+  }
   if (cookie) {
     urlString += `&_pagedResultsCookie=${encodeURIComponent(cookie)}`;
   }

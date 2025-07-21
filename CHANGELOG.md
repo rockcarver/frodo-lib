@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- log fetch now repects the log API request limit (1 per second)
+- log fetch now passes transaction id and filter expression to backend log API
+
 ## [3.3.0] - 2025-06-17
 
 ## [3.2.0] - 2025-06-17
