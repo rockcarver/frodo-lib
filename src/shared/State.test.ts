@@ -8,6 +8,12 @@
  */
 import { state } from '../index';
 import { JwkRsa } from '../ops/JoseOps';
+import Constants from './Constants';
+import fs from 'fs'
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe('State', () => {
   const host = 'https://openam-frodo-dev.forgeblocks.com/am';
@@ -141,10 +147,47 @@ describe('State', () => {
   // setCookieValue,
   // getCookieValue,
 
-  // setAuthenticationHeaderOverrides,
-  // getAuthenticationHeaderOverrides,
-  // setAuthenticationService,
-  // getAuthenticationService,
+  describe('getAuthenticationHeaderOverrides()/setAuthenticationHeaderOverrides()', () => {
+    const override: Record<string, string> = {
+      host: hostEnv,
+      ["User-Agent"]: 'frodoTestAgent',
+      Connection: 'keep-alive'
+    };
+
+    test('0: Method getAuthenticationHeaderOverrides is implemented', () => {
+      expect(state.getAuthenticationHeaderOverrides).toBeDefined();
+    });
+
+    test('1: Method setAuthenticationHeaderOverrides is implemented', () => {
+      expect(state.setAuthenticationHeaderOverrides).toBeDefined();
+    });
+
+    test("2: Authentication service value should be empty if it hasn't been set before or defined if set explicitly", () => {
+      expect(state.getAuthenticationHeaderOverrides()).toMatchObject({});
+      state.setAuthenticationHeaderOverrides(override);
+      expect(state.getAuthenticationHeaderOverrides()).toMatchObject(override);
+    });
+  });
+  describe('getAuthenticationService()/setAuthenticationService()', () => {
+    const loginService = 'Login';
+
+    test('0: Method getAuthenticationService is implemented', () => {
+      expect(state.getAuthenticationService).toBeDefined();
+    });
+
+    test('1: Method setAuthenticationService is implemented', () => {
+      expect(state.setAuthenticationService).toBeDefined();
+    });
+
+    test("2: Authentication service value should be undefined if it hasn't been set before or defined if FRODO_AUTHENTICATION_SERVICE env variable has been set or if set explicitly", () => {
+      delete process.env.FRODO_AUTHENTICATION_SERVICE;
+      expect(state.getAuthenticationService()).toBeUndefined();
+      process.env.FRODO_AUTHENTICATION_SERVICE = Constants.DEFAULT_AMSTER_SERVICE;
+      expect(state.getAuthenticationService()).toEqual(Constants.DEFAULT_AMSTER_SERVICE);
+      state.setAuthenticationService(loginService);
+      expect(state.getAuthenticationService()).toEqual(loginService);
+    });
+  });
 
   describe('getServiceAccountId()/setServiceAccountId()', () => {
     const saId = '0de8d0d8-e423-41e8-9034-73883af90917';
@@ -209,6 +252,59 @@ describe('State', () => {
       expect(state.getServiceAccountJwk()).toMatchObject(JSON.parse(saJwkEnv));
       state.setServiceAccountJwk(saJwk);
       expect(state.getServiceAccountJwk()).toMatchObject(saJwk);
+    });
+  });
+
+  describe('getAmsterPrivateKey()/setAmsterPrivateKey()', () => {
+    const privateKey1 = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        '../test/mocks/CryptoUtils/pkcs8Rsa.pem'
+      ),
+      'utf8'
+    );
+    const privateKey2 = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        '../test/mocks/CryptoUtils/pkcs1Rsa.pem'
+      ),
+      'utf8'
+    );
+    const privateKey3 = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        '../test/mocks/CryptoUtils/pkcs8Ed25519Enc.pem'
+      ),
+      'utf8'
+    );
+    test('0: Method setAmsterPrivateKey is implemented', () => {
+      expect(state.setAmsterPrivateKey).toBeDefined();
+    });
+
+    test('1: Method getAmsterPrivateKey is implemented', () => {
+      expect(state.getAmsterPrivateKey).toBeDefined();
+    });
+
+    test("2: Amster private key value should be undefined if it hasn't been set before or defined if FRODO_AMSTER_PRIVATE_KEY env variable has been set or if set explicitly", () => {
+      delete process.env.FRODO_AMSTER_PRIVATE_KEY;
+      expect(state.getAmsterPrivateKey()).toBeUndefined();
+      process.env.FRODO_AMSTER_PRIVATE_KEY = privateKey1;
+      // Tests that privateKey1, in PKCS#8 format, is still in PKCS#8 format after being parsed
+      expect(state.getAmsterPrivateKey()).toEqual(privateKey1);
+      state.setAmsterPrivateKey(privateKey2);
+      // Tests that privateKey2, in PKCS#1 format, is still in PKCS#1 format since we set it directly
+      expect(state.getAmsterPrivateKey()).toEqual(privateKey2);
+    });
+
+    test("3: Amster private key value should be undefined and throw error if FRODO_AMSTER_PRIVATE_KEY is encrypted and FRODO_AMSTER_PASSPHRASE is not provided, or defined if FRODO_AMSTER_PASSPHRASE is provided.", () => {
+      delete process.env.FRODO_AMSTER_PRIVATE_KEY;
+      delete process.env.FRODO_AMSTER_PASSPHRASE;
+      state.setAmsterPrivateKey(undefined);
+      process.env.FRODO_AMSTER_PRIVATE_KEY = privateKey3;
+      expect(state.getAmsterPrivateKey).toThrow("The PEM format key (unnamed) is encrypted (password-protected), and no passphrase was provided in `options`");
+      process.env.FRODO_AMSTER_PASSPHRASE = 'test';
+      // Should be in PKCS#8 format now instead of OpenSSH
+      expect(state.getAmsterPrivateKey()).not.toEqual(privateKey3);
     });
   });
 

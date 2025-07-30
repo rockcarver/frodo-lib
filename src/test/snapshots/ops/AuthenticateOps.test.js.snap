@@ -1,7 +1,61 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`AuthenticateOps getTokens() 1: Authenticate successfully as user 1`] = `"4ad7d57003aee4f"`;
+exports[`AuthenticateOps Classic Tests getTokens() 0: Authenticate successfully as user 1`] = `
+{
+  "bearerToken": undefined,
+  "host": "http://openam-frodo-dev.classic.com:8080/am",
+  "realm": "/",
+  "subject": Any<String>,
+  "userSessionToken": {
+    "expires": 1753976145000,
+    "from_cache": false,
+    "realm": "/",
+    "successUrl": "/am/console",
+    "tokenId": "pQvEBlVtlKosCXrta1USewzkja4.*AAJTSQACMDEAAlNLABwrS0Z0bzBaUkRHbkxiVEtYaTJ6b1NISWZVWXc9AAR0eXBlAANDVFMAAlMxAAA.*",
+  },
+}
+`;
 
-exports[`AuthenticateOps getTokens() 1: Authenticate successfully as user 2`] = `"UU5DAqd_a_XWkhlktTfYW_neiNg.*AAJTSQACMDIAAlNLABxoNTRwQ2E5aEo2TjZCbzQ1ckkyTDNNVzdLcHM9AAR0eXBlAANDVFMAAlMxAAIwMQ..*"`;
+exports[`AuthenticateOps Classic Tests getTokens() 0: Authenticate successfully as user 2`] = `"iPlanetDirectoryPro"`;
 
-exports[`AuthenticateOps getTokens() 1: Authenticate successfully as user 3`] = `"eyJ0eXAiOiJKV1QiLCJraWQiOiJKSSt2QkJYWDd5ellQT3N4ZFdvWE16S2x1Q0E9IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJjNWYzY2YzNS00Y2MxLTQyZjktODBiMy01OWUxY2E4NDI1MTAiLCJjdHMiOiJPQVVUSDJfU1RBVEVMRVNTX0dSQU5UIiwiYXV0aF9sZXZlbCI6MCwiYXVkaXRUcmFja2luZ0lkIjoiNGUwMGY0ZDYtYmEzZi00NGNiLWFjNDAtZjRjZTU4MjcyZDEyLTIzMDk4MDgiLCJzdWJuYW1lIjoiYzVmM2NmMzUtNGNjMS00MmY5LTgwYjMtNTllMWNhODQyNTEwIiwiaXNzIjoiaHR0cHM6Ly9vcGVuYW0tdm9sa2VyLWRldi5mb3JnZWJsb2Nrcy5jb206NDQzL2FtL29hdXRoMiIsInRva2VuTmFtZSI6ImFjY2Vzc190b2tlbiIsInRva2VuX3R5cGUiOiJCZWFyZXIiLCJhdXRoR3JhbnRJZCI6IlFnNDBySmxhSTZGdjNDbnVuU1BpSUx0bC1VayIsImF1ZCI6ImlkbUFkbWluQ2xpZW50IiwibmJmIjoxNjcxNTk1NzAyLCJncmFudF90eXBlIjoiYXV0aG9yaXphdGlvbl9jb2RlIiwic2NvcGUiOlsib3BlbmlkIiwiZnI6aWRtOioiXSwiYXV0aF90aW1lIjoxNjcxNTk1NzAyLCJyZWFsbSI6Ii8iLCJleHAiOjE2NzE1OTkzMDIsImlhdCI6MTY3MTU5NTcwMiwiZXhwaXJlc19pbiI6MzYwMCwianRpIjoiZ2E1Um4wQ0txd3V1bThtbVc4cGRkZ0UyOFB3In0.G-FqbQXxxqwAGgbMz8UxVxLkFQZ_0xaZHcPQMEhY5Lj0zNdoIMOxWXXYFrAK6QsIfRInw5K5LDo0-lOZtq46JFDEq-v4mLqR2Llpb66c_2MYZL6WMkPbeE4rPmyAMdqEwvaXMo9Uju-dOgabuN1gn79gFzmKc2oGyuuy16LWeI9rJtIx2rMplxxZN8Xrxuc4-no3u09X0CkVI8F0SIQ64GN8bSP__XFqF3GAeU1qwHI3ItsQJV3HNZnrVDdvFuGz0e3GNuWRAehIwAPluhM80D9zGGHX4DmHDDBbEO_iwuX0uSZXyW3psinUFQaa3nvuq--9xPV0KhGhlR0wXVQAtA"`;
+exports[`AuthenticateOps Classic Tests getTokens() 0: Authenticate successfully as user 3`] = `"pQvEBlVtlKosCXrta1USewzkja4.*AAJTSQACMDEAAlNLABwrS0Z0bzBaUkRHbkxiVEtYaTJ6b1NISWZVWXc9AAR0eXBlAANDVFMAAlMxAAA.*"`;
+
+exports[`AuthenticateOps Classic Tests getTokens() 1: Authenticate successfully using Amster credentials 1`] = `
+{
+  "bearerToken": undefined,
+  "host": "http://openam-frodo-dev.classic.com:8080/am",
+  "realm": "/",
+  "subject": Any<String>,
+  "userSessionToken": {
+    "expires": 1753976145000,
+    "from_cache": false,
+    "realm": "/",
+    "successUrl": "/am/console",
+    "tokenId": "ZGWH6Y3tQsC3rhZHbyjFrn8USBw.*AAJTSQACMDEAAlNLABxHYW5GT1FRREtuTmhLeDRsLzBFUXdyRmU2NHc9AAR0eXBlAANDVFMAAlMxAAA.*",
+  },
+}
+`;
+
+exports[`AuthenticateOps Classic Tests getTokens() 1: Authenticate successfully using Amster credentials 2`] = `"iPlanetDirectoryPro"`;
+
+exports[`AuthenticateOps Classic Tests getTokens() 1: Authenticate successfully using Amster credentials 3`] = `"ZGWH6Y3tQsC3rhZHbyjFrn8USBw.*AAJTSQACMDEAAlNLABxHYW5GT1FRREtuTmhLeDRsLzBFUXdyRmU2NHc9AAR0eXBlAANDVFMAAlMxAAA.*"`;
+
+exports[`AuthenticateOps Classic Tests getTokens() 2: Authenticate successfully using alternative Amster subject and service 1`] = `
+{
+  "bearerToken": undefined,
+  "host": "http://openam-frodo-dev.classic.com:8080/am",
+  "realm": "/",
+  "subject": Any<String>,
+  "userSessionToken": {
+    "expires": 1753976145000,
+    "from_cache": false,
+    "realm": "/",
+    "successUrl": "/am/console",
+    "tokenId": "JGVIkcoOtEcCAKTr1g9eUuzmwyk.*AAJTSQACMDEAAlNLABx5Z0NLOFRpbTYzTGRSNHdWM0Z3NElsSUZtODA9AAR0eXBlAANDVFMAAlMxAAA.*",
+  },
+}
+`;
+
+exports[`AuthenticateOps Classic Tests getTokens() 2: Authenticate successfully using alternative Amster subject and service 2`] = `"iPlanetDirectoryPro"`;
+
+exports[`AuthenticateOps Classic Tests getTokens() 2: Authenticate successfully using alternative Amster subject and service 3`] = `"JGVIkcoOtEcCAKTr1g9eUuzmwyk.*AAJTSQACMDEAAlNLABx5Z0NLOFRpbTYzTGRSNHdWM0Z3NElsSUZtODA9AAR0eXBlAANDVFMAAlMxAAA.*"`;

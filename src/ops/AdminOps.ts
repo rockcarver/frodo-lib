@@ -1660,7 +1660,7 @@ export async function trainAA({
           .then((response) => {
             printMessage({
               message: `${username},${ipAddress},${userAgent},${
-                response.tokenId ? 'OK' : 'NOK'
+                'tokenId' in response ? 'OK' : 'NOK'
               }`,
               state,
             });

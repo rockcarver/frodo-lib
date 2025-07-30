@@ -36,6 +36,8 @@ import * as AuthenticateApi from './AuthenticateApi';
 import { state } from '../index';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { defaultMatchRequestsBy, filterRecording } from '../utils/PollyUtils';
+import { fillCallbacks } from '../ops/CallbackOps';
+import { AuthenticateStep } from './AuthenticateApi';
 
 // need to modify the default matching rules to allow the mocking to work for an authentication flow.
 const matchConfig = defaultMatchRequestsBy();
@@ -74,13 +76,13 @@ describe('AuthenticateApi', () => {
           'X-OpenAM-Password': state.getPassword(),
         },
       };
-      const response1 = await AuthenticateApi.step({
+      const step = await AuthenticateApi.step({
         body: {},
         config,
         realm: state.getRealm(),
         state,
       });
-      expect(response1).toMatchSnapshot();
+      expect(step).toMatchSnapshot();
     });
 
     test("2: Two step login journey 'PasswordGrant'", async () => {
@@ -93,27 +95,27 @@ describe('AuthenticateApi', () => {
       state.setAuthenticationService(
         process.env.FRODO_AUTHENTICATION_SERVICE || 'PasswordGrant'
       );
-      const response1 = await AuthenticateApi.step({
+      const step1 = await AuthenticateApi.step({
         body: {},
         config: {},
         realm: state.getRealm(),
         state,
       });
-      expect(response1).toMatchSnapshot();
-      const body = AuthenticateApi.fillCallbacks({
-        response: response1,
+      expect(step1).toMatchSnapshot();
+      const body = fillCallbacks({
+        step: step1 as AuthenticateStep,
         map: {
           IDToken1: state.getUsername() as string,
           IDToken2: state.getPassword() as string,
         },
       });
-      const response2 = await AuthenticateApi.step({
+      const step2 = await AuthenticateApi.step({
         body,
         config: {},
         realm: state.getRealm(),
         state,
       });
-      expect(response2).toMatchSnapshot();
+      expect(step2).toMatchSnapshot();
     });
   });
 });
