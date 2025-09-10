@@ -8,7 +8,7 @@ exports[`PolicyOps deletePolicy() 1: Delete existing policy [FrodoTestPolicy7] 1
 `;
 
 exports[`PolicyOps deletePolicy() 2: Delete non-existing policy [DoesNotExist] 1`] = `
-"Error deleting policy DoesNotExist
+"Error deleting alpha realm policy DoesNotExist
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
@@ -2784,7 +2784,7 @@ exports[`PolicyOps exportPolicy() 2: Export existing policy w/ deps [FrodoTestPo
 `;
 
 exports[`PolicyOps exportPolicy() 3: Export non-existing policy [DoesNotExist] 1`] = `
-"Error exporting policy DoesNotExist
+"Error exporting alpha realm policy DoesNotExist
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
@@ -4127,7 +4127,7 @@ exports[`PolicyOps readPolicy() 1: Get existing policy [FrodoTestPolicy1] 1`] = 
 `;
 
 exports[`PolicyOps readPolicy() 2: Get non-existing policy [DoesNotExist] 1`] = `
-"Error reading policy DoesNotExist
+"Error reading alpha realm policy DoesNotExist
   HTTP client error
     Code: ERR_BAD_REQUEST
     Status: 404
