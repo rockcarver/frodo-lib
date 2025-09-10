@@ -467,7 +467,10 @@ export async function createApplication({
     });
     return application as ApplicationSkeleton;
   } catch (error) {
-    throw new FrodoError(`Error creating application ${applicationId}`, error);
+    throw new FrodoError(
+      `Error creating ${getCurrentRealmName(state) + ' realm'} application ${applicationId}`,
+      error
+    );
   }
 }
 
@@ -489,7 +492,10 @@ export async function readApplication({
     });
     return application as ApplicationSkeleton;
   } catch (error) {
-    throw new FrodoError(`Error reading application ${applicationId}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} application ${applicationId}`,
+      error
+    );
   }
 }
 
@@ -512,14 +518,19 @@ export async function readApplicationByName({
       case 1:
         return applications[0];
       case 0:
-        throw new Error(`Application '${applicationName}' not found`);
+        throw new Error(
+          `${getCurrentRealmName(state) + ' realm'} application '${applicationName}' not found`
+        );
       default:
         throw new Error(
-          `${applications.length} applications '${applicationName}' found`
+          `${applications.length} ${getCurrentRealmName(state) + ' realm'} applications '${applicationName}' found`
         );
     }
   } catch (error) {
-    throw new FrodoError(`Error reading application ${applicationName}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} application ${applicationName}`,
+      error
+    );
   }
 }
 
@@ -531,14 +542,25 @@ export async function readApplications({
   state: State;
 }): Promise<ApplicationSkeleton[]> {
   try {
-    const applications = await readManagedObjects({
-      type: getRealmManagedApplication({ state }),
-      fields,
-      state,
-    });
-    return applications as ApplicationSkeleton[];
+    if (
+      // there are no application objects in the root realm in an AIC deployment
+      state.getDeploymentType() === constants.CLOUD_DEPLOYMENT_TYPE_KEY &&
+      getCurrentRealmName(state) === '/'
+    ) {
+      return [];
+    } else {
+      const applications = await readManagedObjects({
+        type: getRealmManagedApplication({ state }),
+        fields,
+        state,
+      });
+      return applications as ApplicationSkeleton[];
+    }
   } catch (error) {
-    throw new FrodoError(`Error reading applications`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} applications`,
+      error
+    );
   }
 }
 
@@ -560,7 +582,10 @@ export async function updateApplication({
     });
     return application as ApplicationSkeleton;
   } catch (error) {
-    throw new FrodoError(`Error updating application ${applicationId}`, error);
+    throw new FrodoError(
+      `Error updating ${getCurrentRealmName(state) + ' realm'} application ${applicationId}`,
+      error
+    );
   }
 }
 
@@ -677,7 +702,10 @@ async function exportDependencies({
       state,
     });
   } catch (error) {
-    throw new FrodoError(`Error exporting dependencies`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} dependencies`,
+      error
+    );
   }
 }
 
@@ -768,7 +796,10 @@ async function importDependencies({
       }
     }
     if (errors.length) {
-      throw new FrodoError(`Error importing dependencies`, errors);
+      throw new FrodoError(
+        `Error importing ${getCurrentRealmName(state) + ' realm'} dependencies`,
+        errors
+      );
     }
     debugMessage({
       message: `ApplicationOps.importDependencies: end`,
@@ -779,7 +810,10 @@ async function importDependencies({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error importing dependencies`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} dependencies`,
+      error
+    );
   }
 }
 
@@ -886,7 +920,10 @@ async function deleteDependencies({
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error deleting dependencies`, errors);
+      throw new FrodoError(
+        `Error deleting ${getCurrentRealmName(state) + ' realm'} dependencies`,
+        errors
+      );
     }
     debugMessage({
       message: `ApplicationOps.deleteDependencies: end`,
@@ -897,7 +934,10 @@ async function deleteDependencies({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error deleting dependencies`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} dependencies`,
+      error
+    );
   }
 }
 
@@ -924,7 +964,10 @@ export async function deleteApplication({
     debugMessage({ message: `ApplicationOps.deleteApplication: end`, state });
     return applicationData as ApplicationSkeleton;
   } catch (error) {
-    throw new FrodoError(`Error deleting application ${applicationId}`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} application ${applicationId}`,
+      error
+    );
   }
 }
 
@@ -953,7 +996,7 @@ export async function deleteApplicationByName({
     }
   } catch (error) {
     throw new FrodoError(
-      `Error deleting application ${applicationName}`,
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} application ${applicationName}`,
       error
     );
   }
@@ -1002,7 +1045,10 @@ export async function deleteApplications({
       }
     }
     if (errors.length) {
-      throw new FrodoError(`Error deleting applications`, errors);
+      throw new FrodoError(
+        `Error deleting ${getCurrentRealmName(state) + ' realm'} applications`,
+        errors
+      );
     }
     debugMessage({ message: `ApplicationOps.deleteApplications: end`, state });
     return deleted;
@@ -1011,7 +1057,10 @@ export async function deleteApplications({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error deleting applications`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} applications`,
+      error
+    );
   }
 }
 
@@ -1034,7 +1083,7 @@ export async function queryApplications({
     return application as ApplicationSkeleton[];
   } catch (error) {
     throw new FrodoError(
-      `Error querying applications with filter ${filter}`,
+      `Error querying ${getCurrentRealmName(state) + ' realm'} applications with filter ${filter}`,
       error
     );
   }
@@ -1068,7 +1117,10 @@ export async function exportApplication({
     debugMessage({ message: `ApplicationOps.exportApplication: end`, state });
     return exportData;
   } catch (error) {
-    throw new FrodoError(`Error exporting application ${applicationId}`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} application ${applicationId}`,
+      error
+    );
   }
 }
 
@@ -1110,7 +1162,7 @@ export async function exportApplicationByName({
     return exportData;
   } catch (error) {
     throw new FrodoError(
-      `Error exporting application ${applicationName}`,
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} application ${applicationName}`,
       error
     );
   }
@@ -1131,13 +1183,13 @@ export async function exportApplications({
     const applications = await readApplications({ state });
     indicatorId = createProgressIndicator({
       total: applications.length,
-      message: 'Exporting applications...',
+      message: `Exporting ${getCurrentRealmName(state) + ' realm'} applications...`,
       state,
     });
     for (const applicationData of applications) {
       updateProgressIndicator({
         id: indicatorId,
-        message: `Exporting application ${applicationData.name}`,
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} application ${applicationData.name}`,
         state,
       });
       exportData.managedApplication[applicationData._id] = applicationData;
@@ -1157,15 +1209,18 @@ export async function exportApplications({
     if (errors.length > 0) {
       stopProgressIndicator({
         id: indicatorId,
-        message: `Error exporting applications`,
+        message: `Error exporting ${getCurrentRealmName(state) + ' realm'} applications`,
         status: 'fail',
         state,
       });
-      throw new FrodoError(`Error exporting applications`, errors);
+      throw new FrodoError(
+        `Error exporting ${getCurrentRealmName(state) + ' realm'} applications`,
+        errors
+      );
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${applications.length} applications`,
+      message: `Exported ${applications.length} ${getCurrentRealmName(state) + ' realm'} applications`,
       state,
     });
     debugMessage({ message: `ApplicationOps.exportApplication: end`, state });
@@ -1173,7 +1228,7 @@ export async function exportApplications({
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
-      message: `Error exporting applications`,
+      message: `Error exporting ${getCurrentRealmName(state) + ' realm'} applications`,
       status: 'fail',
       state,
     });
@@ -1181,7 +1236,10 @@ export async function exportApplications({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error exporting applications`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} applications`,
+      error
+    );
   }
 }
 
@@ -1229,7 +1287,7 @@ export async function importApplication({
     }
     if (errors.length > 0) {
       throw new FrodoError(
-        `Error importing application ${applicationId}`,
+        `Error importing ${getCurrentRealmName(state) + ' realm'} application ${applicationId}`,
         errors
       );
     }
@@ -1244,7 +1302,10 @@ export async function importApplication({
     if (errors.length > 0 || imported.length == 0) {
       throw error;
     }
-    throw new FrodoError(`Error importing application ${applicationId}`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} application ${applicationId}`,
+      error
+    );
   }
 }
 
@@ -1294,7 +1355,7 @@ export async function importApplicationByName({
     }
     if (errors.length > 0) {
       throw new FrodoError(
-        `Error importing application ${applicationName}`,
+        `Error importing ${getCurrentRealmName(state) + ' realm'} application ${applicationName}`,
         errors
       );
     }
@@ -1310,7 +1371,7 @@ export async function importApplicationByName({
       throw error;
     }
     throw new FrodoError(
-      `Error importing application ${applicationName}`,
+      `Error importing ${getCurrentRealmName(state) + ' realm'} application ${applicationName}`,
       error
     );
   }
@@ -1355,7 +1416,10 @@ export async function importFirstApplication({
       break;
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error importing first application`, errors);
+      throw new FrodoError(
+        `Error importing first ${getCurrentRealmName(state) + ' realm'} application`,
+        errors
+      );
     }
     if (0 === imported.length) {
       throw new FrodoError(
@@ -1368,7 +1432,10 @@ export async function importFirstApplication({
     if (errors.length > 0 || imported.length == 0) {
       throw error;
     }
-    throw new FrodoError(`Error importing first application`, error);
+    throw new FrodoError(
+      `Error importing first ${getCurrentRealmName(state) + ' realm'} application`,
+      error
+    );
   }
 }
 
@@ -1414,7 +1481,10 @@ export async function importApplications({
       }
     }
     if (errors.length) {
-      throw new FrodoError(`Error importing applications`, errors);
+      throw new FrodoError(
+        `Error importing ${getCurrentRealmName(state) + ' realm'} applications`,
+        errors
+      );
     }
     return response;
   } catch (error) {
@@ -1422,6 +1492,9 @@ export async function importApplications({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error importing applications`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} applications`,
+      error
+    );
   }
 }

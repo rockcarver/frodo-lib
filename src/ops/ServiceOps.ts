@@ -18,6 +18,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
@@ -255,7 +256,7 @@ export async function getListOfServices({
 }: {
   globalConfig: boolean;
   state: State;
-}) {
+}): Promise<AmServiceSkeleton[]> {
   try {
     debugMessage({ message: `ServiceOps.getListOfServices: start`, state });
     // Filter out the Scripting service entities since they consist of scripts, which are handled in ScriptOps.
@@ -265,10 +266,18 @@ export async function getListOfServices({
     debugMessage({ message: `ServiceOps.getListOfServices: end`, state });
     return services;
   } catch (error) {
-    throw new FrodoError(
-      `Error getting list of ${globalConfig ? 'global' : 'realm'} services`,
-      error
-    );
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.message ===
+        'This operation is not available in PingOne Advanced Identity Cloud.'
+    ) {
+      return [];
+    } else {
+      throw new FrodoError(
+        `Error getting list of ${globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`} services`,
+        error
+      );
+    }
   }
 }
 
@@ -330,7 +339,7 @@ export async function getFullServices({
     return fullServiceData.filter((data) => !!data); // make sure to filter out any undefined objects
   } catch (error) {
     throw new FrodoError(
-      `Error getting ${globalConfig ? 'global' : 'realm'} full service configs`,
+      `Error getting ${globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`} full service configs`,
       error
     );
   }
@@ -467,7 +476,7 @@ export async function putFullService({
   } catch (error) {
     throw new FrodoError(
       `Error putting ${
-        globalConfig ? 'global' : 'realm'
+        globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`
       } full service config ${serviceId}`,
       error
     );
@@ -533,7 +542,7 @@ export async function putFullServices({
   }
   if (errors.length > 0) {
     throw new FrodoError(
-      `Error putting ${globalConfig ? 'global' : 'realm'} full service configs`,
+      `Error putting ${globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`} full service configs`,
       errors
     );
   }
@@ -583,7 +592,7 @@ export async function deleteFullService({
   } catch (error) {
     throw new FrodoError(
       `Error deleting ${
-        globalConfig ? 'global' : 'realm'
+        globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`
       } full service config ${serviceId}`,
       error
     );
@@ -640,7 +649,7 @@ export async function deleteFullServices({
   } catch (error) {
     throw new FrodoError(
       `Error deleting ${
-        globalConfig ? 'global' : 'realm'
+        globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`
       } full service configs`,
       error
     );
@@ -681,7 +690,7 @@ export async function exportService({
   } catch (error) {
     throw new FrodoError(
       `Error exporting ${
-        globalConfig ? 'global' : 'realm'
+        globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`
       } service ${serviceId}`,
       error
     );
@@ -709,13 +718,13 @@ export async function exportServices({
     const services = await getFullServices({ globalConfig, state });
     indicatorId = createProgressIndicator({
       total: services.length,
-      message: `Exporting ${globalConfig ? 'global' : 'realm'} services...`,
+      message: `Exporting ${globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`} services...`,
       state,
     });
     for (const service of services) {
       updateProgressIndicator({
         id: indicatorId,
-        message: `Exporting ${globalConfig ? 'global' : 'realm'} service ${
+        message: `Exporting ${globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`} service ${
           service._id
         }`,
         state,
@@ -726,7 +735,7 @@ export async function exportServices({
     stopProgressIndicator({
       id: indicatorId,
       message: `Exported ${services.length} ${
-        globalConfig ? 'global' : 'realm'
+        globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`
       } services.`,
       state,
     });
@@ -735,12 +744,12 @@ export async function exportServices({
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
-      message: `Error exporting ${globalConfig ? 'global' : 'realm'} services.`,
+      message: `Error exporting ${globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`} services.`,
       status: 'fail',
       state,
     });
     throw new FrodoError(
-      `Error exporting ${globalConfig ? 'global' : 'realm'} services`,
+      `Error exporting ${globalConfig ? 'global' : `${getCurrentRealmName(state) + ' realm'}`} services`,
       error
     );
   }

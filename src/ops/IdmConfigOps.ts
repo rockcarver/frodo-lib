@@ -632,14 +632,16 @@ export async function exportConfigEntities({
   (await Promise.all(entityPromises))
     .filter((c) => c)
     .forEach((entity) => {
-      const substitutedEntity = substituteEntityWithEnv(
-        entity as IdObjectSkeletonInterface,
-        options.envReplaceParams
-      );
-      exportData.idm[(entity as IdObjectSkeletonInterface)._id] =
-        substitutedEntity;
-      if (resultCallback) {
-        resultCallback(undefined, substitutedEntity);
+      if (entity) {
+        const substitutedEntity = substituteEntityWithEnv(
+          entity as IdObjectSkeletonInterface,
+          options.envReplaceParams
+        );
+        exportData.idm[(entity as IdObjectSkeletonInterface)._id] =
+          substitutedEntity;
+        if (resultCallback) {
+          resultCallback(undefined, substitutedEntity);
+        }
       }
     });
   stopProgressIndicator({
@@ -795,30 +797,31 @@ export async function deleteConfigEntities({
     message: `IdmConfigOps.deleteConfigEntities: start`,
     state,
   });
-  const result: IdObjectSkeletonInterface[] = [];
+  const results: IdObjectSkeletonInterface[] = [];
   const configEntityStubs = await readConfigEntityStubs({ state });
   for (const configEntityStub of configEntityStubs) {
     debugMessage({
       message: `IdmConfigOps.deleteConfigEntities: '${configEntityStub['_id']}'`,
       state,
     });
-    result.push(
-      await getResult(
-        resultCallback,
-        `Error deleting idm config entity ${configEntityStub._id}`,
-        _deleteConfigEntity,
-        {
-          entityId: configEntityStub['_id'],
-          state,
-        }
-      )
+    const result: IdObjectSkeletonInterface = await getResult(
+      resultCallback,
+      `Error deleting idm config entity ${configEntityStub._id}`,
+      _deleteConfigEntity,
+      {
+        entityId: configEntityStub['_id'],
+        state,
+      }
     );
+    if (result) {
+      results.push(result);
+    }
   }
   debugMessage({
     message: `IdmConfigOps.deleteConfigEntities: end`,
     state,
   });
-  return result;
+  return results;
 }
 
 export async function deleteConfigEntitiesByType({
@@ -834,30 +837,31 @@ export async function deleteConfigEntitiesByType({
     message: `IdmConfigOps.deleteConfigEntitiesByType: start`,
     state,
   });
-  const result: IdObjectSkeletonInterface[] = [];
+  const results: IdObjectSkeletonInterface[] = [];
   const configEntities = await readConfigEntitiesByType({ type, state });
   for (const configEntity of configEntities) {
     debugMessage({
       message: `IdmConfigOps.deleteConfigEntitiesByType: '${configEntity['_id']}'`,
       state,
     });
-    result.push(
-      await getResult(
-        resultCallback,
-        `Error deleting idm config entity ${configEntity._id}`,
-        _deleteConfigEntity,
-        {
-          entityId: configEntity['_id'] as string,
-          state,
-        }
-      )
+    const result: IdObjectSkeletonInterface = await getResult(
+      resultCallback,
+      `Error deleting idm config entity ${configEntity._id}`,
+      _deleteConfigEntity,
+      {
+        entityId: configEntity['_id'] as string,
+        state,
+      }
     );
+    if (result) {
+      results.push(result);
+    }
   }
   debugMessage({
     message: `IdmConfigOps.deleteConfigEntitiesByType: end`,
     state,
   });
-  return result;
+  return results;
 }
 
 export async function deleteConfigEntity({

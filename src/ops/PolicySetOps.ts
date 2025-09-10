@@ -21,6 +21,7 @@ import {
   convertBase64TextToArray,
   getMetadata,
 } from '../utils/ExportImportUtils';
+import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import { ExportMetaData } from './OpsTypes';
 import {
@@ -283,7 +284,10 @@ export async function readPolicySets({
     const { result } = await _getPolicySets({ state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error reading policy sets`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} policy sets`,
+      error
+    );
   }
 }
 
@@ -298,7 +302,10 @@ export async function readPolicySet({
     const response = await _getPolicySet({ policySetName, state });
     return response;
   } catch (error) {
-    throw new FrodoError(`Error reading policy set ${policySetName}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} policy set ${policySetName}`,
+      error
+    );
   }
 }
 
@@ -323,7 +330,10 @@ export async function createPolicySet({
     });
     return response;
   } catch (error) {
-    throw new FrodoError(`Error creating policy set ${policySetName}`, error);
+    throw new FrodoError(
+      `Error creating ${getCurrentRealmName(state) + ' realm'} policy set ${policySetName}`,
+      error
+    );
   }
 }
 
@@ -344,7 +354,10 @@ export async function updatePolicySet({
     });
     return response;
   } catch (error) {
-    throw new FrodoError(`Error updating policy set ${policySetName}`, error);
+    throw new FrodoError(
+      `Error updating ${getCurrentRealmName(state) + ' realm'} policy set ${policySetName}`,
+      error
+    );
   }
 }
 
@@ -359,7 +372,10 @@ export async function deletePolicySet({
     const response = await _deletePolicySet({ policySetName, state });
     return response;
   } catch (error) {
-    throw new FrodoError(`Error deleting policy set ${policySetName}`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} policy set ${policySetName}`,
+      error
+    );
   }
 }
 
@@ -390,14 +406,17 @@ async function exportPolicySetPrerequisites({
     } catch (error) {
       errors.push(
         new FrodoError(
-          `Error retrieving resource type ${resourceTypeUuid} for policy set ${policySetData.name}`,
+          `Error retrieving ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeUuid} for policy set ${policySetData.name}`,
           error
         )
       );
     }
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error exporting policy set prerequisites`, errors);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} policy set prerequisites`,
+      errors
+    );
   }
   debugMessage({
     message: `PolicySetOps.exportPolicySetPrerequisites: end`,
@@ -452,7 +471,7 @@ async function exportPolicySetDependencies({
     }
     if (errors.length > 0) {
       throw new FrodoError(
-        `Error exporting policy set ${policySetData.name} dependencies`
+        `Error exporting ${getCurrentRealmName(state) + ' realm'} policy set ${policySetData.name} dependencies`
       );
     }
     debugMessage({
@@ -465,7 +484,7 @@ async function exportPolicySetDependencies({
       throw error;
     }
     throw new FrodoError(
-      `Error exporting policy set ${policySetData.name} dependencies`,
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} policy set ${policySetData.name} dependencies`,
       error
     );
   }
@@ -521,7 +540,7 @@ export async function exportPolicySet({
     }
     if (errors.length > 0) {
       throw new FrodoError(
-        `Error exporting policy set ${policySetName}`,
+        `Error exporting ${getCurrentRealmName(state) + ' realm'} policy set ${policySetName}`,
         errors
       );
     }
@@ -532,7 +551,10 @@ export async function exportPolicySet({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error exporting policy set ${policySetName}`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} policy set ${policySetName}`,
+      error
+    );
   }
 }
 
@@ -560,13 +582,13 @@ export async function exportPolicySets({
     const policySets = await readPolicySets({ state });
     indicatorId = createProgressIndicator({
       total: policySets.length,
-      message: 'Exporting policy sets...',
+      message: `Exporting ${getCurrentRealmName(state) + ' realm'} policy sets...`,
       state,
     });
     for (const policySetData of policySets) {
       updateProgressIndicator({
         id: indicatorId,
-        message: `Exporting policy set ${policySetData._id}`,
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} policy set ${policySetData._id}`,
         state,
       });
       exportData.policyset[policySetData.name] = policySetData;
@@ -596,11 +618,14 @@ export async function exportPolicySets({
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${policySets.length} policy sets.`,
+      message: `Exported ${policySets.length} ${getCurrentRealmName(state) + ' realm'} policy sets.`,
       state,
     });
     if (errors.length > 0) {
-      throw new FrodoError(`Error exporting policy sets`, errors);
+      throw new FrodoError(
+        `Error exporting ${getCurrentRealmName(state) + ' realm'} policy sets`,
+        errors
+      );
     }
     debugMessage({ message: `PolicySetOps.exportPolicySet: end`, state });
     return exportData;
@@ -609,7 +634,10 @@ export async function exportPolicySets({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error exporting policy sets`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} policy sets`,
+      error
+    );
   }
 }
 
@@ -638,7 +666,7 @@ async function importPolicySetPrerequisites({
       if (exportData.resourcetype[resourceTypeUuid]) {
         try {
           debugMessage({
-            message: `Importing resource type ${resourceTypeUuid}`,
+            message: `Importing ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeUuid}`,
             state,
           });
           await putResourceType({
@@ -659,7 +687,7 @@ async function importPolicySetPrerequisites({
     }
     if (errors.length > 0) {
       throw new FrodoError(
-        `Error importing hard dependencies for policy set ${policySetData.name}`,
+        `Error importing ${getCurrentRealmName(state) + ' realm'} hard dependencies for policy set ${policySetData.name}`,
         errors
       );
     }
@@ -673,7 +701,7 @@ async function importPolicySetPrerequisites({
       throw error;
     }
     throw new FrodoError(
-      `Error importing hard dependencies for policy set ${policySetData.name}`,
+      `Error importing ${getCurrentRealmName(state) + ' realm'} hard dependencies for policy set ${policySetData.name}`,
       error
     );
   }
@@ -706,14 +734,14 @@ async function importPolicySetDependencies({
     for (const policyData of policies) {
       try {
         debugMessage({
-          message: `Importing policy ${policyData._id}`,
+          message: `Importing ${getCurrentRealmName(state) + ' realm'} policy ${policyData._id}`,
           state,
         });
         await updatePolicy({ policyId: policyData._id, policyData, state });
       } catch (error) {
         errors.push(
           new FrodoError(
-            `Error importing policy ${policyData._id} in policy set ${policySetData.name}`,
+            `Error importing ${getCurrentRealmName(state) + ' realm'} policy ${policyData._id} in policy set ${policySetData.name}`,
             error
           )
         );
@@ -728,7 +756,7 @@ async function importPolicySetDependencies({
         } catch (error) {
           errors.push(
             new FrodoError(
-              `Error importing script ${scriptUuid} for policy ${policyData._id} in policy set ${policySetData.name}`,
+              `Error importing ${getCurrentRealmName(state) + ' realm'} script ${scriptUuid} for policy ${policyData._id} in policy set ${policySetData.name}`,
               error
             )
           );
@@ -737,7 +765,7 @@ async function importPolicySetDependencies({
     }
     if (errors.length > 0) {
       throw new FrodoError(
-        `Error importing soft dependencies for policy set ${policySetData.name}`,
+        `Error importing ${getCurrentRealmName(state) + ' realm'} soft dependencies for policy set ${policySetData.name}`,
         errors
       );
     }
@@ -751,7 +779,7 @@ async function importPolicySetDependencies({
       throw error;
     }
     throw new FrodoError(
-      `Error importing soft dependencies for policy set ${policySetData.name}`,
+      `Error importing ${getCurrentRealmName(state) + ' realm'} soft dependencies for policy set ${policySetData.name}`,
       error
     );
   }
@@ -819,7 +847,10 @@ export async function importPolicySet({
     }
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing policy set ${policySetName}`, errors);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} policy set ${policySetName}`,
+      errors
+    );
   }
   if (0 === imported.length) {
     throw new FrodoError(
@@ -888,7 +919,10 @@ export async function importFirstPolicySet({
     break;
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing first policy set`, errors);
+    throw new FrodoError(
+      `Error importing first ${getCurrentRealmName(state) + ' realm'} policy set`,
+      errors
+    );
   }
   if (0 === imported.length) {
     throw new FrodoError(`No policy sets found in import data`);
@@ -951,7 +985,10 @@ export async function importPolicySets({
     }
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing policy sets`, errors);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} policy sets`,
+      errors
+    );
   }
   return response;
 }

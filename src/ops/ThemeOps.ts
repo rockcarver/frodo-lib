@@ -385,7 +385,10 @@ export async function readThemes({
     const themes = await getConfigEntity({ entityId: THEMEREALM_ID, state });
     return getRealmThemes({ themes, realm });
   } catch (error) {
-    throw new FrodoError(`Error reading themes`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} themes`,
+      error
+    );
   }
 }
 
@@ -422,7 +425,10 @@ export async function readTheme({
       `Theme with id '${themeId}' not found in realm '${realm}'!`
     );
   } catch (error) {
-    throw new FrodoError(`Error reading theme ${themeId}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} theme ${themeId}`,
+      error
+    );
   }
 }
 
@@ -457,7 +463,10 @@ export async function readThemeByName({
     }
     throw new Error(`Theme '${themeName}' not found in realm '${realm}'!`);
   } catch (error) {
-    throw new FrodoError(`Error reading theme ${themeName}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} theme ${themeName}`,
+      error
+    );
   }
 }
 
@@ -477,21 +486,21 @@ export async function exportThemes({
     const themes = await readThemes({ state });
     indicatorId = createProgressIndicator({
       total: themes.length,
-      message: 'Exporting themes...',
+      message: `Exporting ${getCurrentRealmName(state) + ' realm'} themes...`,
       state,
     });
     for (const theme of themes) {
       if (!theme._id) theme._id = uuidv4();
       updateProgressIndicator({
         id: indicatorId,
-        message: `Exporting theme ${theme.name}`,
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} theme ${theme.name}`,
         state,
       });
       exportData.theme[theme._id] = theme;
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${themes.length} themes.`,
+      message: `Exported ${themes.length} ${getCurrentRealmName(state) + ' realm'} themes.`,
       state,
     });
     debugMessage({ message: `ThemeOps.exportThemes: end`, state });
@@ -499,11 +508,14 @@ export async function exportThemes({
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
-      message: `Error exporting themes.`,
+      message: `Error exporting ${getCurrentRealmName(state) + ' realm'} themes.`,
       status: 'fail',
       state,
     });
-    throw new FrodoError(`Error reading themes`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} themes`,
+      error
+    );
   }
 }
 
@@ -537,7 +549,10 @@ export async function createTheme({
       });
       return result;
     } catch (error) {
-      throw new FrodoError(`Error creating theme ${themeId}`, error);
+      throw new FrodoError(
+        `Error creating ${getCurrentRealmName(state) + ' realm'} theme ${themeId}`,
+        error
+      );
     }
   }
 }
@@ -598,7 +613,10 @@ export async function updateTheme({
       `Theme with id '${themeId}' not saved in realm '${realm}'!`
     );
   } catch (error) {
-    throw new FrodoError(`Error updating theme ${themeId}`, error);
+    throw new FrodoError(
+      `Error updating ${getCurrentRealmName(state) + ' realm'} theme ${themeId}`,
+      error
+    );
   }
 }
 
@@ -656,7 +674,10 @@ export async function updateThemeByName({
     }
     throw new FrodoError(`Theme '${themeName}' not saved in realm '${realm}'!`);
   } catch (error) {
-    throw new FrodoError(`Error updating theme ${themeName}`, error);
+    throw new FrodoError(
+      `Error updating ${getCurrentRealmName(state) + ' realm'} theme ${themeName}`,
+      error
+    );
   }
 }
 
@@ -734,7 +755,10 @@ export async function updateThemes({
     debugMessage({ message: `ThemeApi.putThemes: finished`, state });
     return updatedThemes as Record<string, ThemeSkeleton>;
   } catch (error) {
-    throw new FrodoError(`Error updating themes`, error);
+    throw new FrodoError(
+      `Error updating ${getCurrentRealmName(state) + ' realm'} themes`,
+      error
+    );
   }
 }
 
@@ -764,7 +788,10 @@ export async function importThemes({
     debugMessage({ message: `ThemeOps.importThemes: end`, state });
     return response;
   } catch (error) {
-    throw new FrodoError(`Error importing themes`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} themes`,
+      error
+    );
   }
 }
 
@@ -815,7 +842,10 @@ export async function deleteTheme({
       )}' not deleted from realm '${realm}'!`
     );
   } catch (error) {
-    throw new FrodoError(`Error deleting theme ${themeId}`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} theme ${themeId}`,
+      error
+    );
   }
 }
 
@@ -866,7 +896,10 @@ export async function deleteThemeByName({
       )}' not deleted from realm '${realm}'!`
     );
   } catch (error) {
-    throw new FrodoError(`Error deleting theme ${themeName}`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} theme ${themeName}`,
+      error
+    );
   }
 }
 
@@ -900,6 +933,9 @@ export async function deleteThemes({
     });
     return deletedThemes;
   } catch (error) {
-    throw new FrodoError(`Error deleting themes`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} themes`,
+      error
+    );
   }
 }

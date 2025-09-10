@@ -26,7 +26,10 @@ import {
   getMetadata,
   getResult,
 } from '../utils/ExportImportUtils';
-import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
+import {
+  applyNameCollisionPolicy,
+  getCurrentRealmName,
+} from '../utils/ForgeRockUtils';
 import { isScriptValid } from '../utils/ScriptValidationUtils';
 import { FrodoError } from './FrodoError';
 
@@ -385,7 +388,10 @@ export async function readScripts({
     const { result } = await _getScripts({ state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error reading scripts`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} scripts`,
+      error
+    );
   }
 }
 
@@ -475,7 +481,10 @@ export async function readScript({
   try {
     return await _getScript({ scriptId, state });
   } catch (error) {
-    throw new FrodoError(`Error reading script ${scriptId}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} script ${scriptId}`,
+      error
+    );
   }
 }
 
@@ -497,12 +506,19 @@ export async function readScriptByName({
       case 1:
         return result[0];
       case 0:
-        throw new FrodoError(`Script '${scriptName}' not found`);
+        throw new FrodoError(
+          `${getCurrentRealmName(state) + ' realm'} script '${scriptName}' not found`
+        );
       default:
-        throw new FrodoError(`${result.length} scripts '${scriptName}' found`);
+        throw new FrodoError(
+          `${result.length} ${getCurrentRealmName(state) + ' realm'} scripts '${scriptName}' found`
+        );
     }
   } catch (error) {
-    throw new FrodoError(`Error reading script ${scriptName}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} script ${scriptName}`,
+      error
+    );
   }
 }
 
@@ -539,10 +555,15 @@ export async function createScript({
       debugMessage({ message: `ScriptOps.createOAuth2Client: end`, state });
       return result;
     } catch (error) {
-      throw new FrodoError(`Error creating script`, error);
+      throw new FrodoError(
+        `Error creating ${getCurrentRealmName(state) + ' realm'} script`,
+        error
+      );
     }
   }
-  throw new FrodoError(`Script ${scriptData._id} already exists!`);
+  throw new FrodoError(
+    `${getCurrentRealmName(state) + ' realm'} script ${scriptData._id} already exists!`
+  );
 }
 
 /**
@@ -581,7 +602,11 @@ export async function updateScript({
         message: `Saved script as ${newName}`,
         state,
       });
-    } else throw new FrodoError(`Error updating script`, error);
+    } else
+      throw new FrodoError(
+        `Error updating ${getCurrentRealmName(state) + ' realm'} script`,
+        error
+      );
   }
   return result;
 }
@@ -601,7 +626,10 @@ export async function deleteScript({
   try {
     return _deleteScript({ scriptId, state });
   } catch (error) {
-    throw new FrodoError(`Error deleting script ${scriptId}`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} script ${scriptId}`,
+      error
+    );
   }
 }
 
@@ -620,7 +648,10 @@ export async function deleteScriptByName({
   try {
     return _deleteScriptByName({ scriptName, state });
   } catch (error) {
-    throw new FrodoError(`Error deleting script ${scriptName}`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} script ${scriptName}`,
+      error
+    );
   }
 }
 
@@ -641,16 +672,18 @@ export async function deleteScripts({
   const scripts = result.filter((s) => !s.default);
   const deletedScripts = [];
   for (const script of scripts) {
-    const result = await getResult(
+    const result: ScriptSkeleton = await getResult(
       resultCallback,
-      `Error deleting script ${script.name}`,
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} script ${script.name}`,
       deleteScript,
       {
         scriptId: script._id,
         state,
       }
     );
-    deletedScripts.push(result);
+    if (result) {
+      deletedScripts.push(result);
+    }
   }
   return deletedScripts;
 }
@@ -682,7 +715,10 @@ export async function exportScript({
     debugMessage({ message: `ScriptOps.exportScriptById: end`, state });
     return exportData;
   } catch (error) {
-    throw new FrodoError(`Error exporting script ${scriptId}`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} script ${scriptId}`,
+      error
+    );
   }
 }
 
@@ -713,7 +749,10 @@ export async function exportScriptByName({
     debugMessage({ message: `ScriptOps.exportScriptByName: end`, state });
     return exportData;
   } catch (error) {
-    throw new FrodoError(`Error exporting script ${scriptName}`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} script ${scriptName}`,
+      error
+    );
   }
 }
 
@@ -744,18 +783,18 @@ export async function exportScripts({
   const exportData = createScriptExportTemplate({ state });
   const indicatorId = createProgressIndicator({
     total: scriptList.length,
-    message: `Exporting ${scriptList.length} scripts...`,
+    message: `Exporting ${getCurrentRealmName(state) + ' realm'} ${scriptList.length} scripts...`,
     state,
   });
   for (const scriptData of scriptList) {
     updateProgressIndicator({
       id: indicatorId,
-      message: `Reading script ${scriptData.name}`,
+      message: `Reading ${getCurrentRealmName(state) + ' realm'} script ${scriptData.name}`,
       state,
     });
-    exportData.script[scriptData._id] = await getResult(
+    const result: ScriptSkeleton = await getResult(
       resultCallback,
-      `Error exporting script ${scriptData.name}`,
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} script ${scriptData.name}`,
       prepareScriptForExport,
       {
         scriptData,
@@ -763,10 +802,13 @@ export async function exportScripts({
         state,
       }
     );
+    if (result) {
+      exportData.script[scriptData._id] = result;
+    }
   }
   stopProgressIndicator({
     id: indicatorId,
-    message: `Exported ${scriptList.length} scripts.`,
+    message: `Exported ${getCurrentRealmName(state) + ' realm'} ${scriptList.length} scripts.`,
     state,
   });
   return exportData;
@@ -831,7 +873,9 @@ export async function importScripts({
       }
       if (validate) {
         if (!isScriptValid({ scriptData, state })) {
-          throw new FrodoError(`Script is invalid`);
+          throw new FrodoError(
+            `${getCurrentRealmName(state) + ' realm'} script ${newId} is invalid`
+          );
         }
       }
       const result = await updateScript({
@@ -848,7 +892,7 @@ export async function importScripts({
         resultCallback(e, undefined);
       } else {
         throw new FrodoError(
-          `Error importing script '${importData.script[existingId].name}'`,
+          `Error importing ${getCurrentRealmName(state) + ' realm'} script '${importData.script[existingId].name}'`,
           e
         );
       }

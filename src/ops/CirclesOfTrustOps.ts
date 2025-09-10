@@ -16,6 +16,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
 import { readSaml2EntityIds } from './Saml2Ops';
@@ -262,7 +263,10 @@ export async function readCirclesOfTrust({
     });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error reading circles of trust`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} circles of trust`,
+      error
+    );
   }
 }
 
@@ -282,7 +286,10 @@ export async function readCircleOfTrust({
     const response = await _getCircleOfTrust({ cotId, state });
     return response;
   } catch (error) {
-    throw new FrodoError(`Error reading circle of trust ${cotId}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} circle of trust ${cotId}`,
+      error
+    );
   }
 }
 
@@ -316,13 +323,13 @@ export async function createCircleOfTrust({
         return response;
       } catch (updateError) {
         throw new FrodoError(
-          `Error creating circle of trust ${cotId}`,
+          `Error creating ${getCurrentRealmName(state) + ' realm'} circle of trust ${cotId}`,
           updateError
         );
       }
     } else {
       throw new FrodoError(
-        `Error creating circle of trust ${cotId}`,
+        `Error creating ${getCurrentRealmName(state) + ' realm'} circle of trust ${cotId}`,
         createError
       );
     }
@@ -359,10 +366,16 @@ export async function updateCircleOfTrust({
         const response = await _updateCircleOfTrust({ cotId, cotData, state });
         return response || cotData;
       } catch (error) {
-        throw new FrodoError(`Error updating circle of trust ${cotId}`, error);
+        throw new FrodoError(
+          `Error updating ${getCurrentRealmName(state) + ' realm'} circle of trust ${cotId}`,
+          error
+        );
       }
     } else {
-      throw new FrodoError(`Error updating circle of trust ${cotId}`, error);
+      throw new FrodoError(
+        `Error updating ${getCurrentRealmName(state) + ' realm'} circle of trust ${cotId}`,
+        error
+      );
     }
   }
 }
@@ -383,7 +396,10 @@ export async function deleteCircleOfTrust({
     const response = await _deleteCircleOfTrust({ cotId, state });
     return response;
   } catch (error) {
-    throw new FrodoError(`Error deleting circle of trust ${cotId}`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} circle of trust ${cotId}`,
+      error
+    );
   }
 }
 
@@ -414,7 +430,10 @@ export async function deleteCirclesOfTrust({
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error deleting circles of trust`, errors);
+      throw new FrodoError(
+        `Error deleting ${getCurrentRealmName(state) + ' realm'} circles of trust`,
+        errors
+      );
     }
     debugMessage({
       message: `CirclesOfTrustOps.deleteCirclesOfTrust: end`,
@@ -426,7 +445,10 @@ export async function deleteCirclesOfTrust({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error deleting circles of trust`, errors);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} circles of trust`,
+      errors
+    );
   }
 }
 
@@ -459,7 +481,10 @@ export async function exportCircleOfTrust({
     });
     return exportData;
   } catch (error) {
-    throw new FrodoError(`Error exporting circle of trust ${cotId}`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} circle of trust ${cotId}`,
+      error
+    );
   }
 }
 
@@ -486,25 +511,25 @@ export async function exportCirclesOfTrust({
   options?: CircleOfTrustExportOptions;
   state: State;
 }): Promise<CirclesOfTrustExportInterface> {
+  const exportData = createCirclesOfTrustExportTemplate({ state });
   try {
     debugMessage({
       message: `CirclesOfTrustOps.exportCirclesOfTrust: start`,
       state,
     });
-    const exportData = createCirclesOfTrustExportTemplate({ state });
     let indicatorId: string;
     const cots = await readCirclesOfTrust({ entityProviders, state });
     if (options.indicateProgress)
       indicatorId = createProgressIndicator({
         total: cots.length,
-        message: 'Exporting circles of trust...',
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} circles of trust...`,
         state,
       });
     for (const cot of cots) {
       if (options.indicateProgress)
         updateProgressIndicator({
           id: indicatorId,
-          message: `Exporting circle of trust ${cot._id}`,
+          message: `Exporting ${getCurrentRealmName(state) + ' realm'} circle of trust ${cot._id}`,
           state,
         });
       exportData.saml.cot[cot._id] = cot;
@@ -513,7 +538,9 @@ export async function exportCirclesOfTrust({
       stopProgressIndicator({
         id: indicatorId,
         message:
-          cots.length > 1 ? `Exported ${cots.length} circles of trust.` : null,
+          cots.length > 1
+            ? `Exported ${cots.length} ${getCurrentRealmName(state) + ' realm'} circles of trust.`
+            : null,
         state,
       });
     debugMessage({
@@ -522,7 +549,17 @@ export async function exportCirclesOfTrust({
     });
     return exportData;
   } catch (error) {
-    throw new FrodoError(`Error exporting circles of trust`);
+    if (
+      error.httpStatus === 403 &&
+      error.httpMessage ===
+        'This operation is not available in PingOne Advanced Identity Cloud.'
+    ) {
+      return exportData;
+    } else {
+      throw new FrodoError(
+        `Error exporting ${getCurrentRealmName(state) + ' realm'} circles of trust`
+      );
+    }
   }
 }
 
@@ -612,7 +649,9 @@ export async function importCircleOfTrust({
     if (imported.length == 0) {
       throw error;
     }
-    throw new FrodoError(`Error importing circle of trust ${cotId}`);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} circle of trust ${cotId}`
+    );
   }
 }
 
@@ -687,7 +726,10 @@ export async function importFirstCircleOfTrust({
       break;
     }
   } catch (error) {
-    throw new FrodoError(`Error importing first circle of trust`, error);
+    throw new FrodoError(
+      `Error importing first circle of trust into ${getCurrentRealmName(state) + ' realm'}`,
+      error
+    );
   }
   throw new FrodoError(`No circles of trust found in import data!`);
 }
@@ -840,14 +882,16 @@ export async function importCirclesOfTrust({
         }
       } catch (error) {
         debugMessage({
-          message: `Error ${error.response?.status} creating/updating circle of trust: ${error.response?.data?.message}`,
+          message: `Error ${error.response?.status} creating/updating ${getCurrentRealmName(state) + ' realm'} circle of trust: ${error.response?.data?.message}`,
           state,
         });
         errors.push(error);
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error importing circles of trust`);
+      throw new FrodoError(
+        `Error importing ${getCurrentRealmName(state) + ' realm'} circles of trust`
+      );
     }
     return responses;
   } catch (error) {
@@ -855,6 +899,9 @@ export async function importCirclesOfTrust({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error importing circles of trust`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} circles of trust`,
+      error
+    );
   }
 }
