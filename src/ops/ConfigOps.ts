@@ -358,6 +358,7 @@ export async function exportFullConfiguration({
     resultCallback
   );
 
+  // export global config
   let globalConfig = {} as FullGlobalExportInterface;
   if (!onlyRealm || onlyGlobal) {
     // Export mappings

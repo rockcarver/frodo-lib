@@ -15,6 +15,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import { ExportMetaData } from './OpsTypes';
 
@@ -289,7 +290,7 @@ export async function readResourceType({
     return response;
   } catch (error) {
     throw new FrodoError(
-      `Error reading resource type ${resourceTypeUuid}`,
+      `Error reading ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeUuid}`,
       error
     );
   }
@@ -308,7 +309,10 @@ export async function readResourceTypes({
     const { result } = await _getResourceTypes({ state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error reading resource types`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} resource types`,
+      error
+    );
   }
 }
 
@@ -338,12 +342,12 @@ export async function readResourceTypeByName({
         );
       default:
         throw new FrodoError(
-          `${result.length} resource types '${resourceTypeName}' found`
+          `${result.length} ${getCurrentRealmName(state) + ' realm'} resource types '${resourceTypeName}' found`
         );
     }
   } catch (error) {
     throw new FrodoError(
-      `Error reading resource type ${resourceTypeName}`,
+      `Error reading ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeName}`,
       error
     );
   }
@@ -372,7 +376,7 @@ export async function updateResourceType({
     return response;
   } catch (error) {
     throw new FrodoError(
-      `Error updating resource type ${resourceTypeUuid}`,
+      `Error updating ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeUuid}`,
       error
     );
   }
@@ -390,7 +394,7 @@ export async function deleteResourceType({
     return response;
   } catch (error) {
     throw new FrodoError(
-      `Error deleting resource type ${resourceTypeUuid}`,
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeUuid}`,
       error
     );
   }
@@ -416,7 +420,7 @@ export async function deleteResourceTypeByName({
     return response;
   } catch (error) {
     throw new FrodoError(
-      `Error deleting resource type ${resourceTypeName}`,
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeName}`,
       error
     );
   }
@@ -447,12 +451,12 @@ export async function exportResourceType({
   } catch (error) {
     if (error.response?.status === 404) {
       throw new FrodoError(
-        `Resource type ${resourceTypeUuid} does not exist`,
+        `${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeUuid} does not exist`,
         error
       );
     } else {
       throw new FrodoError(
-        `Error exporting resource type ${resourceTypeUuid}`,
+        `Error exporting ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeUuid}`,
         error
       );
     }
@@ -489,7 +493,7 @@ export async function exportResourceTypeByName({
     return exportData;
   } catch (error) {
     throw new FrodoError(
-      `Error exporting resource type ${resourceTypeName}`,
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeName}`,
       error
     );
   }
@@ -511,20 +515,20 @@ export async function exportResourceTypes({
     const resourceTypes = await readResourceTypes({ state });
     indicatorId = createProgressIndicator({
       total: resourceTypes.length,
-      message: 'Exporting resource types...',
+      message: `Exporting ${getCurrentRealmName(state) + ' realm'} resource types...`,
       state,
     });
     for (const resourceTypeData of resourceTypes) {
       updateProgressIndicator({
         id: indicatorId,
-        message: `Exporting resource type ${resourceTypeData._id}`,
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeData._id}`,
         state,
       });
       exportData.resourcetype[resourceTypeData.uuid] = resourceTypeData;
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${resourceTypes.length} resource types.`,
+      message: `Exported ${resourceTypes.length} ${getCurrentRealmName(state) + ' realm'} resource types.`,
       state,
     });
     debugMessage({ message: `ResourceTypeOps.exportResourceType: end`, state });
@@ -532,11 +536,14 @@ export async function exportResourceTypes({
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
-      message: `Error exporting resource types`,
+      message: `Error exporting ${getCurrentRealmName(state) + ' realm'} resource types`,
       status: 'fail',
       state,
     });
-    throw new FrodoError(`Error exporting resource types`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} resource types`,
+      error
+    );
   }
 }
 
@@ -581,7 +588,7 @@ export async function importResourceType({
   }
   if (errors.length > 0) {
     throw new FrodoError(
-      `Error importing resource type ${resourceTypeUuid}`,
+      `Error importing ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeUuid}`,
       errors
     );
   }
@@ -634,7 +641,7 @@ export async function importResourceTypeByName({
   }
   if (errors.length > 0) {
     throw new FrodoError(
-      `Error importing resource type ${resourceTypeName}`,
+      `Error importing ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeName}`,
       errors
     );
   }
@@ -683,7 +690,10 @@ export async function importFirstResourceType({
     break;
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing first resource type`, errors);
+    throw new FrodoError(
+      `Error importing first ${getCurrentRealmName(state) + ' realm'} resource type`,
+      errors
+    );
   }
   if (0 === imported.length) {
     throw new FrodoError(`No resource types found in import data!`);
@@ -726,7 +736,10 @@ export async function importResourceTypes({
     }
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing resource types`, errors);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} resource types`,
+      errors
+    );
   }
   return response;
 }
@@ -752,7 +765,7 @@ export async function createResourceType({
     return response;
   } catch (error) {
     throw new FrodoError(
-      `Error creating resource type${
+      `Error creating ${getCurrentRealmName(state) + ' realm'} resource type${
         resourceTypeUuid ? ' ' + resourceTypeUuid : ''
       }`,
       error

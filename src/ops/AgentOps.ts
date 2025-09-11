@@ -21,6 +21,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
 
@@ -848,7 +849,19 @@ export async function readAgents({
     debugMessage({ message: `AgentOps.readAgents: end`, state });
     return agents;
   } catch (error) {
-    throw new FrodoError(`Error reading agents`, error);
+    if (
+      (error.response?.status === 403 &&
+        error.response?.data?.message ===
+          'This operation is not available in PingOne Advanced Identity Cloud.') ||
+      error.response?.status === 404
+    ) {
+      return [];
+    } else {
+      throw new FrodoError(
+        `Error reading ${getCurrentRealmName(state) + ' realm'} agents`,
+        error
+      );
+    }
   }
 }
 
@@ -888,12 +901,19 @@ export async function readAgent({
       return result;
     }
   } catch (error) {
-    throw new FrodoError(`Error reading agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} agent ${agentId}`,
+      error
+    );
   }
   if (agents.length === 0) {
-    throw new FrodoError(`Agent '${agentId}' not found`);
+    throw new FrodoError(
+      `${getCurrentRealmName(state) + ' realm'} agent '${agentId}' not found`
+    );
   } else {
-    throw new FrodoError(`${agents.length} agents '${agentId}' found`);
+    throw new FrodoError(
+      `${agents.length} ${getCurrentRealmName(state) + ' realm'} agents '${agentId}' found`
+    );
   }
 }
 
@@ -915,7 +935,9 @@ export async function readAgentGroup({
       return group;
     }
   }
-  throw new FrodoError(`Agent group with id '${groupId}' does not exist.`);
+  throw new FrodoError(
+    `${getCurrentRealmName(state) + ' realm'} agent group with id '${groupId}' does not exist.`
+  );
 }
 
 /**
@@ -931,7 +953,18 @@ export async function readAgentGroups({
     const { result } = await getAgentGroups({ state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error reading agent groups`, error);
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.message ===
+        'This operation is not available in PingOne Advanced Identity Cloud.'
+    ) {
+      return [];
+    } else {
+      throw new FrodoError(
+        `Error reading ${getCurrentRealmName(state) + ' realm'} agent groups`,
+        error
+      );
+    }
   }
 }
 
@@ -956,7 +989,10 @@ export async function exportAgentGroup({
     exportData.agentGroup[groupId] = group;
     return exportData;
   } catch (error) {
-    throw new FrodoError(`Error exporting agent group ${groupId}`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} agent group ${groupId}`,
+      error
+    );
   }
 }
 
@@ -979,20 +1015,20 @@ export async function exportAgentGroups({
     const groups = await readAgentGroups({ state });
     indicatorId = createProgressIndicator({
       total: groups.length,
-      message: 'Exporting agent groups...',
+      message: `Exporting ${getCurrentRealmName(state) + ' realm'} agent groups...`,
       state,
     });
     for (const group of groups) {
       updateProgressIndicator({
         id: indicatorId,
-        message: `Exporting agent group ${group._id}`,
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} agent group ${group._id}`,
         state,
       });
       exportData.agentGroup[group._id] = group;
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${groups.length} agent groups.`,
+      message: `Exported ${groups.length} ${getCurrentRealmName(state) + ' realm'} agent groups.`,
       state,
     });
     debugMessage({ message: `AgentOps.exportAgentGroups: end`, state });
@@ -1000,11 +1036,14 @@ export async function exportAgentGroups({
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
-      message: `Error exporting agent groups.`,
+      message: `Error exporting ${getCurrentRealmName(state) + ' realm'} agent groups.`,
       status: 'fail',
       state,
     });
-    throw new FrodoError(`Error reading agent groups`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} agent groups`,
+      error
+    );
   }
 }
 
@@ -1035,7 +1074,7 @@ export async function readAgentByTypeAndId({
     return result;
   } catch (error) {
     throw new FrodoError(
-      `Error reading agent ${agentId} of type ${agentType}`,
+      `Error reading ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
       error
     );
   }
@@ -1062,7 +1101,10 @@ export async function readIdentityGatewayAgents({
     debugMessage({ message: `AgentOps.readIdentityGatewayAgents: end`, state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error reading identity gateway agents`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} identity gateway agents`,
+      error
+    );
   }
 }
 
@@ -1092,7 +1134,7 @@ export async function readIdentityGatewayAgent({
     return result;
   } catch (error) {
     throw new FrodoError(
-      `Error reading identity gateway agent ${gatewayId}`,
+      `Error reading ${getCurrentRealmName(state) + ' realm'} identity gateway agent ${gatewayId}`,
       error
     );
   }
@@ -1136,7 +1178,7 @@ export async function createIdentityGatewayAgent({
       return result;
     } catch (error) {
       throw new FrodoError(
-        `Error creating identity gateway agent ${gatewayId}`,
+        `Error creating ${getCurrentRealmName(state) + ' realm'} identity gateway agent ${gatewayId}`,
         error
       );
     }
@@ -1177,7 +1219,7 @@ export async function updateIdentityGatewayAgent({
     return result;
   } catch (error) {
     throw new FrodoError(
-      `Error updating identity gateway agent ${gatewayId}`,
+      `Error updating ${getCurrentRealmName(state) + ' realm'} identity gateway agent ${gatewayId}`,
       error
     );
   }
@@ -1201,7 +1243,10 @@ export async function readJavaAgents({
     debugMessage({ message: `AgentOps.readJavaAgents: end`, state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error reading java agents`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} java agents`,
+      error
+    );
   }
 }
 
@@ -1227,7 +1272,10 @@ export async function readJavaAgent({
     debugMessage({ message: `AgentOps.readJavaAgent: end`, state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error reading java agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} java agent ${agentId}`,
+      error
+    );
   }
 }
 
@@ -1265,7 +1313,10 @@ export async function createJavaAgent({
       });
       return result;
     } catch (error) {
-      throw new FrodoError(`Error creating java agent ${agentId}`, error);
+      throw new FrodoError(
+        `Error creating ${getCurrentRealmName(state) + ' realm'} java agent ${agentId}`,
+        error
+      );
     }
   }
 }
@@ -1297,7 +1348,10 @@ export async function updateJavaAgent({
     debugMessage({ message: `AgentOps.updateJavaAgent: end`, state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error updating java agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error updating ${getCurrentRealmName(state) + ' realm'} java agent ${agentId}`,
+      error
+    );
   }
 }
 
@@ -1315,7 +1369,10 @@ export async function readWebAgents({ state }: { state: State }) {
     debugMessage({ message: `AgentOps.readWebAgents: end`, state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error reading web agents`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} web agents`,
+      error
+    );
   }
 }
 
@@ -1341,7 +1398,10 @@ export async function readWebAgent({
     debugMessage({ message: `AgentOps.readWebAgent: end`, state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error reading web agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} web agent ${agentId}`,
+      error
+    );
   }
 }
 
@@ -1379,7 +1439,10 @@ export async function createWebAgent({
       });
       return result;
     } catch (error) {
-      throw new FrodoError(`Error creating web agent ${agentId}`, error);
+      throw new FrodoError(
+        `Error creating ${getCurrentRealmName(state) + ' realm'} web agent ${agentId}`,
+        error
+      );
     }
   }
 }
@@ -1411,7 +1474,10 @@ export async function updateWebAgent({
     debugMessage({ message: `AgentOps.updateWebAgent: end`, state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error updating web agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error updating ${getCurrentRealmName(state) + ' realm'} web agent ${agentId}`,
+      error
+    );
   }
 }
 
@@ -1434,20 +1500,20 @@ export async function exportAgents({
     const agents = await readAgents({ state, globalConfig });
     indicatorId = createProgressIndicator({
       total: agents.length,
-      message: 'Exporting agents...',
+      message: `Exporting ${getCurrentRealmName(state) + ' realm'} agents...`,
       state,
     });
     for (const agent of agents) {
       updateProgressIndicator({
         id: indicatorId,
-        message: `Exporting agent ${agent._id}`,
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} agent ${agent._id}`,
         state,
       });
       exportData.agent[agent._id] = agent;
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${agents.length} agents.`,
+      message: `Exported ${agents.length} ${getCurrentRealmName(state) + ' realm'} agents.`,
       state,
     });
     debugMessage({ message: `AgentOps.exportAgents: end`, state });
@@ -1455,11 +1521,14 @@ export async function exportAgents({
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
-      message: `Error exporting agents`,
+      message: `Error exporting ${getCurrentRealmName(state) + ' realm'} agents`,
       status: 'fail',
       state,
     });
-    throw new FrodoError(`Error exporting agents`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} agents`,
+      error
+    );
   }
 }
 
@@ -1482,20 +1551,20 @@ export async function exportIdentityGatewayAgents({
     const agents = await readIdentityGatewayAgents({ state });
     indicatorId = createProgressIndicator({
       total: agents.length,
-      message: 'Exporting IG agents...',
+      message: `Exporting ${getCurrentRealmName(state) + ' realm'} identity gateway agents...`,
       state,
     });
     for (const agent of agents) {
       updateProgressIndicator({
         id: indicatorId,
-        message: `Exporting IG agent ${agent._id}`,
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} identity gateway agent ${agent._id}`,
         state,
       });
       exportData.agent[agent._id] = agent;
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${agents.length} IG agents.`,
+      message: `Exported ${agents.length} ${getCurrentRealmName(state) + ' realm'} identity gateway agents.`,
       state,
     });
     debugMessage({
@@ -1506,11 +1575,14 @@ export async function exportIdentityGatewayAgents({
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
-      message: `Error exporting identity gateway agents`,
+      message: `Error exporting ${getCurrentRealmName(state) + ' realm'} identity gateway agents`,
       status: 'fail',
       state,
     });
-    throw new FrodoError(`Error exporting identity gateway agents`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} identity gateway agents`,
+      error
+    );
   }
 }
 
@@ -1530,20 +1602,20 @@ export async function exportJavaAgents({
     const agents = await readJavaAgents({ state });
     indicatorId = createProgressIndicator({
       total: agents.length,
-      message: 'Exporting Java agents...',
+      message: `Exporting ${getCurrentRealmName(state) + ' realm'} Java agents...`,
       state,
     });
     for (const agent of agents) {
       updateProgressIndicator({
         id: indicatorId,
-        message: `Exporting Java agent ${agent._id}`,
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} Java agent ${agent._id}`,
         state,
       });
       exportData.agent[agent._id] = agent;
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${agents.length} Java agents.`,
+      message: `Exported ${agents.length} ${getCurrentRealmName(state) + ' realm'} Java agents.`,
       state,
     });
     debugMessage({ message: `AgentOps.exportJavaAgents: end`, state });
@@ -1551,11 +1623,14 @@ export async function exportJavaAgents({
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
-      message: `Error exporting java agents`,
+      message: `Error exporting ${getCurrentRealmName(state) + ' realm'} java agents`,
       status: 'fail',
       state,
     });
-    throw new FrodoError(`Error exporting java agents`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} java agents`,
+      error
+    );
   }
 }
 
@@ -1575,20 +1650,20 @@ export async function exportWebAgents({
     const agents = await readWebAgents({ state });
     indicatorId = createProgressIndicator({
       total: agents.length,
-      message: 'Exporting web agents...',
+      message: `Exporting ${getCurrentRealmName(state) + ' realm'} web agents...`,
       state,
     });
     for (const agent of agents) {
       updateProgressIndicator({
         id: indicatorId,
-        message: `Exporting web agent ${agent._id}`,
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} web agent ${agent._id}`,
         state,
       });
       exportData.agent[agent._id] = agent;
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${agents.length} web agents.`,
+      message: `Exported ${agents.length} ${getCurrentRealmName(state) + ' realm'} web agents.`,
       state,
     });
     debugMessage({ message: `AgentOps.exportWebAgents: end`, state });
@@ -1596,11 +1671,14 @@ export async function exportWebAgents({
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
-      message: `Error exporting web agents`,
+      message: `Error exporting ${getCurrentRealmName(state) + ' realm'} web agents`,
       status: 'fail',
       state,
     });
-    throw new FrodoError(`Error exporting web agents`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} web agents`,
+      error
+    );
   }
 }
 
@@ -1627,7 +1705,10 @@ export async function exportAgent({
     debugMessage({ message: `AgentOps.exportAgent: end`, state });
     return exportData;
   } catch (error) {
-    throw new FrodoError(`Error exporting agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} agent ${agentId}`,
+      error
+    );
   }
 }
 
@@ -1661,7 +1742,7 @@ export async function exportIdentityGatewayAgent({
     return exportData;
   } catch (error) {
     throw new FrodoError(
-      `Error exporting identity gateway agent ${agentId}`,
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} identity gateway agent ${agentId}`,
       error
     );
   }
@@ -1687,7 +1768,10 @@ export async function exportJavaAgent({
     debugMessage({ message: `AgentOps.exportJavaAgent: end`, state });
     return exportData;
   } catch (error) {
-    throw new FrodoError(`Error exporting java agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} java agent ${agentId}`,
+      error
+    );
   }
 }
 
@@ -1711,7 +1795,10 @@ export async function exportWebAgent({
     debugMessage({ message: `AgentOps.exportWebAgent: end`, state });
     return exportData;
   } catch (error) {
-    throw new FrodoError(`Error exporting web agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} web agent ${agentId}`,
+      error
+    );
   }
 }
 
@@ -1763,7 +1850,7 @@ export async function importAgents({
         if (error.httpStatus !== 501 && error.response?.status !== 501) {
           errors.push(
             new FrodoError(
-              `Error importing agent ${agentId} of type ${agentType}`,
+              `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
               error
             )
           );
@@ -1771,7 +1858,10 @@ export async function importAgents({
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error importing agents`, errors);
+      throw new FrodoError(
+        `Error importing ${getCurrentRealmName(state) + ' realm'} agents`,
+        errors
+      );
     }
     debugMessage({ message: `AgentOps.importAgents: end`, state });
     return response;
@@ -1780,7 +1870,10 @@ export async function importAgents({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error importing agents`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} agents`,
+      error
+    );
   }
 }
 
@@ -1813,7 +1906,7 @@ export async function importAgentGroups({
           state.getDeploymentType() !== Constants.CLASSIC_DEPLOYMENT_TYPE_KEY
         ) {
           throw new FrodoError(
-            `Can't import Soap STS agent groups for '${state.getDeploymentType()}' deployment type.`
+            `Can't import ${getCurrentRealmName(state) + ' realm'} Soap STS agent groups for '${state.getDeploymentType()}' deployment type.`
           );
         }
         response.push(
@@ -1828,7 +1921,7 @@ export async function importAgentGroups({
         if (error.httpStatus !== 501 && error.response?.status !== 501) {
           errors.push(
             new FrodoError(
-              `Error importing agent group ${agentGroupId} of type ${agentType}`,
+              `Error importing ${getCurrentRealmName(state) + ' realm'} agent group ${agentGroupId} of type ${agentType}`,
               error
             )
           );
@@ -1836,7 +1929,10 @@ export async function importAgentGroups({
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error importing agent groups`, errors);
+      throw new FrodoError(
+        `Error importing ${getCurrentRealmName(state) + ' realm'} agent groups`,
+        errors
+      );
     }
     debugMessage({ message: `AgentOps.importAgentGroups: end`, state });
     return response;
@@ -1845,7 +1941,10 @@ export async function importAgentGroups({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error importing agent groups`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} agent groups`,
+      error
+    );
   }
 }
 
@@ -1884,14 +1983,17 @@ export async function importIdentityGatewayAgents({
       } catch (error) {
         errors.push(
           new FrodoError(
-            `Error importing agent ${agentId} of type ${agentType}`,
+            `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
             error
           )
         );
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error importing identity gateway agents`, errors);
+      throw new FrodoError(
+        `Error importing ${getCurrentRealmName(state) + ' realm'} identity gateway agents`,
+        errors
+      );
     }
     debugMessage({
       message: `AgentOps.importIdentityGatewayAgents: end`,
@@ -1902,7 +2004,10 @@ export async function importIdentityGatewayAgents({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error importing identity gateway agents`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} identity gateway agents`,
+      error
+    );
   }
 }
 
@@ -1938,14 +2043,17 @@ export async function importJavaAgents({
       } catch (error) {
         errors.push(
           new FrodoError(
-            `Error importing agent ${agentId} of type ${agentType}`,
+            `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
             error
           )
         );
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error importing java agents`, errors);
+      throw new FrodoError(
+        `Error importing ${getCurrentRealmName(state) + ' realm'} java agents`,
+        errors
+      );
     }
     debugMessage({ message: `AgentOps.importJavaAgents: end`, state });
   } catch (error) {
@@ -1953,7 +2061,10 @@ export async function importJavaAgents({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error importing java agents`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} java agents`,
+      error
+    );
   }
 }
 
@@ -1989,14 +2100,17 @@ export async function importWebAgents({
       } catch (error) {
         errors.push(
           new FrodoError(
-            `Error importing agent ${agentId} of type ${agentType}`,
+            `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
             error
           )
         );
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error importing web agents`, errors);
+      throw new FrodoError(
+        `Error importing ${getCurrentRealmName(state) + ' realm'} web agents`,
+        errors
+      );
     }
     debugMessage({ message: `AgentOps.importWebAgents: end`, state });
   } catch (error) {
@@ -2004,7 +2118,10 @@ export async function importWebAgents({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error importing web agents`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} web agents`,
+      error
+    );
   }
 }
 
@@ -2047,7 +2164,10 @@ export async function importAgent({
     debugMessage({ message: `AgentOps.importAgent: end`, state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error importing agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId}`,
+      error
+    );
   }
 }
 
@@ -2087,7 +2207,10 @@ export async function importAgentGroup({
     debugMessage({ message: `AgentOps.importAgentGroup: end`, state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error importing agent group ${agentGroupId}`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} agent group ${agentGroupId}`,
+      error
+    );
   }
 }
 
@@ -2130,7 +2253,7 @@ export async function importIdentityGatewayAgent({
     return result;
   } catch (error) {
     throw new FrodoError(
-      `Error importing identity gateway agent ${agentId}`,
+      `Error importing ${getCurrentRealmName(state) + ' realm'} identity gateway agent ${agentId}`,
       error
     );
   }
@@ -2168,7 +2291,10 @@ export async function importJavaAgent({
     debugMessage({ message: `AgentOps.importJavaAgent: end`, state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error importing java agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} java agent ${agentId}`,
+      error
+    );
   }
 }
 
@@ -2204,7 +2330,10 @@ export async function importWebAgent({
     debugMessage({ message: `AgentOps.importWebAgent: end`, state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error importing web agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} web agent ${agentId}`,
+      error
+    );
   }
 }
 
@@ -2230,7 +2359,7 @@ export async function deleteAgents({ state }: { state: State }) {
       } catch (error) {
         errors.push(
           new FrodoError(
-            `Error deleting agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+            `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
             error
           )
         );
@@ -2274,7 +2403,7 @@ export async function deleteIdentityGatewayAgents({ state }: { state: State }) {
       } catch (error) {
         errors.push(
           new FrodoError(
-            `Error deleting agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+            `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
             error
           )
         );
@@ -2318,14 +2447,17 @@ export async function deleteJavaAgents({ state }: { state: State }) {
       } catch (error) {
         errors.push(
           new FrodoError(
-            `Error deleting agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+            `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
             error
           )
         );
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error deleting java agents`, errors);
+      throw new FrodoError(
+        `Error deleting ${getCurrentRealmName(state) + ' realm'} java agents`,
+        errors
+      );
     }
     debugMessage({ message: `AgentOps.deleteJavaAgents: end`, state });
   } catch (error) {
@@ -2333,7 +2465,10 @@ export async function deleteJavaAgents({ state }: { state: State }) {
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error deleting java agents`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} java agents`,
+      error
+    );
   }
 }
 
@@ -2359,14 +2494,17 @@ export async function deleteWebAgents({ state }: { state: State }) {
       } catch (error) {
         errors.push(
           new FrodoError(
-            `Error deleting agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+            `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
             error
           )
         );
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error deleting web agents`, errors);
+      throw new FrodoError(
+        `Error deleting ${getCurrentRealmName(state) + ' realm'} web agents`,
+        errors
+      );
     }
     debugMessage({ message: `AgentOps.deleteWebAgents: end`, state });
   } catch (error) {
@@ -2374,7 +2512,10 @@ export async function deleteWebAgents({ state }: { state: State }) {
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error deleting web agents`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} web agents`,
+      error
+    );
   }
 }
 
@@ -2393,7 +2534,9 @@ export async function deleteAgent({
     debugMessage({ message: `AgentOps.deleteAgent: start`, state });
     const agents = await findAgentById({ agentId, state });
     if (agents.length == 0) {
-      throw new FrodoError(`Agent '${agentId}' not found!`);
+      throw new FrodoError(
+        `${getCurrentRealmName(state) + ' realm'} agent '${agentId}' not found!`
+      );
     }
     for (const agent of agents) {
       debugMessage({
@@ -2408,7 +2551,10 @@ export async function deleteAgent({
     }
     debugMessage({ message: `AgentOps.deleteAgent: end`, state });
   } catch (error) {
-    throw new FrodoError(`Error deleting agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agentId}`,
+      error
+    );
   }
 }
 
@@ -2434,7 +2580,9 @@ export async function deleteIdentityGatewayAgent({
       state,
     });
     if (agents.length == 0) {
-      throw new FrodoError(`Identity gateway agent '${agentId}' not found!`);
+      throw new FrodoError(
+        `${getCurrentRealmName(state) + ' realm'} identity gateway agent '${agentId}' not found!`
+      );
     }
     for (const agent of agents) {
       debugMessage({
@@ -2453,7 +2601,7 @@ export async function deleteIdentityGatewayAgent({
     });
   } catch (error) {
     throw new FrodoError(
-      `Error deleting identity gateway agent ${agentId}`,
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} identity gateway agent ${agentId}`,
       error
     );
   }
@@ -2478,7 +2626,9 @@ export async function deleteJavaAgent({
       state,
     });
     if (agents.length == 0) {
-      throw new FrodoError(`Java agent '${agentId}' not found!`);
+      throw new FrodoError(
+        `${getCurrentRealmName(state) + ' realm'} java agent '${agentId}' not found!`
+      );
     }
     for (const agent of agents) {
       debugMessage({
@@ -2493,7 +2643,10 @@ export async function deleteJavaAgent({
     }
     debugMessage({ message: `AgentOps.deleteJavaAgent: end`, state });
   } catch (error) {
-    throw new FrodoError(`Error deleting java agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} java agent ${agentId}`,
+      error
+    );
   }
 }
 
@@ -2516,7 +2669,9 @@ export async function deleteWebAgent({
       state,
     });
     if (agents.length == 0) {
-      throw new FrodoError(`Web agent '${agentId}' not found!`);
+      throw new FrodoError(
+        `${getCurrentRealmName(state) + ' realm'} web agent '${agentId}' not found!`
+      );
     }
     for (const agent of agents) {
       debugMessage({
@@ -2531,6 +2686,9 @@ export async function deleteWebAgent({
     }
     debugMessage({ message: `AgentOps.deleteWebAgent: end`, state });
   } catch (error) {
-    throw new FrodoError(`Error deleting web agent ${agentId}`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} web agent ${agentId}`,
+      error
+    );
   }
 }

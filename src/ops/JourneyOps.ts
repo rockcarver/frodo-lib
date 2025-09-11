@@ -798,7 +798,7 @@ async function getSaml2NodeDependencies(
         }
         saml2EntityPromises.push(providerResponse);
       } catch (error) {
-        error.message = `Error reading saml2 dependencies: ${
+        error.message = `Error reading ${getCurrentRealmName(state) + ' realm'} saml2 dependencies: ${
           error.response?.data?.message || error.message
         }`;
         errors.push(error);
@@ -829,14 +829,16 @@ async function getSaml2NodeDependencies(
       circlesOfTrust,
     };
   } catch (error) {
-    error.message = `Error reading saml2 dependencies: ${
+    error.message = `Error reading ${getCurrentRealmName(state) + ' realm'} saml2 dependencies: ${
       error.response?.data?.message || error.message
     }`;
     errors.push(error);
   }
   if (errors.length) {
     const errorMessages = errors.map((error) => error.message).join('\n');
-    throw new Error(`Saml2 dependencies error:\n${errorMessages}`);
+    throw new Error(
+      `${getCurrentRealmName(state) + ' realm'} saml2 dependencies error:\n${errorMessages}`
+    );
   }
   return saml2NodeDependencies;
 }
@@ -1160,7 +1162,12 @@ export async function exportJourney({
         }
       }
     } catch (error) {
-      errors.push(new FrodoError(`Error reading inner nodes`, error));
+      errors.push(
+        new FrodoError(
+          `Error reading ${getCurrentRealmName(state) + ' realm'} inner nodes`,
+          error
+        )
+      );
     }
 
     // Process email templates
@@ -1235,7 +1242,12 @@ export async function exportJourney({
         }
       }
     } catch (error) {
-      errors.push(new FrodoError(`Error reading saml2 dependencies`, error));
+      errors.push(
+        new FrodoError(
+          `Error reading ${getCurrentRealmName(state) + ' realm'} saml2 dependencies`,
+          error
+        )
+      );
     }
 
     // Process socialIdentityProviders
@@ -1274,7 +1286,10 @@ export async function exportJourney({
       }
     } catch (error) {
       errors.push(
-        new FrodoError(`Error reading social identity providers`, error)
+        new FrodoError(
+          `Error reading ${getCurrentRealmName(state) + ' realm'} social identity providers`,
+          error
+        )
       );
     }
 
@@ -1318,7 +1333,12 @@ export async function exportJourney({
         }
       }
     } catch (error) {
-      errors.push(new FrodoError(`Error reading scripts`, error));
+      errors.push(
+        new FrodoError(
+          `Error reading ${getCurrentRealmName(state) + ' realm'} scripts`,
+          error
+        )
+      );
     }
 
     // Process themes
@@ -1361,7 +1381,10 @@ export async function exportJourney({
     errors.push(error);
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error exporting journey ${journeyId}`, errors);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}`,
+      errors
+    );
   }
   debugMessage({
     message: `JourneyOps.exportJourney: end [journey=${journeyId}]`,
@@ -1393,18 +1416,13 @@ export async function exportJourneys({
   const trees = await readJourneys({ state });
   const indicatorId = createProgressIndicator({
     total: trees.length,
-    message: 'Exporting journeys...',
+    message: `Exporting ${getCurrentRealmName(state) + ' realm'} journeys...`,
     state,
   });
   for (const tree of trees) {
-    updateProgressIndicator({
-      id: indicatorId,
-      message: `Exporting journey ${tree._id}`,
-      state,
-    });
     const exportData: SingleTreeExportInterface = await getResult(
       resultCallback,
-      `Error exporting the journey ${tree._id}`,
+      `Error exporting the ${getCurrentRealmName(state) + ' realm'} journey ${tree._id}`,
       exportJourney,
       {
         journeyId: tree._id,
@@ -1412,12 +1430,19 @@ export async function exportJourneys({
         state,
       }
     );
-    delete exportData.meta;
-    multiTreeExport.trees[tree._id] = exportData;
+    if (exportData) {
+      delete exportData.meta;
+      multiTreeExport.trees[tree._id] = exportData;
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} journey ${tree._id}`,
+        state,
+      });
+    }
   }
   stopProgressIndicator({
     id: indicatorId,
-    message: `Exported ${trees.length} journeys.`,
+    message: `Exported ${trees.length} ${getCurrentRealmName(state) + ' realm'} journeys.`,
     state,
   });
   return multiTreeExport;
@@ -1437,7 +1462,10 @@ export async function readJourneys({
     result.sort((a, b) => a._id.localeCompare(b._id));
     return result;
   } catch (error) {
-    throw new FrodoError(`Error reading journeys`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} journeys`,
+      error
+    );
   }
 }
 
@@ -1457,7 +1485,10 @@ export async function readJourney({
     const response = await getTree({ id: journeyId, state });
     return response;
   } catch (error) {
-    throw new FrodoError(`Error reading journey ${journeyId}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}`,
+      error
+    );
   }
 }
 
@@ -1488,10 +1519,15 @@ export async function createJourney({
       debugMessage({ message: `JourneyOps.createJourney: end`, state });
       return result;
     } catch (error) {
-      throw new FrodoError(`Error creating journey ${journeyId}`, error);
+      throw new FrodoError(
+        `Error creating ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}`,
+        error
+      );
     }
   }
-  throw new FrodoError(`Journey ${journeyId} already exists!`);
+  throw new FrodoError(
+    `${getCurrentRealmName(state) + ' realm'} journey ${journeyId} already exists!`
+  );
 }
 
 /**
@@ -1516,7 +1552,10 @@ export async function updateJourney({
     });
     return response;
   } catch (error) {
-    throw new FrodoError(`Error updating journey ${journeyId}`, error);
+    throw new FrodoError(
+      `Error updating ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}`,
+      error
+    );
   }
 }
 
@@ -1584,7 +1623,7 @@ export async function importJourney({
         } catch (error) {
           errors.push(
             new FrodoError(
-              `Error importing script ${scriptObject['name']} (${scriptId}) in journey ${treeId}`,
+              `Error importing ${getCurrentRealmName(state) + ' realm'} script ${scriptObject['name']} (${scriptId}) in journey ${treeId}`,
               error
             )
           );
@@ -1642,7 +1681,12 @@ export async function importJourney({
       try {
         await updateThemes({ themeMap: themes, state });
       } catch (error) {
-        errors.push(new FrodoError(`Error importing themes`, error));
+        errors.push(
+          new FrodoError(
+            `Error importing ${getCurrentRealmName(state) + ' realm'} themes`,
+            error
+          )
+        );
       }
     }
 
@@ -1691,14 +1735,14 @@ export async function importJourney({
               });
             } catch (importError2) {
               throw new FrodoError(
-                `Error importing provider ${providerId} in journey ${treeId}`,
+                `Error importing ${getCurrentRealmName(state) + ' realm'} provider ${providerId} in journey ${treeId}`,
                 importError2
               );
             }
           } else {
             errors.push(
               new FrodoError(
-                `Error importing provider ${providerId} in journey ${treeId}`,
+                `Error importing ${getCurrentRealmName(state) + ' realm'} provider ${providerId} in journey ${treeId}`,
                 error
               )
             );
@@ -1761,7 +1805,10 @@ export async function importJourney({
             });
           } catch (error) {
             errors.push(
-              new FrodoError(`Error creating provider ${entityId}`, error)
+              new FrodoError(
+                `Error creating ${getCurrentRealmName(state) + ' realm'} provider ${entityId}`,
+                error
+              )
             );
           }
         } else {
@@ -1773,7 +1820,10 @@ export async function importJourney({
             });
           } catch (error) {
             errors.push(
-              new FrodoError(`Error updating provider ${entityId}`, error)
+              new FrodoError(
+                `Error updating ${getCurrentRealmName(state) + ' realm'} provider ${entityId}`,
+                error
+              )
             );
           }
         }
@@ -1815,14 +1865,17 @@ export async function importJourney({
             } catch (updateCotErr) {
               errors.push(
                 new FrodoError(
-                  `Error updating circle of trust ${cotId}`,
+                  `Error updating ${getCurrentRealmName(state) + ' realm'} circle of trust ${cotId}`,
                   updateCotErr
                 )
               );
             }
           } else {
             errors.push(
-              new FrodoError(`Error creating circle of trust ${cotId}`, error)
+              new FrodoError(
+                `Error creating ${getCurrentRealmName(state) + ' realm'} circle of trust ${cotId}`,
+                error
+              )
             );
           }
         }
@@ -1923,7 +1976,7 @@ export async function importJourney({
               'Data validation failed for the attribute, Script'
           ) {
             throw new FrodoError(
-              `Missing script ${
+              `Missing ${getCurrentRealmName(state) + ' realm'} script ${
                 innerNodeData['script']
               } referenced by inner node ${innerNodeId}${
                 innerNodeId === newUuid ? '' : ` [${newUuid}]`
@@ -1958,7 +2011,7 @@ export async function importJourney({
               });
             } catch (nodeImportError2) {
               throw new FrodoError(
-                `Error importing node ${innerNodeId}${
+                `Error importing ${getCurrentRealmName(state) + ' realm'} node ${innerNodeId}${
                   innerNodeId === newUuid ? '' : ` [${newUuid}]`
                 } in journey ${treeId}`,
                 nodeImportError2
@@ -1966,14 +2019,14 @@ export async function importJourney({
             }
           } else if (nodeImportError.response?.status === 404) {
             throw new FrodoError(
-              `Unable to import node ${innerNodeId}${
+              `Unable to import ${getCurrentRealmName(state) + ' realm'} node ${innerNodeId}${
                 innerNodeId === newUuid ? '' : ` [${newUuid}]`
               } in journey ${treeId} because its type ${(innerNodeData as NodeSkeleton)._type._id} doesn't exist in deployment`,
               nodeImportError
             );
           } else {
             throw new FrodoError(
-              `Error importing inner node ${innerNodeId}${
+              `Error importing ${getCurrentRealmName(state) + ' realm'} inner node ${innerNodeId}${
                 innerNodeId === newUuid ? '' : ` [${newUuid}]`
               } in journey ${treeId}`,
               nodeImportError
@@ -2063,7 +2116,7 @@ export async function importJourney({
               'Data validation failed for the attribute, Script'
           ) {
             throw new FrodoError(
-              `Missing script ${
+              `Missing ${getCurrentRealmName(state) + ' realm'} script ${
                 nodeData['script']
               } referenced by node ${nodeId}${
                 nodeId === newUuid ? '' : ` [${newUuid}]`
@@ -2093,7 +2146,7 @@ export async function importJourney({
               await putNode({ nodeId: newUuid, nodeType, nodeData, state });
             } catch (nodeImportError2) {
               throw new FrodoError(
-                `Error importing node ${nodeId}${
+                `Error importing ${getCurrentRealmName(state) + ' realm'} node ${nodeId}${
                   nodeId === newUuid ? '' : ` [${newUuid}]`
                 } in journey ${treeId}`,
                 nodeImportError2
@@ -2101,14 +2154,14 @@ export async function importJourney({
             }
           } else if (nodeImportError.response?.status === 404) {
             throw new FrodoError(
-              `Unable to import node ${nodeId}${
+              `Unable to import ${getCurrentRealmName(state) + ' realm'} node ${nodeId}${
                 nodeId === newUuid ? '' : ` [${newUuid}]`
               } in journey ${treeId} because its type ${nodeData._type._id} doesn't exist in deployment`,
               nodeImportError
             );
           } else {
             throw new FrodoError(
-              `Error importing node ${nodeId}${
+              `Error importing ${getCurrentRealmName(state) + ' realm'} node ${nodeId}${
                 nodeId === newUuid ? '' : ` [${newUuid}]`
               } in journey ${treeId}`,
               nodeImportError
@@ -2215,14 +2268,17 @@ export async function importJourney({
         } catch (importError2) {
           errors.push(
             new FrodoError(
-              `Error importing journey flow ${treeId}`,
+              `Error importing ${getCurrentRealmName(state) + ' realm'} journey flow ${treeId}`,
               importError2
             )
           );
         }
       } else {
         errors.push(
-          new FrodoError(`Error importing journey flow ${treeId}`, importError)
+          new FrodoError(
+            `Error importing ${getCurrentRealmName(state) + ' realm'} journey flow ${treeId}`,
+            importError
+          )
         );
       }
     }
@@ -2231,7 +2287,7 @@ export async function importJourney({
   }
   if (errors.length > 0) {
     throw new FrodoError(
-      `Error importing journey${importData && importData.tree && importData.tree._id ? ` '${importData.tree._id}'` : ''}`,
+      `Error importing ${getCurrentRealmName(state) + ' realm'} journey${importData && importData.tree && importData.tree._id ? ` '${importData.tree._id}'` : ''}`,
       errors
     );
   }
@@ -2415,7 +2471,7 @@ export async function importJourneys({
   const resolvedJourneys = [];
   let indicatorId = createProgressIndicator({
     total: undefined,
-    message: 'Resolving dependencies',
+    message: `Resolving ${getCurrentRealmName(state) + ' realm'} dependencies`,
     type: 'indeterminate',
     state,
   });
@@ -2429,7 +2485,7 @@ export async function importJourneys({
     // no unresolved journeys
     stopProgressIndicator({
       id: indicatorId,
-      message: `Resolved all dependencies.`,
+      message: `Resolved all ${getCurrentRealmName(state) + ' realm'} dependencies.`,
       status: 'success',
       state,
     });
@@ -2438,14 +2494,14 @@ export async function importJourneys({
       id: indicatorId,
       message: `${
         Object.keys(unresolvedJourneys).length
-      } journeys with unresolved dependencies`,
+      } ${getCurrentRealmName(state) + ' realm'} journeys with unresolved dependencies`,
       status: 'fail',
       state,
     });
     const message: string[] = [
       `${
         Object.keys(unresolvedJourneys).length
-      } journeys with unresolved dependencies:`,
+      } ${getCurrentRealmName(state) + ' realm'} journeys with unresolved dependencies:`,
     ];
     for (const journey of Object.keys(unresolvedJourneys)) {
       message.push(`  - ${journey} requires ${unresolvedJourneys[journey]}`);
@@ -2454,13 +2510,13 @@ export async function importJourneys({
   }
   indicatorId = createProgressIndicator({
     total: resolvedJourneys.length,
-    message: 'Importing',
+    message: `Importing into ${getCurrentRealmName(state) + ' realm'}`,
     state,
   });
   for (const tree of resolvedJourneys) {
     const result = await getResult(
       resultCallback,
-      `Error importing the journey ${tree._id}`,
+      `Error importing the ${getCurrentRealmName(state) + ' realm'} journey ${tree._id}`,
       importJourney,
       {
         importData: importData.trees[tree],
@@ -2468,12 +2524,14 @@ export async function importJourneys({
         state,
       }
     );
-    response.push(result);
-    updateProgressIndicator({ id: indicatorId, message: `${tree}`, state });
+    if (result) {
+      response.push(result);
+      updateProgressIndicator({ id: indicatorId, message: `${tree}`, state });
+    }
   }
   stopProgressIndicator({
     id: indicatorId,
-    message: 'Finished importing journeys',
+    message: `Finished importing ${getCurrentRealmName(state) + ' realm'} journeys`,
     state,
   });
   return response;
@@ -2794,7 +2852,7 @@ export async function deleteJourney({
   if (progress)
     indicatorId = createProgressIndicator({
       total: undefined,
-      message: `Deleting ${journeyId}...`,
+      message: `Deleting ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}...`,
       type: 'indeterminate',
       state,
     });
@@ -2951,7 +3009,7 @@ export async function deleteJourney({
         if (errorCount === 0) {
           stopProgressIndicator({
             id: indicatorId,
-            message: `Deleted ${journeyId} and ${
+            message: `Deleted ${getCurrentRealmName(state) + ' realm'} journey ${journeyId} and ${
               nodeCount - errorCount
             }/${nodeCount} nodes.`,
             status: 'success',
@@ -2960,7 +3018,7 @@ export async function deleteJourney({
         } else {
           stopProgressIndicator({
             id: indicatorId,
-            message: `Deleted ${journeyId} and ${
+            message: `Deleted ${getCurrentRealmName(state) + ' realm'} journey ${journeyId} and ${
               nodeCount - errorCount
             }/${nodeCount} nodes.`,
             status: 'fail',
@@ -2975,13 +3033,13 @@ export async function deleteJourney({
       status['error'] = error;
       stopProgressIndicator({
         id: indicatorId,
-        message: `Error deleting ${journeyId}.`,
+        message: `Error deleting ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}.`,
         status: 'fail',
         state,
       });
       if (verbose)
         printMessage({
-          message: `Error deleting tree ${journeyId}: ${error}`,
+          message: `Error deleting ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}: ${error}`,
           type: 'error',
           state,
         });
@@ -3015,7 +3073,7 @@ export async function deleteJourneys({
   const trees = (await getTrees({ state })).result;
   const indicatorId = createProgressIndicator({
     total: trees.length,
-    message: 'Deleting journeys...',
+    message: `Deleting ${getCurrentRealmName(state) + ' realm'} journeys...`,
     state,
   });
   for (const tree of trees) {
@@ -3042,7 +3100,10 @@ export async function deleteJourneys({
       if (resultCallback) {
         resultCallback(e, undefined);
       } else {
-        throw new FrodoError(`Error deleting the journey ${tree._id}`, e);
+        throw new FrodoError(
+          `Error deleting the ${getCurrentRealmName(state) + ' realm'} journey ${tree._id}`,
+          e
+        );
       }
     }
   }
@@ -3065,7 +3126,7 @@ export async function deleteJourneys({
     id: indicatorId,
     message: `Deleted ${
       journeyCount - journeyErrorCount
-    }/${journeyCount} journeys and ${
+    }/${journeyCount} ${getCurrentRealmName(state) + ' realm'} journeys and ${
       nodeCount - nodeErrorCount
     }/${nodeCount} nodes.`,
     state,
@@ -3096,7 +3157,10 @@ export async function enableJourney({
     });
     return newTreeObject;
   } catch (error) {
-    throw new FrodoError(`Error enabling journey ${journeyId}`, error);
+    throw new FrodoError(
+      `Error enabling ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}`,
+      error
+    );
   }
 }
 
@@ -3123,6 +3187,9 @@ export async function disableJourney({
     });
     return newTreeObject;
   } catch (error) {
-    throw new FrodoError(`Error disabling journey ${journeyId}`, error);
+    throw new FrodoError(
+      `Error disabling ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}`,
+      error
+    );
   }
 }

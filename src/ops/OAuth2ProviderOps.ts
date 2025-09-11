@@ -88,6 +88,12 @@ export async function readOAuth2Provider({
     if (error.httpStatus === 404 || error.response?.status === 404) {
       // return null if no provider exists
       return null;
+    } else if (
+      error.response?.status === 403 &&
+      error.response?.data?.message ===
+        'This operation is not available in PingOne Advanced Identity Cloud.'
+    ) {
+      return null;
     } else {
       throw new FrodoError(`Error reading oauth2 provider`, error);
     }

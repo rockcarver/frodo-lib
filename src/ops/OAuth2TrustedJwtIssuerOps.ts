@@ -9,6 +9,7 @@ import {
 import { State } from '../shared/State';
 import { debugMessage, printMessage } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import { ExportMetaData } from './OpsTypes';
 
@@ -307,7 +308,18 @@ export async function readOAuth2TrustedJwtIssuers({
     const issuers = (await _getOAuth2TrustedJwtIssuers({ state })).result;
     return issuers;
   } catch (error) {
-    throw new FrodoError(`Error reading trusted issuers`, error);
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.message ===
+        'This operation is not available in PingOne Advanced Identity Cloud.'
+    ) {
+      return [];
+    } else {
+      throw new FrodoError(
+        `Error reading ${getCurrentRealmName(state) + ' realm'} trusted issuers`,
+        error
+      );
+    }
   }
 }
 
@@ -326,7 +338,10 @@ export async function readOAuth2TrustedJwtIssuer({
   try {
     return _getOAuth2TrustedJwtIssuer({ id: issuerId, state });
   } catch (error) {
-    throw new FrodoError(`Error reading trusted issuer ${issuerId}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId}`,
+      error
+    );
   }
 }
 
@@ -364,10 +379,15 @@ export async function createOAuth2TrustedJwtIssuer({
       });
       return result;
     } catch (error) {
-      throw new FrodoError(`Error creating trusted issuer ${issuerId}`, error);
+      throw new FrodoError(
+        `Error creating ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId}`,
+        error
+      );
     }
   }
-  throw new FrodoError(`Trusted issuer ${issuerId} already exists!`);
+  throw new FrodoError(
+    `${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId} already exists!`
+  );
 }
 
 /**
@@ -435,12 +455,15 @@ export async function updateOAuth2TrustedJwtIssuer({
         return response;
       } catch (error) {
         throw new FrodoError(
-          `Error updating trusted issuer ${issuerId}`,
+          `Error updating ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId}`,
           error
         );
       }
     } else {
-      throw new FrodoError(`Error updating trusted issuer ${issuerId}`, error);
+      throw new FrodoError(
+        `Error updating ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId}`,
+        error
+      );
     }
   }
 }
@@ -480,7 +503,10 @@ export async function deleteOAuth2TrustedJwtIssuers({
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error deleting trusted issuers`, errors);
+      throw new FrodoError(
+        `Error deleting ${getCurrentRealmName(state) + ' realm'} trusted issuers`,
+        errors
+      );
     }
     debugMessage({
       message: `OAuth2TrustedJwtIssuerOps.deleteOAuth2TrustedJwtIssuers: end`,
@@ -492,7 +518,10 @@ export async function deleteOAuth2TrustedJwtIssuers({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error deleting trusted issuers`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} trusted issuers`,
+      error
+    );
   }
 }
 
@@ -511,7 +540,10 @@ export async function deleteOAuth2TrustedJwtIssuer({
   try {
     return _deleteOAuth2TrustedJwtIssuer({ id: issuerId, state });
   } catch (error) {
-    throw new FrodoError(`Error deleting trusted issuer ${issuerId}`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId}`,
+      error
+    );
   }
 }
 
@@ -541,7 +573,10 @@ export async function exportOAuth2TrustedJwtIssuers({
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error exporting trusted issuers`, errors);
+      throw new FrodoError(
+        `Error exporting ${getCurrentRealmName(state) + ' realm'} trusted issuers`,
+        errors
+      );
     }
     debugMessage({
       message: `OAuth2TrustedJwtIssuerOps.exportOAuth2TrustedJwtIssuers: end`,
@@ -553,7 +588,10 @@ export async function exportOAuth2TrustedJwtIssuers({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error exporting trusted issuers`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} trusted issuers`,
+      error
+    );
   }
 }
 
@@ -584,7 +622,10 @@ export async function exportOAuth2TrustedJwtIssuer({
     });
     return exportData;
   } catch (error) {
-    throw new FrodoError(`Error exporting trusted issuer ${issuerId}`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId}`,
+      error
+    );
   }
 }
 
@@ -625,7 +666,10 @@ export async function importOAuth2TrustedJwtIssuer({
     }
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing trusted issuer ${issuerId}`, errors);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId}`,
+      errors
+    );
   }
   if (0 === imported.length) {
     throw new FrodoError(
@@ -668,7 +712,10 @@ export async function importFirstOAuth2TrustedJwtIssuer({
     break;
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing first trusted issuer`, errors);
+    throw new FrodoError(
+      `Error importing first ${getCurrentRealmName(state) + ' realm'} trusted issuer`,
+      errors
+    );
   }
   if (0 === imported.length) {
     throw new FrodoError(`No trusted issuers found in import data!`);
@@ -704,7 +751,10 @@ export async function importOAuth2TrustedJwtIssuers({
     }
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing trusted issuers`, errors);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} trusted issuers`,
+      errors
+    );
   }
   return response;
 }

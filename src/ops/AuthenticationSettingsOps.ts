@@ -6,6 +6,7 @@ import {
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
+import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
 
@@ -112,7 +113,18 @@ export async function readAuthenticationSettings({
     const settings = await _getAuthenticationSettings({ state, globalConfig });
     return settings;
   } catch (error) {
-    throw new FrodoError(`Error reading authentication settings`, error);
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.message ===
+        'This operation is not available in PingOne Advanced Identity Cloud.'
+    ) {
+      return null;
+    } else {
+      throw new FrodoError(
+        `Error reading ${getCurrentRealmName(state) + ' realm'} authentication settings`,
+        error
+      );
+    }
   }
 }
 
@@ -141,7 +153,10 @@ export async function updateAuthenticationSettings({
     });
     return response;
   } catch (error) {
-    throw new FrodoError(`Error updating authentication settings`, error);
+    throw new FrodoError(
+      `Error updating ${getCurrentRealmName(state) + ' realm'} authentication settings`,
+      error
+    );
   }
 }
 
@@ -174,7 +189,10 @@ export async function exportAuthenticationSettings({
     });
     return exportData;
   } catch (error) {
-    throw new FrodoError(`Error exporting authentication settings`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} authentication settings`,
+      error
+    );
   }
 }
 
@@ -202,6 +220,9 @@ export async function importAuthenticationSettings({
     });
     return response;
   } catch (error) {
-    throw new FrodoError(`Error importing authentication settings`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} authentication settings`,
+      error
+    );
   }
 }

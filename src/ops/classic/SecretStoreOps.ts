@@ -15,6 +15,7 @@ import {
   updateProgressIndicator,
 } from '../../utils/Console';
 import { getMetadata } from '../../utils/ExportImportUtils';
+import { getCurrentRealmName } from '../../utils/ForgeRockUtils';
 import { FrodoError } from '../FrodoError';
 import { ExportMetaData } from '../OpsTypes';
 
@@ -232,9 +233,14 @@ export async function readSecretStore({
     if (found.length === 1) {
       return found[0];
     }
-    throw new Error(`Secret store with id '${secretStoreId}' not found!`);
+    throw new Error(
+      `${getCurrentRealmName(state) + ' realm'} secret store with id '${secretStoreId}' not found!`
+    );
   } catch (error) {
-    throw new FrodoError(`Error reading secret store ${secretStoreId}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} secret store ${secretStoreId}`,
+      error
+    );
   }
 }
 
@@ -259,7 +265,10 @@ export async function readSecretStores({
     debugMessage({ message: `SecretStoreOps.readSecretStores: end`, state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error reading secret stores`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} secret stores`,
+      error
+    );
   }
 }
 
@@ -302,7 +311,7 @@ export async function readSecretStoreMappings({
       //Ignore this case since not all secret stores have mappings
     } else {
       throw new FrodoError(
-        `Error reading secret store mappings for the secret store '${secretStoreId}'`,
+        `Error reading secret store mappings for the ${getCurrentRealmName(state) + ' realm'} secret store '${secretStoreId}'`,
         error
       );
     }
@@ -342,7 +351,7 @@ export async function exportSecretStore({
     return exportData;
   } catch (error) {
     throw new FrodoError(
-      `Error exporting secret store ${secretStoreId}`,
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} secret store ${secretStoreId}`,
       error
     );
   }
@@ -370,13 +379,13 @@ export async function exportSecretStores({
     const secretStores = await readSecretStores({ globalConfig, state });
     indicatorId = createProgressIndicator({
       total: secretStores.length,
-      message: 'Exporting secret stores...',
+      message: `Exporting ${getCurrentRealmName(state) + ' realm'} secret stores...`,
       state,
     });
     for (const secretStore of secretStores) {
       updateProgressIndicator({
         id: indicatorId,
-        message: `Exporting secret store ${secretStore._id}`,
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} secret store ${secretStore._id}`,
         state,
       });
       try {
@@ -388,7 +397,7 @@ export async function exportSecretStores({
         });
       } catch (e) {
         printMessage({
-          message: `Unable to export mapping for secret store with id '${secretStore._id}': ${e.message}`,
+          message: `Unable to export mapping for ${getCurrentRealmName(state) + ' realm'} secret store with id '${secretStore._id}': ${e.message}`,
           type: 'error',
           state,
         });
@@ -398,7 +407,7 @@ export async function exportSecretStores({
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${secretStores.length} secret stores.`,
+      message: `Exported ${secretStores.length} ${getCurrentRealmName(state) + ' realm'} secret stores.`,
       state,
     });
     debugMessage({ message: `SecretStoreOps.exportSecretStores: end`, state });
@@ -406,11 +415,14 @@ export async function exportSecretStores({
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
-      message: `Error exporting secret stores.`,
+      message: `Error exporting ${getCurrentRealmName(state) + ' realm'} secret stores.`,
       status: 'fail',
       state,
     });
-    throw new FrodoError(`Error reading secret stores`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} secret stores`,
+      error
+    );
   }
 }
 
@@ -524,7 +536,10 @@ export async function importSecretStores({
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error importing secret stores`, errors);
+      throw new FrodoError(
+        `Error importing ${getCurrentRealmName(state) + ' realm'} secret stores`,
+        errors
+      );
     }
     debugMessage({ message: `SecretStoreOps.importSecretStores: end`, state });
     return response;
@@ -533,6 +548,9 @@ export async function importSecretStores({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error importing secret stores`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} secret stores`,
+      error
+    );
   }
 }

@@ -677,12 +677,25 @@ export async function getResult<R>(
       resultCallback(undefined, result);
     }
     return result;
-  } catch (e) {
-    const error = errorMessage ? new FrodoError(errorMessage, e) : e;
-    if (resultCallback) {
-      resultCallback(error, undefined);
-    } else {
-      throw error;
+  } catch (error) {
+    if (
+      !(
+        // operation is not available in PingOne Advanced Identity Cloud
+        (
+          error.httpStatus === 403 &&
+          error.httpMessage ===
+            'This operation is not available in PingOne Advanced Identity Cloud.'
+        )
+      )
+    ) {
+      const finalError = errorMessage
+        ? new FrodoError(errorMessage, error)
+        : error;
+      if (resultCallback) {
+        resultCallback(finalError, undefined);
+      } else {
+        throw finalError;
+      }
     }
   }
 }

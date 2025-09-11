@@ -19,6 +19,7 @@ import {
   convertBase64TextToArray,
   getMetadata,
 } from '../utils/ExportImportUtils';
+import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import { readOAuth2Provider } from './OAuth2ProviderOps';
 import { ExportMetaData } from './OpsTypes';
@@ -305,7 +306,18 @@ export async function readOAuth2Clients({
     const clients = (await _getOAuth2Clients({ state })).result;
     return clients;
   } catch (error) {
-    throw new FrodoError(`Error reading oauth2 clients`, error);
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.message ===
+        'This operation is not available in PingOne Advanced Identity Cloud.'
+    ) {
+      return [];
+    } else {
+      throw new FrodoError(
+        `Error reading ${getCurrentRealmName(state) + ' realm'} oauth2 clients`,
+        error
+      );
+    }
   }
 }
 
@@ -324,7 +336,10 @@ export async function readOAuth2Client({
   try {
     return _getOAuth2Client({ id: clientId, state });
   } catch (error) {
-    throw new FrodoError(`Error reading oauth2 client ${clientId}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} oauth2 client ${clientId}`,
+      error
+    );
   }
 }
 
@@ -359,10 +374,15 @@ export async function createOAuth2Client({
       });
       return result;
     } catch (error) {
-      throw new FrodoError(`Error creating oauth2 client ${clientId}`, error);
+      throw new FrodoError(
+        `Error creating ${getCurrentRealmName(state) + ' realm'} oauth2 client ${clientId}`,
+        error
+      );
     }
   }
-  throw new FrodoError(`OAuth2 client ${clientId} already exists!`);
+  throw new FrodoError(
+    `${getCurrentRealmName(state) + ' realm'} oAuth2 client ${clientId} already exists!`
+  );
 }
 
 /**
@@ -423,10 +443,16 @@ export async function updateOAuth2Client({
         });
         return response;
       } catch (error) {
-        throw new FrodoError(`Error updating oauth2 client ${clientId}`, error);
+        throw new FrodoError(
+          `Error updating ${getCurrentRealmName(state) + ' realm'} oauth2 client ${clientId}`,
+          error
+        );
       }
     } else {
-      throw new FrodoError(`Error updating oauth2 client ${clientId}`, error);
+      throw new FrodoError(
+        `Error updating ${getCurrentRealmName(state) + ' realm'} oauth2 client ${clientId}`,
+        error
+      );
     }
   }
 }
@@ -469,7 +495,10 @@ export async function deleteOAuth2Clients({
     errors.push(error);
   }
   if (errors.length) {
-    throw new FrodoError(`Error deleting oauth2 clients`, errors);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} oauth2 clients`,
+      errors
+    );
   }
   debugMessage({
     message: `OAuth2ClientOps.deleteOAuth2Clients: end`,
@@ -493,7 +522,10 @@ export async function deleteOAuth2Client({
   try {
     return _deleteOAuth2Client({ id: clientId, state });
   } catch (error) {
-    throw new FrodoError(`Error deleting oauth2 client ${clientId}`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} oauth2 client ${clientId}`,
+      error
+    );
   }
 }
 
@@ -538,7 +570,7 @@ async function exportOAuth2ClientDependencies(
               )
             ) {
               throw new FrodoError(
-                `Error retrieving script ${scriptId} referenced by ${key} key in client ${clientData['_id']}`,
+                `Error retrieving ${getCurrentRealmName(state) + ' realm'} script ${scriptId} referenced by ${key} key in client ${clientData['_id']}`,
                 error
               );
             }
@@ -577,13 +609,13 @@ export async function exportOAuth2Clients({
     const clients = await readOAuth2Clients({ state });
     indicatorId = createProgressIndicator({
       total: clients.length,
-      message: 'Exporting OAuth2 clients...',
+      message: `Exporting ${getCurrentRealmName(state) + ' realm'} OAuth2 clients...`,
       state,
     });
     for (const client of clients) {
       updateProgressIndicator({
         id: indicatorId,
-        message: `Exporting OAuth2 client ${client._id}`,
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} OAuth2 client ${client._id}`,
         state,
       });
       try {
@@ -603,14 +635,17 @@ export async function exportOAuth2Clients({
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${clients.length} OAuth2 clients.`,
+      message: `Exported ${clients.length} ${getCurrentRealmName(state) + ' realm'} OAuth2 clients.`,
       state,
     });
   } catch (error) {
     errors.push(error);
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error exporting oauth2 clients`, errors);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} oauth2 clients`,
+      errors
+    );
   }
   debugMessage({ message: `OAuth2ClientOps.exportOAuth2Clients: end`, state });
   return exportData;
@@ -650,7 +685,10 @@ export async function exportOAuth2Client({
     errors.push(error);
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error exporting oauth2 client ${clientId}`, errors);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} oauth2 client ${clientId}`,
+      errors
+    );
   }
   debugMessage({ message: `OAuth2ClientOps.exportOAuth2Client: end`, state });
   return exportData;
@@ -680,7 +718,7 @@ async function importOAuth2ClientDependencies(
             await updateScript({ scriptId, scriptData, state });
           } catch (error) {
             throw new FrodoError(
-              `Error importing script dependency ${scriptId}`,
+              `Error importing ${getCurrentRealmName(state) + ' realm'} script dependency ${scriptId}`,
               error
             );
           }
@@ -732,10 +770,15 @@ export async function importOAuth2Client({
     }
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing oauth2 client ${clientId}`, errors);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} oauth2 client ${clientId}`,
+      errors
+    );
   }
   if (0 === imported.length) {
-    throw new FrodoError(`Oauth2 client ${clientId} not found in import data!`);
+    throw new FrodoError(
+      `${getCurrentRealmName(state) + ' realm'} oauth2 client ${clientId} not found in import data!`
+    );
   }
   return response;
 }
@@ -774,7 +817,10 @@ export async function importFirstOAuth2Client({
     break;
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing first oauth2 client`, errors);
+    throw new FrodoError(
+      `Error importing first ${getCurrentRealmName(state) + ' realm'} oauth2 client`,
+      errors
+    );
   }
   if (0 === imported.length) {
     throw new FrodoError(`No oauth2 clients found in import data!`);
@@ -815,7 +861,10 @@ export async function importOAuth2Clients({
     }
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing oauth2 clients`, errors);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} oauth2 clients`,
+      errors
+    );
   }
   return response;
 }

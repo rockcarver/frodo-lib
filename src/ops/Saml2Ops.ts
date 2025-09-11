@@ -27,6 +27,7 @@ import {
   convertTextArrayToBase64Url,
   getMetadata,
 } from '../utils/ExportImportUtils';
+import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { get } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
@@ -334,7 +335,19 @@ export async function readSaml2ProviderStubs({
     const { result } = await _getProviderStubs({ state });
     return result;
   } catch (error) {
-    throw new FrodoError(`Error reading saml2 provider stubs`, error);
+    if (
+      // operation is not available in PingOne Advanced Identity Cloud
+      error.response?.status === 403 &&
+      error.response?.data?.message ===
+        'This operation is not available in PingOne Advanced Identity Cloud.'
+    ) {
+      return [];
+    } else {
+      throw new FrodoError(
+        `Error reading ${getCurrentRealmName(state) + ' realm'} saml2 provider stubs`,
+        error
+      );
+    }
   }
 }
 
@@ -352,7 +365,19 @@ export async function readSaml2EntityIds({
     const entityIds = result.map((stub) => stub.entityId);
     return entityIds;
   } catch (error) {
-    throw new FrodoError(`Error reading saml2 entity ids`, error);
+    if (
+      // operation is not available in PingOne Advanced Identity Cloud
+      error.httpStatus === 403 &&
+      error.httpMessage ===
+        'This operation is not available in PingOne Advanced Identity Cloud.'
+    ) {
+      return [];
+    } else {
+      throw new FrodoError(
+        `Error reading ${getCurrentRealmName(state) + ' realm'} saml2 entity ids`,
+        error
+      );
+    }
   }
 }
 
@@ -372,7 +397,7 @@ export function getSaml2ProviderMetadataUrl({
     return _getProviderMetadataUrl({ entityId, state });
   } catch (error) {
     throw new FrodoError(
-      `Error getting metadata URL for saml2 provider ${entityId}`,
+      `Error getting metadata URL for ${getCurrentRealmName(state) + ' realm'} saml2 provider ${entityId}`,
       error
     );
   }
@@ -431,7 +456,10 @@ async function exportDependencies({
       fileData.script[attrMapperScriptId] = scriptData;
     } catch (error) {
       errors.push(
-        new FrodoError(`Error getting attribute mapper script`, error)
+        new FrodoError(
+          `Error getting ${getCurrentRealmName(state) + ' realm'} attribute mapper script`,
+          error
+        )
       );
     }
   }
@@ -450,7 +478,12 @@ async function exportDependencies({
       scriptData.script = convertBase64TextToArray(scriptData.script as string);
       fileData.script[idpAdapterScriptId] = scriptData;
     } catch (error) {
-      errors.push(new FrodoError(`Error getting idp adapter script`, error));
+      errors.push(
+        new FrodoError(
+          `Error getting ${getCurrentRealmName(state) + ' realm'} idp adapter script`,
+          error
+        )
+      );
     }
   }
   const spAdapterScriptId = get(providerData, [
@@ -468,12 +501,20 @@ async function exportDependencies({
       scriptData.script = convertBase64TextToArray(scriptData.script as string);
       fileData.script[spAdapterScriptId] = scriptData;
     } catch (error) {
-      errors.push(new FrodoError(`Error getting sp adapter script`, error));
+      errors.push(
+        new FrodoError(
+          `Error getting ${getCurrentRealmName(state) + ' realm'} sp adapter script`,
+          error
+        )
+      );
     }
   }
 
   if (errors.length > 0) {
-    throw new FrodoError(`Error exporting saml2 dependencies`, errors);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} saml2 dependencies`,
+      errors
+    );
   }
 
   // const metaDataResponse = await getSaml2ProviderMetadata({
@@ -547,7 +588,9 @@ export async function readSaml2ProviderStub({
     });
     switch (found.resultCount) {
       case 0:
-        throw new FrodoError(`No provider with entity id '${entityId}' found`);
+        throw new FrodoError(
+          `No ${getCurrentRealmName(state) + ' realm'} provider with entity id '${entityId}' found`
+        );
       case 1: {
         debugMessage({
           message: `Saml2Ops.getSaml2ProviderStub: end [entityId=${entityId}]`,
@@ -557,12 +600,12 @@ export async function readSaml2ProviderStub({
       }
       default:
         throw new FrodoError(
-          `Multiple providers with entity id '${entityId}' found`
+          `Multiple ${getCurrentRealmName(state) + ' realm'} providers with entity id '${entityId}' found`
         );
     }
   } catch (error) {
     throw new FrodoError(
-      `Error reading saml2 provider stub ${entityId}`,
+      `Error reading ${getCurrentRealmName(state) + ' realm'} saml2 provider stub ${entityId}`,
       error
     );
   }
@@ -599,7 +642,10 @@ export async function readSaml2Provider({
     });
     return providerData;
   } catch (error) {
-    throw new FrodoError(`Error reading saml2 provider ${entityId}`, error);
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} saml2 provider ${entityId}`,
+      error
+    );
   }
 }
 
@@ -624,7 +670,10 @@ export async function createSaml2Provider({
   try {
     return _createProvider({ location, providerData, metaData, state });
   } catch (error) {
-    throw new FrodoError(`Error creating saml2 provider`, error);
+    throw new FrodoError(
+      `Error creating ${getCurrentRealmName(state) + ' realm'} saml2 provider`,
+      error
+    );
   }
 }
 
@@ -649,7 +698,10 @@ export async function updateSaml2Provider({
   try {
     return _updateProvider({ location, entityId, providerData, state });
   } catch (error) {
-    throw new FrodoError(`Error updating saml2 provider`, error);
+    throw new FrodoError(
+      `Error updating ${getCurrentRealmName(state) + ' realm'} saml2 provider`,
+      error
+    );
   }
 }
 
@@ -684,7 +736,10 @@ export async function deleteSaml2Provider({
     });
     return providerData;
   } catch (error) {
-    throw new FrodoError(`Error deleting saml2 provider ${entityId}`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} saml2 provider ${entityId}`,
+      error
+    );
   }
 }
 
@@ -715,7 +770,10 @@ export async function deleteSaml2Providers({
     });
     return providers;
   } catch (error) {
-    throw new FrodoError(`Error deleting saml2 providers`, error);
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} saml2 providers`,
+      error
+    );
   }
 }
 
@@ -758,7 +816,10 @@ export async function exportSaml2Provider({
     });
     return exportData;
   } catch (error) {
-    throw new FrodoError(`Error exporting saml2 provider ${entityId}`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} saml2 provider ${entityId}`,
+      error
+    );
   }
 }
 
@@ -780,14 +841,14 @@ export async function exportSaml2Providers({
     const stubs = await readSaml2ProviderStubs({ state });
     indicatorId = createProgressIndicator({
       total: stubs.length,
-      message: 'Exporting SAML2 providers...',
+      message: `Exporting ${getCurrentRealmName(state) + ' realm'} SAML2 providers...`,
       state,
     });
     for (const stub of stubs) {
       try {
         updateProgressIndicator({
           id: indicatorId,
-          message: `Exporting SAML2 provider ${stub._id}`,
+          message: `Exporting ${getCurrentRealmName(state) + ' realm'} SAML2 provider ${stub._id}`,
           state,
         });
         const providerData = await _getProviderByLocationAndId({
@@ -805,24 +866,41 @@ export async function exportSaml2Providers({
         }
         fileData.saml[stub.location][providerData._id] = providerData;
       } catch (error) {
-        errors.push(
-          new FrodoError(`Error exporting saml2 provider ${stub._id}`, error)
-        );
+        if (
+          !(
+            // operation is not available in PingOne Advanced Identity Cloud
+            (
+              error.httpStatus === 403 &&
+              error.httpMessage ===
+                'This operation is not available in PingOne Advanced Identity Cloud.'
+            )
+          )
+        ) {
+          errors.push(
+            new FrodoError(
+              `Error exporting ${getCurrentRealmName(state) + ' realm'} saml2 provider ${stub._id}`,
+              error
+            )
+          );
+        }
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error exporting saml2 providers`, errors);
+      throw new FrodoError(
+        `Error exporting ${getCurrentRealmName(state) + ' realm'} saml2 providers`,
+        errors
+      );
     }
     stopProgressIndicator({
       id: indicatorId,
-      message: `Exported ${stubs.length} SAML2 providers.`,
+      message: `Exported ${stubs.length} ${getCurrentRealmName(state) + ' realm'} SAML2 providers.`,
       state,
     });
     return fileData;
   } catch (error) {
     stopProgressIndicator({
       id: indicatorId,
-      message: `Error exporting saml2 providers`,
+      message: `Error exporting ${getCurrentRealmName(state) + ' realm'} saml2 providers`,
       status: 'fail',
       state,
     });
@@ -830,7 +908,10 @@ export async function exportSaml2Providers({
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error exporting saml2 providers`, error);
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} saml2 providers`,
+      error
+    );
   }
 }
 
@@ -869,7 +950,10 @@ export async function importDependencies({
       await updateScript({ scriptId: attrMapperScriptId, scriptData, state });
     } catch (error) {
       errors.push(
-        new FrodoError(`Error getting attribute mapper script`, error)
+        new FrodoError(
+          `Error getting ${getCurrentRealmName(state) + ' realm'} attribute mapper script`,
+          error
+        )
       );
     }
   }
@@ -892,7 +976,10 @@ export async function importDependencies({
       await updateScript({ scriptId: idpAdapterScriptId, scriptData, state });
     } catch (error) {
       errors.push(
-        new FrodoError(`Error getting attribute mapper script`, error)
+        new FrodoError(
+          `Error getting ${getCurrentRealmName(state) + ' realm'} attribute mapper script`,
+          error
+        )
       );
     }
   }
@@ -915,12 +1002,18 @@ export async function importDependencies({
       await updateScript({ scriptId: spAdapterScriptId, scriptData, state });
     } catch (error) {
       errors.push(
-        new FrodoError(`Error getting attribute mapper script`, error)
+        new FrodoError(
+          `Error getting ${getCurrentRealmName(state) + ' realm'} attribute mapper script`,
+          error
+        )
       );
     }
   }
   if (errors.length > 0) {
-    throw new FrodoError(`Error importing saml2 dependencies`, errors);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} saml2 dependencies`,
+      errors
+    );
   }
   debugMessage({ message: `Saml2Ops.importDependencies: end`, state });
 }
@@ -993,7 +1086,10 @@ export async function importSaml2Provider({
         try {
           response = await _updateProvider({ location, providerData, state });
         } catch (error) {
-          throw new FrodoError(`Error creating saml2 provider`, error);
+          throw new FrodoError(
+            `Error creating ${getCurrentRealmName(state) + ' realm'} saml2 provider`,
+            error
+          );
         }
       }
     } else {
@@ -1002,7 +1098,10 @@ export async function importSaml2Provider({
       );
     }
   } catch (error) {
-    throw new FrodoError(`Error importing saml2 provider ${entityId}`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} saml2 provider ${entityId}`,
+      error
+    );
   }
   debugMessage({ message: `Saml2Ops.importSaml2Provider: end`, state });
   return response;
@@ -1074,14 +1173,20 @@ export async function importSaml2Providers({
       }
     }
     if (errors.length > 0) {
-      throw new FrodoError(`Error importing saml2 providers`, errors);
+      throw new FrodoError(
+        `Error importing ${getCurrentRealmName(state) + ' realm'} saml2 providers`,
+        errors
+      );
     }
   } catch (error) {
     // re-throw previously caught error
     if (errors.length > 0) {
       throw error;
     }
-    throw new FrodoError(`Error importing saml2 providers`, error);
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} saml2 providers`,
+      error
+    );
   }
   debugMessage({ message: `Saml2Ops.importSaml2Providers: end`, state });
   return response;
