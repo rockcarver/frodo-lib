@@ -25,11 +25,7 @@ import {
   updateProvider,
 } from '../api/Saml2Api';
 import { type ScriptSkeleton } from '../api/ScriptApi';
-import {
-  getSocialIdentityProviders,
-  putProviderByTypeAndId,
-  type SocialIdpSkeleton,
-} from '../api/SocialIdentityProvidersApi';
+import { type SocialIdpSkeleton } from '../api/SocialIdentityProvidersApi';
 import {
   deleteTree,
   getTree,
@@ -73,6 +69,10 @@ import {
   updateEmailTemplate,
 } from './EmailTemplateOps';
 import { FrodoError } from './FrodoError';
+import {
+  createSocialIdentityProvider,
+  readSocialIdentityProviders,
+} from './IdpOps';
 import {
   findOrphanedNodes as _findOrphanedNodes,
   isCloudOnlyNode,
@@ -1012,7 +1012,7 @@ export async function exportJourney({
         !socialProviderPromise &&
         nodeType === 'SocialProviderHandlerNode'
       ) {
-        socialProviderPromise = getSocialIdentityProviders({ state });
+        socialProviderPromise = readSocialIdentityProviders({ state });
       }
 
       // If this is a SelectIdPNode and filteredProviters is not already set to empty array set filteredSocialProviers.
@@ -1140,7 +1140,7 @@ export async function exportJourney({
             !socialProviderPromise &&
             innerNodeType === 'SocialProviderHandlerNode'
           ) {
-            socialProviderPromise = getSocialIdentityProviders({ state });
+            socialProviderPromise = readSocialIdentityProviders({ state });
           }
 
           // If this is a SelectIdPNode and filteredProviters is not already set to empty array set filteredSocialProviers.
@@ -1260,7 +1260,7 @@ export async function exportJourney({
             newline: false,
             state,
           });
-        for (const socialProvider of socialProviders.result) {
+        for (const socialProvider of socialProviders) {
           // If the list of socialIdentityProviders needs to be filtered based on the
           // filteredProviders property of a SelectIdPNode do it here.
           if (
@@ -1712,41 +1712,22 @@ export async function importJourney({
             newline: false,
             state,
           });
+        const providerType = providerData['_type']['_id'] + '';
         try {
-          await putProviderByTypeAndId({
-            type: providerData['_type']['_id'],
-            id: providerId,
+          await createSocialIdentityProvider({
+            providerType,
+            providerId,
             providerData,
+            errorIfExists: false,
             state,
           });
         } catch (error) {
-          if (
-            error.response?.status === 500 &&
-            error.response?.data?.message ===
-              'Unable to update SMS config: Data validation failed for the attribute, Redirect after form post URL'
-          ) {
-            providerData['redirectAfterFormPostURI'] = '';
-            try {
-              await putProviderByTypeAndId({
-                type: providerData['_type']['_id'],
-                id: providerId,
-                providerData,
-                state,
-              });
-            } catch (importError2) {
-              throw new FrodoError(
-                `Error importing ${getCurrentRealmName(state) + ' realm'} provider ${providerId} in journey ${treeId}`,
-                importError2
-              );
-            }
-          } else {
-            errors.push(
-              new FrodoError(
-                `Error importing ${getCurrentRealmName(state) + ' realm'} provider ${providerId} in journey ${treeId}`,
-                error
-              )
-            );
-          }
+          errors.push(
+            new FrodoError(
+              `Error importing ${getCurrentRealmName(state) + ' realm'} provider ${providerId} in journey ${treeId}`,
+              error
+            )
+          );
         }
       }
     }

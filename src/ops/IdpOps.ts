@@ -480,22 +480,25 @@ export async function createSocialIdentityProvider({
   providerType,
   providerId,
   providerData,
+  errorIfExists = true,
   state,
 }: {
   providerType: string;
   providerId: string;
   providerData: SocialIdpSkeleton;
+  errorIfExists?: boolean;
   state: State;
 }): Promise<SocialIdpSkeleton> {
   debugMessage({
     message: `IdpOps.createSocialIdentityProvider: start`,
     state,
   });
+  let result: SocialIdpSkeleton;
   try {
-    await readSocialIdentityProvider({ providerId, state });
+    result = await readSocialIdentityProvider({ providerId, state });
   } catch (error) {
     try {
-      const result = await updateSocialIdentityProvider({
+      result = await updateSocialIdentityProvider({
         providerType,
         providerId,
         providerData,
@@ -513,9 +516,10 @@ export async function createSocialIdentityProvider({
       );
     }
   }
-  throw new FrodoError(
-    `${getCurrentRealmName(state) + ' realm'} provider ${providerId} already exists`
-  );
+  if (errorIfExists) {
+    throw new FrodoError(`${getCurrentRealmName(state) + ' realm'} provider ${providerId} already exists`);
+  }
+  return result;
 }
 
 export async function updateSocialIdentityProvider({
@@ -547,11 +551,26 @@ export async function updateSocialIdentityProvider({
     return response;
   } catch (error) {
     if (
+      error.response?.status === 500 &&
+      error.response?.data?.message ===
+        'Unable to update SMS config: Data validation failed for the attribute, Redirect after form post URL'
+    ) {
+      providerData['redirectAfterFormPostURI'] = '';
+      try {
+        await _putProviderByTypeAndId({
+          type: providerType,
+          id: providerId,
+          providerData,
+          state,
+        });
+      } catch (importError2) {
+        throw new FrodoError(`Error updating provider ${providerId}`, error);
+      }
+    } else if (
       error.response?.status === 400 &&
       error.response?.data?.message === 'Invalid attribute specified.'
     ) {
       const { validAttributes } = error.response.data.detail;
-      validAttributes.push('_id', '_type');
       for (const attribute of Object.keys(providerData)) {
         if (!validAttributes.includes(attribute)) {
           if (state.getVerbose())
@@ -566,17 +585,21 @@ export async function updateSocialIdentityProvider({
       }
       if (state.getVerbose())
         printMessage({ message: '\n', type: 'warn', newline: false, state });
-      const response = await _putProviderByTypeAndId({
-        type: providerType,
-        id: providerId,
-        providerData,
-        state,
-      });
-      debugMessage({
-        message: `IdpOps.updateSocialIdentityProvider: end (after retry)`,
-        state,
-      });
-      return response;
+      try {
+        const response = await _putProviderByTypeAndId({
+          type: providerType,
+          id: providerId,
+          providerData,
+          state,
+        });
+        debugMessage({
+          message: `IdpOps.updateSocialIdentityProvider: end (after retry)`,
+          state,
+        });
+        return response;
+      } catch (importError2) {
+        throw new FrodoError(`Error updating provider ${providerId}`, error);
+      }
     } else {
       // unhandleable error
       throw new FrodoError(

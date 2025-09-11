@@ -91,7 +91,7 @@ export class FrodoError extends Error {
               ? `\n    Message: ${this.httpMessage}`
               : '';
             combinedMessage += this.httpDetail
-              ? `\n    Detail: ${this.httpDetail}`
+              ? `\n    Detail: ${typeof this.httpDetail === 'object' ? JSON.stringify(this.httpDetail) : this.httpDetail}`
               : '';
             combinedMessage += this.httpDescription
               ? `\n    Description: ${this.httpDescription}`

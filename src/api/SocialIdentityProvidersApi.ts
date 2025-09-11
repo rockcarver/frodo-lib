@@ -176,11 +176,6 @@ export async function putProviderByTypeAndId({
   providerData: SocialIdpSkeleton;
   state: State;
 }) {
-  // If performing an update (not create), idp updates will throw an HTTP 500 error unless the redirectAfterFormPostURI attribute has a value.
-  // If no redirectAfterFormPostURI is provided, importing with an empty string as its value will perform the same function without the 500 error.
-  if (providerData.redirectAfterFormPostURI === undefined) {
-    providerData.redirectAfterFormPostURI = '';
-  }
   // until we figure out a way to use transport keys in Frodo,
   // we'll have to drop those encrypted attributes.
   const cleanData = deleteDeepByKey(providerData, '-encrypted');
