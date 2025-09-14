@@ -25,7 +25,7 @@ if (process.env.FRODO_MOCK) {
 const timeout = 30000;
 
 // agentkeepalive
-const maxSockets = 100;
+const maxSockets = 500;
 const maxFreeSockets = 10;
 const keepAlive = false;
 
