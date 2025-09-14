@@ -7,6 +7,7 @@ import {
   createCircleOfTrust,
   updateCircleOfTrust,
 } from '../api/CirclesOfTrustApi';
+import { VariableSkeleton } from '../api/cloud/VariablesApi';
 import {
   deleteNode,
   getNode,
@@ -63,6 +64,7 @@ import {
 } from '../utils/ForgeRockUtils';
 import { findInArray } from '../utils/JsonUtils';
 import { readCirclesOfTrust } from './CirclesOfTrustOps';
+import { resolveVariable, updateVariable } from './cloud/VariablesOps';
 import {
   type EmailTemplateSkeleton,
   readEmailTemplate,
@@ -563,6 +565,7 @@ export interface SingleTreeExportInterface {
   saml2Entities: Record<string, Saml2ProviderSkeleton>;
   circlesOfTrust: Record<string, CircleOfTrustSkeleton>;
   tree: TreeSkeleton;
+  variable: Record<string, VariableSkeleton>;
 }
 
 export interface MultiTreeExportInterface {
@@ -899,6 +902,7 @@ export async function exportJourney({
         state,
       });
 
+    const variables: Record<string, VariableSkeleton> = {};
     const nodePromises = [];
     const scriptPromises = [];
     const emailTemplatePromises = [];
@@ -965,7 +969,11 @@ export async function exportJourney({
         if (emailTemplateNodes.includes(nodeType)) {
           try {
             const emailTemplate = await readEmailTemplate({
-              templateId: nodeObject.emailTemplateName,
+              templateId: await resolveVariable({
+                input: nodeObject.emailTemplateName,
+                variables,
+                state,
+              }),
               state,
             });
             emailTemplatePromises.push(emailTemplate);
@@ -1168,6 +1176,24 @@ export async function exportJourney({
           error
         )
       );
+    }
+
+    // Process variables
+    exportData.variable = variables;
+    if (verbose && Object.keys(variables).length > 0) {
+      printMessage({
+        message: '\n  - Variables:',
+        newline: false,
+        state,
+      });
+      for (const variable of Object.values(variables)) {
+        printMessage({
+          message: `\n    - ${variable._id}`,
+          type: 'info',
+          newline: false,
+          state,
+        });
+      }
     }
 
     // Process email templates
@@ -1590,6 +1616,44 @@ export async function importJourney({
     let newUuid = '';
     const uuidMap: { [k: string]: string } = {};
     const treeId = importData.tree._id;
+
+    // Process variables
+    if (
+      deps &&
+      importData.variable &&
+      Object.entries(importData.variable).length > 0
+    ) {
+      if (verbose)
+        printMessage({ message: '  - Variables:', newline: false, state });
+      for (const [variableId, variableObject] of Object.entries(
+        importData.variable
+      )) {
+        if (verbose)
+          printMessage({
+            message: `\n    - ${variableId}`,
+            type: 'info',
+            newline: false,
+            state,
+          });
+        try {
+          await updateVariable({
+            variableId,
+            value: variableObject.value,
+            description: variableObject.description,
+            expressionType: variableObject.expressionType,
+            state,
+          });
+        } catch (error) {
+          errors.push(
+            new FrodoError(
+              `Error importing variable ${variableId} referenced by journey ${treeId}`,
+              error
+            )
+          );
+        }
+        if (verbose) printMessage({ message: '', state });
+      }
+    }
 
     // Process scripts
     if (
