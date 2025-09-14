@@ -1083,7 +1083,7 @@ export async function importSaml2Provider({
           state,
         });
         if (location === 'remote') {
-          var updateResponse = await _updateProvider({
+          const updateResponse = await _updateProvider({
             location,
             providerData,
             state,

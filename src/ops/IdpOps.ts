@@ -517,7 +517,9 @@ export async function createSocialIdentityProvider({
     }
   }
   if (errorIfExists) {
-    throw new FrodoError(`${getCurrentRealmName(state) + ' realm'} provider ${providerId} already exists`);
+    throw new FrodoError(
+      `${getCurrentRealmName(state) + ' realm'} provider ${providerId} already exists`
+    );
   }
   return result;
 }
