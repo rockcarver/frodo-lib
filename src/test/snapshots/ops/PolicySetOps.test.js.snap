@@ -57,8 +57,9 @@ exports[`PolicySetOps createPolicySet() 1: Create non-existing policy set [Frodo
 exports[`PolicySetOps createPolicySet() 2: Create existing policy set [FrodoTestPolicySet4] 1`] = `
 "Error creating alpha realm policy set undefined
   HTTP client error
-    Code: ERR_BAD_REQUEST
+    URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realms/alpha/applications/?_action=create
     Status: 409
+    Code: ERR_BAD_REQUEST
     Reason: Conflict
     Message: Application already exists"
 `;
@@ -68,8 +69,9 @@ exports[`PolicySetOps deletePolicySet() 1: Delete existing policy set [FrodoTest
 exports[`PolicySetOps deletePolicySet() 2: Delete non-existing policy set [DoesNotExist] 1`] = `
 "Error deleting alpha realm policy set DoesNotExist
   HTTP client error
-    Code: ERR_BAD_REQUEST
+    URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realms/alpha/applications/DoesNotExist
     Status: 404
+    Code: ERR_BAD_REQUEST
     Reason: Not Found
     Message: DoesNotExist application not found in realm."
 `;
@@ -201,8 +203,9 @@ exports[`PolicySetOps exportPolicySet() 2: Export existing policy set w/ deps [F
 exports[`PolicySetOps exportPolicySet() 3: Export non-existing policy set [DoesNotExist] 1`] = `
 "Error exporting alpha realm policy set DoesNotExist
   HTTP client error
-    Code: ERR_BAD_REQUEST
+    URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realms/alpha/applications/DoesNotExist
     Status: 404
+    Code: ERR_BAD_REQUEST
     Reason: Not Found
     Message: Unable to retrieve application under realm /alpha."
 `;
@@ -963,8 +966,9 @@ exports[`PolicySetOps readPolicySet() 1: Get existing policy set [FrodoTestPolic
 exports[`PolicySetOps readPolicySet() 2: Get non-existing policy set [DoesNotExist] 1`] = `
 "Error reading alpha realm policy set DoesNotExist
   HTTP client error
-    Code: ERR_BAD_REQUEST
+    URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realms/alpha/applications/DoesNotExist
     Status: 404
+    Code: ERR_BAD_REQUEST
     Reason: Not Found
     Message: Unable to retrieve application under realm /alpha."
 `;
@@ -1388,8 +1392,9 @@ exports[`PolicySetOps updatePolicySet() 1: Update existing policy set [FrodoTest
 exports[`PolicySetOps updatePolicySet() 2: Update non-existing policy set [FrodoTestPolicySet6] 1`] = `
 "Error updating alpha realm policy set undefined
   HTTP client error
-    Code: ERR_BAD_REQUEST
+    URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realms/alpha/applications/FrodoTestPolicySet6
     Status: 404
+    Code: ERR_BAD_REQUEST
     Reason: Not Found
     Message: FrodoTestPolicySet6 not found."
 `;
