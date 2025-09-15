@@ -1,4 +1,4 @@
-import { getScript, type ScriptSkeleton } from '../api/ScriptApi';
+import { type ScriptSkeleton } from '../api/ScriptApi';
 import {
   deleteProviderByTypeAndId,
   getSocialIdentityProviders as _getSocialIdentityProviders,
@@ -22,7 +22,7 @@ import {
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
-import { updateScript } from './ScriptOps';
+import { readScript, updateScript } from './ScriptOps';
 
 export type Idp = {
   /**
@@ -721,7 +721,7 @@ export async function exportSocialIdentityProvider({
     exportData.idp[idpData._id] = idpData;
     if (idpData.transform) {
       try {
-        const scriptData = await getScript({
+        const scriptData = await readScript({
           scriptId: idpData.transform,
           state,
         });
@@ -775,7 +775,7 @@ export async function exportSocialIdentityProviders({
         });
         exportData.idp[idpData._id] = idpData;
         if (options.deps && idpData.transform) {
-          const scriptData = await getScript({
+          const scriptData = await readScript({
             scriptId: idpData.transform,
             state,
           });
