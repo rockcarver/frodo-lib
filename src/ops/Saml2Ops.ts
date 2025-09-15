@@ -1082,6 +1082,14 @@ export async function importSaml2Provider({
           metaData,
           state,
         });
+        if (location === 'remote') {
+          const updateResponse = await _updateProvider({
+            location,
+            providerData,
+            state,
+          });
+          response = { ...response, ...updateResponse };
+        }
       } catch (createProviderErr) {
         try {
           response = await _updateProvider({ location, providerData, state });

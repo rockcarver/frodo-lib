@@ -7,6 +7,7 @@ import {
   createCircleOfTrust,
   updateCircleOfTrust,
 } from '../api/CirclesOfTrustApi';
+import { VariableSkeleton } from '../api/cloud/VariablesApi';
 import {
   deleteNode,
   getNode,
@@ -25,11 +26,7 @@ import {
   updateProvider,
 } from '../api/Saml2Api';
 import { type ScriptSkeleton } from '../api/ScriptApi';
-import {
-  getSocialIdentityProviders,
-  putProviderByTypeAndId,
-  type SocialIdpSkeleton,
-} from '../api/SocialIdentityProvidersApi';
+import { type SocialIdpSkeleton } from '../api/SocialIdentityProvidersApi';
 import {
   deleteTree,
   getTree,
@@ -67,12 +64,17 @@ import {
 } from '../utils/ForgeRockUtils';
 import { findInArray } from '../utils/JsonUtils';
 import { readCirclesOfTrust } from './CirclesOfTrustOps';
+import { resolveVariable, updateVariable } from './cloud/VariablesOps';
 import {
   type EmailTemplateSkeleton,
   readEmailTemplate,
   updateEmailTemplate,
 } from './EmailTemplateOps';
 import { FrodoError } from './FrodoError';
+import {
+  createSocialIdentityProvider,
+  readSocialIdentityProviders,
+} from './IdpOps';
 import {
   findOrphanedNodes as _findOrphanedNodes,
   isCloudOnlyNode,
@@ -563,6 +565,7 @@ export interface SingleTreeExportInterface {
   saml2Entities: Record<string, Saml2ProviderSkeleton>;
   circlesOfTrust: Record<string, CircleOfTrustSkeleton>;
   tree: TreeSkeleton;
+  variable: Record<string, VariableSkeleton>;
 }
 
 export interface MultiTreeExportInterface {
@@ -899,6 +902,7 @@ export async function exportJourney({
         state,
       });
 
+    const variables: Record<string, VariableSkeleton> = {};
     const nodePromises = [];
     const scriptPromises = [];
     const emailTemplatePromises = [];
@@ -965,7 +969,11 @@ export async function exportJourney({
         if (emailTemplateNodes.includes(nodeType)) {
           try {
             const emailTemplate = await readEmailTemplate({
-              templateId: nodeObject.emailTemplateName,
+              templateId: await resolveVariable({
+                input: nodeObject.emailTemplateName,
+                variables,
+                state,
+              }),
               state,
             });
             emailTemplatePromises.push(emailTemplate);
@@ -1012,7 +1020,7 @@ export async function exportJourney({
         !socialProviderPromise &&
         nodeType === 'SocialProviderHandlerNode'
       ) {
-        socialProviderPromise = getSocialIdentityProviders({ state });
+        socialProviderPromise = readSocialIdentityProviders({ state });
       }
 
       // If this is a SelectIdPNode and filteredProviters is not already set to empty array set filteredSocialProviers.
@@ -1140,7 +1148,7 @@ export async function exportJourney({
             !socialProviderPromise &&
             innerNodeType === 'SocialProviderHandlerNode'
           ) {
-            socialProviderPromise = getSocialIdentityProviders({ state });
+            socialProviderPromise = readSocialIdentityProviders({ state });
           }
 
           // If this is a SelectIdPNode and filteredProviters is not already set to empty array set filteredSocialProviers.
@@ -1168,6 +1176,24 @@ export async function exportJourney({
           error
         )
       );
+    }
+
+    // Process variables
+    exportData.variable = variables;
+    if (verbose && Object.keys(variables).length > 0) {
+      printMessage({
+        message: '\n  - Variables:',
+        newline: false,
+        state,
+      });
+      for (const variable of Object.values(variables)) {
+        printMessage({
+          message: `\n    - ${variable._id}`,
+          type: 'info',
+          newline: false,
+          state,
+        });
+      }
     }
 
     // Process email templates
@@ -1260,7 +1286,7 @@ export async function exportJourney({
             newline: false,
             state,
           });
-        for (const socialProvider of socialProviders.result) {
+        for (const socialProvider of socialProviders) {
           // If the list of socialIdentityProviders needs to be filtered based on the
           // filteredProviders property of a SelectIdPNode do it here.
           if (
@@ -1591,6 +1617,44 @@ export async function importJourney({
     const uuidMap: { [k: string]: string } = {};
     const treeId = importData.tree._id;
 
+    // Process variables
+    if (
+      deps &&
+      importData.variable &&
+      Object.entries(importData.variable).length > 0
+    ) {
+      if (verbose)
+        printMessage({ message: '  - Variables:', newline: false, state });
+      for (const [variableId, variableObject] of Object.entries(
+        importData.variable
+      )) {
+        if (verbose)
+          printMessage({
+            message: `\n    - ${variableId}`,
+            type: 'info',
+            newline: false,
+            state,
+          });
+        try {
+          await updateVariable({
+            variableId,
+            value: variableObject.value,
+            description: variableObject.description,
+            expressionType: variableObject.expressionType,
+            state,
+          });
+        } catch (error) {
+          errors.push(
+            new FrodoError(
+              `Error importing variable ${variableId} referenced by journey ${treeId}`,
+              error
+            )
+          );
+        }
+        if (verbose) printMessage({ message: '', state });
+      }
+    }
+
     // Process scripts
     if (
       deps &&
@@ -1712,41 +1776,22 @@ export async function importJourney({
             newline: false,
             state,
           });
+        const providerType = providerData['_type']['_id'] + '';
         try {
-          await putProviderByTypeAndId({
-            type: providerData['_type']['_id'],
-            id: providerId,
+          await createSocialIdentityProvider({
+            providerType,
+            providerId,
             providerData,
+            errorIfExists: false,
             state,
           });
         } catch (error) {
-          if (
-            error.response?.status === 500 &&
-            error.response?.data?.message ===
-              'Unable to update SMS config: Data validation failed for the attribute, Redirect after form post URL'
-          ) {
-            providerData['redirectAfterFormPostURI'] = '';
-            try {
-              await putProviderByTypeAndId({
-                type: providerData['_type']['_id'],
-                id: providerId,
-                providerData,
-                state,
-              });
-            } catch (importError2) {
-              throw new FrodoError(
-                `Error importing ${getCurrentRealmName(state) + ' realm'} provider ${providerId} in journey ${treeId}`,
-                importError2
-              );
-            }
-          } else {
-            errors.push(
-              new FrodoError(
-                `Error importing ${getCurrentRealmName(state) + ' realm'} provider ${providerId} in journey ${treeId}`,
-                error
-              )
-            );
-          }
+          errors.push(
+            new FrodoError(
+              `Error importing ${getCurrentRealmName(state) + ' realm'} provider ${providerId} in journey ${treeId}`,
+              error
+            )
+          );
         }
       }
     }

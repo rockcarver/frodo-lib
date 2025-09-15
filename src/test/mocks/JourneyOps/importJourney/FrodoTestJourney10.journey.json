@@ -42,6 +42,7 @@
     "innerTreeOnly": false,
     "uiConfig": {},
     "mustRun": false,
+    "noSession": false,
     "nodes": {
       "5883ff1e-80dd-49f5-a609-120303e1b0cd": {
         "x": 1,

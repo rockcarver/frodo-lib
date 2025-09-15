@@ -10,8 +10,9 @@ exports[`PolicyOps deletePolicy() 1: Delete existing policy [FrodoTestPolicy7] 1
 exports[`PolicyOps deletePolicy() 2: Delete non-existing policy [DoesNotExist] 1`] = `
 "Error deleting alpha realm policy DoesNotExist
   HTTP client error
-    Code: ERR_BAD_REQUEST
+    URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realms/alpha/policies/DoesNotExist
     Status: 404
+    Code: ERR_BAD_REQUEST
     Reason: Not Found
     Message: Policy DoesNotExist does not exist."
 `;
@@ -2786,8 +2787,9 @@ exports[`PolicyOps exportPolicy() 2: Export existing policy w/ deps [FrodoTestPo
 exports[`PolicyOps exportPolicy() 3: Export non-existing policy [DoesNotExist] 1`] = `
 "Error exporting alpha realm policy DoesNotExist
   HTTP client error
-    Code: ERR_BAD_REQUEST
+    URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realms/alpha/policies/DoesNotExist
     Status: 404
+    Code: ERR_BAD_REQUEST
     Reason: Not Found
     Message: Policy DoesNotExist does not exist."
 `;
@@ -4129,8 +4131,9 @@ exports[`PolicyOps readPolicy() 1: Get existing policy [FrodoTestPolicy1] 1`] = 
 exports[`PolicyOps readPolicy() 2: Get non-existing policy [DoesNotExist] 1`] = `
 "Error reading alpha realm policy DoesNotExist
   HTTP client error
-    Code: ERR_BAD_REQUEST
+    URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realms/alpha/policies/DoesNotExist
     Status: 404
+    Code: ERR_BAD_REQUEST
     Reason: Not Found
     Message: Policy DoesNotExist does not exist."
 `;

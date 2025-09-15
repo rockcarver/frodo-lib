@@ -75,11 +75,14 @@ export class FrodoError extends Error {
         case 'AxiosError':
           {
             combinedMessage += '\n  HTTP client error';
-            combinedMessage += this.httpCode
-              ? `\n    Code: ${this.httpCode}`
+            combinedMessage += this.httpStatus
+              ? `\n    URL: ${error['config']['url']}`
               : '';
             combinedMessage += this.httpStatus
               ? `\n    Status: ${this.httpStatus}`
+              : '';
+            combinedMessage += this.httpCode
+              ? `\n    Code: ${this.httpCode}`
               : '';
             combinedMessage += this.httpErrorText
               ? `\n    Error: ${this.httpErrorText}`
@@ -91,7 +94,7 @@ export class FrodoError extends Error {
               ? `\n    Message: ${this.httpMessage}`
               : '';
             combinedMessage += this.httpDetail
-              ? `\n    Detail: ${this.httpDetail}`
+              ? `\n    Detail: ${typeof this.httpDetail === 'object' ? JSON.stringify(this.httpDetail) : this.httpDetail}`
               : '';
             combinedMessage += this.httpDescription
               ? `\n    Description: ${this.httpDescription}`

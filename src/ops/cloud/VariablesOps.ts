@@ -7,6 +7,7 @@ import {
   VariableExpressionType,
   VariableSkeleton,
 } from '../../api/cloud/VariablesApi';
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { decode, encode } from '../../utils/Base64Utils';
 import {
@@ -118,6 +119,16 @@ export type Variable = {
    * @returns {Promise<VariableSkeleton>} a promise that resolves to a variable object
    */
   deleteVariable(variableId: string): Promise<VariableSkeleton>;
+  /**
+   * Attempt to resolve a string to an ESV variable in AIC deployments.
+   * @param {string} input Input string to be evaluated as a possible ESV.
+   * @param {Map<string, VariableSkeleton>} variables Provide an empty or prepopulated map of ESV variables. The function adds any resolved variables to the map that don't exist.
+   * @returns {string} Returns the resolved value of the ESV or the original input string
+   */
+  resolveVariable(
+    input: string,
+    variables: Record<string, VariableSkeleton>
+  ): Promise<string>;
 
   // Deprecated
 
@@ -254,6 +265,12 @@ export default (state: State): Variable => {
     },
     async deleteVariable(variableId: string): Promise<VariableSkeleton> {
       return deleteVariable({ variableId, state });
+    },
+    async resolveVariable(
+      input: string,
+      variables: Record<string, VariableSkeleton>
+    ): Promise<string> {
+      return resolveVariable({ input, variables, state });
     },
 
     // Deprecated
@@ -609,5 +626,44 @@ export async function deleteVariable({
     return result;
   } catch (error) {
     throw new FrodoError(`Error deleting variable ${variableId}`, error);
+  }
+}
+
+/**
+ * Attempt to resolve a string to an ESV variable in AIC deployments.
+ * @param {string} input Input string to be evaluated as a possible ESV.
+ * @param {Map<string, VariableSkeleton>} variables Provide an empty or prepopulated map of ESV variables. The function adds any resolved variables to the map that don't exist.
+ * @returns {string} Returns the resolved value of the ESV or the original input string
+ */
+export async function resolveVariable({
+  input,
+  variables = {},
+  state,
+}: {
+  input: string;
+  variables?: Record<string, VariableSkeleton>;
+  state: State;
+}): Promise<string> {
+  if (state.getDeploymentType() !== Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
+    return input;
+  }
+  // is variable? variable reference example: &{esv.email.template.registration}
+  if (input.startsWith('&{esv.') && input.endsWith('}')) {
+    const name = input.substring(2, input.length - 1).replaceAll('.', '-');
+    // is variable in map of variables?
+    let variable: VariableSkeleton = variables[name];
+    // read variable definition and value
+    if (!variable) {
+      variable = await readVariable({
+        variableId: name,
+        state,
+      });
+      // add variable to map of variables
+      variables[name] = variable;
+    }
+    // return variable value
+    return variable.value;
+  } else {
+    return input;
   }
 }

@@ -280,12 +280,12 @@ describe('JourneyOps', () => {
       });
     });
 
-    describe('getJourneys()', () => {
+    describe('readJourneys()', () => {
       test('0: Method is implemented', async () => {
         expect(JourneyOps.readJourneys).toBeDefined();
       });
 
-      test('1: Get all journeys', async () => {
+      test('1: Read all journeys', async () => {
         const journeys = await JourneyOps.readJourneys({ state });
         expect(journeys).toMatchSnapshot();
       });

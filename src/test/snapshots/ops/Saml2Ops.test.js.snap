@@ -5172,6 +5172,90 @@ exports[`Saml2Ops importSaml2Provider() 2: Import hosted provider 'https://idc.s
 
 exports[`Saml2Ops importSaml2Provider() 3: Import remote provider 'idp' with metadata 1`] = `
 {
+  "_id": "aWRw",
+  "_rev": "884670535",
+  "entityId": "idp",
+  "identityProvider": {
+    "assertionContent": {
+      "basicAuthentication": {},
+      "clientAuthentication": {},
+      "nameIdFormat": {
+        "nameIdFormatList": [
+          "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+        ],
+      },
+      "secrets": {},
+      "signingAndEncryption": {
+        "encryption": {},
+        "requestResponseSigning": {
+          "authenticationRequest": false,
+        },
+        "secretIdAndAlgorithms": {},
+      },
+    },
+    "services": {
+      "nameIdMapping": [
+        {
+          "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+          "location": "https://openam-admin-fed.forgeblocks.com/am/NIMSoap/metaAlias/alpha/idp",
+        },
+      ],
+      "serviceAttributes": {
+        "artifactResolutionService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://openam-admin-fed.forgeblocks.com/am/ArtifactResolver/metaAlias/alpha/idp",
+          },
+        ],
+        "nameIdService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "location": "https://openam-admin-fed.forgeblocks.com/am/IDPMniPOST/metaAlias/alpha/idp",
+            "responseLocation": "https://openam-admin-fed.forgeblocks.com/am/IDPMniPOST/metaAlias/alpha/idp",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "location": "https://openam-admin-fed.forgeblocks.com/am/IDPMniRedirect/metaAlias/alpha/idp",
+            "responseLocation": "https://openam-admin-fed.forgeblocks.com/am/IDPMniRedirect/metaAlias/alpha/idp",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://openam-admin-fed.forgeblocks.com/am/IDPMniSoap/metaAlias/alpha/idp",
+          },
+        ],
+        "singleLogoutService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "location": "https://openam-admin-fed.forgeblocks.com/am/IDPSloRedirect/metaAlias/alpha/idp",
+            "responseLocation": "https://openam-admin-fed.forgeblocks.com/am/IDPSloRedirect/metaAlias/alpha/idp",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "location": "https://openam-admin-fed.forgeblocks.com/am/IDPSloPOST/metaAlias/alpha/idp",
+            "responseLocation": "https://openam-admin-fed.forgeblocks.com/am/IDPSloPOST/metaAlias/alpha/idp",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://openam-admin-fed.forgeblocks.com/am/IDPSloSoap/metaAlias/alpha/idp",
+          },
+        ],
+        "singleSignOnService": [
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+            "location": "https://openam-admin-fed.forgeblocks.com/am/SSOPOST/metaAlias/alpha/idp",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+            "location": "https://openam-admin-fed.forgeblocks.com/am/SSORedirect/metaAlias/alpha/idp",
+          },
+          {
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:SOAP",
+            "location": "https://openam-admin-fed.forgeblocks.com/am/SSOSoap/metaAlias/alpha/idp",
+          },
+        ],
+      },
+    },
+  },
   "importedEntities": [
     "idp",
   ],

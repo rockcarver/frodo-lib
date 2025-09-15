@@ -425,6 +425,14 @@ export async function putFullService({
     // now create next descendents
     const nextDescendentResult = await Promise.all(
       nextDescendents.map(async (descendent) => {
+        // If performing an update (not create), idp updates will throw an HTTP 500 error unless the redirectAfterFormPostURI attribute has a value.
+        // If no redirectAfterFormPostURI is provided, importing with an empty string as its value will perform the same function without the 500 error.
+        if (
+          serviceId === 'SocialIdentityProviders' &&
+          descendent.redirectAfterFormPostURI === undefined
+        ) {
+          descendent.redirectAfterFormPostURI = '';
+        }
         const type = descendent._type._id;
         const descendentId = descendent._id;
         debugMessage({
