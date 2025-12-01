@@ -314,6 +314,7 @@ export function generateIdmApi({
         'User-Agent': userAgent,
         'X-ForgeRock-TransactionId': transactionId,
         'Content-Type': 'application/json',
+        ...state.getAuthenticationHeaderOverrides(),
         // only add authorization header if we have a bearer token
         ...(state.getBearerToken() && {
           Authorization: `Bearer ${state.getBearerToken()}`,
@@ -358,6 +359,7 @@ export function generateLogKeysApi({
   const headers = {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
+    ...state.getAuthenticationHeaderOverrides(),
     // only add authorization header if we have a bearer token
     ...(state.getBearerToken() && {
       Authorization: `Bearer ${state.getBearerToken()}`,
@@ -489,6 +491,7 @@ export function generateEnvApi({
   const headers = {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
+    ...state.getAuthenticationHeaderOverrides(),
     // only add API version if we have it
     ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
     // only add authorization header if we have a bearer token
@@ -541,6 +544,7 @@ export function generateGovernanceApi({
   const headers = {
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
+    ...state.getAuthenticationHeaderOverrides(),
     // only add API version if we have it
     ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
     // only add authorization header if we have a bearer token
