@@ -4,6 +4,7 @@ import {
   IAxiosRetryConfig,
   isNetworkOrIdempotentRequestError,
 } from 'axios-retry';
+import c from 'tinyrainbow';
 import winston from 'winston';
 
 import { RetryStrategy } from '../api/BaseApi';
@@ -737,11 +738,11 @@ const globalState: StateInterface = {
     }
   },
   errorHandler: (error: Error, message?: string) => {
-    if (message) process.stderr.write('' + message['brightRed']);
+    if (message) process.stderr.write('' + c.red(message));
     switch (error.name) {
       case 'FrodoError':
         process.stderr.write(
-          '' + (error as FrodoError).getCombinedMessage()['brightRed']
+          '' + c.red((error as FrodoError).getCombinedMessage())
         );
         break;
 
@@ -763,12 +764,12 @@ const globalState: StateInterface = {
         errorMessage += status ? `\n  Status: ${status}` : '';
         errorMessage += message ? `\n  Message: ${message}` : '';
         errorMessage += detail ? `\n  Detail: ${detail}` : '';
-        process.stderr.write(errorMessage['brightRed']);
+        process.stderr.write(c.red(errorMessage));
         break;
       }
 
       default:
-        process.stderr.write(error.message['brightRed']);
+        process.stderr.write(c.red(error.message));
         break;
     }
   },
