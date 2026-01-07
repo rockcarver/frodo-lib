@@ -1,3 +1,5 @@
+import c from 'tinyrainbow';
+
 import { printError, printMessage } from '../../utils/Console';
 import { CurlHelper } from './lib/CurlHelper';
 
@@ -6,7 +8,7 @@ function defaultLogCallback(curlResult, err = undefined) {
   if (err) {
     printError(err);
   } else {
-    printMessage(command['brightBlue']);
+    c.blueBright(printMessage(command));
   }
 }
 

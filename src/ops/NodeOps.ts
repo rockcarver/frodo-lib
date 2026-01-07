@@ -1422,7 +1422,7 @@ export async function findOrphanedNodes({
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
           errorTypes.push(`${type._id} v${version}`);
-          errorMessage = c.yellow(` (Skipped type(s): ${errorTypes})`);
+          errorMessage = c.yellowBright(` (Skipped type(s): ${errorTypes})`);
           updateProgressIndicator({
             id: indicatorId,
             message: `${allNodes.length} total nodes${errorMessage}`,
@@ -1445,7 +1445,7 @@ export async function findOrphanedNodes({
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         errorTypes.push(type._id);
-        errorMessage = c.yellow(` (Skipped type(s): ${errorTypes})`);
+        errorMessage = c.yellowBright(` (Skipped type(s): ${errorTypes})`);
         updateProgressIndicator({
           id: indicatorId,
           message: `${allNodes.length} total nodes${errorMessage}`,
