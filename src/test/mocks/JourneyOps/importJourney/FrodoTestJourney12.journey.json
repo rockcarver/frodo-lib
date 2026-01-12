@@ -1,0 +1,488 @@
+{
+  "tree": {
+    "_id": "FrodoTestJourney12",
+    "_rev": "-1089656935",
+    "identityResource": "managed/alpha_user",
+    "entryNodeId": "8c4f5d43-d7f8-4ac2-8aae-d38f8f5cb9cb",
+    "innerTreeOnly": false,
+    "description": "Test journey for custom nodes",
+    "noSession": false,
+    "mustRun": false,
+    "enabled": true,
+    "transactionalOnly": false,
+    "uiConfig": {
+      "categories": "[]",
+      "annotations": "{\"forNodes\":{},\"structural\":[]}"
+    },
+    "nodes": {
+      "0fc7e34a-e3b5-4f5d-baea-ffde4ee63a97": {
+        "x": 463,
+        "y": 80,
+        "connections": {
+          "outcome": "461a364c-5884-44f6-87d9-ae749cc08f24"
+        },
+        "nodeType": "PageNode",
+        "displayName": "Login Page"
+      },
+      "8c4f5d43-d7f8-4ac2-8aae-d38f8f5cb9cb": {
+        "x": 210,
+        "y": 161,
+        "connections": {
+          "True": "70e691a5-1e33-4ac3-a356-e7b6d60d92e0",
+          "False": "0fc7e34a-e3b5-4f5d-baea-ffde4ee63a97"
+        },
+        "nodeType": "designer-session",
+        "displayName": "Has Session AM"
+      },
+      "461a364c-5884-44f6-87d9-ae749cc08f24": {
+        "x": 734,
+        "y": 161,
+        "connections": {
+          "true": "70e691a5-1e33-4ac3-a356-e7b6d60d92e0",
+          "false": "e301438c-0bd0-429c-ab0c-66126501069a"
+        },
+        "nodeType": "DataStoreDecisionNode",
+        "displayName": "Data Store Decision"
+      }
+    },
+    "staticNodes": {
+      "startNode": {
+        "x": 70,
+        "y": 188
+      },
+      "70e691a5-1e33-4ac3-a356-e7b6d60d92e0": {
+        "x": 1014,
+        "y": 102
+      },
+      "e301438c-0bd0-429c-ab0c-66126501069a": {
+        "x": 1014,
+        "y": 241
+      }
+    }
+  },
+  "nodes": {
+    "0fc7e34a-e3b5-4f5d-baea-ffde4ee63a97": {
+      "_id": "0fc7e34a-e3b5-4f5d-baea-ffde4ee63a97",
+      "_rev": "2033345625",
+      "nodes": [
+        {
+          "_id": "03416cc6-588b-409a-919f-038bb8194c81",
+          "nodeType": "designer-ef81b1a52c914710b3388caebfe7233a",
+          "displayName": "Welcome"
+        },
+        {
+          "_id": "1a002d5d-5ad5-4d0e-965f-a0f26278d08d",
+          "nodeType": "designer-ef81b1a52c914710b3388caebfe7233a",
+          "displayName": "Username"
+        },
+        {
+          "_id": "65c2a8cd-e623-4c5d-b420-e55fc5105f43",
+          "nodeType": "designer-ef81b1a52c914710b3388caebfe7233a",
+          "displayName": "Password"
+        },
+        {
+          "_id": "ee549716-666c-4b9d-baab-defe1a93eb6c",
+          "nodeType": "designer-ef81b1a52c914710b3388caebfe7233a",
+          "displayName": "Email"
+        },
+        {
+          "_id": "eaf91b8a-bb71-4037-97ec-cd2e54885668",
+          "nodeType": "designer-ef81b1a52c914710b3388caebfe7233a",
+          "displayName": "Age"
+        },
+        {
+          "_id": "d8bd62e2-a4e7-4e08-bb28-10570aa31fcf",
+          "nodeType": "designer-ef81b1a52c914710b3388caebfe7233a",
+          "displayName": "Is old"
+        },
+        {
+          "_id": "18edd91b-5e15-49df-b3c3-764114a8ebb3",
+          "nodeType": "designer-ef81b1a52c914710b3388caebfe7233a",
+          "displayName": "Hidden"
+        },
+        {
+          "_id": "0a3d5de0-9426-4a9a-aae0-163eda075d43",
+          "nodeType": "designer-ef81b1a52c914710b3388caebfe7233a",
+          "displayName": "Script"
+        },
+        {
+          "_id": "f9155861-f7c8-4022-9bed-e4ef5b238824",
+          "nodeType": "designer-ef81b1a52c914710b3388caebfe7233a",
+          "displayName": "Terms"
+        }
+      ],
+      "pageDescription": {},
+      "pageHeader": {},
+      "_type": {
+        "_id": "PageNode",
+        "name": "Page Node",
+        "collection": true,
+        "version": "1.0"
+      },
+      "_outcomes": [
+        {
+          "id": "outcome",
+          "displayName": "outcome"
+        }
+      ]
+    },
+    "8c4f5d43-d7f8-4ac2-8aae-d38f8f5cb9cb": {
+      "_id": "8c4f5d43-d7f8-4ac2-8aae-d38f8f5cb9cb",
+      "_rev": "-1617974950",
+      "_type": {
+        "_id": "designer-session",
+        "name": "Has Session AM",
+        "collection": true,
+        "version": "1.0"
+      },
+      "_outcomes": [
+        {
+          "id": "True",
+          "displayName": "True"
+        },
+        {
+          "id": "False",
+          "displayName": "False"
+        }
+      ]
+    },
+    "461a364c-5884-44f6-87d9-ae749cc08f24": {
+      "_id": "461a364c-5884-44f6-87d9-ae749cc08f24",
+      "_rev": "2126257365",
+      "_type": {
+        "_id": "DataStoreDecisionNode",
+        "name": "Data Store Decision",
+        "collection": true,
+        "version": "1.0"
+      },
+      "_outcomes": [
+        {
+          "id": "true",
+          "displayName": "True"
+        },
+        {
+          "id": "false",
+          "displayName": "False"
+        }
+      ]
+    }
+  },
+  "innerNodes": {
+    "03416cc6-588b-409a-919f-038bb8194c81": {
+      "_id": "03416cc6-588b-409a-919f-038bb8194c81",
+      "_rev": "-191831406",
+      "callback": "TEXT_OUTPUT_CALLBACK",
+      "options": {
+        "messageType": "1",
+        "message": "WARNING: You must enter your username and password to continue!"
+      },
+      "_type": {
+        "_id": "designer-ef81b1a52c914710b3388caebfe7233a",
+        "name": "Display Callback",
+        "collection": true,
+        "version": "1.0"
+      },
+      "_outcomes": [
+        {
+          "id": "outcome",
+          "displayName": "outcome"
+        }
+      ]
+    },
+    "1a002d5d-5ad5-4d0e-965f-a0f26278d08d": {
+      "_id": "1a002d5d-5ad5-4d0e-965f-a0f26278d08d",
+      "_rev": "-605795289",
+      "callback": "NAME_CALLBACK",
+      "objectSharedProperty": "userName",
+      "options": {
+        "prompt": "Enter Your Username"
+      },
+      "sharedProperty": "username",
+      "_type": {
+        "_id": "designer-ef81b1a52c914710b3388caebfe7233a",
+        "name": "Display Callback",
+        "collection": true,
+        "version": "1.0"
+      },
+      "_outcomes": [
+        {
+          "id": "outcome",
+          "displayName": "outcome"
+        }
+      ]
+    },
+    "65c2a8cd-e623-4c5d-b420-e55fc5105f43": {
+      "_id": "65c2a8cd-e623-4c5d-b420-e55fc5105f43",
+      "_rev": "-1753807887",
+      "callback": "PASSWORD_CALLBACK",
+      "objectTransientProperty": "password",
+      "transientProperty": "password",
+      "options": {
+        "prompt": "Enter Your Password"
+      },
+      "_type": {
+        "_id": "designer-ef81b1a52c914710b3388caebfe7233a",
+        "name": "Display Callback",
+        "collection": true,
+        "version": "1.0"
+      },
+      "_outcomes": [
+        {
+          "id": "outcome",
+          "displayName": "outcome"
+        }
+      ]
+    },
+    "ee549716-666c-4b9d-baab-defe1a93eb6c": {
+      "_id": "ee549716-666c-4b9d-baab-defe1a93eb6c",
+      "_rev": "146018854",
+      "callback": "STRING_ATTRIBUTE_INPUT_CALLBACK",
+      "objectSharedProperty": "mail",
+      "options": {
+        "name": "mail",
+        "prompt": "Enter Your Email",
+        "required": "true"
+      },
+      "sharedProperty": "email",
+      "_type": {
+        "_id": "designer-ef81b1a52c914710b3388caebfe7233a",
+        "name": "Display Callback",
+        "collection": true,
+        "version": "1.0"
+      },
+      "_outcomes": [
+        {
+          "id": "outcome",
+          "displayName": "outcome"
+        }
+      ]
+    },
+    "eaf91b8a-bb71-4037-97ec-cd2e54885668": {
+      "_id": "eaf91b8a-bb71-4037-97ec-cd2e54885668",
+      "_rev": "2022883295",
+      "callback": "NUMBER_ATTRIBUTE_INPUT_CALLBACK",
+      "objectSharedProperty": "frUnindexedInteger1",
+      "options": {
+        "name": "frUnindexedInteger1",
+        "prompt": "Enter Your Age",
+        "required": "true"
+      },
+      "sharedProperty": "age",
+      "_type": {
+        "_id": "designer-ef81b1a52c914710b3388caebfe7233a",
+        "name": "Display Callback",
+        "collection": true,
+        "version": "1.0"
+      },
+      "_outcomes": [
+        {
+          "id": "outcome",
+          "displayName": "outcome"
+        }
+      ]
+    },
+    "d8bd62e2-a4e7-4e08-bb28-10570aa31fcf": {
+      "_id": "d8bd62e2-a4e7-4e08-bb28-10570aa31fcf",
+      "_rev": "-1308099819",
+      "callback": "BOOLEAN_ATTRIBUTE_INPUT_CALLBACK",
+      "objectSharedProperty": "frUnindexedString1",
+      "options": {
+        "name": "frUnindexedString1",
+        "prompt": "Are you old?",
+        "required": "true"
+      },
+      "sharedProperty": "isOld",
+      "_type": {
+        "_id": "designer-ef81b1a52c914710b3388caebfe7233a",
+        "name": "Display Callback",
+        "collection": true,
+        "version": "1.0"
+      },
+      "_outcomes": [
+        {
+          "id": "outcome",
+          "displayName": "outcome"
+        }
+      ]
+    },
+    "18edd91b-5e15-49df-b3c3-764114a8ebb3": {
+      "_id": "18edd91b-5e15-49df-b3c3-764114a8ebb3",
+      "_rev": "975185327",
+      "callback": "HIDDEN_VALUE_CALLBACK",
+      "options": {
+        "id": "myId",
+        "value": "I am hidden"
+      },
+      "sharedProperty": "hidden",
+      "_type": {
+        "_id": "designer-ef81b1a52c914710b3388caebfe7233a",
+        "name": "Display Callback",
+        "collection": true,
+        "version": "1.0"
+      },
+      "_outcomes": [
+        {
+          "id": "outcome",
+          "displayName": "outcome"
+        }
+      ]
+    },
+    "0a3d5de0-9426-4a9a-aae0-163eda075d43": {
+      "_id": "0a3d5de0-9426-4a9a-aae0-163eda075d43",
+      "_rev": "4824664",
+      "callback": "SCRIPT_TEXT_OUTPUT_CALLBACK",
+      "options": {
+        "message": "console.log(\"hello console!\");"
+      },
+      "sharedProperty": "out",
+      "_type": {
+        "_id": "designer-ef81b1a52c914710b3388caebfe7233a",
+        "name": "Display Callback",
+        "collection": true,
+        "version": "1.0"
+      },
+      "_outcomes": [
+        {
+          "id": "outcome",
+          "displayName": "outcome"
+        }
+      ]
+    },
+    "f9155861-f7c8-4022-9bed-e4ef5b238824": {
+      "_id": "f9155861-f7c8-4022-9bed-e4ef5b238824",
+      "_rev": "-1687279556",
+      "callback": "TERMS_AND_CONDITIONS_CALLBACK",
+      "options": {
+        "version": "6.7",
+        "terms": "This is the way",
+        "createDate": "2025-11-12T22:30:59.417Z"
+      },
+      "sharedProperty": "accepted",
+      "_type": {
+        "_id": "designer-ef81b1a52c914710b3388caebfe7233a",
+        "name": "Display Callback",
+        "collection": true,
+        "version": "1.0"
+      },
+      "_outcomes": [
+        {
+          "id": "outcome",
+          "displayName": "outcome"
+        }
+      ]
+    }
+  },
+  "nodeTypes": {
+    "session-1": {
+      "serviceName": "session",
+      "displayName": "Has Session AM",
+      "description": "Checks if the user has a current session.",
+      "outcomes": [
+        "True",
+        "False"
+      ],
+      "outputs": [],
+      "inputs": [],
+      "script": "var SCRIPT_OUTCOMES = {\n    TRUE: 'True',\n    FALSE: 'False'\n}\n\nfunction main() {\n    action.goTo(typeof existingSession === \"undefined\" ? SCRIPT_OUTCOMES.FALSE : SCRIPT_OUTCOMES.TRUE);\n}\n\nmain();\n",
+      "errorOutcome": false,
+      "tags": [
+        "utilities"
+      ],
+      "properties": {}
+    },
+    "ef81b1a52c914710b3388caebfe7233a-1": {
+      "serviceName": "ef81b1a52c914710b3388caebfe7233a",
+      "displayName": "Display Callback",
+      "description": "Displays custom callback to the page",
+      "outcomes": [
+        "outcome"
+      ],
+      "outputs": [],
+      "inputs": [],
+      "script": "var SCRIPT_OUTCOMES = {\n    OUTCOME: 'outcome'\n};\n\nvar CALLBACKS = {\n\tBOOLEAN_ATTRIBUTE_INPUT_CALLBACK: \"BOOLEAN_ATTRIBUTE_INPUT_CALLBACK\",\n\tCHOICE_CALLBACK: \"CHOICE_CALLBACK\",\n\tCONFIRMATION_CALLBACK: \"CONFIRMATION_CALLBACK\",\n\tCONSENT_MAPPING_CALLBACK: \"CONSENT_MAPPING_CALLBACK\",\n\tDEVICE_PROFILE_CALLBACK: \"DEVICE_PROFILE_CALLBACK\",\n\tHIDDEN_VALUE_CALLBACK: \"HIDDEN_VALUE_CALLBACK\",\n\tHTTP_CALLBACK: \"HTTP_CALLBACK\",\n\tIDP_CALLBACK: \"IDP_CALLBACK\",\n\tKBA_CREATE_CALLBACK: \"KBA_CREATE_CALLBACK\",\n\tLANGUAGE_CALLBACK: \"LANGUAGE_CALLBACK\",\n\tMETADATA_CALLBACK: \"METADATA_CALLBACK\",\n\tNAME_CALLBACK: \"NAME_CALLBACK\",\n\tNUMBER_ATTRIBUTE_INPUT_CALLBACK: \"NUMBER_ATTRIBUTE_INPUT_CALLBACK\",\n\tPASSWORD_CALLBACK: \"PASSWORD_CALLBACK\",\n\tPOLLING_WAIT_CALLBACK: \"POLLING_WAIT_CALLBACK\",\n    REDIRECT_CALLBACK: \"REDIRECT_CALLBACK\",\n\tSCRIPT_TEXT_OUTPUT_CALLBACK: \"SCRIPT_TEXT_OUTPUT_CALLBACK\",\n\tSELECT_IDP_CALLBACK: \"SELECT_IDP_CALLBACK\",\n\tSTRING_ATTRIBUTE_INPUT_CALLBACK: \"STRING_ATTRIBUTE_INPUT_CALLBACK\",\n\tSUSPENDED_TEXT_OUTPUT_CALLBACK: \"SUSPENDED_TEXT_OUTPUT_CALLBACK\",\n\tTERMS_AND_CONDITIONS_CALLBACK: \"TERMS_AND_CONDITIONS_CALLBACK\",\n\tTEXT_INPUT_CALLBACK: \"TEXT_INPUT_CALLBACK\",\n\tTEXT_OUTPUT_CALLBACK: \"TEXT_OUTPUT_CALLBACK\",\n\tVALIDATED_PASSWORD_CALLBACK: \"VALIDATED_PASSWORD_CALLBACK\",\n\tVALIDATED_USERNAME_CALLBACK: \"VALIDATED_USERNAME_CALLBACK\",\n\tX509_CERTIFICATE_CALLBACK: \"X509_CERTIFICATE_CALLBACK\"\n}\n\nfunction isStringPresent(value) {\n    return value;\n}\n\nfunction getString(value) {\n    return value || '';\n}\n\nfunction isArrayPresent(value) {\n    return value;\n}\n\nfunction getArray(value) {\n    return value ? JSON.parse(value) : [];\n}\n\nfunction isObjectPresent(value) {\n    return value;\n}\n\nfunction getObject(value) {\n    return value ? JSON.parse(value) : {};\n}\n\nfunction isIntPresent(value) {\n    return value;\n}\n\nfunction getInt(value) {\n    return value ? parseInt(value) : 0;\n}\n\nfunction isDoublePresent(value) {\n    return value;\n}\n\nfunction getDouble(value) {\n    return value ? parseFloat(value) : 0.0;\n}\n\nfunction isBooleanPresent(value) {\n    return value;\n}\n\nfunction getBoolean(value) {\n    return value ? value.toLowerCase() === 'true' : false;\n}\n\nfunction setProperty(value) {\n    if (properties.sharedProperty) nodeState.putShared(properties.sharedProperty, value);\n    if (properties.transientProperty) nodeState.putTransient(properties.transientProperty, value);\n    if (properties.objectSharedProperty) {\n        var attributes = {};\n        attributes[properties.objectSharedProperty] = value;\n        nodeState.mergeShared({\n            objectAttributes: attributes\n        });\n    }\n    if (properties.objectTransientProperty) {\n        var attributes = {};\n        attributes[properties.objectTransientProperty] = value;\n        nodeState.mergeTransient({\n            objectAttributes: attributes\n        });\n    }\n}\n\nfunction booleanAttributeInputCallback() {\n    var name = getString(properties.options.name);\n    var prompt = getString(properties.options.prompt);\n    var value = getBoolean(properties.options.value);\n    var required = getBoolean(properties.options.required);\n    var policies = getObject(properties.options.policies);\n    var validateOnly = getBoolean(properties.options.validateOnly);\n    var failedPolicies = getArray(properties.options.failedPolicies);\n    if (isBooleanPresent(properties.options.validateOnly) || isObjectPresent(properties.options.policies)) {\n        if (isArrayPresent(failedPolicies)) {\n            callbacksBuilder.booleanAttributeInputCallback(name, prompt, value, required, policies, validateOnly, failedPolicies);\n        } else {\n            callbacksBuilder.booleanAttributeInputCallback(name, prompt, value, required, policies, validateOnly);\n        }\n    } else if (isArrayPresent(failedPolicies)) {\n        callbacksBuilder.booleanAttributeInputCallback(name, prompt, value, required, failedPolicies);\n    } else {\n        callbacksBuilder.booleanAttributeInputCallback(name, prompt, value, required);\n    }\n}\n\nfunction choiceCallback() {\n    var prompt = getString(properties.options.prompt);\n    var choices = getArray(properties.options.choices);\n    var defaultChoice = getInt(properties.options.defaultChoice);\n    var multipleSelectionsAllowed = getBoolean(properties.options.multipleSelectionsAllowed);\n    callbacksBuilder.choiceCallback(prompt, choices, defaultChoice, multipleSelectionsAllowed);\n}\n\nfunction confirmationCallback() {\n    var prompt = getString(properties.options.prompt);\n    var messageType = getInt(properties.options.messageType);\n    var options = getArray(properties.options.options);\n    var optionType = getInt(properties.options.optionType);\n    var defaultOption = getInt(properties.options.defaultOption);\n    if (isStringPresent(properties.options.prompt)) {\n        if (isIntPresent(properties.options.optionType)) {\n            callbacksBuilder.confirmationCallback(prompt, messageType, optionType, defaultOption);\n        } else {\n            callbacksBuilder.confirmationCallback(prompt, messageType, options, defaultOption);\n        }\n    } else {\n        if (isIntPresent(properties.options.optionType)) {\n            callbacksBuilder.confirmationCallback(messageType, optionType, defaultOption);\n        } else {\n            callbacksBuilder.confirmationCallback(messageType, options, defaultOption);\n        }\n    }\n}\n\nfunction consentMappingCallback() {\n    var config = getObject(properties.options.config);\n    var message = getString(properties.options.message);\n    var isRequired = getBoolean(properties.options.isRequired);\n    var name = getString(properties.options.name);\n    var displayName = getString(properties.options.displayName);\n    var icon = getString(properties.options.icon);\n    var accessLevel = getString(properties.options.accessLevel);\n    var titles = getArray(properties.options.titles);\n    if (isObjectPresent(properties.options.prompt)) {\n        callbacksBuilder.consentMappingCallback(config, message, isRequired);\n    } else {\n        callbacksBuilder.consentMappingCallback(name, displayName, icon, accessLevel, titles, message, isRequired);\n    }\n}\n\nfunction deviceProfileCallback() {\n    var metadata = getBoolean(properties.options.metadata);\n    var location = getBoolean(properties.options.location);\n    var message = getString(properties.options.message);\n    callbacksBuilder.deviceProfileCallback(metadata, location, message);\n}\n\nfunction hiddenValueCallback() {\n    var id = getString(properties.options.id);\n    var value = getString(properties.options.value);\n    callbacksBuilder.hiddenValueCallback(id, value);\n}\n\nfunction httpCallback() {\n    var authorizationHeader = getString(properties.options.authorizationHeader);\n    var negotiationHeader = getString(properties.options.negotiationHeader);\n    var authRHeader = getString(properties.options.authRHeader);\n    var negoName = getString(properties.options.negoName);\n    var negoValue = getString(properties.options.negoValue);\n    if (isStringPresent(properties.options.authorizationHeader) || isStringPresent(properties.options.negotiationHeader)) {\n        var errorCode = getString(properties.options.errorCode);\n        callbacksBuilder.httpCallback(authorizationHeader, negotiationHeader, errorCode);\n    } else {\n        var errorCode = getInt(properties.options.errorCode);\n        callbacksBuilder.httpCallback(authRHeader, negoName, negoValue, errorCode);\n    }\n}\n\nfunction idPCallback() {\n    var provider = getString(properties.options.provider);\n    var clientId = getString(properties.options.clientId);\n    var redirectUri = getString(properties.options.redirectUri);\n    var scope = getArray(properties.options.scope);\n    var nonce = getString(properties.options.nonce);\n    var request = getString(properties.options.request);\n    var requestUri = getString(properties.options.requestUri);\n    var acrValues = getArray(properties.options.acrValues);\n    var requestNativeAppForUserInfo = getBoolean(properties.options.requestNativeAppForUserInfo);\n    var token = getString(properties.options.token);\n    var tokenType = getString(properties.options.tokenType);\n    if (isStringPresent(properties.options.token) || isStringPresent(properties.options.tokenType)) {\n        callbacksBuilder.idPCallback(provider, clientId, redirectUri, scope, nonce, request, requestUri, acrValues, requestNativeAppForUserInfo, token, tokenType);\n    } else {\n        callbacksBuilder.idPCallback(provider, clientId, redirectUri, scope, nonce, request, requestUri, acrValues, requestNativeAppForUserInfo);\n    }\n}\n\nfunction kbaCreateCallback() {\n    var prompt = getString(properties.options.prompt);\n    var predefinedQuestions = getArray(properties.options.predefinedQuestions);\n    var allowUserDefinedQuestions = getBoolean(properties.options.allowUserDefinedQuestions);\n    callbacksBuilder.kbaCreateCallback(prompt, predefinedQuestions, allowUserDefinedQuestions);\n}\n\nfunction languageCallback() {\n    var language = getString(properties.options.language);\n    var country = getString(properties.options.country);\n    callbacksBuilder.languageCallback(language, country);\n}\n\nfunction metadataCallback() {\n    var outputValue = getObject(properties.options.outputValue);\n    callbacksBuilder.metadataCallback(outputValue);\n}\n\nfunction nameCallback() {\n    var prompt = getString(properties.options.prompt);\n    var defaultName = getString(properties.options.defaultName);\n    if (isStringPresent(properties.options.defaultName)) {\n        callbacksBuilder.nameCallback(prompt, defaultName);\n    } else {\n        callbacksBuilder.nameCallback(prompt);\n    }\n}\n\nfunction numberAttributeInputCallback() {\n    var name = getString(properties.options.name);\n    var prompt = getString(properties.options.prompt);\n    var value = getDouble(properties.options.value);\n    var required = getBoolean(properties.options.required);\n    var policies = getObject(properties.options.policies);\n    var validateOnly = getBoolean(properties.options.validateOnly);\n    var failedPolicies = getArray(properties.options.failedPolicies);\n    if (isBooleanPresent(properties.options.validateOnly) || isObjectPresent(properties.options.policies)) {\n        if (isArrayPresent(failedPolicies)) {\n            callbacksBuilder.numberAttributeInputCallback(name, prompt, value, required, policies, validateOnly, failedPolicies);\n        } else {\n            callbacksBuilder.numberAttributeInputCallback(name, prompt, value, required, policies, validateOnly);\n        }\n    } else if (isArrayPresent(failedPolicies)) {\n        callbacksBuilder.numberAttributeInputCallback(name, prompt, value, required, failedPolicies);\n    } else {\n        callbacksBuilder.numberAttributeInputCallback(name, prompt, value, required);\n    }\n}\n\nfunction passwordCallback() {\n    var prompt = getString(properties.options.prompt);\n    var echoOn = getBoolean(properties.options.echoOn);\n    callbacksBuilder.passwordCallback(prompt, echoOn);\n}\n\nfunction pollingWaitCallback() {\n    var waitTime = getString(properties.options.waitTime);\n    var message = getString(properties.options.message);\n    callbacksBuilder.pollingWaitCallback(waitTime, message);\n}\n\nfunction redirectCallback() {\n    throw new Error('Not Implemented');\n}\n\nfunction scriptTextOutputCallback() {\n    var message = getString(properties.options.message);\n    callbacksBuilder.scriptTextOutputCallback(message);\n}\n\nfunction selectIdPCallback() {\n    var providers = getObject(properties.options.providers);\n    callbacksBuilder.selectIdPCallback(providers);\n}\n\nfunction stringAttributeInputCallback() {\n    var name = getString(properties.options.name);\n    var prompt = getString(properties.options.prompt);\n    var value = getString(properties.options.value);\n    var required = getBoolean(properties.options.required);\n    var policies = getObject(properties.options.policies);\n    var validateOnly = getBoolean(properties.options.validateOnly);\n    var failedPolicies = getArray(properties.options.failedPolicies);\n    if (isBooleanPresent(properties.options.validateOnly) || isObjectPresent(properties.options.policies)) {\n        if (isArrayPresent(failedPolicies)) {\n            callbacksBuilder.stringAttributeInputCallback(name, prompt, value, required, policies, validateOnly, failedPolicies);\n        } else {\n            callbacksBuilder.stringAttributeInputCallback(name, prompt, value, required, policies, validateOnly);\n        }\n    } else if (isArrayPresent(failedPolicies)) {\n        callbacksBuilder.stringAttributeInputCallback(name, prompt, value, required, failedPolicies);\n    } else {\n        callbacksBuilder.stringAttributeInputCallback(name, prompt, value, required);\n    }\n}\n\nfunction suspendedTextOutputCallback() {\n    var messageType = getInt(properties.options.messageType);\n    var message = getString(properties.options.message);\n    callbacksBuilder.suspendedTextOutputCallback(messageType, message);\n}\n\nfunction termsAndConditionsCallback() {\n    var version = getString(properties.options.version);\n    var terms = getString(properties.options.terms);\n    var createDate = getString(properties.options.createDate);\n    callbacksBuilder.termsAndConditionsCallback(version, terms, createDate);\n}\n\nfunction textInputCallback() {\n    var prompt = getString(properties.options.prompt);\n    var defaultText = getString(properties.options.defaultText);\n    if (isStringPresent(properties.options.defaultText)) {\n        callbacksBuilder.textInputCallback(prompt, defaultText);\n    } else {\n        callbacksBuilder.textInputCallback(prompt);\n    }\n}\n\nfunction textOutputCallback() {\n    var messageType = getString(properties.options.messageType);\n    var message = getString(properties.options.message);\n    callbacksBuilder.textOutputCallback(messageType, message);\n}\n\nfunction validatedPasswordCallback() {\n    var prompt = getString(properties.options.prompt);\n    var echoOn = getBoolean(properties.options.echoOn);\n    var policies = getObject(properties.options.policies);\n    var validateOnly = getBoolean(properties.options.validateOnly);\n    var failedPolicies = getArray(properties.options.failedPolicies);\n    if (isArrayPresent(properties.options.failedPolicies)) {\n        callbacksBuilder.validatedPasswordCallback(prompt, echoOn, policies, validateOnly, failedPolicies);\n    } else {\n        callbacksBuilder.validatedPasswordCallback(prompt, echoOn, policies, validateOnly);\n    }\n}\n\nfunction validatedUsernameCallback() {\n    var prompt = getString(properties.options.prompt);\n    var policies = getObject(properties.options.policies);\n    var validateOnly = getBoolean(properties.options.validateOnly);\n    var failedPolicies = getArray(properties.options.failedPolicies);\n    if (isArrayPresent(properties.options.failedPolicies)) {\n        callbacksBuilder.validatedUsernameCallback(prompt, policies, validateOnly, failedPolicies);\n    } else {\n        callbacksBuilder.validatedUsernameCallback(prompt, policies, validateOnly);\n    }\n}\n\nfunction x509CertificateCallback() {\n    throw new Error('Not Implemented');\n}\n\nfunction getBooleanAttributeInputCallback() {\n    setProperty(callbacks.getBooleanAttributeInputCallbacks().get(0));\n}\n\nfunction getChoiceCallback() {\n    var multipleSelectionsAllowed = getBoolean(properties.options.multipleSelectionsAllowed);\n    var selections = callbacks.getChoiceCallbacks().get(0);\n    setProperty(multipleSelectionsAllowed ? selections : selections[0]);\n}\n\nfunction getConfirmationCallback() {\n    setProperty(callbacks.getConfirmationCallbacks().get(0));\n}\n\nfunction getConsentMappingCallback() {\n    setProperty(callbacks.getConsentMappingCallbacks().get(0));\n}\n\nfunction getDeviceProfileCallback() {\n    setProperty(callbacks.getDeviceProfileCallbacks().get(0));\n}\n\nfunction getHiddenValueCallback() {\n    var id = getString(properties.options.id);\n    setProperty(callbacks.getHiddenValueCallbacks().get(id));\n}\n\nfunction getHttpCallback() {\n    setProperty(callbacks.getHttpCallbacks().get(0));\n}\n\nfunction getIdPCallback() {\n    setProperty(callbacks.getIdpCallbacks().get(0));\n}\n\nfunction getKbaCreateCallback() {\n    setProperty(callbacks.getKbaCreateCallbacks().get(0));\n}\n\nfunction getLanguageCallback() {\n    setProperty(callbacks.getLanguageCallbacks().get(0));\n}\n\nfunction getNameCallback() {\n    setProperty(callbacks.getNameCallbacks().get(0));\n}\n\nfunction getNumberAttributeInputCallback() {\n    setProperty(callbacks.getNumberAttributeInputCallbacks().get(0));\n}\n\nfunction getPasswordCallback() {\n    setProperty(callbacks.getPasswordCallbacks().get(0));\n}\n\nfunction getSelectIdPCallback() {\n    setProperty(callbacks.getSelectIdPCallbacks().get(0));\n}\n\nfunction getStringAttributeInputCallback() {\n    setProperty(callbacks.getStringAttributeInputCallbacks().get(0));\n}\n\nfunction getTermsAndConditionsCallback() {\n    setProperty(callbacks.getTermsAndConditionsCallbacks().get(0));\n}\n\nfunction getTextInputCallback() {\n    setProperty(callbacks.getTextInputCallbacks().get(0));\n}\n\nfunction getValidatedPasswordCallback() {\n    setProperty(callbacks.getValidatedPasswordCallbacks().get(0));\n}\n\nfunction getValidatedUsernameCallback() {\n    setProperty(callbacks.getValidatedUsernameCallbacks().get(0));\n}\n\nfunction getX509CertificateCallback() {\n    setProperty(callbacks.getX509CertificateCallbacks().get(0));\n}\n\nfunction main() {\n    if (!callbacks.isEmpty()) {\n        switch (properties.callback) {\n            case CALLBACKS.BOOLEAN_ATTRIBUTE_INPUT_CALLBACK: getBooleanAttributeInputCallback(); break;\n            case CALLBACKS.CHOICE_CALLBACK: getChoiceCallback(); break;\n            case CALLBACKS.CONFIRMATION_CALLBACK: getConfirmationCallback(); break;\n            case CALLBACKS.CONSENT_MAPPING_CALLBACK: getConsentMappingCallback(); break;\n            case CALLBACKS.DEVICE_PROFILE_CALLBACK: getDeviceProfileCallback(); break;\n            case CALLBACKS.HIDDEN_VALUE_CALLBACK: getHiddenValueCallback(); break;\n            case CALLBACKS.HTTP_CALLBACK: getHttpCallback(); break;\n            case CALLBACKS.IDP_CALLBACK: getIdPCallback(); break;\n            case CALLBACKS.KBA_CREATE_CALLBACK: getKbaCreateCallback(); break;\n            case CALLBACKS.LANGUAGE_CALLBACK: getLanguageCallback(); break;\n            case CALLBACKS.NAME_CALLBACK: getNameCallback(); break;\n            case CALLBACKS.NUMBER_ATTRIBUTE_INPUT_CALLBACK: getNumberAttributeInputCallback(); break;\n            case CALLBACKS.PASSWORD_CALLBACK: getPasswordCallback(); break;\n            case CALLBACKS.SELECT_IDP_CALLBACK: getSelectIdPCallback(); break;\n            case CALLBACKS.STRING_ATTRIBUTE_INPUT_CALLBACK: getStringAttributeInputCallback(); break;\n            case CALLBACKS.TERMS_AND_CONDITIONS_CALLBACK: getTermsAndConditionsCallback(); break;\n            case CALLBACKS.TEXT_INPUT_CALLBACK: getTextInputCallback(); break;\n            case CALLBACKS.VALIDATED_PASSWORD_CALLBACK: getValidatedPasswordCallback(); break;\n            case CALLBACKS.VALIDATED_USERNAME_CALLBACK: getValidatedUsernameCallback(); break;\n            case CALLBACKS.X509_CERTIFICATE_CALLBACK: getX509CertificateCallback(); break;\n            default: break;\n        }\n        action.goTo(SCRIPT_OUTCOMES.OUTCOME);\n        return;\n    }\n\n    switch (properties.callback) {\n        case CALLBACKS.BOOLEAN_ATTRIBUTE_INPUT_CALLBACK: booleanAttributeInputCallback(); break;\n        case CALLBACKS.CHOICE_CALLBACK: choiceCallback(); break;\n        case CALLBACKS.CONFIRMATION_CALLBACK: confirmationCallback(); break;\n        case CALLBACKS.CONSENT_MAPPING_CALLBACK: consentMappingCallback(); break;\n        case CALLBACKS.DEVICE_PROFILE_CALLBACK: deviceProfileCallback(); break;\n        case CALLBACKS.HIDDEN_VALUE_CALLBACK: hiddenValueCallback(); break;\n        case CALLBACKS.HTTP_CALLBACK: httpCallback(); break;\n        case CALLBACKS.IDP_CALLBACK: idPCallback(); break;\n        case CALLBACKS.KBA_CREATE_CALLBACK: kbaCreateCallback(); break;\n        case CALLBACKS.LANGUAGE_CALLBACK: languageCallback(); break;\n        case CALLBACKS.METADATA_CALLBACK: metadataCallback(); break;\n        case CALLBACKS.NAME_CALLBACK: nameCallback(); break;\n        case CALLBACKS.NUMBER_ATTRIBUTE_INPUT_CALLBACK: numberAttributeInputCallback(); break;\n        case CALLBACKS.PASSWORD_CALLBACK: passwordCallback(); break;\n        case CALLBACKS.POLLING_WAIT_CALLBACK: pollingWaitCallback(); break;\n        case CALLBACKS.REDIRECT_CALLBACK: redirectCallback(); break;\n        case CALLBACKS.SCRIPT_TEXT_OUTPUT_CALLBACK: scriptTextOutputCallback(); break;\n        case CALLBACKS.SELECT_IDP_CALLBACK: selectIdPCallback(); break;\n        case CALLBACKS.STRING_ATTRIBUTE_INPUT_CALLBACK: stringAttributeInputCallback(); break;\n        case CALLBACKS.SUSPENDED_TEXT_OUTPUT_CALLBACK: suspendedTextOutputCallback(); break;\n        case CALLBACKS.TERMS_AND_CONDITIONS_CALLBACK: termsAndConditionsCallback(); break;\n        case CALLBACKS.TEXT_INPUT_CALLBACK: textInputCallback(); break;\n        case CALLBACKS.TEXT_OUTPUT_CALLBACK: textOutputCallback(); break;\n        case CALLBACKS.VALIDATED_PASSWORD_CALLBACK: validatedPasswordCallback(); break;\n        case CALLBACKS.VALIDATED_USERNAME_CALLBACK: validatedUsernameCallback(); break;\n        case CALLBACKS.X509_CERTIFICATE_CALLBACK: x509CertificateCallback(); break;\n        default: throw new Error('Unknown Callback'); // Should never reach this case\n    }\n}\n\nmain();\n",
+      "errorOutcome": false,
+      "tags": [
+        "callback",
+        "utilities"
+      ],
+      "properties": {
+        "callback": {
+          "title": "Callback",
+          "description": "The callback to display",
+          "type": "STRING",
+          "required": true,
+          "options": {
+            "METADATA_CALLBACK": "metadataCallback",
+            "TERMS_AND_CONDITIONS_CALLBACK": "termsAndConditionsCallback",
+            "NUMBER_ATTRIBUTE_INPUT_CALLBACK": "numberAttributeInputCallback",
+            "TEXT_OUTPUT_CALLBACK": "textOutputCallback",
+            "SCRIPT_TEXT_OUTPUT_CALLBACK": "scriptTextOutputCallback",
+            "CONSENT_MAPPING_CALLBACK": "consentMappingCallback",
+            "STRING_ATTRIBUTE_INPUT_CALLBACK": "stringAttributeInputCallback",
+            "IDP_CALLBACK": "idPCallback",
+            "VALIDATED_PASSWORD_CALLBACK": "validatedPasswordCallback",
+            "SELECT_IDP_CALLBACK": "selectIdPCallback",
+            "POLLING_WAIT_CALLBACK": "pollingWaitCallback",
+            "NAME_CALLBACK": "nameCallback",
+            "SUSPENDED_TEXT_OUTPUT_CALLBACK": "suspendedTextOutputCallback",
+            "REDIRECT_CALLBACK": "redirectCallback",
+            "X509_CERTIFICATE_CALLBACK": "x509CertificateCallback",
+            "PASSWORD_CALLBACK": "passwordCallback",
+            "TEXT_INPUT_CALLBACK": "textInputCallback",
+            "BOOLEAN_ATTRIBUTE_INPUT_CALLBACK": "booleanAttributeInputCallback",
+            "CONFIRMATION_CALLBACK": "confirmationCallback",
+            "CHOICE_CALLBACK": "choiceCallback",
+            "DEVICE_PROFILE_CALLBACK": "deviceProfileCallback",
+            "HIDDEN_VALUE_CALLBACK": "hiddenValueCallback",
+            "HTTP_CALLBACK": "httpCallback",
+            "VALIDATED_USERNAME_CALLBACK": "validatedUsernameCallback",
+            "KBA_CREATE_CALLBACK": "kbaCreateCallback",
+            "LANGUAGE_CALLBACK": "languageCallback"
+          },
+          "multivalued": false
+        },
+        "objectSharedProperty": {
+          "title": "Object Attributes Shared Property",
+          "description": "The objectAttributes property on the shared state to put the callback input into (if applicable)",
+          "type": "STRING",
+          "required": false,
+          "multivalued": false
+        },
+        "objectTransientProperty": {
+          "title": "Object Attributes Transient Property",
+          "description": "The objectAttributes property on the transient state to put the callback input into (if applicable)",
+          "type": "STRING",
+          "required": false,
+          "multivalued": false
+        },
+        "options": {
+          "title": "Options",
+          "description": "The options containing the parameters for the callback (see documentation for possible parameters: https://docs.pingidentity.com/pingoneaic/latest/am-scripting/scripting-api-node.html#scripting-api-node-callbacks).\n\nFor example, for textOutputCallback, the options could be: { messageType: 0, message: \"Hello World!\" }",
+          "type": "OBJECT",
+          "required": true,
+          "multivalued": false
+        },
+        "sharedProperty": {
+          "title": "Shared State Property",
+          "description": "The shared state property to put the callback input into (if applicable)",
+          "type": "STRING",
+          "required": false,
+          "multivalued": false
+        },
+        "transientProperty": {
+          "title": "Transient State Property",
+          "description": "The transient state property to put the callback input into (if applicable)",
+          "type": "STRING",
+          "required": false,
+          "multivalued": false
+        }
+      }
+    }
+  },
+  "scripts": {},
+  "emailTemplates": {},
+  "socialIdentityProviders": {},
+  "themes": [],
+  "saml2Entities": {},
+  "circlesOfTrust": {}
+}

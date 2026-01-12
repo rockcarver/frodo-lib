@@ -680,6 +680,27 @@
       "name": "GitHub Profile Normalization (VS)",
       "script": "\"/*\\n * Copyright 2020 ForgeRock AS. All Rights Reserved\\n *\\n * Use of this code requires a commercial software license with ForgeRock AS.\\n * or with one of its affiliates. All use shall be exclusively subject\\n * to such license between the licensee and ForgeRock AS.\\n */\\n\\nimport static org.forgerock.json.JsonValue.field\\nimport static org.forgerock.json.JsonValue.json\\nimport static org.forgerock.json.JsonValue.object\\n\\nlogger.warning(\\\"GitHub rawProfile: \\\"+rawProfile)\\n\\nreturn json(object(\\n        field(\\\"id\\\", rawProfile.id),\\n        field(\\\"displayName\\\", rawProfile.name),\\n        field(\\\"givenName\\\", rawProfile.first_name),\\n        field(\\\"familyName\\\", rawProfile.last_name),\\n        field(\\\"photoUrl\\\", rawProfile.picture.data.url),\\n        field(\\\"email\\\", rawProfile.email),\\n        field(\\\"username\\\", rawProfile.email)))\""
     },
+    "3bd13a46-61c4-4974-8efb-1700c80c64e3": {
+      "_id": "3bd13a46-61c4-4974-8efb-1700c80c64e3",
+      "context": "AUTHENTICATION_TREE_DECISION_NODE",
+      "createdBy": "null",
+      "creationDate": 0,
+      "default": false,
+      "description": "Inactive Device Match Script",
+      "evaluatorVersion": "1.0",
+      "language": "JAVASCRIPT",
+      "lastModifiedBy": "null",
+      "lastModifiedDate": 0,
+      "name": "Inactive Device Match Script",
+      "script": [
+        "/*",
+        " * Inactive Device Match Script",
+        " */",
+        "",
+        "outcome = \"true\";",
+        ""
+      ]
+    },
     "58c824ae-84ed-4724-82cd-db128fc3f6c": {
       "_id": "58c824ae-84ed-4724-82cd-db128fc3f6c",
       "context": "SOCIAL_IDP_PROFILE_TRANSFORMATION",

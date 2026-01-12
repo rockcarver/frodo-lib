@@ -9,6 +9,7 @@ import {
 } from '../api/CirclesOfTrustApi';
 import { VariableSkeleton } from '../api/cloud/VariablesApi';
 import {
+  CustomNodeSkeleton,
   deleteNode,
   getNode,
   type InnerNodeRefSkeletonInterface,
@@ -76,10 +77,13 @@ import {
   readSocialIdentityProviders,
 } from './IdpOps';
 import {
+  CustomNodeExportInterface,
   findOrphanedNodes as _findOrphanedNodes,
+  importCustomNodes,
   isCloudOnlyNode,
   isCustomNode,
   isPremiumNode,
+  readCustomNode,
   removeOrphanedNodes as _removeOrphanedNodes,
 } from './NodeOps';
 import { type ExportMetaData, ResultCallback } from './OpsTypes';
@@ -530,7 +534,7 @@ export interface TreeExportOptions {
    */
   useStringArrays: boolean;
   /**
-   * Include any dependencies (scripts, email templates, SAML entity providers and circles of trust, social identity providers, themes).
+   * Include any dependencies specific to AIC (scripts, email templates, SAML entity providers and circles of trust, social identity providers, themes).
    */
   deps: boolean;
   /**
@@ -548,7 +552,7 @@ export interface TreeImportOptions {
    */
   reUuid: boolean;
   /**
-   * Include any dependencies (scripts, email templates, SAML entity providers and circles of trust, social identity providers, themes).
+   * Include any dependencies specific to AIC or Frodo (scripts, email templates, SAML entity providers and circles of trust, social identity providers, themes, custom nodes).
    */
   deps: boolean;
 }
@@ -557,6 +561,7 @@ export interface SingleTreeExportInterface {
   meta?: ExportMetaData;
   innerNodes?: Record<string, NodeSkeleton>;
   innernodes?: Record<string, NodeSkeleton>;
+  nodeTypes?: Record<string, CustomNodeSkeleton>;
   nodes: Record<string, NodeSkeleton>;
   scripts: Record<string, ScriptSkeleton>;
   emailTemplates: Record<string, EmailTemplateSkeleton>;
@@ -905,6 +910,7 @@ export async function exportJourney({
     const variables: Record<string, VariableSkeleton> = {};
     const nodePromises = [];
     const scriptPromises = [];
+    const customNodePromises = [];
     const emailTemplatePromises = [];
     const innerNodePromises = [];
     const saml2ConfigPromises = [];
@@ -962,6 +968,20 @@ export async function exportJourney({
         nodeObject.script !== emptyScriptPlaceholder
       ) {
         scriptPromises.push(readScript({ scriptId: nodeObject.script, state }));
+      }
+
+      // handle custom node types
+      if (
+        deps &&
+        nodeObject._type?._id &&
+        nodeObject._type._id.startsWith('designer-')
+      ) {
+        customNodePromises.push(
+          readCustomNode({
+            nodeId: nodeObject._type._id.substring(9) + '-1',
+            state,
+          })
+        );
       }
 
       // frodo supports email templates in platform deployments
@@ -1092,6 +1112,20 @@ export async function exportJourney({
           if (deps && hasScriptDependency(innerNodeObject)) {
             scriptPromises.push(
               readScript({ scriptId: innerNodeObject.script, state })
+            );
+          }
+
+          // handle custom node types
+          if (
+            deps &&
+            innerNodeObject._type?._id &&
+            innerNodeObject._type._id.startsWith('designer-')
+          ) {
+            customNodePromises.push(
+              readCustomNode({
+                nodeId: innerNodeObject._type._id.substring(9) + '-1',
+                state,
+              })
             );
           }
 
@@ -1365,6 +1399,31 @@ export async function exportJourney({
           error
         )
       );
+    }
+
+    // Process custom nodes
+    if (verbose && customNodePromises.length > 0)
+      printMessage({ message: '\n  - Custom Nodes:', newline: false, state });
+    try {
+      const customNodeObjects = await Promise.all(customNodePromises);
+      for (const customNodeObject of customNodeObjects) {
+        if (!customNodeObject) continue;
+        if (verbose)
+          printMessage({
+            message: `\n    - ${customNodeObject._id} (${customNodeObject.displayName})`,
+            type: 'info',
+            newline: false,
+            state,
+          });
+        if (useStringArrays)
+          customNodeObject.script = (customNodeObject.script as string).split(
+            '\n'
+          );
+        if (!exportData.nodeTypes) exportData.nodeTypes = {};
+        exportData.nodeTypes[customNodeObject._id] = customNodeObject;
+      }
+    } catch (error) {
+      errors.push(new FrodoError(`Error reading custom nodes`, error));
     }
 
     // Process themes
@@ -1694,6 +1753,26 @@ export async function importJourney({
         }
         if (verbose) printMessage({ message: '', state });
       }
+    }
+
+    // Process custom nodes
+    if (
+      deps &&
+      importData.nodeTypes &&
+      Object.entries(importData.nodeTypes).length > 0
+    ) {
+      if (verbose)
+        printMessage({ message: '  - Custom Nodes:', newline: false, state });
+      await importCustomNodes({
+        importData: importData as CustomNodeExportInterface,
+        options: {
+          reUuid: false,
+        },
+        resultCallback: (err) => {
+          if (err) errors.push(err);
+        },
+        state,
+      });
     }
 
     // Process email templates

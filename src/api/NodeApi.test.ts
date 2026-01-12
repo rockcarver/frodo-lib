@@ -34,248 +34,14 @@ import { state } from '../index';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
 
+import * as TestData from '../test/setup/NodeSetup';
+
 const ctx = autoSetupPolly();
 
 describe('NodeApi', () => {
-  const node1 = {
-    type: 'ValidatedUsernameNode',
-    node: {
-      _id: '67693475-3a58-4e38-bcc6-037b3fe46a58',
-      usernameAttribute: 'userName',
-      validateInput: false,
-      _type: {
-        _id: 'ValidatedUsernameNode',
-        name: 'Platform Username',
-        collection: true,
-      },
-      _outcomes: [
-        {
-          id: 'outcome',
-          displayName: 'Outcome',
-        },
-      ],
-    },
-  };
-  const node2 = {
-    id: '18ffdd4b-41b7-41b3-8248-f4fdfd68423f',
-    type: 'ValidatedPasswordNode',
-    node: {
-      validateInput: false,
-      passwordAttribute: 'password',
-      _type: {
-        _id: 'ValidatedPasswordNode',
-        name: 'Platform Password',
-        collection: true,
-      },
-      _outcomes: [
-        {
-          id: 'outcome',
-          displayName: 'Outcome',
-        },
-      ],
-    },
-  };
-  const node3 = {
-    id: 'b726262c-641e-4fa5-b276-98e129b44cd9',
-    type: 'PatchObjectNode',
-    node: {
-      identityResource: 'managed/user',
-      patchAsObject: false,
-      ignoredFields: [],
-      identityAttribute: 'userName',
-      _type: {
-        _id: 'PatchObjectNode',
-        name: 'Patch Object',
-        collection: true,
-      },
-      _outcomes: [
-        {
-          id: 'PATCHED',
-          displayName: 'Patched',
-        },
-        {
-          id: 'FAILURE',
-          displayName: 'Failed',
-        },
-      ],
-    },
-  };
-  const node4 = {
-    type: 'CreateObjectNode',
-    node: {
-      _id: '23bab9d4-1663-450f-8a4b-680f44f54fd6',
-      identityResource: 'managed/user',
-      _type: {
-        _id: 'CreateObjectNode',
-        name: 'Create Object',
-        collection: true,
-      },
-      _outcomes: [
-        {
-          id: 'CREATED',
-          displayName: 'Created',
-        },
-        {
-          id: 'FAILURE',
-          displayName: 'Failed',
-        },
-      ],
-    },
-  };
-  // in recording mode, setup test data before recording
-  beforeAll(async () => {
-    if (process.env.FRODO_POLLY_MODE === 'record') {
-      // setup node1 - delete if exists, then create
-      try {
-        await NodeApi.getNode({
-          nodeId: node1.node._id,
-          nodeType: node1.type,
-          state,
-        });
-        await NodeApi.deleteNode({
-          nodeId: node1.node._id,
-          nodeType: node1.type,
-          state,
-        });
-      } catch (error) {
-        // ignore
-      } finally {
-        await NodeApi.putNode({
-          nodeId: node1.node._id,
-          nodeType: node1.type,
-          nodeData: node1.node,
-          state,
-        });
-      }
-      // setup node2 - delete if exists
-      try {
-        await NodeApi.getNode({
-          nodeId: node2.id,
-          nodeType: node2.type,
-          state,
-        });
-        await NodeApi.deleteNode({
-          nodeId: node2.id,
-          nodeType: node2.type,
-          state,
-        });
-      } catch (error) {
-        // ignore
-      } finally {
-        await NodeApi.putNode({
-          nodeId: node2.id,
-          nodeType: node2.type,
-          nodeData: node2.node,
-          state,
-        });
-      }
-      // setup node3 - delete if exists, then create
-      try {
-        await NodeApi.getNode({
-          nodeId: node3.id,
-          nodeType: node3.type,
-          state,
-        });
-        await NodeApi.deleteNode({
-          nodeId: node3.id,
-          nodeType: node3.type,
-          state,
-        });
-      } catch (error) {
-        // ignore
-      } finally {
-        await NodeApi.putNode({
-          nodeId: node3.id,
-          nodeType: node3.type,
-          nodeData: node3.node,
-          state,
-        });
-      }
-      // setup node4 - delete if exists, then create
-      try {
-        await NodeApi.getNode({
-          nodeId: node4.node._id,
-          nodeType: node4.type,
-          state,
-        });
-        await NodeApi.deleteNode({
-          nodeId: node4.node._id,
-          nodeType: node4.type,
-          state,
-        });
-      } catch (error) {
-        // ignore
-      } finally {
-        await NodeApi.putNode({
-          nodeId: node4.node._id,
-          nodeType: node4.type,
-          nodeData: node4.node,
-          state,
-        });
-      }
-    }
-  });
-  // in recording mode, remove test data after recording
-  afterAll(async () => {
-    if (process.env.FRODO_POLLY_MODE === 'record') {
-      try {
-        await NodeApi.getNode({
-          nodeId: node1.node._id,
-          nodeType: node1.type,
-          state,
-        });
-        await NodeApi.deleteNode({
-          nodeId: node1.node._id,
-          nodeType: node1.type,
-          state,
-        });
-      } catch (error) {
-        // ignore
-      }
-      try {
-        await NodeApi.getNode({
-          nodeId: node2.id,
-          nodeType: node2.type,
-          state,
-        });
-        await NodeApi.deleteNode({
-          nodeId: node2.id,
-          nodeType: node2.type,
-          state,
-        });
-      } catch (error) {
-        // ignore
-      }
-      try {
-        await NodeApi.getNode({
-          nodeId: node3.id,
-          nodeType: node3.type,
-          state,
-        });
-        await NodeApi.deleteNode({
-          nodeId: node3.id,
-          nodeType: node3.type,
-          state,
-        });
-      } catch (error) {
-        // ignore
-      }
-      try {
-        await NodeApi.getNode({
-          nodeId: node4.node._id,
-          nodeType: node4.type,
-          state,
-        });
-        await NodeApi.deleteNode({
-          nodeId: node4.node._id,
-          nodeType: node4.type,
-          state,
-        });
-      } catch (error) {
-        // ignore
-      }
-    }
-  });
+
+  TestData.setup();
+  
   beforeEach(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
       ctx.polly.server.any().on('beforePersist', (_req, recording) => {
@@ -325,10 +91,10 @@ describe('NodeApi', () => {
       expect(NodeApi.getNode).toBeDefined();
     });
 
-    test(`1: Get existing node [${node1.node._id} - ${node1.type}]`, async () => {
+    test(`1: Get existing node [${TestData.node1._id} - ${TestData.node1._type._id}]`, async () => {
       const response = await NodeApi.getNode({
-        nodeId: node1.node._id,
-        nodeType: node1.type,
+        nodeId: TestData.node1._id,
+        nodeType: TestData.node1._type._id,
         state,
       });
       expect(response).toMatchSnapshot();
@@ -348,26 +114,42 @@ describe('NodeApi', () => {
     });
   });
 
+  describe ('createNode()', () => {
+    test('0: Method is implemented', async () => {
+      expect(NodeApi.createNode).toBeDefined();
+    });
+
+    test(`1: Create new node [${TestData.node5._id} - ${TestData.node5._type._id}]`, async () => {
+      const response = await NodeApi.putNode({
+        nodeId: TestData.node5._id,
+        nodeType: TestData.node5._type._id,
+        nodeData: TestData.node5,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+  })
+
   describe('putNode()', () => {
     test('0: Method is implemented', async () => {
       expect(NodeApi.putNode).toBeDefined();
     });
 
-    test(`1: Create new node [${node2.id} - ${node2.type}]`, async () => {
+    test(`1: Create new node [${TestData.node2._id} - ${TestData.node2._type._id}]`, async () => {
       const response = await NodeApi.putNode({
-        nodeId: node2.id,
-        nodeType: node2.type,
-        nodeData: node2.node,
+        nodeId: TestData.node2._id,
+        nodeType: TestData.node2._type._id,
+        nodeData: TestData.node2,
         state,
       });
       expect(response).toMatchSnapshot();
     });
 
-    test(`2: Update existing node [${node3.id} - ${node3.type}]`, async () => {
+    test(`2: Update existing node [${TestData.node3._id} - ${TestData.node3._type._id}]`, async () => {
       const node = await NodeApi.putNode({
-        nodeId: node3.id,
-        nodeType: node3.type,
-        nodeData: node3.node,
+        nodeId: TestData.node3._id,
+        nodeType: TestData.node3._type._id,
+        nodeData: TestData.node3,
         state,
       });
       expect(node).toMatchSnapshot();
@@ -379,10 +161,10 @@ describe('NodeApi', () => {
       expect(NodeApi.deleteNode).toBeDefined();
     });
 
-    test(`1: Delete existing node [${node4.node._id} - ${node4.type}]`, async () => {
+    test(`1: Delete existing node [${TestData.node4._id} - ${TestData.node4._type._id}]`, async () => {
       const node = await NodeApi.deleteNode({
-        nodeId: node4.node._id,
-        nodeType: node4.type,
+        nodeId: TestData.node4._id,
+        nodeType: TestData.node4._type._id,
         state,
       });
       expect(node).toMatchSnapshot();
@@ -399,6 +181,112 @@ describe('NodeApi', () => {
       } catch (error) {
         expect(error.response.data).toMatchSnapshot();
       }
+    });
+  });
+
+  describe('createCustomNode()', () => {
+    test('0: Method is implemented', async () => {
+      expect(NodeApi.createCustomNode).toBeDefined();
+    });
+
+    test('1: Create custom node', async () => {
+      const response = await NodeApi.createCustomNode({
+        nodeData: TestData.customNode3,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+  });
+
+  describe('getCustomNodes()', () => {
+    test('0: Method is implemented', async () => {
+      expect(NodeApi.getCustomNodes).toBeDefined();
+    });
+
+    test('1: Get all custom nodes', async () => {
+      const response = await NodeApi.getCustomNodes({ state });
+      expect(response).toMatchSnapshot();
+    });
+  });
+
+  describe('getCustomNode()', () => {
+    test('0: Method is implemented', async () => {
+      expect(NodeApi.getCustomNode).toBeDefined();
+    });
+
+    test(`1: Get existing custom node [${TestData.customNode1._id}]`, async () => {
+      const response = await NodeApi.getCustomNode({
+        nodeId: TestData.customNode1._id,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+
+    test('2: Get non-existing custom node [11111111111111111111111111111111-1]', async () => {
+      expect.assertions(1);
+      try {
+        await NodeApi.getCustomNode({
+          nodeId: '11111111111111111111111111111111-1',
+          state,
+        });
+      } catch (error) {
+        expect(error.response.data).toMatchSnapshot();
+      }
+    });
+  });
+
+  describe('putCustomNode()', () => {
+    test('0: Method is implemented', async () => {
+      expect(NodeApi.putCustomNode).toBeDefined();
+    });
+
+    test(`1: Update existing custom node [${TestData.customNode2._id}]`, async () => {
+      const response = await NodeApi.putCustomNode({
+        nodeId: TestData.customNode2._id,
+        nodeData: TestData.customNode2,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
+  });
+
+  describe('deleteCustomNode()', () => {
+    test('0: Method is implemented', async () => {
+      expect(NodeApi.deleteCustomNode).toBeDefined();
+    });
+
+    test(`1: Delete existing custom node [${TestData.customNode4._id}]`, async () => {
+      const node = await NodeApi.deleteCustomNode({
+        nodeId: TestData.customNode4._id,
+        state,
+      });
+      expect(node).toMatchSnapshot();
+    });
+
+    test('2: Delete non-existing custom node [11111111111111111111111111111111-1]', async () => {
+      expect.assertions(1);
+      try {
+        await NodeApi.deleteCustomNode({
+          nodeId: '11111111111111111111111111111111-1',
+          state,
+        });
+      } catch (error) {
+        expect(error.response.data).toMatchSnapshot();
+      }
+    });
+  });
+
+  describe('getCustomNodeUsage()', () => {
+    test('0: Method is implemented', async () => {
+      expect(NodeApi.getCustomNodeUsage).toBeDefined();
+    });
+
+    test(`1: Get custom node usage [${TestData.customNode1._id}]`, async () => {
+      const response = await NodeApi.getCustomNodeUsage({
+        nodeId: TestData.customNode1._id,
+        state,
+      });
+      expect(response).toMatchSnapshot();
     });
   });
 });

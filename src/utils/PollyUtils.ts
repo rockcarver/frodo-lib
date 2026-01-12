@@ -126,12 +126,13 @@ function obfuscateJsonString(json: string): string {
         // check for scripts
         if (obj.script) {
           try {
-            let script = decode(obj.script);
+            const isEncoded = isBase64Encoded(obj.script);
+            let script = isEncoded ? decode(obj.script) : obj.script;
             script = script.replace(
               /(var .*?(?:Sid|sid|Secret|secret|PhoneNumberFrom) = (?:"|'))(.*?)((?:"|'))/g,
               '$1<secret>$3'
             );
-            obj.script = encode(script);
+            obj.script = isEncoded ? encode(script) : script;
           } catch (error) {
             // ignore
           }

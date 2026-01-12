@@ -6,6 +6,7 @@ import { CircleOfTrustSkeleton } from '../api/CirclesOfTrustApi';
 import { SiteSkeleton } from '../api/classic/SiteApi';
 import { SecretSkeleton } from '../api/cloud/SecretsApi';
 import { VariableSkeleton } from '../api/cloud/VariablesApi';
+import { CustomNodeSkeleton } from '../api/NodeApi';
 import { OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
 import { OAuth2TrustedJwtIssuerSkeleton } from '../api/OAuth2TrustedJwtIssuerApi';
 import { PolicySkeleton } from '../api/PoliciesApi';
@@ -93,6 +94,7 @@ import {
   MappingSkeleton,
   SyncSkeleton,
 } from './MappingOps';
+import { exportCustomNodes, importCustomNodes } from './NodeOps';
 import { exportOAuth2Clients, importOAuth2Clients } from './OAuth2ClientOps';
 import {
   exportOAuth2TrustedJwtIssuers,
@@ -160,6 +162,7 @@ export default (state: State): Config => {
       options: FullImportOptions = {
         reUuidJourneys: false,
         reUuidScripts: false,
+        reUuidCustomNodes: false,
         cleanServices: false,
         includeDefault: false,
         includeActiveValues: true,
@@ -231,6 +234,10 @@ export interface FullImportOptions {
    */
   reUuidScripts: boolean;
   /**
+   * Generate new UUIDs and service names for all custom nodes during import.
+   */
+  reUuidCustomNodes: boolean;
+  /**
    * Indicates whether to remove previously existing services of the same id before importing
    */
   cleanServices: boolean;
@@ -261,6 +268,7 @@ export interface FullGlobalExportInterface extends AmConfigEntitiesInterface {
   idm: Record<string, IdObjectSkeletonInterface> | undefined;
   internalRole: Record<string, InternalRoleSkeleton>;
   mapping: Record<string, MappingSkeleton> | undefined;
+  nodeTypes: Record<string, CustomNodeSkeleton> | undefined;
   realm: Record<string, RealmSkeleton> | undefined;
   scripttype: Record<string, ScriptTypeExportSkeleton> | undefined;
   secret: Record<string, SecretSkeleton> | undefined;
@@ -445,6 +453,19 @@ export async function exportFullConfiguration({
         )
       )?.internalRole,
       mapping: mappings?.mapping,
+      nodeTypes: (
+        await exportWithErrorHandling(
+          exportCustomNodes,
+          {
+            options: {
+              useStringArrays,
+            },
+            state,
+          },
+          'Custom Nodes',
+          resultCallback
+        )
+      )?.nodeTypes,
       realm: (
         await exportWithErrorHandling(
           exportRealms,
@@ -611,7 +632,11 @@ export async function exportFullConfiguration({
           await exportWithErrorHandling(
             exportJourneys,
             {
-              options: { deps: false, useStringArrays, coords },
+              options: {
+                deps: false,
+                useStringArrays,
+                coords,
+              },
               resultCallback: errorCallback,
               state,
             },
@@ -751,6 +776,7 @@ export async function importFullConfiguration({
   options = {
     reUuidJourneys: false,
     reUuidScripts: false,
+    reUuidCustomNodes: false,
     cleanServices: false,
     includeDefault: false,
     includeActiveValues: true,
@@ -775,6 +801,7 @@ export async function importFullConfiguration({
   const {
     reUuidJourneys,
     reUuidScripts,
+    reUuidCustomNodes,
     cleanServices,
     includeDefault,
     includeActiveValues,
@@ -783,7 +810,7 @@ export async function importFullConfiguration({
   const errorCallback = getErrorCallback(resultCallback);
   // Import to global
   let indicatorId = createProgressIndicator({
-    total: 14,
+    total: 15,
     message: `Importing everything for global...`,
     state,
   });
@@ -833,6 +860,25 @@ export async function importFullConfiguration({
       'Realms',
       resultCallback,
       isClassicDeployment && !!importData.global.realm
+    )
+  );
+  response.push(
+    await importWithErrorHandling(
+      importCustomNodes,
+      {
+        nodeId: '',
+        nodeName: '',
+        importData: importData.global,
+        options: {
+          reUuid: reUuidCustomNodes,
+        },
+        resultCallback: errorCallback,
+        state,
+      },
+      indicatorId,
+      'Custom Nodes',
+      resultCallback,
+      !!importData.global.nodeTypes
     )
   );
   response.push(
