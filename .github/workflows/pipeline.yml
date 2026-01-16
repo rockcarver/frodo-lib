@@ -203,18 +203,20 @@ jobs:
 
       - name: Pre-Release
         if: ${{ fromJSON(needs.build.outputs.preRelease) }}
+        env:
+          NODE_AUTH_TOKEN: ""   # ← crucial: explicitly empty it
         uses: JS-DevTools/npm-publish@v4
         with:
           access: public
           tag: 'next'
-          token: ''
 
       - name: Release
         if: ${{ ! fromJSON(needs.build.outputs.preRelease) }}
+        env:
+          NODE_AUTH_TOKEN: ""   # ← crucial: explicitly empty it
         uses: JS-DevTools/npm-publish@v4
         with:
           access: public
-          token: ''
 
       - name: Add next tag
         if: ${{ ! fromJSON(needs.build.outputs.preRelease) }}
