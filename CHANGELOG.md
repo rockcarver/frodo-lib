@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+This release enables the library to support Proxy Connect in PingOne Advanced Identity Cloud through the use of custom authentication headers.
+
 ## [3.3.3] - 2025-09-15
 
 ## [3.3.2] - 2025-09-11
