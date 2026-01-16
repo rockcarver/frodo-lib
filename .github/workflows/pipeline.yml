@@ -27,7 +27,7 @@ env:
   NODE_VERSION: 22
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
       
 jobs:
