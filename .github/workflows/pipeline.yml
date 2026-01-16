@@ -181,6 +181,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: [build, test]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -207,10 +210,9 @@ jobs:
 
       - name: Release
         if: ${{ ! fromJSON(needs.build.outputs.preRelease) }}
-        uses: JS-DevTools/npm-publish@v3
+        uses: JS-DevTools/npm-publish@v4
         with:
           access: public
-          token: ${{ secrets.NPM_ACCESS_TOKEN }}
 
       - name: Add next tag
         if: ${{ ! fromJSON(needs.build.outputs.preRelease) }}
