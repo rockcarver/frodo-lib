@@ -202,7 +202,7 @@ jobs:
 
       - name: Pre-Release
         if: ${{ fromJSON(needs.build.outputs.preRelease) }}
-        uses: JS-DevTools/npm-publish@v3
+        uses: JS-DevTools/npm-publish@v4
         with:
           access: public
           tag: 'next'
