@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.4-0] - 2026-01-16
+
+### Changed
+
+This release enables the library to support Proxy Connect in PingOne Advanced Identity Cloud through the use of custom authentication headers.
+
 ## [3.3.3] - 2025-09-15
 
 ## [3.3.2] - 2025-09-11
@@ -1920,7 +1926,8 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v3.3.3...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v3.3.4-0...HEAD
+[3.3.4-0]: https://github.com/rockcarver/frodo-lib/compare/v3.3.3...v3.3.4-0
 [3.3.3]: https://github.com/rockcarver/frodo-lib/compare/v3.3.2...v3.3.3
 [3.3.2]: https://github.com/rockcarver/frodo-lib/compare/v3.3.1...v3.3.2
 [3.3.1]: https://github.com/rockcarver/frodo-lib/compare/v3.3.0...v3.3.1
