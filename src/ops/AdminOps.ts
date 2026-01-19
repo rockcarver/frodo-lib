@@ -742,7 +742,7 @@ async function addAdminStaticUserMapping({
         needsAdminMapping = false;
         addRoles = adminRoles.filter((role) => {
           let add = false;
-          if (!mapping.roles.includes(role)) {
+          if (!mapping.roles || !mapping.roles.includes(role)) {
             add = true;
           }
           return add;
@@ -783,7 +783,7 @@ async function addAdminStaticUserMapping({
     }
   } catch (error) {
     throw new FrodoError(
-      `Error adding admin static user mapping to ${name}`,
+      `Error adding admin static user mapping to ${name} - ${error.stack}`,
       error
     );
   }
