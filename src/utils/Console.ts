@@ -97,11 +97,20 @@ export function debugMessage({
  * @param {State} state library state
  * @returns masked curl command
  */
-function maskPasswordHeader(curlCommand: string) {
-  const header = 'X-OpenAM-Password:';
-  const mask = '<suppressed>';
-  const regex = new RegExp('"' + header + '.+?"', 'g');
-  return curlCommand.replace(regex, '"' + header + mask + '"');
+function maskConfidentialHeaders(curlCommand: string, state: State): string {
+  const headers = ['X-OpenAM-Password', 'X-OpenIDM-Password'];
+  const headerOverrides = state.getAuthenticationHeaderOverrides();
+  if (headerOverrides) {
+    for (const key of Object.keys(headerOverrides)) {
+      headers.push(key);
+    }
+  }
+  for (const header of headers) {
+    const mask = '<suppressed>';
+    const regex = new RegExp('"' + header + '.+?"', 'g');
+    curlCommand = curlCommand.replace(regex, '"' + header + ':' + mask + '"');
+  }
+  return curlCommand;
 }
 
 /**
@@ -120,7 +129,7 @@ export function curlirizeMessage({
 }) {
   const handler = state.getCurlirizeHandler();
   if (handler) {
-    handler(maskPasswordHeader(message));
+    handler(maskConfidentialHeaders(message, state));
   }
 }
 

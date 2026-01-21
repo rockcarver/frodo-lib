@@ -451,8 +451,15 @@ export async function loadConnectionProfileByHost({
   );
   state.setUsername(conn.username);
   state.setPassword(conn.password);
-  state.setAuthenticationService(conn.authenticationService);
-  state.setAuthenticationHeaderOverrides(conn.authenticationHeaderOverrides);
+  if (conn.authenticationService && !state.getAuthenticationService()) {
+    state.setAuthenticationService(conn.authenticationService);
+  }
+  if (
+    conn.authenticationHeaderOverrides &&
+    !state.getAuthenticationHeaderOverrides()
+  ) {
+    state.setAuthenticationHeaderOverrides(conn.authenticationHeaderOverrides);
+  }
   state.setServiceAccountId(conn.svcacctId);
   state.setServiceAccountJwk(conn.svcacctJwk);
   state.setServiceAccountScope(conn.svcacctScope);
