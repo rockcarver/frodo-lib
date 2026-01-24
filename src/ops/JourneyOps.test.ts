@@ -48,116 +48,21 @@
  */
 import { state } from '../index';
 import * as JourneyOps from './JourneyOps';
-import { getJourney } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
 import Constants from '../shared/Constants';
+
+import * as TestData from '../test/setup/JourneySetup';
 import { snapshotResultCallback } from '../test/utils/TestUtils';
 
 const ctx = autoSetupPolly();
 
 state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 
-async function stageJourney(journey: { id: string }, create = true) {
-  // delete if exists, then create
-  try {
-    await JourneyOps.readJourney({ journeyId: journey.id, state });
-    await JourneyOps.deleteJourney({
-      journeyId: journey.id,
-      options: {
-        deep: true,
-        verbose: false,
-        progress: false,
-      },
-      state,
-    });
-  } catch (error) {
-    // ignore
-  } finally {
-    if (create) {
-      await JourneyOps.importJourney({
-        importData: getJourney(journey.id),
-        options: {
-          reUuid: false,
-          deps: true,
-        },
-        state,
-      });
-    }
-  }
-}
-
 describe('JourneyOps', () => {
-  const journey1 = {
-    id: 'FrodoTestJourney1',
-  };
-  const journey2 = {
-    id: 'FrodoTestJourney2',
-  };
-  const journey3 = {
-    id: 'FrodoTestJourney3',
-  };
-  const journey4 = {
-    id: 'FrodoTestJourney4',
-  };
-  const journey5 = {
-    id: 'FrodoTestJourney5',
-  };
-  const journey6 = {
-    id: 'FrodoTestJourney6',
-  };
-  const journey7 = {
-    id: 'FrodoTestJourney7',
-  };
-  const journey8 = {
-    id: 'FrodoTestJourney8',
-  };
-  const journey9 = {
-    id: 'FrodoTestJourney9',
-  };
-  const journey10 = {
-    id: 'FrodoTestJourney10',
-  };
-  const journey10NoCoords = {
-    id: 'FrodoTestJourney10NoCoords'
-  };
-  const journey11 = {
-    id: 'FrodoTestJourney11',
-  }
-  // in recording mode, setup test data before recording
-  beforeAll(async () => {
-    if (process.env.FRODO_POLLY_MODE === 'record') {
-      await stageJourney(journey1);
-      await stageJourney(journey2);
-      await stageJourney(journey3);
-      await stageJourney(journey4, false);
-      await stageJourney(journey5, false);
-      await stageJourney(journey6);
-      await stageJourney(journey7);
-      await stageJourney(journey8);
-      await stageJourney(journey9);
-      await stageJourney(journey10);
-      await stageJourney(journey10NoCoords, false);
-      await stageJourney(journey11, false);
-    }
-  });
-  // in recording mode, remove test data after recording
-  afterAll(async () => {
-    if (process.env.FRODO_POLLY_MODE === 'record') {
-      await stageJourney(journey1, false);
-      await stageJourney(journey2, false);
-      await stageJourney(journey3, false);
-      await stageJourney(journey4, false);
-      await stageJourney(journey5, false);
-      await stageJourney(journey6, false);
-      await stageJourney(journey7, false);
-      await stageJourney(journey8, false);
-      await stageJourney(journey9, false);
-      await stageJourney(journey10, false);
-      await stageJourney(journey10NoCoords, false);
-      await stageJourney(journey11, false);
-    }
-  });
+  
+  TestData.setup();
+  
   beforeEach(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
       ctx.polly.server.any().on('beforePersist', (_req, recording) => {
@@ -182,7 +87,7 @@ describe('JourneyOps', () => {
       });
 
       test('1: Nothing changes when coordinates exist', async () => {
-        const journey = getJourney(journey10.id);
+        const journey = TestData.journey10;
         const tree = JSON.parse(JSON.stringify(journey.tree));
         expect(await JourneyOps.updateCoordinates({
           tree: tree,
@@ -194,7 +99,7 @@ describe('JourneyOps', () => {
       });
 
       test('2: Update coordinates with server coordinates when server tree exists', async () => {
-        const journey = getJourney(journey10.id);
+        const journey = TestData.journey10;
         const tree = JSON.parse(JSON.stringify(journey.tree));
         delete tree.nodes[node1].x;
         delete tree.nodes[node2].y;
@@ -211,7 +116,7 @@ describe('JourneyOps', () => {
       });
 
       test('3: Updates coordinates to 0 if serverTree does not exist', async () => {
-        const journey = getJourney(journey11.id);
+        const journey = TestData.journey11;
         const expectedTree = JSON.parse(JSON.stringify(journey.tree));
         expectedTree.nodes[node5].x = 0;
         expectedTree.nodes[node5].y = 0;
@@ -228,7 +133,7 @@ describe('JourneyOps', () => {
       });
 
       test('4: Updates coordinates to 0 if serverTree nodes do not exist', async () => {
-        const journey = getJourney(journey10NoCoords.id);
+        const journey = TestData.journey10NoCoords;
         const expectedTree = JSON.parse(JSON.stringify(journey.tree));
         expectedTree.nodes[node1].x = 0;
         expectedTree.nodes[node1].y = 0;
@@ -247,8 +152,8 @@ describe('JourneyOps', () => {
       });
 
       test('5: Updates coordinates in various cases', async () => {
-        const journey = getJourney(journey10.id);
-        const journeyNoCoords = getJourney(journey10NoCoords.id);
+        const journey = TestData.journey10;
+        const journeyNoCoords = TestData.journey10NoCoords;
         const expectedTree = JSON.parse(JSON.stringify(journey.tree));
         expectedTree.nodes[node1].x = 0;
         expectedTree.nodes[node2].y = 0;
@@ -296,9 +201,9 @@ describe('JourneyOps', () => {
         expect(JourneyOps.exportJourney).toBeDefined();
       });
 
-      test(`1: Export journey '${journey3.id}' w/o dependencies`, async () => {
+      test(`1: Export journey '${TestData.journey3.tree._id}' w/o dependencies`, async () => {
         const response = await JourneyOps.exportJourney({
-          journeyId: journey3.id,
+          journeyId: TestData.journey3.tree._id,
           options: {
             useStringArrays: false,
             deps: false,
@@ -311,9 +216,9 @@ describe('JourneyOps', () => {
         });
       });
 
-      test(`2: Export journey '${journey3.id}' w/ dependencies`, async () => {
+      test(`2: Export journey '${TestData.journey3.tree._id}' w/ dependencies`, async () => {
         const response = await JourneyOps.exportJourney({
-          journeyId: journey3.id,
+          journeyId: TestData.journey3.tree._id,
           options: {
             useStringArrays: false,
             deps: true,
@@ -326,13 +231,28 @@ describe('JourneyOps', () => {
         });
       });
 
-      test(`3: Export journey '${journey3.id}' w/ dependencies and w/o coordinates`, async () => {
+      test(`3: Export journey '${TestData.journey3.tree._id}' w/ dependencies and w/o coordinates`, async () => {
         const response = await JourneyOps.exportJourney({
-          journeyId: journey3.id,
+          journeyId: TestData.journey3.tree._id,
           options: {
             useStringArrays: false,
             deps: true,
             coords: false,
+          },
+          state,
+        });
+        expect(response).toMatchSnapshot({
+          meta: expect.any(Object),
+        });
+      });
+
+      test(`4: Export journey '${TestData.journey12.tree._id}' w/ custom node dependencies`, async () => {
+        const response = await JourneyOps.exportJourney({
+          journeyId: TestData.journey12.tree._id,
+          options: {
+            useStringArrays: true,
+            deps: true,
+            coords: true,
           },
           state,
         });
@@ -374,8 +294,8 @@ describe('JourneyOps', () => {
         expect(JourneyOps.importJourney).toBeDefined();
       });
 
-      test(`1: Import journey '${journey4.id}' w/o dependencies`, async () => {
-        const journeyExport = getJourney(journey4.id);
+      test(`1: Import journey '${TestData.journey4.tree._id}' w/o dependencies`, async () => {
+        const journeyExport = TestData.journey4;
         expect.assertions(1);
         const response = await JourneyOps.importJourney({
           importData: journeyExport,
@@ -388,8 +308,22 @@ describe('JourneyOps', () => {
         expect(response).toBeTruthy();
       });
 
-      test(`2: Import journey '${journey5.id}' w/ dependencies`, async () => {
-        const journeyExport = getJourney(journey5.id);
+      test(`2: Import journey '${TestData.journey5.tree._id}' w/ dependencies`, async () => {
+        const journeyExport = TestData.journey5;
+        expect.assertions(1);
+        const response = await JourneyOps.importJourney({
+          importData: journeyExport,
+          options: {
+            reUuid: false,
+            deps: true,
+          },
+          state,
+        });
+        expect(response).toBeTruthy();
+      });
+
+      test(`3: Import journey '${TestData.journey12.tree._id}' w/ custom node dependencies`, async () => {
+        const journeyExport = TestData.journey12;
         expect.assertions(1);
         const response = await JourneyOps.importJourney({
           importData: journeyExport,
@@ -408,19 +342,19 @@ describe('JourneyOps', () => {
         expect(JourneyOps.enableJourney).toBeDefined();
       });
 
-      test(`1: Enable disabled journey '${journey6.id}'`, async () => {
+      test(`1: Enable disabled journey '${TestData.journey6.tree._id}'`, async () => {
         expect.assertions(1);
         const result = await JourneyOps.enableJourney({
-          journeyId: journey6.id,
+          journeyId: TestData.journey6.tree._id,
           state,
         });
         expect(result).toBeTruthy();
       });
 
-      test(`2: Enable already enabled journey '${journey7.id}'`, async () => {
+      test(`2: Enable already enabled journey '${TestData.journey7.tree._id}'`, async () => {
         expect.assertions(1);
         const result = await JourneyOps.enableJourney({
-          journeyId: journey7.id,
+          journeyId: TestData.journey7.tree._id,
           state,
         });
         expect(result).toBeTruthy();
@@ -432,19 +366,19 @@ describe('JourneyOps', () => {
         expect(JourneyOps.disableJourney).toBeDefined();
       });
 
-      test(`1: Disable enabled journey '${journey8.id}'`, async () => {
+      test(`1: Disable enabled journey '${TestData.journey8.tree._id}'`, async () => {
         expect.assertions(1);
         const result = await JourneyOps.disableJourney({
-          journeyId: journey8.id,
+          journeyId: TestData.journey8.tree._id,
           state,
         });
         expect(result).toBeTruthy();
       });
 
-      test(`2: Disable already disabled journey '${journey9.id}'`, async () => {
+      test(`2: Disable already disabled journey '${TestData.journey9.tree._id}'`, async () => {
         expect.assertions(1);
         const result = await JourneyOps.disableJourney({
-          journeyId: journey9.id,
+          journeyId: TestData.journey9.tree._id,
           state,
         });
         expect(result).toBeTruthy();

@@ -22,6 +22,12 @@ const nodeURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s/%s';
 const createNodeURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s?_action=create';
+const customNodeTypeURLTemplate = '%s/json/node-designer/node-type';
+const queryAllCustomNodesURLTemplate =
+  customNodeTypeURLTemplate + '?_queryFilter=true';
+const customNodeURLTemplate = customNodeTypeURLTemplate + '/%s';
+const journeyUsageCustomNodesURLTemplate =
+  customNodeURLTemplate + '?_action=journeys';
 
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getNodeApiConfig = () => {
@@ -49,6 +55,35 @@ export interface InnerNodeRefSkeletonInterface {
   nodeType: string;
 }
 
+export type CustomNodeProperty = {
+  title: string;
+  description: string;
+  type: 'NUMBER' | 'STRING' | 'OBJECT' | 'BOOLEAN';
+  required: boolean;
+  defaultValue?:
+    | string
+    | number
+    | boolean
+    | Record<string, string>
+    | string[]
+    | number[];
+  multivalued: boolean;
+  options?: Record<string, string>;
+};
+
+export type CustomNodeSkeleton = IdObjectSkeletonInterface & {
+  serviceName: string;
+  displayName: string;
+  description: string;
+  outcomes: string[];
+  outputs: string[];
+  inputs: string[];
+  script: string | string[];
+  errorOutcome: boolean;
+  tags: string[];
+  properties: Record<string, CustomNodeProperty>;
+};
+
 export type NodeSkeleton = AmConfigEntityInterface & {
   nodes?: InnerNodeRefSkeletonInterface[];
   tree?: string;
@@ -70,6 +105,11 @@ export type NodeTypeSkeleton = IdObjectSkeletonInterface & {
   };
   help: string;
 };
+
+/**
+ * Object that is layed out as follows: <realm-path>.<journey-name> = array of nodes where custom node type is used in the journey in the specified realm
+ */
+export type CustomNodeUsage = Record<string, Record<string, string[]>>;
 
 /**
  * Get all node types
@@ -279,6 +319,150 @@ export async function deleteNode({
     resource: getNodeApiConfig(),
     state,
   }).delete(urlString, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+/**
+ * Create custom node
+ * @param {CustomNodeSkeleton} nodeData custom node object
+ * @returns {Promise<CustomNodeSkeleton>} a promise that resolves to an object containing a custom node object
+ */
+export async function createCustomNode({
+  nodeData,
+  state,
+}: {
+  nodeData: CustomNodeSkeleton;
+  state: State;
+}): Promise<CustomNodeSkeleton> {
+  const urlString = util.format(customNodeTypeURLTemplate, state.getHost());
+  const { data } = await generateAmApi({
+    resource: getNodeApiConfig(),
+    state,
+  }).post(urlString, nodeData, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+/**
+ * Get all custom nodes
+ * @returns {Promise} a promise that resolves to an object containing an array of custom node objects
+ */
+export async function getCustomNodes({
+  state,
+}: {
+  state: State;
+}): Promise<QueryResult<CustomNodeSkeleton>> {
+  const urlString = util.format(
+    queryAllCustomNodesURLTemplate,
+    state.getHost()
+  );
+  const { data } = await generateAmApi({
+    resource: getNodeApiConfig(),
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+/**
+ * Get custom node by uuid
+ * @param {string} nodeId custom node uuid
+ * @returns {Promise<CustomNodeSkeleton>} a promise that resolves to a custom node object
+ */
+export async function getCustomNode({
+  nodeId,
+  state,
+}: {
+  nodeId: string;
+  state: State;
+}): Promise<CustomNodeSkeleton> {
+  const urlString = util.format(customNodeURLTemplate, state.getHost(), nodeId);
+  const { data } = await generateAmApi({
+    resource: getNodeApiConfig(),
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+/**
+ * Put custom node by uuid.
+ * NOTE: due to a bug in the current version of AIC (19646.0), you cannot create a custom node using PUT unless you don't include the if-match header,
+ * which header is required to make updates to an existing custom node. Use createCustomNode if you want to create a new custom node.
+ * @param {string} nodeId custom node uuid
+ * @param {CustomNodeSkeleton} nodeData custom node object
+ * @returns {Promise<CustomNodeSkeleton>} a promise that resolves to an object containing a custom node object
+ */
+export async function putCustomNode({
+  nodeId,
+  nodeData,
+  state,
+}: {
+  nodeId: string;
+  nodeData: CustomNodeSkeleton;
+  state: State;
+}): Promise<CustomNodeSkeleton> {
+  const urlString = util.format(customNodeURLTemplate, state.getHost(), nodeId);
+  const { data } = await generateAmApi({
+    resource: getNodeApiConfig(),
+    state,
+  }).put(urlString, nodeData, {
+    withCredentials: true,
+    headers: {
+      'If-Match': '*',
+    },
+  });
+  return data;
+}
+
+/**
+ * Delete custom node by uuid
+ * @param {String} nodeId custom node uuid
+ * @returns {Promise<CustomNodeSkeleton>} a promise that resolves to an object containing a custom node object
+ */
+export async function deleteCustomNode({
+  nodeId,
+  state,
+}: {
+  nodeId: string;
+  state: State;
+}): Promise<CustomNodeSkeleton> {
+  const urlString = util.format(customNodeURLTemplate, state.getHost(), nodeId);
+  const { data } = await generateAmApi({
+    resource: getNodeApiConfig(),
+    state,
+  }).delete(urlString, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+/**
+ * Get custom node usage by uuid
+ * @param {String} nodeId custom node uuid
+ * @returns {Promise<CustomNodeUsage>} a promise that resolves to an object containing a custom node usage object
+ */
+export async function getCustomNodeUsage({
+  nodeId,
+  state,
+}: {
+  nodeId: string;
+  state: State;
+}): Promise<CustomNodeUsage> {
+  const urlString = util.format(
+    journeyUsageCustomNodesURLTemplate,
+    state.getHost(),
+    nodeId
+  );
+  const { data } = await generateAmApi({
+    resource: getNodeApiConfig(),
+    state,
+  }).post(urlString, undefined, {
     withCredentials: true,
   });
   return data;

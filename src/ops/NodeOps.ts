@@ -1,12 +1,22 @@
+import { v4 as uuidv4 } from 'uuid';
+
 import {
+  createCustomNode,
   createNode as _createNode,
+  CustomNodeSkeleton,
+  CustomNodeUsage,
+  deleteCustomNode as _deleteCustomNode,
   deleteNode as _deleteNode,
+  getCustomNode,
+  getCustomNodes,
+  getCustomNodeUsage as _getCustomNodeUsage,
   getNode as _getNode,
   getNodes as _getNodes,
   getNodesByType as _getNodesByType,
   getNodeTypes as _getNodeTypes,
   type NodeSkeleton,
   type NodeTypeSkeleton,
+  putCustomNode,
   putNode as _putNode,
 } from '../api/NodeApi';
 import { getTrees } from '../api/TreeApi';
@@ -18,10 +28,12 @@ import {
   printError,
   stopProgressIndicator,
   updateProgressIndicator,
+  verboseMessage,
 } from '../utils/Console';
-import { getMetadata } from '../utils/ExportImportUtils';
+import { getMetadata, getResult } from '../utils/ExportImportUtils';
+import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
-import { ExportMetaData } from './OpsTypes';
+import { ExportMetaData, ResultCallback } from './OpsTypes';
 
 export type Node = {
   /**
@@ -79,6 +91,85 @@ export type Node = {
    */
   deleteNode(nodeId: string, nodeType: string): Promise<NodeSkeleton>;
   /**
+   * Read custom node. Either ID or name must be provided.
+   * @param {string} nodeId ID or service name of custom node. Takes priority over node display name if both are provided.
+   * @param {string} nodeName Display name of custom node.
+   * @returns {Promise<CustomNodeSkeleton>} a promise that resolves to a custom node object
+   */
+  readCustomNode(
+    nodeId?: string,
+    nodeName?: string
+  ): Promise<CustomNodeSkeleton>;
+  /**
+   * Read all custom nodes
+   * @returns {Promise<CustomNodeSkeleton[]>} a promise that resolves to an array of custom nodes objects
+   */
+  readCustomNodes(): Promise<CustomNodeSkeleton[]>;
+  /**
+   * Export custom node. Either ID or name must be provided.
+   * @param {string} nodeId ID or service name of custom node. Takes priority over node display name if both are provided.
+   * @param {string} nodeName Display name of custom node.
+   * @param {CustomNodeExportOptions} options Custom node export options
+   * @returns {Promise<CustomNodeExportInterface>} a promise that resolves to a custom node export object
+   */
+  exportCustomNode(
+    nodeId?: string,
+    nodeName?: string,
+    options?: CustomNodeExportOptions
+  ): Promise<CustomNodeExportInterface>;
+  /**
+   * Export all custom nodes
+   * @param {CustomNodeExportOptions} options Custom node export options
+   * @returns {Promise<CustomNodeExportInterface>} a promise that resolves to a custom node export object
+   */
+  exportCustomNodes(
+    options?: CustomNodeExportOptions
+  ): Promise<CustomNodeExportInterface>;
+  /**
+   * Update custom node by ID
+   * @param {string} nodeId ID or service name of custom node.
+   * @param {CustomNodeSkeleton} nodeData node object
+   * @returns {Promise<CustomNodeSkeleton>} a promise that resolves to a custom node object
+   */
+  updateCustomNode(
+    nodeId: string,
+    nodeData: CustomNodeSkeleton
+  ): Promise<CustomNodeSkeleton>;
+  /**
+   * Import custom nodes
+   * @param {string} nodeId ID or service name of custom node. If supplied, only the custom node of that id is imported. Takes priority over node display name if both are provided.
+   * @param {string} nodeName Display name of custom node. If supplied, only the custom node of that name is imported
+   * @param {CustomNodeExportInterface} importData Custom node import data
+   * @param {CustomNodeImportOptions} options Custom node import options
+   * @param {ResultCallback<CustomNodeSkeleton>} resultCallback Optional callback to process individual results
+   * @returns {Promise<CustomNodeSkeleton[]>} the imported custom nodes
+   */
+  importCustomNodes(
+    nodeId: string,
+    nodeName: string,
+    importData: CustomNodeExportInterface,
+    options?: CustomNodeImportOptions,
+    resultCallback?: ResultCallback<CustomNodeSkeleton>
+  ): Promise<CustomNodeSkeleton[]>;
+  /**
+   * Delete custom node. Either ID or name must be provided.
+   * @param {string} nodeId ID or service name of custom node. Takes priority over node display name if both are provided.
+   * @param {string} nodeName Display name of custom node.
+   * @returns {Promise<CustomNodeSkeleton>} promise that resolves to a custom node object
+   */
+  deleteCustomNode(
+    nodeId?: string,
+    nodeName?: string
+  ): Promise<CustomNodeSkeleton>;
+  /**
+   * Delete custom nodes
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
+   * @returns {Promise<CustomNodeSkeleton[]>} promise that resolves to an array of custom node objects
+   */
+  deleteCustomNodes(
+    resultCallback?: ResultCallback<CustomNodeSkeleton>
+  ): Promise<CustomNodeSkeleton[]>;
+  /**
    * Find all node configuration objects that are no longer referenced by any tree
    * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an array of orphaned nodes
    */
@@ -128,6 +219,12 @@ export type Node = {
    * @returns {NodeClassificationType[]} an array of one or multiple classifications
    */
   getNodeClassification(nodeType: string): NodeClassificationType[];
+  /**
+   * Get custom node usage by ID
+   * @param {String} nodeId ID or service name of the custom node
+   * @returns {Promise<CustomNodeUsage>} a promise that resolves to an object containing a custom node usage object
+   */
+  getCustomNodeUsage(nodeId: string): Promise<CustomNodeUsage>;
 };
 
 export default (state: State): Node => {
@@ -163,6 +260,91 @@ export default (state: State): Node => {
     async deleteNode(nodeId: string, nodeType: string): Promise<NodeSkeleton> {
       return deleteNode({ nodeId, nodeType, state });
     },
+    readCustomNode(
+      nodeId?: string,
+      nodeName?: string
+    ): Promise<CustomNodeSkeleton> {
+      return readCustomNode({
+        nodeId,
+        nodeName,
+        state,
+      });
+    },
+    readCustomNodes(): Promise<CustomNodeSkeleton[]> {
+      return readCustomNodes({
+        state,
+      });
+    },
+    exportCustomNode(
+      nodeId?: string,
+      nodeName?: string,
+      options: CustomNodeExportOptions = {
+        useStringArrays: true,
+      }
+    ): Promise<CustomNodeExportInterface> {
+      return exportCustomNode({
+        nodeId,
+        nodeName,
+        options,
+        state,
+      });
+    },
+    exportCustomNodes(
+      options: CustomNodeExportOptions = {
+        useStringArrays: true,
+      }
+    ): Promise<CustomNodeExportInterface> {
+      return exportCustomNodes({
+        options,
+        state,
+      });
+    },
+    updateCustomNode(
+      nodeId: string,
+      nodeData: CustomNodeSkeleton
+    ): Promise<CustomNodeSkeleton> {
+      return updateCustomNode({
+        nodeId,
+        nodeData,
+        state,
+      });
+    },
+    importCustomNodes(
+      nodeId: string,
+      nodeName: string,
+      importData: CustomNodeExportInterface,
+      options: CustomNodeImportOptions = {
+        reUuid: false,
+      },
+      resultCallback?: ResultCallback<CustomNodeSkeleton>
+    ): Promise<CustomNodeSkeleton[]> {
+      return importCustomNodes({
+        nodeId,
+        nodeName,
+        importData,
+        options,
+        resultCallback,
+        state,
+      });
+    },
+    deleteCustomNode(
+      nodeId?: string,
+      nodeName?: string
+    ): Promise<CustomNodeSkeleton> {
+      return deleteCustomNode({
+        nodeId,
+        nodeName,
+        state,
+      });
+    },
+    deleteCustomNodes(
+      resultCallback?: ResultCallback<CustomNodeSkeleton>
+    ): Promise<CustomNodeSkeleton[]> {
+      return deleteCustomNodes({
+        resultCallback,
+        state,
+      });
+    },
     async findOrphanedNodes(): Promise<NodeSkeleton[]> {
       return findOrphanedNodes({ state });
     },
@@ -189,6 +371,12 @@ export default (state: State): Node => {
     getNodeClassification(nodeType: string): NodeClassificationType[] {
       return getNodeClassification({ nodeType, state });
     },
+    getCustomNodeUsage(nodeId: string): Promise<CustomNodeUsage> {
+      return getCustomNodeUsage({
+        nodeId,
+        state,
+      });
+    },
   };
 };
 
@@ -197,19 +385,30 @@ export interface NodeExportInterface {
   node: Record<string, NodeSkeleton>;
 }
 
+export interface CustomNodeExportInterface {
+  meta?: ExportMetaData;
+  // Use nodeTypes since this is how AIC exports them
+  nodeTypes: Record<string, CustomNodeSkeleton>;
+}
+
 /**
- * Create an empty node export template
- * @returns {NodeExportInterface} an empty node export template
+ * Custom node import options
  */
-export function createNodeExportTemplate({
-  state,
-}: {
-  state: State;
-}): NodeExportInterface {
-  return {
-    meta: getMetadata({ state }),
-    node: {},
-  };
+export interface CustomNodeImportOptions {
+  /**
+   * Generate new UUIDs and service names for all custom nodes during import.
+   */
+  reUuid: boolean;
+}
+
+/**
+ * Custom node export options
+ */
+export interface CustomNodeExportOptions {
+  /**
+   * Use string arrays to store script code
+   */
+  useStringArrays: boolean;
 }
 
 export type NodeClassificationType =
@@ -230,6 +429,36 @@ export enum NodeClassification {
 }
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
+
+/**
+ * Create an empty node export template
+ * @returns {NodeExportInterface} an empty node export template
+ */
+export function createNodeExportTemplate({
+  state,
+}: {
+  state: State;
+}): NodeExportInterface {
+  return {
+    meta: getMetadata({ state }),
+    node: {},
+  };
+}
+
+/**
+ * Create an empty custom node export template
+ * @returns {CustomNodeExportInterface} an empty custom node export template
+ */
+export function createCustomNodeExportTemplate({
+  state,
+}: {
+  state: State;
+}): CustomNodeExportInterface {
+  return {
+    meta: getMetadata({ state }),
+    nodeTypes: {},
+  };
+}
 
 /**
  * Read all node types
@@ -431,6 +660,352 @@ export async function deleteNode({
   } catch (error) {
     throw new FrodoError(`Error deleting ${nodeType} node ${nodeId}`, error);
   }
+}
+
+/**
+ * Read custom node. Either ID or name must be provided.
+ * @param {string} nodeId ID or service name of custom node. Takes priority over node display name if both are provided.
+ * @param {string} nodeName Display name of custom node.
+ * @returns {Promise<CustomNodeSkeleton>} a promise that resolves to a custom node object
+ */
+export async function readCustomNode({
+  nodeId,
+  nodeName,
+  state,
+}: {
+  nodeId?: string;
+  nodeName?: string;
+  state: State;
+}): Promise<CustomNodeSkeleton> {
+  nodeId = getCustomNodeId(nodeId);
+  if (!nodeId && !nodeName) {
+    throw new FrodoError(`No custom node ID or display name provided.`);
+  }
+  try {
+    if (nodeId) {
+      return await getCustomNode({ nodeId, state });
+    }
+    const nodes = await readCustomNodes({ state });
+    for (const node of nodes) {
+      if (node.displayName === nodeName) {
+        return node;
+      }
+    }
+    throw new FrodoError(`Custom node '${nodeName}' not found`);
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading custom node ${nodeName || nodeId}`,
+      error
+    );
+  }
+}
+
+/**
+ * Read all custom nodes
+ * @returns {Promise<CustomNodeSkeleton[]>} a promise that resolves to an array of custom nodes objects
+ */
+export async function readCustomNodes({
+  state,
+}: {
+  state: State;
+}): Promise<CustomNodeSkeleton[]> {
+  try {
+    const { result } = await getCustomNodes({ state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading custom nodes`, error);
+  }
+}
+
+/**
+ * Export custom node. Either ID or name must be provided.
+ * @param {string} nodeId ID or service name of custom node. Takes priority over node display name if both are provided.
+ * @param {string} nodeName Display name of custom node.
+ * @param {CustomNodeExportOptions} options Custom node export options
+ * @returns {Promise<CustomNodeExportInterface>} a promise that resolves to a custom node export object
+ */
+export async function exportCustomNode({
+  nodeId,
+  nodeName,
+  options = {
+    useStringArrays: true,
+  },
+  state,
+}: {
+  nodeId?: string;
+  nodeName?: string;
+  options?: CustomNodeExportOptions;
+  state: State;
+}): Promise<CustomNodeExportInterface> {
+  nodeId = getCustomNodeId(nodeId);
+  if (!nodeId && !nodeName) {
+    throw new FrodoError(`No custom node ID or display name provided.`);
+  }
+  try {
+    debugMessage({ message: `NodeOps.exportCustomNode: start`, state });
+    const exportData = createCustomNodeExportTemplate({ state });
+    const node = await readCustomNode({ nodeId, nodeName, state });
+    if (options.useStringArrays) {
+      node.script = (node.script as string).split('\n');
+    }
+    exportData.nodeTypes[node._id] = node;
+    debugMessage({ message: `NodeOps.exportCustomNode: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(
+      `Error exporting custom node ${nodeName || nodeId}`,
+      error
+    );
+  }
+}
+
+/**
+ * Export all custom nodes
+ * @param {CustomNodeExportOptions} options Custom node export options
+ * @returns {Promise<CustomNodeExportInterface>} a promise that resolves to a custom node export object
+ */
+export async function exportCustomNodes({
+  options = {
+    useStringArrays: true,
+  },
+  state,
+}: {
+  options?: CustomNodeExportOptions;
+  state: State;
+}): Promise<CustomNodeExportInterface> {
+  let indicatorId: string;
+  try {
+    debugMessage({ message: `NodeOps.exportCustomNodes: start`, state });
+    const exportData = createCustomNodeExportTemplate({ state });
+    const nodes = await readCustomNodes({ state });
+    indicatorId = createProgressIndicator({
+      total: nodes.length,
+      message: 'Exporting custom nodes...',
+      state,
+    });
+    for (const node of nodes) {
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting custom node ${node.displayName}`,
+        state,
+      });
+      if (options.useStringArrays) {
+        node.script = (node.script as string).split('\n');
+      }
+      exportData.nodeTypes[node._id] = node;
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${nodes.length} custom nodes.`,
+      state,
+    });
+    debugMessage({ message: `NodeOps.exportCustomNodes: end`, state });
+    return exportData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting custom nodes.`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(`Error exporting custom nodes`, error);
+  }
+}
+
+/**
+ * Update custom node by ID
+ * @param {string} nodeId ID or service name of custom node.
+ * @param {CustomNodeSkeleton} nodeData node object
+ * @returns {Promise<CustomNodeSkeleton>} a promise that resolves to a custom node object
+ */
+export async function updateCustomNode({
+  nodeId,
+  nodeData,
+  state,
+}: {
+  nodeId: string;
+  nodeData: CustomNodeSkeleton;
+  state: State;
+}): Promise<CustomNodeSkeleton> {
+  nodeId = getCustomNodeId(nodeId);
+  let result = null;
+  try {
+    if (Array.isArray(nodeData.script)) {
+      nodeData.script = nodeData.script.join('\n');
+    }
+    result = await putCustomNode({ nodeId, nodeData, state });
+  } catch (error) {
+    if (
+      error.response?.status === 409 &&
+      error.response?.data.message.startsWith('Node Type with display name') &&
+      error.response?.data.message.endsWith('already exists')
+    ) {
+      verboseMessage({
+        message: `updateCustomNode WARNING: custom node with display name ${nodeData.displayName} already exists, using renaming policy... <name> => <name - imported (n)>`,
+        state,
+      });
+      const newName = applyNameCollisionPolicy(nodeData.displayName);
+      nodeData.displayName = newName;
+      result = await updateCustomNode({ nodeId, nodeData, state });
+      verboseMessage({
+        message: `Saved custom node as ${newName}`,
+        state,
+      });
+    } else {
+      throw new FrodoError(`Error updating custom node`, error);
+    }
+  }
+  return result;
+}
+
+/**
+ * Import custom nodes
+ * @param {string} nodeId ID or service name of custom node. If supplied, only the custom node of that id is imported. Takes priority over node display name if both are provided.
+ * @param {string} nodeName Display name of custom node. If supplied, only the custom node of that name is imported
+ * @param {CustomNodeExportInterface} importData Custom node import data
+ * @param {CustomNodeImportOptions} options Custom node import options
+ * @param {ResultCallback<CustomNodeSkeleton>} resultCallback Optional callback to process individual results
+ * @returns {Promise<CustomNodeSkeleton[]>} the imported custom nodes
+ */
+export async function importCustomNodes({
+  nodeId,
+  nodeName,
+  importData,
+  options = {
+    reUuid: false,
+  },
+  resultCallback,
+  state,
+}: {
+  nodeId?: string;
+  nodeName?: string;
+  importData: CustomNodeExportInterface;
+  options: CustomNodeImportOptions;
+  resultCallback?: ResultCallback<CustomNodeSkeleton>;
+  state: State;
+}): Promise<CustomNodeSkeleton[]> {
+  nodeId = getCustomNodeId(nodeId);
+  debugMessage({ message: `NodeOps.importCustomNodes: start`, state });
+  const response = [];
+  for (const existingId of Object.keys(importData.nodeTypes)) {
+    try {
+      const nodeData = importData.nodeTypes[existingId];
+      const shouldNotImportCustomNode =
+        (nodeId && nodeId !== nodeData._id) ||
+        (!nodeId && nodeName && nodeName !== nodeData.displayName);
+      if (shouldNotImportCustomNode) continue;
+      debugMessage({
+        message: `NodeOps.importCustomNodes: Importing custom node ${nodeData.displayName} (${existingId})`,
+        state,
+      });
+      let newId = existingId;
+      if (options.reUuid) {
+        newId = uuidv4().replaceAll('-', '');
+        debugMessage({
+          message: `NodeOps.importCustomNodes: Re-uuid-ing custom node ${nodeData.displayName} ${existingId} => ${newId}-1...`,
+          state,
+        });
+        nodeData._id = newId + '-1';
+        nodeData.serviceName = newId;
+      }
+      if (Array.isArray(nodeData.script))
+        nodeData.script = nodeData.script.join('\n');
+      // First attempt to create the node. If it fails, try updating it
+      let result;
+      try {
+        result = await createCustomNode({ nodeData, state });
+      } catch (error) {
+        if (error.response?.status === 409) {
+          result = await updateCustomNode({
+            nodeId: newId,
+            nodeData,
+            state,
+          });
+        } else throw error;
+      }
+      if (resultCallback) {
+        resultCallback(undefined, result);
+      }
+      response.push(result);
+    } catch (e) {
+      if (resultCallback) {
+        resultCallback(e, undefined);
+      } else {
+        throw new FrodoError(
+          `Error importing custom node '${importData.nodeTypes[existingId].displayName}'`,
+          e
+        );
+      }
+    }
+  }
+  debugMessage({ message: `NodeOps.importCustomNodes: end`, state });
+  return response;
+}
+
+/**
+ * Delete custom node. Either ID or name must be provided.
+ * @param {string} nodeId ID or service name of custom node. Takes priority over node display name if both are provided.
+ * @param {string} nodeName Display name of custom node.
+ * @returns {Promise<CustomNodeSkeleton>} promise that resolves to a custom node object
+ */
+export async function deleteCustomNode({
+  nodeId,
+  nodeName,
+  state,
+}: {
+  nodeId?: string;
+  nodeName?: string;
+  state: State;
+}): Promise<CustomNodeSkeleton> {
+  nodeId = getCustomNodeId(nodeId);
+  if (!nodeId && !nodeName) {
+    throw new FrodoError(`No custom node ID or display name provided.`);
+  }
+  try {
+    let id = nodeId;
+    if (!id) {
+      const node = await readCustomNode({ nodeId, nodeName, state });
+      id = node._id;
+    }
+    return await _deleteCustomNode({ nodeId: id, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error deleting custom node ${nodeName || nodeId}`,
+      error
+    );
+  }
+}
+
+/**
+ * Delete custom nodes
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
+ * @returns {Promise<CustomNodeSkeleton[]>} promise that resolves to an array of custom node objects
+ */
+export async function deleteCustomNodes({
+  resultCallback,
+  state,
+}: {
+  resultCallback: ResultCallback<CustomNodeSkeleton>;
+  state: State;
+}): Promise<CustomNodeSkeleton[]> {
+  const nodes = await readCustomNodes({ state });
+  const deletedNodes = [];
+  for (const node of nodes) {
+    const result: CustomNodeSkeleton = await getResult(
+      resultCallback,
+      `Error deleting custom node ${node.displayName}`,
+      deleteCustomNode,
+      {
+        nodeId: node._id,
+        nodeName: node.displayName,
+        state,
+      }
+    );
+    if (result) {
+      deletedNodes.push(result);
+    }
+  }
+  return deletedNodes;
 }
 
 /**
@@ -1067,4 +1642,35 @@ export function getNodeClassification({
   if (premium) classifications.push(NodeClassification.PREMIUM);
   if (deprecated) classifications.push(NodeClassification.DEPRECATED);
   return classifications;
+}
+
+/**
+ * Get custom node usage by ID
+ * @param {String} nodeId ID or service name of the custom node
+ * @returns {Promise<CustomNodeUsage>} a promise that resolves to an object containing a custom node usage object
+ */
+export async function getCustomNodeUsage({
+  nodeId,
+  state,
+}: {
+  nodeId: string;
+  state: State;
+}): Promise<CustomNodeUsage> {
+  try {
+    return await _getCustomNodeUsage({
+      nodeId: getCustomNodeId(nodeId),
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(`Error getting custom node usage`, error);
+  }
+}
+
+/**
+ * Helper that normalized a service name to custom node id if needed
+ * @param nodeId The custom node id or service name
+ * @returns nodeId if falsey or in id format, otherwise returns nodeId in id format
+ */
+export function getCustomNodeId(nodeId?: string): string | undefined | null {
+  return !nodeId || nodeId.endsWith('-1') ? nodeId : nodeId + '-1';
 }

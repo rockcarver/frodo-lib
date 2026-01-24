@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { SingleTreeExportInterface } from '../../ops/JourneyOps';
 import { getTypedFilename } from '../../utils/ExportImportUtils';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -77,7 +78,7 @@ export function mockAccessToken(mock: MockAdapter) {
  * Tree Mock Data
  */
 
-export function getJourney(journeyId: string) {
+export function getJourney(journeyId: string): SingleTreeExportInterface {
   const treeObject = JSON.parse(
     fs.readFileSync(
       path.resolve(
