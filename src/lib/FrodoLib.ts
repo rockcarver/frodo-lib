@@ -75,6 +75,7 @@ import OAuth2TrustedJwtIssuerOps, {
 import OrganizationOps, { Organization } from '../ops/OrganizationOps';
 import PolicyOps, { Policy } from '../ops/PolicyOps';
 import PolicySetOps, { PolicySet } from '../ops/PolicySetOps';
+import RawConfigOps, { RawConfig } from '../ops/RawConfigOps';
 import RealmOps, { Realm } from '../ops/RealmOps';
 import ReconOps, { Recon } from '../ops/ReconOps';
 import ResourceTypeOps, { ResourceType } from '../ops/ResourceTypeOps';
@@ -181,6 +182,8 @@ export type Frodo = {
     provider: OAuth2Provider;
     issuer: OAuth2TrustedJwtIssuer;
   };
+
+  rawConfig: RawConfig;
 
   realm: Realm;
 
@@ -353,6 +356,8 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       provider: OAuth2ProviderOps(state),
       issuer: OAuth2TrustedJwtIssuerOps(state),
     },
+
+    rawConfig: RawConfigOps(state),
 
     realm: RealmOps(state),
 

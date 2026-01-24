@@ -413,7 +413,7 @@ export async function exportFullConfiguration({
       emailTemplate: (
         await exportWithErrorHandling(
           exportEmailTemplates,
-          stateObj,
+          { includeDefault: includeReadOnly, state },
           'Email Templates',
           resultCallback,
           isPlatformDeployment

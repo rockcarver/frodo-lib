@@ -32,9 +32,12 @@ export type EmailTemplate = {
   createEmailTemplateExportTemplate(): EmailTemplateExportInterface;
   /**
    * Get all email templates
+   * @param {boolean} includeDefault Include default email templates if true, false to exclude them. Default: false
    * @returns {Promise<EmailTemplateSkeleton[]>} a promise that resolves to an array of email template objects
    */
-  readEmailTemplates(): Promise<EmailTemplateSkeleton[]>;
+  readEmailTemplates(
+    includeDefault?: boolean
+  ): Promise<EmailTemplateSkeleton[]>;
   /**
    * Get email template
    * @param {string} templateId id/name of the email template without the type prefix
@@ -43,9 +46,12 @@ export type EmailTemplate = {
   readEmailTemplate(templateId: string): Promise<EmailTemplateSkeleton>;
   /**
    * Export all email templates. The response can be saved to file as is.
+   * @param {boolean} includeDefault Include default email templates if true, false to exclude them. Default: false
    * @returns {Promise<EmailTemplateExportInterface>} Promise resolving to a EmailTemplateExportInterface object.
    */
-  exportEmailTemplates(): Promise<EmailTemplateExportInterface>;
+  exportEmailTemplates(
+    includeDefault?: boolean
+  ): Promise<EmailTemplateExportInterface>;
   /**
    * Create email template
    * @param {string} templateId id/name of the email template without the type prefix
@@ -133,14 +139,16 @@ export default (state: State): EmailTemplate => {
     createEmailTemplateExportTemplate(): EmailTemplateExportInterface {
       return createEmailTemplateExportTemplate({ state });
     },
-    async readEmailTemplates(): Promise<any> {
-      return readEmailTemplates({ state });
+    async readEmailTemplates(includeDefault: boolean = false): Promise<any> {
+      return readEmailTemplates({ includeDefault, state });
     },
     async readEmailTemplate(templateId: string): Promise<any> {
       return readEmailTemplate({ templateId, state });
     },
-    async exportEmailTemplates(): Promise<EmailTemplateExportInterface> {
-      return exportEmailTemplates({ state });
+    async exportEmailTemplates(
+      includeDefault: boolean = false
+    ): Promise<EmailTemplateExportInterface> {
+      return exportEmailTemplates({ includeDefault, state });
     },
     async createEmailTemplate(
       templateId: string,
@@ -218,16 +226,20 @@ export function createEmailTemplateExportTemplate({
 
 /**
  * Get all email templates
+ * @param {boolean} includeDefault Include default email templates if true, false to exclude them. Default: false
  * @returns {Promise<EmailTemplateSkeleton[]>} a promise that resolves to an array of email template objects
  */
 export async function readEmailTemplates({
+  includeDefault = false,
   state,
 }: {
+  includeDefault?: boolean;
   state: State;
 }): Promise<EmailTemplateSkeleton[]> {
   try {
     const templates = await readConfigEntitiesByType({
       type: EMAIL_TEMPLATE_TYPE,
+      includeDefault,
       state,
     });
     return templates as EmailTemplateSkeleton[];
@@ -260,11 +272,14 @@ export async function readEmailTemplate({
 
 /**
  * Export all email templates. The response can be saved to file as is.
+ * @param {boolean} includeDefault Include default email templates if true, false to exclude them. Default: false
  * @returns {Promise<EmailTemplateExportInterface>} Promise resolving to a EmailTemplateExportInterface object.
  */
 export async function exportEmailTemplates({
+  includeDefault = false,
   state,
 }: {
+  includeDefault: boolean;
   state: State;
 }): Promise<EmailTemplateExportInterface> {
   try {
@@ -273,7 +288,7 @@ export async function exportEmailTemplates({
       state,
     });
     const exportData = createEmailTemplateExportTemplate({ state });
-    const emailTemplates = await readEmailTemplates({ state });
+    const emailTemplates = await readEmailTemplates({ includeDefault, state });
     const indicatorId = createProgressIndicator({
       total: emailTemplates.length,
       message: 'Exporting email templates...',

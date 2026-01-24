@@ -221,6 +221,15 @@ describe('IdmConfigOps', () => {
       });
       expect(response).toMatchSnapshot();
     });
+
+    test('3: Read config entity by type (emailTemplate with default templates)', async () => {
+      const response = await IdmConfigOps.readConfigEntitiesByType({
+        type: 'emailTemplate',
+        includeDefault: true,
+        state,
+      });
+      expect(response).toMatchSnapshot();
+    });
   });
 
   describe('readConfigEntity()', () => {
