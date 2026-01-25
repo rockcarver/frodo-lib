@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **_BREAKING_**: Updated Node.js supported version matrix:
+  - Added support for v25
+  - Added support for v24
+  - **_BREAKING_**: Dropped support for v18
+- Updated dependencies
+
+### Added
+
+- Added library support for `fr-config-manager` commands in the CLI.
+- Added support for Node Designer Nodes through several API and Ops functions to allow for doing exports, imports, deletes, etc. with custom node configurations.<br><br>
+Just like with journeys, custom nodes get exported and imported in the same way as they do from AIC/AM, so you can import Frodo exported custom nodes into AIC/AM and vice versa.<br><br>
+Additionally, journeys were updated to include custom node dependencies during exports. Even if a journey is exported with Frodo and contains these dependencies in the export JSON, they can still be imported into AIC/AM using the admin UI as it should ignore the custom node dependencies (since AIC/AM doesn't support exporting them yet).
+
+### Fixed
+
+- \#519: Updated AdminOps.ts to allow the `frodo admin grant-oauth2-client-admin-privileges` command in the CLI to again properly grant oauth2 client admin privileges after changes in AIC broke the command.
+
 ## [3.3.6-1] - 2026-01-24
 
 ## [3.3.6-0] - 2026-01-24

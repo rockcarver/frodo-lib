@@ -17,6 +17,14 @@ import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
 
 export type ResourceConfig = { apiVersion?: string };
 
+export type RetryNothingStrategy = 'nothing';
+export type RetryNetworkStrategy = 'network';
+export type RetryEverythingStrategy = 'everything';
+export type RetryStrategy =
+  | RetryNothingStrategy
+  | RetryNetworkStrategy
+  | RetryEverythingStrategy;
+
 if (process.env.FRODO_MOCK) {
   setupPollyForFrodoLib({ state: StateImpl({}) });
 }

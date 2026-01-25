@@ -13,6 +13,10 @@ export type Constants = {
   FRODO_CONNECTION_PROFILES_PATH_KEY: string;
   FRODO_MASTER_KEY_PATH_KEY: string;
   FRODO_MASTER_KEY_KEY: string;
+  RETRY_NOTHING_KEY: string;
+  RETRY_EVERYTHING_KEY: string;
+  RETRY_NETWORK_KEY: string;
+  RETRY_STRATEGIES: string[];
 };
 const DEFAULT_REALM_KEY = '__default__realm__';
 const CLASSIC_DEPLOYMENT_TYPE_KEY = 'classic';
@@ -117,6 +121,15 @@ const AVAILABLE_SCOPES = {
   IGAFullScope: 'fr:iga:*',
 };
 
+const RETRY_EVERYTHING_KEY = 'everything';
+const RETRY_NETWORK_KEY = 'network';
+const RETRY_NOTHING_KEY = 'nothing';
+const RETRY_STRATEGIES = [
+  RETRY_NOTHING_KEY,
+  RETRY_EVERYTHING_KEY,
+  RETRY_NETWORK_KEY,
+];
+
 export default {
   DEFAULT_REALM_KEY,
   CLASSIC_DEPLOYMENT_TYPE_KEY,
@@ -130,4 +143,8 @@ export default {
   FRODO_MASTER_KEY_KEY,
   FRODO_TOKEN_CACHE_PATH_KEY,
   AVAILABLE_SCOPES,
+  RETRY_NOTHING_KEY,
+  RETRY_EVERYTHING_KEY,
+  RETRY_NETWORK_KEY,
+  RETRY_STRATEGIES,
 };

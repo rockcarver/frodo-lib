@@ -1,14 +1,15 @@
 <!-- README.md for GitHub; the one for NPM is ../README.md. -->
 
-# Frodo Library 2.x & 3.x - @rockcarver/frodo-lib
+# Frodo Library 4.x - @rockcarver/frodo-lib
 
 A hybrid (ESM and CJS) library to manage PingOne Advanced Identity Cloud environments, ForgeOps deployments, and classic deployments.
 
-Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the command line tool to manage ForgeRock deployments.
+Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the command line tool to manage SaaS and self-hosted deployments.
 
 ## Quick Nav
 
-- [New in 2.x & 3.x](#new-in-2x--3x)
+- [New 4.x](#new-in-4x)
+- [About](#about)
 - [Considerations](#considerations)
 - [Installing](#installing)
 - [Using the library](#using-the-library)
@@ -17,45 +18,34 @@ Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the comma
 - [Contributing](#contributing)
 - [Maintaining](#maintaining)
 
-## New In 2.x & 3.x
+## New In 4.x
 
-Frodo Library 2.0 introduced a host of new capabilities and a much improved structure. The 3.0 release followed unexpectedly soon after due to a breaking change in the format of the `frodo config export` command. For all intents and purpose, 2.x and 3.x are the same except for that breaking change.
+Frodo Library 4.0 adds support for [Custom Nodes](https://docs.pingidentity.com/pingoneaic/journeys/node-designer.html), `fr-config-manager` and the latest Node.js versions.
 
-### Multi-Instantiability
+### Custom Nodes - Node Designer
 
 2.x introduces breaking changes to support multiple instances of the library to run concurrently and connect to multiple different Ping Identity Platform instances at the same time. [1.x](https://github.com/rockcarver/frodo-lib/tree/1.x) operates using a global singleton, making it impossible to connect to more than one platform instance at a time.
 
-### New Library Structure
+### FR-Config-Manager
 
 Removing the singleton pattern and introducing multi-instantiability forced a radical redesign of the core library functions while striving to maintain the basic usage pattern. The library is now exposing two main types describing its modules ([Frodo](https://rockcarver.github.io/frodo-lib/types/Reference.Frodo.html)) and state ([State](https://rockcarver.github.io/frodo-lib/types/Reference.State.html)). Each module in turn exports all its collection of functions as a type as well. Exposing the library structure as types enables auto-completion for both JS and TS developers with properly configured IDEs like Visual Studio Code or other and also serves as an abstraction layer between what the library exposes vs what and how it's implemented.
 
-#### New `FrodoError` Class
+### Node.js Versions
 
-All the errors thrown by the library are of the class `FrodoError`, introduced in 2.x. The new error class addresses the following challenges of earlier library versions:
+- Added support for Node.js 24 and 25.
+- Dropped support for Node.js 18.
 
-- Allows applications using the library to determine if the error originated in the library or is an unexpected and unhandled error from deeper down the stack.
-- Nesting of errors:
+## About
 
-  When the library throws because it caught an error thrown deeper down the stack, it wraps the caught `Error` in a `FrodoError`.
+### Modules
 
-- Nesting of arrays of errors
-
-  The library supports many operation that require a number of actions to occur in a row or in parallel. Often these operations are REST API calls and any of those calls may fail for any reason. To preserve status of every operation, `FrodoError` can also wrap an array of errors, each of which may be another instance of `FrodoError` wrapping an individual or an array of errors.
-
-- Provides a stack-like combined error message concatenating the messages of all wrapped errors and nested errors.
-
-- Includes standardized fields to surface network errors in case the `Error` on top of the stack is an `AxiosError`.
-
-- The new `printError` function recognizes `FrodoError` and prints a uniformly formatted expression of the error including an interpretation of the fields for network stack errors.
-
-### New Modules
-
-The following modules have been updated and/or added since [1.x](https://github.com/rockcarver/frodo-lib/tree/1.x):
+List of modules that have been updated and/or added by version:
 
 | Module                     | Since | Capabilities |
 | -------------------------- | ----- | ------------ |
 | frodo.admin                | 1.0.0 | Library of common and complex admin tasks. |
 | frodo.agent                | 1.0.0 | Manage web, java, and gateway agents. |
+| frodo.am.config            | 3.0.1 | Manage all AM entities that are not otherwise managed in Frodo (chains, modules, tree config, servers, webhooks, etc.) |
 | frodo.app                  | 2.0.0 | Manage platform applications and dependencies. |
 | frodo.authn.journey        | 1.0.0 | Manage authentication journeys. |
 | frodo.authn.node           | 1.0.0 | Manage authentication nodes. |
@@ -65,21 +55,27 @@ The following modules have been updated and/or added since [1.x](https://github.
 | frodo.authz.resourceType   | 1.0.0 | Manage resource types and dependencies. |
 | frodo.cache                | 2.0.0 | Token cache management exposed through the library but primarily used internally. |
 | frodo.cloud.adminFed       | 1.0.0 | Manage PingOne Advanced Identity Cloud admin federation. |
+| frodo.cloud.env            | 2.0.3 | Manage PingOne Advanced Identity Cloud environment settings (custom domains, cookie domains, federation enforcement, release, SSO cookie config, etc.). |
+| frodo.cloud.env.cert       | 2.0.3 | Manage certificates in PingOne Advanced Identity Cloud |
+| frodo.cloud.env.csr        | 2.0.3 | Manage certificate signing requests in PingOne Advanced Identity Cloud |
+| frodo.cloud.env.promotion  | 2.0.3 | Manage promotions in PingOne Advanced Identity Cloud |
 | frodo.cloud.feature        | 1.0.0 | Obtain info on PingOne Advanced Identity Cloud features. |
 | frodo.cloud.log            | 1.0.0 | Access PingOne Advanced Identity Cloud debug and audit logs. |
 | frodo.cloud.secret         | 1.0.0 | Mange secrets in PingOne Advanced Identity Cloud. |
 | frodo.cloud.serviceAccount | 1.0.0 | Manage service accounts in PingOne Advanced Identity Cloud. |
 | frodo.cloud.startup        | 1.0.0 | Apply changes to secrets and variables and restart services in PingOne Advanced Identity Cloud. |
 | frodo.cloud.variable       | 1.0.0 | Manage variables in PingOne Advanced Identity Cloud. |
-| frodo.conn                 | 1.0.0 | Manage connection profiles. |
 | frodo.config               | 2.0.0 | Manage the whole platform configuration. |
+| frodo.conn                 | 1.0.0 | Manage connection profiles. |
 | frodo.email.template       | 1.0.0 | Manage email templates (IDM). |
 | frodo.idm.config           | 2.0.0 | Manage any IDM configuration object. |
 | frodo.idm.connector        | 2.0.0 | Manage IDM connector configuration. |
+| frodo.idm.crypto.          | 2.0.0 | Manage IDM connector configuration. |
 | frodo.idm.managed          | 1.0.0 | Manage IDM managed object schema (managed.json). |
 | frodo.idm.mapping          | 2.0.0 | Manage IDM mappings (sync.json). |
 | frodo.idm.organization     | 1.0.0 | Limited Org Model management exposed through the library but primarily used internally. |
 | frodo.idm.recon            | 2.0.0 | Read, start, cancel IDM recons. |
+| frodo.idm.script           | 2.0.0 | Compile and evaluate IDM scripts. |
 | frodo.idm.system           | 2.0.0 | Manage data in connected systems. |
 | frodo.info                 | 1.0.0 | Obtain information about the connected instance and authenticated identity. |
 | frodo.login                | 1.0.0 | Authenticate and obtain necessary tokens. |
@@ -88,14 +84,21 @@ The following modules have been updated and/or added since [1.x](https://github.
 | frodo.oauth2oidc.external  | 1.0.0 | Manage external OAuth 2.0/OIDC 1.0 (social) identity providers. |
 | frodo.oauth2oidc.issuer    | 2.0.0 | Manage trusted OAuth 2.0 JWT issuers. |
 | frodo.oauth2oidc.provider  | 1.0.0 | Manage the realm OAuth 2.0 provider. |
+| frodo.rawConfig            | 4.0.0 | Export raw IDM configuration. |
 | frodo.realm                | 1.0.0 | Manage realms. |
+| frodo.role                 | 3.0.1 | Manage Internal Roles. |
 | frodo.saml.circlesOfTrust  | 1.0.0 | Manage SAML 2.0 circles of trust. |
 | frodo.saml.entityProvider  | 1.0.0 | Manage SAML 2.0 entity providers. |
 | frodo.script               | 1.0.0 | Manage access management scripts. |
+| frodo.scriptType           | 3.0.1 | Manage access management script types. |
+| frodo.secretStore          | 3.0.1 | Manage access management secret stores in classic and forgeops deployments. |
+| frodo.server               | 3.0.1 | Manage access management servers in classic and forgeops deployments. |
 | frodo.service              | 1.0.0 | Manage access management services. |
 | frodo.session              | 2.0.0 | Limited session management exposed through the library but primarily used internally. |
+| frodo.site                 | 3.0.1 | Manage access management sites in classic and forgeops deployments. |
 | frodo.state                | 1.0.0 | Manage library state. |
 | frodo.theme                | 1.0.0 | Manage platform themes (hosted pages). |
+| frodo.user                 | 3.0.1 | Manage access management users in classic deployments. |
 | frodo.utils.constants      | 1.0.0 | Access relevant library constants. |
 | frodo.utils.jose           | 1.0.0 | Jose utility functions exposed through the library but primarily used internally. |
 | frodo.utils.json           | 1.0.0 | JSON utility functions exposed through the library but primarily used internally. |
@@ -103,27 +106,24 @@ The following modules have been updated and/or added since [1.x](https://github.
 
 ### Secure Token Caching
 
-The 2.x version of the library uses a secure token cache, which is active by default. The cache makes it so that when the `frodo.login.getTokens()` method is called, available tokens are updated in `state` from cache and if none are available, they are obtained from the instance configured in `state`. The cache is tokenized and encrypted on disk, so it persists across library instantiations. You can disable the cache by either setting the `FRODO_NO_CACHE` environment variable or by calling `state.setUseTokenCache(false)` from your application.
+The library uses a secure token cache, which is active by default. The cache makes it so that when the `frodo.login.getTokens()` method is called, available tokens are updated in `state` from cache and if none are available, they are obtained from the instance configured in `state`. The cache is tokenized and encrypted on disk, so it persists across library instantiations. You can disable the cache by either setting the `FRODO_NO_CACHE` environment variable or by calling `state.setUseTokenCache(false)` from your application.
 You can change the default location of the cache file (`~/.frodo/TokenCache.json`) by either setting the `FRODO_TOKEN_CACHE_PATH` environment variable or by calling `state.setTokenCachePath('/path/to/cache.json')`.
 
 ### Automatic Token Refresh
 
-The 2.x version of the library automatically refreshes session and access tokens before they expire. Combined with the new token cache, the library will maintain a set of valid tokens in `state` at all times until it is shut down. If you do not want to automatically refresh tokens, set the `autoRefresh` parameter (2nd param) of your `frodo.login.getTokens()` call to `false`.
+The library automatically refreshes session and access tokens before they expire. Combined with the token cache, the library maintains a set of valid tokens in `state` at all times until it is shut down. If you do not want to automatically refresh tokens, set the `autoRefresh` parameter (2nd param) of your `frodo.login.getTokens()` call to `false`.
 
 ### Node.js Versions
 
-- Dropped support for Node.js 14 and 16.
-- Kept supporting Node.js 18.
-- Added support for Node.js 20 and 22.
-
-| Node.js |      frodo-lib 1.x |      frodo-lib 2.x | ***frodo-lib 3.x*** |      frodo-lib 4.x |
-| :-----: | :----------------: | :----------------: | :----------------: | :----------------: |
-|   14    | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: |
-|   16    | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: |
-|   18    | :white_check_mark: | :white_check_mark: | :white_check_mark: | :heavy_minus_sign: |
-|   20    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-|   22    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-|   24    | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :white_check_mark: |
+| Node.js |      frodo-lib 1.x |      frodo-lib 2.x | frodo-lib 3.x.     | ***frodo-lib 4.x*** |      frodo-lib 5.x |
+| :-----: | :----------------: | :----------------: | :----------------: | :----------------: | :----------------: |
+|   14    | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: |
+|   16    | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: |
+|   18    | :white_check_mark: | :white_check_mark: | :white_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: |
+|   20    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :heavy_minus_sign: |
+|   22    | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+|   24    | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :white_check_mark: | :white_check_mark: |
+|   26    | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :heavy_minus_sign: | :white_check_mark: |
 
 ## Considerations
 
@@ -143,7 +143,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 
 For those who want to contribute or are just curious about the build process.
 
-- Make sure you have **Node.js 18** or newer (**20** or **22** preferred) and npm installed.
+- Make sure you have **Node.js 20** or newer (**24** preferred) and npm installed.
 - Clone this repo
   ```console
   git clone https://github.com/rockcarver/frodo-lib.git
