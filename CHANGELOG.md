@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0-1] - 2026-01-25
+
 ### Changed
 
 - **_BREAKING_**: Updated Node.js supported version matrix:
@@ -19,8 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added library support for `fr-config-manager` commands in the CLI.
 - Added support for Node Designer Nodes through several API and Ops functions to allow for doing exports, imports, deletes, etc. with custom node configurations.<br><br>
-Just like with journeys, custom nodes get exported and imported in the same way as they do from AIC/AM, so you can import Frodo exported custom nodes into AIC/AM and vice versa.<br><br>
-Additionally, journeys were updated to include custom node dependencies during exports. Even if a journey is exported with Frodo and contains these dependencies in the export JSON, they can still be imported into AIC/AM using the admin UI as it should ignore the custom node dependencies (since AIC/AM doesn't support exporting them yet).
+  Just like with journeys, custom nodes get exported and imported in the same way as they do from AIC/AM, so you can import Frodo exported custom nodes into AIC/AM and vice versa.<br><br>
+  Additionally, journeys were updated to include custom node dependencies during exports. Even if a journey is exported with Frodo and contains these dependencies in the export JSON, they can still be imported into AIC/AM using the admin UI as it should ignore the custom node dependencies (since AIC/AM doesn't support exporting them yet).
 
 ### Fixed
 
@@ -1962,7 +1964,8 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v3.3.6-1...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v4.0.0-1...HEAD
+[4.0.0-1]: https://github.com/rockcarver/frodo-lib/compare/v3.3.6-1...v4.0.0-1
 [3.3.6-1]: https://github.com/rockcarver/frodo-lib/compare/v3.3.6-0...v3.3.6-1
 [3.3.6-0]: https://github.com/rockcarver/frodo-lib/compare/v3.3.5...v3.3.6-0
 [3.3.5]: https://github.com/rockcarver/frodo-lib/compare/v3.3.4...v3.3.5
