@@ -1,6 +1,6 @@
 {
   "name": "@rockcarver/frodo-lib",
-  "version": "3.3.6-1",
+  "version": "4.0.0-0",
   "type": "commonjs",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -46,7 +46,7 @@
     "devops"
   ],
   "engines": {
-    "node": ">=18.17.0"
+    "node": ">=20"
   },
   "repository": {
     "type": "git",
@@ -57,20 +57,12 @@
   },
   "contributors": [
     {
+      "name": "Conor Barford",
+      "email": "conor.barford@pingidentity.com"
+    },
+    {
       "name": "Sandeep Chaturvedi",
       "email": "sandeep.chaturvedi@forgerock.com"
-    },
-    {
-      "name": "Adam Crockett",
-      "email": "adam.crockett@forgerock.com"
-    },
-    {
-      "name": "Mees van Dongen",
-      "email": "meesvandongen@gmail.com"
-    },
-    {
-      "name": "Ali Falahi",
-      "email": "ali@falahi.com"
     },
     {
       "name": "Huston Franklin",
@@ -79,18 +71,6 @@
     {
       "name": "Preston Hales",
       "email": "phales@trivir.com"
-    },
-    {
-      "name": "Nick Hangartner",
-      "email": "nhangartner@gmail.com"
-    },
-    {
-      "name": "Marcel Maas",
-      "email": "maas.marcel@gmail.com"
-    },
-    {
-      "name": "Conor Barford",
-      "email": "conor.barford@pingidentity.com"
     },
     {
       "name": "Joshua Sayers",

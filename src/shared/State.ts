@@ -1,11 +1,17 @@
 /* eslint-disable no-console */
-import { IAxiosRetryConfig } from 'axios-retry';
+import {
+  exponentialDelay,
+  IAxiosRetryConfig,
+  isNetworkOrIdempotentRequestError,
+} from 'axios-retry';
 
+import { RetryStrategy } from '../api/BaseApi';
 import { FeatureInterface } from '../api/cloud/FeatureApi';
 import { UserSessionMetaType } from '../ops/AuthenticateOps';
 import { FrodoError } from '../ops/FrodoError';
 import { JwkRsa } from '../ops/JoseOps';
 import { AccessTokenMetaType } from '../ops/OAuth2OidcOps';
+import Constants from '../shared/Constants';
 import {
   ProgressIndicatorStatusType,
   ProgressIndicatorType,
@@ -157,6 +163,7 @@ export type State = {
   getDebug(): boolean;
   getAxiosRetryConfig(): IAxiosRetryConfig;
   setAxiosRetryConfig(axiosRetryConfig: IAxiosRetryConfig): void;
+  setAxiosRetryStrategy(strategy: RetryStrategy): void;
   /**
    * Reset the state to default values
    */
@@ -495,6 +502,40 @@ export default (initialState: StateInterface): State => {
       return globalState.axiosRetryConfig;
     },
     setAxiosRetryConfig(axiosRetryConfig: IAxiosRetryConfig) {
+      globalState.axiosRetryConfig = axiosRetryConfig;
+    },
+    setAxiosRetryStrategy(strategy: RetryStrategy): void {
+      let axiosRetryConfig = {};
+      switch (strategy) {
+        case Constants.RETRY_EVERYTHING_KEY:
+          axiosRetryConfig = {
+            retries: 3, // Number of retry attempts
+            retryDelay: exponentialDelay, // Use exponential backoff for delay
+            retryCondition: (error) => {
+              // Retry on all errors except 429 Too Many Requests
+              return error.response.status !== 429;
+            },
+          };
+          break;
+
+        case Constants.RETRY_NETWORK_KEY:
+          axiosRetryConfig = {
+            retries: 3, // Number of retry attempts
+            retryDelay: exponentialDelay, // Use exponential backoff for delay
+            retryCondition: (error) => {
+              // Custom condition: retry on network errors or specific status codes
+              return isNetworkOrIdempotentRequestError(error);
+            },
+          };
+          break;
+
+        default:
+          axiosRetryConfig = {
+            retries: 0, // Number of retry attempts
+            retryCondition: () => false,
+          };
+          break;
+      }
       globalState.axiosRetryConfig = axiosRetryConfig;
     },
     reset(): void {
