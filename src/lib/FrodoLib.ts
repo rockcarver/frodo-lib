@@ -9,7 +9,6 @@ import AuthenticationSettingsOps, {
   AuthenticationSettings,
 } from '../ops/AuthenticationSettingsOps';
 import CirclesOfTrustOps, { CirclesOfTrust } from '../ops/CirclesOfTrustOps';
-import SecretStoreOps, { SecretStore } from '../ops/classic/SecretStoreOps';
 import ServerOps, { Server } from '../ops/classic/ServerOps';
 import SiteOps, { Site } from '../ops/classic/SiteOps';
 import AdminFederationOps, {
@@ -82,6 +81,7 @@ import ResourceTypeOps, { ResourceType } from '../ops/ResourceTypeOps';
 import Saml2Ops, { Saml2 } from '../ops/Saml2Ops';
 import ScriptOps, { Script } from '../ops/ScriptOps';
 import ScriptTypeOps, { ScriptType } from '../ops/ScriptTypeOps';
+import SecretStoreOps, { SecretStore } from '../ops/SecretStoreOps';
 import ServiceOps, { Service } from '../ops/ServiceOps';
 import SessionOps, { Session } from '../ops/SessionOps';
 import ThemeOps, { Theme } from '../ops/ThemeOps';

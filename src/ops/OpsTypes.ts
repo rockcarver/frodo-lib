@@ -9,6 +9,6 @@ export interface ExportMetaData {
   exportToolVersion: string;
 }
 
-export type ResultCallback<R> = (error: FrodoError, result: R) => void;
+export type ResultCallback<R> = (error?: FrodoError, result?: R) => void;
 
 export type ErrorFilter = (error: FrodoError) => boolean;

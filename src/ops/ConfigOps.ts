@@ -56,11 +56,6 @@ import {
   importCirclesOfTrust,
 } from './CirclesOfTrustOps';
 import {
-  exportSecretStores,
-  importSecretStores,
-  SecretStoreExportSkeleton,
-} from './classic/SecretStoreOps';
-import {
   exportServers,
   importServers,
   ServerExportInterface,
@@ -112,6 +107,11 @@ import {
   importScriptTypes,
   ScriptTypeExportSkeleton,
 } from './ScriptTypeOps';
+import {
+  exportSecretStores,
+  importSecretStores,
+  SecretStoreExportSkeleton,
+} from './SecretStoreOps';
 import { exportServices, importServices } from './ServiceOps';
 import { exportThemes, importThemes, ThemeSkeleton } from './ThemeOps';
 
@@ -709,7 +709,7 @@ export async function exportFullConfiguration({
             realmStateObj,
             'Secret Stores',
             resultCallback,
-            isClassicDeployment
+            isClassicDeployment || isCloudDeployment
           )
         )?.secretstore,
         service: (
@@ -1099,7 +1099,8 @@ export async function importFullConfiguration({
         indicatorId,
         'Secret Stores',
         resultCallback,
-        isClassicDeployment && !!importData.realm[realm].secretstore
+        (isClassicDeployment || isCloudDeployment) &&
+          !!importData.realm[realm].secretstore
       )
     );
     response.push(
