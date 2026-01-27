@@ -245,6 +245,13 @@ export function printError(error: Error, message?: string) {
 
 export function snapshotResultCallback(error: FrodoError) {
   if (error) {
-    expect(error.getCombinedMessage()).toMatchSnapshot();
+    if (typeof error.getCombinedMessage === 'function') {
+      expect(error.getCombinedMessage()).toMatchSnapshot();
+    } else {
+      throw new FrodoError(
+        'TESTING ERROR: Expected a FrodoError, but got a different error.\nMessage: ' +
+          error.message
+      );
+    }
   }
 }
