@@ -1,15 +1,26 @@
+import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { createHash, randomBytes } from 'crypto';
+import jose from 'node-jose';
+import sshpk from 'sshpk';
 import url from 'url';
 import { v4 } from 'uuid';
 
-import { step } from '../api/AuthenticateApi';
+import {
+  AuthenticateStep,
+  AuthenticateSuccessResponse,
+  step,
+} from '../api/AuthenticateApi';
 import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { encodeBase64Url } from '../utils/Base64Utils';
 import { debugMessage, verboseMessage } from '../utils/Console';
 import { isValidUrl, parseUrl } from '../utils/ExportImportUtils';
-import { CallbackHandler } from './CallbackOps';
+import {
+  CallbackHandler,
+  fillCallbacks,
+  getCallbackValue,
+} from './CallbackOps';
 import { readServiceAccountScopes } from './cloud/EnvServiceAccountScopesOps';
 import {
   getServiceAccount,
@@ -43,7 +54,7 @@ import {
 export type Authenticate = {
   /**
    * Get tokens and store them in State
-   * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
+   * @param {boolean} forceLoginAsUser true to force login as user even if a service account or Amster account is available (default: false)
    * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
    * @param {string[]} types Array of supported deployment types. The function will throw an error if an unsupported type is detected (default: ['classic', 'cloud', 'forgeops'])
    * @param {CallbackHandler} callbackHandler function allowing the library to collect responses from the user through callbacks
@@ -147,6 +158,17 @@ const serviceAccountDefaultScopes = SERVICE_ACCOUNT_DEFAULT_SCOPES.join(' ');
 
 const fidcClientId = 'idmAdminClient';
 const forgeopsClientId = 'idm-admin-ui';
+
+export type UserSessionMetaType = AuthenticateSuccessResponse & {
+  expires: number;
+  from_cache?: boolean;
+};
+type StepHandler = (step: AuthenticateStep) => Promise<AuthenticateStep>;
+type MFAResult = {
+  factor: string;
+  supported: boolean;
+};
+
 let adminClientId = fidcClientId;
 
 /**
@@ -165,118 +187,94 @@ async function determineCookieName(state: State): Promise<string> {
 
 /**
  * Helper function to determine if this is a setup mfa prompt in the ID Cloud tenant admin login journey
- * @param {Object} payload response from the previous authentication journey step
+ * @param {AuthenticateStep} payload response from the previous authentication journey step
  * @param {State} state library state
- * @returns {Object} an object indicating if 2fa is required and the original payload
+ * @returns {MFAResult} an object indicating if 2fa is required
  */
 function checkAndHandle2FA({
   payload,
   otpCallbackHandler,
   state,
 }: {
-  payload;
+  payload: AuthenticateStep;
   otpCallbackHandler: CallbackHandler;
   state: State;
-}) {
+}): MFAResult {
   debugMessage({ message: `AuthenticateOps.checkAndHandle2FA: start`, state });
-  // let skippable = false;
-  if ('callbacks' in payload) {
-    for (let callback of payload.callbacks) {
-      // select localAuthentication if Admin Federation is enabled
-      if (callback.type === 'SelectIdPCallback') {
-        debugMessage({
-          message: `AuthenticateOps.checkAndHandle2FA: Admin federation enabled. Allowed providers:`,
-          state,
-        });
-        let localAuth = false;
-        for (const value of callback.output[0].value) {
-          debugMessage({ message: `${value.provider}`, state });
-          if (value.provider === 'localAuthentication') {
-            localAuth = true;
-          }
-        }
-        if (localAuth) {
-          debugMessage({ message: `local auth allowed`, state });
-          callback.input[0].value = 'localAuthentication';
-        } else {
-          debugMessage({ message: `local auth NOT allowed`, state });
+  for (let callback of payload.callbacks) {
+    // select localAuthentication if Admin Federation is enabled
+    if (callback.type === 'SelectIdPCallback') {
+      debugMessage({
+        message: `AuthenticateOps.checkAndHandle2FA: Admin federation enabled. Allowed providers:`,
+        state,
+      });
+      let localAuth = false;
+      for (const value of callback.output[0].value) {
+        debugMessage({ message: `${value.provider}`, state });
+        if (value.provider === 'localAuthentication') {
+          localAuth = true;
         }
       }
-      if (callback.type === 'HiddenValueCallback') {
-        if (callback.input[0].value.includes('skip')) {
-          // skippable = true;
-          callback.input[0].value = 'Skip';
-          // debugMessage(
-          //   `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, skippable=true]`
-          // );
-          // return {
-          //   nextStep: true,
-          //   need2fa: true,
-          //   factor: 'None',
-          //   supported: true,
-          //   payload,
-          // };
-        }
-        if (callback.input[0].value.includes('webAuthnOutcome')) {
-          // webauthn!!!
-          debugMessage({
-            message: `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, unsupported factor: webauthn]`,
-            state,
-          });
-          return {
-            nextStep: false,
-            need2fa: true,
-            factor: 'WebAuthN',
-            supported: false,
-            payload,
-          };
-        }
-      }
-      if (callback.type === 'NameCallback') {
-        if (callback.output[0].value.includes('code')) {
-          // skippable = false;
-          debugMessage({
-            message: `AuthenticateOps.checkAndHandle2FA: need2fa=true, skippable=false`,
-            state,
-          });
-          if (!otpCallbackHandler)
-            throw new FrodoError(
-              `2fa required but no otpCallback function provided.`
-            );
-          callback = otpCallbackHandler(callback);
-          debugMessage({
-            message: `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, skippable=false, factor=Code]`,
-            state,
-          });
-          return {
-            nextStep: true,
-            need2fa: true,
-            factor: 'Code',
-            supported: true,
-            payload,
-          };
-        } else {
-          // answer callback
-          callback.input[0].value = state.getUsername();
-        }
-      }
-      if (callback.type === 'PasswordCallback') {
-        // answer callback
-        callback.input[0].value = state.getPassword();
+      if (localAuth) {
+        debugMessage({ message: `local auth allowed`, state });
+        callback.input[0].value = 'localAuthentication';
+      } else {
+        debugMessage({ message: `local auth NOT allowed`, state });
       }
     }
-    debugMessage({
-      message: `AuthenticateOps.checkAndHandle2FA: end [need2fa=false]`,
-      state,
-    });
-    // debugMessage(payload);
-    return {
-      nextStep: true,
-      need2fa: false,
-      factor: 'None',
-      supported: true,
-      payload,
-    };
+    if (callback.type === 'HiddenValueCallback') {
+      if (callback.input[0].value.includes('skip')) {
+        // skippable = true;
+        callback.input[0].value = 'Skip';
+        // debugMessage(
+        //   `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, skippable=true]`
+        // );
+        // return {
+        //   factor: 'None',
+        //   supported: true,
+        // };
+      }
+      if (callback.input[0].value.includes('webAuthnOutcome')) {
+        // webauthn!!!
+        debugMessage({
+          message: `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, unsupported factor: webauthn]`,
+          state,
+        });
+        return {
+          factor: 'WebAuthN',
+          supported: false,
+        };
+      }
+    }
+    if (callback.type === 'NameCallback') {
+      if (callback.output[0].value.includes('code')) {
+        // skippable = false;
+        debugMessage({
+          message: `AuthenticateOps.checkAndHandle2FA: need2fa=true, skippable=false`,
+          state,
+        });
+        if (!otpCallbackHandler)
+          throw new FrodoError(
+            `2fa required but no otpCallback function provided.`
+          );
+        callback = otpCallbackHandler(callback);
+        debugMessage({
+          message: `AuthenticateOps.checkAndHandle2FA: end [need2fa=true, skippable=false, factor=Code]`,
+          state,
+        });
+        return {
+          factor: 'Code',
+          supported: true,
+        };
+      } else {
+        // answer callback
+        callback.input[0].value = state.getUsername();
+      }
+    }
+    if (callback.type === 'PasswordCallback') {
+      // answer callback
+      callback.input[0].value = state.getPassword();
+    }
   }
   debugMessage({
     message: `AuthenticateOps.checkAndHandle2FA: end [need2fa=false]`,
@@ -284,11 +282,8 @@ function checkAndHandle2FA({
   });
   // debugMessage(payload);
   return {
-    nextStep: false,
-    need2fa: false,
     factor: 'None',
     supported: true,
-    payload,
   };
 }
 
@@ -441,91 +436,97 @@ function getSemanticVersion(versionInfo) {
   throw new Error('Cannot extract semantic version from version info object.');
 }
 
-export type UserSessionMetaType = {
-  tokenId: string;
-  successUrl: string;
-  realm: string;
-  expires: number;
-  from_cache?: boolean;
-};
-
 /**
  * Helper function to authenticate and obtain and store session cookie
+ * @param {StepHandler} stepHandler function to handle any intermediate authentication step
  * @param {State} state library state
  * @returns {string} Session token or null
  */
 async function getFreshUserSessionToken({
-  otpCallbackHandler,
+  stepHandler,
   state,
 }: {
-  otpCallbackHandler: CallbackHandler;
+  stepHandler: StepHandler;
   state: State;
 }): Promise<UserSessionMetaType> {
   debugMessage({
     message: `AuthenticateOps.getFreshUserSessionToken: start`,
     state,
   });
-  const config = {
-    headers: {
+  // Username and password headers are only sent in the first request, assuming they both exist in the state
+  const config: AxiosRequestConfig<object> = {};
+  if (state.getUsername() && state.getPassword()) {
+    config.headers = {
       'X-OpenAM-Username': state.getUsername(),
       'X-OpenAM-Password': state.getPassword(),
-    },
-  };
-  let response = await step({ body: {}, config, state });
-
-  let skip2FA = null;
-  let steps = 0;
-  const maxSteps = 3;
-  do {
-    skip2FA = checkAndHandle2FA({
-      payload: response,
-      otpCallbackHandler: otpCallbackHandler,
+    };
+  }
+  try {
+    let currentStep = null;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const response = await step({
+        body: currentStep || {},
+        config: currentStep ? {} : config,
+        state,
+      });
+      // Handle success response
+      if ('tokenId' in response) {
+        // get session expiration
+        const { maxIdleExpirationTime } = await getSessionInfo({
+          tokenId: response.tokenId,
+          state,
+        });
+        const expires = Date.parse(maxIdleExpirationTime);
+        debugMessage({
+          message: `AuthenticateOps.getFreshUserSessionToken: end [tokenId=${response.tokenId}]`,
+          state,
+        });
+        debugMessage({
+          message: response,
+          state,
+        });
+        return {
+          ...response,
+          from_cache: false,
+          expires,
+        };
+      }
+      // Handle error response (error responses should be thrown and caught already, but just in case they aren't)
+      if ('code' in response) {
+        throw new AxiosError(
+          response.message,
+          response.code,
+          undefined,
+          undefined,
+          { data: response } as AxiosResponse
+        );
+      }
+      // Handle step response
+      if (!stepHandler) {
+        throw new FrodoError(
+          `No step handler function provided for user authentication.`
+        );
+      }
+      currentStep = await stepHandler(response);
+    }
+  } catch (e) {
+    debugMessage({
+      message: `AuthenticateOps.getFreshUserSessionToken: end [no session]`,
       state,
     });
-
-    // throw exception if 2fa required but factor not supported by frodo (e.g. WebAuthN)
-    if (!skip2FA.supported) {
-      throw new Error(`Unsupported 2FA factor: ${skip2FA.factor}`);
-    }
-
-    if (skip2FA.nextStep) {
-      steps++;
-      response = await step({ body: skip2FA.payload, state });
-    }
-
-    if ('tokenId' in response) {
-      response['from_cache'] = false;
-      // get session expiration
-      const sessionInfo = await getSessionInfo({
-        tokenId: response['tokenId'],
-        state,
-      });
-      response['expires'] = Date.parse(sessionInfo.maxIdleExpirationTime);
-      debugMessage({
-        message: `AuthenticateOps.getFreshUserSessionToken: end [tokenId=${response['tokenId']}]`,
-        state,
-      });
-      debugMessage({
-        message: response,
-        state,
-      });
-      return response as UserSessionMetaType;
-    }
-  } while (skip2FA.nextStep && steps < maxSteps);
-  debugMessage({
-    message: `AuthenticateOps.getFreshUserSessionToken: end [no session]`,
-    state,
-  });
-  return null;
+    throw new FrodoError('Error authenticating user', e);
+  }
 }
 
 /**
  * Helper function to obtain user session token
+ * @param {StepHandler} stepHandler function to handle any intermediate authentication step
  * @param {State} state library state
  * @returns {Promise<UserSessionMetaType>} session token or null
  */
 async function getUserSessionToken(
-  otpCallback: CallbackHandler,
+  stepHandler: StepHandler,
   state: State
 ): Promise<UserSessionMetaType> {
   debugMessage({
@@ -550,7 +551,7 @@ async function getUserSessionToken(
   }
   if (!token) {
     token = await getFreshUserSessionToken({
-      otpCallbackHandler: otpCallback,
+      stepHandler,
       state,
     });
     token.from_cache = false;
@@ -984,7 +985,7 @@ async function getLoggedInSubject(state: State): Promise<string> {
 
 /**
  * Helper method to set, reset, or cancel timer to auto refresh tokens
- * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
+ * @param {boolean} forceLoginAsUser true to force login as user even if a service account or Amster account is available (default: false)
  * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
  * @param {State} state library state
  */
@@ -1042,6 +1043,44 @@ function scheduleAutoRefresh(
   }
 }
 
+/**
+ * Helper to authenticate a user
+ * @param usingConnectionProfile True if using connection profiles
+ * @param {string[]} types Array of supported deployment types. The function will throw an error if an unsupported type is detected (default: ['classic', 'cloud', 'forgeops'])
+ * @param stepHandler function to handle any authentication steps
+ * @param state library state
+ */
+async function authenticateUser(
+  usingConnectionProfile: boolean,
+  types: string[],
+  stepHandler: StepHandler,
+  state: State
+) {
+  const token = await getUserSessionToken(stepHandler, state);
+  if (token) state.setUserSessionTokenMeta(token);
+  if (usingConnectionProfile && !token.from_cache) {
+    saveConnectionProfile({ host: state.getHost(), state });
+  }
+  await determineDeploymentTypeAndDefaultRealmAndVersion(state);
+
+  // fail if deployment type not applicable
+  if (state.getDeploymentType() && !types.includes(state.getDeploymentType())) {
+    throw new FrodoError(
+      `Unsupported deployment type '${state.getDeploymentType()}'`
+    );
+  }
+
+  if (
+    state.getCookieValue() &&
+    // !state.getBearerToken() &&
+    (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+      state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY)
+  ) {
+    const accessToken = await getUserBearerToken(state);
+    if (accessToken) state.setBearerTokenMeta(accessToken);
+  }
+}
+
 export type Tokens = {
   bearerToken?: AccessTokenMetaType;
   userSessionToken?: UserSessionMetaType;
@@ -1052,8 +1091,10 @@ export type Tokens = {
 
 /**
  * Get tokens
- * @param {boolean} forceLoginAsUser true to force login as user even if a service account is available (default: false)
+ * @param {boolean} forceLoginAsUser true to force login as user even if a service account or Amster account is available (default: false)
  * @param {boolean} autoRefresh true to automatically refresh tokens before they expire (default: true)
+ * @param {string[]} types Array of supported deployment types. The function will throw an error if an unsupported type is detected (default: ['classic', 'cloud', 'forgeops'])
+ * @param {CallbackHandler} callbackHandler function allowing the library to collect responses from the user through callbacks
  * @param {State} state library state
  * @returns {Promise<Tokens>} object containing the tokens
  */
@@ -1084,7 +1125,8 @@ export async function getTokens({
       state.getUsername() == null &&
       state.getPassword() == null &&
       !state.getServiceAccountId() &&
-      !state.getServiceAccountJwk()
+      !state.getServiceAccountJwk() &&
+      !state.getAmsterPrivateKey()
     ) {
       usingConnectionProfile = await loadConnectionProfile({ state });
 
@@ -1154,38 +1196,92 @@ export async function getTokens({
         throw new FrodoError(`Service account login error`, saErr);
       }
     }
-    // use user account to login
+    // use Amster credentials to login?
+    else if (
+      !forceLoginAsUser &&
+      (state.getDeploymentType() === Constants.CLASSIC_DEPLOYMENT_TYPE_KEY ||
+        state.getDeploymentType() === undefined) &&
+      state.getAmsterPrivateKey()
+    ) {
+      if (!state.getAuthenticationService()) {
+        state.setAuthenticationService(Constants.DEFAULT_AMSTER_SERVICE);
+      }
+      if (!state.getUsername()) {
+        state.setUsername(Constants.DEFAULT_CLASSIC_USERNAME);
+      }
+      debugMessage({
+        message: `AuthenticateOps.getTokens: Authenticating with Amster credentials using the ${state.getAuthenticationService()} authentication service`,
+        state,
+      });
+      await authenticateUser(
+        usingConnectionProfile,
+        types,
+        async (currentStep: AuthenticateStep) => {
+          if (currentStep.callbacks.length !== 1) {
+            throw new FrodoError(
+              `Expected a single HiddenValueCallback for Amster authentication, but got ${currentStep.callbacks.length} callbacks`
+            );
+          }
+          const callback = currentStep.callbacks[0];
+          if (callback.type !== 'HiddenValueCallback') {
+            throw new FrodoError(
+              `Expected a single HiddenValueCallback for Amster authentication, but got a ${callback.type}`
+            );
+          }
+          const key = await jose.JWK.asKey(state.getAmsterPrivateKey(), 'pem');
+          const payload = {
+            sub: state.getUsername(),
+            nonce: getCallbackValue('value', callback.output),
+          };
+          const header = {
+            typ: 'jwt',
+            kid: sshpk
+              .parsePrivateKey(state.getAmsterPrivateKey())
+              .toPublic()
+              .toString('ssh')
+              .split(' ')[1],
+          };
+          const jwt = await createSignedJwtToken(payload, key, header);
+          return fillCallbacks({
+            step: currentStep,
+            map: {
+              IDToken1: jwt.toString(),
+            },
+          });
+        },
+        state
+      );
+    }
+    // use user account to login?
     else if (state.getUsername() && state.getPassword()) {
       debugMessage({
         message: `AuthenticateOps.getTokens: Authenticating with user account ${state.getUsername()}`,
         state,
       });
-      const token = await getUserSessionToken(callbackHandler, state);
-      if (token) state.setUserSessionTokenMeta(token);
-      if (usingConnectionProfile && !token.from_cache) {
-        saveConnectionProfile({ host: state.getHost(), state });
-      }
-      await determineDeploymentTypeAndDefaultRealmAndVersion(state);
+      const maxSteps = 3;
+      let steps = 0;
+      await authenticateUser(
+        usingConnectionProfile,
+        types,
+        async (currentStep: AuthenticateStep) => {
+          // if max steps is reached, throw an error
+          if (++steps > maxSteps) {
+            throw new FrodoError('Too many 2FA attempts');
+          }
+          const skip2FA = checkAndHandle2FA({
+            payload: currentStep,
+            otpCallbackHandler: callbackHandler,
+            state,
+          });
 
-      // fail if deployment type not applicable
-      if (
-        state.getDeploymentType() &&
-        !types.includes(state.getDeploymentType())
-      ) {
-        throw new FrodoError(
-          `Unsupported deployment type '${state.getDeploymentType()}'`
-        );
-      }
-
-      if (
-        state.getCookieValue() &&
-        // !state.getBearerToken() &&
-        (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
-          state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY)
-      ) {
-        const accessToken = await getUserBearerToken(state);
-        if (accessToken) state.setBearerTokenMeta(accessToken);
-      }
+          // throw exception if 2fa required but factor not supported by frodo (e.g. WebAuthN)
+          if (!skip2FA.supported) {
+            throw new Error(`Unsupported 2FA factor: ${skip2FA.factor}`);
+          }
+          return currentStep;
+        },
+        state
+      );
     }
     // incomplete or no credentials
     else {

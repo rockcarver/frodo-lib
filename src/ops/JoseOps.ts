@@ -87,14 +87,15 @@ export function createJwks(...keys: JwkInterface[]): JwksInterface {
 
 export async function createSignedJwtToken(
   payload: string | object,
-  jwkJson: JwkRsa
+  jwkJson: JwkRsa,
+  header: object = {}
 ) {
   const key = await jose.JWK.asKey(jwkJson);
   if (typeof payload === 'object') {
     payload = JSON.stringify(payload);
   }
   const jwt = await jose.JWS.createSign(
-    { alg: 'RS256', compact: true, fields: {} },
+    { alg: 'RS256', compact: true, fields: header },
     // https://github.com/cisco/node-jose/issues/253
     { key, reference: false }
   )

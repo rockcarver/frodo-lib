@@ -64,8 +64,20 @@ switch (process.env.FRODO_POLLY_MODE) {
 }
 
 export function setDefaultState(
-  deployment = Constants.CLOUD_DEPLOYMENT_TYPE_KEY
+  deployment = Constants.CLOUD_DEPLOYMENT_TYPE_KEY,
+  resetState = false
 ) {
+  // To reset the state if recording multiple tests where previous state can conflict
+  if (resetState) {
+    state.setCookieName(undefined);
+    state.setUserSessionTokenMeta(undefined);
+    state.setUsername(undefined);
+    state.setPassword(undefined);
+    state.setBearerTokenMeta(undefined);
+    state.setServiceAccountId(undefined);
+    state.setServiceAccountJwk(undefined);
+    state.setServiceAccountScope(undefined);
+  }
   const classicHostUrl = 'http://openam-frodo-dev.classic.com:8080/am';
   const classicRealm = '/';
   const cloudHostUrl = 'https://openam-frodo-dev.forgeblocks.com/am';

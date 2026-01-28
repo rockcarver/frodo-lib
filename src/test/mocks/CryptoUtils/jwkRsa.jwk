@@ -1,0 +1,14 @@
+{
+    "p": "38A4kFvFEcv-sPqzE6xeG4q5_SLoekVE3cKf_JPFeeufKigoS7VX_0ltqABKp6bohP7uPfWT8oAT1V1VWCcs0Q",
+    "kty": "RSA",
+    "q": "p9mCXS5mmKkJrCZGfy0h3yZOJkiDIKi_hwu95VcX_vZ8SM1LKJgwDjPWyvGxPZPC-fXm86Gaj6aN6Q3AJc-G5Q",
+    "d": "hCC_zyLXg8xvxLmWE3aYK1Mumx2PiawkV2MZRk3kgsLL-jK-Czi2G-D4Wf78B4qZgCB7fairMNZVAeRtc8riB4s4WRNaXKjZkfsjW1UjEmKyO_P598fhURhJCsxpvRZRaDe_D1OT5No_Aj9pAZBqxhl9xVZ-MORbXBt8rgUIfUE",
+    "e": "AQAB",
+    "use": "sig",
+    "kid": "1I0-T7JGu5fjmu-M6PaNbd1IvcN49qK8uDGPy4bTaZo",
+    "qi": "l2m2wzcOpgI4zaD4yCB880Kg4s4iUz_k3vWgvjhWrqPmor5zPDdWp1LEwRFyoWdGPJg2vqALzE_57Nc3hNLa5A",
+    "dp": "AW42Ll4X1XRLbZA8wtxwQZbSd5bYi6eTuCM9aJz9PzlNbDSThWBkbqJmjBNsZsP_apJCray7RGqjNdMB761YcQ",
+    "alg": "RS512",
+    "dq": "o3ufFdMT6qz51sqQ712uGALfKzqFPVIe-hHdq3rgzFyXQPFzut5AMBUdqB0wXKGGzp9LixBj0naO0eeqtykiYQ",
+    "n": "krSAxyxXaeHsoqYZSkSRlIx61oHbYesYUzOMwmwEC4inVNVWKECB_teim6yzbhM8RI2HL2JOGeY8l0S8kAv2CoNT9JoZavjD65cDiVFD2nN71LJGslkDpXpbpS_n7lkovooV7YfF9EPb8wwEaHXZMd7ZoAjS3MpQPFhUY85_fPU"
+}

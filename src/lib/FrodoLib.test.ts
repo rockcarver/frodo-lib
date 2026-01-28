@@ -1,5 +1,11 @@
 import { frodo, frodo as instance0, state as state0 } from '../index';
+import Constants from '../shared/Constants';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
+import fs from 'fs'
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 autoSetupPolly();
 
@@ -65,5 +71,40 @@ describe('FrodoLib', () => {
     expect(instance2.state.getServiceAccountJwk()).toMatchObject(
       JSON.parse('{"k":"jwk2"}')
     );
+  });
+
+  test(`frodo.createInstanceWithAmsterAccount(): FrodoLib is instantiable using factory helper`, async () => {
+    const privateKey1 = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        '../test/mocks/CryptoUtils/pkcs8Rsa.pem'
+      ),
+      'utf8'
+    );
+    const privateKey2 = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        '../test/mocks/CryptoUtils/pkcs1Rsa.pem'
+      ),
+      'utf8'
+    );
+    const customAmsterService = 'AmsterLogin';
+    state0.setHost('https://instance0/am');
+    const instance1 = frodo.createInstanceWithAmsterAccount(
+      'https://instance1/am',
+      privateKey1
+    );
+    const instance2 = frodo.createInstanceWithAmsterAccount(
+      'https://instance2/am',
+      privateKey2,
+      customAmsterService
+    );
+    expect(instance0.state.getHost()).toEqual(host0);
+    expect(instance1.state.getHost()).toEqual(host1);
+    expect(instance1.state.getAmsterPrivateKey()).toEqual(privateKey1);
+    expect(instance1.state.getAuthenticationService()).toEqual(Constants.DEFAULT_AMSTER_SERVICE);
+    expect(instance2.state.getHost()).toEqual(host2);
+    expect(instance2.state.getAmsterPrivateKey()).toEqual(privateKey2);
+    expect(instance2.state.getAuthenticationService()).toEqual(customAmsterService);
   });
 });

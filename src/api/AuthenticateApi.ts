@@ -1,5 +1,7 @@
+import { AxiosRequestConfig } from 'axios';
 import util from 'util';
 
+import { Callback } from '../ops/CallbackOps';
 import { State } from '../shared/State';
 import { getRealmPath } from '../utils/ForgeRockUtils';
 import { generateAmApi } from './BaseApi';
@@ -12,31 +14,36 @@ const getApiConfig = () => ({
   apiVersion,
 });
 
-/**
- * Fill callbacks from a map
- * Just a start
- * @param {object} response json response from a call to /authenticate
- * @param {{ [k: string]: string | number | boolean | string[] }} map name/value map
- * @returns filled response body so it can be used as input to another call to /authenticate
- */
-export function fillCallbacks({
-  response,
-  map,
-}: {
-  response: object;
-  map: { [k: string]: string | number | boolean | string[] };
-}): object {
-  const body = JSON.parse(JSON.stringify(response));
-  for (const callback of body.callbacks) {
-    callback.input[0].value = map[callback.input[0].name];
-  }
-  return body;
-}
+export type AuthenticateStep = {
+  authId: string;
+  callbacks: Callback[];
+  template?: string;
+  stage?: string;
+  header?: string;
+  description?: string;
+};
+
+export type AuthenticateSuccessResponse = {
+  tokenId: string;
+  successUrl: string;
+  realm: string;
+};
+
+export type AuthenticateErrorResponse = {
+  code: string;
+  reason: string;
+  message: string;
+};
+
+export type AuthenticateResponse =
+  | AuthenticateStep
+  | AuthenticateSuccessResponse
+  | AuthenticateErrorResponse;
 
 /**
- *
- * @param {any} body POST request body
- * @param {any} config request config
+ * Performs an authentication step using the service's authenticate endpoint
+ * @param {AuthenticateStep | Record<string, never>} body POST request body
+ * @param {AxiosRequestConfig<object>} config request config
  * @param {string} realm realm
  * @param {string} service name of authentication service/journey
  * @returns Promise resolving to the authentication service response
@@ -48,12 +55,12 @@ export async function step({
   service = undefined,
   state,
 }: {
-  body?: object;
-  config?: object;
+  body?: AuthenticateStep | Record<string, never>;
+  config?: AxiosRequestConfig<object>;
   realm?: string;
   service?: string;
   state: State;
-}): Promise<any> {
+}): Promise<AuthenticateResponse> {
   const urlString =
     service || state.getAuthenticationService()
       ? util.format(
