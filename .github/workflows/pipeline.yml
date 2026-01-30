@@ -166,6 +166,20 @@ jobs:
           FRODO_SA_JWK: ${{ secrets.FIDC_TENANT_SA_JWK }}
         run: |
           npm run test
+        continue-on-error: true # Allow subsequent steps to run even if tests fail
+
+      - name: Show debug log on failure
+        if: steps.direct-tests.outcome == 'failure'
+        run: |
+          cat frodo-lib-debug.log
+
+      - name: Upload test log artifact on failure
+        if: steps.direct-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v6
+        with:
+          name: frodo-debug-log
+          path: frodo-lib-debug.log # The path to the log file generated in the test step
+          retention-days: 5 # Optional: configure how long to retain the artifact
 
       - name: Proxy Tests
         env:
