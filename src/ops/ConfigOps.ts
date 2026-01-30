@@ -5,6 +5,8 @@ import { AuthenticationSettingsSkeleton } from '../api/AuthenticationSettingsApi
 import { CircleOfTrustSkeleton } from '../api/CirclesOfTrustApi';
 import { SiteSkeleton } from '../api/classic/SiteApi';
 import { GlossarySchemaItemSkeleton } from '../api/cloud/iga/IgaGlossaryApi';
+import { RequestFormSkeleton } from '../api/cloud/iga/IgaRequestFormApi';
+import { RequestTypeSkeleton } from '../api/cloud/iga/IgaRequestTypeApi';
 import { SecretSkeleton } from '../api/cloud/SecretsApi';
 import { VariableSkeleton } from '../api/cloud/VariablesApi';
 import { CustomNodeSkeleton } from '../api/NodeApi';
@@ -66,6 +68,14 @@ import {
   exportGlossarySchemas,
   importGlossarySchemas,
 } from './cloud/iga/IgaGlossaryOps';
+import {
+  exportRequestForms,
+  importRequestForms,
+} from './cloud/iga/IgaRequestFormOps';
+import {
+  exportRequestTypes,
+  importRequestTypes,
+} from './cloud/iga/IgaRequestTypeOps';
 import { exportSecrets, importSecrets } from './cloud/SecretsOps';
 import { exportVariables, importVariables } from './cloud/VariablesOps';
 import {
@@ -276,6 +286,8 @@ export interface FullGlobalExportInterface extends AmConfigEntitiesInterface {
   mapping: Record<string, MappingSkeleton> | undefined;
   nodeTypes: Record<string, CustomNodeSkeleton> | undefined;
   realm: Record<string, RealmSkeleton> | undefined;
+  requestForm: Record<string, RequestFormSkeleton> | undefined;
+  requestType: Record<string, RequestTypeSkeleton> | undefined;
   scripttype: Record<string, ScriptTypeExportSkeleton> | undefined;
   secret: Record<string, SecretSkeleton> | undefined;
   secretstore: Record<string, SecretStoreExportSkeleton> | undefined;
@@ -495,6 +507,37 @@ export async function exportFullConfiguration({
           includeReadOnly || isClassicDeployment
         )
       )?.realm,
+      requestForm: (
+        await exportWithErrorHandling(
+          exportRequestForms,
+          {
+            options: {
+              deps: false,
+              useStringArrays,
+            },
+            resultCallback: errorCallback,
+            state,
+          },
+          'Request Forms',
+          resultCallback,
+          !!state.getIsIGA()
+        )
+      )?.requestForm,
+      requestType: (
+        await exportWithErrorHandling(
+          exportRequestTypes,
+          {
+            options: {
+              onlyCustom: false,
+              useStringArrays,
+            },
+            state,
+          },
+          'Request Types',
+          resultCallback,
+          !!state.getIsIGA()
+        )
+      )?.requestType,
       scripttype: (
         await exportWithErrorHandling(
           exportScriptTypes,
@@ -830,7 +873,7 @@ export async function importFullConfiguration({
   const errorCallback = getErrorCallback(resultCallback);
   // Import to global
   let indicatorId = createProgressIndicator({
-    total: 16,
+    total: 18,
     message: `Importing everything for global...`,
     state,
   });
@@ -1073,6 +1116,40 @@ export async function importFullConfiguration({
       'Internal Roles',
       resultCallback,
       isPlatformDeployment && !!importData.global.internalRole
+    )
+  );
+  response.push(
+    await importWithErrorHandling(
+      importRequestTypes,
+      {
+        importData: importData.global,
+        options: {
+          onlyCustom: false,
+        },
+        resultCallback: errorCallback,
+        state,
+      },
+      indicatorId,
+      'Request Types',
+      resultCallback,
+      !!state.getIsIGA() && !!importData.global.requestType
+    )
+  );
+  response.push(
+    await importWithErrorHandling(
+      importRequestForms,
+      {
+        importData: importData.global,
+        options: {
+          deps: false,
+        },
+        resultCallback: errorCallback,
+        state,
+      },
+      indicatorId,
+      'Request Forms',
+      resultCallback,
+      !!state.getIsIGA() && !!importData.global.requestForm
     )
   );
   stopProgressIndicator({

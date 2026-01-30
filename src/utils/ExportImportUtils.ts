@@ -830,3 +830,60 @@ export async function postApiSearchAll<T>({
   }
   return results;
 }
+
+/**
+ * Transforms any script found in the object or its children that is a string into an array
+ *
+ * @param {any} obj The object to update the scripts for
+ */
+export function transformScriptStringsToArrays(obj: any): void {
+  objectRecurse(obj, (o) => {
+    if (o.isExpression === true && typeof o.value === 'string') {
+      o.value = o.value.split('\n');
+    }
+    if (
+      (typeof o.language === 'string' || o.type === 'script') &&
+      typeof o.script === 'string'
+    ) {
+      o.script = o.script.split('\n');
+    }
+  });
+}
+
+/**
+ * Transforms any script found in the object or its children that is an array into a string
+ *
+ * @param {any} obj The object to update the scripts for
+ */
+export function transformScriptArraysToStrings(obj: any): void {
+  objectRecurse(obj, (o) => {
+    if (o.isExpression === true && Array.isArray(o.value)) {
+      o.value = o.value.join('\n');
+    }
+    if (
+      (typeof o.language === 'string' || o.type === 'script') &&
+      Array.isArray(o.script)
+    ) {
+      o.script = o.script.join('\n');
+    }
+  });
+}
+
+/**
+ * Helper to iterate through all objects recursively within the given object
+ *
+ * @param {any} obj the object to iterate through
+ * @param {Record<string, any>} objOp the function to run on each object
+ */
+export function objectRecurse(
+  obj: any,
+  objOp: (obj: Record<string, any>) => void
+): void {
+  if (!obj || typeof obj !== 'object') return;
+  if (Array.isArray(obj)) {
+    obj.forEach((o) => objectRecurse(o, objOp));
+    return;
+  }
+  objOp(obj);
+  Object.values(obj).forEach((o) => objectRecurse(o, objOp));
+}
