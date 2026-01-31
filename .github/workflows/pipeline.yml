@@ -174,15 +174,8 @@ jobs:
         run: |
           cat frodo-lib-debug.log
 
-      - name: Upload test log artifact on failure
-        if: steps.direct-tests.outcome == 'failure'
-        uses: actions/upload-artifact@v6
-        with:
-          name: frodo-debug-log
-          path: frodo-lib-debug.log # The path to the log file generated in the test step
-          retention-days: 5 # Optional: configure how long to retain the artifact
-
       - name: Proxy Tests
+        id: proxy-tests
         env:
           FRODO_DEBUG: ${{ vars.FRODO_DEBUG }}
           HTTPS_PROXY: 'http://127.0.0.1:3128'
@@ -191,6 +184,11 @@ jobs:
           FRODO_SA_JWK: ${{ secrets.FIDC_TENANT_SA_JWK }}
         run: |
           npm run test
+
+      - name: Show debug log on failure
+        if: steps.proxy-tests.outcome == 'failure'
+        run: |
+          cat frodo-lib-debug.log
 
       - name: Security Audit
         run: |
