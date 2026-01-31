@@ -74,6 +74,61 @@ export default class JestExceptionReporter {
       };
     };
 
+    const buildCombinedMessage = (errObj, seen = new WeakSet()) => {
+      try {
+        if (!errObj || typeof errObj !== 'object') return String(errObj || '');
+
+        // Avoid circular
+        if (seen.has(errObj)) return '[circular]';
+        seen.add(errObj);
+
+        // If runtime object provides getCombinedMessage, use it
+        if (typeof errObj.getCombinedMessage === 'function') {
+          try {
+            return errObj.getCombinedMessage();
+          } catch (e) {
+            // fall through to manual build
+          }
+        }
+
+        let combined = errObj.message || errObj.errorMessage || '';
+
+        const originals = errObj.originalErrors || errObj.getOriginalErrors || null;
+        let origList = null;
+        if (typeof originals === 'function') {
+          try {
+            origList = originals();
+          } catch (e) {
+            origList = null;
+          }
+        } else if (Array.isArray(originals)) {
+          origList = originals;
+        }
+
+        if (origList && origList.length) {
+          origList.forEach(error => {
+            if (!error) return;
+            if (error.name === 'FrodoError' || (error && (error.originalErrors || error.getOriginalErrors))) {
+              combined += '\n  ' + buildCombinedMessage(error, seen).replace(/^/gm, '  ');
+            } else if (error && error.message) {
+              combined += '\n  ' + error.message;
+            } else {
+              // fallback to JSON
+              try {
+                combined += '\n  ' + JSON.stringify(error);
+              } catch (e) {
+                combined += '\n  ' + String(error);
+              }
+            }
+          });
+        }
+
+        return combined;
+      } catch (e) {
+        return errObj && errObj.message ? errObj.message : String(errObj);
+      }
+    };
+
     (testResult.testResults || []).forEach(assertion => {
       if (assertion.status === 'failed') {
         // Prefer structured failure details if available (some runners include objects)
@@ -100,6 +155,20 @@ export default class JestExceptionReporter {
               // ignore
             }
 
+            // compute combined message if FrodoError
+            let combinedMessage = null;
+            if (isFrodo) {
+              try {
+                if (typeof detail.getCombinedMessage === 'function') {
+                  combinedMessage = detail.getCombinedMessage();
+                } else {
+                  combinedMessage = buildCombinedMessage(detail);
+                }
+              } catch (e) {
+                combinedMessage = null;
+              }
+            }
+
             // Log what we found
             this.logger.error('test-failure', {
               file: filePath,
@@ -108,6 +177,7 @@ export default class JestExceptionReporter {
               title: assertion.title,
               isFrodoError: isFrodo,
               frodoFields,
+              combinedMessage,
               detail
             });
           });
@@ -122,6 +192,22 @@ export default class JestExceptionReporter {
               frodoFields = parsed.parsedError;
             }
 
+            let combinedMessage = null;
+            if (containsFrodo) {
+              try {
+                if (parsed.parsedError && typeof parsed.parsedError.getCombinedMessage === 'function') {
+                  // prefer the method on the error object if available
+                  combinedMessage = parsed.parsedError.getCombinedMessage();
+                } else if (parsed.parsedError && typeof parsed.parsedError === 'object') {
+                  combinedMessage = buildCombinedMessage(parsed.parsedError);
+                } else {
+                  combinedMessage = null;
+                }
+              } catch (e) {
+                combinedMessage = null;
+              }
+            }
+
             this.logger.error('test-failure', {
               file: filePath,
               fullName: assertion.fullName,
@@ -129,6 +215,7 @@ export default class JestExceptionReporter {
               title: assertion.title,
               isFrodoError: Boolean(containsFrodo),
               frodoFields,
+              combinedMessage,
               errorMessage: parsed.errorMessage,
               stack: parsed.stack,
               parsedError: parsed.parsedError,
