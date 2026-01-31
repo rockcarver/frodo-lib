@@ -1121,11 +1121,11 @@ export async function getTokens({
     message: `AuthenticateOps.getTokens: start, types: ${types}`,
     state,
   });
-  if (!state.getHost()) {
-    throw new FrodoError(`No host specified`);
-  }
   let usingConnectionProfile: boolean = false;
   try {
+    if (!state.getHost()) {
+      throw new FrodoError(`No host specified`);
+    }
     // if username/password on cli are empty, try to read from connections.json
     if (
       state.getUsername() == null &&
@@ -1321,6 +1321,10 @@ export async function getTokens({
       return tokens;
     }
   } catch (error) {
+    debugMessage({
+      message: `AuthenticateOps.getTokens: Error getting tokens: ${error} Stack: ${error.stack}`,
+      state,
+    });
     throw new FrodoError(`Error getting tokens`, error);
   }
 }
