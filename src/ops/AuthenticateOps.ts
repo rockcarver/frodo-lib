@@ -1325,6 +1325,7 @@ export async function getTokens({
       message: `AuthenticateOps.getTokens: Error getting tokens: ${error} Stack: ${error.stack}`,
       state,
     });
-    throw new FrodoError(`Error getting tokens`, error);
+    throw error
+    // throw new FrodoError(`Error getting tokens`, error);
   }
 }
