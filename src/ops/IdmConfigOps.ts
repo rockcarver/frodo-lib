@@ -9,10 +9,10 @@ import {
   getConfigEntities as _getConfigEntities,
   getConfigEntitiesByType as _getConfigEntitiesByType,
   getConfigEntity as _getConfigEntity,
-  getConfigEntity,
   getConfigStubs as _getConfigEntityStubs,
-  IdmConfigStub,
   putConfigEntity as _putConfigEntity,
+  getConfigEntity,
+  IdmConfigStub,
 } from '../api/IdmConfigApi';
 import { ConnectorServerStatusInterface } from '../api/IdmSystemApi';
 import Constants from '../shared/Constants';
@@ -678,6 +678,7 @@ export async function createConfigEntity({
   debugMessage({ message: `IdmConfigOps.createConfigEntity: start`, state });
   try {
     await readConfigEntity({ entityId, state });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       const result = await updateConfigEntity({

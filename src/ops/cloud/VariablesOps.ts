@@ -540,6 +540,7 @@ export async function createVariable({
   });
   try {
     await _getVariable({ variableId, state });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       const result = await _putVariable({

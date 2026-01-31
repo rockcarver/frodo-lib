@@ -64,7 +64,8 @@ export function convertPrivateKeyToPem({
     const jwk = JSON.parse(key);
     // Need true flag to get the full private key
     return jwkToPem(jwk, { private: true });
-  } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
     /* Ignore error since private key may still be a supported format */
   }
   // Will automatically detect the format the private key is in and parse it if it is able to

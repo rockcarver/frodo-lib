@@ -325,6 +325,7 @@ export async function createAdminFederationProvider({
   });
   try {
     await readAdminFederationProvider({ providerId, state });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     const result = await updateAdminFederationProvider({
       providerType,

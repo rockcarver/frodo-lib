@@ -603,6 +603,7 @@ export async function createNode({
     if (nodeId) {
       try {
         await readNode({ nodeId, nodeType, state });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         const result = await updateNode({ nodeId, nodeType, nodeData, state });
         return result;
@@ -1047,6 +1048,7 @@ export async function findOrphanedNodes({
           state,
         });
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       errorTypes.push(type._id);
       errorMessage = ` (Skipped type(s): ${errorTypes})`['yellow'];

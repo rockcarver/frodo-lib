@@ -1,5 +1,6 @@
-import axios, { AxiosError } from 'axios';
 import fs from 'fs';
+
+import axios, { AxiosError } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
 import {
@@ -1072,7 +1073,8 @@ export async function exportJourney({
             // see if themeId is part of the stage object
             try {
               themeId = JSON.parse(nodeObject.stage).themeId;
-            } catch (e) {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            } catch (error) {
               themeId = false;
             }
             // if the page node's themeId is set the "old way" set themeId accordingly
@@ -1594,6 +1596,7 @@ export async function createJourney({
   debugMessage({ message: `JourneyOps.createJourney: start`, state });
   try {
     await readJourney({ journeyId, state });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       const result = await putTree({
@@ -2841,6 +2844,7 @@ export async function getTreeDescendents({
           );
         }
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       if (innerTreeId) {
         const unresolvableMap: TreeDependencyMapInterface = {

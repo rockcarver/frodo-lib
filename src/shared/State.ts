@@ -578,7 +578,9 @@ const logger = winston.createLogger({
     winston.format.timestamp(),
     winston.format.json()
   ),
-  transports: [new winston.transports.File({ filename: 'frodo-lib-debug.log' })],
+  transports: [
+    new winston.transports.File({ filename: 'frodo-lib-debug.log' }),
+  ],
 });
 
 export interface StateInterface {

@@ -133,6 +133,7 @@ function obfuscateJsonString(json: string): string {
               '$1<secret>$3'
             );
             obj.script = isEncoded ? encode(script) : script;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (error) {
             // ignore
           }
@@ -140,6 +141,7 @@ function obfuscateJsonString(json: string): string {
       }
     }
     return JSON.stringify(jsonObj);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     // ignore
   }
@@ -151,6 +153,7 @@ function obfuscateXmlString(xml: string): string {
       /<ds:X509Certificate>.+?<\/ds:X509Certificate>/gs,
       `<ds:X509Certificate>${encode('<certificate>')}</ds:X509Certificate>`
     );
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     // ignore
   }

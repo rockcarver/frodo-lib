@@ -1090,6 +1090,7 @@ export async function importSaml2Provider({
           });
           response = { ...response, ...updateResponse };
         }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (createProviderErr) {
         try {
           response = await _updateProvider({ location, providerData, state });
@@ -1170,6 +1171,7 @@ export async function importSaml2Providers({
         response.push(
           await _createProvider({ location, providerData, metaData, state })
         );
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (createProviderErr) {
         try {
           response.push(

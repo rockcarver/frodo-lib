@@ -407,7 +407,8 @@ export function resolvePayloadLevel(log: LogEventSkeleton): string {
     return log.type !== 'text/plain'
       ? (log.payload as LogEventPayloadSkeleton).level
       : (log.payload as string).match(/^([^:]*):/)[1];
-  } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
     // Fail-safe for no group match
     return null;
   }

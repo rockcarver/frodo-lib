@@ -345,6 +345,7 @@ export async function createEmailTemplate({
       templateId,
       state,
     });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       const result = await putConfigEntity({

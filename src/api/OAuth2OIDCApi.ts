@@ -1,6 +1,7 @@
+import util from 'util';
+
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import qs from 'qs';
-import util from 'util';
 
 import { State } from '../shared/State';
 import { encode } from '../utils/Base64Utils';
