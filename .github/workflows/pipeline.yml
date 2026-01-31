@@ -159,6 +159,7 @@ jobs:
       # Run tests.
       #
       - name: Direct Tests
+        id: direct-tests
         env:
           FRODO_DEBUG: ${{ vars.FRODO_DEBUG }}
           FRODO_HOST: ${{ vars.FIDC_TENANT_URL }}
