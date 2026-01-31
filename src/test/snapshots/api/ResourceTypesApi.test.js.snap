@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`ResourceTypesApi createResourceType() 1: Create non-existing resource type [3ea23a32-ffdf-4a7f-a1f2-5d53fbba9ba6 - FrodoTestResourceType3] 1`] = `
 {

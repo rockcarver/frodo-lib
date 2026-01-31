@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`OAuth2ClientOps 1: Import all oauth2 clients w/ dependencies 1`] = `
 [

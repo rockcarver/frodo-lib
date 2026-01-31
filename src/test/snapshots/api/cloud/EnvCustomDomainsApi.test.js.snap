@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`EnvCustomDomainsApi getCustomDomains() 1: Get custom domains - success 1`] = `
 {

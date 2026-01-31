@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`EnvContentSecurityPolicyOps disableEnforcedContentSecurityPolicy() 1: Disable enforced content security policy - success 1`] = `
 {

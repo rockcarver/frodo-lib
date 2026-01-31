@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`CirclesOfTrustOps createCircleOfTrust() 1: Create circle of trust 'AzureCOT' 1`] = `
 {

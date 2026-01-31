@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`AuthenticateOps Classic Tests getTokens() 0: Authenticate successfully as user 1`] = `
 {
