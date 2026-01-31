@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`AgentApi Classic Tests getAgentByTypeAndId() 4: Get global agent 'AgentService' 1`] = `
 {

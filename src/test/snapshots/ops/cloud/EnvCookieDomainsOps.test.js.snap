@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`EnvCookieDomainsOps readCookieDomains() 1: Read cookie domains - success 1`] = `
 {

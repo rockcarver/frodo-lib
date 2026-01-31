@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`EnvFederationEnforcementOps enforceFederationFor() 1: Enforce federation for non-global - success 1`] = `
 {

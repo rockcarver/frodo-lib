@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`VariablesApi deleteVariable() 1: Delete existing variable: esv-frodo-test-variable3 - success 1`] = `
 {

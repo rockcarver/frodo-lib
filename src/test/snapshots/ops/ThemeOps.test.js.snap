@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`ThemeOps deleteTheme() 1: Delete alpha theme '84bbd22e-6def-459f-91c9-4c9aa4e0bec0' (cloud) 1`] = `
 {

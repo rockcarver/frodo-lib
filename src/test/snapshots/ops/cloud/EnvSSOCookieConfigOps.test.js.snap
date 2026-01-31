@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`EnvSSOCookieConfigOps readSSOCookieConfig() 1: Read SSO Cookie Config - success 1`] = `
 {

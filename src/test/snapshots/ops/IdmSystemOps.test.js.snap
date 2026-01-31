@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`IdmSystemOps authenticateSystemObject() 1: Authenticate system object (AD user 'frodo1') 1`] = `
 {
