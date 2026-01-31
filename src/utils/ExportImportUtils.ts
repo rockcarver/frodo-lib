@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { lstat, readdir, readFile } from 'fs/promises';
 import { join } from 'path';
+
 import { Reader } from 'properties-reader';
 import replaceall from 'replaceall';
 import slugify from 'slugify';
@@ -438,7 +439,8 @@ export function saveTextToFile({
   try {
     fs.writeFileSync(filename, data + (data.endsWith('\n') ? '' : '\n'));
     return true;
-  } catch (err) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
     printMessage({
       message: `ERROR - can't save ${filename}`,
       type: 'error',
@@ -609,6 +611,7 @@ export function parseUrl(href: string): any {
 export function isValidUrl(urlString: string): boolean {
   try {
     return Boolean(new URL(urlString));
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return false;
   }

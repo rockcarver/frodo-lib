@@ -1,6 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+
 import { v5 as uuidv5 } from 'uuid';
 
 import Constants from '../shared/Constants';
@@ -338,6 +339,7 @@ export async function hasToken({
       state,
     });
     return true;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     debugMessage({
       message: `TokenCacheOps.hasToken: end [has ${tokenType} token: false]`,

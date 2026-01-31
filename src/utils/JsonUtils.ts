@@ -225,6 +225,7 @@ export function put(obj: any, value: any, path: string[]): any {
   let ref = obj;
   for (const [i, element] of path.entries()) {
     if (!ref[element] || !(ref[element] instanceof Object)) ref[element] = {};
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     i < path.length - 1 ? (ref = ref[element]) : (ref[element] = value);
   }
   ref = value;

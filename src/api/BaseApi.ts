@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 import axios, {
   AxiosError,
   AxiosInstance,
@@ -5,7 +7,6 @@ import axios, {
   AxiosRequestConfig,
 } from 'axios';
 import axiosRetry from 'axios-retry';
-import { randomUUID } from 'crypto';
 import { ProxyAgent } from 'proxy-agent';
 
 import _curlirize from '../ext/axios-curlirize/curlirize';

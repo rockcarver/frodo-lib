@@ -488,6 +488,7 @@ export async function createMapping({
       mappingId,
       state,
     });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       const result = await updateMapping({

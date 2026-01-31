@@ -439,6 +439,7 @@ export async function createPolicy({
   debugMessage({ message: `PolicyOps.createPolicy: start`, state });
   try {
     await _getPolicy({ policyId, state });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       const result = await _putPolicy({

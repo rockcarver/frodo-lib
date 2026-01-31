@@ -1,9 +1,10 @@
 /* eslint-disable no-console */
+import path from 'path';
+
 import { Polly } from '@pollyjs/core';
 import FSPersister from '@pollyjs/persister-fs';
 import { MODES } from '@pollyjs/utils';
 import { LogLevelDesc } from 'loglevel';
-import path from 'path';
 
 import { State } from '../shared/State';
 import { debugMessage, printMessage } from './Console';

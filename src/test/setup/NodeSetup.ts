@@ -226,6 +226,7 @@ export async function stageNode(node: NodeApi.NodeSkeleton, createNew = false) {
       nodeType: node._type._id,
       state,
     });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     // ignore
   } finally {
@@ -249,6 +250,7 @@ export async function stageCustomNode(
       nodeId: customNode._id,
       state,
     });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     // ignore
   } finally {

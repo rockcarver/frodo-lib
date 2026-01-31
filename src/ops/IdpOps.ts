@@ -1,8 +1,8 @@
 import { type ScriptSkeleton } from '../api/ScriptApi';
 import {
-  deleteProviderByTypeAndId,
   getSocialIdentityProviders as _getSocialIdentityProviders,
   putProviderByTypeAndId as _putProviderByTypeAndId,
+  deleteProviderByTypeAndId,
   type SocialIdpSkeleton,
 } from '../api/SocialIdentityProvidersApi';
 import Constants from '../shared/Constants';
@@ -496,6 +496,7 @@ export async function createSocialIdentityProvider({
   let result: SocialIdpSkeleton;
   try {
     result = await readSocialIdentityProvider({ providerId, state });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       result = await updateSocialIdentityProvider({
@@ -565,6 +566,7 @@ export async function updateSocialIdentityProvider({
           providerData,
           state,
         });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (importError2) {
         throw new FrodoError(`Error updating provider ${providerId}`, error);
       }
@@ -599,6 +601,7 @@ export async function updateSocialIdentityProvider({
           state,
         });
         return response;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (importError2) {
         throw new FrodoError(`Error updating provider ${providerId}`, error);
       }
@@ -729,6 +732,7 @@ export async function exportSocialIdentityProvider({
           scriptData.script as string
         );
         exportData.script[idpData.transform] = scriptData;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         throw new FrodoError(
           `Error reading ${getCurrentRealmName(state) + ' realm'} script ${idpData.transform}`
@@ -1096,6 +1100,7 @@ export async function importSocialProviders({
         providerData: importData.idp[idpId],
         state,
       });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       outcome = false;
     }

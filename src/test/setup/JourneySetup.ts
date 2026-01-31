@@ -31,6 +31,7 @@ export async function stageJourney(
       },
       state,
     });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     // ignore
   } finally {

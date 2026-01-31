@@ -544,6 +544,7 @@ export async function resolveUserName({
         state,
       })
     ).userName as string;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     // ignore
   }
@@ -567,6 +568,7 @@ export async function resolveFullName({
       state,
     });
     return `${managedObject.givenName} ${managedObject.sn}`;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     // ignore
   }
@@ -645,6 +647,7 @@ export async function resolvePerpetratorUuid({
       });
       return `${user.givenName} ${user.sn} (${user.userName})`;
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     // ignore
   }

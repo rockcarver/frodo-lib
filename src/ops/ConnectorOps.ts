@@ -384,6 +384,7 @@ export async function createConnector({
       connectorId: connectorId,
       state,
     });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       const result = await putConfigEntity({

@@ -124,6 +124,7 @@ export async function isLogApiKeyValid({
     );
     await generateLogApi({ requestOverride, state }).get(urlString);
     return true;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return false;
   }

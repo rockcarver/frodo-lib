@@ -361,6 +361,7 @@ export async function createOAuth2Client({
   debugMessage({ message: `OAuth2ClientOps.createOAuth2Client: start`, state });
   try {
     await readOAuth2Client({ clientId, state });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       const result = await updateOAuth2Client({

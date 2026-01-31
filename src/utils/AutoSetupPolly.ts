@@ -1,10 +1,11 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 import { Polly } from '@pollyjs/core';
 import FSPersister from '@pollyjs/persister-fs';
 import { MODES } from '@pollyjs/utils';
 import { LogLevelDesc } from 'loglevel';
-import path from 'path';
 import pollyJest from 'setup-polly-jest';
-import { fileURLToPath } from 'url';
 
 import { state } from '../index';
 import { getTokens } from '../ops/AuthenticateOps';

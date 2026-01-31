@@ -1,8 +1,9 @@
-import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { createHash, randomBytes } from 'crypto';
+import url from 'url';
+
+import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import jose from 'node-jose';
 import sshpk from 'sshpk';
-import url from 'url';
 import { v4 } from 'uuid';
 
 import {
@@ -542,6 +543,7 @@ async function getUserSessionToken(
         message: `AuthenticateOps.getUserSessionToken: cached`,
         state,
       });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       debugMessage({
         message: `AuthenticateOps.getUserSessionToken: failed cache read`,
@@ -598,6 +600,7 @@ async function getAdminUserScopes({ state }: { state: State }) {
         state,
       });
       return cloudAdminScopes.join(' ');
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       debugMessage({
         message: `AuthenticateOps.getAdminUserScopes: end with minimal cloud scopes ${CLOUD_ADMIN_MINIMAL_SCOPES.join(' ')}`,
@@ -766,6 +769,7 @@ async function getUserBearerToken(state: State): Promise<AccessTokenMetaType> {
         message: `AuthenticateOps.getUserBearerToken: end [cached]`,
         state,
       });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       debugMessage({
         message: `AuthenticateOps.getUserBearerToken: end [failed cache read]`,
@@ -902,6 +906,7 @@ export async function getSaBearerToken({
           message: `AuthenticateOps.getSaBearerToken: end [cached]`,
           state,
         });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         debugMessage({
           message: `AuthenticateOps.getSaBearerToken: end [failed cache read]`,
@@ -976,6 +981,7 @@ async function getLoggedInSubject(state: State): Promise<string> {
         })
       ).name;
       subjectString = `service account ${name} [${state.getServiceAccountId()}]`;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       subjectString = `service account ${state.getServiceAccountId()}`;
     }

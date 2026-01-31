@@ -366,6 +366,7 @@ export async function createOAuth2TrustedJwtIssuer({
   });
   try {
     await readOAuth2TrustedJwtIssuer({ issuerId, state });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       const result = await updateOAuth2TrustedJwtIssuer({

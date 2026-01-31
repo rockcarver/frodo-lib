@@ -1162,6 +1162,7 @@ export async function createIdentityGatewayAgent({
   try {
     await readIdentityGatewayAgent({ gatewayId, state });
     throw new FrodoError(`Agent ${gatewayId} already exists!`);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       const result = await putAgentByTypeAndId({
@@ -1298,6 +1299,7 @@ export async function createJavaAgent({
   try {
     await readJavaAgent({ agentId, state });
     throw new FrodoError(`Agent ${agentId} already exists!`);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       const result = await putAgentByTypeAndId({
@@ -1424,6 +1426,7 @@ export async function createWebAgent({
   try {
     await readWebAgent({ agentId, state });
     throw new FrodoError(`Agent ${agentId} already exists!`);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       const result = await putAgentByTypeAndId({

@@ -2,27 +2,26 @@
   "settings": {
     "import/resolver": {
       "node": {
-        "extensions": [".ts"]
-      }
-    }
+        "extensions": [".ts"],
+      },
+    },
   },
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
-    "prettier"
+    "prettier",
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "requireConfigFile": false,
-    "project": "./tsconfig.json"
+    "project": "./tsconfig.json",
   },
   "plugins": [
     "prettier",
     "jest",
     "@typescript-eslint",
     "deprecation",
-    "simple-import-sort",
-    "import"
+    "import",
   ],
   "rules": {
     "@typescript-eslint/no-explicit-any": "off",
@@ -35,20 +34,30 @@
       // "ForInStatement",
       // "ForOfStatement",
       "LabeledStatement",
-      "WithStatement"
+      "WithStatement",
     ],
     "no-multi-str": "off",
     "deprecation/deprecation": "warn",
-    "simple-import-sort/imports": "error",
-    "simple-import-sort/exports": "error",
     "import/first": "error",
     "import/newline-after-import": "error",
-    "import/no-duplicates": "error"
+    "import/no-duplicates": "error",
+    "import/order": [
+      "error",
+      {
+        "groups": [
+          "builtin",
+          "external",
+          "internal",
+          ["parent", "sibling", "index"],
+        ],
+        "newlines-between": "always",
+      },
+    ],
   },
   "env": {
     "jest": true,
     "jest/globals": true,
-    "node": true
+    "node": true,
   },
   "ignorePatterns": [
     "types",
@@ -56,6 +65,6 @@
     "esm",
     "src/**/*.test.ts",
     "src/**/*.test_.ts",
-    "tsup.config.ts"
-  ]
+    "tsup.config.ts",
+  ],
 }

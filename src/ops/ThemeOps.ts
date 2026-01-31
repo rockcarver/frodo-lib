@@ -539,6 +539,7 @@ export async function createTheme({
 }): Promise<ThemeSkeleton> {
   try {
     await readTheme({ themeId, realm, state });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
       const result = await updateTheme({
