@@ -113,6 +113,10 @@ describe('AuthenticateOps', () => {
       });
       describe('getTokens()', () => {  
         test('0: Authenticate successfully as user', async () => {
+          // override and reset service account credentials from environment variables in CI/CD pipeline
+          state.setServiceAccountId(undefined);
+          state.setServiceAccountJwk(undefined);
+
           state.setDeploymentType(undefined);
           state.setUsername(process.env.FRODO_USERNAME || 'mockUser');
           state.setPassword(process.env.FRODO_PASSWORD || 'mockPassword');
@@ -132,6 +136,10 @@ describe('AuthenticateOps', () => {
         });
 
         test('1: Authenticate successfully using Amster credentials', async () => {
+          // override and reset service account credentials from environment variables in CI/CD pipeline
+          state.setServiceAccountId(undefined);
+          state.setServiceAccountJwk(undefined);
+
           const privateKey = process.env.FRODO_AMSTER_PRIVATE_KEY || fs.readFileSync(
             path.resolve(
               __dirname,
@@ -160,6 +168,10 @@ describe('AuthenticateOps', () => {
         });
 
         test('2: Authenticate successfully using alternative Amster subject and service', async () => {
+          // override and reset service account credentials from environment variables in CI/CD pipeline
+          state.setServiceAccountId(undefined);
+          state.setServiceAccountJwk(undefined);
+          
           const privateKey = process.env.FRODO_AMSTER_PRIVATE_KEY || fs.readFileSync(
             path.resolve(
               __dirname,
