@@ -57,6 +57,8 @@ export class FrodoError extends Error {
           : null
         : null;
     }
+    
+    super.message = this.getCombinedMessage();
   }
 
   getOriginalErrors(): Error[] {
