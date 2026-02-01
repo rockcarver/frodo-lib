@@ -38,7 +38,7 @@ exports[`VariablesOps deleteVariable() 1: Delete variable19 1`] = `
 
 exports[`VariablesOps deleteVariable() 2: Delete variable3 (non-existent) 1`] = `
 "Error deleting variable esv-frodo-test-variable-3
-  HTTP client error
+  Network error:
     URL: https://openam-frodo-dev.forgeblocks.com/environment/variables/esv-frodo-test-variable-3
     Status: 404
     Code: ERR_BAD_REQUEST
@@ -81,7 +81,7 @@ exports[`VariablesOps exportVariable() 2: Export variable2 without decoding 1`] 
 
 exports[`VariablesOps exportVariable() 3: Export variable3 (non-existent) 1`] = `
 "Error exporting variable esv-frodo-test-variable-3
-  HTTP client error
+  Network error:
     URL: https://openam-frodo-dev.forgeblocks.com/environment/variables/esv-frodo-test-variable-3
     Status: 404
     Code: ERR_BAD_REQUEST
@@ -350,7 +350,7 @@ exports[`VariablesOps readVariable() 2: Read variable2 without decoding 1`] = `
 
 exports[`VariablesOps readVariable() 3: Read variable3 (non-existent) 1`] = `
 "Error reading variable esv-frodo-test-variable-3
-  HTTP client error
+  Network error:
     URL: https://openam-frodo-dev.forgeblocks.com/environment/variables/esv-frodo-test-variable-3
     Status: 404
     Code: ERR_BAD_REQUEST

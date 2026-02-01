@@ -22,7 +22,7 @@ exports[`ResourceTypeOps createResourceType() 1: Create non-existing resource ty
 
 exports[`ResourceTypeOps createResourceType() 2: Create existing resource type [e219144d-8d94-47b6-8789-3a7b820d6cde - FrodoTestResourceType4] 1`] = `
 "Error creating alpha realm resource type
-  HTTP client error
+  Network error:
     URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realms/alpha/resourcetypes?_action=create
     Status: 409
     Code: ERR_BAD_REQUEST
@@ -34,7 +34,7 @@ exports[`ResourceTypeOps deleteResourceType() 1: Delete existing resource type [
 
 exports[`ResourceTypeOps deleteResourceType() 2: Delete non-existing resource type [00000000-0000-0000-0000-000000000000] 1`] = `
 "Error deleting alpha realm resource type 00000000-0000-0000-0000-000000000000
-  HTTP client error
+  Network error:
     URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realms/alpha/resourcetypes/00000000-0000-0000-0000-000000000000
     Status: 404
     Code: ERR_BAD_REQUEST
@@ -47,7 +47,7 @@ exports[`ResourceTypeOps deleteResourceTypeByName() 1: Delete existing resource 
 exports[`ResourceTypeOps deleteResourceTypeByName() 2: Delete non-existing resource type by name [DoesNotExist] 1`] = `
 "Error deleting alpha realm resource type DoesNotExist
   Error reading alpha realm resource type DoesNotExist
-  Resource Type with name DoesNotExist does not exist in realm alpha"
+    Resource Type with name DoesNotExist does not exist in realm alpha"
 `;
 
 exports[`ResourceTypeOps exportResourceType() 1: Export existing resource type by uuid [0c2b73b2-f18f-4634-85ec-14dc71f1b216 - FrodoTestResourceType9] 1`] = `
@@ -80,7 +80,7 @@ exports[`ResourceTypeOps exportResourceType() 1: Export existing resource type b
 
 exports[`ResourceTypeOps exportResourceType() 2: Export non-existing resource type by uuid [00000000-0000-0000-0000-000000000000] 1`] = `
 "alpha realm resource type 00000000-0000-0000-0000-000000000000 does not exist
-  HTTP client error
+  Network error:
     URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realms/alpha/resourcetypes/00000000-0000-0000-0000-000000000000
     Status: 404
     Code: ERR_BAD_REQUEST
@@ -119,7 +119,7 @@ exports[`ResourceTypeOps exportResourceTypeByName() 1: Export existing resource 
 exports[`ResourceTypeOps exportResourceTypeByName() 2: Export non-existing resource type by name [DoesNotExist] 1`] = `
 "Error exporting alpha realm resource type DoesNotExist
   Error reading alpha realm resource type DoesNotExist
-  Resource Type with name DoesNotExist does not exist in realm alpha"
+    Resource Type with name DoesNotExist does not exist in realm alpha"
 `;
 
 exports[`ResourceTypeOps exportResourceTypes() 1: Export all resource types 1`] = `
@@ -535,7 +535,7 @@ exports[`ResourceTypeOps readResourceType() 1: Get existing resource type by uui
 
 exports[`ResourceTypeOps readResourceType() 2: Get non-existing resource type by uuid [00000000-0000-0000-0000-000000000000] 1`] = `
 "Error reading alpha realm resource type 00000000-0000-0000-0000-000000000000
-  HTTP client error
+  Network error:
     URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realms/alpha/resourcetypes/00000000-0000-0000-0000-000000000000
     Status: 404
     Code: ERR_BAD_REQUEST
@@ -855,7 +855,7 @@ exports[`ResourceTypeOps updateResourceType() 1: Update existing resource type [
 
 exports[`ResourceTypeOps updateResourceType() 2: Update non-existing resource type [05e5fdb6-435e-43d9-b707-c73f7f347358 - FrodoTestResourceType6] 1`] = `
 "Error updating alpha realm resource type 05e5fdb6-435e-43d9-b707-c73f7f347358
-  HTTP client error
+  Network error:
     URL: https://openam-frodo-dev.forgeblocks.com/am/json/realms/root/realms/alpha/resourcetypes/05e5fdb6-435e-43d9-b707-c73f7f347358
     Status: 404
     Code: ERR_BAD_REQUEST
