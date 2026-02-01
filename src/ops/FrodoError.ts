@@ -1,4 +1,5 @@
-import { Axios, AxiosError } from 'axios';
+import { AxiosError } from 'axios';
+
 export class FrodoError extends Error {
   originalErrors: Error[] = [];
   isHttpError: boolean = false;
@@ -31,7 +32,9 @@ export class FrodoError extends Error {
       const originalError = this.originalErrors[0];
       this.isHttpError = originalError.name === 'AxiosError';
       this.httpCode = originalError['code'];
-      this.httpStatus = originalError['response'] ? originalError['response'].status : null;
+      this.httpStatus = originalError['response']
+        ? originalError['response'].status
+        : null;
       this.httpMessage = originalError['response']
         ? originalError['response'].data
           ? originalError['response'].data.message
@@ -60,7 +63,7 @@ export class FrodoError extends Error {
     }
 
     // message = `${message}${this.originalErrors.length ? ` [${this.originalErrors.length} nested error(s)]` : ''}`;
-    
+
     // super.message = message;
   }
 
@@ -69,13 +72,14 @@ export class FrodoError extends Error {
   }
 
   getCombinedMessage(level: number = 1): string {
-    let indent = '  '.repeat(level);
+    const indent = '  '.repeat(level);
     let combinedMessage = this.message || '';
     this.originalErrors.forEach((originalError) => {
       switch (originalError.name) {
         case 'FrodoError':
           combinedMessage +=
-            `\n${indent}` + (originalError as FrodoError).getCombinedMessage(level + 1);
+            `\n${indent}` +
+            (originalError as FrodoError).getCombinedMessage(level + 1);
           break;
 
         case 'AxiosError':
@@ -90,19 +94,29 @@ export class FrodoError extends Error {
             combinedMessage += (originalError as AxiosError).code
               ? `\n${indent}  Code: ${(originalError as AxiosError).code}`
               : '';
-            combinedMessage += (originalError as AxiosError).response?.['data']?.['error']
+            combinedMessage += (originalError as AxiosError).response?.[
+              'data'
+            ]?.['error']
               ? `\n${indent}  Error: ${(originalError as AxiosError).response?.['data']?.['error']}`
               : '';
-            combinedMessage += (originalError as AxiosError).response?.['data']?.['reason']
+            combinedMessage += (originalError as AxiosError).response?.[
+              'data'
+            ]?.['reason']
               ? `\n${indent}  Reason: ${(originalError as AxiosError).response?.['data']?.['reason']}`
               : '';
-            combinedMessage += (originalError as AxiosError).response?.['data']?.['message']
+            combinedMessage += (originalError as AxiosError).response?.[
+              'data'
+            ]?.['message']
               ? `\n${indent}  Message: ${(originalError as AxiosError).response?.['data']?.['message']}`
               : '';
-            combinedMessage += (originalError as AxiosError).response?.['data']?.['detail']
+            combinedMessage += (originalError as AxiosError).response?.[
+              'data'
+            ]?.['detail']
               ? `\n${indent}  Detail: ${typeof (originalError as AxiosError).response?.['data']?.['detail'] === 'object' ? JSON.stringify((originalError as AxiosError).response?.['data']?.['detail']) : (originalError as AxiosError).response?.['data']?.['detail']}`
               : '';
-            combinedMessage += (originalError as AxiosError).response?.['data']?.['error_description']
+            combinedMessage += (originalError as AxiosError).response?.[
+              'data'
+            ]?.['error_description']
               ? `\n${indent}  Description: ${(originalError as AxiosError).response?.['data']?.['error_description']}`
               : '';
           }
