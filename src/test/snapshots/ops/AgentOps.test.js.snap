@@ -8848,9 +8848,9 @@ exports[`AgentOps Cloud Tests importIdentityGatewayAgent() 2: Import gateway age
 exports[`AgentOps Cloud Tests importIdentityGatewayAgents() 2: Import gateway agents with wrong type 1`] = `
 "Error importing alpha realm identity gateway agents
   Error importing alpha realm agent FrodoOpsTestJavaAgent4 of type J2EEAgent
-  Wrong agent type! Expected 'IdentityGatewayAgent' but got 'J2EEAgent'.
+    Wrong agent type! Expected 'IdentityGatewayAgent' but got 'J2EEAgent'.
   Error importing alpha realm agent FrodoOpsTestWebAgent4 of type WebAgent
-  Wrong agent type! Expected 'IdentityGatewayAgent' but got 'WebAgent'."
+    Wrong agent type! Expected 'IdentityGatewayAgent' but got 'WebAgent'."
 `;
 
 exports[`AgentOps Cloud Tests importJavaAgent() 2: Import java agent with wrong type 1`] = `
@@ -8861,9 +8861,9 @@ exports[`AgentOps Cloud Tests importJavaAgent() 2: Import java agent with wrong 
 exports[`AgentOps Cloud Tests importJavaAgents() 2: Import java agents with wrong type 1`] = `
 "Error importing alpha realm java agents
   Error importing alpha realm agent FrodoOpsTestWebAgent4 of type WebAgent
-  Wrong agent type! Expected 'J2EEAgent' but got 'WebAgent'.
+    Wrong agent type! Expected 'J2EEAgent' but got 'WebAgent'.
   Error importing alpha realm agent FrodoOpsTestGatewayAgent4 of type IdentityGatewayAgent
-  Wrong agent type! Expected 'J2EEAgent' but got 'IdentityGatewayAgent'."
+    Wrong agent type! Expected 'J2EEAgent' but got 'IdentityGatewayAgent'."
 `;
 
 exports[`AgentOps Cloud Tests importWebAgent() 2: Import web agent with wrong type 1`] = `
@@ -8874,9 +8874,9 @@ exports[`AgentOps Cloud Tests importWebAgent() 2: Import web agent with wrong ty
 exports[`AgentOps Cloud Tests importWebAgents() 2: Import web agents with wrong type 1`] = `
 "Error importing alpha realm web agents
   Error importing alpha realm agent FrodoOpsTestGatewayAgent4 of type IdentityGatewayAgent
-  Wrong agent type! Expected 'WebAgent' but got 'IdentityGatewayAgent'.
+    Wrong agent type! Expected 'WebAgent' but got 'IdentityGatewayAgent'.
   Error importing alpha realm agent FrodoOpsTestJavaAgent4 of type J2EEAgent
-  Wrong agent type! Expected 'WebAgent' but got 'J2EEAgent'."
+    Wrong agent type! Expected 'WebAgent' but got 'J2EEAgent'."
 `;
 
 exports[`AgentOps Cloud Tests readAgent() 1: Read agent 'FrodoOpsTestGatewayAgent1' (IdentityGatewayAgent) 1`] = `
