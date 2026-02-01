@@ -49,7 +49,7 @@ export default class JestExceptionReporter {
               if (detail && typeof detail === 'object') {
                 // Check name property
                 if (detail.name === 'FrodoError') {
-                  detail = detail.getCombinedMessage();
+                  detail = detail.toString();
                 }
               }
             } catch (e) {
