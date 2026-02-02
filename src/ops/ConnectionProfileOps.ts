@@ -390,39 +390,46 @@ export async function getConnectionProfileByHost({
         )}\nSpecify a sub-string uniquely identifying a single connection profile host URL.`
     );
   }
-  return {
-    tenant: profiles[0].tenant,
-    idmHost: profiles[0].idmHost ? profiles[0].idmHost : null,
-    allowInsecureConnection: profiles[0].allowInsecureConnection,
-    deploymentType: profiles[0].deploymentType,
-    username: profiles[0].username ? profiles[0].username : null,
-    password: profiles[0].encodedPassword
-      ? await dataProtection.decrypt(profiles[0].encodedPassword)
-      : null,
-    logApiKey: profiles[0].logApiKey ? profiles[0].logApiKey : null,
-    logApiSecret: profiles[0].encodedLogApiSecret
-      ? await dataProtection.decrypt(profiles[0].encodedLogApiSecret)
-      : null,
-    authenticationService: profiles[0].authenticationService
-      ? profiles[0].authenticationService
-      : null,
-    authenticationHeaderOverrides: profiles[0].authenticationHeaderOverrides
-      ? profiles[0].authenticationHeaderOverrides
-      : {},
-    adminClientId: profiles[0].adminClientId ? profiles[0].adminClientId : null,
-    adminClientRedirectUri: profiles[0].adminClientRedirectUri
-      ? profiles[0].adminClientRedirectUri
-      : null,
-    svcacctName: profiles[0].svcacctName ? profiles[0].svcacctName : null,
-    svcacctId: profiles[0].svcacctId ? profiles[0].svcacctId : null,
-    svcacctJwk: profiles[0].encodedSvcacctJwk
-      ? await dataProtection.decrypt(profiles[0].encodedSvcacctJwk)
-      : null,
-    svcacctScope: profiles[0].svcacctScope ? profiles[0].svcacctScope : null,
-    amsterPrivateKey: profiles[0].encodedAmsterPrivateKey
-      ? await dataProtection.decrypt(profiles[0].encodedAmsterPrivateKey)
-      : null,
-  };
+  try {
+    const connectionProfile = {
+      tenant: profiles[0].tenant,
+      idmHost: profiles[0].idmHost ? profiles[0].idmHost : null,
+      allowInsecureConnection: profiles[0].allowInsecureConnection,
+      deploymentType: profiles[0].deploymentType,
+      username: profiles[0].username ? profiles[0].username : null,
+      password: profiles[0].encodedPassword
+        ? await dataProtection.decrypt(profiles[0].encodedPassword)
+        : null,
+      logApiKey: profiles[0].logApiKey ? profiles[0].logApiKey : null,
+      logApiSecret: profiles[0].encodedLogApiSecret
+        ? await dataProtection.decrypt(profiles[0].encodedLogApiSecret)
+        : null,
+      authenticationService: profiles[0].authenticationService
+        ? profiles[0].authenticationService
+        : null,
+      authenticationHeaderOverrides: profiles[0].authenticationHeaderOverrides
+        ? profiles[0].authenticationHeaderOverrides
+        : {},
+      adminClientId: profiles[0].adminClientId
+        ? profiles[0].adminClientId
+        : null,
+      adminClientRedirectUri: profiles[0].adminClientRedirectUri
+        ? profiles[0].adminClientRedirectUri
+        : null,
+      svcacctName: profiles[0].svcacctName ? profiles[0].svcacctName : null,
+      svcacctId: profiles[0].svcacctId ? profiles[0].svcacctId : null,
+      svcacctJwk: profiles[0].encodedSvcacctJwk
+        ? await dataProtection.decrypt(profiles[0].encodedSvcacctJwk)
+        : null,
+      svcacctScope: profiles[0].svcacctScope ? profiles[0].svcacctScope : null,
+      amsterPrivateKey: profiles[0].encodedAmsterPrivateKey
+        ? await dataProtection.decrypt(profiles[0].encodedAmsterPrivateKey)
+        : null,
+    };
+    return connectionProfile;
+  } catch (error) {
+    throw new FrodoError(`Error decrypting connection profile`, error);
+  }
 }
 
 /**
