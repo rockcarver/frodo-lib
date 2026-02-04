@@ -133,6 +133,7 @@ export interface SecureConnectionProfileInterface {
   idmHost?: string;
   allowInsecureConnection?: boolean;
   deploymentType?: string;
+  isIGA?: boolean;
   username?: string | null;
   encodedPassword?: string | null;
   logApiKey?: string | null;
@@ -153,6 +154,7 @@ export interface ConnectionProfileInterface {
   idmHost?: string;
   allowInsecureConnection?: boolean;
   deploymentType?: string;
+  isIGA?: boolean;
   username?: string | null;
   password?: string | null;
   logApiKey?: string | null;
@@ -396,6 +398,7 @@ export async function getConnectionProfileByHost({
       idmHost: profiles[0].idmHost ? profiles[0].idmHost : null,
       allowInsecureConnection: profiles[0].allowInsecureConnection,
       deploymentType: profiles[0].deploymentType,
+      isIGA: profiles[0].isIGA,
       username: profiles[0].username ? profiles[0].username : null,
       password: profiles[0].encodedPassword
         ? await dataProtection.decrypt(profiles[0].encodedPassword)
@@ -465,6 +468,9 @@ export async function loadConnectionProfileByHost({
   state.setIdmHost(state.getIdmHost() || conn.idmHost);
   state.setAllowInsecureConnection(conn.allowInsecureConnection);
   state.setDeploymentType(state.getDeploymentType() || conn.deploymentType);
+  state.setIsIGA(
+    state.getIsIGA() === undefined ? conn.isIGA : state.getIsIGA()
+  );
   state.setAdminClientId(state.getAdminClientId() || conn.adminClientId);
   state.setAdminClientRedirectUri(
     state.getAdminClientRedirectUri() || conn.adminClientRedirectUri
@@ -579,6 +585,10 @@ export async function saveConnectionProfile({
     // deployment type
     if (state.getDeploymentType())
       profile.deploymentType = state.getDeploymentType();
+
+    // is IGA
+    if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY)
+      profile.isIGA = !!state.getIsIGA();
 
     // admin client id
     if (state.getAdminClientId())

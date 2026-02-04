@@ -63,6 +63,8 @@ describe('ConnectionProfileOps', () => {
 
       state.setHost(host);
       state.setDeploymentType(Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY);
+      // Even though IGA is not part of forgeops deployments, we want to check it is not set to the connection profile
+      state.setIsIGA(true);
       state.setUsername(user);
       state.setPassword(password);
       state.setConnectionProfilesPath(connectionProfilePath1);
@@ -76,6 +78,7 @@ describe('ConnectionProfileOps', () => {
       expect(connections[host].deploymentType).toEqual(
         Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
       );
+      expect(connections[host].isIGA).toBeUndefined();
       expect(connections[host].username).toEqual(user);
       expect(connections[host].encodedPassword).toBeTruthy();
     });
@@ -90,6 +93,7 @@ describe('ConnectionProfileOps', () => {
 
       state.setHost(host);
       state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
+      state.setIsIGA(true);
       state.setUsername(user);
       state.setPassword(password);
       state.setConnectionProfilesPath('');
@@ -105,6 +109,7 @@ describe('ConnectionProfileOps', () => {
       expect(connections[host].deploymentType).toEqual(
         Constants.CLOUD_DEPLOYMENT_TYPE_KEY
       );
+      expect(connections[host].isIGA).toEqual(true);
       expect(connections[host].username).toEqual(user);
       expect(connections[host].encodedPassword).toBeTruthy();
     });
@@ -119,6 +124,8 @@ describe('ConnectionProfileOps', () => {
 
       state.setHost(host);
       state.setDeploymentType(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
+      // Even though IGA is not part of classic deployments, we want to check it is not set to the connection profile
+      state.setIsIGA(false);
       state.setUsername(user);
       state.setPassword(password);
       state.setConnectionProfilesPath(connectionProfilePath3);
@@ -132,6 +139,7 @@ describe('ConnectionProfileOps', () => {
       expect(connections[host].deploymentType).toEqual(
         Constants.CLASSIC_DEPLOYMENT_TYPE_KEY
       );
+      expect(connections[host].isIGA).toBeUndefined();
       expect(connections[host].username).toEqual(user);
       expect(connections[host].encodedPassword).toBeTruthy();
     });
