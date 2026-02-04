@@ -18,6 +18,7 @@ import {
   type NodeTypeSkeleton,
   putCustomNode,
   putNode as _putNode,
+  getCustomNodeSchema as _getCustomNodeSchema,
 } from '../api/NodeApi';
 import { getTrees } from '../api/TreeApi';
 import Constants from '../shared/Constants';
@@ -315,6 +316,7 @@ export default (state: State): Node => {
       importData: CustomNodeExportInterface,
       options: CustomNodeImportOptions = {
         reUuid: false,
+        wait: false,
       },
       resultCallback?: ResultCallback<CustomNodeSkeleton>
     ): Promise<CustomNodeSkeleton[]> {
@@ -399,6 +401,10 @@ export interface CustomNodeImportOptions {
    * Generate new UUIDs and service names for all custom nodes during import.
    */
   reUuid: boolean;
+  /**
+   * Wait for AM to load new custom nodes before returning.
+   */
+  wait: boolean;
 }
 
 /**
@@ -874,6 +880,7 @@ export async function importCustomNodes({
   importData,
   options = {
     reUuid: false,
+    wait: false,
   },
   resultCallback,
   state,
@@ -887,7 +894,7 @@ export async function importCustomNodes({
 }): Promise<CustomNodeSkeleton[]> {
   nodeId = getCustomNodeId(nodeId);
   debugMessage({ message: `NodeOps.importCustomNodes: start`, state });
-  const response = [];
+  const response: CustomNodeSkeleton[] = [];
   for (const existingId of Object.keys(importData.nodeTypes)) {
     try {
       const nodeData = importData.nodeTypes[existingId];
@@ -937,6 +944,39 @@ export async function importCustomNodes({
           e
         );
       }
+    }
+  }
+  if (options.wait) {
+    debugMessage({
+      message: `NodeOps.importCustomNodes: Waiting for AM to load new custom nodes...`,
+      state,
+    });
+    for (const customNode of response) {
+      let loaded = false;
+      let retries = 3;
+      do {
+        try {
+          await _getCustomNodeSchema({
+            serviceName: customNode.serviceName,
+            state,
+          });
+          loaded = true;
+          debugMessage({
+            message: `NodeOps.importCustomNodes: Custom node ${customNode.displayName} loaded successfully.`,
+            state,
+          });
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (error) {
+          debugMessage({
+            message: `NodeOps.importCustomNodes: Custom node ${customNode.displayName} not loaded yet. Retrying...`,
+            state,
+          });
+        }
+        // wait 100 milliseconds before retrying
+        if (!loaded) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      } while (!loaded && retries-- > 0);
     }
   }
   debugMessage({ message: `NodeOps.importCustomNodes: end`, state });

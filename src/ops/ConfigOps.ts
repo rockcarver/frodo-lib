@@ -871,6 +871,7 @@ export async function importFullConfiguration({
         importData: importData.global,
         options: {
           reUuid: reUuidCustomNodes,
+          wait: false,
         },
         resultCallback: errorCallback,
         state,

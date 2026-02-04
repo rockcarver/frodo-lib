@@ -22,6 +22,8 @@ const nodeURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s/%s';
 const createNodeURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s?_action=create';
+const nodeSchemaURLTemplate =
+  '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s?_action=schema';
 const customNodeTypeURLTemplate = '%s/json/node-designer/node-type';
 const queryAllCustomNodesURLTemplate =
   customNodeTypeURLTemplate + '?_queryFilter=true';
@@ -254,6 +256,54 @@ export async function createNode({
     headers: { 'Accept-Encoding': 'gzip, deflate, br' },
   });
   return data;
+}
+
+/**
+ * Get node schema by type
+ * @param {string} nodeType node type
+ * @returns {Promise<NodeSkeleton>} a promise that resolves to a node object
+ */
+export async function getNodeSchema({
+  nodeType,
+  state,
+}: {
+  nodeType: string;
+  state: State;
+}): Promise<NodeSkeleton> {
+  const urlString = util.format(
+    nodeSchemaURLTemplate,
+    state.getHost(),
+    getCurrentRealmPath(state),
+    nodeType
+  );
+  const { data } = await generateAmApi({
+    resource: getNodeApiConfig(),
+    state,
+  }).post(
+    urlString,
+    {},
+    {
+      withCredentials: true,
+      // headers: { 'Accept-Encoding': 'gzip, deflate, br' },
+    }
+  );
+  return data;
+}
+
+/**
+ * Get custom node schema by service name
+ * @param {string} serviceName custom node service name (not the '_id' and without the 'designer-' prefix)
+ * @returns {Promise<NodeSkeleton>} a promise that resolves to a node object
+ */
+export async function getCustomNodeSchema({
+  serviceName,
+  state,
+}: {
+  serviceName: string;
+  state: State;
+}): Promise<NodeSkeleton> {
+  const nodeType = `designer-${serviceName}`;
+  return getNodeSchema({ nodeType, state });
 }
 
 /**

@@ -1765,13 +1765,21 @@ export async function importJourney({
       Object.entries(importData.nodeTypes).length > 0
     ) {
       if (verbose)
-        printMessage({ message: '  - Custom Nodes:', newline: false, state });
+        printMessage({ message: '\n  - Custom Nodes:', newline: false, state });
       await importCustomNodes({
         importData: importData as CustomNodeExportInterface,
         options: {
           reUuid: false,
+          wait: true,
         },
-        resultCallback: (err) => {
+        resultCallback: (err, node) => {
+          if (verbose)
+            printMessage({
+              message: `\n    - ${node['serviceName']} (${node['displayName']})`,
+              type: 'info',
+              newline: false,
+              state,
+            });
           if (err) errors.push(err);
         },
         state,
