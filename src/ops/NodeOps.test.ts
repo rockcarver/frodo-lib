@@ -60,7 +60,6 @@ const stateCloud750 = frodo.createInstance({
 stateCloud750.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 
 describe('NodeOps', () => {
-
   TestData.setup();
 
   beforeEach(async () => {
@@ -70,7 +69,7 @@ describe('NodeOps', () => {
       });
     }
   });
-  
+
   // Phase 1
   if (
     !process.env.FRODO_POLLY_MODE ||
@@ -131,7 +130,10 @@ describe('NodeOps', () => {
       });
 
       test('1: Read nodes of type SelectIdPNode', async () => {
-        const response = await NodeOps.readNodesByType({ nodeType: 'SelectIdPNode', state });
+        const response = await NodeOps.readNodesByType({
+          nodeType: 'SelectIdPNode',
+          state,
+        });
         expect(response).toMatchSnapshot();
       });
     });
@@ -149,7 +151,7 @@ describe('NodeOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Read non-existing node', async () => {
         expect.assertions(1);
         try {
@@ -181,7 +183,7 @@ describe('NodeOps', () => {
       test('0: Method is implemented', async () => {
         expect(NodeOps.createNode).toBeDefined();
       });
-      
+
       test(`1: Create new node with id`, async () => {
         await TestData.stageNode(TestData.node5);
         const response = await NodeOps.createNode({
@@ -193,7 +195,7 @@ describe('NodeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test(`2: Create new node without id`, async() => {
+      test(`2: Create new node without id`, async () => {
         await TestData.stageNode(TestData.node5);
         const response = await NodeOps.createNode({
           nodeType: TestData.node5._type._id,
@@ -203,23 +205,29 @@ describe('NodeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test(`3: Create existing node by id`, async() => {
+      test(`3: Create existing node by id`, async () => {
         await TestData.stageNode(TestData.node5, true);
-        await expect(NodeOps.createNode({
-          nodeId: TestData.node5._id,
-          nodeType: TestData.node5._type._id,
-          nodeData: TestData.node5,
-          state,
-        })).rejects.toThrow('Error creating SetStateNode node ' + TestData.node5._id);
+        await expect(
+          NodeOps.createNode({
+            nodeId: TestData.node5._id,
+            nodeType: TestData.node5._type._id,
+            nodeData: TestData.node5,
+            state,
+          })
+        ).rejects.toThrow(
+          'Error creating SetStateNode node ' + TestData.node5._id
+        );
       });
 
-      test(`4: Create existing node without id`, async() => {
+      test(`4: Create existing node without id`, async () => {
         await TestData.stageNode(TestData.node5, true);
-        await expect(NodeOps.createNode({
-          nodeType: TestData.node5._type._id,
-          nodeData: TestData.node5,
-          state,
-        })).rejects.toThrow('Request failed with status code 409');
+        await expect(
+          NodeOps.createNode({
+            nodeType: TestData.node5._type._id,
+            nodeData: TestData.node5,
+            state,
+          })
+        ).rejects.toThrow('Request failed with status code 409');
       });
     });
 
@@ -227,7 +235,7 @@ describe('NodeOps', () => {
       test('0: Method is implemented', async () => {
         expect(NodeOps.updateNode).toBeDefined();
       });
-      
+
       test(`1: Update existing node`, async () => {
         await TestData.stageNode(TestData.node3, true);
         const node = await NodeOps.updateNode({
@@ -255,7 +263,7 @@ describe('NodeOps', () => {
       test('0: Method is implemented', async () => {
         expect(NodeOps.deleteNode).toBeDefined();
       });
-      
+
       test(`1: Delete existing node`, async () => {
         const node = await NodeOps.deleteNode({
           nodeId: TestData.node4._id,
@@ -264,13 +272,15 @@ describe('NodeOps', () => {
         });
         expect(node).toMatchSnapshot();
       });
-  
+
       test('2: Delete non-existing node', async () => {
-        await expect(NodeOps.deleteNode({
-          nodeId: '00000000-0000-0000-0000-000000000000',
-          nodeType: 'PageNode',
-          state,
-        })).rejects.toThrow('Request failed with status code 404');
+        await expect(
+          NodeOps.deleteNode({
+            nodeId: '00000000-0000-0000-0000-000000000000',
+            nodeType: 'PageNode',
+            state,
+          })
+        ).rejects.toThrow('Request failed with status code 404');
       });
     });
 
@@ -278,7 +288,7 @@ describe('NodeOps', () => {
       test('0: Method is implemented', async () => {
         expect(NodeOps.readCustomNode).toBeDefined();
       });
-      
+
       test(`1: Read existing custom node by ID`, async () => {
         const response = await NodeOps.readCustomNode({
           nodeId: TestData.customNode1.serviceName,
@@ -286,12 +296,16 @@ describe('NodeOps', () => {
         });
         expect(response).toMatchSnapshot();
       });
-  
+
       test('2: Read non-existing custom node', async () => {
-        await expect(NodeOps.readCustomNode({
-          nodeId: '11111111111111111111111111111111-1',
-          state,
-        })).rejects.toThrow('Error reading custom node 11111111111111111111111111111111-1');
+        await expect(
+          NodeOps.readCustomNode({
+            nodeId: '11111111111111111111111111111111-1',
+            state,
+          })
+        ).rejects.toThrow(
+          'Error reading custom node 11111111111111111111111111111111-1'
+        );
       });
 
       test(`3: Read existing custom node by name`, async () => {
@@ -303,9 +317,11 @@ describe('NodeOps', () => {
       });
 
       test(`4: Read without name or id`, async () => {
-        await expect(NodeOps.readCustomNode({
-          state,
-        })).rejects.toThrow('No custom node ID or display name provided.');
+        await expect(
+          NodeOps.readCustomNode({
+            state,
+          })
+        ).rejects.toThrow('No custom node ID or display name provided.');
       });
     });
 
@@ -334,12 +350,16 @@ describe('NodeOps', () => {
           meta: expect.any(Object),
         });
       });
-  
+
       test('2: Export non-existing custom node', async () => {
-        await expect(NodeOps.exportCustomNode({
-          nodeId: '11111111111111111111111111111111-1',
-          state,
-        })).rejects.toThrow('Error exporting custom node 11111111111111111111111111111111-1');
+        await expect(
+          NodeOps.exportCustomNode({
+            nodeId: '11111111111111111111111111111111-1',
+            state,
+          })
+        ).rejects.toThrow(
+          'Error exporting custom node 11111111111111111111111111111111-1'
+        );
       });
 
       test(`3: Export existing custom node by name`, async () => {
@@ -353,9 +373,11 @@ describe('NodeOps', () => {
       });
 
       test(`4: Export without name or id`, async () => {
-        await expect(NodeOps.exportCustomNode({
-          state,
-        })).rejects.toThrow('No custom node ID or display name provided.');
+        await expect(
+          NodeOps.exportCustomNode({
+            state,
+          })
+        ).rejects.toThrow('No custom node ID or display name provided.');
       });
     });
 
@@ -363,7 +385,7 @@ describe('NodeOps', () => {
       test('0: Method is implemented', async () => {
         expect(NodeOps.exportCustomNodes).toBeDefined();
       });
-      
+
       test('1: Export custom nodes', async () => {
         const response = await NodeOps.exportCustomNodes({ state });
         expect(response).toMatchSnapshot({
@@ -376,7 +398,7 @@ describe('NodeOps', () => {
       test('0: Method is implemented', async () => {
         expect(NodeOps.updateCustomNode).toBeDefined();
       });
-      
+
       test(`1: Update existing custom node`, async () => {
         await TestData.stageCustomNode(TestData.customNode2, true);
         const response = await NodeOps.updateCustomNode({
@@ -389,23 +411,27 @@ describe('NodeOps', () => {
 
       test(`2: Update non-existing custom node`, async () => {
         await TestData.stageCustomNode(TestData.customNode2);
-        await expect(NodeOps.updateCustomNode({
-          nodeId: TestData.customNode2._id,
-          nodeData: TestData.customNode2,
-          state,
-        })).rejects.toThrow('Error updating custom node');
+        await expect(
+          NodeOps.updateCustomNode({
+            nodeId: TestData.customNode2._id,
+            nodeData: TestData.customNode2,
+            state,
+          })
+        ).rejects.toThrow('Error updating custom node');
       });
     });
 
     describe('importCustomNodes()', () => {
-      
       const importData = NodeOps.createCustomNodeExportTemplate({ state });
       importData.nodeTypes = {
         [TestData.customNode2._id]: TestData.customNode2,
         // We want to also test importing with array scripts, so make this script an array
-        [TestData.customNode3._id]: {...TestData.customNode3, script: (TestData.customNode3.script as string).split('\n')},
+        [TestData.customNode3._id]: {
+          ...TestData.customNode3,
+          script: (TestData.customNode3.script as string).split('\n'),
+        },
         [TestData.customNode4._id]: TestData.customNode4,
-      }
+      };
 
       test('0: Method is implemented', async () => {
         expect(NodeOps.importCustomNodes).toBeDefined();
@@ -415,7 +441,8 @@ describe('NodeOps', () => {
         const response = await NodeOps.importCustomNodes({
           importData: NodeOps.createCustomNodeExportTemplate({ state }),
           options: {
-            reUuid: false
+            reUuid: false,
+            wait: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -428,7 +455,8 @@ describe('NodeOps', () => {
           nodeId: TestData.customNode3.serviceName,
           importData,
           options: {
-            reUuid: false
+            reUuid: false,
+            wait: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -441,7 +469,8 @@ describe('NodeOps', () => {
           nodeName: TestData.customNode3.displayName,
           importData,
           options: {
-            reUuid: false
+            reUuid: false,
+            wait: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -453,7 +482,8 @@ describe('NodeOps', () => {
         const response = await NodeOps.importCustomNodes({
           importData,
           options: {
-            reUuid: false
+            reUuid: false,
+            wait: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -468,7 +498,7 @@ describe('NodeOps', () => {
       test('0: Method is implemented', async () => {
         expect(NodeOps.deleteCustomNode).toBeDefined();
       });
-      
+
       test(`1: Delete existing custom node by id`, async () => {
         await TestData.stageCustomNode(TestData.customNode4, true);
         const node = await NodeOps.deleteCustomNode({
@@ -477,12 +507,16 @@ describe('NodeOps', () => {
         });
         expect(node).toMatchSnapshot();
       });
-  
+
       test('2: Delete non-existing custom node', async () => {
-        await expect(NodeOps.deleteCustomNode({
-          nodeId: '11111111111111111111111111111111-1',
-          state,
-        })).rejects.toThrow('Error deleting custom node 11111111111111111111111111111111-1');
+        await expect(
+          NodeOps.deleteCustomNode({
+            nodeId: '11111111111111111111111111111111-1',
+            state,
+          })
+        ).rejects.toThrow(
+          'Error deleting custom node 11111111111111111111111111111111-1'
+        );
       });
 
       test(`3: Delete existing custom node by name`, async () => {
@@ -493,11 +527,13 @@ describe('NodeOps', () => {
         });
         expect(node).toMatchSnapshot();
       });
-  
+
       test('4: Delete without name or id', async () => {
-        await expect(NodeOps.deleteCustomNode({
-          state,
-        })).rejects.toThrow('No custom node ID or display name provided.');
+        await expect(
+          NodeOps.deleteCustomNode({
+            state,
+          })
+        ).rejects.toThrow('No custom node ID or display name provided.');
       });
     });
 
@@ -852,7 +888,7 @@ describe('NodeOps', () => {
       test('0: Method is implemented', async () => {
         expect(NodeOps.getCustomNodeUsage).toBeDefined();
       });
-  
+
       test(`1: Get custom node usage [${TestData.customNode1._id}]`, async () => {
         const response = await NodeOps.getCustomNodeUsage({
           nodeId: TestData.customNode1.serviceName,
@@ -866,16 +902,20 @@ describe('NodeOps', () => {
       test('0: Method is implemented', async () => {
         expect(NodeOps.getCustomNodeId).toBeDefined();
       });
-  
+
       test(`1: Get custom node id of service name]`, async () => {
-        expect(NodeOps.getCustomNodeId(TestData.customNode1.serviceName)).toBe(TestData.customNode1._id);
+        expect(NodeOps.getCustomNodeId(TestData.customNode1.serviceName)).toBe(
+          TestData.customNode1._id
+        );
       });
 
       test(`2: Return input when falsey or in format]`, async () => {
         expect(NodeOps.getCustomNodeId(undefined)).toBeUndefined();
         expect(NodeOps.getCustomNodeId(null)).toBeNull();
         expect(NodeOps.getCustomNodeId('')).toBe('');
-        expect(NodeOps.getCustomNodeId(TestData.customNode1._id)).toBe(TestData.customNode1._id);
+        expect(NodeOps.getCustomNodeId(TestData.customNode1._id)).toBe(
+          TestData.customNode1._id
+        );
       });
     });
   }
