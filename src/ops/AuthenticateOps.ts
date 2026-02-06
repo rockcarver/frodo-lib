@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'crypto';
-import url from 'url';
+import { URL } from 'url';
 
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import jose from 'node-jose';
@@ -353,7 +353,10 @@ async function determineDeploymentType(state: State): Promise<string> {
         createHash('sha256').update(verifier).digest()
       );
       const challengeMethod = 'S256';
-      const redirectUri = url.resolve(state.getHost(), redirectUrlTemplate);
+      const redirectUri = new URL(
+        redirectUrlTemplate,
+        state.getHost()
+      ).toString();
 
       const config = {
         maxRedirects: 0,
@@ -661,13 +664,14 @@ async function getAuthCode(
       }
     }
     const redirectLocationURL = response.headers?.location;
-    const queryObject = url.parse(redirectLocationURL, true).query;
-    if ('code' in queryObject) {
+    const parsedUrl = new URL(redirectLocationURL, state.getHost());
+    const code = parsedUrl.searchParams.get('code');
+    if (code) {
       debugMessage({
         message: `AuthenticateOps.getAuthCode: end with code`,
         state,
       });
-      return queryObject.code as string;
+      return code;
     }
     debugMessage({
       message: `AuthenticateOps.getAuthCode: end without code`,
@@ -703,10 +707,10 @@ async function getFreshUserBearerToken({
       createHash('sha256').update(verifier).digest()
     );
     const challengeMethod = 'S256';
-    const redirectUri = url.resolve(
-      state.getHost(),
-      state.getAdminClientRedirectUri() || redirectUrlTemplate
-    );
+    const redirectUri = new URL(
+      state.getAdminClientRedirectUri() || redirectUrlTemplate,
+      state.getHost()
+    ).toString();
     const authCode = await getAuthCode(
       redirectUri,
       challenge,
