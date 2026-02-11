@@ -4,6 +4,8 @@ import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import { AuthenticationSettingsSkeleton } from '../api/AuthenticationSettingsApi';
 import { CircleOfTrustSkeleton } from '../api/CirclesOfTrustApi';
 import { SiteSkeleton } from '../api/classic/SiteApi';
+import { CertificationTemplateSkeleton } from '../api/cloud/iga/IgaCertificationTemplateApi';
+import { EventSkeleton } from '../api/cloud/iga/IgaEventApi';
 import { GlossarySchemaItemSkeleton } from '../api/cloud/iga/IgaGlossaryApi';
 import { RequestFormSkeleton } from '../api/cloud/iga/IgaRequestFormApi';
 import { RequestTypeSkeleton } from '../api/cloud/iga/IgaRequestTypeApi';
@@ -64,6 +66,11 @@ import {
   ServerExportInterface,
 } from './classic/ServerOps';
 import { exportSites, importSites } from './classic/SiteOps';
+import {
+  exportCertificationTemplates,
+  importCertificationTemplates,
+} from './cloud/iga/IgaCertificationTemplateOps';
+import { exportEvents, importEvents } from './cloud/iga/IgaEventOps';
 import {
   exportGlossarySchemas,
   importGlossarySchemas,
@@ -279,7 +286,11 @@ export interface FullExportInterface {
 export interface FullGlobalExportInterface extends AmConfigEntitiesInterface {
   agent: Record<string, AgentSkeleton> | undefined;
   authentication: AuthenticationSettingsSkeleton | undefined;
+  certificationTemplate:
+    | Record<string, CertificationTemplateSkeleton>
+    | undefined;
   emailTemplate: Record<string, EmailTemplateSkeleton> | undefined;
+  event: Record<string, EventSkeleton> | undefined;
   glossarySchema: Record<string, GlossarySchemaItemSkeleton<any>> | undefined;
   idm: Record<string, IdObjectSkeletonInterface> | undefined;
   internalRole: Record<string, InternalRoleSkeleton>;
@@ -436,6 +447,20 @@ export async function exportFullConfiguration({
           isClassicDeployment
         )
       )?.authentication,
+      certificationTemplate: (
+        await exportWithErrorHandling(
+          exportCertificationTemplates,
+          {
+            options: {
+              deps: false,
+            },
+            state,
+          },
+          'Certification Templates',
+          resultCallback,
+          !!state.getIsIGA()
+        )
+      )?.certificationTemplate,
       emailTemplate: (
         await exportWithErrorHandling(
           exportEmailTemplates,
@@ -445,6 +470,20 @@ export async function exportFullConfiguration({
           isPlatformDeployment
         )
       )?.emailTemplate,
+      event: (
+        await exportWithErrorHandling(
+          exportEvents,
+          {
+            options: {
+              deps: false,
+            },
+            state,
+          },
+          'Events',
+          resultCallback,
+          !!state.getIsIGA()
+        )
+      )?.event,
       glossarySchema: (
         await exportWithErrorHandling(
           exportGlossarySchemas,
@@ -610,6 +649,19 @@ export async function exportFullConfiguration({
             k.startsWith('emailTemplate/')
         )
         .forEach((k) => delete globalConfig.idm[k]);
+    }
+    if (globalConfig.event && globalConfig.certificationTemplate) {
+      const eventTemplateIds = new Set(
+        Object.values(globalConfig.event)
+          .map((e) => e.action?.template?.id)
+          .filter((i) => i)
+      );
+      const templateIds = Object.keys(globalConfig.certificationTemplate);
+      for (const templateId of templateIds) {
+        if (eventTemplateIds.has(templateId)) {
+          delete globalConfig.certificationTemplate[templateId];
+        }
+      }
     }
   }
 
@@ -873,7 +925,7 @@ export async function importFullConfiguration({
   const errorCallback = getErrorCallback(resultCallback);
   // Import to global
   let indicatorId = createProgressIndicator({
-    total: 18,
+    total: 20,
     message: `Importing everything for global...`,
     state,
   });
@@ -1150,6 +1202,40 @@ export async function importFullConfiguration({
       'Request Forms',
       resultCallback,
       !!state.getIsIGA() && !!importData.global.requestForm
+    )
+  );
+  response.push(
+    await importWithErrorHandling(
+      importCertificationTemplates,
+      {
+        importData: importData.global,
+        options: {
+          deps: false,
+        },
+        resultCallback: errorCallback,
+        state,
+      },
+      indicatorId,
+      'Certification Templates',
+      resultCallback,
+      !!state.getIsIGA() && !!importData.global.certificationTemplate
+    )
+  );
+  response.push(
+    await importWithErrorHandling(
+      importEvents,
+      {
+        importData: importData.global,
+        options: {
+          deps: false,
+        },
+        resultCallback: errorCallback,
+        state,
+      },
+      indicatorId,
+      'Events',
+      resultCallback,
+      !!state.getIsIGA() && !!importData.global.event
     )
   );
   stopProgressIndicator({

@@ -30,127 +30,22 @@
  * in case things don't function as expected
  */
 import { state } from '../index';
-import * as IdmConfigApi from '../api/IdmConfigApi';
+import * as TestData from '../test/setup/EmailTemplateSetup';
 import * as EmailTemplateOps from './EmailTemplateOps';
-import { autoSetupPolly } from '../utils/AutoSetupPolly';
-import { filterRecording } from '../utils/PollyUtils';
-import { EmailTemplateExportInterface, EmailTemplateSkeleton } from './EmailTemplateOps';
-
-const ctx = autoSetupPolly();
-
-const { EMAIL_TEMPLATE_TYPE } = EmailTemplateOps;
-
-async function stageTemplate(
-  template: { id: string; data: any },
-  create = true
-) {
-  // delete if exists, then create
-  try {
-    await IdmConfigApi.getConfigEntity({
-      entityId: `${EMAIL_TEMPLATE_TYPE}/${template.id}`,
-      state,
-    });
-    await IdmConfigApi.deleteConfigEntity({
-      entityId: `${EMAIL_TEMPLATE_TYPE}/${template.id}`,
-      state,
-    });
-  } catch (error) {
-    // ignore
-  } finally {
-    if (create) {
-      await IdmConfigApi.putConfigEntity({
-        entityId: `${EMAIL_TEMPLATE_TYPE}/${template.id}`,
-        entityData: template.data,
-        state,
-      });
-    }
-  }
-}
+import { EmailTemplateExportInterface } from './EmailTemplateOps';
 
 describe('EmailTemplateOps', () => {
-  const template1 = {
-    id: 'FrodoTestEmailTemplate1',
-    data: {
-      defaultLocale: 'en',
-      displayName: 'Frodo Test Email Template One',
-      enabled: true,
-      from: '',
-      message: {
-        en: '<h3>Click to reset your password</h3><h4><a href="{{object.resumeURI}}">Password reset link</a></h4>',
-        fr: '<h3>Cliquez pour réinitialiser votre mot de passe</h3><h4><a href="{{object.resumeURI}}">Mot de passe lien de réinitialisation</a></h4>',
-      },
-      mimeType: 'text/html',
-      subject: {
-        en: 'Reset your password',
-        fr: 'Réinitialisez votre mot de passe',
-      },
-    },
-  };
-  const template2 = {
-    id: 'FrodoTestEmailTemplate2',
-    data: {
-      defaultLocale: 'en',
-      displayName: 'Frodo Test Email Template Two',
-      enabled: true,
-      from: '',
-      message: {
-        en: '<h3>This is your one-time password:</h3><h4>{{object.description}}</a></h4>',
-      },
-      mimeType: 'text/html',
-      subject: {
-        en: 'One-Time Password for login',
-      },
-    },
-  };
-  const template3 = {
-    id: 'FrodoTestEmailTemplate3',
-    data: {
-      defaultLocale: 'en',
-      displayName: 'Frodo Test Email Template Three',
-      enabled: true,
-      from: '',
-      message: {
-        en: '<html><body><h3>You started a login or profile update that requires MFA. </h3><h4><a href="{{object.resumeURI}}">Click to Proceed</a></h4></body></html>',
-      },
-      mimeType: 'text/html',
-      subject: {
-        en: 'Multi-Factor Email for Identity Cloud login',
-      },
-    },
-  };
-  // in recording mode, setup test data before recording
-  beforeAll(async () => {
-    if (process.env.FRODO_POLLY_MODE === 'record') {
-      await stageTemplate(template1);
-      await stageTemplate(template2);
-      await stageTemplate(template3, false);
-    }
-  });
-  // in recording mode, remove test data after recording
-  afterAll(async () => {
-    if (process.env.FRODO_POLLY_MODE === 'record') {
-      await stageTemplate(template1, false);
-      await stageTemplate(template2, false);
-      await stageTemplate(template3, false);
-    }
-  });
 
-  beforeEach(async () => {
-    if (process.env.FRODO_POLLY_MODE === 'record') {
-      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
-        filterRecording(recording);
-      });
-    }
-  });
+  TestData.setup();
 
   describe('readEmailTemplate()', () => {
     test('0: Method is implemented', async () => {
       expect(EmailTemplateOps.readEmailTemplate).toBeDefined();
     });
 
-    test(`1: Read email template '${template1.id}'`, async () => {
+    test(`1: Read email template '${TestData.template1._id}'`, async () => {
       const response = await EmailTemplateOps.readEmailTemplate({
-        templateId: template1.id,
+        templateId: TestData.template1._id,
         state,
       });
       expect(response).toMatchSnapshot();
@@ -198,10 +93,10 @@ describe('EmailTemplateOps', () => {
       expect(EmailTemplateOps.updateEmailTemplate).toBeDefined();
     });
 
-    test(`1: Create email template '${template3.id}'`, async () => {
+    test(`1: Create email template '${TestData.template3._id}'`, async () => {
       const response = await EmailTemplateOps.updateEmailTemplate({
-        templateId: template3.id,
-        templateData: template3.data,
+        templateId: TestData.template3._id,
+        templateData: TestData.template3,
         state,
       });
       expect(response).toMatchSnapshot();
@@ -216,10 +111,9 @@ describe('EmailTemplateOps', () => {
     test(`1: importEmailTemplates`, async () => {
       const importData: EmailTemplateExportInterface = {
         emailTemplate: {
-          // TODO: the polly recording needs the test to use the data this way, but it's quite likely that we should be using `template.data`
-          [template1.id]: template1 as unknown as EmailTemplateSkeleton,
-          [template2.id]: template2 as unknown as EmailTemplateSkeleton,
-          [template3.id]: template3 as unknown as EmailTemplateSkeleton
+          [TestData.template1._id]: TestData.template1,
+          [TestData.template2._id]: TestData.template2,
+          [TestData.template3._id]: TestData.template3
         }
       }
       const response = await EmailTemplateOps.importEmailTemplates({

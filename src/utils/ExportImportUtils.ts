@@ -8,6 +8,10 @@ import slugify from 'slugify';
 
 import { SearchResult, SearchTargetFilterOperation } from '../api/ApiTypes';
 import { generateGovernanceApi } from '../api/BaseApi';
+import {
+  EmailTemplateSkeleton,
+  readEmailTemplate,
+} from '../ops/EmailTemplateOps';
 import { FrodoError } from '../ops/FrodoError';
 import { ErrorFilter, ExportMetaData, ResultCallback } from '../ops/OpsTypes';
 import Constants from '../shared/Constants';
@@ -867,6 +871,44 @@ export function transformScriptArraysToStrings(obj: any): void {
       o.script = o.script.join('\n');
     }
   });
+}
+
+/**
+ * Helper to get email template dependencies from an IGA object
+ *
+ * @param {any} obj The object to get email dependencies from
+ * @returns {EmailTemplateSkeleton[]} The array of email template dependencies
+ */
+export async function getIGANotificationEmailTemplateDependencies(
+  obj: any,
+  state: State
+): Promise<EmailTemplateSkeleton[]> {
+  const emailTemplateIds = new Set<string>();
+  const fieldsToCheck = [
+    'notification',
+    'templateName',
+    'assignmentNotification',
+    'reassignNotification',
+    'expirationNotification',
+    'reminderNotification',
+    'escalationNotification',
+  ];
+  objectRecurse(obj, async (o) => {
+    for (const field of fieldsToCheck) {
+      if (o[field] && typeof o[field] === 'string') {
+        // Sometimes, the name is of the form "emailTemplate/<id>", so this ensures we get only the id from each name
+        emailTemplateIds.add(o[field].split('/').pop());
+      }
+    }
+  });
+  return Promise.all(
+    [...emailTemplateIds].map((id) =>
+      readEmailTemplate({
+        templateId: id,
+        state,
+      })
+    )
+  );
 }
 
 /**
