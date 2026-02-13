@@ -214,7 +214,8 @@ export function getCurrentRealmManagedUser({
   let realmManagedUser = 'user';
   if (
     state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
-    state.getUseRealmPrefixOnManagedObjects() === true
+    (state.getUseRealmPrefixOnManagedObjects() === true &&
+      getCurrentRealmName(state) !== '/')
   ) {
     realmManagedUser = `${getCurrentRealmName(state)}_user`;
     debugMessage({
