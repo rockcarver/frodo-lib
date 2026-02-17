@@ -3,6 +3,7 @@ import { queryAllManagedObjectsByType } from '../api/ManagedObjectApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
+import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 
 export type Organization = {
@@ -56,9 +57,10 @@ export function getRealmManagedOrganization({ state }: { state: State }) {
   let realmManagedOrg = 'organization';
   if (
     state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
-    state.getUseRealmPrefixOnManagedObjects() === true
+    (state.getUseRealmPrefixOnManagedObjects() === true &&
+      getCurrentRealmName(state) !== '/')
   ) {
-    realmManagedOrg = `${state.getRealm()}_organization`;
+    realmManagedOrg = `${getCurrentRealmName(state)}_organization`;
     debugMessage({
       message: `DeploymentType === cloud or UseRealmPrefixOnManagedObjects is true, returning '${realmManagedOrg}'`,
       state: state,

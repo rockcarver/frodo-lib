@@ -438,7 +438,8 @@ export function getRealmManagedApplication({ state }: { state: State }) {
   let realmManagedApp = 'application';
   if (
     state.getDeploymentType() === constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
-    state.getUseRealmPrefixOnManagedObjects() === true
+    (state.getUseRealmPrefixOnManagedObjects() === true &&
+      getCurrentRealmName(state) !== '/')
   ) {
     realmManagedApp = `${getCurrentRealmName(state)}_application`;
     debugMessage({
