@@ -6,6 +6,8 @@ import { Reader } from 'properties-reader';
 import replaceall from 'replaceall';
 import slugify from 'slugify';
 
+import { SearchResult, SearchTargetFilterOperation } from '../api/ApiTypes';
+import { generateGovernanceApi } from '../api/BaseApi';
 import { FrodoError } from '../ops/FrodoError';
 import { ErrorFilter, ExportMetaData, ResultCallback } from '../ops/OpsTypes';
 import Constants from '../shared/Constants';
@@ -680,7 +682,7 @@ export async function getResult<R>(
   errorMessage: string,
   func: (...params: any) => Promise<R>,
   ...parameters: any
-): Promise<R> {
+): Promise<R | null> {
   try {
     const result = await func(...parameters);
     if (resultCallback) {
@@ -708,6 +710,7 @@ export async function getResult<R>(
       }
     }
   }
+  return null;
 }
 
 /**
@@ -730,4 +733,100 @@ export function getErrorCallback<R>(
     }
     throw e;
   };
+}
+
+/**
+ * Helper that does an API GET search on an IGA endpoint, and returns all results across all pages.
+ * @param {string} url The full url string to the endpoint to search on (e.g. 'https://<tenant-host>/iga/governance/requestTypes')
+ * @param {number} pageSize Optional pageSize at which to query the results. Smaller page sizes will result in more API requests to get all results.
+ *                          Default is 10000, which seems to be the max amount (any higher and no results will be returned from the API).
+ * @param {string} queryFilter Optional filter to use when searching the results. No filter provided will result in returning all results.
+ * @param {State} state The library state
+ * @returns An array of all search results
+ */
+export async function getApiSearchAll<T>({
+  url,
+  pageSize = 10000,
+  queryFilter = 'true',
+  state,
+}: {
+  url: string;
+  pageSize?: number;
+  queryFilter?: string;
+  state: State;
+}): Promise<T[]> {
+  const results: T[] = [];
+  const urlString = `${url}?_queryFilter=${queryFilter}&_pageSize=${pageSize}`;
+  let currentSearchResult: SearchResult<T>;
+  do {
+    currentSearchResult = (
+      await generateGovernanceApi({
+        resource: {},
+        state,
+      }).get(urlString + '&_pagedResultsOffset=' + results.length, {
+        withCredentials: true,
+      })
+    ).data;
+    results.push(...currentSearchResult.result);
+  } while (
+    currentSearchResult.resultCount === pageSize &&
+    results.length < currentSearchResult.totalCount
+  );
+  if (results.length !== currentSearchResult.totalCount) {
+    throw new FrodoError(
+      `Number of search results (${results.length}) doesn't match number of expected results (${currentSearchResult.totalCount})`
+    );
+  }
+  return results;
+}
+
+/**
+ * Helper that does an API POST search on an IGA endpoint, and returns all results across all pages.
+ * @param {string} url The full url string to the endpoint to search on (e.g. 'https://<tenant-host>/iga/commons/glossary/schema/search')
+ * @param {number} pageSize Optional pageSize at which to query the results. Smaller page sizes will result in more API requests to get all results.
+ *                          Default is 10000, which seems to be the max amount (any higher and no results will be returned from the API).
+ * @param {SearchTargetFilterOperation} targetFilter Optional filter to use when searching the results. No filter provided will result in returning all results.
+ * @param {State} state The library state
+ * @returns An array of all search results
+ */
+export async function postApiSearchAll<T>({
+  url,
+  pageSize = 10000,
+  targetFilter,
+  state,
+}: {
+  url: string;
+  pageSize?: number;
+  targetFilter?: SearchTargetFilterOperation;
+  state: State;
+}): Promise<T[]> {
+  const results: T[] = [];
+  const urlString = url + '?pageSize=' + pageSize;
+  const body = targetFilter
+    ? {
+        targetFilter,
+      }
+    : undefined;
+  let currentSearchResult: SearchResult<T>;
+  let pageNumber = 0;
+  do {
+    currentSearchResult = (
+      await generateGovernanceApi({
+        resource: {},
+        state,
+      }).post(urlString + '&pageNumber=' + pageNumber++, body, {
+        withCredentials: true,
+      })
+    ).data;
+    results.push(...currentSearchResult.result);
+  } while (
+    currentSearchResult.resultCount === pageSize &&
+    results.length < currentSearchResult.totalCount
+  );
+  if (results.length !== currentSearchResult.totalCount) {
+    throw new FrodoError(
+      `Number of search results (${results.length}) doesn't match number of expected results (${currentSearchResult.totalCount})`
+    );
+  }
+  return results;
 }
