@@ -14,7 +14,12 @@ import {
 import { getMetadata } from '../utils/ExportImportUtils';
 import { FrodoError } from './FrodoError';
 import { readConfigEntitiesByType } from './IdmConfigOps';
-import { MappingSkeleton, readMappings, updateMapping } from './MappingOps';
+import {
+  deleteMapping,
+  MappingSkeleton,
+  readMappings,
+  updateMapping,
+} from './MappingOps';
 import { ExportMetaData } from './OpsTypes';
 
 export type Connector = {
@@ -60,15 +65,20 @@ export type Connector = {
   ): Promise<ConnectorSkeleton>;
   /**
    * Delete all connectors
+   * @param {boolean} deep deep delete (remove dependencies)
    * @returns {Promise<ConnectorSkeleton[]>} a promise that resolves to an array of connector objects
    */
-  deleteConnectors(): Promise<ConnectorSkeleton[]>;
+  deleteConnectors(deep?: boolean): Promise<ConnectorSkeleton[]>;
   /**
    * Delete connector
    * @param {string} connectorId id/name of the connector without the type prefix
+   * @param {boolean} deep deep delete (remove dependencies)
    * @returns {Promise<ConnectorSkeleton>} a promise that resolves an connector object
    */
-  deleteConnector(connectorId: string): Promise<ConnectorSkeleton>;
+  deleteConnector(
+    connectorId: string,
+    deep?: boolean
+  ): Promise<ConnectorSkeleton>;
   /**
    * Export connector
    * @param {string} connectorId id/name of the connector without the type prefix
@@ -150,11 +160,14 @@ export default (state: State): Connector => {
         state,
       });
     },
-    async deleteConnectors(): Promise<ConnectorSkeleton[]> {
-      return deleteConnectors({ state });
+    async deleteConnectors(deep = false): Promise<ConnectorSkeleton[]> {
+      return deleteConnectors({ deep, state });
     },
-    async deleteConnector(connectorId: string): Promise<ConnectorSkeleton> {
-      return deleteConnector({ connectorId, state });
+    async deleteConnector(
+      connectorId: string,
+      deep = false
+    ): Promise<ConnectorSkeleton> {
+      return deleteConnector({ connectorId, deep, state });
     },
     async exportConnector(
       connectorId: string,
@@ -433,11 +446,14 @@ export async function updateConnector({
 
 /**
  * Delete all connectors
+ * @param {boolean} deep deep delete (remove dependencies)
  * @returns {Promise<ConnectorSkeleton[]>} a promise that resolves to an array of connector objects
  */
 export async function deleteConnectors({
+  deep = false,
   state,
 }: {
+  deep?: boolean;
   state: State;
 }): Promise<ConnectorSkeleton[]> {
   const errors: Error[] = [];
@@ -450,13 +466,23 @@ export async function deleteConnectors({
     const connectors = await readConnectors({ state });
     for (const connector of connectors) {
       try {
+        const connectorId = connector._id;
         debugMessage({
-          message: `ConnectorOps.deleteConnectors: '${connector['_id']}'`,
+          message: `ConnectorOps.deleteConnectors: '${connectorId}'`,
           state,
         });
+        if (deep) {
+          const mappings = await readMappings({ connectorId, state });
+          for (const mapping of mappings) {
+            await deleteMapping({
+              mappingId: mapping._id,
+              state,
+            });
+          }
+        }
         result.push(
           (await deleteConfigEntity({
-            entityId: connector['_id'],
+            entityId: connectorId,
             state,
           })) as ConnectorSkeleton
         );
@@ -484,16 +510,28 @@ export async function deleteConnectors({
 /**
  * Delete connector
  * @param {string} connectorId id/name of the connector without the type prefix
+ * @param {boolean} deep deep delete (remove dependencies)
  * @returns {Promise<ConnectorSkeleton>} a promise that resolves an connector object
  */
 export async function deleteConnector({
   connectorId,
+  deep = false,
   state,
 }: {
   connectorId: string;
+  deep?: boolean;
   state: State;
 }): Promise<ConnectorSkeleton> {
   try {
+    if (deep) {
+      const mappings = await readMappings({ connectorId, state });
+      for (const mapping of mappings) {
+        await deleteMapping({
+          mappingId: mapping._id,
+          state,
+        });
+      }
+    }
     const connector = await deleteConfigEntity({
       entityId: `${CONNECTOR_TYPE}/${connectorId}`,
       state,
