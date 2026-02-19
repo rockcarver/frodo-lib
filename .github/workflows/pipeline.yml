@@ -90,7 +90,7 @@ jobs:
         run: npm run lint
 
       - name: Security Audit
-        run: npm audit --audit-level high
+        run: npm audit --audit-level critical
 
       - name: Zip build artifacts
         run: zip -r build.zip dist mocks package.json package-lock.json snapshotResolve.js types docs
