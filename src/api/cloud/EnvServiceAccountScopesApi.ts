@@ -37,11 +37,13 @@ export async function getServiceAccountScopes({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
-    requestOverride: {
-      headers: {
-        Cookie: `${state.getCookieName()}=${state.getCookieValue()}`,
-      },
-    },
+    requestOverride: state.getCookieValue()
+      ? {
+          headers: {
+            Cookie: `${state.getCookieName()}=${state.getCookieValue()}`,
+          },
+        }
+      : undefined,
     state,
   }).get(urlString, {
     withCredentials: true,

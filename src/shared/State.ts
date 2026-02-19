@@ -61,6 +61,8 @@ export type State = {
   getUseRealmPrefixOnManagedObjects(): boolean;
   setDeploymentType(type: string): void;
   getDeploymentType(): string;
+  setIsIGA(isIGA: boolean): void;
+  getIsIGA(): boolean | undefined;
   setAdminClientId(type: string): void;
   getAdminClientId(): string;
   setAdminClientRedirectUri(type: string): void;
@@ -247,6 +249,19 @@ export default (initialState: StateInterface): State => {
     },
     getDeploymentType() {
       return state.deploymentType;
+    },
+
+    setIsIGA(isIGA: boolean) {
+      state.isIGA = isIGA;
+    },
+    getIsIGA(): boolean | undefined {
+      if (this.getDeploymentType() !== Constants.CLOUD_DEPLOYMENT_TYPE_KEY)
+        return false;
+      return process.env.FRODO_IGA === 'true'
+        ? true
+        : process.env.FRODO_IGA === 'false'
+          ? false
+          : state.isIGA;
     },
 
     setAdminClientId(clientId: string) {
@@ -602,6 +617,7 @@ export interface StateInterface {
   realm?: string;
   useRealmPrefixOnManagedObjects?: boolean;
   deploymentType?: string;
+  isIGA?: boolean;
   adminClientId?: string;
   adminClientRedirectUri?: string;
   allowInsecureConnection?: boolean;

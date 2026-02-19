@@ -19,6 +19,10 @@ describe('State', () => {
   const host = 'https://openam-frodo-dev.forgeblocks.com/am';
   const hostEnv = 'https://openam-host-env.forgeblocks.com/am';
 
+  beforeEach(() => {
+    state.setDeploymentType(undefined);
+  });
+
   describe('getHost()/setHost()/getTenant()/setTenant()', () => {
     test('0: Method getHost is implemented', () => {
       expect(state.getHost).toBeDefined();
@@ -138,6 +142,44 @@ describe('State', () => {
 
   // setDeploymentType,
   // getDeploymentType,
+
+  describe('getIsIGA()/setIsIGA()', () => {
+    test('0: Method getIsIGA is implemented', () => {
+      expect(state.getIsIGA).toBeDefined();
+    });
+
+    test('1: Method setIsIGA is implemented', () => {
+      expect(state.setIsIGA).toBeDefined();
+    });
+
+    test("2: isIGA value should be undefined if it hasn't been set before or defined if set explicitly", () => {
+      expect(state.getIsIGA()).toBe(false);
+      state.setDeploymentType(Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY);
+      expect(state.getIsIGA()).toBe(false);
+      state.setDeploymentType(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
+      expect(state.getIsIGA()).toBe(false);
+      state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
+      expect(state.getIsIGA()).toBeUndefined();
+      process.env.FRODO_IGA = "hello";
+      expect(state.getIsIGA()).toBeUndefined();
+      process.env.FRODO_IGA = "true";
+      expect(state.getIsIGA()).toBe(true);
+      process.env.FRODO_IGA = "false";
+      expect(state.getIsIGA()).toBe(false);
+      state.setIsIGA(true);
+      expect(state.getIsIGA()).toBe(false);
+      delete process.env.FRODO_IGA;
+      expect(state.getIsIGA()).toBe(true);
+      state.setIsIGA(false);
+      expect(state.getIsIGA()).toBe(false);
+      state.setIsIGA(true);
+      expect(state.getIsIGA()).toBe(true);
+      state.setDeploymentType(Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY);
+      expect(state.getIsIGA()).toBe(false);
+      state.setDeploymentType(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
+      expect(state.getIsIGA()).toBe(false);
+    });
+  });
 
   // setAllowInsecureConnection,
   // getAllowInsecureConnection,
