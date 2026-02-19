@@ -25,6 +25,7 @@ import {
 import {
   ConnectorExportInterface,
   ConnectorSkeleton,
+  deleteConnector,
   exportConnector,
   importConnector,
 } from './ConnectorOps';
@@ -155,7 +156,7 @@ export type Application = {
    * Export application. The response can be saved to file as is.
    * @param {string} applicationId application uuid
    * @param {ApplicationExportOptions} options export options
-   * @returns {Promise<ApplicationExportInterface} Promise resolving to an ApplicationExportInterface object.
+   * @returns {Promise<ApplicationExportInterface>} Promise resolving to an ApplicationExportInterface object.
    */
   exportApplication(
     applicationId: string,
@@ -165,7 +166,7 @@ export type Application = {
    * Export application by name. The response can be saved to file as is.
    * @param {string} applicationName application name
    * @param {ApplicationExportOptions} options export options
-   * @returns {Promise<ApplicationExportInterface} Promise resolving to an ApplicationExportInterface object.
+   * @returns {Promise<ApplicationExportInterface>} Promise resolving to an ApplicationExportInterface object.
    */
   exportApplicationByName(
     applicationName: string,
@@ -430,7 +431,6 @@ export function createApplicationExportTemplate({
   return {
     meta: getMetadata({ state }),
     managedApplication: {},
-    application: {},
   } as ApplicationExportInterface;
 }
 
@@ -920,6 +920,25 @@ async function deleteDependencies({
         errors.push(error);
       }
     }
+    // connectors and mappings
+    if (isProvisioningApplication(applicationData)) {
+      const connectorId = getConnectorId(applicationData);
+      if (connectorId) {
+        try {
+          await deleteConnector({
+            connectorId,
+            deep: true,
+            state,
+          });
+          debugMessage({
+            message: `ApplicationOps.deleteDependencies: Deleted connector '${connectorId}' and its mappings.`,
+            state,
+          });
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+    }
     if (errors.length > 0) {
       throw new FrodoError(
         `Error deleting ${getCurrentRealmName(state) + ' realm'} dependencies`,
@@ -989,7 +1008,7 @@ export async function deleteApplicationByName({
       state,
     });
     if (applications.length == 1) {
-      return deleteApplication({
+      return await deleteApplication({
         applicationId: applications[0]._id,
         options,
         state,
