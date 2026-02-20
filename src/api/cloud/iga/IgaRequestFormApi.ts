@@ -186,13 +186,16 @@ export async function getRequestForm({
 /**
  * Query request forms
  * @param {string} queryFilter The query filter to query with. Default: 'true'
+ * @param {string[]} fields Fields array to specify which fields to return. By default it will return all fields
  * @returns {Promise<RequestFormSkeleton[]>} A promise that resolves to an array of request form objects
  */
 export async function queryRequestForms({
   queryFilter = 'true',
+  fields = [],
   state,
 }: {
   queryFilter?: string;
+  fields?: string[];
   state: State;
 }): Promise<RequestFormSkeleton[]> {
   const urlString = util.format(
@@ -202,6 +205,7 @@ export async function queryRequestForms({
   return await getApiSearchAll<RequestFormSkeleton>({
     url: urlString,
     queryFilter,
+    fields,
     state,
   });
 }
@@ -211,36 +215,52 @@ export async function queryRequestForms({
  * @param {string} formId The optional request form id. If specified, gets assignments for the specified form.
  * @param {string} workflowId The optional workflow id. If specified, gets assignments for the specified workflow.
  * @param {string} applicationId The optional application id. If specified, gets assignments for the specified application.
+ * @param {string} requestTypeId The optional request type id. If specified, gets assignments for the specified request type.
+ * @param {boolean} onlyWorkflow Optional flag to return only workflow related assignments. Default: false
  * @returns {Promise<RequestFormAssignment[]>} A promise that resolves to an array of request form assignment objects
  */
 export async function getRequestFormAssignments({
   formId,
   workflowId,
   applicationId,
+  requestTypeId,
+  onlyWorkflow = false,
   state,
 }: {
   formId?: string;
   workflowId?: string;
   applicationId?: string;
+  requestTypeId?: string;
+  onlyWorkflow?: boolean;
   state: State;
 }): Promise<RequestFormAssignment[]> {
   const urlString = util.format(
     requestFormAssignmentsEndpointURLTemplate,
     getHostOnlyUrl(state.getHost())
   );
-  const expressions = [];
+  const andExpressions = [];
+  const orExpressions = [];
   if (formId) {
-    expressions.push(`formId eq "${formId}"`);
+    andExpressions.push(`formId eq "${formId}"`);
+  }
+  if (onlyWorkflow) {
+    andExpressions.push('objectId sw "workflow"');
   }
   if (workflowId) {
-    expressions.push(`objectId sw "workflow/${workflowId}"`);
+    orExpressions.push(`objectId sw "workflow/${workflowId}"`);
   }
   if (applicationId) {
-    expressions.push(`objectId sw "application/${applicationId}"`);
+    orExpressions.push(`objectId sw "application/${applicationId}"`);
+  }
+  if (requestTypeId) {
+    orExpressions.push(`objectId sw "requestType/${requestTypeId}"`);
+  }
+  if (orExpressions.length) {
+    andExpressions.push(`(${orExpressions.join(' or ')})`);
   }
   return await getApiSearchAll<RequestFormAssignment>({
     url: urlString,
-    queryFilter: expressions.length ? expressions.join(' and ') : 'true',
+    queryFilter: andExpressions.length ? andExpressions.join(' and ') : 'true',
     state,
   });
 }

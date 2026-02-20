@@ -8,14 +8,82 @@ exports[`IgaRequestFormOps createRequestFormExportTemplate() 1: Create Request F
 }
 `;
 
+exports[`IgaRequestFormOps deleteOrphanedRequestFormAssignments() 1: Delete orphaned form assignments by id 1`] = `
+[
+  {
+    "formId": "37eabcbb-346a-4293-a586-3be721ce5b86",
+    "metadata": {
+      "createdDate": "2026-02-20T23:01:30.496028897Z",
+      "modifiedDate": "2026-02-20T23:01:30.496031676Z",
+    },
+    "objectId": "application/c2dbb0f6-0f1f-4311-b4f2-1aa3c9c310ec/User/create",
+  },
+  {
+    "formId": "170374b1-befd-41d7-8943-654c9a9bf007",
+    "metadata": {
+      "createdDate": "2026-02-20T23:01:32.484060747Z",
+      "modifiedDate": "2026-02-20T23:01:32.484063209Z",
+    },
+    "objectId": "workflow/orphanedWorkflow1/node/approvalTask-75cf4247ba1d",
+  },
+  {
+    "formId": "1c90e114-c401-452d-a39b-34da4af055de",
+    "metadata": {
+      "createdDate": "2026-02-20T23:01:34.538646454Z",
+      "modifiedDate": "2026-02-20T23:01:34.538648274Z",
+    },
+    "objectId": "requestType/f343f62a-3c21-4875-95d0-7618b9873497",
+  },
+]
+`;
+
+exports[`IgaRequestFormOps deleteOrphanedRequestFormAssignments() 2: Delete orphaned form assignments by form id 1`] = `
+[
+  {
+    "formId": "d2dde1a9-0300-40d0-9bbf-84b52920d6c7",
+    "metadata": {
+      "createdDate": "2026-02-20T23:01:38.531486592Z",
+      "modifiedDate": "2026-02-20T23:01:38.531489453Z",
+    },
+    "objectId": "application/f02cfe35-9eae-4a16-8f64-95bebb43eaae/Group/create",
+  },
+]
+`;
+
+exports[`IgaRequestFormOps deleteOrphanedRequestFormAssignments() 3: Delete orphaned workflow form assignments 1`] = `
+[
+  {
+    "formId": "49812865-4b38-4140-93db-1a54980f9631",
+    "metadata": {
+      "createdDate": "2026-02-20T23:01:40.543512579Z",
+      "modifiedDate": "2026-02-20T23:01:40.543514459Z",
+    },
+    "objectId": "workflow/orphanedWorkflow2/node/fulfillmentTask-67c3b2c12842",
+  },
+]
+`;
+
+exports[`IgaRequestFormOps deleteOrphanedRequestFormAssignments() 4: Delete all other orphaned form assignments 1`] = `
+[
+  {
+    "formId": "d55790e5-eaf8-4ae4-b2cc-84f56e36fdea",
+    "metadata": {
+      "createdDate": "2026-02-20T23:01:42.532883078Z",
+      "modifiedDate": "2026-02-20T23:01:42.532885648Z",
+    },
+    "objectId": "requestType/842ecde8-ba73-4156-87ba-55a84df4be18",
+  },
+]
+`;
+
 exports[`IgaRequestFormOps deleteRequestForm() 1: Delete existing request form by id 1`] = `
 {
   "assignments": [
     {
       "formId": "668de16f-bfc7-4a78-a038-4d23ff99738a",
       "metadata": {
-        "createdDate": "2026-01-30T18:49:13.603968448Z",
-        "modifiedDate": "2026-01-30T18:49:13.603969438Z",
+        "createdDate": "2026-02-20T22:50:53.33205981Z",
+        "modifiedDate": "2026-02-20T22:50:53.332061975Z",
       },
       "objectId": "requestType/b3e850f0-60c2-4138-be11-a08b17cde29f",
     },
@@ -320,8 +388,8 @@ exports[`IgaRequestFormOps deleteRequestForm() 1: Delete existing request form b
   },
   "id": "668de16f-bfc7-4a78-a038-4d23ff99738a",
   "metadata": {
-    "createdDate": "2026-01-30T18:49:12.931920067Z",
-    "modifiedDate": "2026-01-30T18:49:12.931921587Z",
+    "createdDate": "2026-02-20T22:50:52.266069137Z",
+    "modifiedDate": "2026-02-20T22:50:52.266070653Z",
   },
   "name": "test_request_form_5",
   "type": "request",
@@ -330,24 +398,7 @@ exports[`IgaRequestFormOps deleteRequestForm() 1: Delete existing request form b
 
 exports[`IgaRequestFormOps deleteRequestFormByName() 1: Delete existing request form by name 1`] = `
 {
-  "assignments": [
-    {
-      "formId": "1707266d-fd8d-4794-bce1-3cfde2016bca",
-      "metadata": {
-        "createdDate": "2026-01-30T18:49:16.568357007Z",
-        "modifiedDate": "2026-01-30T18:49:16.568358147Z",
-      },
-      "objectId": "lcm/user/create",
-    },
-    {
-      "formId": "1707266d-fd8d-4794-bce1-3cfde2016bca",
-      "metadata": {
-        "createdDate": "2026-01-30T18:49:15.60695158Z",
-        "modifiedDate": "2026-01-30T18:49:15.606953011Z",
-      },
-      "objectId": "lcm/user/update",
-    },
-  ],
+  "assignments": [],
   "categories": {
     "applicationType": null,
     "lcmType": "user",
@@ -358,8 +409,8 @@ exports[`IgaRequestFormOps deleteRequestFormByName() 1: Delete existing request 
   "form": {},
   "id": "1707266d-fd8d-4794-bce1-3cfde2016bca",
   "metadata": {
-    "createdDate": "2026-01-30T18:49:14.91961135Z",
-    "modifiedDate": "2026-01-30T18:49:14.91961263Z",
+    "createdDate": "2026-02-20T22:50:54.613423486Z",
+    "modifiedDate": "2026-02-20T22:50:54.613425439Z",
   },
   "name": "test_request_form_6",
   "type": "lcmRequest",

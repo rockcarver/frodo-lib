@@ -53,6 +53,28 @@ export const template3: EmailTemplateOps.EmailTemplateSkeleton = {
   },
 };
 
+export const template4: EmailTemplateOps.EmailTemplateSkeleton = {
+  _id: 'frodoTestEmailTemplateFour',
+  displayName: 'Frodo Test Email Template Four',
+  from: '"From" <from@email.com>',
+  templateId: 'frodoTestEmailTemplateFour',
+  defaultLocale: 'en',
+  enabled: true,
+  html: {
+    en: '<div class="content"><p><img src="https://tinyurl.com/3mwewu3v" alt="alt text" title="Email Title Text"></p><h1 id="emailtitle">Email Title</h1><p>Message text lorem ipsum dolor sit amet consectetur adipisicing elit sed do eiusmod tempor.</p></div>',
+  },
+  message: {
+    en: '<html><head></head><body style="background-color: #324054; color: #455469; padding: 60px; text-align: center;"><div class="content" style="background-color: #fff; border-radius: 4px; margin: 0 auto; padding: 48px; width: 235px;"><p><img src="https://tinyurl.com/3mwewu3v" alt="alt text" title="Email Title Text"></p><h1 id="emailtitle">Email Title</h1><p>Message text lorem ipsum dolor sit amet consectetur adipisicing elit sed do eiusmod tempor.</p></div></body></html>',
+  },
+  mimeType: 'text/html',
+  subject: {
+    en: 'Subject',
+  },
+  styles:
+    'body {\n   background-color: #324054;\n   color: #455469;\n   padding: 60px;\n   text-align: center \n}\n a {\n   text-decoration: none;\n   color: #109cf1;\n}\n .content {\n   background-color: #fff;\n   border-radius: 4px;\n   margin: 0 auto;\n   padding: 48px;\n   width: 235px \n}\n',
+  description: 'Frodo email template four',
+};
+
 export async function stageEmailTemplate(
   template: EmailTemplateOps.EmailTemplateSkeleton,
   createNew = false

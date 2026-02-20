@@ -649,7 +649,7 @@ export async function resolveVariable({
     return input;
   }
   // is variable? variable reference example: &{esv.email.template.registration}
-  if (input.startsWith('&{esv.') && input.endsWith('}')) {
+  if (input && input.startsWith('&{esv.') && input.endsWith('}')) {
     const name = input.substring(2, input.length - 1).replaceAll('.', '-');
     // is variable in map of variables?
     let variable: VariableSkeleton = variables[name];

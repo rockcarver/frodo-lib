@@ -12,7 +12,7 @@ import {
 import { stageEmailTemplate, template1 } from './EmailTemplateSetup';
 import { getTestCertificationTemplate } from './IgaCertificationTemplateSetup';
 
-function getTestEvent({
+export function getTestEvent({
   id,
   name,
   type,
@@ -247,7 +247,7 @@ const allCertificationTemplates = [
   event6.action.template,
 ];
 
-const oldEventIds = new Map<string, string>();
+export const oldEventIds = new Map<string, string>();
 const oldCertificationTemplateIds = new Map<string, string>();
 
 export async function stageEvent(event: EventSkeleton, createNew = false) {

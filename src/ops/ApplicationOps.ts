@@ -41,6 +41,7 @@ import {
   importGlossarySchemas,
 } from './cloud/iga/IgaGlossaryOps';
 import {
+  deleteOrphanedRequestFormAssignments,
   deleteRequestForm,
   exportRequestForm,
   importRequestForms,
@@ -1109,12 +1110,6 @@ async function deleteDependencies({
         )
           .filter((a) => a.objectId.startsWith('requestType/'))
           .map((a) => a.objectId.split('/').pop());
-        // Delete request form
-        try {
-          await deleteRequestForm({ formId, state });
-        } catch (error) {
-          errors.push(error);
-        }
         // Delete request types
         for (const typeId of requestTypeIds) {
           try {
@@ -1123,6 +1118,21 @@ async function deleteDependencies({
             errors.push(error);
           }
         }
+        // Delete request form
+        try {
+          await deleteRequestForm({ formId, state });
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+      // Clean up any remaining orphaned assignments related to the application (they should've all been deleted when the request forms were, but just to be safe)
+      try {
+        await deleteOrphanedRequestFormAssignments({
+          applicationId: applicationData._id,
+          state,
+        });
+      } catch (error) {
+        errors.push(error);
       }
     }
     if (errors.length > 0) {

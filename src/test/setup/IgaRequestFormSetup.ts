@@ -1,4 +1,5 @@
 import {
+  assignRequestForm,
   RequestFormForm,
   RequestFormSkeleton,
 } from '../../api/cloud/iga/IgaRequestFormApi';
@@ -436,6 +437,59 @@ export async function stageRequestForm(
   }
 }
 
+// These are used for the orphaned request form assignment tests
+
+export const requestFormAssignment1 = {
+  formId: '824e7df2-0fcc-4287-bded-c9c03aa15b1e',
+  objectId: 'lcm/user/update',
+};
+
+export const requestFormAssignment2 = {
+  formId: '37eabcbb-346a-4293-a586-3be721ce5b86',
+  objectId: 'application/c2dbb0f6-0f1f-4311-b4f2-1aa3c9c310ec/User/create',
+};
+
+export const requestFormAssignment3 = {
+  formId: '170374b1-befd-41d7-8943-654c9a9bf007',
+  objectId: 'workflow/orphanedWorkflow1/node/approvalTask-75cf4247ba1d',
+};
+
+export const requestFormAssignment4 = {
+  formId: '1c90e114-c401-452d-a39b-34da4af055de',
+  objectId: 'requestType/f343f62a-3c21-4875-95d0-7618b9873497',
+};
+
+export const requestFormAssignment5 = {
+  formId: '62611c01-2ed6-4840-bc5f-cec27ee2c048',
+  objectId: 'lcm/user/create',
+};
+
+export const requestFormAssignment6 = {
+  formId: 'd2dde1a9-0300-40d0-9bbf-84b52920d6c7',
+  objectId: 'application/f02cfe35-9eae-4a16-8f64-95bebb43eaae/Group/create',
+};
+
+export const requestFormAssignment7 = {
+  formId: '49812865-4b38-4140-93db-1a54980f9631',
+  objectId: 'workflow/orphanedWorkflow2/node/fulfillmentTask-67c3b2c12842',
+};
+
+export const requestFormAssignment8 = {
+  formId: 'd55790e5-eaf8-4ae4-b2cc-84f56e36fdea',
+  objectId: 'requestType/842ecde8-ba73-4156-87ba-55a84df4be18',
+};
+
+const requestFormAssignments = [
+  requestFormAssignment1,
+  requestFormAssignment2,
+  requestFormAssignment3,
+  requestFormAssignment4,
+  requestFormAssignment5,
+  requestFormAssignment6,
+  requestFormAssignment7,
+  requestFormAssignment8,
+];
+
 export function setup() {
   const ctx = autoSetupPolly();
   beforeEach(async () => {
@@ -469,6 +523,27 @@ export function setup() {
       await stageRequestForm(requestForm5, true);
       // setup requestForm6 - delete if exists, then create
       await stageRequestForm(requestForm6, true);
+      // setup orphaned assignments - delete if they exist, then create
+      await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
+        state,
+      });
+      for (const assignment of requestFormAssignments) {
+        // Must have an existing request form in order to create an assignment, so create a bare bones one
+        await stageRequestForm(
+          {
+            id: assignment.formId,
+            name: 'test-orphan-form-' + assignment.formId,
+            type: 'request',
+            form: {},
+          } as RequestFormSkeleton,
+          true
+        );
+        await assignRequestForm({
+          formId: assignment.formId,
+          objectId: assignment.objectId,
+          state,
+        });
+      }
     }
   });
   // in recording mode, delete test data after recording
@@ -489,6 +564,14 @@ export function setup() {
         RequestTypeTestData.requestType5
       );
       await stageRequestForm(requestForm6);
+      for (const assignment of requestFormAssignments) {
+        await stageRequestForm({
+          id: assignment.formId,
+        } as RequestFormSkeleton);
+      }
+      await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
+        state,
+      });
     }
   });
 }
