@@ -167,7 +167,8 @@ describe('SecretStoreOps', () => {
         });
     
         test('2: Read global SecretStores', async () => {
-          await expect(SecretStoreOps.readSecretStores({ globalConfig: true, state })).rejects.toThrow('Error reading alpha realm secret stores');
+          const response = await SecretStoreOps.readSecretStores({ globalConfig: true, state });
+          expect(response).toMatchSnapshot();
         });
       });
 
@@ -243,7 +244,10 @@ describe('SecretStoreOps', () => {
         });
     
         test('2: Export global SecretStores', async () => {
-          await expect(SecretStoreOps.exportSecretStores({ globalConfig: true, state })).rejects.toThrow('Error reading alpha realm secret stores');
+          const response = await SecretStoreOps.exportSecretStores({ globalConfig: true, resultCallback: snapshotResultCallback, state });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
         });
       });
     
