@@ -611,11 +611,9 @@ const scriptedNodesConditions = {
   ConfigProviderNode: (_nodeConfig: NodeSkeleton): boolean => {
     return true;
   },
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   DeviceMatchNode: (nodeConfig: NodeSkeleton): boolean => {
     return nodeConfig.useScript;
   },
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   PingOneVerifyCompletionDecisionNode: (nodeConfig: NodeSkeleton): boolean => {
     return nodeConfig.useFilterScript;
   },
@@ -1079,7 +1077,6 @@ export async function exportJourney({
             }
             // if the page node's themeId is set the "old way" set themeId accordingly
             if (!themeId && nodeObject.stage.indexOf('themeId=') === 0) {
-              // eslint-disable-next-line prefer-destructuring
               themeId = nodeObject.stage.split('=')[1];
             }
           }
@@ -3228,7 +3225,6 @@ export async function deleteJourneys({
       });
       // introduce a 100ms wait to allow the progress bar to update before the next verbose message prints from the async function
       if (verbose)
-        // eslint-disable-next-line no-await-in-loop
         await new Promise((r) => {
           setTimeout(r, 100);
         });

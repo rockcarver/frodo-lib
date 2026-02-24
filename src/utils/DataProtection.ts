@@ -69,7 +69,6 @@ class DataProtection {
     // The function that derives the key, this supports sync and async operations
     _key.set(
       this,
-      // eslint-disable-next-line no-return-await
       async (masterKey, salt) => await scrypt(masterKey, salt, 32)
     );
 

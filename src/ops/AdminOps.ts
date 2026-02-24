@@ -1309,7 +1309,6 @@ export async function hideGenericExtensionAttributes({
       ) {
         if (object.schema.properties[name].viewable) {
           printMessage({ message: `${name}: hide`, state });
-          // eslint-disable-next-line no-param-reassign
           object.schema.properties[name].viewable = false;
         } else {
           printMessage({ message: `${name}: ignore (already hidden)`, state });
@@ -1368,7 +1367,6 @@ export async function showGenericExtensionAttributes({
       ) {
         if (!object.schema.properties[name].viewable) {
           printMessage({ message: `${name}: show`, state });
-          // eslint-disable-next-line no-param-reassign
           object.schema.properties[name].viewable = true;
         } else {
           printMessage({ message: `${name}: ignore (already showing)`, state });
@@ -1423,7 +1421,6 @@ async function repairOrgModelUser({
           type: 'warn',
           state,
         });
-        // eslint-disable-next-line no-param-reassign
         object.schema.properties[name].queryConfig.flattenProperties = true;
         repairData = true;
       } else {
@@ -1481,7 +1478,6 @@ async function repairOrgModelOrg({
           type: 'warn',
           state,
         });
-        // eslint-disable-next-line no-param-reassign
         object.schema.properties[name].queryConfig.flattenProperties = true;
         repairData = true;
       } else {

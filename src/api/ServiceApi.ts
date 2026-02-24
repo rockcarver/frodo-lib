@@ -25,7 +25,6 @@ const getApiConfig = (globalConfig: boolean) => {
 };
 
 export type AmServiceSkeleton = AmConfigEntityInterface & {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 };
 
@@ -34,7 +33,6 @@ export interface ServiceNextDescendentResponse {
 }
 
 export interface ServiceNextDescendent {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 

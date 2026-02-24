@@ -277,7 +277,6 @@ export function convertTextArrayToBase64Url(textArray: string[]) {
   return b64encodedScript;
 }
 
-// eslint-disable-next-line no-unused-vars
 export function validateImport(metadata): boolean {
   return metadata || true;
 }
@@ -526,14 +525,14 @@ export async function readFiles(directory: string): Promise<
 }
 
 export function substituteEnvParams(input: string, reader: Reader): string {
-  reader.each((key, value) => {
+  Object.entries(reader).forEach(([key, value]) => {
     input = replaceall(value, `\${${key}}`, input);
   });
   return input;
 }
 
 export function unSubstituteEnvParams(input: string, reader: Reader): string {
-  reader.each((key, value) => {
+  Object.entries(reader).forEach(([key, value]) => {
     input = replaceall(`\${${key}}`, value, input);
   });
   return input;

@@ -64,7 +64,6 @@ export function encode(input: string, padding = true): string {
  * @returns {string} Base64-decoded input string
  */
 export function decode(input: string): string {
-  // eslint-disable-next-line no-param-reassign
   if (input.length % 4 !== 0) input += '='.repeat(4 - (input.length % 4));
   return Buffer.from(input, 'base64').toString();
 }
