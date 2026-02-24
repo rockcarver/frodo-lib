@@ -12,7 +12,7 @@ import { ProxyAgent } from 'proxy-agent';
 import _curlirize from '../ext/axios-curlirize/curlirize';
 import StateImpl, { State } from '../shared/State';
 import { getUserAgent } from '../shared/Version';
-import { curlirizeMessage, printMessage } from '../utils/Console';
+import { curlirizeMessage, debugMessage, printMessage } from '../utils/Console';
 import { mergeDeep } from '../utils/JsonUtils';
 import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
 
@@ -216,6 +216,15 @@ export function generateAmApi({
     requestOverride
   );
 
+  debugMessage({
+    message: `Generating AM API client for resource with request headers ${JSON.stringify(
+      requestConfig.headers,
+      null,
+      2
+    )}`,
+    state,
+  });
+
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -247,7 +256,7 @@ export function generateOauth2Api({
   authenticate?: boolean;
   state: State;
 }): AxiosInstance {
-  let headers: { [key: string]: any } = {
+  const headers: { [key: string]: any } = {
     'User-Agent': userAgent,
     'X-ForgeRock-TransactionId': transactionId,
     // only add API version if we have it
@@ -266,28 +275,33 @@ export function generateOauth2Api({
         Authorization: `Bearer ${state.getBearerToken()}`,
       }),
   };
-  if (requestOverride['headers']) {
-    headers = {
-      ...headers,
-      ...requestOverride['headers'],
-    };
-  }
 
-  const requestConfig = {
-    // baseURL: `${storage.session.getTenant()}/json${resource.path}`,
-    timeout,
-    ...requestOverride,
-    headers: {
-      ...headers,
-      ...state.getAuthenticationHeaderOverrides(),
+  const requestConfig = mergeDeep(
+    {
+      // baseURL: `${storage.session.getTenant()}/json${resource.path}`,
+      timeout,
+      headers: {
+        ...headers,
+        ...state.getAuthenticationHeaderOverrides(),
+      },
+      ...(process.env.FRODO_MOCK !== 'record' &&
+        process.env.FRODO_POLLY_MODE !== 'record' && {
+          httpAgent: getHttpAgent(),
+          httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+        }),
+      proxy: getProxy(),
     },
-    ...(process.env.FRODO_MOCK !== 'record' &&
-      process.env.FRODO_POLLY_MODE !== 'record' && {
-        httpAgent: getHttpAgent(),
-        httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
-      }),
-    proxy: getProxy(),
-  };
+    requestOverride
+  );
+
+  debugMessage({
+    message: `Generating OAuth2 API client for resource with request headers ${JSON.stringify(
+      requestConfig.headers,
+      null,
+      2
+    )}`,
+    state,
+  });
 
   const request = createAxiosInstance(state, requestConfig);
 
@@ -339,6 +353,15 @@ export function generateIdmApi({
     requestOverride
   );
 
+  debugMessage({
+    message: `Generating IDM API client for resource with request headers ${JSON.stringify(
+      requestConfig.headers,
+      null,
+      2
+    )}`,
+    state,
+  });
+
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -385,6 +408,15 @@ export function generateLogKeysApi({
     requestOverride
   );
 
+  debugMessage({
+    message: `Generating LogKeys API client for resource with request headers ${JSON.stringify(
+      requestConfig.headers,
+      null,
+      2
+    )}`,
+    state,
+  });
+
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -430,6 +462,15 @@ export function generateLogApi({
     },
     requestOverride
   );
+
+  debugMessage({
+    message: `Generating Log API client for resource with request headers ${JSON.stringify(
+      requestConfig.headers,
+      null,
+      2
+    )}`,
+    state,
+  });
 
   const request = createAxiosInstance(state, requestConfig);
 
@@ -508,18 +549,29 @@ export function generateEnvApi({
       Authorization: `Bearer ${state.getBearerToken()}`,
     }),
   };
-  const requestConfig = {
-    // baseURL: getTenantURL(storage.session.getTenant()),
-    timeout,
-    headers,
-    ...requestOverride,
-    ...(process.env.FRODO_MOCK !== 'record' &&
-      process.env.FRODO_POLLY_MODE !== 'record' && {
-        httpAgent: getHttpAgent(),
-        httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
-      }),
-    proxy: getProxy(),
-  };
+  const requestConfig = mergeDeep(
+    {
+      // baseURL: getTenantURL(storage.session.getTenant()),
+      timeout,
+      headers,
+      ...(process.env.FRODO_MOCK !== 'record' &&
+        process.env.FRODO_POLLY_MODE !== 'record' && {
+          httpAgent: getHttpAgent(),
+          httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+        }),
+      proxy: getProxy(),
+    },
+    requestOverride
+  );
+
+  debugMessage({
+    message: `Generating Environment API client for resource with request headers ${JSON.stringify(
+      requestConfig.headers,
+      null,
+      2
+    )}`,
+    state,
+  });
 
   const request = createAxiosInstance(state, requestConfig);
 
@@ -561,17 +613,28 @@ export function generateGovernanceApi({
       Authorization: `Bearer ${state.getBearerToken()}`,
     }),
   };
-  const requestConfig = {
-    timeout,
-    headers,
-    ...requestOverride,
-    ...(process.env.FRODO_MOCK !== 'record' &&
-      process.env.FRODO_POLLY_MODE !== 'record' && {
-        httpAgent: getHttpAgent(),
-        httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
-      }),
-    proxy: getProxy(),
-  };
+  const requestConfig = mergeDeep(
+    {
+      timeout,
+      headers,
+      ...(process.env.FRODO_MOCK !== 'record' &&
+        process.env.FRODO_POLLY_MODE !== 'record' && {
+          httpAgent: getHttpAgent(),
+          httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+        }),
+      proxy: getProxy(),
+    },
+    requestOverride
+  );
+
+  debugMessage({
+    message: `Generating Governance API client for resource with request headers ${JSON.stringify(
+      requestConfig.headers,
+      null,
+      2
+    )}`,
+    state,
+  });
 
   const request = createAxiosInstance(state, requestConfig);
 
@@ -601,21 +664,32 @@ export function generateReleaseApi({
   requestOverride?: AxiosRequestConfig;
   state: State;
 }): AxiosInstance {
-  const requestConfig = {
-    baseURL: baseUrl,
-    timeout,
-    headers: {
-      'User-Agent': userAgent,
-      'Content-Type': 'application/json',
+  const requestConfig = mergeDeep(
+    {
+      baseURL: baseUrl,
+      timeout,
+      headers: {
+        'User-Agent': userAgent,
+        'Content-Type': 'application/json',
+      },
+      ...(process.env.FRODO_MOCK !== 'record' &&
+        process.env.FRODO_POLLY_MODE !== 'record' && {
+          httpAgent: getHttpAgent(),
+          httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+        }),
+      proxy: getProxy(),
     },
-    ...requestOverride,
-    ...(process.env.FRODO_MOCK !== 'record' &&
-      process.env.FRODO_POLLY_MODE !== 'record' && {
-        httpAgent: getHttpAgent(),
-        httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
-      }),
-    proxy: getProxy(),
-  };
+    requestOverride
+  );
+
+  debugMessage({
+    message: `Generating Release API client for resource with request headers ${JSON.stringify(
+      requestConfig.headers,
+      null,
+      2
+    )}`,
+    state,
+  });
 
   const request = createAxiosInstance(state, requestConfig);
 

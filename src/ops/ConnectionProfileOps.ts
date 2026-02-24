@@ -16,6 +16,7 @@ import {
 } from './cloud/ServiceAccountOps';
 import { FrodoError } from './FrodoError';
 import { createJwkRsa, createJwks, getJwkRsaPublic, JwkRsa } from './JoseOps';
+import { mergeDeep } from '../utils/JsonUtils';
 
 export type ConnectionProfile = {
   /**
@@ -458,6 +459,10 @@ export async function getConnectionProfileByHost({
         ? await dataProtection.decrypt(profiles[0].encodedAmsterPrivateKey)
         : null,
     };
+    debugMessage({
+      message: `ConnectionProfileOps.getConnectionProfileByHost: retrieved connection profile for host '${host}': ${JSON.stringify(connectionProfile, null, 2)}`,
+      state,
+    });
     return connectionProfile;
   } catch (error) {
     throw new FrodoError(`Error decrypting connection profile`, error);
@@ -509,11 +514,13 @@ export async function loadConnectionProfileByHost({
   if (conn.authenticationService && !state.getAuthenticationService()) {
     state.setAuthenticationService(conn.authenticationService);
   }
-  if (
-    conn.authenticationHeaderOverrides &&
-    !state.getAuthenticationHeaderOverrides()
-  ) {
-    state.setAuthenticationHeaderOverrides(conn.authenticationHeaderOverrides);
+  if (conn.authenticationHeaderOverrides) {
+    state.setAuthenticationHeaderOverrides(
+      mergeDeep(
+        state.getAuthenticationHeaderOverrides(),
+        conn.authenticationHeaderOverrides
+      )
+    );
   }
   state.setServiceAccountId(conn.svcacctId);
   state.setServiceAccountJwk(conn.svcacctJwk);
