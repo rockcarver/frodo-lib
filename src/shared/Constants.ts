@@ -50,77 +50,56 @@ const AVAILABLE_SCOPES = {
   OpenIdScope: 'openid',
   ProfileScope: 'profile',
 
-  // All Access Management APIs
-  AmFullScope: 'fr:am:*',
+  AmFullScope: 'fr:am:*', //                                                All Access Management APIs
 
-  // All Auto Access APIs
-  AutoAccessFullScope: 'fr:autoaccess:*',
+  AutoAccessFullScope: 'fr:autoaccess:*', //                                All Auto Access APIs
 
-  // All Analytics APIs
-  AnalyticsFullScope: 'fr:idc:analytics:*',
+  AnalyticsFullScope: 'fr:idc:analytics:*', //                              All Analytics APIs
 
-  // All TLS certificate APIs
-  CertificateFullScope: 'fr:idc:certificate:*',
+  CertificateFullScope: 'fr:idc:certificate:*', //                          All TLS certificate APIs
 
-  // Read TLS certificates
-  CertificateReadScope: 'fr:idc:certificate:read',
+  CertificateReadScope: 'fr:idc:certificate:read', //                       Read TLS certificates
 
-  // All content security policy APIs
-  ContentSecurityPolicyFullScope: 'fr:idc:content-security-policy:*',
+  ContentSecurityPolicyFullScope: 'fr:idc:content-security-policy:*', //    All content security policy APIs
+  ContentSecurityPolicyReadScope: 'fr:idc:content-security-policy:read', // Read content security policy
 
-  // All cookie domain APIs
-  CookieDomainsFullScope: 'fr:idc:cookie-domain:*',
+  CookieDomainsFullScope: 'fr:idc:cookie-domain:*', //                      All cookie domain APIs
+  CookieDomainsReadScope: 'fr:idc:cookie-domain:read', //                   Read cookie domain APIs
 
-  // All custom domain APIs
-  CustomDomainFullScope: 'fr:idc:custom-domain:*',
+  CustomDomainFullScope: 'fr:idc:custom-domain:*', //                       All custom domain APIs
+  CustomDomainReadScope: 'fr:idc:custom-domain:read', //                    Read custom domain configuration
 
-  // All dataset deletion APIs
-  DatasetDeletionFullScope: 'fr:idc:dataset:*',
+  DatasetDeletionFullScope: 'fr:idc:dataset:*', //                          All dataset deletion APIs
+  DatasetDeletionReadScope: 'fr:idc:dataset:read', //                       Read dataset deletion configuration
 
-  // All ESV APIs
-  ESVFullScope: 'fr:idc:esv:*',
+  ESVFullScope: 'fr:idc:esv:*', //                                          All ESV APIs
+  ESVReadScope: 'fr:idc:esv:read', //                                       Read ESVs, excluding values of secrets
+  ESVUpdateScope: 'fr:idc:esv:update', //                                   Create, modify, and delete ESVs
+  ESVRestartScope: 'fr:idc:esv:restart', //                                 Restart workloads that consume ESVs
 
-  // Read ESVs, excluding values of secrets
-  ESVReadScope: 'fr:idc:esv:read',
+  AdminFederationFullScope: 'fr:idc:federation:*', //                       Create, modify, and delete Admin Federation configuration
+  AdminFederationReadScope: 'fr:idc:federation:read', //                    Read Admin Federation configuration
 
-  // Create, modify, and delete ESVs
-  ESVUpdateScope: 'fr:idc:esv:update',
+  MTLSFullScope: 'fr:idc:mtls:*', //                                        All mTLS APIs
 
-  // Restart workloads that consume ESVs
-  ESVRestartScope: 'fr:idc:esv:restart',
+  PromotionScope: 'fr:idc:promotion:*', //                                  All configuration promotion APIs
+  PromotionReadScope: 'fr:idc:promotion:read', //                           Read configuration promotion configuration
 
-  // Create, modify, and delete Admin Federation configuration
-  AdminFederationFullScope: 'fr:idc:federation:*',
+  ProxyConnectFullScope: 'fr:idc:proxy-connect:*', //                       All Proxy Connect APIs
+  ProxyConnectReadScope: 'fr:idc:proxy-connect:read', //                    Read Proxy Connect configuration
+  ProxyConnectWriteScope: 'fr:idc:proxy-connect:write', //                  Create and update Proxy Connect configuration
 
-  // Read Admin Federation configuration
-  AdminFederationReadScope: 'fr:idc:federation:read',
+  ReleaseFullScope: 'fr:idc:release:*', //                                  All product release APIs
+  ReleaseReadScope: 'fr:idc:release:read', //                               Read product release information
 
-  // All mTLS APIs
-  MTLSFullScope: 'fr:idc:mtls:*',
+  SSOCookieFullScope: 'fr:idc:sso-cookie:*', //                             All SSO cookie APIs
+  SSOCookieReadScope: 'fr:idc:sso-cookie:read', //                          Read SSO cookie configuration
 
-  // All configuration promotion APIs
-  PromotionScope: 'fr:idc:promotion:*',
+  WSFedAdminScope: 'fr:idc:ws:admin', //                                    All PingFederate APIs
 
-  // All Proxy Connect APIs
-  ProxyConnectFullScope: 'fr:idc:proxy-connect:*',
+  IdmFullScope: 'fr:idm:*', //                                              All Identity Management APIs
 
-  // Read Proxy Connect configuration
-  ProxyConnectReadScope: 'fr:idc:proxy-connect:read',
-
-  // Create and update Proxy Connect configuration
-  ProxyConnectWriteScope: 'fr:idc:proxy-connect:write',
-
-  // All product release APIs
-  ReleaseFullScope: 'fr:idc:release:*',
-
-  // All SSO cookie APIs
-  SSOCookieFullScope: 'fr:idc:sso-cookie:*',
-
-  // All Identity Management APIs
-  IdmFullScope: 'fr:idm:*',
-
-  // All Governance APIs
-  IGAFullScope: 'fr:iga:*',
+  IGAFullScope: 'fr:iga:*', //                                              All Governance APIs
 };
 
 const RETRY_EVERYTHING_KEY = 'everything';

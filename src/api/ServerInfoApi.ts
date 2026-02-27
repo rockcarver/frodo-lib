@@ -1,7 +1,7 @@
 import util from 'util';
 
 import { State } from '../shared/State';
-import { generateAmApi } from './BaseApi';
+import { generateAmAuthApi } from './BaseApi';
 
 const serverInfoUrlTemplate = '%s/json/serverinfo/%s';
 
@@ -23,7 +23,7 @@ const getServerVersionApiConfig = () => ({
  */
 export async function getServerInfo({ state }: { state: State }) {
   const urlString = util.format(serverInfoUrlTemplate, state.getHost(), '*');
-  const { data } = await generateAmApi({
+  const { data } = await generateAmAuthApi({
     resource: getServerInfoApiConfig(),
     requestOverride: {},
     state,
@@ -42,7 +42,7 @@ export async function getServerVersionInfo({ state }: { state: State }) {
     state.getHost(),
     'version'
   );
-  const { data } = await generateAmApi({
+  const { data } = await generateAmAuthApi({
     resource: getServerVersionApiConfig(),
     requestOverride: {},
     state,

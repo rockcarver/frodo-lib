@@ -5,7 +5,7 @@ import { AxiosRequestConfig } from 'axios';
 import { Callback } from '../ops/CallbackOps';
 import { State } from '../shared/State';
 import { getRealmPath } from '../utils/ForgeRockUtils';
-import { generateAmApi } from './BaseApi';
+import { generateAmAuthApi } from './BaseApi';
 
 const authenticateUrlTemplate = '%s/json%s/authenticate';
 const authenticateWithServiceUrlTemplate = `${authenticateUrlTemplate}?authIndexType=service&authIndexValue=%s`;
@@ -75,7 +75,7 @@ export async function step({
           state.getHost(),
           getRealmPath(realm)
         );
-  const { data } = await generateAmApi({
+  const { data } = await generateAmAuthApi({
     resource: getApiConfig(),
     state,
   }).post(urlString, body, config);

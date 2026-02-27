@@ -161,9 +161,9 @@ function curlirize(request, state: State) {
 }
 
 /**
- * Generates an AM Axios API instance
+ * Generates an AM Axios API instance specifically for AM configuration endpoints
  * @param {object} params Params object
- * @param {ResourceConfig} params.resource Takes an object takes a resource object. example:
+ * @param {ResourceConfig} params.resource Takes a resource object. example: { apiVersion: 'protocol=2.1,resource=1.0' }
  * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either
  * add on extra information or override default properties https://github.com/axios/axios#request-config
  * @param {State} params.state State object
@@ -171,6 +171,82 @@ function curlirize(request, state: State) {
  * @returns {AxiosInstance} Returns a reaady to use Axios instance
  */
 export function generateAmApi({
+  resource,
+  requestOverride = {},
+  state,
+}: {
+  resource: ResourceConfig;
+  requestOverride?: AxiosRequestConfig;
+  state: State;
+}): AxiosInstance {
+  const headers = {
+    'User-Agent': userAgent,
+    'X-ForgeRock-TransactionId': transactionId,
+    'Content-Type': 'application/json',
+    // only add API version if we have it
+    ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
+    // only send session cookie if we know its name and value and we are not instructed to use the bearer token for AM APIs
+    ...(!state.getUseBearerTokenForAmApis() &&
+      state.getCookieName() &&
+      state.getCookieValue() && {
+        Cookie: `${state.getCookieName()}=${state.getCookieValue()}`,
+      }),
+    // only add authorization header if we have a bearer token and are instructed to use it for AM APIs
+    ...(state.getUseBearerTokenForAmApis() &&
+      state.getBearerToken() && {
+        Authorization: `Bearer ${state.getBearerToken()}`,
+      }),
+  };
+
+  const requestConfig = mergeDeep(
+    {
+      // baseURL: `${storage.session.getTenant()}/json`,
+      timeout,
+      headers: {
+        ...headers,
+        ...state.getAuthenticationHeaderOverrides(),
+        ...state.getConfigurationHeaderOverrides(),
+      },
+      ...(process.env.FRODO_MOCK !== 'record' &&
+        process.env.FRODO_POLLY_MODE !== 'record' && {
+          httpAgent: getHttpAgent(),
+          httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+        }),
+      proxy: getProxy(),
+    },
+    requestOverride
+  );
+
+  debugMessage({
+    message: `Generating AM API client for resource with request headers ${JSON.stringify(
+      requestConfig.headers,
+      null,
+      2
+    )}`,
+    state,
+  });
+
+  const request = createAxiosInstance(state, requestConfig);
+
+  // enable curlirizer output in debug mode
+  if (state.getCurlirize()) {
+    curlirize(request, state);
+  }
+
+  return request;
+}
+
+/**
+ * Generates an AM Axios API instance specifically for authentication endpoints
+ * @param {object} params Params object
+ * @param {ResourceConfig} params.resource Takes a resource object. example: { apiVersion: 'protocol=2.1,resource=1.0' }
+ * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either
+ * add on extra information or override default properties https://github.com/axios/axios#request-config
+ * @param {State} params.state State object
+ *
+ * @returns {AxiosInstance} Returns a reaady to use Axios instance
+ */
+export function generateAmAuthApi({
   resource,
   requestOverride = {},
   state,
@@ -238,7 +314,7 @@ export function generateAmApi({
 /**
  * Generates an OAuth2 Axios API instance
  * @param {object} params Params object
- * @param {ResourceConfig} params.resource Resource config object.
+ * @param {ResourceConfig} params.resource Resource config object. Example: { apiVersion: 'protocol=2.1,resource=1.0' }
  * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either
  * add on extra information or override default properties https://github.com/axios/axios#request-config
  * @param {State} params.state State object
@@ -338,6 +414,7 @@ export function generateIdmApi({
         'X-ForgeRock-TransactionId': transactionId,
         'Content-Type': 'application/json',
         ...state.getAuthenticationHeaderOverrides(),
+        ...state.getConfigurationHeaderOverrides(),
         // only add authorization header if we have a bearer token
         ...(state.getBearerToken() && {
           Authorization: `Bearer ${state.getBearerToken()}`,
@@ -606,8 +683,70 @@ export function generateGovernanceApi({
     'User-Agent': userAgent,
     'Content-Type': 'application/json',
     ...state.getAuthenticationHeaderOverrides(),
+    ...state.getConfigurationHeaderOverrides(),
     // only add API version if we have it
     ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
+    // only add authorization header if we have a bearer token
+    ...(state.getBearerToken() && {
+      Authorization: `Bearer ${state.getBearerToken()}`,
+    }),
+  };
+  const requestConfig = mergeDeep(
+    {
+      timeout,
+      headers,
+      ...(process.env.FRODO_MOCK !== 'record' &&
+        process.env.FRODO_POLLY_MODE !== 'record' && {
+          httpAgent: getHttpAgent(),
+          httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+        }),
+      proxy: getProxy(),
+    },
+    requestOverride
+  );
+
+  debugMessage({
+    message: `Generating Governance API client for resource with request headers ${JSON.stringify(
+      requestConfig.headers,
+      null,
+      2
+    )}`,
+    state,
+  });
+
+  const request = createAxiosInstance(state, requestConfig);
+
+  // enable curlirizer output in debug mode
+  if (state.getCurlirize()) {
+    curlirize(request, state);
+  }
+
+  return request;
+}
+
+/**
+ * Generates an Axios instance for the Identity Cloud WS-Fed API
+ * @param {object} params Params object
+ * @param {ResourceConfig} params.resource Resource config object.
+ * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
+ * on extra information or override default properties https://github.com/axios/axios#request-config
+ * @param {State} params.state State object
+ *
+ * @returns {AxiosInstance} Returns a reaady to use Axios instance
+ */
+export function generateWSFedApi({
+  requestOverride = {},
+  state,
+}: {
+  requestOverride?: AxiosRequestConfig;
+  state: State;
+}): AxiosInstance {
+  const headers = {
+    'User-Agent': userAgent,
+    'Content-Type': 'application/json',
+    'x-xsrf-header': 'PingFederate',
+    ...state.getAuthenticationHeaderOverrides(),
+    ...state.getConfigurationHeaderOverrides(),
     // only add authorization header if we have a bearer token
     ...(state.getBearerToken() && {
       Authorization: `Bearer ${state.getBearerToken()}`,

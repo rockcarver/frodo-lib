@@ -153,6 +153,7 @@ const CLOUD_ADMIN_DEFAULT_SCOPES: string[] = [
   s.ReleaseFullScope,
   s.SSOCookieFullScope,
   s.ProxyConnectFullScope,
+  s.WSFedAdminScope,
 ];
 const FORGEOPS_ADMIN_DEFAULT_SCOPES: string[] = [s.IdmFullScope, s.OpenIdScope];
 const forgeopsAdminScopes = FORGEOPS_ADMIN_DEFAULT_SCOPES.join(' ');

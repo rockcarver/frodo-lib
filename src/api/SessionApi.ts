@@ -2,7 +2,7 @@ import util from 'util';
 
 import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
-import { generateAmApi } from './BaseApi';
+import { generateAmAuthApi } from './BaseApi';
 
 const getSessionInfoURLTemplate = '%s/json%s/sessions/?_action=getSessionInfo';
 const apiVersion = 'resource=4.0';
@@ -43,7 +43,7 @@ export async function getSessionInfo({
     state.getHost(),
     getCurrentRealmPath(state)
   );
-  const { data } = await generateAmApi({
+  const { data } = await generateAmAuthApi({
     resource: getApiConfig(),
     state,
   }).post(

@@ -80,6 +80,8 @@ export type State = {
   getAuthenticationHeaderOverrides(): Record<string, string>;
   setAuthenticationService(service: string): void;
   getAuthenticationService(): string;
+  setConfigurationHeaderOverrides(overrides: Record<string, string>): void;
+  getConfigurationHeaderOverrides(): Record<string, string>;
   setServiceAccountId(uuid: string): void;
   getServiceAccountId(): string;
   setServiceAccountJwk(jwk: JwkRsa): void;
@@ -322,6 +324,13 @@ export default (initialState: StateInterface): State => {
       return (
         state.authenticationService || process.env.FRODO_AUTHENTICATION_SERVICE
       );
+    },
+
+    setConfigurationHeaderOverrides(overrides: Record<string, string>) {
+      state.configurationHeaderOverrides = overrides;
+    },
+    getConfigurationHeaderOverrides() {
+      return state.configurationHeaderOverrides;
     },
 
     setServiceAccountId(uuid: string) {
@@ -624,6 +633,8 @@ export interface StateInterface {
   // customize authentication
   authenticationHeaderOverrides?: Record<string, string>;
   authenticationService?: string;
+  // customize configuration headers
+  configurationHeaderOverrides?: Record<string, string>;
   // cookie name
   cookieName?: string;
   userSessionToken?: UserSessionMetaType;
@@ -677,6 +688,7 @@ export interface StateInterface {
 
 const globalState: StateInterface = {
   authenticationHeaderOverrides: {},
+  configurationHeaderOverrides: {},
   printHandler: (message: string | object) => {
     if (!message) return;
     if (typeof message === 'object') {

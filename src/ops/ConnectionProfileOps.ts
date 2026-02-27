@@ -159,6 +159,7 @@ export interface SecureConnectionProfileInterface {
   encodedLogApiSecret?: string | null;
   authenticationService?: string | null;
   authenticationHeaderOverrides?: Record<string, string>;
+  configurationHeaderOverrides?: Record<string, string>;
   adminClientId?: string | null;
   adminClientRedirectUri?: string | null;
   svcacctId?: string | null;
@@ -181,6 +182,7 @@ export interface ConnectionProfileInterface {
   logApiSecret?: string | null;
   authenticationService?: string | null;
   authenticationHeaderOverrides?: Record<string, string>;
+  configurationHeaderOverrides?: Record<string, string>;
   adminClientId?: string | null;
   adminClientRedirectUri?: string | null;
   svcacctId?: string | null;
@@ -443,6 +445,9 @@ export async function getConnectionProfileByHost({
       authenticationHeaderOverrides: profiles[0].authenticationHeaderOverrides
         ? profiles[0].authenticationHeaderOverrides
         : {},
+      configurationHeaderOverrides: profiles[0].configurationHeaderOverrides
+        ? profiles[0].configurationHeaderOverrides
+        : {},
       adminClientId: profiles[0].adminClientId
         ? profiles[0].adminClientId
         : null,
@@ -519,6 +524,14 @@ export async function loadConnectionProfileByHost({
       mergeDeep(
         state.getAuthenticationHeaderOverrides(),
         conn.authenticationHeaderOverrides
+      )
+    );
+  }
+  if (conn.configurationHeaderOverrides) {
+    state.setConfigurationHeaderOverrides(
+      mergeDeep(
+        state.getConfigurationHeaderOverrides(),
+        conn.configurationHeaderOverrides
       )
     );
   }
@@ -728,6 +741,23 @@ export async function saveConnectionProfile({
       });
       printMessage({
         message: state.getAuthenticationHeaderOverrides(),
+        type: 'info',
+        state,
+      });
+    }
+    if (
+      state.getConfigurationHeaderOverrides() &&
+      Object.entries(state.getConfigurationHeaderOverrides()).length
+    ) {
+      profile.configurationHeaderOverrides =
+        state.getConfigurationHeaderOverrides();
+      printMessage({
+        message: 'Advanced setting: Configuration Header Overrides: ',
+        type: 'info',
+        state,
+      });
+      printMessage({
+        message: state.getConfigurationHeaderOverrides(),
         type: 'info',
         state,
       });
