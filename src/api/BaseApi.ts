@@ -747,9 +747,9 @@ export function generateWSFedApi({
     'x-xsrf-header': 'PingFederate',
     ...state.getAuthenticationHeaderOverrides(),
     ...state.getConfigurationHeaderOverrides(),
-    // only add authorization header if we have a bearer token
-    ...(state.getBearerToken() && {
-      Authorization: `Bearer ${state.getBearerToken()}`,
+    // only add authorization header if we have a PingFederate bearer token
+    ...(state.getPfBearerToken() && {
+      Authorization: `Bearer ${state.getPfBearerToken()}`,
     }),
   };
   const requestConfig = mergeDeep(

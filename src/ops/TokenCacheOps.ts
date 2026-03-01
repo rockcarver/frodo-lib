@@ -85,6 +85,16 @@ export type TokenCache = {
    */
   saveSaBearerToken(token: AccessTokenMetaType): Promise<boolean>;
   /**
+   * Save token of any type for current connection
+   * @param {tokenType} tokenType type of token
+   * @param {UserSessionMetaType | AccessTokenMetaType} token token object
+   * @returns {Promise<boolean>} true if the operation succeeded, false otherwise
+   */
+  saveToken(
+    tokenType: tokenType,
+    token: UserSessionMetaType | AccessTokenMetaType
+  ): Promise<boolean>;
+  /**
    * Purge all expired tokens from cache
    * @returns {TokenCacheInterface} purged cache
    */
@@ -148,6 +158,12 @@ export default (state: State): TokenCache => {
     async saveSaBearerToken(token: AccessTokenMetaType): Promise<boolean> {
       return saveSaBearerToken({ token, state });
     },
+    async saveToken(
+      tokenType: tokenType,
+      token: UserSessionMetaType | AccessTokenMetaType
+    ): Promise<boolean> {
+      return saveToken({ tokenType, token, state });
+    },
     purge(): TokenCacheInterface {
       return purge({ state });
     },
@@ -165,18 +181,25 @@ const fileOptions = {
   indentation: 4,
 };
 
-export interface tokenTypeInterface {
-  userSession: string;
-  userBearer: string;
-  saBearer: string;
-}
+// export interface tokenTypeInterface {
+//   userSession: string;
+//   userBearer: string;
+//   wsUserBearer: string;
+//   saBearer: string;
+//   wsSaBearer: string;
+// }
 
-export type tokenType = 'userSession' | 'userBearer' | 'saBearer';
+export type tokenType =
+  | 'userSession'
+  | 'userBearer'
+  | 'pfUserBearer'
+  | 'saBearer'
+  | 'pfSaBearer';
 
 export interface TokenCacheInterface {
   [hostKey: string]: {
     [realmKey: string]: {
-      [typeKey in keyof typeKey]: {
+      [typeKey in tokenType]: {
         [subjectKey: string]: {
           [expKey: string]: string;
         };
@@ -748,6 +771,91 @@ export async function saveSaBearerToken({
   } catch (error) {
     debugMessage({
       message: `TokenCacheOps.saveSaBearerToken: error saving token in cache: ${error}`,
+      state,
+    });
+    debugMessage({
+      message: error.stack,
+      state,
+    });
+    return false;
+  }
+}
+
+export async function saveToken({
+  tokenType,
+  token,
+  state,
+}: {
+  tokenType: tokenType;
+  token: UserSessionMetaType | AccessTokenMetaType;
+  state: State;
+}): Promise<boolean> {
+  try {
+    debugMessage({
+      message: `TokenCacheOps.saveToken: start [tokenType=${tokenType}]`,
+      state,
+    });
+    const filename = getTokenCachePath({ state });
+    const data = fs.readFileSync(filename, 'utf8');
+    const tokenCache: TokenCacheInterface = JSON.parse(data);
+    purgeExpiredTokens(tokenCache, state);
+    const hostKey = getHostKey(state);
+    const realmKey = getRealmKey();
+    const typeKey = getTypeKey(tokenType);
+    const subjectKey = getSubjectKey(tokenType, state);
+    const dataProtection = new DataProtection({
+      sessionKey: generateSessionKey(tokenType, state),
+      state,
+    });
+    const checksum = getChecksum(stringify(token));
+    const checksums = Object.keys(
+      get(tokenCache, [hostKey, realmKey, typeKey, subjectKey], {})
+    ).map((expKey) =>
+      get(tokenCache, [
+        hostKey,
+        realmKey,
+        typeKey,
+        subjectKey,
+        expKey,
+        checksumKey,
+      ])
+    );
+    if (checksums.includes(checksum)) {
+      debugMessage({
+        message: `TokenCacheOps.saveToken: token already in cache [tokenType=${tokenType}]`,
+        state,
+      });
+    } else {
+      put(tokenCache, checksum, [
+        hostKey,
+        realmKey,
+        typeKey,
+        subjectKey,
+        `${token.expires}`,
+        checksumKey,
+      ]);
+      put(tokenCache, await dataProtection.encrypt(stringify(token)), [
+        hostKey,
+        realmKey,
+        typeKey,
+        subjectKey,
+        `${token.expires}`,
+        tokenKey,
+      ]);
+      fs.writeFileSync(filename, stringify(tokenCache));
+      debugMessage({
+        message: `TokenCacheOps.saveToken: saved token in cache [tokenType=${tokenType}]`,
+        state,
+      });
+    }
+    debugMessage({
+      message: `TokenCacheOps.saveToken: end [tokenType=${tokenType}]`,
+      state,
+    });
+    return true;
+  } catch (error) {
+    debugMessage({
+      message: `TokenCacheOps.saveToken: error saving token in cache [tokenType=${tokenType}]: ${error}`,
       state,
     });
     debugMessage({

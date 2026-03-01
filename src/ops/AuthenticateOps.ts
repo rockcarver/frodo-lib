@@ -42,6 +42,9 @@ import {
 } from './OAuth2OidcOps';
 import { getSessionInfo } from './SessionOps';
 import {
+  hasToken,
+  readToken,
+  saveToken,
   hasSaBearerToken,
   hasUserBearerToken,
   hasUserSessionToken,
@@ -625,6 +628,7 @@ async function getAdminUserScopes({ state }: { state: State }) {
 
 /**
  * Helper function to obtain an oauth2 authorization code
+ * @param {string} scope oauth2 scope
  * @param {string} redirectUri oauth2 redirect uri
  * @param {string} codeChallenge PKCE code challenge
  * @param {string} codeChallengeMethod PKCE code challenge method
@@ -632,6 +636,7 @@ async function getAdminUserScopes({ state }: { state: State }) {
  * @returns {string} oauth2 authorization code or null
  */
 async function getAuthCode(
+  scope: string,
   redirectUri: string,
   codeChallenge: string,
   codeChallengeMethod: string,
@@ -642,9 +647,7 @@ async function getAuthCode(
     state,
   });
   try {
-    const bodyFormData = `redirect_uri=${redirectUri}&scope=${await getAdminUserScopes(
-      { state }
-    )}&response_type=code&client_id=${adminClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
+    const bodyFormData = `redirect_uri=${redirectUri}&scope=${scope}&response_type=code&client_id=${adminClientId}&csrf=${state.getCookieValue()}&decision=allow&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}`;
     const config = {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -713,7 +716,9 @@ async function getFreshUserBearerToken({
       state.getAdminClientRedirectUri() || redirectUrlTemplate,
       state.getHost()
     ).toString();
+    const scope = await getAdminUserScopes({ state });
     const authCode = await getAuthCode(
+      scope,
       redirectUri,
       challenge,
       challengeMethod,
@@ -761,6 +766,75 @@ async function getFreshUserBearerToken({
  * @param {State} state library state
  * @returns {Promise<AccessTokenMetaType>} access token or null
  */
+async function getFreshPfUserBearerToken({
+  state,
+}: {
+  state: State;
+}): Promise<AccessTokenMetaType> {
+  debugMessage({
+    message: `AuthenticateOps.getFreshPfUserBearerToken: start`,
+    state,
+  });
+  try {
+    const verifier = encodeBase64Url(randomBytes(32));
+    const challenge = encodeBase64Url(
+      createHash('sha256').update(verifier).digest()
+    );
+    const challengeMethod = 'S256';
+    const redirectUri = new URL(
+      state.getAdminClientRedirectUri() || redirectUrlTemplate,
+      state.getHost()
+    ).toString();
+    const scope = Constants.AVAILABLE_SCOPES.WSFedAdminScope;
+    const authCode = await getAuthCode(
+      scope,
+      redirectUri,
+      challenge,
+      challengeMethod,
+      state
+    );
+    let response: AccessTokenMetaType = null;
+    if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
+      const config = {
+        auth: {
+          username: adminClientId,
+          password: adminClientPassword,
+        },
+      };
+      const bodyFormData = `redirect_uri=${redirectUri}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
+      response = await accessToken({
+        amBaseUrl: state.getHost(),
+        data: bodyFormData,
+        config,
+        state,
+      });
+    } else {
+      const bodyFormData = `client_id=${adminClientId}&redirect_uri=${redirectUri}&grant_type=authorization_code&code=${authCode}&code_verifier=${verifier}`;
+      response = await accessToken({
+        amBaseUrl: state.getHost(),
+        data: bodyFormData,
+        config: {},
+        state,
+      });
+    }
+    if ('access_token' in response) {
+      debugMessage({
+        message: `AuthenticateOps.getFreshPfUserBearerToken: end with token`,
+        state,
+      });
+      return response;
+    }
+    throw new FrodoError(`No access token in response`);
+  } catch (error) {
+    throw new FrodoError(`Error getting fresh pf user bearer token`, error);
+  }
+}
+
+/**
+ * Helper function to obtain oauth2 access token
+ * @param {State} state library state
+ * @returns {Promise<AccessTokenMetaType>} access token or null
+ */
 async function getUserBearerToken(state: State): Promise<AccessTokenMetaType> {
   debugMessage({
     message: `AuthenticateOps.getUserBearerToken: start`,
@@ -793,6 +867,55 @@ async function getUserBearerToken(state: State): Promise<AccessTokenMetaType> {
   }
   if (state.getUseTokenCache()) {
     await saveUserBearerToken({ token, state });
+  }
+  return token;
+}
+
+/**
+ * Helper function to obtain oauth2 access token
+ * @param {State} state library state
+ * @returns {Promise<AccessTokenMetaType>} access token or null
+ */
+async function getPfUserBearerToken(
+  state: State
+): Promise<AccessTokenMetaType> {
+  debugMessage({
+    message: `AuthenticateOps.getPfUserBearerToken: start`,
+    state,
+  });
+  let token: AccessTokenMetaType = null;
+  if (
+    state.getUseTokenCache() &&
+    (await hasToken({ tokenType: 'pfUserBearer', state }))
+  ) {
+    try {
+      token = (await readToken({
+        tokenType: 'pfUserBearer',
+        state,
+      })) as AccessTokenMetaType;
+      token.from_cache = true;
+      debugMessage({
+        message: `AuthenticateOps.getPfUserBearerToken: end [cached]`,
+        state,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      debugMessage({
+        message: `AuthenticateOps.getPfUserBearerToken: end [failed cache read]`,
+        state,
+      });
+    }
+  }
+  if (!token) {
+    token = await getFreshPfUserBearerToken({ state });
+    token.from_cache = false;
+    debugMessage({
+      message: `AuthenticateOps.getPfUserBearerToken: end [fresh]`,
+      state,
+    });
+  }
+  if (state.getUseTokenCache()) {
+    await saveToken({ tokenType: 'pfUserBearer', token, state });
   }
   return token;
 }
@@ -889,6 +1012,76 @@ export async function getFreshSaBearerToken({
 }
 
 /**
+ * Get fresh PingFed access token for service account
+ * @param {State} state library state
+ * @returns {Promise<AccessTokenResponseType>} response object containg token, scope, type, and expiration in seconds
+ */
+export async function getFreshPfSaBearerToken({
+  saId = undefined,
+  saJwk = undefined,
+  state,
+}: {
+  saId?: string;
+  saJwk?: JwkRsa;
+  state: State;
+}): Promise<AccessTokenMetaType> {
+  debugMessage({
+    message: `AuthenticateOps.getFreshPfSaBearerToken: start`,
+    state,
+  });
+  saId = saId ? saId : state.getServiceAccountId();
+  saJwk = saJwk ? saJwk : state.getServiceAccountJwk();
+  const payload = createPayload(saId, state.getHost());
+  const jwt = await createSignedJwtToken(payload, saJwk);
+  const scope = Constants.AVAILABLE_SCOPES.WSFedAdminScope;
+  const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${scope}`;
+  let response: AccessTokenMetaType;
+  try {
+    response = await accessToken({
+      amBaseUrl: state.getHost(),
+      data: bodyFormData,
+      config: {},
+      state,
+    });
+  } catch (error) {
+    const err: FrodoError = error as FrodoError;
+    if (
+      err.isHttpError &&
+      err.httpErrorText === 'invalid_scope' &&
+      err.httpDescription?.startsWith('Unsupported scope for service account: ')
+    ) {
+      const invalidScopes: string[] = err.httpDescription
+        .substring(39)
+        .split(',');
+      const finalScopes: string[] = scope.split(' ').filter((el) => {
+        return !invalidScopes.includes(el);
+      });
+      const bodyFormData = `assertion=${jwt}&client_id=service-account&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&scope=${finalScopes.join(
+        ' '
+      )}`;
+      response = await accessToken({
+        amBaseUrl: state.getHost(),
+        data: bodyFormData,
+        config: {},
+        state,
+      });
+    }
+  }
+  if ('access_token' in response) {
+    debugMessage({
+      message: `AuthenticateOps.getFreshPfSaBearerToken: end`,
+      state,
+    });
+    return response;
+  }
+  debugMessage({
+    message: `AuthenticateOps.getFreshPfSaBearerToken: end [No access token in response]`,
+    state,
+  });
+  return null;
+}
+
+/**
  * Get cached or fresh access token for service account
  * @param {State} state library state
  * @returns {Promise<AccessTokenResponseType>} response object containg token, scope, type, and expiration in seconds
@@ -941,6 +1134,64 @@ export async function getSaBearerToken({
 }
 
 /**
+ * Get cached or fresh PingFed access token for service account
+ * @param {State} state library state
+ * @returns {Promise<AccessTokenResponseType>} response object containg token, scope, type, and expiration in seconds
+ */
+export async function getPfSaBearerToken({
+  state,
+}: {
+  state: State;
+}): Promise<AccessTokenMetaType> {
+  try {
+    debugMessage({
+      message: `AuthenticateOps.getPfSaBearerToken: start`,
+      state,
+    });
+    let token: AccessTokenMetaType = null;
+    if (
+      state.getUseTokenCache() &&
+      (await hasToken({ tokenType: 'pfSaBearer', state }))
+    ) {
+      try {
+        token = (await readToken({
+          tokenType: 'pfSaBearer',
+          state,
+        })) as AccessTokenMetaType;
+        token.from_cache = true;
+        debugMessage({
+          message: `AuthenticateOps.getPfSaBearerToken: end [cached]`,
+          state,
+        });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (error) {
+        debugMessage({
+          message: `AuthenticateOps.getPfSaBearerToken: end [failed cache read]`,
+          state,
+        });
+      }
+    }
+    if (!token) {
+      token = await getFreshPfSaBearerToken({ state });
+      token.from_cache = false;
+      debugMessage({
+        message: `AuthenticateOps.getPfSaBearerToken: end [fresh]`,
+        state,
+      });
+    }
+    if (state.getUseTokenCache()) {
+      await saveToken({ tokenType: 'pfSaBearer', token, state });
+    }
+    return token;
+  } catch (error) {
+    throw new FrodoError(
+      `Error getting access token for service account`,
+      error
+    );
+  }
+}
+
+/**
  * Helper function to determine whether the deployment is an iga cloud tenant or not, and set the state accordingly
  * @param state library state
  */
@@ -954,6 +1205,23 @@ async function determineIsIGATenant(state: State): Promise<void> {
         state,
       })) as ServiceAccountScope[]
     ).some((s) => s.scope === Constants.AVAILABLE_SCOPES.IGAFullScope)
+  );
+}
+
+/**
+ * Helper function to determine whether the deployment is a PingFed cloud tenant or not, and set the state accordingly
+ * @param state library state
+ */
+async function determineIsPingFedTenant(state: State): Promise<void> {
+  if (state.getIsPingFed() !== undefined) return;
+  // Check if the PingFed scope is part of the possible scopes since non PingFed tenants do not have this scope as a possible scope
+  state.setIsPingFed(
+    (
+      (await readServiceAccountScopes({
+        flatten: false,
+        state,
+      })) as ServiceAccountScope[]
+    ).some((s) => s.scope === Constants.AVAILABLE_SCOPES.WSFedAdminScope)
   );
 }
 
@@ -1101,6 +1369,8 @@ async function authenticateUser(
 
   await determineIsIGATenant(state);
 
+  await determineIsPingFedTenant(state);
+
   if (
     state.getCookieValue() &&
     // !state.getBearerToken() &&
@@ -1109,12 +1379,18 @@ async function authenticateUser(
   ) {
     const accessToken = await getUserBearerToken(state);
     if (accessToken) state.setBearerTokenMeta(accessToken);
+
+    if (state.getIsPingFed()) {
+      const pfAccessToken = await getPfUserBearerToken(state);
+      if (pfAccessToken) state.setPfBearerTokenMeta(pfAccessToken);
+    }
   }
 }
 
 export type Tokens = {
   bearerToken?: AccessTokenMetaType;
   userSessionToken?: UserSessionMetaType;
+  pfBearerToken?: AccessTokenMetaType;
   subject?: string;
   host?: string;
   realm?: string;
@@ -1208,6 +1484,12 @@ export async function getTokens({
       try {
         const token = await getSaBearerToken({ state });
         if (token) state.setBearerTokenMeta(token);
+
+        if (state.getIsPingFed()) {
+          const pfToken = await getPfSaBearerToken({ state });
+          if (pfToken) state.setPfBearerTokenMeta(pfToken);
+        }
+
         if (usingConnectionProfile && !token.from_cache) {
           saveConnectionProfile({ host: state.getHost(), state });
         }
@@ -1225,6 +1507,8 @@ export async function getTokens({
         }
 
         await determineIsIGATenant(state);
+
+        await determineIsPingFedTenant(state);
       } catch (saErr) {
         throw new FrodoError(`Service account login error`, saErr);
       }
@@ -1337,6 +1621,7 @@ export async function getTokens({
       const tokens: Tokens = {
         bearerToken: state.getBearerTokenMeta(),
         userSessionToken: state.getUserSessionTokenMeta(),
+        pfBearerToken: state.getPfBearerTokenMeta(),
         subject: await getLoggedInSubject(state),
         host: state.getHost(),
         realm: state.getRealm() ? state.getRealm() : 'root',

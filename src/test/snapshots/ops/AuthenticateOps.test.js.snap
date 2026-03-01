@@ -4,6 +4,7 @@ exports[`AuthenticateOps Classic Tests getTokens() 0: Authenticate successfully 
 {
   "bearerToken": undefined,
   "host": "http://openam-frodo-dev.classic.com:8080/am",
+  "pfBearerToken": undefined,
   "realm": "/",
   "subject": Any<String>,
   "userSessionToken": {
@@ -24,6 +25,7 @@ exports[`AuthenticateOps Classic Tests getTokens() 1: Authenticate successfully 
 {
   "bearerToken": undefined,
   "host": "http://openam-frodo-dev.classic.com:8080/am",
+  "pfBearerToken": undefined,
   "realm": "/",
   "subject": Any<String>,
   "userSessionToken": {
@@ -44,6 +46,7 @@ exports[`AuthenticateOps Classic Tests getTokens() 2: Authenticate successfully 
 {
   "bearerToken": undefined,
   "host": "http://openam-frodo-dev.classic.com:8080/am",
+  "pfBearerToken": undefined,
   "realm": "/",
   "subject": Any<String>,
   "userSessionToken": {

@@ -63,6 +63,8 @@ export type State = {
   getDeploymentType(): string;
   setIsIGA(isIGA: boolean): void;
   getIsIGA(): boolean | undefined;
+  setIsPingFed(isPingFed: boolean): void;
+  getIsPingFed(): boolean | undefined;
   setAdminClientId(type: string): void;
   getAdminClientId(): string;
   setAdminClientRedirectUri(type: string): void;
@@ -95,6 +97,9 @@ export type State = {
   setBearerTokenMeta(token: AccessTokenMetaType): void;
   getBearerToken(): string;
   getBearerTokenMeta(): AccessTokenMetaType;
+  setPfBearerTokenMeta(token: AccessTokenMetaType): void;
+  getPfBearerToken(): string;
+  getPfBearerTokenMeta(): AccessTokenMetaType;
   setLogApiKey(key: string): void;
   getLogApiKey(): string;
   setLogApiSecret(secret: string): void;
@@ -266,6 +271,19 @@ export default (initialState: StateInterface): State => {
           : state.isIGA;
     },
 
+    setIsPingFed(isPingFed: boolean) {
+      state.isPingFed = isPingFed;
+    },
+    getIsPingFed(): boolean | undefined {
+      if (this.getDeploymentType() !== Constants.CLOUD_DEPLOYMENT_TYPE_KEY)
+        return false;
+      return process.env.FRODO_PINGFED === 'true'
+        ? true
+        : process.env.FRODO_PINGFED === 'false'
+          ? false
+          : state.isPingFed;
+    },
+
     setAdminClientId(clientId: string) {
       state.adminClientId = clientId;
     },
@@ -384,6 +402,15 @@ export default (initialState: StateInterface): State => {
     },
     getBearerTokenMeta(): AccessTokenMetaType {
       return state.bearerToken;
+    },
+    setPfBearerTokenMeta(token: AccessTokenMetaType) {
+      state.pfBearerToken = token;
+    },
+    getPfBearerToken(): string {
+      return state.pfBearerToken?.access_token;
+    },
+    getPfBearerTokenMeta(): AccessTokenMetaType {
+      return state.pfBearerToken;
     },
 
     setLogApiKey(key: string) {
@@ -627,6 +654,7 @@ export interface StateInterface {
   useRealmPrefixOnManagedObjects?: boolean;
   deploymentType?: string;
   isIGA?: boolean;
+  isPingFed?: boolean;
   adminClientId?: string;
   adminClientRedirectUri?: string;
   allowInsecureConnection?: boolean;
@@ -649,6 +677,7 @@ export interface StateInterface {
   // bearer token settings
   useBearerTokenForAmApis?: boolean;
   bearerToken?: AccessTokenMetaType;
+  pfBearerToken?: AccessTokenMetaType;
   // log api settings
   logApiKey?: string;
   logApiSecret?: string;

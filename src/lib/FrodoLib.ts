@@ -47,6 +47,7 @@ import ServiceAccountOps, {
 } from '../ops/cloud/ServiceAccountOps';
 import StartupOps, { Startup } from '../ops/cloud/StartupOps';
 import VariablesOps, { Variable } from '../ops/cloud/VariablesOps';
+import WSFedOps, { WSFed } from '../ops/cloud/WSFedOps';
 import ConfigOps, { Config } from '../ops/ConfigOps';
 import ConnectionProfileOps, {
   ConnectionProfile,
@@ -149,6 +150,7 @@ export type Frodo = {
     serviceAccount: ServiceAccount;
     startup: Startup;
     variable: Variable;
+    wsfed: WSFed;
   };
 
   config: Config;
@@ -347,6 +349,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       serviceAccount: ServiceAccountOps(state),
       startup: StartupOps(state),
       variable: VariablesOps(state),
+      wsfed: WSFedOps(state),
     },
 
     config: ConfigOps(state),
