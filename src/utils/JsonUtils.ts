@@ -120,19 +120,33 @@ export function isEqualJson(
 }
 
 /**
- * Deep delete keys and their values from an input object. If a key in object contains or equals substring, the key an its value is deleted.
+ * Deep delete keys and their values from an input object. If a key in object contains or equals substring, the key and its value is deleted.
  * @param {Object} object input object that needs keys removed
  * @param {String} substring substring to search for in key
  * @returns the modified object without the matching keys and their values
  */
 export function deleteDeepByKey(object: any, substring: string) {
+  return deleteDeepByKeys(object, [substring]);
+}
+
+/**
+ * Deep delete keys and their values from an input object. If a key in object contains or equals a substring of any provided, the key and its value is deleted.
+ * @param {Object} object input object that needs keys removed
+ * @param {String[]} substrings substrings to search for in key
+ * @returns the modified object without the matching keys and their values
+ */
+export function deleteDeepByKeys(object: any, substrings: string[]) {
   const obj = object;
   const keys = Object.keys(obj);
   for (const key of keys) {
-    if (key.indexOf(substring) > -1) {
-      delete obj[key];
-    } else if (Object(obj[key]) === obj[key]) {
-      obj[key] = deleteDeepByKey(obj[key], substring);
+    for (const substring of substrings) {
+      if (key.indexOf(substring) > -1) {
+        delete obj[key];
+        break;
+      }
+    }
+    if (Object(obj[key]) === obj[key]) {
+      obj[key] = deleteDeepByKeys(obj[key], substrings);
     }
   }
   return obj;

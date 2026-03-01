@@ -23,7 +23,7 @@ import {
   encodeBase64Url,
 } from './Base64Utils';
 import { debugMessage, printMessage, updateProgressIndicator } from './Console';
-import { deleteDeepByKey, stringify } from './JsonUtils';
+import { deleteDeepByKeys, stringify } from './JsonUtils';
 
 export type ExportImport = {
   getMetadata(): ExportMetaData;
@@ -37,12 +37,21 @@ export type ExportImport = {
   getTypedFilename(name: string, type: string, suffix?: string): string;
   getWorkingDirectory(mkdirs?: boolean): string;
   getFilePath(fileName: string, mkdirs?: boolean): string;
+  /**
+   * Save object to file in Frodo export format
+   * @param {any} data data object
+   * @param {string} identifier key of identifier in the data object
+   * @param {string} filename file name
+   * @param {boolean} includeMeta true to include metadata, false otherwise. Default: true
+   * @param {boolean} keepModifiedProperties true to keep modified properties in the json, otherwise delete them. Default: false
+   */
   saveToFile(
     type: string,
     data: object,
     identifier: string,
     filename: string,
-    includeMeta?: boolean
+    includeMeta?: boolean,
+    keepModifiedProperties?: boolean
   ): void;
   /**
    * Save JSON object to file
@@ -50,13 +59,15 @@ export type ExportImport = {
    * @param {String} filename file name
    * @param {boolean} includeMeta true to include metadata, false otherwise. Default: true
    * @param {boolean} keepRev keep the _rev key from objects. Default: false
+   * @param {boolean} keepModifiedProperties true to keep modified properties in the json, otherwise delete them. Default: false
    * @return {boolean} true if successful, false otherwise
    */
   saveJsonToFile(
     data: object,
     filename: string,
     includeMeta?: boolean,
-    keepRev?: boolean
+    keepRev?: boolean,
+    keepModifiedProperties?: boolean
   ): boolean;
   /**
    * Save text data to file
@@ -171,7 +182,8 @@ export default (state: State): ExportImport => {
       data: object,
       identifier: string,
       filename: string,
-      includeMeta = true
+      includeMeta = true,
+      keepModifiedProperties = false
     ): void {
       return saveToFile({
         type,
@@ -179,6 +191,7 @@ export default (state: State): ExportImport => {
         identifier,
         filename,
         includeMeta,
+        keepModifiedProperties,
         state,
       });
     },
@@ -186,9 +199,17 @@ export default (state: State): ExportImport => {
       data: object,
       filename: string,
       includeMeta = true,
-      keepRev = false
+      keepRev = false,
+      keepModifiedProperties = false
     ): boolean {
-      return saveJsonToFile({ data, filename, includeMeta, keepRev, state });
+      return saveJsonToFile({
+        data,
+        filename,
+        includeMeta,
+        keepRev,
+        keepModifiedProperties,
+        state,
+      });
     },
     saveTextToFile(data: string, filename: string): boolean {
       return saveTextToFile({ data, filename, state });
@@ -354,23 +375,28 @@ export function getFilePath({
 }
 
 /**
- * Save to file
+ * Save object to file in Frodo export format
  * @param {any} data data object
+ * @param {string} identifier key of identifier in the data object
  * @param {string} filename file name
+ * @param {boolean} includeMeta true to include metadata, false otherwise. Default: true
+ * @param {boolean} keepModifiedProperties true to keep modified properties in the json, otherwise delete them. Default: false
  */
 export function saveToFile({
   type,
   data,
   identifier,
   filename,
-  includeMeta,
+  includeMeta = true,
+  keepModifiedProperties = false,
   state,
 }: {
   type: string;
   data: object;
   identifier: string;
   filename: string;
-  includeMeta: boolean;
+  includeMeta?: boolean;
+  keepModifiedProperties?: boolean;
   state: State;
 }): void {
   const exportData = {};
@@ -386,6 +412,7 @@ export function saveToFile({
   saveJsonToFile({
     data: exportData,
     includeMeta,
+    keepModifiedProperties,
     filename,
     state,
   });
@@ -397,6 +424,7 @@ export function saveToFile({
  * @param {string} filename file name
  * @param {boolean} includeMeta true to include metadata, false otherwise. Default: true
  * @param {boolean} keepRev Keep the _rev key from objects. Default: false
+ * @param {boolean} keepModifiedProperties true to keep modified properties in the json, otherwise delete them. Default: false
  * @return {boolean} true if successful, false otherwise
  */
 export function saveJsonToFile({
@@ -404,20 +432,39 @@ export function saveJsonToFile({
   filename,
   includeMeta = true,
   keepRev = false,
+  keepModifiedProperties = false,
   state,
 }: {
   data: object;
   filename: string;
   includeMeta?: boolean;
   keepRev?: boolean;
+  keepModifiedProperties?: boolean;
   state: State;
 }): boolean {
   const exportData = data;
   if (includeMeta && !exportData['meta'])
     exportData['meta'] = getMetadata({ state });
   if (!includeMeta && exportData['meta']) delete exportData['meta'];
+  const keysToDelete = [];
   if (!keepRev) {
-    deleteDeepByKey(exportData, '_rev');
+    keysToDelete.push('_rev');
+  }
+  if (!keepModifiedProperties) {
+    keysToDelete.push(
+      ...[
+        'lastModifiedBy',
+        'lastModifiedDate',
+        'modified',
+        'modifiedDate',
+        'lastChangeDate',
+        'lastChangedBy',
+        'lastChanged',
+      ]
+    );
+  }
+  if (keysToDelete.length) {
+    deleteDeepByKeys(exportData, keysToDelete);
   }
   return saveTextToFile({
     data: stringify(exportData),
