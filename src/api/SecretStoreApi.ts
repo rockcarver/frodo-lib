@@ -372,6 +372,7 @@ export async function putSecretStoreMapping({
     secretTypesThatIgnoreId.includes(secretStoreTypeId) ? '' : secretStoreId,
     secretStoreMappingData.secretId
   );
+  delete secretStoreMappingData._rev;
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
     state,

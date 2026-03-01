@@ -579,16 +579,30 @@ export async function readSecretStores({
     });
     const isCloudDeployment =
       state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
-    const result = isCloudDeployment
-      ? [
+    let result = [];
+    if (isCloudDeployment) {
+      try {
+        result.push(
           await getSecretStore({
             secretStoreId: 'ESV',
             secretStoreTypeId: 'GoogleSecretManagerSecretStoreProvider',
             globalConfig,
             state,
-          }),
-        ]
-      : (await getSecretStores({ globalConfig, state })).result;
+          })
+        );
+      } catch (e) {
+        if (
+          e.response?.status === 403 &&
+          e.response?.data?.message ===
+            'This operation is not available in PingOne Advanced Identity Cloud.'
+        ) {
+          return result;
+        }
+        throw e;
+      }
+    } else {
+      result = (await getSecretStores({ globalConfig, state })).result;
+    }
     debugMessage({ message: `SecretStoreOps.readSecretStores: end`, state });
     return result;
   } catch (error) {
