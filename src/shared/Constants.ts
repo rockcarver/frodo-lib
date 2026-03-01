@@ -1,3 +1,5 @@
+import { GlossaryObjectType } from '../api/cloud/iga/IgaGlossaryApi';
+
 export type Constants = {
   DEFAULT_REALM_KEY: string;
   CLASSIC_DEPLOYMENT_TYPE_KEY: string;
@@ -13,6 +15,9 @@ export type Constants = {
   FRODO_CONNECTION_PROFILES_PATH_KEY: string;
   FRODO_MASTER_KEY_PATH_KEY: string;
   FRODO_MASTER_KEY_KEY: string;
+  GLOSSARY_APPLICATION_OBJECT_TYPE: GlossaryObjectType;
+  GLOSSARY_ENTITLEMENT_OBJECT_TYPE: GlossaryObjectType;
+  GLOSSARY_ROLE_OBJECT_TYPE: GlossaryObjectType;
   RETRY_NOTHING_KEY: string;
   RETRY_EVERYTHING_KEY: string;
   RETRY_NETWORK_KEY: string;
@@ -39,6 +44,11 @@ const FRODO_CONNECTION_PROFILES_PATH_KEY = 'FRODO_CONNECTION_PROFILES_PATH';
 const FRODO_MASTER_KEY_PATH_KEY = 'FRODO_MASTER_KEY_PATH';
 const FRODO_MASTER_KEY_KEY = 'FRODO_MASTER_KEY';
 const FRODO_TOKEN_CACHE_PATH_KEY = 'FRODO_TOKEN_CACHE_PATH';
+const GLOSSARY_APPLICATION_OBJECT_TYPE: GlossaryObjectType =
+  '/openidm/managed/application';
+const GLOSSARY_ENTITLEMENT_OBJECT_TYPE: GlossaryObjectType =
+  '/openidm/managed/assignment';
+const GLOSSARY_ROLE_OBJECT_TYPE: GlossaryObjectType = '/openidm/managed/role';
 const AVAILABLE_SCOPES = {
   // AMIntrospectRealmTokenScope lets you introspect scopes _from the same realm_, there is a separate scope to introspect tokens from _all_ realms
   AMIntrospectRealmTokenScope: 'am-introspect-all-tokens',
@@ -125,6 +135,9 @@ export default {
   FRODO_MASTER_KEY_PATH_KEY,
   FRODO_MASTER_KEY_KEY,
   FRODO_TOKEN_CACHE_PATH_KEY,
+  GLOSSARY_APPLICATION_OBJECT_TYPE,
+  GLOSSARY_ENTITLEMENT_OBJECT_TYPE,
+  GLOSSARY_ROLE_OBJECT_TYPE,
   AVAILABLE_SCOPES,
   RETRY_NOTHING_KEY,
   RETRY_EVERYTHING_KEY,

@@ -1,5 +1,13 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
+import {
+  brotliCompressSync,
+  brotliDecompressSync,
+  deflateSync,
+  gunzipSync,
+  gzipSync,
+  inflateSync,
+} from 'zlib';
 
 import { Polly } from '@pollyjs/core';
 import FSPersister from '@pollyjs/persister-fs';
@@ -7,11 +15,11 @@ import { MODES } from '@pollyjs/utils';
 import { LogLevelDesc } from 'loglevel';
 import pollyJest from 'setup-polly-jest';
 
-import { state } from '../index';
+import { FrodoError, state } from '../index';
 import { getTokens } from '../ops/AuthenticateOps';
 import Constants from '../shared/Constants';
 import { FrodoNodeHttpAdapter } from './FrodoNodeHttpAdapter';
-import { defaultMatchRequestsBy } from './PollyUtils';
+import { defaultMatchRequestsBy, filterRecording } from './PollyUtils';
 
 const { setupPolly } = pollyJest;
 
@@ -120,4 +128,174 @@ export function autoSetupPolly(matchRequestsBy = defaultMatchRequestsBy()) {
     },
     matchRequestsBy,
   });
+}
+
+export function setupPollyRecordingContext(
+  ctx,
+  idReplacementStrategies?: {
+    pathToObj: string[];
+    identifier: string;
+    testObjs: object[];
+    oldObjIds: Map<string, string>;
+    namesWhereMultipleRequestsMade: string[];
+  }[],
+  keepResponsesCompressed: boolean = false
+): void {
+  ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+    // Filter recordings
+    filterRecording(recording, true, state);
+    // Replace ids
+    if (idReplacementStrategies) {
+      for (const strategy of idReplacementStrategies) {
+        for (const obj of strategy.testObjs) {
+          const id = obj[strategy.identifier];
+          const oldId = strategy.oldObjIds.get(id);
+          if (oldId) {
+            recording.request.url = recording.request.url.replaceAll(id, oldId);
+            if (recording.request.postData)
+              recording.request.postData.text =
+                recording.request.postData.text.replaceAll(id, oldId);
+            recording.response.content.text =
+              recording.response.content.text.replaceAll(id, oldId);
+          }
+        }
+      }
+    }
+  });
+  if (!idReplacementStrategies) return;
+  // Normalize id's from created ids to test ids
+  ctx.polly.config.matchRequestsBy.url.pathname = (path) => {
+    for (const strategy of idReplacementStrategies) {
+      const id = strategy.oldObjIds.keys().find((k) => path.endsWith(k));
+      if (!id) continue;
+      path = path.replaceAll(id, strategy.oldObjIds.get(id));
+    }
+    return path;
+  };
+  ctx.polly.config.matchRequestsBy.body = (bodyString) => {
+    for (const strategy of idReplacementStrategies) {
+      const id = getIdFromPath(
+        JSON.parse(bodyString),
+        strategy.identifier,
+        strategy.pathToObj
+      );
+      const value = strategy.oldObjIds.get(id);
+      if (!value) continue;
+      bodyString = bodyString.replaceAll(id, value);
+    }
+    return bodyString;
+  };
+  ctx.polly.server.any().on('beforeResponse', (req, res) => {
+    let responseBody = JSON.parse(res.body);
+    // Based on all recordings so far, any compressed response is base64 encoded and chunked using br encoding, so I assume the response is compressed when it's encoded and chunked.
+    const isCompressed =
+      res.encoding === 'base64' &&
+      res.headers['transfer-encoding'] === 'chunked';
+    if (isCompressed) {
+      const buffer = Buffer.concat(
+        responseBody.map((chunk) => Buffer.from(chunk, 'base64'))
+      );
+      let decompressedBuffer;
+      switch (res.headers['content-encoding']) {
+        // Should only ever be br encoded, but there are a few other common ones just in case
+        case 'br':
+          decompressedBuffer = brotliDecompressSync(buffer);
+          break;
+        case 'gzip':
+          decompressedBuffer = gunzipSync(buffer);
+          break;
+        case 'deflate':
+          decompressedBuffer = inflateSync(buffer);
+          break;
+        default:
+          throw new FrodoError(
+            `setupPollyRecordingContext (AutoSetupPolly.ts): Unsupported content-encoding '${res.headers['content-encoding']}'`
+          );
+      }
+      responseBody = JSON.parse(decompressedBuffer.toString('utf8'));
+    }
+    let responseBodyString = JSON.stringify(responseBody);
+    for (const strategy of idReplacementStrategies) {
+      const ids = [];
+      const pathId = strategy.oldObjIds
+        .keys()
+        .find((k) => req.pathname.endsWith(k));
+      if (pathId) {
+        ids.push(pathId);
+      } else {
+        const bodyId = getIdFromPath(
+          responseBody,
+          strategy.identifier,
+          strategy.pathToObj
+        );
+        if (bodyId) {
+          ids.push(bodyId);
+        } else if (
+          Array.isArray(responseBody.result) &&
+          responseBody.result.length > 0 &&
+          // For cases when multiple requests are made, we ignore
+          strategy.namesWhereMultipleRequestsMade.every(
+            (n) => !req.body.includes(n) && !req.identifiers.url.includes(n)
+          )
+        ) {
+          for (const data of responseBody.result) {
+            const dataId = getIdFromPath(
+              data,
+              strategy.identifier,
+              strategy.pathToObj
+            );
+            if (dataId) ids.push(dataId);
+          }
+        }
+      }
+      for (const id of ids) {
+        const value = strategy.oldObjIds.get(id);
+        if (value) {
+          responseBodyString = responseBodyString.replaceAll(id, value);
+        }
+      }
+    }
+    // Set the new body
+    if (keepResponsesCompressed && isCompressed) {
+      const buffer = Buffer.from(responseBodyString, 'utf8');
+      let compressedBuffer;
+      switch (res.headers['content-encoding']) {
+        case 'br':
+          compressedBuffer = brotliCompressSync(buffer);
+          break;
+        case 'gzip':
+          compressedBuffer = gzipSync(buffer);
+          break;
+        case 'deflate':
+          compressedBuffer = deflateSync(buffer);
+          break;
+        default:
+          throw new FrodoError(
+            `setupPollyRecordingContext (AutoSetupPolly.ts): Unsupported content-encoding '${res.headers['content-encoding']}'`
+          );
+      }
+      // We just use a single chunk here, no reason to split it up
+      res.body = JSON.stringify([compressedBuffer.toString('base64')]);
+    } else {
+      res.body = responseBodyString;
+      // Remove any indication that the response is compressed
+      res.encoding = undefined;
+      delete res.headers['content-encoding'];
+      delete res.headers['transfer-encoding'];
+    }
+  });
+}
+
+function getIdFromPath(
+  obj: object,
+  identifier: string,
+  path: string[]
+): string | null {
+  let id = obj;
+  path = [...path, identifier];
+  for (let i = 0; i < path.length; ++i) {
+    if (typeof id !== 'object' || id === null) return null;
+    id = id[path[i]];
+  }
+  return typeof id === 'string' ? id : null;
 }

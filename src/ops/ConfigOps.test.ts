@@ -7,6 +7,7 @@
  *
  *    Phase 1: Record tests that require cloud deployment
  *    Phase 2: Record tests that require classic deployment
+ *    Phase 3: Record tests that require iga cloud deployment
  *
  *    Because certain tests can only be successfully ran in classic deployments and/or
  *    cloud deployments, they have to be run in groups so that it is possible to record
@@ -291,6 +292,45 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: true,
+            },
+            resultCallback: snapshotResultCallback,
+            state
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object)
+          });
+        });
+      });
+
+      describe('importFullConfiguration()', () => {
+        // TODO: Write tests for full import
+      });
+    });
+  }
+
+  // Phase 3
+  if (
+    !process.env.FRODO_POLLY_MODE ||
+    (process.env.FRODO_POLLY_MODE === 'record' &&
+      process.env.FRODO_RECORD_PHASE === '3')
+  ) {
+    describe('IGA Cloud Tests', () => {
+      beforeEach(() => {
+        state.setIsIGA(true);
+        setDefaultState();
+      });
+      describe('exportFullConfiguration()', () => {
+        test('0: Export everything including IGA configuration', async () => {
+          const response = await ConfigOps.exportFullConfiguration({
+            options: {
+              useStringArrays: true,
+              noDecode: false,
+              coords: true,
+              includeDefault: true,
+              includeActiveValues: true,
+              includeReadOnly: true,
+              onlyRealm: false,
+              onlyGlobal: false,
             },
             resultCallback: snapshotResultCallback,
             state

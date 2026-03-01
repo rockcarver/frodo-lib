@@ -40,6 +40,7 @@ import EnvSSOCookieConfigOps, {
 } from '../ops/cloud/EnvSSOCookieConfigOps';
 import EsvCountOps, { EsvCount } from '../ops/cloud/EsvCountOps';
 import FeatureOps, { Feature } from '../ops/cloud/FeatureOps';
+import IgaGlossaryOps, { Glossary } from '../ops/cloud/iga/IgaGlossaryOps';
 import LogOps, { Log } from '../ops/cloud/LogOps';
 import SecretsOps, { Secret } from '../ops/cloud/SecretsOps';
 import ServiceAccountOps, {
@@ -145,6 +146,9 @@ export type Frodo = {
      */
     esvCount: EsvCount;
     feature: Feature;
+    iga: {
+      glossary: Glossary;
+    };
     log: Log;
     secret: Secret;
     serviceAccount: ServiceAccount;
@@ -344,6 +348,9 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       },
       esvCount: EsvCountOps(state),
       feature: FeatureOps(state),
+      iga: {
+        glossary: IgaGlossaryOps(state),
+      },
       log: LogOps(state),
       secret: SecretsOps(state),
       serviceAccount: ServiceAccountOps(state),
