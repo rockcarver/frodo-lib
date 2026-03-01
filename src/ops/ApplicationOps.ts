@@ -647,7 +647,6 @@ async function exportDependencies({
         },
         state,
       });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       exportData = mergeDeep(exportData, clientData);
     }
     // saml entity providers and circles of trust
@@ -659,7 +658,6 @@ async function exportDependencies({
           entityId: saml2IdpId,
           state,
         });
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         exportData = mergeDeep(exportData, saml2IdpData);
       }
       // saml SPs
@@ -669,7 +667,6 @@ async function exportDependencies({
           entityId: saml2SpId,
           state,
         });
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         exportData = mergeDeep(exportData, saml2SpData);
       }
       // circles of trust
@@ -678,7 +675,6 @@ async function exportDependencies({
         options: { indicateProgress: false },
         state,
       });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       exportData = mergeDeep(exportData, cotData);
     }
     // connectors and mappings

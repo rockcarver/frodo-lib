@@ -472,7 +472,6 @@ async function getFreshUserSessionToken({
   }
   try {
     let currentStep = null;
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       const response = await step({
         body: currentStep || {},
