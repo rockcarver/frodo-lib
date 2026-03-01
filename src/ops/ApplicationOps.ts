@@ -7,6 +7,11 @@ import {
   GlossarySkeleton,
   putApplicationGlossary,
 } from '../api/cloud/iga/IgaGlossaryApi';
+import {
+  getRequestFormAssignments,
+  RequestFormSkeleton,
+} from '../api/cloud/iga/IgaRequestFormApi';
+import { RequestTypeSkeleton } from '../api/cloud/iga/IgaRequestTypeApi';
 import { type OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
 import { Saml2ProviderSkeleton } from '../api/Saml2Api';
 import { type ScriptSkeleton } from '../api/ScriptApi';
@@ -35,6 +40,12 @@ import {
   GlossarySchemaExportInterface,
   importGlossarySchemas,
 } from './cloud/iga/IgaGlossaryOps';
+import {
+  deleteRequestForm,
+  exportRequestForm,
+  importRequestForms,
+} from './cloud/iga/IgaRequestFormOps';
+import { deleteRequestType } from './cloud/iga/IgaRequestTypeOps';
 import {
   ConnectorExportInterface,
   ConnectorSkeleton,
@@ -420,6 +431,14 @@ export interface ApplicationExportInterface {
    * Glossary Schema
    */
   glossarySchema?: Record<string, GlossarySchemaItemSkeleton<any>>;
+  /*
+   * Request forms
+   */
+  requestForm?: Record<string, RequestFormSkeleton>;
+  /*
+   * Request types
+   */
+  requestType?: Record<string, RequestTypeSkeleton>;
 }
 
 /**
@@ -649,6 +668,33 @@ function getGlossarySchemaNames(
   return Object.keys(applicationData.glossary);
 }
 
+async function getRequestFormIds(
+  applicationData: ApplicationGlossarySkeleton,
+  state?: State,
+  importData?: ApplicationExportInterface
+): Promise<string[]> {
+  if (importData) {
+    return Object.values(importData.requestForm)
+      .filter(
+        (f) =>
+          f.assignments &&
+          f.assignments.some((a) =>
+            a.objectId.startsWith(`application/${applicationData._id}`)
+          )
+      )
+      .map((f) => f.id);
+  } else if (state) {
+    return (
+      await getRequestFormAssignments({
+        applicationId: applicationData._id,
+        state,
+      })
+    ).map((a) => a.formId);
+  } else {
+    return [];
+  }
+}
+
 function isProvisioningApplication(
   applicationData: ApplicationSkeleton
 ): boolean {
@@ -742,6 +788,20 @@ async function exportDependencies({
           await exportGlossarySchemaByNameAndObjectType({
             glossaryName,
             objectType: constants.GLOSSARY_APPLICATION_OBJECT_TYPE,
+            state,
+          })
+        );
+      }
+    }
+    // request types/forms
+    if (state.getIsIGA()) {
+      const ids = await getRequestFormIds(applicationData, state);
+      for (const formId of ids) {
+        exportData = mergeDeep(
+          exportData,
+          await exportRequestForm({
+            formId,
+            options: { deps: true, useStringArrays: options.useStringArrays },
             state,
           })
         );
@@ -857,6 +917,23 @@ async function importDependencies({
             options: {
               includeInternal: false,
             },
+            state,
+          });
+        } catch (error) {
+          errors.push(error);
+        }
+      }
+    }
+    // request forms/types
+    if (state.getIsIGA() && importData.requestForm) {
+      const ids = await getRequestFormIds(applicationData, state, importData);
+      for (const formId of ids) {
+        try {
+          await importRequestForms({
+            formId,
+            //@ts-expect-error Since we ensure requestForm exists before this, we can ignore the error
+            importData,
+            options: { deps: true },
             state,
           });
         } catch (error) {
@@ -1019,6 +1096,32 @@ async function deleteDependencies({
           });
         } catch (error) {
           errors.push(error);
+        }
+      }
+    }
+    // request forms/types
+    if (state.getIsIGA()) {
+      const ids = await getRequestFormIds(applicationData, state);
+      for (const formId of ids) {
+        // Get request types of the request form
+        const requestTypeIds = (
+          await getRequestFormAssignments({ formId, state })
+        )
+          .filter((a) => a.objectId.startsWith('requestType/'))
+          .map((a) => a.objectId.split('/').pop());
+        // Delete request form
+        try {
+          await deleteRequestForm({ formId, state });
+        } catch (error) {
+          errors.push(error);
+        }
+        // Delete request types
+        for (const typeId of requestTypeIds) {
+          try {
+            await deleteRequestType({ typeId, state });
+          } catch (error) {
+            errors.push(error);
+          }
         }
       }
     }

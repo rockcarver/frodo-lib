@@ -41,6 +41,12 @@ import EnvSSOCookieConfigOps, {
 import EsvCountOps, { EsvCount } from '../ops/cloud/EsvCountOps';
 import FeatureOps, { Feature } from '../ops/cloud/FeatureOps';
 import IgaGlossaryOps, { Glossary } from '../ops/cloud/iga/IgaGlossaryOps';
+import IgaRequestFormOps, {
+  RequestForm,
+} from '../ops/cloud/iga/IgaRequestFormOps';
+import IgaRequestTypeOps, {
+  RequestType,
+} from '../ops/cloud/iga/IgaRequestTypeOps';
 import LogOps, { Log } from '../ops/cloud/LogOps';
 import SecretsOps, { Secret } from '../ops/cloud/SecretsOps';
 import ServiceAccountOps, {
@@ -148,6 +154,8 @@ export type Frodo = {
     feature: Feature;
     iga: {
       glossary: Glossary;
+      requestForm: RequestForm;
+      requestType: RequestType;
     };
     log: Log;
     secret: Secret;
@@ -350,6 +358,8 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       feature: FeatureOps(state),
       iga: {
         glossary: IgaGlossaryOps(state),
+        requestForm: IgaRequestFormOps(state),
+        requestType: IgaRequestTypeOps(state),
       },
       log: LogOps(state),
       secret: SecretsOps(state),
