@@ -331,6 +331,45 @@ describe('IgaRequestFormOps', () => {
         })).rejects.toThrow('Error deleting request form ' + unknownName);
       });
     });
+
+    describe('deleteOrphanedRequestFormAssignments()', () => {
+      test('0: Method is implemented', async () => {
+        expect(IgaRequestFormOps.deleteOrphanedRequestFormAssignments).toBeDefined();
+      });
+
+      test(`1: Delete orphaned form assignments by id`, async () => {
+        const response = await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
+          applicationId: TestData.requestFormAssignment2.objectId.split('/')[1],
+          workflowId: TestData.requestFormAssignment3.objectId.split('/')[1],
+          requestTypeId: TestData.requestFormAssignment4.objectId.split('/')[1],
+          state,
+        });
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`2: Delete orphaned form assignments by form id`, async () => {
+        const response = await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
+          formId: TestData.requestFormAssignment6.formId,
+          state,
+        });
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`3: Delete orphaned workflow form assignments`, async () => {
+        const response = await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
+          onlyWorkflow: true,
+          state,
+        });
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`4: Delete all other orphaned form assignments`, async () => {
+        const response = await IgaRequestFormOps.deleteOrphanedRequestFormAssignments({
+          state,
+        });
+        expect(response).toMatchSnapshot();
+      });
+    });
   }
   // Phase 2
   if (

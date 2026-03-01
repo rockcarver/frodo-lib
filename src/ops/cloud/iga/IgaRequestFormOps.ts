@@ -5,10 +5,14 @@ import {
   getRequestFormAssignments,
   putRequestForm,
   queryRequestForms,
+  RequestFormAssignment,
   RequestFormSkeleton,
   unassignRequestForm,
 } from '../../../api/cloud/iga/IgaRequestFormApi';
-import { RequestTypeSkeleton } from '../../../api/cloud/iga/IgaRequestTypeApi';
+import {
+  queryRequestTypes,
+  RequestTypeSkeleton,
+} from '../../../api/cloud/iga/IgaRequestTypeApi';
 import { State } from '../../../shared/State';
 import {
   createProgressIndicator,
@@ -22,9 +26,11 @@ import {
   transformScriptArraysToStrings,
   transformScriptStringsToArrays,
 } from '../../../utils/ExportImportUtils';
+import { queryApplications } from '../../ApplicationOps';
 import { FrodoError } from '../../FrodoError';
 import { ExportMetaData, ResultCallback } from '../../OpsTypes';
 import { exportRequestType, importRequestTypes } from './IgaRequestTypeOps';
+import { readGroupedWorkflows, WorkflowGroups } from './IgaWorkflowOps';
 
 export type RequestForm = {
   /**
@@ -120,6 +126,24 @@ export type RequestForm = {
   deleteRequestForms(
     resultCallback?: ResultCallback<RequestFormSkeleton>
   ): Promise<RequestFormSkeleton[]>;
+  /**
+   * Delete orphaned request form assignments. If no ids are specified, it will remove all orphans
+   * @param {string} formId The optional request form id. If specified, deletes orphaned assignments for the specified form.
+   * @param {string} workflowId The optional workflow id. If specified, deletes orphaned assignments for the specified workflow.
+   * @param {string} applicationId The optional application id. If specified, deletes orphaned assignments for the specified application.
+   * @param {string} requestTypeId The optional request type id. If specified, deletes orphaned assignments for the specified request type.
+   * @param {boolean} onlyWorkflow Optional flag to return only workflow related assignments. Default: false
+   * @param {ResultCallback<RequestFormAssignment>} resultCallback Optional callback to process individual results
+   * @returns {RequestFormAssignment[]} the deleted orphaned form assignments
+   */
+  deleteOrphanedRequestFormAssignments(
+    formId?: string,
+    workflowId?: string,
+    applicationId?: string,
+    requestTypeId?: string,
+    onlyWorkflow?: boolean,
+    resultCallback?: ResultCallback<RequestFormAssignment>
+  ): Promise<RequestFormAssignment[]>;
 };
 
 export default (state: State): RequestForm => {
@@ -213,6 +237,24 @@ export default (state: State): RequestForm => {
       resultCallback: ResultCallback<RequestFormSkeleton> = void 0
     ): Promise<RequestFormSkeleton[]> {
       return deleteRequestForms({
+        resultCallback,
+        state,
+      });
+    },
+    deleteOrphanedRequestFormAssignments(
+      formId?: string,
+      workflowId?: string,
+      applicationId?: string,
+      requestTypeId?: string,
+      onlyWorkflow: boolean = false,
+      resultCallback: ResultCallback<RequestFormAssignment> = void 0
+    ): Promise<RequestFormAssignment[]> {
+      return deleteOrphanedRequestFormAssignments({
+        formId,
+        workflowId,
+        applicationId,
+        requestTypeId,
+        onlyWorkflow,
         resultCallback,
         state,
       });
@@ -619,6 +661,7 @@ export async function deleteRequestForm({
   state: State;
 }): Promise<RequestFormSkeleton> {
   try {
+    // Must delete request form assignments first before you can delete the request form
     const assignments = await getRequestFormAssignments({ formId, state });
     for (const assignment of assignments) {
       await unassignRequestForm({
@@ -687,6 +730,112 @@ export async function deleteRequestForms({
     }
   }
   return deletedRequestForms;
+}
+
+/**
+ * Delete orphaned request form assignments. If no ids are specified, it will remove all orphans
+ * @param {string} formId The optional request form id. If specified, deletes orphaned assignments for the specified form.
+ * @param {string} workflowId The optional workflow id. If specified, deletes orphaned assignments for the specified workflow.
+ * @param {string} applicationId The optional application id. If specified, deletes orphaned assignments for the specified application.
+ * @param {string} requestTypeId The optional request type id. If specified, deletes orphaned assignments for the specified request type.
+ * @param {boolean} onlyWorkflow Optional flag to return only workflow related assignments. Default: false
+ * @param {ResultCallback<RequestFormAssignment>} resultCallback Optional callback to process individual results
+ * @returns {RequestFormAssignment[]} the deleted orphaned form assignments
+ */
+export async function deleteOrphanedRequestFormAssignments({
+  formId,
+  workflowId,
+  applicationId,
+  requestTypeId,
+  onlyWorkflow = false,
+  resultCallback = void 0,
+  state,
+}: {
+  formId?: string;
+  workflowId?: string;
+  applicationId?: string;
+  requestTypeId?: string;
+  onlyWorkflow?: boolean;
+  resultCallback?: ResultCallback<RequestFormAssignment>;
+  state: State;
+}): Promise<RequestFormAssignment[]> {
+  const assignments = await getRequestFormAssignments({
+    formId,
+    workflowId,
+    applicationId,
+    requestTypeId,
+    onlyWorkflow,
+    state,
+  });
+  const orphanedAssignments: RequestFormAssignment[] = [];
+  const resultAssignments: RequestFormAssignment[] = [];
+  let existingWorkflows: WorkflowGroups;
+  let existingApplicationIds: Set<string>;
+  let existingRequestTypeIds: Set<string>;
+  for (const assignment of assignments) {
+    const id = assignment.objectId.split('/')[1];
+    if (assignment.objectId.startsWith('workflow')) {
+      if (!existingWorkflows)
+        existingWorkflows = await readGroupedWorkflows({ workflowId, state });
+      if (!Object.hasOwn(existingWorkflows, id)) {
+        orphanedAssignments.push(assignment);
+        continue;
+      }
+      // If the workflow exists, we check if the assignment is orphaned by the node it references (we must check both draft and published because it must be orphaned by both workflows to count)
+      const workflowGroup = existingWorkflows[id];
+      const nodeName = assignment.objectId.split('/').pop();
+      if (
+        (!workflowGroup.draft ||
+          !workflowGroup.draft.steps.some((s) => s.name === nodeName)) &&
+        (!workflowGroup.published ||
+          !workflowGroup.published.steps.some((s) => s.name === nodeName))
+      ) {
+        orphanedAssignments.push(assignment);
+      }
+    } else if (assignment.objectId.startsWith('application')) {
+      if (!existingApplicationIds)
+        existingApplicationIds = new Set(
+          (
+            await queryApplications({
+              filter: applicationId ? `_id eq "${applicationId}"` : 'true',
+              fields: ['_id'],
+              state,
+            })
+          ).map((a) => a._id)
+        );
+      if (!existingApplicationIds.has(id)) {
+        orphanedAssignments.push(assignment);
+      }
+    } else if (assignment.objectId.startsWith('requestType')) {
+      if (!existingRequestTypeIds)
+        existingRequestTypeIds = new Set(
+          (
+            await queryRequestTypes({
+              queryFilter: requestTypeId ? `id eq "${requestTypeId}"` : 'true',
+              fields: ['id'],
+              state,
+            })
+          ).map((t) => t.id)
+        );
+      if (!existingRequestTypeIds.has(id)) {
+        orphanedAssignments.push(assignment);
+      }
+    }
+  }
+  for (const assignment of orphanedAssignments) {
+    const result = await getResult(
+      resultCallback,
+      'Error deleting orphaned assignment',
+      unassignRequestForm,
+      {
+        formId: assignment.formId,
+        objectId: assignment.objectId,
+        state,
+      }
+    );
+    resultAssignments.push(result);
+  }
+  return resultAssignments;
 }
 
 /**

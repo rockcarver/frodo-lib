@@ -125,13 +125,16 @@ export async function getRequestType({
 /**
  * Query request types
  * @param {string} queryFilter The query filter to query with. Default: 'true'
+ * @param {string[]} fields Fields array to specify which fields to return. By default it will return all fields
  * @returns {Promise<RequestTypeSkeleton[]>} A promise that resolves to an array of request type objects
  */
 export async function queryRequestTypes({
   queryFilter = 'true',
+  fields = [],
   state,
 }: {
   queryFilter?: string;
+  fields?: string[];
   state: State;
 }): Promise<RequestTypeSkeleton[]> {
   const urlString = util.format(
@@ -141,6 +144,7 @@ export async function queryRequestTypes({
   return await getApiSearchAll<RequestTypeSkeleton>({
     url: urlString,
     queryFilter,
+    fields,
     state,
   });
 }

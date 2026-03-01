@@ -16,6 +16,7 @@ import {
 import { getMetadata, getResult } from '../../../utils/ExportImportUtils';
 import { FrodoError } from '../../FrodoError';
 import { ExportMetaData, ResultCallback } from '../../OpsTypes';
+import { deleteOrphanedRequestFormAssignments } from './IgaRequestFormOps';
 
 export type RequestType = {
   /**
@@ -611,7 +612,12 @@ export async function deleteRequestType({
   state: State;
 }): Promise<RequestTypeSkeleton> {
   try {
-    return await _deleteRequestType({ typeId, state });
+    const deletedRequestType = await _deleteRequestType({ typeId, state });
+    await deleteOrphanedRequestFormAssignments({
+      requestTypeId: typeId,
+      state,
+    });
+    return deletedRequestType;
   } catch (error) {
     throw new FrodoError(`Error deleting request type ${typeId}`, error);
   }
@@ -634,7 +640,7 @@ export async function deleteRequestTypeByName({
       typeName,
       state,
     });
-    return await _deleteRequestType({
+    return await deleteRequestType({
       typeId: requestType.id,
       state,
     });

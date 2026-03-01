@@ -179,8 +179,8 @@ exports[`IgaRequestTypeOps deleteRequestType() 1: Delete existing request type b
   "displayName": "test_request_type_5",
   "id": "b3e850f0-60c2-4138-be11-a08b17cde29f",
   "metadata": {
-    "createdDate": "2026-01-30T00:07:53.085406696Z",
-    "modifiedDate": "2026-01-30T00:07:53.085408647Z",
+    "createdDate": "2026-02-20T00:32:35.65777992Z",
+    "modifiedDate": "2026-02-20T00:32:35.65778173Z",
   },
   "notModifiableProperties": [],
   "schemas": {
@@ -473,8 +473,8 @@ exports[`IgaRequestTypeOps deleteRequestTypeByName() 1: Delete existing request 
   "displayName": "test_request_type_6",
   "id": "701666c0-3e45-4e59-a208-239ffca35934",
   "metadata": {
-    "createdDate": "2026-01-30T00:07:55.113272042Z",
-    "modifiedDate": "2026-01-30T00:07:55.113273092Z",
+    "createdDate": "2026-02-20T00:32:37.669868017Z",
+    "modifiedDate": "2026-02-20T00:32:37.669869957Z",
   },
   "notModifiableProperties": [],
   "schemas": {

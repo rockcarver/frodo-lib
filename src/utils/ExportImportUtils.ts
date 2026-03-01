@@ -723,8 +723,8 @@ export async function getResult<R>(
  * @param errorFilter Filter that returns true when the error should be handled, false otherwise
  * @returns The new result callback function that handles only errors
  */
-export function getErrorCallback<R>(
-  resultCallback: ResultCallback<R>,
+export function getErrorCallback<T, R>(
+  resultCallback: ResultCallback<T>,
   errorFilter: ErrorFilter = () => true
 ): ResultCallback<R> {
   return (e: FrodoError) => {
@@ -745,6 +745,7 @@ export function getErrorCallback<R>(
  * @param {number} pageSize Optional pageSize at which to query the results. Smaller page sizes will result in more API requests to get all results.
  *                          Default is 10000, which seems to be the max amount (any higher and no results will be returned from the API).
  * @param {string} queryFilter Optional filter to use when searching the results. No filter provided will result in returning all results.
+ * @param {string[]} fields Optional fields array to specify which fields to return. No fields provided will result in returning all fields.
  * @param {State} state The library state
  * @returns An array of all search results
  */
@@ -752,15 +753,17 @@ export async function getApiSearchAll<T>({
   url,
   pageSize = 10000,
   queryFilter = 'true',
+  fields = [],
   state,
 }: {
   url: string;
   pageSize?: number;
   queryFilter?: string;
+  fields?: string[];
   state: State;
 }): Promise<T[]> {
   const results: T[] = [];
-  const urlString = `${url}?_queryFilter=${queryFilter}&_pageSize=${pageSize}`;
+  const urlString = `${url}?_queryFilter=${queryFilter}&_pageSize=${pageSize}${fields && fields.length ? `&_fields=${fields.join(',')}` : ''}`;
   let currentSearchResult: SearchResult<T>;
   do {
     currentSearchResult = (
@@ -851,6 +854,9 @@ export function transformScriptStringsToArrays(obj: any): void {
     ) {
       o.script = o.script.split('\n');
     }
+    if (typeof o.condition === 'string') {
+      o.condition = o.condition.split('\n');
+    }
   });
 }
 
@@ -869,6 +875,9 @@ export function transformScriptArraysToStrings(obj: any): void {
       Array.isArray(o.script)
     ) {
       o.script = o.script.join('\n');
+    }
+    if (Array.isArray(o.condition)) {
+      o.condition = o.condition.join('\n');
     }
   });
 }

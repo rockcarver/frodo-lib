@@ -83,6 +83,11 @@ import {
   exportRequestTypes,
   importRequestTypes,
 } from './cloud/iga/IgaRequestTypeOps';
+import {
+  exportWorkflows,
+  importWorkflows,
+  WorkflowGroups,
+} from './cloud/iga/IgaWorkflowOps';
 import { exportSecrets, importSecrets } from './cloud/SecretsOps';
 import { exportVariables, importVariables } from './cloud/VariablesOps';
 import {
@@ -214,7 +219,7 @@ export interface FullExportOptions {
    */
   noDecode: boolean;
   /**
-   * Include x and y coordinate positions of the journey/tree nodes.
+   * Include x and y coordinate positions of the journey/tree/workflow nodes.
    */
   coords: boolean;
   /**
@@ -307,6 +312,7 @@ export interface FullGlobalExportInterface extends AmConfigEntitiesInterface {
   site: Record<string, SiteSkeleton> | undefined;
   sync: SyncSkeleton | undefined;
   variable: Record<string, VariableSkeleton> | undefined;
+  workflow: WorkflowGroups | undefined;
 }
 
 export interface FullRealmExportInterface extends AmConfigEntitiesInterface {
@@ -635,6 +641,24 @@ export async function exportFullConfiguration({
           isCloudDeployment
         )
       )?.variable,
+      workflow: (
+        await exportWithErrorHandling(
+          exportWorkflows,
+          {
+            options: {
+              deps: false,
+              useStringArrays,
+              coords,
+              includeReadOnly,
+            },
+            resultCallback: errorCallback,
+            state,
+          },
+          'Workflows',
+          resultCallback,
+          !!state.getIsIGA()
+        )
+      )?.workflow,
       ...config.global,
     } as FullGlobalExportInterface;
 
@@ -1219,6 +1243,21 @@ export async function importFullConfiguration({
       'Certification Templates',
       resultCallback,
       !!state.getIsIGA() && !!importData.global.certificationTemplate
+    )
+  );
+  response.push(
+    await importWithErrorHandling(
+      importWorkflows,
+      {
+        importData: importData.global,
+        options: { deps: false },
+        resultCallback: errorCallback,
+        state,
+      },
+      indicatorId,
+      'Workflows',
+      resultCallback,
+      !!state.getIsIGA() && !!importData.global.workflow
     )
   );
   response.push(
