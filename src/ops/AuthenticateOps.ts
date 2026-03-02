@@ -23,7 +23,10 @@ import {
   fillCallbacks,
   getCallbackValue,
 } from './CallbackOps';
-import { readServiceAccountScopes } from './cloud/EnvServiceAccountScopesOps';
+import {
+  readServiceAccountScopes,
+  flattenScopes,
+} from './cloud/EnvServiceAccountScopesOps';
 import {
   getServiceAccount,
   SERVICE_ACCOUNT_DEFAULT_SCOPES,
@@ -579,6 +582,47 @@ async function getUserSessionToken(
   return token;
 }
 
+/**
+ * Cache available service account scopes to avoid multiple calls to the API, which is especially relevant for cloud where the list of scopes can be quite long and deeply nested.
+ */
+let availableServiceAccountScopesCache: ServiceAccountScope[] = null;
+
+/**
+ * Get available service account scopes, optionally flattened, and cache the result to avoid multiple API calls
+ * @param param0 Object containing flatten flag and state
+ * @returns Promise resolving to an array of ServiceAccountScope objects or a flattened array of scope strings
+ */
+async function getAvailableServiceAccountScopes({
+  flatten = false,
+  state,
+}: {
+  flatten: boolean;
+  state: State;
+}): Promise<ServiceAccountScope[] | string[]> {
+  debugMessage({
+    message: `AuthenticateOps.getAvailableServiceAccountScopes: start`,
+    state,
+  });
+  try {
+    if (availableServiceAccountScopesCache === null) {
+      availableServiceAccountScopesCache = (await readServiceAccountScopes({
+        flatten: false,
+        state,
+      })) as ServiceAccountScope[];
+    }
+    if (flatten) {
+      return flattenScopes(availableServiceAccountScopesCache) as string[];
+    }
+    return availableServiceAccountScopesCache as ServiceAccountScope[];
+  } catch (error) {
+    debugMessage({
+      message: `AuthenticateOps.getAvailableServiceAccountScopes: error reading service account scopes: ${error}`,
+      state,
+    });
+    return [] as ServiceAccountScope[];
+  }
+}
+
 async function getAdminUserScopes({ state }: { state: State }) {
   debugMessage({
     message: `AuthenticateOps.getAdminUserScopes: start`,
@@ -594,7 +638,7 @@ async function getAdminUserScopes({ state }: { state: State }) {
     state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY
   ) {
     try {
-      const availableScopes = (await readServiceAccountScopes({
+      const availableScopes = (await getAvailableServiceAccountScopes({
         flatten: true,
         state,
       })) as string[];
@@ -1199,7 +1243,7 @@ async function determineIsIGATenant(state: State): Promise<void> {
   // Check if the IGA scope is part of the possible scopes since non IGA tenants do not have this scope as a possible scope
   state.setIsIGA(
     (
-      (await readServiceAccountScopes({
+      (await getAvailableServiceAccountScopes({
         flatten: false,
         state,
       })) as ServiceAccountScope[]
@@ -1216,7 +1260,7 @@ async function determineIsPingFedTenant(state: State): Promise<void> {
   // Check if the PingFed scope is part of the possible scopes since non PingFed tenants do not have this scope as a possible scope
   state.setIsPingFed(
     (
-      (await readServiceAccountScopes({
+      (await getAvailableServiceAccountScopes({
         flatten: false,
         state,
       })) as ServiceAccountScope[]
