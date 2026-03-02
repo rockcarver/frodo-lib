@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0-21] - 2026-03-02
+
 ## [4.0.0-20] - 2026-03-01
 
 ## [4.0.0-19] - 2026-03-01
@@ -2026,7 +2028,8 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v4.0.0-20...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v4.0.0-21...HEAD
+[4.0.0-21]: https://github.com/rockcarver/frodo-lib/compare/v4.0.0-20...v4.0.0-21
 [4.0.0-20]: https://github.com/rockcarver/frodo-lib/compare/v4.0.0-19...v4.0.0-20
 [4.0.0-19]: https://github.com/rockcarver/frodo-lib/compare/v4.0.0-18...v4.0.0-19
 [4.0.0-18]: https://github.com/rockcarver/frodo-lib/compare/v4.0.0-17...v4.0.0-18
