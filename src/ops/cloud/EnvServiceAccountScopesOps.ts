@@ -25,7 +25,7 @@ export default (state: State): EnvServiceAccountScopes => {
   };
 };
 
-function flattenScopes(scopes: ServiceAccountScope[]): string[] {
+export function flattenScopes(scopes: ServiceAccountScope[]): string[] {
   const flattenedScopes: string[] = [];
   for (const scope of scopes) {
     flattenedScopes.push(scope.scope);
