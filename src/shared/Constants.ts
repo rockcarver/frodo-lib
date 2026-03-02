@@ -66,6 +66,9 @@ const AVAILABLE_SCOPES = {
 
   AnalyticsFullScope: 'fr:idc:analytics:*', //                              All Analytics APIs
 
+  CCCFullScope: 'fr:idc:ccc:*', //                                          All CCC APIs
+  CCCReadScope: 'fr:idc:ccc:read', //                                       Read CCC state
+
   CertificateFullScope: 'fr:idc:certificate:*', //                          All TLS certificate APIs
 
   CertificateReadScope: 'fr:idc:certificate:read', //                       Read TLS certificates
