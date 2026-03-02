@@ -131,6 +131,7 @@ const redirectUrlTemplate = '/platform/appAuthHelperRedirect.html';
 const s = Constants.AVAILABLE_SCOPES;
 const CLOUD_ADMIN_MINIMAL_SCOPES: string[] = [
   s.AnalyticsFullScope,
+  s.CCCFullScope,
   s.CertificateFullScope,
   s.ContentSecurityPolicyFullScope,
   s.CookieDomainsFullScope,
@@ -145,6 +146,7 @@ const CLOUD_ADMIN_MINIMAL_SCOPES: string[] = [
 ];
 const CLOUD_ADMIN_DEFAULT_SCOPES: string[] = [
   s.AnalyticsFullScope,
+  s.CCCFullScope,
   s.AutoAccessFullScope,
   s.CertificateFullScope,
   s.ContentSecurityPolicyFullScope,
@@ -475,6 +477,7 @@ async function getFreshUserSessionToken({
   }
   try {
     let currentStep = null;
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       const response = await step({
         body: currentStep || {},
