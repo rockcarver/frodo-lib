@@ -217,15 +217,6 @@ export function generateAmApi({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating AM API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
-
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -291,15 +282,6 @@ export function generateAmAuthApi({
     },
     requestOverride
   );
-
-  debugMessage({
-    message: `Generating AM API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
 
   const request = createAxiosInstance(state, requestConfig);
 
@@ -370,15 +352,6 @@ export function generateOauth2Api({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating OAuth2 API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
-
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -430,15 +403,6 @@ export function generateIdmApi({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating IDM API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
-
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -485,15 +449,6 @@ export function generateLogKeysApi({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating LogKeys API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
-
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -539,15 +494,6 @@ export function generateLogApi({
     },
     requestOverride
   );
-
-  debugMessage({
-    message: `Generating Log API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
 
   const request = createAxiosInstance(state, requestConfig);
 
@@ -641,15 +587,6 @@ export function generateEnvApi({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating Environment API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
-
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -705,15 +642,6 @@ export function generateGovernanceApi({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating Governance API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
-
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -766,15 +694,6 @@ export function generateWSFedApi({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating Governance API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
-
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -820,15 +739,6 @@ export function generateReleaseApi({
     },
     requestOverride
   );
-
-  debugMessage({
-    message: `Generating Release API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
 
   const request = createAxiosInstance(state, requestConfig);
 
