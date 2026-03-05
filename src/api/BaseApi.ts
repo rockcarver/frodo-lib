@@ -12,7 +12,7 @@ import { ProxyAgent } from 'proxy-agent';
 import _curlirize from '../ext/axios-curlirize/curlirize';
 import StateImpl, { State } from '../shared/State';
 import { getUserAgent } from '../shared/Version';
-import { curlirizeMessage, debugMessage, printMessage } from '../utils/Console';
+import { curlirizeMessage, printMessage } from '../utils/Console';
 import { mergeDeep } from '../utils/JsonUtils';
 import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
 

@@ -273,7 +273,7 @@ export async function getAuthenticationPolicyContracts({
   return data;
 }
 
-/** 
+/**
  * Get authentication policy contracts by id
  * @param {string} id - the id of the authentication policy contract to retrieve
  * @param {State} state - library state
