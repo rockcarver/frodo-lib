@@ -949,8 +949,8 @@ export async function exportJourney({
 
     // iterate over every node in tree
     for (const nodeObject of nodeObjects) {
-      const nodeId = nodeObject._id;
-      const nodeType = nodeObject._type._id;
+      const nodeId: string = nodeObject._id;
+      const nodeType: string = nodeObject._type._id;
       if (verbose)
         printMessage({
           message: `\n    - ${nodeId} (${nodeType})`,
@@ -1037,7 +1037,7 @@ export async function exportJourney({
       if (
         deps &&
         !socialProviderPromise &&
-        nodeType === 'SocialProviderHandlerNode'
+        nodeType.startsWith('SocialProviderHandlerNode')
       ) {
         socialProviderPromise = readSocialIdentityProviders({ state });
       }
@@ -1096,8 +1096,8 @@ export async function exportJourney({
       for (const settledPromise of settledPromises) {
         if (settledPromise.status === 'fulfilled' && settledPromise.value) {
           const innerNodeObject = settledPromise.value as NodeSkeleton;
-          const innerNodeId = innerNodeObject._id;
-          const innerNodeType = innerNodeObject._type._id;
+          const innerNodeId: string = innerNodeObject._id;
+          const innerNodeType: string = innerNodeObject._type._id;
           if (verbose)
             printMessage({
               message: `\n    - ${innerNodeId} (${innerNodeType})`,
@@ -1179,7 +1179,7 @@ export async function exportJourney({
           if (
             deps &&
             !socialProviderPromise &&
-            innerNodeType === 'SocialProviderHandlerNode'
+            innerNodeType.startsWith('SocialProviderHandlerNode')
           ) {
             socialProviderPromise = readSocialIdentityProviders({ state });
           }

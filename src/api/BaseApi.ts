@@ -12,7 +12,7 @@ import { ProxyAgent } from 'proxy-agent';
 import _curlirize from '../ext/axios-curlirize/curlirize';
 import StateImpl, { State } from '../shared/State';
 import { getUserAgent } from '../shared/Version';
-import { curlirizeMessage, debugMessage, printMessage } from '../utils/Console';
+import { curlirizeMessage, printMessage } from '../utils/Console';
 import { mergeDeep } from '../utils/JsonUtils';
 import { setupPollyForFrodoLib } from '../utils/SetupPollyForFrodoLib';
 
@@ -217,15 +217,6 @@ export function generateAmApi({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating AM API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
-
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -291,15 +282,6 @@ export function generateAmAuthApi({
     },
     requestOverride
   );
-
-  debugMessage({
-    message: `Generating AM API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
 
   const request = createAxiosInstance(state, requestConfig);
 
@@ -370,15 +352,6 @@ export function generateOauth2Api({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating OAuth2 API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
-
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -430,14 +403,57 @@ export function generateIdmApi({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating IDM API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
+  const request = createAxiosInstance(state, requestConfig);
+
+  // enable curlirizer output in debug mode
+  if (state.getCurlirize()) {
+    curlirize(request, state);
+  }
+
+  return request;
+}
+
+/**
+ * Generates an IDM Axios API instance. Use this instance for IDM API calls that are related to
+ * the Identity Cloud Environment. This will ensure that any environment specific configuration
+ * is applied and custom configuration header overrides are not applied.
+ * @param {object} params Params object
+ * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
+ * on extra information or override default properties https://github.com/axios/axios#request-config
+ * @param {State} params.state State object
+ *
+ * @returns {AxiosInstance} Returns a reaady to use Axios instance
+ */
+export function generateIdmSystemApi({
+  requestOverride = {},
+  state,
+}: {
+  requestOverride?: AxiosRequestConfig;
+  state: State;
+}): AxiosInstance {
+  const requestConfig = mergeDeep(
+    {
+      // baseURL: getTenantURL(storage.session.getTenant()),
+      timeout,
+      headers: {
+        'User-Agent': userAgent,
+        'X-ForgeRock-TransactionId': transactionId,
+        'Content-Type': 'application/json',
+        ...state.getAuthenticationHeaderOverrides(),
+        // only add authorization header if we have a bearer token
+        ...(state.getBearerToken() && {
+          Authorization: `Bearer ${state.getBearerToken()}`,
+        }),
+      },
+      ...(process.env.FRODO_MOCK !== 'record' &&
+        process.env.FRODO_POLLY_MODE !== 'record' && {
+          httpAgent: getHttpAgent(),
+          httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+        }),
+      proxy: getProxy(),
+    },
+    requestOverride
+  );
 
   const request = createAxiosInstance(state, requestConfig);
 
@@ -485,15 +501,6 @@ export function generateLogKeysApi({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating LogKeys API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
-
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -539,15 +546,6 @@ export function generateLogApi({
     },
     requestOverride
   );
-
-  debugMessage({
-    message: `Generating Log API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
 
   const request = createAxiosInstance(state, requestConfig);
 
@@ -641,15 +639,6 @@ export function generateEnvApi({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating Environment API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
-
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -705,15 +694,6 @@ export function generateGovernanceApi({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating Governance API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
-
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -766,15 +746,6 @@ export function generateWSFedApi({
     requestOverride
   );
 
-  debugMessage({
-    message: `Generating Governance API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
-
   const request = createAxiosInstance(state, requestConfig);
 
   // enable curlirizer output in debug mode
@@ -820,15 +791,6 @@ export function generateReleaseApi({
     },
     requestOverride
   );
-
-  debugMessage({
-    message: `Generating Release API client for resource with request headers ${JSON.stringify(
-      requestConfig.headers,
-      null,
-      2
-    )}`,
-    state,
-  });
 
   const request = createAxiosInstance(state, requestConfig);
 

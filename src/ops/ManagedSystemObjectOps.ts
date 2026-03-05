@@ -4,90 +4,90 @@ import {
   PatchOperationInterface,
 } from '../api/ApiTypes';
 import {
-  createManagedObject as _createManagedObject,
+  createManagedSystemObject as _createManagedSystemObject,
   DEFAULT_PAGE_SIZE,
-  deleteManagedObject as _deleteManagedObject,
-  getManagedObject as _getManagedObject,
-  patchManagedObject as _patchManagedObject,
-  putManagedObject as _putManagedObject,
-  queryAllManagedObjectsByType,
-  queryManagedObjects as _queryManagedObjects,
-} from '../api/ManagedObjectApi';
-import { getManagedSystemObject as _getManagedSystemObject } from '../api/ManagedSystemObjectApi';
+  deleteManagedSystemObject as _deleteManagedSystemObject,
+  getManagedSystemObject as _getManagedSystemObject,
+  patchManagedSystemObject as _patchManagedSystemObject,
+  putManagedSystemObject as _putManagedSystemObject,
+  queryAllManagedSystemObjectsByType as _queryAllManagedSystemObjectsByType,
+  queryManagedSystemObjects as _queryManagedSystemObjects,
+} from '../api/ManagedSystemObjectApi';
+import { getManagedObject as _getManagedObject } from '../api/ManagedObjectApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { FrodoError } from './FrodoError';
 
 export type ManagedObject = {
   /**
-   * Create managed object
-   * @param {string} type managed object type, e.g. teammember or alpha_user
-   * @param {IdObjectSkeletonInterface} moData managed object data
-   * @param {string} id managed object _id
+   * Create managed system object
+   * @param {string} type managed system object type, e.g. teammember or alpha_user
+   * @param {IdObjectSkeletonInterface} moData managed system object data
+   * @param {string} id managed system object _id
    */
-  createManagedObject(
+  createManagedSystemObject(
     type: string,
     moData: IdObjectSkeletonInterface,
     id?: string
   ): Promise<IdObjectSkeletonInterface>;
   /**
-   * Read managed object
-   * @param {string} type managed object type, e.g. alpha_user or user
-   * @param {string} id managed object id
+   * Read managed system object
+   * @param {string} type managed system object type, e.g. alpha_user or user
+   * @param {string} id managed system object id
    * @param {string[]} id array of fields to include
    * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface
    */
-  readManagedObject(
+  readManagedSystemObject(
     type: string,
     id: string,
     fields: string[]
   ): Promise<IdObjectSkeletonInterface>;
   /**
-   * Read all managed object of the specified type
-   * @param {string} type managed object type, e.g. alpha_user or user
+   * Read all managed system object of the specified type
+   * @param {string} type managed system object type, e.g. alpha_user or user
    * @param {string[]} fields array of fields to return
    * @returns {Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an array of IdObjectSkeletonInterfaces
    */
-  readManagedObjects(
+  readManagedSystemObjects(
     type: string,
     fields: string[]
   ): Promise<IdObjectSkeletonInterface[]>;
   /**
-   * Update managed object
-   * @param {string} type managed object type, e.g. alpha_user or user
-   * @param {string} id managed object id
-   * @param {IdObjectSkeletonInterface} moData managed object data
+   * Update managed system object
+   * @param {string} type managed system object type, e.g. alpha_user or user
+   * @param {string} id managed system object id
+   * @param {IdObjectSkeletonInterface} moData managed system object data
    * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface
    */
-  updateManagedObject(
+  updateManagedSystemObject(
     type: string,
     id: string,
     moData: IdObjectSkeletonInterface
   ): Promise<IdObjectSkeletonInterface>;
   /**
-   * Partially update managed object through a collection of patch operations.
-   * @param {string} type managed object type, e.g. alpha_user or user
-   * @param {string} id managed object id
+   * Partially update managed system object through a collection of patch operations.
+   * @param {string} type managed system object type, e.g. alpha_user or user
+   * @param {string} id managed system object id
    * @param {PatchOperationInterface[]} operations collection of patch operations to perform on the object
-   * @param {string} rev managed object revision
+   * @param {string} rev managed system object revision
    * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface
    */
-  updateManagedObjectProperties(
+  updateManagedSystemObjectProperties(
     type: string,
     id: string,
     operations: PatchOperationInterface[],
     rev?: string
   ): Promise<IdObjectSkeletonInterface>;
   /**
-   * Partially update multiple managed object through a collection of patch operations.
-   * @param {string} type managed object type, e.g. alpha_user or user
+   * Partially update multiple managed system object through a collection of patch operations.
+   * @param {string} type managed system object type, e.g. alpha_user or user
    * @param {string} filter CREST search filter
    * @param {PatchOperationInterface[]} operations collection of patch operations to perform on the object
-   * @param {string} rev managed object revision
+   * @param {string} rev managed system object revision
    * @param {number} pageSize page size
    * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface
    */
-  updateManagedObjectsProperties(
+  updateManagedSystemObjectsProperties(
     type: string,
     filter: string,
     operations: PatchOperationInterface[],
@@ -95,52 +95,52 @@ export type ManagedObject = {
     pageSize?: number
   ): Promise<IdObjectSkeletonInterface[]>;
   /**
-   * Delete managed object
-   * @param {string} type managed object type, e.g. alpha_user or user
-   * @param {string} id managed object id
+   * Delete managed system object
+   * @param {string} type managed system object type, e.g. alpha_user or user
+   * @param {string} id managed system object id
    * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface
    */
-  deleteManagedObject(
+  deleteManagedSystemObject(
     type: string,
     id: string
   ): Promise<IdObjectSkeletonInterface>;
   /**
-   * Delete managed objects by filter
-   * @param {string} type managed object type, e.g. alpha_user or user
+   * Delete managed system objects by filter
+   * @param {string} type managed system object type, e.g. alpha_user or user
    * @param {string} filter filter
    * @returns {Promise<number>} a promise that resolves the number of deleted objects
    */
-  deleteManagedObjects(type: string, filter: string): Promise<number>;
+  deleteManagedSystemObjects(type: string, filter: string): Promise<number>;
   /**
-   * Query managed objects
-   * @param {string} type managed object type, e.g. alpha_user or user
+   * Query managed system objects
+   * @param {string} type managed system object type, e.g. alpha_user or user
    * @param {string} filter CREST search filter
    * @param {string[]} fields array of fields to return
-   * @return {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of managed objects
+   * @return {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of managed system objects
    */
-  queryManagedObjects(
+  queryManagedSystemObjects(
     type: string,
     filter?: string,
     fields?: string[],
     pageSize?: number
   ): Promise<IdObjectSkeletonInterface[]>;
   /**
-   * Resolve a managed object's uuid to a human readable username
-   * @param {string} type managed object type, e.g. teammember or alpha_user
-   * @param {string} id managed object _id
+   * Resolve a managed system object's uuid to a human readable username
+   * @param {string} type managed system object type, e.g. teammember or alpha_user
+   * @param {string} id managed system object _id
    * @returns {Promise<string>} resolved username or uuid if any error occurs during reslution
    */
   resolveUserName(type: string, id: string): Promise<string>;
   /**
-   * Resolve a managed object's uuid to a human readable full name
-   * @param {string} type managed object type, e.g. teammember or alpha_user
-   * @param {string} id managed object _id
+   * Resolve a managed system object's uuid to a human readable full name
+   * @param {string} type managed system object type, e.g. teammember or alpha_user
+   * @param {string} id managed system object _id
    * @returns {Promise<string>} resolved full name or uuid if any error occurs during reslution
    */
   resolveFullName(type: string, id: string): Promise<string>;
   /**
    * Resolve a perpetrator's uuid to a human readable string identifying the perpetrator
-   * @param {string} id managed object _id
+   * @param {string} id managed system object _id
    * @returns {Promise<string>} resolved perpetrator descriptive string or uuid if any error occurs during reslution
    */
   resolvePerpetratorUuid(id: string): Promise<string>;
@@ -148,40 +148,40 @@ export type ManagedObject = {
 
 export default (state: State): ManagedObject => {
   return {
-    async createManagedObject(
+    async createManagedSystemObject(
       type: string,
       moData: IdObjectSkeletonInterface,
       id: string = undefined
     ): Promise<IdObjectSkeletonInterface> {
-      return createManagedObject({ type, id, moData, state });
+      return createManagedSystemObject({ type, id, moData, state });
     },
-    async readManagedObject(
+    async readManagedSystemObject(
       type: string,
       id: string,
       fields: string[]
     ): Promise<IdObjectSkeletonInterface> {
-      return readManagedObject({ type, id, fields, state });
+      return readManagedSystemObject({ type, id, fields, state });
     },
-    async readManagedObjects(
+    async readManagedSystemObjects(
       type: string,
       fields: string[]
     ): Promise<IdObjectSkeletonInterface[]> {
-      return readManagedObjects({ type, fields, state });
+      return readManagedSystemObjects({ type, fields, state });
     },
-    async updateManagedObject(
+    async updateManagedSystemObject(
       type: string,
       id: string,
       moData: IdObjectSkeletonInterface
     ): Promise<IdObjectSkeletonInterface> {
-      return updateManagedObject({ type, id, moData, state });
+      return updateManagedSystemObject({ type, id, moData, state });
     },
-    async updateManagedObjectProperties(
+    async updateManagedSystemObjectProperties(
       type: string,
       id: string,
       operations: PatchOperationInterface[],
       rev?: string
     ): Promise<IdObjectSkeletonInterface> {
-      return updateManagedObjectProperties({
+      return updateManagedSystemObjectProperties({
         type,
         id,
         operations,
@@ -189,14 +189,14 @@ export default (state: State): ManagedObject => {
         state,
       });
     },
-    async updateManagedObjectsProperties(
+    async updateManagedSystemObjectsProperties(
       type: string,
       filter: string,
       operations: PatchOperationInterface[],
       rev?: string,
       pageSize: number = DEFAULT_PAGE_SIZE
     ): Promise<IdObjectSkeletonInterface[]> {
-      return updateManagedObjectsProperties({
+      return updateManagedSystemObjectsProperties({
         type,
         filter,
         operations,
@@ -205,22 +205,31 @@ export default (state: State): ManagedObject => {
         state,
       });
     },
-    async deleteManagedObject(
+    async deleteManagedSystemObject(
       type: string,
       id: string
     ): Promise<IdObjectSkeletonInterface> {
-      return deleteManagedObject({ type, id, state });
+      return deleteManagedSystemObject({ type, id, state });
     },
-    async deleteManagedObjects(type: string, filter: string): Promise<number> {
-      return deleteManagedObjects({ type, filter, state });
+    async deleteManagedSystemObjects(
+      type: string,
+      filter: string
+    ): Promise<number> {
+      return deleteManagedSystemObjects({ type, filter, state });
     },
-    async queryManagedObjects(
+    async queryManagedSystemObjects(
       type: string,
       filter: string = undefined,
       fields: string[] = [],
       pageSize: number = DEFAULT_PAGE_SIZE
     ): Promise<IdObjectSkeletonInterface[]> {
-      return queryManagedObjects({ type, filter, fields, pageSize, state });
+      return queryManagedSystemObjects({
+        type,
+        filter,
+        fields,
+        pageSize,
+        state,
+      });
     },
     async resolveUserName(type: string, id: string) {
       return resolveUserName({ type, id, state });
@@ -234,7 +243,7 @@ export default (state: State): ManagedObject => {
   };
 };
 
-export async function createManagedObject({
+export async function createManagedSystemObject({
   type,
   id,
   moData,
@@ -247,8 +256,14 @@ export async function createManagedObject({
 }): Promise<IdObjectSkeletonInterface> {
   try {
     if (id)
-      return _putManagedObject({ type, id, moData, failIfExists: true, state });
-    return _createManagedObject({ type, moData, state });
+      return _putManagedSystemObject({
+        type,
+        id,
+        moData,
+        failIfExists: true,
+        state,
+      });
+    return _createManagedSystemObject({ type, moData, state });
   } catch (error) {
     throw new FrodoError(
       `Error creating managed ${type} object${id ? ' (' + id + ')' : ''}`,
@@ -257,7 +272,7 @@ export async function createManagedObject({
   }
 }
 
-export async function readManagedObject({
+export async function readManagedSystemObject({
   type,
   id,
   fields,
@@ -269,13 +284,13 @@ export async function readManagedObject({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _getManagedObject({ type, id, fields, state });
+    return _getManagedSystemObject({ type, id, fields, state });
   } catch (error) {
     throw new FrodoError(`Error reading managed ${type} object`, error);
   }
 }
 
-export async function readManagedObjects({
+export async function readManagedSystemObjects({
   type,
   fields,
   state,
@@ -295,7 +310,7 @@ export async function readManagedObjects({
       remainingPagedResults: -1,
     };
     do {
-      result = await queryAllManagedObjectsByType({
+      result = await _queryAllManagedSystemObjectsByType({
         type,
         fields,
         pageCookie: result.pagedResultsCookie,
@@ -309,7 +324,7 @@ export async function readManagedObjects({
   }
 }
 
-export async function updateManagedObject({
+export async function updateManagedSystemObject({
   type,
   id,
   moData,
@@ -321,7 +336,7 @@ export async function updateManagedObject({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _putManagedObject({ type, id, moData, state });
+    return _putManagedSystemObject({ type, id, moData, state });
   } catch (error) {
     throw new FrodoError(
       `Error updating managed ${type} object (${id})`,
@@ -330,7 +345,7 @@ export async function updateManagedObject({
   }
 }
 
-export async function updateManagedObjectProperties({
+export async function updateManagedSystemObjectProperties({
   type,
   id,
   operations,
@@ -344,7 +359,7 @@ export async function updateManagedObjectProperties({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _patchManagedObject({ type, id, operations, rev, state });
+    return _patchManagedSystemObject({ type, id, operations, rev, state });
   } catch (error) {
     throw new FrodoError(
       `Error updating managed ${type} object properties (${id})`,
@@ -353,7 +368,7 @@ export async function updateManagedObjectProperties({
   }
 }
 
-export async function updateManagedObjectsProperties({
+export async function updateManagedSystemObjectsProperties({
   type,
   filter,
   operations,
@@ -380,7 +395,7 @@ export async function updateManagedObjectsProperties({
   };
   do {
     try {
-      page = await _queryManagedObjects({
+      page = await _queryManagedSystemObjects({
         type,
         filter,
         fields: [],
@@ -391,7 +406,7 @@ export async function updateManagedObjectsProperties({
       for (const obj of page.result) {
         try {
           result.push(
-            await _patchManagedObject({
+            await _patchManagedSystemObject({
               type,
               id: obj._id,
               operations,
@@ -416,7 +431,7 @@ export async function updateManagedObjectsProperties({
   return result;
 }
 
-export async function deleteManagedObject({
+export async function deleteManagedSystemObject({
   type,
   id,
   state,
@@ -426,7 +441,7 @@ export async function deleteManagedObject({
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
   try {
-    return _deleteManagedObject({ type, id, state });
+    return _deleteManagedSystemObject({ type, id, state });
   } catch (error) {
     throw new FrodoError(
       `Error deleting managed ${type} object (${id})`,
@@ -435,7 +450,7 @@ export async function deleteManagedObject({
   }
 }
 
-export async function deleteManagedObjects({
+export async function deleteManagedSystemObjects({
   type,
   filter,
   state,
@@ -456,7 +471,7 @@ export async function deleteManagedObjects({
   };
   do {
     try {
-      result = await _queryManagedObjects({
+      result = await _queryManagedSystemObjects({
         type,
         filter,
         fields: ['_id'],
@@ -464,7 +479,7 @@ export async function deleteManagedObjects({
         state,
       });
       for (const obj of result.result) {
-        await deleteManagedObject({ type, id: obj._id, state });
+        await deleteManagedSystemObject({ type, id: obj._id, state });
         count++;
       }
     } catch (error) {
@@ -480,7 +495,7 @@ export async function deleteManagedObjects({
   return count;
 }
 
-export async function queryManagedObjects({
+export async function queryManagedSystemObjects({
   type,
   filter = 'true',
   fields = ['*'],
@@ -505,7 +520,7 @@ export async function queryManagedObjects({
   };
   do {
     try {
-      page = await _queryManagedObjects({
+      page = await _queryManagedSystemObjects({
         type,
         filter,
         fields,
@@ -538,7 +553,7 @@ export async function resolveUserName({
 }): Promise<string> {
   try {
     return (
-      await _getManagedObject({
+      await _getManagedSystemObject({
         type,
         id,
         fields: ['userName'],
@@ -562,7 +577,7 @@ export async function resolveFullName({
   state: State;
 }): Promise<string> {
   try {
-    const managedObject = await _getManagedObject({
+    const managedObject = await _getManagedSystemObject({
       type,
       id,
       fields: ['givenName', 'sn'],

@@ -7,8 +7,8 @@ import {
   PagedResult,
   PatchOperationInterface,
 } from './ApiTypes';
-import { generateIdmApi } from './BaseApi';
-import { MANAGED_SYSTEM_OBJECT_TYPES } from './ManagedSystemObjectApi';
+import { generateIdmSystemApi } from './BaseApi';
+import { FrodoError } from '../ops/FrodoError';
 
 const createManagedObjectURLTemplate = '%s/managed/%s?_action=create';
 const managedObjectByIdURLTemplate = '%s/managed/%s/%s';
@@ -17,15 +17,17 @@ const queryManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=%
 
 export const DEFAULT_PAGE_SIZE: number = 1000;
 
+export const MANAGED_SYSTEM_OBJECT_TYPES = ['svcacct', 'teammember'];
+
 /**
- * Get managed object
- * @param {string} type managed object type, e.g. alpha_user or user
- * @param {string} id managed object id
+ * Get managed system object
+ * @param {string} type managed system object type, e.g. svcacct or teammember
+ * @param {string} id managed system object id
  * @param {string[]} id array of fields to include
  * @param {State} state library state
  * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an ObjectSkeletonInterface
  */
-export async function getManagedObject({
+export async function getManagedSystemObject({
   type,
   id,
   fields = ['*'],
@@ -36,9 +38,11 @@ export async function getManagedObject({
   fields: string[];
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
-    throw new Error(
-      `${type} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+  if (!MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new FrodoError(
+      `Unsupported managed system object type: ${type}. Supported types are: ${MANAGED_SYSTEM_OBJECT_TYPES.join(
+        ', '
+      )}`
     );
   }
   const fieldsParam = `_fields=${fields.join(',')}`;
@@ -48,20 +52,21 @@ export async function getManagedObject({
     type,
     id
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
-    urlString
-  );
+  const { data } = await generateIdmSystemApi({
+    requestOverride: {},
+    state,
+  }).get(urlString);
   return data as IdObjectSkeletonInterface;
 }
 
 /**
- * Create managed object with server-generated id
- * @param {string} type managed object type
- * @param {IdObjectSkeletonInterface} moData managed object data
+ * Create managed system object with server-generated id
+ * @param {string} type managed system object type
+ * @param {IdObjectSkeletonInterface} moData managed system object data
  * @param {State} state library state
- * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed system object
  */
-export async function createManagedObject({
+export async function createManagedSystemObject({
   type,
   moData,
   state,
@@ -70,9 +75,11 @@ export async function createManagedObject({
   moData: IdObjectSkeletonInterface;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
-    throw new Error(
-      `${type} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+  if (!MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new FrodoError(
+      `Unsupported managed system object type: ${type}. Supported types are: ${MANAGED_SYSTEM_OBJECT_TYPES.join(
+        ', '
+      )}`
     );
   }
   const urlString = util.format(
@@ -80,22 +87,22 @@ export async function createManagedObject({
     getIdmBaseUrl(state),
     type
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
-    urlString,
-    moData
-  );
+  const { data } = await generateIdmSystemApi({
+    requestOverride: {},
+    state,
+  }).post(urlString, moData);
   return data;
 }
 
 /**
- * Create or update managed object
- * @param {string} id managed object id
- * @param {IdObjectSkeletonInterface} moData managed object
+ * Create or update managed system object
+ * @param {string} id managed system object id
+ * @param {IdObjectSkeletonInterface} moData managed system object
  * @param {boolean} failIfExists fail if exists
  * @param {State} state library state
- * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed system object
  */
-export async function putManagedObject({
+export async function putManagedSystemObject({
   type,
   id,
   moData,
@@ -108,9 +115,11 @@ export async function putManagedObject({
   failIfExists?: boolean;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
-    throw new Error(
-      `${type} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+  if (!MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new FrodoError(
+      `Unsupported managed system object type: ${type}. Supported types are: ${MANAGED_SYSTEM_OBJECT_TYPES.join(
+        ', '
+      )}`
     );
   }
   const urlString = util.format(
@@ -122,7 +131,7 @@ export async function putManagedObject({
   const requestOverride = failIfExists
     ? { headers: { 'If-None-Match': '*' } }
     : {};
-  const { data } = await generateIdmApi({ requestOverride, state }).put(
+  const { data } = await generateIdmSystemApi({ requestOverride, state }).put(
     urlString,
     moData
   );
@@ -130,15 +139,15 @@ export async function putManagedObject({
 }
 
 /**
- * Partially update a managed object, with an array of operations.
- * @param {string} type managed object type
- * @param {string} id managed object id
+ * Partially update a managed system object, with an array of operations.
+ * @param {string} type managed system object type
+ * @param {string} id managed system object id
  * @param {PatchOperationInterface[]} operations array of operations
  * @param {string} rev revision
  * @param {State} state library state
- * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed system object
  */
-export async function patchManagedObject({
+export async function patchManagedSystemObject({
   type,
   id,
   operations: operations,
@@ -151,9 +160,11 @@ export async function patchManagedObject({
   rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
-    throw new Error(
-      `${type} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+  if (!MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new FrodoError(
+      `Unsupported managed system object type: ${type}. Supported types are: ${MANAGED_SYSTEM_OBJECT_TYPES.join(
+        ', '
+      )}`
     );
   }
   const urlString = util.format(
@@ -163,7 +174,7 @@ export async function patchManagedObject({
     id
   );
   const requestOverride = rev ? { headers: { 'If-Match': rev } } : {};
-  const { data } = await generateIdmApi({ requestOverride, state }).patch(
+  const { data } = await generateIdmSystemApi({ requestOverride, state }).patch(
     urlString,
     operations
   );
@@ -171,15 +182,15 @@ export async function patchManagedObject({
 }
 
 /**
- * Query managed object
- * @param {string} type managed object type, e.g. alpha_user or user
+ * Query managed system object
+ * @param {string} type managed system object type, e.g. alpha_user or user
  * @param {string} filter CREST search filter
  * @param {string[]} id array of fields to include
  * @param {string} pageCookie paged results cookie
  * @param {State} state library state
- * @returns {Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an ObjectSkeletonInterface
+ * @returns {Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an array of managed system objects
  */
-export async function queryManagedObjects({
+export async function queryManagedSystemObjects({
   type,
   filter,
   fields = ['*'],
@@ -194,9 +205,11 @@ export async function queryManagedObjects({
   pageCookie?: string;
   state: State;
 }): Promise<PagedResult<IdObjectSkeletonInterface>> {
-  if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
-    throw new Error(
-      `${type} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+  if (!MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new FrodoError(
+      `Unsupported managed system object type: ${type}. Supported types are: ${MANAGED_SYSTEM_OBJECT_TYPES.join(
+        ', '
+      )}`
     );
   }
   const fieldsParam = `_fields=${fields.join(',')}`;
@@ -211,20 +224,21 @@ export async function queryManagedObjects({
     encodeURIComponent(filter),
     pageSize
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
-    urlString
-  );
+  const { data } = await generateIdmSystemApi({
+    requestOverride: {},
+    state,
+  }).get(urlString);
   return data as PagedResult<IdObjectSkeletonInterface>;
 }
 
 /**
- * Query managed objects
- * @param {string} type managed object type
+ * Query managed system objects by type
+ * @param {string} type managed system object type
  * @param {string[]} fields fields to retrieve
  * @param {string} pageCookie paged results cookie
- * @returns {Promise<{result: any[]; resultCount: number; pagedResultsCookie: any; totalPagedResultsPolicy: string; totalPagedResults: number; remainingPagedResults: number;}>} a promise that resolves to managed objects of the desired type
+ * @returns {Promise<{result: any[]; resultCount: number; pagedResultsCookie: any; totalPagedResultsPolicy: string; totalPagedResults: number; remainingPagedResults: number;}>} a promise that resolves to managed system objects of the desired type
  */
-export async function queryAllManagedObjectsByType({
+export async function queryAllManagedSystemObjectsByType({
   type,
   fields = [],
   pageSize = DEFAULT_PAGE_SIZE,
@@ -237,9 +251,11 @@ export async function queryAllManagedObjectsByType({
   pageCookie?: string;
   state: State;
 }): Promise<PagedResult<IdObjectSkeletonInterface>> {
-  if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
-    throw new Error(
-      `${type} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+  if (!MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new FrodoError(
+      `Unsupported managed system object type: ${type}. Supported types are: ${MANAGED_SYSTEM_OBJECT_TYPES.join(
+        ', '
+      )}`
     );
   }
   const fieldsParam =
@@ -255,17 +271,18 @@ export async function queryAllManagedObjectsByType({
     type,
     pageSize
   );
-  const { data } = await generateIdmApi({ state }).get(urlString);
+  const { data } = await generateIdmSystemApi({ state }).get(urlString);
   return data;
 }
 
 /**
- * Delete managed object
- * @param {string} id managed object id
+ * Delete managed system object
+ * @param {string} type managed system object type, e.g. alpha_user or user
+ * @param {string} id managed system object id
  * @param {State} state library state
- * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed object
+ * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an object containing a managed system object
  */
-export async function deleteManagedObject({
+export async function deleteManagedSystemObject({
   type,
   id,
   state,
@@ -274,9 +291,11 @@ export async function deleteManagedObject({
   id: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
-    throw new Error(
-      `${type} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+  if (!MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new FrodoError(
+      `Unsupported managed system object type: ${type}. Supported types are: ${MANAGED_SYSTEM_OBJECT_TYPES.join(
+        ', '
+      )}`
     );
   }
   const urlString = util.format(
@@ -285,8 +304,9 @@ export async function deleteManagedObject({
     type,
     id
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).delete(
-    urlString
-  );
+  const { data } = await generateIdmSystemApi({
+    requestOverride: {},
+    state,
+  }).delete(urlString);
   return data;
 }
