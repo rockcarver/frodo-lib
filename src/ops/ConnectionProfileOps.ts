@@ -5,7 +5,7 @@ import path from 'path';
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
-import { debugMessage, printMessage, verboseMessage } from '../utils/Console';
+import { debugMessage } from '../utils/Console';
 import DataProtection from '../utils/DataProtection';
 import { isValidUrl, saveJsonToFile } from '../utils/ExportImportUtils';
 import { readServiceAccountScopes } from './cloud/EnvServiceAccountScopesOps';
@@ -599,7 +599,7 @@ export async function saveConnectionProfile({
       if (found.length === 1) {
         profile = found[0];
         state.setHost(profile.tenant);
-        verboseMessage({
+        debugMessage({
           message: `Existing profile: ${profile.tenant}`,
           state,
         });
@@ -720,11 +720,10 @@ export async function saveConnectionProfile({
     // advanced settings
     if (state.getAuthenticationService()) {
       profile.authenticationService = state.getAuthenticationService();
-      printMessage({
+      debugMessage({
         message:
           'Advanced setting: Authentication Service: ' +
           state.getAuthenticationService(),
-        type: 'info',
         state,
       });
     }
@@ -734,14 +733,12 @@ export async function saveConnectionProfile({
     ) {
       profile.authenticationHeaderOverrides =
         state.getAuthenticationHeaderOverrides();
-      printMessage({
+      debugMessage({
         message: 'Advanced setting: Authentication Header Overrides: ',
-        type: 'info',
         state,
       });
-      printMessage({
+      debugMessage({
         message: state.getAuthenticationHeaderOverrides(),
-        type: 'info',
         state,
       });
     }
@@ -751,14 +748,12 @@ export async function saveConnectionProfile({
     ) {
       profile.configurationHeaderOverrides =
         state.getConfigurationHeaderOverrides();
-      printMessage({
+      debugMessage({
         message: 'Advanced setting: Configuration Header Overrides: ',
-        type: 'info',
         state,
       });
-      printMessage({
+      debugMessage({
         message: state.getConfigurationHeaderOverrides(),
-        type: 'info',
         state,
       });
     }
@@ -784,7 +779,7 @@ export async function saveConnectionProfile({
       includeMeta: false,
       state,
     });
-    verboseMessage({
+    debugMessage({
       message: `Saved connection profile ${state.getHost()} in ${filename}`,
       state,
     });
@@ -850,9 +845,8 @@ export function setConnectionProfileAlias({
   }
   connectionsData[tenant].alias = alias;
   fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
-  printMessage({
+  debugMessage({
     message: `Alias '${alias}' has been set for connection profile '${tenant}'`,
-    type: 'info',
     state,
   });
 }
@@ -897,9 +891,8 @@ export function deleteConnectionProfileAlias({
   const alias = connectionsData[tenant].alias;
   delete connectionsData[tenant].alias;
   fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
-  printMessage({
+  debugMessage({
     message: `Alias '${alias}' has been deleted for connection profile '${tenant}'.`,
-    type: 'info',
     state,
   });
 }

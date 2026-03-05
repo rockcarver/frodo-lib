@@ -1,8 +1,8 @@
 import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
 import {
-  createManagedObject,
-  getManagedObject,
-} from '../../api/ManagedObjectApi';
+  createManagedSystemObject,
+  getManagedSystemObject,
+} from '../../api/ManagedSystemObjectApi';
 import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { debugMessage } from '../../utils/Console';
@@ -87,7 +87,7 @@ export default (state: State): ServiceAccount => {
   };
 };
 
-const moType = 'svcacct';
+const MANAGED_OBJECT_TYPE = 'svcacct';
 
 const s = Constants.AVAILABLE_SCOPES;
 
@@ -211,8 +211,8 @@ export async function createServiceAccount({
       state,
     });
     debugMessage({ message: payload, state });
-    const result = await createManagedObject({
-      moType,
+    const result = await createManagedSystemObject({
+      type: MANAGED_OBJECT_TYPE,
       moData: payload,
       state,
     });
@@ -244,8 +244,8 @@ export async function getServiceAccount({
       message: `ServiceAccountOps.getServiceAccount: start`,
       state,
     });
-    const serviceAccount = await getManagedObject({
-      type: moType,
+    const serviceAccount = await getManagedSystemObject({
+      type: MANAGED_OBJECT_TYPE,
       id: serviceAccountId,
       fields: ['*'],
       state,

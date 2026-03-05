@@ -414,6 +414,58 @@ export function generateIdmApi({
 }
 
 /**
+ * Generates an IDM Axios API instance. Use this instance for IDM API calls that are related to
+ * the Identity Cloud Environment. This will ensure that any environment specific configuration
+ * is applied and custom configuration header overrides are not applied.
+ * @param {object} params Params object
+ * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
+ * on extra information or override default properties https://github.com/axios/axios#request-config
+ * @param {State} params.state State object
+ *
+ * @returns {AxiosInstance} Returns a reaady to use Axios instance
+ */
+export function generateIdmSystemApi({
+  requestOverride = {},
+  state,
+}: {
+  requestOverride?: AxiosRequestConfig;
+  state: State;
+}): AxiosInstance {
+  const requestConfig = mergeDeep(
+    {
+      // baseURL: getTenantURL(storage.session.getTenant()),
+      timeout,
+      headers: {
+        'User-Agent': userAgent,
+        'X-ForgeRock-TransactionId': transactionId,
+        'Content-Type': 'application/json',
+        ...state.getAuthenticationHeaderOverrides(),
+        // only add authorization header if we have a bearer token
+        ...(state.getBearerToken() && {
+          Authorization: `Bearer ${state.getBearerToken()}`,
+        }),
+      },
+      ...(process.env.FRODO_MOCK !== 'record' &&
+        process.env.FRODO_POLLY_MODE !== 'record' && {
+          httpAgent: getHttpAgent(),
+          httpsAgent: getHttpsAgent(state.getAllowInsecureConnection()),
+        }),
+      proxy: getProxy(),
+    },
+    requestOverride
+  );
+
+  const request = createAxiosInstance(state, requestConfig);
+
+  // enable curlirizer output in debug mode
+  if (state.getCurlirize()) {
+    curlirize(request, state);
+  }
+
+  return request;
+}
+
+/**
  * Generates a LogKeys API Axios instance
  * @param {object} params Params object
  * @param {AxiosRequestConfig} params.requestOverride Takes an object of AXIOS parameters that can be used to either add
