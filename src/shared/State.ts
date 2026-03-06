@@ -18,7 +18,7 @@ import {
   ProgressIndicatorType,
 } from '../utils/Console';
 import { convertPrivateKeyToPem } from '../utils/CryptoUtils';
-import { cloneDeep } from '../utils/JsonUtils';
+import { cloneDeep, mergeDeep } from '../utils/JsonUtils';
 import { getPackageVersion } from './Version';
 
 export type State = {
@@ -333,7 +333,12 @@ export default (initialState: StateInterface): State => {
       state.authenticationHeaderOverrides = overrides;
     },
     getAuthenticationHeaderOverrides() {
-      return state.authenticationHeaderOverrides;
+      return mergeDeep(
+        state.authenticationHeaderOverrides,
+        process.env.FRODO_AUTHENTICATION_HEADER_OVERRIDES
+          ? JSON.parse(process.env.FRODO_AUTHENTICATION_HEADER_OVERRIDES)
+          : {}
+      );
     },
     setAuthenticationService(service: string) {
       state.authenticationService = service;
@@ -348,7 +353,12 @@ export default (initialState: StateInterface): State => {
       state.configurationHeaderOverrides = overrides;
     },
     getConfigurationHeaderOverrides() {
-      return state.configurationHeaderOverrides;
+      return mergeDeep(
+        state.configurationHeaderOverrides,
+        process.env.FRODO_CONFIGURATION_HEADER_OVERRIDES
+          ? JSON.parse(process.env.FRODO_CONFIGURATION_HEADER_OVERRIDES)
+          : {}
+      );
     },
 
     setServiceAccountId(uuid: string) {
