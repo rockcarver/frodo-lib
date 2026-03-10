@@ -79,7 +79,7 @@ export async function stageEmailTemplate(
   template: EmailTemplateOps.EmailTemplateSkeleton,
   createNew = false
 ) {
-  const entityId = `${EMAIL_TEMPLATE_TYPE}/${template.id}`;
+  const entityId = `${EMAIL_TEMPLATE_TYPE}/${template._id}`;
   try {
     await deleteConfigEntity({
       entityId,
