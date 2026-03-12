@@ -94,7 +94,7 @@ const s = Constants.AVAILABLE_SCOPES;
 export const SERVICE_ACCOUNT_ALLOWED_SCOPES: string[] = [
   s.AmFullScope,
   s.AnalyticsFullScope,
-  s.CCCFullScope,
+  s.DirectConfigurationSessionFullScope,
   s.AutoAccessFullScope,
   s.CertificateFullScope,
   s.CertificateReadScope,
@@ -120,7 +120,7 @@ export const SERVICE_ACCOUNT_ALLOWED_SCOPES: string[] = [
 export const SERVICE_ACCOUNT_DEFAULT_SCOPES: string[] = [
   s.AmFullScope,
   s.AnalyticsFullScope,
-  s.CCCFullScope,
+  s.DirectConfigurationSessionFullScope,
   s.AutoAccessFullScope,
   s.CertificateFullScope,
   s.ContentSecurityPolicyFullScope,

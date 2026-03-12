@@ -4,10 +4,14 @@ import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
 
-const directConfigurationSessionInitURLTemplate = '%s/environment/ccc/init';
-const directConfigurationSessionApplyURLTemplate = '%s/environment/ccc/apply';
-const directConfigurationSessionAbortURLTemplate = '%s/environment/ccc/abort';
-const directConfigurationSessionStateURLTemplate = '%s/environment/ccc/state';
+const directConfigurationSessionInitURLTemplate =
+  '%s/environment/direct-configuration/session/init';
+const directConfigurationSessionApplyURLTemplate =
+  '%s/environment/direct-configuration/session/apply';
+const directConfigurationSessionAbortURLTemplate =
+  '%s/environment/direct-configuration/session/abort';
+const directConfigurationSessionStateURLTemplate =
+  '%s/environment/direct-configuration/session/state';
 
 const apiVersion = 'protocol=1.0,resource=1.0';
 const getApiConfig = () => {
