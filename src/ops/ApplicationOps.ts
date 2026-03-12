@@ -776,7 +776,6 @@ async function exportDependencies({
           options: { deps: true, useStringArrays: true },
           state,
         });
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         exportData = mergeDeep(exportData, connectorData);
       }
     }
