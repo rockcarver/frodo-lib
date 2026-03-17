@@ -25,6 +25,7 @@ const getApiConfig = () => {
  */
 export type DirectConfigurationSessionState = {
   editable: boolean;
+  status: string;
 };
 
 /**
