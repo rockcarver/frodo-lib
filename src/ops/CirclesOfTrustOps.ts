@@ -109,30 +109,6 @@ export type CirclesOfTrust = {
     importData: CirclesOfTrustExportInterface,
     entityProviders?: string[]
   ): Promise<CircleOfTrustSkeleton[]>;
-
-  // Deprecated
-
-  /**
-   * Get all circles of trust
-   * @returns {Promise<CircleOfTrustSkeleton[]>} a promise resolving to an array of circle of trust objects
-   * @deprecated since v2.0.0 use {@link CirclesOfTrust.readCirclesOfTrust | readCirclesOfTrust} instead
-   * ```javascript
-   * readCirclesOfTrust(): Promise<CircleOfTrustSkeleton[]>
-   * ```
-   * @group Deprecated
-   */
-  getCirclesOfTrust(): Promise<CircleOfTrustSkeleton[]>;
-  /**
-   * Get circle of trust
-   * @param {string} cotId circle of trust id/name
-   * @returns {Promise<CircleOfTrustSkeleton>} a promise resolving to a circle of trust object
-   * @deprecated since v2.0.0 use {@link CirclesOfTrust.readCircleOfTrust | readCircleOfTrust} instead
-   * ```javascript
-   * readCircleOfTrust(cotId: string): Promise<CircleOfTrustSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getCircleOfTrust(cotId: string): Promise<CircleOfTrustSkeleton>;
 };
 
 export default (state: State): CirclesOfTrust => {
@@ -180,15 +156,6 @@ export default (state: State): CirclesOfTrust => {
       entityProviders: string[] = []
     ): Promise<CircleOfTrustSkeleton[]> {
       return importCirclesOfTrust({ importData, entityProviders, state });
-    },
-
-    // Deprecated
-
-    async getCirclesOfTrust() {
-      return readCirclesOfTrust({ state });
-    },
-    async getCircleOfTrust(cotId: string) {
-      return readCircleOfTrust({ cotId, state });
     },
   };
 };

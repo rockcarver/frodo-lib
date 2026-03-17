@@ -35,6 +35,147 @@ Removing the singleton pattern and introducing multi-instantiability forced a ra
 - Added support for Node.js 24 and 25/26.
 - Dropped support for Node.js 18 and 20.
 
+### Breaking changes
+
+- Removed all deprecated (since v2.0.0) functions from:
+  - `frodo.admin`: 
+    - `listOAuth2CustomClients`
+    - `listOAuth2AdminClients`
+    - `listNonOAuth2AdminStaticUserMappings`
+    - `addAutoIdStaticUserMapping`
+    - `grantOAuth2ClientAdminPrivileges`
+    - `revokeOAuth2ClientAdminPrivileges`
+    - `createOAuth2ClientWithAdminPrivileges`
+    - `createLongLivedToken`
+    - `removeStaticUserMapping`
+    - `hideGenericExtensionAttributes`
+    - `showGenericExtensionAttributes`
+    - `repairOrgModel`
+  - `frodo.login`:
+    - `getAccessTokenForServiceAccount` (added function `validateServiceAccount` with same input and output to `frodo.cloud.serviceAccount`)
+  - `frodo.agent`:
+    - `getAgents`
+    - `getAgent`
+    - `getAgentByTypeAndId`
+    - `getIdentityGatewayAgents`
+    - `getIdentityGatewayAgent`
+    - `putIdentityGatewayAgent`
+    - `getJavaAgents`
+    - `getJavaAgent`
+    - `putJavaAgent`
+    - `getWebAgents`
+    - `getWebAgent`
+    - `putWebAgent`
+  - `frodo.saml2.circlesOfTrust`:
+    - `getCirclesOfTrust`
+    - `getCircleOfTrust`
+  - `frodo.email.template`:
+    - `getEmailTemplates`
+    - `getEmailTemplate`
+    - `putEmailTemplate`
+  - `frodo.idm.config`:
+    - `getConfigEntityTypes`
+    - `getConfigEntityTypes`
+    - `getConfigEntitiesByType`
+    - `getConfigEntity`
+    - `putConfigEntity`
+    - `testConnectorServers`
+  - `frodo.oauth2oidc.external`:
+    - `getSocialIdentityProviders`
+    - `getSocialProvider`
+    - `putProviderByTypeAndId`
+    - `deleteSocialProvider`
+    - `exportSocialProvider`
+    - `exportSocialProviders`
+    - `importSocialProvider`
+    - `importFirstSocialProvider`
+    - `importSocialProviders`
+  - `frodo.authn.journey`:
+    - `getJourneys`
+    - `getJourney`
+    - `importAllJourneys`
+    - `findOrphanedNodes`
+    - `removeOrphanedNodes`
+  - `frodo.oauth2oidc.client`:
+    - `getOAuth2Clients`
+    - `getOAuth2Client`
+    - `putOAuth2Client`
+  - `frodo.oauth2oidc.provider`:
+    - `getOAuth2Provider`
+  - `frodo.oauth2oidc.issuer`:
+    - `getOAuth2TrustedJwtIssuers`
+    - `getOAuth2TrustedJwtIssuer`
+    - `putOAuth2TrustedJwtIssuer`
+  - `frodo.idm.organization`:
+    - `getOrganizations`
+  - `frodo.authz.policy`:
+    - `getPolicies`
+    - `getPoliciesByPolicySet`
+    - `getPolicy`
+    - `putPolicy`
+  - `frodo.authz.policySet`:
+    - `getPolicySets`
+    - `getPolicySet`
+  - `frodo.realm`:
+    - `getRealms`
+    - `getRealmByName`
+    - `putRealm`
+  - `frodo.authz.resourceType`:
+    - `getResourceType`
+    - `getResourceTypes`
+    - `getResourceTypeByName`
+  - `frodo.saml2.entityProvider`:
+    - `getSaml2ProviderStubs`
+    - `getProviderMetadataUrl`
+    - `getProviderMetadata`
+    - `getSaml2ProviderStub`
+    - `getSaml2Provider`
+  - `frodo.script`:
+    - `getScripts`
+    - `getScript`
+    - `getScriptByName`
+    - `putScript`
+  - `frodo.theme`:
+    - `getThemes`
+    - `getTheme`
+    - `getThemeByName`
+    - `putTheme`
+    - `putThemeByName`
+    - `putThemes`
+  - `frodo.cloud.adminFed`:
+    - `getAdminFederationProviders`
+    - `getAdminFederationProvider`
+    - `putProviderByTypeAndId`
+  - `frodo.cloud.secret`:
+    - `getSecrets`
+    - `getSecret`
+    - `putSecret`
+    - `setSecretDescription`
+    - `getSecretVersions`
+    - `createNewVersionOfSecret`
+    - `getVersionOfSecret`
+    - `setStatusOfVersionOfSecret`
+  - `frodo.cloud.variable`:
+    - `getVariable`
+    - `getVariables`
+    - `putVariable`
+    - `setVariableDescription`
+
+### Deprecations
+
+- Deprecated all journey classificatino functions in `frodo.authn.journey`:
+  - `isCustomJourney`
+  - `isPremiumJourney`
+  - `isCloudOnlyJourney`
+  - `getJourneyClassification`
+- Deprecated all node classification functions in `frodo.authn.node`:
+  - `isPremiumNode`
+  - `isCloudOnlyNode`
+  - `isCloudExcludedNode`
+  - `isDeprecatedNode`,
+  - `isCustomNode`
+  - `getNodeClassification`.
+
 ## About
 
 ### Modules

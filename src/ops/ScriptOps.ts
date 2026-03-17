@@ -154,57 +154,6 @@ export type Script = {
     validate?: boolean,
     resultCallback?: ResultCallback<ScriptSkeleton>
   ): Promise<ScriptSkeleton[]>;
-
-  // Deprecated
-
-  /**
-   * Get all scripts
-   * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
-   * @deprecated since v2.0.0 use {@link Script.readScripts | readScripts} instead
-   * ```javascript
-   * readScripts(): Promise<ScriptSkeleton[]>
-   * ```
-   * @group Deprecated
-   */
-  getScripts(): Promise<ScriptSkeleton[]>;
-  /**
-   * Get script
-   * @param {string} scriptId script id
-   * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
-   * @deprecated since v2.0.0 use {@link Script.readScript | readScript} instead
-   * ```javascript
-   * readScript(scriptName: string): Promise<ScriptSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getScript(scriptId: string): Promise<ScriptSkeleton>;
-  /**
-   * Get script by name
-   * @param {string} scriptName name of the script
-   * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
-   * @deprecated since v2.0.0 use {@link Script.readScriptByName | readScriptByName} instead
-   * ```javascript
-   * readScriptByName(scriptName: string): Promise<ScriptSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getScriptByName(scriptName: string): Promise<ScriptSkeleton>;
-  /**
-   * Create or update script
-   * @param {string} scriptId script uuid
-   * @param {ScriptSkeleton} scriptData script object
-   * @returns {Promise<ScriptSkeleton>} a status object
-   * @deprecated since v2.0.0 use {@link Script.updateScript | updateScript} or {@link Script.createScript | createScript} instead
-   * ```javascript
-   * updateScript(scriptId: string, scriptData: ScriptSkeleton): Promise<ScriptSkeleton>
-   * createScript(scriptId: string, scriptName: string, scriptData: ScriptSkeleton): Promise<ScriptSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  putScript(
-    scriptId: string,
-    scriptData: ScriptSkeleton
-  ): Promise<ScriptSkeleton>;
 };
 
 export default (state: State): Script => {
@@ -297,24 +246,6 @@ export default (state: State): Script => {
         resultCallback,
         state,
       });
-    },
-
-    // Deprecated
-
-    async getScripts(): Promise<ScriptSkeleton[]> {
-      return readScripts({ state });
-    },
-    async getScript(scriptId: string): Promise<ScriptSkeleton> {
-      return readScript({ scriptId, state });
-    },
-    async getScriptByName(scriptName: string): Promise<ScriptSkeleton> {
-      return readScriptByName({ scriptName, state });
-    },
-    async putScript(
-      scriptId: string,
-      scriptData: ScriptSkeleton
-    ): Promise<ScriptSkeleton> {
-      return updateScript({ scriptId, scriptData, state });
     },
   };
 };

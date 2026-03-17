@@ -91,46 +91,6 @@ export type EmailTemplate = {
    * @returns {Promise<EmailTemplateSkeleton>} a promise that resolves an email template object
    */
   deleteEmailTemplate(templateId: string): Promise<EmailTemplateSkeleton>;
-
-  // Deprecated
-
-  /**
-   * Get all email templates
-   * @returns {Promise<EmailTemplateSkeleton[]>} a promise that resolves to an array of email template objects
-   * @deprecated since v2.0.0 use {@link EmailTemplate.readEmailTemplates | readEmailTemplates} instead
-   * ```javascript
-   * readEmailTemplates(): Promise<EmailTemplateSkeleton[]>
-   * ```
-   * @group Deprecated
-   */
-  getEmailTemplates(): Promise<EmailTemplateSkeleton[]>;
-  /**
-   * Get email template
-   * @param {string} templateId id/name of the email template without the type prefix
-   * @returns {Promise<EmailTemplateSkeleton>} a promise that resolves an email template object
-   * @deprecated since v2.0.0 use {@link EmailTemplate.readEmailTemplate | readEmailTemplate} instead
-   * ```javascript
-   * readEmailTemplate(templateId: string): Promise<EmailTemplateSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getEmailTemplate(templateId: string): Promise<EmailTemplateSkeleton>;
-  /**
-   * Put email template
-   * @param {string} templateId id/name of the email template without the type prefix
-   * @param {Object} templateData email template object
-   * @returns {Promise<EmailTemplateSkeleton>} a promise that resolves to an email template object
-   * @deprecated since v2.0.0 use {@link EmailTemplate.updateEmailTemplate | updateEmailTemplate} or {@link EmailTemplate.createEmailTemplate | createEmailTemplate} instead
-   * ```javascript
-   * updateEmailTemplate(templateId: string, templateData: EmailTemplateSkeleton): Promise<EmailTemplateSkeleton>
-   * createEmailTemplate(templateId: string, templateData: EmailTemplateSkeleton): Promise<EmailTemplateSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  putEmailTemplate(
-    templateId: string,
-    templateData: EmailTemplateSkeleton
-  ): Promise<EmailTemplateSkeleton>;
 };
 
 export default (state: State): EmailTemplate => {
@@ -174,21 +134,6 @@ export default (state: State): EmailTemplate => {
       templateId: string
     ): Promise<EmailTemplateSkeleton> {
       return deleteEmailTemplate({ templateId, state });
-    },
-
-    // Deprecated
-
-    async getEmailTemplates() {
-      return readEmailTemplates({ state });
-    },
-    async getEmailTemplate(templateId: string) {
-      return readEmailTemplate({ templateId, state });
-    },
-    async putEmailTemplate(
-      templateId: string,
-      templateData: EmailTemplateSkeleton
-    ) {
-      return updateEmailTemplate({ templateId, templateData, state });
     },
   };
 };

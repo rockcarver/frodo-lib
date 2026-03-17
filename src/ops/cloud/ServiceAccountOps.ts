@@ -6,8 +6,10 @@ import {
 import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { debugMessage } from '../../utils/Console';
+import { getFreshSaBearerToken } from '../AuthenticateOps';
 import { FrodoError } from '../FrodoError';
-import { JwksInterface } from '../JoseOps';
+import { JwkRsa, JwksInterface } from '../JoseOps';
+import { AccessTokenMetaType } from '../OAuth2OidcOps';
 import { hasFeature } from './FeatureOps';
 
 export type ServiceAccount = {
@@ -38,27 +40,23 @@ export type ServiceAccount = {
    * @returns {Promise<ServiceAccountType>} a promise resolving to a service account object
    */
   getServiceAccount(serviceAccountId: string): Promise<ServiceAccountType>;
+  /**
+   * Validate service account
+   * @param {string} saId optional service account id
+   * @param {JwkRsa} saJwk optional service account JWK
+   * @returns {Promise<AccessTokenMetaType | null>} Access token or null if validation fails
+   */
+  validateServiceAccount(
+    saId?: string,
+    saJwk?: JwkRsa
+  ): Promise<AccessTokenMetaType | null>;
 };
 
 export default (state: State): ServiceAccount => {
   return {
-    /**
-     * Check if service accounts are available
-     * @returns {Promise<boolean>} true if service accounts are available, false otherwise
-     */
     async isServiceAccountsFeatureAvailable(): Promise<boolean> {
       return isServiceAccountsFeatureAvailable({ state });
     },
-
-    /**
-     * Create service account
-     * @param {string} name Human-readable name of service account
-     * @param {string} description Description of service account
-     * @param {'Active' | 'Inactive'} accountStatus Service account status
-     * @param {string[]} scopes Scopes.
-     * @param {JwksInterface} jwks Java Web Key Set
-     * @returns {Promise<IdObjectSkeletonInterface>} A promise resolving to a service account object
-     */
     async createServiceAccount(
       name: string,
       description: string,
@@ -75,14 +73,14 @@ export default (state: State): ServiceAccount => {
         state,
       });
     },
-
-    /**
-     * Get service account
-     * @param {string} serviceAccountId service account id
-     * @returns {Promise<ServiceAccountType>} a promise resolving to a service account object
-     */
     async getServiceAccount(serviceAccountId: string) {
       return getServiceAccount({ serviceAccountId, state });
+    },
+    async validateServiceAccount(
+      saId?: string,
+      saJwk?: JwkRsa
+    ): Promise<AccessTokenMetaType | null> {
+      return validateServiceAccount({ saId, saJwk, state });
     },
   };
 };
@@ -261,5 +259,30 @@ export async function getServiceAccount({
       `Error getting service account ${serviceAccountId}`,
       error
     );
+  }
+}
+
+export async function validateServiceAccount({
+  saId = undefined,
+  saJwk = undefined,
+  state,
+}: {
+  saId?: string;
+  saJwk?: JwkRsa;
+  state: State;
+}): Promise<AccessTokenMetaType | null> {
+  try {
+    debugMessage({
+      message: `ServiceAccountOps.validateServiceAccount: start`,
+      state,
+    });
+    const token = await getFreshSaBearerToken({ saId, saJwk, state });
+    debugMessage({
+      message: `ServiceAccountOps.validateServiceAccount: end, token ${token ? 'obtained' : 'not obtained'}`,
+      state,
+    });
+    return token;
+  } catch (error) {
+    throw new FrodoError(`Error validating service account ${saId}`, error);
   }
 }

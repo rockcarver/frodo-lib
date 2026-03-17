@@ -182,33 +182,51 @@ export type Node = {
    */
   removeOrphanedNodes(orphanedNodes: NodeSkeleton[]): Promise<NodeSkeleton[]>;
   /**
+   * Get custom node usage by ID
+   * @param {String} nodeId ID or service name of the custom node
+   * @returns {Promise<CustomNodeUsage>} a promise that resolves to an object containing a custom node usage object
+   */
+  getCustomNodeUsage(nodeId: string): Promise<CustomNodeUsage>;
+
+  // Deprecated
+  /**
    * Analyze if a node type is premium.
    * @param {string} nodeType Node type
    * @returns {boolean} True if the node type is premium, false otherwise.
+   * @deprecated since v4.0.0 Frodo no longer classifies nodes as premium vs standard. This method will be removed in a future major release.
+   * @group Deprecated
    */
   isPremiumNode(nodeType: string): boolean;
   /**
    * Analyze if a node type is a cloud-only node.
    * @param {string} nodeType Node type
    * @returns {boolean} True if the node type is cloud-only, false otherwise.
+   * @deprecated since v4.0.0 Frodo no longer classifies nodes as cloud-only vs standard. This method will be removed in a future major release.
+   * @group Deprecated
    */
   isCloudOnlyNode(nodeType: string): boolean;
   /**
    * Analyze if a node type is a cloud-excluded node. Cloud excluded nodes are OOTB nodes in self-hosted AM deployments but have been excluded in cloud.
    * @param {string} nodeType node type.
    * @returns {boolean} True if node type is cloud-excluded, false otherwise.
+   * @deprecated since v4.0.0 Frodo no longer classifies nodes as cloud-excluded vs standard. This method will be removed in a future major release.
+   * @group Deprecated
    */
   isCloudExcludedNode(nodeType: string): boolean;
   /**
    * Analyze if a node type has been deprecated
    * @param {string} nodeType node type.
    * @returns {boolean} True if node type is deprecated, false otherwise.
+   * @deprecated since v4.0.0 Frodo no longer classifies nodes as deprecated vs standard. This method will be removed in a future major release.
+   * @group Deprecated
    */
   isDeprecatedNode(nodeType: string): boolean;
   /**
    * Analyze if a node is custom.
    * @param {string} nodeType Node type
    * @returns {boolean} True if the node type is custom, false otherwise.
+   * @deprecated since v4.0.0 Frodo no longer classifies nodes as custom vs standard. This method will be removed in a future major release.
+   * @group Deprecated
    */
   isCustomNode(nodeType: string): boolean;
   /**
@@ -216,16 +234,15 @@ export type Node = {
    * - standard: can run on any instance of a ForgeRock platform
    * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
    * - premium: utilizes nodes, which come at a premium
+   * - deprecated: nodes that are no longer supported
+   * - custom: nodes that are user-defined
+   * - excluded: nodes that are excluded from certain environments
    * @param {string} nodeType Node type
    * @returns {NodeClassificationType[]} an array of one or multiple classifications
+   * @deprecated since v4.0.0 Frodo no longer classifies nodes as "standard" vs "custom" vs "cloud" vs "excluded" vs "premium" vs "deprecated". This method will be removed in a future major release.
+   * @group Deprecated
    */
   getNodeClassification(nodeType: string): NodeClassificationType[];
-  /**
-   * Get custom node usage by ID
-   * @param {String} nodeId ID or service name of the custom node
-   * @returns {Promise<CustomNodeUsage>} a promise that resolves to an object containing a custom node usage object
-   */
-  getCustomNodeUsage(nodeId: string): Promise<CustomNodeUsage>;
 };
 
 export default (state: State): Node => {
@@ -355,6 +372,14 @@ export default (state: State): Node => {
     ): Promise<NodeSkeleton[]> {
       return removeOrphanedNodes({ orphanedNodes, state });
     },
+    getCustomNodeUsage(nodeId: string): Promise<CustomNodeUsage> {
+      return getCustomNodeUsage({
+        nodeId,
+        state,
+      });
+    },
+
+    // Deprecated
     isPremiumNode(nodeType: string): boolean {
       return isPremiumNode(nodeType);
     },
@@ -372,12 +397,6 @@ export default (state: State): Node => {
     },
     getNodeClassification(nodeType: string): NodeClassificationType[] {
       return getNodeClassification({ nodeType, state });
-    },
-    getCustomNodeUsage(nodeId: string): Promise<CustomNodeUsage> {
-      return getCustomNodeUsage({
-        nodeId,
-        state,
-      });
     },
   };
 };
@@ -417,6 +436,16 @@ export interface CustomNodeExportOptions {
   useStringArrays: boolean;
 }
 
+/**
+ * Node classification types. Note that a node can have multiple classifications, e.g. a node can be both "cloud" and "premium" if it's a node that's exclusively available in the ForgeRock Identity Cloud and comes at a premium.
+ * - standard: can run on any instance of a ForgeRock platform
+ * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
+ * - custom: nodes that are user-defined
+ * - excluded: nodes that are excluded from certain environments
+ * - premium: nodes that come at a premium
+ * - deprecated: nodes that are no longer supported
+ * @deprecated since v4.0.0 Frodo no longer classifies nodes as "standard" vs "custom" vs "cloud" vs "excluded" vs "premium" vs "deprecated". This type will be removed in a future major release.
+ */
 export type NodeClassificationType =
   | 'standard'
   | 'custom'
@@ -425,6 +454,16 @@ export type NodeClassificationType =
   | 'premium'
   | 'deprecated';
 
+/**
+ * Node classifications. Note that a node can have multiple classifications, e.g. a node can be both "cloud" and "premium" if it's a node that's exclusively available in the ForgeRock Identity Cloud and comes at a premium.
+ * - standard: can run on any instance of a ForgeRock platform
+ * - cloud: utilize nodes, which are exclusively available in the ForgeRock Identity Cloud
+ * - custom: nodes that are user-defined
+ * - excluded: nodes that are excluded from certain environments
+ * - premium: nodes that come at a premium
+ * - deprecated: nodes that are no longer supported
+ * @deprecated since v4.0.0 Frodo no longer classifies nodes as "standard" vs "custom" vs "cloud" vs "excluded" vs "premium" vs "deprecated". This enum will be removed in a future major release.
+ */
 export enum NodeClassification {
   STANDARD = 'standard',
   CUSTOM = 'custom',
@@ -1219,6 +1258,9 @@ export async function removeOrphanedNodes({
   return errorNodes;
 }
 
+/**
+ * Node classification is deprecated since v4.0.0 Frodo no longer classifies nodes as "standard" vs "custom" vs "cloud" vs "excluded" vs "premium" vs "deprecated". The following arrays are maintained for informational purposes but will no longer be updated and will be removed in a future major release.
+ */
 const OOTB_NODE_TYPES_7 = [
   'AcceptTermsAndConditionsNode',
   'AccountActiveDecisionNode',
@@ -1499,6 +1541,7 @@ const PREMIUM_NODE_TYPES = [
  * Analyze if a node is a premium node.
  * @param {string} nodeType Node type
  * @returns {boolean} True if the node type is premium, false otherwise.
+ * @deprecated since v4.0.0 Frodo no longer classifies nodes as "premium". This function will be removed in a future major release.
  */
 export function isPremiumNode(nodeType: string): boolean {
   return PREMIUM_NODE_TYPES.includes(nodeType);
@@ -1508,6 +1551,7 @@ export function isPremiumNode(nodeType: string): boolean {
  * Analyze if a node is a cloud-only node.
  * @param {string} nodeType Node type
  * @returns {boolean} True if the node type is cloud-only, false otherwise.
+ * @deprecated since v4.0.0 Frodo no longer classifies nodes as "cloud-only". This function will be removed in a future major release.
  */
 export function isCloudOnlyNode(nodeType: string): boolean {
   return CLOUD_ONLY_NODE_TYPES.includes(nodeType);
@@ -1517,6 +1561,7 @@ export function isCloudOnlyNode(nodeType: string): boolean {
  * Analyze if a node is a cloud-excluded node. Cloud excluded nodes are OOTB nodes in self-hosted AM deployments but have been excluded in cloud.
  * @param {{string, State}} param0 object containing node type and state.
  * @returns {boolean} True if node type is cloud-excluded, false otherwise.
+ * @deprecated since v4.0.0 Frodo no longer classifies nodes as "cloud-excluded". This function will be removed in a future major release.
  */
 export function isCloudExcludedNode({
   nodeType,
@@ -1535,6 +1580,7 @@ export function isCloudExcludedNode({
  * Analyze if node has been deprecated
  * @param {{string, State}} param0 object containing node type and state.
  * @returns {boolean} True if node type is deprecated, false otherwise.
+ * @deprecated since v4.0.0 Frodo no longer classifies nodes as "deprecated". This function will be removed in a future major release.
  */
 export function isDeprecatedNode({
   nodeType,
@@ -1583,6 +1629,7 @@ export function isDeprecatedNode({
  * Analyze if a node is custom.
  * @param {string} nodeType Node type
  * @returns {boolean} True if the node type is custom, false otherwise.
+ * @deprecated since v4.0.0 Frodo no longer classifies nodes as "custom". This function will be removed in a future major release.
  */
 export function isCustomNode({
   nodeType,
@@ -1658,6 +1705,7 @@ export function isCustomNode({
  * - premium: utilizes nodes, which come at a premium
  * @param {string} nodeType Node type
  * @returns {NodeClassification[]} an array of one or multiple classifications
+ * @deprecated since v4.0.0 Frodo no longer classifies nodes as "standard" vs "custom" vs "cloud" vs "excluded" vs "premium" vs "deprecated". This function will be removed in a future major release.
  */
 export function getNodeClassification({
   nodeType,
@@ -1690,6 +1738,7 @@ export function getNodeClassification({
  * Get custom node usage by ID
  * @param {String} nodeId ID or service name of the custom node
  * @returns {Promise<CustomNodeUsage>} a promise that resolves to an object containing a custom node usage object
+ * @deprecated since v4.0.0 Frodo no longer classifies nodes as "custom". This function will be removed in a future major release.
  */
 export async function getCustomNodeUsage({
   nodeId,
@@ -1712,6 +1761,7 @@ export async function getCustomNodeUsage({
  * Helper that normalized a service name to custom node id if needed
  * @param nodeId The custom node id or service name
  * @returns nodeId if falsey or in id format, otherwise returns nodeId in id format
+ * @deprecated since v4.0.0 Frodo no longer classifies nodes as "custom". This function will be removed in a future major release.
  */
 export function getCustomNodeId(nodeId?: string): string | undefined | null {
   return !nodeId || nodeId.endsWith('-1') ? nodeId : nodeId + '-1';

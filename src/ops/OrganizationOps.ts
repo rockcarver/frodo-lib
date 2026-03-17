@@ -17,19 +17,6 @@ export type Organization = {
    * @returns {Promise<IdObjectSkeletonInterface[]>} promise resolving to an array of organization objects
    */
   readOrganizations(): Promise<IdObjectSkeletonInterface[]>;
-
-  // Deprecated
-
-  /**
-   * Get organizations
-   * @returns {Promise<IdObjectSkeletonInterface[]>} promise resolving to an array of organization objects
-   * @deprecated since v2.0.0 use {@link Organization.readOrganizations | readOrganizations} instead
-   * ```javascript
-   * readOrganizations(): Promise<IdObjectSkeletonInterface[]>
-   * ```
-   * @group Deprecated
-   */
-  getOrganizations(): Promise<IdObjectSkeletonInterface[]>;
 };
 
 export default (state: State): Organization => {
@@ -38,12 +25,6 @@ export default (state: State): Organization => {
       return getRealmManagedOrganization({ state });
     },
     async readOrganizations(): Promise<IdObjectSkeletonInterface[]> {
-      return readOrganizations({ state });
-    },
-
-    // Deprecated
-
-    async getOrganizations(): Promise<IdObjectSkeletonInterface[]> {
       return readOrganizations({ state });
     },
   };

@@ -129,93 +129,6 @@ export type Theme = {
    * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
    */
   deleteThemes(realm?: string): Promise<ThemeSkeleton[]>;
-
-  // Deprecated
-
-  /**
-   * Get all themes
-   * @param {string} realm realm name
-   * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
-   * @deprecated since v2.0.0 use {@link Theme.readThemes | readThemes} instead
-   * ```javascript
-   * readThemes(): Promise<ThemeSkeleton[]>
-   * ```
-   * @group Deprecated
-   */
-  getThemes(): Promise<ThemeSkeleton[]>;
-  /**
-   * Get theme by id
-   * @param {string} themeId theme id
-   * @param {string} realm realm name
-   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
-   * @deprecated since v2.0.0 use {@link Theme.readTheme | readTheme} instead
-   * ```javascript
-   * readTheme(themeId: string, realm?: string): Promise<ThemeSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getTheme(themeId: string, realm?: string): Promise<ThemeSkeleton>;
-  /**
-   * Get theme by name
-   * @param {string} themeName theme name
-   * @param {string} realm realm name
-   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
-   * @deprecated since v2.0.0 use {@link Theme.readThemeByName | readThemeByName} instead
-   * ```javascript
-   * readThemeByName(themeName: string, realm?: string): Promise<ThemeSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getThemeByName(themeName: string, realm?: string): Promise<ThemeSkeleton>;
-  /**
-   * Put theme by id
-   * @param {string} themeId theme id
-   * @param {ThemeSkeleton} themeData theme object
-   * @param {string} realm realm name
-   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
-   * @deprecated since v2.0.0 use {@link Theme.updateTheme | updateTheme} or {@link Theme.createTheme | createTheme} instead
-   * ```javascript
-   * updateTheme(themeId: string, themeData: ThemeSkeleton, realm?: string): Promise<ThemeSkeleton>
-   * createTheme(themeData: ThemeSkeleton, themeId?: string, realm?: string): Promise<ThemeSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  putTheme(
-    themeId: string,
-    themeData: ThemeSkeleton,
-    realm?: string
-  ): Promise<ThemeSkeleton>;
-  /**
-   * Put theme by name
-   * @param {String} themeName theme name
-   * @param {ThemeSkeleton} themeData theme object
-   * @param {string} realm realm name
-   * @returns {Promise<ThemeSkeleton>} a promise that resolves to a theme object
-   * @deprecated since v2.0.0 use {@link Theme.updateThemeByName | updateThemeByName} instead
-   * ```javascript
-   * updateThemeByName(themeName: string, themeData: ThemeSkeleton, realm?: string): Promise<ThemeSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  putThemeByName(
-    themeName: string,
-    themeData: ThemeSkeleton,
-    realm?: string
-  ): Promise<ThemeSkeleton>;
-  /**
-   * Put all themes
-   * @param {Map<string, ThemeSkeleton>} allThemesData themes object containing all themes for all realms
-   * @param {string} realm realm name
-   * @returns {Promise<Map<string, ThemeSkeleton>>} a promise that resolves to a themes object
-   * @deprecated since v2.0.0 use {@link Theme.updateThemes | updateThemes} instead
-   * ```javascript
-   * updateThemes(themeMap: Map<string, ThemeSkeleton>): Promise<Map<string, ThemeSkeleton>>
-   * ```
-   * @group Deprecated
-   */
-  putThemes(
-    themeMap: Record<string, ThemeSkeleton>
-  ): Promise<Record<string, ThemeSkeleton>>;
 };
 
 export default (state: State): Theme => {
@@ -288,43 +201,6 @@ export default (state: State): Theme => {
       realm: string = state.getRealm()
     ): Promise<ThemeSkeleton[]> {
       return deleteThemes({ realm, state });
-    },
-
-    // Deprecated
-
-    async getThemes(): Promise<ThemeSkeleton[]> {
-      return readThemes({ state });
-    },
-    async getTheme(
-      themeId: string,
-      realm: string = state.getRealm()
-    ): Promise<ThemeSkeleton> {
-      return readTheme({ themeId, realm, state });
-    },
-    async getThemeByName(
-      themeName: string,
-      realm: string = state.getRealm()
-    ): Promise<ThemeSkeleton> {
-      return readThemeByName({ themeName, realm, state });
-    },
-    async putTheme(
-      themeId: string,
-      themeData: ThemeSkeleton,
-      realm: string = state.getRealm()
-    ): Promise<ThemeSkeleton> {
-      return updateTheme({ themeId, themeData, realm, state });
-    },
-    async putThemeByName(
-      themeName: string,
-      themeData: ThemeSkeleton,
-      realm: string = state.getRealm()
-    ): Promise<ThemeSkeleton> {
-      return updateThemeByName({ themeName, themeData, realm, state });
-    },
-    async putThemes(
-      themeMap: Record<string, ThemeSkeleton>
-    ): Promise<Record<string, ThemeSkeleton>> {
-      return updateThemes({ themeMap, state });
     },
   };
 };
