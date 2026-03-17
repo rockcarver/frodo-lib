@@ -95,47 +95,6 @@ export type AdminFederation = {
   importAdminFederationProviders(
     importData: AdminFederationExportInterface
   ): Promise<SocialIdpSkeleton[]>;
-
-  // Deprecated
-
-  /**
-   * Get all admin federation providers
-   * @returns {Promise<SocialIdpSkeleton[]>} a promise that resolves to an object containing an array of admin federation providers
-   * @deprecated since v2.0.0 use {@link AdminFederation.readAdminFederationProviders | readAdminFederationProviders} instead
-   * ```javascript
-   * readAdminFederationProviders(): Promise<SocialIdpSkeleton[]>
-   * ```
-   * @group Deprecated
-   */
-  getAdminFederationProviders(): Promise<SocialIdpSkeleton[]>;
-  /**
-   * Get admin federation provider
-   * @param {String} providerId social identity provider id/name
-   * @returns {Promise} a promise that resolves a social admin federation object
-   * @deprecated since v2.0.0 use {@link AdminFederation.readAdminFederationProvider | readAdminFederationProvider} instead
-   * ```javascript
-   * readAdminFederationProvider(providerId: string): Promise<SocialIdpSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getAdminFederationProvider(providerId: string): Promise<SocialIdpSkeleton>;
-  /**
-   * Update or create admin federation provider
-   * @param {string} providerType social identity provider type
-   * @param {string} providerId social identity provider id/name
-   * @param {SocialIdpSkeleton} providerData social identity provider data
-   * @returns {Promise<SocialIdpSkeleton>} a promise that resolves a social admin federation object
-   * @deprecated since v2.0.0 use {@link AdminFederation.updateAdminFederationProvider | updateAdminFederationProvider} instead
-   * ```javascript
-   * updateAdminFederationProvider(providerType: string, providerId: string, providerData: SocialIdpSkeleton): Promise<SocialIdpSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  putProviderByTypeAndId(
-    providerType: string,
-    providerId: string,
-    providerData: SocialIdpSkeleton
-  ): Promise<SocialIdpSkeleton>;
 };
 
 export default (state: State): AdminFederation => {
@@ -210,29 +169,6 @@ export default (state: State): AdminFederation => {
       importData: AdminFederationExportInterface
     ): Promise<SocialIdpSkeleton[]> {
       return importAdminFederationProviders({ importData, state });
-    },
-
-    // Deprecated
-
-    async getAdminFederationProviders(): Promise<SocialIdpSkeleton[]> {
-      return readAdminFederationProviders({ state });
-    },
-    async getAdminFederationProvider(
-      providerId: string
-    ): Promise<SocialIdpSkeleton> {
-      return readAdminFederationProvider({ providerId, state });
-    },
-    async putProviderByTypeAndId(
-      providerType: string,
-      providerId: string,
-      providerData: SocialIdpSkeleton
-    ): Promise<SocialIdpSkeleton> {
-      return updateAdminFederationProvider({
-        providerType,
-        providerId,
-        providerData,
-        state,
-      });
     },
   };
 };

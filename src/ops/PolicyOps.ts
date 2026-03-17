@@ -136,57 +136,6 @@ export type Policy = {
     importData: PolicyExportInterface,
     options?: PolicyImportOptions
   ): Promise<PolicySkeleton[]>;
-
-  // Deprecated
-
-  /**
-   * Get all policies
-   * @returns {Promise<PolicySkeleton>} a promise that resolves to an array of policy set objects
-   * @deprecated since v2.0.0 use {@link Agent.readPolicies | readPolicies} instead
-   * ```javascript
-   * readPolicies(): Promise<PolicySkeleton[]>
-   * ```
-   * @group Deprecated
-   */
-  getPolicies(): Promise<PolicySkeleton[]>;
-  /**
-   * Get policies by policy set
-   * @param {string} policySetId policy set id/name
-   * @returns {Promise<PolicySkeleton[]>} a promise resolving to an array of policy objects
-   * @deprecated since v2.0.0 use {@link Agent.readPoliciesByPolicySet | readPoliciesByPolicySet} instead
-   * ```javascript
-   * readPoliciesByPolicySet(policySetId: string): Promise<PolicySkeleton[]>
-   * ```
-   * @group Deprecated
-   */
-  getPoliciesByPolicySet(policySetId: string): Promise<PolicySkeleton[]>;
-  /**
-   * Get policy
-   * @param {string} policyId policy id/name
-   * @returns {Promise<PolicySkeleton>} promise resolving to a policy object
-   * @deprecated since v2.0.0 use {@link Agent.readPolicy | readPolicy} instead
-   * ```javascript
-   * readPolicy(policyId: string): Promise<PolicySkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getPolicy(policyId: string): Promise<PolicySkeleton>;
-  /**
-   * Update or create policy
-   * @param {string} policyId policy id/name
-   * @param {PolicySkeleton} policyData policy object
-   * @returns {Promise<PolicySkeleton>} promise resolving to a policy object
-   * @deprecated since v2.0.0 use {@link Agent.updatePolicy | updatePolicy} or {@link Agent.createPolicy | createPolicy} instead
-   * ```javascript
-   * updatePolicy(policyId: string, policyData: PolicySkeleton): Promise<PolicySkeleton>
-   * createPolicy(policyId: string, policyData: PolicySkeleton): Promise<PolicySkeleton>
-   * ```
-   * @group Deprecated
-   */
-  putPolicy(
-    policyId: string,
-    policyData: PolicySkeleton
-  ): Promise<PolicySkeleton>;
 };
 
 export default (state: State): Policy => {
@@ -265,23 +214,6 @@ export default (state: State): Policy => {
       options: PolicyImportOptions = { deps: true, prereqs: false }
     ): Promise<PolicySkeleton[]> {
       return importPolicies({ importData, options, state });
-    },
-
-    // Deprecated
-
-    async getPolicies(): Promise<PolicySkeleton[]> {
-      return readPolicies({ state });
-    },
-    async getPoliciesByPolicySet(
-      policySetId: string
-    ): Promise<PolicySkeleton[]> {
-      return readPoliciesByPolicySet({ policySetId, state });
-    },
-    async getPolicy(policyId: string) {
-      return readPolicy({ policyId, state });
-    },
-    async putPolicy(policyId: string, policyData: PolicySkeleton) {
-      return updatePolicy({ policyId, policyData, state });
     },
   };
 };

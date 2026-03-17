@@ -123,43 +123,6 @@ export type ResourceType = {
    * @param {ResourceTypeExportInterface} importData import data
    */
   importResourceTypes(importData: ResourceTypeExportInterface): Promise<any[]>;
-
-  // Deprecated
-
-  /**
-   * Get resource type
-   * @param resourceTypeUuid resource type uuid
-   * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
-   * @deprecated since v2.0.0 use {@link Agent.readResourceType | readResourceType} instead
-   * ```javascript
-   * readResourceType(resourceTypeUuid: string): Promise<ResourceTypeSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getResourceType(resourceTypeUuid: string): Promise<ResourceTypeSkeleton>;
-  /**
-   * Get all resource types
-   * @returns {Promise<ResourceTypeSkeleton[]>} a promise that resolves to an array of resource type objects
-   * @deprecated since v2.0.0 use {@link Agent.readResourceTypes | readResourceTypes} instead
-   * ```javascript
-   * readResourceTypes(): Promise<ResourceTypeSkeleton[]>
-   * ```
-   * @group Deprecated
-   */
-  getResourceTypes(): Promise<ResourceTypeSkeleton[]>;
-  /**
-   * Get resource type by name
-   * @param {string} resourceTypeName resource type name
-   * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
-   * @deprecated since v2.0.0 use {@link Agent.readResourceTypeByName | readResourceTypeByName} instead
-   * ```javascript
-   * readResourceTypeByName(resourceTypeName: string): Promise<ResourceTypeSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getResourceTypeByName(
-    resourceTypeName: string
-  ): Promise<ResourceTypeSkeleton>;
 };
 
 export default (state: State): ResourceType => {
@@ -237,20 +200,6 @@ export default (state: State): ResourceType => {
     },
     async importResourceTypes(importData: ResourceTypeExportInterface) {
       return importResourceTypes({ importData, state });
-    },
-
-    // Deprecated
-
-    async getResourceType(resourceTypeUuid: string) {
-      return readResourceType({ resourceTypeUuid, state });
-    },
-    async getResourceTypes(): Promise<ResourceTypeSkeleton[]> {
-      return readResourceTypes({ state });
-    },
-    async getResourceTypeByName(
-      resourceTypeName: string
-    ): Promise<ResourceTypeSkeleton> {
-      return readResourceTypeByName({ resourceTypeName, state });
     },
   };
 };

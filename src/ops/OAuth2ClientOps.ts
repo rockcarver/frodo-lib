@@ -123,46 +123,6 @@ export type OAuth2Client = {
     importData: OAuth2ClientExportInterface,
     options?: OAuth2ClientImportOptions
   ): Promise<OAuth2ClientSkeleton[]>;
-
-  // Deprecated
-
-  /**
-   * Get all OAuth2 clients
-   * @returns {Promise<OAuth2ClientSkeleton[]>} a promise that resolves to an array of oauth2client objects
-   * @deprecated since v2.0.0 use {@link OAuth2Client.readOAuth2Clients | readOAuth2Clients} instead
-   * ```javascript
-   * readOAuth2Clients(): Promise<OAuth2ClientSkeleton[]>
-   * ```
-   * @group Deprecated
-   */
-  getOAuth2Clients(): Promise<OAuth2ClientSkeleton[]>;
-  /**
-   * Get OAuth2 client
-   * @param {string} clientId client id
-   * @returns {Promise<OAuth2ClientSkeleton>} a promise that resolves to an oauth2client object
-   * @deprecated since v2.0.0 use {@link OAuth2Client.readOAuth2Client | readOAuth2Client} instead
-   * ```javascript
-   * readOAuth2Client(clientId: string): Promise<OAuth2ClientSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getOAuth2Client(clientId: string): Promise<OAuth2ClientSkeleton>;
-  /**
-   * Put OAuth2 client
-   * @param {string} clientId client id
-   * @param {OAuth2ClientSkeleton} clientData oauth2client object
-   * @returns {Promise<any>} a promise that resolves to an oauth2client object
-   * @deprecated since v2.0.0 use {@link OAuth2Client.updateOAuth2Client | updateOAuth2Client} or {@link OAuth2Client.createOAuth2Client | createOAuth2Client} instead
-   * ```javascript
-   * updateOAuth2Client(clientId: string, clientData: OAuth2ClientSkeleton): Promise<OAuth2ClientSkeleton>
-   * createOAuth2Client(clientId: string, clientData: OAuth2ClientSkeleton): Promise<OAuth2ClientSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  putOAuth2Client(
-    clientId: string,
-    clientData: OAuth2ClientSkeleton
-  ): Promise<OAuth2ClientSkeleton>;
 };
 
 export default (state: State): OAuth2Client => {
@@ -228,21 +188,6 @@ export default (state: State): OAuth2Client => {
       options: OAuth2ClientImportOptions = { deps: true }
     ): Promise<OAuth2ClientSkeleton[]> {
       return importOAuth2Clients({ importData, options, state });
-    },
-
-    // Deprecated
-
-    async getOAuth2Clients(): Promise<OAuth2ClientSkeleton[]> {
-      return readOAuth2Clients({ state });
-    },
-    async getOAuth2Client(clientId: string): Promise<OAuth2ClientSkeleton> {
-      return readOAuth2Client({ clientId, state });
-    },
-    async putOAuth2Client(
-      clientId: string,
-      clientData: OAuth2ClientSkeleton
-    ): Promise<OAuth2ClientSkeleton> {
-      return updateOAuth2Client({ clientId, clientData, state });
     },
   };
 };

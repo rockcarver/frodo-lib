@@ -74,23 +74,6 @@ export type Authenticate = {
     types?: string[],
     callbackHandler?: CallbackHandler
   ): Promise<Tokens>;
-
-  // Deprecated
-  /**
-   * Get access token for service account
-   * @param {string} saId optional service account id
-   * @param {JwkRsa} saJwk optional service account JWK
-   * @returns {string | null} Access token or null
-   * @deprecated since v2.0.0 use {@link Authenticate.getTokens | getTokens} instead
-   * ```javascript
-   * getTokens(): Promise<boolean>
-   * ```
-   * @group Deprecated
-   */
-  getAccessTokenForServiceAccount(
-    saId?: string,
-    saJwk?: JwkRsa
-  ): Promise<string | null>;
 };
 
 export default (state: State): Authenticate => {
@@ -108,19 +91,6 @@ export default (state: State): Authenticate => {
         callbackHandler,
         state,
       });
-    },
-
-    // Deprecated
-    async getAccessTokenForServiceAccount(
-      saId: string = undefined,
-      saJwk: JwkRsa = undefined
-    ): Promise<string | null> {
-      const { access_token } = await getFreshSaBearerToken({
-        saId,
-        saJwk,
-        state,
-      });
-      return access_token;
     },
   };
 };

@@ -115,48 +115,6 @@ export type OAuth2TrustedJwtIssuer = {
     importData: OAuth2TrustedJwtIssuerExportInterface,
     options?: OAuth2TrustedJwtIssuerImportOptions
   ): Promise<OAuth2TrustedJwtIssuerSkeleton[]>;
-
-  // Deprecated
-
-  /**
-   * Get all OAuth2 trusted jwt issuers
-   * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton[]>} a promise that resolves to an array of trusted jwt issuer objects
-   * @deprecated since v2.0.0 use {@link OAuth2TrustedJwtIssuer.readOAuth2TrustedJwtIssuers | readOAuth2TrustedJwtIssuers} instead
-   * ```javascript
-   * readOAuth2TrustedJwtIssuers(): Promise<OAuth2TrustedJwtIssuerSkeleton[]>
-   * ```
-   * @group Deprecated
-   */
-  getOAuth2TrustedJwtIssuers(): Promise<OAuth2TrustedJwtIssuerSkeleton[]>;
-  /**
-   * Get OAuth2 trusted jwt issuer
-   * @param {string} issuerId trusted jwt issuer id
-   * @returns {Promise<OAuth2TrustedJwtIssuerSkeleton>} a promise that resolves to an trusted jwt issuer object
-   * @deprecated since v2.0.0 use {@link OAuth2TrustedJwtIssuer.readOAuth2TrustedJwtIssuer | readOAuth2TrustedJwtIssuer} instead
-   * ```javascript
-   * readOAuth2TrustedJwtIssuer(issuerId: string): Promise<OAuth2TrustedJwtIssuerSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getOAuth2TrustedJwtIssuer(
-    issuerId: string
-  ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
-  /**
-   * Put OAuth2 trusted jwt issuer
-   * @param {string} issuerId trusted jwt issuer id
-   * @param {OAuth2TrustedJwtIssuerSkeleton} issuerData trusted jwt issuer object
-   * @returns {Promise<any>} a promise that resolves to an trusted jwt issuer object
-   * @deprecated since v2.0.0 use {@link OAuth2TrustedJwtIssuer.updateOAuth2TrustedJwtIssuer | updateOAuth2TrustedJwtIssuer} or {@link OAuth2TrustedJwtIssuer.createOAuth2TrustedJwtIssuer | createOAuth2TrustedJwtIssuer} instead
-   * ```javascript
-   * updateOAuth2TrustedJwtIssuer(issuerId: string, issuerData: OAuth2TrustedJwtIssuerSkeleton): Promise<OAuth2TrustedJwtIssuerSkeleton>
-   * createOAuth2TrustedJwtIssuer(issuerId: string, issuerData: OAuth2TrustedJwtIssuerSkeleton): Promise<OAuth2TrustedJwtIssuerSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  putOAuth2TrustedJwtIssuer(
-    issuerId: string,
-    issuerData: OAuth2TrustedJwtIssuerSkeleton
-  ): Promise<OAuth2TrustedJwtIssuerSkeleton>;
 };
 
 export default (state: State): OAuth2TrustedJwtIssuer => {
@@ -228,25 +186,6 @@ export default (state: State): OAuth2TrustedJwtIssuer => {
       importData: OAuth2TrustedJwtIssuerExportInterface
     ): Promise<OAuth2TrustedJwtIssuerSkeleton[]> {
       return importOAuth2TrustedJwtIssuers({ importData, state });
-    },
-
-    // Deprecated
-
-    async getOAuth2TrustedJwtIssuers(): Promise<
-      OAuth2TrustedJwtIssuerSkeleton[]
-    > {
-      return readOAuth2TrustedJwtIssuers({ state });
-    },
-    async getOAuth2TrustedJwtIssuer(
-      issuerId: string
-    ): Promise<OAuth2TrustedJwtIssuerSkeleton> {
-      return readOAuth2TrustedJwtIssuer({ issuerId, state });
-    },
-    async putOAuth2TrustedJwtIssuer(
-      issuerId: string,
-      issuerData: OAuth2TrustedJwtIssuerSkeleton
-    ): Promise<OAuth2TrustedJwtIssuerSkeleton> {
-      return updateOAuth2TrustedJwtIssuer({ issuerId, issuerData, state });
     },
   };
 };

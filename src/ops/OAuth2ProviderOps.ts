@@ -35,19 +35,6 @@ export type OAuth2Provider = {
    * @returns {Promise<OAuth2ProviderSkeleton>} a promise resolving to an oauth2 provider object
    */
   deleteOAuth2Provider(): Promise<OAuth2ProviderSkeleton>;
-
-  // Deprecated
-
-  /**
-   * Get oauth2 provider
-   * @returns {Promise<OAuth2ProviderSkeleton>} a promise resolving to an oauth2 provider object
-   * @deprecated since v2.0.0 use {@link OAuth2Provider.readOAuth2Provider | readOAuth2Provider} instead
-   * ```javascript
-   * importFirstSocialIdentityProvider(importData: SocialProviderExportInterface): Promise<SocialIdpSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getOAuth2Provider(): Promise<OAuth2ProviderSkeleton>;
 };
 
 export default (state: State): OAuth2Provider => {
@@ -67,12 +54,6 @@ export default (state: State): OAuth2Provider => {
     },
     async deleteOAuth2Provider(): Promise<OAuth2ProviderSkeleton> {
       return deleteOAuth2Provider({ state });
-    },
-
-    // Deprecated
-
-    async getOAuth2Provider(): Promise<OAuth2ProviderSkeleton> {
-      return readOAuth2Provider({ state });
     },
   };
 };

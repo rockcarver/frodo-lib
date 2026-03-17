@@ -106,30 +106,6 @@ export type PolicySet = {
     importData: PolicySetExportInterface,
     options?: PolicySetImportOptions
   ): Promise<any[]>;
-
-  // Deprecated
-
-  /**
-   * Get all policy sets
-   * @returns {Promise<PolicySetSkeleton[]>} a promise that resolves to an array of policy set objects
-   * @deprecated since v2.0.0 use {@link Policy.readPolicySets | readPolicySets} instead
-   * ```javascript
-   * readPolicySets(): Promise<PolicySetSkeleton[]>
-   * ```
-   * @group Deprecated
-   */
-  getPolicySets(): Promise<PolicySetSkeleton[]>;
-  /**
-   * Get policy set
-   * @param {string} policySetName policy set name
-   * @returns {Promise<PolicySetSkeleton>} a promise that resolves to a policy set object
-   * @deprecated since v2.0.0 use {@link Policy.readPolicySet | readPolicySet} instead
-   * ```javascript
-   * readPolicySet(policySetName: string): Promise<PolicySetSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getPolicySet(policySetName: string): Promise<PolicySetSkeleton>;
 };
 
 export default (state: State): PolicySet => {
@@ -200,15 +176,6 @@ export default (state: State): PolicySet => {
       options: PolicySetImportOptions = { deps: true, prereqs: false }
     ) {
       return importPolicySets({ importData, options, state });
-    },
-
-    // Deprecated
-
-    async getPolicySets(): Promise<PolicySetSkeleton[]> {
-      return readPolicySets({ state });
-    },
-    async getPolicySet(policySetName: string) {
-      return _getPolicySet({ policySetName, state });
     },
   };
 };

@@ -8,13 +8,11 @@ import {
   deleteConfigEntity as _deleteConfigEntity,
   getConfigEntities as _getConfigEntities,
   getConfigEntitiesByType as _getConfigEntitiesByType,
-  getConfigEntity as _getConfigEntity,
   getConfigStubs as _getConfigEntityStubs,
   putConfigEntity as _putConfigEntity,
   getConfigEntity,
   IdmConfigStub,
 } from '../api/IdmConfigApi';
-import { ConnectorServerStatusInterface } from '../api/IdmSystemApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
@@ -31,7 +29,6 @@ import {
 import { stringify } from '../utils/JsonUtils';
 import { areScriptHooksValid } from '../utils/ScriptValidationUtils';
 import { FrodoError } from './FrodoError';
-import { testConnectorServers as _testConnectorServers } from './IdmSystemOps';
 import { ExportMetaData, ResultCallback } from './OpsTypes';
 
 export type IdmConfig = {
@@ -172,73 +169,6 @@ export type IdmConfig = {
     updatedSubConfigEntity: IdObjectSkeletonInterface,
     options?: ConfigEntityImportOptions
   ): Promise<IdObjectSkeletonInterface[]>;
-
-  // Deprecated
-
-  /**
-   * Get available config entity types
-   * @returns {string[]} promise resolving to an array of config entity types
-   * @deprecated since v2.0.0 use {@link IdmConfig.readConfigEntityTypes | readConfigEntityTypes} instead
-   * ```javascript
-   * readConfigEntityTypes(): Promise<string[]>
-   * ```
-   * @group Deprecated
-   */
-  getConfigEntityTypes(): Promise<string[]>;
-  /**
-   * Get all config entities
-   * @returns {IdObjectSkeletonInterface[]} promise reolving to an array of config entities
-   * @deprecated since v2.0.0 use {@link IdmConfig.readConfigEntities | readConfigEntities} instead
-   * ```javascript
-   * readConfigEntities(): Promise<IdObjectSkeletonInterface[]>
-   * ```
-   * @group Deprecated
-   */
-  getAllConfigEntities(): Promise<IdmConfigStub[]>;
-  /**
-   * Get all config entities of a type
-   * @param {string} type config entity type
-   * @returns {IdObjectSkeletonInterface[]} promise resolving to an array of config entities of a type
-   * @deprecated since v2.0.0 use {@link IdmConfig.readConfigEntitiesByType | readConfigEntitiesByType} instead
-   * ```javascript
-   * readConfigEntitiesByType(type: string): Promise<IdObjectSkeletonInterface[]>
-   * ```
-   * @group Deprecated
-   */
-  getConfigEntitiesByType(type: string): Promise<IdObjectSkeletonInterface[]>;
-  /**
-   * Get config entity
-   * @param {string} entityId config entity id/name
-   * @returns {IdObjectSkeletonInterface} promise resolving to a config entity
-   * @deprecated since v2.0.0 use {@link IdmConfig.readConfigEntity | readConfigEntity} instead
-   * ```javascript
-   * readConfigEntity(entityId: string): Promise<IdObjectSkeletonInterface>
-   * ```
-   * @group Deprecated
-   */
-  getConfigEntity(entityId: string): Promise<IdObjectSkeletonInterface>;
-  /**
-   * Put config entity
-   * @param {string} entityId config entity id/name
-   * @param {IdObjectSkeletonInterface} entityData config entity data
-   * @returns {IdObjectSkeletonInterface} promise resolving to a config entity
-   * @deprecated since v2.0.0 use {@link IdmConfig.updateConfigEntity | updateConfigEntity} or {@link IdmConfig.createConfigEntity | createConfigEntity} instead
-   * ```javascript
-   * updateConfigEntity(entityId: string, entityData: IdObjectSkeletonInterface): Promise<IdObjectSkeletonInterface>
-   * createConfigEntity(entityId: string, entityData: IdObjectSkeletonInterface): Promise<IdObjectSkeletonInterface>
-   * ```
-   * @group Deprecated
-   */
-  putConfigEntity(
-    entityId: string,
-    entityData: IdObjectSkeletonInterface
-  ): Promise<IdObjectSkeletonInterface>;
-  /**
-   * Test connector servers
-   * @deprecated since v2.0.0-42 use {@link IdmSystem.testConnectorServers | testConnectorServers} or {@link IdmSystem.testConnectorServers | testConnectorServers} instead
-   * @returns {Promise<ConnectorServerStatusInterface[]>} a promise that resolves to an array of ConnectorServerStatusInterface objects
-   */
-  testConnectorServers(): Promise<ConnectorServerStatusInterface[]>;
 };
 
 export default (state: State): IdmConfig => {
@@ -351,34 +281,6 @@ export default (state: State): IdmConfig => {
         options,
         state,
       });
-    },
-
-    // Deprecated
-
-    async getConfigEntityTypes(): Promise<string[]> {
-      return readConfigEntityTypes({ state });
-    },
-    async getAllConfigEntities(): Promise<IdmConfigStub[]> {
-      return readConfigEntityStubs({ state });
-    },
-    async getConfigEntitiesByType(
-      type: string
-    ): Promise<IdObjectSkeletonInterface[]> {
-      return readConfigEntitiesByType({ type, state });
-    },
-    async getConfigEntity(
-      entityId: string
-    ): Promise<IdObjectSkeletonInterface> {
-      return _getConfigEntity({ entityId, state });
-    },
-    async putConfigEntity(
-      entityId: string,
-      entityData: NoIdObjectSkeletonInterface | string
-    ): Promise<IdObjectSkeletonInterface> {
-      return _putConfigEntity({ entityId, entityData, state });
-    },
-    async testConnectorServers(): Promise<ConnectorServerStatusInterface[]> {
-      return _testConnectorServers({ state });
     },
   };
 };

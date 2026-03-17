@@ -99,43 +99,6 @@ export type Realm = {
    * @returns {Promise<RealmSkeleton>} a promise resolving to a realm object
    */
   removeCustomDomain(realmName: string, domain: string): Promise<RealmSkeleton>;
-
-  // Deprecated
-
-  /**
-   * Get all realms
-   * @returns {Promise<RealmSkeleton[]>} a promise resolving to an array of realm objects
-   * @deprecated since v2.0.0 use {@link Realm.readRealms | readRealms} instead
-   * ```javascript
-   * readRealms(): Promise<RealmSkeleton[]>
-   * ```
-   * @group Deprecated
-   */
-  getRealms(): Promise<RealmSkeleton[]>;
-  /**
-   * Get realm by name
-   * @param {string} realmName realm name
-   * @returns {Promise<RealmSkeleton>} a promise resolving to a realm object
-   * @deprecated since v2.0.0 use {@link Realm.readRealmByName | readRealmByName} instead
-   * ```javascript
-   * readRealmByName(realmName: string): Promise<RealmSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  getRealmByName(realmName: string): Promise<RealmSkeleton>;
-  /**
-   * Update realm
-   * @param {string} realmId realm id
-   * @param {RealmSkeleton} realmData realm data
-   * @returns {Promise<RealmSkeleton>} a promise resolving to a realm object
-   * @deprecated since v2.0.0 use {@link Realm.updateRealm | updateRealm} or {@link Realm.createRealm | createRealm} instead
-   * ```javascript
-   * updateRealm(realmId: string, realmData: RealmSkeleton): Promise<RealmSkeleton>
-   * createRealm(realmName: string, realmData: RealmSkeleton): Promise<RealmSkeleton>
-   * ```
-   * @group Deprecated
-   */
-  putRealm(realmId: string, realmData: RealmSkeleton): Promise<RealmSkeleton>;
 };
 
 export default (state: State): Realm => {
@@ -188,21 +151,6 @@ export default (state: State): Realm => {
       domain: string
     ): Promise<RealmSkeleton> {
       return removeCustomDomain({ realmName, domain, state });
-    },
-
-    // Deprecated
-
-    getRealms(): Promise<RealmSkeleton[]> {
-      return getRealms({ state });
-    },
-    getRealmByName(realmName: string): Promise<RealmSkeleton> {
-      return getRealmByName({ realmName, state });
-    },
-    putRealm(
-      realmId: string,
-      realmData: RealmSkeleton
-    ): Promise<RealmSkeleton> {
-      return updateRealm({ realmId, realmData, state });
     },
   };
 };
