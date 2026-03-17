@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Frodo Library - v4.0.0-26</title><meta name="description" content="Documentation for Frodo Library"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script><script async src="assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar"><div class="tsd-toolbar-contents container"><a href="index.html" class="title">Frodo Library - v4.0.0-26</a><div id="tsd-toolbar-links"><a href="https://github.com/rockcarver/frodo-lib">Project Home</a></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/><ul role="listbox" id="tsd-search-results"></ul><div id="tsd-search-status" aria-live="polite" aria-atomic="true"><div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-menu"></use></svg></a></div></header><div class="container container-main"><div class="col-content"><div class="tsd-page-title"><h1>Frodo Library - v4.0.0-26</h1></div><div class="tsd-panel tsd-typography"><!-- README.md for GitHub; the one for NPM is ../README.md. -->
+<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>Frodo Library - v4.0.0-27</title><meta name="description" content="Documentation for Frodo Library"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script><script async src="assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar"><div class="tsd-toolbar-contents container"><a href="index.html" class="title">Frodo Library - v4.0.0-27</a><div id="tsd-toolbar-links"><a href="https://github.com/rockcarver/frodo-lib">Project Home</a></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/><ul role="listbox" id="tsd-search-results"></ul><div id="tsd-search-status" aria-live="polite" aria-atomic="true"><div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-menu"></use></svg></a></div></header><div class="container container-main"><div class="col-content"><div class="tsd-page-title"><h1>Frodo Library - v4.0.0-27</h1></div><div class="tsd-panel tsd-typography"><!-- README.md for GitHub; the one for NPM is ../README.md. -->
 <h1 id="frodo-library-4x-rockcarverfrodo-lib" class="tsd-anchor-link">Frodo Library 4.x - @rockcarver/frodo-lib<a href="#frodo-library-4x-rockcarverfrodo-lib" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1>
 <p>A hybrid (ESM and CJS) library to manage PingOne Advanced Identity Cloud environments, ForgeOps deployments, and classic deployments.</p>
 <p>Frodo-lib powers <a href="https://github.com/rockcarver/frodo-cli">frodo-cli</a>, the command line tool to manage SaaS and self-hosted deployments.</p>
@@ -24,6 +24,222 @@
 <ul>
 <li>Added support for Node.js 24 and 25/26.</li>
 <li>Dropped support for Node.js 18 and 20.</li>
+</ul>
+<h3 id="breaking-changes" class="tsd-anchor-link">Breaking changes<a href="#breaking-changes" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li>Removed all deprecated (since v2.0.0) functions from:
+<ul>
+<li><code>frodo.admin</code>:
+<ul>
+<li><code>listOAuth2CustomClients</code></li>
+<li><code>listOAuth2AdminClients</code></li>
+<li><code>listNonOAuth2AdminStaticUserMappings</code></li>
+<li><code>addAutoIdStaticUserMapping</code></li>
+<li><code>grantOAuth2ClientAdminPrivileges</code></li>
+<li><code>revokeOAuth2ClientAdminPrivileges</code></li>
+<li><code>createOAuth2ClientWithAdminPrivileges</code></li>
+<li><code>createLongLivedToken</code></li>
+<li><code>removeStaticUserMapping</code></li>
+<li><code>hideGenericExtensionAttributes</code></li>
+<li><code>showGenericExtensionAttributes</code></li>
+<li><code>repairOrgModel</code></li>
+</ul>
+</li>
+<li><code>frodo.login</code>:
+<ul>
+<li><code>getAccessTokenForServiceAccount</code> (added function <code>validateServiceAccount</code> with same input and output to <code>frodo.cloud.serviceAccount</code>)</li>
+</ul>
+</li>
+<li><code>frodo.agent</code>:
+<ul>
+<li><code>getAgents</code></li>
+<li><code>getAgent</code></li>
+<li><code>getAgentByTypeAndId</code></li>
+<li><code>getIdentityGatewayAgents</code></li>
+<li><code>getIdentityGatewayAgent</code></li>
+<li><code>putIdentityGatewayAgent</code></li>
+<li><code>getJavaAgents</code></li>
+<li><code>getJavaAgent</code></li>
+<li><code>putJavaAgent</code></li>
+<li><code>getWebAgents</code></li>
+<li><code>getWebAgent</code></li>
+<li><code>putWebAgent</code></li>
+</ul>
+</li>
+<li><code>frodo.saml2.circlesOfTrust</code>:
+<ul>
+<li><code>getCirclesOfTrust</code></li>
+<li><code>getCircleOfTrust</code></li>
+</ul>
+</li>
+<li><code>frodo.email.template</code>:
+<ul>
+<li><code>getEmailTemplates</code></li>
+<li><code>getEmailTemplate</code></li>
+<li><code>putEmailTemplate</code></li>
+</ul>
+</li>
+<li><code>frodo.idm.config</code>:
+<ul>
+<li><code>getConfigEntityTypes</code></li>
+<li><code>getConfigEntityTypes</code></li>
+<li><code>getConfigEntitiesByType</code></li>
+<li><code>getConfigEntity</code></li>
+<li><code>putConfigEntity</code></li>
+<li><code>testConnectorServers</code></li>
+</ul>
+</li>
+<li><code>frodo.oauth2oidc.external</code>:
+<ul>
+<li><code>getSocialIdentityProviders</code></li>
+<li><code>getSocialProvider</code></li>
+<li><code>putProviderByTypeAndId</code></li>
+<li><code>deleteSocialProvider</code></li>
+<li><code>exportSocialProvider</code></li>
+<li><code>exportSocialProviders</code></li>
+<li><code>importSocialProvider</code></li>
+<li><code>importFirstSocialProvider</code></li>
+<li><code>importSocialProviders</code></li>
+</ul>
+</li>
+<li><code>frodo.authn.journey</code>:
+<ul>
+<li><code>getJourneys</code></li>
+<li><code>getJourney</code></li>
+<li><code>importAllJourneys</code></li>
+<li><code>findOrphanedNodes</code></li>
+<li><code>removeOrphanedNodes</code></li>
+</ul>
+</li>
+<li><code>frodo.oauth2oidc.client</code>:
+<ul>
+<li><code>getOAuth2Clients</code></li>
+<li><code>getOAuth2Client</code></li>
+<li><code>putOAuth2Client</code></li>
+</ul>
+</li>
+<li><code>frodo.oauth2oidc.provider</code>:
+<ul>
+<li><code>getOAuth2Provider</code></li>
+</ul>
+</li>
+<li><code>frodo.oauth2oidc.issuer</code>:
+<ul>
+<li><code>getOAuth2TrustedJwtIssuers</code></li>
+<li><code>getOAuth2TrustedJwtIssuer</code></li>
+<li><code>putOAuth2TrustedJwtIssuer</code></li>
+</ul>
+</li>
+<li><code>frodo.idm.organization</code>:
+<ul>
+<li><code>getOrganizations</code></li>
+</ul>
+</li>
+<li><code>frodo.authz.policy</code>:
+<ul>
+<li><code>getPolicies</code></li>
+<li><code>getPoliciesByPolicySet</code></li>
+<li><code>getPolicy</code></li>
+<li><code>putPolicy</code></li>
+</ul>
+</li>
+<li><code>frodo.authz.policySet</code>:
+<ul>
+<li><code>getPolicySets</code></li>
+<li><code>getPolicySet</code></li>
+</ul>
+</li>
+<li><code>frodo.realm</code>:
+<ul>
+<li><code>getRealms</code></li>
+<li><code>getRealmByName</code></li>
+<li><code>putRealm</code></li>
+</ul>
+</li>
+<li><code>frodo.authz.resourceType</code>:
+<ul>
+<li><code>getResourceType</code></li>
+<li><code>getResourceTypes</code></li>
+<li><code>getResourceTypeByName</code></li>
+</ul>
+</li>
+<li><code>frodo.saml2.entityProvider</code>:
+<ul>
+<li><code>getSaml2ProviderStubs</code></li>
+<li><code>getProviderMetadataUrl</code></li>
+<li><code>getProviderMetadata</code></li>
+<li><code>getSaml2ProviderStub</code></li>
+<li><code>getSaml2Provider</code></li>
+</ul>
+</li>
+<li><code>frodo.script</code>:
+<ul>
+<li><code>getScripts</code></li>
+<li><code>getScript</code></li>
+<li><code>getScriptByName</code></li>
+<li><code>putScript</code></li>
+</ul>
+</li>
+<li><code>frodo.theme</code>:
+<ul>
+<li><code>getThemes</code></li>
+<li><code>getTheme</code></li>
+<li><code>getThemeByName</code></li>
+<li><code>putTheme</code></li>
+<li><code>putThemeByName</code></li>
+<li><code>putThemes</code></li>
+</ul>
+</li>
+<li><code>frodo.cloud.adminFed</code>:
+<ul>
+<li><code>getAdminFederationProviders</code></li>
+<li><code>getAdminFederationProvider</code></li>
+<li><code>putProviderByTypeAndId</code></li>
+</ul>
+</li>
+<li><code>frodo.cloud.secret</code>:
+<ul>
+<li><code>getSecrets</code></li>
+<li><code>getSecret</code></li>
+<li><code>putSecret</code></li>
+<li><code>setSecretDescription</code></li>
+<li><code>getSecretVersions</code></li>
+<li><code>createNewVersionOfSecret</code></li>
+<li><code>getVersionOfSecret</code></li>
+<li><code>setStatusOfVersionOfSecret</code></li>
+</ul>
+</li>
+<li><code>frodo.cloud.variable</code>:
+<ul>
+<li><code>getVariable</code></li>
+<li><code>getVariables</code></li>
+<li><code>putVariable</code></li>
+<li><code>setVariableDescription</code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="deprecations" class="tsd-anchor-link">Deprecations<a href="#deprecations" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li>Deprecated all journey classificatino functions in <code>frodo.authn.journey</code>:
+<ul>
+<li><code>isCustomJourney</code></li>
+<li><code>isPremiumJourney</code></li>
+<li><code>isCloudOnlyJourney</code></li>
+<li><code>getJourneyClassification</code></li>
+</ul>
+</li>
+<li>Deprecated all node classification functions in <code>frodo.authn.node</code>:
+<ul>
+<li><code>isPremiumNode</code></li>
+<li><code>isCloudOnlyNode</code></li>
+<li><code>isCloudExcludedNode</code></li>
+<li><code>isDeprecatedNode</code>,</li>
+<li><code>isCustomNode</code></li>
+<li><code>getNodeClassification</code>.</li>
+</ul>
+</li>
 </ul>
 <h2 id="about" class="tsd-anchor-link">About<a href="#about" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <h3 id="modules" class="tsd-anchor-link">Modules<a href="#modules" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
@@ -498,4 +714,4 @@ You can change the default location of the cache file (<code>~/.frodo/TokenCache
 <p>If you would like to contribute to frodo, please refer to the <a href="https://github.com/rockcarver/frodo-lib/blob/main/CONTRIBUTE.md">contributing instructions</a>.</p>
 <h2 id="maintaining" class="tsd-anchor-link">Maintaining<a href="#maintaining" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>If you are a maintainer of this repository, please refer to the <a href="https://github.com/rockcarver/frodo-lib/blob/main/PIPELINE.md">pipeline and release process instructions</a>.</p>
-</div></div><div class="col-sidebar"><div class="page-menu"><div class="tsd-navigation settings"><details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg><h3>Settings</h3></summary><div class="tsd-accordion-details"><div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span><ul id="tsd-filter-options"><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li></ul></div><div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div><details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg><h3>On This Page</h3></summary><div class="tsd-accordion-details"><a href="#frodo-library-4x-rockcarverfrodo-lib"><span>Frodo <wbr/>Library 4.x -<wbr/> @rockcarver/frodo-<wbr/>lib</span></a><ul><li><a href="#quick-nav"><span>Quick <wbr/>Nav</span></a></li><li><a href="#new-in-4x"><span>New <wbr/>In 4.x</span></a></li><li><ul><li><a href="#custom-nodes-node-designer"><span>Custom <wbr/>Nodes -<wbr/> <wbr/>Node <wbr/>Designer</span></a></li><li><a href="#fr-config-manager"><span>FR-<wbr/>Config-<wbr/>Manager</span></a></li><li><a href="#nodejs-versions"><span>Node.js <wbr/>Versions</span></a></li></ul></li><li><a href="#about"><span>About</span></a></li><li><ul><li><a href="#modules"><span>Modules</span></a></li><li><a href="#secure-token-caching"><span>Secure <wbr/>Token <wbr/>Caching</span></a></li><li><a href="#automatic-token-refresh"><span>Automatic <wbr/>Token <wbr/>Refresh</span></a></li><li><a href="#nodejs-versions-1"><span>Node.js <wbr/>Versions</span></a></li></ul></li><li><a href="#considerations"><span>Considerations</span></a></li><li><ul><li><a href="#platform-passwords-and-secrets"><span>Platform <wbr/>Passwords <wbr/>And <wbr/>Secrets</span></a></li><li><a href="#advanced-identity-cloud-environment-secrets-and-variables-esvs"><span>Advanced <wbr/>Identity <wbr/>Cloud <wbr/>Environment <wbr/>Secrets <wbr/>And <wbr/>Variables (<wbr/>ES<wbr/>Vs)</span></a></li></ul></li><li><a href="#installing"><span>Installing</span></a></li><li><ul><li><a href="#developer-mode"><span>Developer <wbr/>Mode</span></a></li><li><a href="#npm-package"><span>NPM package</span></a></li></ul></li><li><a href="#using-the-library"><span>Using the library</span></a></li><li><ul><li><a href="#import-the-library-members-esm"><span>Import the library members (<wbr/>ESM):</span></a></li><li><a href="#require-the-library-members-cjs"><span>Require the library members (<wbr/>CJS):</span></a></li><li><a href="#use-the-library"><span>Use the library</span></a></li></ul></li><li><a href="#library-api-docs"><span>Library <wbr/>API docs</span></a></li><li><a href="#feature-requests"><span>Feature requests</span></a></li><li><a href="#contributing"><span>Contributing</span></a></li><li><a href="#maintaining"><span>Maintaining</span></a></li></ul></div></details></div><div class="site-menu"><nav id="tsd-sidebar-links" class="tsd-navigation"><a href="https://github.com/rockcarver/frodo-lib" class="tsd-nav-link">Project Home</a></nav><nav class="tsd-navigation"><a href="modules.html">Frodo Library - v4.0.0-26</a><ul class="tsd-small-nested-navigation" id="tsd-nav-container"><li>Loading...</li></ul></nav></div></div></div><footer></footer><div class="overlay"></div></body></html>
+</div></div><div class="col-sidebar"><div class="page-menu"><div class="tsd-navigation settings"><details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg><h3>Settings</h3></summary><div class="tsd-accordion-details"><div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span><ul id="tsd-filter-options"><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li></ul></div><div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div><details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-chevronDown"></use></svg><h3>On This Page</h3></summary><div class="tsd-accordion-details"><a href="#frodo-library-4x-rockcarverfrodo-lib"><span>Frodo <wbr/>Library 4.x -<wbr/> @rockcarver/frodo-<wbr/>lib</span></a><ul><li><a href="#quick-nav"><span>Quick <wbr/>Nav</span></a></li><li><a href="#new-in-4x"><span>New <wbr/>In 4.x</span></a></li><li><ul><li><a href="#custom-nodes-node-designer"><span>Custom <wbr/>Nodes -<wbr/> <wbr/>Node <wbr/>Designer</span></a></li><li><a href="#fr-config-manager"><span>FR-<wbr/>Config-<wbr/>Manager</span></a></li><li><a href="#nodejs-versions"><span>Node.js <wbr/>Versions</span></a></li><li><a href="#breaking-changes"><span>Breaking changes</span></a></li><li><a href="#deprecations"><span>Deprecations</span></a></li></ul></li><li><a href="#about"><span>About</span></a></li><li><ul><li><a href="#modules"><span>Modules</span></a></li><li><a href="#secure-token-caching"><span>Secure <wbr/>Token <wbr/>Caching</span></a></li><li><a href="#automatic-token-refresh"><span>Automatic <wbr/>Token <wbr/>Refresh</span></a></li><li><a href="#nodejs-versions-1"><span>Node.js <wbr/>Versions</span></a></li></ul></li><li><a href="#considerations"><span>Considerations</span></a></li><li><ul><li><a href="#platform-passwords-and-secrets"><span>Platform <wbr/>Passwords <wbr/>And <wbr/>Secrets</span></a></li><li><a href="#advanced-identity-cloud-environment-secrets-and-variables-esvs"><span>Advanced <wbr/>Identity <wbr/>Cloud <wbr/>Environment <wbr/>Secrets <wbr/>And <wbr/>Variables (<wbr/>ES<wbr/>Vs)</span></a></li></ul></li><li><a href="#installing"><span>Installing</span></a></li><li><ul><li><a href="#developer-mode"><span>Developer <wbr/>Mode</span></a></li><li><a href="#npm-package"><span>NPM package</span></a></li></ul></li><li><a href="#using-the-library"><span>Using the library</span></a></li><li><ul><li><a href="#import-the-library-members-esm"><span>Import the library members (<wbr/>ESM):</span></a></li><li><a href="#require-the-library-members-cjs"><span>Require the library members (<wbr/>CJS):</span></a></li><li><a href="#use-the-library"><span>Use the library</span></a></li></ul></li><li><a href="#library-api-docs"><span>Library <wbr/>API docs</span></a></li><li><a href="#feature-requests"><span>Feature requests</span></a></li><li><a href="#contributing"><span>Contributing</span></a></li><li><a href="#maintaining"><span>Maintaining</span></a></li></ul></div></details></div><div class="site-menu"><nav id="tsd-sidebar-links" class="tsd-navigation"><a href="https://github.com/rockcarver/frodo-lib" class="tsd-nav-link">Project Home</a></nav><nav class="tsd-navigation"><a href="modules.html">Frodo Library - v4.0.0-27</a><ul class="tsd-small-nested-navigation" id="tsd-nav-container"><li>Loading...</li></ul></nav></div></div></div><footer></footer><div class="overlay"></div></body></html>
