@@ -113,7 +113,7 @@ jobs:
     needs: [build]
     strategy:
       matrix:
-        node-version: [25, 24, 22, 20]
+        node-version: [25, 24, 22]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     # Service containers to run with `test`
