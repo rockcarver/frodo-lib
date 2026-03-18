@@ -4,6 +4,9 @@ import {
   getRawAm,
   getRawEnv,
   getRawIdm,
+  putRawAm,
+  putRawEnv,
+  putRawIdm,
 } from '../api/RawConfigApi';
 import { State } from '../shared/State';
 import { mergeDeep } from '../utils/JsonUtils';
@@ -18,6 +21,16 @@ export type RawConfig = {
   exportRawConfig(
     options: RawExportOptions
   ): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Imports raw configuration
+   * @param {RawImportOptions} options The import options, including the path to the resource
+   * @param {IdObjectSkeletonInterface} data the import data that will be pushed
+   * @returns {Promise<IdObjectSkeletonInterface>} The raw configuration JSON object at the specified path
+   */
+  importRawConfig(
+    options: RawImportOptions,
+    data: IdObjectSkeletonInterface
+  ): Promise<IdObjectSkeletonInterface>;
 };
 
 export default (state: State): RawConfig => {
@@ -26,6 +39,12 @@ export default (state: State): RawConfig => {
       options: RawExportOptions
     ): Promise<IdObjectSkeletonInterface> {
       return exportRawConfig({ options, state });
+    },
+    async importRawConfig(
+      options: RawImportOptions,
+      data: IdObjectSkeletonInterface
+    ): Promise<IdObjectSkeletonInterface> {
+      return importRawConfig({ options, data, state });
     },
   };
 };
@@ -46,6 +65,16 @@ export interface RawExportOptions {
    * An optional object containing the properties 'protocol' and 'resource' to be used in the API version header. This allows specific values for specific configuration. The default is { protocol: "2.0". resource: "1.0" }. Only used for configuration under /am or /environment
    */
   pushApiVersion?: ApiVersion;
+}
+
+/**
+ * Raw config import options from fr-config-manager (https://github.com/ForgeRock/fr-config-manager/blob/main/docs/raw.md)
+ */
+export interface RawImportOptions {
+  /**
+   * The URL path for the configuration object, relative to the tenant base URL
+   */
+  path: string;
 }
 
 /**
@@ -102,6 +131,71 @@ export async function exportRawConfig({
   } catch (error) {
     throw new FrodoError(
       `Error in exportRawIdm with relative url: ${options.path}`,
+      error
+    );
+  }
+}
+
+/**
+ * Imports raw configuration
+ * @param {RawImportOptions} options The import options, including the path to the resource
+ * @param {IdObjectSkeletonInterface} data the import data that will be pushed
+ * @returns {Promise<IdObjectSkeletonInterface>} The raw configuration JSON object at the specified path
+ */
+export async function importRawConfig({
+  options,
+  data,
+  state,
+}: {
+  options: RawImportOptions;
+  data: IdObjectSkeletonInterface;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
+  try {
+    let response: IdObjectSkeletonInterface;
+
+    // remove starting slash from path if it exists
+    const path = options.path.startsWith('/')
+      ? options.path.substring(1)
+      : options.path;
+
+    const urlParts: string[] = path.split('/');
+    const startPath: string = urlParts[0];
+    const noStart: string = urlParts.slice(1).join('/');
+
+    const { _pushApiVersion, ...payload } = data;
+
+    // support for only three root paths: am, openidm, and environment
+    switch (startPath) {
+      case 'am':
+        response = await putRawAm({
+          endpoint: noStart,
+          payload,
+          apiVersion: _pushApiVersion as ApiVersion,
+          state,
+        });
+        break;
+      case 'openidm':
+        response = await putRawIdm({ endpoint: noStart, payload, state });
+        break;
+      case 'environment':
+        response = await putRawEnv({
+          endpoint: noStart,
+          payload,
+          apiVersion: _pushApiVersion as ApiVersion,
+          state,
+        });
+        break;
+      default:
+        throw new FrodoError(
+          `URL paths that start with ${startPath} are not supported`
+        );
+    }
+
+    return response;
+  } catch (error) {
+    throw new FrodoError(
+      `Error in importRawConfig with relative url: ${options.path}`,
       error
     );
   }

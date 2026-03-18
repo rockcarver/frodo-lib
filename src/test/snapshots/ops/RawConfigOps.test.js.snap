@@ -1,0 +1,163 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`RawConfigOps exportRawConfig() 1: Export raw config am 1`] = `
+{
+  "_id": "test",
+  "_pushApiVersion": {
+    "protocol": "2.1",
+    "resource": "2.0",
+  },
+  "_rev": "2897436",
+  "description": "Checks if the user has a current session.",
+  "displayName": "Has Session - TEST",
+  "errorOutcome": false,
+  "inputs": [],
+  "outcomes": [
+    "True",
+    "False",
+  ],
+  "outputs": [],
+  "properties": {},
+  "script": "var SCRIPT_OUTCOMES = {
+    TRUE: 'True',
+    FALSE: 'False'
+}
+
+function main() {
+    action.goTo(typeof existingSession === "undefined" ? SCRIPT_OUTCOMES.FALSE : SCRIPT_OUTCOMES.TRUE);
+}
+
+main();
+",
+  "serviceName": "a605506774a848f7877b4d17a453bd39",
+  "tags": [
+    "utilities",
+  ],
+  "version": 1,
+}
+`;
+
+exports[`RawConfigOps exportRawConfig() 2: Export raw config openidm 1`] = `
+{
+  "_id": "emailTemplate/FrodoTestEmailTemplate1",
+  "defaultLocale": "en",
+  "displayName": "Frodo Test Email Template One",
+  "enabled": true,
+  "from": "",
+  "message": {
+    "en": "<h3>Click to reset your password</h3><h4><a href="{{object.resumeURI}}">Password reset link</a></h4>",
+    "fr": "<h3>Cliquez pour réinitialiser votre mot de passe</h3><h4><a href="{{object.resumeURI}}">Mot de passe lien de réinitialisation</a></h4>",
+  },
+  "mimeType": "text/html",
+  "subject": {
+    "en": "Reset your password",
+    "fr": "Réinitialisez votre mot de passe",
+  },
+}
+`;
+
+exports[`RawConfigOps exportRawConfig() 3: Export raw config environment 1`] = `
+{
+  "_id": "esv-frodo-test-variable-1",
+  "description": "description1",
+  "expressionType": "string",
+  "lastChangeDate": "2026-03-11T21:02:59.165396Z",
+  "lastChangedBy": "Frodo-SA-1773261131370",
+  "loaded": false,
+  "valueBase64": "dmFsdWUx",
+}
+`;
+
+exports[`RawConfigOps importRawConfig() 1: importRawConfig am 1`] = `
+{
+  "_id": "aaaa3fb2f5dc42dd9772bedc93898bd8-1",
+  "_rev": "1283850900",
+  "description": "Debug node that displays the shared and transient state of the journey for debugging purposes.",
+  "displayName": "Display State - TEST",
+  "errorOutcome": false,
+  "inputs": [],
+  "outcomes": [
+    "outcome",
+  ],
+  "outputs": [],
+  "properties": {
+    "displayFormat": {
+      "defaultValue": "TABLE",
+      "description": "The format in which to display the states.",
+      "multivalued": false,
+      "options": {
+        "JSON": "Raw JSON",
+        "TABLE": "HTML Table",
+      },
+      "required": true,
+      "title": "Display Format",
+      "type": "STRING",
+    },
+  },
+  "script": "var SCRIPT_OUTCOMES = {
+  OUTCOME: "outcome"
+};
+
+function main() {
+    if (!callbacks.isEmpty()) {
+        action.goTo(SCRIPT_OUTCOMES.OUTCOME);
+        return;
+    }
+    var keySet = nodeState.keys(); // Java Set<String>
+    var keys = Array.from(keySet); // Make it into JavaScript array
+    debugState = {};
+    for (var i in keys) {
+        var k = new String(keys[i]);
+        var item = nodeState.get(k);
+        if (typeof item === "object") {
+            debugState[k] = nodeState.getObject(k);
+        } else {
+            debugState[k] = nodeState.get(k);
+        }
+    }
+    if (properties.displayFormat === "JSON") {
+        callbacksBuilder.textOutputCallback(0, \`<pre style="text-align: left;">\${JSON.stringify(debugState, null, 2)}</pre>\`);
+        return;
+    }
+    callbacksBuilder.textOutputCallback(0, \`<table><tr><td style="border: 1px solid black;">Key</td><td style="border: 1px solid black;">Value</td></tr>\${Array.from(Object.keys(debugState).map(k => \`<tr><td style="border: 1px solid black;"><pre style="text-align: left;">\${k}</pre></td><td style="border: 1px solid black;"><pre style="text-align: left;">\${debugState[k]}</pre></td></tr>\`))}</table>\`);
+}
+
+main();
+",
+  "serviceName": "aaaa3fb2f5dc42dd9772bedc93898bd8",
+  "tags": [
+    "debug",
+    "testing",
+  ],
+  "version": 1,
+}
+`;
+
+exports[`RawConfigOps importRawConfig() 2: importRawConfig openidm 1`] = `
+{
+  "_id": "FrodoTestEmailTemplate2",
+  "defaultLocale": "en",
+  "displayName": "Frodo Test Email Template Two",
+  "enabled": true,
+  "from": "",
+  "message": {
+    "en": "<h3>This is your one-time password:</h3><h4>{{object.description}}</a></h4>",
+  },
+  "mimeType": "text/html",
+  "subject": {
+    "en": "One-Time Password for login",
+  },
+}
+`;
+
+exports[`RawConfigOps importRawConfig() 3: importRawConfig environment 1`] = `
+{
+  "_id": "esv-frodo-test-variable-2",
+  "description": "description2",
+  "expressionType": "int",
+  "lastChangeDate": "2026-03-11T21:03:01.986547Z",
+  "lastChangedBy": "Frodo-SA-1773261131370",
+  "loaded": false,
+  "valueBase64": "NDI=",
+}
+`;
