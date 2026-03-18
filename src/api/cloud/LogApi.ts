@@ -241,8 +241,8 @@ export async function fetch({
     urlString += `&transactionId=${txid}`;
   }
   if (filter) {
-    const filterParam = `_queryFilter=${filter}`;
-    urlString += `&${encodeURIComponent(filterParam)}`;
+    const filterParam = `_queryFilter=${encodeURIComponent(filter)}`;
+    urlString += `&${filterParam}`;
   }
   if (cookie) {
     urlString += `&_pagedResultsCookie=${encodeURIComponent(cookie)}`;
