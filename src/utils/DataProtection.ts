@@ -11,12 +11,13 @@
  */
 import crypto from 'crypto';
 import fs, { promises as fsp } from 'fs';
-import { homedir } from 'os';
+import path from 'path';
 import { promisify } from 'util';
 
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { printMessage } from './Console';
+import { getFrodoHome } from './FrodoUtils';
 
 const scrypt = promisify(crypto.scrypt);
 // using WeakMaps for added security since it gets garbage collected
@@ -39,7 +40,7 @@ class DataProtection {
     const masterKeyPath = () =>
       pathToMasterKey ||
       process.env[Constants.FRODO_MASTER_KEY_PATH_KEY] ||
-      `${homedir()}/.frodo/masterkey.key`;
+      path.join(getFrodoHome(), 'masterkey.key');
     // Generates a 256bit master key and base64-encodes it. This master key is used to derive the key for encryption. this key should be protected by an HSM or KMS
     _masterKey.set(this, async () => {
       if (!sessionKey) {

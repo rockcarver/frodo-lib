@@ -1,5 +1,4 @@
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
@@ -8,6 +7,7 @@ import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import DataProtection from '../utils/DataProtection';
 import { isValidUrl, saveJsonToFile } from '../utils/ExportImportUtils';
+import { getFrodoHome } from '../utils/FrodoUtils';
 import { readServiceAccountScopes } from './cloud/EnvServiceAccountScopesOps';
 import {
   createServiceAccount,
@@ -212,7 +212,7 @@ export function getConnectionProfilesPath({ state }: { state: State }): string {
   const profilesPath =
     state.getConnectionProfilesPath() ||
     process.env[Constants.FRODO_CONNECTION_PROFILES_PATH_KEY] ||
-    `${os.homedir()}/.frodo/${newProfileFilename}`;
+    path.join(getFrodoHome(), newProfileFilename);
   debugMessage({
     message: `ConnectionProfileOps.getConnectionProfilesPath: end [profilesPath=${profilesPath}]`,
     state,
@@ -269,8 +269,8 @@ export function findConnectionProfiles({
  */
 function migrateFromLegacyProfile() {
   try {
-    const legacyPath = `${os.homedir()}/.frodo/${legacyProfileFilename}`;
-    const newPath = `${os.homedir()}/.frodo/${newProfileFilename}`;
+    const legacyPath = path.join(getFrodoHome(), legacyProfileFilename);
+    const newPath = path.join(getFrodoHome(), newProfileFilename);
     if (!fs.existsSync(legacyPath) && !fs.existsSync(newPath)) {
       // no connections file (old or new), create empty new one
       fs.writeFileSync(
