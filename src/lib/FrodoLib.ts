@@ -111,6 +111,8 @@ import Base64Utils, { Base64 } from '../utils/Base64Utils';
 import CryptoUtils, { FrodoCrypto } from '../utils/CryptoUtils';
 import ExportImportUtils, { ExportImport } from '../utils/ExportImportUtils';
 import ForgeRockUtils, { FRUtils } from '../utils/ForgeRockUtils';
+import FrodoUtilsImpl, { FrodoUtils } from '../utils/FrodoUtils';
+import HelpUtilsImpl, { HelpUtils } from '../utils/HelpUtils';
 import JsonUtils, { Json } from '../utils/JsonUtils';
 import ScriptValidationUtils, {
   ScriptValidation,
@@ -234,6 +236,8 @@ export type Frodo = {
   user: User;
 
   utils: FRUtils &
+    FrodoUtils &
+    HelpUtils &
     ScriptValidation &
     ExportImport &
     Base64 & {
@@ -443,6 +447,8 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
 
     utils: {
       ...ForgeRockUtils(state),
+      ...FrodoUtilsImpl(),
+      ...HelpUtilsImpl(),
       ...ScriptValidationUtils(state),
       ...ExportImportUtils(state),
       ...Base64Utils(),

@@ -22,7 +22,8 @@
     "lint:fix": "eslint --cache --cache-location .eslintcache --fix \"src/**/*.ts\"",
     "clean-types": "rimraf types",
     "generate-types": "tsc",
-    "build": "npx tsup && npm run clean-types && npm run generate-types",
+    "generate-help": "node scripts/generate-help.mjs",
+    "build": "npm run generate-help && npx tsup && npm run clean-types && npm run generate-types",
     "doc": "npx typedoc",
     "prettier:fix": "npm run prettier write",
     "dev": "npx tsup --watch src --onSuccess 'npx tsup --dts-only'"
