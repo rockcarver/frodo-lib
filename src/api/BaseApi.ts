@@ -7,7 +7,7 @@ import axios, {
   AxiosRequestConfig,
 } from 'axios';
 import axiosRetry from 'axios-retry';
-import { ProxyAgent } from 'proxy-agent';
+import { ProxyAgent, ProxyAgentOptions } from 'proxy-agent';
 
 import _curlirize from '../ext/axios-curlirize/curlirize';
 import StateImpl, { State } from '../shared/State';
@@ -40,7 +40,7 @@ const keepAlive = false;
 
 const userAgent = getUserAgent();
 const transactionId = `frodo-${randomUUID()}`;
-let httpAgent, httpsAgent;
+let httpAgent, httpsAgent, httpsInsecureAgent;
 
 function getHttpAgent(): ProxyAgent {
   if (httpAgent) return httpAgent;
@@ -61,8 +61,12 @@ function getHttpsAgent(
   allowInsecureConnection: boolean,
   shareAgent: boolean = true
 ): ProxyAgent {
-  if (httpsAgent && shareAgent) return httpsAgent;
-  const options = {
+  if (allowInsecureConnection) {
+    if (httpsInsecureAgent && shareAgent) return httpsInsecureAgent;
+  } else {
+    if (httpsAgent && shareAgent) return httpsAgent;
+  }
+  const options: ProxyAgentOptions = {
     rejectUnauthorized: !allowInsecureConnection,
   };
   const agent = new ProxyAgent({
@@ -72,7 +76,23 @@ function getHttpsAgent(
     timeout,
     keepAlive,
   });
-  if (shareAgent) httpsAgent = agent;
+  if (allowInsecureConnection) {
+    // Also inject rejectUnauthorized:false into the per-connection options that
+    // agent-base passes through addRequest. This is required when routing via a
+    // proxy (HTTPS_PROXY): https-proxy-agent creates the TLS tunnel to the
+    // target using tls.connect({...opts, socket}) where opts are the
+    // per-request connection options — NOT the agent constructor options.
+    // Without this, the target TLS still enforces certificate validation even
+    // when rejectUnauthorized:false is set on the ProxyAgent constructor.
+    const agentAny = agent as any;
+    const origAddRequest = agentAny.addRequest.bind(agentAny);
+    agentAny.addRequest = (req: any, opts: any) =>
+      origAddRequest(req, { ...opts, rejectUnauthorized: false });
+  }
+  if (shareAgent) {
+    if (allowInsecureConnection) httpsInsecureAgent = agent;
+    else httpsAgent = agent;
+  }
   return agent;
 }
 
