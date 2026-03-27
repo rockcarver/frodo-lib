@@ -4,6 +4,7 @@ import { URL } from 'url';
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import jose from 'node-jose';
 import sshpk from 'sshpk';
+import c from 'tinyrainbow';
 import { v4 } from 'uuid';
 
 import {
@@ -362,7 +363,7 @@ async function determineDeploymentType(state: State): Promise<string> {
           e.response.headers?.location?.indexOf('code=') > -1
         ) {
           verboseMessage({
-            message: `ForgeRock Identity Cloud`['brightCyan'] + ` detected.`,
+            message: c.cyan(`ForgeRock Identity Cloud`) + ` detected.`,
             state,
           });
           deploymentType = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
@@ -383,13 +384,13 @@ async function determineDeploymentType(state: State): Promise<string> {
               // maybe we don't want to run through the auto-detect code if we get a custom admin client id?
               adminClientId = state.getAdminClientId() || forgeopsClientId;
               verboseMessage({
-                message: `ForgeOps deployment`['brightCyan'] + ` detected.`,
+                message: c.cyan(`ForgeOps deployment`) + ` detected.`,
                 state,
               });
               deploymentType = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
             } else {
               verboseMessage({
-                message: `Classic deployment`['brightCyan'] + ` detected.`,
+                message: c.cyan(`Classic deployment`) + ` detected.`,
                 state,
               });
             }
@@ -447,6 +448,7 @@ async function getFreshUserSessionToken({
   }
   try {
     let currentStep = null;
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       const response = await step({
         body: currentStep || {},

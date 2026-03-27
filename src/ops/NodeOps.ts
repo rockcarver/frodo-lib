@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import c from 'tinyrainbow';
 
 import {
   createCustomNode,
@@ -1130,7 +1131,7 @@ export async function findOrphanedNodes({
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       errorTypes.push(type._id);
-      errorMessage = ` (Skipped type(s): ${errorTypes})`['yellow'];
+      errorMessage = c.yellow(` (Skipped type(s): ${errorTypes})`);
       updateProgressIndicator({
         id: indicatorId,
         message: `${allNodes.length} total nodes${errorMessage}`,
