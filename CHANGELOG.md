@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **_BREAKING_**: Updated Node.js supported version matrix:
+  - Added support for v25
+  - Added support for v24
+  - **_BREAKING_**: Dropped support for v18
+- Secret Store Management
+  - Changes how existing secret store functions work to allow for doing ESV secret store exports/imports within AIC.
+  - Adds additional functions for modifications to the mappings specific to a secret store.
+- Updated dependencies
+
+### Added
+
+- Added library support for `fr-config-manager` commands in the CLI.
+- Custom Nodes
+  - Added support for Node Designer Nodes through several API and Ops functions to allow for doing exports, imports, deletes, etc. with custom node configurations.
+  - Just like with journeys, custom nodes get exported and imported in the same way as they do from AIC/AM, so you can import Frodo exported custom nodes into AIC/AM and vice versa.
+  - Additionally, journeys were updated to include custom node dependencies during exports. Even if a journey is exported with Frodo and contains these dependencies in the export JSON, they can still be imported into AIC/AM using the admin UI as it should ignore the custom node dependencies (since AIC/AM doesn't support exporting them yet).
+- Added the ability to authenticate to an AM classic deployment using Amster credentials (i.e. a public/private key pair). The private key can be in a variety of formats such as PKCS, JWK, and OpenSSH, but is ultimately stored in PKCS#8 format. You can also use encrypted private keys by providing the passphrase when creating the connection profile.
+
+### Fixed
+
+- \#519: Updated AdminOps.ts to again properly grant oauth2 client admin privileges after changes in AIC broke `grantOAuth2ClientAdminPrivileges`.
+- rockcarver/frodo-cli#568: Frodo Library now allows connections to AM hosts with expired SSL/TLS certificate when using state.setAllowInsecureConnections(true).
+
 ## [4.0.0-30] - 2026-03-19
 
 ## [4.0.0-29] - 2026-03-18
@@ -234,7 +259,6 @@ Generally, the way it works is to keep an array of errors that occur during expo
 ### Added
 
 - Add governance API factory under `frodo.factory`:
-
   - `generateGovernanceApi`: Generates a Governance Axios API instance
 
 ### Changed
@@ -266,7 +290,6 @@ Fixes and improvements to imports and exports:
 - Expose API factory to developers using Frodo Library to configure AIC, ForgeOps, and PingAM deployments.
 
   Under `frodo.factory` developers now have access to:
-
   - `generateAmApi`: Generates an AM Axios API instance
   - `generateOauth2Api`: Generates an OAuth2 Axios API instance
   - `generateIdmApi`: Generates an IDM Axios API instance
@@ -284,16 +307,13 @@ Fixes and improvements to imports and exports:
 ### Added
 
 - Improve support for custom platform deployments (non-forgeops or customized forgeops)
-
   - rockcarver/frodo-cli#429: Added state functions to support custom oauth2 clients for IDM API calls:
-
     - `state.setAdminClientId(clientId: string): void`
     - `state.getAdminClientId(): string`
     - `state.setAdminRedirectUri(redirectUri: string): void`
     - `state.getAdminRedirectUri(): string`
 
   - rockcarver/frodo-cli#359: Added state functions to support custom IDM host URLs for all IDM API calls (e.g. platform deployments hosting AM and IDM on/in different DNS hosts/domains):
-
     - `state.setIdmHost(host: string): void`
     - `state.getIdmHost(): string`
 
@@ -310,7 +330,6 @@ Fixes and improvements to imports and exports:
 ### Added
 
 - Improvements to script handling:
-
   - Added the option to import scripts by id.
   - Implementing `useStringArrays` in exports and allowing imports to support single-string scripts in addition to string array scripts.
 
@@ -337,12 +356,10 @@ Fixes and improvements to imports and exports:
 ### Fixed
 
 - Fixes to script handling
-
   - Fixed script imports so that they can correctly import a single script.
   - Make getting library scripts recursive in the event that there are library scripts dependent on other library scripts so that they all get exported.
 
 - \#448: Frodo Library now accepts an additional optional boolean param `wait`, which if provided delays the response until an OSGi service event confirms the change has been consumed by the corresponding service or the request times out, to the following `frodo.idm.config` functions:
-
   - createConfigEntity
   - updateConfigEntity
 
@@ -378,7 +395,6 @@ Fixes and improvements to imports and exports:
 ### Fixed
 
 - \#448: Frodo Library now accepts an additional optional boolean param `wait`, which if provided delays the response until an OSGi service event confirms the change has been consumed by the corresponding service or the request times out, to the following `frodo.idm.config` functions:
-
   - createConfigEntity
   - updateConfigEntity
 
@@ -512,14 +528,14 @@ The 2.x version of the library automatically refreshes session and access tokens
 - Kept supporting Node.js 18.
 - Added support for Node.js 20 and 22.
 
-| Node.js |    frodo-lib 1.x   | **_frodo-lib 2.x_** |    frodo-lib 3.x   |
+| Node.js |   frodo-lib 1.x    | **_frodo-lib 2.x_** |   frodo-lib 3.x    |
 | :-----: | :----------------: | :-----------------: | :----------------: |
-|    14   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
-|    16   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
-|    18   | :white_check_mark: |  :white_check_mark: | :heavy_minus_sign: |
-|    20   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
-|    22   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
-|    24   | :heavy_minus_sign: |  :heavy_minus_sign: | :white_check_mark: |
+|   14    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
+|   16    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
+|   18    | :white_check_mark: | :white_check_mark:  | :heavy_minus_sign: |
+|   20    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
+|   22    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
+|   24    | :heavy_minus_sign: | :heavy_minus_sign:  | :white_check_mark: |
 
 ### Considerations
 
@@ -742,13 +758,11 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 ### Added
 
 - \#53: Frodo Library now uses a file-based secure token cache to persist session and access tokens for re-use. The cached tokens are protected by the credential that was used to obtain them. Session tokens are encrypted using the hashed password as the master key, access tokens are encrypted using the hashed JWK private key as the master key. Therefore only users and processes with the correct credentials can access the tokens in the cache.
-
   - There is a new TokenCache module with accessible functions for frodo clients (like frodo-cli) to use.
   - The State module has been extended to host meta data like expiration time for sessions and tokens and a new boolean field indicating if the library should make use of the new token cache or not: `state.getUseTokenCache(): boolean` and `state.setUseTokenCache(useTokenCache: boolean): void`.
   - The new default behavior is to always use the new token cache.
 
 - \#340: Frodo Library now autotomatically refreshes expired session and access tokens.
-
   - The new default behavior is to automatically refresh tokens. However, if an application prefers to handle that on its own, it can call the `frodo.login.getTokens()` functino with a new `autoRefresh: boolean` parameter.
 
 ### Fixed
@@ -836,7 +850,6 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 ### Changed
 
 - Fix import/require resolution issues for library users. Developers using the library can now:
-
   - ESM:
 
     Member style import any other modules from the library:
@@ -1102,7 +1115,6 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - `FRODO_POLLY_LOG_LEVEL=info`: Frodo mock engine log level (`trace`, `debug`, `info`, `warn`, `error`, `silent`). This is helpful for troubleshooting the mock capability, only.
 
   Environment variables added in 0.17.1:
-
   - `FRODO_HOST`
   - `FRODO_REALM`
   - `FRODO_USERNAME`
@@ -1270,7 +1282,6 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
   ```
 
 - \#180: Allow all connection parameters to be supplied using environment variables for secure CI/CD:
-
   - `FRODO_HOST`
   - `FRODO_REALM`
   - `FRODO_USERNAME`
