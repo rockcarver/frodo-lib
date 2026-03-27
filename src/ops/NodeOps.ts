@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import c from 'tinyrainbow';
 
 import {
   createCustomNode,
@@ -35,7 +36,6 @@ import { getMetadata, getResult } from '../utils/ExportImportUtils';
 import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import { ExportMetaData, ResultCallback } from './OpsTypes';
-import c from 'tinyrainbow';
 
 export type Node = {
   /**
