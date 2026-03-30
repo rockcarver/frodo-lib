@@ -7,13 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [4.0.0-34] - 2026-03-30
+### Added
 
-## [4.0.0-33] - 2026-03-27
-
-## [4.0.0-32] - 2026-03-27
-
-## [4.0.0-31] - 2026-03-27
+- Added library support for `fr-config-manager` commands in the CLI.
+- Custom Nodes
+  - Added support for Node Designer Nodes through several API and Ops functions to allow for doing exports, imports, deletes, etc. with custom node configurations.
+  - Just like with journeys, custom nodes get exported and imported in the same way as they do from AIC/AM, so you can import Frodo exported custom nodes into AIC/AM and vice versa.
+  - Additionally, journeys were updated to include custom node dependencies during exports. Even if a journey is exported with Frodo and contains these dependencies in the export JSON, they can still be imported into AIC/AM using the admin UI as it should ignore the custom node dependencies (since AIC/AM doesn't support exporting them yet).
+- Added the ability to authenticate to an AM classic deployment using Amster credentials (i.e. a public/private key pair). The private key can be in a variety of formats such as PKCS, JWK, and OpenSSH, but is ultimately stored in PKCS#8 format. You can also use encrypted private keys by providing the passphrase when creating the connection profile.
 
 ### Changed
 
@@ -25,123 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changes how existing secret store functions work to allow for doing ESV secret store exports/imports within AIC.
   - Adds additional functions for modifications to the mappings specific to a secret store.
 - Updated dependencies
-
-### Added
-
-- Added library support for `fr-config-manager` commands in the CLI.
-- Custom Nodes
-  - Added support for Node Designer Nodes through several API and Ops functions to allow for doing exports, imports, deletes, etc. with custom node configurations.
-  - Just like with journeys, custom nodes get exported and imported in the same way as they do from AIC/AM, so you can import Frodo exported custom nodes into AIC/AM and vice versa.
-  - Additionally, journeys were updated to include custom node dependencies during exports. Even if a journey is exported with Frodo and contains these dependencies in the export JSON, they can still be imported into AIC/AM using the admin UI as it should ignore the custom node dependencies (since AIC/AM doesn't support exporting them yet).
-- Added the ability to authenticate to an AM classic deployment using Amster credentials (i.e. a public/private key pair). The private key can be in a variety of formats such as PKCS, JWK, and OpenSSH, but is ultimately stored in PKCS#8 format. You can also use encrypted private keys by providing the passphrase when creating the connection profile.
 
 ### Fixed
 
 - \#519: Updated AdminOps.ts to again properly grant oauth2 client admin privileges after changes in AIC broke `grantOAuth2ClientAdminPrivileges`.
 - rockcarver/frodo-cli#568: Frodo Library now allows connections to AM hosts with expired SSL/TLS certificate when using state.setAllowInsecureConnections(true).
-
-## [4.0.0-30] - 2026-03-19
-
-## [4.0.0-29] - 2026-03-18
-
-## [4.0.0-28] - 2026-03-18
-
-## [4.0.0-27] - 2026-03-17
-
-## [4.0.0-26] - 2026-03-17
-
-## [4.0.0-25] - 2026-03-12
-
-## [4.0.0-24] - 2026-03-06
-
-## [4.0.0-23] - 2026-03-05
-
-## [4.0.0-22] - 2026-03-02
-
-## [4.0.0-21] - 2026-03-02
-
-## [4.0.0-20] - 2026-03-01
-
-## [4.0.0-19] - 2026-03-01
-
-## [4.0.0-18] - 2026-03-01
-
-## [4.0.0-17] - 2026-03-01
-
-## [4.0.0-16] - 2026-03-01
-
-## [4.0.0-15] - 2026-03-01
-
-## [4.0.0-14] - 2026-03-01
-
-## [4.0.0-13] - 2026-03-01
-
-## [4.0.0-12] - 2026-02-27
-
-## [4.0.0-11] - 2026-02-24
-
-## [4.0.0-10] - 2026-02-19
-
-## [4.0.0-9] - 2026-02-19
-
-## [4.0.0-8] - 2026-02-17
-
-## [4.0.0-7] - 2026-02-17
-
-## [4.0.0-6] - 2026-02-06
-
-## [4.0.0-5] - 2026-02-04
-
-## [4.0.0-4] - 2026-02-02
-
-## [4.0.0-3] - 2026-02-01
-
-### Changed
-
-- **_BREAKING_**: Updated Node.js supported version matrix:
-  - Added support for v25
-  - Added support for v24
-  - **_BREAKING_**: Dropped support for v18
-- Secret Store Management
-  - Changes how existing secret store functions work to allow for doing ESV secret store exports/imports within AIC.
-  - Adds additional functions for modifications to the mappings specific to a secret store.
-- Updated dependencies
-
-### Added
-
-- Added library support for `fr-config-manager` commands in the CLI.
-- Custom Nodes
-  - Added support for Node Designer Nodes through several API and Ops functions to allow for doing exports, imports, deletes, etc. with custom node configurations.
-  - Just like with journeys, custom nodes get exported and imported in the same way as they do from AIC/AM, so you can import Frodo exported custom nodes into AIC/AM and vice versa.
-  - Additionally, journeys were updated to include custom node dependencies during exports. Even if a journey is exported with Frodo and contains these dependencies in the export JSON, they can still be imported into AIC/AM using the admin UI as it should ignore the custom node dependencies (since AIC/AM doesn't support exporting them yet).
-- Added the ability to authenticate to an AM classic deployment using Amster credentials (i.e. a public/private key pair). The private key can be in a variety of formats such as PKCS, JWK, and OpenSSH, but is ultimately stored in PKCS#8 format. You can also use encrypted private keys by providing the passphrase when creating the connection profile.
-
-### Fixed
-
-- \#519: Updated AdminOps.ts to again properly grant oauth2 client admin privileges after changes in AIC broke `grantOAuth2ClientAdminPrivileges`.
-
-## [4.0.0-2] - 2026-01-27
-
-## [4.0.0-1] - 2026-01-25
-
-### Changed
-
-- **_BREAKING_**: Updated Node.js supported version matrix:
-  - Added support for v25
-  - Added support for v24
-  - **_BREAKING_**: Dropped support for v18
-- Updated dependencies
-
-### Added
-
-- Added library support for `fr-config-manager` commands in the CLI.
-- Added support for Node Designer Nodes through several API and Ops functions to allow for doing exports, imports, deletes, etc. with custom node configurations.<br><br>
-  Just like with journeys, custom nodes get exported and imported in the same way as they do from AIC/AM, so you can import Frodo exported custom nodes into AIC/AM and vice versa.<br><br>
-  Additionally, journeys were updated to include custom node dependencies during exports. Even if a journey is exported with Frodo and contains these dependencies in the export JSON, they can still be imported into AIC/AM using the admin UI as it should ignore the custom node dependencies (since AIC/AM doesn't support exporting them yet).
-
-### Fixed
-
-- \#519: Updated AdminOps.ts to allow the `frodo admin grant-oauth2-client-admin-privileges` command in the CLI to again properly grant oauth2 client admin privileges after changes in AIC broke the command.
 
 ## [3.3.6-1] - 2026-01-24
 
