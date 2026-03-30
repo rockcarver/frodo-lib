@@ -560,7 +560,6 @@ export async function exportConfigEntities({
   stopProgressIndicator({
     id: indicatorId,
     message: `Exported ${configurations.length} config entities.`,
-    status: 'success',
     state,
   });
   return exportData;
