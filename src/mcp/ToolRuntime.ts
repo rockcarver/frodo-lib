@@ -496,8 +496,12 @@ async function invokeDescriptorMethod(
   try {
     return await Promise.resolve(method(...args));
   } catch (error) {
+    // Preserve full error context when wrapping invocation failures
+    const methodPath = descriptor.modulePath
+      .concat(descriptor.methodName)
+      .join('.');
     throw new FrodoError(
-      `MCP runtime error: failed invoking '${descriptor.id}'.`,
+      `MCP runtime error: failed invoking '${descriptor.id}' (${methodPath})`,
       error instanceof Error ? error : new Error(String(error))
     );
   }
