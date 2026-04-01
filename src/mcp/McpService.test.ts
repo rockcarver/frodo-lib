@@ -55,7 +55,12 @@ describe('composeCapabilityPolicy', () => {
     });
 
     expect(policy.name).toBe('read-only-custom');
-    expect(policy.allowOperationTypes).toEqual(['read', 'search', 'list']);
+    expect(policy.allowOperationTypes).toEqual([
+      'count',
+      'read',
+      'search',
+      'list',
+    ]);
     expect(policy.includeSpecial).toBe(false);
     expect(policy.denyDomains).toEqual(['state']);
   });
@@ -79,6 +84,7 @@ describe('createMcpService', () => {
       found: true,
     }));
     const scopedInstance = {
+      login: { getTokens: jest.fn(async () => {}) },
       authn: {
         journey: {
           readJourney,
@@ -178,6 +184,7 @@ describe('createMcpService', () => {
       runtimeOptions: {
         resolveFrodoForRequest: async () =>
           ({
+            login: { getTokens: jest.fn(async () => {}) },
             authn: {
               journey: {
                 readJourney,

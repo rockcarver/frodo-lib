@@ -33,6 +33,8 @@ export {
   buildToolManifest,
 } from './ToolManifest';
 export {
+  McpExecutionPaginationMetadata,
+  McpExecutionScopeMetadata,
   McpGenericExecutionArguments,
   McpRuntimeAdminAccountAuth,
   McpRuntimeAuth,
@@ -42,6 +44,7 @@ export {
   McpSpecialExecutionArguments,
   McpToolExecutionRequest,
   McpToolExecutionResult,
+  McpToolExecutionMetadata,
   McpToolRuntime,
   McpToolRuntimeOptions,
   createToolRuntime,

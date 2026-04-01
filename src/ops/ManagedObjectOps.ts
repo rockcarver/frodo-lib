@@ -4,6 +4,7 @@ import {
   PatchOperationInterface,
 } from '../api/ApiTypes';
 import {
+  countManagedObjects as _countManagedObjects,
   createManagedObject as _createManagedObject,
   DEFAULT_PAGE_SIZE,
   deleteManagedObject as _deleteManagedObject,
@@ -52,6 +53,13 @@ export type ManagedObject = {
     type: string,
     fields: string[]
   ): Promise<IdObjectSkeletonInterface[]>;
+  /**
+   * Count managed objects of the specified type.
+   * @param {string} type managed object type, e.g. alpha_user or user
+   * @param {string} filter CREST search filter
+   * @returns {Promise<number>} a promise that resolves to the object count
+   */
+  countManagedObjects(type: string, filter?: string): Promise<number>;
   /**
    * Update managed object
    * @param {string} type managed object type, e.g. alpha_user or user
@@ -167,6 +175,12 @@ export default (state: State): ManagedObject => {
       fields: string[]
     ): Promise<IdObjectSkeletonInterface[]> {
       return readManagedObjects({ type, fields, state });
+    },
+    async countManagedObjects(
+      type: string,
+      filter: string = 'true'
+    ): Promise<number> {
+      return countManagedObjects({ type, filter, state });
     },
     async updateManagedObject(
       type: string,
@@ -306,6 +320,25 @@ export async function readManagedObjects({
     return managedObjects;
   } catch (error) {
     throw new FrodoError(`Error reading managed ${type} objects`, error);
+  }
+}
+
+export async function countManagedObjects({
+  type,
+  filter = 'true',
+  state,
+}: {
+  type: string;
+  filter?: string;
+  state: State;
+}): Promise<number> {
+  try {
+    return _countManagedObjects({ type, filter, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error counting managed ${type} objects matching filter "${filter}"`,
+      error
+    );
   }
 }
 

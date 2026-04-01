@@ -55,7 +55,7 @@ describe('MCP tool manifest builder', () => {
     }
   });
 
-  test('read-only policy restricts generic tools to read/list/search', () => {
+  test('read-only policy restricts generic tools to count/read/list/search', () => {
     const inventory = applyCapabilityPolicy(
       buildCapabilityInventory(frodo, { includeTopLevelDomains: ['authn'] }),
       MCP_POLICY_PRESETS['read-only']
@@ -63,9 +63,9 @@ describe('MCP tool manifest builder', () => {
     const manifest = buildToolManifest(inventory);
 
     const ops = manifest.genericTools.map((t) => t.operationType);
-    expect(ops.every((op) => ['read', 'list', 'search'].includes(op))).toBe(
-      true
-    );
+    expect(
+      ops.every((op) => ['count', 'read', 'list', 'search'].includes(op))
+    ).toBe(true);
   });
 
   test('discovery tool lists all domains present in generic tools', () => {

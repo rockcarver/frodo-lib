@@ -18,6 +18,7 @@ import {
 
 describe('MCP capability foundation', () => {
   test('infers operation types and risk classes from method names', () => {
+    expect(inferOperationType('countUsers')).toBe('count');
     // singular read → read
     expect(inferOperationType('readJourney')).toBe('read');
     // plural read → list (Frodo convention: readJourneys = list all journeys)
@@ -72,7 +73,9 @@ describe('MCP capability foundation', () => {
 
     expect(filtered.length).toBeGreaterThan(0);
     expect(
-      filtered.every((cap) => ['read', 'search', 'list'].includes(cap.operationType))
+      filtered.every((cap) =>
+        ['count', 'read', 'search', 'list'].includes(cap.operationType)
+      )
     ).toBe(true);
   });
 });

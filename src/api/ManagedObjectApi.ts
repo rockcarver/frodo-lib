@@ -14,6 +14,7 @@ const createManagedObjectURLTemplate = '%s/managed/%s?_action=create';
 const managedObjectByIdURLTemplate = '%s/managed/%s/%s';
 const queryAllManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=true&_pageSize=%s`;
 const queryManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=%s`;
+const countManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=0&_totalPagedResultsPolicy=EXACT`;
 
 export const DEFAULT_PAGE_SIZE: number = 1000;
 
@@ -215,6 +216,51 @@ export async function queryManagedObjects({
     urlString
   );
   return data as PagedResult<IdObjectSkeletonInterface>;
+}
+
+/**
+ * Count managed objects matching a filter.
+ *
+ * @param {string} type managed object type, e.g. alpha_user or user
+ * @param {string} filter CREST search filter
+ * @param {State} state library state
+ * @returns {Promise<number>} a promise that resolves to an exact total when available
+ */
+export async function countManagedObjects({
+  type,
+  filter = 'true',
+  state,
+}: {
+  type: string;
+  filter?: string;
+  state: State;
+}): Promise<number> {
+  if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new Error(
+      `${type} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+    );
+  }
+
+  const urlString = util.format(
+    countManagedObjectURLTemplate,
+    getIdmBaseUrl(state),
+    type,
+    encodeURIComponent(filter)
+  );
+  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
+    urlString
+  );
+
+  if (
+    typeof data?.totalPagedResults === 'number' &&
+    data.totalPagedResults >= 0
+  ) {
+    return data.totalPagedResults;
+  }
+  if (typeof data?.resultCount === 'number' && data.resultCount >= 0) {
+    return data.resultCount;
+  }
+  return Array.isArray(data?.result) ? data.result.length : 0;
 }
 
 /**

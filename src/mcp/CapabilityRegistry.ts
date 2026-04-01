@@ -9,6 +9,7 @@
  */
 
 import { Frodo } from '../lib/FrodoLib';
+import { resolveCapabilityMeta } from './CapabilityMetadata';
 import {
   McpCapabilityDescriptor,
   McpCapabilityInventoryOptions,
@@ -177,6 +178,8 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
   const annotations = inferAnnotations(operationType, mutating, destructive);
   const sourcePath = [...modulePath, methodName].join('.');
 
+  const meta = resolveCapabilityMeta(sourcePath);
+
   return {
     id: sourcePath,
     toolName: `frodo.${sourcePath}`,
@@ -189,7 +192,16 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
     riskClass,
     mutating,
     destructive,
-    deploymentTypes: ['any'],
+    deploymentTypes: meta?.deploymentTypes ?? ['any'],
+    ...(meta?.preferredDeploymentTypes !== undefined && {
+      preferredDeploymentTypes: meta.preferredDeploymentTypes,
+    }),
+    ...(meta?.identitySurface !== undefined && {
+      identitySurface: meta.identitySurface,
+    }),
+    ...(meta?.objectTypePatterns !== undefined && {
+      objectTypePatterns: meta.objectTypePatterns,
+    }),
     requiredScopes: [],
     annotations,
   };
@@ -213,6 +225,7 @@ export function inferOperationType(
   methodName: string
 ): McpCapabilityOperationType {
   if (/^create[A-Z]/.test(methodName)) return 'create';
+  if (/^count[A-Z]/.test(methodName)) return 'count';
   // Plural read<ObjectType>s → list all objects; singular read<ObjectType> → read one.
   if (/^read[A-Z].*s$/.test(methodName)) return 'list';
   if (/^read[A-Z]/.test(methodName)) return 'read';
@@ -240,6 +253,7 @@ export function inferObjectType(
 ): string {
   const operationPrefixes = [
     'create',
+    'count',
     'read',
     'update',
     'delete',
@@ -361,7 +375,7 @@ function inferAnnotations(
   destructive: boolean
 ): McpToolAnnotations {
   const readOnlyHint = !mutating;
-  const idempotentHint = ['read', 'search', 'list', 'export'].includes(
+  const idempotentHint = ['count', 'read', 'search', 'list', 'export'].includes(
     operationType
   );
   return {

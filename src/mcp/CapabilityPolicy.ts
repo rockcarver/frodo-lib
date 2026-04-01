@@ -22,7 +22,7 @@ export const MCP_POLICY_PRESETS: Record<
 > = {
   'read-only': {
     name: 'read-only',
-    allowOperationTypes: ['read', 'search', 'list'],
+    allowOperationTypes: ['count', 'read', 'search', 'list'],
     denyOperationTypes: ['create', 'update', 'delete', 'import'],
     includeSpecial: false,
   },
@@ -30,6 +30,7 @@ export const MCP_POLICY_PRESETS: Record<
     name: 'standard',
     allowOperationTypes: [
       'create',
+      'count',
       'read',
       'update',
       'search',

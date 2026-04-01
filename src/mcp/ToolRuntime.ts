@@ -18,6 +18,7 @@ import { FrodoError } from '../ops/FrodoError';
 import { StateInterface } from '../shared/State';
 import {
   McpCapabilityDescriptor,
+  McpDeploymentType,
   McpCapabilityOperationType,
 } from './CapabilityTypes';
 import {
@@ -110,10 +111,64 @@ export type McpGenericExecutionArguments = {
   domain: string;
   /** Object type label, e.g. `Journey`. */
   objectType: string;
+  /** Optional realm override applied to request-scoped auth context. */
+  realm?: string;
+  /** Optional requested page size hint. */
+  pageSize?: number;
+  /** Optional requested page offset hint. */
+  pageOffset?: number;
+  /** Optional requested page token/cursor hint. */
+  pageToken?: string;
+  /** Optional hint to request exact totals when supported. */
+  includeTotal?: boolean;
   /** Optional positional args forwarded to the underlying Frodo method. */
   positionalArgs?: unknown[];
   /** Optional named args forwarded as a single object argument. */
   namedArgs?: Record<string, unknown>;
+};
+
+/**
+ * Pagination metadata returned for list/search style tool calls.
+ */
+export type McpExecutionPaginationMetadata = {
+  /** Whether the result appears to be truncated/paginated. */
+  isPartial: boolean;
+  /** Number of rows returned when the payload is an array. */
+  returnedCount?: number;
+  /** Requested page size hint, if provided by caller. */
+  requestedPageSize?: number;
+  /** Requested page offset hint, if provided by caller. */
+  requestedPageOffset?: number;
+  /** Requested page token hint, if provided by caller. */
+  requestedPageToken?: string;
+  /** Whether caller requested exact totals. */
+  includeTotalRequested?: boolean;
+  /** Optional advisory warning for agent callers. */
+  warning?: string;
+};
+
+/**
+ * Scope metadata returned for realm-sensitive executions.
+ */
+export type McpExecutionScopeMetadata = {
+  /** Realm explicitly requested by the caller, if any. */
+  requestedRealm?: string;
+  /** Realm ultimately applied to request-scoped auth context. */
+  appliedRealm?: string;
+  /** Whether payload contents suggest a realm mismatch. */
+  scopeMismatch?: boolean;
+  /** Optional warning message when scope mismatch is detected. */
+  warning?: string;
+};
+
+/**
+ * Optional execution metadata surfaced alongside tool results.
+ */
+export type McpToolExecutionMetadata = {
+  /** Scope metadata for realm-sensitive calls. */
+  scope?: McpExecutionScopeMetadata;
+  /** Pagination metadata for list/search calls. */
+  pagination?: McpExecutionPaginationMetadata;
 };
 
 /**
@@ -156,6 +211,8 @@ export type McpToolExecutionResult = {
   descriptorId?: string;
   /** Underlying method result payload. */
   data: unknown;
+  /** Optional execution metadata for scope and pagination diagnostics. */
+  metadata?: McpToolExecutionMetadata;
 };
 
 /**
@@ -175,6 +232,13 @@ export type McpToolRuntimeOptions = {
     context: McpRuntimeRequestContext,
     frodoRoot: Frodo
   ) => Frodo | Promise<Frodo>;
+  /**
+   * Optional heuristic threshold used to flag potentially paginated array
+   * responses when no explicit pagination controls were provided.
+   *
+   * Defaults to `1000`.
+   */
+  paginationWarningThreshold?: number;
 };
 
 /**
@@ -219,6 +283,7 @@ export function createToolRuntime(
     manifest.specialTools.map((t) => [t.toolName, t])
   );
   const frodoRoot = options.frodoRoot ?? frodo;
+  const paginationWarningThreshold = options.paginationWarningThreshold ?? 1000;
 
   /**
    * Executes one manifest tool request and returns a normalized result envelope.
@@ -240,17 +305,15 @@ export function createToolRuntime(
       };
     }
 
-    const scopedFrodo = await resolveScopedFrodoInstance(
-      request.context,
-      frodoRoot,
-      options.resolveFrodoForRequest
-    );
-
     const genericTool = manifest.genericTools.find(
       (t) => t.toolName === request.toolName
     );
     if (genericTool) {
       const args = parseGenericArguments(request.arguments);
+      const contextForExecution = applyGenericScopeOverride(
+        request.context,
+        args
+      );
       const key = buildGenericDescriptorIndexKey(
         genericTool.operationType,
         args.domain,
@@ -262,20 +325,40 @@ export function createToolRuntime(
           `MCP runtime error: tool '${request.toolName}' does not support domain '${args.domain}' and objectType '${args.objectType}'.`
         );
       }
+      assertDeploymentCompatibility(descriptor, contextForExecution);
+      const scopedFrodo = await resolveScopedFrodoInstance(
+        contextForExecution,
+        frodoRoot,
+        options.resolveFrodoForRequest
+      );
       const methodResult = await invokeDescriptorMethod(
         scopedFrodo,
         descriptor,
         toInvocationArgs(args)
       );
+      const metadata = buildGenericExecutionMetadata(
+        methodResult,
+        args,
+        descriptor.operationType,
+        contextForExecution,
+        paginationWarningThreshold
+      );
       return {
         toolName: request.toolName,
         descriptorId: descriptor.id,
         data: methodResult,
+        metadata,
       };
     }
 
     const specialTool = specialToolIndex.get(request.toolName);
     if (specialTool) {
+      assertDeploymentCompatibility(specialTool.descriptor, request.context);
+      const scopedFrodo = await resolveScopedFrodoInstance(
+        request.context,
+        frodoRoot,
+        options.resolveFrodoForRequest
+      );
       const methodResult = await invokeDescriptorMethod(
         scopedFrodo,
         specialTool.descriptor,
@@ -297,6 +380,73 @@ export function createToolRuntime(
     manifest,
     executeTool,
   };
+}
+
+/**
+ * Validates that the descriptor is supported for the request deployment type.
+ *
+ * @remarks
+ * Compatibility metadata is expressed via `descriptor.deploymentTypes`.
+ * - `any` means globally compatible
+ * - empty/undefined means no explicit constraint (treated as compatible)
+ *
+ * If the request context does not include a deployment type, the check is
+ * skipped to preserve backward compatibility for legacy callers.
+ */
+function assertDeploymentCompatibility(
+  descriptor: McpCapabilityDescriptor,
+  context: McpRuntimeRequestContext
+): void {
+  const deploymentType = resolveContextDeploymentType(context);
+  if (!deploymentType) {
+    return;
+  }
+
+  const supported = descriptor.deploymentTypes;
+  if (!supported || supported.length === 0 || supported.includes('any')) {
+    return;
+  }
+
+  if (supported.includes(deploymentType)) {
+    return;
+  }
+
+  const supportedList = supported.join(', ');
+  throw new FrodoError(
+    `MCP runtime error: descriptor '${descriptor.id}' is not supported for deployment '${deploymentType}'. Supported deployments: ${supportedList}.`
+  );
+}
+
+/**
+ * Resolves and normalizes deployment type from request context.
+ */
+function resolveContextDeploymentType(
+  context: McpRuntimeRequestContext
+): McpDeploymentType | undefined {
+  if (!context?.auth) {
+    return undefined;
+  }
+
+  const rawType =
+    context.auth.mode === 'state-config'
+      ? context.auth.config?.deploymentType
+      : context.auth.deploymentType;
+
+  if (typeof rawType !== 'string') {
+    return undefined;
+  }
+
+  const normalized = rawType.trim().toLowerCase();
+  if (
+    normalized === 'classic' ||
+    normalized === 'cloud' ||
+    normalized === 'forgeops' ||
+    normalized === 'any'
+  ) {
+    return normalized;
+  }
+
+  return undefined;
 }
 
 /**
@@ -417,10 +567,24 @@ async function resolveScopedFrodoInstance(
     frodoRoot: Frodo
   ) => Frodo | Promise<Frodo>
 ): Promise<Frodo> {
-  if (customResolver) {
-    return await customResolver(context, frodoRoot);
+  const scopedFrodo = customResolver
+    ? await customResolver(context, frodoRoot)
+    : resolveRequestScopedFrodo(context, frodoRoot);
+
+  // Authenticate the scoped instance before any method is invoked. getTokens()
+  // populates the instance-local state with a valid bearer token and raises a
+  // clean authentication error here rather than letting a 401/403 surface deep
+  // inside a library method call.
+  try {
+    await scopedFrodo.login.getTokens();
+  } catch (error) {
+    throw new FrodoError(
+      'MCP runtime error: authentication failed for request-scoped Frodo instance.',
+      error instanceof Error ? error : new Error(String(error))
+    );
   }
-  return resolveRequestScopedFrodo(context, frodoRoot);
+
+  return scopedFrodo;
 }
 
 /**
@@ -444,6 +608,40 @@ function parseGenericArguments(raw: unknown): McpGenericExecutionArguments {
   if (!args.objectType || typeof args.objectType !== 'string') {
     throw new FrodoError(
       'MCP runtime error: generic tools require a string objectType argument.'
+    );
+  }
+  if (args.realm !== undefined && typeof args.realm !== 'string') {
+    throw new FrodoError(
+      'MCP runtime error: generic tools require realm to be a string when provided.'
+    );
+  }
+  if (
+    args.pageSize !== undefined &&
+    (!Number.isInteger(args.pageSize) || args.pageSize <= 0)
+  ) {
+    throw new FrodoError(
+      'MCP runtime error: generic tools require pageSize to be a positive integer when provided.'
+    );
+  }
+  if (
+    args.pageOffset !== undefined &&
+    (!Number.isInteger(args.pageOffset) || args.pageOffset < 0)
+  ) {
+    throw new FrodoError(
+      'MCP runtime error: generic tools require pageOffset to be a non-negative integer when provided.'
+    );
+  }
+  if (args.pageToken !== undefined && typeof args.pageToken !== 'string') {
+    throw new FrodoError(
+      'MCP runtime error: generic tools require pageToken to be a string when provided.'
+    );
+  }
+  if (
+    args.includeTotal !== undefined &&
+    typeof args.includeTotal !== 'boolean'
+  ) {
+    throw new FrodoError(
+      'MCP runtime error: generic tools require includeTotal to be a boolean when provided.'
     );
   }
   return args;
@@ -547,4 +745,203 @@ function resolveDescriptorMethod(
     );
   }
   return (method as (...args: unknown[]) => unknown).bind(node);
+}
+
+/**
+ * Applies generic-tool scope controls to the request context.
+ *
+ * @param context Original request context.
+ * @param args Parsed generic-tool arguments.
+ * @returns Context with realm override applied when provided.
+ */
+function applyGenericScopeOverride(
+  context: McpRuntimeRequestContext,
+  args: McpGenericExecutionArguments
+): McpRuntimeRequestContext {
+  if (!args.realm) {
+    return context;
+  }
+
+  switch (context.auth.mode) {
+    case 'state-config':
+      return {
+        ...context,
+        auth: {
+          mode: 'state-config',
+          config: {
+            ...context.auth.config,
+            realm: args.realm,
+          },
+        },
+      };
+    case 'service-account':
+      return {
+        ...context,
+        auth: {
+          ...context.auth,
+          realm: args.realm,
+        },
+      };
+    case 'admin-account':
+      return {
+        ...context,
+        auth: {
+          ...context.auth,
+          realm: args.realm,
+        },
+      };
+    default:
+      return context;
+  }
+}
+
+/**
+ * Builds standardized execution metadata for generic tool calls.
+ */
+function buildGenericExecutionMetadata(
+  data: unknown,
+  args: McpGenericExecutionArguments,
+  operationType: McpCapabilityOperationType,
+  context: McpRuntimeRequestContext,
+  paginationWarningThreshold: number
+): McpToolExecutionMetadata | undefined {
+  const scope = buildScopeMetadata(data, args, context);
+  const pagination = buildPaginationMetadata(
+    data,
+    args,
+    operationType,
+    paginationWarningThreshold
+  );
+  if (!scope && !pagination) {
+    return undefined;
+  }
+  return {
+    scope,
+    pagination,
+  };
+}
+
+/**
+ * Produces scope diagnostics for realm-sensitive generic calls.
+ */
+function buildScopeMetadata(
+  data: unknown,
+  args: McpGenericExecutionArguments,
+  context: McpRuntimeRequestContext
+): McpExecutionScopeMetadata | undefined {
+  const requestedRealm = args.realm;
+  const appliedRealm = getRealmFromContext(context);
+
+  if (!requestedRealm && !appliedRealm) {
+    return undefined;
+  }
+
+  const metadata: McpExecutionScopeMetadata = {
+    requestedRealm,
+    appliedRealm,
+  };
+
+  const mismatchWarning = detectScopeMismatchWarning(data, requestedRealm);
+  if (mismatchWarning) {
+    metadata.scopeMismatch = true;
+    metadata.warning = mismatchWarning;
+  }
+
+  return metadata;
+}
+
+/**
+ * Produces pagination diagnostics for list/search style calls.
+ */
+function buildPaginationMetadata(
+  data: unknown,
+  args: McpGenericExecutionArguments,
+  operationType: McpCapabilityOperationType,
+  paginationWarningThreshold: number
+): McpExecutionPaginationMetadata | undefined {
+  if (operationType !== 'list' && operationType !== 'search') {
+    return undefined;
+  }
+
+  const returnedCount = Array.isArray(data) ? data.length : undefined;
+  const looksTruncatedByThreshold =
+    returnedCount !== undefined &&
+    returnedCount >= paginationWarningThreshold &&
+    args.pageSize === undefined &&
+    args.pageOffset === undefined &&
+    args.pageToken === undefined;
+
+  const metadata: McpExecutionPaginationMetadata = {
+    isPartial: looksTruncatedByThreshold,
+    returnedCount,
+    requestedPageSize: args.pageSize,
+    requestedPageOffset: args.pageOffset,
+    requestedPageToken: args.pageToken,
+    includeTotalRequested: args.includeTotal,
+  };
+
+  if (looksTruncatedByThreshold) {
+    metadata.warning =
+      'Result appears to be paginated/truncated at default page size. Provide explicit paging controls or use a count-capable operation for exact totals.';
+  }
+
+  return metadata;
+}
+
+/**
+ * Reads the effective realm from a runtime request context.
+ */
+function getRealmFromContext(
+  context: McpRuntimeRequestContext
+): string | undefined {
+  switch (context.auth.mode) {
+    case 'state-config':
+      return context.auth.config.realm;
+    case 'service-account':
+      return context.auth.realm;
+    case 'admin-account':
+      return context.auth.realm;
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Heuristically detects realm mismatch by inspecting payload realm fields.
+ */
+function detectScopeMismatchWarning(
+  data: unknown,
+  requestedRealm?: string
+): string | undefined {
+  if (!requestedRealm || !Array.isArray(data) || data.length === 0) {
+    return undefined;
+  }
+
+  const requested = normalizeRealm(requestedRealm);
+  const observed = new Set<string>();
+  for (const entry of data.slice(0, 100)) {
+    if (!entry || typeof entry !== 'object') {
+      continue;
+    }
+    const realmValue = (entry as Record<string, unknown>).realm;
+    if (typeof realmValue === 'string' && realmValue.trim().length > 0) {
+      observed.add(normalizeRealm(realmValue));
+    }
+  }
+
+  if (observed.size > 0 && !observed.has(requested)) {
+    return `Requested realm '${requestedRealm}' does not match observed payload realms (${[...observed].join(', ')}). Verify realm scoping for this operation.`;
+  }
+  return undefined;
+}
+
+/**
+ * Normalizes realm inputs for stable comparison.
+ */
+function normalizeRealm(realm: string): string {
+  const trimmed = realm.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
 }

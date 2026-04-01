@@ -53,12 +53,15 @@ const DISCOVERY_TOOL_NAME = 'frodo_discover' as const;
 const GENERIC_TOOL_DESCRIPTIONS: Record<McpCapabilityOperationType, string> = {
   create:
     'Create a new domain object of the specified type in a Ping AM/IDM domain.',
+  count:
+    'Count domain objects of a given type in a Ping AM/IDM domain. Use this for exact totals instead of inferring totals from paginated list/search responses.',
   read: 'Read a single domain object by identifier or name from a Ping AM/IDM domain.',
   update: 'Update an existing domain object in a Ping AM/IDM domain.',
   delete:
     'Delete a domain object by identifier or name from a Ping AM/IDM domain.',
-  list: 'List all domain objects of a given type in a Ping AM/IDM domain.',
-  search: 'Search for domain objects matching a query in a Ping AM/IDM domain.',
+  list: 'List domain objects of a given type in a Ping AM/IDM domain. Results may be paginated; do not infer totals from a single response page. Provide explicit realm scoping where supported.',
+  search:
+    'Search for domain objects matching a query in a Ping AM/IDM domain. Results may be paginated; do not infer totals from a single response page. Provide explicit realm scoping where supported.',
   export:
     'Export domain objects of the specified type to a portable configuration bundle.',
   import:

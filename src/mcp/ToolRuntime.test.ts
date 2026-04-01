@@ -135,6 +135,7 @@ describe('MCP tool runtime', () => {
     const runtime = createToolRuntime(manifest, [descriptor], {
       resolveFrodoForRequest: () =>
         ({
+          login: { getTokens: jest.fn(async () => {}) },
           authn: {
             journey: {
               readJourney,
@@ -163,6 +164,117 @@ describe('MCP tool runtime', () => {
     expect(result.data).toEqual({ id: 'journey1' });
   });
 
+  test('applies realm override from generic arguments to state-config context', async () => {
+    const descriptor = makeDescriptor();
+    const manifest = makeManifest(descriptor);
+    const readJourney = jest.fn(async () => ({ id: 'journey1' }));
+    let capturedContext: any;
+
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: (context) => {
+        capturedContext = context;
+        return {
+          login: { getTokens: jest.fn(async () => {}) },
+          authn: {
+            journey: {
+              readJourney,
+            },
+          },
+        } as any;
+      },
+    });
+
+    await runtime.executeTool({
+      toolName: 'frodo_read',
+      arguments: {
+        domain: 'authn',
+        objectType: 'Journey',
+        realm: '/bravo',
+        positionalArgs: ['journey1'],
+      },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: { host: 'https://example.com/am', realm: '/alpha' },
+        },
+      },
+    });
+
+    expect(capturedContext.auth.mode).toBe('state-config');
+    expect(capturedContext.auth.config.realm).toBe('/bravo');
+  });
+
+  test('adds pagination warning metadata for likely truncated list responses', async () => {
+    const descriptor = makeDescriptor({
+      id: 'user.user.listUsers',
+      domain: 'user',
+      objectType: 'User',
+      methodName: 'listUsers',
+      modulePath: ['user'],
+      operationType: 'list',
+    });
+    const manifest: McpToolManifest = {
+      genericTools: [
+        {
+          toolName: 'frodo_list',
+          operationType: 'list',
+          description: 'List users.',
+          annotations: descriptor.annotations,
+          riskClass: descriptor.riskClass,
+          supportedObjectTypes: [
+            {
+              domain: 'user',
+              objectType: 'User',
+              descriptorId: descriptor.id,
+              riskClass: descriptor.riskClass,
+              annotations: descriptor.annotations,
+            },
+          ],
+        },
+      ],
+      specialTools: [],
+      discoveryTool: {
+        toolName: 'frodo_discover',
+        description: 'Discover tool surface.',
+        domains: ['user'],
+        objectTypesByDomain: { user: ['User'] },
+        operationsByType: { list: ['user.User'] },
+      },
+      backingDescriptorCount: 1,
+      totalToolCount: 2,
+    };
+    const listUsers = jest.fn(async () => Array.from({ length: 1000 }, (_, i) => ({ id: i })));
+
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          login: { getTokens: jest.fn(async () => {}) },
+          user: {
+            listUsers,
+          },
+        }) as any,
+    });
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_list',
+      arguments: {
+        domain: 'user',
+        objectType: 'User',
+        realm: '/alpha',
+      },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: { host: 'https://example.com/am' },
+        },
+      },
+    });
+
+    expect(result.metadata?.pagination?.isPartial).toBe(true);
+    expect(result.metadata?.pagination?.returnedCount).toBe(1000);
+    expect(result.metadata?.scope?.requestedRealm).toBe('/alpha');
+  });
+
   test('executes a special tool and forwards named args as one argument object', async () => {
     const genericDescriptor = makeDescriptor();
     const specialDescriptor = makeDescriptor({
@@ -187,6 +299,7 @@ describe('MCP tool runtime', () => {
     const runtime = createToolRuntime(manifest, [genericDescriptor, specialDescriptor], {
       resolveFrodoForRequest: () =>
         ({
+          login: { getTokens: jest.fn(async () => {}) },
           authn: {
             journey: {
               readJourney: jest.fn(),
@@ -270,6 +383,7 @@ describe('MCP tool runtime', () => {
     const runtime = createToolRuntime(manifest, [descriptor], {
       resolveFrodoForRequest: () =>
         ({
+          login: { getTokens: jest.fn(async () => {}) },
           authn: {
             journey: {
               readJourney: jest.fn(async () => {
@@ -296,6 +410,81 @@ describe('MCP tool runtime', () => {
         },
       })
     ).rejects.toBeInstanceOf(FrodoError);
+  });
+
+  test('rejects deployment-incompatible descriptor for generic tools', async () => {
+    const descriptor = makeDescriptor({
+      id: 'user.countUsers',
+      methodName: 'countUsers',
+      modulePath: ['user'],
+      domain: 'user',
+      objectType: 'User',
+      operationType: 'count',
+      deploymentTypes: ['classic'],
+    });
+    const manifest: McpToolManifest = {
+      genericTools: [
+        {
+          toolName: 'frodo_count',
+          operationType: 'count',
+          description: 'Count users.',
+          annotations: descriptor.annotations,
+          riskClass: descriptor.riskClass,
+          supportedObjectTypes: [
+            {
+              domain: descriptor.domain,
+              objectType: descriptor.objectType,
+              descriptorId: descriptor.id,
+              riskClass: descriptor.riskClass,
+              annotations: descriptor.annotations,
+            },
+          ],
+        },
+      ],
+      specialTools: [],
+      discoveryTool: {
+        toolName: 'frodo_discover',
+        description: 'Discover tool surface.',
+        domains: ['user'],
+        objectTypesByDomain: { user: ['User'] },
+        operationsByType: { count: ['user.User'] },
+      },
+      backingDescriptorCount: 1,
+      totalToolCount: 2,
+    };
+
+    const resolver = jest.fn(() =>
+      ({
+        login: { getTokens: jest.fn(async () => {}) },
+        user: {
+          countUsers: jest.fn(async () => 1),
+        },
+      }) as any
+    );
+
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: resolver,
+    });
+
+    await expect(
+      runtime.executeTool({
+        toolName: 'frodo_count',
+        arguments: {
+          domain: 'user',
+          objectType: 'User',
+        },
+        context: {
+          auth: {
+            mode: 'state-config',
+            config: {
+              deploymentType: 'cloud',
+            } as any,
+          },
+        },
+      })
+    ).rejects.toThrow("descriptor 'user.countUsers' is not supported for deployment 'cloud'");
+
+    expect(resolver).not.toHaveBeenCalled();
   });
 });
 

@@ -2056,6 +2056,14 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Journey",
+    methodName: "countJourneys",
+    signature: "countJourneys(): Promise<number>",
+    description: "Count all journeys in the active realm.",
+    params: [],
+    returns: "{Promise<number>} exact count when supported by the backing API",
+  },
+  {
+    typeName: "Journey",
     methodName: "readJourney",
     signature: "readJourney(journeyId: string): Promise<TreeSkeleton>",
     description: "Read journey without dependencies.",
@@ -2202,6 +2210,17 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "ManagedObject",
+    methodName: "countManagedObjects",
+    signature: "countManagedObjects(type: string, filter?: string): Promise<number>",
+    description: "Count managed objects of the specified type.",
+    params: [
+      { name: "type", type: "string", description: "managed object type, e.g. alpha_user or user" },
+      { name: "filter", type: "string", description: "CREST search filter" },
+    ],
+    returns: "{Promise<number>} a promise that resolves to the object count",
+  },
+  {
+    typeName: "ManagedObject",
     methodName: "updateManagedObject",
     signature: "updateManagedObject( type: string, id: string, moData: IdObjectSkeletonInterface ): Promise<IdObjectSkeletonInterface>",
     description: "Update managed object",
@@ -2339,6 +2358,17 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "fields", type: "string[]", description: "array of fields to return" },
     ],
     returns: "{Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an array of IdObjectSkeletonInterfaces",
+  },
+  {
+    typeName: "ManagedObject",
+    methodName: "countManagedSystemObjects",
+    signature: "countManagedSystemObjects(type: string, filter?: string): Promise<number>",
+    description: "Count managed system objects of the specified type.",
+    params: [
+      { name: "type", type: "string", description: "managed system object type, e.g. teammember or svcacct" },
+      { name: "filter", type: "string", description: "CREST search filter" },
+    ],
+    returns: "{Promise<number>} a promise that resolves to the object count",
   },
   {
     typeName: "ManagedObject",
@@ -4684,6 +4714,14 @@ export const helpMetadata: MethodHelpDoc[] = [
     description: "Read all users.",
     params: [],
     returns: "{Promise<UserSkeleton[]>} a promise that resolves to an array of user objects",
+  },
+  {
+    typeName: "User",
+    methodName: "countUsers",
+    signature: "countUsers(): Promise<number>",
+    description: "Count all users in the active realm.",
+    params: [],
+    returns: "{Promise<number>} exact count when supported by the backing API",
   },
   {
     typeName: "User",

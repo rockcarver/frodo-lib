@@ -32,6 +32,7 @@ import { type SocialIdpSkeleton } from '../api/SocialIdentityProvidersApi';
 import {
   deleteTree,
   getTree,
+  getTreesCount,
   getTrees,
   putTree,
   type TreeSkeleton,
@@ -131,6 +132,11 @@ export type Journey = {
    * @returns {Promise<TreeSkeleton[]>} a promise that resolves to an array of journey objects
    */
   readJourneys(): Promise<TreeSkeleton[]>;
+  /**
+   * Count all journeys in the active realm.
+   * @returns {Promise<number>} exact count when supported by the backing API
+   */
+  countJourneys(): Promise<number>;
   /**
    * Read journey without dependencies.
    * @param {string} journeyId journey id/name
@@ -346,6 +352,9 @@ export default (state: State): Journey => {
     },
     async readJourneys(): Promise<TreeSkeleton[]> {
       return readJourneys({ state });
+    },
+    async countJourneys(): Promise<number> {
+      return countJourneys({ state });
     },
     async readJourney(journeyId: string): Promise<TreeSkeleton> {
       return readJourney({ journeyId, state });
@@ -1480,6 +1489,26 @@ export async function readJourneys({
   } catch (error) {
     throw new FrodoError(
       `Error reading ${getCurrentRealmName(state) + ' realm'} journeys`,
+      error
+    );
+  }
+}
+
+/**
+ * Count all journeys/trees in the active realm.
+ * @returns {Promise<number>} exact count when supported by the backing API
+ */
+export async function countJourneys({
+  state,
+}: {
+  state: State;
+}): Promise<number> {
+  try {
+    const total = await getTreesCount({ state });
+    return total;
+  } catch (error) {
+    throw new FrodoError(
+      `Error counting ${getCurrentRealmName(state) + ' realm'} journeys`,
       error
     );
   }

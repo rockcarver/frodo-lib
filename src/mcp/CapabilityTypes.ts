@@ -13,6 +13,7 @@
  */
 export type McpCapabilityOperationType =
   | 'create'
+  | 'count'
   | 'read'
   | 'update'
   | 'delete'
@@ -63,7 +64,24 @@ export type McpCapabilityDescriptor = {
   riskClass: McpCapabilityRiskClass;
   mutating: boolean;
   destructive: boolean;
+  /** Deployment families where this capability is functional. Defaults to `['any']`. */
   deploymentTypes: McpDeploymentType[];
+  /**
+   * Deployment families where this capability is the preferred/optimal choice.
+   * Set from {@link OperationCapabilityMeta.preferredDeploymentTypes} when available;
+   * absent when no explicit preference has been declared.
+   */
+  preferredDeploymentTypes?: McpDeploymentType[];
+  /**
+   * Identity surface this capability operates on.
+   * Set from {@link OperationCapabilityMeta.identitySurface} when available.
+   */
+  identitySurface?: McpIdentitySurface;
+  /**
+   * Glob-style object type patterns this capability applies to.
+   * Set from {@link OperationCapabilityMeta.objectTypePatterns} when available.
+   */
+  objectTypePatterns?: string[];
   requiredScopes: string[];
   annotations: McpToolAnnotations;
 };
@@ -95,3 +113,59 @@ export type McpCapabilityPolicy = {
  * Built-in policy preset names recognized by the baseline MCP capability layer.
  */
 export type McpCapabilityPolicyPresetName = 'read-only' | 'standard' | 'admin';
+
+/**
+ * Identifies the identity data surface a capability operates on.
+ *
+ * @remarks
+ * - `managed` — IDM managed objects accessed via `openidm/managed/` (cloud + forgeops only)
+ * - `am-user` — AM realm users accessed via the AM REST API (all deployment types)
+ * - `connector-system` — Objects in an ICF connector system via `openidm/system/` (cloud + forgeops only)
+ * - `unknown` — Surface not classified
+ */
+export type McpIdentitySurface =
+  | 'managed'
+  | 'am-user'
+  | 'connector-system'
+  | 'unknown';
+
+/**
+ * Explicit capability metadata entry stored in the static {@link CAPABILITY_META} map.
+ *
+ * @remarks
+ * Entries in the static map are keyed by a capability ID (exact dot-path match, e.g.
+ * `"idm.managed.countManagedObjects"`) or by a module prefix (e.g. `"idm.managed"`) that
+ * covers all capabilities whose IDs start with that prefix. Exact matches take priority
+ * over prefix matches. All fields are optional — only overrides need to be specified; the
+ * registry falls back to inferred defaults for absent fields.
+ */
+export type OperationCapabilityMeta = {
+  /**
+   * Explicit complete list of deployment types where this capability is functional.
+   * When set, overrides the default `['any']` inferred by the registry.
+   */
+  deploymentTypes?: McpDeploymentType[];
+
+  /**
+   * Subset of `deploymentTypes` indicating the deployment(s) where this capability
+   * is the optimal/recommended choice for the given object surface. Used by
+   * `frodo_discover` to produce routing hints for agents.
+   */
+  preferredDeploymentTypes?: McpDeploymentType[];
+
+  /**
+   * The identity data surface this capability operates on.
+   * Enables discovery tools to recommend the right domain for a given object type.
+   */
+  identitySurface?: McpIdentitySurface;
+
+  /**
+   * Glob-style object type patterns this capability applies to.
+   * Used by discovery to map object names (e.g. `alpha_user`) to the preferred domain.
+   * Examples: `['*_user', '*_organization', '*_application']`
+   */
+  objectTypePatterns?: string[];
+
+  /** Optional human-readable note surfaced in discovery tool output. */
+  notes?: string;
+};

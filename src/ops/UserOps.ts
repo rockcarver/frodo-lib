@@ -3,6 +3,7 @@ import {
   getUserConfig,
   getUserGroup,
   getUserGroups,
+  getUserCount,
   getUsers,
   putUser,
   putUserConfig,
@@ -39,6 +40,11 @@ export type User = {
    * @returns {Promise<UserSkeleton[]>} a promise that resolves to an array of user objects
    */
   readUsers(): Promise<UserSkeleton[]>;
+  /**
+   * Count all users in the active realm.
+   * @returns {Promise<number>} exact count when supported by the backing API
+   */
+  countUsers(): Promise<number>;
   /**
    * Export a single user by id. The response can be saved to file as is.
    * @param {string} userId User id
@@ -109,6 +115,9 @@ export default (state: State): User => {
     },
     async readUsers(): Promise<UserSkeleton[]> {
       return readUsers({ state });
+    },
+    async countUsers(): Promise<number> {
+      return countUsers({ state });
     },
     async exportUser(userId: string): Promise<UserExportInterface> {
       return exportUser({ userId, state });
@@ -221,6 +230,27 @@ export async function readUsers({
     return result;
   } catch (error) {
     throw new FrodoError(`Error reading users`, error);
+  }
+}
+
+/**
+ * Count all users in the active realm.
+ * @returns {Promise<number>} exact count when supported by the backing API
+ */
+export async function countUsers({ state }: { state: State }): Promise<number> {
+  try {
+    debugMessage({
+      message: `UserOps.countUsers: start`,
+      state,
+    });
+    const total = await getUserCount({ state });
+    debugMessage({
+      message: `UserOps.countUsers: end (count=${total})`,
+      state,
+    });
+    return total;
+  } catch (error) {
+    throw new FrodoError(`Error counting users`, error);
   }
 }
 

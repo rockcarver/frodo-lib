@@ -4,6 +4,7 @@ import {
   PatchOperationInterface,
 } from '../api/ApiTypes';
 import {
+  countManagedSystemObjects as _countManagedSystemObjects,
   createManagedSystemObject as _createManagedSystemObject,
   DEFAULT_PAGE_SIZE,
   deleteManagedSystemObject as _deleteManagedSystemObject,
@@ -52,6 +53,13 @@ export type ManagedObject = {
     type: string,
     fields: string[]
   ): Promise<IdObjectSkeletonInterface[]>;
+  /**
+   * Count managed system objects of the specified type.
+   * @param {string} type managed system object type, e.g. teammember or svcacct
+   * @param {string} filter CREST search filter
+   * @returns {Promise<number>} a promise that resolves to the object count
+   */
+  countManagedSystemObjects(type: string, filter?: string): Promise<number>;
   /**
    * Update managed system object
    * @param {string} type managed system object type, e.g. alpha_user or user
@@ -167,6 +175,12 @@ export default (state: State): ManagedObject => {
       fields: string[]
     ): Promise<IdObjectSkeletonInterface[]> {
       return readManagedSystemObjects({ type, fields, state });
+    },
+    async countManagedSystemObjects(
+      type: string,
+      filter: string = 'true'
+    ): Promise<number> {
+      return countManagedSystemObjects({ type, filter, state });
     },
     async updateManagedSystemObject(
       type: string,
@@ -321,6 +335,25 @@ export async function readManagedSystemObjects({
     return managedObjects;
   } catch (error) {
     throw new FrodoError(`Error reading managed ${type} objects`, error);
+  }
+}
+
+export async function countManagedSystemObjects({
+  type,
+  filter = 'true',
+  state,
+}: {
+  type: string;
+  filter?: string;
+  state: State;
+}): Promise<number> {
+  try {
+    return _countManagedSystemObjects({ type, filter, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error counting managed ${type} objects matching filter "${filter}"`,
+      error
+    );
   }
 }
 
