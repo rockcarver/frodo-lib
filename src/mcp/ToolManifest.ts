@@ -22,8 +22,10 @@
  */
 
 import {
+  McpCapabilityArgumentMode,
   McpCapabilityDescriptor,
   McpCapabilityOperationType,
+  McpCapabilityParameter,
   McpCapabilityRiskClass,
   McpToolAnnotations,
 } from './CapabilityTypes';
@@ -52,20 +54,21 @@ const DISCOVERY_TOOL_NAME = 'frodo_discover' as const;
  */
 const GENERIC_TOOL_DESCRIPTIONS: Record<McpCapabilityOperationType, string> = {
   create:
-    'Create a new domain object of the specified type in a Ping AM/IDM domain.',
+    'Create a new domain object of the specified type in a Ping AM/IDM domain. Use frodo_discover for the exact parameter contract when available.',
   count:
-    'Count domain objects of a given type in a Ping AM/IDM domain. Use this for exact totals instead of inferring totals from paginated list/search responses.',
-  read: 'Read a single domain object by identifier or name from a Ping AM/IDM domain.',
-  update: 'Update an existing domain object in a Ping AM/IDM domain.',
+    'Count domain objects of a given type in a Ping AM/IDM domain. Use this for exact totals instead of inferring totals from paginated list/search responses. Use frodo_discover for operation-specific guidance.',
+  read: 'Read a single domain object by identifier or name from a Ping AM/IDM domain. Use frodo_discover for the exact parameter contract and preferred named arguments.',
+  update:
+    'Update an existing domain object in a Ping AM/IDM domain. Use frodo_discover for the exact parameter contract when available.',
   delete:
-    'Delete a domain object by identifier or name from a Ping AM/IDM domain.',
-  list: 'List domain objects of a given type in a Ping AM/IDM domain. Results may be paginated; do not infer totals from a single response page. Provide explicit realm scoping where supported.',
+    'Delete a domain object by identifier or name from a Ping AM/IDM domain. Use frodo_discover for the exact parameter contract when available.',
+  list: 'List domain objects of a given type in a Ping AM/IDM domain. Results may be paginated; do not infer totals from a single response page. Provide explicit realm scoping where supported and use frodo_discover for details.',
   search:
-    'Search for domain objects matching a query in a Ping AM/IDM domain. Results may be paginated; do not infer totals from a single response page. Provide explicit realm scoping where supported.',
+    'Search for domain objects matching a query in a Ping AM/IDM domain. Results may be paginated; do not infer totals from a single response page. Not every domain/objectType supports search — call frodo_discover first and inspect explicit operation support details.',
   export:
-    'Export domain objects of the specified type to a portable configuration bundle.',
+    'Export domain objects of the specified type to a portable configuration bundle. Use frodo_discover for scope, payload-shape, and parameter guidance.',
   import:
-    'Import domain objects of the specified type from a portable configuration bundle.',
+    'Import domain objects of the specified type from a portable configuration bundle. Use frodo_discover for the exact parameter contract when available.',
   special:
     'Execute a domain-specific operation that does not map to standard CRUDS semantics.',
 };
@@ -85,10 +88,61 @@ export type McpObjectTypeEntry = {
   objectType: string;
   /** Id of the source {@link McpCapabilityDescriptor} that backs this entry. */
   descriptorId: string;
+  /** Backing Frodo method name. */
+  methodName: string;
+  /** Dot-path source id of the backing descriptor. */
+  sourcePath: string;
+  /** MCP-facing argument mode for this entry. */
+  argumentMode?: McpCapabilityArgumentMode;
+  /** Optional parameter metadata for discovery and validation. */
+  parameters?: McpCapabilityParameter[];
+  /** Optional scope selector used to distinguish single vs bulk semantics. */
+  scope?: string;
+  /** Whether realm override is supported for this entry. */
+  supportsRealm?: boolean;
+  /** Whether paging hints are supported for this entry. */
+  supportsPaging?: boolean;
+  /** Whether includeTotal hints are supported for this entry. */
+  supportsIncludeTotal?: boolean;
+  /** Optional human-readable notes for agents. */
+  notes?: string;
   /** Risk class of the backing descriptor. */
   riskClass: McpCapabilityRiskClass;
   /** MCP annotations from the backing descriptor. */
   annotations: McpToolAnnotations;
+};
+
+/**
+ * Rich discovery detail for one concrete `(domain, objectType, operation)` path.
+ */
+export type McpDiscoveryOperationDetail = {
+  toolName: string;
+  operationType: McpCapabilityOperationType;
+  domain: string;
+  objectType: string;
+  descriptorId: string;
+  methodName: string;
+  sourcePath: string;
+  argumentMode?: McpCapabilityArgumentMode;
+  parameters?: McpCapabilityParameter[];
+  scope?: string;
+  supportsRealm?: boolean;
+  supportsPaging?: boolean;
+  supportsIncludeTotal?: boolean;
+  notes?: string;
+};
+
+/**
+ * Explicit per-object operation support matrix for agent planning.
+ * This allows clients to see both supported and unsupported generic
+ * operations (for example, that `authn.Journey` can be read/listed/exported
+ * but is not searchable).
+ */
+export type McpDiscoveryObjectTypeSupport = {
+  domain: string;
+  objectType: string;
+  supportedOperations: McpCapabilityOperationType[];
+  unsupportedOperations: McpCapabilityOperationType[];
 };
 
 /**
@@ -152,6 +206,18 @@ export type McpDiscoveryEntry = {
    * listing every `(domain, objectType)` pair that supports that operation.
    */
   operationsByType: Partial<Record<McpCapabilityOperationType, string[]>>;
+  /**
+   * Rich per-operation details for agent planning, including argument contracts
+   * and scope selectors for ambiguous generic operations.
+   */
+  operationDetailsByType: Partial<
+    Record<McpCapabilityOperationType, McpDiscoveryOperationDetail[]>
+  >;
+  /**
+   * Explicit support matrix per `(domain, objectType)` showing which generic
+   * operations are supported vs unsupported under the current policy.
+   */
+  objectTypeOperationSupport?: McpDiscoveryObjectTypeSupport[];
 };
 
 /**
@@ -239,6 +305,15 @@ function buildGenericTools(
       domain: d.domain,
       objectType: d.objectType,
       descriptorId: d.id,
+      methodName: d.methodName,
+      sourcePath: d.id,
+      argumentMode: d.argumentMode,
+      ...(d.parameters !== undefined && { parameters: d.parameters }),
+      ...(d.scope !== undefined && { scope: d.scope }),
+      supportsRealm: d.supportsRealm,
+      supportsPaging: d.supportsPaging,
+      supportsIncludeTotal: d.supportsIncludeTotal,
+      ...(d.notes !== undefined && { notes: d.notes }),
       riskClass: d.riskClass,
       annotations: d.annotations,
     }));
@@ -292,9 +367,21 @@ function buildDiscoveryEntry(
   const operationsByType: Partial<
     Record<McpCapabilityOperationType, string[]>
   > = {};
+  const operationDetailsByType: Partial<
+    Record<McpCapabilityOperationType, McpDiscoveryOperationDetail[]>
+  > = {};
+  const supportedOperationsByObjectType = new Map<
+    string,
+    {
+      domain: string;
+      objectType: string;
+      supportedOperations: Set<McpCapabilityOperationType>;
+    }
+  >();
 
   for (const tool of genericTools) {
-    operationsByType[tool.operationType] = [];
+    operationsByType[tool.operationType] ??= [];
+    operationDetailsByType[tool.operationType] ??= [];
     for (const entry of tool.supportedObjectTypes) {
       domainSet.add(entry.domain);
       const typeSet = (objectTypesByDomain[entry.domain] ??= new Set<string>());
@@ -302,6 +389,32 @@ function buildDiscoveryEntry(
       operationsByType[tool.operationType]!.push(
         `${entry.domain}.${entry.objectType}`
       );
+      const objectTypeKey = `${entry.domain}::${entry.objectType}`;
+      const operationSupport = supportedOperationsByObjectType.get(
+        objectTypeKey
+      ) ?? {
+        domain: entry.domain,
+        objectType: entry.objectType,
+        supportedOperations: new Set<McpCapabilityOperationType>(),
+      };
+      operationSupport.supportedOperations.add(tool.operationType);
+      supportedOperationsByObjectType.set(objectTypeKey, operationSupport);
+      operationDetailsByType[tool.operationType]!.push({
+        toolName: tool.toolName,
+        operationType: tool.operationType,
+        domain: entry.domain,
+        objectType: entry.objectType,
+        descriptorId: entry.descriptorId,
+        methodName: entry.methodName,
+        sourcePath: entry.sourcePath,
+        argumentMode: entry.argumentMode,
+        ...(entry.parameters !== undefined && { parameters: entry.parameters }),
+        ...(entry.scope !== undefined && { scope: entry.scope }),
+        supportsRealm: entry.supportsRealm,
+        supportsPaging: entry.supportsPaging,
+        supportsIncludeTotal: entry.supportsIncludeTotal,
+        ...(entry.notes !== undefined && { notes: entry.notes }),
+      });
     }
   }
 
@@ -320,7 +433,37 @@ function buildDiscoveryEntry(
     operationsByType
   ) as McpCapabilityOperationType[]) {
     operationsByType[key] = operationsByType[key]!.sort();
+    operationDetailsByType[key] = operationDetailsByType[key]!.sort((a, b) =>
+      a.descriptorId.localeCompare(b.descriptorId)
+    );
   }
+
+  const allGenericOperationTypes = genericTools
+    .map((tool) => tool.operationType)
+    .filter(
+      (operationType, index, list) => list.indexOf(operationType) === index
+    )
+    .sort();
+  const objectTypeOperationSupport = [
+    ...supportedOperationsByObjectType.values(),
+  ]
+    .map((entry) => {
+      const supportedOperations = [...entry.supportedOperations].sort();
+      const unsupportedOperations = allGenericOperationTypes.filter(
+        (operationType) => !entry.supportedOperations.has(operationType)
+      );
+      return {
+        domain: entry.domain,
+        objectType: entry.objectType,
+        supportedOperations,
+        unsupportedOperations,
+      };
+    })
+    .sort(
+      (left, right) =>
+        left.domain.localeCompare(right.domain) ||
+        left.objectType.localeCompare(right.objectType)
+    );
 
   return {
     toolName: DISCOVERY_TOOL_NAME,
@@ -332,6 +475,8 @@ function buildDiscoveryEntry(
     domains,
     objectTypesByDomain: objectTypesByDomainResult,
     operationsByType,
+    operationDetailsByType,
+    objectTypeOperationSupport,
   };
 }
 

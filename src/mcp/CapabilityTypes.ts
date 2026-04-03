@@ -50,6 +50,32 @@ export type McpToolAnnotations = {
 };
 
 /**
+ * Argument-shape contract surfaced to MCP callers for a capability.
+ */
+export type McpCapabilityArgumentMode =
+  | 'none'
+  | 'positional'
+  | 'named'
+  | 'mixed';
+
+/**
+ * Parameter definition for a capability exposed through discovery metadata.
+ */
+export type McpCapabilityParameter = {
+  name: string;
+  type: string;
+  required?: boolean;
+  position?: number;
+  description?: string;
+};
+
+/**
+ * Optional selector that disambiguates multiple capabilities sharing the same
+ * generic `(operationType, domain, objectType)` tuple.
+ */
+export type McpCapabilityScope = 'single' | 'bulk';
+
+/**
  * Canonical capability descriptor produced by inventory/registry builders.
  */
 export type McpCapabilityDescriptor = {
@@ -60,6 +86,18 @@ export type McpCapabilityDescriptor = {
   domain: string;
   objectType: string;
   operationType: McpCapabilityOperationType;
+  /** Optional MCP-facing argument contract for this capability. */
+  argumentMode?: McpCapabilityArgumentMode;
+  /** Optional ordered/named parameter metadata for this capability. */
+  parameters?: McpCapabilityParameter[];
+  /** Optional selector value used to disambiguate generic capabilities. */
+  scope?: McpCapabilityScope;
+  /** Whether the generic tool supports realm override for this capability. */
+  supportsRealm?: boolean;
+  /** Whether the generic tool supports paging hints for this capability. */
+  supportsPaging?: boolean;
+  /** Whether the generic tool supports includeTotal for this capability. */
+  supportsIncludeTotal?: boolean;
   kind: McpCapabilityKind;
   riskClass: McpCapabilityRiskClass;
   mutating: boolean;
@@ -82,6 +120,8 @@ export type McpCapabilityDescriptor = {
    * Set from {@link OperationCapabilityMeta.objectTypePatterns} when available.
    */
   objectTypePatterns?: string[];
+  /** Optional human-readable note surfaced in discovery and validation output. */
+  notes?: string;
   requiredScopes: string[];
   annotations: McpToolAnnotations;
 };
@@ -168,4 +208,22 @@ export type OperationCapabilityMeta = {
 
   /** Optional human-readable note surfaced in discovery tool output. */
   notes?: string;
+
+  /** Explicit MCP-facing argument mode override for the capability. */
+  argumentMode?: McpCapabilityArgumentMode;
+
+  /** Explicit ordered parameter metadata used for discovery and validation. */
+  parameters?: McpCapabilityParameter[];
+
+  /** Optional selector value used to distinguish single vs bulk semantics, etc. */
+  scope?: McpCapabilityScope;
+
+  /** Whether the capability supports MCP realm override controls. */
+  supportsRealm?: boolean;
+
+  /** Whether the capability supports MCP paging controls. */
+  supportsPaging?: boolean;
+
+  /** Whether the capability supports MCP includeTotal hints. */
+  supportsIncludeTotal?: boolean;
 };

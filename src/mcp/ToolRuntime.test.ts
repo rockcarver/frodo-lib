@@ -73,6 +73,8 @@ function makeManifest(
             domain: descriptor.domain,
             objectType: descriptor.objectType,
             descriptorId: descriptor.id,
+            methodName: descriptor.methodName,
+            sourcePath: descriptor.id,
             riskClass: descriptor.riskClass,
             annotations: descriptor.annotations,
           },
@@ -95,6 +97,7 @@ function makeManifest(
       domains: ['authn'],
       objectTypesByDomain: { authn: ['Journey'] },
       operationsByType: { read: ['authn.Journey'] },
+      operationDetailsByType: {},
     },
     backingDescriptorCount: specialDescriptor ? 2 : 1,
     totalToolCount: specialDescriptor ? 3 : 2,
@@ -164,6 +167,237 @@ describe('MCP tool runtime', () => {
     expect(result.data).toEqual({ id: 'journey1' });
   });
 
+  test('maps named args into descriptor parameter order for generic tools', async () => {
+    const descriptor = makeDescriptor({
+      id: 'authn.node.readNode',
+      methodName: 'readNode',
+      modulePath: ['authn', 'node'],
+      objectType: 'Node',
+      argumentMode: 'named',
+      parameters: [
+        {
+          name: 'nodeId',
+          type: 'string',
+          required: true,
+          position: 0,
+        },
+        {
+          name: 'nodeType',
+          type: 'string',
+          required: true,
+          position: 1,
+        },
+      ],
+    } as any);
+    const manifest = makeManifest(descriptor);
+    manifest.discoveryTool.objectTypesByDomain = { authn: ['Journey', 'Node'] };
+    manifest.discoveryTool.operationsByType = {
+      read: ['authn.Journey', 'authn.Node'],
+    };
+    const readNode = jest.fn(async () => ({
+      id: 'node-123',
+      type: 'PageNode',
+    }));
+
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          login: { getTokens: jest.fn(async () => {}) },
+          authn: {
+            node: {
+              readNode,
+            },
+          },
+        }) as any,
+    });
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_read',
+      arguments: {
+        domain: 'authn',
+        objectType: 'Node',
+        namedArgs: {
+          nodeType: 'PageNode',
+          nodeId: 'node-123',
+        },
+      },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: {},
+        },
+      },
+    });
+
+    expect(readNode).toHaveBeenCalledWith('node-123', 'PageNode');
+    expect(result.data).toEqual({ id: 'node-123', type: 'PageNode' });
+  });
+
+  test('rejects positional args for named-only generic contracts', async () => {
+    const descriptor = makeDescriptor({
+      id: 'authn.node.readNode',
+      methodName: 'readNode',
+      modulePath: ['authn', 'node'],
+      objectType: 'Node',
+      argumentMode: 'named',
+      parameters: [
+        {
+          name: 'nodeId',
+          type: 'string',
+          required: true,
+          position: 0,
+        },
+        {
+          name: 'nodeType',
+          type: 'string',
+          required: true,
+          position: 1,
+        },
+      ],
+    } as any);
+    const manifest = makeManifest(descriptor);
+    manifest.discoveryTool.objectTypesByDomain = { authn: ['Journey', 'Node'] };
+    manifest.discoveryTool.operationsByType = {
+      read: ['authn.Journey', 'authn.Node'],
+    };
+
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          login: { getTokens: jest.fn(async () => {}) },
+          authn: {
+            node: {
+              readNode: jest.fn(async () => ({ id: 'node-123' })),
+            },
+          },
+        }) as any,
+    });
+
+    await expect(
+      runtime.executeTool({
+        toolName: 'frodo_read',
+        arguments: {
+          domain: 'authn',
+          objectType: 'Node',
+          positionalArgs: ['node-123', 'PageNode'],
+        },
+        context: {
+          auth: {
+            mode: 'state-config',
+            config: {},
+          },
+        },
+      })
+    ).rejects.toThrow('requires namedArgs');
+  });
+
+  test('gives actionable errors for unsupported generic search combinations', async () => {
+    const readDescriptor = makeDescriptor();
+    const searchDescriptor = makeDescriptor({
+      id: 'role.queryInternalRoles',
+      toolName: 'frodo.role.queryInternalRoles',
+      methodName: 'queryInternalRoles',
+      modulePath: ['role'],
+      domain: 'role',
+      objectType: 'InternalRole',
+      operationType: 'search',
+    });
+    const manifest: McpToolManifest = {
+      genericTools: [
+        {
+          toolName: 'frodo_read',
+          operationType: 'read',
+          description: 'Read object.',
+          annotations: readDescriptor.annotations,
+          riskClass: readDescriptor.riskClass,
+          supportedObjectTypes: [
+            {
+              domain: readDescriptor.domain,
+              objectType: readDescriptor.objectType,
+              descriptorId: readDescriptor.id,
+              methodName: readDescriptor.methodName,
+              sourcePath: readDescriptor.id,
+              riskClass: readDescriptor.riskClass,
+              annotations: readDescriptor.annotations,
+            },
+          ],
+        },
+        {
+          toolName: 'frodo_search',
+          operationType: 'search',
+          description: 'Search roles.',
+          annotations: searchDescriptor.annotations,
+          riskClass: searchDescriptor.riskClass,
+          supportedObjectTypes: [
+            {
+              domain: searchDescriptor.domain,
+              objectType: searchDescriptor.objectType,
+              descriptorId: searchDescriptor.id,
+              methodName: searchDescriptor.methodName,
+              sourcePath: searchDescriptor.id,
+              riskClass: searchDescriptor.riskClass,
+              annotations: searchDescriptor.annotations,
+            },
+          ],
+        },
+      ],
+      specialTools: [],
+      discoveryTool: {
+        toolName: 'frodo_discover',
+        description: 'Discover tool surface.',
+        domains: ['authn', 'role'],
+        objectTypesByDomain: { authn: ['Journey'], role: ['InternalRole'] },
+        operationsByType: {
+          read: ['authn.Journey'],
+          search: ['role.InternalRole'],
+        },
+        operationDetailsByType: {},
+        objectTypeOperationSupport: [
+          {
+            domain: 'authn',
+            objectType: 'Journey',
+            supportedOperations: ['read'],
+            unsupportedOperations: ['search'],
+          },
+          {
+            domain: 'role',
+            objectType: 'InternalRole',
+            supportedOperations: ['search'],
+            unsupportedOperations: ['read'],
+          },
+        ],
+      },
+      backingDescriptorCount: 2,
+      totalToolCount: 3,
+    };
+
+    const runtime = createToolRuntime(
+      manifest,
+      [readDescriptor, searchDescriptor],
+      {
+        resolveFrodoForRequest: () => ({}) as any,
+      }
+    );
+
+    await expect(
+      runtime.executeTool({
+        toolName: 'frodo_search',
+        arguments: {
+          domain: 'authn',
+          objectType: 'Journey',
+        },
+        context: {
+          auth: {
+            mode: 'state-config',
+            config: {},
+          },
+        },
+      })
+    ).rejects.toThrow(
+      "Supported operations for 'authn.Journey': read. Use 'frodo_discover' to inspect supported combinations."
+    );
+  });
+
   test('applies realm override from generic arguments to state-config context', async () => {
     const descriptor = makeDescriptor();
     const manifest = makeManifest(descriptor);
@@ -226,6 +460,8 @@ describe('MCP tool runtime', () => {
               domain: 'user',
               objectType: 'User',
               descriptorId: descriptor.id,
+              methodName: descriptor.methodName,
+              sourcePath: descriptor.id,
               riskClass: descriptor.riskClass,
               annotations: descriptor.annotations,
             },
@@ -239,11 +475,14 @@ describe('MCP tool runtime', () => {
         domains: ['user'],
         objectTypesByDomain: { user: ['User'] },
         operationsByType: { list: ['user.User'] },
+        operationDetailsByType: {},
       },
       backingDescriptorCount: 1,
       totalToolCount: 2,
     };
-    const listUsers = jest.fn(async () => Array.from({ length: 1000 }, (_, i) => ({ id: i })));
+    const listUsers = jest.fn(async () =>
+      Array.from({ length: 1000 }, (_, i) => ({ id: i }))
+    );
 
     const runtime = createToolRuntime(manifest, [descriptor], {
       resolveFrodoForRequest: () =>
@@ -275,6 +514,186 @@ describe('MCP tool runtime', () => {
     expect(result.metadata?.scope?.requestedRealm).toBe('/alpha');
   });
 
+  test('adds result summary metadata for structured export payloads', async () => {
+    const descriptor = makeDescriptor({
+      id: 'authn.journey.exportJourney',
+      toolName: 'frodo.authn.journey.exportJourney',
+      methodName: 'exportJourney',
+      modulePath: ['authn', 'journey'],
+      objectType: 'Journey',
+      operationType: 'export',
+      argumentMode: 'named',
+      scope: 'single',
+      parameters: [
+        {
+          name: 'journeyId',
+          type: 'string',
+          required: true,
+          position: 0,
+        },
+      ],
+    } as any);
+    const manifest: McpToolManifest = {
+      genericTools: [
+        {
+          toolName: 'frodo_export',
+          operationType: 'export',
+          description: 'Export journey.',
+          annotations: descriptor.annotations,
+          riskClass: descriptor.riskClass,
+          supportedObjectTypes: [
+            {
+              domain: descriptor.domain,
+              objectType: descriptor.objectType,
+              descriptorId: descriptor.id,
+              methodName: descriptor.methodName,
+              sourcePath: descriptor.id,
+              argumentMode: descriptor.argumentMode,
+              parameters: descriptor.parameters,
+              scope: descriptor.scope,
+              riskClass: descriptor.riskClass,
+              annotations: descriptor.annotations,
+            },
+          ],
+        },
+      ],
+      specialTools: [],
+      discoveryTool: {
+        toolName: 'frodo_discover',
+        description: 'Discover tool surface.',
+        domains: ['authn'],
+        objectTypesByDomain: { authn: ['Journey'] },
+        operationsByType: { export: ['authn.Journey'] },
+        operationDetailsByType: {},
+      },
+      backingDescriptorCount: 1,
+      totalToolCount: 2,
+    };
+    const exportJourney = jest.fn(async () => ({
+      tree: { _id: 'Azure' },
+      nodes: { one: {}, two: {} },
+      scripts: { script1: {} },
+      themes: [],
+    }));
+
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          login: { getTokens: jest.fn(async () => {}) },
+          authn: {
+            journey: {
+              exportJourney,
+            },
+          },
+        }) as any,
+    });
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_export',
+      arguments: {
+        domain: 'authn',
+        objectType: 'Journey',
+        scope: 'single',
+        namedArgs: {
+          journeyId: 'Azure',
+        },
+      },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: {},
+        },
+      },
+    });
+
+    expect(result.metadata?.result?.topLevelType).toBe('object');
+    expect(result.metadata?.result?.payloadSizeBytes).toBeGreaterThan(0);
+    expect(result.metadata?.result?.fieldCounts).toEqual(
+      expect.objectContaining({
+        nodes: 2,
+        scripts: 1,
+        themes: 0,
+      })
+    );
+  });
+
+  test('flags large results with actionable summary metadata', async () => {
+    const descriptor = makeDescriptor({
+      id: 'user.user.listUsers',
+      domain: 'user',
+      objectType: 'User',
+      methodName: 'listUsers',
+      modulePath: ['user'],
+      operationType: 'list',
+    });
+    const manifest: McpToolManifest = {
+      genericTools: [
+        {
+          toolName: 'frodo_list',
+          operationType: 'list',
+          description: 'List users.',
+          annotations: descriptor.annotations,
+          riskClass: descriptor.riskClass,
+          supportedObjectTypes: [
+            {
+              domain: 'user',
+              objectType: 'User',
+              descriptorId: descriptor.id,
+              methodName: descriptor.methodName,
+              sourcePath: descriptor.id,
+              riskClass: descriptor.riskClass,
+              annotations: descriptor.annotations,
+            },
+          ],
+        },
+      ],
+      specialTools: [],
+      discoveryTool: {
+        toolName: 'frodo_discover',
+        description: 'Discover tool surface.',
+        domains: ['user'],
+        objectTypesByDomain: { user: ['User'] },
+        operationsByType: { list: ['user.User'] },
+        operationDetailsByType: {},
+      },
+      backingDescriptorCount: 1,
+      totalToolCount: 2,
+    };
+    const listUsers = jest.fn(async () => [
+      { id: 1, blob: 'x'.repeat(256) },
+      { id: 2, blob: 'y'.repeat(256) },
+    ]);
+
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      paginationWarningThreshold: 1000,
+      resultWarningThresholdBytes: 100,
+      resolveFrodoForRequest: () =>
+        ({
+          login: { getTokens: jest.fn(async () => {}) },
+          user: {
+            listUsers,
+          },
+        }) as any,
+    });
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_list',
+      arguments: {
+        domain: 'user',
+        objectType: 'User',
+      },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: {},
+        },
+      },
+    });
+
+    expect(result.metadata?.result?.isLarge).toBe(true);
+    expect(result.metadata?.result?.warning).toContain('narrow the request');
+  });
+
   test('executes a special tool and forwards named args as one argument object', async () => {
     const genericDescriptor = makeDescriptor();
     const specialDescriptor = makeDescriptor({
@@ -296,18 +715,22 @@ describe('MCP tool runtime', () => {
     const manifest = makeManifest(genericDescriptor, specialDescriptor);
     const enableJourney = jest.fn(async () => ({ enabled: true }));
 
-    const runtime = createToolRuntime(manifest, [genericDescriptor, specialDescriptor], {
-      resolveFrodoForRequest: () =>
-        ({
-          login: { getTokens: jest.fn(async () => {}) },
-          authn: {
-            journey: {
-              readJourney: jest.fn(),
-              enableJourney,
+    const runtime = createToolRuntime(
+      manifest,
+      [genericDescriptor, specialDescriptor],
+      {
+        resolveFrodoForRequest: () =>
+          ({
+            login: { getTokens: jest.fn(async () => {}) },
+            authn: {
+              journey: {
+                readJourney: jest.fn(),
+                enableJourney,
+              },
             },
-          },
-        }) as any,
-    });
+          }) as any,
+      }
+    );
 
     const result = await runtime.executeTool({
       toolName: 'frodo.authn.journey.enableJourney',
@@ -338,7 +761,7 @@ describe('MCP tool runtime', () => {
     const manifest = makeManifest(descriptor);
 
     const runtime = createToolRuntime(manifest, [descriptor], {
-      resolveFrodoForRequest: () => ({} as any),
+      resolveFrodoForRequest: () => ({}) as any,
     });
 
     await expect(
@@ -360,7 +783,7 @@ describe('MCP tool runtime', () => {
     const manifest = makeManifest(descriptor);
 
     const runtime = createToolRuntime(manifest, [descriptor], {
-      resolveFrodoForRequest: () => ({} as any),
+      resolveFrodoForRequest: () => ({}) as any,
     });
 
     await expect(
@@ -435,6 +858,8 @@ describe('MCP tool runtime', () => {
               domain: descriptor.domain,
               objectType: descriptor.objectType,
               descriptorId: descriptor.id,
+              methodName: descriptor.methodName,
+              sourcePath: descriptor.id,
               riskClass: descriptor.riskClass,
               annotations: descriptor.annotations,
             },
@@ -448,18 +873,20 @@ describe('MCP tool runtime', () => {
         domains: ['user'],
         objectTypesByDomain: { user: ['User'] },
         operationsByType: { count: ['user.User'] },
+        operationDetailsByType: {},
       },
       backingDescriptorCount: 1,
       totalToolCount: 2,
     };
 
-    const resolver = jest.fn(() =>
-      ({
-        login: { getTokens: jest.fn(async () => {}) },
-        user: {
-          countUsers: jest.fn(async () => 1),
-        },
-      }) as any
+    const resolver = jest.fn(
+      () =>
+        ({
+          login: { getTokens: jest.fn(async () => {}) },
+          user: {
+            countUsers: jest.fn(async () => 1),
+          },
+        }) as any
     );
 
     const runtime = createToolRuntime(manifest, [descriptor], {
@@ -482,7 +909,9 @@ describe('MCP tool runtime', () => {
           },
         },
       })
-    ).rejects.toThrow("descriptor 'user.countUsers' is not supported for deployment 'cloud'");
+    ).rejects.toThrow(
+      "descriptor 'user.countUsers' is not supported for deployment 'cloud'"
+    );
 
     expect(resolver).not.toHaveBeenCalled();
   });
@@ -505,7 +934,9 @@ describe('resolveRequestScopedFrodo', () => {
       } as any
     );
 
-    expect(createInstance).toHaveBeenCalledWith({ host: 'https://example.com/am' });
+    expect(createInstance).toHaveBeenCalledWith({
+      host: 'https://example.com/am',
+    });
     expect(result).toBe(scoped);
   });
 

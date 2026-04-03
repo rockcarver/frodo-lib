@@ -22,6 +22,7 @@ import {
   McpCapabilityOperationType,
 } from './CapabilityTypes';
 import {
+  McpDiscoveryEntry,
   McpGenericTool,
   McpSpecialTool,
   McpToolManifest,
@@ -111,6 +112,8 @@ export type McpGenericExecutionArguments = {
   domain: string;
   /** Object type label, e.g. `Journey`. */
   objectType: string;
+  /** Optional scope selector for ambiguous generic operations (e.g. `single` vs `bulk`). */
+  scope?: string;
   /** Optional realm override applied to request-scoped auth context. */
   realm?: string;
   /** Optional requested page size hint. */
@@ -164,11 +167,41 @@ export type McpExecutionScopeMetadata = {
 /**
  * Optional execution metadata surfaced alongside tool results.
  */
+export type McpExecutionResultMetadata = {
+  /** Top-level JSON shape returned by the tool call. */
+  topLevelType:
+    | 'array'
+    | 'object'
+    | 'string'
+    | 'number'
+    | 'boolean'
+    | 'null'
+    | 'undefined';
+  /** Estimated serialized payload size in bytes. */
+  payloadSizeBytes?: number;
+  /** Human-readable payload size string. */
+  payloadSizeHuman?: string;
+  /** Number of items when the top-level payload is an array. */
+  itemCount?: number;
+  /** Top-level keys when the payload is an object. */
+  objectKeys?: string[];
+  /** Count summary for top-level arrays/records inside the payload. */
+  fieldCounts?: Record<string, number>;
+  /** Whether the payload is considered large for inline agent use. */
+  isLarge?: boolean;
+  /** Whether the payload was truncated by the transport layer. */
+  isTruncated?: boolean;
+  /** Optional advisory warning for large or truncated payloads. */
+  warning?: string;
+};
+
 export type McpToolExecutionMetadata = {
   /** Scope metadata for realm-sensitive calls. */
   scope?: McpExecutionScopeMetadata;
   /** Pagination metadata for list/search calls. */
   pagination?: McpExecutionPaginationMetadata;
+  /** Result summary metadata for agent reasoning and large-payload handling. */
+  result?: McpExecutionResultMetadata;
 };
 
 /**
@@ -239,6 +272,13 @@ export type McpToolRuntimeOptions = {
    * Defaults to `1000`.
    */
   paginationWarningThreshold?: number;
+  /**
+   * Optional payload size threshold used to flag large inline responses and
+   * produce actionable summary metadata for agents.
+   *
+   * Defaults to `65536` bytes.
+   */
+  resultWarningThresholdBytes?: number;
 };
 
 /**
@@ -284,6 +324,8 @@ export function createToolRuntime(
   );
   const frodoRoot = options.frodoRoot ?? frodo;
   const paginationWarningThreshold = options.paginationWarningThreshold ?? 1000;
+  const resultWarningThresholdBytes =
+    options.resultWarningThresholdBytes ?? 65536;
 
   /**
    * Executes one manifest tool request and returns a normalized result envelope.
@@ -319,12 +361,22 @@ export function createToolRuntime(
         args.domain,
         args.objectType
       );
-      const descriptor = genericDescriptorIndex.get(key);
-      if (!descriptor) {
+      const descriptors = genericDescriptorIndex.get(key);
+      if (!descriptors || descriptors.length === 0) {
         throw new FrodoError(
-          `MCP runtime error: tool '${request.toolName}' does not support domain '${args.domain}' and objectType '${args.objectType}'.`
+          buildUnsupportedGenericCombinationMessage(
+            request.toolName,
+            args.domain,
+            args.objectType,
+            manifest.discoveryTool
+          )
         );
       }
+      const descriptor = selectGenericDescriptor(
+        request.toolName,
+        args,
+        descriptors
+      );
       assertDeploymentCompatibility(descriptor, contextForExecution);
       const scopedFrodo = await resolveScopedFrodoInstance(
         contextForExecution,
@@ -334,14 +386,15 @@ export function createToolRuntime(
       const methodResult = await invokeDescriptorMethod(
         scopedFrodo,
         descriptor,
-        toInvocationArgs(args)
+        toInvocationArgs(args, descriptor)
       );
       const metadata = buildGenericExecutionMetadata(
         methodResult,
         args,
         descriptor.operationType,
         contextForExecution,
-        paginationWarningThreshold
+        paginationWarningThreshold,
+        resultWarningThresholdBytes
       );
       return {
         toolName: request.toolName,
@@ -362,12 +415,18 @@ export function createToolRuntime(
       const methodResult = await invokeDescriptorMethod(
         scopedFrodo,
         specialTool.descriptor,
-        toInvocationArgs(request.arguments)
+        toInvocationArgs(request.arguments, specialTool.descriptor)
+      );
+      const resultMetadata = buildResultMetadata(
+        methodResult,
+        specialTool.descriptor.operationType,
+        resultWarningThresholdBytes
       );
       return {
         toolName: request.toolName,
         descriptorId: specialTool.descriptor.id,
         data: methodResult,
+        ...(resultMetadata ? { metadata: { result: resultMetadata } } : {}),
       };
     }
 
@@ -513,8 +572,8 @@ export function resolveRequestScopedFrodo(
 function buildGenericDescriptorIndex(
   genericTools: McpGenericTool[],
   descriptorById: Map<string, McpCapabilityDescriptor>
-): Map<string, McpCapabilityDescriptor> {
-  const index = new Map<string, McpCapabilityDescriptor>();
+): Map<string, McpCapabilityDescriptor[]> {
+  const index = new Map<string, McpCapabilityDescriptor[]>();
   for (const tool of genericTools) {
     for (const entry of tool.supportedObjectTypes) {
       const descriptor = descriptorById.get(entry.descriptorId);
@@ -528,10 +587,108 @@ function buildGenericDescriptorIndex(
         entry.domain,
         entry.objectType
       );
-      index.set(key, descriptor);
+      const existing = index.get(key) ?? [];
+      existing.push(descriptor);
+      index.set(key, existing);
     }
   }
   return index;
+}
+
+/**
+ * Selects the exact generic descriptor to execute, including support for
+ * explicit scope selectors when multiple descriptors share the same
+ * `(operationType, domain, objectType)` tuple.
+ */
+function selectGenericDescriptor(
+  toolName: string,
+  args: McpGenericExecutionArguments,
+  descriptors: McpCapabilityDescriptor[]
+): McpCapabilityDescriptor {
+  if (descriptors.length === 1) {
+    return descriptors[0];
+  }
+
+  const requestedScope =
+    typeof args.scope === 'string' && args.scope.trim().length > 0
+      ? args.scope.trim()
+      : undefined;
+  if (requestedScope) {
+    const scopedDescriptors = descriptors.filter(
+      (descriptor) => descriptor.scope === requestedScope
+    );
+    if (scopedDescriptors.length === 1) {
+      return scopedDescriptors[0];
+    }
+    if (scopedDescriptors.length === 0) {
+      const supportedScopes = [
+        ...new Set(
+          descriptors
+            .map((descriptor) => descriptor.scope)
+            .filter(
+              (scope): scope is NonNullable<typeof scope> => scope !== undefined
+            )
+        ),
+      ];
+      throw new FrodoError(
+        `MCP runtime error: tool '${toolName}' does not support scope '${requestedScope}' for domain '${args.domain}' and objectType '${args.objectType}'. Supported scopes: ${supportedScopes.join(', ')}.`
+      );
+    }
+  }
+
+  if (args.namedArgs && typeof args.namedArgs === 'object') {
+    const matchingDescriptor = descriptors.find((descriptor) =>
+      matchesNamedArgumentShape(
+        descriptor,
+        args.namedArgs as Record<string, unknown>
+      )
+    );
+    if (matchingDescriptor) {
+      return matchingDescriptor;
+    }
+  }
+
+  const supportedScopes = [
+    ...new Set(
+      descriptors
+        .map((descriptor) => descriptor.scope)
+        .filter(
+          (scope): scope is NonNullable<typeof scope> => scope !== undefined
+        )
+    ),
+  ];
+  if (supportedScopes.length > 0) {
+    throw new FrodoError(
+      `MCP runtime error: tool '${toolName}' requires an explicit scope for domain '${args.domain}' and objectType '${args.objectType}'. Supported scopes: ${supportedScopes.join(', ')}.`
+    );
+  }
+
+  return descriptors[0];
+}
+
+/**
+ * Returns true when a descriptor's named-argument contract matches the caller's
+ * provided named arguments.
+ */
+function matchesNamedArgumentShape(
+  descriptor: McpCapabilityDescriptor,
+  namedArgs: Record<string, unknown>
+): boolean {
+  if (!descriptor.parameters || descriptor.parameters.length === 0) {
+    return false;
+  }
+
+  const allowed = new Set(
+    descriptor.parameters.map((parameter) => parameter.name)
+  );
+  const providedKeys = Object.keys(namedArgs);
+  if (providedKeys.some((key) => !allowed.has(key))) {
+    return false;
+  }
+
+  return descriptor.parameters
+    .filter((parameter) => parameter.required)
+    .every((parameter) => namedArgs[parameter.name] !== undefined);
 }
 
 /**
@@ -610,6 +767,11 @@ function parseGenericArguments(raw: unknown): McpGenericExecutionArguments {
       'MCP runtime error: generic tools require a string objectType argument.'
     );
   }
+  if (args.scope !== undefined && typeof args.scope !== 'string') {
+    throw new FrodoError(
+      'MCP runtime error: generic tools require scope to be a string when provided.'
+    );
+  }
   if (args.realm !== undefined && typeof args.realm !== 'string') {
     throw new FrodoError(
       'MCP runtime error: generic tools require realm to be a string when provided.'
@@ -660,7 +822,10 @@ function parseGenericArguments(raw: unknown): McpGenericExecutionArguments {
  * @param raw Raw arguments payload.
  * @returns Positional invocation arguments.
  */
-function toInvocationArgs(raw: unknown): unknown[] {
+function toInvocationArgs(
+  raw: unknown,
+  descriptor?: McpCapabilityDescriptor
+): unknown[] {
   if (!raw || typeof raw !== 'object') {
     return [];
   }
@@ -668,13 +833,112 @@ function toInvocationArgs(raw: unknown): unknown[] {
     positionalArgs?: unknown[];
     namedArgs?: Record<string, unknown>;
   };
+
+  validateInvocationArguments(descriptor, maybeArgs);
+
   if (Array.isArray(maybeArgs.positionalArgs)) {
     return maybeArgs.positionalArgs;
   }
   if (maybeArgs.namedArgs && typeof maybeArgs.namedArgs === 'object') {
+    if (descriptor?.parameters && descriptor.parameters.length > 0) {
+      return descriptor.parameters
+        .slice()
+        .sort(
+          (left, right) =>
+            (left.position ?? Number.MAX_SAFE_INTEGER) -
+            (right.position ?? Number.MAX_SAFE_INTEGER)
+        )
+        .map((parameter) => maybeArgs.namedArgs?.[parameter.name]);
+    }
     return [maybeArgs.namedArgs];
   }
   return [];
+}
+
+/**
+ * Validates invocation arguments against a descriptor's MCP-facing contract.
+ */
+function validateInvocationArguments(
+  descriptor: McpCapabilityDescriptor | undefined,
+  args: {
+    positionalArgs?: unknown[];
+    namedArgs?: Record<string, unknown>;
+  }
+): void {
+  if (!descriptor) {
+    return;
+  }
+
+  const hasPositional = Array.isArray(args.positionalArgs);
+  const hasNamed = !!args.namedArgs && typeof args.namedArgs === 'object';
+  const argumentMode = descriptor.argumentMode ?? 'mixed';
+  const requiresNamedParameters =
+    !!descriptor.parameters &&
+    descriptor.parameters.some((parameter) => parameter.required);
+
+  if (argumentMode === 'named' && hasPositional) {
+    throw new FrodoError(
+      `MCP runtime error: descriptor '${descriptor.id}' requires namedArgs. Use frodo_discover for the exact parameter contract.`
+    );
+  }
+  if (argumentMode === 'named' && !hasNamed && requiresNamedParameters) {
+    throw new FrodoError(
+      `MCP runtime error: descriptor '${descriptor.id}' requires namedArgs. Allowed parameters: ${formatDescriptorParameters(descriptor)}.`
+    );
+  }
+  if (argumentMode === 'none' && (hasPositional || hasNamed)) {
+    throw new FrodoError(
+      `MCP runtime error: descriptor '${descriptor.id}' does not accept positionalArgs or namedArgs.`
+    );
+  }
+  if (argumentMode === 'positional' && hasNamed) {
+    throw new FrodoError(
+      `MCP runtime error: descriptor '${descriptor.id}' requires positionalArgs in the documented order.`
+    );
+  }
+
+  if (
+    !hasNamed ||
+    !descriptor.parameters ||
+    descriptor.parameters.length === 0
+  ) {
+    return;
+  }
+
+  const allowedNames = new Set(
+    descriptor.parameters.map((parameter) => parameter.name)
+  );
+  const providedNames = Object.keys(args.namedArgs ?? {});
+  const unknownNames = providedNames.filter((name) => !allowedNames.has(name));
+  if (unknownNames.length > 0) {
+    throw new FrodoError(
+      `MCP runtime error: descriptor '${descriptor.id}' does not accept named argument(s) ${unknownNames.join(', ')}. Allowed parameters: ${formatDescriptorParameters(descriptor)}.`
+    );
+  }
+
+  const missingRequired = descriptor.parameters
+    .filter((parameter) => parameter.required)
+    .filter((parameter) => args.namedArgs?.[parameter.name] === undefined)
+    .map((parameter) => parameter.name);
+  if (missingRequired.length > 0) {
+    throw new FrodoError(
+      `MCP runtime error: descriptor '${descriptor.id}' is missing required named argument(s): ${missingRequired.join(', ')}. Allowed parameters: ${formatDescriptorParameters(descriptor)}.`
+    );
+  }
+}
+
+/**
+ * Formats a descriptor's parameter contract for user-facing error messages.
+ */
+function formatDescriptorParameters(
+  descriptor: McpCapabilityDescriptor
+): string {
+  if (!descriptor.parameters || descriptor.parameters.length === 0) {
+    return 'none';
+  }
+  return descriptor.parameters
+    .map((parameter) => `${parameter.name}${parameter.required ? '' : '?'}`)
+    .join(', ');
 }
 
 /**
@@ -803,7 +1067,8 @@ function buildGenericExecutionMetadata(
   args: McpGenericExecutionArguments,
   operationType: McpCapabilityOperationType,
   context: McpRuntimeRequestContext,
-  paginationWarningThreshold: number
+  paginationWarningThreshold: number,
+  resultWarningThresholdBytes: number
 ): McpToolExecutionMetadata | undefined {
   const scope = buildScopeMetadata(data, args, context);
   const pagination = buildPaginationMetadata(
@@ -812,13 +1077,125 @@ function buildGenericExecutionMetadata(
     operationType,
     paginationWarningThreshold
   );
-  if (!scope && !pagination) {
+  const result = buildResultMetadata(
+    data,
+    operationType,
+    resultWarningThresholdBytes
+  );
+  if (!scope && !pagination && !result) {
     return undefined;
   }
   return {
     scope,
     pagination,
+    result,
   };
+}
+
+/**
+ * Produces result-summary metadata for agent reasoning and large payloads.
+ */
+function buildResultMetadata(
+  data: unknown,
+  operationType: McpCapabilityOperationType,
+  resultWarningThresholdBytes: number
+): McpExecutionResultMetadata | undefined {
+  const topLevelType = getTopLevelType(data);
+  const payloadSizeBytes = estimatePayloadSizeBytes(data);
+  const metadata: McpExecutionResultMetadata = {
+    topLevelType,
+  };
+
+  if (payloadSizeBytes !== undefined) {
+    metadata.payloadSizeBytes = payloadSizeBytes;
+    metadata.payloadSizeHuman = formatByteSize(payloadSizeBytes);
+    metadata.isLarge = payloadSizeBytes >= resultWarningThresholdBytes;
+    if (metadata.isLarge) {
+      metadata.warning =
+        operationType === 'export'
+          ? 'Result is large for inline agent use; narrow the request using scope, deps=false, or a more specific export.'
+          : 'Result is large for inline agent use; narrow the request using scope, deps=false, or paging controls.';
+    }
+  }
+
+  if (Array.isArray(data)) {
+    metadata.itemCount = data.length;
+    return metadata;
+  }
+
+  if (data && typeof data === 'object') {
+    const entries = Object.entries(data as Record<string, unknown>);
+    metadata.objectKeys = entries.map(([key]) => key).slice(0, 25);
+    const fieldCounts: Record<string, number> = {};
+    for (const [key, value] of entries) {
+      if (Array.isArray(value)) {
+        fieldCounts[key] = value.length;
+      } else if (value && typeof value === 'object') {
+        fieldCounts[key] = Object.keys(value as Record<string, unknown>).length;
+      }
+    }
+    if (Object.keys(fieldCounts).length > 0) {
+      metadata.fieldCounts = fieldCounts;
+    }
+    return metadata;
+  }
+
+  return payloadSizeBytes !== undefined ? metadata : undefined;
+}
+
+/**
+ * Returns the top-level JSON-like type for a payload.
+ */
+function getTopLevelType(
+  data: unknown
+): McpExecutionResultMetadata['topLevelType'] {
+  if (Array.isArray(data)) {
+    return 'array';
+  }
+  if (data === null) {
+    return 'null';
+  }
+  if (data === undefined) {
+    return 'undefined';
+  }
+  if (typeof data === 'object') {
+    return 'object';
+  }
+  if (typeof data === 'string') {
+    return 'string';
+  }
+  if (typeof data === 'number') {
+    return 'number';
+  }
+  if (typeof data === 'boolean') {
+    return 'boolean';
+  }
+  return 'string';
+}
+
+/**
+ * Estimates the serialized byte size of a payload.
+ */
+function estimatePayloadSizeBytes(data: unknown): number | undefined {
+  try {
+    const serialized = JSON.stringify(data);
+    return Buffer.byteLength(serialized ?? 'null', 'utf8');
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Formats byte counts for human-readable metadata.
+ */
+function formatByteSize(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KiB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
 /**
@@ -886,6 +1263,45 @@ function buildPaginationMetadata(
   }
 
   return metadata;
+}
+
+/**
+ * Builds an actionable error message for unsupported generic tool combinations.
+ */
+function buildUnsupportedGenericCombinationMessage(
+  toolName: string,
+  domain: string,
+  objectType: string,
+  discovery: McpDiscoveryEntry
+): string {
+  const objectTypeKey = `${domain}.${objectType}`;
+  const supportEntry = discovery.objectTypeOperationSupport?.find(
+    (entry) => entry.domain === domain && entry.objectType === objectType
+  );
+
+  if (supportEntry) {
+    const supportedList =
+      supportEntry.supportedOperations.length > 0
+        ? supportEntry.supportedOperations.join(', ')
+        : 'none';
+    return (
+      `MCP runtime error: tool '${toolName}' does not support domain '${domain}' and objectType '${objectType}'. ` +
+      `Supported operations for '${objectTypeKey}': ${supportedList}. Use 'frodo_discover' to inspect supported combinations.`
+    );
+  }
+
+  const knownObjectTypes = discovery.objectTypesByDomain[domain];
+  if (knownObjectTypes?.length) {
+    return (
+      `MCP runtime error: tool '${toolName}' does not support domain '${domain}' and objectType '${objectType}'. ` +
+      `Known object types for domain '${domain}': ${knownObjectTypes.join(', ')}. Use 'frodo_discover' to inspect supported combinations.`
+    );
+  }
+
+  return (
+    `MCP runtime error: tool '${toolName}' does not support domain '${domain}' and objectType '${objectType}'. ` +
+    `Use 'frodo_discover' to inspect supported combinations.`
+  );
 }
 
 /**

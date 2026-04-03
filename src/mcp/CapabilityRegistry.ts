@@ -11,10 +11,12 @@
 import { Frodo } from '../lib/FrodoLib';
 import { resolveCapabilityMeta } from './CapabilityMetadata';
 import {
+  McpCapabilityArgumentMode,
   McpCapabilityDescriptor,
   McpCapabilityInventoryOptions,
   McpCapabilityKind,
   McpCapabilityOperationType,
+  McpCapabilityParameter,
   McpCapabilityRiskClass,
   McpToolAnnotations,
 } from './CapabilityTypes';
@@ -179,6 +181,16 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
   const sourcePath = [...modulePath, methodName].join('.');
 
   const meta = resolveCapabilityMeta(sourcePath);
+  const argumentMode = meta?.argumentMode ?? inferArgumentMode(operationType);
+  const parameters =
+    meta?.parameters ?? inferParameters(methodName, objectType, operationType);
+  const supportsPaging =
+    meta?.supportsPaging ??
+    (operationType === 'list' || operationType === 'search');
+  const supportsIncludeTotal =
+    meta?.supportsIncludeTotal ??
+    (operationType === 'list' || operationType === 'search');
+  const supportsRealm = meta?.supportsRealm ?? kind === 'generic';
 
   return {
     id: sourcePath,
@@ -188,6 +200,12 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
     domain,
     objectType,
     operationType,
+    argumentMode,
+    ...(parameters !== undefined && { parameters }),
+    ...(meta?.scope !== undefined && { scope: meta.scope }),
+    supportsRealm,
+    supportsPaging,
+    supportsIncludeTotal,
     kind,
     riskClass,
     mutating,
@@ -202,9 +220,41 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
     ...(meta?.objectTypePatterns !== undefined && {
       objectTypePatterns: meta.objectTypePatterns,
     }),
+    ...(meta?.notes !== undefined && {
+      notes: meta.notes,
+    }),
     requiredScopes: [],
     annotations,
   };
+}
+
+/**
+ * Infers the default MCP-facing argument mode for a capability.
+ */
+function inferArgumentMode(
+  operationType: McpCapabilityOperationType
+): McpCapabilityArgumentMode {
+  if (operationType === 'list' || operationType === 'count') {
+    return 'none';
+  }
+  if (operationType === 'search') {
+    return 'mixed';
+  }
+  return 'mixed';
+}
+
+/**
+ * Infers parameter metadata when it is obvious from the operation type alone.
+ */
+function inferParameters(
+  _methodName: string,
+  _objectType: string,
+  operationType: McpCapabilityOperationType
+): McpCapabilityParameter[] | undefined {
+  if (operationType === 'list' || operationType === 'count') {
+    return [];
+  }
+  return undefined;
 }
 
 /**

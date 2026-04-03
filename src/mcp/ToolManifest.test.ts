@@ -97,6 +97,58 @@ describe('MCP tool manifest builder', () => {
     }
   });
 
+  test('discovery tool includes rich operation details for agent planning', () => {
+    const inventory = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['authn'],
+    });
+    const manifest = buildToolManifest(inventory);
+
+    expect(manifest.discoveryTool.operationDetailsByType?.read).toBeDefined();
+
+    const nodeRead = manifest.discoveryTool.operationDetailsByType?.read?.find(
+      (entry) => entry.descriptorId === 'authn.node.readNode'
+    );
+
+    expect(nodeRead).toBeDefined();
+    expect(nodeRead?.argumentMode).toBe('named');
+    expect(nodeRead?.parameters?.map((param) => param.name)).toEqual(
+      expect.arrayContaining(['nodeId', 'nodeType'])
+    );
+  });
+
+  test('discovery keeps single and bulk journey exports distinct', () => {
+    const inventory = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['authn'],
+    });
+    const manifest = buildToolManifest(inventory);
+
+    const journeyExports =
+      manifest.discoveryTool.operationDetailsByType?.export?.filter(
+        (entry) => entry.domain === 'authn' && entry.objectType === 'Journey'
+      ) ?? [];
+
+    expect(journeyExports.some((entry) => entry.scope === 'single')).toBe(true);
+    expect(journeyExports.some((entry) => entry.scope === 'bulk')).toBe(true);
+  });
+
+  test('discovery explicitly marks unsupported search combinations by object type', () => {
+    const inventory = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['authn', 'role'],
+    });
+    const manifest = buildToolManifest(inventory);
+
+    const journeySupport =
+      manifest.discoveryTool.objectTypeOperationSupport?.find(
+        (entry) => entry.domain === 'authn' && entry.objectType === 'Journey'
+      );
+
+    expect(journeySupport).toBeDefined();
+    expect(journeySupport?.supportedOperations).toEqual(
+      expect.arrayContaining(['read', 'list', 'export'])
+    );
+    expect(journeySupport?.unsupportedOperations).toContain('search');
+  });
+
   test('read-only manifest total tool count stays within agent-usability ceiling', () => {
     const inventory = applyCapabilityPolicy(
       buildCapabilityInventory(frodo),

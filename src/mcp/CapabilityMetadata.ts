@@ -41,6 +41,114 @@ const IDM_DEPLOYMENTS: McpDeploymentType[] = ['cloud', 'forgeops'];
  *   registry-inferred defaults.
  */
 export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
+  // ── Agent-facing MCP contracts for ambiguous operations ─────────────────────
+  'authn.journey.readJourney': {
+    argumentMode: 'mixed',
+    parameters: [
+      {
+        name: 'journeyId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Journey identifier or name.',
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'For MCP callers, prefer namedArgs { journeyId } so the object identifier is explicit.',
+  },
+  'authn.node.readNode': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'nodeId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Node UUID.',
+      },
+      {
+        name: 'nodeType',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Node type, for example PageNode.',
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'MCP callers should use namedArgs { nodeId, nodeType } to avoid swapping the required positional arguments.',
+  },
+  'authn.journey.exportJourney': {
+    argumentMode: 'named',
+    scope: 'single',
+    parameters: [
+      {
+        name: 'journeyId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Journey identifier or name to export.',
+      },
+      {
+        name: 'options',
+        type: 'TreeExportOptions',
+        required: false,
+        position: 1,
+        description:
+          'Optional export options such as deps/useStringArrays/coords.',
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Single-journey export. In MCP, prefer scope="single" and explicitly request deps=true only when you need dependency bundles.',
+  },
+  'authn.journey.exportJourneys': {
+    argumentMode: 'named',
+    scope: 'bulk',
+    parameters: [
+      {
+        name: 'options',
+        type: 'TreeExportOptions',
+        required: false,
+        position: 0,
+        description:
+          'Optional export options such as deps/useStringArrays/coords.',
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Bulk journey export. In MCP, prefer scope="bulk" and keep deps=false unless a full dependency bundle is required.',
+  },
+  'script.readScript': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'scriptId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Script UUID.',
+      },
+    ],
+    supportsRealm: true,
+    notes: 'Use this when a node or journey references a script UUID.',
+  },
+  'script.readScriptByName': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'scriptName',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Human-readable script name.',
+      },
+    ],
+    supportsRealm: true,
+    notes: 'Use this when you know the script name rather than its UUID.',
+  },
+
   // ── IDM managed objects ─────────────────────────────────────────────────────
   // Covers all idm.managed.* methods (createManagedObject, readManagedObject,
   // readManagedObjects, countManagedObjects, updateManagedObject, etc.)
