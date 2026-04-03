@@ -59,6 +59,23 @@ export type McpCapabilityArgumentMode =
   | 'mixed';
 
 /**
+ * Lightweight JSON-schema-style contract for a structured MCP parameter value.
+ *
+ * @remarks
+ * This intentionally supports only the subset needed for agent guidance and
+ * runtime validation.
+ */
+export type McpCapabilityParameterSchema = {
+  type?: 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
+  description?: string;
+  enum?: unknown[];
+  properties?: Record<string, McpCapabilityParameterSchema>;
+  required?: string[];
+  additionalProperties?: boolean;
+  items?: McpCapabilityParameterSchema;
+};
+
+/**
  * Parameter definition for a capability exposed through discovery metadata.
  */
 export type McpCapabilityParameter = {
@@ -69,6 +86,10 @@ export type McpCapabilityParameter = {
   description?: string;
   /** Optional MCP-side default applied when the caller omits this parameter. */
   defaultValue?: unknown;
+  /** Optional schema contract for structured or enum-like parameter values. */
+  schema?: McpCapabilityParameterSchema;
+  /** Optional example values surfaced in discovery and validation errors. */
+  examples?: unknown[];
 };
 
 /**

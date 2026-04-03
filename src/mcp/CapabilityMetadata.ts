@@ -51,6 +51,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         required: true,
         position: 0,
         description: 'Journey identifier or name.',
+        examples: ['Azure'],
       },
     ],
     supportsRealm: true,
@@ -66,6 +67,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         required: true,
         position: 0,
         description: 'Node UUID.',
+        examples: ['313597f3-2e86-4476-b899-17a0209f0386'],
       },
       {
         name: 'nodeType',
@@ -73,6 +75,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         required: true,
         position: 1,
         description: 'Node type, for example PageNode.',
+        examples: ['PageNode'],
       },
     ],
     supportsRealm: true,
@@ -89,6 +92,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         required: true,
         position: 0,
         description: 'Journey identifier or name to export.',
+        examples: ['Azure'],
       },
       {
         name: 'options',
@@ -102,6 +106,38 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           useStringArrays: true,
           coords: true,
         },
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            deps: {
+              type: 'boolean',
+              description:
+                'Include dependent objects such as scripts, themes, and templates.',
+            },
+            useStringArrays: {
+              type: 'boolean',
+              description:
+                'Normalize multi-value fields into plain string arrays for agent-friendly output.',
+            },
+            coords: {
+              type: 'boolean',
+              description: 'Include journey node canvas coordinates in the export.',
+            },
+          },
+        },
+        examples: [
+          {
+            deps: false,
+            useStringArrays: true,
+            coords: true,
+          },
+          {
+            deps: true,
+            useStringArrays: true,
+            coords: true,
+          },
+        ],
       },
     ],
     supportsRealm: true,
@@ -124,6 +160,38 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           useStringArrays: true,
           coords: true,
         },
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            deps: {
+              type: 'boolean',
+              description:
+                'Include dependent objects such as scripts, themes, and templates.',
+            },
+            useStringArrays: {
+              type: 'boolean',
+              description:
+                'Normalize multi-value fields into plain string arrays for agent-friendly output.',
+            },
+            coords: {
+              type: 'boolean',
+              description: 'Include journey node canvas coordinates in the export.',
+            },
+          },
+        },
+        examples: [
+          {
+            deps: false,
+            useStringArrays: true,
+            coords: true,
+          },
+          {
+            deps: true,
+            useStringArrays: true,
+            coords: true,
+          },
+        ],
       },
     ],
     supportsRealm: true,
@@ -139,6 +207,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         required: true,
         position: 0,
         description: 'Script UUID.',
+        examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
       },
     ],
     supportsRealm: true,
@@ -153,6 +222,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         required: true,
         position: 0,
         description: 'Human-readable script name.',
+        examples: ['Process SAML Data'],
       },
     ],
     supportsRealm: true,

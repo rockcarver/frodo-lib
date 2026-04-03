@@ -139,6 +139,20 @@ describe('MCP tool manifest builder', () => {
       useStringArrays: true,
       coords: true,
     });
+    expect(optionsParam?.schema).toMatchObject({
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        deps: { type: 'boolean' },
+        useStringArrays: { type: 'boolean' },
+        coords: { type: 'boolean' },
+      },
+    });
+    expect(optionsParam?.examples).toEqual(
+      expect.arrayContaining([
+        { deps: false, useStringArrays: true, coords: true },
+      ])
+    );
   });
 
   test('discovery explicitly marks unsupported search combinations by object type', () => {

@@ -18,8 +18,10 @@ import { FrodoError } from '../ops/FrodoError';
 import { StateInterface } from '../shared/State';
 import {
   McpCapabilityDescriptor,
-  McpDeploymentType,
   McpCapabilityOperationType,
+  McpCapabilityParameter,
+  McpCapabilityParameterSchema,
+  McpDeploymentType,
 } from './CapabilityTypes';
 import {
   McpDiscoveryEntry,
@@ -934,6 +936,14 @@ function validateInvocationArguments(
       `MCP runtime error: descriptor '${descriptor.id}' is missing required named argument(s): ${missingRequired.join(', ')}. Allowed parameters: ${formatDescriptorParameters(descriptor)}.`
     );
   }
+
+  for (const parameter of descriptor.parameters) {
+    const value = args.namedArgs?.[parameter.name];
+    if (value === undefined) {
+      continue;
+    }
+    validateNamedArgumentValue(descriptor.id, parameter, value);
+  }
 }
 
 /**
@@ -945,9 +955,231 @@ function formatDescriptorParameters(
   if (!descriptor.parameters || descriptor.parameters.length === 0) {
     return 'none';
   }
-  return descriptor.parameters
-    .map((parameter) => `${parameter.name}${parameter.required ? '' : '?'}`)
-    .join(', ');
+  return descriptor.parameters.map(formatParameterContract).join('; ');
+}
+
+/**
+ * Formats one named parameter contract, including schema/default/example hints.
+ */
+function formatParameterContract(parameter: McpCapabilityParameter): string {
+  const details: string[] = [parameter.type];
+  const schemaSummary = formatParameterSchema(
+    parameter.schema ?? inferSchemaFromParameterType(parameter.type)
+  );
+
+  if (parameter.required) {
+    details.push('required');
+  }
+  if (schemaSummary && schemaSummary !== parameter.type) {
+    details.push(`schema=${schemaSummary}`);
+  }
+  if (parameter.defaultValue !== undefined) {
+    details.push(`default=${formatValueForMessage(parameter.defaultValue)}`);
+  }
+  if (parameter.examples && parameter.examples.length > 0) {
+    details.push(`example=${formatValueForMessage(parameter.examples[0])}`);
+  }
+
+  return `${parameter.name}${parameter.required ? '' : '?'} (${details.join(', ')})`;
+}
+
+/**
+ * Validates a provided named argument against the descriptor's declared schema.
+ */
+function validateNamedArgumentValue(
+  descriptorId: string,
+  parameter: McpCapabilityParameter,
+  value: unknown
+): void {
+  const schema = parameter.schema ?? inferSchemaFromParameterType(parameter.type);
+  if (!schema) {
+    return;
+  }
+
+  const problems = collectSchemaValidationProblems(value, schema);
+  if (problems.length === 0) {
+    return;
+  }
+
+  const expected = formatParameterSchema(schema) ?? parameter.type;
+  const exampleText =
+    parameter.examples && parameter.examples.length > 0
+      ? ` Example: ${formatValueForMessage(parameter.examples[0])}.`
+      : '';
+
+  throw new FrodoError(
+    `MCP runtime error: descriptor '${descriptorId}' received invalid value for named argument '${parameter.name}': ${problems.join('; ')}; expected ${expected}.${exampleText}`
+  );
+}
+
+/**
+ * Collects schema validation problems for a runtime value.
+ */
+function collectSchemaValidationProblems(
+  value: unknown,
+  schema: McpCapabilityParameterSchema,
+  path = ''
+): string[] {
+  const problems: string[] = [];
+
+  if (schema.type === 'string' && typeof value !== 'string') {
+    return [formatSchemaProblem(path, 'must be string')];
+  }
+  if (schema.type === 'boolean' && typeof value !== 'boolean') {
+    return [formatSchemaProblem(path, 'must be boolean')];
+  }
+  if (schema.type === 'number' && typeof value !== 'number') {
+    return [formatSchemaProblem(path, 'must be number')];
+  }
+  if (
+    schema.type === 'integer' &&
+    (typeof value !== 'number' || !Number.isInteger(value))
+  ) {
+    return [formatSchemaProblem(path, 'must be an integer')];
+  }
+  if (schema.type === 'array') {
+    if (!Array.isArray(value)) {
+      return [formatSchemaProblem(path, 'must be an array')];
+    }
+    if (schema.items) {
+      value.forEach((item, index) => {
+        problems.push(
+          ...collectSchemaValidationProblems(item, schema.items as McpCapabilityParameterSchema, `${path}[${index}]`)
+        );
+      });
+    }
+    return problems;
+  }
+  if (schema.type === 'object') {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return [formatSchemaProblem(path, 'must be an object')];
+    }
+
+    const record = value as Record<string, unknown>;
+    const properties = schema.properties ?? {};
+    const required = new Set(schema.required ?? []);
+
+    const missing = [...required].filter((name) => record[name] === undefined);
+    if (missing.length > 0) {
+      problems.push(`missing field(s): ${missing.join(', ')}`);
+    }
+
+    if (schema.additionalProperties === false) {
+      const unknownFields = Object.keys(record).filter(
+        (name) => !Object.prototype.hasOwnProperty.call(properties, name)
+      );
+      if (unknownFields.length > 0) {
+        problems.push(`unexpected field(s): ${unknownFields.join(', ')}`);
+      }
+    }
+
+    for (const [name, propertySchema] of Object.entries(properties)) {
+      if (record[name] === undefined) {
+        continue;
+      }
+      problems.push(
+        ...collectSchemaValidationProblems(
+          record[name],
+          propertySchema,
+          name
+        )
+      );
+    }
+    return problems;
+  }
+
+  if (
+    schema.enum &&
+    schema.enum.length > 0 &&
+    !schema.enum.some((candidate) => Object.is(candidate, value))
+  ) {
+    problems.push(
+      `${formatSchemaProblem(path, 'must be one of')} ${schema.enum
+        .map((candidate) => formatValueForMessage(candidate))
+        .join(', ')}`
+    );
+  }
+
+  return problems;
+}
+
+/**
+ * Renders a compact human-readable schema summary.
+ */
+function formatParameterSchema(
+  schema?: McpCapabilityParameterSchema
+): string | undefined {
+  if (!schema) {
+    return undefined;
+  }
+  if (schema.type === 'object' && schema.properties) {
+    const required = new Set(schema.required ?? []);
+    const fields = Object.entries(schema.properties).map(
+      ([name, propertySchema]) =>
+        `${name}${required.has(name) ? '' : '?'}: ${formatParameterSchema(propertySchema) ?? propertySchema.type ?? 'value'}`
+    );
+    return `object with fields ${fields.join(', ')}`;
+  }
+  if (schema.type === 'array') {
+    return `array${schema.items ? ` of ${formatParameterSchema(schema.items) ?? schema.items.type ?? 'values'}` : ''}`;
+  }
+  if (schema.enum && schema.enum.length > 0) {
+    return `${schema.type ?? 'value'} one of ${schema.enum
+      .map((candidate) => formatValueForMessage(candidate))
+      .join(', ')}`;
+  }
+  return schema.type;
+}
+
+/**
+ * Infers a simple runtime schema from primitive parameter type labels.
+ */
+function inferSchemaFromParameterType(
+  type: string | undefined
+): McpCapabilityParameterSchema | undefined {
+  switch ((type ?? '').toLowerCase()) {
+    case 'string':
+      return { type: 'string' };
+    case 'boolean':
+      return { type: 'boolean' };
+    case 'number':
+      return { type: 'number' };
+    case 'integer':
+      return { type: 'integer' };
+    case 'array':
+      return { type: 'array' };
+    case 'object':
+      return { type: 'object' };
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Formats a single validation problem, optionally scoped to a nested field.
+ */
+function formatSchemaProblem(path: string, message: string): string {
+  return path ? `field '${path}' ${message}` : message;
+}
+
+/**
+ * Formats a runtime value for concise user-facing messages.
+ */
+function formatValueForMessage(value: unknown): string {
+  if (typeof value === 'string') {
+    return JSON.stringify(value);
+  }
+  try {
+    const serialized = JSON.stringify(value);
+    if (!serialized) {
+      return String(value);
+    }
+    return serialized.length > 160
+      ? `${serialized.slice(0, 157)}...`
+      : serialized;
+  } catch {
+    return String(value);
+  }
 }
 
 /**
