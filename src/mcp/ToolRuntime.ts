@@ -834,6 +834,10 @@ function toInvocationArgs(
   const maybeArgs = raw as {
     positionalArgs?: unknown[];
     namedArgs?: Record<string, unknown>;
+    pageSize?: number;
+    pageOffset?: number;
+    pageToken?: string;
+    includeTotal?: boolean;
   };
 
   validateInvocationArguments(descriptor, maybeArgs);
@@ -851,7 +855,10 @@ function toInvocationArgs(
             (right.position ?? Number.MAX_SAFE_INTEGER)
         )
         .map((parameter) => {
-          const providedValue = maybeArgs.namedArgs?.[parameter.name];
+          const providedValue = resolveNamedOrGenericParameterValue(
+            parameter,
+            maybeArgs
+          );
           if (providedValue !== undefined) {
             return providedValue;
           }
@@ -949,6 +956,37 @@ function validateInvocationArguments(
 /**
  * Formats a descriptor's parameter contract for user-facing error messages.
  */
+function resolveNamedOrGenericParameterValue(
+  parameter: McpCapabilityParameter,
+  args: {
+    namedArgs?: Record<string, unknown>;
+    pageSize?: number;
+    pageOffset?: number;
+    pageToken?: string;
+    includeTotal?: boolean;
+  }
+): unknown {
+  const providedValue = args.namedArgs?.[parameter.name];
+  if (providedValue !== undefined) {
+    return providedValue;
+  }
+
+  switch (parameter.name) {
+    case 'pageSize':
+      return args.pageSize;
+    case 'pageOffset':
+    case 'offset':
+      return args.pageOffset;
+    case 'pageToken':
+    case 'pageCookie':
+      return args.pageToken;
+    case 'includeTotal':
+      return args.includeTotal;
+    default:
+      return undefined;
+  }
+}
+
 function formatDescriptorParameters(
   descriptor: McpCapabilityDescriptor
 ): string {

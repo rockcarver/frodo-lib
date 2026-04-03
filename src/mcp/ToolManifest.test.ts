@@ -173,6 +173,39 @@ describe('MCP tool manifest builder', () => {
     expect(journeySupport?.unsupportedOperations).toContain('search');
   });
 
+  test('discovery includes actionable parameter contracts for supported search operations', () => {
+    const inventory = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['idm', 'role'],
+    });
+    const manifest = buildToolManifest(inventory);
+
+    const systemSearch = manifest.discoveryTool.operationDetailsByType?.search?.find(
+      (entry) =>
+        entry.domain === 'idm' && entry.objectType === 'SystemObject'
+    );
+    const roleSearch = manifest.discoveryTool.operationDetailsByType?.search?.find(
+      (entry) =>
+        entry.domain === 'role' && entry.objectType === 'InternalRole'
+    );
+
+    expect(systemSearch?.argumentMode).toBe('named');
+    expect(systemSearch?.parameters?.map((param) => param.name)).toEqual(
+      expect.arrayContaining([
+        'systemName',
+        'systemObjectType',
+        'filter',
+        'fields',
+        'pageSize',
+        'pageCookie',
+      ])
+    );
+    expect(systemSearch?.supportsPaging).toBe(true);
+    expect(roleSearch?.argumentMode).toBe('named');
+    expect(roleSearch?.parameters?.map((param) => param.name)).toEqual(
+      expect.arrayContaining(['filter', 'fields'])
+    );
+  });
+
   test('read-only manifest total tool count stays within agent-usability ceiling', () => {
     const inventory = applyCapabilityPolicy(
       buildCapabilityInventory(frodo),

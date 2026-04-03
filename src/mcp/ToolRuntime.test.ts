@@ -438,6 +438,117 @@ describe('MCP tool runtime', () => {
     expect(capturedContext.auth.config.realm).toBe('/bravo');
   });
 
+  test('forwards generic paging controls into named search contracts', async () => {
+    const descriptor = makeDescriptor({
+      id: 'idm.system.querySystemObjects',
+      toolName: 'frodo.idm.system.querySystemObjects',
+      methodName: 'querySystemObjects',
+      modulePath: ['idm', 'system'],
+      domain: 'idm',
+      objectType: 'SystemObject',
+      operationType: 'search',
+      argumentMode: 'named',
+      parameters: [
+        { name: 'systemName', type: 'string', required: true, position: 0 },
+        {
+          name: 'systemObjectType',
+          type: 'string',
+          required: true,
+          position: 1,
+        },
+        { name: 'filter', type: 'string', required: true, position: 2 },
+        { name: 'fields', type: 'string[]', required: false, position: 3 },
+        { name: 'pageSize', type: 'integer', required: false, position: 4 },
+        { name: 'pageCookie', type: 'string', required: false, position: 5 },
+      ],
+      supportsPaging: true,
+    } as any);
+    const querySystemObjects = jest.fn(async () => ({
+      result: [{ uid: 'user.1' }],
+      pagedResultsCookie: 'next-cookie',
+      remainingPagedResults: 12,
+    }));
+    const manifest: McpToolManifest = {
+      genericTools: [
+        {
+          toolName: 'frodo_search',
+          operationType: 'search',
+          description: 'Search system objects.',
+          annotations: descriptor.annotations,
+          riskClass: descriptor.riskClass,
+          supportedObjectTypes: [
+            {
+              domain: descriptor.domain,
+              objectType: descriptor.objectType,
+              descriptorId: descriptor.id,
+              methodName: descriptor.methodName,
+              sourcePath: descriptor.id,
+              argumentMode: descriptor.argumentMode,
+              parameters: descriptor.parameters,
+              supportsPaging: descriptor.supportsPaging,
+              riskClass: descriptor.riskClass,
+              annotations: descriptor.annotations,
+            },
+          ],
+        },
+      ],
+      specialTools: [],
+      discoveryTool: {
+        toolName: 'frodo_discover',
+        description: 'Discover tool surface.',
+        domains: ['idm'],
+        objectTypesByDomain: { idm: ['SystemObject'] },
+        operationsByType: { search: ['idm.SystemObject'] },
+        operationDetailsByType: {},
+      },
+      backingDescriptorCount: 1,
+      totalToolCount: 2,
+    };
+
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          login: { getTokens: jest.fn(async () => {}) },
+          idm: {
+            system: {
+              querySystemObjects,
+            },
+          },
+        }) as any,
+    });
+
+    await runtime.executeTool({
+      toolName: 'frodo_search',
+      arguments: {
+        domain: 'idm',
+        objectType: 'SystemObject',
+        pageSize: 250,
+        pageToken: 'next-cookie',
+        namedArgs: {
+          systemName: 'ldap',
+          systemObjectType: 'account',
+          filter: "uid sw 'a'",
+          fields: ['uid'],
+        },
+      },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: {},
+        },
+      },
+    });
+
+    expect(querySystemObjects).toHaveBeenCalledWith(
+      'ldap',
+      'account',
+      "uid sw 'a'",
+      ['uid'],
+      250,
+      'next-cookie'
+    );
+  });
+
   test('adds pagination warning metadata for likely truncated list responses', async () => {
     const descriptor = makeDescriptor({
       id: 'user.user.listUsers',
