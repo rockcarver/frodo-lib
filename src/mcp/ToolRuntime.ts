@@ -848,7 +848,16 @@ function toInvocationArgs(
             (left.position ?? Number.MAX_SAFE_INTEGER) -
             (right.position ?? Number.MAX_SAFE_INTEGER)
         )
-        .map((parameter) => maybeArgs.namedArgs?.[parameter.name]);
+        .map((parameter) => {
+          const providedValue = maybeArgs.namedArgs?.[parameter.name];
+          if (providedValue !== undefined) {
+            return providedValue;
+          }
+          if (parameter.defaultValue !== undefined) {
+            return cloneDefaultParameterValue(parameter.defaultValue);
+          }
+          return undefined;
+        });
     }
     return [maybeArgs.namedArgs];
   }
@@ -939,6 +948,27 @@ function formatDescriptorParameters(
   return descriptor.parameters
     .map((parameter) => `${parameter.name}${parameter.required ? '' : '?'}`)
     .join(', ');
+}
+
+/**
+ * Clones default parameter values so MCP calls do not share mutable metadata objects.
+ */
+function cloneDefaultParameterValue(value: unknown): unknown {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  try {
+    return structuredClone(value);
+  } catch {
+    if (typeof value === 'object') {
+      try {
+        return JSON.parse(JSON.stringify(value));
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
 }
 
 /**

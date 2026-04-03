@@ -67,6 +67,8 @@ export type McpCapabilityParameter = {
   required?: boolean;
   position?: number;
   description?: string;
+  /** Optional MCP-side default applied when the caller omits this parameter. */
+  defaultValue?: unknown;
 };
 
 /**

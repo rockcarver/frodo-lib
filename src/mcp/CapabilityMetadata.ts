@@ -97,11 +97,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         position: 1,
         description:
           'Optional export options such as deps/useStringArrays/coords.',
+        defaultValue: {
+          deps: false,
+          useStringArrays: true,
+          coords: true,
+        },
       },
     ],
     supportsRealm: true,
     notes:
-      'Single-journey export. In MCP, prefer scope="single" and explicitly request deps=true only when you need dependency bundles.',
+      'Single-journey export. In MCP, scope="single" defaults to a thin export bundle (deps=false, useStringArrays=true, coords=true). Explicitly request deps=true only when you need dependency bundles.',
   },
   'authn.journey.exportJourneys': {
     argumentMode: 'named',
@@ -114,11 +119,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         position: 0,
         description:
           'Optional export options such as deps/useStringArrays/coords.',
+        defaultValue: {
+          deps: false,
+          useStringArrays: true,
+          coords: true,
+        },
       },
     ],
     supportsRealm: true,
     notes:
-      'Bulk journey export. In MCP, prefer scope="bulk" and keep deps=false unless a full dependency bundle is required.',
+      'Bulk journey export. In MCP, scope="bulk" defaults to a thin export bundle (deps=false, useStringArrays=true, coords=true). Request deps=true only when a full dependency bundle is required.',
   },
   'script.readScript': {
     argumentMode: 'named',

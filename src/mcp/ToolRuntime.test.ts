@@ -514,6 +514,116 @@ describe('MCP tool runtime', () => {
     expect(result.metadata?.scope?.requestedRealm).toBe('/alpha');
   });
 
+  test('applies thin MCP default options for journey export when options are omitted', async () => {
+    const descriptor = makeDescriptor({
+      id: 'authn.journey.exportJourney',
+      toolName: 'frodo.authn.journey.exportJourney',
+      methodName: 'exportJourney',
+      modulePath: ['authn', 'journey'],
+      objectType: 'Journey',
+      operationType: 'export',
+      argumentMode: 'named',
+      scope: 'single',
+      parameters: [
+        {
+          name: 'journeyId',
+          type: 'string',
+          required: true,
+          position: 0,
+        },
+        {
+          name: 'options',
+          type: 'TreeExportOptions',
+          required: false,
+          position: 1,
+          defaultValue: {
+            deps: false,
+            useStringArrays: true,
+            coords: true,
+          },
+        },
+      ],
+    } as any);
+    const manifest: McpToolManifest = {
+      genericTools: [
+        {
+          toolName: 'frodo_export',
+          operationType: 'export',
+          description: 'Export journey.',
+          annotations: descriptor.annotations,
+          riskClass: descriptor.riskClass,
+          supportedObjectTypes: [
+            {
+              domain: descriptor.domain,
+              objectType: descriptor.objectType,
+              descriptorId: descriptor.id,
+              methodName: descriptor.methodName,
+              sourcePath: descriptor.id,
+              argumentMode: descriptor.argumentMode,
+              parameters: descriptor.parameters,
+              scope: descriptor.scope,
+              riskClass: descriptor.riskClass,
+              annotations: descriptor.annotations,
+            },
+          ],
+        },
+      ],
+      specialTools: [],
+      discoveryTool: {
+        toolName: 'frodo_discover',
+        description: 'Discover tool surface.',
+        domains: ['authn'],
+        objectTypesByDomain: { authn: ['Journey'] },
+        operationsByType: { export: ['authn.Journey'] },
+        operationDetailsByType: {},
+      },
+      backingDescriptorCount: 1,
+      totalToolCount: 2,
+    };
+    const exportJourney = jest.fn(async () => ({
+      tree: { _id: 'Azure' },
+      nodes: { one: {}, two: {} },
+      scripts: { script1: {} },
+      themes: [],
+    }));
+
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          login: { getTokens: jest.fn(async () => {}) },
+          authn: {
+            journey: {
+              exportJourney,
+            },
+          },
+        }) as any,
+    });
+
+    await runtime.executeTool({
+      toolName: 'frodo_export',
+      arguments: {
+        domain: 'authn',
+        objectType: 'Journey',
+        scope: 'single',
+        namedArgs: {
+          journeyId: 'Azure',
+        },
+      },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: {},
+        },
+      },
+    });
+
+    expect(exportJourney).toHaveBeenCalledWith('Azure', {
+      deps: false,
+      useStringArrays: true,
+      coords: true,
+    });
+  });
+
   test('adds result summary metadata for structured export payloads', async () => {
     const descriptor = makeDescriptor({
       id: 'authn.journey.exportJourney',

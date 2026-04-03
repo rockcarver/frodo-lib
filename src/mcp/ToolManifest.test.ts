@@ -129,6 +129,16 @@ describe('MCP tool manifest builder', () => {
 
     expect(journeyExports.some((entry) => entry.scope === 'single')).toBe(true);
     expect(journeyExports.some((entry) => entry.scope === 'bulk')).toBe(true);
+
+    const singleExport = journeyExports.find((entry) => entry.scope === 'single');
+    const optionsParam = singleExport?.parameters?.find(
+      (param) => param.name === 'options'
+    );
+    expect(optionsParam?.defaultValue).toEqual({
+      deps: false,
+      useStringArrays: true,
+      coords: true,
+    });
   });
 
   test('discovery explicitly marks unsupported search combinations by object type', () => {
