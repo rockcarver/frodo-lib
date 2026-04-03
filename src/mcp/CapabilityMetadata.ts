@@ -122,7 +122,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
             },
             coords: {
               type: 'boolean',
-              description: 'Include journey node canvas coordinates in the export.',
+              description:
+                'Include journey node canvas coordinates in the export.',
             },
           },
         },
@@ -176,7 +177,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
             },
             coords: {
               type: 'boolean',
-              description: 'Include journey node canvas coordinates in the export.',
+              description:
+                'Include journey node canvas coordinates in the export.',
             },
           },
         },
@@ -290,7 +292,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'integer',
         required: false,
         position: 3,
-        description: 'Optional page size hint forwarded from the generic pageSize control.',
+        description:
+          'Optional page size hint forwarded from the generic pageSize control.',
         examples: [100, 250],
       },
     ],
@@ -323,7 +326,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'integer',
         required: false,
         position: 2,
-        description: 'Optional page size hint forwarded from the generic pageSize control.',
+        description:
+          'Optional page size hint forwarded from the generic pageSize control.',
         examples: [100, 250],
       },
       {
@@ -331,7 +335,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'string',
         required: false,
         position: 3,
-        description: 'Paged-results cookie. The generic pageToken control maps to this parameter.',
+        description:
+          'Paged-results cookie. The generic pageToken control maps to this parameter.',
         examples: ['opaque-cookie-token'],
       },
     ],
@@ -384,7 +389,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'integer',
         required: false,
         position: 4,
-        description: 'Optional page size hint forwarded from the generic pageSize control.',
+        description:
+          'Optional page size hint forwarded from the generic pageSize control.',
         examples: [100, 250],
       },
       {
@@ -392,7 +398,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'string',
         required: false,
         position: 5,
-        description: 'Paged-results cookie. The generic pageToken control maps to this parameter.',
+        description:
+          'Paged-results cookie. The generic pageToken control maps to this parameter.',
         examples: ['opaque-cookie-token'],
       },
     ],

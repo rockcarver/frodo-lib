@@ -1029,7 +1029,8 @@ function validateNamedArgumentValue(
   parameter: McpCapabilityParameter,
   value: unknown
 ): void {
-  const schema = parameter.schema ?? inferSchemaFromParameterType(parameter.type);
+  const schema =
+    parameter.schema ?? inferSchemaFromParameterType(parameter.type);
   if (!schema) {
     return;
   }
@@ -1082,7 +1083,11 @@ function collectSchemaValidationProblems(
     if (schema.items) {
       value.forEach((item, index) => {
         problems.push(
-          ...collectSchemaValidationProblems(item, schema.items as McpCapabilityParameterSchema, `${path}[${index}]`)
+          ...collectSchemaValidationProblems(
+            item,
+            schema.items as McpCapabilityParameterSchema,
+            `${path}[${index}]`
+          )
         );
       });
     }
@@ -1116,11 +1121,7 @@ function collectSchemaValidationProblems(
         continue;
       }
       problems.push(
-        ...collectSchemaValidationProblems(
-          record[name],
-          propertySchema,
-          name
-        )
+        ...collectSchemaValidationProblems(record[name], propertySchema, name)
       );
     }
     return problems;

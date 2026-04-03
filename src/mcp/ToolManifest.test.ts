@@ -130,7 +130,9 @@ describe('MCP tool manifest builder', () => {
     expect(journeyExports.some((entry) => entry.scope === 'single')).toBe(true);
     expect(journeyExports.some((entry) => entry.scope === 'bulk')).toBe(true);
 
-    const singleExport = journeyExports.find((entry) => entry.scope === 'single');
+    const singleExport = journeyExports.find(
+      (entry) => entry.scope === 'single'
+    );
     const optionsParam = singleExport?.parameters?.find(
       (param) => param.name === 'options'
     );
@@ -179,14 +181,15 @@ describe('MCP tool manifest builder', () => {
     });
     const manifest = buildToolManifest(inventory);
 
-    const systemSearch = manifest.discoveryTool.operationDetailsByType?.search?.find(
-      (entry) =>
-        entry.domain === 'idm' && entry.objectType === 'SystemObject'
-    );
-    const roleSearch = manifest.discoveryTool.operationDetailsByType?.search?.find(
-      (entry) =>
-        entry.domain === 'role' && entry.objectType === 'InternalRole'
-    );
+    const systemSearch =
+      manifest.discoveryTool.operationDetailsByType?.search?.find(
+        (entry) => entry.domain === 'idm' && entry.objectType === 'SystemObject'
+      );
+    const roleSearch =
+      manifest.discoveryTool.operationDetailsByType?.search?.find(
+        (entry) =>
+          entry.domain === 'role' && entry.objectType === 'InternalRole'
+      );
 
     expect(systemSearch?.argumentMode).toBe('named');
     expect(systemSearch?.parameters?.map((param) => param.name)).toEqual(
