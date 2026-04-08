@@ -695,9 +695,11 @@ async function importPolicySetDependencies({
   const errors = [];
   try {
     // policies
-    const policies = Object.values(exportData.policy).filter(
-      (policy) => policy.applicationName === policySetData.name
-    );
+    const policies = exportData.policy
+      ? Object.values(exportData.policy).filter(
+          (policy) => policy.applicationName === policySetData.name
+        )
+      : [];
     for (const policyData of policies) {
       try {
         debugMessage({
