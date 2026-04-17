@@ -460,6 +460,9 @@ export function saveJsonToFile({
         'lastChangeDate',
         'lastChangedBy',
         'lastChanged',
+        'createdBy',
+        'creationDate',
+        'createdDate',
       ]
     );
   }
