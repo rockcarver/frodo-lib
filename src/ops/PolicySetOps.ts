@@ -7,7 +7,7 @@ import {
   updatePolicySet as _updatePolicySet,
 } from '../api/PolicySetApi';
 import { type PolicySetSkeleton } from '../api/PolicySetApi';
-import { getResourceType, putResourceType } from '../api/ResourceTypesApi';
+import { getResourceType } from '../api/ResourceTypesApi';
 import { type ResourceTypeSkeleton } from '../api/ResourceTypesApi';
 import { type ScriptSkeleton } from '../api/ScriptApi';
 import { State } from '../shared/State';
@@ -30,6 +30,7 @@ import {
   readPoliciesByPolicySet,
   updatePolicy,
 } from './PolicyOps';
+import { importResourceType } from './ResourceTypeOps';
 import { updateScript } from './ScriptOps';
 
 export type PolicySet = {
@@ -636,9 +637,9 @@ async function importPolicySetPrerequisites({
             message: `Importing ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeUuid}`,
             state,
           });
-          await putResourceType({
+          await importResourceType({
             resourceTypeUuid,
-            resourceTypeData: exportData.resourcetype[resourceTypeUuid],
+            importData: exportData,
             state,
           });
         } catch (error) {
