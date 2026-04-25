@@ -9,6 +9,8 @@ import { generateAmApi } from './BaseApi';
 
 const userURLTemplate = '%s/json%s/users/%s';
 const usersURLTemplate = '%s/json%s/users?_queryFilter=true';
+const usersCountURLTemplate =
+  '%s/json%s/users?_queryFilter=true&_pageSize=0&_totalPagedResultsPolicy=EXACT';
 const userServiceURLTemplate = '%s/json%s/users/%s/services/%s';
 const userServicesURLTemplate =
   '%s/json%s/users/%s/services?_action=nextdescendents';
@@ -155,6 +157,40 @@ export async function getUsers({
     withCredentials: true,
   });
   return data;
+}
+
+/**
+ * Get total number of users in the current realm.
+ *
+ * @returns {Promise<number>} Exact total number of users when available.
+ */
+export async function getUserCount({
+  state,
+}: {
+  state: State;
+}): Promise<number> {
+  const urlString = util.format(
+    usersCountURLTemplate,
+    state.getHost(),
+    getCurrentRealmPath(state)
+  );
+  const { data } = await generateAmApi({
+    resource: getIdentityApiConfig(),
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
+
+  if (
+    typeof data?.totalPagedResults === 'number' &&
+    data.totalPagedResults >= 0
+  ) {
+    return data.totalPagedResults;
+  }
+  if (typeof data?.resultCount === 'number' && data.resultCount >= 0) {
+    return data.resultCount;
+  }
+  return Array.isArray(data?.result) ? data.result.length : 0;
 }
 
 /**

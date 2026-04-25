@@ -10,6 +10,8 @@ const treeByIdURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/trees/%s';
 const queryAllTreesURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/trees?_queryFilter=true';
+const countTreesURLTemplate =
+  '%s/json%s/realm-config/authentication/authenticationtrees/trees?_queryFilter=true&_pageSize=0&_totalPagedResultsPolicy=EXACT';
 
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getTreeApiConfig = () => {
@@ -51,6 +53,40 @@ export async function getTrees({ state }: { state: State }) {
     withCredentials: true,
   });
   return data;
+}
+
+/**
+ * Get total number of trees/journeys in the current realm.
+ *
+ * @returns {Promise<number>} Exact total when available.
+ */
+export async function getTreesCount({
+  state,
+}: {
+  state: State;
+}): Promise<number> {
+  const urlString = util.format(
+    countTreesURLTemplate,
+    state.getHost(),
+    getCurrentRealmPath(state)
+  );
+  const { data } = await generateAmApi({
+    resource: getTreeApiConfig(),
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
+
+  if (
+    typeof data?.totalPagedResults === 'number' &&
+    data.totalPagedResults >= 0
+  ) {
+    return data.totalPagedResults;
+  }
+  if (typeof data?.resultCount === 'number' && data.resultCount >= 0) {
+    return data.resultCount;
+  }
+  return Array.isArray(data?.result) ? data.result.length : 0;
 }
 
 /**
