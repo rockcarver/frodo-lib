@@ -26,9 +26,6 @@
 
 import { McpDeploymentType, OperationCapabilityMeta } from './CapabilityTypes';
 
-/** Convenience alias — the full supported set of deployment types. */
-const ALL_DEPLOYMENTS: McpDeploymentType[] = ['cloud', 'forgeops', 'classic'];
-
 /** Deployments that include the IDM component (and therefore IDM managed objects). */
 const IDM_DEPLOYMENTS: McpDeploymentType[] = ['cloud', 'forgeops'];
 
