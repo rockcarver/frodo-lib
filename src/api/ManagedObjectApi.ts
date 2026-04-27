@@ -10,6 +10,7 @@ import {
 import { generateIdmApi } from './BaseApi';
 import { MANAGED_SYSTEM_OBJECT_TYPES } from './ManagedSystemObjectApi';
 
+const managedObjectSchemaURLTemplate = '%s/schema/managed/%s';
 const createManagedObjectURLTemplate = '%s/managed/%s?_action=create';
 const managedObjectByIdURLTemplate = '%s/managed/%s/%s';
 const queryAllManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=true&_pageSize=%s`;
@@ -17,6 +18,124 @@ const queryManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=%
 const countManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=0&_totalPagedResultsPolicy=EXACT`;
 
 export const DEFAULT_PAGE_SIZE: number = 1000;
+
+export type ManagedObjectSchemaPropertyType =
+  | 'string'
+  | 'number'
+  | 'integer'
+  | 'boolean'
+  | 'array'
+  | 'relationship'
+  | 'object';
+
+export type ManagedObjectSchemaLeafPropertyType = Extract<
+  ManagedObjectSchemaPropertyType,
+  'string' | 'number' | 'integer' | 'boolean'
+>;
+
+export type ManagedObjectSchemaPropertyBase = {
+  description?: string;
+  title?: string;
+  searchable?: boolean;
+  userEditable?: boolean;
+  viewable?: boolean;
+  returnByDefault?: boolean;
+};
+
+export interface ManagedObjectSchemaLeafProperty extends ManagedObjectSchemaPropertyBase {
+  type: ManagedObjectSchemaLeafPropertyType;
+  propName?: string;
+  required?: boolean;
+}
+
+export interface ManagedObjectSchemaObjectProperty extends ManagedObjectSchemaPropertyBase {
+  type: Extract<ManagedObjectSchemaPropertyType, 'object'>;
+  order?: string[];
+  properties?: Record<string, ManagedObjectSchemaProperty>;
+}
+
+export type ManagedObjectSchemaRelationshipResourceQuery = {
+  fields: string[];
+  queryFilter: string;
+  sortKeys: string[];
+};
+
+export type ManagedObjectSchemaRelationshipResourceCollectionItem = {
+  label: string;
+  notify: boolean;
+  path: string;
+  query: ManagedObjectSchemaRelationshipResourceQuery;
+};
+
+export interface ManagedObjectSchemaRelationshipProperty extends ManagedObjectSchemaPropertyBase {
+  id: string;
+  notifySelf: boolean;
+  properties: Record<string, ManagedObjectSchemaProperty>;
+  resourceCollection: ManagedObjectSchemaRelationshipResourceCollectionItem[];
+  reverseRelationship: boolean;
+  reversePropertyName?: string;
+  title: string;
+  type: Extract<ManagedObjectSchemaPropertyType, 'relationship'>;
+  validate: boolean;
+}
+
+export interface ManagedObjectSchemaArrayProperty<
+  TItem extends ManagedObjectSchemaProperty = ManagedObjectSchemaProperty,
+> extends ManagedObjectSchemaPropertyBase {
+  type: Extract<ManagedObjectSchemaPropertyType, 'array'>;
+  items: TItem;
+}
+
+export type ManagedObjectSchemaProperty =
+  | ManagedObjectSchemaLeafProperty
+  | ManagedObjectSchemaObjectProperty
+  | ManagedObjectSchemaRelationshipProperty
+  | ManagedObjectSchemaArrayProperty;
+
+export type ManagedObjectSchema<
+  TProperties extends Record<string, ManagedObjectSchemaProperty> = Record<
+    string,
+    ManagedObjectSchemaProperty
+  >,
+> = {
+  $schema: string;
+  icon?: string;
+  order: Array<keyof TProperties & string>;
+  properties: TProperties;
+  required: Array<keyof TProperties & string>;
+  title: string;
+  type: 'object';
+  resourceCollection: string;
+};
+
+/**
+ * Get managed object
+ * @param {string} type managed object type, e.g. alpha_user or user
+ * @param {State} state library state
+ * @returns {Promise<ManagedObjectSchema>} a promise that resolves to an ObjectSkeletonInterface
+ */
+export async function getManagedObjectSchema({
+  type,
+  state,
+}: {
+  type: string;
+  state: State;
+}): Promise<ManagedObjectSchema> {
+  if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new Error(
+      `${type} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+    );
+  }
+  const urlString = util.format(
+    `${managedObjectSchemaURLTemplate}`,
+    getIdmBaseUrl(state),
+    type
+  );
+  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
+    urlString
+  );
+  return data as ManagedObjectSchema;
+}
 
 /**
  * Get managed object

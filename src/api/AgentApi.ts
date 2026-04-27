@@ -51,6 +51,7 @@ export type SharedAgentType = 'SharedAgent';
 export type SoapSTSAgentType = 'SoapSTSAgent';
 export type SoftwarePublisherType = 'SoftwarePublisher';
 export type WebAgentType = 'WebAgent';
+export type AIAgentType = 'AIAgent';
 
 export type AgentType =
   | PolicyAgentType
@@ -62,6 +63,7 @@ export type AgentType =
   | SoapSTSAgentType
   | SoftwarePublisherType
   | WebAgentType
+  | AIAgentType
   | EntityType;
 
 export type AgentSkeleton = AmConfigEntityInterface;
@@ -72,7 +74,11 @@ export type AgentGroupSkeleton = AmConfigEntityInterface;
  * Get agent types
  * @returns {Promise} a promise that resolves to an object containing an array of agent types
  */
-export async function getAgentTypes({ state }: { state: State }) {
+export async function getAgentTypes({
+  state,
+}: {
+  state: State;
+}): Promise<AgentType[]> {
   debugMessage({ message: `AgentApi.getAgentTypes: start`, state });
   const urlString = util.format(
     getAgentTypesURLTemplate,

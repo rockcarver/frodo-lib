@@ -9,7 +9,9 @@ import {
 } from './ApiTypes';
 import { generateIdmSystemApi } from './BaseApi';
 import { FrodoError } from '../ops/FrodoError';
+import type { ManagedObjectSchema } from './ManagedObjectApi';
 
+const managedObjectSchemaURLTemplate = '%s/schema/managed/%s';
 const createManagedObjectURLTemplate = '%s/managed/%s?_action=create';
 const managedObjectByIdURLTemplate = '%s/managed/%s/%s';
 const queryAllManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=true&_pageSize=%s`;
@@ -19,6 +21,38 @@ const countManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=0
 export const DEFAULT_PAGE_SIZE: number = 1000;
 
 export const MANAGED_SYSTEM_OBJECT_TYPES = ['svcacct', 'teammember'];
+
+/**
+ * Get managed system object schema
+ * @param {string} type managed system object type, e.g. svcacct or teammember
+ * @param {State} state library state
+ * @returns {Promise<ManagedObjectSchema>} a promise that resolves to a managed system object schema
+ */
+export async function getManagedSystemObjectSchema({
+  type,
+  state,
+}: {
+  type: string;
+  state: State;
+}): Promise<ManagedObjectSchema> {
+  if (!MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new FrodoError(
+      `Unsupported managed system object type: ${type}. Supported types are: ${MANAGED_SYSTEM_OBJECT_TYPES.join(
+        ', '
+      )}`
+    );
+  }
+  const urlString = util.format(
+    managedObjectSchemaURLTemplate,
+    getIdmBaseUrl(state),
+    type
+  );
+  const { data } = await generateIdmSystemApi({
+    requestOverride: {},
+    state,
+  }).get(urlString);
+  return data as ManagedObjectSchema;
+}
 
 /**
  * Get managed system object

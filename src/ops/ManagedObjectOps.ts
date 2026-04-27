@@ -9,6 +9,8 @@ import {
   DEFAULT_PAGE_SIZE,
   deleteManagedObject as _deleteManagedObject,
   getManagedObject as _getManagedObject,
+  getManagedObjectSchema as _getManagedObjectSchema,
+  type ManagedObjectSchema,
   patchManagedObject as _patchManagedObject,
   putManagedObject as _putManagedObject,
   queryAllManagedObjectsByType,
@@ -20,6 +22,12 @@ import { State } from '../shared/State';
 import { FrodoError } from './FrodoError';
 
 export type ManagedObject = {
+  /**
+   * Read managed object schema
+   * @param {string} type managed object type, e.g. alpha_user or user
+   * @returns {Promise<ManagedObjectSchema>} a promise that resolves to a managed object schema
+   */
+  readManagedObjectSchema(type: string): Promise<ManagedObjectSchema>;
   /**
    * Create managed object
    * @param {string} type managed object type, e.g. teammember or alpha_user
@@ -156,6 +164,9 @@ export type ManagedObject = {
 
 export default (state: State): ManagedObject => {
   return {
+    async readManagedObjectSchema(type: string): Promise<ManagedObjectSchema> {
+      return readManagedObjectSchema({ type, state });
+    },
     async createManagedObject(
       type: string,
       moData: IdObjectSkeletonInterface,
@@ -247,6 +258,20 @@ export default (state: State): ManagedObject => {
     },
   };
 };
+
+export async function readManagedObjectSchema({
+  type,
+  state,
+}: {
+  type: string;
+  state: State;
+}): Promise<ManagedObjectSchema> {
+  try {
+    return _getManagedObjectSchema({ type, state });
+  } catch (error) {
+    throw new FrodoError(`Error reading managed ${type} schema`, error);
+  }
+}
 
 export async function createManagedObject({
   type,
