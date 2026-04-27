@@ -116,13 +116,17 @@ export async function getRealmsForExport({
 }: {
   state: State;
 }): Promise<string[]> {
-  return (await getRealms({ state })).map((r) =>
-    !r.name || r.name === '/' || !r.parentPath
-      ? 'root'
-      : `root${r.parentPath.replace('/', '-')}${
-          r.parentPath !== '/' ? '-' : ''
-        }${r.name}`
-  );
+  return (await getRealms({ state })).map((r) => {
+    const names = ['root'];
+    if (r.parentPath)
+      names.push(
+        ...`${r.parentPath}/${r.name}`
+          .replaceAll('-', '--')
+          .split('/')
+          .filter(Boolean)
+      );
+    return names.join('-');
+  });
 }
 
 /**
@@ -132,10 +136,9 @@ export async function getRealmsForExport({
  * @param realm realm in export format
  */
 export function getRealmUsingExportFormat(realm: string): string {
-  if (realm === 'root') {
-    return '/';
-  }
-  return realm.replace('root-', '/').replaceAll('-', '/');
+  return realm === 'root'
+    ? '/'
+    : realm.replace(/^root-|--|-/g, (m) => (m === '--' ? '-' : '/'));
 }
 
 /**
