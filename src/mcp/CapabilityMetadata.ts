@@ -469,6 +469,83 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     supportsRealm: true,
     notes: 'Use this when you know the script name rather than its UUID.',
   },
+  'script.createScript': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'scriptId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Script UUID to create.',
+        examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
+      },
+      {
+        name: 'scriptName',
+        type: 'string',
+        required: false,
+        position: 1,
+        description:
+          'Optional script display name. If omitted, MCP defaults it to scriptId.',
+        examples: ['My OAUTH2_MAY_ACT Script'],
+      },
+      {
+        name: 'scriptData',
+        type: 'ScriptSkeleton',
+        required: true,
+        position: 2,
+        description:
+          'Script payload object. For JavaScript, provide script as plain text or base64 and set context/language.',
+        schema: {
+          type: 'object',
+          properties: {
+            context: { type: 'string' },
+            language: { type: 'string' },
+            script: { type: 'string' },
+            description: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Create a script by id. Prefer namedArgs { scriptId, scriptData } and optionally scriptName.',
+  },
+  'script.updateScript': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'scriptId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Script UUID to update.',
+        examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
+      },
+      {
+        name: 'scriptData',
+        type: 'ScriptSkeleton',
+        required: true,
+        position: 1,
+        description:
+          'Script payload object. For JavaScript, provide script as plain text or base64 and set context/language.',
+        schema: {
+          type: 'object',
+          properties: {
+            context: { type: 'string' },
+            language: { type: 'string' },
+            script: { type: 'string' },
+            description: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Update (or upsert) a script by id. Prefer namedArgs { scriptId, scriptData }.',
+  },
 
   // ── IDM managed objects ─────────────────────────────────────────────────────
   // Covers all idm.managed.* methods (createManagedObject, readManagedObject,

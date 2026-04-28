@@ -756,6 +756,10 @@ async function invokeGenericDescriptorMethod(
   descriptor: McpCapabilityDescriptor,
   args: McpGenericExecutionArguments
 ): Promise<unknown> {
+  if (descriptor.id === 'script.createScript') {
+    return invokeScriptCreate(scopedFrodo, args, descriptor);
+  }
+
   if (descriptor.id === 'idm.managed.queryManagedObjects') {
     return invokeManagedObjectSearchPage(scopedFrodo, args, descriptor);
   }
@@ -765,6 +769,39 @@ async function invokeGenericDescriptorMethod(
     descriptor,
     toInvocationArgs(args, descriptor)
   );
+}
+
+async function invokeScriptCreate(
+  scopedFrodo: Frodo,
+  args: McpGenericExecutionArguments,
+  descriptor: McpCapabilityDescriptor
+): Promise<unknown> {
+  const invocationArgs = toInvocationArgs(args, descriptor);
+
+  const scriptId = invocationArgs[0] as string | undefined;
+  const requestedScriptName = invocationArgs[1] as string | undefined;
+  const scriptData = invocationArgs[2] as unknown;
+  if (!scriptId || typeof scriptId !== 'string') {
+    throw new FrodoError(
+      "MCP runtime error: descriptor 'script.createScript' requires namedArgs.scriptId."
+    );
+  }
+  if (!scriptData || typeof scriptData !== 'object') {
+    throw new FrodoError(
+      "MCP runtime error: descriptor 'script.createScript' requires namedArgs.scriptData as an object."
+    );
+  }
+
+  const scriptName =
+    typeof requestedScriptName === 'string' && requestedScriptName.length > 0
+      ? requestedScriptName
+      : scriptId;
+
+  return invokeDescriptorMethod(scopedFrodo, descriptor, [
+    scriptId,
+    scriptName,
+    scriptData,
+  ]);
 }
 
 async function invokeManagedObjectSearchPage(

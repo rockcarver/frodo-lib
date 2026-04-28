@@ -237,6 +237,116 @@ describe('MCP tool runtime', () => {
     expect(result.data).toEqual({ id: 'node-123', type: 'PageNode' });
   });
 
+  test('defaults scriptName to scriptId for script.createScript named args', async () => {
+    const descriptor = makeDescriptor({
+      id: 'script.createScript',
+      toolName: 'frodo.script.createScript',
+      methodName: 'createScript',
+      modulePath: ['script'],
+      domain: 'script',
+      objectType: 'Script',
+      operationType: 'create',
+      argumentMode: 'named',
+      parameters: [
+        {
+          name: 'scriptId',
+          type: 'string',
+          required: true,
+          position: 0,
+        },
+        {
+          name: 'scriptName',
+          type: 'string',
+          required: false,
+          position: 1,
+        },
+        {
+          name: 'scriptData',
+          type: 'ScriptSkeleton',
+          required: true,
+          position: 2,
+        },
+      ],
+    } as any);
+
+    const manifest: McpToolManifest = {
+      genericTools: [
+        {
+          toolName: 'frodo_create',
+          operationType: 'create',
+          description: 'Create object.',
+          annotations: descriptor.annotations,
+          riskClass: descriptor.riskClass,
+          supportedObjectTypes: [
+            {
+              domain: descriptor.domain,
+              objectType: descriptor.objectType,
+              descriptorId: descriptor.id,
+              methodName: descriptor.methodName,
+              sourcePath: descriptor.id,
+              riskClass: descriptor.riskClass,
+              annotations: descriptor.annotations,
+            },
+          ],
+        },
+      ],
+      specialTools: [],
+      discoveryTool: {
+        toolName: 'frodo_discover',
+        description: 'Discover tool surface.',
+        domains: ['script'],
+        objectTypesByDomain: { script: ['Script'] },
+        operationsByType: { create: ['script.Script'] },
+        operationDetailsByType: {},
+      },
+      backingDescriptorCount: 1,
+      totalToolCount: 2,
+    };
+
+    const createScript = jest.fn(async () => ({ _id: 'mcp-script-1' }));
+
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          login: { getTokens: jest.fn(async () => {}) },
+          script: {
+            createScript,
+          },
+        }) as any,
+    });
+
+    const scriptData = {
+      context: 'OAUTH2_MAY_ACT',
+      language: 'JAVASCRIPT',
+      script: 'KGZ1bmN0aW9uICgpIHtyZXR1cm4gdHJ1ZTt9KCk7',
+    };
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_create',
+      arguments: {
+        domain: 'script',
+        objectType: 'Script',
+        namedArgs: {
+          scriptId: 'mcp-script-1',
+          scriptData,
+        },
+      },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: {},
+        },
+      },
+    });
+
+    expect(createScript).toHaveBeenCalledWith(
+      'mcp-script-1',
+      'mcp-script-1',
+      scriptData
+    );
+    expect(result.data).toEqual({ _id: 'mcp-script-1' });
+  });
+
   test('rejects positional args for named-only generic contracts', async () => {
     const descriptor = makeDescriptor({
       id: 'authn.node.readNode',
