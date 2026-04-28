@@ -64,6 +64,22 @@ describe('composeCapabilityPolicy', () => {
     expect(policy.includeSpecial).toBe(false);
     expect(policy.denyDomains).toEqual(['state']);
   });
+
+  test('agentic preset excludes import and export operations', () => {
+    const policy = composeCapabilityPolicy('agentic');
+
+    expect(policy.name).toBe('agentic');
+    expect(policy.allowOperationTypes).toEqual([
+      'create',
+      'count',
+      'read',
+      'update',
+      'search',
+      'list',
+    ]);
+    expect(policy.denyOperationTypes).toEqual(['delete', 'import', 'export']);
+    expect(policy.includeSpecial).toBe(true);
+  });
 });
 
 describe('createMcpService', () => {
@@ -165,6 +181,18 @@ describe('createMcpService', () => {
     expect(service.manifest.totalToolCount).toBe(1);
     expect(service.listTools()).toHaveLength(1);
     expect(service.listTools()[0].name).toBe('frodo_discover');
+  });
+
+  test('agentic policy does not expose import or export generic tools', () => {
+    const service = createMcpService({
+      inventoryOptions: { includeTopLevelDomains: ['authn'] },
+      policyPreset: 'agentic',
+    });
+
+    const toolNames = service.listTools().map((tool) => tool.name);
+    expect(toolNames).not.toContain('frodo_export');
+    expect(toolNames).not.toContain('frodo_import');
+    expect(toolNames).toContain('frodo_read');
   });
 
   test('builds from explicit descriptor fixture through custom runtime resolver', async () => {

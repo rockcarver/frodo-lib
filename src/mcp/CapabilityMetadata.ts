@@ -293,11 +293,45 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           'Optional page size hint forwarded from the generic pageSize control.',
         examples: [100, 250],
       },
+      {
+        name: 'pageCookie',
+        type: 'string',
+        required: false,
+        position: 4,
+        description:
+          'Paged-results cookie. The generic pageToken control maps to this parameter.',
+        examples: ['opaque-cookie-token'],
+      },
     ],
     supportsRealm: true,
     supportsPaging: true,
+    supportsIncludeTotal: true,
     notes:
-      'Search managed objects with explicit type + filter. Generic pageSize is forwarded to the underlying IDM query.',
+      'Search managed objects with explicit type + filter. Generic pageSize and pageToken are forwarded to the underlying IDM query.',
+  },
+  'idm.managed.countManagedObjects': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'filter',
+        type: 'string',
+        required: false,
+        position: 1,
+        description: 'Optional IDM query filter such as userName sw "a".',
+        examples: ['userName sw "a"'],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Count managed objects with explicit type and optional filter. For exact totals in cloud/forgeops deployments, prefer this over AM user counting.',
   },
   'idm.system.queryAllSystemObjectIds': {
     argumentMode: 'named',
