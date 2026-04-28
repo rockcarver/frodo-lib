@@ -302,8 +302,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
-    notes:
-      'Update a custom node with namedArgs { nodeId, nodeData }.',
+    notes: 'Update a custom node with namedArgs { nodeId, nodeData }.',
   },
   'authn.node.deleteCustomNode': {
     argumentMode: 'named',
@@ -732,8 +731,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
-    notes:
-      'Create a connector with namedArgs { connectorId, connectorData }.',
+    notes: 'Create a connector with namedArgs { connectorId, connectorData }.',
   },
   'idm.connector.updateConnector': {
     argumentMode: 'named',
@@ -756,8 +754,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
-    notes:
-      'Update a connector with namedArgs { connectorId, connectorData }.',
+    notes: 'Update a connector with namedArgs { connectorId, connectorData }.',
   },
   'idm.managed.createManagedObject': {
     argumentMode: 'named',
@@ -824,8 +821,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
-    notes:
-      'Read a managed object with namedArgs { type, id, fields }.',
+    notes: 'Read a managed object with namedArgs { type, id, fields }.',
   },
   'idm.managed.updateManagedObject': {
     argumentMode: 'named',
@@ -856,8 +852,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
-    notes:
-      'Update a managed object with namedArgs { type, id, moData }.',
+    notes: 'Update a managed object with namedArgs { type, id, moData }.',
   },
   'idm.managed.updateManagedObjectProperties': {
     argumentMode: 'named',
@@ -888,7 +883,9 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           type: 'array',
           items: { type: 'object', additionalProperties: true },
         },
-        examples: [[{ operation: 'replace', field: '/mail', value: 'a@example.com' }]],
+        examples: [
+          [{ operation: 'replace', field: '/mail', value: 'a@example.com' }],
+        ],
       },
       {
         name: 'rev',
@@ -926,12 +923,15 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'PatchOperationInterface[]',
         required: true,
         position: 2,
-        description: 'JSON patch-style operations applied to all matching objects.',
+        description:
+          'JSON patch-style operations applied to all matching objects.',
         schema: {
           type: 'array',
           items: { type: 'object', additionalProperties: true },
         },
-        examples: [[{ operation: 'replace', field: '/mail', value: 'a@example.com' }]],
+        examples: [
+          [{ operation: 'replace', field: '/mail', value: 'a@example.com' }],
+        ],
       },
       {
         name: 'rev',
@@ -976,8 +976,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
-    notes:
-      'Delete a managed object with namedArgs { type, id }.',
+    notes: 'Delete a managed object with namedArgs { type, id }.',
   },
   'idm.managed.deleteManagedObjects': {
     argumentMode: 'named',
@@ -1000,8 +999,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
-    notes:
-      'Delete multiple managed objects with namedArgs { type, filter }.',
+    notes: 'Delete multiple managed objects with namedArgs { type, filter }.',
   },
   'idm.mapping.createMapping': {
     argumentMode: 'named',
@@ -1024,8 +1022,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
-    notes:
-      'Create a mapping with namedArgs { mappingId, mappingData }.',
+    notes: 'Create a mapping with namedArgs { mappingId, mappingData }.',
   },
   'idm.mapping.updateMapping': {
     argumentMode: 'named',
@@ -1048,8 +1045,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
-    notes:
-      'Update a mapping with namedArgs { mappingId, mappingData }.',
+    notes: 'Update a mapping with namedArgs { mappingId, mappingData }.',
   },
   'idm.system.readSystemObject': {
     argumentMode: 'named',
@@ -1167,7 +1163,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'boolean',
         required: false,
         position: 4,
-        description: 'Set true to fail instead of upserting when the object already exists.',
+        description:
+          'Set true to fail instead of upserting when the object already exists.',
         defaultValue: false,
         examples: [false, true],
       },
@@ -1208,12 +1205,15 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'SystemObjectPatchOperationInterface[]',
         required: true,
         position: 3,
-        description: 'JSON patch-style operations for the target connector object.',
+        description:
+          'JSON patch-style operations for the target connector object.',
         schema: {
           type: 'array',
           items: { type: 'object', additionalProperties: true },
         },
-        examples: [[{ operation: 'replace', field: '/mail', value: 'a@example.com' }]],
+        examples: [
+          [{ operation: 'replace', field: '/mail', value: 'a@example.com' }],
+        ],
       },
     ],
     supportsRealm: true,
@@ -1545,7 +1545,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'string',
         required: true,
         position: 0,
-        description: 'Social identity provider type, for example Google or Facebook.',
+        description:
+          'Social identity provider type, for example Google or Facebook.',
         examples: ['Google'],
       },
       {
@@ -1580,7 +1581,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'string',
         required: true,
         position: 0,
-        description: 'Social identity provider type, for example Google or Facebook.',
+        description:
+          'Social identity provider type, for example Google or Facebook.',
         examples: ['Google'],
       },
       {

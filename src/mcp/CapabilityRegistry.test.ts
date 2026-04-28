@@ -258,9 +258,11 @@ describe('MCP capability foundation', () => {
     const updateNode = byId.get('authn.node.updateNode');
     expect(updateNode).toBeDefined();
     expect(updateNode?.argumentMode).toBe('named');
-    expect(updateNode?.parameters?.map((parameter) => parameter.name)).toEqual(
-      ['nodeId', 'nodeType', 'nodeData']
-    );
+    expect(updateNode?.parameters?.map((parameter) => parameter.name)).toEqual([
+      'nodeId',
+      'nodeType',
+      'nodeData',
+    ]);
 
     const readCustomNode = byId.get('authn.node.readCustomNode');
     expect(readCustomNode).toBeDefined();
