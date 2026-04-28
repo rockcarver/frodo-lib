@@ -11,6 +11,7 @@ import {
   getAgentsByType,
   putAgentByTypeAndId,
   putAgentGroupByTypeAndId,
+  getAgentTypes,
 } from '../api/AgentApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
@@ -23,6 +24,11 @@ import {
 import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
+import {
+  readManagedObject,
+  readManagedObjects,
+  readManagedObjectSchema,
+} from './ManagedObjectOps';
 import { type ExportMetaData } from './OpsTypes';
 
 export type Agent = {
@@ -31,6 +37,11 @@ export type Agent = {
    * @returns {AgentExportInterface} an empty agent export template
    */
   createAgentExportTemplate(): AgentExportInterface;
+  /**
+   * Read all agent types.
+   * @returns {Promise<AgentType[]>} a promise that resolves to an array of agent type strings
+   */
+  readAgentTypes(): Promise<AgentType[]>;
   /**
    * Read all agents.
    * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
@@ -175,6 +186,42 @@ export type Agent = {
     agentData: AgentSkeleton
   ): Promise<AgentSkeleton>;
   /**
+   * Read AI agents
+   * @param {boolean} includeAgentIdentity whether to include related AI agent identity details
+   * @returns {Promise<AgentSkeleton[]>} a promise that resolves to an array of AIAgent objects
+   */
+  readAIAgents(includeAgentIdentity?: boolean): Promise<AgentSkeleton[]>;
+  /**
+   * Read AI agent
+   * @param {string} agentId AI agent id
+   * @param {boolean} includeAgentIdentity whether to include related AI agent identity details
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an AIAgent object
+   */
+  readAIAgent(
+    agentId: string,
+    includeAgentIdentity?: boolean
+  ): Promise<AgentSkeleton>;
+  /**
+   * Create AI agent
+   * @param {string} agentId AI agent id
+   * @param {AgentSkeleton} agentData AIAgent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an AIAgent object
+   */
+  createAIAgent(
+    agentId: string,
+    agentData: AgentSkeleton
+  ): Promise<AgentSkeleton>;
+  /**
+   * Update or create AI agent
+   * @param {string} agentId AI agent id
+   * @param {AgentSkeleton} agentData AIAgent object
+   * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an AIAgent object
+   */
+  updateAIAgent(
+    agentId: string,
+    agentData: AgentSkeleton
+  ): Promise<AgentSkeleton>;
+  /**
    * Export all agents. The response can be saved to file as is.
    * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
    * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
@@ -195,6 +242,11 @@ export type Agent = {
    * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
    */
   exportWebAgents(): Promise<AgentExportInterface>;
+  /**
+   * Export all AI agents. The response can be saved to file as is.
+   * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
+   */
+  exportAIAgents(): Promise<AgentExportInterface>;
   /**
    * Export agent. The response can be saved to file as is.
    * @param agentId agent id/name
@@ -223,6 +275,12 @@ export type Agent = {
    * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
    */
   exportWebAgent(agentId: string): Promise<AgentExportInterface>;
+  /**
+   * Export AI agent. The response can be saved to file as is.
+   * @param agentId agent id/name
+   * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
+   */
+  exportAIAgent(agentId: string): Promise<AgentExportInterface>;
   /**
    * Import agents. The import data is usually read from an agent export file.
    * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
@@ -256,6 +314,11 @@ export type Agent = {
    * @param {AgentExportInterface} importData agent import data.
    */
   importWebAgents(importData: AgentExportInterface): Promise<void>;
+  /**
+   * Import AI agents. The import data is usually read from an agent export file.
+   * @param {AgentExportInterface} importData agent import data.
+   */
+  importAIAgents(importData: AgentExportInterface): Promise<void>;
   /**
    * Import agent. The import data is usually read from an agent export file.
    * @param {string} agentId agent id/name
@@ -309,6 +372,16 @@ export type Agent = {
     importData: AgentExportInterface
   ): Promise<AgentSkeleton>;
   /**
+   * Import AI agent. The import data is usually read from an agent export file.
+   * @param {string} agentId agent id/name
+   * @param {AgentExportInterface} importData agent import data.
+   * @returns {Promise<AgentSkeleton>} Promise resolving to an agent object.
+   */
+  importAIAgent(
+    agentId: string,
+    importData: AgentExportInterface
+  ): Promise<AgentSkeleton>;
+  /**
    * Delete all agents
    */
   deleteAgents(): Promise<void>;
@@ -340,16 +413,28 @@ export type Agent = {
    */
   deleteWebAgents(): Promise<void>;
   /**
+   * Delete all AI agents
+   */
+  deleteAIAgents(): Promise<void>;
+  /**
    * Delete web agent
    * @param agentId agent id/name
    */
   deleteWebAgent(agentId: string): Promise<void>;
+  /**
+   * Delete AI agent
+   * @param agentId agent id/name
+   */
+  deleteAIAgent(agentId: string): Promise<void>;
 };
 
 export default (state: State): Agent => {
   return {
     createAgentExportTemplate(): AgentExportInterface {
       return createAgentExportTemplate({ state });
+    },
+    async readAgentTypes(): Promise<AgentType[]> {
+      return readAgentTypes({ state });
     },
     async readAgents(globalConfig = false): Promise<AgentSkeleton[]> {
       return readAgents({ state, globalConfig });
@@ -445,6 +530,27 @@ export default (state: State): Agent => {
     ): Promise<AgentSkeleton> {
       return updateWebAgent({ agentId, agentData, state });
     },
+    async readAIAgents(includeAgentIdentity = true): Promise<AgentSkeleton[]> {
+      return readAIAgents({ includeAgentIdentity, state });
+    },
+    async readAIAgent(
+      agentId: string,
+      includeAgentIdentity = true
+    ): Promise<AgentSkeleton> {
+      return readAIAgent({ agentId, includeAgentIdentity, state });
+    },
+    async createAIAgent(
+      agentId: string,
+      agentData: AgentSkeleton
+    ): Promise<AgentSkeleton> {
+      return createAIAgent({ agentId, agentData, state });
+    },
+    async updateAIAgent(
+      agentId: string,
+      agentData: AgentSkeleton
+    ): Promise<AgentSkeleton> {
+      return updateAIAgent({ agentId, agentData, state });
+    },
     async exportAgents(globalConfig = false): Promise<AgentExportInterface> {
       return exportAgents({ state, globalConfig });
     },
@@ -456,6 +562,9 @@ export default (state: State): Agent => {
     },
     async exportWebAgents(): Promise<AgentExportInterface> {
       return exportWebAgents({ state });
+    },
+    async exportAIAgents(): Promise<AgentExportInterface> {
+      return exportAIAgents({ state });
     },
     async exportAgent(
       agentId: string,
@@ -473,6 +582,9 @@ export default (state: State): Agent => {
     },
     async exportWebAgent(agentId: string): Promise<AgentExportInterface> {
       return exportWebAgent({ agentId, state });
+    },
+    async exportAIAgent(agentId: string): Promise<AgentExportInterface> {
+      return exportAIAgent({ agentId, state });
     },
     async importAgents(
       importData: AgentExportInterface,
@@ -495,6 +607,9 @@ export default (state: State): Agent => {
     },
     async importWebAgents(importData: AgentExportInterface): Promise<void> {
       return importWebAgents({ importData, state });
+    },
+    async importAIAgents(importData: AgentExportInterface): Promise<void> {
+      return importAIAgents({ importData, state });
     },
     async importAgent(
       agentId: string,
@@ -525,6 +640,9 @@ export default (state: State): Agent => {
     async importWebAgent(agentId: string, importData: AgentExportInterface) {
       return importWebAgent({ agentId, importData, state });
     },
+    async importAIAgent(agentId: string, importData: AgentExportInterface) {
+      return importAIAgent({ agentId, importData, state });
+    },
     async deleteAgents() {
       return deleteAgents({ state });
     },
@@ -546,8 +664,14 @@ export default (state: State): Agent => {
     async deleteWebAgents() {
       return deleteWebAgents({ state });
     },
+    async deleteAIAgents() {
+      return deleteAIAgents({ state });
+    },
     async deleteWebAgent(agentId: string) {
       return deleteWebAgent({ agentId, state });
+    },
+    async deleteAIAgent(agentId: string) {
+      return deleteAIAgent({ agentId, state });
     },
   };
 };
@@ -564,6 +688,7 @@ export interface AgentGroupExportInterface {
 
 const agentTypes: AgentType[] = [
   '2.2_Agent',
+  'AIAgent',
   'IdentityGatewayAgent',
   'J2EEAgent',
   'OAuth2Thing',
@@ -602,6 +727,37 @@ export function createAgentGroupExportTemplate({
     meta: getMetadata({ state }),
     agentGroup: {},
   } as AgentGroupExportInterface;
+}
+
+/**
+ * Get all agents. Results are sorted alphabetically.
+ * @returns {Promise<string[]>} a promise that resolves to an array of agent types
+ */
+export async function readAgentTypes({
+  state,
+}: {
+  state: State;
+}): Promise<AgentType[]> {
+  try {
+    debugMessage({ message: `AgentOps.readAgentTypes: start`, state });
+    const agentTypes: AgentType[] = await getAgentTypes({ state });
+    debugMessage({ message: `AgentOps.readAgentTypes: end`, state });
+    return agentTypes;
+  } catch (error) {
+    if (
+      (error.response?.status === 403 &&
+        error.response?.data?.message ===
+          'This operation is not available in PingOne Advanced Identity Cloud.') ||
+      error.response?.status === 404
+    ) {
+      return [];
+    } else {
+      throw new FrodoError(
+        `Error reading ${getCurrentRealmName(state) + ' realm'} agent types`,
+        error
+      );
+    }
+  }
 }
 
 /**
@@ -1283,6 +1439,204 @@ export async function updateWebAgent({
 }
 
 /**
+ * Get AI agents
+ * @returns {Promise} a promise that resolves to an array of AIAgent objects
+ */
+export async function readAIAgents({
+  state,
+  includeAgentIdentity = true,
+}: {
+  includeAgentIdentity?: boolean;
+  state: State;
+}) {
+  try {
+    debugMessage({ message: `AgentOps.readAIAgents: start`, state });
+    const { result } = await getAgentsByType({
+      agentType: 'AIAgent',
+      state,
+    });
+    if (includeAgentIdentity) {
+      switch (state.getDeploymentType()) {
+        case Constants.CLOUD_DEPLOYMENT_TYPE_KEY:
+        case Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY: {
+          // also read agent identity and privileges from IDM and merge into result
+          const aiAgentIdentitySchema = await readManagedObjectSchema({
+            type: `${getCurrentRealmName(state)}_aiagent`,
+            state,
+          });
+          const aiAgentIdentities = await readManagedObjects({
+            type: `${getCurrentRealmName(state)}_aiagent`,
+            fields: aiAgentIdentitySchema
+              ? Object.keys(aiAgentIdentitySchema.properties)
+              : ['*'],
+            state,
+          });
+          for (const agent of result) {
+            if (agent['aiAgentIdentityUid']) {
+              const aiAgentIdentity = aiAgentIdentities.find(
+                (i) => i._id === agent['aiAgentIdentityUid']
+              );
+              if (aiAgentIdentity) {
+                agent._aiAgentIdentity = aiAgentIdentity;
+              }
+            }
+          }
+          break;
+        }
+        case Constants.CLASSIC_DEPLOYMENT_TYPE_KEY:
+        default:
+          break;
+      }
+    }
+    debugMessage({ message: `AgentOps.readAIAgents: end`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} AI agents`,
+      error
+    );
+  }
+}
+
+/**
+ * Get AI agent
+ * @param {string} agentId AI agent id
+ * @returns {Promise} a promise that resolves to an object containing an AIAgent object
+ */
+export async function readAIAgent({
+  agentId,
+  includeAgentIdentity = true,
+  state,
+}: {
+  agentId: string;
+  includeAgentIdentity?: boolean;
+  state: State;
+}) {
+  try {
+    debugMessage({ message: `AgentOps.readAIAgent: start`, state });
+    const result = await readAgentByTypeAndId({
+      agentType: 'AIAgent',
+      agentId,
+      state,
+    });
+    if (includeAgentIdentity) {
+      switch (state.getDeploymentType()) {
+        case Constants.CLOUD_DEPLOYMENT_TYPE_KEY:
+        case Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY: {
+          // also read agent identity and privileges from IDM and merge into result
+          if (
+            result['aiAgentIdentityUid'] &&
+            result['aiAgentIdentityUid']['value']
+          ) {
+            const aiAgentIdentitySchema = await readManagedObjectSchema({
+              type: `${getCurrentRealmName(state)}_aiagent`,
+              state,
+            });
+            const aiAgentIdentity = await readManagedObject({
+              type: `${getCurrentRealmName(state)}_aiagent`,
+              id: result['aiAgentIdentityUid']['value'] as string,
+              fields: aiAgentIdentitySchema
+                ? Object.keys(aiAgentIdentitySchema.properties)
+                : ['*'],
+              state,
+            });
+            result._aiAgentIdentity = aiAgentIdentity;
+          }
+          break;
+        }
+        case Constants.CLASSIC_DEPLOYMENT_TYPE_KEY:
+        default:
+          break;
+      }
+    }
+    debugMessage({ message: `AgentOps.readAIAgent: end`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading ${getCurrentRealmName(state) + ' realm'} AI agent ${agentId}`,
+      error
+    );
+  }
+}
+
+/**
+ * Create AI agent
+ * @param {string} agentId AI agent id
+ * @param {Object} agentData AI agent object
+ * @returns {Promise} a promise that resolves to an object containing an AI agent object
+ */
+export async function createAIAgent({
+  agentId,
+  agentData,
+  state,
+}: {
+  agentId: string;
+  agentData: AgentSkeleton;
+  state: State;
+}): Promise<AgentSkeleton> {
+  debugMessage({ message: `AgentOps.createAIAgent: start`, state });
+  try {
+    await readAIAgent({ agentId, state });
+    throw new FrodoError(`Agent ${agentId} already exists!`);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    try {
+      const result = await putAgentByTypeAndId({
+        agentType: 'AIAgent',
+        agentId,
+        agentData,
+        globalConfig: false,
+        state,
+      });
+      debugMessage({
+        message: `AgentOps.createAIAgent: end`,
+        state,
+      });
+      return result;
+    } catch (error) {
+      throw new FrodoError(
+        `Error creating ${getCurrentRealmName(state) + ' realm'} AI agent ${agentId}`,
+        error
+      );
+    }
+  }
+}
+
+/**
+ * Update or create AI agent
+ * @param {string} agentId AI agent id
+ * @param {Object} agentData AIAgent object
+ * @returns {Promise} a promise that resolves to an object containing an AIAgent object
+ */
+export async function updateAIAgent({
+  agentId,
+  agentData,
+  state,
+}: {
+  agentId: string;
+  agentData: AgentSkeleton;
+  state: State;
+}) {
+  try {
+    debugMessage({ message: `AgentOps.updateAIAgent: start`, state });
+    const result = await putAgentByTypeAndId({
+      agentType: 'AIAgent',
+      agentId,
+      agentData,
+      globalConfig: false,
+      state,
+    });
+    debugMessage({ message: `AgentOps.updateAIAgent: end`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(
+      `Error updating ${getCurrentRealmName(state) + ' realm'} AI agent ${agentId}`,
+      error
+    );
+  }
+}
+
+/**
  * Export all agents. The response can be saved to file as is.
  * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
  * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
@@ -1484,6 +1838,54 @@ export async function exportWebAgents({
 }
 
 /**
+ * Export all AI agents. The response can be saved to file as is.
+ * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
+ */
+export async function exportAIAgents({
+  state,
+}: {
+  state: State;
+}): Promise<AgentExportInterface> {
+  let indicatorId: string;
+  try {
+    debugMessage({ message: `AgentOps.exportAIAgents: start`, state });
+    const exportData = createAgentExportTemplate({ state });
+    const agents = await readAIAgents({ state });
+    indicatorId = createProgressIndicator({
+      total: agents.length,
+      message: `Exporting ${getCurrentRealmName(state) + ' realm'} AI agents...`,
+      state,
+    });
+    for (const agent of agents) {
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Exporting ${getCurrentRealmName(state) + ' realm'} AI agent ${agent._id}`,
+        state,
+      });
+      exportData.agent[agent._id] = agent;
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Exported ${agents.length} ${getCurrentRealmName(state) + ' realm'} AI agents.`,
+      state,
+    });
+    debugMessage({ message: `AgentOps.exportAIAgents: end`, state });
+    return exportData;
+  } catch (error) {
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Error exporting ${getCurrentRealmName(state) + ' realm'} AI agents`,
+      status: 'fail',
+      state,
+    });
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} AI agents`,
+      error
+    );
+  }
+}
+
+/**
  * Export agent. The response can be saved to file as is.
  * @param agentId agent id/name
  * @param {boolean} globalConfig true if global agent is the target of the operation, false otherwise. Default: false.
@@ -1598,6 +2000,33 @@ export async function exportWebAgent({
   } catch (error) {
     throw new FrodoError(
       `Error exporting ${getCurrentRealmName(state) + ' realm'} web agent ${agentId}`,
+      error
+    );
+  }
+}
+
+/**
+ * Export AI agent. The response can be saved to file as is.
+ * @param agentId agent id/name
+ * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
+ */
+export async function exportAIAgent({
+  agentId,
+  state,
+}: {
+  agentId: string;
+  state: State;
+}): Promise<AgentExportInterface> {
+  try {
+    debugMessage({ message: `AgentOps.exportAIAgent: start`, state });
+    const exportData = createAgentExportTemplate({ state });
+    const agentObject = await readAIAgent({ agentId, state });
+    exportData.agent[agentId] = agentObject;
+    debugMessage({ message: `AgentOps.exportAIAgent: end`, state });
+    return exportData;
+  } catch (error) {
+    throw new FrodoError(
+      `Error exporting ${getCurrentRealmName(state) + ' realm'} AI agent ${agentId}`,
       error
     );
   }
@@ -1927,6 +2356,63 @@ export async function importWebAgents({
 }
 
 /**
+ * Import AI agents. The import data is usually read from an agent export file.
+ * @param {AgentExportInterface} importData agent import data.
+ */
+export async function importAIAgents({
+  importData,
+  state,
+}: {
+  importData: AgentExportInterface;
+  state: State;
+}): Promise<void> {
+  const errors: Error[] = [];
+  try {
+    debugMessage({ message: `AgentOps.importAIAgents: start`, state });
+    for (const agentId of Object.keys(importData.agent)) {
+      let agentType: AgentType;
+      try {
+        agentType = importData.agent[agentId]._type._id as AgentType;
+        if (agentType !== 'AIAgent')
+          throw new FrodoError(
+            `Wrong agent type! Expected 'AIAgent' but got '${agentType}'.`
+          );
+        await putAgentByTypeAndId({
+          agentType,
+          agentId,
+          agentData: importData.agent[agentId],
+          globalConfig: false,
+          state,
+        });
+      } catch (error) {
+        errors.push(
+          new FrodoError(
+            `Error importing ${getCurrentRealmName(state) + ' realm'} agent ${agentId} of type ${agentType}`,
+            error
+          )
+        );
+      }
+    }
+    if (errors.length > 0) {
+      throw new FrodoError(
+        `Error importing ${getCurrentRealmName(state) + ' realm'} AI agents`,
+        errors
+      );
+    }
+    debugMessage({ message: `AgentOps.importAIAgents: end`, state });
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} AI agents`,
+      error
+    );
+  }
+}
+
+/**
  * Import agent. The import data is usually read from an agent export file.
  * @param {string} agentId agent id/name
  * @param {AgentExportInterface} importData agent import data.
@@ -2139,6 +2625,45 @@ export async function importWebAgent({
 }
 
 /**
+ * Import AI agent. The import data is usually read from an agent export file.
+ * @param {string} agentId agent id/name
+ * @param {AgentExportInterface} importData agent import data.
+ * @returns {Promise<AgentSkeleton>} Promise resolving to an agent object.
+ */
+export async function importAIAgent({
+  agentId,
+  importData,
+  state,
+}: {
+  agentId: string;
+  importData: AgentExportInterface;
+  state: State;
+}): Promise<AgentSkeleton> {
+  try {
+    debugMessage({ message: `AgentOps.importAIAgent: start`, state });
+    const agentType = importData.agent[agentId]?._type._id as AgentType;
+    if (agentType !== 'AIAgent')
+      throw new FrodoError(
+        `Wrong agent type! Expected 'AIAgent' but got '${agentType}'.`
+      );
+    const result = await putAgentByTypeAndId({
+      agentType,
+      agentId,
+      agentData: importData.agent[agentId],
+      globalConfig: false,
+      state,
+    });
+    debugMessage({ message: `AgentOps.importAIAgent: end`, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(
+      `Error importing ${getCurrentRealmName(state) + ' realm'} AI agent ${agentId}`,
+      error
+    );
+  }
+}
+
+/**
  * Delete all agents
  */
 export async function deleteAgents({ state }: { state: State }) {
@@ -2321,6 +2846,53 @@ export async function deleteWebAgents({ state }: { state: State }) {
 }
 
 /**
+ * Delete all AI agents
+ */
+export async function deleteAIAgents({ state }: { state: State }) {
+  const errors: Error[] = [];
+  try {
+    debugMessage({ message: `AgentOps.deleteAIAgents: start`, state });
+    const agents = await readAIAgents({ state });
+    for (const agent of agents) {
+      try {
+        debugMessage({
+          message: `AgentOps.deleteAIAgent: '${agent['_id']}'`,
+          state,
+        });
+        await deleteAgentByTypeAndId({
+          agentType: agent['_type']['_id'] as AgentType,
+          agentId: agent['_id'],
+          state,
+        });
+      } catch (error) {
+        errors.push(
+          new FrodoError(
+            `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+            error
+          )
+        );
+      }
+    }
+    if (errors.length > 0) {
+      throw new FrodoError(
+        `Error deleting ${getCurrentRealmName(state) + ' realm'} AI agents`,
+        errors
+      );
+    }
+    debugMessage({ message: `AgentOps.deleteAIAgents: end`, state });
+  } catch (error) {
+    // just re-throw previously caught errors
+    if (errors.length > 0) {
+      throw error;
+    }
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} AI agents`,
+      error
+    );
+  }
+}
+
+/**
  * Delete agent
  * @param agentId agent id/name
  */
@@ -2489,6 +3061,49 @@ export async function deleteWebAgent({
   } catch (error) {
     throw new FrodoError(
       `Error deleting ${getCurrentRealmName(state) + ' realm'} web agent ${agentId}`,
+      error
+    );
+  }
+}
+
+/**
+ * Delete AI agent
+ * @param agentId agent id/name
+ */
+export async function deleteAIAgent({
+  agentId,
+  state,
+}: {
+  agentId: string;
+  state: State;
+}) {
+  try {
+    debugMessage({ message: `AgentOps.deleteAIAgent: start`, state });
+    const agents = await findAgentByTypeAndId({
+      agentType: 'AIAgent',
+      agentId,
+      state,
+    });
+    if (agents.length == 0) {
+      throw new FrodoError(
+        `${getCurrentRealmName(state) + ' realm'} AI agent '${agentId}' not found!`
+      );
+    }
+    for (const agent of agents) {
+      debugMessage({
+        message: `AgentOps.deleteAIAgent: '${agent['_id']}'`,
+        state,
+      });
+      await deleteAgentByTypeAndId({
+        agentType: agent['_type']['_id'] as AgentType,
+        agentId: agent['_id'],
+        state,
+      });
+    }
+    debugMessage({ message: `AgentOps.deleteAIAgent: end`, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error deleting ${getCurrentRealmName(state) + ' realm'} AI agent ${agentId}`,
       error
     );
   }

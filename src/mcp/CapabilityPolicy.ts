@@ -26,6 +26,20 @@ export const MCP_POLICY_PRESETS: Record<
     denyOperationTypes: ['create', 'update', 'delete', 'import'],
     includeSpecial: false,
   },
+  agentic: {
+    name: 'agentic',
+    allowOperationTypes: [
+      'create',
+      'count',
+      'read',
+      'update',
+      'search',
+      'list',
+    ],
+    denyOperationTypes: ['delete', 'import', 'export'],
+    denyRiskClasses: ['critical'],
+    includeSpecial: true,
+  },
   standard: {
     name: 'standard',
     allowOperationTypes: [

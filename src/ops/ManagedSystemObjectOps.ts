@@ -9,17 +9,27 @@ import {
   DEFAULT_PAGE_SIZE,
   deleteManagedSystemObject as _deleteManagedSystemObject,
   getManagedSystemObject as _getManagedSystemObject,
+  getManagedSystemObjectSchema as _getManagedSystemObjectSchema,
   patchManagedSystemObject as _patchManagedSystemObject,
   putManagedSystemObject as _putManagedSystemObject,
   queryAllManagedSystemObjectsByType as _queryAllManagedSystemObjectsByType,
   queryManagedSystemObjects as _queryManagedSystemObjects,
 } from '../api/ManagedSystemObjectApi';
-import { getManagedObject as _getManagedObject } from '../api/ManagedObjectApi';
+import {
+  getManagedObject as _getManagedObject,
+  type ManagedObjectSchema,
+} from '../api/ManagedObjectApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { FrodoError } from './FrodoError';
 
 export type ManagedObject = {
+  /**
+   * Read managed system object schema
+   * @param {string} type managed system object type, e.g. svcacct or teammember
+   * @returns {Promise<ManagedObjectSchema>} a promise that resolves to a managed system object schema
+   */
+  readManagedSystemObjectSchema(type: string): Promise<ManagedObjectSchema>;
   /**
    * Create managed system object
    * @param {string} type managed system object type, e.g. teammember or alpha_user
@@ -156,6 +166,11 @@ export type ManagedObject = {
 
 export default (state: State): ManagedObject => {
   return {
+    async readManagedSystemObjectSchema(
+      type: string
+    ): Promise<ManagedObjectSchema> {
+      return readManagedSystemObjectSchema({ type, state });
+    },
     async createManagedSystemObject(
       type: string,
       moData: IdObjectSkeletonInterface,
@@ -256,6 +271,20 @@ export default (state: State): ManagedObject => {
     },
   };
 };
+
+export async function readManagedSystemObjectSchema({
+  type,
+  state,
+}: {
+  type: string;
+  state: State;
+}): Promise<ManagedObjectSchema> {
+  try {
+    return _getManagedSystemObjectSchema({ type, state });
+  } catch (error) {
+    throw new FrodoError(`Error reading managed ${type} schema`, error);
+  }
+}
 
 export async function createManagedSystemObject({
   type,

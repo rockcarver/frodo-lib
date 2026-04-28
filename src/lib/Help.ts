@@ -39,6 +39,14 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Agent",
+    methodName: "readAgentTypes",
+    signature: "readAgentTypes(): Promise<AgentType[]>",
+    description: "Read all agent types.",
+    params: [],
+    returns: "{Promise<AgentType[]>} a promise that resolves to an array of agent type strings",
+  },
+  {
+    typeName: "Agent",
     methodName: "readAgents",
     signature: "readAgents(globalConfig: boolean): Promise<AgentSkeleton[]>",
     description: "Read all agents.",
@@ -235,6 +243,49 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Agent",
+    methodName: "readAIAgents",
+    signature: "readAIAgents(includeAgentIdentity?: boolean): Promise<AgentSkeleton[]>",
+    description: "Read AI agents",
+    params: [
+      { name: "includeAgentIdentity", type: "boolean", description: "whether to include related AI agent identity details" },
+    ],
+    returns: "{Promise<AgentSkeleton[]>} a promise that resolves to an array of AIAgent objects",
+  },
+  {
+    typeName: "Agent",
+    methodName: "readAIAgent",
+    signature: "readAIAgent( agentId: string, includeAgentIdentity?: boolean ): Promise<AgentSkeleton>",
+    description: "Read AI agent",
+    params: [
+      { name: "agentId", type: "string", description: "AI agent id" },
+      { name: "includeAgentIdentity", type: "boolean", description: "whether to include related AI agent identity details" },
+    ],
+    returns: "{Promise<AgentSkeleton>} a promise that resolves to an object containing an AIAgent object",
+  },
+  {
+    typeName: "Agent",
+    methodName: "createAIAgent",
+    signature: "createAIAgent( agentId: string, agentData: AgentSkeleton ): Promise<AgentSkeleton>",
+    description: "Create AI agent",
+    params: [
+      { name: "agentId", type: "string", description: "AI agent id" },
+      { name: "agentData", type: "AgentSkeleton", description: "AIAgent object" },
+    ],
+    returns: "{Promise<AgentSkeleton>} a promise that resolves to an object containing an AIAgent object",
+  },
+  {
+    typeName: "Agent",
+    methodName: "updateAIAgent",
+    signature: "updateAIAgent( agentId: string, agentData: AgentSkeleton ): Promise<AgentSkeleton>",
+    description: "Update or create AI agent",
+    params: [
+      { name: "agentId", type: "string", description: "AI agent id" },
+      { name: "agentData", type: "AgentSkeleton", description: "AIAgent object" },
+    ],
+    returns: "{Promise<AgentSkeleton>} a promise that resolves to an object containing an AIAgent object",
+  },
+  {
+    typeName: "Agent",
     methodName: "exportAgents",
     signature: "exportAgents(globalConfig: boolean): Promise<AgentExportInterface>",
     description: "Export all agents. The response can be saved to file as is.",
@@ -264,6 +315,14 @@ export const helpMetadata: MethodHelpDoc[] = [
     methodName: "exportWebAgents",
     signature: "exportWebAgents(): Promise<AgentExportInterface>",
     description: "Export all web agents. The response can be saved to file as is.",
+    params: [],
+    returns: "{Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.",
+  },
+  {
+    typeName: "Agent",
+    methodName: "exportAIAgents",
+    signature: "exportAIAgents(): Promise<AgentExportInterface>",
+    description: "Export all AI agents. The response can be saved to file as is.",
     params: [],
     returns: "{Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.",
   },
@@ -303,6 +362,16 @@ export const helpMetadata: MethodHelpDoc[] = [
     methodName: "exportWebAgent",
     signature: "exportWebAgent(agentId: string): Promise<AgentExportInterface>",
     description: "Export web agent. The response can be saved to file as is.",
+    params: [
+      { name: "agentId", type: "", description: "agent id/name" },
+    ],
+    returns: "{Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.",
+  },
+  {
+    typeName: "Agent",
+    methodName: "exportAIAgent",
+    signature: "exportAIAgent(agentId: string): Promise<AgentExportInterface>",
+    description: "Export AI agent. The response can be saved to file as is.",
     params: [
       { name: "agentId", type: "", description: "agent id/name" },
     ],
@@ -361,6 +430,16 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Agent",
+    methodName: "importAIAgents",
+    signature: "importAIAgents(importData: AgentExportInterface): Promise<void>",
+    description: "Import AI agents. The import data is usually read from an agent export file.",
+    params: [
+      { name: "importData", type: "AgentExportInterface", description: "agent import data." },
+    ],
+    returns: "",
+  },
+  {
+    typeName: "Agent",
     methodName: "importAgent",
     signature: "importAgent( agentId: string, importData: AgentExportInterface, globalConfig: boolean ): Promise<AgentSkeleton>",
     description: "Import agent. The import data is usually read from an agent export file.",
@@ -409,6 +488,17 @@ export const helpMetadata: MethodHelpDoc[] = [
     methodName: "importWebAgent",
     signature: "importWebAgent( agentId: string, importData: AgentExportInterface ): Promise<AgentSkeleton>",
     description: "Import java agent. The import data is usually read from an agent export file.",
+    params: [
+      { name: "agentId", type: "string", description: "agent id/name" },
+      { name: "importData", type: "AgentExportInterface", description: "agent import data." },
+    ],
+    returns: "{Promise<AgentSkeleton>} Promise resolving to an agent object.",
+  },
+  {
+    typeName: "Agent",
+    methodName: "importAIAgent",
+    signature: "importAIAgent( agentId: string, importData: AgentExportInterface ): Promise<AgentSkeleton>",
+    description: "Import AI agent. The import data is usually read from an agent export file.",
     params: [
       { name: "agentId", type: "string", description: "agent id/name" },
       { name: "importData", type: "AgentExportInterface", description: "agent import data." },
@@ -479,9 +569,27 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Agent",
+    methodName: "deleteAIAgents",
+    signature: "deleteAIAgents(): Promise<void>",
+    description: "Delete all AI agents",
+    params: [],
+    returns: "",
+  },
+  {
+    typeName: "Agent",
     methodName: "deleteWebAgent",
     signature: "deleteWebAgent(agentId: string): Promise<void>",
     description: "Delete web agent",
+    params: [
+      { name: "agentId", type: "", description: "agent id/name" },
+    ],
+    returns: "",
+  },
+  {
+    typeName: "Agent",
+    methodName: "deleteAIAgent",
+    signature: "deleteAIAgent(agentId: string): Promise<void>",
+    description: "Delete AI agent",
     params: [
       { name: "agentId", type: "", description: "agent id/name" },
     ],
@@ -2175,6 +2283,16 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "ManagedObject",
+    methodName: "readManagedObjectSchema",
+    signature: "readManagedObjectSchema(type: string): Promise<ManagedObjectSchema>",
+    description: "Read managed object schema",
+    params: [
+      { name: "type", type: "string", description: "managed object type, e.g. alpha_user or user" },
+    ],
+    returns: "{Promise<ManagedObjectSchema>} a promise that resolves to a managed object schema",
+  },
+  {
+    typeName: "ManagedObject",
     methodName: "createManagedObject",
     signature: "createManagedObject( type: string, moData: IdObjectSkeletonInterface, id?: string ): Promise<IdObjectSkeletonInterface>",
     description: "Create managed object",
@@ -2323,6 +2441,16 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "id", type: "string", description: "managed object _id" },
     ],
     returns: "{Promise<string>} resolved perpetrator descriptive string or uuid if any error occurs during reslution",
+  },
+  {
+    typeName: "ManagedObject",
+    methodName: "readManagedSystemObjectSchema",
+    signature: "readManagedSystemObjectSchema(type: string): Promise<ManagedObjectSchema>",
+    description: "Read managed system object schema",
+    params: [
+      { name: "type", type: "string", description: "managed system object type, e.g. svcacct or teammember" },
+    ],
+    returns: "{Promise<ManagedObjectSchema>} a promise that resolves to a managed system object schema",
   },
   {
     typeName: "ManagedObject",
