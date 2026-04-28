@@ -79,6 +79,286 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'MCP callers should use namedArgs { nodeId, nodeType } to avoid swapping the required positional arguments.',
   },
+  'authn.journey.createJourney': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'journeyId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Journey identifier or name to create.',
+        examples: ['Example Journey'],
+      },
+      {
+        name: 'journeyData',
+        type: 'TreeSkeleton',
+        required: true,
+        position: 1,
+        description: 'Journey payload object.',
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Create a journey with namedArgs { journeyId, journeyData } so the target id and payload are explicit.',
+  },
+  'authn.journey.updateJourney': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'journeyId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Journey identifier or name to update.',
+        examples: ['Example Journey'],
+      },
+      {
+        name: 'journeyData',
+        type: 'TreeSkeleton',
+        required: true,
+        position: 1,
+        description: 'Journey payload object.',
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Update a journey with namedArgs { journeyId, journeyData } to avoid positional ambiguity.',
+  },
+  'authn.journey.deleteJourney': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'journeyId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Journey identifier or name to delete.',
+        examples: ['Example Journey'],
+      },
+      {
+        name: 'options',
+        type: 'DeleteJourneyOptions',
+        required: true,
+        position: 1,
+        description:
+          'Delete options controlling deep node cleanup, verbosity, and progress display.',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            deep: { type: 'boolean' },
+            verbose: { type: 'boolean' },
+            progress: { type: 'boolean' },
+          },
+        },
+        examples: [{ deep: false, verbose: false }],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Delete a journey with namedArgs { journeyId, options }. Set options.deep=true only when you intend to remove journey nodes as well.',
+  },
+  'authn.node.createNode': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'nodeType',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Node type, for example PageNode.',
+        examples: ['PageNode'],
+      },
+      {
+        name: 'nodeData',
+        type: 'NodeSkeleton',
+        required: true,
+        position: 1,
+        description: 'Node payload object.',
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Create a node with namedArgs { nodeType, nodeData } so node type and payload are explicit.',
+  },
+  'authn.node.updateNode': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'nodeId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Node UUID.',
+        examples: ['313597f3-2e86-4476-b899-17a0209f0386'],
+      },
+      {
+        name: 'nodeType',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Node type, for example PageNode.',
+        examples: ['PageNode'],
+      },
+      {
+        name: 'nodeData',
+        type: 'NodeSkeleton',
+        required: true,
+        position: 2,
+        description: 'Updated node payload object.',
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Update a node with namedArgs { nodeId, nodeType, nodeData } to preserve the UUID/type ordering.',
+  },
+  'authn.node.deleteNode': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'nodeId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Node UUID.',
+        examples: ['313597f3-2e86-4476-b899-17a0209f0386'],
+      },
+      {
+        name: 'nodeType',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Node type, for example PageNode.',
+        examples: ['PageNode'],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Delete a node with namedArgs { nodeId, nodeType } to avoid swapping the required positional arguments.',
+  },
+  'authn.node.readCustomNode': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'nodeId',
+        type: 'string',
+        required: false,
+        position: 0,
+        description:
+          'Custom node id or service name. Takes priority over nodeName when both are provided.',
+        examples: ['custom-node-service'],
+      },
+      {
+        name: 'nodeName',
+        type: 'string',
+        required: false,
+        position: 1,
+        description: 'Custom node display name.',
+        examples: ['My Custom Node'],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Read a custom node with either namedArgs { nodeId } or { nodeName }. If both are provided, nodeId wins.',
+  },
+  'authn.node.updateCustomNode': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'nodeId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Custom node id or service name.',
+        examples: ['custom-node-service'],
+      },
+      {
+        name: 'nodeData',
+        type: 'CustomNodeSkeleton',
+        required: true,
+        position: 1,
+        description: 'Custom node payload object.',
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Update a custom node with namedArgs { nodeId, nodeData }.',
+  },
+  'authn.node.deleteCustomNode': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'nodeId',
+        type: 'string',
+        required: false,
+        position: 0,
+        description:
+          'Custom node id or service name. Takes priority over nodeName when both are provided.',
+        examples: ['custom-node-service'],
+      },
+      {
+        name: 'nodeName',
+        type: 'string',
+        required: false,
+        position: 1,
+        description: 'Custom node display name.',
+        examples: ['My Custom Node'],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Delete a custom node with either namedArgs { nodeId } or { nodeName }. If both are provided, nodeId wins.',
+  },
+  'authn.settings.updateAuthenticationSettings': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'settings',
+        type: 'AuthenticationSettingsSkeleton',
+        required: true,
+        position: 0,
+        description: 'Authentication settings payload object.',
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+      {
+        name: 'globalConfig',
+        type: 'boolean',
+        required: false,
+        position: 1,
+        description:
+          'Set true to target global authentication settings instead of the active realm.',
+        defaultValue: false,
+        examples: [false, true],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Update authentication settings with namedArgs { settings, globalConfig }. globalConfig defaults to false.',
+  },
   'authn.journey.exportJourney': {
     argumentMode: 'named',
     scope: 'single',
@@ -333,6 +613,645 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Count managed objects with explicit type and optional filter. For exact totals in cloud/forgeops deployments, prefer this over AM user counting.',
   },
+  'idm.config.createConfigEntity': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'entityId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'IDM config entity id to create.',
+        examples: ['provisioner.openicf/ldap'],
+      },
+      {
+        name: 'entityData',
+        type: 'IdObjectSkeletonInterface',
+        required: true,
+        position: 1,
+        description: 'IDM config entity payload object.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+      {
+        name: 'wait',
+        type: 'boolean',
+        required: false,
+        position: 2,
+        description: 'Wait for async processing to complete when supported.',
+        defaultValue: false,
+        examples: [false, true],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Create a config entity with namedArgs { entityId, entityData, wait }. wait defaults to false.',
+  },
+  'idm.config.readSubConfigEntity': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'entityId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Parent IDM config entity id.',
+        examples: ['provisioner.openicf/ldap'],
+      },
+      {
+        name: 'name',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Sub-entity name to read from the parent entity.',
+        examples: ['configurationProperties'],
+      },
+      {
+        name: 'options',
+        type: 'ConfigEntityExportOptions',
+        required: false,
+        position: 2,
+        description: 'Optional export/read shaping options.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Read a named sub-entity with namedArgs { entityId, name, options }.',
+  },
+  'idm.config.updateConfigEntity': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'entityId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'IDM config entity id to update.',
+        examples: ['provisioner.openicf/ldap'],
+      },
+      {
+        name: 'entityData',
+        type: 'IdObjectSkeletonInterface',
+        required: true,
+        position: 1,
+        description: 'Updated IDM config entity payload object.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+      {
+        name: 'wait',
+        type: 'boolean',
+        required: false,
+        position: 2,
+        description: 'Wait for async processing to complete when supported.',
+        defaultValue: false,
+        examples: [false, true],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Update a config entity with namedArgs { entityId, entityData, wait }. wait defaults to false.',
+  },
+  'idm.connector.createConnector': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'connectorId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Connector id to create.',
+        examples: ['provisioner.openicf/ldap'],
+      },
+      {
+        name: 'connectorData',
+        type: 'ConnectorSkeleton',
+        required: true,
+        position: 1,
+        description: 'Connector payload object.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Create a connector with namedArgs { connectorId, connectorData }.',
+  },
+  'idm.connector.updateConnector': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'connectorId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Connector id to update.',
+        examples: ['provisioner.openicf/ldap'],
+      },
+      {
+        name: 'connectorData',
+        type: 'ConnectorSkeleton',
+        required: true,
+        position: 1,
+        description: 'Updated connector payload object.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Update a connector with namedArgs { connectorId, connectorData }.',
+  },
+  'idm.managed.createManagedObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: false,
+        position: 1,
+        description: 'Optional managed object id. Omit to let IDM assign one.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'moData',
+        type: 'IdObjectSkeletonInterface',
+        required: true,
+        position: 2,
+        description: 'Managed object payload object.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Create a managed object with namedArgs { type, id, moData }. id is optional.',
+  },
+  'idm.managed.readManagedObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id to read.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'fields',
+        type: 'string[]',
+        required: false,
+        position: 2,
+        description: 'Optional list of fields to return.',
+        schema: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        examples: [['userName', 'mail']],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Read a managed object with namedArgs { type, id, fields }.',
+  },
+  'idm.managed.updateManagedObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id to update.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'moData',
+        type: 'IdObjectSkeletonInterface',
+        required: true,
+        position: 2,
+        description: 'Updated managed object payload object.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Update a managed object with namedArgs { type, id, moData }.',
+  },
+  'idm.managed.updateManagedObjectProperties': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id to patch.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'operations',
+        type: 'PatchOperationInterface[]',
+        required: true,
+        position: 2,
+        description: 'JSON patch-style operations for the target object.',
+        schema: {
+          type: 'array',
+          items: { type: 'object', additionalProperties: true },
+        },
+        examples: [[{ operation: 'replace', field: '/mail', value: 'a@example.com' }]],
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 3,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Patch one managed object with namedArgs { type, id, operations, rev }.',
+  },
+  'idm.managed.updateManagedObjectsProperties': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'filter',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'IDM query filter selecting the objects to patch.',
+        examples: ['userName sw "a"'],
+      },
+      {
+        name: 'operations',
+        type: 'PatchOperationInterface[]',
+        required: true,
+        position: 2,
+        description: 'JSON patch-style operations applied to all matching objects.',
+        schema: {
+          type: 'array',
+          items: { type: 'object', additionalProperties: true },
+        },
+        examples: [[{ operation: 'replace', field: '/mail', value: 'a@example.com' }]],
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 3,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+      {
+        name: 'pageSize',
+        type: 'integer',
+        required: false,
+        position: 4,
+        description: 'Optional batch page size for large updates.',
+        defaultValue: 1000,
+        examples: [100, 1000],
+      },
+    ],
+    supportsRealm: true,
+    supportsPaging: true,
+    notes:
+      'Patch multiple managed objects with namedArgs { type, filter, operations, rev, pageSize }.',
+  },
+  'idm.managed.deleteManagedObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id to delete.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Delete a managed object with namedArgs { type, id }.',
+  },
+  'idm.managed.deleteManagedObjects': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'filter',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'IDM query filter selecting the objects to delete.',
+        examples: ['userName sw "a"'],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Delete multiple managed objects with namedArgs { type, filter }.',
+  },
+  'idm.mapping.createMapping': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'mappingId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Mapping id to create.',
+        examples: ['managedUser_systemLdapAccounts'],
+      },
+      {
+        name: 'mappingData',
+        type: 'MappingSkeleton',
+        required: true,
+        position: 1,
+        description: 'Mapping payload object.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Create a mapping with namedArgs { mappingId, mappingData }.',
+  },
+  'idm.mapping.updateMapping': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'mappingId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Mapping id to update.',
+        examples: ['managedUser_systemLdapAccounts'],
+      },
+      {
+        name: 'mappingData',
+        type: 'MappingSkeleton',
+        required: true,
+        position: 1,
+        description: 'Updated mapping payload object.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Update a mapping with namedArgs { mappingId, mappingData }.',
+  },
+  'idm.system.readSystemObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'systemName',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Connector/system name, for example ldap.',
+        examples: ['ldap'],
+      },
+      {
+        name: 'systemObjectType',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Connector object type, for example account.',
+        examples: ['account'],
+      },
+      {
+        name: 'systemObjectId',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'Connector object id to read.',
+        examples: ['uid=test,ou=people,dc=example,dc=com'],
+      },
+      {
+        name: 'fields',
+        type: 'string[]',
+        required: false,
+        position: 3,
+        description: 'Optional list of fields to return.',
+        schema: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        examples: [['uid', 'mail']],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Read a connector object with namedArgs { systemName, systemObjectType, systemObjectId, fields }.',
+  },
+  'idm.system.createSystemObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'systemName',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Connector/system name, for example ldap.',
+        examples: ['ldap'],
+      },
+      {
+        name: 'systemObjectType',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Connector object type, for example account.',
+        examples: ['account'],
+      },
+      {
+        name: 'systemObjectData',
+        type: 'IdObjectSkeletonInterface',
+        required: true,
+        position: 2,
+        description: 'Connector object payload.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Create a connector object with namedArgs { systemName, systemObjectType, systemObjectData }.',
+  },
+  'idm.system.updateSystemObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'systemName',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Connector/system name, for example ldap.',
+        examples: ['ldap'],
+      },
+      {
+        name: 'systemObjectType',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Connector object type, for example account.',
+        examples: ['account'],
+      },
+      {
+        name: 'systemObjectId',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'Connector object id to update.',
+        examples: ['uid=test,ou=people,dc=example,dc=com'],
+      },
+      {
+        name: 'systemObjectData',
+        type: 'IdObjectSkeletonInterface',
+        required: true,
+        position: 3,
+        description: 'Updated connector object payload.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+      {
+        name: 'failIfExists',
+        type: 'boolean',
+        required: false,
+        position: 4,
+        description: 'Set true to fail instead of upserting when the object already exists.',
+        defaultValue: false,
+        examples: [false, true],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Update a connector object with namedArgs { systemName, systemObjectType, systemObjectId, systemObjectData, failIfExists }.',
+  },
+  'idm.system.updateSystemObjectProperties': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'systemName',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Connector/system name, for example ldap.',
+        examples: ['ldap'],
+      },
+      {
+        name: 'systemObjectType',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Connector object type, for example account.',
+        examples: ['account'],
+      },
+      {
+        name: 'systemObjectId',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'Connector object id to patch.',
+        examples: ['uid=test,ou=people,dc=example,dc=com'],
+      },
+      {
+        name: 'operations',
+        type: 'SystemObjectPatchOperationInterface[]',
+        required: true,
+        position: 3,
+        description: 'JSON patch-style operations for the target connector object.',
+        schema: {
+          type: 'array',
+          items: { type: 'object', additionalProperties: true },
+        },
+        examples: [[{ operation: 'replace', field: '/mail', value: 'a@example.com' }]],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Patch a connector object with namedArgs { systemName, systemObjectType, systemObjectId, operations }.',
+  },
+  'idm.system.deleteSystemObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'systemName',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Connector/system name, for example ldap.',
+        examples: ['ldap'],
+      },
+      {
+        name: 'systemObjectType',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Connector object type, for example account.',
+        examples: ['account'],
+      },
+      {
+        name: 'systemObjectId',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'Connector object id to delete.',
+        examples: ['uid=test,ou=people,dc=example,dc=com'],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Delete a connector object with namedArgs { systemName, systemObjectType, systemObjectId }.',
+  },
   'idm.system.queryAllSystemObjectIds': {
     argumentMode: 'named',
     parameters: [
@@ -545,6 +1464,202 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     supportsRealm: true,
     notes:
       'Update (or upsert) a script by id. Prefer namedArgs { scriptId, scriptData }.',
+  },
+  'oauth2oidc.client.createOAuth2Client': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'clientId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'OAuth2 client id to create.',
+        examples: ['my-test-client'],
+      },
+      {
+        name: 'clientData',
+        type: 'OAuth2ClientSkeleton',
+        required: true,
+        position: 1,
+        description:
+          'OAuth2 client payload object including core/advanced override configuration.',
+        schema: {
+          type: 'object',
+          properties: {
+            coreOAuth2ClientConfig: { type: 'object' },
+            advancedOAuth2ClientConfig: { type: 'object' },
+            overrideOAuth2ClientConfig: { type: 'object' },
+            signEncOAuth2ClientConfig: { type: 'object' },
+            coreOpenIDClientConfig: { type: 'object' },
+            coreUmaClientConfig: { type: 'object' },
+          },
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Create an OAuth2 client. Prefer namedArgs { clientId, clientData } so the target id and payload are explicit.',
+  },
+  'oauth2oidc.client.updateOAuth2Client': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'clientId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'OAuth2 client id to update.',
+        examples: ['my-test-client'],
+      },
+      {
+        name: 'clientData',
+        type: 'OAuth2ClientSkeleton',
+        required: true,
+        position: 1,
+        description:
+          'OAuth2 client payload object including core/advanced override configuration.',
+        schema: {
+          type: 'object',
+          properties: {
+            coreOAuth2ClientConfig: { type: 'object' },
+            advancedOAuth2ClientConfig: { type: 'object' },
+            overrideOAuth2ClientConfig: { type: 'object' },
+            signEncOAuth2ClientConfig: { type: 'object' },
+            coreOpenIDClientConfig: { type: 'object' },
+            coreUmaClientConfig: { type: 'object' },
+          },
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Update or upsert an OAuth2 client. Prefer namedArgs { clientId, clientData } to avoid positional ambiguity.',
+  },
+  'oauth2oidc.external.createSocialIdentityProvider': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'providerType',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Social identity provider type, for example Google or Facebook.',
+        examples: ['Google'],
+      },
+      {
+        name: 'providerId',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Identity provider id or name to create.',
+        examples: ['my-google-idp'],
+      },
+      {
+        name: 'providerData',
+        type: 'SocialIdpSkeleton',
+        required: true,
+        position: 2,
+        description: 'Social identity provider payload object.',
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Create a social identity provider. Prefer namedArgs { providerType, providerId, providerData }.',
+  },
+  'oauth2oidc.external.updateSocialIdentityProvider': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'providerType',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Social identity provider type, for example Google or Facebook.',
+        examples: ['Google'],
+      },
+      {
+        name: 'providerId',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Identity provider id or name to update.',
+        examples: ['my-google-idp'],
+      },
+      {
+        name: 'providerData',
+        type: 'SocialIdpSkeleton',
+        required: true,
+        position: 2,
+        description: 'Social identity provider payload object.',
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Update or upsert a social identity provider. Prefer namedArgs { providerType, providerId, providerData }.',
+  },
+  'oauth2oidc.issuer.createOAuth2TrustedJwtIssuer': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'issuerId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Trusted JWT issuer id to create.',
+        examples: ['my-trusted-issuer'],
+      },
+      {
+        name: 'issuerData',
+        type: 'OAuth2TrustedJwtIssuerSkeleton',
+        required: true,
+        position: 1,
+        description: 'Trusted JWT issuer payload object.',
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Create a trusted JWT issuer. Prefer namedArgs { issuerId, issuerData }.',
+  },
+  'oauth2oidc.issuer.updateOAuth2TrustedJwtIssuer': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'issuerId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Trusted JWT issuer id to update.',
+        examples: ['my-trusted-issuer'],
+      },
+      {
+        name: 'issuerData',
+        type: 'OAuth2TrustedJwtIssuerSkeleton',
+        required: true,
+        position: 1,
+        description: 'Trusted JWT issuer payload object.',
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Update or upsert a trusted JWT issuer. Prefer namedArgs { issuerId, issuerData }.',
   },
 
   // ── IDM managed objects ─────────────────────────────────────────────────────

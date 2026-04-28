@@ -125,9 +125,9 @@ describe('MCP capability foundation', () => {
       'Policy'
     );
     // compound plural
-    expect(
-      inferObjectType('readScriptTypes', ['script'], 'list')
-    ).toBe('ScriptType');
+    expect(inferObjectType('readScriptTypes', ['script'], 'list')).toBe(
+      'ScriptType'
+    );
   });
 
   test('builds capability inventory for selected domains', () => {
@@ -137,9 +137,9 @@ describe('MCP capability foundation', () => {
     });
 
     expect(capabilities.length).toBeGreaterThan(0);
-    expect(capabilities.some((cap) => cap.id === 'authn.journey.readJourney')).toBe(
-      true
-    );
+    expect(
+      capabilities.some((cap) => cap.id === 'authn.journey.readJourney')
+    ).toBe(true);
     expect(capabilities.some((cap) => cap.id.startsWith('state.'))).toBe(false);
   });
 
@@ -173,22 +173,158 @@ describe('MCP capability foundation', () => {
     const createScript = byId.get('script.createScript');
     expect(createScript).toBeDefined();
     expect(createScript?.argumentMode).toBe('named');
-    expect(createScript?.parameters?.map((parameter) => parameter.name)).toEqual(
-      ['scriptId', 'scriptName', 'scriptData']
-    );
+    expect(
+      createScript?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['scriptId', 'scriptName', 'scriptData']);
 
     const updateScript = byId.get('script.updateScript');
     expect(updateScript).toBeDefined();
     expect(updateScript?.argumentMode).toBe('named');
-    expect(updateScript?.parameters?.map((parameter) => parameter.name)).toEqual(
-      ['scriptId', 'scriptData']
-    );
+    expect(
+      updateScript?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['scriptId', 'scriptData']);
 
     const readScript = byId.get('script.readScript');
     expect(readScript).toBeDefined();
     expect(readScript?.argumentMode).toBe('named');
     expect(readScript?.parameters?.map((parameter) => parameter.name)).toEqual([
       'scriptId',
+    ]);
+  });
+
+  test('exposes explicit oauth2oidc create/update contracts', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['oauth2oidc'],
+      includeUtils: false,
+    });
+
+    const byId = new Map(capabilities.map((cap) => [cap.id, cap]));
+
+    const createClient = byId.get('oauth2oidc.client.createOAuth2Client');
+    expect(createClient).toBeDefined();
+    expect(createClient?.argumentMode).toBe('named');
+    expect(
+      createClient?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['clientId', 'clientData']);
+
+    const updateClient = byId.get('oauth2oidc.client.updateOAuth2Client');
+    expect(updateClient).toBeDefined();
+    expect(updateClient?.argumentMode).toBe('named');
+    expect(
+      updateClient?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['clientId', 'clientData']);
+
+    const createExternal = byId.get(
+      'oauth2oidc.external.createSocialIdentityProvider'
+    );
+    expect(createExternal).toBeDefined();
+    expect(createExternal?.argumentMode).toBe('named');
+    expect(
+      createExternal?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['providerType', 'providerId', 'providerData']);
+
+    const updateIssuer = byId.get(
+      'oauth2oidc.issuer.updateOAuth2TrustedJwtIssuer'
+    );
+    expect(updateIssuer).toBeDefined();
+    expect(updateIssuer?.argumentMode).toBe('named');
+    expect(
+      updateIssuer?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['issuerId', 'issuerData']);
+  });
+
+  test('exposes explicit authn create/update/delete contracts', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['authn'],
+      includeUtils: false,
+    });
+
+    const byId = new Map(capabilities.map((cap) => [cap.id, cap]));
+
+    const createJourney = byId.get('authn.journey.createJourney');
+    expect(createJourney).toBeDefined();
+    expect(createJourney?.argumentMode).toBe('named');
+    expect(
+      createJourney?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['journeyId', 'journeyData']);
+
+    const deleteJourney = byId.get('authn.journey.deleteJourney');
+    expect(deleteJourney).toBeDefined();
+    expect(deleteJourney?.argumentMode).toBe('named');
+    expect(
+      deleteJourney?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['journeyId', 'options']);
+
+    const updateNode = byId.get('authn.node.updateNode');
+    expect(updateNode).toBeDefined();
+    expect(updateNode?.argumentMode).toBe('named');
+    expect(updateNode?.parameters?.map((parameter) => parameter.name)).toEqual(
+      ['nodeId', 'nodeType', 'nodeData']
+    );
+
+    const readCustomNode = byId.get('authn.node.readCustomNode');
+    expect(readCustomNode).toBeDefined();
+    expect(readCustomNode?.argumentMode).toBe('named');
+    expect(
+      readCustomNode?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['nodeId', 'nodeName']);
+
+    const updateAuthenticationSettings = byId.get(
+      'authn.settings.updateAuthenticationSettings'
+    );
+    expect(updateAuthenticationSettings).toBeDefined();
+    expect(updateAuthenticationSettings?.argumentMode).toBe('named');
+    expect(
+      updateAuthenticationSettings?.parameters?.map(
+        (parameter) => parameter.name
+      )
+    ).toEqual(['settings', 'globalConfig']);
+  });
+
+  test('exposes explicit idm create/read/update/delete contracts', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['idm'],
+      includeUtils: false,
+    });
+
+    const byId = new Map(capabilities.map((cap) => [cap.id, cap]));
+
+    const createConfigEntity = byId.get('idm.config.createConfigEntity');
+    expect(createConfigEntity).toBeDefined();
+    expect(createConfigEntity?.argumentMode).toBe('named');
+    expect(
+      createConfigEntity?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['entityId', 'entityData', 'wait']);
+
+    const readManagedObject = byId.get('idm.managed.readManagedObject');
+    expect(readManagedObject).toBeDefined();
+    expect(readManagedObject?.argumentMode).toBe('named');
+    expect(
+      readManagedObject?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['type', 'id', 'fields']);
+
+    const updateManagedObjectsProperties = byId.get(
+      'idm.managed.updateManagedObjectsProperties'
+    );
+    expect(updateManagedObjectsProperties).toBeDefined();
+    expect(updateManagedObjectsProperties?.argumentMode).toBe('named');
+    expect(
+      updateManagedObjectsProperties?.parameters?.map(
+        (parameter) => parameter.name
+      )
+    ).toEqual(['type', 'filter', 'operations', 'rev', 'pageSize']);
+
+    const updateSystemObject = byId.get('idm.system.updateSystemObject');
+    expect(updateSystemObject).toBeDefined();
+    expect(updateSystemObject?.argumentMode).toBe('named');
+    expect(
+      updateSystemObject?.parameters?.map((parameter) => parameter.name)
+    ).toEqual([
+      'systemName',
+      'systemObjectType',
+      'systemObjectId',
+      'systemObjectData',
+      'failIfExists',
     ]);
   });
 
@@ -212,38 +348,9 @@ describe('MCP capability foundation', () => {
       }
     >;
 
-    expect(summary).toMatchObject({
-      authn: {
-        total: 10,
-        byOperation: {
-          create: 2,
-          read: 1,
-          update: 4,
-          delete: 3,
-        },
-      },
-      idm: {
-        total: 19,
-        byOperation: {
-          create: 5,
-          read: 3,
-          update: 8,
-          delete: 3,
-        },
-      },
-      oauth2oidc: {
-        total: 6,
-        byOperation: {
-          create: 3,
-          update: 3,
-        },
-      },
-    });
-
-    expect(summary.authn.ids).toContain('authn.node.createNode');
-    expect(summary.idm.ids).toContain('idm.managed.updateManagedObject');
-    expect(summary.oauth2oidc.ids).toContain(
-      'oauth2oidc.client.createOAuth2Client'
-    );
+    expect(summary).toEqual({});
+    expect(summary.authn).toBeUndefined();
+    expect(summary.idm).toBeUndefined();
+    expect(summary.oauth2oidc).toBeUndefined();
   });
 });
