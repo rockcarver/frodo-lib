@@ -28,10 +28,13 @@ export type ManagedObject = {
   /**
    * Read managed object schema
    * @param {string} type managed object type, e.g. alpha_user or user
+   * @param {boolean} refreshCache whether to refresh the schema cache for the specified type
+   * @param {ManagedObjectSchemaOptions} options options to filter the returned schema
    * @returns {Promise<ManagedObjectSchema>} a promise that resolves to a managed object schema
    */
   readManagedObjectSchema(
     type: string,
+    refreshCache?: boolean,
     options?: ManagedObjectSchemaOptions
   ): Promise<ManagedObjectSchema>;
   /**
@@ -49,13 +52,13 @@ export type ManagedObject = {
    * Read managed object
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} id managed object id
-   * @param {string[]} id array of fields to include
+   * @param {string[]} fields array of fields to include
    * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface
    */
   readManagedObject(
     type: string,
     id: string,
-    fields: string[]
+    fields?: string[]
   ): Promise<IdObjectSkeletonInterface>;
   /**
    * Read all managed object of the specified type
@@ -65,7 +68,7 @@ export type ManagedObject = {
    */
   readManagedObjects(
     type: string,
-    fields: string[]
+    fields?: string[]
   ): Promise<IdObjectSkeletonInterface[]>;
   /**
    * Count managed objects of the specified type.
@@ -187,9 +190,10 @@ export default (state: State): ManagedObject => {
   return {
     async readManagedObjectSchema(
       type: string,
+      refreshCache: boolean = false,
       options: ManagedObjectSchemaOptions = {}
     ): Promise<ManagedObjectSchema> {
-      return readManagedObjectSchema({ type, options, state });
+      return readManagedObjectSchema({ type, refreshCache, options, state });
     },
     async createManagedObject(
       type: string,
@@ -304,6 +308,7 @@ const ManagedObjectSchemaCache: Record<string, ManagedObjectSchema> = {};
 export type ManagedObjectSchemaOptions = {
   excludeVirtual?: boolean;
   excludeRelationships?: boolean;
+  relationshipTypeFilter?: string[];
 };
 
 export async function readManagedObjectSchema({
@@ -312,6 +317,7 @@ export async function readManagedObjectSchema({
   options = {
     excludeVirtual: false,
     excludeRelationships: false,
+    relationshipTypeFilter: undefined,
   },
   state,
 }: {
@@ -360,11 +366,26 @@ export async function readManagedObjectSchema({
             schema.properties[prop]['items'] &&
             schema.properties[prop]['items']['type'] === 'relationship')
         ) {
-          debugMessage({
-            message: `ManagedObjectOps.readManagedObjectSchema: Excluding relationship property "${prop}" from schema for type "${type}"`,
-            state,
-          });
-          delete schema.properties[prop];
+          // apply relationship type filter if specified
+          const resourcePath =
+            schema.properties[prop]['properties']?.[
+              'resourceCollection'
+            ]?.[0]?.['path'] ||
+            schema.properties[prop]['items']?.['properties']?.[
+              'resourceCollection'
+            ]?.[0]?.['path'];
+          if (
+            !options.relationshipTypeFilter ||
+            options.relationshipTypeFilter.length === 0 ||
+            !resourcePath ||
+            !options.relationshipTypeFilter.includes(resourcePath.split('/')[1])
+          ) {
+            debugMessage({
+              message: `ManagedObjectOps.readManagedObjectSchema: Excluding relationship property "${prop}" from schema for type "${type}"`,
+              state,
+            });
+            delete schema.properties[prop];
+          }
         }
       }
     }

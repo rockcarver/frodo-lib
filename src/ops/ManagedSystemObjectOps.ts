@@ -25,14 +25,21 @@ import { State } from '../shared/State';
 import { FrodoError } from './FrodoError';
 import { debugMessage } from '../utils/Console';
 import { cloneDeep } from '../utils/JsonUtils';
+import { ManagedObjectSchemaOptions } from './ManagedObjectOps';
 
 export type ManagedObject = {
   /**
    * Read managed system object schema
    * @param {string} type managed system object type, e.g. svcacct or teammember
+   * @param {boolean} refreshCache whether to refresh the schema cache for the specified type
+   * @param {ManagedObjectSchemaOptions} options options to filter the returned schema
    * @returns {Promise<ManagedObjectSchema>} a promise that resolves to a managed system object schema
    */
-  readManagedSystemObjectSchema(type: string): Promise<ManagedObjectSchema>;
+  readManagedSystemObjectSchema(
+    type: string,
+    refreshCache?: boolean,
+    options?: ManagedObjectSchemaOptions
+  ): Promise<ManagedObjectSchema>;
   /**
    * Create managed system object
    * @param {string} type managed system object type, e.g. teammember or alpha_user
@@ -170,9 +177,16 @@ export type ManagedObject = {
 export default (state: State): ManagedObject => {
   return {
     async readManagedSystemObjectSchema(
-      type: string
+      type: string,
+      refreshCache: boolean = false,
+      options: ManagedObjectSchemaOptions = {}
     ): Promise<ManagedObjectSchema> {
-      return readManagedSystemObjectSchema({ type, state });
+      return readManagedSystemObjectSchema({
+        type,
+        refreshCache,
+        options,
+        state,
+      });
     },
     async createManagedSystemObject(
       type: string,
@@ -277,17 +291,13 @@ export default (state: State): ManagedObject => {
 
 const ManagedSystemObjectSchemaCache: Record<string, ManagedObjectSchema> = {};
 
-export type ManagedObjectSchemaOptions = {
-  excludeVirtual?: boolean;
-  excludeRelationships?: boolean;
-};
-
 export async function readManagedSystemObjectSchema({
   type,
   refreshCache = false,
   options = {
     excludeVirtual: false,
     excludeRelationships: false,
+    relationshipTypeFilter: undefined,
   },
   state,
 }: {
@@ -336,11 +346,21 @@ export async function readManagedSystemObjectSchema({
             schema.properties[prop]['items'] &&
             schema.properties[prop]['items']['type'] === 'relationship')
         ) {
-          debugMessage({
-            message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: Excluding relationship property "${prop}" from schema for type "${type}"`,
-            state,
-          });
-          delete schema.properties[prop];
+          // apply relationship type filter if specified
+          if (
+            !options.relationshipTypeFilter ||
+            options.relationshipTypeFilter.length === 0 ||
+            !options.relationshipTypeFilter.includes(
+              schema.properties[prop]['relationshipType'] ||
+                schema.properties[prop]['items']?.['relationshipType']
+            )
+          ) {
+            debugMessage({
+              message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: Excluding relationship property "${prop}" from schema for type "${type}"`,
+              state,
+            });
+            delete schema.properties[prop];
+          }
         }
       }
     }
