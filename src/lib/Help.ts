@@ -2284,7 +2284,7 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "ManagedObject",
     methodName: "readManagedObjectSchema",
-    signature: "readManagedObjectSchema(type: string): Promise<ManagedObjectSchema>",
+    signature: "readManagedObjectSchema( type: string, options?: ManagedObjectSchemaOptions ): Promise<ManagedObjectSchema>",
     description: "Read managed object schema",
     params: [
       { name: "type", type: "string", description: "managed object type, e.g. alpha_user or user" },
@@ -2406,6 +2406,19 @@ export const helpMetadata: MethodHelpDoc[] = [
     params: [
       { name: "type", type: "string", description: "managed object type, e.g. alpha_user or user" },
       { name: "filter", type: "string", description: "CREST search filter" },
+      { name: "fields", type: "string[]", description: "array of fields to return" },
+    ],
+    returns: "{Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of managed objects",
+  },
+  {
+    typeName: "ManagedObject",
+    methodName: "queryRelatedManagedObjects",
+    signature: "queryRelatedManagedObjects( type: string, id: string, relationship: string, fields?: string[], pageSize?: number ): Promise<IdObjectSkeletonInterface[]>",
+    description: "Query related managed objects",
+    params: [
+      { name: "type", type: "string", description: "managed object type, e.g. alpha_user or user" },
+      { name: "id", type: "string", description: "managed object id" },
+      { name: "relationship", type: "string", description: "name of the relationship to query, e.g. \"members\" for team membership relationships" },
       { name: "fields", type: "string[]", description: "array of fields to return" },
     ],
     returns: "{Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of managed objects",

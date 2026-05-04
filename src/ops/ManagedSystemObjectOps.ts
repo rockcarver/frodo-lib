@@ -14,6 +14,7 @@ import {
   putManagedSystemObject as _putManagedSystemObject,
   queryAllManagedSystemObjectsByType as _queryAllManagedSystemObjectsByType,
   queryManagedSystemObjects as _queryManagedSystemObjects,
+  queryRelatedManagedSystemObjects as _queryRelatedManagedSystemObjects,
 } from '../api/ManagedSystemObjectApi';
 import {
   getManagedObject as _getManagedObject,
@@ -22,6 +23,8 @@ import {
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { FrodoError } from './FrodoError';
+import { debugMessage } from '../utils/Console';
+import { cloneDeep } from '../utils/JsonUtils';
 
 export type ManagedObject = {
   /**
@@ -272,15 +275,80 @@ export default (state: State): ManagedObject => {
   };
 };
 
+const ManagedSystemObjectSchemaCache: Record<string, ManagedObjectSchema> = {};
+
+export type ManagedObjectSchemaOptions = {
+  excludeVirtual?: boolean;
+  excludeRelationships?: boolean;
+};
+
 export async function readManagedSystemObjectSchema({
   type,
+  refreshCache = false,
+  options = {
+    excludeVirtual: false,
+    excludeRelationships: false,
+  },
   state,
 }: {
   type: string;
+  refreshCache?: boolean;
+  options?: ManagedObjectSchemaOptions;
   state: State;
 }): Promise<ManagedObjectSchema> {
   try {
-    return _getManagedSystemObjectSchema({ type, state });
+    debugMessage({
+      message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: start`,
+      state,
+    });
+    let schema: ManagedObjectSchema;
+    if (!refreshCache && ManagedSystemObjectSchemaCache[type]) {
+      debugMessage({
+        message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: Using cached schema for type "${type}"`,
+        state,
+      });
+      schema = cloneDeep(ManagedSystemObjectSchemaCache[type]);
+    } else {
+      debugMessage({
+        message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: Fetching schema for type "${type}" from API`,
+        state,
+      });
+      schema = await _getManagedSystemObjectSchema({ type, state });
+      ManagedSystemObjectSchemaCache[type] = cloneDeep(schema);
+    }
+    // Apply schema options
+    if (options.excludeVirtual) {
+      for (const prop in schema.properties) {
+        if (schema.properties[prop]['isVirtual']) {
+          debugMessage({
+            message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: Excluding virtual property "${prop}" from schema for type "${type}"`,
+            state,
+          });
+          delete schema.properties[prop];
+        }
+      }
+    }
+    if (options.excludeRelationships) {
+      for (const prop in schema.properties) {
+        if (
+          schema.properties[prop]['type'] === 'relationship' ||
+          (schema.properties[prop]['type'] === 'array' &&
+            schema.properties[prop]['items'] &&
+            schema.properties[prop]['items']['type'] === 'relationship')
+        ) {
+          debugMessage({
+            message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: Excluding relationship property "${prop}" from schema for type "${type}"`,
+            state,
+          });
+          delete schema.properties[prop];
+        }
+      }
+    }
+    debugMessage({
+      message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: end`,
+      state,
+    });
+    return schema;
   } catch (error) {
     throw new FrodoError(`Error reading managed ${type} schema`, error);
   }
@@ -598,6 +666,67 @@ export async function queryManagedSystemObjects({
   if (errors.length > 0) {
     throw new FrodoError(
       `Error querying "${type}" objects matching filter "${filter}"`,
+      errors
+    );
+  }
+  return result;
+}
+
+/**
+ * Query related managed system object
+ * @param {object} params structured and named parameters
+ * @param {string} params.type managed system object type, e.g. svcacct or teammember
+ * @param {string} params.id managed system object id
+ * @param {string} params.relationship relationship name
+ * @param {string[]} params.fields array of fields to include
+ * @param {string} params.pageCookie paged results cookie
+ * @param {State} params.state library state
+ * @returns {Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an array of managed system objects
+ */
+export async function queryRelatedManagedSystemObjects({
+  type,
+  id,
+  relationship,
+  fields = ['*'],
+  pageSize = DEFAULT_PAGE_SIZE,
+  state,
+}: {
+  type: string;
+  id: string;
+  relationship: string;
+  fields?: string[];
+  pageSize?: number;
+  state: State;
+}): Promise<IdObjectSkeletonInterface[]> {
+  const result: IdObjectSkeletonInterface[] = [];
+  const errors = [];
+  let page: PagedResult<IdObjectSkeletonInterface> = {
+    result: [],
+    resultCount: 0,
+    pagedResultsCookie: null,
+    totalPagedResultsPolicy: 'NONE',
+    totalPagedResults: -1,
+    remainingPagedResults: -1,
+  };
+  do {
+    try {
+      page = await _queryRelatedManagedSystemObjects({
+        type,
+        id,
+        relationship,
+        fields,
+        pageSize,
+        pageCookie: page.pagedResultsCookie,
+        state,
+      });
+      result.push(...page.result);
+    } catch (error) {
+      errors.push(error);
+    }
+  } while (page.pagedResultsCookie);
+  if (errors.length > 0) {
+    throw new FrodoError(
+      `Error querying relationship "${relationship}" for "${type}" with id "${id}"`,
       errors
     );
   }

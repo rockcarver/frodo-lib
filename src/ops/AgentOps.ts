@@ -13,6 +13,7 @@ import {
   putAgentGroupByTypeAndId,
   getAgentTypes,
 } from '../api/AgentApi';
+import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
@@ -23,8 +24,12 @@ import {
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
+import { cloneDeep } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
 import {
+  createManagedObject,
+  queryManagedObjects,
+  queryRelatedManagedObjects,
   readManagedObject,
   readManagedObjects,
   readManagedObjectSchema,
@@ -1448,7 +1453,7 @@ export async function readAIAgents({
 }: {
   includeAgentIdentity?: boolean;
   state: State;
-}) {
+}): Promise<AgentSkeleton[]> {
   try {
     debugMessage({ message: `AgentOps.readAIAgents: start`, state });
     const { result } = await getAgentsByType({
@@ -1471,6 +1476,38 @@ export async function readAIAgents({
               : ['*'],
             state,
           });
+          const aiAgentPrivilegeSchema = await readManagedObjectSchema({
+            type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+            state,
+          });
+          const aiAgentPrivileges = await queryManagedObjects({
+            type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+            fields: aiAgentPrivilegeSchema
+              ? Object.keys(aiAgentPrivilegeSchema.properties)
+              : ['*'],
+            state,
+          });
+          const aiAgentPrivilegesByAgentIdentityUid: Record<
+            string,
+            IdObjectSkeletonInterface[]
+          > = {};
+          for (const privilege of aiAgentPrivileges) {
+            const agentId = privilege['agentID'] as string;
+            if (agentId) {
+              if (!aiAgentPrivilegesByAgentIdentityUid[agentId]) {
+                aiAgentPrivilegesByAgentIdentityUid[agentId] =
+                  [] as IdObjectSkeletonInterface[];
+              }
+              aiAgentPrivilegesByAgentIdentityUid[agentId].push(
+                privilege as IdObjectSkeletonInterface
+              );
+            }
+          }
+          for (const aiAgentIdentity of aiAgentIdentities) {
+            const privileges =
+              aiAgentPrivilegesByAgentIdentityUid[aiAgentIdentity._id] || [];
+            aiAgentIdentity._privileges = privileges;
+          }
           for (const agent of result) {
             if (agent['aiAgentIdentityUid']) {
               const aiAgentIdentity = aiAgentIdentities.find(
@@ -1532,6 +1569,10 @@ export async function readAIAgent({
               type: `${getCurrentRealmName(state)}_aiagent`,
               state,
             });
+            const aiAgentPrivilegeSchema = await readManagedObjectSchema({
+              type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+              state,
+            });
             const aiAgentIdentity = await readManagedObject({
               type: `${getCurrentRealmName(state)}_aiagent`,
               id: result['aiAgentIdentityUid']['value'] as string,
@@ -1540,6 +1581,16 @@ export async function readAIAgent({
                 : ['*'],
               state,
             });
+            const aiAgentPrivileges = await queryRelatedManagedObjects({
+              type: `${getCurrentRealmName(state)}_aiagent`,
+              id: `${result['aiAgentIdentityUid']['value']}`,
+              relationship: 'privileges',
+              fields: aiAgentPrivilegeSchema
+                ? Object.keys(aiAgentPrivilegeSchema.properties)
+                : ['*'],
+              state,
+            });
+            aiAgentIdentity._privileges = aiAgentPrivileges;
             result._aiAgentIdentity = aiAgentIdentity;
           }
           break;
@@ -2007,7 +2058,9 @@ export async function exportWebAgent({
 
 /**
  * Export AI agent. The response can be saved to file as is.
- * @param agentId agent id/name
+ * @param {object} params structured and named parameters
+ * @param {string} params.agentId agent id/name
+ * @param {State} params.state state object
  * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
  */
 export async function exportAIAgent({
@@ -2633,19 +2686,27 @@ export async function importWebAgent({
 export async function importAIAgent({
   agentId,
   importData,
+  includeAgentIdentity = false,
   state,
 }: {
   agentId: string;
   importData: AgentExportInterface;
+  includeAgentIdentity?: boolean;
   state: State;
 }): Promise<AgentSkeleton> {
   try {
     debugMessage({ message: `AgentOps.importAIAgent: start`, state });
     const agentType = importData.agent[agentId]?._type._id as AgentType;
-    if (agentType !== 'AIAgent')
+    if (agentType !== 'AIAgent') {
       throw new FrodoError(
         `Wrong agent type! Expected 'AIAgent' but got '${agentType}'.`
       );
+    }
+    let aiAgentIdentity: IdObjectSkeletonInterface;
+    if (includeAgentIdentity) {
+      aiAgentIdentity = cloneDeep(importData.agent[agentId]._aiAgentIdentity);
+    }
+    delete importData.agent[agentId]._aiAgentIdentity;
     const result = await putAgentByTypeAndId({
       agentType,
       agentId,
@@ -2653,6 +2714,56 @@ export async function importAIAgent({
       globalConfig: false,
       state,
     });
+    if (includeAgentIdentity) {
+      debugMessage({
+        message: `AgentOps.importAIAgent: Importing privileges for AI agent identity ${aiAgentIdentity._id}`,
+        state,
+      });
+      const privileges = cloneDeep(
+        aiAgentIdentity._privileges
+      ) as IdObjectSkeletonInterface[];
+      for (const privilege of privileges) {
+        // create skeleton managed object for each privilege and persist it before creating the AI agent identity itself,
+        // otherwise the privileges won't be properly linked to the identity
+        const privilegeSkeleton: IdObjectSkeletonInterface =
+          cloneDeep(privilege);
+        const privilegeSkeletonSchema = await readManagedObjectSchema({
+          type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+          options: { excludeRelationships: true, excludeVirtual: true },
+          state,
+        });
+        for (const prop of Object.keys(privilegeSkeleton)) {
+          if (!privilegeSkeletonSchema.properties[prop]) {
+            delete privilegeSkeleton[prop];
+          }
+        }
+        await createManagedObject({
+          type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+          id: privilegeSkeleton._id,
+          moData: privilegeSkeleton,
+          state,
+        });
+      }
+      debugMessage({
+        message: `AgentOps.importAIAgent: Finished importing privileges for AI agent identity ${aiAgentIdentity._id}`,
+        state,
+      });
+      debugMessage({
+        message: `AgentOps.importAIAgent: Importing AI agent identity ${aiAgentIdentity._id}`,
+        state,
+      });
+      delete aiAgentIdentity._privileges;
+      await createManagedObject({
+        type: `${getCurrentRealmName(state)}_aiagent`,
+        id: aiAgentIdentity._id,
+        moData: aiAgentIdentity,
+        state,
+      });
+      debugMessage({
+        message: `AgentOps.importAIAgent: Finished importing AI agent identity ${aiAgentIdentity._id}`,
+        state,
+      });
+    }
     debugMessage({ message: `AgentOps.importAIAgent: end`, state });
     return result;
   } catch (error) {

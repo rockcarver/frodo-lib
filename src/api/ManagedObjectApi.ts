@@ -14,6 +14,7 @@ const managedObjectSchemaURLTemplate = '%s/schema/managed/%s';
 const createManagedObjectURLTemplate = '%s/managed/%s?_action=create';
 const managedObjectByIdURLTemplate = '%s/managed/%s/%s';
 const queryAllManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=true&_pageSize=%s`;
+const queryAllRelatedManagedObjectURLTemplate = `%s/managed/%s/%s/%s?_queryFilter=true&_pageSize=%s`;
 const queryManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=%s`;
 const countManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=0&_totalPagedResultsPolicy=EXACT`;
 
@@ -329,6 +330,58 @@ export async function queryManagedObjects({
     getIdmBaseUrl(state),
     type,
     encodeURIComponent(filter),
+    pageSize
+  );
+  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
+    urlString
+  );
+  return data as PagedResult<IdObjectSkeletonInterface>;
+}
+
+/**
+ * Query related managed object
+ * @param {object} params structured and named parameters
+ * @param {string} params.type managed system object type, e.g. svcacct or teammember
+ * @param {string} params.id managed object id
+ * @param {string} params.relationship name of the relationship to query, e.g. "members" for team membership relationships
+ * @param {string[]} params.fields array of fields to include
+ * @param {string} params.pageCookie paged results cookie
+ * @param {State} params.state library state
+ * @returns {Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an array of managed system objects
+ */
+export async function queryRelatedManagedObjects({
+  type,
+  id,
+  relationship,
+  fields = ['*'],
+  pageSize = DEFAULT_PAGE_SIZE,
+  pageCookie,
+  state,
+}: {
+  type: string;
+  id: string;
+  relationship: string;
+  fields?: string[];
+  pageSize?: number;
+  pageCookie?: string;
+  state: State;
+}): Promise<PagedResult<IdObjectSkeletonInterface>> {
+  if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new Error(
+      `${type} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+    );
+  }
+  const fieldsParam = `_fields=${fields.join(',')}`;
+  const urlString = util.format(
+    pageCookie
+      ? `${queryAllRelatedManagedObjectURLTemplate}&${fieldsParam}&_pagedResultsCookie=${encodeURIComponent(
+          pageCookie
+        )}`
+      : `${queryAllRelatedManagedObjectURLTemplate}&${fieldsParam}`,
+    getIdmBaseUrl(state),
+    type,
+    id,
+    relationship,
     pageSize
   );
   const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
