@@ -347,12 +347,60 @@ export async function readManagedSystemObjectSchema({
             schema.properties[prop]['items']['type'] === 'relationship')
         ) {
           // apply relationship type filter if specified
+          // sample relationship property definition:
+          // agent: {
+          //   description: 'Agent',
+          //   id: 'urn:jsonschema:org:forgerock:openidm:managed:api:AIAgentPrivilege:agent',
+          //   notifySelf: true,
+          //   properties: {
+          //     _ref: {
+          //       description: 'References a relationship from a managed object',
+          //       type: 'string'
+          //     },
+          //     _refProperties: {
+          //       description: 'Supports metadata within the relationship',
+          //       properties: {
+          //         _id: {
+          //           description: '_refProperties object ID',
+          //           propName: '_id',
+          //           required: false,
+          //           type: 'string'
+          //         }
+          //       },
+          //       title: 'Agent Privilege Agent _refProperties',
+          //       type: 'object'
+          //     }
+          //   },
+          //   resourceCollection: [
+          //     {
+          //       label: 'Agent',
+          //       notify: false,
+          //       path: 'managed/alpha_aiagent',
+          //       query: { fields: [ '_id' ], queryFilter: 'true', sortKeys: [] }
+          //     }
+          //   ],
+          //   returnByDefault: false,
+          //   reversePropertyName: 'privileges',
+          //   reverseRelationship: true,
+          //   searchable: false,
+          //   title: 'Agent',
+          //   type: 'relationship',
+          //   userEditable: false,
+          //   validate: true,
+          //   viewable: true
+          // }
+          const resourcePath =
+            schema.properties[prop]['resourceCollection']?.[0]?.['path'];
+          debugMessage({
+            message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: Found relationship property "${prop}" with resource path "${resourcePath}" in schema for type "${type}"`,
+            state,
+          });
           if (
             !options.includeRelationshipsFilter ||
             options.includeRelationshipsFilter.length === 0 ||
+            !resourcePath ||
             !options.includeRelationshipsFilter.includes(
-              schema.properties[prop]['relationshipType'] ||
-                schema.properties[prop]['items']?.['relationshipType']
+              resourcePath.split('/')[1]
             )
           ) {
             debugMessage({
