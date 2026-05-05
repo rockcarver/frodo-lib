@@ -297,7 +297,7 @@ export async function readManagedSystemObjectSchema({
   options = {
     excludeVirtual: false,
     excludeRelationships: false,
-    relationshipTypeFilter: undefined,
+    includeRelationshipsFilter: undefined,
   },
   state,
 }: {
@@ -348,9 +348,9 @@ export async function readManagedSystemObjectSchema({
         ) {
           // apply relationship type filter if specified
           if (
-            !options.relationshipTypeFilter ||
-            options.relationshipTypeFilter.length === 0 ||
-            !options.relationshipTypeFilter.includes(
+            !options.includeRelationshipsFilter ||
+            options.includeRelationshipsFilter.length === 0 ||
+            !options.includeRelationshipsFilter.includes(
               schema.properties[prop]['relationshipType'] ||
                 schema.properties[prop]['items']?.['relationshipType']
             )

@@ -2603,14 +2603,33 @@ export async function createAIAgent({
           state,
         });
         delete aiAgentIdentity._privileges;
+        // create skeleton managed object for the ai agent identity and only include relationshis to privileges
+        const identitySkeleton: IdObjectSkeletonInterface =
+          cloneDeep(aiAgentIdentity);
+        const identitySkeletonSchema = await readManagedObjectSchema({
+          type: `${getCurrentRealmName(state)}_aiagent`,
+          options: {
+            excludeVirtual: true,
+            excludeRelationships: true,
+            includeRelationshipsFilter: [
+              `${getCurrentRealmName(state)}_aiagentprivilege`,
+            ],
+          },
+          state,
+        });
+        for (const prop of Object.keys(identitySkeleton)) {
+          if (!identitySkeletonSchema.properties[prop]) {
+            delete identitySkeleton[prop];
+          }
+        }
         await createManagedObject({
           type: `${getCurrentRealmName(state)}_aiagent`,
-          id: aiAgentIdentity._id,
-          moData: aiAgentIdentity,
+          id: identitySkeleton._id,
+          moData: identitySkeleton,
           state,
         });
         debugMessage({
-          message: `AgentOps.createAIAgent: Finished importing AI agent identity ${aiAgentIdentity._id}`,
+          message: `AgentOps.createAIAgent: Finished importing AI agent identity ${identitySkeleton._id}`,
           state,
         });
       }

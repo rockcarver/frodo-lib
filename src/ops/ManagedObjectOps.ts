@@ -306,9 +306,23 @@ export default (state: State): ManagedObject => {
 const ManagedObjectSchemaCache: Record<string, ManagedObjectSchema> = {};
 
 export type ManagedObjectSchemaOptions = {
+  /**
+   * Whether to exclude virtual properties from the returned schema.
+   * Virtual properties are non-persisted properties that are calculated
+   * or derived at runtime.
+   * */
   excludeVirtual?: boolean;
+  /**
+   * Whether to exclude relationship properties from the returned schema.
+   */
   excludeRelationships?: boolean;
-  relationshipTypeFilter?: string[];
+  /**
+   * If specified, only relationship properties whose resourceCollection
+   * path matches any of the values in this array will be included in the
+   * returned schema when excludeRelationships is true. This option is
+   * ignored if excludeRelationships is false.
+   */
+  includeRelationshipsFilter?: string[];
 };
 
 export async function readManagedObjectSchema({
@@ -317,7 +331,7 @@ export async function readManagedObjectSchema({
   options = {
     excludeVirtual: false,
     excludeRelationships: false,
-    relationshipTypeFilter: undefined,
+    includeRelationshipsFilter: undefined,
   },
   state,
 }: {
@@ -367,18 +381,61 @@ export async function readManagedObjectSchema({
             schema.properties[prop]['items']['type'] === 'relationship')
         ) {
           // apply relationship type filter if specified
+          // sample relationship property definition:
+          // agent: {
+          //   description: 'Agent',
+          //   id: 'urn:jsonschema:org:forgerock:openidm:managed:api:AIAgentPrivilege:agent',
+          //   notifySelf: true,
+          //   properties: {
+          //     _ref: {
+          //       description: 'References a relationship from a managed object',
+          //       type: 'string'
+          //     },
+          //     _refProperties: {
+          //       description: 'Supports metadata within the relationship',
+          //       properties: {
+          //         _id: {
+          //           description: '_refProperties object ID',
+          //           propName: '_id',
+          //           required: false,
+          //           type: 'string'
+          //         }
+          //       },
+          //       title: 'Agent Privilege Agent _refProperties',
+          //       type: 'object'
+          //     }
+          //   },
+          //   resourceCollection: [
+          //     {
+          //       label: 'Agent',
+          //       notify: false,
+          //       path: 'managed/alpha_aiagent',
+          //       query: { fields: [ '_id' ], queryFilter: 'true', sortKeys: [] }
+          //     }
+          //   ],
+          //   returnByDefault: false,
+          //   reversePropertyName: 'privileges',
+          //   reverseRelationship: true,
+          //   searchable: false,
+          //   title: 'Agent',
+          //   type: 'relationship',
+          //   userEditable: false,
+          //   validate: true,
+          //   viewable: true
+          // }
           const resourcePath =
-            schema.properties[prop]['properties']?.[
-              'resourceCollection'
-            ]?.[0]?.['path'] ||
-            schema.properties[prop]['items']?.['properties']?.[
-              'resourceCollection'
-            ]?.[0]?.['path'];
+            schema.properties[prop]['resourceCollection']?.[0]?.['path'];
+          debugMessage({
+            message: `ManagedObjectOps.readManagedObjectSchema: Found relationship property "${prop}" with resource path "${resourcePath}" in schema for type "${type}"`,
+            state,
+          });
           if (
-            !options.relationshipTypeFilter ||
-            options.relationshipTypeFilter.length === 0 ||
+            !options.includeRelationshipsFilter ||
+            options.includeRelationshipsFilter.length === 0 ||
             !resourcePath ||
-            !options.relationshipTypeFilter.includes(resourcePath.split('/')[1])
+            !options.includeRelationshipsFilter.includes(
+              resourcePath.split('/')[1]
+            )
           ) {
             debugMessage({
               message: `ManagedObjectOps.readManagedObjectSchema: Excluding relationship property "${prop}" from schema for type "${type}"`,
