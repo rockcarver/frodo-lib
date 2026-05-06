@@ -1,5 +1,32 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`AgentApi Classic Tests getAgentByTypeAndId() 4: Get global agent 'AgentService' 1`] = `
+{
+  "_id": "",
+  "_rev": "1570129136",
+  "_type": {
+    "_id": "AgentService",
+    "collection": false,
+    "name": "AgentService",
+  },
+}
+`;
+
+exports[`AgentApi Classic Tests getAgents() 2: Get all global agents 1`] = `
+{
+  "result": [
+    {
+      "_id": "AgentService",
+      "_type": {
+        "_id": "AgentService",
+        "collection": false,
+        "name": "AgentService",
+      },
+    },
+  ],
+}
+`;
+
 exports[`AgentApi Cloud Tests deleteAgentByTypeAndId() 1: Delete IdentityGatewayAgent 'FrodoTestGatewayAgent3' 1`] = `
 {
   "_id": "FrodoTestGatewayAgent3",

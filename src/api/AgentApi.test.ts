@@ -48,7 +48,7 @@ import { state } from '../index';
 import { getAgent } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
-import Constants from "../shared/Constants";
+import Constants from '../shared/Constants';
 
 const ctx = autoSetupPolly();
 
@@ -576,7 +576,7 @@ describe('AgentApi', () => {
         });
 
         test('1: Get all agent types', async () => {
-          const response = await AgentApi.getAgentTypes({state});
+          const response = await AgentApi.getAgentTypes({ state });
           expect(response).toMatchSnapshot();
         });
       });
@@ -588,25 +588,25 @@ describe('AgentApi', () => {
 
         test('1: Get all gateway agents', async () => {
           const agentType = 'IdentityGatewayAgent';
-          const response = await AgentApi.getAgentsByType({agentType, state});
+          const response = await AgentApi.getAgentsByType({ agentType, state });
           expect(response).toMatchSnapshot();
         });
 
         test('2: Get all java agents', async () => {
           const agentType = 'J2EEAgent';
-          const response = await AgentApi.getAgentsByType({agentType, state});
+          const response = await AgentApi.getAgentsByType({ agentType, state });
           expect(response).toMatchSnapshot();
         });
 
         test('3: Get all web agents', async () => {
           const agentType = 'WebAgent';
-          const response = await AgentApi.getAgentsByType({agentType, state});
+          const response = await AgentApi.getAgentsByType({ agentType, state });
           expect(response).toMatchSnapshot();
         });
 
         test('4: Get all AI agents', async () => {
           const agentType = 'AIAgent';
-          const response = await AgentApi.getAgentsByType({agentType, state});
+          const response = await AgentApi.getAgentsByType({ agentType, state });
           expect(response).toMatchSnapshot();
         });
       });
@@ -617,7 +617,10 @@ describe('AgentApi', () => {
         });
 
         test('1: Get all agents', async () => {
-          const response = await AgentApi.getAgents({state, globalConfig: false});
+          const response = await AgentApi.getAgents({
+            state,
+            globalConfig: false,
+          });
           expect(response).toMatchSnapshot();
         });
       });
@@ -872,7 +875,10 @@ describe('AgentApi', () => {
 
       describe('getAgents()', () => {
         test('2: Get all global agents', async () => {
-          const response = await AgentApi.getAgents({state, globalConfig: true});
+          const response = await AgentApi.getAgents({
+            state,
+            globalConfig: true,
+          });
           expect(response).toMatchSnapshot();
         });
       });
@@ -881,8 +887,8 @@ describe('AgentApi', () => {
         test(`4: Get global agent 'AgentService'`, async () => {
           const response = await AgentApi.getAgentByTypeAndId({
             agentType: {
-              _id: "AgentService",
-              name: "AgentService",
+              _id: 'AgentService',
+              name: 'AgentService',
               collection: true,
             },
             agentId: 'AgentService',
