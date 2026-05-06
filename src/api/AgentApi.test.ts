@@ -20,7 +20,8 @@
  *    script and override all the connection state variables required
  *    to connect to the env to record from:
  *
- *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record AgentApi
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=1 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record AgentApi
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=frodo-dev npm run test:record AgentApi
  *
  *    The above command assumes that you have a connection profile for
  *    'volker-dev' on your development machine.
@@ -87,6 +88,18 @@ describe('AgentApi', () => {
   const web3 = {
     id: 'FrodoTestWebAgent3',
     type: 'WebAgent' as AgentApi.AgentType,
+  };
+  const ai1 = {
+    id: 'FrodoTestAIAgent1',
+    type: 'AIAgent' as AgentApi.AgentType,
+  };
+  const ai2 = {
+    id: 'FrodoTestAIAgent2',
+    type: 'AIAgent' as AgentApi.AgentType,
+  };
+  const ai3 = {
+    id: 'FrodoTestAIAgent3',
+    type: 'AIAgent' as AgentApi.AgentType,
   };
   // in recording mode, setup test data before recording
   beforeAll(async () => {
@@ -285,6 +298,70 @@ describe('AgentApi', () => {
           state,
         });
       }
+      // setup ai1 - delete if exists, then create
+      try {
+        await AgentApi.getAgentByTypeAndId({
+          agentType: ai1.type,
+          agentId: ai1.id,
+          globalConfig: false,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: ai1.type,
+          agentId: ai1.id,
+          state,
+        });
+      } catch (error) {
+        // ignore
+      } finally {
+        await AgentApi.putAgentByTypeAndId({
+          agentType: ai1.type,
+          agentId: ai1.id,
+          agentData: getAgent(ai1.type, ai1.id),
+          globalConfig: false,
+          state,
+        });
+      }
+      // setup ai2 - delete if exists
+      try {
+        await AgentApi.getAgentByTypeAndId({
+          agentType: ai2.type,
+          agentId: ai2.id,
+          globalConfig: false,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: ai2.type,
+          agentId: ai2.id,
+          state,
+        });
+      } catch (error) {
+        // ignore
+      }
+      // setup ai3 - delete if exists, then create
+      try {
+        await AgentApi.getAgentByTypeAndId({
+          agentType: ai3.type,
+          agentId: ai3.id,
+          globalConfig: false,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: ai3.type,
+          agentId: ai3.id,
+          state,
+        });
+      } catch (error) {
+        // ignore
+      } finally {
+        await AgentApi.putAgentByTypeAndId({
+          agentType: ai3.type,
+          agentId: ai3.id,
+          agentData: getAgent(ai3.type, ai3.id),
+          globalConfig: false,
+          state,
+        });
+      }
     }
   });
   // in recording mode, remove test data after recording
@@ -427,6 +504,51 @@ describe('AgentApi', () => {
       } catch (error) {
         // ignore
       }
+      try {
+        await AgentApi.getAgentByTypeAndId({
+          agentType: ai1.type,
+          agentId: ai1.id,
+          globalConfig: false,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: ai1.type,
+          agentId: ai1.id,
+          state,
+        });
+      } catch (error) {
+        // ignore
+      }
+      try {
+        await AgentApi.getAgentByTypeAndId({
+          agentType: ai2.type,
+          agentId: ai2.id,
+          globalConfig: false,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: ai2.type,
+          agentId: ai2.id,
+          state,
+        });
+      } catch (error) {
+        // ignore
+      }
+      try {
+        await AgentApi.getAgentByTypeAndId({
+          agentType: ai3.type,
+          agentId: ai3.id,
+          globalConfig: false,
+          state,
+        });
+        await AgentApi.deleteAgentByTypeAndId({
+          agentType: ai3.type,
+          agentId: ai3.id,
+          state,
+        });
+      } catch (error) {
+        // ignore
+      }
     }
   });
   beforeEach(async () => {
@@ -478,6 +600,12 @@ describe('AgentApi', () => {
 
         test('3: Get all web agents', async () => {
           const agentType = 'WebAgent';
+          const response = await AgentApi.getAgentsByType({agentType, state});
+          expect(response).toMatchSnapshot();
+        });
+
+        test('4: Get all AI agents', async () => {
+          const agentType = 'AIAgent';
           const response = await AgentApi.getAgentsByType({agentType, state});
           expect(response).toMatchSnapshot();
         });
@@ -533,6 +661,14 @@ describe('AgentApi', () => {
           });
           expect(response).toMatchSnapshot();
         });
+
+        test(`4: Find agent '${ai1.id}'`, async () => {
+          const response = await AgentApi.findAgentById({
+            agentId: ai1.id,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
       });
 
       describe('findAgentByTypeAndId()', () => {
@@ -562,6 +698,15 @@ describe('AgentApi', () => {
           const response = await AgentApi.findAgentByTypeAndId({
             agentType: web1.type,
             agentId: web1.id,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
+
+        test(`4: Find ${ai1.type} '${ai1.id}'`, async () => {
+          const response = await AgentApi.findAgentByTypeAndId({
+            agentType: ai1.type,
+            agentId: ai1.id,
             state,
           });
           expect(response).toMatchSnapshot();
@@ -597,6 +742,16 @@ describe('AgentApi', () => {
           const response = await AgentApi.getAgentByTypeAndId({
             agentType: web1.type,
             agentId: web1.id,
+            globalConfig: false,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
+
+        test(`4: Get ${ai1.type} '${ai1.id}'`, async () => {
+          const response = await AgentApi.getAgentByTypeAndId({
+            agentType: ai1.type,
+            agentId: ai1.id,
             globalConfig: false,
             state,
           });
@@ -641,6 +796,17 @@ describe('AgentApi', () => {
           });
           expect(response).toMatchSnapshot();
         });
+
+        test(`4: Put ${ai2.type} '${ai2.id}'`, async () => {
+          const response = await AgentApi.putAgentByTypeAndId({
+            agentType: ai2.type,
+            agentId: ai2.id,
+            agentData: getAgent(ai2.type, ai2.id),
+            globalConfig: false,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
       });
 
       describe('putAgentGroupByTypeAndId()', () => {
@@ -677,6 +843,15 @@ describe('AgentApi', () => {
           const response = await AgentApi.deleteAgentByTypeAndId({
             agentType: web3.type,
             agentId: web3.id,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
+
+        test(`4: Delete ${ai3.type} '${ai3.id}'`, async () => {
+          const response = await AgentApi.deleteAgentByTypeAndId({
+            agentType: ai3.type,
+            agentId: ai3.id,
             state,
           });
           expect(response).toMatchSnapshot();

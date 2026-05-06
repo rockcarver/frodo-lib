@@ -5255,6 +5255,14 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "",
   },
   {
+    typeName: "EnvAIAgent",
+    methodName: "enableAIAgentFeature",
+    signature: "enableAIAgentFeature(): Promise<any>",
+    description: "Enable AI agent feature",
+    params: [],
+    returns: "{Promise<any>} a promise that resolves to an empty result object if successful",
+  },
+  {
     typeName: "EnvCSR",
     methodName: "readCSR",
     signature: "readCSR(csrId: string): Promise<CSRResponse>",

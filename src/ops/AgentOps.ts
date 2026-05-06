@@ -28,6 +28,7 @@ import { cloneDeep } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
 import {
   createManagedObject,
+  deleteManagedObject,
   queryManagedObjects,
   queryRelatedManagedObjects,
   readManagedObject,
@@ -2556,9 +2557,9 @@ export async function createAIAgent({
       // clone ai agent identity data and remove it from agent data before creating the AI agent
       let aiAgentIdentity: IdObjectSkeletonInterface;
       if (includeAgentIdentity) {
-        aiAgentIdentity = cloneDeep(agentData.agent[agentId]._aiAgentIdentity);
+        aiAgentIdentity = cloneDeep(agentData._aiAgentIdentity);
       }
-      delete agentData.agent[agentId]._aiAgentIdentity;
+      delete agentData._aiAgentIdentity;
 
       // create the ai agent first before creating the agent identity and privileges
       const result = await putAgentByTypeAndId({
@@ -2983,22 +2984,18 @@ export async function deleteAIAgents({
       message: `AgentOps.deleteAIAgents: start [deep=${deep}]`,
       state,
     });
-    const agents = await readAIAgents({ state });
+    const agents = await readAIAgents({ includeAgentIdentity: false, state });
     for (const agent of agents) {
       try {
         debugMessage({
-          message: `AgentOps.deleteAIAgent: '${agent['_id']}'`,
+          message: `AgentOps.deleteAIAgents: '${agent['_id']}'`,
           state,
         });
-        await deleteAgentByTypeAndId({
-          agentType: agent['_type']['_id'] as AgentType,
-          agentId: agent['_id'],
-          state,
-        });
+        await deleteAIAgent({ agentId: agent['_id'], deep, state });
       } catch (error) {
         errors.push(
           new FrodoError(
-            `Error deleting ${getCurrentRealmName(state) + ' realm'} agent ${agent['_id']} of type ${agent['_type']['_id']}`,
+            `Error deleting ${getCurrentRealmName(state) + ' realm'} AI agent ${agent['_id']}`,
             error
           )
         );
@@ -3064,6 +3061,63 @@ export async function deleteAIAgent({
         agentId: agent['_id'],
         state,
       });
+      if (deep) {
+        switch (state.getDeploymentType()) {
+          case Constants.CLOUD_DEPLOYMENT_TYPE_KEY:
+          case Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY: {
+            const identityUid = agent['aiAgentIdentityUid']?.[
+              'value'
+            ] as string;
+            if (identityUid) {
+              // delete all privileges linked to this identity
+              try {
+                const privileges = await queryRelatedManagedObjects({
+                  type: `${getCurrentRealmName(state)}_aiagent`,
+                  id: identityUid,
+                  relationship: 'privileges',
+                  fields: ['_id'],
+                  state,
+                });
+                for (const privilege of privileges) {
+                  try {
+                    await deleteManagedObject({
+                      type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+                      id: privilege._id,
+                      state,
+                    });
+                  } catch (error) {
+                    debugMessage({
+                      message: `AgentOps.deleteAIAgent: ignoring error deleting privilege ${privilege._id}: ${error}`,
+                      state,
+                    });
+                  }
+                }
+              } catch (error) {
+                debugMessage({
+                  message: `AgentOps.deleteAIAgent: ignoring error querying privileges for identity ${identityUid}: ${error}`,
+                  state,
+                });
+              }
+              // delete the agent identity itself
+              try {
+                await deleteManagedObject({
+                  type: `${getCurrentRealmName(state)}_aiagent`,
+                  id: identityUid,
+                  state,
+                });
+              } catch (error) {
+                debugMessage({
+                  message: `AgentOps.deleteAIAgent: ignoring error deleting identity ${identityUid}: ${error}`,
+                  state,
+                });
+              }
+            }
+            break;
+          }
+          default:
+            break;
+        }
+      }
     }
     debugMessage({ message: `AgentOps.deleteAIAgent: end`, state });
   } catch (error) {

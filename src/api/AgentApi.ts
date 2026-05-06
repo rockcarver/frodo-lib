@@ -32,12 +32,13 @@ const agentGroupsURLTemplate =
 const apiVersion = 'protocol=2.1,resource=%s';
 const globalVersion = '1.0';
 const realmVersion = '1.0';
+const aiagentVersion = '2.0';
 
-const getApiConfig = (globalConfig) => {
+const getApiConfig = (globalConfig: boolean, aiagent: boolean = false) => {
   return {
     apiVersion: util.format(
       apiVersion,
-      globalConfig ? globalVersion : realmVersion
+      aiagent ? aiagentVersion : globalConfig ? globalVersion : realmVersion
     ),
   };
 };
@@ -119,7 +120,7 @@ export async function getAgentsByType({
     agentType
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(false),
+    resource: getApiConfig(false, agentType === 'AIAgent'),
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -214,7 +215,7 @@ export async function findAgentByTypeAndId({
     agentId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(false),
+    resource: getApiConfig(false, agentType === 'AIAgent'),
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -251,7 +252,7 @@ export async function getAgentByTypeAndId({
     globalConfig ? '' : agentId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(globalConfig),
+    resource: getApiConfig(globalConfig, agentType === 'AIAgent'),
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -296,7 +297,7 @@ export async function putAgentByTypeAndId({
     globalConfig ? '' : agentId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(globalConfig),
+    resource: getApiConfig(globalConfig, agentType === 'AIAgent'),
     state,
   }).put(urlString, agent, {
     withCredentials: true,
@@ -332,7 +333,7 @@ export async function putAgentGroupByTypeAndId({
     agentGroupId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(false),
+    resource: getApiConfig(false, agentType === 'AIAgent'),
     state,
   }).put(urlString, agentGroupData, {
     withCredentials: true,
@@ -366,7 +367,7 @@ export async function deleteAgentByTypeAndId({
     agentId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(false),
+    resource: getApiConfig(false, agentType === 'AIAgent'),
     state,
   }).delete(urlString, {
     withCredentials: true,

@@ -59,7 +59,7 @@ import { getAgent } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
 import { FrodoError } from './FrodoError';
-import Constants from "../shared/Constants";
+import Constants from '../shared/Constants';
 
 const ctx = autoSetupPolly();
 
@@ -99,6 +99,26 @@ type agentStub = {
   id: string;
   type: AgentApi.AgentType;
 };
+
+async function stageAIAgent(
+  agent: { id: string; type: AgentApi.AgentType },
+  create = true
+) {
+  // delete if exists (with deep=true to also remove IDM identity), then create
+  try {
+    await AgentOps.deleteAIAgent({ agentId: agent.id, deep: true, state });
+  } catch (error) {
+    // ignore - may not exist
+  } finally {
+    if (create) {
+      await AgentOps.createAIAgent({
+        agentId: agent.id,
+        agentData: getAgent(agent.type, agent.id),
+        state,
+      });
+    }
+  }
+}
 describe('AgentOps', () => {
   const gateway1: agentStub = {
     id: 'FrodoOpsTestGatewayAgent1',
@@ -208,6 +228,42 @@ describe('AgentOps', () => {
     id: 'FrodoOpsTestWebAgent9',
     type: 'WebAgent',
   };
+  const ai1: agentStub = {
+    id: 'FrodoOpsTestAIAgent1',
+    type: 'AIAgent',
+  };
+  const ai2: agentStub = {
+    id: 'FrodoOpsTestAIAgent2',
+    type: 'AIAgent',
+  };
+  const ai3: agentStub = {
+    id: 'FrodoOpsTestAIAgent3',
+    type: 'AIAgent',
+  };
+  const ai4: agentStub = {
+    id: 'FrodoOpsTestAIAgent4',
+    type: 'AIAgent',
+  };
+  const ai5: agentStub = {
+    id: 'FrodoOpsTestAIAgent5',
+    type: 'AIAgent',
+  };
+  const ai6: agentStub = {
+    id: 'FrodoOpsTestAIAgent6',
+    type: 'AIAgent',
+  };
+  const ai7: agentStub = {
+    id: 'FrodoOpsTestAIAgent7',
+    type: 'AIAgent',
+  };
+  const ai8: agentStub = {
+    id: 'FrodoOpsTestAIAgent8',
+    type: 'AIAgent',
+  };
+  const ai9: agentStub = {
+    id: 'FrodoOpsTestAIAgent9',
+    type: 'AIAgent',
+  };
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
@@ -240,6 +296,16 @@ describe('AgentOps', () => {
       await stageAgent(web7);
       await stageAgent(web8);
       await stageAgent(web9);
+
+      await stageAIAgent(ai1);
+      await stageAIAgent(ai2, false);
+      await stageAIAgent(ai3, false);
+      await stageAIAgent(ai4, false);
+      await stageAIAgent(ai5, false);
+      await stageAIAgent(ai6, false);
+      await stageAIAgent(ai7);
+      await stageAIAgent(ai8);
+      await stageAIAgent(ai9);
     }
   });
   // in recording mode, remove test data after recording
@@ -274,6 +340,16 @@ describe('AgentOps', () => {
       await stageAgent(web7, false);
       await stageAgent(web8, false);
       await stageAgent(web9, false);
+
+      await stageAIAgent(ai1, false);
+      await stageAIAgent(ai2, false);
+      await stageAIAgent(ai3, false);
+      await stageAIAgent(ai4, false);
+      await stageAIAgent(ai5, false);
+      await stageAIAgent(ai6, false);
+      await stageAIAgent(ai7, false);
+      await stageAIAgent(ai8, false);
+      await stageAIAgent(ai9, false);
     }
   });
   beforeEach(async () => {
@@ -285,7 +361,7 @@ describe('AgentOps', () => {
   });
   describe('Cloud Tests', () => {
     beforeEach(() => {
-      setDefaultState()
+      setDefaultState();
     });
     // Phase 1
     if (
@@ -298,13 +374,13 @@ describe('AgentOps', () => {
           expect(AgentOps.createAgentExportTemplate).toBeDefined();
         });
 
-      test('1: Create Agent Export Template', async () => {
-        const response = AgentOps.createAgentExportTemplate({ state });
-        expect(response).toMatchSnapshot({
-          meta: expect.any(Object),
+        test('1: Create Agent Export Template', async () => {
+          const response = AgentOps.createAgentExportTemplate({ state });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
         });
       });
-    });
 
       describe('readAgents()', () => {
         test('0: Method is implemented', async () => {
@@ -312,7 +388,10 @@ describe('AgentOps', () => {
         });
 
         test('1: Read all agents', async () => {
-          const response = await AgentOps.readAgents({state, globalConfig: false,});
+          const response = await AgentOps.readAgents({
+            state,
+            globalConfig: false,
+          });
           expect(response).toMatchSnapshot();
         });
       });
@@ -332,12 +411,29 @@ describe('AgentOps', () => {
         });
 
         test(`2: Read agent '${java1.id}' (${java1.type})`, async () => {
-          const response = await AgentOps.readAgent({agentId: java1.id, globalConfig: false, state});
+          const response = await AgentOps.readAgent({
+            agentId: java1.id,
+            globalConfig: false,
+            state,
+          });
           expect(response).toMatchSnapshot();
         });
 
         test(`3: Read agent '${web1.id}' (${web1.type})`, async () => {
-          const response = await AgentOps.readAgent({agentId: web1.id, globalConfig: false, state});
+          const response = await AgentOps.readAgent({
+            agentId: web1.id,
+            globalConfig: false,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
+
+        test(`4: Read agent '${ai1.id}' (${ai1.type})`, async () => {
+          const response = await AgentOps.readAgent({
+            agentId: ai1.id,
+            globalConfig: false,
+            state,
+          });
           expect(response).toMatchSnapshot();
         });
       });
@@ -424,6 +520,15 @@ describe('AgentOps', () => {
           });
           expect(response).toMatchSnapshot();
         });
+
+        test(`4: Read agent by type '${ai1.id}' (${ai1.type})`, async () => {
+          const response = await AgentOps.readAgentByTypeAndId({
+            agentType: ai1.type,
+            agentId: ai1.id,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
       });
 
       describe('readIdentityGatewayAgents()', () => {
@@ -432,7 +537,7 @@ describe('AgentOps', () => {
         });
 
         test('1: Read gateway agents', async () => {
-          const response = await AgentOps.readIdentityGatewayAgents({state});
+          const response = await AgentOps.readIdentityGatewayAgents({ state });
           expect(response).toMatchSnapshot();
         });
       });
@@ -472,7 +577,7 @@ describe('AgentOps', () => {
         });
 
         test('1: Read java agents', async () => {
-          const response = await AgentOps.readJavaAgents({state});
+          const response = await AgentOps.readJavaAgents({ state });
           expect(response).toMatchSnapshot();
         });
       });
@@ -512,7 +617,7 @@ describe('AgentOps', () => {
         });
 
         test('1: Read web agents', async () => {
-          const response = await AgentOps.readWebAgents({state});
+          const response = await AgentOps.readWebAgents({ state });
           expect(response).toMatchSnapshot();
         });
       });
@@ -552,7 +657,10 @@ describe('AgentOps', () => {
         });
 
         test('1: Export all agents', async () => {
-          const response = await AgentOps.exportAgents({state, globalConfig: false});
+          const response = await AgentOps.exportAgents({
+            state,
+            globalConfig: false,
+          });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
@@ -565,7 +673,9 @@ describe('AgentOps', () => {
         });
 
         test('1: Export gateway agents', async () => {
-          const response = await AgentOps.exportIdentityGatewayAgents({state});
+          const response = await AgentOps.exportIdentityGatewayAgents({
+            state,
+          });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
@@ -578,7 +688,7 @@ describe('AgentOps', () => {
         });
 
         test('1: Export java agents', async () => {
-          const response = await AgentOps.exportJavaAgents({state});
+          const response = await AgentOps.exportJavaAgents({ state });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
@@ -591,7 +701,7 @@ describe('AgentOps', () => {
         });
 
         test('1: Export web agents', async () => {
-          const response = await AgentOps.exportWebAgents({state});
+          const response = await AgentOps.exportWebAgents({ state });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
@@ -628,6 +738,17 @@ describe('AgentOps', () => {
         test(`3: Export agent '${web1.id}' (${web1.type})`, async () => {
           const response = await AgentOps.exportAgent({
             agentId: web1.id,
+            globalConfig: false,
+            state,
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+
+        test(`4: Export agent '${ai1.id}' (${ai1.type})`, async () => {
+          const response = await AgentOps.exportAgent({
+            agentId: ai1.id,
             globalConfig: false,
             state,
           });
@@ -690,20 +811,24 @@ describe('AgentOps', () => {
           expect(AgentOps.importAgents).toBeDefined();
         });
 
-      test('1: Import all agents', async () => {
-        const agents = {
-          [gateway3.id]: gateway3.type,
-          [java3.id]: java3.type,
-          [web3.id]: web3.type,
-        };
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        for (const agentId of Object.keys(agents)) {
-          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
-        }
-        await AgentOps.importAgents({ importData: exportData, globalConfig: false, state });
-        expect(true).toBeTruthy();
+        test('1: Import all agents', async () => {
+          const agents = {
+            [gateway3.id]: gateway3.type,
+            [java3.id]: java3.type,
+            [web3.id]: web3.type,
+          };
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          for (const agentId of Object.keys(agents)) {
+            exportData.agent[agentId] = getAgent(agents[agentId], agentId);
+          }
+          await AgentOps.importAgents({
+            importData: exportData,
+            globalConfig: false,
+            state,
+          });
+          expect(true).toBeTruthy();
+        });
       });
-    });
 
       describe('importAgentGroups()', () => {
         test('0: Method is implemented', async () => {
@@ -717,159 +842,177 @@ describe('AgentOps', () => {
           expect(AgentOps.importIdentityGatewayAgents).toBeDefined();
         });
 
-      test('1: Import all gateway agents', async () => {
-        const agents = {
-          [gateway4.id]: gateway4.type,
-          [gateway5.id]: gateway5.type,
-        };
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        for (const agentId of Object.keys(agents)) {
-          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
-        }
-        await AgentOps.importIdentityGatewayAgents({
-          importData: exportData,
-          state,
-        });
-        expect(true).toBeTruthy();
-      });
-
-      test('2: Import gateway agents with wrong type', async () => {
-        const agents = {
-          [java4.id]: java4.type,
-          [web4.id]: web4.type,
-        };
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        for (const agentId of Object.keys(agents)) {
-          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
-        }
-        expect.assertions(2);
-        try {
+        test('1: Import all gateway agents', async () => {
+          const agents = {
+            [gateway4.id]: gateway4.type,
+            [gateway5.id]: gateway5.type,
+          };
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          for (const agentId of Object.keys(agents)) {
+            exportData.agent[agentId] = getAgent(agents[agentId], agentId);
+          }
           await AgentOps.importIdentityGatewayAgents({
             importData: exportData,
             state,
           });
-        } catch (error) {
-          expect(error.name).toEqual('FrodoError');
-          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
-        }
+          expect(true).toBeTruthy();
+        });
+
+        test('2: Import gateway agents with wrong type', async () => {
+          const agents = {
+            [java4.id]: java4.type,
+            [web4.id]: web4.type,
+          };
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          for (const agentId of Object.keys(agents)) {
+            exportData.agent[agentId] = getAgent(agents[agentId], agentId);
+          }
+          expect.assertions(2);
+          try {
+            await AgentOps.importIdentityGatewayAgents({
+              importData: exportData,
+              state,
+            });
+          } catch (error) {
+            expect(error.name).toEqual('FrodoError');
+            expect(
+              (error as FrodoError).getCombinedMessage()
+            ).toMatchSnapshot();
+          }
+        });
       });
-    });
 
       describe('importJavaAgents()', () => {
         test('0: Method is implemented', async () => {
           expect(AgentOps.importJavaAgents).toBeDefined();
         });
 
-      test('1: Import all java agents', async () => {
-        const agents = {
-          [java4.id]: java4.type,
-          [java5.id]: java5.type,
-        };
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        for (const agentId of Object.keys(agents)) {
-          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
-        }
-        await AgentOps.importJavaAgents({ importData: exportData, state });
-        expect(true).toBeTruthy();
-      });
-
-      test('2: Import java agents with wrong type', async () => {
-        const agents = {
-          [web4.id]: web4.type,
-          [gateway4.id]: gateway4.type,
-        };
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        for (const agentId of Object.keys(agents)) {
-          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
-        }
-        expect.assertions(2);
-        try {
+        test('1: Import all java agents', async () => {
+          const agents = {
+            [java4.id]: java4.type,
+            [java5.id]: java5.type,
+          };
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          for (const agentId of Object.keys(agents)) {
+            exportData.agent[agentId] = getAgent(agents[agentId], agentId);
+          }
           await AgentOps.importJavaAgents({ importData: exportData, state });
-        } catch (error) {
-          expect(error.name).toEqual('FrodoError');
-          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
-        }
+          expect(true).toBeTruthy();
+        });
+
+        test('2: Import java agents with wrong type', async () => {
+          const agents = {
+            [web4.id]: web4.type,
+            [gateway4.id]: gateway4.type,
+          };
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          for (const agentId of Object.keys(agents)) {
+            exportData.agent[agentId] = getAgent(agents[agentId], agentId);
+          }
+          expect.assertions(2);
+          try {
+            await AgentOps.importJavaAgents({ importData: exportData, state });
+          } catch (error) {
+            expect(error.name).toEqual('FrodoError');
+            expect(
+              (error as FrodoError).getCombinedMessage()
+            ).toMatchSnapshot();
+          }
+        });
       });
-    });
 
       describe('importWebAgents()', () => {
         test('0: Method is implemented', async () => {
           expect(AgentOps.importWebAgents).toBeDefined();
         });
 
-      test('1: Import all web agents', async () => {
-        const agents = {
-          [web4.id]: web4.type,
-          [web5.id]: web5.type,
-        };
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        for (const agentId of Object.keys(agents)) {
-          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
-        }
-        await AgentOps.importWebAgents({ importData: exportData, state });
-        expect(true).toBeTruthy();
-      });
-
-      test('2: Import web agents with wrong type', async () => {
-        const agents = {
-          [gateway4.id]: gateway4.type,
-          [java4.id]: java4.type,
-        };
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        for (const agentId of Object.keys(agents)) {
-          exportData.agent[agentId] = getAgent(agents[agentId], agentId);
-        }
-        expect.assertions(2);
-        try {
+        test('1: Import all web agents', async () => {
+          const agents = {
+            [web4.id]: web4.type,
+            [web5.id]: web5.type,
+          };
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          for (const agentId of Object.keys(agents)) {
+            exportData.agent[agentId] = getAgent(agents[agentId], agentId);
+          }
           await AgentOps.importWebAgents({ importData: exportData, state });
-        } catch (error) {
-          expect(error.name).toEqual('FrodoError');
-          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
-        }
+          expect(true).toBeTruthy();
+        });
+
+        test('2: Import web agents with wrong type', async () => {
+          const agents = {
+            [gateway4.id]: gateway4.type,
+            [java4.id]: java4.type,
+          };
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          for (const agentId of Object.keys(agents)) {
+            exportData.agent[agentId] = getAgent(agents[agentId], agentId);
+          }
+          expect.assertions(2);
+          try {
+            await AgentOps.importWebAgents({ importData: exportData, state });
+          } catch (error) {
+            expect(error.name).toEqual('FrodoError');
+            expect(
+              (error as FrodoError).getCombinedMessage()
+            ).toMatchSnapshot();
+          }
+        });
       });
-    });
 
       describe('importAgent()', () => {
         test('0: Method is implemented', async () => {
           expect(AgentOps.importAgent).toBeDefined();
         });
 
-      test('1: Import gateway agent', async () => {
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agent[gateway6.id] = getAgent(gateway6.type, gateway6.id);
-        await AgentOps.importAgent({
-          agentId: gateway6.id,
-          importData: exportData,
-          globalConfig: false,
-          state,
+        test('1: Import gateway agent', async () => {
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          exportData.agent[gateway6.id] = getAgent(gateway6.type, gateway6.id);
+          await AgentOps.importAgent({
+            agentId: gateway6.id,
+            importData: exportData,
+            globalConfig: false,
+            state,
+          });
+          expect(true).toBeTruthy();
         });
-        expect(true).toBeTruthy();
-      });
 
-      test('2: Import java agent', async () => {
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agent[java6.id] = getAgent(java6.type, java6.id);
-        await AgentOps.importAgent({
-          agentId: java6.id,
-          importData: exportData,
-          globalConfig: false,
-          state,
+        test('2: Import java agent', async () => {
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          exportData.agent[java6.id] = getAgent(java6.type, java6.id);
+          await AgentOps.importAgent({
+            agentId: java6.id,
+            importData: exportData,
+            globalConfig: false,
+            state,
+          });
+          expect(true).toBeTruthy();
         });
-        expect(true).toBeTruthy();
-      });
 
-      test('3: Import web agent', async () => {
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agent[web6.id] = getAgent(web6.type, web6.id);
-        await AgentOps.importAgent({
-          agentId: web6.id,
-          importData: exportData,
-          globalConfig: false,
-          state,
+        test('3: Import web agent', async () => {
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          exportData.agent[web6.id] = getAgent(web6.type, web6.id);
+          await AgentOps.importAgent({
+            agentId: web6.id,
+            importData: exportData,
+            globalConfig: false,
+            state,
+          });
+          expect(true).toBeTruthy();
         });
-        expect(true).toBeTruthy();
+
+        test('4: Import AI agent', async () => {
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          exportData.agent[ai6.id] = getAgent(ai6.type, ai6.id);
+          await AgentOps.importAgent({
+            agentId: ai6.id,
+            importData: exportData,
+            globalConfig: false,
+            state,
+          });
+          expect(true).toBeTruthy();
+        });
       });
-    });
 
       describe('importAgentGroup()', () => {
         test('0: Method is implemented', async () => {
@@ -883,100 +1026,264 @@ describe('AgentOps', () => {
           expect(AgentOps.importIdentityGatewayAgent).toBeDefined();
         });
 
-      test(`1: Import ${gateway7.type} '${gateway7.id}'`, async () => {
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agent[gateway7.id] = getAgent(gateway7.type, gateway7.id);
-        await AgentOps.importIdentityGatewayAgent({
-          agentId: gateway7.id,
-          importData: exportData,
-          state,
-        });
-        expect(true).toBeTruthy();
-      });
-
-      test('2: Import gateway agent with wrong type', async () => {
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agent[java7.id] = getAgent(java7.type, java7.id);
-        expect.assertions(2);
-        try {
+        test(`1: Import ${gateway7.type} '${gateway7.id}'`, async () => {
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          exportData.agent[gateway7.id] = getAgent(gateway7.type, gateway7.id);
           await AgentOps.importIdentityGatewayAgent({
-            agentId: java7.id,
+            agentId: gateway7.id,
             importData: exportData,
             state,
           });
-        } catch (error) {
-          expect(error.name).toEqual('FrodoError');
-          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
-        }
+          expect(true).toBeTruthy();
+        });
+
+        test('2: Import gateway agent with wrong type', async () => {
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          exportData.agent[java7.id] = getAgent(java7.type, java7.id);
+          expect.assertions(2);
+          try {
+            await AgentOps.importIdentityGatewayAgent({
+              agentId: java7.id,
+              importData: exportData,
+              state,
+            });
+          } catch (error) {
+            expect(error.name).toEqual('FrodoError');
+            expect(
+              (error as FrodoError).getCombinedMessage()
+            ).toMatchSnapshot();
+          }
+        });
       });
-    });
 
       describe('importJavaAgent()', () => {
         test('0: Method is implemented', async () => {
           expect(AgentOps.importJavaAgents).toBeDefined();
         });
 
-      test(`1: Import ${java7.type} '${java7.id}'`, async () => {
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agent[java7.id] = getAgent(java7.type, java7.id);
-        await AgentOps.importJavaAgent({
-          agentId: java7.id,
-          importData: exportData,
-          state,
-        });
-        expect(true).toBeTruthy();
-      });
-
-      test('2: Import java agent with wrong type', async () => {
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agent[web7.id] = getAgent(web7.type, web7.id);
-        expect.assertions(2);
-        try {
+        test(`1: Import ${java7.type} '${java7.id}'`, async () => {
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          exportData.agent[java7.id] = getAgent(java7.type, java7.id);
           await AgentOps.importJavaAgent({
-            agentId: web7.id,
+            agentId: java7.id,
             importData: exportData,
             state,
           });
-        } catch (error) {
-          expect(error.name).toEqual('FrodoError');
-          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
-        }
+          expect(true).toBeTruthy();
+        });
+
+        test('2: Import java agent with wrong type', async () => {
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          exportData.agent[web7.id] = getAgent(web7.type, web7.id);
+          expect.assertions(2);
+          try {
+            await AgentOps.importJavaAgent({
+              agentId: web7.id,
+              importData: exportData,
+              state,
+            });
+          } catch (error) {
+            expect(error.name).toEqual('FrodoError');
+            expect(
+              (error as FrodoError).getCombinedMessage()
+            ).toMatchSnapshot();
+          }
+        });
       });
-    });
 
       describe('importWebAgent()', () => {
         test('0: Method is implemented', async () => {
           expect(AgentOps.importWebAgent).toBeDefined();
         });
 
-      test(`1: Import ${web7.type} '${web7.id}'`, async () => {
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agent[web7.id] = getAgent(web7.type, web7.id);
-        await AgentOps.importWebAgent({
-          agentId: web7.id,
-          importData: exportData,
-          state,
-        });
-        expect(true).toBeTruthy();
-      });
-
-      test('2: Import web agent with wrong type', async () => {
-        const exportData = AgentOps.createAgentExportTemplate({ state });
-        exportData.agent[gateway7.id] = getAgent(gateway7.type, gateway7.id);
-        expect.assertions(2);
-        try {
+        test(`1: Import ${web7.type} '${web7.id}'`, async () => {
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          exportData.agent[web7.id] = getAgent(web7.type, web7.id);
           await AgentOps.importWebAgent({
-            agentId: gateway7.id,
+            agentId: web7.id,
             importData: exportData,
             state,
           });
-        } catch (error) {
-          expect(error.name).toEqual('FrodoError');
-          expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
-        }
+          expect(true).toBeTruthy();
+        });
+
+        test('2: Import web agent with wrong type', async () => {
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          exportData.agent[gateway7.id] = getAgent(gateway7.type, gateway7.id);
+          expect.assertions(2);
+          try {
+            await AgentOps.importWebAgent({
+              agentId: gateway7.id,
+              importData: exportData,
+              state,
+            });
+          } catch (error) {
+            expect(error.name).toEqual('FrodoError');
+            expect(
+              (error as FrodoError).getCombinedMessage()
+            ).toMatchSnapshot();
+          }
+        });
       });
-    });
-  }
+
+      describe('createAIAgent()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AgentOps.createAIAgent).toBeDefined();
+        });
+
+        test(`1: Create ${ai2.type} '${ai2.id}'`, async () => {
+          const response = await AgentOps.createAIAgent({
+            agentId: ai2.id,
+            agentData: getAgent(ai2.type, ai2.id),
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
+      });
+
+      describe('readAIAgents()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AgentOps.readAIAgents).toBeDefined();
+        });
+
+        test('1: Read all AI agents', async () => {
+          const response = await AgentOps.readAIAgents({ state });
+          expect(response).toMatchSnapshot();
+        });
+      });
+
+      describe('readAIAgent()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AgentOps.readAIAgent).toBeDefined();
+        });
+
+        test(`1: Read ${ai1.type} '${ai1.id}'`, async () => {
+          const response = await AgentOps.readAIAgent({
+            agentId: ai1.id,
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
+      });
+
+      describe('updateAIAgent()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AgentOps.updateAIAgent).toBeDefined();
+        });
+
+        test(`1: Update ${ai1.type} '${ai1.id}'`, async () => {
+          const response = await AgentOps.updateAIAgent({
+            agentId: ai1.id,
+            agentData: getAgent(ai1.type, ai1.id),
+            state,
+          });
+          expect(response).toMatchSnapshot();
+        });
+      });
+
+      describe('exportAIAgents()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AgentOps.exportAIAgents).toBeDefined();
+        });
+
+        test('1: Export all AI agents', async () => {
+          const response = await AgentOps.exportAIAgents({ state });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+      });
+
+      describe('exportAIAgent()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AgentOps.exportAIAgent).toBeDefined();
+        });
+
+        test(`1: Export ${ai1.type} '${ai1.id}'`, async () => {
+          const response = await AgentOps.exportAIAgent({
+            agentId: ai1.id,
+            state,
+          });
+          expect(response).toMatchSnapshot({
+            meta: expect.any(Object),
+          });
+        });
+      });
+
+      describe('importAIAgents()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AgentOps.importAIAgents).toBeDefined();
+        });
+
+        test('1: Import all AI agents', async () => {
+          const agents = {
+            [ai3.id]: ai3.type,
+            [ai4.id]: ai4.type,
+          };
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          for (const agentId of Object.keys(agents)) {
+            exportData.agent[agentId] = getAgent(agents[agentId], agentId);
+          }
+          await AgentOps.importAIAgents({ importData: exportData, state });
+          expect(true).toBeTruthy();
+        });
+
+        test('2: Import AI agents with wrong type', async () => {
+          const agents = {
+            [gateway4.id]: gateway4.type,
+            [java4.id]: java4.type,
+          };
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          for (const agentId of Object.keys(agents)) {
+            exportData.agent[agentId] = getAgent(agents[agentId], agentId);
+          }
+          expect.assertions(2);
+          try {
+            await AgentOps.importAIAgents({ importData: exportData, state });
+          } catch (error) {
+            expect(error.name).toEqual('FrodoError');
+            expect(
+              (error as FrodoError).getCombinedMessage()
+            ).toMatchSnapshot();
+          }
+        });
+      });
+
+      describe('importAIAgent()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AgentOps.importAIAgent).toBeDefined();
+        });
+
+        test(`1: Import ${ai7.type} '${ai7.id}'`, async () => {
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          exportData.agent[ai7.id] = getAgent(ai7.type, ai7.id);
+          await AgentOps.importAIAgent({
+            agentId: ai7.id,
+            importData: exportData,
+            state,
+          });
+          expect(true).toBeTruthy();
+        });
+
+        test('2: Import AI agent with wrong type', async () => {
+          const exportData = AgentOps.createAgentExportTemplate({ state });
+          exportData.agent[gateway7.id] = getAgent(gateway7.type, gateway7.id);
+          expect.assertions(2);
+          try {
+            await AgentOps.importAIAgent({
+              agentId: gateway7.id,
+              importData: exportData,
+              state,
+            });
+          } catch (error) {
+            expect(error.name).toEqual('FrodoError');
+            expect(
+              (error as FrodoError).getCombinedMessage()
+            ).toMatchSnapshot();
+          }
+        });
+      });
+    }
 
     // Phase 2
     if (
@@ -990,17 +1297,22 @@ describe('AgentOps', () => {
         });
 
         test(`1: Delete agent '${gateway8.id}' (${gateway8.type})`, async () => {
-          await AgentOps.deleteAgent({agentId: gateway8.id, state});
+          await AgentOps.deleteAgent({ agentId: gateway8.id, state });
           expect(true).toBeTruthy();
         });
 
         test(`2: Delete agent '${java8.id}' (${java8.type})`, async () => {
-          await AgentOps.deleteAgent({agentId: java8.id, state});
+          await AgentOps.deleteAgent({ agentId: java8.id, state });
           expect(true).toBeTruthy();
         });
 
         test(`3: Delete agent '${web8.id}' (${web8.type})`, async () => {
-          await AgentOps.deleteAgent({agentId: web8.id, state});
+          await AgentOps.deleteAgent({ agentId: web8.id, state });
+          expect(true).toBeTruthy();
+        });
+
+        test(`4: Delete agent '${ai8.id}' (${ai8.type})`, async () => {
+          await AgentOps.deleteAgent({ agentId: ai8.id, state });
           expect(true).toBeTruthy();
         });
       });
@@ -1027,7 +1339,9 @@ describe('AgentOps', () => {
             });
           } catch (error) {
             expect(error.name).toEqual('FrodoError');
-            expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
+            expect(
+              (error as FrodoError).getCombinedMessage()
+            ).toMatchSnapshot();
           }
         });
       });
@@ -1038,17 +1352,19 @@ describe('AgentOps', () => {
         });
 
         test(`1: Delete ${java9.type} '${java9.id}'`, async () => {
-          await AgentOps.deleteJavaAgent({agentId: java9.id, state});
+          await AgentOps.deleteJavaAgent({ agentId: java9.id, state });
           expect(true).toBeTruthy();
         });
 
         test(`2: Delete agent of wrong type '${web9.id}' (${web9.type})`, async () => {
           expect.assertions(2);
           try {
-            await AgentOps.deleteJavaAgent({agentId: web9.id, state});
+            await AgentOps.deleteJavaAgent({ agentId: web9.id, state });
           } catch (error) {
             expect(error.name).toEqual('FrodoError');
-            expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
+            expect(
+              (error as FrodoError).getCombinedMessage()
+            ).toMatchSnapshot();
           }
         });
       });
@@ -1059,17 +1375,61 @@ describe('AgentOps', () => {
         });
 
         test(`1: Delete ${web9.type} '${web9.id}'`, async () => {
-          await AgentOps.deleteWebAgent({agentId: web9.id, state});
+          await AgentOps.deleteWebAgent({ agentId: web9.id, state });
           expect(true).toBeTruthy();
         });
 
         test(`2: Delete agent of wrong type '${gateway9.id}' (${gateway9.type})`, async () => {
           expect.assertions(2);
           try {
-            await AgentOps.deleteWebAgent({agentId: gateway9.id, state});
+            await AgentOps.deleteWebAgent({ agentId: gateway9.id, state });
           } catch (error) {
             expect(error.name).toEqual('FrodoError');
-            expect((error as FrodoError).getCombinedMessage()).toMatchSnapshot();
+            expect(
+              (error as FrodoError).getCombinedMessage()
+            ).toMatchSnapshot();
+          }
+        });
+      });
+
+      describe('deleteAIAgent()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AgentOps.deleteAIAgent).toBeDefined();
+        });
+
+        test(`1: Delete ${ai9.type} '${ai9.id}' (deep=false)`, async () => {
+          await AgentOps.deleteAIAgent({ agentId: ai9.id, deep: false, state });
+          expect(true).toBeTruthy();
+        });
+
+        test(`2: Delete '${ai9.id}' with deep=true (non-existent after test 1)`, async () => {
+          expect.assertions(2);
+          try {
+            await AgentOps.deleteAIAgent({
+              agentId: ai9.id,
+              deep: true,
+              state,
+            });
+          } catch (error) {
+            expect(error.name).toEqual('FrodoError');
+            expect(
+              (error as FrodoError).getCombinedMessage()
+            ).toMatchSnapshot();
+          }
+        });
+
+        test(`3: Delete non-existent AI agent 'FrodoOpsTestNonExistentAIAgent'`, async () => {
+          expect.assertions(2);
+          try {
+            await AgentOps.deleteAIAgent({
+              agentId: 'FrodoOpsTestNonExistentAIAgent',
+              state,
+            });
+          } catch (error) {
+            expect(error.name).toEqual('FrodoError');
+            expect(
+              (error as FrodoError).getCombinedMessage()
+            ).toMatchSnapshot();
           }
         });
       });
@@ -1113,6 +1473,17 @@ describe('AgentOps', () => {
           expect(true).toBeTruthy();
         });
       });
+
+      describe('deleteAIAgents()', () => {
+        test('0: Method is implemented', async () => {
+          expect(AgentOps.deleteAIAgents).toBeDefined();
+        });
+
+        test('1: Delete all AI agents (deep=false)', async () => {
+          await AgentOps.deleteAIAgents({ deep: false, state });
+          expect(true).toBeTruthy();
+        });
+      });
     }
 
     // Phase 4
@@ -1142,11 +1513,14 @@ describe('AgentOps', () => {
   ) {
     describe('Classic Tests', () => {
       beforeEach(() => {
-        setDefaultState(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY)
+        setDefaultState(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
       });
       describe('readAgents()', () => {
         test('2: Read all agents', async () => {
-          const response = await AgentOps.readAgents({state, globalConfig: true,});
+          const response = await AgentOps.readAgents({
+            state,
+            globalConfig: true,
+          });
           expect(response).toMatchSnapshot();
         });
       });
@@ -1164,7 +1538,10 @@ describe('AgentOps', () => {
 
       describe('exportAgents()', () => {
         test('2: Export all agents', async () => {
-          const response = await AgentOps.exportAgents({state, globalConfig: true});
+          const response = await AgentOps.exportAgents({
+            state,
+            globalConfig: true,
+          });
           expect(response).toMatchSnapshot({
             meta: expect.any(Object),
           });
@@ -1172,7 +1549,6 @@ describe('AgentOps', () => {
       });
 
       describe('exportAgent()', () => {
-
         test(`4: Export agent 'AgentService'`, async () => {
           const response = await AgentOps.exportAgent({
             agentId: 'AgentService',
