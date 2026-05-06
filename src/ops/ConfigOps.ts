@@ -385,7 +385,8 @@ export async function exportFullConfiguration({
     state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
   const isForgeOpsDeployment =
     state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
-  const isPlatformDeployment = isCloudDeployment || isForgeOpsDeployment;
+  const isIdmDeployment = isCloudDeployment || isForgeOpsDeployment;
+  const isFullAmDeployment = isClassicDeployment || isForgeOpsDeployment;
   const errorCallback = getErrorCallback(resultCallback);
 
   const config = await exportWithErrorHandling(
@@ -418,7 +419,7 @@ export async function exportFullConfiguration({
       },
       'Mappings',
       resultCallback,
-      isPlatformDeployment
+      isIdmDeployment
     );
 
     // Export servers and server properties
@@ -427,7 +428,7 @@ export async function exportFullConfiguration({
       { options: { includeDefault: true }, state },
       'Servers',
       resultCallback,
-      isClassicDeployment
+      isFullAmDeployment
     );
     if (serverExport) {
       delete serverExport.meta;
@@ -441,7 +442,7 @@ export async function exportFullConfiguration({
           globalStateObj,
           'Global Agents',
           resultCallback,
-          isClassicDeployment
+          isFullAmDeployment
         )
       )?.agent,
       authentication: (
@@ -450,7 +451,7 @@ export async function exportFullConfiguration({
           globalStateObj,
           'Global Authentication Settings',
           resultCallback,
-          isClassicDeployment
+          isFullAmDeployment
         )
       )?.authentication,
       certificationTemplate: (
@@ -473,7 +474,7 @@ export async function exportFullConfiguration({
           { includeDefault: includeReadOnly, state },
           'Email Templates',
           resultCallback,
-          isPlatformDeployment
+          isIdmDeployment
         )
       )?.emailTemplate,
       event: (
@@ -517,7 +518,7 @@ export async function exportFullConfiguration({
           },
           'IDM Config Entities',
           resultCallback,
-          isPlatformDeployment
+          isIdmDeployment
         )
       )?.idm,
       internalRole: (
@@ -526,7 +527,7 @@ export async function exportFullConfiguration({
           stateObj,
           'Internal Roles',
           resultCallback,
-          isPlatformDeployment
+          isIdmDeployment
         )
       )?.internalRole,
       mapping: mappings?.mapping,
@@ -549,7 +550,7 @@ export async function exportFullConfiguration({
           stateObj,
           'Realms',
           resultCallback,
-          includeReadOnly || isClassicDeployment
+          includeReadOnly || isFullAmDeployment
         )
       )?.realm,
       requestForm: (
@@ -589,7 +590,7 @@ export async function exportFullConfiguration({
           stateObj,
           'Script Types',
           resultCallback,
-          includeReadOnly || isClassicDeployment
+          includeReadOnly || isFullAmDeployment
         )
       )?.scripttype,
       secret: (
@@ -607,7 +608,7 @@ export async function exportFullConfiguration({
           globalStateObj,
           'Global Secret Stores',
           resultCallback,
-          isClassicDeployment
+          isFullAmDeployment
         )
       )?.secretstore,
       server: serverExport,
@@ -625,7 +626,7 @@ export async function exportFullConfiguration({
           stateObj,
           'Sites',
           resultCallback,
-          isClassicDeployment
+          isFullAmDeployment
         )
       )?.site,
       sync: mappings?.sync,
@@ -792,7 +793,7 @@ export async function exportFullConfiguration({
             },
             'Applications',
             resultCallback,
-            isPlatformDeployment
+            isIdmDeployment
           )
         )?.managedApplication,
         policy: (
@@ -847,8 +848,7 @@ export async function exportFullConfiguration({
             exportSecretStores,
             realmStateObj,
             'Secret Stores',
-            resultCallback,
-            isClassicDeployment || isCloudDeployment
+            resultCallback
           )
         )?.secretstore,
         service: (
@@ -867,7 +867,7 @@ export async function exportFullConfiguration({
             },
             'Themes',
             resultCallback,
-            isPlatformDeployment
+            isIdmDeployment
           )
         )?.theme,
         trustedJwtIssuer: (
@@ -936,7 +936,9 @@ export async function importFullConfiguration({
     state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
   const isForgeOpsDeployment =
     state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
-  const isPlatformDeployment = isCloudDeployment || isForgeOpsDeployment;
+  const isIdmDeployment = isCloudDeployment || isForgeOpsDeployment;
+  const isFullAmDeployment = isClassicDeployment || isForgeOpsDeployment;
+
   const {
     reUuidJourneys,
     reUuidScripts,
@@ -968,7 +970,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Servers',
       resultCallback,
-      isClassicDeployment && !!importData.global.server
+      isFullAmDeployment && !!importData.global.server
     )
   );
   response.push(
@@ -983,7 +985,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Sites',
       resultCallback,
-      isClassicDeployment && !!importData.global.site
+      isFullAmDeployment && !!importData.global.site
     )
   );
   response.push(
@@ -998,7 +1000,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Realms',
       resultCallback,
-      isClassicDeployment && !!importData.global.realm
+      isFullAmDeployment && !!importData.global.realm
     )
   );
   response.push(
@@ -1032,7 +1034,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Script Types',
       resultCallback,
-      isClassicDeployment && !!importData.global.scripttype
+      isFullAmDeployment && !!importData.global.scripttype
     )
   );
   response.push(
@@ -1047,7 +1049,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Secret Stores',
       resultCallback,
-      isClassicDeployment && !!importData.global.secretstore
+      isFullAmDeployment && !!importData.global.secretstore
     )
   );
   response.push(
@@ -1096,7 +1098,7 @@ export async function importFullConfiguration({
       indicatorId,
       'IDM Config Entities',
       resultCallback,
-      isPlatformDeployment && !!importData.global.idm
+      isIdmDeployment && !!importData.global.idm
     )
   );
   response.push(
@@ -1126,7 +1128,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Email Templates',
       resultCallback,
-      isPlatformDeployment && !!importData.global.emailTemplate
+      isIdmDeployment && !!importData.global.emailTemplate
     )
   );
   response.push(
@@ -1140,7 +1142,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Mappings',
       resultCallback,
-      isPlatformDeployment
+      isIdmDeployment
     )
   );
   response.push(
@@ -1164,7 +1166,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Agents',
       resultCallback,
-      isClassicDeployment && !!importData.global.agent
+      isFullAmDeployment && !!importData.global.agent
     )
   );
   response.push(
@@ -1178,7 +1180,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Authentication Settings',
       resultCallback,
-      isClassicDeployment && !!importData.global.authentication
+      isFullAmDeployment && !!importData.global.authentication
     )
   );
   response.push(
@@ -1191,7 +1193,7 @@ export async function importFullConfiguration({
       indicatorId,
       'Internal Roles',
       resultCallback,
-      isPlatformDeployment && !!importData.global.internalRole
+      isIdmDeployment && !!importData.global.internalRole
     )
   );
   response.push(
@@ -1324,7 +1326,7 @@ export async function importFullConfiguration({
         indicatorId,
         'Themes',
         resultCallback,
-        isPlatformDeployment && !!importData.realm[realm].theme
+        isIdmDeployment && !!importData.realm[realm].theme
       )
     );
     response.push(
@@ -1339,8 +1341,7 @@ export async function importFullConfiguration({
         indicatorId,
         'Secret Stores',
         resultCallback,
-        (isClassicDeployment || isCloudDeployment) &&
-          !!importData.realm[realm].secretstore
+        !!importData.realm[realm].secretstore
       )
     );
     response.push(
@@ -1455,7 +1456,7 @@ export async function importFullConfiguration({
         indicatorId,
         'Applications',
         resultCallback,
-        isPlatformDeployment && !!importData.realm[realm].managedApplication
+        isIdmDeployment && !!importData.realm[realm].managedApplication
       )
     );
     response.push(
