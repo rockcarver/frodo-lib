@@ -3,7 +3,6 @@ import {
   type AgentSkeleton,
   type AgentType,
   deleteAgentByTypeAndId as _deleteAgentByTypeAndId,
-  findAgentById as _findAgentById,
   findAgentByTypeAndId as _findAgentByTypeAndId,
   getAgentByTypeAndId as _getAgentByTypeAndId,
   getAgentGroups as _getAgentGroups,
@@ -866,7 +865,9 @@ export async function deleteAgent({
 }) {
   try {
     debugMessage({ message: `AgentOps.deleteAgent: start`, state });
-    const agents = await _findAgentById({ agentId, state });
+    const agents = (await readAgents({ globalConfig: false, state })).filter(
+      (a) => a._id === agentId
+    );
     if (agents.length == 0) {
       throw new FrodoError(
         `${getCurrentRealmName(state) + ' realm'} agent '${agentId}' not found!`
@@ -2525,7 +2526,7 @@ export async function readAIAgent({
  * @param {object} params structured and named parameters
  * @param {string} params.agentId AI agent id
  * @param {Object} params.agentData AI agent object
- * @param {boolean} [params.includeAgentIdentity=true] whether to also read agent identity and privileges and merge into result (only for cloud/ForgeOps)
+ * @param {boolean} [params.includeAgentIdentity=true] whether to also update agent identity and privileges.
  * @param {State} params.state state object
  * @returns {Promise} a promise that resolves to an object containing an AI agent object
  */
@@ -2572,38 +2573,6 @@ export async function createAIAgent({
         ) as IdObjectSkeletonInterface[];
         delete aiAgentIdentity._privileges;
         try {
-          // create skeleton managed object for the ai agent identity
-          debugMessage({
-            message: `AgentOps.createAIAgent: Creating AI agent skeleton identity ${aiAgentIdentity._id}`,
-            state,
-          });
-          // create skeleton managed object for the ai agent identity
-          const identitySkeleton: IdObjectSkeletonInterface =
-            cloneDeep(aiAgentIdentity);
-          const identitySkeletonSchema = await readManagedObjectSchema({
-            type: `${getCurrentRealmName(state)}_aiagent`,
-            options: {
-              excludeVirtual: true,
-              excludeRelationships: true,
-            },
-            state,
-          });
-          for (const prop of Object.keys(identitySkeleton)) {
-            if (!identitySkeletonSchema.properties[prop]) {
-              delete identitySkeleton[prop];
-            }
-          }
-          await createManagedObject({
-            type: `${getCurrentRealmName(state)}_aiagent`,
-            id: identitySkeleton._id,
-            moData: identitySkeleton,
-            state,
-          });
-          debugMessage({
-            message: `AgentOps.createAIAgent: Finished creating AI agent skeleton identity ${identitySkeleton._id}`,
-            state,
-          });
-
           // create skeleton managed objects for privileges
           debugMessage({
             message: `AgentOps.createAIAgent: Creating privileges for AI agent identity ${aiAgentIdentity._id}`,
@@ -2648,9 +2617,9 @@ export async function createAIAgent({
                       operation: 'replace',
                       field: '/agent',
                       value: {
-                        _ref: `managed/${getCurrentRealmName(state)}_aiagent/${identitySkeleton._id}`,
+                        _ref: `managed/${getCurrentRealmName(state)}_aiagent/${aiAgentIdentity._id}`,
                         _refResourceCollection: `managed/${getCurrentRealmName(state)}_aiagent`,
-                        _refResourceId: identitySkeleton._id,
+                        _refResourceId: aiAgentIdentity._id,
                       },
                     },
                   ],
@@ -2659,7 +2628,7 @@ export async function createAIAgent({
                 // create reverse link from agent identity to privilege
                 await updateManagedObjectProperties({
                   type: `${getCurrentRealmName(state)}_aiagent`,
-                  id: identitySkeleton._id,
+                  id: aiAgentIdentity._id,
                   operations: [
                     {
                       operation: 'add',
