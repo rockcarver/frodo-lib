@@ -470,21 +470,18 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Agent",
     methodName: "deleteAIAgents",
-    signature: "deleteAIAgents(deep?: boolean): Promise<void>",
-    description: "Delete all AI agents",
-    params: [
-      { name: "deep", type: "boolean", description: "whether to delete related AI agent identity objects" },
-    ],
+    signature: "deleteAIAgents(): Promise<void>",
+    description: "Delete all AI agents and their agent identity and privileges",
+    params: [],
     returns: "",
   },
   {
     typeName: "Agent",
     methodName: "deleteAIAgent",
-    signature: "deleteAIAgent(agentId: string, deep?: boolean): Promise<void>",
-    description: "Delete AI agent",
+    signature: "deleteAIAgent(agentId: string): Promise<void>",
+    description: "Delete AI agent and agent identity and privileges",
     params: [
       { name: "agentId", type: "string", description: "agent id/name" },
-      { name: "deep", type: "boolean", description: "whether to delete related AI agent identity objects" },
     ],
     returns: "",
   },

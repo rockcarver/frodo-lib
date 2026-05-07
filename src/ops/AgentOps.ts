@@ -1,17 +1,18 @@
 import {
-  AgentGroupSkeleton,
+  type AgentGroupSkeleton,
   type AgentSkeleton,
   type AgentType,
-  deleteAgentByTypeAndId,
-  findAgentById,
-  findAgentByTypeAndId,
+  deleteAgentByTypeAndId as _deleteAgentByTypeAndId,
+  findAgentById as _findAgentById,
+  findAgentByTypeAndId as _findAgentByTypeAndId,
   getAgentByTypeAndId as _getAgentByTypeAndId,
-  getAgentGroups,
-  getAgents,
-  getAgentsByType,
-  putAgentByTypeAndId,
-  putAgentGroupByTypeAndId,
-  getAgentTypes,
+  getAgentGroups as _getAgentGroups,
+  getAgents as _getAgents,
+  getAgentsByType as _getAgentsByType,
+  putAgentByTypeAndId as _putAgentByTypeAndId,
+  putAgentGroupByTypeAndId as _putAgentGroupByTypeAndId,
+  getAgentTypes as _getAgentTypes,
+  AgentTypeItem as _AgentTypeItem,
 } from '../api/AgentApi';
 import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import Constants from '../shared/Constants';
@@ -28,7 +29,6 @@ import { cloneDeep } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
 import {
   createManagedObject,
-  deleteManagedObject,
   queryManagedObjects,
   queryRelatedManagedObjects,
   readManagedObject,
@@ -357,16 +357,14 @@ export type Agent = {
     includeAgentIdentity?: boolean
   ): Promise<AgentSkeleton>;
   /**
-   * Delete all AI agents
-   * @param {boolean} deep whether to delete related AI agent identity objects
+   * Delete all AI agents and their agent identity and privileges
    */
-  deleteAIAgents(deep?: boolean): Promise<void>;
+  deleteAIAgents(): Promise<void>;
   /**
-   * Delete AI agent
+   * Delete AI agent and agent identity and privileges
    * @param {string} agentId agent id/name
-   * @param {boolean} deep whether to delete related AI agent identity objects
    */
-  deleteAIAgent(agentId: string, deep?: boolean): Promise<void>;
+  deleteAIAgent(agentId: string): Promise<void>;
   /**
    * Export all AI agents. The response can be saved to file as is.
    * @returns {Promise<AgentExportInterface>} Promise resolving to an AgentExportInterface object.
@@ -458,6 +456,9 @@ export type Agent = {
 };
 
 export default (state: State): Agent => {
+  if (state.getDeploymentType() !== Constants.CLASSIC_DEPLOYMENT_TYPE_KEY) {
+    AgentTypeBlacklist.push('SoapSTSAgent');
+  }
   return {
     // General
     async readAgentTypes() {
@@ -600,11 +601,11 @@ export default (state: State): Agent => {
     async updateAIAgent(agentId, agentData, includeAgentIdentity = true) {
       return updateAIAgent({ agentId, agentData, includeAgentIdentity, state });
     },
-    async deleteAIAgents(deep = true) {
-      return deleteAIAgents({ deep, state });
+    async deleteAIAgents() {
+      return deleteAIAgents({ state });
     },
-    async deleteAIAgent(agentId, deep = true) {
-      return deleteAIAgent({ agentId, deep, state });
+    async deleteAIAgent(agentId) {
+      return deleteAIAgent({ agentId, state });
     },
     async exportAIAgents(includeAgentIdentity = true) {
       return exportAIAgents({ includeAgentIdentity, state });
@@ -664,33 +665,43 @@ export interface AgentGroupExportInterface {
   agentGroup: Record<string, AgentGroupSkeleton>;
 }
 
-const agentTypes: AgentType[] = [
-  '2.2_Agent',
-  'AIAgent',
-  'IdentityGatewayAgent',
-  'J2EEAgent',
-  'OAuth2Thing',
-  'RemoteConsentAgent',
-  'SharedAgent',
-  'SoapSTSAgent',
-  'SoftwarePublisher',
-  'WebAgent',
-];
+const AgentTypeItemCache: _AgentTypeItem[] = [];
+const AgentTypeBlacklist: AgentType[] = ['OAuth2Client'];
 
 /**
- * Get all agents. Results are sorted alphabetically.
- * @returns {Promise<string[]>} a promise that resolves to an array of agent types
+ * Read all available agent types.
+ * @returns {Promise<AgentType[]>} a promise that resolves to an array of agent type items
  */
 export async function readAgentTypes({
+  refreshCache = false,
   state,
 }: {
+  refreshCache?: boolean;
   state: State;
 }): Promise<AgentType[]> {
   try {
     debugMessage({ message: `AgentOps.readAgentTypes: start`, state });
-    const agentTypes: AgentType[] = await getAgentTypes({ state });
+    let agentTypeItems: _AgentTypeItem[] = [];
+    if (!refreshCache && AgentTypeItemCache.length > 0) {
+      debugMessage({
+        message: `AgentOps.readAgentTypes: using cached agent types`,
+        state,
+      });
+      agentTypeItems = cloneDeep(AgentTypeItemCache);
+    } else {
+      const { result } = await _getAgentTypes({ state });
+      agentTypeItems = result.filter(
+        (item) => !AgentTypeBlacklist.includes(item._id)
+      );
+      // Update cache with new values.
+      AgentTypeItemCache.splice(
+        0,
+        AgentTypeItemCache.length,
+        ...agentTypeItems
+      );
+    }
     debugMessage({ message: `AgentOps.readAgentTypes: end`, state });
-    return agentTypes;
+    return agentTypeItems.map((item) => item._id);
   } catch (error) {
     if (
       (error.response?.status === 403 &&
@@ -724,24 +735,16 @@ export async function readAgents({
     debugMessage({ message: `AgentOps.readAgents: start`, state });
     let agents = [];
     if (globalConfig) {
-      const resolved = await getAgents({ state, globalConfig });
+      const resolved = await _getAgents({ state, globalConfig });
       agents = agents.concat(resolved.result);
     } else {
+      const agentTypes = await readAgentTypes({ state });
       const resolved = await Promise.all(
         agentTypes
-          .filter(
-            (t) =>
-              t !== 'SoapSTSAgent' ||
-              state.getDeploymentType() ===
-                Constants.CLASSIC_DEPLOYMENT_TYPE_KEY
-          )
+          .filter((t) => !AgentTypeBlacklist.includes(t))
           .map((agentType) =>
-            getAgentsByType({ agentType, state }).catch((err) => {
-              if (err.httpStatus !== 501 && err.response?.status !== 501) {
-                throw err;
-              } else {
-                return { result: [] };
-              }
+            _getAgentsByType({ agentType, state }).catch(() => {
+              return { result: [] };
             })
           )
       );
@@ -782,25 +785,15 @@ export async function readAgent({
   globalConfig: boolean;
   state: State;
 }): Promise<AgentSkeleton> {
-  let agents = [];
+  let agents: AgentSkeleton[] = [];
   try {
     debugMessage({ message: `AgentOps.readAgent: start`, state });
-    if (globalConfig) {
-      agents = (await readAgents({ globalConfig, state })).filter(
-        (a) => a._id === agentId
-      );
-    } else {
-      agents = await findAgentById({ agentId, state });
-    }
+    agents = (await readAgents({ globalConfig, state })).filter(
+      (a) => a._id === agentId
+    );
     if (agents.length === 1) {
-      const result = await _getAgentByTypeAndId({
-        agentType: agents[0]._type,
-        agentId: agents[0]._id,
-        globalConfig,
-        state,
-      });
       debugMessage({ message: `AgentOps.readAgent: end`, state });
-      return result;
+      return agents[0];
     }
   } catch (error) {
     throw new FrodoError(
@@ -833,7 +826,7 @@ export async function deleteAgents({ state }: { state: State }) {
           message: `AgentOps.deleteAgents: '${agent['_id']}'`,
           state,
         });
-        await deleteAgentByTypeAndId({
+        await _deleteAgentByTypeAndId({
           agentType: agent['_type']['_id'] as AgentType,
           agentId: agent['_id'],
           state,
@@ -873,7 +866,7 @@ export async function deleteAgent({
 }) {
   try {
     debugMessage({ message: `AgentOps.deleteAgent: start`, state });
-    const agents = await findAgentById({ agentId, state });
+    const agents = await _findAgentById({ agentId, state });
     if (agents.length == 0) {
       throw new FrodoError(
         `${getCurrentRealmName(state) + ' realm'} agent '${agentId}' not found!`
@@ -884,7 +877,7 @@ export async function deleteAgent({
         message: `AgentOps.deleteAgent: '${agent['_id']}'`,
         state,
       });
-      await deleteAgentByTypeAndId({
+      await _deleteAgentByTypeAndId({
         agentType: agent['_type'],
         agentId: agent['_id'],
         state,
@@ -1016,7 +1009,7 @@ export async function importAgents({
           );
         }
         response.push(
-          await putAgentByTypeAndId({
+          await _putAgentByTypeAndId({
             agentType,
             agentId,
             agentData: importData.agent[agentId],
@@ -1084,7 +1077,7 @@ export async function importAgent({
         `Can't import Soap STS agents for '${state.getDeploymentType()}' deployment type.`
       );
     }
-    const result = await putAgentByTypeAndId({
+    const result = await _putAgentByTypeAndId({
       agentType,
       agentId,
       agentData: importData.agent[agentId],
@@ -1148,7 +1141,7 @@ export async function readIdentityGatewayAgents({
       message: `AgentOps.readIdentityGatewayAgents: start`,
       state,
     });
-    const { result } = await getAgentsByType({
+    const { result } = await _getAgentsByType({
       agentType: 'IdentityGatewayAgent',
       state,
     });
@@ -1219,7 +1212,7 @@ export async function createIdentityGatewayAgent({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
-      const result = await putAgentByTypeAndId({
+      const result = await _putAgentByTypeAndId({
         agentType: 'IdentityGatewayAgent',
         agentId: gatewayId,
         agentData: gatewayData,
@@ -1260,7 +1253,7 @@ export async function updateIdentityGatewayAgent({
       message: `AgentOps.updateIdentityGatewayAgent: start`,
       state,
     });
-    const result = await putAgentByTypeAndId({
+    const result = await _putAgentByTypeAndId({
       agentType: 'IdentityGatewayAgent',
       agentId: gatewayId,
       agentData: gatewayData,
@@ -1297,7 +1290,7 @@ export async function deleteIdentityGatewayAgents({ state }: { state: State }) {
           message: `AgentOps.deleteIdentityGatewayAgent: '${agent['_id']}'`,
           state,
         });
-        await deleteAgentByTypeAndId({
+        await _deleteAgentByTypeAndId({
           agentType: agent['_type']['_id'] as AgentType,
           agentId: agent['_id'],
           state,
@@ -1343,7 +1336,7 @@ export async function deleteIdentityGatewayAgent({
       message: `AgentOps.deleteIdentityGatewayAgent: start`,
       state,
     });
-    const agents = await findAgentByTypeAndId({
+    const agents = await _findAgentByTypeAndId({
       agentType: 'IdentityGatewayAgent',
       agentId,
       state,
@@ -1358,7 +1351,7 @@ export async function deleteIdentityGatewayAgent({
         message: `AgentOps.deleteIdentityGatewayAgent: '${agent['_id']}'`,
         state,
       });
-      await deleteAgentByTypeAndId({
+      await _deleteAgentByTypeAndId({
         agentType: agent['_type']['_id'] as AgentType,
         agentId: agent['_id'],
         state,
@@ -1491,7 +1484,7 @@ export async function importIdentityGatewayAgents({
           throw new FrodoError(
             `Wrong agent type! Expected 'IdentityGatewayAgent' but got '${agentType}'.`
           );
-        await putAgentByTypeAndId({
+        await _putAgentByTypeAndId({
           agentType,
           agentId,
           agentData: importData.agent[agentId],
@@ -1554,7 +1547,7 @@ export async function importIdentityGatewayAgent({
       throw new FrodoError(
         `Wrong agent type! Expected 'IdentityGatewayAgent' but got '${agentType}'.`
       );
-    const result = await putAgentByTypeAndId({
+    const result = await _putAgentByTypeAndId({
       agentType,
       agentId,
       agentData: importData.agent[agentId],
@@ -1585,7 +1578,7 @@ export async function readJavaAgents({
 }): Promise<AgentSkeleton[]> {
   try {
     debugMessage({ message: `AgentOps.readJavaAgents: start`, state });
-    const { result } = await getAgentsByType({
+    const { result } = await _getAgentsByType({
       agentType: 'J2EEAgent',
       state,
     });
@@ -1650,7 +1643,7 @@ export async function createJavaAgent({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
-      const result = await putAgentByTypeAndId({
+      const result = await _putAgentByTypeAndId({
         agentType: 'J2EEAgent',
         agentId,
         agentData,
@@ -1688,7 +1681,7 @@ export async function updateJavaAgent({
 }): Promise<AgentSkeleton> {
   try {
     debugMessage({ message: `AgentOps.updateJavaAgent: start`, state });
-    const result = await putAgentByTypeAndId({
+    const result = await _putAgentByTypeAndId({
       agentType: 'J2EEAgent',
       agentId,
       agentData,
@@ -1719,7 +1712,7 @@ export async function deleteJavaAgents({ state }: { state: State }) {
           message: `AgentOps.deleteJavaAgent: '${agent['_id']}'`,
           state,
         });
-        await deleteAgentByTypeAndId({
+        await _deleteAgentByTypeAndId({
           agentType: agent['_type']['_id'] as AgentType,
           agentId: agent['_id'],
           state,
@@ -1765,7 +1758,7 @@ export async function deleteJavaAgent({
 }) {
   try {
     debugMessage({ message: `AgentOps.deleteJavaAgent: start`, state });
-    const agents = await findAgentByTypeAndId({
+    const agents = await _findAgentByTypeAndId({
       agentType: 'J2EEAgent',
       agentId,
       state,
@@ -1780,7 +1773,7 @@ export async function deleteJavaAgent({
         message: `AgentOps.deleteJavaAgent: '${agent['_id']}'`,
         state,
       });
-      await deleteAgentByTypeAndId({
+      await _deleteAgentByTypeAndId({
         agentType: agent['_type']['_id'] as AgentType,
         agentId: agent['_id'],
         state,
@@ -1892,7 +1885,7 @@ export async function importJavaAgents({
           throw new FrodoError(
             `Wrong agent type! Expected 'J2EEAgent' but got '${agentType}'.`
           );
-        await putAgentByTypeAndId({
+        await _putAgentByTypeAndId({
           agentType,
           agentId,
           agentData: importData.agent[agentId],
@@ -1949,7 +1942,7 @@ export async function importJavaAgent({
       throw new FrodoError(
         `Wrong agent type! Expected 'J2EEAgent' but got '${agentType}'.`
       );
-    const result = await putAgentByTypeAndId({
+    const result = await _putAgentByTypeAndId({
       agentType,
       agentId,
       agentData: importData.agent[agentId],
@@ -1973,7 +1966,7 @@ export async function importJavaAgent({
 export async function readWebAgents({ state }: { state: State }) {
   try {
     debugMessage({ message: `AgentOps.readWebAgents: start`, state });
-    const { result } = await getAgentsByType({
+    const { result } = await _getAgentsByType({
       agentType: 'WebAgent',
       state,
     });
@@ -2038,7 +2031,7 @@ export async function createWebAgent({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     try {
-      const result = await putAgentByTypeAndId({
+      const result = await _putAgentByTypeAndId({
         agentType: 'WebAgent',
         agentId,
         agentData,
@@ -2076,7 +2069,7 @@ export async function updateWebAgent({
 }) {
   try {
     debugMessage({ message: `AgentOps.updateWebAgent: start`, state });
-    const result = await putAgentByTypeAndId({
+    const result = await _putAgentByTypeAndId({
       agentType: 'WebAgent',
       agentId,
       agentData,
@@ -2107,7 +2100,7 @@ export async function deleteWebAgents({ state }: { state: State }) {
           message: `AgentOps.deleteWebAgent: '${agent['_id']}'`,
           state,
         });
-        await deleteAgentByTypeAndId({
+        await _deleteAgentByTypeAndId({
           agentType: agent['_type']['_id'] as AgentType,
           agentId: agent['_id'],
           state,
@@ -2153,7 +2146,7 @@ export async function deleteWebAgent({
 }) {
   try {
     debugMessage({ message: `AgentOps.deleteWebAgent: start`, state });
-    const agents = await findAgentByTypeAndId({
+    const agents = await _findAgentByTypeAndId({
       agentType: 'WebAgent',
       agentId,
       state,
@@ -2168,7 +2161,7 @@ export async function deleteWebAgent({
         message: `AgentOps.deleteWebAgent: '${agent['_id']}'`,
         state,
       });
-      await deleteAgentByTypeAndId({
+      await _deleteAgentByTypeAndId({
         agentType: agent['_type']['_id'] as AgentType,
         agentId: agent['_id'],
         state,
@@ -2280,7 +2273,7 @@ export async function importWebAgents({
           throw new FrodoError(
             `Wrong agent type! Expected 'WebAgent' but got '${agentType}'.`
           );
-        await putAgentByTypeAndId({
+        await _putAgentByTypeAndId({
           agentType,
           agentId,
           agentData: importData.agent[agentId],
@@ -2337,7 +2330,7 @@ export async function importWebAgent({
       throw new FrodoError(
         `Wrong agent type! Expected 'WebAgent' but got '${agentType}'.`
       );
-    const result = await putAgentByTypeAndId({
+    const result = await _putAgentByTypeAndId({
       agentType,
       agentId,
       agentData: importData.agent[agentId],
@@ -2370,7 +2363,7 @@ export async function readAIAgents({
 }): Promise<AgentSkeleton[]> {
   try {
     debugMessage({ message: `AgentOps.readAIAgents: start`, state });
-    const { result } = await getAgentsByType({
+    const { result } = await _getAgentsByType({
       agentType: 'AIAgent',
       state,
     });
@@ -2562,7 +2555,7 @@ export async function createAIAgent({
       delete agentData._aiAgentIdentity;
 
       // create the ai agent first before creating the agent identity and privileges
-      const result = await putAgentByTypeAndId({
+      const result = await _putAgentByTypeAndId({
         agentType: 'AIAgent',
         agentId,
         agentData,
@@ -2948,7 +2941,7 @@ export async function updateAIAgent({
       message: `AgentOps.updateAIAgent: start [includeAgentIdentity=${includeAgentIdentity}]`,
       state,
     });
-    const result = await putAgentByTypeAndId({
+    const result = await _putAgentByTypeAndId({
       agentType: 'AIAgent',
       agentId,
       agentData,
@@ -2968,20 +2961,13 @@ export async function updateAIAgent({
 /**
  * Delete all AI agents
  * @param {object} params structured and named parameters
- * @param {boolean} [params.deep=false] whether to also delete agent identity and privileges (only for cloud/ForgeOps)
  * @param {State} params.state state object
  */
-export async function deleteAIAgents({
-  deep = false,
-  state,
-}: {
-  deep?: boolean;
-  state: State;
-}) {
+export async function deleteAIAgents({ state }: { state: State }) {
   const errors: Error[] = [];
   try {
     debugMessage({
-      message: `AgentOps.deleteAIAgents: start [deep=${deep}]`,
+      message: `AgentOps.deleteAIAgents: start`,
       state,
     });
     const agents = await readAIAgents({ includeAgentIdentity: false, state });
@@ -2991,7 +2977,7 @@ export async function deleteAIAgents({
           message: `AgentOps.deleteAIAgents: '${agent['_id']}'`,
           state,
         });
-        await deleteAIAgent({ agentId: agent['_id'], deep, state });
+        await deleteAIAgent({ agentId: agent['_id'], state });
       } catch (error) {
         errors.push(
           new FrodoError(
@@ -3021,27 +3007,24 @@ export async function deleteAIAgents({
 }
 
 /**
- * Delete AI agent
+ * Delete AI agent and agent identity and privileges (only for cloud/ForgeOps)
  * @param {object} params structured and named parameters
  * @param {string} params.agentId agent id/name
- * @param {boolean} [params.deep=false] whether to also delete agent identity and privileges (only for cloud/ForgeOps)
  * @param {State} params.state state object
  */
 export async function deleteAIAgent({
   agentId,
-  deep = false,
   state,
 }: {
   agentId: string;
-  deep?: boolean;
   state: State;
 }) {
   try {
     debugMessage({
-      message: `AgentOps.deleteAIAgent: start [deep=${deep}]`,
+      message: `AgentOps.deleteAIAgent: start`,
       state,
     });
-    const agents = await findAgentByTypeAndId({
+    const agents = await _findAgentByTypeAndId({
       agentType: 'AIAgent',
       agentId,
       state,
@@ -3056,68 +3039,11 @@ export async function deleteAIAgent({
         message: `AgentOps.deleteAIAgent: '${agent['_id']}'`,
         state,
       });
-      await deleteAgentByTypeAndId({
+      await _deleteAgentByTypeAndId({
         agentType: agent['_type']['_id'] as AgentType,
         agentId: agent['_id'],
         state,
       });
-      if (deep) {
-        switch (state.getDeploymentType()) {
-          case Constants.CLOUD_DEPLOYMENT_TYPE_KEY:
-          case Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY: {
-            const identityUid = agent['aiAgentIdentityUid']?.[
-              'value'
-            ] as string;
-            if (identityUid) {
-              // delete all privileges linked to this identity
-              try {
-                const privileges = await queryRelatedManagedObjects({
-                  type: `${getCurrentRealmName(state)}_aiagent`,
-                  id: identityUid,
-                  relationship: 'privileges',
-                  fields: ['_id'],
-                  state,
-                });
-                for (const privilege of privileges) {
-                  try {
-                    await deleteManagedObject({
-                      type: `${getCurrentRealmName(state)}_aiagentprivilege`,
-                      id: privilege._id,
-                      state,
-                    });
-                  } catch (error) {
-                    debugMessage({
-                      message: `AgentOps.deleteAIAgent: ignoring error deleting privilege ${privilege._id}: ${error}`,
-                      state,
-                    });
-                  }
-                }
-              } catch (error) {
-                debugMessage({
-                  message: `AgentOps.deleteAIAgent: ignoring error querying privileges for identity ${identityUid}: ${error}`,
-                  state,
-                });
-              }
-              // delete the agent identity itself
-              try {
-                await deleteManagedObject({
-                  type: `${getCurrentRealmName(state)}_aiagent`,
-                  id: identityUid,
-                  state,
-                });
-              } catch (error) {
-                debugMessage({
-                  message: `AgentOps.deleteAIAgent: ignoring error deleting identity ${identityUid}: ${error}`,
-                  state,
-                });
-              }
-            }
-            break;
-          }
-          default:
-            break;
-        }
-      }
     }
     debugMessage({ message: `AgentOps.deleteAIAgent: end`, state });
   } catch (error) {
@@ -3249,7 +3175,7 @@ export async function importAIAgents({
           throw new FrodoError(
             `Wrong agent type! Expected 'AIAgent' but got '${agentType}'.`
           );
-        await putAgentByTypeAndId({
+        await _putAgentByTypeAndId({
           agentType,
           agentId,
           agentData: importData.agent[agentId],
@@ -3315,7 +3241,7 @@ export async function importAIAgent({
         `Wrong agent type! Expected 'AIAgent' but got '${agentType}'.`
       );
     }
-    const result = await putAgentByTypeAndId({
+    const result = await _putAgentByTypeAndId({
       agentType,
       agentId,
       agentData: importData.agent[agentId],
@@ -3365,7 +3291,7 @@ export async function readAgentGroups({
   state: State;
 }): Promise<AgentGroupSkeleton[]> {
   try {
-    const { result } = await getAgentGroups({ state });
+    const { result } = await _getAgentGroups({ state });
     return result;
   } catch (error) {
     if (
@@ -3495,7 +3421,7 @@ export async function importAgentGroups({
           );
         }
         response.push(
-          await putAgentGroupByTypeAndId({
+          await _putAgentGroupByTypeAndId({
             agentType,
             agentGroupId,
             agentGroupData: importData.agentGroup[agentGroupId],
@@ -3560,7 +3486,7 @@ export async function importAgentGroup({
         `Can't import Soap STS agent groups for '${state.getDeploymentType()}' deployment type.`
       );
     }
-    const result = await putAgentGroupByTypeAndId({
+    const result = await _putAgentGroupByTypeAndId({
       agentType,
       agentGroupId,
       agentGroupData: importData.agentGroup[agentGroupId],

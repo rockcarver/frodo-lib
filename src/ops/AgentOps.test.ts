@@ -24,13 +24,13 @@
  *    script and override all the connection state variables required
  *    to connect to the env to record from and also indicate the phase:
  *
- *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=1 FRODO_HOST=frodo-dev npm run test:record AgentOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=1 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record AgentOps
  *
  *    THESE TESTS ARE DESTRUCTIVE!!! DO NOT RUN AGAINST AN ENV WITH ACTIVE AGENTS!!!
  *
- *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=frodo-dev npm run test:record AgentOps
- *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=frodo-dev npm run test:record AgentOps
- *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=4 FRODO_HOST=frodo-dev npm run test:record AgentOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record AgentOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record AgentOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=4 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record AgentOps
  *
  *    The above command assumes that you have a connection profile for
  *    'frodo-dev' on your development machine.
@@ -104,9 +104,9 @@ async function stageAIAgent(
   agent: { id: string; type: AgentApi.AgentType },
   create = true
 ) {
-  // delete if exists (with deep=true to also remove IDM identity), then create
+  // delete if exists, then create
   try {
-    await AgentOps.deleteAIAgent({ agentId: agent.id, deep: true, state });
+    await AgentOps.deleteAIAgent({ agentId: agent.id, state });
   } catch (error) {
     // ignore - may not exist
   } finally {
@@ -874,7 +874,7 @@ describe('AgentOps', () => {
               state,
             });
           } catch (error) {
-            expect(error.name).toEqual('FrodoError');
+            expect((error as FrodoError).name).toEqual('FrodoError');
             expect(
               (error as FrodoError).getCombinedMessage()
             ).toMatchSnapshot();
@@ -913,7 +913,7 @@ describe('AgentOps', () => {
           try {
             await AgentOps.importJavaAgents({ importData: exportData, state });
           } catch (error) {
-            expect(error.name).toEqual('FrodoError');
+            expect((error as FrodoError).name).toEqual('FrodoError');
             expect(
               (error as FrodoError).getCombinedMessage()
             ).toMatchSnapshot();
@@ -952,7 +952,7 @@ describe('AgentOps', () => {
           try {
             await AgentOps.importWebAgents({ importData: exportData, state });
           } catch (error) {
-            expect(error.name).toEqual('FrodoError');
+            expect((error as FrodoError).name).toEqual('FrodoError');
             expect(
               (error as FrodoError).getCombinedMessage()
             ).toMatchSnapshot();
@@ -1048,7 +1048,7 @@ describe('AgentOps', () => {
               state,
             });
           } catch (error) {
-            expect(error.name).toEqual('FrodoError');
+            expect((error as FrodoError).name).toEqual('FrodoError');
             expect(
               (error as FrodoError).getCombinedMessage()
             ).toMatchSnapshot();
@@ -1083,7 +1083,7 @@ describe('AgentOps', () => {
               state,
             });
           } catch (error) {
-            expect(error.name).toEqual('FrodoError');
+            expect((error as FrodoError).name).toEqual('FrodoError');
             expect(
               (error as FrodoError).getCombinedMessage()
             ).toMatchSnapshot();
@@ -1118,7 +1118,7 @@ describe('AgentOps', () => {
               state,
             });
           } catch (error) {
-            expect(error.name).toEqual('FrodoError');
+            expect((error as FrodoError).name).toEqual('FrodoError');
             expect(
               (error as FrodoError).getCombinedMessage()
             ).toMatchSnapshot();
@@ -1241,7 +1241,7 @@ describe('AgentOps', () => {
           try {
             await AgentOps.importAIAgents({ importData: exportData, state });
           } catch (error) {
-            expect(error.name).toEqual('FrodoError');
+            expect((error as FrodoError).name).toEqual('FrodoError');
             expect(
               (error as FrodoError).getCombinedMessage()
             ).toMatchSnapshot();
@@ -1276,7 +1276,7 @@ describe('AgentOps', () => {
               state,
             });
           } catch (error) {
-            expect(error.name).toEqual('FrodoError');
+            expect((error as FrodoError).name).toEqual('FrodoError');
             expect(
               (error as FrodoError).getCombinedMessage()
             ).toMatchSnapshot();
@@ -1338,7 +1338,7 @@ describe('AgentOps', () => {
               state,
             });
           } catch (error) {
-            expect(error.name).toEqual('FrodoError');
+            expect((error as FrodoError).name).toEqual('FrodoError');
             expect(
               (error as FrodoError).getCombinedMessage()
             ).toMatchSnapshot();
@@ -1361,7 +1361,7 @@ describe('AgentOps', () => {
           try {
             await AgentOps.deleteJavaAgent({ agentId: web9.id, state });
           } catch (error) {
-            expect(error.name).toEqual('FrodoError');
+            expect((error as FrodoError).name).toEqual('FrodoError');
             expect(
               (error as FrodoError).getCombinedMessage()
             ).toMatchSnapshot();
@@ -1384,7 +1384,7 @@ describe('AgentOps', () => {
           try {
             await AgentOps.deleteWebAgent({ agentId: gateway9.id, state });
           } catch (error) {
-            expect(error.name).toEqual('FrodoError');
+            expect((error as FrodoError).name).toEqual('FrodoError');
             expect(
               (error as FrodoError).getCombinedMessage()
             ).toMatchSnapshot();
@@ -1397,25 +1397,9 @@ describe('AgentOps', () => {
           expect(AgentOps.deleteAIAgent).toBeDefined();
         });
 
-        test(`1: Delete ${ai9.type} '${ai9.id}' (deep=false)`, async () => {
-          await AgentOps.deleteAIAgent({ agentId: ai9.id, deep: false, state });
+        test(`1: Delete ${ai9.type} '${ai9.id}'`, async () => {
+          await AgentOps.deleteAIAgent({ agentId: ai9.id, state });
           expect(true).toBeTruthy();
-        });
-
-        test(`2: Delete '${ai9.id}' with deep=true (non-existent after test 1)`, async () => {
-          expect.assertions(2);
-          try {
-            await AgentOps.deleteAIAgent({
-              agentId: ai9.id,
-              deep: true,
-              state,
-            });
-          } catch (error) {
-            expect(error.name).toEqual('FrodoError');
-            expect(
-              (error as FrodoError).getCombinedMessage()
-            ).toMatchSnapshot();
-          }
         });
 
         test(`3: Delete non-existent AI agent 'FrodoOpsTestNonExistentAIAgent'`, async () => {
@@ -1426,7 +1410,7 @@ describe('AgentOps', () => {
               state,
             });
           } catch (error) {
-            expect(error.name).toEqual('FrodoError');
+            expect((error as FrodoError).name).toEqual('FrodoError');
             expect(
               (error as FrodoError).getCombinedMessage()
             ).toMatchSnapshot();
@@ -1479,8 +1463,8 @@ describe('AgentOps', () => {
           expect(AgentOps.deleteAIAgents).toBeDefined();
         });
 
-        test('1: Delete all AI agents (deep=false)', async () => {
-          await AgentOps.deleteAIAgents({ deep: false, state });
+        test('1: Delete all AI agents', async () => {
+          await AgentOps.deleteAIAgents({ state });
           expect(true).toBeTruthy();
         });
       });
