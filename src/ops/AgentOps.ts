@@ -894,7 +894,7 @@ export async function deleteAgent({
         state,
       });
       await _deleteAgentByTypeAndId({
-        agentType: agent['_type'],
+        agentType: agent['_type']['_id'] as AgentType,
         agentId: agent['_id'],
         state,
       });

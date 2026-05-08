@@ -31,6 +31,10 @@
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record AgentOps
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record AgentOps
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=4 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record AgentOps
+ * 
+ *    THESE ARE CLASSIC DEPLOYMENT TESTS - REQUIRE FRODO_DEPLOY=classic AND APPROPRIATE FRODO_HOST/REALM FOR CLASSIC DEPLOYMENT!!!
+ * 
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=5 FRODO_DEPLOY=classic FRODO_HOST=http://openam-frodo-dev.forgeblocks.com/am FRODO_REALM=/alpha npm run test:record AgentOps
  *
  *    The above command assumes that you have a connection profile for
  *    'frodo-dev' on your development machine.
@@ -530,22 +534,22 @@ describe('AgentOps', () => {
       await stageAgent(web8, false);
       await stageAgent(web9, false);
 
-      // await stageAIAgent(ai1, false);
-      // await stageAIAgent(ai2, false);
-      // await stageAIAgent(ai3, false);
-      // await stageAIAgent(ai4, false);
-      // await stageAIAgent(ai5, false);
-      // await stageAIAgent(ai6, false);
-      // await stageAIAgent(ai7, false);
-      // await stageAIAgent(ai8, false);
-      // await stageAIAgent(ai9, false);
-      // await stageAIAgent(ai10, false);
-      // await stageAIAgent(ai11, false);
+      await stageAIAgent(ai1, false);
+      await stageAIAgent(ai2, false);
+      await stageAIAgent(ai3, false);
+      await stageAIAgent(ai4, false);
+      await stageAIAgent(ai5, false);
+      await stageAIAgent(ai6, false);
+      await stageAIAgent(ai7, false);
+      await stageAIAgent(ai8, false);
+      await stageAIAgent(ai9, false);
+      await stageAIAgent(ai10, false);
+      await stageAIAgent(ai11, false);
 
-      // await stageManagedUser(aiOwnerUserId, false);
-      // await stageManagedGroup(aiPrivilegeGroupId, false);
-      // await stageManagedApplication(aiPrivilegeAppId1, false);
-      // await stageManagedApplication(aiPrivilegeAppId2, false);
+      await stageManagedUser(aiOwnerUserId, false);
+      await stageManagedGroup(aiPrivilegeGroupId, false);
+      await stageManagedApplication(aiPrivilegeAppId1, false);
+      await stageManagedApplication(aiPrivilegeAppId2, false);
     }
   });
   beforeEach(async () => {
