@@ -53,12 +53,26 @@
  * in case things don't function as expected
  */
 import { state } from '../index';
+import { IdObjectSkeletonInterface } from '../api/ApiTypes';
 import * as AgentApi from '../api/AgentApi';
 import * as AgentOps from './AgentOps';
 import { getAgent } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
+import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
+import {
+  createManagedObject,
+  deleteManagedObject,
+  readManagedObjectSchema,
+} from './ManagedObjectOps';
+import {
+  importApplication,
+  deleteApplication,
+  type ApplicationExportInterface,
+  type ApplicationGlossarySkeleton,
+} from './ApplicationOps';
+import type { OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
 import Constants from '../shared/Constants';
 
 const ctx = autoSetupPolly();
@@ -119,6 +133,162 @@ async function stageAIAgent(
     }
   }
 }
+
+function getRealmManagedType(type: 'user' | 'application'): string {
+  const realm = getCurrentRealmName(state);
+  return realm === '/' ? type : `${realm}_${type}`;
+}
+
+async function buildManagedObjectData({
+  type,
+  id,
+  overrides = {},
+}: {
+  type: string;
+  id: string;
+  overrides?: IdObjectSkeletonInterface;
+}): Promise<IdObjectSkeletonInterface> {
+  const schema = await readManagedObjectSchema({
+    type,
+    options: {
+      excludeVirtual: true,
+      excludeRelationships: true,
+    },
+    state,
+  });
+  const data: IdObjectSkeletonInterface = {};
+  const required = schema?.required ?? [];
+  for (const prop of required) {
+    if (prop === '_id' || prop === '_rev') {
+      continue;
+    }
+    if (Object.prototype.hasOwnProperty.call(overrides, prop)) {
+      continue;
+    }
+    const propertySchema = schema?.properties?.[prop] as { type?: string };
+    switch (propertySchema?.type) {
+      case 'string':
+        data[prop] = `${id}-${prop}`;
+        break;
+      case 'boolean':
+        data[prop] = false;
+        break;
+      case 'integer':
+      case 'number':
+        data[prop] = 0;
+        break;
+      case 'array':
+        data[prop] = [];
+        break;
+      case 'object':
+        data[prop] = {};
+        break;
+      default:
+        break;
+    }
+  }
+  return {
+    ...data,
+    ...overrides,
+  };
+}
+
+async function stageManagedUser(userId: string, create = true) {
+  const type = getRealmManagedType('user');
+  try {
+    await deleteManagedObject({ type, id: userId, state });
+  } catch (error) {
+    // ignore - may not exist
+  } finally {
+    if (create) {
+      const userData = await buildManagedObjectData({
+        type,
+        id: userId,
+        overrides: {
+          userName: userId,
+          givenName: 'FrodoOps',
+          sn: 'AIOwner',
+          mail: `${userId}@example.com`,
+          password: 'Passw0rd!Passw0rd!',
+        } as IdObjectSkeletonInterface,
+      });
+      await createManagedObject({
+        type,
+        id: userId,
+        moData: userData,
+        state,
+      });
+    }
+  }
+}
+
+async function stageManagedGroup(groupId: string, create = true) {
+  const type = `${getCurrentRealmName(state)}_group`;
+  try {
+    await deleteManagedObject({ type, id: groupId, state });
+  } catch (error) {
+    // ignore - may not exist
+  } finally {
+    if (create) {
+      await createManagedObject({
+        type,
+        id: groupId,
+        moData: {
+          _id: groupId,
+          name: groupId,
+          description: 'Test group for AI agent privilege tests',
+        } as IdObjectSkeletonInterface,
+        state,
+      });
+    }
+  }
+}
+
+async function stageManagedApplication(applicationId: string, create = true) {
+  try {
+    await deleteApplication({ applicationId, options: { deep: true }, state });
+  } catch (error) {
+    // ignore - may not exist
+  } finally {
+    if (create) {
+      const oauth2ClientId = `FrodoOpsPrivApp${applicationId.slice(0, 8)}`;
+      const importData: ApplicationExportInterface = {
+        managedApplication: {
+          [applicationId]: {
+            _id: applicationId,
+            name: oauth2ClientId,
+            description: `FrodoOps test application for AI agent privilege tests`,
+            templateName: 'service',
+            templateVersion: '1.0',
+            ssoEntities: {
+              oidcId: oauth2ClientId,
+            },
+          } as unknown as ApplicationGlossarySkeleton,
+        },
+        application: {
+          [oauth2ClientId]: {
+            _id: oauth2ClientId,
+            coreOAuth2ClientConfig: {
+              clientType: { inherited: false, value: 'Confidential' },
+              scopes: { inherited: false, value: ['openid', 'profile'] },
+            },
+            advancedOAuth2ClientConfig: {
+              descriptions: { inherited: false, value: [] },
+              grantTypes: { inherited: false, value: ['client_credentials'] },
+            },
+          } as OAuth2ClientSkeleton,
+        },
+      };
+      await importApplication({
+        applicationId,
+        importData,
+        options: { deps: true },
+        state,
+      });
+    }
+  }
+}
+
 describe('AgentOps', () => {
   const gateway1: agentStub = {
     id: 'FrodoOpsTestGatewayAgent1',
@@ -264,6 +434,18 @@ describe('AgentOps', () => {
     id: 'FrodoOpsTestAIAgent9',
     type: 'AIAgent',
   };
+  const ai10: agentStub = {
+    id: 'FrodoOpsTestAIAgent10',
+    type: 'AIAgent',
+  };
+  const ai11: agentStub = {
+    id: 'FrodoOpsTestAIAgent11',
+    type: 'AIAgent',
+  };
+  const aiOwnerUserId = '867cbaf7-03cd-487a-9a96-d9769b297037';
+  const aiPrivilegeGroupId = 'FrodoOpsTestAIPrivGroup';
+  const aiPrivilegeAppId1 = 'ffe12bd1-fc1b-422f-a53a-1de5fd7daf97';
+  const aiPrivilegeAppId2 = '8e50a390-7858-4117-8f44-5abe558e1ea7';
   // in recording mode, setup test data before recording
   beforeAll(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
@@ -306,6 +488,13 @@ describe('AgentOps', () => {
       await stageAIAgent(ai7);
       await stageAIAgent(ai8);
       await stageAIAgent(ai9);
+      await stageAIAgent(ai10, false);
+      await stageAIAgent(ai11, false);
+
+      await stageManagedUser(aiOwnerUserId);
+      await stageManagedGroup(aiPrivilegeGroupId);
+      await stageManagedApplication(aiPrivilegeAppId1);
+      await stageManagedApplication(aiPrivilegeAppId2);
     }
   });
   // in recording mode, remove test data after recording
@@ -341,15 +530,22 @@ describe('AgentOps', () => {
       await stageAgent(web8, false);
       await stageAgent(web9, false);
 
-      await stageAIAgent(ai1, false);
-      await stageAIAgent(ai2, false);
-      await stageAIAgent(ai3, false);
-      await stageAIAgent(ai4, false);
-      await stageAIAgent(ai5, false);
-      await stageAIAgent(ai6, false);
-      await stageAIAgent(ai7, false);
-      await stageAIAgent(ai8, false);
-      await stageAIAgent(ai9, false);
+      // await stageAIAgent(ai1, false);
+      // await stageAIAgent(ai2, false);
+      // await stageAIAgent(ai3, false);
+      // await stageAIAgent(ai4, false);
+      // await stageAIAgent(ai5, false);
+      // await stageAIAgent(ai6, false);
+      // await stageAIAgent(ai7, false);
+      // await stageAIAgent(ai8, false);
+      // await stageAIAgent(ai9, false);
+      // await stageAIAgent(ai10, false);
+      // await stageAIAgent(ai11, false);
+
+      // await stageManagedUser(aiOwnerUserId, false);
+      // await stageManagedGroup(aiPrivilegeGroupId, false);
+      // await stageManagedApplication(aiPrivilegeAppId1, false);
+      // await stageManagedApplication(aiPrivilegeAppId2, false);
     }
   });
   beforeEach(async () => {
@@ -1138,6 +1334,94 @@ describe('AgentOps', () => {
             state,
           });
           expect(response).toMatchSnapshot();
+        });
+
+        test(`2: createAIAgent() - with owner (${ai10.id})`, async () => {
+          const response = await AgentOps.createAIAgent({
+            agentId: ai10.id,
+            agentData: getAgent(ai10.type, ai10.id),
+            state,
+          });
+          expect(response).toMatchSnapshot();
+
+          const readResponse = await AgentOps.readAIAgent({
+            agentId: ai10.id,
+            state,
+          });
+          const aiAgentIdentity = readResponse._aiAgentIdentity as
+            | IdObjectSkeletonInterface
+            | undefined;
+          const owners =
+            (aiAgentIdentity?.['owners'] as Array<Record<string, unknown>>) ??
+            [];
+          expect(Array.isArray(owners)).toBeTruthy();
+          expect(owners.map((owner) => owner['_refResourceId'])).toContain(
+            aiOwnerUserId
+          );
+        });
+
+        test(`3: createAIAgent() - with privileges (${ai11.id})`, async () => {
+          const response = await AgentOps.createAIAgent({
+            agentId: ai11.id,
+            agentData: getAgent(ai11.type, ai11.id),
+            state,
+          });
+          expect(response).toMatchSnapshot();
+
+          const readResponse = await AgentOps.readAIAgent({
+            agentId: ai11.id,
+            state,
+          });
+          const aiAgentIdentity = readResponse._aiAgentIdentity as
+            | IdObjectSkeletonInterface
+            | undefined;
+          const privileges =
+            (aiAgentIdentity?.['_privileges'] as Array<
+              Record<string, unknown>
+            >) ?? [];
+          const resourceIds = privileges
+            .map((privilege) => {
+              const resource = privilege['resource'] as
+                | Record<string, unknown>
+                | undefined;
+              return resource?._refResourceId;
+            })
+            .filter((id): id is string => typeof id === 'string');
+          expect(resourceIds).toEqual(
+            expect.arrayContaining([aiPrivilegeAppId1, aiPrivilegeAppId2])
+          );
+          expect(privileges.length).toBeGreaterThanOrEqual(2);
+
+          // verify permissions format: should be [{type, values}] objects
+          for (const privilege of privileges) {
+            const permissions = privilege['permissions'] as Array<unknown>;
+            if (Array.isArray(permissions) && permissions.length > 0) {
+              for (const perm of permissions) {
+                expect(perm).toMatchObject({
+                  type: expect.any(String),
+                  values: expect.any(Array),
+                });
+              }
+            }
+          }
+
+          // verify subjects (user) linking for privilege 1
+          const priv1 = privileges.find(
+            (p) => p['_id'] === '07707883-48f5-46cd-b6be-d740f87aeded'
+          );
+          if (priv1) {
+            const subjectIds =
+              (priv1['subjects'] as Array<Record<string, unknown>>)?.map(
+                (s) => s['_refResourceId']
+              ) ?? [];
+            expect(subjectIds).toContain(aiOwnerUserId);
+
+            const groupIds =
+              (priv1['subjectGroups'] as Array<Record<string, unknown>>)?.map(
+                (g) => g['_refResourceId']
+              ) ?? [];
+            expect(groupIds).toContain(aiPrivilegeGroupId);
+          }
         });
       });
 

@@ -1,0 +1,76 @@
+{
+  "aiAgentIdentityAttributes": {
+    "inherited": false,
+    "value": {
+      "_id": "d4e78146-e92e-408d-8b88-e95de6272f3a",
+      "oauth2ClientId": "FrodoOpsTestAIAgent11",
+      "name": "Frodo Test AI Agent 11",
+      "description": "Test AI agent 11 with privilege relationships for Frodo unit tests."
+    }
+  },
+  "aiAgentIdentityUid": {
+    "inherited": false,
+    "value": "d4e78146-e92e-408d-8b88-e95de6272f3a"
+  },
+  "_type": {
+    "_id": "AIAgent",
+    "name": "AI Agents",
+    "collection": true
+  },
+  "_aiAgentIdentity": {
+    "_id": "d4e78146-e92e-408d-8b88-e95de6272f3a",
+    "oauth2ClientId": "FrodoOpsTestAIAgent11",
+    "name": "Frodo Test AI Agent 11",
+    "description": "Test AI agent 11 with privilege relationships for Frodo unit tests.",
+    "_privileges": [
+      {
+        "_id": "07707883-48f5-46cd-b6be-d740f87aeded",
+        "agentID": "d4e78146-e92e-408d-8b88-e95de6272f3a",
+        "description": "Privilege to access staged application 1",
+        "permissions": [
+          {
+            "type": "scopes",
+            "values": ["openid", "profile"]
+          }
+        ],
+        "resource": {
+          "_refResourceCollection": "managed/alpha_application",
+          "_refResourceId": "ffe12bd1-fc1b-422f-a53a-1de5fd7daf97"
+        },
+        "subjects": [
+          {
+            "_refResourceCollection": "managed/alpha_user",
+            "_refResourceId": "867cbaf7-03cd-487a-9a96-d9769b297037"
+          }
+        ],
+        "subjectGroups": [
+          {
+            "_refResourceCollection": "managed/alpha_group",
+            "_refResourceId": "FrodoOpsTestAIPrivGroup"
+          }
+        ]
+      },
+      {
+        "_id": "3ae361a9-9174-4164-927d-cde30ad90412",
+        "agentID": "d4e78146-e92e-408d-8b88-e95de6272f3a",
+        "description": "Privilege to access staged application 2",
+        "permissions": [
+          {
+            "type": "scopes",
+            "values": ["openid", "profile"]
+          }
+        ],
+        "resource": {
+          "_refResourceCollection": "managed/alpha_application",
+          "_refResourceId": "8e50a390-7858-4117-8f44-5abe558e1ea7"
+        },
+        "subjects": [
+          {
+            "_refResourceCollection": "managed/alpha_user",
+            "_refResourceId": "867cbaf7-03cd-487a-9a96-d9769b297037"
+          }
+        ]
+      }
+    ]
+  }
+}

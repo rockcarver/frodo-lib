@@ -664,6 +664,21 @@ export interface AgentGroupExportInterface {
   agentGroup: Record<string, AgentGroupSkeleton>;
 }
 
+function sanitizeAIAgentPayload(agentData: AgentSkeleton): AgentSkeleton {
+  const sanitized = cloneDeep(agentData);
+  delete sanitized._aiAgentIdentity;
+  return sanitized;
+}
+
+function isAlreadyExistsError(error: unknown): boolean {
+  return (
+    (error as { httpStatus?: number })?.httpStatus === 409 ||
+    (error as { httpStatus?: number })?.httpStatus === 412 ||
+    (error as { response?: { status?: number } })?.response?.status === 409 ||
+    (error as { response?: { status?: number } })?.response?.status === 412
+  );
+}
+
 const AgentTypeItemCache: _AgentTypeItem[] = [];
 const AgentTypeBlacklist: AgentType[] = ['OAuth2Client'];
 
@@ -1078,10 +1093,14 @@ export async function importAgent({
         `Can't import Soap STS agents for '${state.getDeploymentType()}' deployment type.`
       );
     }
+    const agentData =
+      agentType === 'AIAgent'
+        ? sanitizeAIAgentPayload(importData.agent[agentId])
+        : importData.agent[agentId];
     const result = await _putAgentByTypeAndId({
       agentType,
       agentId,
-      agentData: importData.agent[agentId],
+      agentData,
       globalConfig,
       state,
     });
@@ -2585,6 +2604,7 @@ export async function createAIAgent({
                 // otherwise the privileges won't be properly linked to the identity
                 const privilegeSkeleton: IdObjectSkeletonInterface =
                   cloneDeep(privilege);
+                // The IDM policy requires /agent when creating an AI privilege.
                 const privilegeSkeletonSchema = await readManagedObjectSchema({
                   type: `${getCurrentRealmName(state)}_aiagentprivilege`,
                   options: {
@@ -2598,12 +2618,27 @@ export async function createAIAgent({
                     delete privilegeSkeleton[prop];
                   }
                 }
-                await createManagedObject({
-                  type: `${getCurrentRealmName(state)}_aiagentprivilege`,
-                  id: privilegeSkeleton._id,
-                  moData: privilegeSkeleton,
-                  state,
-                });
+                privilegeSkeleton.agent = {
+                  _ref: `managed/${getCurrentRealmName(state)}_aiagent/${aiAgentIdentity._id}`,
+                  _refResourceCollection: `managed/${getCurrentRealmName(state)}_aiagent`,
+                  _refResourceId: aiAgentIdentity._id,
+                };
+                try {
+                  await createManagedObject({
+                    type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+                    id: privilegeSkeleton._id,
+                    moData: privilegeSkeleton,
+                    state,
+                  });
+                } catch (createPrivilegeError) {
+                  if (!isAlreadyExistsError(createPrivilegeError)) {
+                    throw createPrivilegeError;
+                  }
+                  debugMessage({
+                    message: `AgentOps.createAIAgent: privilege ${privilegeSkeleton._id} already exists; reusing existing object`,
+                    state,
+                  });
+                }
               }
 
               // Link privilege to agent identity and create reverse link from agent identity to privilege
@@ -2620,23 +2655,6 @@ export async function createAIAgent({
                         _ref: `managed/${getCurrentRealmName(state)}_aiagent/${aiAgentIdentity._id}`,
                         _refResourceCollection: `managed/${getCurrentRealmName(state)}_aiagent`,
                         _refResourceId: aiAgentIdentity._id,
-                      },
-                    },
-                  ],
-                  state,
-                });
-                // create reverse link from agent identity to privilege
-                await updateManagedObjectProperties({
-                  type: `${getCurrentRealmName(state)}_aiagent`,
-                  id: aiAgentIdentity._id,
-                  operations: [
-                    {
-                      operation: 'add',
-                      field: '/privileges',
-                      value: {
-                        _ref: `managed/${getCurrentRealmName(state)}_aiagentprivilege/${privilege._id}`,
-                        _refResourceCollection: `managed/${getCurrentRealmName(state)}_aiagentprivilege`,
-                        _refResourceId: privilege._id,
                       },
                     },
                   ],
@@ -2675,23 +2693,30 @@ export async function createAIAgent({
                     ],
                     state,
                   });
-                  // create reverse link from application to privilege
-                  await updateManagedObjectProperties({
-                    type: `${getCurrentRealmName(state)}_application`,
-                    id: privilege['resource']['_refResourceId'] as string,
-                    operations: [
-                      {
-                        operation: 'add',
-                        field: '/aiagentprivileges',
-                        value: {
-                          _ref: `managed/${getCurrentRealmName(state)}_aiagentprivilege/${privilege._id}`,
-                          _refResourceCollection: `managed/${getCurrentRealmName(state)}_aiagentprivilege`,
-                          _refResourceId: privilege._id,
+                  // create reverse link from application to privilege (best effort)
+                  try {
+                    await updateManagedObjectProperties({
+                      type: `${getCurrentRealmName(state)}_application`,
+                      id: privilege['resource']['_refResourceId'] as string,
+                      operations: [
+                        {
+                          operation: 'add',
+                          field: '/aiagentprivileges',
+                          value: {
+                            _ref: `managed/${getCurrentRealmName(state)}_aiagentprivilege/${privilege._id}`,
+                            _refResourceCollection: `managed/${getCurrentRealmName(state)}_aiagentprivilege`,
+                            _refResourceId: privilege._id,
+                          },
                         },
-                      },
-                    ],
-                    state,
-                  });
+                      ],
+                      state,
+                    });
+                  } catch {
+                    debugMessage({
+                      message: `AgentOps.createAIAgent: optional reverse application link failed for privilege ${privilege._id} and application ${privilege['resource']['_refResourceId']}`,
+                      state,
+                    });
+                  }
                 } catch (error) {
                   errors.push(
                     new FrodoError(
@@ -2749,13 +2774,11 @@ export async function createAIAgent({
                         ],
                         state,
                       });
-                    } catch (error) {
-                      errors.push(
-                        new FrodoError(
-                          `Error linking privilege ${privilege._id} to subject group ${group['_refResourceId']} for AI agent identity ${aiAgentIdentity._id}`,
-                          error
-                        )
-                      );
+                    } catch {
+                      debugMessage({
+                        message: `AgentOps.createAIAgent: optional reverse group link failed for privilege ${privilege._id} and group ${group['_refResourceId']}`,
+                        state,
+                      });
                     }
                   }
                 } catch (error) {
@@ -2865,8 +2888,11 @@ export async function createAIAgent({
         }
 
         if (errors.length > 0) {
+          const errorSummary = errors
+            .map((entry) => entry.getCombinedMessage())
+            .join(' | ');
           throw new FrodoError(
-            'Error creating AI agent identity and privileges',
+            `Error creating AI agent identity and privileges: ${errorSummary}`,
             errors
           );
         }
@@ -2877,6 +2903,9 @@ export async function createAIAgent({
       });
       return result;
     } catch (error) {
+      if (error instanceof FrodoError) {
+        throw error;
+      }
       throw new FrodoError(
         `Error creating ${getCurrentRealmName(state) + ' realm'} AI agent ${agentId}`,
         error
@@ -2910,10 +2939,11 @@ export async function updateAIAgent({
       message: `AgentOps.updateAIAgent: start [includeAgentIdentity=${includeAgentIdentity}]`,
       state,
     });
+    const sanitizedAgentData = sanitizeAIAgentPayload(agentData);
     const result = await _putAgentByTypeAndId({
       agentType: 'AIAgent',
       agentId,
-      agentData,
+      agentData: sanitizedAgentData,
       globalConfig: false,
       state,
     });
@@ -3144,10 +3174,11 @@ export async function importAIAgents({
           throw new FrodoError(
             `Wrong agent type! Expected 'AIAgent' but got '${agentType}'.`
           );
+        const agentData = sanitizeAIAgentPayload(importData.agent[agentId]);
         await _putAgentByTypeAndId({
           agentType,
           agentId,
-          agentData: importData.agent[agentId],
+          agentData,
           globalConfig: false,
           state,
         });
@@ -3210,10 +3241,11 @@ export async function importAIAgent({
         `Wrong agent type! Expected 'AIAgent' but got '${agentType}'.`
       );
     }
+    const agentData = sanitizeAIAgentPayload(importData.agent[agentId]);
     const result = await _putAgentByTypeAndId({
       agentType,
       agentId,
-      agentData: importData.agent[agentId],
+      agentData,
       globalConfig: false,
       state,
     });
