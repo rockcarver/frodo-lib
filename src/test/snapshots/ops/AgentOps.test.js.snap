@@ -1,9 +1,65 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`AgentOps Classic Tests exportAgent() 4: Export agent 'AgentService' 1`] = `
+{
+  "agent": {
+    "AgentService": {
+      "_id": "AgentService",
+      "_type": {
+        "_id": "AgentService",
+        "collection": false,
+        "name": "AgentService",
+      },
+    },
+  },
+  "meta": Any<Object>,
+}
+`;
+
+exports[`AgentOps Classic Tests exportAgents() 2: Export all agents 1`] = `
+{
+  "agent": {
+    "AgentService": {
+      "_id": "AgentService",
+      "_type": {
+        "_id": "AgentService",
+        "collection": false,
+        "name": "AgentService",
+      },
+    },
+  },
+  "meta": Any<Object>,
+}
+`;
+
+exports[`AgentOps Classic Tests readAgent() 4: Read agent 'AgentService' 1`] = `
+{
+  "_id": "AgentService",
+  "_type": {
+    "_id": "AgentService",
+    "collection": false,
+    "name": "AgentService",
+  },
+}
+`;
+
+exports[`AgentOps Classic Tests readAgents() 2: Read all agents 1`] = `
+[
+  {
+    "_id": "AgentService",
+    "_type": {
+      "_id": "AgentService",
+      "collection": false,
+      "name": "AgentService",
+    },
+  },
+]
+`;
+
 exports[`AgentOps Cloud Tests createAIAgent() 1: Create AIAgent 'FrodoOpsTestAIAgent2' 1`] = `
 {
   "_id": "FrodoOpsTestAIAgent2",
-  "_rev": "-659401981",
+  "_rev": "-667711609",
   "_type": {
     "_id": "AIAgent",
     "collection": true,
@@ -131,7 +187,7 @@ exports[`AgentOps Cloud Tests createAIAgent() 1: Create AIAgent 'FrodoOpsTestAIA
     "inherited": false,
     "value": {
       "_id": "a558e950-3a86-4cb6-a3d3-bbbbbbbbbbbb",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32988",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42983",
       "customAttributes": null,
       "description": "Test AI agent 2 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 2",
@@ -372,7 +428,7 @@ exports[`AgentOps Cloud Tests createAIAgent() 1: Create AIAgent 'FrodoOpsTestAIA
 exports[`AgentOps Cloud Tests createAIAgent() 2: createAIAgent() - with owner (FrodoOpsTestAIAgent10) 1`] = `
 {
   "_id": "FrodoOpsTestAIAgent10",
-  "_rev": "1294369184",
+  "_rev": "1199790509",
   "_type": {
     "_id": "AIAgent",
     "collection": true,
@@ -500,7 +556,7 @@ exports[`AgentOps Cloud Tests createAIAgent() 2: createAIAgent() - with owner (F
     "inherited": false,
     "value": {
       "_id": "935b2bda-43b4-454b-a13d-d25e530f0d39",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32990",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42985",
       "customAttributes": null,
       "description": "Test AI agent 10 with owner relationship for Frodo unit tests.",
       "name": "Frodo Test AI Agent 10",
@@ -741,7 +797,7 @@ exports[`AgentOps Cloud Tests createAIAgent() 2: createAIAgent() - with owner (F
 exports[`AgentOps Cloud Tests createAIAgent() 3: createAIAgent() - with privileges (FrodoOpsTestAIAgent11) 1`] = `
 {
   "_id": "FrodoOpsTestAIAgent11",
-  "_rev": "-1183823547",
+  "_rev": "-1094573622",
   "_type": {
     "_id": "AIAgent",
     "collection": true,
@@ -869,7 +925,7 @@ exports[`AgentOps Cloud Tests createAIAgent() 3: createAIAgent() - with privileg
     "inherited": false,
     "value": {
       "_id": "d4e78146-e92e-408d-8b88-e95de6272f3a",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32993",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42988",
       "customAttributes": null,
       "description": "Test AI agent 11 with privilege relationships for Frodo unit tests.",
       "name": "Frodo Test AI Agent 11",
@@ -1121,6 +1177,26 @@ exports[`AgentOps Cloud Tests createAgentGroupExportTemplate() 1: Create Agent G
 }
 `;
 
+exports[`AgentOps Cloud Tests deleteAIAgent() 3: Delete non-existent AI agent 'FrodoOpsTestNonExistentAIAgent' 1`] = `
+"Error deleting alpha realm AI agent FrodoOpsTestNonExistentAIAgent
+  alpha realm AI agent 'FrodoOpsTestNonExistentAIAgent' not found!"
+`;
+
+exports[`AgentOps Cloud Tests deleteIdentityGatewayAgent() 2: Delete agent of wrong type 'FrodoOpsTestJavaAgent9' (J2EEAgent) 1`] = `
+"Error deleting alpha realm identity gateway agent FrodoOpsTestJavaAgent9
+  alpha realm identity gateway agent 'FrodoOpsTestJavaAgent9' not found!"
+`;
+
+exports[`AgentOps Cloud Tests deleteJavaAgent() 2: Delete agent of wrong type 'FrodoOpsTestWebAgent9' (WebAgent) 1`] = `
+"Error deleting alpha realm java agent FrodoOpsTestWebAgent9
+  alpha realm java agent 'FrodoOpsTestWebAgent9' not found!"
+`;
+
+exports[`AgentOps Cloud Tests deleteWebAgent() 2: Delete agent of wrong type 'FrodoOpsTestGatewayAgent9' (IdentityGatewayAgent) 1`] = `
+"Error deleting alpha realm web agent FrodoOpsTestGatewayAgent9
+  alpha realm web agent 'FrodoOpsTestGatewayAgent9' not found!"
+`;
+
 exports[`AgentOps Cloud Tests exportAIAgent() 1: Export AIAgent 'FrodoOpsTestAIAgent1' 1`] = `
 {
   "agent": {
@@ -1128,7 +1204,7 @@ exports[`AgentOps Cloud Tests exportAIAgent() 1: Export AIAgent 'FrodoOpsTestAIA
       "_aiAgentIdentity": {
         "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
         "_privileges": [],
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
         "customAttributes": null,
         "description": "Test AI agent 1 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 1",
@@ -1137,7 +1213,7 @@ exports[`AgentOps Cloud Tests exportAIAgent() 1: Export AIAgent 'FrodoOpsTestAIA
         "privileges": [],
       },
       "_id": "FrodoOpsTestAIAgent1",
-      "_rev": "1871663473",
+      "_rev": "1860053480",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -1147,7 +1223,7 @@ exports[`AgentOps Cloud Tests exportAIAgent() 1: Export AIAgent 'FrodoOpsTestAIA
         "inherited": false,
         "value": {
           "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
-          "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+          "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
           "customAttributes": null,
           "description": "Test AI agent 1 for Frodo unit tests.",
           "name": "Frodo Test AI Agent 1",
@@ -1171,7 +1247,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       "_aiAgentIdentity": {
         "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
         "_privileges": [],
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
         "customAttributes": null,
         "description": "Test AI agent 1 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 1",
@@ -1180,7 +1256,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
         "privileges": [],
       },
       "_id": "FrodoOpsTestAIAgent1",
-      "_rev": "1898520201",
+      "_rev": "1903884026",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -1188,7 +1264,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       },
       "aiAgentIdentityAttributes": {
         "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
         "customAttributes": null,
         "description": "Test AI agent 1 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 1",
@@ -1200,7 +1276,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       "_aiAgentIdentity": {
         "_id": "935b2bda-43b4-454b-a13d-d25e530f0d39",
         "_privileges": [],
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32992",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42987",
         "customAttributes": null,
         "description": "Test AI agent 10 with owner relationship for Frodo unit tests.",
         "name": "Frodo Test AI Agent 10",
@@ -1209,8 +1285,8 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
           {
             "_ref": "managed/alpha_user/867cbaf7-03cd-487a-9a96-d9769b297037",
             "_refProperties": {
-              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517373",
-              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517374",
+              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710137",
+              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710138",
             },
             "_refResourceCollection": "managed/alpha_user",
             "_refResourceId": "867cbaf7-03cd-487a-9a96-d9769b297037",
@@ -1219,7 +1295,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
         "privileges": [],
       },
       "_id": "FrodoOpsTestAIAgent10",
-      "_rev": "-29618534",
+      "_rev": "-24189599",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -1268,7 +1344,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       },
       "aiAgentIdentityAttributes": {
         "_id": "935b2bda-43b4-454b-a13d-d25e530f0d39",
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32992",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42987",
         "customAttributes": null,
         "description": "Test AI agent 10 with owner relationship for Frodo unit tests.",
         "name": "Frodo Test AI Agent 10",
@@ -1375,12 +1451,12 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
         "_privileges": [
           {
             "_id": "07707883-48f5-46cd-b6be-d740f87aeded",
-            "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-33001",
+            "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42996",
             "agent": {
               "_ref": "managed/alpha_aiagent/d4e78146-e92e-408d-8b88-e95de6272f3a",
               "_refProperties": {
-                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517414",
-                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517415",
+                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710176",
+                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710177",
               },
               "_refResourceCollection": "managed/alpha_aiagent",
               "_refResourceId": "d4e78146-e92e-408d-8b88-e95de6272f3a",
@@ -1400,8 +1476,8 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
             "resource": {
               "_ref": "managed/alpha_application/ffe12bd1-fc1b-422f-a53a-1de5fd7daf97",
               "_refProperties": {
-                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517428",
-                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517429",
+                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710190",
+                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710191",
               },
               "_refResourceCollection": "managed/alpha_application",
               "_refResourceId": "ffe12bd1-fc1b-422f-a53a-1de5fd7daf97",
@@ -1411,7 +1487,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
               "_ref": "managed/alpha_application/ffe12bd1-fc1b-422f-a53a-1de5fd7daf97",
               "_refResourceCollection": "managed/alpha_application",
               "_refResourceId": "ffe12bd1-fc1b-422f-a53a-1de5fd7daf97",
-              "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32960",
+              "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42956",
               "ssoEntities": {
                 "oidcId": "FrodoOpsPrivAppffe12bd1",
               },
@@ -1420,8 +1496,8 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
               {
                 "_ref": "managed/alpha_group/FrodoOpsTestAIPrivGroup",
                 "_refProperties": {
-                  "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517444",
-                  "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517445",
+                  "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710205",
+                  "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710206",
                 },
                 "_refResourceCollection": "managed/alpha_group",
                 "_refResourceId": "FrodoOpsTestAIPrivGroup",
@@ -1434,8 +1510,8 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
               {
                 "_ref": "managed/alpha_user/867cbaf7-03cd-487a-9a96-d9769b297037",
                 "_refProperties": {
-                  "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517459",
-                  "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517460",
+                  "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710220",
+                  "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710221",
                 },
                 "_refResourceCollection": "managed/alpha_user",
                 "_refResourceId": "867cbaf7-03cd-487a-9a96-d9769b297037",
@@ -1444,12 +1520,12 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
           },
           {
             "_id": "3ae361a9-9174-4164-927d-cde30ad90412",
-            "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-33007",
+            "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-43003",
             "agent": {
               "_ref": "managed/alpha_aiagent/d4e78146-e92e-408d-8b88-e95de6272f3a",
               "_refProperties": {
-                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517471",
-                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517472",
+                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710232",
+                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710233",
               },
               "_refResourceCollection": "managed/alpha_aiagent",
               "_refResourceId": "d4e78146-e92e-408d-8b88-e95de6272f3a",
@@ -1469,8 +1545,8 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
             "resource": {
               "_ref": "managed/alpha_application/8e50a390-7858-4117-8f44-5abe558e1ea7",
               "_refProperties": {
-                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517485",
-                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517486",
+                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710258",
+                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710259",
               },
               "_refResourceCollection": "managed/alpha_application",
               "_refResourceId": "8e50a390-7858-4117-8f44-5abe558e1ea7",
@@ -1480,7 +1556,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
               "_ref": "managed/alpha_application/8e50a390-7858-4117-8f44-5abe558e1ea7",
               "_refResourceCollection": "managed/alpha_application",
               "_refResourceId": "8e50a390-7858-4117-8f44-5abe558e1ea7",
-              "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32962",
+              "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42958",
               "ssoEntities": {
                 "oidcId": "FrodoOpsPrivApp8e50a390",
               },
@@ -1493,8 +1569,8 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
               {
                 "_ref": "managed/alpha_user/867cbaf7-03cd-487a-9a96-d9769b297037",
                 "_refProperties": {
-                  "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517501",
-                  "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517502",
+                  "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710274",
+                  "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710275",
                 },
                 "_refResourceCollection": "managed/alpha_user",
                 "_refResourceId": "867cbaf7-03cd-487a-9a96-d9769b297037",
@@ -1502,7 +1578,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
             ],
           },
         ],
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32993",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42988",
         "customAttributes": null,
         "description": "Test AI agent 11 with privilege relationships for Frodo unit tests.",
         "name": "Frodo Test AI Agent 11",
@@ -1512,8 +1588,8 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
           {
             "_ref": "managed/alpha_aiagentprivilege/07707883-48f5-46cd-b6be-d740f87aeded",
             "_refProperties": {
-              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517414",
-              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517415",
+              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710176",
+              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710177",
             },
             "_refResourceCollection": "managed/alpha_aiagentprivilege",
             "_refResourceId": "07707883-48f5-46cd-b6be-d740f87aeded",
@@ -1521,8 +1597,8 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
           {
             "_ref": "managed/alpha_aiagentprivilege/3ae361a9-9174-4164-927d-cde30ad90412",
             "_refProperties": {
-              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517471",
-              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517472",
+              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710232",
+              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710233",
             },
             "_refResourceCollection": "managed/alpha_aiagentprivilege",
             "_refResourceId": "3ae361a9-9174-4164-927d-cde30ad90412",
@@ -1530,7 +1606,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
         ],
       },
       "_id": "FrodoOpsTestAIAgent11",
-      "_rev": "1820114700",
+      "_rev": "1825477975",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -1579,7 +1655,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       },
       "aiAgentIdentityAttributes": {
         "_id": "d4e78146-e92e-408d-8b88-e95de6272f3a",
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32993",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42988",
         "customAttributes": null,
         "description": "Test AI agent 11 with privilege relationships for Frodo unit tests.",
         "name": "Frodo Test AI Agent 11",
@@ -1684,7 +1760,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       "_aiAgentIdentity": {
         "_id": "a558e950-3a86-4cb6-a3d3-bbbbbbbbbbbb",
         "_privileges": [],
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32988",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42983",
         "customAttributes": null,
         "description": "Test AI agent 2 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 2",
@@ -1693,7 +1769,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
         "privileges": [],
       },
       "_id": "FrodoOpsTestAIAgent2",
-      "_rev": "2109400162",
+      "_rev": "2114255590",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -1742,7 +1818,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       },
       "aiAgentIdentityAttributes": {
         "_id": "a558e950-3a86-4cb6-a3d3-bbbbbbbbbbbb",
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32988",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42983",
         "customAttributes": null,
         "description": "Test AI agent 2 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 2",
@@ -1847,7 +1923,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       "_aiAgentIdentity": {
         "_id": "5b0d03f9-f0ad-45c0-b171-ffffffffffff",
         "_privileges": [],
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32980",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42975",
         "customAttributes": null,
         "description": "Test AI agent 6 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 6",
@@ -1856,7 +1932,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
         "privileges": [],
       },
       "_id": "FrodoOpsTestAIAgent6",
-      "_rev": "-1271893150",
+      "_rev": "-1300592211",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -1905,7 +1981,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       },
       "aiAgentIdentityAttributes": {
         "_id": "5b0d03f9-f0ad-45c0-b171-ffffffffffff",
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32980",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42975",
         "customAttributes": null,
         "description": "Test AI agent 6 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 6",
@@ -2010,7 +2086,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       "_aiAgentIdentity": {
         "_id": "b5cfbf34-013f-4f52-b576-111111111111",
         "_privileges": [],
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32951",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42946",
         "customAttributes": null,
         "description": "Test AI agent 7 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 7",
@@ -2019,7 +2095,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
         "privileges": [],
       },
       "_id": "FrodoOpsTestAIAgent7",
-      "_rev": "-918944706",
+      "_rev": "-913777831",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -2068,7 +2144,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       },
       "aiAgentIdentityAttributes": {
         "_id": "b5cfbf34-013f-4f52-b576-111111111111",
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32951",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42946",
         "customAttributes": null,
         "description": "Test AI agent 7 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 7",
@@ -2173,7 +2249,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       "_aiAgentIdentity": {
         "_id": "d8b49ba7-ad52-4a63-9aeb-222222222222",
         "_privileges": [],
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32953",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42948",
         "customAttributes": null,
         "description": "Test AI agent 8 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 8",
@@ -2182,7 +2258,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
         "privileges": [],
       },
       "_id": "FrodoOpsTestAIAgent8",
-      "_rev": "-817271204",
+      "_rev": "-811907325",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -2231,7 +2307,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       },
       "aiAgentIdentityAttributes": {
         "_id": "d8b49ba7-ad52-4a63-9aeb-222222222222",
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32953",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42948",
         "customAttributes": null,
         "description": "Test AI agent 8 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 8",
@@ -2336,7 +2412,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       "_aiAgentIdentity": {
         "_id": "a91753e0-cac6-4753-b526-333333333333",
         "_privileges": [],
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32955",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42951",
         "customAttributes": null,
         "description": "Test AI agent 9 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 9",
@@ -2345,7 +2421,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
         "privileges": [],
       },
       "_id": "FrodoOpsTestAIAgent9",
-      "_rev": "-690497842",
+      "_rev": "-685593261",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -2394,7 +2470,7 @@ exports[`AgentOps Cloud Tests exportAIAgents() 1: Export all AI agents 1`] = `
       },
       "aiAgentIdentityAttributes": {
         "_id": "a91753e0-cac6-4753-b526-333333333333",
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32955",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42951",
         "customAttributes": null,
         "description": "Test AI agent 9 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 9",
@@ -2947,7 +3023,7 @@ exports[`AgentOps Cloud Tests exportAgent() 4: Export agent 'FrodoOpsTestAIAgent
   "agent": {
     "FrodoOpsTestAIAgent1": {
       "_id": "FrodoOpsTestAIAgent1",
-      "_rev": "-1101227634",
+      "_rev": "-1095863809",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -2996,7 +3072,7 @@ exports[`AgentOps Cloud Tests exportAgent() 4: Export agent 'FrodoOpsTestAIAgent
       },
       "aiAgentIdentityAttributes": {
         "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
         "customAttributes": null,
         "description": "Test AI agent 1 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 1",
@@ -3114,7 +3190,7 @@ exports[`AgentOps Cloud Tests exportAgents() 1: Export all agents 1`] = `
   "agent": {
     "FrodoOpsTestAIAgent1": {
       "_id": "FrodoOpsTestAIAgent1",
-      "_rev": "-1101227634",
+      "_rev": "-1095863809",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -3163,7 +3239,7 @@ exports[`AgentOps Cloud Tests exportAgents() 1: Export all agents 1`] = `
       },
       "aiAgentIdentityAttributes": {
         "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
         "customAttributes": null,
         "description": "Test AI agent 1 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 1",
@@ -3266,7 +3342,7 @@ exports[`AgentOps Cloud Tests exportAgents() 1: Export all agents 1`] = `
     },
     "FrodoOpsTestAIAgent7": {
       "_id": "FrodoOpsTestAIAgent7",
-      "_rev": "-918944706",
+      "_rev": "-913777831",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -3315,7 +3391,7 @@ exports[`AgentOps Cloud Tests exportAgents() 1: Export all agents 1`] = `
       },
       "aiAgentIdentityAttributes": {
         "_id": "b5cfbf34-013f-4f52-b576-111111111111",
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32951",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42946",
         "customAttributes": null,
         "description": "Test AI agent 7 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 7",
@@ -3418,7 +3494,7 @@ exports[`AgentOps Cloud Tests exportAgents() 1: Export all agents 1`] = `
     },
     "FrodoOpsTestAIAgent8": {
       "_id": "FrodoOpsTestAIAgent8",
-      "_rev": "-817271204",
+      "_rev": "-811907325",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -3467,7 +3543,7 @@ exports[`AgentOps Cloud Tests exportAgents() 1: Export all agents 1`] = `
       },
       "aiAgentIdentityAttributes": {
         "_id": "d8b49ba7-ad52-4a63-9aeb-222222222222",
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32953",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42948",
         "customAttributes": null,
         "description": "Test AI agent 8 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 8",
@@ -3570,7 +3646,7 @@ exports[`AgentOps Cloud Tests exportAgents() 1: Export all agents 1`] = `
     },
     "FrodoOpsTestAIAgent9": {
       "_id": "FrodoOpsTestAIAgent9",
-      "_rev": "-690497842",
+      "_rev": "-685593261",
       "_type": {
         "_id": "AIAgent",
         "collection": true,
@@ -3619,7 +3695,7 @@ exports[`AgentOps Cloud Tests exportAgents() 1: Export all agents 1`] = `
       },
       "aiAgentIdentityAttributes": {
         "_id": "a91753e0-cac6-4753-b526-333333333333",
-        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32955",
+        "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42951",
         "customAttributes": null,
         "description": "Test AI agent 9 for Frodo unit tests.",
         "name": "Frodo Test AI Agent 9",
@@ -9143,7 +9219,7 @@ exports[`AgentOps Cloud Tests readAIAgent() 1: Read AIAgent 'FrodoOpsTestAIAgent
   "_aiAgentIdentity": {
     "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
     "_privileges": [],
-    "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+    "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
     "customAttributes": null,
     "description": "Test AI agent 1 for Frodo unit tests.",
     "name": "Frodo Test AI Agent 1",
@@ -9152,7 +9228,7 @@ exports[`AgentOps Cloud Tests readAIAgent() 1: Read AIAgent 'FrodoOpsTestAIAgent
     "privileges": [],
   },
   "_id": "FrodoOpsTestAIAgent1",
-  "_rev": "140257614",
+  "_rev": "128647621",
   "_type": {
     "_id": "AIAgent",
     "collection": true,
@@ -9280,7 +9356,7 @@ exports[`AgentOps Cloud Tests readAIAgent() 1: Read AIAgent 'FrodoOpsTestAIAgent
     "inherited": false,
     "value": {
       "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
       "customAttributes": null,
       "description": "Test AI agent 1 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 1",
@@ -9524,7 +9600,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     "_aiAgentIdentity": {
       "_id": "a558e950-3a86-4cb6-a3d3-bbbbbbbbbbbb",
       "_privileges": [],
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32988",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42983",
       "customAttributes": null,
       "description": "Test AI agent 2 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 2",
@@ -9533,7 +9609,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
       "privileges": [],
     },
     "_id": "FrodoOpsTestAIAgent2",
-    "_rev": "2109400162",
+    "_rev": "2114255590",
     "_type": {
       "_id": "AIAgent",
       "collection": true,
@@ -9582,7 +9658,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     },
     "aiAgentIdentityAttributes": {
       "_id": "a558e950-3a86-4cb6-a3d3-bbbbbbbbbbbb",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32988",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42983",
       "customAttributes": null,
       "description": "Test AI agent 2 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 2",
@@ -9687,7 +9763,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     "_aiAgentIdentity": {
       "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
       "_privileges": [],
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
       "customAttributes": null,
       "description": "Test AI agent 1 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 1",
@@ -9696,7 +9772,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
       "privileges": [],
     },
     "_id": "FrodoOpsTestAIAgent1",
-    "_rev": "-1101227634",
+    "_rev": "-1095863809",
     "_type": {
       "_id": "AIAgent",
       "collection": true,
@@ -9745,7 +9821,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     },
     "aiAgentIdentityAttributes": {
       "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
       "customAttributes": null,
       "description": "Test AI agent 1 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 1",
@@ -9850,7 +9926,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     "_aiAgentIdentity": {
       "_id": "d8b49ba7-ad52-4a63-9aeb-222222222222",
       "_privileges": [],
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32953",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42948",
       "customAttributes": null,
       "description": "Test AI agent 8 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 8",
@@ -9859,7 +9935,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
       "privileges": [],
     },
     "_id": "FrodoOpsTestAIAgent8",
-    "_rev": "-817271204",
+    "_rev": "-811907325",
     "_type": {
       "_id": "AIAgent",
       "collection": true,
@@ -9908,7 +9984,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     },
     "aiAgentIdentityAttributes": {
       "_id": "d8b49ba7-ad52-4a63-9aeb-222222222222",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32953",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42948",
       "customAttributes": null,
       "description": "Test AI agent 8 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 8",
@@ -10015,12 +10091,12 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
       "_privileges": [
         {
           "_id": "07707883-48f5-46cd-b6be-d740f87aeded",
-          "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-33001",
+          "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42996",
           "agent": {
             "_ref": "managed/alpha_aiagent/d4e78146-e92e-408d-8b88-e95de6272f3a",
             "_refProperties": {
-              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517414",
-              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517415",
+              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710176",
+              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710177",
             },
             "_refResourceCollection": "managed/alpha_aiagent",
             "_refResourceId": "d4e78146-e92e-408d-8b88-e95de6272f3a",
@@ -10040,8 +10116,8 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
           "resource": {
             "_ref": "managed/alpha_application/ffe12bd1-fc1b-422f-a53a-1de5fd7daf97",
             "_refProperties": {
-              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517428",
-              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517429",
+              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710190",
+              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710191",
             },
             "_refResourceCollection": "managed/alpha_application",
             "_refResourceId": "ffe12bd1-fc1b-422f-a53a-1de5fd7daf97",
@@ -10051,7 +10127,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
             "_ref": "managed/alpha_application/ffe12bd1-fc1b-422f-a53a-1de5fd7daf97",
             "_refResourceCollection": "managed/alpha_application",
             "_refResourceId": "ffe12bd1-fc1b-422f-a53a-1de5fd7daf97",
-            "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32960",
+            "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42956",
             "ssoEntities": {
               "oidcId": "FrodoOpsPrivAppffe12bd1",
             },
@@ -10060,8 +10136,8 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
             {
               "_ref": "managed/alpha_group/FrodoOpsTestAIPrivGroup",
               "_refProperties": {
-                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517444",
-                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517445",
+                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710205",
+                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710206",
               },
               "_refResourceCollection": "managed/alpha_group",
               "_refResourceId": "FrodoOpsTestAIPrivGroup",
@@ -10074,8 +10150,8 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
             {
               "_ref": "managed/alpha_user/867cbaf7-03cd-487a-9a96-d9769b297037",
               "_refProperties": {
-                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517459",
-                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517460",
+                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710220",
+                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710221",
               },
               "_refResourceCollection": "managed/alpha_user",
               "_refResourceId": "867cbaf7-03cd-487a-9a96-d9769b297037",
@@ -10084,12 +10160,12 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
         },
         {
           "_id": "3ae361a9-9174-4164-927d-cde30ad90412",
-          "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-33007",
+          "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-43003",
           "agent": {
             "_ref": "managed/alpha_aiagent/d4e78146-e92e-408d-8b88-e95de6272f3a",
             "_refProperties": {
-              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517471",
-              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517472",
+              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710232",
+              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710233",
             },
             "_refResourceCollection": "managed/alpha_aiagent",
             "_refResourceId": "d4e78146-e92e-408d-8b88-e95de6272f3a",
@@ -10109,8 +10185,8 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
           "resource": {
             "_ref": "managed/alpha_application/8e50a390-7858-4117-8f44-5abe558e1ea7",
             "_refProperties": {
-              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517485",
-              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517486",
+              "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710258",
+              "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710259",
             },
             "_refResourceCollection": "managed/alpha_application",
             "_refResourceId": "8e50a390-7858-4117-8f44-5abe558e1ea7",
@@ -10120,7 +10196,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
             "_ref": "managed/alpha_application/8e50a390-7858-4117-8f44-5abe558e1ea7",
             "_refResourceCollection": "managed/alpha_application",
             "_refResourceId": "8e50a390-7858-4117-8f44-5abe558e1ea7",
-            "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32962",
+            "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42958",
             "ssoEntities": {
               "oidcId": "FrodoOpsPrivApp8e50a390",
             },
@@ -10133,8 +10209,8 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
             {
               "_ref": "managed/alpha_user/867cbaf7-03cd-487a-9a96-d9769b297037",
               "_refProperties": {
-                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517501",
-                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517502",
+                "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710274",
+                "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710275",
               },
               "_refResourceCollection": "managed/alpha_user",
               "_refResourceId": "867cbaf7-03cd-487a-9a96-d9769b297037",
@@ -10142,7 +10218,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
           ],
         },
       ],
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32993",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42988",
       "customAttributes": null,
       "description": "Test AI agent 11 with privilege relationships for Frodo unit tests.",
       "name": "Frodo Test AI Agent 11",
@@ -10152,8 +10228,8 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
         {
           "_ref": "managed/alpha_aiagentprivilege/07707883-48f5-46cd-b6be-d740f87aeded",
           "_refProperties": {
-            "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517414",
-            "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517415",
+            "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710176",
+            "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710177",
           },
           "_refResourceCollection": "managed/alpha_aiagentprivilege",
           "_refResourceId": "07707883-48f5-46cd-b6be-d740f87aeded",
@@ -10161,8 +10237,8 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
         {
           "_ref": "managed/alpha_aiagentprivilege/3ae361a9-9174-4164-927d-cde30ad90412",
           "_refProperties": {
-            "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517471",
-            "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517472",
+            "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710232",
+            "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710233",
           },
           "_refResourceCollection": "managed/alpha_aiagentprivilege",
           "_refResourceId": "3ae361a9-9174-4164-927d-cde30ad90412",
@@ -10170,7 +10246,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
       ],
     },
     "_id": "FrodoOpsTestAIAgent11",
-    "_rev": "1820114700",
+    "_rev": "1825477975",
     "_type": {
       "_id": "AIAgent",
       "collection": true,
@@ -10219,7 +10295,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     },
     "aiAgentIdentityAttributes": {
       "_id": "d4e78146-e92e-408d-8b88-e95de6272f3a",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32993",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42988",
       "customAttributes": null,
       "description": "Test AI agent 11 with privilege relationships for Frodo unit tests.",
       "name": "Frodo Test AI Agent 11",
@@ -10324,7 +10400,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     "_aiAgentIdentity": {
       "_id": "b5cfbf34-013f-4f52-b576-111111111111",
       "_privileges": [],
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32951",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42946",
       "customAttributes": null,
       "description": "Test AI agent 7 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 7",
@@ -10333,7 +10409,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
       "privileges": [],
     },
     "_id": "FrodoOpsTestAIAgent7",
-    "_rev": "-918944706",
+    "_rev": "-913777831",
     "_type": {
       "_id": "AIAgent",
       "collection": true,
@@ -10382,7 +10458,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     },
     "aiAgentIdentityAttributes": {
       "_id": "b5cfbf34-013f-4f52-b576-111111111111",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32951",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42946",
       "customAttributes": null,
       "description": "Test AI agent 7 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 7",
@@ -10487,7 +10563,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     "_aiAgentIdentity": {
       "_id": "5b0d03f9-f0ad-45c0-b171-ffffffffffff",
       "_privileges": [],
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32980",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42975",
       "customAttributes": null,
       "description": "Test AI agent 6 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 6",
@@ -10496,7 +10572,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
       "privileges": [],
     },
     "_id": "FrodoOpsTestAIAgent6",
-    "_rev": "-1271893150",
+    "_rev": "-1300592211",
     "_type": {
       "_id": "AIAgent",
       "collection": true,
@@ -10545,7 +10621,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     },
     "aiAgentIdentityAttributes": {
       "_id": "5b0d03f9-f0ad-45c0-b171-ffffffffffff",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32980",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42975",
       "customAttributes": null,
       "description": "Test AI agent 6 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 6",
@@ -10650,7 +10726,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     "_aiAgentIdentity": {
       "_id": "935b2bda-43b4-454b-a13d-d25e530f0d39",
       "_privileges": [],
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32992",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42987",
       "customAttributes": null,
       "description": "Test AI agent 10 with owner relationship for Frodo unit tests.",
       "name": "Frodo Test AI Agent 10",
@@ -10659,8 +10735,8 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
         {
           "_ref": "managed/alpha_user/867cbaf7-03cd-487a-9a96-d9769b297037",
           "_refProperties": {
-            "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517373",
-            "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-517374",
+            "_id": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710137",
+            "_rev": "bfacc727-64ed-4331-9da2-a310cbb78bcf-710138",
           },
           "_refResourceCollection": "managed/alpha_user",
           "_refResourceId": "867cbaf7-03cd-487a-9a96-d9769b297037",
@@ -10669,7 +10745,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
       "privileges": [],
     },
     "_id": "FrodoOpsTestAIAgent10",
-    "_rev": "-29618534",
+    "_rev": "-24189599",
     "_type": {
       "_id": "AIAgent",
       "collection": true,
@@ -10718,7 +10794,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     },
     "aiAgentIdentityAttributes": {
       "_id": "935b2bda-43b4-454b-a13d-d25e530f0d39",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32992",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42987",
       "customAttributes": null,
       "description": "Test AI agent 10 with owner relationship for Frodo unit tests.",
       "name": "Frodo Test AI Agent 10",
@@ -10823,7 +10899,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     "_aiAgentIdentity": {
       "_id": "a91753e0-cac6-4753-b526-333333333333",
       "_privileges": [],
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32955",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42951",
       "customAttributes": null,
       "description": "Test AI agent 9 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 9",
@@ -10832,7 +10908,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
       "privileges": [],
     },
     "_id": "FrodoOpsTestAIAgent9",
-    "_rev": "-690497842",
+    "_rev": "-685593261",
     "_type": {
       "_id": "AIAgent",
       "collection": true,
@@ -10881,7 +10957,7 @@ exports[`AgentOps Cloud Tests readAIAgents() 1: Read all AI agents 1`] = `
     },
     "aiAgentIdentityAttributes": {
       "_id": "a91753e0-cac6-4753-b526-333333333333",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32955",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42951",
       "customAttributes": null,
       "description": "Test AI agent 9 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 9",
@@ -11415,7 +11491,7 @@ exports[`AgentOps Cloud Tests readAgent() 3: Read agent 'FrodoOpsTestWebAgent1' 
 exports[`AgentOps Cloud Tests readAgent() 4: Read agent 'FrodoOpsTestAIAgent1' (AIAgent) 1`] = `
 {
   "_id": "FrodoOpsTestAIAgent1",
-  "_rev": "-1101227634",
+  "_rev": "-1095863809",
   "_type": {
     "_id": "AIAgent",
     "collection": true,
@@ -11464,7 +11540,7 @@ exports[`AgentOps Cloud Tests readAgent() 4: Read agent 'FrodoOpsTestAIAgent1' (
   },
   "aiAgentIdentityAttributes": {
     "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
-    "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+    "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
     "customAttributes": null,
     "description": "Test AI agent 1 for Frodo unit tests.",
     "name": "Frodo Test AI Agent 1",
@@ -12788,7 +12864,7 @@ exports[`AgentOps Cloud Tests readAgentByTypeAndId() 3: Read agent by type 'Frod
 exports[`AgentOps Cloud Tests readAgentByTypeAndId() 4: Read agent by type 'FrodoOpsTestAIAgent1' (AIAgent) 1`] = `
 {
   "_id": "FrodoOpsTestAIAgent1",
-  "_rev": "140257614",
+  "_rev": "128647621",
   "_type": {
     "_id": "AIAgent",
     "collection": true,
@@ -12916,7 +12992,7 @@ exports[`AgentOps Cloud Tests readAgentByTypeAndId() 4: Read agent by type 'Frod
     "inherited": false,
     "value": {
       "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
       "customAttributes": null,
       "description": "Test AI agent 1 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 1",
@@ -13160,7 +13236,7 @@ exports[`AgentOps Cloud Tests readAgents() 1: Read all agents 1`] = `
 [
   {
     "_id": "FrodoOpsTestAIAgent1",
-    "_rev": "-1101227634",
+    "_rev": "-1095863809",
     "_type": {
       "_id": "AIAgent",
       "collection": true,
@@ -13209,7 +13285,7 @@ exports[`AgentOps Cloud Tests readAgents() 1: Read all agents 1`] = `
     },
     "aiAgentIdentityAttributes": {
       "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
       "customAttributes": null,
       "description": "Test AI agent 1 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 1",
@@ -13312,7 +13388,7 @@ exports[`AgentOps Cloud Tests readAgents() 1: Read all agents 1`] = `
   },
   {
     "_id": "FrodoOpsTestAIAgent7",
-    "_rev": "-918944706",
+    "_rev": "-913777831",
     "_type": {
       "_id": "AIAgent",
       "collection": true,
@@ -13361,7 +13437,7 @@ exports[`AgentOps Cloud Tests readAgents() 1: Read all agents 1`] = `
     },
     "aiAgentIdentityAttributes": {
       "_id": "b5cfbf34-013f-4f52-b576-111111111111",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32951",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42946",
       "customAttributes": null,
       "description": "Test AI agent 7 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 7",
@@ -13464,7 +13540,7 @@ exports[`AgentOps Cloud Tests readAgents() 1: Read all agents 1`] = `
   },
   {
     "_id": "FrodoOpsTestAIAgent8",
-    "_rev": "-817271204",
+    "_rev": "-811907325",
     "_type": {
       "_id": "AIAgent",
       "collection": true,
@@ -13513,7 +13589,7 @@ exports[`AgentOps Cloud Tests readAgents() 1: Read all agents 1`] = `
     },
     "aiAgentIdentityAttributes": {
       "_id": "d8b49ba7-ad52-4a63-9aeb-222222222222",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32953",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42948",
       "customAttributes": null,
       "description": "Test AI agent 8 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 8",
@@ -13616,7 +13692,7 @@ exports[`AgentOps Cloud Tests readAgents() 1: Read all agents 1`] = `
   },
   {
     "_id": "FrodoOpsTestAIAgent9",
-    "_rev": "-690497842",
+    "_rev": "-685593261",
     "_type": {
       "_id": "AIAgent",
       "collection": true,
@@ -13665,7 +13741,7 @@ exports[`AgentOps Cloud Tests readAgents() 1: Read all agents 1`] = `
     },
     "aiAgentIdentityAttributes": {
       "_id": "a91753e0-cac6-4753-b526-333333333333",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32955",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42951",
       "customAttributes": null,
       "description": "Test AI agent 9 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 9",
@@ -18986,7 +19062,7 @@ exports[`AgentOps Cloud Tests uodateJavaAgent() 1: Update J2EEAgent 'FrodoOpsTes
 exports[`AgentOps Cloud Tests updateAIAgent() 1: Update AIAgent 'FrodoOpsTestAIAgent1' 1`] = `
 {
   "_id": "FrodoOpsTestAIAgent1",
-  "_rev": "1871663473",
+  "_rev": "1860053480",
   "_type": {
     "_id": "AIAgent",
     "collection": true,
@@ -18996,7 +19072,7 @@ exports[`AgentOps Cloud Tests updateAIAgent() 1: Update AIAgent 'FrodoOpsTestAIA
     "inherited": false,
     "value": {
       "_id": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
-      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-32948",
+      "_rev": "f90619f5-dd2d-48dd-9107-83847f2351e6-42944",
       "customAttributes": null,
       "description": "Test AI agent 1 for Frodo unit tests.",
       "name": "Frodo Test AI Agent 1",

@@ -31,9 +31,9 @@
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record AgentOps
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record AgentOps
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=4 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record AgentOps
- * 
+ *
  *    THESE ARE CLASSIC DEPLOYMENT TESTS - REQUIRE FRODO_DEPLOY=classic AND APPROPRIATE FRODO_HOST/REALM FOR CLASSIC DEPLOYMENT!!!
- * 
+ *
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=5 FRODO_DEPLOY=classic FRODO_HOST=http://openam-frodo-dev.forgeblocks.com/am FRODO_REALM=/alpha npm run test:record AgentOps
  *
  *    The above command assumes that you have a connection profile for
@@ -62,7 +62,7 @@ import * as AgentApi from '../api/AgentApi';
 import * as AgentOps from './AgentOps';
 import { getAgent } from '../test/mocks/ForgeRockApiMockEngine';
 import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
-import { filterRecording } from '../utils/PollyUtils';
+import { defaultMatchRequestsBy, filterRecording } from '../utils/PollyUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import {
@@ -79,7 +79,12 @@ import {
 import type { OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
 import Constants from '../shared/Constants';
 
-const ctx = autoSetupPolly();
+// enable ordered request matching so that the same URL recorded twice
+// (e.g. AIAgent existence check → 404, post-create read → 200) replays
+// in the correct sequence rather than always returning the first match.
+const matchConfig = defaultMatchRequestsBy();
+matchConfig.order = true;
+const ctx = autoSetupPolly(matchConfig);
 
 async function stageAgent(
   agent: { id: string; type: AgentApi.AgentType },
