@@ -175,7 +175,11 @@ export type McpCapabilityPolicy = {
 /**
  * Built-in policy preset names recognized by the baseline MCP capability layer.
  */
-export type McpCapabilityPolicyPresetName = 'read-only' | 'standard' | 'admin';
+export type McpCapabilityPolicyPresetName =
+  | 'read-only'
+  | 'agentic'
+  | 'standard'
+  | 'admin';
 
 /**
  * Identifies the identity data surface a capability operates on.

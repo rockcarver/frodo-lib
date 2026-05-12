@@ -7,6 +7,8 @@
  * and error handling guarantees.
  */
 
+import axios from 'axios';
+import MockAdapter from 'axios-mock-adapter';
 import { FrodoError } from '../ops/FrodoError';
 import { jest } from '@jest/globals';
 import {
@@ -15,6 +17,8 @@ import {
   createToolRuntime,
   resolveRequestScopedFrodo,
 } from '../index';
+
+const mock = new MockAdapter(axios);
 
 /**
  * Builds a minimal descriptor fixture for runtime tests.
@@ -231,6 +235,116 @@ describe('MCP tool runtime', () => {
 
     expect(readNode).toHaveBeenCalledWith('node-123', 'PageNode');
     expect(result.data).toEqual({ id: 'node-123', type: 'PageNode' });
+  });
+
+  test('defaults scriptName to scriptId for script.createScript named args', async () => {
+    const descriptor = makeDescriptor({
+      id: 'script.createScript',
+      toolName: 'frodo.script.createScript',
+      methodName: 'createScript',
+      modulePath: ['script'],
+      domain: 'script',
+      objectType: 'Script',
+      operationType: 'create',
+      argumentMode: 'named',
+      parameters: [
+        {
+          name: 'scriptId',
+          type: 'string',
+          required: true,
+          position: 0,
+        },
+        {
+          name: 'scriptName',
+          type: 'string',
+          required: false,
+          position: 1,
+        },
+        {
+          name: 'scriptData',
+          type: 'ScriptSkeleton',
+          required: true,
+          position: 2,
+        },
+      ],
+    } as any);
+
+    const manifest: McpToolManifest = {
+      genericTools: [
+        {
+          toolName: 'frodo_create',
+          operationType: 'create',
+          description: 'Create object.',
+          annotations: descriptor.annotations,
+          riskClass: descriptor.riskClass,
+          supportedObjectTypes: [
+            {
+              domain: descriptor.domain,
+              objectType: descriptor.objectType,
+              descriptorId: descriptor.id,
+              methodName: descriptor.methodName,
+              sourcePath: descriptor.id,
+              riskClass: descriptor.riskClass,
+              annotations: descriptor.annotations,
+            },
+          ],
+        },
+      ],
+      specialTools: [],
+      discoveryTool: {
+        toolName: 'frodo_discover',
+        description: 'Discover tool surface.',
+        domains: ['script'],
+        objectTypesByDomain: { script: ['Script'] },
+        operationsByType: { create: ['script.Script'] },
+        operationDetailsByType: {},
+      },
+      backingDescriptorCount: 1,
+      totalToolCount: 2,
+    };
+
+    const createScript = jest.fn(async () => ({ _id: 'mcp-script-1' }));
+
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          login: { getTokens: jest.fn(async () => {}) },
+          script: {
+            createScript,
+          },
+        }) as any,
+    });
+
+    const scriptData = {
+      context: 'OAUTH2_MAY_ACT',
+      language: 'JAVASCRIPT',
+      script: 'KGZ1bmN0aW9uICgpIHtyZXR1cm4gdHJ1ZTt9KCk7',
+    };
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_create',
+      arguments: {
+        domain: 'script',
+        objectType: 'Script',
+        namedArgs: {
+          scriptId: 'mcp-script-1',
+          scriptData,
+        },
+      },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: {},
+        },
+      },
+    });
+
+    expect(createScript).toHaveBeenCalledWith(
+      'mcp-script-1',
+      'mcp-script-1',
+      scriptData
+    );
+    expect(result.data).toEqual({ _id: 'mcp-script-1' });
   });
 
   test('rejects positional args for named-only generic contracts', async () => {
@@ -547,6 +661,129 @@ describe('MCP tool runtime', () => {
       250,
       'next-cookie'
     );
+  });
+
+  test('routes idm managed-object search through the paged API adapter', async () => {
+    const descriptor = makeDescriptor({
+      id: 'idm.managed.queryManagedObjects',
+      toolName: 'frodo.idm.managed.queryManagedObjects',
+      methodName: 'queryManagedObjects',
+      modulePath: ['idm', 'managed'],
+      domain: 'idm',
+      objectType: 'ManagedObject',
+      operationType: 'search',
+      argumentMode: 'named',
+      parameters: [
+        { name: 'type', type: 'string', required: true, position: 0 },
+        { name: 'filter', type: 'string', required: false, position: 1 },
+        { name: 'fields', type: 'string[]', required: false, position: 2 },
+        { name: 'pageSize', type: 'integer', required: false, position: 3 },
+        { name: 'pageCookie', type: 'string', required: false, position: 4 },
+      ],
+      supportsPaging: true,
+      supportsIncludeTotal: true,
+    });
+    const manifest: McpToolManifest = {
+      genericTools: [
+        {
+          toolName: 'frodo_search',
+          operationType: 'search',
+          description: 'Search managed objects.',
+          annotations: descriptor.annotations,
+          riskClass: descriptor.riskClass,
+          supportedObjectTypes: [
+            {
+              domain: descriptor.domain,
+              objectType: descriptor.objectType,
+              descriptorId: descriptor.id,
+              methodName: descriptor.methodName,
+              sourcePath: descriptor.id,
+              argumentMode: descriptor.argumentMode,
+              parameters: descriptor.parameters,
+              supportsPaging: descriptor.supportsPaging,
+              supportsIncludeTotal: descriptor.supportsIncludeTotal,
+              riskClass: descriptor.riskClass,
+              annotations: descriptor.annotations,
+            },
+          ],
+        },
+      ],
+      specialTools: [],
+      discoveryTool: {
+        toolName: 'frodo_discover',
+        description: 'Discover tool surface.',
+        domains: ['idm'],
+        objectTypesByDomain: { idm: ['ManagedObject'] },
+        operationsByType: { search: ['idm.ManagedObject'] },
+        operationDetailsByType: {},
+      },
+      backingDescriptorCount: 1,
+      totalToolCount: 2,
+    };
+    mock.reset();
+    mock
+      .onGet(
+        'https://tenant.example/openidm/managed/alpha_user?_queryFilter=true&_pageSize=10&_fields=userName,_id&_pagedResultsCookie=next-cookie'
+      )
+      .reply(200, {
+        result: [{ _id: 'user-1' }],
+        resultCount: 1,
+        pagedResultsCookie: 'next-cookie',
+        totalPagedResultsPolicy: 'EXACT',
+        totalPagedResults: 2019,
+        remainingPagedResults: 2009,
+      });
+
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          state: {
+            getIdmHost: jest.fn(() => 'https://tenant.example/openidm'),
+            getHost: jest.fn(() => 'https://tenant.example/am'),
+            getAuthenticationHeaderOverrides: jest.fn(() => ({})),
+            getConfigurationHeaderOverrides: jest.fn(() => ({})),
+            getBearerToken: jest.fn(() => undefined),
+            getAllowInsecureConnection: jest.fn(() => false),
+            getCurlirize: jest.fn(() => false),
+            getAxiosRetryConfig: jest.fn(() => undefined),
+          },
+          login: { getTokens: jest.fn(async () => {}) },
+          idm: {
+            managed: {
+              queryManagedObjects: jest.fn(async () => ['should-not-be-used']),
+            },
+          },
+        }) as any,
+    });
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_search',
+      arguments: {
+        domain: 'idm',
+        objectType: 'ManagedObject',
+        pageSize: 10,
+        pageToken: 'next-cookie',
+        namedArgs: {
+          type: 'alpha_user',
+          fields: ['userName', '_id'],
+        },
+      },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: {},
+        },
+      },
+    });
+
+    expect(result.data).toEqual({
+      result: [{ _id: 'user-1' }],
+      resultCount: 1,
+      pagedResultsCookie: 'next-cookie',
+      totalPagedResultsPolicy: 'EXACT',
+      totalPagedResults: 2019,
+      remainingPagedResults: 2009,
+    });
   });
 
   test('adds pagination warning metadata for likely truncated list responses', async () => {

@@ -1,0 +1,20 @@
+{
+  "aiAgentIdentityAttributes": {
+    "inherited": false,
+    "value": {
+      "_id": "9abea037-4da5-4e5c-803f-bbbbbbbbbbbb",
+      "oauth2ClientId": "FrodoTestAIAgent2",
+      "name": "Frodo Test AI Agent 2",
+      "description": "Test AI agent 2 for Frodo API unit tests."
+    }
+  },
+  "aiAgentIdentityUid": {
+    "inherited": false,
+    "value": "9abea037-4da5-4e5c-803f-bbbbbbbbbbbb"
+  },
+  "_type": {
+    "_id": "AIAgent",
+    "name": "AI Agents",
+    "collection": true
+  }
+}

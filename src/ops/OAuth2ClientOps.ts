@@ -362,22 +362,11 @@ export async function updateOAuth2Client({
     ) {
       try {
         const { validAttributes } = error.response.data.detail;
-        validAttributes.push('_id');
-        for (const key of Object.keys(clientData)) {
-          if (typeof clientData[key] === 'object') {
-            for (const attribute of Object.keys(clientData[key])) {
-              if (!validAttributes.includes(attribute)) {
-                if (state.getVerbose() || state.getDebug())
-                  printMessage({
-                    message: `\n- Removing invalid attribute: ${key}.${attribute}`,
-                    type: 'warn',
-                    state,
-                  });
-                delete clientData[key][attribute];
-              }
-            }
-          }
-        }
+        sanitizeOAuth2ClientInvalidAttributes({
+          clientData,
+          validAttributes,
+          state,
+        });
         const response = await _putOAuth2Client({
           id: clientId,
           clientData,
@@ -399,6 +388,35 @@ export async function updateOAuth2Client({
         `Error updating ${getCurrentRealmName(state) + ' realm'} oauth2 client ${clientId}`,
         error
       );
+    }
+  }
+}
+
+export function sanitizeOAuth2ClientInvalidAttributes({
+  clientData,
+  validAttributes,
+  state,
+}: {
+  clientData: OAuth2ClientSkeleton | NoIdObjectSkeletonInterface;
+  validAttributes: string[];
+  state: State;
+}): void {
+  validAttributes.push('_id');
+  for (const key of Object.keys(clientData)) {
+    const section = clientData[key];
+    if (section && typeof section === 'object') {
+      for (const attribute of Object.keys(section)) {
+        if (!validAttributes.includes(attribute)) {
+          if (state.getVerbose() || state.getDebug()) {
+            printMessage({
+              message: `\n- Removing invalid attribute: ${key}.${attribute}`,
+              type: 'warn',
+              state,
+            });
+          }
+          delete section[attribute];
+        }
+      }
     }
   }
 }

@@ -12,6 +12,7 @@ import {
   type AmConfigEntityInterface,
   EntityType,
   PagedResult,
+  QueryResult,
 } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 
@@ -32,12 +33,13 @@ const agentGroupsURLTemplate =
 const apiVersion = 'protocol=2.1,resource=%s';
 const globalVersion = '1.0';
 const realmVersion = '1.0';
+const aiagentVersion = '2.0';
 
-const getApiConfig = (globalConfig) => {
+const getApiConfig = (globalConfig: boolean, aiagent: boolean = false) => {
   return {
     apiVersion: util.format(
       apiVersion,
-      globalConfig ? globalVersion : realmVersion
+      aiagent ? aiagentVersion : globalConfig ? globalVersion : realmVersion
     ),
   };
 };
@@ -45,24 +47,34 @@ const getApiConfig = (globalConfig) => {
 export type PolicyAgentType = '2.2_Agent';
 export type GatewayAgentType = 'IdentityGatewayAgent';
 export type JavaAgentType = 'J2EEAgent';
+export type OAuth2ClientType = 'OAuth2Client';
 export type OAuth2ThingType = 'OAuth2Thing';
 export type RemoteConsentAgentType = 'RemoteConsentAgent';
 export type SharedAgentType = 'SharedAgent';
 export type SoapSTSAgentType = 'SoapSTSAgent';
 export type SoftwarePublisherType = 'SoftwarePublisher';
 export type WebAgentType = 'WebAgent';
+export type AIAgentType = 'AIAgent';
 
 export type AgentType =
   | PolicyAgentType
   | GatewayAgentType
   | JavaAgentType
+  | OAuth2ClientType
   | OAuth2ThingType
   | RemoteConsentAgentType
   | SharedAgentType
   | SoapSTSAgentType
   | SoftwarePublisherType
   | WebAgentType
+  | AIAgentType
   | EntityType;
+
+export type AgentTypeItem = {
+  _id: AgentType;
+  name: string;
+  collection: boolean;
+};
 
 export type AgentSkeleton = AmConfigEntityInterface;
 
@@ -70,9 +82,15 @@ export type AgentGroupSkeleton = AmConfigEntityInterface;
 
 /**
  * Get agent types
- * @returns {Promise} a promise that resolves to an object containing an array of agent types
+ * @param {object} params structured and named parameters
+ * @param {State} params.state the state object
+ * @returns {Promise<QueryResult<AgentTypeItem>>} a promise that resolves to an object containing an array of agent types items
  */
-export async function getAgentTypes({ state }: { state: State }) {
+export async function getAgentTypes({
+  state,
+}: {
+  state: State;
+}): Promise<QueryResult<AgentTypeItem>> {
   debugMessage({ message: `AgentApi.getAgentTypes: start`, state });
   const urlString = util.format(
     getAgentTypesURLTemplate,
@@ -113,7 +131,7 @@ export async function getAgentsByType({
     agentType
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(false),
+    resource: getApiConfig(false, agentType === 'AIAgent'),
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -208,7 +226,7 @@ export async function findAgentByTypeAndId({
     agentId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(false),
+    resource: getApiConfig(false, agentType === 'AIAgent'),
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -245,7 +263,7 @@ export async function getAgentByTypeAndId({
     globalConfig ? '' : agentId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(globalConfig),
+    resource: getApiConfig(globalConfig, agentType === 'AIAgent'),
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -290,7 +308,7 @@ export async function putAgentByTypeAndId({
     globalConfig ? '' : agentId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(globalConfig),
+    resource: getApiConfig(globalConfig, agentType === 'AIAgent'),
     state,
   }).put(urlString, agent, {
     withCredentials: true,
@@ -326,7 +344,7 @@ export async function putAgentGroupByTypeAndId({
     agentGroupId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(false),
+    resource: getApiConfig(false, agentType === 'AIAgent'),
     state,
   }).put(urlString, agentGroupData, {
     withCredentials: true,
@@ -360,7 +378,7 @@ export async function deleteAgentByTypeAndId({
     agentId
   );
   const { data } = await generateAmApi({
-    resource: getApiConfig(false),
+    resource: getApiConfig(false, agentType === 'AIAgent'),
     state,
   }).delete(urlString, {
     withCredentials: true,

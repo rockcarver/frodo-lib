@@ -18,6 +18,7 @@
     "test:record": "NODE_OPTIONS=--experimental-vm-modules FRODO_POLLY_MODE=record npx jest --silent=false --runInBand --updateSnapshot",
     "test:record_noauth": "NODE_OPTIONS=--experimental-vm-modules FRODO_POLLY_MODE=record_noauth npx jest --silent=false --updateSnapshot --testPathIgnorePatterns cjs",
     "test:update": "NODE_OPTIONS=--experimental-vm-modules npx jest --silent=false --updateSnapshot",
+    "mcp:contract-gap-summary": "node scripts/mcp-contract-gap-summary.mjs",
     "lint": "eslint --cache --cache-location .eslintcache \"src/**/*.ts\"",
     "lint:fix": "eslint --cache --cache-location .eslintcache --fix \"src/**/*.ts\"",
     "clean-types": "rimraf types",

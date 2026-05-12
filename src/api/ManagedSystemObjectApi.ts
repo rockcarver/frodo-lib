@@ -9,16 +9,51 @@ import {
 } from './ApiTypes';
 import { generateIdmSystemApi } from './BaseApi';
 import { FrodoError } from '../ops/FrodoError';
+import type { ManagedObjectSchema } from './ManagedObjectApi';
 
+const managedObjectSchemaURLTemplate = '%s/schema/managed/%s';
 const createManagedObjectURLTemplate = '%s/managed/%s?_action=create';
 const managedObjectByIdURLTemplate = '%s/managed/%s/%s';
 const queryAllManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=true&_pageSize=%s`;
+const queryAllRelatedManagedObjectURLTemplate = `%s/managed/%s/%s/%s?_queryFilter=true&_pageSize=%s`;
 const queryManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=%s`;
 const countManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=0&_totalPagedResultsPolicy=EXACT`;
 
 export const DEFAULT_PAGE_SIZE: number = 1000;
 
 export const MANAGED_SYSTEM_OBJECT_TYPES = ['svcacct', 'teammember'];
+
+/**
+ * Get managed system object schema
+ * @param {string} type managed system object type, e.g. svcacct or teammember
+ * @param {State} state library state
+ * @returns {Promise<ManagedObjectSchema>} a promise that resolves to a managed system object schema
+ */
+export async function getManagedSystemObjectSchema({
+  type,
+  state,
+}: {
+  type: string;
+  state: State;
+}): Promise<ManagedObjectSchema> {
+  if (!MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new FrodoError(
+      `Unsupported managed system object type: ${type}. Supported types are: ${MANAGED_SYSTEM_OBJECT_TYPES.join(
+        ', '
+      )}`
+    );
+  }
+  const urlString = util.format(
+    managedObjectSchemaURLTemplate,
+    getIdmBaseUrl(state),
+    type
+  );
+  const { data } = await generateIdmSystemApi({
+    requestOverride: {},
+    state,
+  }).get(urlString);
+  return data as ManagedObjectSchema;
+}
 
 /**
  * Get managed system object
@@ -184,11 +219,12 @@ export async function patchManagedSystemObject({
 
 /**
  * Query managed system object
- * @param {string} type managed system object type, e.g. alpha_user or user
- * @param {string} filter CREST search filter
- * @param {string[]} id array of fields to include
- * @param {string} pageCookie paged results cookie
- * @param {State} state library state
+ * @param {object} params structured and named parameters
+ * @param {string} params.type managed system object type, e.g. svcacct or teammember
+ * @param {string} params.filter CREST search filter
+ * @param {string[]} params.fields array of fields to include
+ * @param {string} params.pageCookie paged results cookie
+ * @param {State} params.state library state
  * @returns {Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an array of managed system objects
  */
 export async function queryManagedSystemObjects({
@@ -223,6 +259,61 @@ export async function queryManagedSystemObjects({
     getIdmBaseUrl(state),
     type,
     encodeURIComponent(filter),
+    pageSize
+  );
+  const { data } = await generateIdmSystemApi({
+    requestOverride: {},
+    state,
+  }).get(urlString);
+  return data as PagedResult<IdObjectSkeletonInterface>;
+}
+
+/**
+ * Query related managed object
+ * @param {object} params structured and named parameters
+ * @param {string} params.type managed system object type, e.g. alpha_user or user
+ * @param {string} params.id managed system object id
+ * @param {string} params.relationship relationship name
+ * @param {string[]} params.fields array of fields to include
+ * @param {string} params.pageCookie paged results cookie
+ * @param {State} params.state library state
+ * @returns {Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an array of related managed system objects
+ */
+export async function queryRelatedManagedSystemObjects({
+  type,
+  id,
+  relationship,
+  fields = ['*'],
+  pageSize = DEFAULT_PAGE_SIZE,
+  pageCookie,
+  state,
+}: {
+  type: string;
+  id: string;
+  relationship: string;
+  fields?: string[];
+  pageSize?: number;
+  pageCookie?: string;
+  state: State;
+}): Promise<PagedResult<IdObjectSkeletonInterface>> {
+  if (!MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new FrodoError(
+      `Unsupported managed system object type: ${type}. Supported types are: ${MANAGED_SYSTEM_OBJECT_TYPES.join(
+        ', '
+      )}`
+    );
+  }
+  const fieldsParam = `_fields=${fields.join(',')}`;
+  const urlString = util.format(
+    pageCookie
+      ? `${queryAllRelatedManagedObjectURLTemplate}&${fieldsParam}&_pagedResultsCookie=${encodeURIComponent(
+          pageCookie
+        )}`
+      : `${queryAllRelatedManagedObjectURLTemplate}&${fieldsParam}`,
+    getIdmBaseUrl(state),
+    type,
+    id,
+    relationship,
     pageSize
   );
   const { data } = await generateIdmSystemApi({

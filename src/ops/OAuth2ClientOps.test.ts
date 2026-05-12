@@ -2107,6 +2107,29 @@ describe('OAuth2ClientOps', () => {
       });
       expect(response).toMatchSnapshot();
     });
+
+    test('2: ignores null top-level sections during invalid attribute cleanup', async () => {
+      const clientData = {
+        nullableSection: null,
+        nestedSection: {
+          allowed: true,
+          removeMe: 'x',
+        },
+      } as unknown as OAuth2ClientSkeleton;
+
+      OAuth2ClientOps.sanitizeOAuth2ClientInvalidAttributes({
+        clientData,
+        validAttributes: ['allowed'],
+        state,
+      });
+
+      expect(clientData).toEqual({
+        nullableSection: null,
+        nestedSection: {
+          allowed: true,
+        },
+      });
+    });
   });
 
   describe('importOAuth2Client()', () => {

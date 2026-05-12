@@ -7,7 +7,7 @@
  *    script and override all the connection state variables required
  *    to connect to the env to record from:
  *
- *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record EmailTemplateOps
+ *        FRODO_DEBUG=1 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record RawConfigOps
  *
  *    The above command assumes that you have a connection profile for
  *    'frodo-dev' on your development machine.
@@ -17,14 +17,14 @@
  *    After recording, the ESM snapshots will already be updated as that happens
  *    in one go, but you musty manually update the CJS snapshots by running:
  *
- *        FRODO_DEBUG=1 npm run test:update EmailTemplateOps
+ *        FRODO_DEBUG=1 npm run test:update RawConfigOps
  *
  * 3. Test your changes
  *
  *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
  *    replay mode and make sure they all succeed as well:
  *
- *        npm run test:only EmailTemplateOps
+ *        npm run test:only RawConfigOps
  *
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected

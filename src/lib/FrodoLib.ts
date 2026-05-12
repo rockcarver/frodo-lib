@@ -14,6 +14,7 @@ import SiteOps, { Site } from '../ops/classic/SiteOps';
 import AdminFederationOps, {
   AdminFederation,
 } from '../ops/cloud/AdminFederationOps';
+import EnvAIAgentOps, { EnvAIAgent } from '../ops/cloud/EnvAIAgentOps';
 import EnvCertificatesOps, {
   EnvCertificate,
 } from '../ops/cloud/EnvCertificatesOps';
@@ -146,7 +147,8 @@ export type Frodo = {
 
   cloud: EsvCount & {
     adminFed: AdminFederation;
-    env: EnvContentSecurityPolicy &
+    env: EnvAIAgent &
+      EnvContentSecurityPolicy &
       EnvCookieDomains &
       EnvCustomDomains &
       EnvDirectConfigurationSession &
@@ -359,6 +361,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       ...EsvCountOps(state),
       adminFed: AdminFederationOps(state),
       env: {
+        ...EnvAIAgentOps(state),
         ...EnvContentSecurityOps(state),
         ...EnvCookieDomainsOps(state),
         ...EnvCustomDomainsOps(state),

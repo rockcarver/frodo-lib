@@ -180,17 +180,21 @@ export function createTestVariableExport(
 
 export async function stageVariable(variable: VariableSkeleton, create = true) {
   // delete if exists, then create
-  await VariablesOps.deleteVariable({ variableId: variable._id, state });
-
-  // ignore
-  if (create) {
-    await VariablesOps.createVariable({
-      variableId: variable._id,
-      value: variable.value,
-      description: variable.description,
-      expressionType: variable.expressionType as VariableExpressionType,
-      state: state,
-    });
+  try {
+    await VariablesOps.deleteVariable({ variableId: variable._id, state });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (error) {
+    // ignore
+  } finally {
+    if (create) {
+      await VariablesOps.createVariable({
+        variableId: variable._id,
+        value: variable.value,
+        description: variable.description,
+        expressionType: variable.expressionType as VariableExpressionType,
+        state: state,
+      });
+    }
   }
 }
 

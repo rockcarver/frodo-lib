@@ -1,0 +1,33 @@
+{
+  "aiAgentIdentityAttributes": {
+    "inherited": false,
+    "value": {
+      "_id": "935b2bda-43b4-454b-a13d-d25e530f0d39",
+      "oauth2ClientId": "FrodoOpsTestAIAgent10",
+      "name": "Frodo Test AI Agent 10",
+      "description": "Test AI agent 10 with owner relationship for Frodo unit tests."
+    }
+  },
+  "aiAgentIdentityUid": {
+    "inherited": false,
+    "value": "935b2bda-43b4-454b-a13d-d25e530f0d39"
+  },
+  "_type": {
+    "_id": "AIAgent",
+    "name": "AI Agents",
+    "collection": true
+  },
+  "_aiAgentIdentity": {
+    "_id": "935b2bda-43b4-454b-a13d-d25e530f0d39",
+    "oauth2ClientId": "FrodoOpsTestAIAgent10",
+    "name": "Frodo Test AI Agent 10",
+    "description": "Test AI agent 10 with owner relationship for Frodo unit tests.",
+    "owners": [
+      {
+        "_refResourceCollection": "managed/alpha_user",
+        "_refResourceId": "867cbaf7-03cd-487a-9a96-d9769b297037"
+      }
+    ],
+    "_privileges": []
+  }
+}
