@@ -7,7 +7,7 @@ exports[`RawConfigOps exportRawConfig() 1: Export raw config am 1`] = `
     "protocol": "2.1",
     "resource": "2.0",
   },
-  "_rev": "2897436",
+  "_rev": "-1063514607",
   "description": "Checks if the user has a current session.",
   "displayName": "Has Session - TEST",
   "errorOutcome": false,
@@ -61,8 +61,8 @@ exports[`RawConfigOps exportRawConfig() 3: Export raw config environment 1`] = `
   "_id": "esv-frodo-test-variable-1",
   "description": "description1",
   "expressionType": "string",
-  "lastChangeDate": "2026-03-11T21:02:59.165396Z",
-  "lastChangedBy": "Frodo-SA-1773261131370",
+  "lastChangeDate": "2026-05-12T16:25:11.016034Z",
+  "lastChangedBy": "Frodo-SA-1758728043147",
   "loaded": false,
   "valueBase64": "dmFsdWUx",
 }
@@ -71,7 +71,7 @@ exports[`RawConfigOps exportRawConfig() 3: Export raw config environment 1`] = `
 exports[`RawConfigOps importRawConfig() 1: importRawConfig am 1`] = `
 {
   "_id": "aaaa3fb2f5dc42dd9772bedc93898bd8-1",
-  "_rev": "1283850900",
+  "_rev": "-1203317137",
   "description": "Debug node that displays the shared and transient state of the journey for debugging purposes.",
   "displayName": "Display State - TEST",
   "errorOutcome": false,
@@ -155,8 +155,8 @@ exports[`RawConfigOps importRawConfig() 3: importRawConfig environment 1`] = `
   "_id": "esv-frodo-test-variable-2",
   "description": "description2",
   "expressionType": "int",
-  "lastChangeDate": "2026-03-11T21:03:01.986547Z",
-  "lastChangedBy": "Frodo-SA-1773261131370",
+  "lastChangeDate": "2026-05-12T16:25:13.977269Z",
+  "lastChangedBy": "Frodo-SA-1758728043147",
   "loaded": false,
   "valueBase64": "NDI=",
 }
