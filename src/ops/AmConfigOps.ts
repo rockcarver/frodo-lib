@@ -104,7 +104,10 @@ const ALL_DEPLOYMENTS = [
   Constants.CLOUD_DEPLOYMENT_TYPE_KEY,
   Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY,
 ];
-const CLASSIC_DEPLOYMENT = [Constants.CLASSIC_DEPLOYMENT_TYPE_KEY];
+const FULL_AM_DEPLOYMENT = [
+  Constants.CLASSIC_DEPLOYMENT_TYPE_KEY,
+  Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY,
+];
 
 const NEXT_DESCENDENTS_ACTION = 'nextdescendents';
 const TRUE_QUERY_FILTER = 'true';
@@ -130,7 +133,7 @@ const AM_ENTITIES: Record<string, EntityInfo> = {
     global: {
       path: '/global-config/authentication/chains',
       version: '1.0',
-      deployments: CLASSIC_DEPLOYMENT,
+      deployments: FULL_AM_DEPLOYMENT,
     },
     deployments: ALL_DEPLOYMENTS,
   },
@@ -139,7 +142,7 @@ const AM_ENTITIES: Record<string, EntityInfo> = {
     global: {
       path: '/global-config/authentication/modules',
       version: '1.0',
-      deployments: CLASSIC_DEPLOYMENT,
+      deployments: FULL_AM_DEPLOYMENT,
     },
     deployments: ALL_DEPLOYMENTS,
     action: NEXT_DESCENDENTS_ACTION,
@@ -150,7 +153,7 @@ const AM_ENTITIES: Record<string, EntityInfo> = {
       path: '/global-config/authentication/authenticationtrees',
       version: '1.0',
     },
-    deployments: CLASSIC_DEPLOYMENT,
+    deployments: FULL_AM_DEPLOYMENT,
   },
   conditionTypes: {
     realm: { path: '/conditiontypes', version: '1.0' },
@@ -169,7 +172,7 @@ const AM_ENTITIES: Record<string, EntityInfo> = {
     global: {
       path: '/global-config/secrets',
       version: '1.0',
-      deployments: CLASSIC_DEPLOYMENT,
+      deployments: FULL_AM_DEPLOYMENT,
     },
     deployments: ALL_DEPLOYMENTS,
     action: NEXT_DESCENDENTS_ACTION,
@@ -211,7 +214,7 @@ const AM_ENTITIES: Record<string, EntityInfo> = {
       path: '/global-config/webhooks',
       version: '1.0',
       ifMatch: '*',
-      deployments: CLASSIC_DEPLOYMENT,
+      deployments: FULL_AM_DEPLOYMENT,
     },
     deployments: ALL_DEPLOYMENTS,
   },
