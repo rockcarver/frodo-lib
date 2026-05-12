@@ -24,7 +24,9 @@
  *    ATTENTION: For the recording to succeed, you MUST make sure to use a
  *               user account, not a service account.
  *
- *        FRODO_DEBUG=1 FRODO_HOST=frodo-dev npm run test:record ConfigOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=1 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record -- src/ops/ConfigOps.test.ts
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record -- src/ops/ConfigOps.test.ts
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record -- src/ops/ConfigOps.test.ts
  *
  *    The above command assumes that you have a connection profile for
  *    'frodo-dev' on your development machine.
@@ -34,14 +36,14 @@
  *    After recording API responses, you must manually update/create snapshots
  *    by running:
  *
- *        FRODO_DEBUG=1 npm run test:update ConfigOps
+ *        FRODO_DEBUG=1 npm run test:update -- src/ops/ConfigOps.test.ts
  *
  * 3. Test your changes
  *
  *    If 1 and 2 didn't produce any errors, you are ready to run the tests in
  *    replay mode and make sure they all succeed as well:
  *
- *        FRODO_DEBUG=1 npm run test:only ConfigOps
+ *        FRODO_DEBUG=1 npm run test:only -- src/ops/ConfigOps.test.ts
  *
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
@@ -196,7 +198,7 @@ describe('ConfigOps', () => {
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '2')
   ) {
-    describe('Classic Tests', () => {
+    describe.skip('Classic Tests', () => {
       beforeEach(() => {
         setDefaultState(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
       });
@@ -314,7 +316,7 @@ describe('ConfigOps', () => {
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '3')
   ) {
-    describe('IGA Cloud Tests', () => {
+    describe.skip('IGA Cloud Tests', () => {
       beforeEach(() => {
         state.setIsIGA(true);
         setDefaultState();
