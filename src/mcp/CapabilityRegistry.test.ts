@@ -350,9 +350,16 @@ describe('MCP capability foundation', () => {
       }
     >;
 
-    expect(summary).toEqual({});
+    // Verify summary structure for known gaps
     expect(summary.authn).toBeUndefined();
-    expect(summary.idm).toBeUndefined();
     expect(summary.oauth2oidc).toBeUndefined();
+
+    // Verify idm gaps
+    expect(summary.idm).toBeDefined();
+    expect(summary.idm?.total).toBe(1);
+    expect(summary.idm?.byOperation).toEqual({ search: 1 });
+    expect(summary.idm?.ids).toEqual([
+      'idm.managed.queryRelatedManagedObjects',
+    ]);
   });
 });
