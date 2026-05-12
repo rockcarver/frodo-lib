@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`ForgeRockUtils getRealmsForExport 1: Get Realms in Export Format 1`] = `
+[
+  "root",
+  "root-test--realm--with--dashes",
+  "root-test",
+  "root-test-realm",
+  "root-test-realm-with",
+  "root-test-realm-with-dashes",
+  "root-test_realm_with_underscore",
+  "root-alpha--test",
+  "root-alpha--test-bravo--test",
+  "root-alpha--test-bravo--test-charlie--test",
+  "root-triple------dash------------fun",
+  "root---------",
+  "root---",
+  "root-----",
+  "root-alpha------------test",
+]
+`;

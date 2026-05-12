@@ -7,10 +7,34 @@
  * in case things don't function as expected
  */
 import * as ForgeRockUtils from './ForgeRockUtils';
+import { autoSetupPolly, setDefaultState } from "../utils/AutoSetupPolly";
+import { filterRecording } from "../utils/PollyUtils";
 import { state } from '../index';
 import Constants from '../shared/Constants';
 
+const ctx = autoSetupPolly();
+
 describe('ForgeRockUtils', () => {
+  beforeEach(async () => {
+    setDefaultState(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY);
+    if (process.env.FRODO_POLLY_MODE === 'record') {
+      ctx.polly.server.any().on('beforePersist', (_req, recording) => {
+        filterRecording(recording);
+      });
+    }
+  });
+
+  describe('getRealmsForExport', () => {
+    test('0: Method is implemented', async () => {
+      expect(ForgeRockUtils.getRealmsForExport).toBeDefined();
+    });
+
+    test('1: Get Realms in Export Format', async () => {
+      const response = await ForgeRockUtils.getRealmsForExport({ state });
+      expect(response).toMatchSnapshot();
+    });
+  });
+
   describe('getRealmUsingExportFormat()', () => {
     test('Should get root realm', () => {
       const realm = 'root';
@@ -29,6 +53,31 @@ describe('ForgeRockUtils', () => {
       const testString = ForgeRockUtils.getRealmUsingExportFormat(realm);
       expect(testString).toBe('/alpha/beta/gamma');
     });
+
+    test('Should handle hyphen escape', () => {
+      const realm = 'root-alpha--test';
+      const testString = ForgeRockUtils.getRealmUsingExportFormat(realm);
+      expect(testString).toBe('/alpha-test');
+    });
+    
+    test('Should handle nested hyphenated names in realms', () => {
+      const realm = 'root-alpha--test-bravo--test-charlie--test';
+      const testString = ForgeRockUtils.getRealmUsingExportFormat(realm);
+      expect(testString).toBe('/alpha-test/bravo-test/charlie-test');
+    });
+
+    test('Odd number of dashes splits into literal dash + nesting', () => {
+      const realm = 'root-alpha---test';
+      const testString = ForgeRockUtils.getRealmUsingExportFormat(realm);
+      expect(testString).toBe('/alpha-/test');
+    });
+
+    test('Even number of dashes splits into literal dashes only', () => {
+      const realm = 'root-alpha------test';
+      const testString = ForgeRockUtils.getRealmUsingExportFormat(realm);
+      expect(testString).toBe('/alpha---test');
+    });
+  
   });
 
   describe('getConfigPath()', () => {
