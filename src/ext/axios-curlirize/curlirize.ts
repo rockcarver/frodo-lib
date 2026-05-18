@@ -1,12 +1,13 @@
 /* eslint-disable no-console */
+import { printError, printMessage } from '../../utils/Console';
 import { CurlHelper } from './lib/CurlHelper';
 
 function defaultLogCallback(curlResult, err = undefined) {
   const { command } = curlResult;
   if (err) {
-    console.error(err);
+    printError(err);
   } else {
-    console.info(command);
+    printMessage(command['brightBlue']);
   }
 }
 
