@@ -937,11 +937,11 @@ async function getPfUserBearerToken(
   return token;
 }
 
-function createPayload(serviceAccountId: string, host: string) {
+export function createPayload(serviceAccountId: string, host: string) {
   const u = parseUrl(host);
-  const aud = `${u.origin}:${
-    u.port ? u.port : u.protocol === 'https' ? '443' : '80'
-  }${u.pathname}/oauth2/access_token`;
+  const aud = `${u.origin}${
+    u.port ? '' : `:${u.protocol === 'https' ? '443' : '80'}`
+  }${u.pathname.replace(/\/$/, '')}/oauth2/access_token`;
 
   // Cross platform way of setting JWT expiry time 3 minutes in the future, expressed as number of seconds since EPOCH
   const exp = Math.floor(new Date().getTime() / 1000 + 180);
