@@ -1677,7 +1677,7 @@ export async function trainAA({
   }
 }
 
-function getAccessTokenUrl(state: State) {
+export function getAccessTokenUrl(state: State) {
   const accessTokenUrlTemplate = '%s/oauth2%s/access_token';
   const accessTokenURL = util.format(
     accessTokenUrlTemplate,
