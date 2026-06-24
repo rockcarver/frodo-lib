@@ -771,18 +771,9 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         description: 'Sub-entity name to read from the parent entity.',
         examples: ['configurationProperties'],
       },
-      {
-        name: 'options',
-        type: 'ConfigEntityExportOptions',
-        required: false,
-        position: 2,
-        description: 'Optional export/read shaping options.',
-        schema: { type: 'object', additionalProperties: true },
-      },
     ],
     supportsRealm: true,
-    notes:
-      'Read a named sub-entity with namedArgs { entityId, name, options }.',
+    notes: 'Read a named sub-entity with namedArgs { entityId, name }.',
   },
   'idm.config.updateConfigEntity': {
     argumentMode: 'named',

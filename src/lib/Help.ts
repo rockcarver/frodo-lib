@@ -1476,11 +1476,10 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "IdmConfig",
     methodName: "exportConfigEntity",
-    signature: "exportConfigEntity( entityId: string, options?: ConfigEntityExportOptions ): Promise<ConfigEntityExportInterface>",
+    signature: "exportConfigEntity(entityId: string): Promise<ConfigEntityExportInterface>",
     description: "Export a single IDM config entity",
     params: [
       { name: "entityId", type: "string", description: "config entity id" },
-      { name: "options", type: "ConfigEntityExportOptions", description: "export options" },
     ],
     returns: "{ConfigEntityExportInterface} promise resolving to a ConfigEntityExportInterface object",
   },
@@ -1566,12 +1565,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "IdmConfig",
     methodName: "readSubConfigEntity",
-    signature: "readSubConfigEntity( entityId: string, name: string, options?: ConfigEntityExportOptions ): Promise<NoIdObjectSkeletonInterface>",
+    signature: "readSubConfigEntity( entityId: string, name: string ): Promise<NoIdObjectSkeletonInterface>",
     description: "Read a idm sub config entity.",
     params: [
       { name: "entityId", type: "string", description: "entity id for the parent config entity of the sub config entity that is being read" },
       { name: "name", type: "string", description: "name of the sub config entity that is being read" },
-      { name: "options", type: "ConfigEntityExportOptions", description: "export options" },
     ],
     returns: "{Promise<IdObjectSkeletonInterface>} a promise resolving to a sub config entity object",
   },
