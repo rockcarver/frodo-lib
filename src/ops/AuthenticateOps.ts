@@ -1012,6 +1012,9 @@ export async function getFreshSaBearerToken({
         config: {},
         state,
       });
+    } else {
+      // Re-throw non-invalid_scope errors instead of silently failing
+      throw error;
     }
   }
   if ('access_token' in response) {
@@ -1082,6 +1085,9 @@ export async function getFreshPfSaBearerToken({
         config: {},
         state,
       });
+    } else {
+      // Re-throw non-invalid_scope errors instead of silently failing
+      throw error;
     }
   }
   if ('access_token' in response) {

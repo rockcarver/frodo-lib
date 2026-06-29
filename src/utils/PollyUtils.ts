@@ -38,6 +38,25 @@ export function defaultMatchRequestsBy(protocol: boolean = true) {
   };
 }
 
+export function orderedMatchRequestsBy(protocol: boolean = true) {
+  return {
+    method: true,
+    headers: false, // do not match headers, because "Authorization" header is sent only at recording time
+    body: true,
+    order: true, // Enable ordered matching: if same URL is recorded multiple times (e.g., 404 check → 200 after create), replay in correct sequence
+    url: {
+      protocol,
+      username: false,
+      password: false,
+      hostname: false, // we will record from different envs but run tests always against `frodo-dev`
+      port: false,
+      pathname: true,
+      query: true,
+      hash: true,
+    },
+  };
+}
+
 export function filterRecording(
   recording: Recording,
   useDefaultHost = true,
