@@ -48,6 +48,13 @@ function createVersionedState(amVersion: string) {
   return versionedState;
 }
 
+function createStateWithoutAmVersion() {
+  return frodo.createInstance({
+    host: 'https://example.com/am',
+    realm: 'employees',
+  }).state;
+}
+
 describe('NodeApi', () => {
   TestData.setup();
 
@@ -77,9 +84,55 @@ describe('NodeApi', () => {
       expect(NodeApi.requireVersion(createVersionedState('8.1.0'))).toBe(true);
       expect(NodeApi.requireVersion(createVersionedState('8.1.1'))).toBe(true);
     });
+
+    test('returns false when AM version is unset', async () => {
+      expect(NodeApi.requireVersion(createStateWithoutAmVersion())).toBe(false);
+    });
   });
 
   describe('version-aware node api', () => {
+    test('returns expected path segment across versions and inputs', async () => {
+      const testCases = [
+        {
+          name: 'unset nodeTypeVersion defaults to 1.0 at 8.1.0',
+          state: createVersionedState('8.1.0'),
+          expected: '/1.0',
+        },
+        {
+          name: 'explicit nodeTypeVersion is included at 8.1.0',
+          state: createVersionedState('8.1.0'),
+          nodeTypeVersion: '2.0',
+          expected: '/2.0',
+        },
+        {
+          name: 'explicit nodeTypeVersion is included above 8.1.0',
+          state: createVersionedState('8.2.3'),
+          nodeTypeVersion: '3.1',
+          expected: '/3.1',
+        },
+        {
+          name: 'nodeTypeVersion is ignored below 8.1.0',
+          state: createVersionedState('8.0.9'),
+          nodeTypeVersion: '2.0',
+          expected: '',
+        },
+        {
+          name: 'nodeTypeVersion is ignored when AM version is unset',
+          state: createStateWithoutAmVersion(),
+          nodeTypeVersion: '2.0',
+          expected: '',
+        },
+      ];
+
+      for (const testCase of testCases) {
+        const actual = NodeApi.getNodeVersionPathSegment({
+          nodeTypeVersion: testCase.nodeTypeVersion,
+          state: testCase.state,
+        });
+        expect(actual).toBe(testCase.expected);
+      }
+    });
+
     test('ignores nodeTypeVersion below AM 8.1.0', async () => {
       const oldState = createVersionedState('7.5.0');
 

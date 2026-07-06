@@ -40,15 +40,34 @@ import { eq, gt, lt } from '../utils/SemverUtils';
 import { FrodoError } from './FrodoError';
 import { ExportMetaData, ResultCallback } from './OpsTypes';
 
+/**
+ * Semver-style filter used by readNodesByVersion to select node type versions.
+ *
+ * Supported comparisons:
+ * - `eq`: exact version match
+ * - `gt` / `gte`: greater than / greater than or equal
+ * - `lt` / `lte`: less than / less than or equal
+ * - `from` / `to`: inclusive range bounds by default
+ * - `includeFrom` / `includeTo`: override range bound inclusivity
+ */
 export type NodeVersionFilter = {
+  /** Exact version match. */
   eq?: string;
+  /** Strictly greater than the supplied version. */
   gt?: string;
+  /** Greater than or equal to the supplied version. */
   gte?: string;
+  /** Strictly less than the supplied version. */
   lt?: string;
+  /** Less than or equal to the supplied version. */
   lte?: string;
+  /** Range lower bound. Inclusive unless includeFrom is set to false. */
   from?: string;
+  /** Range upper bound. Inclusive unless includeTo is set to false. */
   to?: string;
+  /** Whether the from bound is inclusive. Defaults to true. */
   includeFrom?: boolean;
+  /** Whether the to bound is inclusive. Defaults to true. */
   includeTo?: boolean;
 };
 
