@@ -2,19 +2,42 @@ import { state } from '../../index';
 import * as JourneyOps from '../../ops/JourneyOps';
 import { getJourney } from '../mocks/ForgeRockApiMockEngine';
 
-export const journey1 = getJourney('FrodoTestJourney1');
-export const journey2 = getJourney('FrodoTestJourney2');
-export const journey3 = getJourney('FrodoTestJourney3');
-export const journey4 = getJourney('FrodoTestJourney4');
-export const journey5 = getJourney('FrodoTestJourney5');
-export const journey6 = getJourney('FrodoTestJourney6');
-export const journey7 = getJourney('FrodoTestJourney7');
-export const journey8 = getJourney('FrodoTestJourney8');
-export const journey9 = getJourney('FrodoTestJourney9');
-export const journey10 = getJourney('FrodoTestJourney10');
-export const journey10NoCoords = getJourney('FrodoTestJourney10NoCoords');
-export const journey11 = getJourney('FrodoTestJourney11');
-export const journey12 = getJourney('FrodoTestJourney12');
+function getJourneyFixture(
+  journeyId: string
+): JourneyOps.SingleTreeExportInterface {
+  const rawJourney = getJourney(journeyId) as any;
+  // Support both fixture formats:
+  // 1) Single tree export: { tree, nodes, innerNodes, ... }
+  // 2) Wrapped export: { meta, trees: { [journeyId]: { tree, ... } } }
+  if (rawJourney?.tree) {
+    return rawJourney as JourneyOps.SingleTreeExportInterface;
+  }
+  const wrappedTree = rawJourney?.trees?.[journeyId];
+  if (wrappedTree?.tree) {
+    return {
+      ...(wrappedTree as JourneyOps.SingleTreeExportInterface),
+      meta: rawJourney?.meta,
+    } as JourneyOps.SingleTreeExportInterface;
+  }
+  throw new Error(`Unable to resolve journey fixture '${journeyId}'`);
+}
+
+export const journey1 = getJourneyFixture('FrodoTestJourney1');
+export const journey2 = getJourneyFixture('FrodoTestJourney2');
+export const journey3 = getJourneyFixture('FrodoTestJourney3');
+export const journey4 = getJourneyFixture('FrodoTestJourney4');
+export const journey5 = getJourneyFixture('FrodoTestJourney5');
+export const journey6 = getJourneyFixture('FrodoTestJourney6');
+export const journey7 = getJourneyFixture('FrodoTestJourney7');
+export const journey8 = getJourneyFixture('FrodoTestJourney8');
+export const journey9 = getJourneyFixture('FrodoTestJourney9');
+export const journey10 = getJourneyFixture('FrodoTestJourney10');
+export const journey10NoCoords = getJourneyFixture(
+  'FrodoTestJourney10NoCoords'
+);
+export const journey11 = getJourneyFixture('FrodoTestJourney11');
+export const journey12 = getJourneyFixture('FrodoTestJourney12');
+export const journey13 = getJourneyFixture('FrodoTestJourney13');
 
 export async function stageJourney(
   journey: JourneyOps.SingleTreeExportInterface,
@@ -37,7 +60,7 @@ export async function stageJourney(
   } finally {
     if (create) {
       await JourneyOps.importJourney({
-        importData: getJourney(journey.tree._id),
+        importData: getJourneyFixture(journey.tree._id),
         options: {
           reUuid: false,
           deps: true,

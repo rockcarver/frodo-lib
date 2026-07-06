@@ -15,11 +15,13 @@ import {
   getNodes as _getNodes,
   getNodesByType as _getNodesByType,
   getNodeTypes as _getNodeTypes,
+  getNodeType as _getNodeType,
   type NodeSkeleton,
   type NodeTypeSkeleton,
   putCustomNode,
   putNode as _putNode,
   getCustomNodeSchema as _getCustomNodeSchema,
+  requireVersion,
 } from '../api/NodeApi';
 import { getTrees } from '../api/TreeApi';
 import Constants from '../shared/Constants';
@@ -34,8 +36,40 @@ import {
 } from '../utils/Console';
 import { getMetadata, getResult } from '../utils/ExportImportUtils';
 import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
+import { eq, gt, lt } from '../utils/SemverUtils';
 import { FrodoError } from './FrodoError';
 import { ExportMetaData, ResultCallback } from './OpsTypes';
+
+/**
+ * Semver-style filter used by readNodesByVersion to select node type versions.
+ *
+ * Supported comparisons:
+ * - `eq`: exact version match
+ * - `gt` / `gte`: greater than / greater than or equal
+ * - `lt` / `lte`: less than / less than or equal
+ * - `from` / `to`: inclusive range bounds by default
+ * - `includeFrom` / `includeTo`: override range bound inclusivity
+ */
+export type NodeVersionFilter = {
+  /** Exact version match. */
+  eq?: string;
+  /** Strictly greater than the supplied version. */
+  gt?: string;
+  /** Greater than or equal to the supplied version. */
+  gte?: string;
+  /** Strictly less than the supplied version. */
+  lt?: string;
+  /** Less than or equal to the supplied version. */
+  lte?: string;
+  /** Range lower bound. Inclusive unless includeFrom is set to false. */
+  from?: string;
+  /** Range upper bound. Inclusive unless includeTo is set to false. */
+  to?: string;
+  /** Whether the from bound is inclusive. Defaults to true. */
+  includeFrom?: boolean;
+  /** Whether the to bound is inclusive. Defaults to true. */
+  includeTo?: boolean;
+};
 
 export type Node = {
   /**
@@ -44,23 +78,47 @@ export type Node = {
    */
   readNodeTypes(): Promise<any>;
   /**
+   * Read a specific node type
+   * @param {string} nodeType node type
+   * @param {string} nodeTypeVersion node type version
+   * @returns {Promise<any>} a promise that resolves to a node type object
+   */
+  readNodeType(nodeType: string, nodeTypeVersion?: string): Promise<any>;
+  /**
    * Read all nodes
    * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an object containing an array of node objects
    */
   readNodes(): Promise<NodeSkeleton[]>;
   /**
+   * Read all nodes across types and versions with optional version filtering.
+   * @param {NodeVersionFilter} nodeVersionFilter optional node version filter
+   * @returns {Promise<NodeSkeleton[]>} matched node instances
+   */
+  readNodesByVersion(
+    nodeVersionFilter?: NodeVersionFilter
+  ): Promise<NodeSkeleton[]>;
+  /**
    * Read all nodes by type
    * @param {string} nodeType node type
+   * @param {string} nodeTypeVersion node type version
    * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an object containing an array of node objects of the requested type
    */
-  readNodesByType(nodeType: string): Promise<NodeSkeleton[]>;
+  readNodesByType(
+    nodeType: string,
+    nodeTypeVersion?: string
+  ): Promise<NodeSkeleton[]>;
   /**
    * Read node by uuid and type
    * @param {string} nodeId node uuid
    * @param {string} nodeType node type
+   * @param {string} nodeTypeVersion node type version
    * @returns {Promise<NodeSkeleton>} a promise that resolves to a node object
    */
-  readNode(nodeId: string, nodeType: string): Promise<NodeSkeleton>;
+  readNode(
+    nodeId: string,
+    nodeType: string,
+    nodeTypeVersion?: string
+  ): Promise<NodeSkeleton>;
   /**
    * Export all nodes
    * @returns {Promise<NodeExportInterface>} a promise that resolves to an array of node objects
@@ -248,17 +306,35 @@ export type Node = {
 
 export default (state: State): Node => {
   return {
-    readNodeTypes(): Promise<any> {
+    async readNodeTypes(): Promise<any> {
       return readNodeTypes({ state });
+    },
+    async readNodeType(
+      nodeType: string,
+      nodeTypeVersion?: string
+    ): Promise<any> {
+      return readNodeType({ nodeType, nodeTypeVersion, state });
     },
     async readNodes(): Promise<NodeSkeleton[]> {
       return readNodes({ state });
     },
-    async readNodesByType(nodeType: string): Promise<NodeSkeleton[]> {
-      return readNodesByType({ nodeType, state });
+    async readNodesByVersion(
+      nodeVersionFilter?: NodeVersionFilter
+    ): Promise<NodeSkeleton[]> {
+      return readNodesByVersion({ nodeVersionFilter, state });
     },
-    async readNode(nodeId: string, nodeType: string): Promise<NodeSkeleton> {
-      return readNode({ nodeId, nodeType, state });
+    async readNodesByType(
+      nodeType: string,
+      nodeTypeVersion?: string
+    ): Promise<NodeSkeleton[]> {
+      return readNodesByType({ nodeType, nodeTypeVersion, state });
+    },
+    async readNode(
+      nodeId: string,
+      nodeType: string,
+      nodeTypeVersion?: string
+    ): Promise<NodeSkeleton> {
+      return readNode({ nodeId, nodeType, nodeTypeVersion, state });
     },
     async exportNodes(): Promise<NodeExportInterface> {
       return exportNodes({ state });
@@ -279,7 +355,7 @@ export default (state: State): Node => {
     async deleteNode(nodeId: string, nodeType: string): Promise<NodeSkeleton> {
       return deleteNode({ nodeId, nodeType, state });
     },
-    readCustomNode(
+    async readCustomNode(
       nodeId?: string,
       nodeName?: string
     ): Promise<CustomNodeSkeleton> {
@@ -289,12 +365,12 @@ export default (state: State): Node => {
         state,
       });
     },
-    readCustomNodes(): Promise<CustomNodeSkeleton[]> {
+    async readCustomNodes(): Promise<CustomNodeSkeleton[]> {
       return readCustomNodes({
         state,
       });
     },
-    exportCustomNode(
+    async exportCustomNode(
       nodeId?: string,
       nodeName?: string,
       options: CustomNodeExportOptions = {
@@ -318,7 +394,7 @@ export default (state: State): Node => {
         state,
       });
     },
-    updateCustomNode(
+    async updateCustomNode(
       nodeId: string,
       nodeData: CustomNodeSkeleton
     ): Promise<CustomNodeSkeleton> {
@@ -328,7 +404,7 @@ export default (state: State): Node => {
         state,
       });
     },
-    importCustomNodes(
+    async importCustomNodes(
       nodeId: string,
       nodeName: string,
       importData: CustomNodeExportInterface,
@@ -347,7 +423,7 @@ export default (state: State): Node => {
         state,
       });
     },
-    deleteCustomNode(
+    async deleteCustomNode(
       nodeId?: string,
       nodeName?: string
     ): Promise<CustomNodeSkeleton> {
@@ -357,7 +433,7 @@ export default (state: State): Node => {
         state,
       });
     },
-    deleteCustomNodes(
+    async deleteCustomNodes(
       resultCallback?: ResultCallback<CustomNodeSkeleton>
     ): Promise<CustomNodeSkeleton[]> {
       return deleteCustomNodes({
@@ -373,7 +449,7 @@ export default (state: State): Node => {
     ): Promise<NodeSkeleton[]> {
       return removeOrphanedNodes({ orphanedNodes, state });
     },
-    getCustomNodeUsage(nodeId: string): Promise<CustomNodeUsage> {
+    async getCustomNodeUsage(nodeId: string): Promise<CustomNodeUsage> {
       return getCustomNodeUsage({
         nodeId,
         state,
@@ -524,6 +600,30 @@ export async function readNodeTypes({
 }
 
 /**
+ * Read a specific node type
+ * @param {string} nodeType node type
+ * @param {string} nodeTypeVersion node type version
+ * @param {State} state state object
+ * @returns {Promise<NodeTypeSkeleton[]>} a promise that resolves to an array of node type objects
+ */
+export async function readNodeType({
+  nodeType,
+  nodeTypeVersion = '1.0',
+  state,
+}: {
+  nodeType: string;
+  nodeTypeVersion?: string;
+  state: State;
+}): Promise<NodeTypeSkeleton> {
+  try {
+    const result = await _getNodeType({ nodeType, nodeTypeVersion, state });
+    return result;
+  } catch (error) {
+    throw new FrodoError(`Error reading node type ${nodeType}`, error);
+  }
+}
+
+/**
  * Get all nodes
  * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an object containing an array of node objects
  */
@@ -541,19 +641,149 @@ export async function readNodes({
 }
 
 /**
+ * Read all nodes across types and versions with optional version filtering.
+ * @param {NodeVersionFilter} nodeVersionFilter optional node version filter
+ * @returns {Promise<NodeSkeleton[]>} matched node instances
+ */
+export async function readNodesByVersion({
+  nodeVersionFilter,
+  state,
+}: {
+  nodeVersionFilter?: NodeVersionFilter;
+  state: State;
+}): Promise<NodeSkeleton[]> {
+  const normalizeSemver = (value: string): string => {
+    const trimmed = value.trim();
+    const match = trimmed.match(/^[vV]?(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+    if (!match) {
+      return trimmed;
+    }
+    const major = Number(match[1]);
+    const minor = Number(match[2] ?? '0');
+    const patch = Number(match[3] ?? '0');
+    return `${major}.${minor}.${patch}`;
+  };
+
+  const matchesNodeVersionFilter = (
+    version: string,
+    filter: NodeVersionFilter
+  ): boolean => {
+    const normalizedVersion = normalizeSemver(version);
+
+    if (filter.eq && !eq(normalizedVersion, normalizeSemver(filter.eq))) {
+      return false;
+    }
+    if (filter.gt && !gt(normalizedVersion, normalizeSemver(filter.gt))) {
+      return false;
+    }
+    if (
+      filter.gte &&
+      !(
+        gt(normalizedVersion, normalizeSemver(filter.gte)) ||
+        eq(normalizedVersion, normalizeSemver(filter.gte))
+      )
+    ) {
+      return false;
+    }
+    if (filter.lt && !lt(normalizedVersion, normalizeSemver(filter.lt))) {
+      return false;
+    }
+    if (
+      filter.lte &&
+      !(
+        lt(normalizedVersion, normalizeSemver(filter.lte)) ||
+        eq(normalizedVersion, normalizeSemver(filter.lte))
+      )
+    ) {
+      return false;
+    }
+
+    if (filter.from) {
+      const from = normalizeSemver(filter.from);
+      const includeFrom = filter.includeFrom ?? true;
+      const fromOk = includeFrom
+        ? gt(normalizedVersion, from) || eq(normalizedVersion, from)
+        : gt(normalizedVersion, from);
+      if (!fromOk) {
+        return false;
+      }
+    }
+
+    if (filter.to) {
+      const to = normalizeSemver(filter.to);
+      const includeTo = filter.includeTo ?? true;
+      const toOk = includeTo
+        ? lt(normalizedVersion, to) || eq(normalizedVersion, to)
+        : lt(normalizedVersion, to);
+      if (!toOk) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  try {
+    const typeResult = await readNodeTypes({ state });
+    const types = Array.isArray(typeResult)
+      ? typeResult
+      : (Object.values(typeResult || {}) as NodeTypeSkeleton[]);
+    const nodes: NodeSkeleton[] = [];
+    for (const type of types) {
+      const versions =
+        requireVersion(state) && type.versions && type.versions.length > 0
+          ? type.versions
+              .map((version) =>
+                typeof version === 'string' ? version.trim() : ''
+              )
+              .filter((version) => version.length > 0)
+          : ['1.0'];
+      for (const version of versions) {
+        if (
+          nodeVersionFilter &&
+          !matchesNodeVersionFilter(version, nodeVersionFilter)
+        ) {
+          continue;
+        }
+        try {
+          const byType = await _getNodesByType({
+            nodeType: type._id,
+            nodeTypeVersion: version,
+            state,
+          });
+          nodes.push(...byType.result);
+        } catch {
+          // Ignore types/versions that are not queryable in the current environment.
+        }
+      }
+    }
+    return nodes;
+  } catch (error) {
+    throw new FrodoError(`Error reading nodes by version`, error);
+  }
+}
+
+/**
  * Read all nodes by type
  * @param {string} nodeType node type
+ * @param {string} nodeTypeVersion node type version
  * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an object containing an array of node objects of the requested type
  */
 export async function readNodesByType({
   nodeType,
+  nodeTypeVersion = '1.0',
   state,
 }: {
   nodeType: string;
+  nodeTypeVersion?: string;
   state: State;
 }): Promise<NodeSkeleton[]> {
   try {
-    const { result } = await _getNodesByType({ nodeType, state });
+    const { result } = await _getNodesByType({
+      nodeType,
+      nodeTypeVersion,
+      state,
+    });
     return result;
   } catch (error) {
     throw new FrodoError(`Error reading ${nodeType} nodes`, error);
@@ -569,14 +799,16 @@ export async function readNodesByType({
 export async function readNode({
   nodeId,
   nodeType,
+  nodeTypeVersion = '1.0',
   state,
 }: {
   nodeId: string;
   nodeType: string;
+  nodeTypeVersion?: string;
   state: State;
 }): Promise<NodeSkeleton> {
   try {
-    return _getNode({ nodeId, nodeType, state });
+    return _getNode({ nodeId, nodeType, nodeTypeVersion, state });
   } catch (error) {
     throw new FrodoError(`Error reading ${nodeType} node ${nodeId}`, error);
   }
@@ -637,26 +869,34 @@ export async function exportNodes({
 export async function createNode({
   nodeId,
   nodeType,
+  nodeTypeVersion = '1.0',
   nodeData,
   state,
 }: {
   nodeId?: string;
   nodeType: string;
+  nodeTypeVersion?: string;
   nodeData: NodeSkeleton;
   state: State;
 }): Promise<NodeSkeleton> {
   try {
     if (nodeId) {
       try {
-        await readNode({ nodeId, nodeType, state });
+        await readNode({ nodeId, nodeType, nodeTypeVersion, state });
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
-        const result = await updateNode({ nodeId, nodeType, nodeData, state });
+        const result = await updateNode({
+          nodeId,
+          nodeType,
+          nodeTypeVersion,
+          nodeData,
+          state,
+        });
         return result;
       }
       throw new FrodoError(`Node ${nodeId} already exists!`);
     }
-    return _createNode({ nodeType, nodeData, state });
+    return _createNode({ nodeType, nodeTypeVersion, nodeData, state });
   } catch (error) {
     throw new FrodoError(`Error creating ${nodeType} node ${nodeId}`, error);
   }
@@ -672,16 +912,18 @@ export async function createNode({
 export async function updateNode({
   nodeId,
   nodeType,
+  nodeTypeVersion = '1.0',
   nodeData,
   state,
 }: {
   nodeId: string;
   nodeType: string;
+  nodeTypeVersion?: string;
   nodeData: NodeSkeleton;
   state: State;
 }): Promise<NodeSkeleton> {
   try {
-    return _putNode({ nodeId, nodeType, nodeData, state });
+    return _putNode({ nodeId, nodeType, nodeTypeVersion, nodeData, state });
   } catch (error) {
     throw new FrodoError(`Error updating ${nodeType} node ${nodeId}`, error);
   }
@@ -691,22 +933,56 @@ export async function updateNode({
  * Delete node by uuid and type
  * @param {String} nodeId node uuid
  * @param {String} nodeType node type
+ * @param {String} nodeTypeVersion node type version
  * @returns {Promise} a promise that resolves to an object containing a node object
  */
 export async function deleteNode({
   nodeId,
   nodeType,
+  nodeTypeVersion = '1.0',
   state,
 }: {
   nodeId: string;
   nodeType: string;
+  nodeTypeVersion?: string;
   state: State;
 }): Promise<NodeSkeleton> {
   try {
-    return _deleteNode({ nodeId, nodeType, state });
+    return _deleteNode({ nodeId, nodeType, nodeTypeVersion, state });
   } catch (error) {
     throw new FrodoError(`Error deleting ${nodeType} node ${nodeId}`, error);
   }
+}
+
+/**
+ * Get custom node usage by ID
+ * @param {String} nodeId ID or service name of the custom node
+ * @returns {Promise<CustomNodeUsage>} a promise that resolves to an object containing a custom node usage object
+ */
+export async function getCustomNodeUsage({
+  nodeId,
+  state,
+}: {
+  nodeId: string;
+  state: State;
+}): Promise<CustomNodeUsage> {
+  try {
+    return await _getCustomNodeUsage({
+      nodeId: getCustomNodeId(nodeId),
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(`Error getting custom node usage`, error);
+  }
+}
+
+/**
+ * Helper that normalized a service name to custom node id if needed
+ * @param nodeId The custom node id or service name
+ * @returns nodeId if falsey or in id format, otherwise returns nodeId in id format
+ */
+export function getCustomNodeId(nodeId?: string): string | undefined | null {
+  return !nodeId || nodeId.endsWith('-1') ? nodeId : nodeId + '-1';
 }
 
 /**
@@ -963,6 +1239,10 @@ export async function importCustomNodes({
       try {
         result = await createCustomNode({ nodeData, state });
       } catch (error) {
+        debugMessage({
+          message: `NodeOps.importCustomNodes: Custom node ${nodeData.displayName} (${existingId}) already exists, attempting to update...`,
+          state,
+        });
         if (error.response?.status === 409) {
           result = await updateCustomNode({
             nodeId: newId,
@@ -976,6 +1256,10 @@ export async function importCustomNodes({
       }
       response.push(result);
     } catch (e) {
+      debugMessage({
+        message: `NodeOps.importCustomNodes: Error importing custom node ${importData.nodeTypes[existingId].displayName} (${existingId})\n${e}\n${e.stack}`,
+        state,
+      });
       if (resultCallback) {
         resultCallback(e, undefined);
       } else {
@@ -1100,7 +1384,7 @@ export async function findOrphanedNodes({
 }): Promise<NodeSkeleton[]> {
   const allNodes = [];
   const orphanedNodes = [];
-  let types = [];
+  let types: NodeTypeSkeleton[] = [];
   const allJourneys = (await getTrees({ state })).result;
   let errorMessage = '';
   const errorTypes = [];
@@ -1117,26 +1401,57 @@ export async function findOrphanedNodes({
     throw new FrodoError(`Error retrieving all available node types`, error);
   }
   for (const type of types) {
-    try {
-      const nodes = (await _getNodesByType({ nodeType: type._id, state }))
-        .result;
-      for (const node of nodes) {
-        allNodes.push(node);
+    if (requireVersion(state) && type.versions && type.versions.length > 0) {
+      for (const version of type.versions) {
+        try {
+          const nodes = (
+            await _getNodesByType({
+              nodeType: type._id,
+              nodeTypeVersion: version,
+              state,
+            })
+          ).result;
+          for (const node of nodes) {
+            allNodes.push(node);
+            updateProgressIndicator({
+              id: indicatorId,
+              message: `${allNodes.length} total nodes${errorMessage}`,
+              state,
+            });
+          }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (error) {
+          errorTypes.push(`${type._id} v${version}`);
+          errorMessage = c.yellow(` (Skipped type(s): ${errorTypes})`);
+          updateProgressIndicator({
+            id: indicatorId,
+            message: `${allNodes.length} total nodes${errorMessage}`,
+            state,
+          });
+        }
+      }
+    } else {
+      try {
+        const nodes = (await _getNodesByType({ nodeType: type._id, state }))
+          .result;
+        for (const node of nodes) {
+          allNodes.push(node);
+          updateProgressIndicator({
+            id: indicatorId,
+            message: `${allNodes.length} total nodes${errorMessage}`,
+            state,
+          });
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (error) {
+        errorTypes.push(type._id);
+        errorMessage = c.yellow(` (Skipped type(s): ${errorTypes})`);
         updateProgressIndicator({
           id: indicatorId,
           message: `${allNodes.length} total nodes${errorMessage}`,
           state,
         });
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      errorTypes.push(type._id);
-      errorMessage = c.yellow(` (Skipped type(s): ${errorTypes})`);
-      updateProgressIndicator({
-        id: indicatorId,
-        message: `${allNodes.length} total nodes${errorMessage}`,
-        state,
-      });
     }
   }
   if (errorTypes.length > 0) {
@@ -1176,6 +1491,9 @@ export async function findOrphanedNodes({
           const containerNode = await _getNode({
             nodeId,
             nodeType: node.nodeType,
+            nodeTypeVersion: requireVersion(state)
+              ? node.version || '1.0'
+              : '1.0',
             state,
           });
           for (const innerNode of containerNode.nodes) {
@@ -1244,6 +1562,9 @@ export async function removeOrphanedNodes({
       await deleteNode({
         nodeId: node['_id'],
         nodeType: node['_type']['_id'],
+        nodeTypeVersion: requireVersion(state)
+          ? ((node.version || '1.0') as string)
+          : '1.0',
         state,
       });
     } catch (deleteError) {
@@ -1733,37 +2054,4 @@ export function getNodeClassification({
   if (premium) classifications.push(NodeClassification.PREMIUM);
   if (deprecated) classifications.push(NodeClassification.DEPRECATED);
   return classifications;
-}
-
-/**
- * Get custom node usage by ID
- * @param {String} nodeId ID or service name of the custom node
- * @returns {Promise<CustomNodeUsage>} a promise that resolves to an object containing a custom node usage object
- * @deprecated since v4.0.0 Frodo no longer classifies nodes as "custom". This function will be removed in a future major release.
- */
-export async function getCustomNodeUsage({
-  nodeId,
-  state,
-}: {
-  nodeId: string;
-  state: State;
-}): Promise<CustomNodeUsage> {
-  try {
-    return await _getCustomNodeUsage({
-      nodeId: getCustomNodeId(nodeId),
-      state,
-    });
-  } catch (error) {
-    throw new FrodoError(`Error getting custom node usage`, error);
-  }
-}
-
-/**
- * Helper that normalized a service name to custom node id if needed
- * @param nodeId The custom node id or service name
- * @returns nodeId if falsey or in id format, otherwise returns nodeId in id format
- * @deprecated since v4.0.0 Frodo no longer classifies nodes as "custom". This function will be removed in a future major release.
- */
-export function getCustomNodeId(nodeId?: string): string | undefined | null {
-  return !nodeId || nodeId.endsWith('-1') ? nodeId : nodeId + '-1';
 }

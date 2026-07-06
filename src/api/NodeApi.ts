@@ -11,19 +11,22 @@ import {
   type QueryResult,
 } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
+import { eq, gt } from '../utils/SemverUtils';
 
 const queryAllNodeTypesURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/nodes?_action=getAllTypes';
+const nodeTypeURLTemplate =
+  '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s%s?_action=getType';
 const queryAllNodesByTypeURLTemplate =
-  '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s?_queryFilter=true';
+  '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s%s?_queryFilter=true';
 const queryAllNodesURLTemplate =
   '%s/json%s/realm-config/authentication/authenticationtrees/nodes?_action=nextdescendents';
 const nodeURLTemplate =
-  '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s/%s';
+  '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s%s/%s';
 const createNodeURLTemplate =
-  '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s?_action=create';
+  '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s%s?_action=create';
 const nodeSchemaURLTemplate =
-  '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s?_action=schema';
+  '%s/json%s/realm-config/authentication/authenticationtrees/nodes/%s%s?_action=schema';
 const customNodeTypeURLTemplate = '%s/json/node-designer/node-type';
 const queryAllCustomNodesURLTemplate =
   customNodeTypeURLTemplate + '?_queryFilter=true';
@@ -31,10 +34,14 @@ const customNodeURLTemplate = customNodeTypeURLTemplate + '/%s';
 const journeyUsageCustomNodesURLTemplate =
   customNodeURLTemplate + '?_action=journeys';
 
-const apiVersion = 'protocol=2.1,resource=1.0';
 const getNodeApiConfig = () => {
   return {
-    apiVersion,
+    apiVersion: `protocol=2.1,resource=1.0`,
+  };
+};
+const getNodeVersionApiConfig = ({ state }: { state: State }) => {
+  return {
+    apiVersion: `protocol=2.1,resource=${requireVersion(state) ? '3.0' : '1.0'}`,
   };
 };
 
@@ -99,19 +106,49 @@ export type NodeSkeleton = AmConfigEntityInterface & {
 
 export type NodeTypeSkeleton = IdObjectSkeletonInterface & {
   name: string;
-  collection: boolean;
-  tags: string[];
-  metadata: {
-    tags: string[];
+  collection?: boolean;
+  tags?: string[];
+  metadata?: {
+    tags?: string[];
     [k: string]: string | number | boolean | string[];
   };
-  help: string;
+  help?: string;
+  versions?: string[];
 };
 
 /**
  * Object that is layed out as follows: <realm-path>.<journey-name> = array of nodes where custom node type is used in the journey in the specified realm
  */
 export type CustomNodeUsage = Record<string, Record<string, string[]>>;
+
+/**
+ * Determine if the current AM version requires the use of the new version-aware node API (>= 8.1.0)
+ * @param state State object
+ * @returns {boolean} true if the new version-aware node API is required, false otherwise
+ */
+export function requireVersion(state: State): boolean {
+  const amVersion = state.getAmVersion();
+  if (!amVersion) {
+    return false;
+  }
+  return gt(amVersion, '8.1.0') || eq(amVersion, '8.1.0');
+}
+
+/**
+ * Get the node version path segment for version-aware node endpoints.
+ * @param nodeTypeVersion node type version
+ * @param state State object
+ * @returns node version path segment or an empty string when versioning is off
+ */
+export function getNodeVersionPathSegment({
+  nodeTypeVersion = '1.0',
+  state,
+}: {
+  nodeTypeVersion?: string;
+  state: State;
+}): string {
+  return requireVersion(state) ? `/${nodeTypeVersion}` : '';
+}
 
 /**
  * Get all node types
@@ -128,7 +165,44 @@ export async function getNodeTypes({
     getCurrentRealmPath(state)
   );
   const { data } = await generateAmApi({
-    resource: getNodeApiConfig(),
+    resource: getNodeVersionApiConfig({ state }),
+    state,
+  }).post(
+    urlString,
+    {},
+    {
+      withCredentials: true,
+      headers: { 'Accept-Encoding': 'gzip, deflate, br' },
+    }
+  );
+  return data;
+}
+
+/**
+ * Get node type
+ * @param {string} nodeType node type
+ * @param {string} nodeTypeVersion node type version
+ * @param {State} state state object
+ * @returns {Promise<QueryResult<NodeTypeSkeleton>>} a promise that resolves to an array of node type objects
+ */
+export async function getNodeType({
+  nodeType,
+  nodeTypeVersion = '1.0',
+  state,
+}: {
+  nodeType: string;
+  nodeTypeVersion?: string;
+  state: State;
+}): Promise<NodeTypeSkeleton> {
+  const urlString = util.format(
+    nodeTypeURLTemplate,
+    state.getHost(),
+    getCurrentRealmPath(state),
+    nodeType,
+    getNodeVersionPathSegment({ nodeTypeVersion, state })
+  );
+  const { data } = await generateAmApi({
+    resource: getNodeVersionApiConfig({ state }),
     state,
   }).post(
     urlString,
@@ -176,19 +250,22 @@ export async function getNodes({
  */
 export async function getNodesByType({
   nodeType,
+  nodeTypeVersion = '1.0',
   state,
 }: {
   nodeType: string;
+  nodeTypeVersion?: string;
   state: State;
 }): Promise<PagedResult<NodeSkeleton>> {
   const urlString = util.format(
     queryAllNodesByTypeURLTemplate,
     state.getHost(),
     getCurrentRealmPath(state),
-    nodeType
+    nodeType,
+    getNodeVersionPathSegment({ nodeTypeVersion, state })
   );
   const { data } = await generateAmApi({
-    resource: getNodeApiConfig(),
+    resource: getNodeVersionApiConfig({ state }),
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -205,10 +282,12 @@ export async function getNodesByType({
 export async function getNode({
   nodeId,
   nodeType,
+  nodeTypeVersion = '1.0',
   state,
 }: {
   nodeId: string;
   nodeType: string;
+  nodeTypeVersion?: string;
   state: State;
 }): Promise<NodeSkeleton> {
   const urlString = util.format(
@@ -216,10 +295,11 @@ export async function getNode({
     state.getHost(),
     getCurrentRealmPath(state),
     nodeType,
+    getNodeVersionPathSegment({ nodeTypeVersion, state }),
     nodeId
   );
   const { data } = await generateAmApi({
-    resource: getNodeApiConfig(),
+    resource: getNodeVersionApiConfig({ state }),
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -235,10 +315,12 @@ export async function getNode({
  */
 export async function createNode({
   nodeType,
+  nodeTypeVersion = '1.0',
   nodeData,
   state,
 }: {
   nodeType: string;
+  nodeTypeVersion?: string;
   nodeData: NodeSkeleton;
   state: State;
 }): Promise<NodeSkeleton> {
@@ -246,10 +328,11 @@ export async function createNode({
     createNodeURLTemplate,
     state.getHost(),
     getCurrentRealmPath(state),
-    nodeType
+    nodeType,
+    getNodeVersionPathSegment({ nodeTypeVersion, state })
   );
   const { data } = await generateAmApi({
-    resource: getNodeApiConfig(),
+    resource: getNodeVersionApiConfig({ state }),
     state,
   }).post(urlString, nodeData, {
     withCredentials: true,
@@ -265,19 +348,22 @@ export async function createNode({
  */
 export async function getNodeSchema({
   nodeType,
+  nodeTypeVersion = '1.0',
   state,
 }: {
   nodeType: string;
+  nodeTypeVersion?: string;
   state: State;
 }): Promise<NodeSkeleton> {
   const urlString = util.format(
     nodeSchemaURLTemplate,
     state.getHost(),
     getCurrentRealmPath(state),
-    nodeType
+    nodeType,
+    getNodeVersionPathSegment({ nodeTypeVersion, state })
   );
   const { data } = await generateAmApi({
-    resource: getNodeApiConfig(),
+    resource: getNodeVersionApiConfig({ state }),
     state,
   }).post(
     urlString,
@@ -303,7 +389,7 @@ export async function getCustomNodeSchema({
   state: State;
 }): Promise<NodeSkeleton> {
   const nodeType = `designer-${serviceName}`;
-  return getNodeSchema({ nodeType, state });
+  return getNodeSchema({ nodeType, nodeTypeVersion: '1.0', state });
 }
 
 /**
@@ -316,11 +402,13 @@ export async function getCustomNodeSchema({
 export async function putNode({
   nodeId,
   nodeType,
+  nodeTypeVersion = '1.0',
   nodeData,
   state,
 }: {
   nodeId: string;
   nodeType: string;
+  nodeTypeVersion?: string;
   nodeData: NodeSkeleton | NoIdObjectSkeletonInterface;
   state: State;
 }) {
@@ -332,10 +420,11 @@ export async function putNode({
     state.getHost(),
     getCurrentRealmPath(state),
     nodeType,
+    getNodeVersionPathSegment({ nodeTypeVersion, state }),
     nodeId
   );
   const { data } = await generateAmApi({
-    resource: getNodeApiConfig(),
+    resource: getNodeVersionApiConfig({ state }),
     state,
   }).put(urlString, cleanData, {
     withCredentials: true,
@@ -347,15 +436,18 @@ export async function putNode({
  * Delete node by uuid and type
  * @param {String} nodeId node uuid
  * @param {String} nodeType node type
+ * @param {String} nodeTypeVersion node type version
  * @returns {Promise} a promise that resolves to an object containing a node object
  */
 export async function deleteNode({
   nodeId,
   nodeType,
+  nodeTypeVersion = '1.0',
   state,
 }: {
   nodeId: string;
   nodeType: string;
+  nodeTypeVersion?: string;
   state: State;
 }) {
   const urlString = util.format(
@@ -363,10 +455,11 @@ export async function deleteNode({
     state.getHost(),
     getCurrentRealmPath(state),
     nodeType,
+    requireVersion(state) ? `/${nodeTypeVersion}` : '',
     nodeId
   );
   const { data } = await generateAmApi({
-    resource: getNodeApiConfig(),
+    resource: getNodeVersionApiConfig({ state }),
     state,
   }).delete(urlString, {
     withCredentials: true,

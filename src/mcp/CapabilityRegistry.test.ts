@@ -233,7 +233,7 @@ describe('MCP capability foundation', () => {
     ).toEqual(['issuerId', 'issuerData']);
   });
 
-  test('exposes explicit authn create/update/delete contracts', () => {
+  test('exposes explicit authn read/create/update/delete contracts', () => {
     const capabilities = buildCapabilityInventory(frodo, {
       includeTopLevelDomains: ['authn'],
       includeUtils: false,
@@ -263,6 +263,20 @@ describe('MCP capability foundation', () => {
       'nodeType',
       'nodeData',
     ]);
+
+    const readNodeType = byId.get('authn.node.readNodeType');
+    expect(readNodeType).toBeDefined();
+    expect(readNodeType?.argumentMode).toBe('named');
+    expect(readNodeType?.parameters?.map((parameter) => parameter.name)).toEqual(
+      ['nodeType', 'nodeTypeVersion']
+    );
+
+    const readNodesByType = byId.get('authn.node.readNodesByType');
+    expect(readNodesByType).toBeDefined();
+    expect(readNodesByType?.argumentMode).toBe('named');
+    expect(
+      readNodesByType?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['nodeType', 'nodeTypeVersion']);
 
     const readCustomNode = byId.get('authn.node.readCustomNode');
     expect(readCustomNode).toBeDefined();

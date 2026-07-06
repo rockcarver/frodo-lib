@@ -2790,6 +2790,17 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Node",
+    methodName: "readNodeType",
+    signature: "readNodeType(nodeType: string, nodeTypeVersion?: string): Promise<any>",
+    description: "Read a specific node type",
+    params: [
+      { name: "nodeType", type: "string", description: "node type" },
+      { name: "nodeTypeVersion", type: "string", description: "node type version" },
+    ],
+    returns: "{Promise<any>} a promise that resolves to a node type object",
+  },
+  {
+    typeName: "Node",
     methodName: "readNodes",
     signature: "readNodes(): Promise<NodeSkeleton[]>",
     description: "Read all nodes",
@@ -2798,22 +2809,34 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Node",
+    methodName: "readNodesByVersion",
+    signature: "readNodesByVersion( nodeVersionFilter?: NodeVersionFilter ): Promise<NodeSkeleton[]>",
+    description: "Read all nodes across types and versions with optional version filtering.",
+    params: [
+      { name: "nodeVersionFilter", type: "NodeVersionFilter", description: "optional node version filter" },
+    ],
+    returns: "{Promise<NodeSkeleton[]>} matched node instances",
+  },
+  {
+    typeName: "Node",
     methodName: "readNodesByType",
-    signature: "readNodesByType(nodeType: string): Promise<NodeSkeleton[]>",
+    signature: "readNodesByType( nodeType: string, nodeTypeVersion?: string ): Promise<NodeSkeleton[]>",
     description: "Read all nodes by type",
     params: [
       { name: "nodeType", type: "string", description: "node type" },
+      { name: "nodeTypeVersion", type: "string", description: "node type version" },
     ],
     returns: "{Promise<NodeSkeleton[]>} a promise that resolves to an object containing an array of node objects of the requested type",
   },
   {
     typeName: "Node",
     methodName: "readNode",
-    signature: "readNode(nodeId: string, nodeType: string): Promise<NodeSkeleton>",
+    signature: "readNode( nodeId: string, nodeType: string, nodeTypeVersion?: string ): Promise<NodeSkeleton>",
     description: "Read node by uuid and type",
     params: [
       { name: "nodeId", type: "string", description: "node uuid" },
       { name: "nodeType", type: "string", description: "node type" },
+      { name: "nodeTypeVersion", type: "string", description: "node type version" },
     ],
     returns: "{Promise<NodeSkeleton>} a promise that resolves to a node object",
   },

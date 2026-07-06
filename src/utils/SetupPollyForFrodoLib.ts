@@ -10,7 +10,7 @@ import { State } from '../shared/State';
 import { debugMessage, printMessage } from './Console';
 import { FrodoNodeHttpAdapter } from './FrodoNodeHttpAdapter';
 import {
-  defaultMatchRequestsBy,
+  orderedMatchRequestsBy,
   filterRecording,
   Recording,
 } from './PollyUtils';
@@ -46,7 +46,7 @@ if (process.env.FRODO_MOCK) {
 }
 
 function authenticationMatchRequestsBy(pathname: boolean = true) {
-  const matchRequestsBy = defaultMatchRequestsBy(false);
+  const matchRequestsBy = orderedMatchRequestsBy(false);
   matchRequestsBy.body = false;
   matchRequestsBy.url.pathname = pathname;
   matchRequestsBy.order = true;
@@ -231,7 +231,7 @@ function getFrodoCommand({ state }: { state: State }) {
 }
 
 export function setupPollyForFrodoLib({
-  matchRequestsBy = defaultMatchRequestsBy(false),
+  matchRequestsBy = orderedMatchRequestsBy(false),
   state,
 }: {
   matchRequestsBy?: any;

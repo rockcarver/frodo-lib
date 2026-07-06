@@ -10,13 +10,10 @@ import {
 } from '../api/CirclesOfTrustApi';
 import { VariableSkeleton } from '../api/cloud/VariablesApi';
 import {
-  CustomNodeSkeleton,
-  deleteNode,
-  getNode,
+  type CustomNodeSkeleton,
   type InnerNodeRefSkeletonInterface,
   type NodeRefSkeletonInterface,
   type NodeSkeleton,
-  putNode,
   type StaticNodeRefSkeletonInterface,
 } from '../api/NodeApi';
 import {
@@ -85,6 +82,9 @@ import {
   isCustomNode,
   isPremiumNode,
   readCustomNode,
+  readNode,
+  updateNode,
+  deleteNode,
 } from './NodeOps';
 import { type ExportMetaData, ResultCallback } from './OpsTypes';
 import { readSaml2ProviderStubs } from './Saml2Ops';
@@ -871,7 +871,12 @@ export async function exportJourney({
     // get all the nodes
     for (const [nodeId, nodeInfo] of Object.entries(treeObject.nodes)) {
       nodePromises.push(
-        getNode({ nodeId, nodeType: nodeInfo['nodeType'], state })
+        readNode({
+          nodeId,
+          nodeType: nodeInfo['nodeType'],
+          nodeTypeVersion: nodeInfo['version'] || '1.0',
+          state,
+        })
       );
       if (!coords) {
         delete nodeInfo['x'];
@@ -996,10 +1001,19 @@ export async function exportJourney({
       // get inner nodes (nodes inside container nodes)
       if (containerNodes.includes(nodeType)) {
         for (const innerNode of nodeObject.nodes) {
+          debugMessage({
+            message: `JourneyOps.exportJourney: reading inner node [node=${innerNode._id}]`,
+            state,
+          });
+          debugMessage({
+            message: innerNode,
+            state,
+          });
           innerNodePromises.push(
-            getNode({
+            readNode({
               nodeId: innerNode._id,
               nodeType: innerNode.nodeType,
+              nodeTypeVersion: innerNode.nodeVersion || '1.0',
               state,
             })
           );
@@ -2056,9 +2070,10 @@ export async function importJourney({
             });
         }
         try {
-          await putNode({
+          await updateNode({
             nodeId: newUuid,
             nodeType,
+            nodeTypeVersion: innerNodeData['_type']?.['version'] || '1.0',
             nodeData: innerNodeData as NodeSkeleton,
             state,
           });
@@ -2096,9 +2111,10 @@ export async function importJourney({
               }
             }
             try {
-              await putNode({
+              await updateNode({
                 nodeId: newUuid,
                 nodeType,
+                nodeTypeVersion: innerNodeData['_type']?.['version'] || '1.0',
                 nodeData: innerNodeData as NodeSkeleton,
                 state,
               });
@@ -2138,6 +2154,8 @@ export async function importJourney({
       for (let [nodeId, nodeData] of Object.entries(importData.nodes)) {
         delete nodeData['_rev'];
         const nodeType = nodeData['_type']['_id'];
+        const nodeTypeVersion = (nodeData['_type']?.['version'] ||
+          '1.0') as string;
         if (!reUuid) {
           newUuid = nodeId;
         } else {
@@ -2201,7 +2219,13 @@ export async function importJourney({
             });
         }
         try {
-          await putNode({ nodeId: newUuid, nodeType, nodeData, state });
+          await updateNode({
+            nodeId: newUuid,
+            nodeType,
+            nodeTypeVersion,
+            nodeData,
+            state,
+          });
         } catch (nodeImportError) {
           if (
             nodeImportError.response?.status === 400 &&
@@ -2236,7 +2260,13 @@ export async function importJourney({
               }
             }
             try {
-              await putNode({ nodeId: newUuid, nodeType, nodeData, state });
+              await updateNode({
+                nodeId: newUuid,
+                nodeType,
+                nodeTypeVersion,
+                nodeData,
+                state,
+              });
             } catch (nodeImportError2) {
               throw new FrodoError(
                 `Error importing ${getCurrentRealmName(state) + ' realm'} node ${nodeId}${
@@ -2829,6 +2859,25 @@ export type DeleteJourneyStatus = {
   nodes: { status?: string };
 };
 
+type DeleteJourneyTask = {
+  key: string;
+  reportError: (error: unknown) => void;
+  run: () => Promise<void>;
+  lastError?: unknown;
+};
+
+function isConnectedNodeDeleteError(error: unknown): boolean {
+  if (error instanceof FrodoError && error.getOriginalErrors().length > 0) {
+    return isConnectedNodeDeleteError(error.getOriginalErrors()[0]);
+  }
+  return (
+    axios.isAxiosError(error) &&
+    error.response?.status === 400 &&
+    error.response?.data?.message ===
+      'Cannot delete a node that is connected in a tree.'
+  );
+}
+
 /**
  * Delete a journey
  * @param {string} journeyId journey id/name
@@ -2846,7 +2895,8 @@ export async function deleteJourney({
   const { deep, verbose } = options;
   const progress = !('progress' in options) ? true : options.progress;
   const status: DeleteJourneyStatus = { status: 'unknown', nodes: {} };
-  let indicatorId: string;
+  let indicatorId: string | undefined;
+  let progressIndicatorVisible = false;
   if (progress)
     indicatorId = createProgressIndicator({
       total: undefined,
@@ -2854,74 +2904,128 @@ export async function deleteJourney({
       type: 'indeterminate',
       state,
     });
-  if (progress && verbose) stopProgressIndicator({ id: indicatorId, state });
-  return deleteTree({ treeId: journeyId, state })
-    .then(async (deleteTreeResponse) => {
-      status['status'] = 'success';
-      const nodePromises = [];
-      if (verbose)
-        printMessage({
-          message: `Deleted ${journeyId} (tree)`,
-          type: 'info',
-          state,
-        });
-      if (deep) {
-        for (const [nodeId, nodeObject] of Object.entries(
-          deleteTreeResponse.nodes
-        )) {
-          // delete inner nodes (nodes inside container nodes)
-          if (containerNodes.includes(nodeObject['nodeType'])) {
-            try {
-              const containerNode = await getNode({
-                nodeId,
-                nodeType: nodeObject['nodeType'],
+  if (progress) {
+    progressIndicatorVisible = true;
+  }
+  if (progress && verbose) {
+    stopProgressIndicator({ id: indicatorId, state });
+    progressIndicatorVisible = false;
+  }
+  try {
+    const deleteTreeResponse = await deleteTree({ treeId: journeyId, state });
+    try {
+      await getTree({ id: journeyId, state });
+      throw new FrodoError(
+        `Delete endpoint returned success but ${getCurrentRealmName(state) + ' realm'} journey ${journeyId} still exists`
+      );
+    } catch (error) {
+      if (
+        !(axios.isAxiosError(error) && error.response?.status === 404) &&
+        !(error instanceof FrodoError)
+      ) {
+        throw error;
+      }
+      if (error instanceof FrodoError) {
+        throw error;
+      }
+    }
+    status['status'] = 'success';
+    const deleteTasks: DeleteJourneyTask[] = [];
+    if (verbose && deep)
+      printMessage({
+        message: `Deleted journey ${journeyId}`,
+        type: 'info',
+        state,
+      });
+    if (deep) {
+      for (const [nodeId, nodeObject] of Object.entries(
+        deleteTreeResponse.nodes
+      )) {
+        // delete inner nodes (nodes inside container nodes)
+        if (containerNodes.includes(nodeObject['nodeType'])) {
+          try {
+            const containerNode = await readNode({
+              nodeId,
+              nodeType: nodeObject['nodeType'],
+              nodeTypeVersion: nodeObject['version'] || '1.0',
+              state,
+            });
+            if (verbose)
+              printMessage({
+                message: `Read ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
+                type: 'info',
                 state,
               });
-              if (verbose)
-                printMessage({
-                  message: `Read ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
-                  type: 'info',
-                  state,
-                });
-              for (const innerNodeObject of containerNode.nodes) {
-                nodePromises.push(
-                  deleteNode({
+            for (const innerNodeObject of containerNode.nodes) {
+              deleteTasks.push({
+                key: innerNodeObject._id,
+                reportError: (error: unknown) => {
+                  status.nodes[innerNodeObject._id] = {
+                    status: 'error',
+                    error,
+                  };
+                  if (verbose)
+                    printMessage({
+                      message: `Error deleting inner node ${innerNodeObject._id} (${innerNodeObject.nodeType}) from ${journeyId}: ${
+                        error instanceof Error ? error.message : String(error)
+                      }`,
+                      type: 'error',
+                      state,
+                    });
+                },
+                run: async () => {
+                  await deleteNode({
                     nodeId: innerNodeObject._id,
                     nodeType: innerNodeObject.nodeType,
                     state,
-                  })
-                    .then((response2) => {
-                      status.nodes[innerNodeObject._id] = { status: 'success' };
-                      if (verbose)
-                        printMessage({
-                          message: `Deleted ${innerNodeObject._id} (${innerNodeObject.nodeType}) from ${journeyId}`,
-                          type: 'info',
-                          state,
-                        });
-                      return response2;
-                    })
-                    .catch((error) => {
-                      status.nodes[innerNodeObject._id] = {
-                        status: 'error',
-                        error,
-                      };
-                      if (verbose)
-                        printMessage({
-                          message: `Error deleting inner node ${innerNodeObject._id} (${innerNodeObject.nodeType}) from ${journeyId}: ${error}`,
-                          type: 'error',
-                          state,
-                        });
-                    })
-                );
-              }
-              // finally delete the container node
-              nodePromises.push(
-                deleteNode({
-                  nodeId: containerNode._id,
-                  nodeType: containerNode['_type']['_id'],
-                  state,
-                })
-                  .then((response2) => {
+                  });
+                  status.nodes[innerNodeObject._id] = { status: 'success' };
+                  if (verbose)
+                    printMessage({
+                      message: `Deleted ${innerNodeObject._id} (${innerNodeObject.nodeType}) from ${journeyId}`,
+                      type: 'info',
+                      state,
+                    });
+                },
+              });
+            }
+            deleteTasks.push({
+              key: containerNode._id,
+              reportError: (error: unknown) => {
+                status.nodes[containerNode._id] = {
+                  status: 'error',
+                  error,
+                };
+                if (verbose)
+                  printMessage({
+                    message: `Error deleting container node ${containerNode._id} (${containerNode['_type']['_id']}) from ${journeyId}: ${
+                      error instanceof Error ? error.message : String(error)
+                    }`,
+                    type: 'error',
+                    state,
+                  });
+              },
+              run: async () => {
+                try {
+                  await deleteNode({
+                    nodeId: containerNode._id,
+                    nodeType: containerNode['_type']['_id'],
+                    state,
+                  });
+                  status.nodes[containerNode._id] = { status: 'success' };
+                  if (verbose)
+                    printMessage({
+                      message: `Deleted ${containerNode._id} (${containerNode['_type']['_id']}) from ${journeyId}`,
+                      type: 'info',
+                      state,
+                    });
+                } catch (error) {
+                  if (
+                    axios.isAxiosError(error) &&
+                    error.response?.data?.code === 500 &&
+                    error.response.data.message ===
+                      'Unable to read SMS config: Node did not exist'
+                  ) {
                     status.nodes[containerNode._id] = { status: 'success' };
                     if (verbose)
                       printMessage({
@@ -2929,120 +3033,143 @@ export async function deleteJourney({
                         type: 'info',
                         state,
                       });
-                    return response2;
-                  })
-                  .catch((error) => {
-                    if (
-                      error?.response?.data?.code === 500 &&
-                      error.response.data.message ===
-                        'Unable to read SMS config: Node did not exist'
-                    ) {
-                      status.nodes[containerNode._id] = { status: 'success' };
-                      if (verbose)
-                        printMessage({
-                          message: `Deleted ${containerNode._id} (${containerNode['_type']['_id']}) from ${journeyId}`,
-                          type: 'info',
-                          state,
-                        });
-                    } else {
-                      status.nodes[containerNode._id] = {
-                        status: 'error',
-                        error,
-                      };
-                      if (verbose)
-                        printMessage({
-                          message: `Error deleting container node ${containerNode._id} (${containerNode['_type']['_id']}) from ${journeyId}: ${error.response.data.message}`,
-                          type: 'error',
-                          state,
-                        });
-                    }
-                  })
-              );
-            } catch (error) {
+                  } else {
+                    throw error;
+                  }
+                }
+              },
+            });
+          } catch (error) {
+            if (verbose)
+              printMessage({
+                message: `Error getting container node ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}: ${
+                  error instanceof Error ? error.message : String(error)
+                }`,
+                type: 'error',
+                state,
+              });
+          }
+        } else {
+          // delete the node
+          deleteTasks.push({
+            key: nodeId,
+            reportError: (error: unknown) => {
+              status.nodes[nodeId] = { status: 'error', error };
               if (verbose)
                 printMessage({
-                  message: `Error getting container node ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}: ${error}`,
+                  message: `Error deleting node ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}: ${
+                    error instanceof Error ? error.message : String(error)
+                  }`,
                   type: 'error',
                   state,
                 });
-            }
-          } else {
-            // delete the node
-            nodePromises.push(
-              deleteNode({ nodeId, nodeType: nodeObject['nodeType'], state })
-                .then((response) => {
-                  status.nodes[nodeId] = { status: 'success' };
-                  if (verbose)
-                    printMessage({
-                      message: `Deleted ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
-                      type: 'info',
-                      state,
-                    });
-                  return response;
-                })
-                .catch((error) => {
-                  status.nodes[nodeId] = { status: 'error', error };
-                  if (verbose)
-                    printMessage({
-                      message: `Error deleting node ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}: ${error}`,
-                      type: 'error',
-                      state,
-                    });
-                })
-            );
+            },
+            run: async () => {
+              await deleteNode({
+                nodeId,
+                nodeType: nodeObject['nodeType'],
+                state,
+              });
+              status.nodes[nodeId] = { status: 'success' };
+              if (verbose)
+                printMessage({
+                  message: `Deleted ${nodeId} (${nodeObject['nodeType']}) from ${journeyId}`,
+                  type: 'info',
+                  state,
+                });
+            },
+          });
+        }
+      }
+    }
+    let pendingTasks = deleteTasks;
+    while (pendingTasks.length > 0) {
+      const nextPendingTasks: DeleteJourneyTask[] = [];
+      let deletedInPass = 0;
+      const settledTasks = await Promise.all(
+        pendingTasks.map(async (task) => {
+          try {
+            await task.run();
+            return { task, success: true as const };
+          } catch (error) {
+            return { task, success: false as const, error };
           }
+        })
+      );
+      for (const settledTask of settledTasks) {
+        if (settledTask.success) {
+          deletedInPass += 1;
+          continue;
         }
-      }
-      // wait until all the node calls are complete
-      await Promise.allSettled(nodePromises);
-
-      // report status
-      if (progress) {
-        let nodeCount = 0;
-        let errorCount = 0;
-        for (const node of Object.keys(status.nodes)) {
-          nodeCount += 1;
-          if (status.nodes[node].status === 'error') errorCount += 1;
-        }
-        if (errorCount === 0) {
-          stopProgressIndicator({
-            id: indicatorId,
-            message: `Deleted ${getCurrentRealmName(state) + ' realm'} journey ${journeyId} and ${
-              nodeCount - errorCount
-            }/${nodeCount} nodes.`,
-            status: 'success',
-            state,
-          });
+        const { task, error } = settledTask;
+        task.lastError = error;
+        if (isConnectedNodeDeleteError(error)) {
+          nextPendingTasks.push(task);
         } else {
-          stopProgressIndicator({
-            id: indicatorId,
-            message: `Deleted ${getCurrentRealmName(state) + ' realm'} journey ${journeyId} and ${
-              nodeCount - errorCount
-            }/${nodeCount} nodes.`,
-            status: 'fail',
-            state,
-          });
+          task.reportError(error);
         }
       }
-      return status;
-    })
-    .catch((error) => {
-      status['status'] = 'error';
-      status['error'] = error;
+      if (nextPendingTasks.length === 0) {
+        break;
+      }
+      if (deletedInPass === 0) {
+        for (const task of nextPendingTasks) {
+          task.reportError(task.lastError);
+        }
+        break;
+      }
+      pendingTasks = nextPendingTasks;
+    }
+
+    // report status
+    let nodeCount = 0;
+    let errorCount = 0;
+    for (const node of Object.keys(status.nodes)) {
+      nodeCount += 1;
+      if (status.nodes[node].status === 'error') errorCount += 1;
+    }
+    const summaryMessage = deep
+      ? `Deleted ${getCurrentRealmName(state) + ' realm'} journey ${journeyId} and ${
+          nodeCount - errorCount
+        }/${nodeCount} nodes.`
+      : `Deleted ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}.`;
+    if (progress && indicatorId && progressIndicatorVisible) {
       stopProgressIndicator({
         id: indicatorId,
-        message: `Error deleting ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}.`,
+        message: summaryMessage,
+        status: errorCount === 0 ? 'success' : 'fail',
+        state,
+      });
+    } else if (verbose) {
+      printMessage({
+        message: summaryMessage,
+        type: errorCount === 0 ? 'info' : 'error',
+        state,
+      });
+    }
+    return status;
+  } catch (error) {
+    status['status'] = 'error';
+    status['error'] = error;
+    const errorMessage = `Error deleting ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}.`;
+    if (progress && indicatorId && progressIndicatorVisible) {
+      stopProgressIndicator({
+        id: indicatorId,
+        message: errorMessage,
         status: 'fail',
         state,
       });
-      if (verbose)
-        printMessage({
-          message: `Error deleting ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}: ${error}`,
-          type: 'error',
-          state,
-        });
-      return status;
-    });
+    }
+    if (verbose)
+      printMessage({
+        message: `Error deleting ${getCurrentRealmName(state) + ' realm'} journey ${journeyId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        type: 'error',
+        state,
+      });
+    return status;
+  }
 }
 
 export type DeleteJourneysStatus = {
@@ -3121,11 +3248,15 @@ export async function deleteJourneys({
   }
   stopProgressIndicator({
     id: indicatorId,
-    message: `Deleted ${
-      journeyCount - journeyErrorCount
-    }/${journeyCount} ${getCurrentRealmName(state) + ' realm'} journeys and ${
-      nodeCount - nodeErrorCount
-    }/${nodeCount} nodes.`,
+    message: options.deep
+      ? `Deleted ${
+          journeyCount - journeyErrorCount
+        }/${journeyCount} ${getCurrentRealmName(state) + ' realm'} journeys and ${
+          nodeCount - nodeErrorCount
+        }/${nodeCount} nodes.`
+      : `Deleted ${
+          journeyCount - journeyErrorCount
+        }/${journeyCount} ${getCurrentRealmName(state) + ' realm'} journeys.`,
     state,
   });
   return status;

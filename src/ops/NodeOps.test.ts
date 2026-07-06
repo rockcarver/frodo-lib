@@ -52,10 +52,122 @@ import * as TestData from '../test/setup/NodeSetup';
 import { snapshotResultCallback } from '../test/utils/TestUtils';
 
 const ctx = autoSetupPolly();
+type SnapshotRecord = Record<string, any> & { _id?: string };
 const stateCloud750 = frodo.createInstance({
   amVersion: '7.5.0',
   deploymentType: Constants.CLOUD_DEPLOYMENT_TYPE_KEY,
 }).state;
+
+const stableNodeTypeIds = [
+  TestData.node4._type!._id as string,
+  'PageNode',
+  TestData.node2._type!._id as string,
+  TestData.node1._type!._id as string,
+];
+const stableNodeIds = [
+  TestData.node1._id as string,
+  TestData.node3._id as string,
+  TestData.node4._id as string,
+];
+const stableCustomNodeIds = [
+  TestData.customNode1._id as string,
+  TestData.customNode2._id as string,
+  TestData.customNode4._id as string,
+];
+const versionedNodeType = 'ValidatedUsernameNode';
+const versionedNodeTypeVersion = '2.0';
+const legacyAmVersion = '7.5.0';
+
+function sortById<T extends SnapshotRecord>(items: T[]): T[] {
+  return [...items].sort((left, right) =>
+    (left._id ?? '').localeCompare(right._id ?? '')
+  );
+}
+
+function summarizeNodeTypes(result: SnapshotRecord[]) {
+  return sortById(
+    result.filter(
+      (type): type is SnapshotRecord & { _id: string } =>
+        typeof type._id === 'string' && stableNodeTypeIds.includes(type._id)
+    )
+  ).map(({ _id, name, versions }) => ({
+    _id,
+    name,
+    versions: versions ?? [],
+  }));
+}
+
+function summarizeNodes(
+  nodes: SnapshotRecord[],
+  includedIds: string[] = stableNodeIds
+) {
+  return sortById(
+    nodes.filter(
+      (node): node is SnapshotRecord & { _id: string } =>
+        typeof node._id === 'string' && includedIds.includes(node._id)
+    )
+  ).map(
+    ({
+      _id,
+      _rev,
+      _type,
+      autocompleteValues,
+      identityResource,
+      passwordAttribute,
+      prepopulate,
+      usernameAttribute,
+      validateInput,
+    }) => ({
+      _id,
+      _rev,
+      _type,
+      ...(autocompleteValues ? { autocompleteValues } : {}),
+      ...(identityResource ? { identityResource } : {}),
+      ...(passwordAttribute ? { passwordAttribute } : {}),
+      ...(prepopulate !== undefined ? { prepopulate } : {}),
+      ...(usernameAttribute ? { usernameAttribute } : {}),
+      ...(validateInput !== undefined ? { validateInput } : {}),
+    })
+  );
+}
+
+function summarizeCustomNodes(result: SnapshotRecord[]) {
+  return sortById(
+    result.filter(
+      (node): node is SnapshotRecord & { _id: string } =>
+        typeof node._id === 'string' && stableCustomNodeIds.includes(node._id)
+    )
+  ).map(({ _id, serviceName, displayName, tags, version }) => ({
+    _id,
+    serviceName,
+    displayName,
+    tags,
+    ...(version !== undefined ? { version } : {}),
+  }));
+}
+
+async function withAmVersion<T>(amVersion: string, callback: () => Promise<T>) {
+  const previousAmVersion = state.getAmVersion();
+  state.setAmVersion(amVersion);
+  try {
+    return await callback();
+  } finally {
+    state.setAmVersion(previousAmVersion);
+  }
+}
+
+async function getExistingVersionedNodeId(nodeType: string) {
+  const response = await withAmVersion('8.1.0', async () =>
+    NodeOps.readNodesByType({
+      nodeType,
+      nodeTypeVersion: versionedNodeTypeVersion,
+      state,
+    })
+  );
+  const existingNodeId = response?.[0]?._id;
+  expect(existingNodeId).toBeDefined();
+  return existingNodeId as string;
+}
 
 stateCloud750.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 
@@ -63,6 +175,7 @@ describe('NodeOps', () => {
   TestData.setup();
 
   beforeEach(async () => {
+    state.setAmVersion(legacyAmVersion);
     if (process.env.FRODO_POLLY_MODE === 'record') {
       ctx.polly.server.any().on('beforePersist', (_req, recording) => {
         filterRecording(recording);
@@ -109,6 +222,46 @@ describe('NodeOps', () => {
 
       test('1: Read node types', async () => {
         const response = await NodeOps.readNodeTypes({ state });
+        expect(summarizeNodeTypes(response)).toMatchSnapshot();
+      });
+    });
+
+    describe('version-aware node reads', () => {
+      test(`1: Read versioned node type [${versionedNodeType} v${versionedNodeTypeVersion}]`, async () => {
+        const response = await withAmVersion('8.1.0', async () =>
+          NodeOps.readNodeType({
+            nodeType: versionedNodeType,
+            nodeTypeVersion: versionedNodeTypeVersion,
+            state,
+          })
+        );
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`2: Read versioned nodes by type [${versionedNodeType} v${versionedNodeTypeVersion}]`, async () => {
+        const versionedNodeId =
+          await getExistingVersionedNodeId(versionedNodeType);
+        const response = await withAmVersion('8.1.0', async () =>
+          NodeOps.readNodesByType({
+            nodeType: versionedNodeType,
+            nodeTypeVersion: versionedNodeTypeVersion,
+            state,
+          })
+        );
+        expect(summarizeNodes(response, [versionedNodeId])).toMatchSnapshot();
+      });
+
+      test(`3: Read existing versioned node [${versionedNodeType} v${versionedNodeTypeVersion}]`, async () => {
+        const versionedNodeId =
+          await getExistingVersionedNodeId(versionedNodeType);
+        const response = await withAmVersion('8.1.0', async () =>
+          NodeOps.readNode({
+            nodeId: versionedNodeId,
+            nodeType: versionedNodeType,
+            nodeTypeVersion: versionedNodeTypeVersion,
+            state,
+          })
+        );
         expect(response).toMatchSnapshot();
       });
     });
@@ -120,7 +273,7 @@ describe('NodeOps', () => {
 
       test('1: Read nodes', async () => {
         const response = await NodeOps.readNodes({ state });
-        expect(response).toMatchSnapshot();
+        expect(summarizeNodes(response)).toMatchSnapshot();
       });
     });
 
@@ -129,12 +282,14 @@ describe('NodeOps', () => {
         expect(NodeOps.readNodesByType).toBeDefined();
       });
 
-      test('1: Read nodes of type SelectIdPNode', async () => {
+      test('1: Read nodes of type ValidatedUsernameNode', async () => {
         const response = await NodeOps.readNodesByType({
-          nodeType: 'SelectIdPNode',
+          nodeType: TestData.node1._type!._id as string,
           state,
         });
-        expect(response).toMatchSnapshot();
+        expect(
+          summarizeNodes(response, [TestData.node1._id as string])
+        ).toMatchSnapshot();
       });
     });
 
@@ -332,7 +487,7 @@ describe('NodeOps', () => {
 
       test('1: Read custom nodes', async () => {
         const response = await NodeOps.readCustomNodes({ state });
-        expect(response).toMatchSnapshot();
+        expect(summarizeCustomNodes(response)).toMatchSnapshot();
       });
     });
 
