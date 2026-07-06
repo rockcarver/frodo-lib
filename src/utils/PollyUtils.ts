@@ -113,6 +113,24 @@ export function filterRecording(
 }
 
 function obfuscateHeader(header: { name: string; value: string }): void {
+  if (header.name.toUpperCase() === 'USER-AGENT') {
+    header.value = '<user agent>';
+  }
+  if (header.name.toUpperCase() === 'X-FORGEROCK-TRANSACTIONID') {
+    header.value = '<transaction id>';
+  }
+  if (header.name.toUpperCase() === 'DATE') {
+    header.value = '<date>';
+  }
+  if (header.name.toUpperCase() === 'ETAG') {
+    header.value = '<etag>';
+  }
+  if (header.name.toUpperCase() === 'ALT-SVC') {
+    header.value = '<alt-svc>';
+  }
+  if (header.name.toUpperCase() === 'VIA') {
+    header.value = '<via>';
+  }
   if (header.name.toUpperCase() === 'AUTHORIZATION') {
     if (isBase64Encoded(header.value)) {
       header.value = encode('username:password');
