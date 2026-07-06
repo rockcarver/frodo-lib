@@ -648,23 +648,9 @@ export async function readNodes({
 export async function readNodesByVersion({
   nodeVersionFilter,
   state,
-  readNodeTypesFn = readNodeTypes,
-  getNodesByTypeFn = _getNodesByType,
-  requireVersionFn = requireVersion,
 }: {
   nodeVersionFilter?: NodeVersionFilter;
   state: State;
-  readNodeTypesFn?: ({ state }: { state: State }) => Promise<any>;
-  getNodesByTypeFn?: ({
-    nodeType,
-    nodeTypeVersion,
-    state,
-  }: {
-    nodeType: string;
-    nodeTypeVersion?: string;
-    state: State;
-  }) => Promise<{ result: NodeSkeleton[] }>;
-  requireVersionFn?: (state: State) => boolean;
 }): Promise<NodeSkeleton[]> {
   const normalizeSemver = (value: string): string => {
     const trimmed = value.trim();
@@ -738,14 +724,14 @@ export async function readNodesByVersion({
   };
 
   try {
-    const typeResult = await readNodeTypesFn({ state });
+    const typeResult = await readNodeTypes({ state });
     const types = Array.isArray(typeResult)
       ? typeResult
       : (Object.values(typeResult || {}) as NodeTypeSkeleton[]);
     const nodes: NodeSkeleton[] = [];
     for (const type of types) {
       const versions =
-        requireVersionFn(state) && type.versions && type.versions.length > 0
+        requireVersion(state) && type.versions && type.versions.length > 0
           ? type.versions
               .map((version) =>
                 typeof version === 'string' ? version.trim() : ''
@@ -760,7 +746,7 @@ export async function readNodesByVersion({
           continue;
         }
         try {
-          const byType = await getNodesByTypeFn({
+          const byType = await _getNodesByType({
             nodeType: type._id,
             nodeTypeVersion: version,
             state,
