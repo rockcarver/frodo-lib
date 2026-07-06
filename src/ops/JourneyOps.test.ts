@@ -9,6 +9,7 @@
  *    Phase 2: Record Group 1 of DESTRUCTIVE tests - Deletes by ID
  *    Phase 3: Record Group 2 of DESTRUCTIVE tests - Deletes by tag
  *    Phase 4: Record Group 3 of DESTRUCTIVE tests - Delete all
+ *    Phase 5: Record LEGACY compatibility tests (pinned AM <= 8.0.0)
  *
  *    Because destructive tests interfere with the recording of non-destructive
  *    tests and also interfere among themselves, they have to be run in groups
@@ -25,6 +26,7 @@
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=frodo-dev npm run test:record JourneyOps
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=frodo-dev npm run test:record JourneyOps
  *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=4 FRODO_HOST=frodo-dev npm run test:record JourneyOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=5 FRODO_HOST=frodo-dev npm run test:record JourneyOps
  *
  *    The above command assumes that you have a connection profile for
  *    'frodo-dev' on your development machine.
@@ -56,13 +58,18 @@ import * as TestData from '../test/setup/JourneySetup';
 import { snapshotResultCallback } from '../test/utils/TestUtils';
 
 const ctx = autoSetupPolly();
+const pollyMode = process.env.FRODO_POLLY_MODE;
+const recordPhase = process.env.FRODO_RECORD_PHASE;
+const runPhase1 = !pollyMode || (pollyMode === 'record' && recordPhase === '1');
+const runLegacyCompatPhase =
+  !pollyMode || (pollyMode === 'record' && recordPhase === '5');
+const runJourneyNonDestructivePhases = runPhase1 || runLegacyCompatPhase;
 
 state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 
 describe('JourneyOps', () => {
-  
   TestData.setup();
-  
+
   beforeEach(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
       ctx.polly.server.any().on('beforePersist', (_req, recording) => {
@@ -70,12 +77,8 @@ describe('JourneyOps', () => {
       });
     }
   });
-  // Phase 1
-  if (
-    !process.env.FRODO_POLLY_MODE ||
-    (process.env.FRODO_POLLY_MODE === 'record' &&
-      process.env.FRODO_RECORD_PHASE === '1')
-  ) {
+  // Phase 1 + Phase 5 (legacy compatibility)
+  if (runJourneyNonDestructivePhases) {
     describe('updateCoordinates()', () => {
       const node1 = '5883ff1e-80dd-49f5-a609-120303e1b0cd';
       const node2 = '59129227-f192-4ff4-a7b4-bc7690b82d4f';
@@ -89,12 +92,14 @@ describe('JourneyOps', () => {
       test('1: Nothing changes when coordinates exist', async () => {
         const journey = TestData.journey10;
         const tree = JSON.parse(JSON.stringify(journey.tree));
-        expect(await JourneyOps.updateCoordinates({
-          tree: tree,
-          nodesAttributeName: "nodes",
-          serverTree: null,
-          state
-        })).toBeNull();
+        expect(
+          await JourneyOps.updateCoordinates({
+            tree: tree,
+            nodesAttributeName: 'nodes',
+            serverTree: null,
+            state,
+          })
+        ).toBeNull();
         expect(tree).toMatchSnapshot(journey.tree);
       });
 
@@ -105,9 +110,9 @@ describe('JourneyOps', () => {
         delete tree.nodes[node2].y;
         const serverTree = await JourneyOps.updateCoordinates({
           tree: tree,
-          nodesAttributeName: "nodes",
+          nodesAttributeName: 'nodes',
           serverTree: null,
-          state
+          state,
         });
         //Ignore the _rev field
         if (serverTree) serverTree._rev = journey.tree._rev;
@@ -123,12 +128,14 @@ describe('JourneyOps', () => {
         expectedTree.nodes[node6].x = 0;
         expectedTree.nodes[node6].y = 0;
         const tree = JSON.parse(JSON.stringify(journey.tree));
-        expect(await JourneyOps.updateCoordinates({
-          tree: tree,
-          nodesAttributeName: "nodes",
-          serverTree: null,
-          state
-        })).toBeNull();
+        expect(
+          await JourneyOps.updateCoordinates({
+            tree: tree,
+            nodesAttributeName: 'nodes',
+            serverTree: null,
+            state,
+          })
+        ).toBeNull();
         expect(tree).toMatchSnapshot(expectedTree);
       });
 
@@ -142,12 +149,14 @@ describe('JourneyOps', () => {
         const serverTree = JSON.parse(JSON.stringify(journey.tree));
         delete serverTree.nodes;
         const tree = JSON.parse(JSON.stringify(journey.tree));
-        expect(await JourneyOps.updateCoordinates({
-          tree: tree,
-          nodesAttributeName: "nodes",
-          serverTree: serverTree,
-          state
-        })).toStrictEqual(serverTree);
+        expect(
+          await JourneyOps.updateCoordinates({
+            tree: tree,
+            nodesAttributeName: 'nodes',
+            serverTree: serverTree,
+            state,
+          })
+        ).toStrictEqual(serverTree);
         expect(tree).toStrictEqual(expectedTree);
       });
 
@@ -169,18 +178,22 @@ describe('JourneyOps', () => {
         const tree = JSON.parse(JSON.stringify(journeyNoCoords.tree));
         tree.nodes[node2].x = 1001;
         tree.staticNodes.node4.y = 1002;
-        expect(await JourneyOps.updateCoordinates({
-          tree: tree,
-          nodesAttributeName: "nodes",
-          serverTree: serverTree,
-          state
-        })).toStrictEqual(serverTree);
-        expect(await JourneyOps.updateCoordinates({
-          tree: tree,
-          nodesAttributeName: "staticNodes",
-          serverTree: serverTree,
-          state
-        })).toStrictEqual(serverTree);
+        expect(
+          await JourneyOps.updateCoordinates({
+            tree: tree,
+            nodesAttributeName: 'nodes',
+            serverTree: serverTree,
+            state,
+          })
+        ).toStrictEqual(serverTree);
+        expect(
+          await JourneyOps.updateCoordinates({
+            tree: tree,
+            nodesAttributeName: 'staticNodes',
+            serverTree: serverTree,
+            state,
+          })
+        ).toStrictEqual(serverTree);
         expect(tree).toStrictEqual(expectedTree);
       });
     });
@@ -268,21 +281,33 @@ describe('JourneyOps', () => {
       });
 
       test('1: Export journeys w/o dependencies', async () => {
-        const response = await JourneyOps.exportJourneys({ options: { deps: false, useStringArrays: true, coords: true }, resultCallback: snapshotResultCallback, state });
+        const response = await JourneyOps.exportJourneys({
+          options: { deps: false, useStringArrays: true, coords: true },
+          resultCallback: snapshotResultCallback,
+          state,
+        });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
       });
 
       test('2: Export journeys w/ dependencies', async () => {
-        const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true, coords: true }, resultCallback: snapshotResultCallback, state });
+        const response = await JourneyOps.exportJourneys({
+          options: { deps: true, useStringArrays: true, coords: true },
+          resultCallback: snapshotResultCallback,
+          state,
+        });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
       });
 
       test('3: Export journeys w/ dependencies and w/o coordinates', async () => {
-        const response = await JourneyOps.exportJourneys({ options: { deps: true, useStringArrays: true, coords: false }, resultCallback: snapshotResultCallback, state });
+        const response = await JourneyOps.exportJourneys({
+          options: { deps: true, useStringArrays: true, coords: false },
+          resultCallback: snapshotResultCallback,
+          state,
+        });
         expect(response).toMatchSnapshot({
           meta: expect.any(Object),
         });
@@ -294,19 +319,28 @@ describe('JourneyOps', () => {
         expect(JourneyOps.importJourney).toBeDefined();
       });
 
-      test(`1: Import journey '${TestData.journey4.tree._id}' w/o dependencies`, async () => {
-        const journeyExport = TestData.journey4;
-        expect.assertions(1);
-        const response = await JourneyOps.importJourney({
-          importData: journeyExport,
-          options: {
-            reUuid: false,
-            deps: false,
-          },
-          state,
+      if (runLegacyCompatPhase) {
+        test(`1: Import journey '${TestData.journey4.tree._id}' w/o dependencies`, async () => {
+          const journeyExport = TestData.journey4;
+          const previousAmVersion = state.getAmVersion();
+          // Legacy compatibility baseline: force non-versioned node API path.
+          state.setAmVersion('8.0.0');
+          expect.assertions(1);
+          try {
+            const response = await JourneyOps.importJourney({
+              importData: journeyExport,
+              options: {
+                reUuid: false,
+                deps: false,
+              },
+              state,
+            });
+            expect(response).toBeTruthy();
+          } finally {
+            state.setAmVersion(previousAmVersion);
+          }
         });
-        expect(response).toBeTruthy();
-      });
+      }
 
       test(`2: Import journey '${TestData.journey5.tree._id}' w/ dependencies`, async () => {
         const journeyExport = TestData.journey5;
@@ -334,6 +368,27 @@ describe('JourneyOps', () => {
           state,
         });
         expect(response).toBeTruthy();
+      });
+
+      test(`4: Import journey '${TestData.journey13.tree._id}' w/o dependencies with 2.0 node versions`, async () => {
+        const journeyExport = TestData.journey13;
+        const previousAmVersion = state.getAmVersion();
+        // Ensure replay uses the version-aware node API path for 2.0 node metadata.
+        state.setAmVersion(journeyExport?.meta?.originAmVersion || '9.0.0');
+        expect.assertions(1);
+        try {
+          const response = await JourneyOps.importJourney({
+            importData: journeyExport,
+            options: {
+              reUuid: false,
+              deps: false,
+            },
+            state,
+          });
+          expect(response).toBeTruthy();
+        } finally {
+          state.setAmVersion(previousAmVersion);
+        }
       });
     });
 

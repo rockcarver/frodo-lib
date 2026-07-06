@@ -3,23 +3,27 @@ import { jest } from '@jest/globals';
 const getNodeTypesMock: any = jest.fn();
 const getNodesByTypeMock: any = jest.fn();
 const requireVersionMock: any = jest.fn();
+const createNodeApiMock: any = jest.fn();
+const putNodeApiMock: any = jest.fn();
+const deleteNodeApiMock: any = jest.fn();
+const getNodeApiMock: any = jest.fn();
 
 jest.unstable_mockModule('../api/NodeApi', () => ({
   createCustomNode: jest.fn(),
-  createNode: jest.fn(),
+  createNode: createNodeApiMock,
   deleteCustomNode: jest.fn(),
-  deleteNode: jest.fn(),
+  deleteNode: deleteNodeApiMock,
   getCustomNode: jest.fn(),
   getCustomNodes: jest.fn(),
   getCustomNodeSchema: jest.fn(),
   getCustomNodeUsage: jest.fn(),
-  getNode: jest.fn(),
+  getNode: getNodeApiMock,
   getNodes: jest.fn(),
   getNodesByType: getNodesByTypeMock,
   getNodeType: jest.fn(),
   getNodeTypes: getNodeTypesMock,
   putCustomNode: jest.fn(),
-  putNode: jest.fn(),
+  putNode: putNodeApiMock,
   requireVersion: requireVersionMock,
 }));
 
@@ -40,6 +44,10 @@ const makeNode = (nodeType: string, nodeTypeVersion = '1.0') => ({
 beforeEach(() => {
   jest.clearAllMocks();
   requireVersionMock.mockReturnValue(true);
+  getNodeApiMock.mockResolvedValue(makeNode('ValidatedUsernameNode', '1.0'));
+  createNodeApiMock.mockResolvedValue(makeNode('ValidatedUsernameNode', '1.0'));
+  putNodeApiMock.mockResolvedValue(makeNode('ValidatedUsernameNode', '1.0'));
+  deleteNodeApiMock.mockResolvedValue(makeNode('ValidatedUsernameNode', '1.0'));
   getNodesByTypeMock.mockImplementation(
     async ({
       nodeType,
@@ -165,6 +173,76 @@ describe('NodeOps readNodesByVersion unit coverage', () => {
     expect(response).toHaveLength(1);
     expect(getNodesByTypeMock).toHaveBeenCalledWith({
       nodeType: 'PageNode',
+      nodeTypeVersion: '2.0',
+      state,
+    });
+  });
+
+  test('readNode forwards explicit nodeTypeVersion', async () => {
+    await NodeOps.readNode({
+      nodeId: 'node-id',
+      nodeType: 'ValidatedUsernameNode',
+      nodeTypeVersion: '2.0',
+      state,
+    });
+
+    expect(getNodeApiMock).toHaveBeenCalledWith({
+      nodeId: 'node-id',
+      nodeType: 'ValidatedUsernameNode',
+      nodeTypeVersion: '2.0',
+      state,
+    });
+  });
+
+  test('createNode forwards explicit nodeTypeVersion when creating new node', async () => {
+    getNodeApiMock.mockRejectedValueOnce(new Error('missing'));
+
+    await NodeOps.createNode({
+      nodeId: 'node-id',
+      nodeType: 'ValidatedUsernameNode',
+      nodeTypeVersion: '2.0',
+      nodeData: makeNode('ValidatedUsernameNode', '2.0') as any,
+      state,
+    });
+
+    expect(putNodeApiMock).toHaveBeenCalledWith({
+      nodeId: 'node-id',
+      nodeType: 'ValidatedUsernameNode',
+      nodeTypeVersion: '2.0',
+      nodeData: expect.any(Object),
+      state,
+    });
+  });
+
+  test('updateNode forwards explicit nodeTypeVersion', async () => {
+    await NodeOps.updateNode({
+      nodeId: 'node-id',
+      nodeType: 'ValidatedUsernameNode',
+      nodeTypeVersion: '2.0',
+      nodeData: makeNode('ValidatedUsernameNode', '2.0') as any,
+      state,
+    });
+
+    expect(putNodeApiMock).toHaveBeenCalledWith({
+      nodeId: 'node-id',
+      nodeType: 'ValidatedUsernameNode',
+      nodeTypeVersion: '2.0',
+      nodeData: expect.any(Object),
+      state,
+    });
+  });
+
+  test('deleteNode forwards explicit nodeTypeVersion', async () => {
+    await NodeOps.deleteNode({
+      nodeId: 'node-id',
+      nodeType: 'ValidatedUsernameNode',
+      nodeTypeVersion: '2.0',
+      state,
+    });
+
+    expect(deleteNodeApiMock).toHaveBeenCalledWith({
+      nodeId: 'node-id',
+      nodeType: 'ValidatedUsernameNode',
       nodeTypeVersion: '2.0',
       state,
     });
