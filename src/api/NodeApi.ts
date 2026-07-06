@@ -127,7 +127,27 @@ export type CustomNodeUsage = Record<string, Record<string, string[]>>;
  * @returns {boolean} true if the new version-aware node API is required, false otherwise
  */
 export function requireVersion(state: State): boolean {
-  return gt(state.getAmVersion(), '8.1.0') || eq(state.getAmVersion(), '8.1.0');
+  const amVersion = state.getAmVersion();
+  if (!amVersion) {
+    return false;
+  }
+  return gt(amVersion, '8.1.0') || eq(amVersion, '8.1.0');
+}
+
+/**
+ * Get the node version path segment for version-aware node endpoints.
+ * @param nodeTypeVersion node type version
+ * @param state State object
+ * @returns node version path segment or an empty string when versioning is off
+ */
+export function getNodeVersionPathSegment({
+  nodeTypeVersion = '1.0',
+  state,
+}: {
+  nodeTypeVersion?: string;
+  state: State;
+}): string {
+  return requireVersion(state) ? `/${nodeTypeVersion}` : '';
 }
 
 /**
@@ -179,7 +199,7 @@ export async function getNodeType({
     state.getHost(),
     getCurrentRealmPath(state),
     nodeType,
-    requireVersion(state) ? `/${nodeTypeVersion}` : ''
+    getNodeVersionPathSegment({ nodeTypeVersion, state })
   );
   const { data } = await generateAmApi({
     resource: getNodeVersionApiConfig({ state }),
@@ -242,7 +262,7 @@ export async function getNodesByType({
     state.getHost(),
     getCurrentRealmPath(state),
     nodeType,
-    requireVersion(state) ? `/${nodeTypeVersion}` : ''
+    getNodeVersionPathSegment({ nodeTypeVersion, state })
   );
   const { data } = await generateAmApi({
     resource: getNodeVersionApiConfig({ state }),
@@ -275,7 +295,7 @@ export async function getNode({
     state.getHost(),
     getCurrentRealmPath(state),
     nodeType,
-    requireVersion(state) ? `/${nodeTypeVersion}` : '',
+    getNodeVersionPathSegment({ nodeTypeVersion, state }),
     nodeId
   );
   const { data } = await generateAmApi({
@@ -309,7 +329,7 @@ export async function createNode({
     state.getHost(),
     getCurrentRealmPath(state),
     nodeType,
-    requireVersion(state) ? `/${nodeTypeVersion}` : ''
+    getNodeVersionPathSegment({ nodeTypeVersion, state })
   );
   const { data } = await generateAmApi({
     resource: getNodeVersionApiConfig({ state }),
@@ -340,7 +360,7 @@ export async function getNodeSchema({
     state.getHost(),
     getCurrentRealmPath(state),
     nodeType,
-    requireVersion(state) ? `/${nodeTypeVersion}` : ''
+    getNodeVersionPathSegment({ nodeTypeVersion, state })
   );
   const { data } = await generateAmApi({
     resource: getNodeVersionApiConfig({ state }),
@@ -400,7 +420,7 @@ export async function putNode({
     state.getHost(),
     getCurrentRealmPath(state),
     nodeType,
-    requireVersion(state) ? `/${nodeTypeVersion}` : '',
+    getNodeVersionPathSegment({ nodeTypeVersion, state }),
     nodeId
   );
   const { data } = await generateAmApi({

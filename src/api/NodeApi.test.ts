@@ -30,6 +30,7 @@
  * in case things don't function as expected
  */
 import * as NodeApi from './NodeApi';
+import { frodo } from '../index';
 import { state } from '../index';
 import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
@@ -38,10 +39,18 @@ import * as TestData from '../test/setup/NodeSetup';
 
 const ctx = autoSetupPolly();
 
-describe('NodeApi', () => {
+function createVersionedState(amVersion: string) {
+  const versionedState = frodo.createInstance({
+    host: 'https://example.com/am',
+    realm: 'employees',
+  }).state;
+  versionedState.setAmVersion(amVersion);
+  return versionedState;
+}
 
+describe('NodeApi', () => {
   TestData.setup();
-  
+
   beforeEach(async () => {
     if (process.env.FRODO_POLLY_MODE === 'record') {
       ctx.polly.server.any().on('beforePersist', (_req, recording) => {
@@ -58,6 +67,51 @@ describe('NodeApi', () => {
     test('1: Get all node types', async () => {
       const response = await NodeApi.getNodeTypes({ state });
       expect(response).toMatchSnapshot();
+    });
+  });
+
+  describe('requireVersion()', () => {
+    test('returns false below 8.1.0 and true at or above 8.1.0', async () => {
+      expect(NodeApi.requireVersion(state)).toBe(false);
+      expect(NodeApi.requireVersion(createVersionedState('7.5.0'))).toBe(false);
+      expect(NodeApi.requireVersion(createVersionedState('8.1.0'))).toBe(true);
+      expect(NodeApi.requireVersion(createVersionedState('8.1.1'))).toBe(true);
+    });
+  });
+
+  describe('version-aware node api', () => {
+    test('ignores nodeTypeVersion below AM 8.1.0', async () => {
+      const oldState = createVersionedState('7.5.0');
+
+      expect(
+        NodeApi.getNodeVersionPathSegment({
+          nodeTypeVersion: '2.0',
+          state: oldState,
+        })
+      ).toBe('');
+      expect(
+        NodeApi.getNodeVersionPathSegment({
+          nodeTypeVersion: '2.0',
+          state,
+        })
+      ).toBe('');
+    });
+
+    test('includes nodeTypeVersion at AM 8.1.0 and above', async () => {
+      const newState = createVersionedState('8.1.0');
+
+      expect(
+        NodeApi.getNodeVersionPathSegment({
+          nodeTypeVersion: '2.0',
+          state: newState,
+        })
+      ).toBe('/2.0');
+      expect(
+        NodeApi.getNodeVersionPathSegment({
+          nodeTypeVersion: '2.0',
+          state: createVersionedState('8.1.1'),
+        })
+      ).toBe('/2.0');
     });
   });
 
@@ -91,10 +145,10 @@ describe('NodeApi', () => {
       expect(NodeApi.getNode).toBeDefined();
     });
 
-    test(`1: Get existing node [${TestData.node1._id} - ${TestData.node1._type._id}]`, async () => {
+    test(`1: Get existing node [${TestData.node1?._id} - ${TestData.node1?._type?._id}]`, async () => {
       const response = await NodeApi.getNode({
-        nodeId: TestData.node1._id,
-        nodeType: TestData.node1._type._id,
+        nodeId: TestData.node1?._id as string,
+        nodeType: TestData.node1?._type?._id as string,
         state,
       });
       expect(response).toMatchSnapshot();
@@ -109,46 +163,46 @@ describe('NodeApi', () => {
           state,
         });
       } catch (error) {
-        expect(error.response.data).toMatchSnapshot();
+        expect((error as any).response.data).toMatchSnapshot();
       }
     });
   });
 
-  describe ('createNode()', () => {
+  describe('createNode()', () => {
     test('0: Method is implemented', async () => {
       expect(NodeApi.createNode).toBeDefined();
     });
 
-    test(`1: Create new node [${TestData.node5._id} - ${TestData.node5._type._id}]`, async () => {
+    test(`1: Create new node [${TestData.node5?._id} - ${TestData.node5?._type?._id}]`, async () => {
       const response = await NodeApi.putNode({
-        nodeId: TestData.node5._id,
-        nodeType: TestData.node5._type._id,
+        nodeId: TestData.node5?._id as string,
+        nodeType: TestData.node5?._type?._id as string,
         nodeData: TestData.node5,
         state,
       });
       expect(response).toMatchSnapshot();
     });
-  })
+  });
 
   describe('putNode()', () => {
     test('0: Method is implemented', async () => {
       expect(NodeApi.putNode).toBeDefined();
     });
 
-    test(`1: Create new node [${TestData.node2._id} - ${TestData.node2._type._id}]`, async () => {
+    test(`1: Create new node [${TestData.node2?._id} - ${TestData.node2?._type?._id}]`, async () => {
       const response = await NodeApi.putNode({
-        nodeId: TestData.node2._id,
-        nodeType: TestData.node2._type._id,
+        nodeId: TestData.node2?._id as string,
+        nodeType: TestData.node2?._type?._id as string,
         nodeData: TestData.node2,
         state,
       });
       expect(response).toMatchSnapshot();
     });
 
-    test(`2: Update existing node [${TestData.node3._id} - ${TestData.node3._type._id}]`, async () => {
+    test(`2: Update existing node [${TestData.node3?._id} - ${TestData.node3?._type?._id}]`, async () => {
       const node = await NodeApi.putNode({
-        nodeId: TestData.node3._id,
-        nodeType: TestData.node3._type._id,
+        nodeId: TestData.node3?._id as string,
+        nodeType: TestData.node3?._type?._id as string,
         nodeData: TestData.node3,
         state,
       });
@@ -161,10 +215,10 @@ describe('NodeApi', () => {
       expect(NodeApi.deleteNode).toBeDefined();
     });
 
-    test(`1: Delete existing node [${TestData.node4._id} - ${TestData.node4._type._id}]`, async () => {
+    test(`1: Delete existing node [${TestData.node4?._id} - ${TestData.node4?._type?._id}]`, async () => {
       const node = await NodeApi.deleteNode({
-        nodeId: TestData.node4._id,
-        nodeType: TestData.node4._type._id,
+        nodeId: TestData.node4?._id as string,
+        nodeType: TestData.node4?._type?._id as string,
         state,
       });
       expect(node).toMatchSnapshot();
@@ -179,7 +233,7 @@ describe('NodeApi', () => {
           state,
         });
       } catch (error) {
-        expect(error.response.data).toMatchSnapshot();
+        expect((error as any).response.data).toMatchSnapshot();
       }
     });
   });
@@ -214,9 +268,9 @@ describe('NodeApi', () => {
       expect(NodeApi.getCustomNode).toBeDefined();
     });
 
-    test(`1: Get existing custom node [${TestData.customNode1._id}]`, async () => {
+    test(`1: Get existing custom node [${TestData.customNode1?._id}]`, async () => {
       const response = await NodeApi.getCustomNode({
-        nodeId: TestData.customNode1._id,
+        nodeId: TestData.customNode1?._id as string,
         state,
       });
       expect(response).toMatchSnapshot();
@@ -230,7 +284,7 @@ describe('NodeApi', () => {
           state,
         });
       } catch (error) {
-        expect(error.response.data).toMatchSnapshot();
+        expect((error as any).response.data).toMatchSnapshot();
       }
     });
   });
@@ -240,9 +294,9 @@ describe('NodeApi', () => {
       expect(NodeApi.putCustomNode).toBeDefined();
     });
 
-    test(`1: Update existing custom node [${TestData.customNode2._id}]`, async () => {
+    test(`1: Update existing custom node [${TestData.customNode2?._id}]`, async () => {
       const response = await NodeApi.putCustomNode({
-        nodeId: TestData.customNode2._id,
+        nodeId: TestData.customNode2?._id as string,
         nodeData: TestData.customNode2,
         state,
       });
@@ -255,9 +309,9 @@ describe('NodeApi', () => {
       expect(NodeApi.deleteCustomNode).toBeDefined();
     });
 
-    test(`1: Delete existing custom node [${TestData.customNode4._id}]`, async () => {
+    test(`1: Delete existing custom node [${TestData.customNode4?._id}]`, async () => {
       const node = await NodeApi.deleteCustomNode({
-        nodeId: TestData.customNode4._id,
+        nodeId: TestData.customNode4?._id as string,
         state,
       });
       expect(node).toMatchSnapshot();
@@ -271,7 +325,7 @@ describe('NodeApi', () => {
           state,
         });
       } catch (error) {
-        expect(error.response.data).toMatchSnapshot();
+        expect((error as any).response.data).toMatchSnapshot();
       }
     });
   });
@@ -281,9 +335,9 @@ describe('NodeApi', () => {
       expect(NodeApi.getCustomNodeUsage).toBeDefined();
     });
 
-    test(`1: Get custom node usage [${TestData.customNode1._id}]`, async () => {
+    test(`1: Get custom node usage [${TestData.customNode1?._id}]`, async () => {
       const response = await NodeApi.getCustomNodeUsage({
-        nodeId: TestData.customNode1._id,
+        nodeId: TestData.customNode1?._id as string,
         state,
       });
       expect(response).toMatchSnapshot();
