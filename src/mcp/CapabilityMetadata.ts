@@ -79,6 +79,56 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'MCP callers should use namedArgs { nodeId, nodeType } to avoid swapping the required positional arguments.',
   },
+  'authn.node.readNodeType': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'nodeType',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Node type, for example PageNode.',
+        examples: ['PageNode'],
+      },
+      {
+        name: 'nodeTypeVersion',
+        type: 'string',
+        required: false,
+        position: 1,
+        description: 'Node type version.',
+        defaultValue: '1.0',
+        examples: ['1.0', '2.0'],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Read a node type with namedArgs { nodeType, nodeTypeVersion }. nodeTypeVersion defaults to 1.0.',
+  },
+  'authn.node.readNodesByType': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'nodeType',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Node type, for example PageNode.',
+        examples: ['PageNode'],
+      },
+      {
+        name: 'nodeTypeVersion',
+        type: 'string',
+        required: false,
+        position: 1,
+        description: 'Node type version.',
+        defaultValue: '1.0',
+        examples: ['1.0', '2.0'],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Read nodes by type with namedArgs { nodeType, nodeTypeVersion }. nodeTypeVersion defaults to 1.0.',
+  },
   'authn.journey.createJourney': {
     argumentMode: 'named',
     parameters: [
