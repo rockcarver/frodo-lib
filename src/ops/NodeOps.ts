@@ -36,8 +36,21 @@ import {
 } from '../utils/Console';
 import { getMetadata, getResult } from '../utils/ExportImportUtils';
 import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
+import { eq, gt, lt } from '../utils/SemverUtils';
 import { FrodoError } from './FrodoError';
 import { ExportMetaData, ResultCallback } from './OpsTypes';
+
+export type NodeVersionFilter = {
+  eq?: string;
+  gt?: string;
+  gte?: string;
+  lt?: string;
+  lte?: string;
+  from?: string;
+  to?: string;
+  includeFrom?: boolean;
+  includeTo?: boolean;
+};
 
 export type Node = {
   /**
@@ -57,6 +70,14 @@ export type Node = {
    * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an object containing an array of node objects
    */
   readNodes(): Promise<NodeSkeleton[]>;
+  /**
+   * Read all nodes across types and versions with optional version filtering.
+   * @param {NodeVersionFilter} nodeVersionFilter optional node version filter
+   * @returns {Promise<NodeSkeleton[]>} matched node instances
+   */
+  readNodesByVersion(
+    nodeVersionFilter?: NodeVersionFilter
+  ): Promise<NodeSkeleton[]>;
   /**
    * Read all nodes by type
    * @param {string} nodeType node type
@@ -277,6 +298,11 @@ export default (state: State): Node => {
     },
     async readNodes(): Promise<NodeSkeleton[]> {
       return readNodes({ state });
+    },
+    async readNodesByVersion(
+      nodeVersionFilter?: NodeVersionFilter
+    ): Promise<NodeSkeleton[]> {
+      return readNodesByVersion({ nodeVersionFilter, state });
     },
     async readNodesByType(
       nodeType: string,
@@ -592,6 +618,143 @@ export async function readNodes({
     return result;
   } catch (error) {
     throw new FrodoError(`Error reading nodes`, error);
+  }
+}
+
+/**
+ * Read all nodes across types and versions with optional version filtering.
+ * @param {NodeVersionFilter} nodeVersionFilter optional node version filter
+ * @returns {Promise<NodeSkeleton[]>} matched node instances
+ */
+export async function readNodesByVersion({
+  nodeVersionFilter,
+  state,
+  readNodeTypesFn = readNodeTypes,
+  getNodesByTypeFn = _getNodesByType,
+  requireVersionFn = requireVersion,
+}: {
+  nodeVersionFilter?: NodeVersionFilter;
+  state: State;
+  readNodeTypesFn?: ({ state }: { state: State }) => Promise<any>;
+  getNodesByTypeFn?: ({
+    nodeType,
+    nodeTypeVersion,
+    state,
+  }: {
+    nodeType: string;
+    nodeTypeVersion?: string;
+    state: State;
+  }) => Promise<{ result: NodeSkeleton[] }>;
+  requireVersionFn?: (state: State) => boolean;
+}): Promise<NodeSkeleton[]> {
+  const normalizeSemver = (value: string): string => {
+    const trimmed = value.trim();
+    const match = trimmed.match(/^[vV]?(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+    if (!match) {
+      return trimmed;
+    }
+    const major = Number(match[1]);
+    const minor = Number(match[2] ?? '0');
+    const patch = Number(match[3] ?? '0');
+    return `${major}.${minor}.${patch}`;
+  };
+
+  const matchesNodeVersionFilter = (
+    version: string,
+    filter: NodeVersionFilter
+  ): boolean => {
+    const normalizedVersion = normalizeSemver(version);
+
+    if (filter.eq && !eq(normalizedVersion, normalizeSemver(filter.eq))) {
+      return false;
+    }
+    if (filter.gt && !gt(normalizedVersion, normalizeSemver(filter.gt))) {
+      return false;
+    }
+    if (
+      filter.gte &&
+      !(
+        gt(normalizedVersion, normalizeSemver(filter.gte)) ||
+        eq(normalizedVersion, normalizeSemver(filter.gte))
+      )
+    ) {
+      return false;
+    }
+    if (filter.lt && !lt(normalizedVersion, normalizeSemver(filter.lt))) {
+      return false;
+    }
+    if (
+      filter.lte &&
+      !(
+        lt(normalizedVersion, normalizeSemver(filter.lte)) ||
+        eq(normalizedVersion, normalizeSemver(filter.lte))
+      )
+    ) {
+      return false;
+    }
+
+    if (filter.from) {
+      const from = normalizeSemver(filter.from);
+      const includeFrom = filter.includeFrom ?? true;
+      const fromOk = includeFrom
+        ? gt(normalizedVersion, from) || eq(normalizedVersion, from)
+        : gt(normalizedVersion, from);
+      if (!fromOk) {
+        return false;
+      }
+    }
+
+    if (filter.to) {
+      const to = normalizeSemver(filter.to);
+      const includeTo = filter.includeTo ?? true;
+      const toOk = includeTo
+        ? lt(normalizedVersion, to) || eq(normalizedVersion, to)
+        : lt(normalizedVersion, to);
+      if (!toOk) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  try {
+    const typeResult = await readNodeTypesFn({ state });
+    const types = Array.isArray(typeResult)
+      ? typeResult
+      : (Object.values(typeResult || {}) as NodeTypeSkeleton[]);
+    const nodes: NodeSkeleton[] = [];
+    for (const type of types) {
+      const versions =
+        requireVersionFn(state) && type.versions && type.versions.length > 0
+          ? type.versions
+              .map((version) =>
+                typeof version === 'string' ? version.trim() : ''
+              )
+              .filter((version) => version.length > 0)
+          : ['1.0'];
+      for (const version of versions) {
+        if (
+          nodeVersionFilter &&
+          !matchesNodeVersionFilter(version, nodeVersionFilter)
+        ) {
+          continue;
+        }
+        try {
+          const byType = await getNodesByTypeFn({
+            nodeType: type._id,
+            nodeTypeVersion: version,
+            state,
+          });
+          nodes.push(...byType.result);
+        } catch {
+          // Ignore types/versions that are not queryable in the current environment.
+        }
+      }
+    }
+    return nodes;
+  } catch (error) {
+    throw new FrodoError(`Error reading nodes by version`, error);
   }
 }
 

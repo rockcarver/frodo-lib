@@ -124,6 +124,137 @@ describe('NodeOps', () => {
       });
     });
 
+    describe('readNodesByVersion()', () => {
+      test('0: Method is implemented', async () => {
+        expect(NodeOps.readNodesByVersion).toBeDefined();
+      });
+
+      const makeNode = (nodeType: string, nodeTypeVersion = '1.0') => ({
+        _id: `${nodeType}-${nodeTypeVersion}`,
+        _type: {
+          _id: nodeType,
+          name: nodeType,
+          collection: true,
+          version: nodeTypeVersion,
+        },
+      });
+
+      test('1: Read nodes by exact version 2.0', async () => {
+        const readNodeTypesFn = async () => [
+          { _id: 'PageNode', versions: ['1.0', '2.0'] },
+          { _id: 'ValidatedUsernameNode', versions: ['2.0'] },
+        ];
+        const getNodesByTypeFn = async ({
+          nodeType,
+          nodeTypeVersion,
+        }: {
+          nodeType: string;
+          nodeTypeVersion?: string;
+        }) => ({
+          result: [makeNode(nodeType, nodeTypeVersion)],
+        });
+
+        const response = await NodeOps.readNodesByVersion({
+          nodeVersionFilter: { eq: '2.0' },
+          state,
+          readNodeTypesFn,
+          getNodesByTypeFn,
+          requireVersionFn: () => true,
+        });
+        expect(response).toHaveLength(2);
+        expect(response.map((node) => node._id).sort()).toEqual([
+          'PageNode-2.0',
+          'ValidatedUsernameNode-2.0',
+        ]);
+      });
+
+      test('2: Read nodes by version range [2.0, 3.0)', async () => {
+        const readNodeTypesFn = async () => [
+          { _id: 'PageNode', versions: ['1.0', '2.0'] },
+          { _id: 'ValidatedUsernameNode', versions: ['2.0'] },
+          { _id: 'LegacyNode', versions: ['0.9'] },
+        ];
+        const getNodesByTypeFn = async ({
+          nodeType,
+          nodeTypeVersion,
+        }: {
+          nodeType: string;
+          nodeTypeVersion?: string;
+        }) => ({
+          result: [makeNode(nodeType, nodeTypeVersion)],
+        });
+
+        const response = await NodeOps.readNodesByVersion({
+          nodeVersionFilter: { gte: '2.0', lt: '3.0' },
+          state,
+          readNodeTypesFn,
+          getNodesByTypeFn,
+          requireVersionFn: () => true,
+        });
+        expect(response).toHaveLength(2);
+        expect(response.map((node) => node._id).sort()).toEqual([
+          'PageNode-2.0',
+          'ValidatedUsernameNode-2.0',
+        ]);
+      });
+
+      test('3: Version filter is not applied when versioned API is unavailable', async () => {
+        const readNodeTypesFn = async () => [
+          { _id: 'PageNode', versions: ['1.0', '2.0'] },
+          { _id: 'ValidatedUsernameNode', versions: ['2.0'] },
+        ];
+        const getNodesByTypeFn = async ({
+          nodeType,
+          nodeTypeVersion,
+        }: {
+          nodeType: string;
+          nodeTypeVersion?: string;
+        }) => ({
+          result: [makeNode(nodeType, nodeTypeVersion)],
+        });
+
+        const response = await NodeOps.readNodesByVersion({
+          nodeVersionFilter: { eq: '2.0' },
+          state: stateCloud750,
+          readNodeTypesFn,
+          getNodesByTypeFn,
+          requireVersionFn: () => false,
+        });
+        expect(response).toEqual([]);
+      });
+
+      test('4: Continues when one type-version request fails', async () => {
+        const readNodeTypesFn = async () => [
+          { _id: 'PageNode', versions: ['2.0'] },
+          { _id: 'BrokenNode', versions: ['2.0'] },
+        ];
+        const getNodesByTypeFn = async ({
+          nodeType,
+          nodeTypeVersion,
+        }: {
+          nodeType: string;
+          nodeTypeVersion?: string;
+        }) => {
+          if (nodeType === 'BrokenNode') {
+            throw new Error('boom');
+          }
+          return {
+            result: [makeNode(nodeType, nodeTypeVersion)],
+          };
+        };
+
+        const response = await NodeOps.readNodesByVersion({
+          nodeVersionFilter: { eq: '2.0' },
+          state,
+          readNodeTypesFn,
+          getNodesByTypeFn,
+          requireVersionFn: () => true,
+        });
+        expect(response).toHaveLength(1);
+        expect(response[0]._id).toBe('PageNode-2.0');
+      });
+    });
+
     describe('readNodesByType()', () => {
       test('0: Method is implemented', async () => {
         expect(NodeOps.readNodesByType).toBeDefined();
