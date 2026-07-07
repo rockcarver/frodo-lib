@@ -329,6 +329,38 @@ export function createMappingExportTemplate({
   } as MappingExportInterface;
 }
 
+function noLegacySyncMappings(error: unknown): boolean {
+  const queue: unknown[] = [error];
+  const visited = new Set<unknown>();
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || visited.has(current)) {
+      continue;
+    }
+    visited.add(current);
+
+    const status = (current as { response?: { status?: number } }).response
+      ?.status;
+    const url = (current as { config?: { url?: string } }).config?.url;
+    if (
+      status === 404 &&
+      typeof url === 'string' &&
+      /\/openidm\/config\/sync(?:\?|$)/.test(url)
+    ) {
+      return true;
+    }
+
+    const nestedErrors = (current as { originalErrors?: unknown[] })
+      .originalErrors;
+    if (Array.isArray(nestedErrors)) {
+      queue.push(...nestedErrors);
+    }
+  }
+
+  return false;
+}
+
 /**
  * Read mappings from sync.json (legacy)
  * @returns {Promise<MappingSkeleton[]>} a promise that resolves to an array of mapping objects
@@ -363,6 +395,15 @@ export async function readSyncMappings({
     });
     return mappings;
   } catch (error) {
+    // Newer IDM deployments may not expose the legacy /config/sync endpoint.
+    if (noLegacySyncMappings(error)) {
+      debugMessage({
+        message:
+          'MappingOps.readLegacyMappings: legacy sync endpoint not available, continuing without legacy mappings',
+        state,
+      });
+      return [];
+    }
     throw new FrodoError(`Error reading sync mappings`, error);
   }
 }
@@ -864,7 +905,7 @@ export async function exportMappings({
   options?: MappingExportOptions;
   state: State;
 }): Promise<MappingExportInterface> {
-  let indicatorId: string;
+  let indicatorId: string | undefined;
   try {
     const exportData = createMappingExportTemplate({ state });
     const allMappingsData = await readMappings({
@@ -902,12 +943,14 @@ export async function exportMappings({
     });
     return exportData;
   } catch (error) {
-    stopProgressIndicator({
-      id: indicatorId,
-      message: `Error exporting mappings`,
-      status: 'fail',
-      state,
-    });
+    if (indicatorId) {
+      stopProgressIndicator({
+        id: indicatorId,
+        message: `Error exporting mappings`,
+        status: 'fail',
+        state,
+      });
+    }
     throw new FrodoError(`Error exporting mappings`, error);
   }
 }
