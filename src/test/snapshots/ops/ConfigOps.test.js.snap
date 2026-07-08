@@ -71520,6 +71520,20 @@ Note that for required parameters that are not specified in the options will use
         },
       ],
     },
+    "telemetry": {
+      "otlp": [
+        {
+          "encoding": "JSON",
+          "endpoint": "https://example.com/v1/logs",
+          "id": "frodo-test-otlp-3",
+          "sources": [
+            "am-everything",
+          ],
+          "type": "HTTP",
+        },
+      ],
+      "splunk": [],
+    },
     "variable": {
       "esv-frodo-test-variable-2": {
         "_id": "esv-frodo-test-variable-2",
@@ -178145,6 +178159,20 @@ main();
         },
       ],
     },
+    "telemetry": {
+      "otlp": [
+        {
+          "encoding": "JSON",
+          "endpoint": "https://example.com/v1/logs",
+          "id": "frodo-test-otlp-3",
+          "sources": [
+            "am-everything",
+          ],
+          "type": "HTTP",
+        },
+      ],
+      "splunk": [],
+    },
     "variable": {
       "esv-frodo-test-variable-2": {
         "_id": "esv-frodo-test-variable-2",
@@ -219857,6 +219885,20 @@ Note that for required parameters that are not specified in the options will use
           "target": "managed/test",
         },
       ],
+    },
+    "telemetry": {
+      "otlp": [
+        {
+          "encoding": "JSON",
+          "endpoint": "https://example.com/v1/logs",
+          "id": "frodo-test-otlp-3",
+          "sources": [
+            "am-everything",
+          ],
+          "type": "HTTP",
+        },
+      ],
+      "splunk": [],
     },
     "variable": {
       "esv-frodo-test-variable-2": {
@@ -340154,6 +340196,20 @@ Note that for required parameters that are not specified in the options will use
         },
       ],
     },
+    "telemetry": {
+      "otlp": [
+        {
+          "encoding": "JSON",
+          "endpoint": "https://example.com/v1/logs",
+          "id": "frodo-test-otlp-3",
+          "sources": [
+            "am-everything",
+          ],
+          "type": "HTTP",
+        },
+      ],
+      "splunk": [],
+    },
     "variable": {
       "esv-frodo-test-variable-2": {
         "_id": "esv-frodo-test-variable-2",
@@ -419559,6 +419615,20 @@ Note that for required parameters that are not specified in the options will use
           "target": "managed/test",
         },
       ],
+    },
+    "telemetry": {
+      "otlp": [
+        {
+          "encoding": "JSON",
+          "endpoint": "https://example.com/v1/logs",
+          "id": "frodo-test-otlp-3",
+          "sources": [
+            "am-everything",
+          ],
+          "type": "HTTP",
+        },
+      ],
+      "splunk": [],
     },
     "variable": {
       "esv-frodo-test-variable-2": {
