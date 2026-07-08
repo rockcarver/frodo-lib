@@ -856,10 +856,12 @@ export async function exportPoliciesByPolicySet({
 async function importPolicyPrerequisites({
   policyData,
   exportData,
+  skipPolicySetImport = false,
   state,
 }: {
   policyData: PolicySkeleton;
   exportData: PolicyExportInterface;
+  skipPolicySetImport?: boolean;
   state: State;
 }) {
   debugMessage({
@@ -868,6 +870,11 @@ async function importPolicyPrerequisites({
   });
   const errors = [];
   try {
+    if (policyData.resourceTypeUuid && !exportData.resourcetype) {
+      throw new FrodoError(
+        `Import data is missing prerequisite resource type definitions for policy ${policyData._id}. Provide import data with prerequisite resource type definitions included, or omit prerequisite import handling.`
+      );
+    }
     // resource type
     if (exportData.resourcetype[policyData.resourceTypeUuid]) {
       try {
@@ -889,6 +896,30 @@ async function importPolicyPrerequisites({
           )
         );
       }
+    } else if (policyData.resourceTypeUuid) {
+      errors.push(
+        new FrodoError(
+          `No prerequisite resource type definition with id ${policyData.resourceTypeUuid} found in import data for policy ${policyData._id}.`
+        )
+      );
+    }
+    if (skipPolicySetImport) {
+      if (errors.length > 0) {
+        throw new FrodoError(
+          `Error importing ${getCurrentRealmName(state) + ' realm'} prerequisites for policy ${policyData._id}`,
+          errors
+        );
+      }
+      debugMessage({
+        message: `PolicyOps.importPolicyHardDependencies: end`,
+        state,
+      });
+      return;
+    }
+    if (policyData.applicationName && !exportData.policyset) {
+      throw new FrodoError(
+        `Import data is missing prerequisite policy set definitions for policy ${policyData._id}. Provide import data with prerequisite policy set definitions included, or omit prerequisite import handling.`
+      );
     }
     // policy set
     if (exportData.policyset[policyData.applicationName]) {
@@ -909,6 +940,12 @@ async function importPolicyPrerequisites({
           )
         );
       }
+    } else if (policyData.applicationName) {
+      errors.push(
+        new FrodoError(
+          `No prerequisite policy set definition with id ${policyData.applicationName} found in import data for policy ${policyData._id}.`
+        )
+      );
     }
     if (errors.length > 0) {
       throw new FrodoError(
@@ -928,6 +965,43 @@ async function importPolicyPrerequisites({
     throw new FrodoError(
       `Error importing ${getCurrentRealmName(state) + ' realm'} prerequisites for policy ${policyData._id}`,
       error
+    );
+  }
+}
+
+function validatePolicyPrerequisiteDefinitions({
+  policyData,
+  exportData,
+  skipPolicySetImport = false,
+}: {
+  policyData: PolicySkeleton;
+  exportData: PolicyExportInterface;
+  skipPolicySetImport?: boolean;
+}) {
+  if (policyData.resourceTypeUuid && !exportData.resourcetype) {
+    throw new FrodoError(
+      `Import data is missing prerequisite resource type definitions for policy ${policyData._id}. Provide import data with prerequisite resource type definitions included, or omit prerequisite import handling.`
+    );
+  }
+  if (
+    policyData.resourceTypeUuid &&
+    !exportData.resourcetype[policyData.resourceTypeUuid]
+  ) {
+    throw new FrodoError(
+      `No prerequisite resource type definition with id ${policyData.resourceTypeUuid} found in import data for policy ${policyData._id}.`
+    );
+  }
+  if (skipPolicySetImport || !policyData.applicationName) {
+    return;
+  }
+  if (!exportData.policyset) {
+    throw new FrodoError(
+      `Import data is missing prerequisite policy set definitions for policy ${policyData._id}. Provide import data with prerequisite policy set definitions included, or omit prerequisite import handling.`
+    );
+  }
+  if (!exportData.policyset[policyData.applicationName]) {
+    throw new FrodoError(
+      `No prerequisite policy set definition with id ${policyData.applicationName} found in import data for policy ${policyData._id}.`
     );
   }
 }
@@ -954,9 +1028,19 @@ async function importPolicyDependencies({
   try {
     // scripts
     const scriptUuids = findScriptUuids(policyData.condition);
+    if (scriptUuids.length > 0 && !exportData.script) {
+      throw new FrodoError(
+        `Import data is missing dependency script definitions for policy ${policyData._id}. Provide import data with dependency script definitions included, or omit dependency import handling.`
+      );
+    }
     for (const scriptUuid of scriptUuids) {
       try {
         const scriptData = exportData.script[scriptUuid];
+        if (!scriptData) {
+          throw new FrodoError(
+            `No dependency script definition with id ${scriptUuid} found in import data for policy ${policyData._id}.`
+          );
+        }
         debugMessage({ message: `Importing script ${scriptUuid}`, state });
         await updateScript({ scriptId: scriptUuid, scriptData, state });
       } catch (error) {
@@ -990,6 +1074,28 @@ async function importPolicyDependencies({
   }
 }
 
+function validatePolicyDependencyDefinitions({
+  policyData,
+  exportData,
+}: {
+  policyData: PolicySkeleton;
+  exportData: PolicyExportInterface;
+}) {
+  const scriptUuids = findScriptUuids(policyData.condition);
+  if (scriptUuids.length > 0 && !exportData.script) {
+    throw new FrodoError(
+      `Import data is missing dependency script definitions for policy ${policyData._id}. Provide import data with dependency script definitions included, or omit dependency import handling.`
+    );
+  }
+  for (const scriptUuid of scriptUuids) {
+    if (!exportData.script[scriptUuid]) {
+      throw new FrodoError(
+        `No dependency script definition with id ${scriptUuid} found in import data for policy ${policyData._id}.`
+      );
+    }
+  }
+}
+
 /**
  * Import policy by id
  * @param {string} policyId policy id
@@ -1020,15 +1126,25 @@ export async function importPolicy({
           policyData.applicationName = options.policySetName;
         }
         if (options.prereqs) {
-          try {
-            await importPolicyPrerequisites({
-              policyData,
-              exportData: importData,
-              state,
-            });
-          } catch (error) {
-            errors.push(error);
-          }
+          validatePolicyPrerequisiteDefinitions({
+            policyData,
+            exportData: importData,
+            skipPolicySetImport: Boolean(options.policySetName),
+          });
+        }
+        if (options.deps) {
+          validatePolicyDependencyDefinitions({
+            policyData,
+            exportData: importData,
+          });
+        }
+        if (options.prereqs) {
+          await importPolicyPrerequisites({
+            policyData,
+            exportData: importData,
+            skipPolicySetImport: Boolean(options.policySetName),
+            state,
+          });
         }
         try {
           response = await updatePolicy({
@@ -1094,15 +1210,25 @@ export async function importFirstPolicy({
         policyData.applicationName = options.policySetName;
       }
       if (options.prereqs) {
-        try {
-          await importPolicyPrerequisites({
-            policyData,
-            exportData: importData,
-            state,
-          });
-        } catch (error) {
-          errors.push(error);
-        }
+        validatePolicyPrerequisiteDefinitions({
+          policyData,
+          exportData: importData,
+          skipPolicySetImport: Boolean(options.policySetName),
+        });
+      }
+      if (options.deps) {
+        validatePolicyDependencyDefinitions({
+          policyData,
+          exportData: importData,
+        });
+      }
+      if (options.prereqs) {
+        await importPolicyPrerequisites({
+          policyData,
+          exportData: importData,
+          skipPolicySetImport: Boolean(options.policySetName),
+          state,
+        });
       }
       try {
         response = await updatePolicy({
@@ -1167,15 +1293,25 @@ export async function importPolicies({
         policyData.applicationName = options.policySetName;
       }
       if (options.prereqs) {
-        try {
-          await importPolicyPrerequisites({
-            policyData,
-            exportData: importData,
-            state,
-          });
-        } catch (error) {
-          errors.push(error);
-        }
+        validatePolicyPrerequisiteDefinitions({
+          policyData,
+          exportData: importData,
+          skipPolicySetImport: Boolean(options.policySetName),
+        });
+      }
+      if (options.deps) {
+        validatePolicyDependencyDefinitions({
+          policyData,
+          exportData: importData,
+        });
+      }
+      if (options.prereqs) {
+        await importPolicyPrerequisites({
+          policyData,
+          exportData: importData,
+          skipPolicySetImport: Boolean(options.policySetName),
+          state,
+        });
       }
       try {
         response.push(
