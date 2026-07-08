@@ -629,6 +629,14 @@ async function importPolicySetPrerequisites({
   });
   const errors = [];
   try {
+    if (
+      policySetData.resourceTypeUuids.length > 0 &&
+      !exportData.resourcetype
+    ) {
+      throw new FrodoError(
+        `Import data is missing prerequisite resource type definitions for policy set ${policySetData.name}. Provide import data with prerequisite resource type definitions included, or omit prerequisite import handling.`
+      );
+    }
     // resource types
     for (const resourceTypeUuid of policySetData.resourceTypeUuids) {
       if (exportData.resourcetype[resourceTypeUuid]) {
