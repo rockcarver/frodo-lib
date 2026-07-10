@@ -3174,14 +3174,23 @@ export async function importAIAgents({
           throw new FrodoError(
             `Wrong agent type! Expected 'AIAgent' but got '${agentType}'.`
           );
-        const agentData = sanitizeAIAgentPayload(importData.agent[agentId]);
-        await _putAgentByTypeAndId({
-          agentType,
-          agentId,
-          agentData,
-          globalConfig: false,
-          state,
-        });
+        if (includeAgentIdentity) {
+          await createAIAgent({
+            agentId,
+            agentData: cloneDeep(importData.agent[agentId]),
+            includeAgentIdentity,
+            state,
+          });
+        } else {
+          const agentData = sanitizeAIAgentPayload(importData.agent[agentId]);
+          await _putAgentByTypeAndId({
+            agentType,
+            agentId,
+            agentData,
+            globalConfig: false,
+            state,
+          });
+        }
       } catch (error) {
         errors.push(
           new FrodoError(
@@ -3241,14 +3250,20 @@ export async function importAIAgent({
         `Wrong agent type! Expected 'AIAgent' but got '${agentType}'.`
       );
     }
-    const agentData = sanitizeAIAgentPayload(importData.agent[agentId]);
-    const result = await _putAgentByTypeAndId({
-      agentType,
-      agentId,
-      agentData,
-      globalConfig: false,
-      state,
-    });
+    const result = includeAgentIdentity
+      ? await createAIAgent({
+          agentId,
+          agentData: cloneDeep(importData.agent[agentId]),
+          includeAgentIdentity,
+          state,
+        })
+      : await _putAgentByTypeAndId({
+          agentType,
+          agentId,
+          agentData: sanitizeAIAgentPayload(importData.agent[agentId]),
+          globalConfig: false,
+          state,
+        });
     debugMessage({ message: `AgentOps.importAIAgent: end`, state });
     return result;
   } catch (error) {
