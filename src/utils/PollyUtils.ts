@@ -62,6 +62,14 @@ export function filterRecording(
   useDefaultHost = true,
   state?: State
 ) {
+  // Polly passes a full HAR document to beforePersist; sanitize every entry recursively.
+  if ((recording as any)?.log?.entries) {
+    for (const entry of (recording as any).log.entries) {
+      filterRecording(entry, useDefaultHost, state);
+    }
+    return;
+  }
+
   // proxy request url - proxied requests are recorded as: http://proxy-host:proxy-port/https://host/path
   // e.g. http://127.0.0.1:3128/https://openam-frodo-dev.forgeblocks.com/environment/release
   // to keep recordings the same whether or not a proxy was used, we must remove the proxy from the url
@@ -113,6 +121,13 @@ export function filterRecording(
 }
 
 function obfuscateHeader(header: { name: string; value: string }): void {
+  // OpenAM user-auth flow sends credentials via request headers during /authenticate.
+  if (header.name.toUpperCase() === 'X-OPENAM-USERNAME') {
+    header.value = '<username>';
+  }
+  if (header.name.toUpperCase() === 'X-OPENAM-PASSWORD') {
+    header.value = '<password>';
+  }
   if (header.name.toUpperCase() === 'USER-AGENT') {
     header.value = '<user agent>';
   }

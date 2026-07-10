@@ -338,6 +338,7 @@ export function setupPollyForFrodoLib({
       }
     })
     .on('beforePersist', (_req, recording) => {
+      // Apply host normalization and secret obfuscation before writing HAR files to disk.
       filterRecording(recording);
     });
 
