@@ -608,10 +608,23 @@ function processConfigEntitiesForExport({
     if (!value) {
       continue;
     }
+    const normalizeAuthenticationModuleId = (
+      entity: AmConfigEntityInterface
+    ) =>
+      key === 'authenticationModules' ? entity._id.toLowerCase() : entity._id;
     if (!value.result) {
       if ((value as AmConfigEntityInterface)._id) {
+        const exportedId = normalizeAuthenticationModuleId(
+          value as AmConfigEntityInterface
+        );
         exportedEntities[key] = {
-          [(value as AmConfigEntityInterface)._id]: value,
+          [exportedId]:
+            key === 'authenticationModules'
+              ? {
+                  ...(value as AmConfigEntityInterface),
+                  _id: exportedId,
+                }
+              : value,
         };
       } else if (
         (value as AmConfigEntityInterface)._type &&
@@ -626,7 +639,16 @@ function processConfigEntitiesForExport({
     } else {
       const { result } = value as PagedResult<AmConfigEntityInterface>;
       const exportedValue = {};
-      result.forEach((o) => (exportedValue[o._id] = o));
+      result.forEach((o) => {
+        const exportedId = normalizeAuthenticationModuleId(o);
+        exportedValue[exportedId] =
+          key === 'authenticationModules'
+            ? {
+                ...o,
+                _id: exportedId,
+              }
+            : o;
+      });
       exportedEntities[key] = exportedValue;
     }
     if (resultCallback) {
