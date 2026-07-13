@@ -313,6 +313,17 @@ export function getTypedFilename(
   type: string,
   suffix = 'json'
 ): string {
+  // Special case: Handle both "Federation" and "federation" authentication modules
+  // to avoid filename conflicts in case-insensitive filesystems
+  if (type === 'authenticationModules' && name.toLowerCase() === 'federation') {
+    if (name === 'Federation') {
+      return `federation.${type}.${suffix}`;
+    }
+    if (name === 'federation') {
+      return `federation_.${type}.${suffix}`;
+    }
+  }
+
   const slug = slugify(name.replace(/^http(s?):\/\//, ''), {
     remove: /[^\w\s$*_+~.()'"!\-@]+/g,
   });
