@@ -19,14 +19,14 @@
  *    script and override all the connection state variables required
  *    to connect to the env to record from and also indicate the phase:
  *
- *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=1 FRODO_HOST=frodo-dev npm run test:record JourneyOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=1 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record JourneyOps
  *
  *    THESE TESTS ARE DESTRUCTIVE!!! DO NOT RUN AGAINST AN ENV WITH ACTIVE JOURNEYS!!!
  *
- *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=frodo-dev npm run test:record JourneyOps
- *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=frodo-dev npm run test:record JourneyOps
- *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=4 FRODO_HOST=frodo-dev npm run test:record JourneyOps
- *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=5 FRODO_HOST=frodo-dev npm run test:record JourneyOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=2 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record JourneyOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=3 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record JourneyOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=4 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record JourneyOps
+ *        FRODO_DEBUG=1 FRODO_RECORD_PHASE=5 FRODO_HOST=https://openam-frodo-dev.forgeblocks.com/am npm run test:record JourneyOps
  *
  *    The above command assumes that you have a connection profile for
  *    'frodo-dev' on your development machine.
@@ -358,16 +358,23 @@ describe('JourneyOps', () => {
 
       test(`3: Import journey '${TestData.journey12.tree._id}' w/ custom node dependencies`, async () => {
         const journeyExport = TestData.journey12;
+        const previousAmVersion = state.getAmVersion();
+        // Ensure replay uses the same version-aware node schema API path as the fixture.
+        state.setAmVersion(journeyExport?.meta?.originAmVersion || '9.0.0');
         expect.assertions(1);
-        const response = await JourneyOps.importJourney({
-          importData: journeyExport,
-          options: {
-            reUuid: false,
-            deps: true,
-          },
-          state,
-        });
-        expect(response).toBeTruthy();
+        try {
+          const response = await JourneyOps.importJourney({
+            importData: journeyExport,
+            options: {
+              reUuid: false,
+              deps: true,
+            },
+            state,
+          });
+          expect(response).toBeTruthy();
+        } finally {
+          state.setAmVersion(previousAmVersion);
+        }
       });
 
       test(`4: Import journey '${TestData.journey13.tree._id}' w/o dependencies with 2.0 node versions`, async () => {

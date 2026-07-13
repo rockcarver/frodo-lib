@@ -3,6 +3,7 @@ module.exports = {
   preset: 'ts-jest',
   testRunner: 'jest-jasmine2',
   testEnvironment: 'node',
+  setupFilesAfterEnv: ['<rootDir>/test/jest-polly-replay-integrity.setup.js'],
   snapshotResolver: '<rootDir>/snapshotResolve.js',
   testMatch: ['**/?(*.)(test).ts'],
   testTimeout: 120000,
