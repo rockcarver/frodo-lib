@@ -144,6 +144,15 @@ describe('IgaCertificationTemplateOps', () => {
 
       test(`1: Read existing certification templates, including event ones`, async () => {
         const response = await IgaCertificationTemplateOps.readCertificationTemplates({
+          includeEventTemplates: true,
+          state,
+        });
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`2: Read existing certification templates, excluding event ones`, async () => {
+        const response = await IgaCertificationTemplateOps.readCertificationTemplates({
+          includeEventTemplates: false,
           state,
         });
         expect(response).toMatchSnapshot();
@@ -158,7 +167,7 @@ describe('IgaCertificationTemplateOps', () => {
       test(`1: Export existing certification template by ID with dependencies`, async () => {
         const response = await IgaCertificationTemplateOps.exportCertificationTemplate({
           templateId: TestData.certificationTemplate2.id,
-          options: { deps: true },
+          options: { deps: true, includeEventTemplates: true },
           state,
         });
         expect(response).toMatchSnapshot({
@@ -170,7 +179,7 @@ describe('IgaCertificationTemplateOps', () => {
         const unknownId = '11111111-1111-1111-1111-111111111111';
         await expect(IgaCertificationTemplateOps.exportCertificationTemplate({
           templateId: unknownId,
-          options: { deps: false },
+          options: { deps: false, includeEventTemplates: true },
           state,
         })).rejects.toThrow('Error exporting certification template ' + unknownId);
       });
@@ -184,7 +193,7 @@ describe('IgaCertificationTemplateOps', () => {
       test(`1: Export existing certification template by name without dependencies`, async () => {
         const response = await IgaCertificationTemplateOps.exportCertificationTemplateByName({
           templateName: TestData.certificationTemplate2.name,
-          options: { deps: false },
+          options: { deps: false, includeEventTemplates: false },
           state,
         });
         expect(response).toMatchSnapshot({
@@ -196,7 +205,7 @@ describe('IgaCertificationTemplateOps', () => {
         const unknownName = 'unknownName';
         await expect(IgaCertificationTemplateOps.exportCertificationTemplateByName({
           templateName: unknownName,
-          options: { deps: false },
+          options: { deps: false, includeEventTemplates: false },
           state,
         })).rejects.toThrow('Error exporting certification template ' + unknownName);
       });
@@ -207,9 +216,9 @@ describe('IgaCertificationTemplateOps', () => {
         expect(IgaCertificationTemplateOps.exportCertificationTemplates).toBeDefined();
       });
 
-      test(`1: Export existing certification templates with dependencies`, async () => {
+      test(`1: Export existing certification templates with dependencies and event templates`, async () => {
         const response = await IgaCertificationTemplateOps.exportCertificationTemplates({
-          options: { deps: true },
+          options: { deps: true, includeEventTemplates: true },
           state,
         });
         expect(response).toMatchSnapshot({
@@ -217,9 +226,9 @@ describe('IgaCertificationTemplateOps', () => {
         });
       });
 
-      test(`2: Export existing certification templates without dependencies`, async () => {
+      test(`2: Export existing certification templates without dependencies and without event templates`, async () => {
         const response = await IgaCertificationTemplateOps.exportCertificationTemplates({
-          options: { deps: false },
+          options: { deps: false, includeEventTemplates: false },
           state,
         });
         expect(response).toMatchSnapshot({

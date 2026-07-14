@@ -460,6 +460,8 @@ export async function exportFullConfiguration({
           {
             options: {
               deps: false,
+              // The event templates are exported with the events
+              includeEventTemplates: false,
             },
             state,
           },

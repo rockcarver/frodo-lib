@@ -6604,9 +6604,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "CertificationTemplate",
     methodName: "readCertificationTemplates",
-    signature: "readCertificationTemplates(): Promise<CertificationTemplateSkeleton[]>",
+    signature: "readCertificationTemplates( includeEventTemplates?: boolean ): Promise<CertificationTemplateSkeleton[]>",
     description: "Read all certification templates",
-    params: [],
+    params: [
+      { name: "includeEventTemplates", type: "boolean", description: "True to also include certification templates used in IGA events, false otherwise. Default: false" },
+    ],
     returns: "{Promise<CertificationTemplateSkeleton[]>} a promise that resolves to an array of certification template objects",
   },
   {
@@ -6690,9 +6692,10 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "CertificationTemplate",
     methodName: "deleteCertificationTemplates",
-    signature: "deleteCertificationTemplates( resultCallback?: ResultCallback<CertificationTemplateDeleteSkeleton> ): Promise<CertificationTemplateDeleteSkeleton[]>",
+    signature: "deleteCertificationTemplates( options?: CertificationTemplateDeleteOptions, resultCallback?: ResultCallback<CertificationTemplateDeleteSkeleton> ): Promise<CertificationTemplateDeleteSkeleton[]>",
     description: "Delete certification templates",
     params: [
+      { name: "options", type: "CertificationTemplateDeleteOptions", description: "delete options" },
       { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results" },
     ],
     returns: "{Promise<CertificationTemplateDeleteSkeleton[]>} promise that resolves to an array of certification template objects",

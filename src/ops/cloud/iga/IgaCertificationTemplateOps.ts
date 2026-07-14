@@ -5,6 +5,7 @@ import {
   deleteCertificationTemplate as _deleteCertificationTemplate,
   getCertificationTemplate,
   putCertificationTemplate,
+  queryCertificationTemplates,
   searchCertificationTemplates,
 } from '../../../api/cloud/iga/IgaCertificationTemplateApi';
 import { VariableSkeleton } from '../../../api/cloud/VariablesApi';
@@ -56,9 +57,12 @@ export type CertificationTemplate = {
   ): Promise<CertificationTemplateSkeleton>;
   /**
    * Read all certification templates
+   * @param {boolean} includeEventTemplates True to also include certification templates used in IGA events, false otherwise. Default: false
    * @returns {Promise<CertificationTemplateSkeleton[]>} a promise that resolves to an array of certification template objects
    */
-  readCertificationTemplates(): Promise<CertificationTemplateSkeleton[]>;
+  readCertificationTemplates(
+    includeEventTemplates?: boolean
+  ): Promise<CertificationTemplateSkeleton[]>;
   /**
    * Export certification template
    * @param {string} templateId the certification template id
@@ -133,10 +137,12 @@ export type CertificationTemplate = {
   ): Promise<CertificationTemplateDeleteSkeleton>;
   /**
    * Delete certification templates
+   * @param {CertificationTemplateDeleteOptions} options delete options
    * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {Promise<CertificationTemplateDeleteSkeleton[]>} promise that resolves to an array of certification template objects
    */
   deleteCertificationTemplates(
+    options?: CertificationTemplateDeleteOptions,
     resultCallback?: ResultCallback<CertificationTemplateDeleteSkeleton>
   ): Promise<CertificationTemplateDeleteSkeleton[]>;
 };
@@ -167,14 +173,20 @@ export default (state: State): CertificationTemplate => {
         state,
       });
     },
-    readCertificationTemplates(): Promise<CertificationTemplateSkeleton[]> {
+    readCertificationTemplates(
+      includeEventTemplates: boolean = false
+    ): Promise<CertificationTemplateSkeleton[]> {
       return readCertificationTemplates({
+        includeEventTemplates,
         state,
       });
     },
     exportCertificationTemplate(
       templateId: string,
-      options: CertificationTemplateExportOptions = { deps: true }
+      options: CertificationTemplateExportOptions = {
+        deps: true,
+        includeEventTemplates: false,
+      }
     ): Promise<CertificationTemplateExportInterface> {
       return exportCertificationTemplate({
         templateId,
@@ -184,7 +196,10 @@ export default (state: State): CertificationTemplate => {
     },
     exportCertificationTemplateByName(
       templateName: string,
-      options: CertificationTemplateExportOptions = { deps: true }
+      options: CertificationTemplateExportOptions = {
+        deps: true,
+        includeEventTemplates: false,
+      }
     ): Promise<CertificationTemplateExportInterface> {
       return exportCertificationTemplateByName({
         templateName,
@@ -193,7 +208,10 @@ export default (state: State): CertificationTemplate => {
       });
     },
     exportCertificationTemplates(
-      options: CertificationTemplateExportOptions = { deps: true },
+      options: CertificationTemplateExportOptions = {
+        deps: true,
+        includeEventTemplates: false,
+      },
       resultCallback: ResultCallback<CertificationTemplateExportInterface> = void 0
     ): Promise<CertificationTemplateExportInterface> {
       return exportCertificationTemplates({
@@ -245,9 +263,13 @@ export default (state: State): CertificationTemplate => {
       });
     },
     deleteCertificationTemplates(
+      options: CertificationTemplateDeleteOptions = {
+        includeEventTemplates: false,
+      },
       resultCallback: ResultCallback<CertificationTemplateDeleteSkeleton> = void 0
     ): Promise<CertificationTemplateDeleteSkeleton[]> {
       return deleteCertificationTemplates({
+        options,
         resultCallback,
         state,
       });
@@ -280,6 +302,20 @@ export interface CertificationTemplateExportOptions {
    * Include any dependencies (email templates).
    */
   deps: boolean;
+  /**
+   * Export certification templates that are tied to IGA events in addition to the normal certification templates
+   */
+  includeEventTemplates: boolean;
+}
+
+/**
+ * Certification template delete options
+ */
+export interface CertificationTemplateDeleteOptions {
+  /**
+   * Delete certification templates that are tied to IGA events in addition to the normal certification templates
+   */
+  includeEventTemplates: boolean;
 }
 
 /**
@@ -381,16 +417,23 @@ export async function readCertificationTemplateByName({
 }
 
 /**
- * Read all certification templates, including those used by IGA events
+ * Read all certification templates
+ * @param {boolean} includeEventTemplates True to also include certification templates used in IGA events, false otherwise. Default: false
  * @returns {Promise<CertificationTemplateSkeleton[]>} a promise that resolves to an array of certification template objects
  */
 export async function readCertificationTemplates({
+  includeEventTemplates = false,
   state,
 }: {
+  includeEventTemplates?: boolean;
   state: State;
 }): Promise<CertificationTemplateSkeleton[]> {
   try {
-    return await searchCertificationTemplates({ state });
+    return await (
+      includeEventTemplates
+        ? searchCertificationTemplates
+        : queryCertificationTemplates
+    )({ state });
   } catch (error) {
     throw new FrodoError(`Error reading certification templates`, error);
   }
@@ -404,7 +447,7 @@ export async function readCertificationTemplates({
  */
 export async function exportCertificationTemplate({
   templateId,
-  options = { deps: true },
+  options = { deps: true, includeEventTemplates: false },
   state,
 }: {
   templateId: string;
@@ -446,7 +489,7 @@ export async function exportCertificationTemplate({
  */
 export async function exportCertificationTemplateByName({
   templateName,
-  options = { deps: true },
+  options = { deps: true, includeEventTemplates: false },
   state,
 }: {
   templateName: string;
@@ -487,7 +530,7 @@ export async function exportCertificationTemplateByName({
  * @returns {Promise<CertificationTemplateExportInterface>} a promise that resolves to a certification template export object
  */
 export async function exportCertificationTemplates({
-  options = { deps: true },
+  options = { deps: true, includeEventTemplates: false },
   resultCallback = void 0,
   state,
 }: {
@@ -501,7 +544,10 @@ export async function exportCertificationTemplates({
       message: `IgaCertificationTemplateOps.exportCertificationTemplates: start`,
       state,
     });
-    const templates = await readCertificationTemplates({ state });
+    const templates = await readCertificationTemplates({
+      includeEventTemplates: options.includeEventTemplates,
+      state,
+    });
     indicatorId = createProgressIndicator({
       total: templates.length,
       message: 'Exporting certification templates...',
@@ -750,17 +796,25 @@ export async function deleteCertificationTemplateByName({
 
 /**
  * Delete certification templates
+ * @param {CertificationTemplateDeleteOptions} options delete options
  * @param {ResultCallback} resultCallback Optional callback to process individual results
  * @returns {Promise<CertificationTemplateDeleteSkeleton[]>} promise that resolves to an array of certification template objects
  */
 export async function deleteCertificationTemplates({
+  options = {
+    includeEventTemplates: false,
+  },
   resultCallback = void 0,
   state,
 }: {
+  options: CertificationTemplateDeleteOptions;
   resultCallback?: ResultCallback<CertificationTemplateDeleteSkeleton>;
   state: State;
 }): Promise<CertificationTemplateDeleteSkeleton[]> {
-  const templates = await readCertificationTemplates({ state });
+  const templates = await readCertificationTemplates({
+    includeEventTemplates: options.includeEventTemplates,
+    state,
+  });
   const deletedCertificationTemplates = [];
   for (const templateData of templates) {
     const result = await getResult(
@@ -784,7 +838,7 @@ export async function deleteCertificationTemplates({
  */
 async function prepareCertificationTemplateForExport({
   templateData,
-  options,
+  options = { deps: true, includeEventTemplates: false },
   state,
 }: {
   templateData: CertificationTemplateSkeleton;
