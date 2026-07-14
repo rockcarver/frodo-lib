@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- \#389: Email provider operations are already supported through `IdmConfigOps` (`IdmConfig` / `frodo.idm.config`) since release tag `v1.1.2`.
+
 ## [4.0.0-48] - 2026-07-13
 
 ## [4.0.0-47] - 2026-07-13
