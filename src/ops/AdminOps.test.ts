@@ -20,7 +20,7 @@ describe('AdminOps', () => {
     });
     test('4: Normal call - http & port', () => {
       state.setHost('http://forgetest.someurl.com:80');
-      expect(AdminOps.getAccessTokenUrl(state)).toBe('http://forgetest.someurl.com:80/oauth2/readlms/root/access_token');
+      expect(AdminOps.getAccessTokenUrl(state)).toBe('http://forgetest.someurl.com:80/oauth2/realms/root/access_token');
     });
   });
 });
