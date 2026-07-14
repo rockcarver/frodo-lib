@@ -406,19 +406,28 @@ async function determineDeploymentType(state: State): Promise<string> {
   }
 }
 
+const unknownAmVersion = '0.0.0';
+
 /**
  * Helper function to extract the semantic version string from a version info object
  * @param {Object} versionInfo version info object
  * @returns {String} semantic version
  */
-function getSemanticVersion(versionInfo) {
-  if ('version' in versionInfo) {
-    const versionString = versionInfo.version;
-    const rx = /([\d]\.[\d]\.[\d](\.[\d])*)/g;
-    const version = versionString.match(rx);
-    return version[0];
+export function getSemanticVersion(versionInfo) {
+  const versionFields = [versionInfo?.version, versionInfo?.fullVersion];
+  const rx = /(\d+\.\d+\.\d+(?:\.\d+)*)/;
+
+  for (const versionField of versionFields) {
+    if (typeof versionField !== 'string') {
+      continue;
+    }
+    const version = versionField.match(rx);
+    if (version) {
+      return version[0];
+    }
   }
-  throw new Error('Cannot extract semantic version from version info object.');
+
+  return unknownAmVersion;
 }
 
 /**

@@ -205,4 +205,34 @@ describe('AuthenticateOps', () => {
       });
     });
   }
+
+  describe('getSemanticVersion()', () => {
+    test('extracts a semantic version from the version field', () => {
+      expect(
+        AuthenticateOps.getSemanticVersion({
+          version: '7.6.0-SNAPSHOT',
+        })
+      ).toBe('7.6.0');
+    });
+
+    test('falls back to the fullVersion field when needed', () => {
+      expect(
+        AuthenticateOps.getSemanticVersion({
+          version: 'ForgeRock Access Management',
+          fullVersion: 'ForgeRock Access Management 10.12.3 Build abc123',
+        })
+      ).toBe('10.12.3');
+    });
+
+    test('returns a conservative fallback when no semantic version is present', () => {
+      expect(
+        AuthenticateOps.getSemanticVersion({
+          version: 'ForgeRock Access Management',
+          fullVersion: 'ForgeRock Access Management',
+          revision: 'DEV',
+          date: 'DEV',
+        })
+      ).toBe('0.0.0');
+    });
+  });
 });
