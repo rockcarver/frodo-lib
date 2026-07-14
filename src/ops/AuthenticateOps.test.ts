@@ -111,6 +111,54 @@ describe('AuthenticateOps', () => {
       beforeEach(() => {
         setDefaultState(Constants.CLASSIC_DEPLOYMENT_TYPE_KEY, true);
       });
+      describe('createPayload', () => {
+        test('0: default to port 80', async () => {
+          state.setHost("http://trivirsample.com")
+          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
+          expect(payload.aud).toBe("http://trivirsample.com:80/oauth2/access_token")
+        });
+        test('1: default to port 443', async () => {
+          state.setHost("https://trivirsample.com")
+          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
+          expect(payload.aud).toBe("https://trivirsample.com:443/oauth2/access_token")
+        });
+        test('2: avoid dup port 80', async () => {
+          state.setHost("http://trivirsample.com:80")
+          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
+          expect(payload.aud).toBe("http://trivirsample.com:80/oauth2/access_token")
+        });
+        test('3: avoid dup port 443', async () => {
+          state.setHost("https://trivirsample.com:443")
+          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
+          expect(payload.aud).toBe("https://trivirsample.com:443/oauth2/access_token")
+        });
+        test('4: avoid port 443, if one is already present', async () => {
+          state.setHost("https://trivirsample.com:1234")
+          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
+          expect(payload.aud).toBe("https://trivirsample.com:1234/oauth2/access_token")
+        });
+        test('5: /am is provided, only', async () => {
+          state.setHost("https://trivirsample.com/am")
+          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
+          expect(payload.aud).toBe("https://trivirsample.com:443/am/oauth2/access_token")
+        });
+        test('6: /am plus port is provided', async () => {
+          state.setHost("https://trivirsample.com:9876/am")
+          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
+          expect(payload.aud).toBe("https://trivirsample.com:9876/am/oauth2/access_token")
+        });
+        test('7: /am is not provided', async () => {
+          state.setHost("https://trivirsample.com")
+          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
+          expect(payload.aud).toBe("https://trivirsample.com:443/oauth2/access_token")
+        });
+        test('7: /am is not provided + port', async () => {
+          state.setHost("https://trivirsample.com:8765")
+          const payload = AuthenticateOps.createPayload('serviceAcctID', state.getHost());
+          expect(payload.aud).toBe("https://trivirsample.com:8765/oauth2/access_token")
+        });
+      });
+
       describe('getTokens()', () => {  
         test('0: Authenticate successfully as user', async () => {
           // override and reset service account credentials from environment variables in CI/CD pipeline
