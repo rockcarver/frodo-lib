@@ -129,4 +129,64 @@ describe('JourneyOps versioning unit coverage', () => {
       })
     );
   });
+
+  test('resolveDependencies treats Backchannel Initialize as a journey dependency', async () => {
+    const unresolvedJourneys = {};
+    const resolvedJourneys = [];
+
+    await JourneyOps.resolveDependencies(
+      [],
+      {
+        ParentJourney: {
+          nodes: {
+            'node-1': {
+              _id: 'node-1',
+              tree: 'ChildJourney',
+              _type: {
+                _id: 'BackChannelInitNode',
+              },
+            },
+          },
+        },
+        ChildJourney: {
+          nodes: {},
+        },
+      } as any,
+      unresolvedJourneys,
+      resolvedJourneys
+    );
+
+    expect(resolvedJourneys).toStrictEqual(['ChildJourney', 'ParentJourney']);
+    expect(unresolvedJourneys).toStrictEqual({});
+  });
+
+  test('resolveInnerTreeDependencies treats Backchannel Initialize as a journey dependency', async () => {
+    const unresolvedJourneys = {};
+    const resolvedJourneys = [];
+
+    await JourneyOps.resolveInnerTreeDependencies({
+      existingJorneys: [],
+      candidateJourneys: {
+        ParentJourney: {
+          nodes: {
+            'node-1': {
+              _id: 'node-1',
+              tree: 'ChildJourney',
+              _type: {
+                _id: 'BackChannelInitNode',
+              },
+            },
+          },
+        },
+        ChildJourney: {
+          nodes: {},
+        },
+      } as any,
+      unresolvedJourneys,
+      resolvedJourneys,
+    });
+
+    expect(unresolvedJourneys).toStrictEqual({});
+    expect(resolvedJourneys).toStrictEqual(['ChildJourney', 'ParentJourney']);
+  });
 });

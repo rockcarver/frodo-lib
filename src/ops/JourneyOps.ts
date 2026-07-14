@@ -587,6 +587,28 @@ export function hasScriptDependency(nodeConfig: NodeSkeleton): boolean {
 const emailTemplateNodes = ['EmailSuspendNode', 'EmailTemplateNode'];
 
 const emptyScriptPlaceholder = '[Empty]';
+const treeDependencyNodeTypes = new Set([
+  'InnerTreeEvaluatorNode',
+  'BackChannelInitNode',
+]);
+
+function getTreeDependencyId({
+  nodeType,
+  nodeConfig,
+}: {
+  nodeType?: string;
+  nodeConfig?: NodeSkeleton;
+}): string | undefined {
+  const dependencyNodeType = nodeType ?? nodeConfig?._type?._id;
+  if (
+    !dependencyNodeType ||
+    !treeDependencyNodeTypes.has(dependencyNodeType) ||
+    typeof nodeConfig?.tree !== 'string'
+  ) {
+    return undefined;
+  }
+  return nodeConfig.tree;
+}
 
 /**
  * Create an empty single tree export template
@@ -2452,11 +2474,11 @@ export async function resolveInnerTreeDependencies({
     if ({}.hasOwnProperty.call(candidateJourneys, tree)) {
       const dependencies = [];
       for (const node in candidateJourneys[tree].nodes) {
-        if (
-          candidateJourneys[tree].nodes[node]._type._id ===
-          'InnerTreeEvaluatorNode'
-        ) {
-          dependencies.push(candidateJourneys[tree].nodes[node].tree);
+        const dependency = getTreeDependencyId({
+          nodeConfig: candidateJourneys[tree].nodes[node],
+        });
+        if (dependency) {
+          dependencies.push(dependency);
         }
       }
       let allResolved = true;
@@ -2519,10 +2541,11 @@ export async function resolveDependencies(
     if ({}.hasOwnProperty.call(journeyMap, tree)) {
       const dependencies = [];
       for (const node in journeyMap[tree].nodes) {
-        if (
-          journeyMap[tree].nodes[node]._type._id === 'InnerTreeEvaluatorNode'
-        ) {
-          dependencies.push(journeyMap[tree].nodes[node].tree);
+        const dependency = getTreeDependencyId({
+          nodeConfig: journeyMap[tree].nodes[node],
+        });
+        if (dependency) {
+          dependencies.push(dependency);
         }
       }
       let allResolved = true;
@@ -2821,24 +2844,25 @@ export async function getTreeDescendents({
   for (const [nodeId, node] of Object.entries(treeExport.tree.nodes)) {
     let innerTreeId: string;
     try {
-      if (node.nodeType === 'InnerTreeEvaluatorNode') {
-        innerTreeId = treeExport.nodes[nodeId].tree;
-        if (!resolvedTreeIds.includes(innerTreeId)) {
-          const innerTreeExport = await resolveTreeExport(innerTreeId, state);
-          debugMessage({
-            message: `resolved inner tree: ${innerTreeExport.tree._id}`,
+      innerTreeId = getTreeDependencyId({
+        nodeType: node.nodeType,
+        nodeConfig: treeExport.nodes[nodeId],
+      });
+      if (innerTreeId && !resolvedTreeIds.includes(innerTreeId)) {
+        const innerTreeExport = await resolveTreeExport(innerTreeId, state);
+        debugMessage({
+          message: `resolved inner tree: ${innerTreeExport.tree._id}`,
+          state,
+        });
+        // resolvedTreeIds.push(innerTreeId);
+        dependencies.push(
+          await getTreeDescendents({
+            treeExport: innerTreeExport,
+            resolveTreeExport,
+            resolvedTreeIds,
             state,
-          });
-          // resolvedTreeIds.push(innerTreeId);
-          dependencies.push(
-            await getTreeDescendents({
-              treeExport: innerTreeExport,
-              resolveTreeExport,
-              resolvedTreeIds,
-              state,
-            })
-          );
-        }
+          })
+        );
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
