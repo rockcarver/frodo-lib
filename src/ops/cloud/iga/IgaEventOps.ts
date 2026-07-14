@@ -6,6 +6,7 @@ import {
   putEvent,
   queryEvents,
 } from '../../../api/cloud/iga/IgaEventApi';
+import { VariableSkeleton } from '../../../api/cloud/VariablesApi';
 import { State } from '../../../shared/State';
 import {
   createProgressIndicator,
@@ -14,6 +15,7 @@ import {
   updateProgressIndicator,
 } from '../../../utils/Console';
 import {
+  getErrorCallback,
   getIGANotificationEmailTemplateDependencies,
   getMetadata,
   getResult,
@@ -24,6 +26,7 @@ import {
 } from '../../EmailTemplateOps';
 import { FrodoError } from '../../FrodoError';
 import { ExportMetaData, ResultCallback } from '../../OpsTypes';
+import { importVariables } from '../VariablesOps';
 
 export type IgaEvent = {
   /**
@@ -235,6 +238,7 @@ export interface EventExportInterface {
   meta?: ExportMetaData;
   event: Record<string, EventSkeleton>;
   emailTemplate?: Record<string, EmailTemplateSkeleton>;
+  variable: Record<string, VariableSkeleton>;
 }
 /**
  * Event import options
@@ -269,6 +273,7 @@ export function createEventExportTemplate({
     meta: getMetadata({ state }),
     event: {},
     emailTemplate: {},
+    variable: {},
   };
 }
 
@@ -478,6 +483,7 @@ export async function exportEvents({
       if (eventExport) {
         Object.assign(exportData.event, eventExport.event);
         Object.assign(exportData.emailTemplate, eventExport.emailTemplate);
+        Object.assign(exportData.variable, eventExport.variable);
       }
     }
     stopProgressIndicator({
@@ -556,25 +562,38 @@ export async function importEvents({
     message: `IgaEventOps.importEvents: start`,
     state,
   });
+  const errorCallback = getErrorCallback(resultCallback);
+  // Import variable dependencies
+  if (
+    options.deps &&
+    importData.variable &&
+    Object.keys(importData.variable).length > 0
+  ) {
+    await getResult(
+      errorCallback,
+      'Error importing ESV variable dependencies',
+      importVariables,
+      {
+        importData,
+        state,
+      }
+    );
+  }
   // Import email template dependencies
   if (
     options.deps &&
     importData.emailTemplate &&
     Object.keys(importData.emailTemplate).length
   ) {
-    try {
-      await importEmailTemplates({
-        //@ts-expect-error Since we ensure emailTemplate exists before this, we can ignore the error
+    await getResult(
+      errorCallback,
+      'Error importing email template dependencies',
+      importEmailTemplates,
+      {
         importData,
         state,
-      });
-    } catch (e) {
-      if (resultCallback) {
-        resultCallback(e, undefined);
-      } else {
-        throw new FrodoError(`Error importing email template dependencies`, e);
       }
-    }
+    );
   }
   const response = [];
   for (const existingId of Object.keys(importData.event)) {
@@ -711,8 +730,12 @@ async function prepareEventForExport({
 }): Promise<EventExportInterface> {
   const exportData = createEventExportTemplate({ state });
   if (options.deps) {
+    const errors = [];
+    const variables: Record<string, VariableSkeleton> = {};
     const templates = await getIGANotificationEmailTemplateDependencies(
       eventData.action?.template,
+      variables,
+      errors,
       state
     );
     exportData.emailTemplate = Object.fromEntries(
@@ -720,6 +743,13 @@ async function prepareEventForExport({
         return [e._id.split('/').pop(), e];
       })
     );
+    exportData.variable = variables;
+    if (errors.length) {
+      throw new FrodoError(
+        'Errors occurred while exporting event dependencies',
+        errors
+      );
+    }
   }
   exportData.event[eventData.id] = eventData;
   return exportData;

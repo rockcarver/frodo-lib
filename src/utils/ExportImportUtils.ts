@@ -24,6 +24,8 @@ import {
 } from './Base64Utils';
 import { debugMessage, printMessage, updateProgressIndicator } from './Console';
 import { deleteDeepByKeys, stringify } from './JsonUtils';
+import { resolveVariable } from '../ops/cloud/VariablesOps';
+import { VariableSkeleton } from '../api/cloud/VariablesApi';
 
 export type ExportImport = {
   getMetadata(): ExportMetaData;
@@ -829,7 +831,7 @@ export async function getApiSearchAll<T>({
     pageSize,
     queryParamBuilder: (size, offset) =>
       `${initialParams}&_pageSize=${size}&_pagedResultsOffset=${offset}`,
-        state,
+    state,
   });
 }
 
@@ -859,9 +861,9 @@ export async function postApiSearchAll<T>({
     pageOffsetStrategy: 'PAGE',
     pageSize,
     body: targetFilter
-    ? {
-        targetFilter,
-      }
+      ? {
+          targetFilter,
+        }
       : undefined,
     queryParamBuilder: (size, offset) =>
       `pageSize=${size}&pageNumber=${offset}`,
@@ -892,16 +894,16 @@ export async function governanceApiSearchAll<T>({
   let pageNumber = 0;
   do {
     const axios = generateGovernanceApi({
-        resource: {},
-        state,
+      resource: {},
+      state,
     });
     const urlString = `${url}?${queryParamBuilder(pageSize, pageOffsetStrategy === 'PAGE' ? pageNumber++ : results.length)}`;
     if (method === 'GET') {
       currentSearchResult = (
         await axios.get(urlString, {
-        withCredentials: true,
-      })
-    ).data;
+          withCredentials: true,
+        })
+      ).data;
     } else {
       currentSearchResult = (
         await axios.post(urlString, body, {
@@ -974,13 +976,17 @@ export function transformScriptArraysToStrings(obj: any): void {
  * Helper to get email template dependencies from an IGA object
  *
  * @param {any} obj The object to get email dependencies from
+ * @param {Record<string, VariableSkeleton>} variables The variable object that caches resolved variables
+ * @param {FrodoError[]} errors the errors encountered while getting the dependencies
  * @returns {EmailTemplateSkeleton[]} The array of email template dependencies
  */
 export async function getIGANotificationEmailTemplateDependencies(
   obj: any,
+  variables: Record<string, VariableSkeleton>,
+  errors: FrodoError[] = [],
   state: State
 ): Promise<EmailTemplateSkeleton[]> {
-  const emailTemplateIds = new Set<string>();
+  const emailTemplateIdPromises: Promise<string>[] = [];
   const fieldsToCheck = [
     'notification',
     'templateName',
@@ -993,19 +999,50 @@ export async function getIGANotificationEmailTemplateDependencies(
   objectRecurse(obj, async (o) => {
     for (const field of fieldsToCheck) {
       if (o[field] && typeof o[field] === 'string') {
-        // Sometimes, the name is of the form "emailTemplate/<id>", so this ensures we get only the id from each name
-        emailTemplateIds.add(o[field].split('/').pop());
+        emailTemplateIdPromises.push(
+          resolveVariable({
+            // Sometimes, the name is of the form "emailTemplate/<id>", so this ensures we get only the id from each name
+            input: o[field].split('/').pop(),
+            variables,
+            state,
+          })
+        );
       }
     }
   });
-  return Promise.all(
+  const emailTemplateIds = new Set(
+    await settlePromises(emailTemplateIdPromises, errors)
+  );
+  return await settlePromises(
     [...emailTemplateIds].map((id) =>
       readEmailTemplate({
         templateId: id,
         state,
       })
-    )
+    ),
+    errors
   );
+}
+
+/**
+ * Helper that runs Promise.allSettled() on the promises and returns the lists of fulfilled and rejected promises
+ * @param {Promise<T>[]} promises Array of promises to settle.
+ * @param {FrodoError[]} errors Array of rejected promise errors.
+ * @returns {Promise<T[]>} Array of fulfilled promise values
+ */
+export async function settlePromises<T>(
+  promises: Promise<T>[],
+  errors: FrodoError[] = []
+): Promise<T[]> {
+  return (await Promise.allSettled(promises))
+    .filter((p) => {
+      if (p.status === 'fulfilled' && p.value) return true;
+      if (p.status === 'rejected') {
+        errors.push(new FrodoError(p.reason));
+      }
+      return false;
+    })
+    .map((p) => (p as PromiseFulfilledResult<T>).value);
 }
 
 /**
