@@ -371,11 +371,12 @@ export async function putFullService({
       state,
     });
     const fullServiceDataCopy = cloneDeep(fullServiceData);
-    const nextDescendents = fullServiceData.nextDescendents;
+    const nextDescendents = fullServiceDataCopy.nextDescendents;
+    const transportType = fullServiceDataCopy.transportType;
 
-    delete fullServiceData.nextDescendents;
-    delete fullServiceData._rev;
-    delete fullServiceData.enabled;
+    delete fullServiceDataCopy.nextDescendents;
+    delete fullServiceDataCopy._rev;
+    delete fullServiceDataCopy.enabled;
 
     if (clean) {
       try {
@@ -397,18 +398,18 @@ export async function putFullService({
     }
 
     // delete location field before adding or updating the service
-    delete fullServiceData.location;
+    delete fullServiceDataCopy.location;
 
     // special-case email service, which may contain circular dependency
-    if (serviceId === 'email' && fullServiceData.transportType) {
+    if (serviceId === 'email' && transportType) {
       // delete transport type so we can set it later from fullServiceDataCopy
-      delete fullServiceData.transportType;
+      delete fullServiceDataCopy.transportType;
     }
 
     // create service first
     let result = await putService({
       serviceId,
-      serviceData: fullServiceData,
+      serviceData: fullServiceDataCopy,
       globalConfig,
       state,
     });
@@ -460,14 +461,14 @@ export async function putFullService({
     );
 
     // special-case email service, which may contain circular dependency
-    if (serviceId === 'email' && fullServiceDataCopy.transportType) {
+    if (serviceId === 'email' && transportType) {
       // delete transport type so we can set it later from fullServiceDataCopy
-      fullServiceData.transportType = fullServiceDataCopy.transportType;
+      fullServiceDataCopy.transportType = transportType;
 
       // create service first
       result = await putService({
         serviceId,
-        serviceData: fullServiceData,
+        serviceData: fullServiceDataCopy,
         globalConfig,
         state,
       });
