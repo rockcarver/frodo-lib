@@ -177,8 +177,26 @@ export type State = {
   getDebugHandler(): (message: string | object) => void;
   setDebug(debug: boolean): void;
   getDebug(): boolean;
+  /**
+   * Get the global axios-retry config. Automatic retries are disabled by default.
+   *
+   * Library consumers can either set a full axios-retry {@link IAxiosRetryConfig} with
+   * {@link setAxiosRetryConfig}, or override retries for a single request by setting
+   * `requestOverride['axios-retry']` on the request config. frodo-cli typically uses
+   * {@link setAxiosRetryStrategy} to pick one of the built-in retry presets.
+   */
   getAxiosRetryConfig(): IAxiosRetryConfig;
+  /**
+   * Set the global axios-retry config used by all requests unless a request provides its own
+   * `requestOverride['axios-retry']` override.
+   */
   setAxiosRetryConfig(axiosRetryConfig: IAxiosRetryConfig): void;
+  /**
+   * Set one of the built-in retry presets used by frodo-cli:
+   * - `nothing`: disable automatic retries
+   * - `network`: retry network or idempotent request errors
+   * - `everything`: retry all errors except HTTP 429
+   */
   setAxiosRetryStrategy(strategy: RetryStrategy): void;
   /**
    * Reset the state to default values
