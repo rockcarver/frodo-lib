@@ -450,19 +450,14 @@ YF5PPxAO+0yKGqkl8PepvymXBrMAeszlHaRFXeRojXVALw==
     });
 
     test('4: Export secret2 including active value', async () => {
-      try {
-        const response = await SecretsOps.exportSecret({
-          secretId: secret2.id,
-          options: { includeActiveValues: true },
-          state: state,
-        });
-        expect(response).toMatchSnapshot({
-          meta: expect.any(Object),
-        });
-      } catch (error) {
-        console.dir(error);
-        // fail("Command should've succeeded");
-      }
+      const response = await SecretsOps.exportSecret({
+        secretId: secret2.id,
+        options: { includeActiveValues: true },
+        state: state,
+      });
+      expect(response).toMatchSnapshot({
+        meta: expect.any(Object),
+      });
     });
   });
 
