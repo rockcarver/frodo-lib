@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added support for node versioning and the new (v2.0 and newer) nodes in journeys/trees.
+  - Added AM 8.1+ compatible node version support in node API/Ops paths and read helpers.
+- Added library support for `fr-config-manager` commands in the CLI.
+- Custom Nodes
+  - Added support for Node Designer Nodes through several API and Ops functions to allow for doing exports, imports, deletes, etc. with custom node configurations.
+  - Just like with journeys, custom nodes get exported and imported in the same way as they do from AIC/AM, so you can import Frodo exported custom nodes into AIC/AM and vice versa.
+  - Additionally, journeys were updated to include custom node dependencies during exports. Even if a journey is exported with Frodo and contains these dependencies in the export JSON, they can still be imported into AIC/AM using the admin UI as it should ignore the custom node dependencies (since AIC/AM doesn't support exporting them yet).
+- Added the ability to authenticate to an AM classic deployment using Amster credentials (i.e. a public/private key pair). The private key can be in a variety of formats such as PKCS, JWK, and OpenSSH, but is ultimately stored in PKCS#8 format. You can also use encrypted private keys by providing the passphrase when creating the connection profile.
+- Added MCP runtime support in the library, including capability metadata/registry, capability policy composition, tool manifest/runtime, and descriptor count/search/read/list/update operation coverage.
+- Added Cloud IGA API/Ops coverage for glossaries, request forms, request types, certification templates/events, and workflows (export/import/delete/read/list style operations).
+- Added initial WSFed support for AIC.
+- Added Cloud AI Agent support (API/Ops and export/import/read/delete flows), including identity and privilege handling during create/update/delete and import operations.
+- Added Direct Configuration Control support (including updated session handling and final URL/scope alignment).
+- Added connection profile aliases.
+- Added API/Ops support for raw config write/import (`putRaw*` and `importRawConfig`).
+- Added more secret store API/Ops functions for cloud ESV secret store export/import and mapping-oriented operations.
+- Added support for authentication/configuration header overrides via environment variables.
+
+### Changed
+
+- **_BREAKING_**: Updated Node.js supported version matrix:
+  - Added support for v26
+  - Added support for v24
+  - **_BREAKING_**: Dropped support for v18
+- **_BREAKING_**: Removed functions deprecated in 2.x and functions deprecated in 4.0.0.
+- Secret Store Management
+  - Changes how existing secret store functions work to allow for doing ESV secret store exports/imports within AIC.
+  - Adds additional functions for modifications to the mappings specific to a secret store.
+- MCP journey exports now default to thin bundles.
+- Authentication module ID normalization was added for export paths to reduce filename collision issues.
+- Full AM configuration export/import behavior for ForgeOps deployments was improved for ForgeOps-compatible commands.
+- Realm naming handling was updated to support dashes reliably.
+- Service account scope lookups now use caching to reduce repeated calls.
+- Updated dependencies.
+
+### Fixed
+
+- \#519: Updated AdminOps.ts to again properly grant oauth2 client admin privileges after changes in AIC broke `grantOAuth2ClientAdminPrivileges`.
+- rockcarver/frodo-cli#568: Frodo Library now allows connections to AM hosts with expired SSL/TLS certificate when using state.setAllowInsecureConnections(true).
+- \#577, \#578: Fixed PolicySet prereq imports (`set import --prereqs`) to create missing resource types before PolicySet import and to better handle missing prereq policy/resource data.
+- rockcarver/frodo-cli#553: Fixed log fetch query filter encoding so `_queryFilter` is applied correctly in cloud log requests.
+- Fixed header override application to ensure overrides are consistently applied.
+- Fixed root realm managed object prefix handling.
+- Fixed deep application deletes to also delete dependent connectors and mappings.
+- Fixed intermittent journey import failures involving custom nodes.
+- Fixed case-insensitive filename conflicts for the Federation authentication module during export/import flows.
+- Improved connection profile decrypt error output and related diagnostics.
+
 ## [4.0.0-48] - 2026-07-13
 
 ## [4.0.0-47] - 2026-07-13
