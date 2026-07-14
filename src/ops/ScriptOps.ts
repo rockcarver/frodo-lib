@@ -41,9 +41,10 @@ export type Script = {
   createScriptExportTemplate(): ScriptExportInterface;
   /**
    * Read all scripts
+   * @param {ScriptFilter} filter Optional script filter
    * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
    */
-  readScripts(): Promise<ScriptSkeleton[]>;
+  readScripts(filter?: ScriptFilter): Promise<ScriptSkeleton[]>;
   /**
    * Get the names of library scripts required by the input script object
    *
@@ -100,10 +101,12 @@ export type Script = {
   /**
    * Delete all non-default scripts
    * @param {ResultCallback} resultCallback Optional callback to process individual results
+   * @param {ScriptFilter} filter Optional script filter
    * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
    */
   deleteScripts(
-    resultCallback?: ResultCallback<ScriptSkeleton>
+    resultCallback?: ResultCallback<ScriptSkeleton>,
+    filter?: ScriptFilter
   ): Promise<ScriptSkeleton[]>;
   /**
    * Export all scripts
@@ -161,8 +164,8 @@ export default (state: State): Script => {
     createScriptExportTemplate(): ScriptExportInterface {
       return createScriptExportTemplate({ state });
     },
-    async readScripts(): Promise<ScriptSkeleton[]> {
-      return readScripts({ state });
+    async readScripts(filter = void 0): Promise<ScriptSkeleton[]> {
+      return readScripts({ filter, state });
     },
     getLibraryScriptNames(scriptObj: ScriptSkeleton): string[] {
       return getLibraryScriptNames(scriptObj);
@@ -192,8 +195,11 @@ export default (state: State): Script => {
     async deleteScriptByName(scriptName: string): Promise<ScriptSkeleton> {
       return deleteScriptByName({ scriptName, state });
     },
-    async deleteScripts(resultCallback = void 0): Promise<ScriptSkeleton[]> {
-      return deleteScripts({ resultCallback, state });
+    async deleteScripts(
+      resultCallback = void 0,
+      filter = void 0
+    ): Promise<ScriptSkeleton[]> {
+      return deleteScripts({ filter, resultCallback, state });
     },
     async exportScript(
       scriptId: string,
@@ -271,6 +277,10 @@ export interface ScriptImportOptions {
    * Include default scripts in import if true
    */
   includeDefault: boolean;
+  /**
+   * Optional script filter to select which scripts to import
+   */
+  filter?: ScriptFilter;
 }
 
 /**
@@ -289,7 +299,39 @@ export interface ScriptExportOptions {
    * Use string arrays to store script code
    */
   useStringArrays: boolean;
+  /**
+   * Optional script filter to select which scripts to export
+   */
+  filter?: ScriptFilter;
 }
+
+export type ScriptType = 'LEGACY' | 'NEXTGEN';
+
+export interface ScriptFilterCondition {
+  /**
+   * Script property or alias to filter by.
+   * Supports `language`, `context`/`use`, and `type`.
+   */
+  field: string;
+  /**
+   * One or more values to match against the selected field.
+   * Multiple values are OR-ed together.
+   */
+  value: string | string[];
+}
+
+export interface ScriptFilterGroup {
+  /**
+   * Logical operator used to evaluate nested filters. Defaults to `AND`.
+   */
+  operator?: 'AND' | 'OR';
+  /**
+   * Nested filters evaluated with the selected operator.
+   */
+  filters: ScriptFilter[];
+}
+
+export type ScriptFilter = ScriptFilterCondition | ScriptFilterGroup;
 
 /**
  * Create an empty script export template
@@ -308,16 +350,19 @@ export function createScriptExportTemplate({
 
 /**
  * Get all scripts
+ * @param {ScriptFilter} filter Optional script filter
  * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
  */
 export async function readScripts({
+  filter = void 0,
   state,
 }: {
+  filter?: ScriptFilter;
   state: State;
 }): Promise<ScriptSkeleton[]> {
   try {
     const { result } = await _getScripts({ state });
-    return result;
+    return applyScriptFilter(result, filter);
   } catch (error) {
     throw new FrodoError(
       `Error reading ${getCurrentRealmName(state) + ' realm'} scripts`,
@@ -590,16 +635,19 @@ export async function deleteScriptByName({
 /**
  * Delete all non-default scripts
  * @param {ResultCallback} resultCallback Optional callback to process individual results
+ * @param {ScriptFilter} filter Optional script filter
  * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
  */
 export async function deleteScripts({
+  filter = void 0,
   resultCallback = void 0,
   state,
 }: {
+  filter?: ScriptFilter;
   resultCallback?: ResultCallback<ScriptSkeleton>;
   state: State;
 }): Promise<ScriptSkeleton[]> {
-  const result = await readScripts({ state });
+  const result = await readScripts({ filter, state });
   //Unable to delete default scripts, so filter them out
   const scripts = result.filter((s) => !s.default);
   const deletedScripts = [];
@@ -705,11 +753,11 @@ export async function exportScripts({
   state,
 }: {
   options?: ScriptExportOptions;
-  resultCallback: ResultCallback<ScriptSkeleton>;
+  resultCallback?: ResultCallback<ScriptSkeleton>;
   state: State;
 }): Promise<ScriptExportInterface> {
-  const { includeDefault, useStringArrays } = options;
-  let scriptList = await readScripts({ state });
+  const { includeDefault, useStringArrays, filter } = options;
+  let scriptList = await readScripts({ filter, state });
   if (!includeDefault)
     scriptList = scriptList.filter((script) => !script.default);
   const exportData = createScriptExportTemplate({ state });
@@ -783,13 +831,15 @@ export async function importScripts({
   for (const existingId of Object.keys(importData.script)) {
     try {
       const scriptData = importData.script[existingId];
+      const doesNotMatchFilter =
+        options.filter && !matchesScriptFilter(scriptData, options.filter);
       const isDefault = !options.includeDefault && scriptData.default;
       // Only import script if the scriptName matches the current script. Note this only applies if we are not importing dependencies since if there are dependencies then we want to import all the scripts in the file.
       const shouldNotImportScript =
         !options.deps &&
         ((scriptId && scriptId !== scriptData._id) ||
           (!scriptId && scriptName && scriptName !== scriptData.name));
-      if (isDefault || shouldNotImportScript) continue;
+      if (isDefault || shouldNotImportScript || doesNotMatchFilter) continue;
       debugMessage({
         message: `ScriptOps.importScripts: Importing script ${scriptData.name} (${existingId})`,
         state,
@@ -832,6 +882,84 @@ export async function importScripts({
   }
   debugMessage({ message: `ScriptOps.importScripts: end`, state });
   return response;
+}
+
+const legacyScriptContexts = new Set([
+  'AUTHENTICATION_CLIENT_SIDE',
+  'AUTHENTICATION_SERVER_SIDE',
+]);
+
+function applyScriptFilter(
+  scripts: ScriptSkeleton[],
+  filter?: ScriptFilter
+): ScriptSkeleton[] {
+  if (!filter) return scripts;
+  return scripts.filter((script) => matchesScriptFilter(script, filter));
+}
+
+function matchesScriptFilter(
+  script: ScriptSkeleton,
+  filter?: ScriptFilter
+): boolean {
+  if (!filter) return true;
+  if ('filters' in filter) {
+    const filters = filter.filters ?? [];
+    const operator = filter.operator ?? 'AND';
+    if (filters.length === 0) return true;
+    return operator === 'OR'
+      ? filters.some((nestedFilter) => matchesScriptFilter(script, nestedFilter))
+      : filters.every((nestedFilter) => matchesScriptFilter(script, nestedFilter));
+  }
+  const expectedValues = normalizeFilterValues(filter.value);
+  const actualValues = getScriptFilterValues(script, filter.field);
+  return actualValues.some((actualValue) => expectedValues.includes(actualValue));
+}
+
+function getScriptFilterValues(
+  script: ScriptSkeleton,
+  field: string
+): string[] {
+  const normalizedField = field.trim().toUpperCase();
+  switch (normalizedField) {
+    case 'LANGUAGE':
+      return normalizeFilterValues(script.language);
+    case 'CONTEXT':
+    case 'USE':
+    case 'SCRIPTUSE':
+    case 'SCRIPT_USE':
+      return normalizeFilterValues(script.context);
+    case 'TYPE':
+    case 'SCRIPTTYPE':
+    case 'SCRIPT_TYPE': {
+      const type = getScriptType(script);
+      return type ? [type] : [];
+    }
+    default: {
+      const rawValue = Object.entries(script as Record<string, unknown>).find(
+        ([key]) => key.toUpperCase() === normalizedField
+      )?.[1];
+      return normalizeFilterValues(rawValue);
+    }
+  }
+}
+
+function getScriptType(script: ScriptSkeleton): ScriptType | undefined {
+  const scriptRecord = script as Record<string, unknown>;
+  const explicitType = scriptRecord.type ?? scriptRecord.scriptType;
+  const [normalizedExplicitType] = normalizeFilterValues(explicitType);
+  if (normalizedExplicitType === 'LEGACY' || normalizedExplicitType === 'NEXTGEN') {
+    return normalizedExplicitType;
+  }
+  return legacyScriptContexts.has(script.context) ? 'LEGACY' : 'NEXTGEN';
+}
+
+function normalizeFilterValues(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => normalizeFilterValues(entry));
+  }
+  if (value === null || value === undefined) return [];
+  const normalizedValue = String(value).trim().toUpperCase();
+  return normalizedValue ? [normalizedValue] : [];
 }
 
 /**
