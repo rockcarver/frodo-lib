@@ -18,6 +18,7 @@ import { decode, encode, isBase64Encoded } from '../../utils/Base64Utils';
 import {
   createProgressIndicator,
   debugMessage,
+  printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../../utils/Console';
@@ -388,6 +389,20 @@ export function createSecretsExportTemplate({
   } as SecretsExportInterface;
 }
 
+function warnSkippedActiveValueExport({
+  secretId,
+  state,
+}: {
+  secretId: string;
+  state: State;
+}) {
+  printMessage({
+    message: `Warning: Secret '${secretId}' has 'Use in Placeholders' disabled, skipping active value export.`,
+    type: 'warn',
+    state,
+  });
+}
+
 export async function exportSecret({
   secretId,
   options = { includeActiveValues: false, target: null },
@@ -403,11 +418,15 @@ export async function exportSecret({
     const exportData = createSecretsExportTemplate({ state });
     const secret = await readSecret({ secretId, state });
     if (includeActiveValues) {
-      secret.activeValue = await readSecretValue({
-        secretId: secret._id,
-        target,
-        state,
-      });
+      if (secret.useInPlaceholders) {
+        secret.activeValue = await readSecretValue({
+          secretId: secret._id,
+          target,
+          state,
+        });
+      } else {
+        warnSkippedActiveValueExport({ secretId: secret._id, state });
+      }
     }
     exportData.secret[secret._id] = secret;
     debugMessage({ message: `SecretsOps.exportSecret: end`, state });
@@ -447,7 +466,11 @@ export async function exportSecrets({
           message: `Exporting secret ${secret._id}`,
           state,
         });
-        secret.activeValue = mapOfSecrets[secret._id];
+        if (secret.useInPlaceholders) {
+          secret.activeValue = mapOfSecrets[secret._id];
+        } else {
+          warnSkippedActiveValueExport({ secretId: secret._id, state });
+        }
         exportData.secret[secret._id] = secret;
       }
     } else {
