@@ -907,12 +907,18 @@ function matchesScriptFilter(
     const operator = filter.operator ?? 'AND';
     if (filters.length === 0) return true;
     return operator === 'OR'
-      ? filters.some((nestedFilter) => matchesScriptFilter(script, nestedFilter))
-      : filters.every((nestedFilter) => matchesScriptFilter(script, nestedFilter));
+      ? filters.some((nestedFilter) =>
+          matchesScriptFilter(script, nestedFilter)
+        )
+      : filters.every((nestedFilter) =>
+          matchesScriptFilter(script, nestedFilter)
+        );
   }
   const expectedValues = normalizeFilterValues(filter.value);
   const actualValues = getScriptFilterValues(script, filter.field);
-  return actualValues.some((actualValue) => expectedValues.includes(actualValue));
+  return actualValues.some((actualValue) =>
+    expectedValues.includes(actualValue)
+  );
 }
 
 function getScriptFilterValues(
@@ -947,7 +953,10 @@ function getScriptType(script: ScriptSkeleton): ScriptType | undefined {
   const scriptRecord = script as Record<string, unknown>;
   const explicitType = scriptRecord.type ?? scriptRecord.scriptType;
   const [normalizedExplicitType] = normalizeFilterValues(explicitType);
-  if (normalizedExplicitType === 'LEGACY' || normalizedExplicitType === 'NEXTGEN') {
+  if (
+    normalizedExplicitType === 'LEGACY' ||
+    normalizedExplicitType === 'NEXTGEN'
+  ) {
     return normalizedExplicitType;
   }
   return legacyScriptContexts.has(script.context) ? 'LEGACY' : 'NEXTGEN';

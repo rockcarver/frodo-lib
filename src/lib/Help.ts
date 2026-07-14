@@ -4095,9 +4095,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Script",
     methodName: "readScripts",
-    signature: "readScripts(): Promise<ScriptSkeleton[]>",
+    signature: "readScripts(filter?: ScriptFilter): Promise<ScriptSkeleton[]>",
     description: "Read all scripts",
-    params: [],
+    params: [
+      { name: "filter", type: "ScriptFilter", description: "Optional script filter" },
+    ],
     returns: "{Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects",
   },
   {
@@ -4176,10 +4178,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Script",
     methodName: "deleteScripts",
-    signature: "deleteScripts( resultCallback?: ResultCallback<ScriptSkeleton> ): Promise<ScriptSkeleton[]>",
+    signature: "deleteScripts( resultCallback?: ResultCallback<ScriptSkeleton>, filter?: ScriptFilter ): Promise<ScriptSkeleton[]>",
     description: "Delete all non-default scripts",
     params: [
       { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results" },
+      { name: "filter", type: "ScriptFilter", description: "Optional script filter" },
     ],
     returns: "{Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects",
   },
