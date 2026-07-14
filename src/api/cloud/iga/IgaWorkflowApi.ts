@@ -2,9 +2,9 @@ import util from 'util';
 
 import { State } from '../../../shared/State';
 import { getHostOnlyUrl } from '../../../utils/ForgeRockUtils';
-import { QueryResult } from '../../ApiTypes';
 import { generateGovernanceApi } from '../../BaseApi';
 import { StaticNodeRefSkeletonInterface } from '../../NodeApi';
+import { governanceApiSearchAll } from '../../../utils/ExportImportUtils';
 
 const allWorkflowsURLTemplate = '%s/iga/governance/workflow';
 const workflowURLTemplate = allWorkflowsURLTemplate + '/%s';
@@ -239,25 +239,30 @@ export async function getPublishedWorkflow({
 }
 
 /**
- * Get all workflows
- * @returns {Promise<QueryResult<WorkflowSkeleton>>} a promise that resolves to an object containing an array of workflow objects
+ * Query all workflows
+ * @param {string} queryString The query string that matches name, displayName, and description keys. Default is '' which returns all workflows (see https://docs.pingidentity.com/pingoneaic/identity-governance/rest-api/endpoints/rest-iga.html#rest-api-workflow)
+ * @returns {Promise<WorkflowSkeleton[]>} a promise that resolves to an object containing an array of workflow objects
  */
-export async function getWorkflows({
+export async function queryWorkflows({
+  queryString = '',
   state,
 }: {
+  queryString?: string;
   state: State;
-}): Promise<QueryResult<WorkflowSkeleton>> {
+}): Promise<WorkflowSkeleton[]> {
   const urlString = util.format(
     allWorkflowsURLTemplate,
     getHostOnlyUrl(state.getHost())
   );
-  const { data } = await generateGovernanceApi({
-    resource: {},
+  return await governanceApiSearchAll({
+    url: urlString,
+    pageOffsetStrategy: 'PAGE',
+    pageSize: 10000,
+    // The page offset starts at 1 instead of 0 for workflows, so we need to add one to it
+    queryParamBuilder: (size, offset) =>
+      `_queryString=${queryString}&_pageSize=${size}&_pagedResultsOffset=${offset + 1}`,
     state,
-  }).get(urlString, {
-    withCredentials: true,
   });
-  return data;
 }
 
 /**

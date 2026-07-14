@@ -823,29 +823,14 @@ export async function getApiSearchAll<T>({
   fields?: string[];
   state: State;
 }): Promise<T[]> {
-  const results: T[] = [];
-  const urlString = `${url}?_queryFilter=${queryFilter}&_pageSize=${pageSize}${fields && fields.length ? `&_fields=${fields.join(',')}` : ''}`;
-  let currentSearchResult: SearchResult<T>;
-  do {
-    currentSearchResult = (
-      await generateGovernanceApi({
-        resource: {},
+  const initialParams = `_queryFilter=${queryFilter}${fields && fields.length ? `&_fields=${fields.join(',')}` : ''}`;
+  return await governanceApiSearchAll<T>({
+    url,
+    pageSize,
+    queryParamBuilder: (size, offset) =>
+      `${initialParams}&_pageSize=${size}&_pagedResultsOffset=${offset}`,
         state,
-      }).get(urlString + '&_pagedResultsOffset=' + results.length, {
-        withCredentials: true,
-      })
-    ).data;
-    results.push(...currentSearchResult.result);
-  } while (
-    currentSearchResult.resultCount === pageSize &&
-    results.length < currentSearchResult.totalCount
-  );
-  if (results.length !== currentSearchResult.totalCount) {
-    throw new FrodoError(
-      `Number of search results (${results.length}) doesn't match number of expected results (${currentSearchResult.totalCount})`
-    );
-  }
-  return results;
+  });
 }
 
 /**
@@ -868,32 +853,74 @@ export async function postApiSearchAll<T>({
   targetFilter?: SearchTargetFilterOperation;
   state: State;
 }): Promise<T[]> {
-  const results: T[] = [];
-  const urlString = url + '?pageSize=' + pageSize;
-  const body = targetFilter
+  return await governanceApiSearchAll<T>({
+    url,
+    method: 'POST',
+    pageOffsetStrategy: 'PAGE',
+    pageSize,
+    body: targetFilter
     ? {
         targetFilter,
       }
-    : undefined;
+      : undefined,
+    queryParamBuilder: (size, offset) =>
+      `pageSize=${size}&pageNumber=${offset}`,
+    state,
+  });
+}
+
+export async function governanceApiSearchAll<T>({
+  url,
+  method = 'GET',
+  pageOffsetStrategy = 'RESULT',
+  pageSize = 10000,
+  body,
+  queryParamBuilder,
+  state,
+}: {
+  url: string;
+  method?: 'GET' | 'POST';
+  pageOffsetStrategy?: 'RESULT' | 'PAGE';
+  pageSize?: number;
+  body?: any;
+  queryParamBuilder?: (pageSize: number, offset: number) => string;
+  state;
+}) {
+  const results: T[] = [];
   let currentSearchResult: SearchResult<T>;
+  let currentSearchTotalCount: number;
   let pageNumber = 0;
   do {
-    currentSearchResult = (
-      await generateGovernanceApi({
+    const axios = generateGovernanceApi({
         resource: {},
         state,
-      }).post(urlString + '&pageNumber=' + pageNumber++, body, {
+    });
+    const urlString = `${url}?${queryParamBuilder(pageSize, pageOffsetStrategy === 'PAGE' ? pageNumber++ : results.length)}`;
+    if (method === 'GET') {
+      currentSearchResult = (
+        await axios.get(urlString, {
         withCredentials: true,
       })
     ).data;
+    } else {
+      currentSearchResult = (
+        await axios.post(urlString, body, {
+          withCredentials: true,
+        })
+      ).data;
+    }
+    currentSearchTotalCount =
+      currentSearchResult.totalCount !== undefined
+        ? currentSearchResult.totalCount
+        : currentSearchResult.totalHits;
     results.push(...currentSearchResult.result);
   } while (
     currentSearchResult.resultCount === pageSize &&
-    results.length < currentSearchResult.totalCount
+    results.length < currentSearchTotalCount
   );
-  if (results.length !== currentSearchResult.totalCount) {
+  if (results.length !== currentSearchTotalCount) {
     throw new FrodoError(
-      `Number of search results (${results.length}) doesn't match number of expected results (${currentSearchResult.totalCount})`
+      `Number of search results (${results.length}) doesn't match number of expected results (${currentSearchTotalCount})`
     );
   }
   return results;

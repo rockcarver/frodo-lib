@@ -12,7 +12,7 @@ import {
   deletePublishedWorkflow as _deletePublishedWorkflow,
   getDraftWorkflow,
   getPublishedWorkflow,
-  getWorkflows,
+  queryWorkflows,
   publishWorkflow as _publishWorkflow,
   putWorkflow,
   WorkflowSkeleton,
@@ -434,8 +434,7 @@ export async function readWorkflows({
   state: State;
 }): Promise<WorkflowSkeleton[]> {
   try {
-    const { result } = await getWorkflows({ state });
-    return result;
+    return await queryWorkflows({ state });
   } catch (error) {
     throw new FrodoError(`Error reading workflows`, error);
   }

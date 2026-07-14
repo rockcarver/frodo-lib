@@ -1,7 +1,10 @@
 import util from 'util';
 
 import { State } from '../../../shared/State';
-import { postApiSearchAll } from '../../../utils/ExportImportUtils';
+import {
+  governanceApiSearchAll,
+  postApiSearchAll,
+} from '../../../utils/ExportImportUtils';
 import { getHostOnlyUrl } from '../../../utils/ForgeRockUtils';
 import { Metadata, SearchTargetFilterOperation } from '../../ApiTypes';
 import { generateGovernanceApi } from '../../BaseApi';
@@ -232,25 +235,28 @@ export async function getCertificationTemplate({
 }
 
 /**
- * Get all certification templates, excluding those used by IGA events.
+ * Query all certification templates, excluding those used by IGA events.
+ * @param {string} queryString The query string that matches name and description keys. Default is '' which returns all certification templates (see https://docs.pingidentity.com/pingoneaic/identity-governance/rest-api/endpoints/rest-iga.html#rest-api-certification)
  * @returns {Promise<CertificationTemplateSkeleton[]>} A promise that resolves to an array of certification template objects
  */
-export async function getCertificationTemplates({
+export async function queryCertificationTemplates({
+  queryString = '',
   state,
 }: {
+  queryString?: string;
   state: State;
 }): Promise<CertificationTemplateSkeleton[]> {
   const urlString = util.format(
     certificationTemplatesEndpointURLTemplate,
     getHostOnlyUrl(state.getHost())
   );
-  const { data } = await generateGovernanceApi({
-    resource: {},
+  return await governanceApiSearchAll({
+    url: urlString,
+    // We do NOT want to use the PAGE strategy because pageNumber here is actually based on number of results, not pages
+    queryParamBuilder: (size, offset) =>
+      `queryString=${queryString}&pageSize=${size}&pageNumber=${offset}`,
     state,
-  }).get(urlString, {
-    withCredentials: true,
   });
-  return data;
 }
 
 /**
