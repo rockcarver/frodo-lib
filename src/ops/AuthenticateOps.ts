@@ -406,7 +406,7 @@ async function determineDeploymentType(state: State): Promise<string> {
   }
 }
 
-const unknownAmVersion = '0.0.0';
+const UNKNOWN_AM_VERSION = '0.0.0';
 
 /**
  * Helper function to extract the semantic version string from a version info object
@@ -415,19 +415,19 @@ const unknownAmVersion = '0.0.0';
  */
 export function getSemanticVersion(versionInfo) {
   const versionFields = [versionInfo?.version, versionInfo?.fullVersion];
-  const rx = /(\d+\.\d+\.\d+(?:\.\d+)*)/;
+  const semanticVersionRegex = /(\d+\.\d+\.\d+(?:\.\d+)*)/;
 
   for (const versionField of versionFields) {
     if (typeof versionField !== 'string') {
       continue;
     }
-    const version = versionField.match(rx);
+    const version = versionField.match(semanticVersionRegex);
     if (version) {
       return version[0];
     }
   }
 
-  return unknownAmVersion;
+  return UNKNOWN_AM_VERSION;
 }
 
 /**
