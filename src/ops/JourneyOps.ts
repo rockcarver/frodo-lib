@@ -636,7 +636,7 @@ function stripExportMetadata(
     ...exportData,
   };
   delete treeExport.meta;
-  return treeExport as SingleTreeExportInterface;
+  return treeExport;
 }
 
 /**
