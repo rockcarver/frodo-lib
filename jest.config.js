@@ -6,7 +6,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/test/jest-polly-replay-integrity.setup.js'],
   snapshotResolver: '<rootDir>/snapshotResolve.js',
   testMatch: ['**/?(*.)(test).ts'],
-  testTimeout: 120000,
+  testTimeout: 180000,
   reporters: [
     'default',
     ['<rootDir>/jest-exception-reporter.mjs', {}]

@@ -186,7 +186,14 @@ export function setupPollyRecordingContext(
     return bodyString;
   };
   ctx.polly.server.any().on('beforeResponse', (req, res) => {
-    let responseBody = JSON.parse(res.body);
+    let responseBody;
+    try {
+      responseBody = JSON.parse(res.body);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (e) {
+      // Ignore if the response body is not JSON data
+      return;
+    }
     // Based on all recordings so far, any compressed response is base64 encoded and chunked using br encoding, so I assume the response is compressed when it's encoded and chunked.
     const isCompressed =
       res.encoding === 'base64' &&

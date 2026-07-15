@@ -326,7 +326,7 @@ describe('ConfigOps', () => {
     (process.env.FRODO_POLLY_MODE === 'record' &&
       process.env.FRODO_RECORD_PHASE === '3')
   ) {
-    describe.skip('IGA Cloud Tests', () => {
+    describe('IGA Cloud Tests', () => {
       beforeEach(() => {
         state.setIsIGA(true);
         setDefaultState();
