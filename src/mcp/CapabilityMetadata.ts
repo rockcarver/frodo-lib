@@ -1515,6 +1515,34 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Update (or upsert) a script by id. Prefer namedArgs { scriptId, scriptData }.',
   },
+  'script.deleteScripts': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'resultCallback',
+        type: 'ResultCallback<ScriptSkeleton>',
+        required: false,
+        position: 0,
+        description:
+          'Optional callback to process each deleted script as it is removed.',
+      },
+      {
+        name: 'filter',
+        type: 'ScriptFilter',
+        required: false,
+        position: 1,
+        description:
+          'Optional script filter selecting which non-default scripts to delete.',
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Prefer namedArgs { filter } for MCP callers. resultCallback is primarily intended for in-process library usage.',
+  },
   'oauth2oidc.client.createOAuth2Client': {
     argumentMode: 'named',
     parameters: [
