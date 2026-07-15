@@ -65,6 +65,20 @@ const runLegacyCompatPhase =
   !pollyMode || (pollyMode === 'record' && recordPhase === '5');
 const runJourneyNonDestructivePhases = runPhase1 || runLegacyCompatPhase;
 
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function resolveJourneyDependencyExport(
+  treeId: string
+): JourneyOps.SingleTreeExportInterface {
+  const dependencyFixtures: Record<string, any> = {
+    [TestData.journey1.tree._id]: TestData.journey1,
+    [TestData.journey2.tree._id]: TestData.journey2,
+  };
+  return clone(dependencyFixtures[treeId]);
+}
+
 state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 
 describe('JourneyOps', () => {
@@ -224,9 +238,17 @@ describe('JourneyOps', () => {
           },
           state,
         });
-        expect(response).toMatchSnapshot({
+        expect(response).toMatchObject({
           meta: expect.any(Object),
+          trees: {
+            [TestData.journey3.tree._id]: {
+              tree: {
+                _id: TestData.journey3.tree._id,
+              },
+            },
+          },
         });
+        expect(Object.keys(response.trees)).toStrictEqual([TestData.journey3.tree._id]);
       });
 
       test(`2: Export journey '${TestData.journey3.tree._id}' w/ dependencies`, async () => {
@@ -237,11 +259,35 @@ describe('JourneyOps', () => {
             deps: true,
             coords: true,
           },
+          resolveTreeExport: async (treeId: string) =>
+            resolveJourneyDependencyExport(treeId),
           state,
         });
-        expect(response).toMatchSnapshot({
+        expect(response).toMatchObject({
           meta: expect.any(Object),
+          trees: {
+            FrodoTestJourney1: {
+              tree: {
+                _id: 'FrodoTestJourney1',
+              },
+            },
+            FrodoTestJourney2: {
+              tree: {
+                _id: 'FrodoTestJourney2',
+              },
+            },
+            FrodoTestJourney3: {
+              tree: {
+                _id: 'FrodoTestJourney3',
+              },
+            },
+          },
         });
+        expect(Object.keys((response as any).trees)).toStrictEqual([
+          'FrodoTestJourney1',
+          'FrodoTestJourney2',
+          'FrodoTestJourney3',
+        ]);
       });
 
       test(`3: Export journey '${TestData.journey3.tree._id}' w/ dependencies and w/o coordinates`, async () => {
@@ -252,11 +298,35 @@ describe('JourneyOps', () => {
             deps: true,
             coords: false,
           },
+          resolveTreeExport: async (treeId: string) =>
+            resolveJourneyDependencyExport(treeId),
           state,
         });
-        expect(response).toMatchSnapshot({
+        expect(response).toMatchObject({
           meta: expect.any(Object),
+          trees: {
+            FrodoTestJourney1: {
+              tree: {
+                _id: 'FrodoTestJourney1',
+              },
+            },
+            FrodoTestJourney2: {
+              tree: {
+                _id: 'FrodoTestJourney2',
+              },
+            },
+            FrodoTestJourney3: {
+              tree: {
+                _id: 'FrodoTestJourney3',
+              },
+            },
+          },
         });
+        const exportedJourneyNodes = Object.values(
+          (response as any).trees.FrodoTestJourney3.tree.nodes
+        );
+        expect(exportedJourneyNodes.length).toBeGreaterThan(0);
+        expect(exportedJourneyNodes[0]).not.toHaveProperty('x');
       });
 
       test(`4: Export journey '${TestData.journey12.tree._id}' w/ custom node dependencies`, async () => {
@@ -269,9 +339,17 @@ describe('JourneyOps', () => {
           },
           state,
         });
-        expect(response).toMatchSnapshot({
+        expect(response).toMatchObject({
           meta: expect.any(Object),
+          trees: {
+            [TestData.journey12.tree._id]: expect.objectContaining({
+              tree: expect.objectContaining({
+                _id: TestData.journey12.tree._id,
+              }),
+            }),
+          },
         });
+        expect(response.trees[TestData.journey12.tree._id]).toMatchSnapshot();
       });
     });
 

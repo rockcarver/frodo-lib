@@ -111,12 +111,12 @@ export type Journey = {
    * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
    * @param {string} treeId tree id/name
    * @param {TreeExportOptions} options export options
-   * @returns {Promise<SingleTreeExportInterface>} a promise that resolves to an object containing the tree and all its nodes and dependencies
+   * @returns {Promise<MultiTreeExportInterface>} a promise that resolves to an object containing the tree and any exported dependencies
    */
   exportJourney(
     treeId: string,
     options?: TreeExportOptions
-  ): Promise<SingleTreeExportInterface>;
+  ): Promise<MultiTreeExportInterface>;
   /**
    * Create export data for all trees/journeys with all their nodes and dependencies. The export data can be written to a file as is.
    * @param {TreeExportOptions} options export options
@@ -337,7 +337,7 @@ export default (state: State): Journey => {
         deps: true,
         coords: true,
       }
-    ): Promise<SingleTreeExportInterface> {
+    ): Promise<MultiTreeExportInterface> {
       return exportJourney({ journeyId: treeId, options, state });
     },
     async exportJourneys(
@@ -587,6 +587,53 @@ export function hasScriptDependency(nodeConfig: NodeSkeleton): boolean {
 const emailTemplateNodes = ['EmailSuspendNode', 'EmailTemplateNode'];
 
 const emptyScriptPlaceholder = '[Empty]';
+const treeDependencyNodeTypes = new Set([
+  'InnerTreeEvaluatorNode',
+  'BackChannelInitNode',
+]);
+
+function getTreeDependencyId({
+  nodeType,
+  nodeConfig,
+}: {
+  nodeType?: string;
+  nodeConfig?: NodeSkeleton;
+}): string | undefined {
+  const dependencyNodeType = nodeType ?? nodeConfig?._type?._id;
+  if (
+    !dependencyNodeType ||
+    !treeDependencyNodeTypes.has(dependencyNodeType) ||
+    typeof nodeConfig?.tree !== 'string'
+  ) {
+    return undefined;
+  }
+  return nodeConfig.tree;
+}
+
+function collectTreeDependencyIds(
+  treeDependencyMap: TreeDependencyMapInterface,
+  treeIds: string[] = []
+): string[] {
+  for (const [treeId, dependencies] of Object.entries(treeDependencyMap)) {
+    for (const dependencyMap of dependencies) {
+      collectTreeDependencyIds(dependencyMap, treeIds);
+    }
+    if (!treeIds.includes(treeId)) {
+      treeIds.push(treeId);
+    }
+  }
+  return treeIds;
+}
+
+function stripExportMetadata(
+  exportData: SingleTreeExportInterface
+): SingleTreeExportInterface {
+  const treeExport = {
+    ...exportData,
+  };
+  delete treeExport.meta;
+  return treeExport;
+}
 
 /**
  * Create an empty single tree export template
@@ -797,7 +844,7 @@ async function getSaml2NodeDependencies(
  * @param {TreeExportOptions} options export options
  * @returns {Promise<SingleTreeExportInterface>} a promise that resolves to an object containing the tree and all its nodes and dependencies
  */
-export async function exportJourney({
+async function exportSingleJourney({
   journeyId,
   options = {
     useStringArrays: true,
@@ -1433,6 +1480,59 @@ export async function exportJourney({
 }
 
 /**
+ * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
+ * @param {string} journeyId journey id/name
+ * @param {TreeExportOptions} options export options
+ * @returns {Promise<MultiTreeExportInterface>} a promise that resolves to an object containing the tree and any exported dependencies
+ */
+export async function exportJourney({
+  journeyId,
+  options = {
+    useStringArrays: true,
+    deps: true,
+    coords: true,
+  },
+  resolveTreeExport = onlineTreeExportResolver,
+  state,
+}: {
+  journeyId: string;
+  options?: TreeExportOptions;
+  resolveTreeExport?: TreeExportResolverInterface;
+  state: State;
+}): Promise<MultiTreeExportInterface> {
+  const exportData = await exportSingleJourney({ journeyId, options, state });
+  if (!options.deps) {
+    const multiTreeExport = createMultiTreeExportTemplate({ state });
+    multiTreeExport.trees[journeyId] = stripExportMetadata(exportData);
+    return multiTreeExport;
+  }
+  const treeDependencyMap = await getTreeDescendents({
+    treeExport: exportData,
+    resolveTreeExport,
+    resolvedTreeIds: [],
+    state,
+  });
+  const dependencyTreeIds = collectTreeDependencyIds(treeDependencyMap).filter(
+    (treeId) => treeId !== journeyId
+  );
+  const multiTreeExport = createMultiTreeExportTemplate({ state });
+  for (const dependencyTreeId of dependencyTreeIds) {
+    const dependencyExport =
+      resolveTreeExport === onlineTreeExportResolver
+        ? await exportSingleJourney({
+            journeyId: dependencyTreeId,
+            options,
+            state,
+          })
+        : await resolveTreeExport(dependencyTreeId, state);
+    multiTreeExport.trees[dependencyTreeId] =
+      stripExportMetadata(dependencyExport);
+  }
+  multiTreeExport.trees[journeyId] = stripExportMetadata(exportData);
+  return multiTreeExport;
+}
+
+/**
  * Create export data for all trees/journeys with all their nodes and dependencies. The export data can be written to a file as is.
  * @param {TreeExportOptions} options export options
  * @param {ResultCallback} resultCallback Optional callback to process individual results
@@ -1462,7 +1562,7 @@ export async function exportJourneys({
     const exportData: SingleTreeExportInterface = await getResult(
       resultCallback,
       `Error exporting the ${getCurrentRealmName(state) + ' realm'} journey ${tree._id}`,
-      exportJourney,
+      exportSingleJourney,
       {
         journeyId: tree._id,
         options,
@@ -2452,11 +2552,11 @@ export async function resolveInnerTreeDependencies({
     if ({}.hasOwnProperty.call(candidateJourneys, tree)) {
       const dependencies = [];
       for (const node in candidateJourneys[tree].nodes) {
-        if (
-          candidateJourneys[tree].nodes[node]._type._id ===
-          'InnerTreeEvaluatorNode'
-        ) {
-          dependencies.push(candidateJourneys[tree].nodes[node].tree);
+        const dependency = getTreeDependencyId({
+          nodeConfig: candidateJourneys[tree].nodes[node],
+        });
+        if (dependency) {
+          dependencies.push(dependency);
         }
       }
       let allResolved = true;
@@ -2519,10 +2619,11 @@ export async function resolveDependencies(
     if ({}.hasOwnProperty.call(journeyMap, tree)) {
       const dependencies = [];
       for (const node in journeyMap[tree].nodes) {
-        if (
-          journeyMap[tree].nodes[node]._type._id === 'InnerTreeEvaluatorNode'
-        ) {
-          dependencies.push(journeyMap[tree].nodes[node].tree);
+        const dependency = getTreeDependencyId({
+          nodeConfig: journeyMap[tree].nodes[node],
+        });
+        if (dependency) {
+          dependencies.push(dependency);
         }
       }
       let allResolved = true;
@@ -2701,7 +2802,7 @@ export function getNodeRef(
 export const onlineTreeExportResolver: TreeExportResolverInterface =
   async function (treeId: string, state: State) {
     debugMessage({ message: `onlineTreeExportResolver(${treeId})`, state });
-    return await exportJourney({
+    return await exportSingleJourney({
       journeyId: treeId,
       options: {
         deps: false,
@@ -2821,24 +2922,25 @@ export async function getTreeDescendents({
   for (const [nodeId, node] of Object.entries(treeExport.tree.nodes)) {
     let innerTreeId: string;
     try {
-      if (node.nodeType === 'InnerTreeEvaluatorNode') {
-        innerTreeId = treeExport.nodes[nodeId].tree;
-        if (!resolvedTreeIds.includes(innerTreeId)) {
-          const innerTreeExport = await resolveTreeExport(innerTreeId, state);
-          debugMessage({
-            message: `resolved inner tree: ${innerTreeExport.tree._id}`,
+      innerTreeId = getTreeDependencyId({
+        nodeType: node.nodeType,
+        nodeConfig: treeExport.nodes[nodeId],
+      });
+      if (innerTreeId && !resolvedTreeIds.includes(innerTreeId)) {
+        const innerTreeExport = await resolveTreeExport(innerTreeId, state);
+        debugMessage({
+          message: `resolved inner tree: ${innerTreeExport.tree._id}`,
+          state,
+        });
+        // resolvedTreeIds.push(innerTreeId);
+        dependencies.push(
+          await getTreeDescendents({
+            treeExport: innerTreeExport,
+            resolveTreeExport,
+            resolvedTreeIds,
             state,
-          });
-          // resolvedTreeIds.push(innerTreeId);
-          dependencies.push(
-            await getTreeDescendents({
-              treeExport: innerTreeExport,
-              resolveTreeExport,
-              resolvedTreeIds,
-              state,
-            })
-          );
-        }
+          })
+        );
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {

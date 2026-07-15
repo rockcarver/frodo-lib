@@ -2140,13 +2140,13 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Journey",
     methodName: "exportJourney",
-    signature: "exportJourney( treeId: string, options?: TreeExportOptions ): Promise<SingleTreeExportInterface>",
+    signature: "exportJourney( treeId: string, options?: TreeExportOptions ): Promise<MultiTreeExportInterface>",
     description: "Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.",
     params: [
       { name: "treeId", type: "string", description: "tree id/name" },
       { name: "options", type: "TreeExportOptions", description: "export options" },
     ],
-    returns: "{Promise<SingleTreeExportInterface>} a promise that resolves to an object containing the tree and all its nodes and dependencies",
+    returns: "{Promise<MultiTreeExportInterface>} a promise that resolves to an object containing the tree and any exported dependencies",
   },
   {
     typeName: "Journey",
