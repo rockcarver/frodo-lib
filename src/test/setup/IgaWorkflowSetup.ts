@@ -1124,6 +1124,36 @@ export const workflow8: WorkflowSkeleton = getTestWorkflow(
   true
 );
 
+export const workflow9: WorkflowSkeleton = getTestWorkflow(
+  'testWorkflow7',
+  'test_workflow_7',
+  false
+);
+
+export const workflow10: WorkflowSkeleton = getTestWorkflow(
+  'testWorkflow7',
+  'test_workflow_7',
+  true
+);
+
+export const workflow11: WorkflowSkeleton = getTestWorkflow(
+  'testWorkflow8',
+  'test_workflow_8',
+  false
+);
+
+export const workflow12: WorkflowSkeleton = getTestWorkflow(
+  'testWorkflow8',
+  'test_workflow_8',
+  true
+);
+
+export const workflow13: WorkflowSkeleton = getTestWorkflow(
+  'testWorkflow9',
+  'test_workflow_9',
+  true
+);
+
 export const workflowEvent1: EventSkeleton = getTestEvent({
   id: 'cd753d57-edf4-4f92-aad7-41242253ed9f',
   name: 'test_workflow_event_1',
@@ -1181,6 +1211,14 @@ export const workflowRequestType5: RequestTypeSkeleton = {
   id: 'af4a6f84-f9a9-4f8d-82ae-649639debabc',
   displayName: 'test_workflow_request_type_5',
   workflow: {},
+};
+
+export const workflowRequestType6: RequestTypeSkeleton = {
+  id: '6854ac4d-c1bc-467b-ae90-a79328c6296d',
+  displayName: 'test_workflow_request_type_6',
+  workflow: {
+    id: workflow13.id,
+  },
 };
 
 const formId1 = 'fa1a5e72-d803-4879-bc2a-07a5da3d8ee9';
@@ -1273,6 +1311,7 @@ export async function stageWorkflow(
           : deleteDraftWorkflow
       )({
         workflowId: workflow.id,
+        options: { force: true },
         state,
       });
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1287,6 +1326,7 @@ export async function stageWorkflow(
         : deleteDraftWorkflow
     )({
       workflowId: workflow.id,
+      options: { force: true },
       state,
     });
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1338,6 +1378,13 @@ export function setup() {
       await stageWorkflow(workflow5, true);
       await stageWorkflow(workflow7, true, true);
       await stageWorkflow(workflow8, true);
+      // Published workflows must be created first, otherwise it ends up deleting the draft one
+      await stageWorkflow(workflow10, true);
+      await stageWorkflow(workflow9, true);
+      // Published workflows must be created first, otherwise it ends up deleting the draft one
+      await stageWorkflow(workflow12, true);
+      await stageWorkflow(workflow11, true);
+      await stageWorkflow(workflow13, true);
       await stageRequestType(workflowRequestType5, true);
       await stageRequestForm(workflowRequestForm1, true);
       await stageRequestForm(workflowRequestForm2, true);
@@ -1348,6 +1395,7 @@ export function setup() {
       await stageRequestType(workflowRequestType2);
       await stageRequestType(workflowRequestType3);
       await stageRequestType(workflowRequestType4, true);
+      await stageRequestType(workflowRequestType6, true);
     }
   });
 
@@ -1358,6 +1406,7 @@ export function setup() {
       await stageRequestType(workflowRequestType2);
       await stageRequestType(workflowRequestType3);
       await stageRequestType(workflowRequestType4);
+      await stageRequestType(workflowRequestType6);
       await stageEvent(workflowEvent1);
       await stageEvent(workflowEvent2);
       await stageEvent(workflowEvent3);
@@ -1372,6 +1421,11 @@ export function setup() {
       await stageWorkflow(workflow6);
       await stageWorkflow(workflow7, false, true);
       await stageWorkflow(workflow8);
+      await stageWorkflow(workflow9);
+      await stageWorkflow(workflow10);
+      await stageWorkflow(workflow11);
+      await stageWorkflow(workflow12);
+      await stageWorkflow(workflow13);
       await stageEmailTemplate(template1);
       await stageEmailTemplate(template2);
       await stageEmailTemplate(template3);

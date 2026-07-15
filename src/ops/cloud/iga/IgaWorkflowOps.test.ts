@@ -359,6 +359,7 @@ describe('IgaWorkflowOps', () => {
       test(`1: Delete existing draft workflow by id`, async () => {
         const response = await IgaWorkflowOps.deleteDraftWorkflow({
           workflowId: TestData.workflow5.id,
+          options: { force: false },
           state,
         });
         expect(response).toMatchSnapshot();
@@ -367,6 +368,7 @@ describe('IgaWorkflowOps', () => {
       test('2: Delete non-existing draft workflow by id', async () => {
         await expect(IgaWorkflowOps.deleteDraftWorkflow({
           workflowId: TestData.workflow6.id,
+          options: { force: false },
           state,
         })).rejects.toThrow('Error deleting draft workflow ' + TestData.workflow6.id);
       });
@@ -377,9 +379,10 @@ describe('IgaWorkflowOps', () => {
         expect(IgaWorkflowOps.deletePublishedWorkflow).toBeDefined();
       });
 
-      test(`1: Delete existing published workflow by id`, async () => {
+      test(`1: Delete existing published workflow by id by force`, async () => {
         const response = await IgaWorkflowOps.deletePublishedWorkflow({
           workflowId: TestData.workflow6.id,
+          options: { force: true },
           state,
         });
         expect(response).toMatchSnapshot();
@@ -388,8 +391,96 @@ describe('IgaWorkflowOps', () => {
       test('2: Delete non-existing published workflow by id', async () => {
         await expect(IgaWorkflowOps.deletePublishedWorkflow({
           workflowId: TestData.workflow5.id,
+          options: { force: false },
           state,
         })).rejects.toThrow('Error deleting published workflow ' + TestData.workflow6.id);
+      });
+    });
+
+    describe('deleteWorkflow()', () => {
+      test('0: Method is implemented', async () => {
+        expect(IgaWorkflowOps.deleteWorkflow).toBeDefined();
+      });
+
+      test(`1: Delete neither draft or published workflow`, async () => {
+        const response = await IgaWorkflowOps.deleteWorkflow({
+          workflowId: TestData.workflow9.id,
+          deleteDraft: false,
+          deletePublished: false,
+          options: { force: false },
+          state,
+        });
+        expect(response.draft).toBeFalsy();
+        expect(response.published).toBeFalsy();
+      });
+  
+      test('2: Delete non-existent workflow', async () => {
+        const response = await IgaWorkflowOps.deleteWorkflow({
+          workflowId: "unknownWorkflow",
+          deleteDraft: true,
+          deletePublished: true,
+          options: { force: false },
+          resultCallback: snapshotResultCallback,
+          state,
+        });
+        expect(response.draft).toBeFalsy();
+        expect(response.published).toBeFalsy();
+      });
+
+      test(`3: Delete both draft and published workflow`, async () => {
+        const response = await IgaWorkflowOps.deleteWorkflow({
+          workflowId: TestData.workflow9.id,
+          deleteDraft: true,
+          deletePublished: true,
+          options: { force: false },
+          resultCallback: snapshotResultCallback,
+          state,
+        });
+        expect(response.draft).toBeTruthy();
+        expect(response.published).toBeTruthy();
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`4: Delete only draft workflow`, async () => {
+        const response = await IgaWorkflowOps.deleteWorkflow({
+          workflowId: TestData.workflow11.id,
+          deleteDraft: true,
+          deletePublished: false,
+          options: { force: false },
+          resultCallback: snapshotResultCallback,
+          state,
+        });
+        expect(response.draft).toBeTruthy();
+        expect(response.published).toBeFalsy();
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`5: Delete only published workflow`, async () => {
+        const response = await IgaWorkflowOps.deleteWorkflow({
+          workflowId: TestData.workflow12.id,
+          deleteDraft: false,
+          deletePublished: true,
+          options: { force: false },
+          resultCallback: snapshotResultCallback,
+          state,
+        });
+        expect(response.draft).toBeFalsy();
+        expect(response.published).toBeTruthy();
+        expect(response).toMatchSnapshot();
+      });
+
+      test(`6: Force delete workflow`, async () => {
+        const response = await IgaWorkflowOps.deleteWorkflow({
+          workflowId: TestData.workflow13.id,
+          deleteDraft: false,
+          deletePublished: true,
+          options: { force: true },
+          resultCallback: snapshotResultCallback,
+          state,
+        });
+        expect(response.draft).toBeFalsy();
+        expect(response.published).toBeTruthy();
+        expect(response).toMatchSnapshot();
       });
     });
   }
