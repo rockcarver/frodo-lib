@@ -44,6 +44,7 @@ export type ScriptSkeleton = IdObjectSkeletonInterface & {
   script: string | string[];
   language: ScriptLanguage;
   context: ScriptContext;
+  evaluatorVersion?: string;
   createdBy: string;
   creationDate: number;
   lastModifiedBy: string;

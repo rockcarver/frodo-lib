@@ -40,12 +40,14 @@ const makeScript = ({
   name,
   context,
   language = 'JAVASCRIPT',
+  evaluatorVersion,
   defaultScript = false,
 }: {
   id: string;
   name: string;
   context: ScriptContext;
   language?: 'JAVASCRIPT' | 'GROOVY';
+  evaluatorVersion?: string;
   defaultScript?: boolean;
 }) => ({
   _id: id,
@@ -55,6 +57,7 @@ const makeScript = ({
   script: encodeScript([`// ${name}`]),
   language,
   context,
+  ...(evaluatorVersion ? { evaluatorVersion } : {}),
   createdBy: 'tester',
   creationDate: 0,
   lastModifiedBy: 'tester',
@@ -85,12 +88,14 @@ describe('ScriptOps filter support unit coverage', () => {
           id: 'journey-js',
           name: 'Journey JS',
           context: 'AUTHENTICATION_TREE_DECISION_NODE',
+          evaluatorVersion: '2.0',
         }),
         makeScript({
           id: 'oauth-groovy',
           name: 'OAuth Groovy',
           context: 'OAUTH2_ACCESS_TOKEN_MODIFICATION',
           language: 'GROOVY',
+          evaluatorVersion: '2.0',
         }),
       ],
     });
@@ -103,7 +108,7 @@ describe('ScriptOps filter support unit coverage', () => {
           {
             operator: 'OR',
             filters: [
-              { field: 'type', value: 'legacy' },
+              { field: 'evaluatorVersion', value: '1.0' },
               { field: 'use', value: 'AUTHENTICATION_TREE_DECISION_NODE' },
             ],
           },
@@ -130,12 +135,14 @@ describe('ScriptOps filter support unit coverage', () => {
           id: 'journey-js',
           name: 'Journey JS',
           context: 'AUTHENTICATION_TREE_DECISION_NODE',
+          evaluatorVersion: '2.0',
         }),
         makeScript({
           id: 'oauth-groovy',
           name: 'OAuth Groovy',
           context: 'OAUTH2_ACCESS_TOKEN_MODIFICATION',
           language: 'GROOVY',
+          evaluatorVersion: '2.0',
         }),
       ],
     });
@@ -145,7 +152,7 @@ describe('ScriptOps filter support unit coverage', () => {
         deps: false,
         includeDefault: true,
         useStringArrays: true,
-        filter: { field: 'type', value: 'nextgen' },
+        filter: { field: 'evaluatorVersion', value: '2.0' },
       },
       state,
     });
@@ -172,6 +179,7 @@ describe('ScriptOps filter support unit coverage', () => {
             id: 'journey-js',
             name: 'Journey JS',
             context: 'AUTHENTICATION_TREE_DECISION_NODE',
+            evaluatorVersion: '2.0',
           }),
           script: ['// Journey JS'],
         },
@@ -181,6 +189,7 @@ describe('ScriptOps filter support unit coverage', () => {
             name: 'OAuth Groovy',
             context: 'OAUTH2_ACCESS_TOKEN_MODIFICATION',
             language: 'GROOVY',
+            evaluatorVersion: '2.0',
           }),
           script: ['// OAuth Groovy'],
         },
@@ -199,7 +208,7 @@ describe('ScriptOps filter support unit coverage', () => {
           operator: 'AND',
           filters: [
             { field: 'language', value: 'javascript' },
-            { field: 'type', value: 'nextgen' },
+            { field: 'evaluatorVersion', value: '2.0' },
           ],
         },
       },
@@ -230,18 +239,20 @@ describe('ScriptOps filter support unit coverage', () => {
           id: 'journey-js',
           name: 'Journey JS',
           context: 'AUTHENTICATION_TREE_DECISION_NODE',
+          evaluatorVersion: '2.0',
         }),
         makeScript({
           id: 'journey-default',
           name: 'Journey Default',
           context: 'AUTHENTICATION_TREE_DECISION_NODE',
+          evaluatorVersion: '2.0',
           defaultScript: true,
         }),
       ],
     });
 
     const result = await ScriptOps.deleteScripts({
-      filter: { field: 'type', value: 'nextgen' },
+      filter: { field: 'evaluatorVersion', value: '2.0' },
       state,
     });
 
@@ -251,5 +262,30 @@ describe('ScriptOps filter support unit coverage', () => {
       scriptId: 'journey-js',
       state,
     });
+  });
+
+  test('readScripts assumes evaluatorVersion 1.0 when missing', async () => {
+    getScriptsMock.mockResolvedValue({
+      result: [
+        makeScript({
+          id: 'legacy-default',
+          name: 'Legacy Default',
+          context: 'AUTHENTICATION_SERVER_SIDE',
+        }),
+        makeScript({
+          id: 'journey-nextgen',
+          name: 'Journey Nextgen',
+          context: 'AUTHENTICATION_TREE_DECISION_NODE',
+          evaluatorVersion: '2.0',
+        }),
+      ],
+    });
+
+    const result = await ScriptOps.readScripts({
+      filter: { field: 'evaluatorVersion', value: '1.0' },
+      state,
+    });
+
+    expect(result.map((script: any) => script._id)).toEqual(['legacy-default']);
   });
 });

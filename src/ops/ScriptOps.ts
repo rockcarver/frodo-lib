@@ -305,8 +305,6 @@ export interface ScriptExportOptions {
   filter?: ScriptFilter;
 }
 
-export type ScriptType = 'LEGACY' | 'NEXTGEN';
-
 export interface ScriptFilterCondition {
   /**
    * Script property to filter by.
@@ -315,7 +313,8 @@ export interface ScriptFilterCondition {
    * - `language`: the script engine (`field: 'language'`), such as `JAVASCRIPT` or `GROOVY`
    * - `context` / `use`: the AM script use (`field: 'context'` or `field: 'use'`), such as
    *   `AUTHENTICATION_TREE_DECISION_NODE` or `OAUTH2_ACCESS_TOKEN_MODIFICATION`
-   * - `type`: derived script classification (`field: 'type'`), either `LEGACY` or `NEXTGEN`
+   * - `evaluatorVersion`: the script evaluator schema version (`field: 'evaluatorVersion'`), such as
+   *   `1.0` (legacy) or `2.0` (nextgen)
    *
    * Any other script property name is matched directly against the script object.
    */
@@ -327,7 +326,7 @@ export interface ScriptFilterCondition {
    * Examples:
    * - `value: 'javascript'`
    * - `value: ['AUTHENTICATION_TREE_DECISION_NODE', 'OAUTH2_ACCESS_TOKEN_MODIFICATION']`
-   * - `value: 'legacy'`
+   * - `value: '2.0'`
    */
   value: string | string[];
 }
@@ -896,11 +895,6 @@ export async function importScripts({
   return response;
 }
 
-const legacyScriptContexts = new Set([
-  'AUTHENTICATION_CLIENT_SIDE',
-  'AUTHENTICATION_SERVER_SIDE',
-]);
-
 function applyScriptFilter(
   scripts: ScriptSkeleton[],
   filter?: ScriptFilter
@@ -944,10 +938,8 @@ function getScriptFilterValues(
     case 'CONTEXT':
     case 'USE':
       return normalizeFilterValues(script.context);
-    case 'TYPE': {
-      const type = getScriptType(script);
-      return type ? [type] : [];
-    }
+    case 'EVALUATORVERSION':
+      return normalizeFilterValues(script.evaluatorVersion ?? '1.0');
     default: {
       const rawValue = Object.entries(script as Record<string, unknown>).find(
         ([key]) => key.toUpperCase() === normalizedField
@@ -955,19 +947,6 @@ function getScriptFilterValues(
       return normalizeFilterValues(rawValue);
     }
   }
-}
-
-function getScriptType(script: ScriptSkeleton): ScriptType | undefined {
-  const scriptRecord = script as Record<string, unknown>;
-  const explicitType = scriptRecord.type ?? scriptRecord.scriptType;
-  const [normalizedExplicitType] = normalizeFilterValues(explicitType);
-  if (
-    normalizedExplicitType === 'LEGACY' ||
-    normalizedExplicitType === 'NEXTGEN'
-  ) {
-    return normalizedExplicitType;
-  }
-  return legacyScriptContexts.has(script.context) ? 'LEGACY' : 'NEXTGEN';
 }
 
 function normalizeFilterValues(value: unknown): string[] {
