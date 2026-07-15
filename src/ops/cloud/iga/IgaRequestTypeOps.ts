@@ -1,9 +1,12 @@
+import { PatchOperationInterface } from '../../../api/ApiTypes';
 import {
   createRequestType as _createRequestType,
   deleteRequestType as _deleteRequestType,
   getRequestType,
+  patchRequestType,
   putRequestType,
   queryRequestTypes,
+  RequestTypeSchema,
   RequestTypeSkeleton,
 } from '../../../api/cloud/iga/IgaRequestTypeApi';
 import { State } from '../../../shared/State';
@@ -13,7 +16,11 @@ import {
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../../../utils/Console';
-import { getMetadata, getResult } from '../../../utils/ExportImportUtils';
+import {
+  getErrorCallback,
+  getMetadata,
+  getResult,
+} from '../../../utils/ExportImportUtils';
 import { FrodoError } from '../../FrodoError';
 import { ExportMetaData, ResultCallback } from '../../OpsTypes';
 import { deleteOrphanedRequestFormAssignments } from './IgaRequestFormOps';
@@ -243,7 +250,8 @@ export interface RequestTypeExportInterface {
  */
 export interface RequestTypeImportOptions {
   /**
-   * Include only custom request types in import if true
+   * Include only custom request types in import if true.
+   * Note that non-custom request type imports will only modify the workflow ID as in the UI.
    */
   onlyCustom: boolean;
 }
@@ -290,9 +298,7 @@ export async function createRequestType({
   state: State;
 }): Promise<RequestTypeSkeleton> {
   try {
-    if (Array.isArray(typeData.validation?.source)) {
-      typeData.validation.source = typeData.validation.source.join('\n');
-    }
+    typeData = prepareRequestTypeForImport(typeData);
     return await _createRequestType({ typeData, state });
   } catch (error) {
     throw new FrodoError(
@@ -385,19 +391,15 @@ export async function exportRequestType({
       message: `IgaRequestTypeOps.exportRequestType: start`,
       state,
     });
-    const exportData = createRequestTypeExportTemplate({ state });
     const type = await readRequestType({
       typeId,
       state,
     });
-    if (
-      options.useStringArrays &&
-      type.validation &&
-      typeof type.validation.source === 'string'
-    ) {
-      type.validation.source = type.validation.source.split('\n');
-    }
-    exportData.requestType[type.id] = type;
+    const exportData = prepareRequestTypeForExport({
+      typeData: type,
+      options,
+      state,
+    });
     debugMessage({
       message: `IgaRequestTypeOps.exportRequestType: end`,
       state,
@@ -484,15 +486,12 @@ export async function exportRequestTypes({
         message: `Exporting request type ${requestType.displayName}...`,
         state,
       });
-      if (
-        options.useStringArrays &&
-        requestType.validation &&
-        typeof requestType.validation.source === 'string'
-      ) {
-        requestType.validation.source =
-          requestType.validation.source.split('\n');
-      }
-      exportData.requestType[requestType.id] = requestType;
+      const typeExport = prepareRequestTypeForExport({
+        typeData: requestType,
+        options,
+        state,
+      });
+      Object.assign(exportData.requestType, typeExport.requestType);
     }
     stopProgressIndicator({
       id: indicatorId,
@@ -532,9 +531,7 @@ export async function updateRequestType({
   state: State;
 }): Promise<RequestTypeSkeleton> {
   try {
-    if (Array.isArray(typeData.validation?.source)) {
-      typeData.validation.source = typeData.validation.source.join('\n');
-    }
+    typeData = prepareRequestTypeForImport(typeData);
     return await putRequestType({
       typeId,
       typeData,
@@ -579,18 +576,89 @@ export async function importRequestTypes({
     const shouldNotImport =
       (typeId && typeId !== requestType.id) ||
       (typeName && typeName !== requestType.displayName) ||
-      (options.onlyCustom && !requestType.custom);
+      (!typeId && !typeName && options.onlyCustom && !requestType.custom);
     if (shouldNotImport) continue;
-    // createRequestType can also be used as updateRequestType, so we use this method instead
-    const result = await getResult(
-      resultCallback,
-      `Error importing request type ${requestType.displayName}`,
-      createRequestType,
-      {
-        typeData: requestType,
-        state,
+    let result;
+    if (requestType.custom) {
+      // createRequestType can also be used as updateRequestType to replace existing configuration, so we use this method instead since updateRequestType can't be used to create configuration
+      result = await getResult(
+        resultCallback,
+        `Error importing request type ${requestType.displayName}`,
+        createRequestType,
+        {
+          typeData: requestType,
+          state,
+        }
+      );
+    } else if (!options.onlyCustom) {
+      // Check if the request type exists or not first. If not, import it before we attempt to patch it
+      try {
+        await getRequestType({
+          typeId: requestType.id,
+          state,
+        });
+      } catch (e) {
+        if (
+          e.response?.status === 404 &&
+          e.response?.data?.message === "Request Type Id doesn't exist"
+        ) {
+          await getResult(
+            getErrorCallback(resultCallback),
+            `Error creating request type ${requestType.displayName}`,
+            createRequestType,
+            {
+              typeData: requestType,
+              state,
+            }
+          );
+        } else if (resultCallback) {
+          resultCallback(e);
+        } else {
+          throw new FrodoError(
+            `Error reading request type ${requestType.displayName}`,
+            e
+          );
+        }
       }
-    );
+      const ops: PatchOperationInterface[] = [
+        // For some reason the UI will patch customValidation to null during an update on a non-custom request type, so we do the same here just to be safe
+        {
+          operation: 'replace',
+          field: '/customValidation',
+          value: null,
+        },
+        // We want to remove any custom schema if applicable since it's not a custom request type
+        {
+          operation: 'remove',
+          field: '/schemas/custom',
+        },
+        // We want to set the custom field to false since it's not a custom request type (removing the field doesn't work)
+        {
+          operation: 'replace',
+          field: '/custom',
+          value: false,
+        },
+      ];
+      if (requestType.workflow?.id) {
+        ops.push({
+          operation: 'replace',
+          field: '/workflow/id',
+          value: requestType.workflow.id,
+        });
+      }
+      result = await getResult(
+        resultCallback,
+        `Error importing request type ${requestType.displayName}`,
+        patchRequestType,
+        {
+          typeId: requestType.id,
+          ops,
+          // Must use low level api to patch non-custom request types
+          useLowLevelApi: true,
+          state,
+        }
+      );
+    }
     if (result) {
       response.push(result);
     }
@@ -677,4 +745,65 @@ export async function deleteRequestTypes({
     }
   }
   return deletedRequestTypes;
+}
+
+/**
+ * Helper that prepares a request type for export
+ * @param {RequestTypeSkeleton} typeData the request type data
+ * @param {RequestTypeExportOptions} options export options
+ * @returns {RequestTypeExportInterface} the request type export object
+ */
+function prepareRequestTypeForExport({
+  typeData,
+  options,
+  state,
+}: {
+  typeData: RequestTypeSkeleton;
+  options: RequestTypeExportOptions;
+  state: State;
+}): RequestTypeExportInterface {
+  const exportData = createRequestTypeExportTemplate({ state });
+  if (
+    options.useStringArrays &&
+    typeData.validation &&
+    typeof typeData.validation.source === 'string'
+  ) {
+    typeData.validation.source = typeData.validation.source.split('\n');
+  }
+  exportData.requestType[typeData.id] = typeData;
+  return exportData;
+}
+
+/**
+ * Helper that prepares a request type for import
+ * @param {RequestTypeSkeleton} typeData the request type data
+ * @returns {RequestTypeSkeleton} the updated request type data
+ */
+function prepareRequestTypeForImport(
+  typeData: RequestTypeSkeleton
+): RequestTypeSkeleton {
+  if (Array.isArray(typeData.validation?.source)) {
+    typeData.validation.source = typeData.validation.source.join('\n');
+  }
+  // There is a bug with the import endpoint (both PUT and POST, as of AIC version 20814.0) where if the common array has an object, but the custom array doesn't have one at the first position,
+  // it will throw a 500 error, so we add in an empty object to the custom array so that on import it will import successfully.
+  if (
+    Array.isArray(typeData.schemas?.common) &&
+    typeData.schemas.common.some(
+      (o) => typeof o === 'object' && !Array.isArray(o) && o !== null
+    )
+  ) {
+    if (
+      !Array.isArray(typeData.schemas.custom) ||
+      typeData.schemas.custom.length === 0
+    ) {
+      typeData.schemas.custom = [{}] as RequestTypeSchema[];
+    } else if (
+      typeof typeData.schemas.custom[0] !== 'object' ||
+      typeData.schemas.custom[0] === null
+    ) {
+      typeData.schemas.custom.unshift({} as RequestTypeSchema);
+    }
+  }
+  return typeData;
 }

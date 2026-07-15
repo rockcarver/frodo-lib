@@ -31,6 +31,7 @@ import {
   getMetadata,
   getResult,
   objectRecurse,
+  settlePromises,
   transformScriptArraysToStrings,
   transformScriptStringsToArrays,
 } from '../../../utils/ExportImportUtils';
@@ -50,7 +51,7 @@ import {
   importRequestForms,
   RequestFormExportInterface,
 } from './IgaRequestFormOps';
-import { importRequestTypes } from './IgaRequestTypeOps';
+import { exportRequestType, importRequestTypes } from './IgaRequestTypeOps';
 
 export type Workflow = {
   /**
@@ -896,7 +897,7 @@ async function getWorkflowRequestFormAndTypeDependencies({
   for (const workflowId of Object.keys(workflows)) {
     // Step 1: Get all request forms and their request type dependencies
     try {
-      const formExportPromises = await Promise.allSettled(
+      const forms = await settlePromises(
         (
           await getRequestFormAssignments({
             workflowId,
@@ -908,19 +909,11 @@ async function getWorkflowRequestFormAndTypeDependencies({
             options: { deps: true, useStringArrays: options.useStringArrays },
             state,
           })
-        )
+        ),
+        errors
       );
-      for (const formExportPromise of formExportPromises) {
-        if (formExportPromise.status === 'rejected') {
-          errors.push(new FrodoError(formExportPromise.reason));
-          continue;
-        }
-        if (
-          formExportPromise.status === 'fulfilled' &&
-          formExportPromise.value
-        ) {
-          results = mergeDeep(results, formExportPromise.value);
-        }
+      for (const form of forms) {
+        results = mergeDeep(results, form);
       }
     } catch (e) {
       errors.push(
@@ -932,12 +925,28 @@ async function getWorkflowRequestFormAndTypeDependencies({
     }
     // Step 2: Get all request types that reference the workflow that haven't already been exported
     try {
-      for (const t of await queryRequestTypes({
+      const types = await settlePromises(
+        (
+          await queryRequestTypes({
         // This query only works if the workflow ID is all lowercase (probably because workflow IDs are case insensitive)
         queryFilter: `workflow/id eq "${workflowId.toLowerCase()}"`,
+            fields: ['id'],
         state,
-      })) {
-        results.requestType[t.id] = t;
+          })
+        ).map((t) =>
+          exportRequestType({
+            typeId: t.id,
+            options: {
+              onlyCustom: false,
+              useStringArrays: options.useStringArrays,
+            },
+            state,
+          })
+        ),
+        errors
+      );
+      for (const type of types) {
+        results = mergeDeep(results, type);
       }
     } catch (e) {
       errors.push(

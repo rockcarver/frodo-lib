@@ -3,7 +3,7 @@ import util from 'util';
 import { State } from '../../../shared/State';
 import { getApiSearchAll } from '../../../utils/ExportImportUtils';
 import { getHostOnlyUrl } from '../../../utils/ForgeRockUtils';
-import { Metadata } from '../../ApiTypes';
+import { Metadata, PatchOperationInterface } from '../../ApiTypes';
 import { generateGovernanceApi } from '../../BaseApi';
 
 const requestTypesEndpointURLTemplate = '%s/iga/governance/requestTypes';
@@ -173,6 +173,38 @@ export async function putRequestType({
     resource: {},
     state,
   }).put(urlString, typeData, {
+    withCredentials: true,
+  });
+  return data;
+}
+
+/**
+ * Patch request type
+ * @param {string} typeId The request type id
+ * @param {PatchOperationInterface[]} ops The patch operations
+ * @param {boolean} useLowLevelApi True to use the low level API (which allows you to patch non-custom request types)
+ * @returns {Promise<RequestTypeSkeleton>} A promise that resolves to a request type object
+ */
+export async function patchRequestType({
+  typeId,
+  ops,
+  useLowLevelApi = false,
+  state,
+}: {
+  typeId: string;
+  ops: PatchOperationInterface[];
+  useLowLevelApi?: boolean;
+  state: State;
+}): Promise<RequestTypeSkeleton> {
+  const urlString = util.format(
+    requestTypeURLTemplate,
+    getHostOnlyUrl(state.getHost()),
+    typeId
+  );
+  const { data } = await generateGovernanceApi({
+    resource: {},
+    state,
+  }).patch(urlString + (useLowLevelApi ? '?_useLowLevelApi=true' : ''), ops, {
     withCredentials: true,
   });
   return data;

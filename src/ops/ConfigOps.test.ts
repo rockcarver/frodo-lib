@@ -93,6 +93,7 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: false,
+              onlyCustom: true
             },
             resultCallback: snapshotResultCallback,
             state
@@ -113,6 +114,7 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: false,
+              onlyCustom: true
             },
             resultCallback: snapshotResultCallback,
             state
@@ -133,6 +135,7 @@ describe('ConfigOps', () => {
               includeReadOnly: false,
               onlyRealm: false,
               onlyGlobal: false,
+              onlyCustom: true
             },
             resultCallback: snapshotResultCallback,
             state
@@ -153,6 +156,7 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: true,
               onlyGlobal: false,
+              onlyCustom: true
             },
             resultCallback: snapshotResultCallback,
             state
@@ -173,6 +177,7 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: true,
+              onlyCustom: true
             },
             resultCallback: snapshotResultCallback,
             state
@@ -214,6 +219,7 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: false,
+              onlyCustom: true
             },
             resultCallback: snapshotResultCallback,
             state
@@ -234,6 +240,7 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: false,
+              onlyCustom: true
             },
             resultCallback: snapshotResultCallback,
             state
@@ -254,6 +261,7 @@ describe('ConfigOps', () => {
               includeReadOnly: false,
               onlyRealm: false,
               onlyGlobal: false,
+              onlyCustom: true
             },
             resultCallback: snapshotResultCallback,
             state
@@ -274,6 +282,7 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: true,
               onlyGlobal: false,
+              onlyCustom: true
             },
             resultCallback: snapshotResultCallback,
             state
@@ -294,6 +303,7 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: true,
+              onlyCustom: true
             },
             resultCallback: snapshotResultCallback,
             state
@@ -333,6 +343,7 @@ describe('ConfigOps', () => {
               includeReadOnly: true,
               onlyRealm: false,
               onlyGlobal: false,
+              onlyCustom: false
             },
             resultCallback: snapshotResultCallback,
             state

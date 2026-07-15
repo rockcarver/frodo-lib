@@ -174,7 +174,7 @@ describe('IgaRequestTypeOps', () => {
       test(`1: Export existing request type by name without string arrays`, async () => {
         const response = await IgaRequestTypeOps.exportRequestTypeByName({
           typeName: TestData.requestType2.displayName,
-          options: { onlyCustom: false, useStringArrays: false },
+          options: { onlyCustom: true, useStringArrays: false },
           state,
         });
         expect(response).toMatchSnapshot({
@@ -186,7 +186,7 @@ describe('IgaRequestTypeOps', () => {
         const unknownName = 'unknownName';
         await expect(IgaRequestTypeOps.exportRequestTypeByName({
           typeName: unknownName,
-          options: { onlyCustom: false, useStringArrays: false },
+          options: { onlyCustom: true, useStringArrays: false },
           state,
         })).rejects.toThrow('Error exporting request type ' + unknownName);
       });
@@ -197,9 +197,9 @@ describe('IgaRequestTypeOps', () => {
         expect(IgaRequestTypeOps.exportRequestTypes).toBeDefined();
       });
 
-      test(`1: Export existing custom request types using string arrays`, async () => {
+      test(`1: Export existing custom request types, including non-custom, using string arrays`, async () => {
         const response = await IgaRequestTypeOps.exportRequestTypes({
-          options: { onlyCustom: true, useStringArrays: true },
+          options: { onlyCustom: false, useStringArrays: true },
           state,
         });
         expect(response).toMatchSnapshot({
@@ -207,9 +207,9 @@ describe('IgaRequestTypeOps', () => {
         });
       });
 
-      test(`2: Export existing request types without string arrays`, async () => {
+      test(`2: Export existing request types, excluding non-custom, without string arrays`, async () => {
         const response = await IgaRequestTypeOps.exportRequestTypes({
-          options: { onlyCustom: false, useStringArrays: false },
+          options: { onlyCustom: true, useStringArrays: false },
           state,
         });
         expect(response).toMatchSnapshot({
@@ -258,7 +258,7 @@ describe('IgaRequestTypeOps', () => {
         const response = await IgaRequestTypeOps.importRequestTypes({
           importData: IgaRequestTypeOps.createRequestTypeExportTemplate({ state }),
           options: {
-            onlyCustom: false
+            onlyCustom: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -271,7 +271,7 @@ describe('IgaRequestTypeOps', () => {
           typeId: TestData.requestType3.id,
           importData,
           options: {
-            onlyCustom: true
+            onlyCustom: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -284,7 +284,7 @@ describe('IgaRequestTypeOps', () => {
           typeName: TestData.requestType3.displayName,
           importData,
           options: {
-            onlyCustom: false
+            onlyCustom: true,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -292,11 +292,11 @@ describe('IgaRequestTypeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test('4: Import all only custom', async () => {
+      test('4: Import all excluding custom', async () => {
         const response = await IgaRequestTypeOps.importRequestTypes({
           importData,
           options: {
-            onlyCustom: true
+            onlyCustom: false,
           },
           resultCallback: snapshotResultCallback,
           state,
@@ -304,11 +304,11 @@ describe('IgaRequestTypeOps', () => {
         expect(response).toMatchSnapshot();
       });
 
-      test('5: Import all', async () => {
+      test('5: Import all including custom', async () => {
         const response = await IgaRequestTypeOps.importRequestTypes({
           importData,
           options: {
-            onlyCustom: false
+            onlyCustom: true,
           },
           resultCallback: snapshotResultCallback,
           state,
