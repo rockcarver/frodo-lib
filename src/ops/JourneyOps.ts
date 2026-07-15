@@ -111,12 +111,12 @@ export type Journey = {
    * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
    * @param {string} treeId tree id/name
    * @param {TreeExportOptions} options export options
-   * @returns {Promise<SingleTreeExportInterface>} a promise that resolves to an object containing the tree and all its nodes and dependencies
+   * @returns {Promise<JourneyExportInterface>} a promise that resolves to a single-tree export or a multi-tree dependency bundle
    */
   exportJourney(
     treeId: string,
     options?: TreeExportOptions
-  ): Promise<SingleTreeExportInterface>;
+  ): Promise<JourneyExportInterface>;
   /**
    * Create export data for all trees/journeys with all their nodes and dependencies. The export data can be written to a file as is.
    * @param {TreeExportOptions} options export options
@@ -337,7 +337,7 @@ export default (state: State): Journey => {
         deps: true,
         coords: true,
       }
-    ): Promise<SingleTreeExportInterface> {
+    ): Promise<JourneyExportInterface> {
       return exportJourney({ journeyId: treeId, options, state });
     },
     async exportJourneys(
@@ -515,6 +515,10 @@ export interface SingleTreeExportInterface {
   variable: Record<string, VariableSkeleton>;
 }
 
+export type JourneyExportInterface =
+  | SingleTreeExportInterface
+  | MultiTreeExportInterface;
+
 export interface MultiTreeExportInterface {
   meta?: ExportMetaData;
   trees: Record<string, SingleTreeExportInterface>;
@@ -608,6 +612,31 @@ function getTreeDependencyId({
     return undefined;
   }
   return nodeConfig.tree;
+}
+
+function collectTreeDependencyIds(
+  treeDependencyMap: TreeDependencyMapInterface,
+  treeIds: string[] = []
+): string[] {
+  for (const [treeId, dependencies] of Object.entries(treeDependencyMap)) {
+    for (const dependencyMap of dependencies) {
+      collectTreeDependencyIds(dependencyMap, treeIds);
+    }
+    if (!treeIds.includes(treeId)) {
+      treeIds.push(treeId);
+    }
+  }
+  return treeIds;
+}
+
+function stripExportMetadata(
+  exportData: SingleTreeExportInterface
+): SingleTreeExportInterface {
+  const treeExport = {
+    ...exportData,
+  };
+  delete treeExport.meta;
+  return treeExport as SingleTreeExportInterface;
 }
 
 /**
@@ -819,7 +848,7 @@ async function getSaml2NodeDependencies(
  * @param {TreeExportOptions} options export options
  * @returns {Promise<SingleTreeExportInterface>} a promise that resolves to an object containing the tree and all its nodes and dependencies
  */
-export async function exportJourney({
+async function exportSingleJourney({
   journeyId,
   options = {
     useStringArrays: true,
@@ -1455,6 +1484,60 @@ export async function exportJourney({
 }
 
 /**
+ * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
+ * @param {string} journeyId journey id/name
+ * @param {TreeExportOptions} options export options
+ * @returns {Promise<JourneyExportInterface>} a promise that resolves to a single-tree export or a multi-tree dependency bundle
+ */
+export async function exportJourney({
+  journeyId,
+  options = {
+    useStringArrays: true,
+    deps: true,
+    coords: true,
+  },
+  resolveTreeExport = onlineTreeExportResolver,
+  state,
+}: {
+  journeyId: string;
+  options?: TreeExportOptions;
+  resolveTreeExport?: TreeExportResolverInterface;
+  state: State;
+}): Promise<JourneyExportInterface> {
+  const exportData = await exportSingleJourney({ journeyId, options, state });
+  if (!options.deps) {
+    return exportData;
+  }
+  const treeDependencyMap = await getTreeDescendents({
+    treeExport: exportData,
+    resolveTreeExport,
+    resolvedTreeIds: [],
+    state,
+  });
+  const dependencyTreeIds = collectTreeDependencyIds(treeDependencyMap).filter(
+    (treeId) => treeId !== journeyId
+  );
+  if (dependencyTreeIds.length === 0) {
+    return exportData;
+  }
+  const multiTreeExport = createMultiTreeExportTemplate({ state });
+  for (const dependencyTreeId of dependencyTreeIds) {
+    const dependencyExport =
+      resolveTreeExport === onlineTreeExportResolver
+        ? await exportSingleJourney({
+            journeyId: dependencyTreeId,
+            options,
+            state,
+          })
+        : await resolveTreeExport(dependencyTreeId, state);
+    multiTreeExport.trees[dependencyTreeId] =
+      stripExportMetadata(dependencyExport);
+  }
+  multiTreeExport.trees[journeyId] = stripExportMetadata(exportData);
+  return multiTreeExport;
+}
+
+/**
  * Create export data for all trees/journeys with all their nodes and dependencies. The export data can be written to a file as is.
  * @param {TreeExportOptions} options export options
  * @param {ResultCallback} resultCallback Optional callback to process individual results
@@ -1484,7 +1567,7 @@ export async function exportJourneys({
     const exportData: SingleTreeExportInterface = await getResult(
       resultCallback,
       `Error exporting the ${getCurrentRealmName(state) + ' realm'} journey ${tree._id}`,
-      exportJourney,
+      exportSingleJourney,
       {
         journeyId: tree._id,
         options,
@@ -2724,7 +2807,7 @@ export function getNodeRef(
 export const onlineTreeExportResolver: TreeExportResolverInterface =
   async function (treeId: string, state: State) {
     debugMessage({ message: `onlineTreeExportResolver(${treeId})`, state });
-    return await exportJourney({
+    return await exportSingleJourney({
       journeyId: treeId,
       options: {
         deps: false,
