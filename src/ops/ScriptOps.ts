@@ -164,7 +164,7 @@ export default (state: State): Script => {
     createScriptExportTemplate(): ScriptExportInterface {
       return createScriptExportTemplate({ state });
     },
-    async readScripts(filter = void 0): Promise<ScriptSkeleton[]> {
+    async readScripts(filter?: ScriptFilter): Promise<ScriptSkeleton[]> {
       return readScripts({ filter, state });
     },
     getLibraryScriptNames(scriptObj: ScriptSkeleton): string[] {
@@ -196,8 +196,8 @@ export default (state: State): Script => {
       return deleteScriptByName({ scriptName, state });
     },
     async deleteScripts(
-      resultCallback = void 0,
-      filter = void 0
+      resultCallback?: ResultCallback<ScriptSkeleton>,
+      filter?: ScriptFilter
     ): Promise<ScriptSkeleton[]> {
       return deleteScripts({ filter, resultCallback, state });
     },
@@ -309,13 +309,25 @@ export type ScriptType = 'LEGACY' | 'NEXTGEN';
 
 export interface ScriptFilterCondition {
   /**
-   * Script property or alias to filter by.
-   * Supports `language`, `context`/`use`, and `type`.
+   * Script property to filter by.
+   *
+   * Supported built-in fields:
+   * - `language`: the script engine (`field: 'language'`), such as `JAVASCRIPT` or `GROOVY`
+   * - `context` / `use`: the AM script use (`field: 'context'` or `field: 'use'`), such as
+   *   `AUTHENTICATION_TREE_DECISION_NODE` or `OAUTH2_ACCESS_TOKEN_MODIFICATION`
+   * - `type`: derived script classification (`field: 'type'`), either `LEGACY` or `NEXTGEN`
+   *
+   * Any other script property name is matched directly against the script object.
    */
   field: string;
   /**
    * One or more values to match against the selected field.
    * Multiple values are OR-ed together.
+   *
+   * Examples:
+   * - `value: 'javascript'`
+   * - `value: ['AUTHENTICATION_TREE_DECISION_NODE', 'OAUTH2_ACCESS_TOKEN_MODIFICATION']`
+   * - `value: 'legacy'`
    */
   value: string | string[];
 }
@@ -354,7 +366,7 @@ export function createScriptExportTemplate({
  * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
  */
 export async function readScripts({
-  filter = void 0,
+  filter,
   state,
 }: {
   filter?: ScriptFilter;
@@ -639,8 +651,8 @@ export async function deleteScriptByName({
  * @returns {Promise<ScriptSkeleton[]>} a promise that resolves to an array of script objects
  */
 export async function deleteScripts({
-  filter = void 0,
-  resultCallback = void 0,
+  filter,
+  resultCallback,
   state,
 }: {
   filter?: ScriptFilter;
@@ -931,12 +943,8 @@ function getScriptFilterValues(
       return normalizeFilterValues(script.language);
     case 'CONTEXT':
     case 'USE':
-    case 'SCRIPTUSE':
-    case 'SCRIPT_USE':
       return normalizeFilterValues(script.context);
-    case 'TYPE':
-    case 'SCRIPTTYPE':
-    case 'SCRIPT_TYPE': {
+    case 'TYPE': {
       const type = getScriptType(script);
       return type ? [type] : [];
     }
