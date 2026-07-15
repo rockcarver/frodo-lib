@@ -111,12 +111,12 @@ export type Journey = {
    * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
    * @param {string} treeId tree id/name
    * @param {TreeExportOptions} options export options
-   * @returns {Promise<JourneyExportInterface>} a promise that resolves to a single-tree export or a multi-tree dependency bundle
+   * @returns {Promise<MultiTreeExportInterface>} a promise that resolves to an object containing the tree and any exported dependencies
    */
   exportJourney(
     treeId: string,
     options?: TreeExportOptions
-  ): Promise<JourneyExportInterface>;
+  ): Promise<MultiTreeExportInterface>;
   /**
    * Create export data for all trees/journeys with all their nodes and dependencies. The export data can be written to a file as is.
    * @param {TreeExportOptions} options export options
@@ -337,7 +337,7 @@ export default (state: State): Journey => {
         deps: true,
         coords: true,
       }
-    ): Promise<JourneyExportInterface> {
+    ): Promise<MultiTreeExportInterface> {
       return exportJourney({ journeyId: treeId, options, state });
     },
     async exportJourneys(
@@ -514,10 +514,6 @@ export interface SingleTreeExportInterface {
   tree: TreeSkeleton;
   variable: Record<string, VariableSkeleton>;
 }
-
-export type JourneyExportInterface =
-  | SingleTreeExportInterface
-  | MultiTreeExportInterface;
 
 export interface MultiTreeExportInterface {
   meta?: ExportMetaData;
@@ -1487,7 +1483,7 @@ async function exportSingleJourney({
  * Create export data for a tree/journey with all its nodes and dependencies. The export data can be written to a file as is.
  * @param {string} journeyId journey id/name
  * @param {TreeExportOptions} options export options
- * @returns {Promise<JourneyExportInterface>} a promise that resolves to a single-tree export or a multi-tree dependency bundle
+ * @returns {Promise<MultiTreeExportInterface>} a promise that resolves to an object containing the tree and any exported dependencies
  */
 export async function exportJourney({
   journeyId,
@@ -1503,10 +1499,12 @@ export async function exportJourney({
   options?: TreeExportOptions;
   resolveTreeExport?: TreeExportResolverInterface;
   state: State;
-}): Promise<JourneyExportInterface> {
+}): Promise<MultiTreeExportInterface> {
   const exportData = await exportSingleJourney({ journeyId, options, state });
   if (!options.deps) {
-    return exportData;
+    const multiTreeExport = createMultiTreeExportTemplate({ state });
+    multiTreeExport.trees[journeyId] = stripExportMetadata(exportData);
+    return multiTreeExport;
   }
   const treeDependencyMap = await getTreeDescendents({
     treeExport: exportData,
@@ -1517,9 +1515,6 @@ export async function exportJourney({
   const dependencyTreeIds = collectTreeDependencyIds(treeDependencyMap).filter(
     (treeId) => treeId !== journeyId
   );
-  if (dependencyTreeIds.length === 0) {
-    return exportData;
-  }
   const multiTreeExport = createMultiTreeExportTemplate({ state });
   for (const dependencyTreeId of dependencyTreeIds) {
     const dependencyExport =

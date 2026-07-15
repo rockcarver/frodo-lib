@@ -238,9 +238,17 @@ describe('JourneyOps', () => {
           },
           state,
         });
-        expect(response).toMatchSnapshot({
+        expect(response).toMatchObject({
           meta: expect.any(Object),
+          trees: {
+            [TestData.journey3.tree._id]: {
+              tree: {
+                _id: TestData.journey3.tree._id,
+              },
+            },
+          },
         });
+        expect(Object.keys(response.trees)).toStrictEqual([TestData.journey3.tree._id]);
       });
 
       test(`2: Export journey '${TestData.journey3.tree._id}' w/ dependencies`, async () => {
@@ -331,9 +339,17 @@ describe('JourneyOps', () => {
           },
           state,
         });
-        expect(response).toMatchSnapshot({
+        expect(response).toMatchObject({
           meta: expect.any(Object),
+          trees: {
+            [TestData.journey12.tree._id]: expect.objectContaining({
+              tree: expect.objectContaining({
+                _id: TestData.journey12.tree._id,
+              }),
+            }),
+          },
         });
+        expect(response.trees[TestData.journey12.tree._id]).toMatchSnapshot();
       });
     });
 
