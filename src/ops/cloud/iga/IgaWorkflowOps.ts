@@ -92,13 +92,11 @@ export type Workflow = {
    * Export workflow
    * @param {string} workflowId the workflow id
    * @param {WorkflowExportOptions} options workflow export options
-   * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {Promise<WorkflowExportInterface>} a promise that resolves to a workflow export object
    */
   exportWorkflow(
     workflowId: string,
-    options?: WorkflowExportOptions,
-    resultCallback?: ResultCallback<WorkflowExportInterface>
+    options?: WorkflowExportOptions
   ): Promise<WorkflowExportInterface>;
   /**
    * Export all workflows
@@ -531,34 +529,41 @@ export async function exportWorkflows({
       });
     } else {
       // For result callbacks we must do each export individually
-      const workflows = await readWorkflows({ state });
+      const workflowGroups = await readGroupedWorkflows({
+        includeReadOnly: options.includeReadOnly,
+        state,
+      });
       indicatorId = createProgressIndicator({
-        total: workflows.length,
+        total: Object.keys(workflowGroups).length,
         message: `Exporting workflows...`,
         state,
       });
       exportData = createWorkflowExportTemplate({ state });
-      for (const workflow of workflows) {
-        updateProgressIndicator({
-          id: indicatorId,
-          message: `Exporting ${workflow.status} workflow ${workflow.id}`,
-          state,
-        });
-        const singleExport = await getResult(
-          resultCallback,
-          undefined,
-          exportWorkflow,
-          {
-            workflowId: workflow.id,
+      const workflowPromises = [];
+      const workflowResults = [];
+      for (const workflowId of Object.keys(workflowGroups)) {
+        workflowPromises.push(
+          getResult(resultCallback, undefined, exportWorkflow, {
+            workflowId,
             options,
             state,
-          }
+          }).then((w) => {
+        updateProgressIndicator({
+          id: indicatorId,
+              message:
+                w && Object.keys(w.workflow).length > 0
+                  ? `Exported workflow ${workflowId}`
+                  : `Error exporting workflow ${workflowId}`,
+          state,
+        });
+            if (w) workflowResults.push(w);
+          })
         );
-        if (singleExport) {
-          // Merge in export with full export
-          exportData = mergeDeep(exportData, singleExport);
         }
-      }
+      await Promise.all(workflowPromises);
+      workflowResults.forEach((r) => {
+        exportData = mergeDeep(exportData, r);
+      });
     }
     stopProgressIndicator({
       id: indicatorId,
@@ -712,7 +717,6 @@ export async function importWorkflows({
     state,
   });
   for (const existingId of Object.keys(importData.workflow)) {
-    try {
       const workflow = importData.workflow[existingId];
       const shouldNotImportWorkflow =
         (!workflow.draft && !workflow.published) ||
@@ -739,37 +743,36 @@ export async function importWorkflows({
           workflow.published,
           serverWorkflows[workflow.published.id]?.published
         );
-        const result = await updateWorkflow({
+      response.push(
+        await getResult(
+          resultCallback,
+          `Error importing published workflow ${workflow.published.id}`,
+          updateWorkflow,
+          {
           workflowId: workflow.published.id,
           workflowData: workflow.published,
           state,
-        });
-        if (resultCallback) {
-          resultCallback(undefined, result);
         }
-        response.push(result);
+        )
+      );
       }
       if (workflow.draft) {
         fillCoordinates(
           workflow.draft,
           serverWorkflows[workflow.draft.id]?.draft
         );
-        const result = await updateWorkflow({
+      response.push(
+        await getResult(
+          resultCallback,
+          `Error importing draft workflow ${workflow.draft.id}`,
+          updateWorkflow,
+          {
           workflowId: workflow.draft.id,
           workflowData: workflow.draft,
           state,
-        });
-        if (resultCallback) {
-          resultCallback(undefined, result);
         }
-        response.push(result);
-      }
-    } catch (e) {
-      if (resultCallback) {
-        resultCallback(e, undefined);
-      } else {
-        throw new FrodoError(`Error importing workflow '${existingId}'`, e);
-      }
+        )
+      );
     }
   }
   // We want to delete any orphaned assignments that could be caused as a result of the import (since relevant nodes could have been deleted from the workflow(s))

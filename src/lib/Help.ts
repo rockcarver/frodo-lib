@@ -7268,12 +7268,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Workflow",
     methodName: "exportWorkflow",
-    signature: "exportWorkflow( workflowId: string, options?: WorkflowExportOptions, resultCallback?: ResultCallback<WorkflowExportInterface> ): Promise<WorkflowExportInterface>",
+    signature: "exportWorkflow( workflowId: string, options?: WorkflowExportOptions ): Promise<WorkflowExportInterface>",
     description: "Export workflow",
     params: [
       { name: "workflowId", type: "string", description: "the workflow id" },
       { name: "options", type: "WorkflowExportOptions", description: "workflow export options" },
-      { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results" },
     ],
     returns: "{Promise<WorkflowExportInterface>} a promise that resolves to a workflow export object",
   },
