@@ -6162,6 +6162,14 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<boolean>} true if successful, false otherwise",
   },
   {
+    typeName: "Startup",
+    methodName: "readStatus",
+    signature: "readStatus(): Promise<RestartStatus>",
+    description: "Get the current restart status of the environment",
+    params: [],
+    returns: "{Promise<RestartStatus>} the current restart status",
+  },
+  {
     typeName: "Variable",
     methodName: "readVariable",
     signature: "readVariable( variableId: string, noDecode?: boolean ): Promise<VariableSkeleton>",
