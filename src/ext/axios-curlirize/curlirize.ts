@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { printError, printMessage } from '../../utils/Console';
 import { CurlHelper } from './lib/CurlHelper';
 
