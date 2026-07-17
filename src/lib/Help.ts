@@ -6604,9 +6604,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "CertificationTemplate",
     methodName: "readCertificationTemplates",
-    signature: "readCertificationTemplates(): Promise<CertificationTemplateSkeleton[]>",
+    signature: "readCertificationTemplates( includeEventTemplates?: boolean ): Promise<CertificationTemplateSkeleton[]>",
     description: "Read all certification templates",
-    params: [],
+    params: [
+      { name: "includeEventTemplates", type: "boolean", description: "True to also include certification templates used in IGA events, false otherwise. Default: false" },
+    ],
     returns: "{Promise<CertificationTemplateSkeleton[]>} a promise that resolves to an array of certification template objects",
   },
   {
@@ -6690,9 +6692,10 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "CertificationTemplate",
     methodName: "deleteCertificationTemplates",
-    signature: "deleteCertificationTemplates( resultCallback?: ResultCallback<CertificationTemplateDeleteSkeleton> ): Promise<CertificationTemplateDeleteSkeleton[]>",
+    signature: "deleteCertificationTemplates( options?: CertificationTemplateDeleteOptions, resultCallback?: ResultCallback<CertificationTemplateDeleteSkeleton> ): Promise<CertificationTemplateDeleteSkeleton[]>",
     description: "Delete certification templates",
     params: [
+      { name: "options", type: "CertificationTemplateDeleteOptions", description: "delete options" },
       { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results" },
     ],
     returns: "{Promise<CertificationTemplateDeleteSkeleton[]>} promise that resolves to an array of certification template objects",
@@ -7265,12 +7268,11 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Workflow",
     methodName: "exportWorkflow",
-    signature: "exportWorkflow( workflowId: string, options?: WorkflowExportOptions, resultCallback?: ResultCallback<WorkflowExportInterface> ): Promise<WorkflowExportInterface>",
+    signature: "exportWorkflow( workflowId: string, options?: WorkflowExportOptions ): Promise<WorkflowExportInterface>",
     description: "Export workflow",
     params: [
       { name: "workflowId", type: "string", description: "the workflow id" },
       { name: "options", type: "WorkflowExportOptions", description: "workflow export options" },
-      { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results" },
     ],
     returns: "{Promise<WorkflowExportInterface>} a promise that resolves to a workflow export object",
   },
@@ -7312,29 +7314,48 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Workflow",
     methodName: "deleteDraftWorkflow",
-    signature: "deleteDraftWorkflow(workflowId: string): Promise<WorkflowSkeleton>",
+    signature: "deleteDraftWorkflow( workflowId: string, options?: WorkflowDeleteOptions ): Promise<WorkflowSkeleton>",
     description: "Delete draft workflow",
     params: [
       { name: "workflowId", type: "string", description: "the workflow id" },
+      { name: "options", type: "WorkflowDeleteOptions", description: "workflow delete options" },
     ],
     returns: "{Promise<WorkflowSkeleton>} a promise that resolves to a workflow object",
   },
   {
     typeName: "Workflow",
     methodName: "deletePublishedWorkflow",
-    signature: "deletePublishedWorkflow(workflowId: string): Promise<WorkflowSkeleton>",
+    signature: "deletePublishedWorkflow( workflowId: string, options?: WorkflowDeleteOptions ): Promise<WorkflowSkeleton>",
     description: "Delete published workflow",
     params: [
       { name: "workflowId", type: "string", description: "the workflow id" },
+      { name: "options", type: "WorkflowDeleteOptions", description: "workflow delete options" },
     ],
     returns: "{Promise<WorkflowSkeleton>} a promise that resolves to a workflow object",
   },
   {
     typeName: "Workflow",
+    methodName: "deleteWorkflow",
+    signature: "deleteWorkflow( workflowId: string, deleteDraft?: boolean, deletePublished?: boolean, options?: WorkflowDeleteOptions, resultCallback?: ResultCallback<WorkflowSkeleton> ): Promise<WorkflowGroup>",
+    description: "Delete workflow",
+    params: [
+      { name: "workflowId", type: "string", description: "the workflow id" },
+      { name: "deleteDraft", type: "boolean", description: "true to attempt to delete the draft workflow. Default: true" },
+      { name: "deletePublished", type: "boolean", description: "true to attempt to delete the published workflow. Default: true" },
+      { name: "options", type: "WorkflowDeleteOptions", description: "workflow delete options" },
+      { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results" },
+    ],
+    returns: "{Promise<WorkflowGroup>} a promise that resolves to a workflow group object",
+  },
+  {
+    typeName: "Workflow",
     methodName: "deleteWorkflows",
-    signature: "deleteWorkflows( resultCallback?: ResultCallback<WorkflowSkeleton> ): Promise<WorkflowSkeleton[]>",
+    signature: "deleteWorkflows( deleteDraft?: boolean, deletePublished?: boolean, options?: WorkflowDeleteOptions, resultCallback?: ResultCallback<WorkflowSkeleton> ): Promise<WorkflowSkeleton[]>",
     description: "Delete workflows",
     params: [
+      { name: "deleteDraft", type: "boolean", description: "true to attempt to delete draft workflows. Default: true" },
+      { name: "deletePublished", type: "boolean", description: "true to attempt to delete published workflows. Default: true" },
+      { name: "options", type: "WorkflowDeleteOptions", description: "workflow delete options" },
       { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results" },
     ],
     returns: "{Promise<WorkflowSkeleton[]>} promise that resolves to an array of workflow objects",

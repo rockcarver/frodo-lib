@@ -41,7 +41,8 @@ export type PagedResult<Type> = {
 export type SearchResult<Type> = {
   result: Type[];
   resultCount: number;
-  totalCount: number;
+  totalCount?: number;
+  totalHits?: number;
   searchAfterKey?: string[];
 };
 

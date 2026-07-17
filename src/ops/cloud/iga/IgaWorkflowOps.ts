@@ -12,7 +12,7 @@ import {
   deletePublishedWorkflow as _deletePublishedWorkflow,
   getDraftWorkflow,
   getPublishedWorkflow,
-  getWorkflows,
+  queryWorkflows,
   publishWorkflow as _publishWorkflow,
   putWorkflow,
   WorkflowSkeleton,
@@ -27,9 +27,11 @@ import {
 } from '../../../utils/Console';
 import {
   getErrorCallback,
+  getIGANotificationEmailTemplateDependencies,
   getMetadata,
   getResult,
   objectRecurse,
+  settlePromises,
   transformScriptArraysToStrings,
   transformScriptStringsToArrays,
 } from '../../../utils/ExportImportUtils';
@@ -37,11 +39,10 @@ import { mergeDeep } from '../../../utils/JsonUtils';
 import {
   EmailTemplateSkeleton,
   importEmailTemplates,
-  readEmailTemplate,
 } from '../../EmailTemplateOps';
 import { FrodoError } from '../../FrodoError';
 import { ExportMetaData, ResultCallback } from '../../OpsTypes';
-import { importVariables, resolveVariable } from '../VariablesOps';
+import { importVariables } from '../VariablesOps';
 import { importEvents } from './IgaEventOps';
 import {
   createRequestFormExportTemplate,
@@ -50,7 +51,7 @@ import {
   importRequestForms,
   RequestFormExportInterface,
 } from './IgaRequestFormOps';
-import { importRequestTypes } from './IgaRequestTypeOps';
+import { exportRequestType, importRequestTypes } from './IgaRequestTypeOps';
 
 export type Workflow = {
   /**
@@ -91,13 +92,11 @@ export type Workflow = {
    * Export workflow
    * @param {string} workflowId the workflow id
    * @param {WorkflowExportOptions} options workflow export options
-   * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {Promise<WorkflowExportInterface>} a promise that resolves to a workflow export object
    */
   exportWorkflow(
     workflowId: string,
-    options?: WorkflowExportOptions,
-    resultCallback?: ResultCallback<WorkflowExportInterface>
+    options?: WorkflowExportOptions
   ): Promise<WorkflowExportInterface>;
   /**
    * Export all workflows
@@ -136,21 +135,51 @@ export type Workflow = {
   /**
    * Delete draft workflow
    * @param {string} workflowId the workflow id
+   * @param {WorkflowDeleteOptions} options workflow delete options
    * @returns {Promise<WorkflowSkeleton>} a promise that resolves to a workflow object
    */
-  deleteDraftWorkflow(workflowId: string): Promise<WorkflowSkeleton>;
+  deleteDraftWorkflow(
+    workflowId: string,
+    options?: WorkflowDeleteOptions
+  ): Promise<WorkflowSkeleton>;
   /**
    * Delete published workflow
    * @param {string} workflowId the workflow id
+   * @param {WorkflowDeleteOptions} options workflow delete options
    * @returns {Promise<WorkflowSkeleton>} a promise that resolves to a workflow object
    */
-  deletePublishedWorkflow(workflowId: string): Promise<WorkflowSkeleton>;
+  deletePublishedWorkflow(
+    workflowId: string,
+    options?: WorkflowDeleteOptions
+  ): Promise<WorkflowSkeleton>;
+  /**
+   * Delete workflow
+   * @param {string} workflowId the workflow id
+   * @param {boolean} deleteDraft true to attempt to delete the draft workflow. Default: true
+   * @param {boolean} deletePublished true to attempt to delete the published workflow. Default: true
+   * @param {WorkflowDeleteOptions} options workflow delete options
+   * @param {ResultCallback} resultCallback Optional callback to process individual results
+   * @returns {Promise<WorkflowGroup>} a promise that resolves to a workflow group object
+   */
+  deleteWorkflow(
+    workflowId: string,
+    deleteDraft?: boolean,
+    deletePublished?: boolean,
+    options?: WorkflowDeleteOptions,
+    resultCallback?: ResultCallback<WorkflowSkeleton>
+  ): Promise<WorkflowGroup>;
   /**
    * Delete workflows
+   * @param {boolean} deleteDraft true to attempt to delete draft workflows. Default: true
+   * @param {boolean} deletePublished true to attempt to delete published workflows. Default: true
+   * @param {WorkflowDeleteOptions} options workflow delete options
    * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {Promise<WorkflowSkeleton[]>} promise that resolves to an array of workflow objects
    */
   deleteWorkflows(
+    deleteDraft?: boolean,
+    deletePublished?: boolean,
+    options?: WorkflowDeleteOptions,
     resultCallback?: ResultCallback<WorkflowSkeleton>
   ): Promise<WorkflowSkeleton[]>;
 };
@@ -247,22 +276,60 @@ export default (state: State): Workflow => {
         state,
       });
     },
-    deleteDraftWorkflow(workflowId: string): Promise<WorkflowSkeleton> {
+    deleteDraftWorkflow(
+      workflowId: string,
+      options: WorkflowDeleteOptions = {
+        force: false,
+      }
+    ): Promise<WorkflowSkeleton> {
       return deleteDraftWorkflow({
         workflowId,
+        options,
         state,
       });
     },
-    deletePublishedWorkflow(workflowId: string): Promise<WorkflowSkeleton> {
+    deletePublishedWorkflow(
+      workflowId: string,
+      options: WorkflowDeleteOptions = {
+        force: false,
+      }
+    ): Promise<WorkflowSkeleton> {
       return deletePublishedWorkflow({
         workflowId,
+        options,
+        state,
+      });
+    },
+    deleteWorkflow(
+      workflowId: string,
+      deleteDraft: boolean = true,
+      deletePublished: boolean = true,
+      options: WorkflowDeleteOptions = {
+        force: false,
+      },
+      resultCallback?: ResultCallback<WorkflowSkeleton>
+    ): Promise<WorkflowGroup> {
+      return deleteWorkflow({
+        workflowId,
+        deleteDraft,
+        deletePublished,
+        options,
+        resultCallback,
         state,
       });
     },
     deleteWorkflows(
+      deleteDraft: boolean = true,
+      deletePublished: boolean = true,
+      options: WorkflowDeleteOptions = {
+        force: false,
+      },
       resultCallback?: ResultCallback<WorkflowSkeleton>
     ): Promise<WorkflowSkeleton[]> {
       return deleteWorkflows({
+        deleteDraft,
+        deletePublished,
+        options,
         resultCallback,
         state,
       });
@@ -317,6 +384,16 @@ export interface WorkflowExportOptions {
    * Export the read only (non-mutable) workflows
    */
   includeReadOnly: boolean;
+}
+
+/**
+ * Workflow delete options
+ */
+export interface WorkflowDeleteOptions {
+  /**
+   * Force workflow delete even if there are outstanding requests or associated request types with it. Default: false
+   */
+  force: boolean;
 }
 
 /**
@@ -434,8 +511,7 @@ export async function readWorkflows({
   state: State;
 }): Promise<WorkflowSkeleton[]> {
   try {
-    const { result } = await getWorkflows({ state });
-    return result;
+    return await queryWorkflows({ state });
   } catch (error) {
     throw new FrodoError(`Error reading workflows`, error);
   }
@@ -531,34 +607,41 @@ export async function exportWorkflows({
       });
     } else {
       // For result callbacks we must do each export individually
-      const workflows = await readWorkflows({ state });
+      const workflowGroups = await readGroupedWorkflows({
+        includeReadOnly: options.includeReadOnly,
+        state,
+      });
       indicatorId = createProgressIndicator({
-        total: workflows.length,
+        total: Object.keys(workflowGroups).length,
         message: `Exporting workflows...`,
         state,
       });
       exportData = createWorkflowExportTemplate({ state });
-      for (const workflow of workflows) {
-        updateProgressIndicator({
-          id: indicatorId,
-          message: `Exporting ${workflow.status} workflow ${workflow.id}`,
-          state,
-        });
-        const singleExport = await getResult(
-          resultCallback,
-          undefined,
-          exportWorkflow,
-          {
-            workflowId: workflow.id,
+      const workflowPromises = [];
+      const workflowResults = [];
+      for (const workflowId of Object.keys(workflowGroups)) {
+        workflowPromises.push(
+          getResult(resultCallback, undefined, exportWorkflow, {
+            workflowId,
             options,
             state,
-          }
+          }).then((w) => {
+            updateProgressIndicator({
+              id: indicatorId,
+              message:
+                w && Object.keys(w.workflow).length > 0
+                  ? `Exported workflow ${workflowId}`
+                  : `Error exporting workflow ${workflowId}`,
+              state,
+            });
+            if (w) workflowResults.push(w);
+          })
         );
-        if (singleExport) {
-          // Merge in export with full export
-          exportData = mergeDeep(exportData, singleExport);
-        }
       }
+      await Promise.all(workflowPromises);
+      workflowResults.forEach((r) => {
+        exportData = mergeDeep(exportData, r);
+      });
     }
     stopProgressIndicator({
       id: indicatorId,
@@ -712,64 +795,62 @@ export async function importWorkflows({
     state,
   });
   for (const existingId of Object.keys(importData.workflow)) {
-    try {
-      const workflow = importData.workflow[existingId];
-      const shouldNotImportWorkflow =
-        (!workflow.draft && !workflow.published) ||
-        (workflow.draft &&
-          (!workflow.draft.mutable ||
-            (workflowId && workflowId !== workflow.draft.id))) ||
-        (workflow.published &&
-          (!workflow.published.mutable ||
-            (workflowId && workflowId !== workflow.published.id)));
-      if (shouldNotImportWorkflow) continue;
-      debugMessage({
-        message: `IgaWorkflowOps.importWorkflows: Importing workflow ${existingId}`,
-        state,
-      });
-      // Import workflows
-      // Get the draft workflow if it exists and we don't have it, since it will be deleted when we publish the published one, this way we can restore the draft version after.
-      // Note that we don't need to worry about request form assignments here, because when it deletes the draft, it doesn't delete the assignments (they are temporarily orphaned until we re-import the draft).
-      if (!workflow.draft) {
-        workflow.draft = serverWorkflows[workflow.published.id]?.draft;
-      }
-      // Import published first because publishing ends up deleting the draft workflow if it exists
-      if (workflow.published) {
-        fillCoordinates(
-          workflow.published,
-          serverWorkflows[workflow.published.id]?.published
-        );
-        const result = await updateWorkflow({
-          workflowId: workflow.published.id,
-          workflowData: workflow.published,
-          state,
-        });
-        if (resultCallback) {
-          resultCallback(undefined, result);
-        }
-        response.push(result);
-      }
-      if (workflow.draft) {
-        fillCoordinates(
-          workflow.draft,
-          serverWorkflows[workflow.draft.id]?.draft
-        );
-        const result = await updateWorkflow({
-          workflowId: workflow.draft.id,
-          workflowData: workflow.draft,
-          state,
-        });
-        if (resultCallback) {
-          resultCallback(undefined, result);
-        }
-        response.push(result);
-      }
-    } catch (e) {
-      if (resultCallback) {
-        resultCallback(e, undefined);
-      } else {
-        throw new FrodoError(`Error importing workflow '${existingId}'`, e);
-      }
+    const workflow = importData.workflow[existingId];
+    const shouldNotImportWorkflow =
+      (!workflow.draft && !workflow.published) ||
+      (workflow.draft &&
+        (!workflow.draft.mutable ||
+          (workflowId && workflowId !== workflow.draft.id))) ||
+      (workflow.published &&
+        (!workflow.published.mutable ||
+          (workflowId && workflowId !== workflow.published.id)));
+    if (shouldNotImportWorkflow) continue;
+    debugMessage({
+      message: `IgaWorkflowOps.importWorkflows: Importing workflow ${existingId}`,
+      state,
+    });
+    // Import workflows
+    // Get the draft workflow if it exists and we don't have it, since it will be deleted when we publish the published one, this way we can restore the draft version after.
+    // Note that we don't need to worry about request form assignments here, because when it deletes the draft, it doesn't delete the assignments (they are temporarily orphaned until we re-import the draft).
+    if (!workflow.draft) {
+      workflow.draft = serverWorkflows[workflow.published.id]?.draft;
+    }
+    // Import published first because publishing ends up deleting the draft workflow if it exists
+    if (workflow.published) {
+      fillCoordinates(
+        workflow.published,
+        serverWorkflows[workflow.published.id]?.published
+      );
+      response.push(
+        await getResult(
+          resultCallback,
+          `Error importing published workflow ${workflow.published.id}`,
+          updateWorkflow,
+          {
+            workflowId: workflow.published.id,
+            workflowData: workflow.published,
+            state,
+          }
+        )
+      );
+    }
+    if (workflow.draft) {
+      fillCoordinates(
+        workflow.draft,
+        serverWorkflows[workflow.draft.id]?.draft
+      );
+      response.push(
+        await getResult(
+          resultCallback,
+          `Error importing draft workflow ${workflow.draft.id}`,
+          updateWorkflow,
+          {
+            workflowId: workflow.draft.id,
+            workflowData: workflow.draft,
+            state,
+          }
+        )
+      );
     }
   }
   // We want to delete any orphaned assignments that could be caused as a result of the import (since relevant nodes could have been deleted from the workflow(s))
@@ -781,48 +862,78 @@ export async function importWorkflows({
     state,
   });
   debugMessage({ message: `IgaWorkflowOps.importWorkflows: end`, state });
-  return response;
+  return response.filter((w) => w);
 }
 
 /**
  * Delete draft workflow
  * @param {string} workflowId the workflow id
+ * @param {WorkflowDeleteOptions} options workflow delete options
  * @returns {Promise<WorkflowSkeleton>} a promise that resolves to a workflow object
  */
 export async function deleteDraftWorkflow({
   workflowId,
+  options = {
+    force: false,
+  },
   state,
 }: {
   workflowId: string;
+  options: WorkflowDeleteOptions;
   state: State;
 }): Promise<WorkflowSkeleton> {
   try {
-    const deletedWorkflow = await _deleteDraftWorkflow({ workflowId, state });
+    const deletedWorkflow = await _deleteDraftWorkflow({
+      workflowId,
+      useOrchestrationApi: options.force,
+      state,
+    });
     await deleteOrphanedRequestFormAssignments({
       workflowId,
       state,
     });
     return deletedWorkflow;
   } catch (error) {
-    throw new FrodoError(`Error deleting draft workflow ${workflowId}`, error);
+    let newError = error;
+    if (
+      error.status === 404 ||
+      (options.force &&
+        error.status === 500 &&
+        error.response.data === 'Exception: argument "content" is null ')
+    ) {
+      newError = new FrodoError(
+        `Draft workflow with id: ${workflowId} was not found`,
+        error
+      );
+    }
+    throw new FrodoError(
+      `Error deleting draft workflow ${workflowId}`,
+      newError
+    );
   }
 }
 
 /**
  * Delete published workflow
  * @param {string} workflowId the workflow id
+ * @param {WorkflowDeleteOptions} options workflow delete options
  * @returns {Promise<WorkflowSkeleton>} a promise that resolves to a workflow object
  */
 export async function deletePublishedWorkflow({
   workflowId,
+  options = {
+    force: false,
+  },
   state,
 }: {
   workflowId: string;
+  options: WorkflowDeleteOptions;
   state: State;
 }): Promise<WorkflowSkeleton> {
   try {
     const deletedWorkflow = await _deletePublishedWorkflow({
       workflowId,
+      useOrchestrationApi: options.force,
       state,
     });
     await deleteOrphanedRequestFormAssignments({
@@ -831,35 +942,120 @@ export async function deletePublishedWorkflow({
     });
     return deletedWorkflow;
   } catch (error) {
+    let newError = error;
+    if (
+      error.status === 404 ||
+      (options.force &&
+        error.status === 500 &&
+        error.response.data === 'Exception: argument "content" is null ')
+    ) {
+      newError = new FrodoError(
+        `Published workflow with id: ${workflowId} was not found`,
+        error
+      );
+    }
     throw new FrodoError(
       `Error deleting published workflow ${workflowId}`,
-      error
+      newError
     );
   }
 }
 
 /**
+ * Delete workflow
+ * @param {string} workflowId the workflow id
+ * @param {boolean} deleteDraft true to attempt to delete the draft workflow. Default: true
+ * @param {boolean} deletePublished true to attempt to delete the published workflow. Default: true
+ * @param {WorkflowDeleteOptions} options workflow delete options
+ * @param {ResultCallback} resultCallback Optional callback to process individual results
+ * @returns {Promise<WorkflowGroup>} a promise that resolves to a workflow group object
+ */
+export async function deleteWorkflow({
+  workflowId,
+  deleteDraft = true,
+  deletePublished = true,
+  options = {
+    force: false,
+  },
+  resultCallback,
+  state,
+}: {
+  workflowId: string;
+  deleteDraft?: boolean;
+  deletePublished?: boolean;
+  options: WorkflowDeleteOptions;
+  resultCallback?: ResultCallback<WorkflowSkeleton>;
+  state: State;
+}): Promise<WorkflowGroup> {
+  const deletedWorkflowGroup: WorkflowGroup = {
+    draft: null,
+    published: null,
+  };
+  // Attempt to delete draft first
+  if (deleteDraft) {
+    const result: WorkflowSkeleton = await getResult(
+      resultCallback,
+      undefined,
+      deleteDraftWorkflow,
+      { workflowId, options, state }
+    );
+    if (result) {
+      deletedWorkflowGroup.draft = result;
+    }
+  }
+  // Attempt to delete published second
+  if (deletePublished) {
+    const result: WorkflowSkeleton = await getResult(
+      resultCallback,
+      undefined,
+      deletePublishedWorkflow,
+      { workflowId, options, state }
+    );
+    if (result) {
+      deletedWorkflowGroup.published = result;
+    }
+  }
+  return deletedWorkflowGroup;
+}
+
+/**
  * Delete workflows
+ * @param {boolean} deleteDraft true to attempt to delete draft workflows. Default: true
+ * @param {boolean} deletePublished true to attempt to delete published workflows. Default: true
+ * @param {WorkflowDeleteOptions} options workflow delete options
  * @param {ResultCallback} resultCallback Optional callback to process individual results
  * @returns {Promise<WorkflowSkeleton[]>} promise that resolves to an array of workflow objects
  */
 export async function deleteWorkflows({
+  deleteDraft = true,
+  deletePublished = true,
+  options = {
+    force: false,
+  },
   resultCallback,
   state,
 }: {
+  deleteDraft?: boolean;
+  deletePublished?: boolean;
+  options: WorkflowDeleteOptions;
   resultCallback?: ResultCallback<WorkflowSkeleton>;
   state: State;
 }): Promise<WorkflowSkeleton[]> {
   const workflows = await readWorkflows({ state });
   const deletedWorkflows = [];
-  for (const workflow of workflows) {
+  for (const workflow of workflows.filter(
+    (w) =>
+      w.mutable &&
+      ((deleteDraft && w.status === 'draft') ||
+        (deletePublished && w.status === 'published'))
+  )) {
     const result: WorkflowSkeleton = await getResult(
       resultCallback,
       `Error deleting workflow ${workflow.id}`,
       workflow.status === 'published'
         ? deletePublishedWorkflow
         : deleteDraftWorkflow,
-      { workflowId: workflow.id, state }
+      { workflowId: workflow.id, options, state }
     );
     if (result) {
       deletedWorkflows.push(result);
@@ -869,60 +1065,6 @@ export async function deleteWorkflows({
 }
 
 // Helper functions
-
-/**
- * Gets email template dependencies for the provided workflows
- *
- * @param {Record<string, object>} workflows The workflows to get the email dependencies of
- * @param {Record<string, VariableSkeleton>} variables The variable object that caches resolved variables
- * @param {FrodoError[]} errors the errors encountered while getting the dependencies
- * @returns {EmailTemplateSkeleton[]} The array of email template dependencies
- */
-async function getWorkflowEmailTemplateDependencies({
-  workflows,
-  variables,
-  errors = [],
-  state,
-}: {
-  workflows: WorkflowGroups;
-  variables: Record<string, VariableSkeleton>;
-  errors: FrodoError[];
-  state: State;
-}): Promise<EmailTemplateSkeleton[]> {
-  const emailTemplateIds = new Set<string>();
-  objectRecurse(workflows, async (o) => {
-    let emailTemplateName;
-    if (typeof o.notification === 'string') emailTemplateName = o.notification;
-    if (typeof o.templateName === 'string') emailTemplateName = o.templateName;
-    if (emailTemplateName) {
-      emailTemplateIds.add(
-        await resolveVariable({
-          input: o.notification,
-          variables,
-          state,
-        })
-      );
-    }
-  });
-  return (
-    await Promise.allSettled(
-      [...emailTemplateIds].map((id) =>
-        readEmailTemplate({
-          templateId: id,
-          state,
-        })
-      )
-    )
-  )
-    .filter((p) => {
-      if (p.status === 'fulfilled' && p.value) return true;
-      if (p.status === 'rejected') {
-        errors.push(new FrodoError(p.reason));
-      }
-      return false;
-    })
-    .map((p) => (p as PromiseFulfilledResult<EmailTemplateSkeleton>).value);
-}
 
 /**
  * Get request forms/types workflow dependencies
@@ -951,7 +1093,7 @@ async function getWorkflowRequestFormAndTypeDependencies({
   for (const workflowId of Object.keys(workflows)) {
     // Step 1: Get all request forms and their request type dependencies
     try {
-      const formExportPromises = await Promise.allSettled(
+      const forms = await settlePromises(
         (
           await getRequestFormAssignments({
             workflowId,
@@ -963,19 +1105,11 @@ async function getWorkflowRequestFormAndTypeDependencies({
             options: { deps: true, useStringArrays: options.useStringArrays },
             state,
           })
-        )
+        ),
+        errors
       );
-      for (const formExportPromise of formExportPromises) {
-        if (formExportPromise.status === 'rejected') {
-          errors.push(new FrodoError(formExportPromise.reason));
-          continue;
-        }
-        if (
-          formExportPromise.status === 'fulfilled' &&
-          formExportPromise.value
-        ) {
-          results = mergeDeep(results, formExportPromise.value);
-        }
+      for (const form of forms) {
+        results = mergeDeep(results, form);
       }
     } catch (e) {
       errors.push(
@@ -987,12 +1121,28 @@ async function getWorkflowRequestFormAndTypeDependencies({
     }
     // Step 2: Get all request types that reference the workflow that haven't already been exported
     try {
-      for (const t of await queryRequestTypes({
-        // This query only works if the workflow ID is all lowercase (probably because workflow IDs are case insensitive)
-        queryFilter: `workflow/id eq "${workflowId.toLowerCase()}"`,
-        state,
-      })) {
-        results.requestType[t.id] = t;
+      const types = await settlePromises(
+        (
+          await queryRequestTypes({
+            // This query only works if the workflow ID is all lowercase (probably because workflow IDs are case insensitive)
+            queryFilter: `workflow/id eq "${workflowId.toLowerCase()}"`,
+            fields: ['id'],
+            state,
+          })
+        ).map((t) =>
+          exportRequestType({
+            typeId: t.id,
+            options: {
+              onlyCustom: false,
+              useStringArrays: options.useStringArrays,
+            },
+            state,
+          })
+        ),
+        errors
+      );
+      for (const type of types) {
+        results = mergeDeep(results, type);
       }
     } catch (e) {
       errors.push(
@@ -1086,12 +1236,12 @@ async function getWorkflowExport({
     });
     // Get email templates
     const variables: Record<string, VariableSkeleton> = {};
-    const emailTemplatePromise = getWorkflowEmailTemplateDependencies({
-      workflows: exportData.workflow,
+    const emailTemplatePromise = getIGANotificationEmailTemplateDependencies(
+      exportData.workflow,
       variables,
       errors,
-      state,
-    }).then((templates) => {
+      state
+    ).then((templates) => {
       exportData.emailTemplate = Object.fromEntries(
         templates.map((e) => [e._id.split('/')[1], e])
       );

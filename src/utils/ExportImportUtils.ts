@@ -24,6 +24,8 @@ import {
 } from './Base64Utils';
 import { debugMessage, printMessage, updateProgressIndicator } from './Console';
 import { deleteDeepByKeys, stringify } from './JsonUtils';
+import { resolveVariable } from '../ops/cloud/VariablesOps';
+import { VariableSkeleton } from '../api/cloud/VariablesApi';
 
 export type ExportImport = {
   getMetadata(): ExportMetaData;
@@ -823,29 +825,14 @@ export async function getApiSearchAll<T>({
   fields?: string[];
   state: State;
 }): Promise<T[]> {
-  const results: T[] = [];
-  const urlString = `${url}?_queryFilter=${queryFilter}&_pageSize=${pageSize}${fields && fields.length ? `&_fields=${fields.join(',')}` : ''}`;
-  let currentSearchResult: SearchResult<T>;
-  do {
-    currentSearchResult = (
-      await generateGovernanceApi({
-        resource: {},
-        state,
-      }).get(urlString + '&_pagedResultsOffset=' + results.length, {
-        withCredentials: true,
-      })
-    ).data;
-    results.push(...currentSearchResult.result);
-  } while (
-    currentSearchResult.resultCount === pageSize &&
-    results.length < currentSearchResult.totalCount
-  );
-  if (results.length !== currentSearchResult.totalCount) {
-    throw new FrodoError(
-      `Number of search results (${results.length}) doesn't match number of expected results (${currentSearchResult.totalCount})`
-    );
-  }
-  return results;
+  const initialParams = `_queryFilter=${queryFilter}${fields && fields.length ? `&_fields=${fields.join(',')}` : ''}`;
+  return await governanceApiSearchAll<T>({
+    url,
+    pageSize,
+    queryParamBuilder: (size, offset) =>
+      `${initialParams}&_pageSize=${size}&_pagedResultsOffset=${offset}`,
+    state,
+  });
 }
 
 /**
@@ -868,32 +855,74 @@ export async function postApiSearchAll<T>({
   targetFilter?: SearchTargetFilterOperation;
   state: State;
 }): Promise<T[]> {
+  return await governanceApiSearchAll<T>({
+    url,
+    method: 'POST',
+    pageOffsetStrategy: 'PAGE',
+    pageSize,
+    body: targetFilter
+      ? {
+          targetFilter,
+        }
+      : undefined,
+    queryParamBuilder: (size, offset) =>
+      `pageSize=${size}&pageNumber=${offset}`,
+    state,
+  });
+}
+
+export async function governanceApiSearchAll<T>({
+  url,
+  method = 'GET',
+  pageOffsetStrategy = 'RESULT',
+  pageSize = 10000,
+  body,
+  queryParamBuilder,
+  state,
+}: {
+  url: string;
+  method?: 'GET' | 'POST';
+  pageOffsetStrategy?: 'RESULT' | 'PAGE';
+  pageSize?: number;
+  body?: any;
+  queryParamBuilder?: (pageSize: number, offset: number) => string;
+  state;
+}) {
   const results: T[] = [];
-  const urlString = url + '?pageSize=' + pageSize;
-  const body = targetFilter
-    ? {
-        targetFilter,
-      }
-    : undefined;
   let currentSearchResult: SearchResult<T>;
+  let currentSearchTotalCount: number;
   let pageNumber = 0;
   do {
-    currentSearchResult = (
-      await generateGovernanceApi({
-        resource: {},
-        state,
-      }).post(urlString + '&pageNumber=' + pageNumber++, body, {
-        withCredentials: true,
-      })
-    ).data;
+    const axios = generateGovernanceApi({
+      resource: {},
+      state,
+    });
+    const urlString = `${url}?${queryParamBuilder(pageSize, pageOffsetStrategy === 'PAGE' ? pageNumber++ : results.length)}`;
+    if (method === 'GET') {
+      currentSearchResult = (
+        await axios.get(urlString, {
+          withCredentials: true,
+        })
+      ).data;
+    } else {
+      currentSearchResult = (
+        await axios.post(urlString, body, {
+          withCredentials: true,
+        })
+      ).data;
+    }
+    currentSearchTotalCount =
+      currentSearchResult.totalCount !== undefined
+        ? currentSearchResult.totalCount
+        : currentSearchResult.totalHits;
     results.push(...currentSearchResult.result);
   } while (
     currentSearchResult.resultCount === pageSize &&
-    results.length < currentSearchResult.totalCount
+    results.length < currentSearchTotalCount
   );
-  if (results.length !== currentSearchResult.totalCount) {
+  if (results.length !== currentSearchTotalCount) {
     throw new FrodoError(
-      `Number of search results (${results.length}) doesn't match number of expected results (${currentSearchResult.totalCount})`
+      `Number of search results (${results.length}) doesn't match number of expected results (${currentSearchTotalCount})`
     );
   }
   return results;
@@ -947,13 +976,17 @@ export function transformScriptArraysToStrings(obj: any): void {
  * Helper to get email template dependencies from an IGA object
  *
  * @param {any} obj The object to get email dependencies from
+ * @param {Record<string, VariableSkeleton>} variables The variable object that caches resolved variables
+ * @param {FrodoError[]} errors the errors encountered while getting the dependencies
  * @returns {EmailTemplateSkeleton[]} The array of email template dependencies
  */
 export async function getIGANotificationEmailTemplateDependencies(
   obj: any,
+  variables: Record<string, VariableSkeleton>,
+  errors: FrodoError[] = [],
   state: State
 ): Promise<EmailTemplateSkeleton[]> {
-  const emailTemplateIds = new Set<string>();
+  const emailTemplateIdPromises: Promise<string>[] = [];
   const fieldsToCheck = [
     'notification',
     'templateName',
@@ -966,19 +999,50 @@ export async function getIGANotificationEmailTemplateDependencies(
   objectRecurse(obj, async (o) => {
     for (const field of fieldsToCheck) {
       if (o[field] && typeof o[field] === 'string') {
-        // Sometimes, the name is of the form "emailTemplate/<id>", so this ensures we get only the id from each name
-        emailTemplateIds.add(o[field].split('/').pop());
+        emailTemplateIdPromises.push(
+          resolveVariable({
+            // Sometimes, the name is of the form "emailTemplate/<id>", so this ensures we get only the id from each name
+            input: o[field].split('/').pop(),
+            variables,
+            state,
+          })
+        );
       }
     }
   });
-  return Promise.all(
+  const emailTemplateIds = new Set(
+    await settlePromises(emailTemplateIdPromises, errors)
+  );
+  return await settlePromises(
     [...emailTemplateIds].map((id) =>
       readEmailTemplate({
         templateId: id,
         state,
       })
-    )
+    ),
+    errors
   );
+}
+
+/**
+ * Helper that runs Promise.allSettled() on the promises and returns the lists of fulfilled and rejected promises
+ * @param {Promise<T>[]} promises Array of promises to settle.
+ * @param {FrodoError[]} errors Array of rejected promise errors.
+ * @returns {Promise<T[]>} Array of fulfilled promise values
+ */
+export async function settlePromises<T>(
+  promises: Promise<T>[],
+  errors: FrodoError[] = []
+): Promise<T[]> {
+  return (await Promise.allSettled(promises))
+    .filter((p) => {
+      if (p.status === 'fulfilled' && p.value) return true;
+      if (p.status === 'rejected') {
+        errors.push(new FrodoError(p.reason));
+      }
+      return false;
+    })
+    .map((p) => (p as PromiseFulfilledResult<T>).value);
 }
 
 /**

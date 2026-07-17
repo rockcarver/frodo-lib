@@ -547,6 +547,7 @@ exports[`IgaEventOps createEventExportTemplate() 1: Create Event Export Template
   "emailTemplate": {},
   "event": {},
   "meta": Any<Object>,
+  "variable": {},
 }
 `;
 
@@ -1829,6 +1830,7 @@ exports[`IgaEventOps exportEvent() 1: Export existing event by ID with dependenc
     },
   },
   "meta": Any<Object>,
+  "variable": {},
 }
 `;
 
@@ -2411,6 +2413,7 @@ exports[`IgaEventOps exportEventByName() 1: Export existing event by name withou
     },
   },
   "meta": Any<Object>,
+  "variable": {},
 }
 `;
 
@@ -4728,6 +4731,7 @@ a {
     },
   },
   "meta": Any<Object>,
+  "variable": {},
 }
 `;
 
@@ -6956,6 +6960,7 @@ exports[`IgaEventOps exportEvents() 2: Export existing events without dependenci
     },
   },
   "meta": Any<Object>,
+  "variable": {},
 }
 `;
 

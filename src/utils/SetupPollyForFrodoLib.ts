@@ -307,6 +307,9 @@ export function setupPollyForFrodoLib({
         })}${getFrodoArgValue({ name: '--encoding' })}/environment`
       );
       polly.server
+        .any(['/iga/*', '/auto/orchestration/*'])
+        .recordingName(`${getFrodoCommand({ state })}/iga`);
+      polly.server
         .any('/keys')
         .recordingName(`${getFrodoCommand({ state })}/keys`)
         .on('request', (req) => {

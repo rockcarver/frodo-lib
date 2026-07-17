@@ -402,6 +402,7 @@ exports[`IgaCertificationTemplateOps createCertificationTemplateExportTemplate()
   "certificationTemplate": {},
   "emailTemplate": {},
   "meta": Any<Object>,
+  "variable": {},
 }
 `;
 
@@ -1526,6 +1527,7 @@ function getAuthorizationHeaderForSchedule(date) {
     },
   },
   "meta": Any<Object>,
+  "variable": {},
 }
 `;
 
@@ -1960,10 +1962,11 @@ exports[`IgaCertificationTemplateOps exportCertificationTemplateByName() 1: Expo
   },
   "emailTemplate": {},
   "meta": Any<Object>,
+  "variable": {},
 }
 `;
 
-exports[`IgaCertificationTemplateOps exportCertificationTemplates() 1: Export existing certification templates with dependencies 1`] = `
+exports[`IgaCertificationTemplateOps exportCertificationTemplates() 1: Export existing certification templates with dependencies and event templates 1`] = `
 {
   "certificationTemplate": {
     "3a10e1ce-1c9d-48b3-9e7e-7ea8094cf9f4": {
@@ -4409,427 +4412,13 @@ a {
     },
   },
   "meta": Any<Object>,
+  "variable": {},
 }
 `;
 
-exports[`IgaCertificationTemplateOps exportCertificationTemplates() 2: Export existing certification templates without dependencies 1`] = `
+exports[`IgaCertificationTemplateOps exportCertificationTemplates() 2: Export existing certification templates without dependencies and without event templates 1`] = `
 {
   "certificationTemplate": {
-    "3a10e1ce-1c9d-48b3-9e7e-7ea8094cf9f4": {
-      "allowBulkCertify": true,
-      "allowPartialSignoff": true,
-      "allowSelfCertification": true,
-      "assignmentNotification": null,
-      "assignmentNotificationIncludeManager": false,
-      "certificationType": "identity",
-      "defaultCertifierId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-      "defaultCertifierInfo": {
-        "givenName": "Preston",
-        "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-        "mail": "test@test.com",
-        "sn": "Test",
-        "userName": "PrestonIGATestUser",
-      },
-      "description": "Test certification template description",
-      "enableForward": true,
-      "enableReassign": true,
-      "escalationFrequency": 1095,
-      "escalationNotification": null,
-      "escalationOwner": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-      "escalationOwnerInfo": {
-        "givenName": "Preston",
-        "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-        "mail": "test@test.com",
-        "sn": "Test",
-        "userName": "PrestonIGATestUser",
-      },
-      "events": {},
-      "exceptionDuration": 730,
-      "excludeConditionalAccess": true,
-      "excludeRoleBasedAccess": true,
-      "expirationAction": "reassign",
-      "expirationActionDelay": 0,
-      "expirationNotification": null,
-      "expirationNotificationDay": 30,
-      "expirationReassignee": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-      "expirationReassigneeInfo": {
-        "givenName": "Preston",
-        "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-        "mail": "test@test.com",
-        "sn": "Test",
-        "userName": "PrestonIGATestUser",
-      },
-      "finalizeRule": "",
-      "id": "3a10e1ce-1c9d-48b3-9e7e-7ea8094cf9f4",
-      "initializeRule": "",
-      "isEventBased": false,
-      "metadata": {
-        "createdDate": "2026-02-10T19:29:24.453162688Z",
-        "modifiedDate": "2026-02-10T19:29:24.453163982Z",
-      },
-      "name": "test_certification_5",
-      "ownerId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-      "ownerInfo": {
-        "givenName": "Preston",
-        "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-        "mail": "test@test.com",
-        "sn": "Test",
-        "userName": "PrestonIGATestUser",
-      },
-      "parameters": [
-        {
-          "displayName": "ID of user this campaign will target",
-          "id": "userId",
-          "type": "string",
-        },
-        {
-          "displayName": "Name of the event triggering this campaign",
-          "id": "eventName",
-          "type": "string",
-        },
-        {
-          "displayName": "Display friendly name of user this campaign targets",
-          "id": "userDisplayName",
-          "type": "string",
-        },
-      ],
-      "reassignNotification": null,
-      "reassignPermissions": {
-        "certify": true,
-        "claim": true,
-        "comment": true,
-        "delegate": true,
-        "exception": true,
-        "forward": true,
-        "reassign": true,
-        "reset": true,
-        "revoke": true,
-        "save": true,
-        "signoff": true,
-      },
-      "remediationDelay": 1825,
-      "remediationRule": "BasicRevocation",
-      "reminderFrequency": 1095,
-      "reminderNotification": null,
-      "requireJustification": {
-        "exceptionAllowed": true,
-        "revoke": true,
-      },
-      "selfCertificationRule": "restricted",
-      "skipInactiveCertifiers": false,
-      "stageDuration": 1095,
-      "stages": [
-        {
-          "certifierId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-          "certifierInfo": {
-            "givenName": "Preston",
-            "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-            "mail": "test@test.com",
-            "sn": "Test",
-            "userName": "PrestonIGATestUser",
-          },
-          "certifierPath": null,
-          "certifierScript": null,
-          "certifierType": "user",
-        },
-      ],
-      "stagingEnabled": false,
-      "status": "active",
-      "targetFilter": {
-        "account": {
-          "operand": [],
-          "operator": "ALL",
-        },
-        "application": {
-          "operand": [],
-          "operator": "OR",
-        },
-        "decision": {
-          "operand": [
-            {
-              "operand": {
-                "targetName": "campaignId",
-                "targetValue": "a",
-              },
-              "operator": "CONTAINS",
-            },
-            {
-              "operand": {
-                "targetName": "status",
-                "targetValue": "b",
-              },
-              "operator": "EQUALS",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "decision",
-                    "targetValue": "c",
-                  },
-                  "operator": "STARTS_WITH",
-                },
-                {
-                  "operand": {
-                    "targetName": "completionDate",
-                    "targetValue": "",
-                  },
-                  "operator": "EXISTS",
-                },
-              ],
-              "operator": "OR",
-            },
-          ],
-          "operator": "AND",
-        },
-        "entitlement": {
-          "operand": [
-            {
-              "operand": {
-                "targetName": "glossary.description",
-                "targetValue": "a",
-              },
-              "operator": "CONTAINS",
-            },
-            {
-              "operand": {
-                "targetName": "glossary.entitlementType",
-                "targetValue": "b",
-              },
-              "operator": "EQUALS",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "displayName",
-                    "targetValue": "c",
-                  },
-                  "operator": "STARTS_WITH",
-                },
-                {
-                  "operand": [
-                    {
-                      "operand": {
-                        "targetName": "glossary.parentEntitlement",
-                        "targetValue": "d",
-                      },
-                      "operator": "ENDS_WITH",
-                    },
-                  ],
-                  "operator": "OR",
-                },
-              ],
-              "operator": "OR",
-            },
-          ],
-          "operator": "AND",
-        },
-        "memberOfOrg": [],
-        "role": {
-          "operand": [
-            {
-              "operand": {
-                "targetName": "glossary.Test User",
-                "targetValue": "managed/user/645363b3-7cbb-47a3-bf93-d96c59c387d9",
-              },
-              "operator": "EXISTS",
-            },
-            {
-              "operand": {
-                "targetName": "glossary.Test User",
-                "targetValue": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-              },
-              "operator": "EQUALS",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test User",
-                    "targetValue": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "NOT",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Boolean",
-                    "targetValue": true,
-                  },
-                  "operator": "EQUALS",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Boolean",
-                    "targetValue": "False",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "AND",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Integer",
-                    "targetValue": 1,
-                  },
-                  "operator": "GTE",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Integer",
-                    "targetValue": 2,
-                  },
-                  "operator": "GT",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Integer",
-                    "targetValue": 3,
-                  },
-                  "operator": "LTE",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Integer",
-                    "targetValue": 4,
-                  },
-                  "operator": "LT",
-                },
-              ],
-              "operator": "OR",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Organization",
-                    "targetValue": "managed/organization/ddebad91-eb40-4ae0-8bc0-4578c07098a5",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "OR",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test String",
-                    "targetValue": "a",
-                  },
-                  "operator": "CONTAINS",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test String",
-                    "targetValue": "b",
-                  },
-                  "operator": "EQUALS",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test String",
-                    "targetValue": "c",
-                  },
-                  "operator": "STARTS_WITH",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test String",
-                    "targetValue": "d",
-                  },
-                  "operator": "ENDS_WITH",
-                },
-              ],
-              "operator": "OR",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Role",
-                    "targetValue": "managed/role/be68f831-a8f3-42da-93df-84bbc66427f6",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "OR",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Date",
-                    "targetValue": "2026-02-12",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "OR",
-            },
-          ],
-          "operator": "OR",
-        },
-        "type": [
-          "accountGrant",
-          "entitlementGrant",
-          "roleMembership",
-          "AccountGrant",
-          "ResourceGrant",
-        ],
-        "user": {
-          "operand": {
-            "targetName": "id",
-            "targetValue": "{{IGA_PARAM_userId_IGA_PARAM}}",
-          },
-          "operator": "EQUALS",
-        },
-      },
-      "templateEventType": "user",
-      "uiConfig": {
-        "columnConfig": {
-          "accounts": [
-            "user.user",
-            "application.application",
-            "review.flags",
-            "review.comments",
-            "account.displayName",
-            "account.account",
-            "application.description",
-            "user.city",
-          ],
-          "entitlements": [
-            "user.user",
-            "application.application",
-            "entitlement.entitlement",
-            "account.account",
-            "review.flags",
-            "review.comments",
-            "user.city",
-            "user.cn",
-            "application.glossary.sensitive",
-            "account.displayName",
-            "entitlement.displayName",
-          ],
-          "roles": [
-            "role.role",
-            "user.user",
-            "review.flags",
-            "review.comments",
-            "user.city",
-            "role.glossary.Test Integer",
-          ],
-        },
-      },
-    },
     "a0a41b41-9a72-4da8-a1f4-9c2dca60d9b8": {
       "allowBulkCertify": true,
       "allowPartialSignoff": true,
@@ -4879,8 +4468,8 @@ exports[`IgaCertificationTemplateOps exportCertificationTemplates() 2: Export ex
       "initializeRule": "",
       "isEventBased": false,
       "metadata": {
-        "createdDate": "2026-02-10T19:29:25.214367133Z",
-        "modifiedDate": "2026-02-10T19:29:26.029Z",
+        "createdDate": "2026-03-03T16:15:16.317813155Z",
+        "modifiedDate": "2026-03-03T16:15:17.171Z",
       },
       "name": "test_certification_6",
       "ownerId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
@@ -4913,7 +4502,7 @@ exports[`IgaCertificationTemplateOps exportCertificationTemplates() 2: Export ex
         "exceptionAllowed": true,
         "revoke": true,
       },
-      "scheduleId": "templateSchedule8100420fa0624f44bf54b22c83db1f69",
+      "scheduleId": "templateSchedulec699146dc03341fba1f4baaabd2a36e1",
       "selfCertificationRule": "restricted",
       "skipInactiveCertifiers": false,
       "stageDuration": 1095,
@@ -5179,407 +4768,9 @@ exports[`IgaCertificationTemplateOps exportCertificationTemplates() 2: Export ex
         },
         "type": [
           "accountGrant",
-          "entitlementGrant",
-          "roleMembership",
           "AccountGrant",
-          "ResourceGrant",
-        ],
-        "user": {
-          "operand": {
-            "targetName": "id",
-            "targetValue": "{{IGA_PARAM_userId_IGA_PARAM}}",
-          },
-          "operator": "EQUALS",
-        },
-      },
-      "uiConfig": {
-        "columnConfig": {
-          "accounts": [
-            "user.user",
-            "application.application",
-            "review.flags",
-            "review.comments",
-            "account.displayName",
-            "account.account",
-            "application.description",
-            "user.city",
-          ],
-          "entitlements": [
-            "user.user",
-            "application.application",
-            "entitlement.entitlement",
-            "account.account",
-            "review.flags",
-            "review.comments",
-            "user.city",
-            "user.cn",
-            "application.glossary.sensitive",
-            "account.displayName",
-            "entitlement.displayName",
-          ],
-          "roles": [
-            "role.role",
-            "user.user",
-            "review.flags",
-            "review.comments",
-            "user.city",
-            "role.glossary.Test Integer",
-          ],
-        },
-      },
-    },
-    "ab70bcd3-9dae-40e4-98ed-9c255bb9a16e": {
-      "allowBulkCertify": true,
-      "allowPartialSignoff": true,
-      "allowSelfCertification": true,
-      "assignmentNotification": null,
-      "assignmentNotificationIncludeManager": false,
-      "certificationType": "identity",
-      "defaultCertifierId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-      "defaultCertifierInfo": {
-        "givenName": "Preston",
-        "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-        "mail": "test@test.com",
-        "sn": "Test",
-        "userName": "PrestonIGATestUser",
-      },
-      "description": "Test certification template description",
-      "enableForward": true,
-      "enableReassign": true,
-      "escalationFrequency": 1095,
-      "escalationNotification": null,
-      "escalationOwner": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-      "escalationOwnerInfo": {
-        "givenName": "Preston",
-        "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-        "mail": "test@test.com",
-        "sn": "Test",
-        "userName": "PrestonIGATestUser",
-      },
-      "events": {},
-      "exceptionDuration": 730,
-      "excludeConditionalAccess": true,
-      "excludeRoleBasedAccess": true,
-      "expirationAction": "reassign",
-      "expirationActionDelay": 0,
-      "expirationNotification": null,
-      "expirationNotificationDay": 30,
-      "expirationReassignee": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-      "expirationReassigneeInfo": {
-        "givenName": "Preston",
-        "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-        "mail": "test@test.com",
-        "sn": "Test",
-        "userName": "PrestonIGATestUser",
-      },
-      "finalizeRule": "",
-      "id": "ab70bcd3-9dae-40e4-98ed-9c255bb9a16e",
-      "initializeRule": "",
-      "isEventBased": false,
-      "metadata": {
-        "createdDate": "2026-02-10T19:29:28.200766305Z",
-        "modifiedDate": "2026-02-10T19:29:29.071Z",
-      },
-      "name": "test_certification_1",
-      "ownerId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-      "ownerInfo": {
-        "givenName": "Preston",
-        "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-        "mail": "test@test.com",
-        "sn": "Test",
-        "userName": "PrestonIGATestUser",
-      },
-      "reassignNotification": null,
-      "reassignPermissions": {
-        "certify": true,
-        "claim": true,
-        "comment": true,
-        "delegate": true,
-        "exception": true,
-        "forward": true,
-        "reassign": true,
-        "reset": true,
-        "revoke": true,
-        "save": true,
-        "signoff": true,
-      },
-      "remediationDelay": 1825,
-      "remediationRule": "BasicRevocation",
-      "reminderFrequency": 1095,
-      "reminderNotification": null,
-      "requireJustification": {
-        "exceptionAllowed": true,
-        "revoke": true,
-      },
-      "scheduleId": "templateScheduleab70bcd39dae40e498ed9c255bb9a16e",
-      "selfCertificationRule": "restricted",
-      "skipInactiveCertifiers": false,
-      "stageDuration": 1095,
-      "stages": [
-        {
-          "certifierId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-          "certifierInfo": {
-            "givenName": "Preston",
-            "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-            "mail": "test@test.com",
-            "sn": "Test",
-            "userName": "PrestonIGATestUser",
-          },
-          "certifierPath": null,
-          "certifierScript": null,
-          "certifierType": "user",
-        },
-      ],
-      "stagingEnabled": false,
-      "status": "pending",
-      "targetFilter": {
-        "account": {
-          "operand": [],
-          "operator": "ALL",
-        },
-        "application": {
-          "operand": [],
-          "operator": "OR",
-        },
-        "decision": {
-          "operand": [
-            {
-              "operand": {
-                "targetName": "campaignId",
-                "targetValue": "a",
-              },
-              "operator": "CONTAINS",
-            },
-            {
-              "operand": {
-                "targetName": "status",
-                "targetValue": "b",
-              },
-              "operator": "EQUALS",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "decision",
-                    "targetValue": "c",
-                  },
-                  "operator": "STARTS_WITH",
-                },
-                {
-                  "operand": {
-                    "targetName": "completionDate",
-                    "targetValue": "",
-                  },
-                  "operator": "EXISTS",
-                },
-              ],
-              "operator": "OR",
-            },
-          ],
-          "operator": "AND",
-        },
-        "entitlement": {
-          "operand": [
-            {
-              "operand": {
-                "targetName": "glossary.description",
-                "targetValue": "a",
-              },
-              "operator": "CONTAINS",
-            },
-            {
-              "operand": {
-                "targetName": "glossary.entitlementType",
-                "targetValue": "b",
-              },
-              "operator": "EQUALS",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "displayName",
-                    "targetValue": "c",
-                  },
-                  "operator": "STARTS_WITH",
-                },
-                {
-                  "operand": [
-                    {
-                      "operand": {
-                        "targetName": "glossary.parentEntitlement",
-                        "targetValue": "d",
-                      },
-                      "operator": "ENDS_WITH",
-                    },
-                  ],
-                  "operator": "OR",
-                },
-              ],
-              "operator": "OR",
-            },
-          ],
-          "operator": "AND",
-        },
-        "memberOfOrg": [],
-        "role": {
-          "operand": [
-            {
-              "operand": {
-                "targetName": "glossary.Test User",
-                "targetValue": "managed/user/645363b3-7cbb-47a3-bf93-d96c59c387d9",
-              },
-              "operator": "EXISTS",
-            },
-            {
-              "operand": {
-                "targetName": "glossary.Test User",
-                "targetValue": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-              },
-              "operator": "EQUALS",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test User",
-                    "targetValue": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "NOT",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Boolean",
-                    "targetValue": true,
-                  },
-                  "operator": "EQUALS",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Boolean",
-                    "targetValue": "False",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "AND",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Integer",
-                    "targetValue": 1,
-                  },
-                  "operator": "GTE",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Integer",
-                    "targetValue": 2,
-                  },
-                  "operator": "GT",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Integer",
-                    "targetValue": 3,
-                  },
-                  "operator": "LTE",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Integer",
-                    "targetValue": 4,
-                  },
-                  "operator": "LT",
-                },
-              ],
-              "operator": "OR",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Organization",
-                    "targetValue": "managed/organization/ddebad91-eb40-4ae0-8bc0-4578c07098a5",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "OR",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test String",
-                    "targetValue": "a",
-                  },
-                  "operator": "CONTAINS",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test String",
-                    "targetValue": "b",
-                  },
-                  "operator": "EQUALS",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test String",
-                    "targetValue": "c",
-                  },
-                  "operator": "STARTS_WITH",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test String",
-                    "targetValue": "d",
-                  },
-                  "operator": "ENDS_WITH",
-                },
-              ],
-              "operator": "OR",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Role",
-                    "targetValue": "managed/role/be68f831-a8f3-42da-93df-84bbc66427f6",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "OR",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Date",
-                    "targetValue": "2026-02-12",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "OR",
-            },
-          ],
-          "operator": "OR",
-        },
-        "type": [
-          "accountGrant",
-          "entitlementGrant",
           "roleMembership",
-          "AccountGrant",
+          "entitlementGrant",
           "ResourceGrant",
         ],
         "user": {
@@ -5701,7 +4892,6 @@ exports[`IgaCertificationTemplateOps exportCertificationTemplates() 2: Export ex
         "exceptionAllowed": true,
         "revoke": true,
       },
-      "schedule": null,
       "scheduleId": "templateScheduleae1381d5cfad4374b3dc075605b1036d",
       "selfCertificationRule": "none",
       "skipInactiveCertifiers": false,
@@ -5751,592 +4941,6 @@ exports[`IgaCertificationTemplateOps exportCertificationTemplates() 2: Export ex
             "account.account",
             "review.flags",
             "review.comments",
-          ],
-        },
-      },
-    },
-    "c8ba1d02-57c0-437d-aed1-9f4c85fd8f3c": {
-      "allowBulkCertify": true,
-      "allowPartialSignoff": true,
-      "allowSelfCertification": false,
-      "assignmentNotification": "emailTemplate/certificationAssigned",
-      "assignmentNotificationIncludeManager": false,
-      "certificationType": "identity",
-      "defaultCertifierId": "managed/user/0f2b6cba-0124-4846-afc2-f944acf09c58",
-      "defaultCertifierInfo": {
-        "givenName": "ChildOne",
-        "id": "0f2b6cba-0124-4846-afc2-f944acf09c58",
-        "mail": "pholderness+c1admin@trivir.com",
-        "sn": "Admin",
-        "userName": "phh-child1-org-admin",
-      },
-      "description": "The user's sunset date has changed. Certify access.",
-      "enableForward": true,
-      "enableReassign": true,
-      "escalationFrequency": null,
-      "escalationNotification": null,
-      "escalationOwner": null,
-      "events": {
-        "assignment": {
-          "notification": "emailTemplate/certificationAssigned",
-        },
-        "reassign": {
-          "notification": "emailTemplate/certificationReassigned",
-        },
-      },
-      "exceptionDuration": 14,
-      "excludeConditionalAccess": true,
-      "excludeRoleBasedAccess": true,
-      "expirationAction": null,
-      "expirationActionDelay": 0,
-      "expirationNotification": null,
-      "expirationReassignee": null,
-      "finalizeRule": "",
-      "id": "c8ba1d02-57c0-437d-aed1-9f4c85fd8f3c",
-      "initializeRule": "",
-      "isEventBased": false,
-      "metadata": {
-        "createdDate": "2025-12-19T22:59:29.76251478Z",
-        "modifiedDate": "2025-12-19T22:59:29.76251562Z",
-      },
-      "name": "Sunset date change {{YYYY-MM-DD}} for {{IGA_PARAM_userDisplayName_IGA_PARAM}}",
-      "ownerId": "managed/user/0f2b6cba-0124-4846-afc2-f944acf09c58",
-      "ownerInfo": {
-        "givenName": "ChildOne",
-        "id": "0f2b6cba-0124-4846-afc2-f944acf09c58",
-        "mail": "pholderness+c1admin@trivir.com",
-        "sn": "Admin",
-        "userName": "phh-child1-org-admin",
-      },
-      "parameters": [
-        {
-          "displayName": "ID of user this campaign will target",
-          "id": "userId",
-          "type": "string",
-        },
-        {
-          "displayName": "Name of the event triggering this campaign",
-          "id": "eventName",
-          "type": "string",
-        },
-        {
-          "displayName": "Display friendly name of user this campaign targets",
-          "id": "userDisplayName",
-          "type": "string",
-        },
-      ],
-      "reassignNotification": "emailTemplate/certificationReassigned",
-      "reassignPermissions": {
-        "certify": true,
-        "claim": true,
-        "comment": true,
-        "delegate": true,
-        "exception": true,
-        "forward": true,
-        "reassign": true,
-        "reset": true,
-        "revoke": true,
-        "save": true,
-        "signoff": true,
-      },
-      "remediationDelay": 0,
-      "remediationRule": "BasicRevocation",
-      "reminderFrequency": 0,
-      "reminderNotification": null,
-      "requireJustification": {
-        "exceptionAllowed": true,
-        "revoke": true,
-      },
-      "selfCertificationRule": "none",
-      "skipInactiveCertifiers": false,
-      "stageDuration": 14,
-      "stages": [
-        {
-          "certifierId": null,
-          "certifierPath": null,
-          "certifierScript": null,
-          "certifierType": "manager",
-        },
-      ],
-      "stagingEnabled": false,
-      "status": "active",
-      "targetFilter": {
-        "account": {
-          "operand": [],
-          "operator": "ALL",
-        },
-        "application": {
-          "operand": {
-            "targetName": "authoritative",
-            "targetValue": false,
-          },
-          "operator": "EQUALS",
-        },
-        "decision": {
-          "operand": [],
-          "operator": "ALL",
-        },
-        "entitlement": {
-          "operand": [],
-          "operator": "ALL",
-        },
-        "memberOfOrg": [],
-        "role": {
-          "operand": [],
-          "operator": "ALL",
-        },
-        "type": [
-          "accountGrant",
-          "entitlementGrant",
-          "roleMembership",
-          "AccountGrant",
-          "ResourceGrant",
-        ],
-        "user": {
-          "operand": {
-            "targetName": "id",
-            "targetValue": "{{IGA_PARAM_userId_IGA_PARAM}}",
-          },
-          "operator": "EQUALS",
-        },
-      },
-      "templateEventType": "user",
-      "uiConfig": {
-        "columnConfig": {
-          "accounts": [
-            "user.user",
-            "application.application",
-            "review.flags",
-            "review.comments",
-          ],
-          "entitlements": [
-            "user.user",
-            "application.application",
-            "entitlement.entitlement",
-            "account.account",
-            "review.flags",
-            "review.comments",
-          ],
-          "roles": [
-            "role.role",
-            "user.user",
-            "review.flags",
-            "review.comments",
-          ],
-        },
-      },
-    },
-    "df115033-5ecd-4111-83ee-b16a30204570": {
-      "allowBulkCertify": true,
-      "allowPartialSignoff": true,
-      "allowSelfCertification": true,
-      "assignmentNotification": null,
-      "assignmentNotificationIncludeManager": false,
-      "certificationType": "identity",
-      "defaultCertifierId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-      "defaultCertifierInfo": {
-        "givenName": "Preston",
-        "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-        "mail": "test@test.com",
-        "sn": "Test",
-        "userName": "PrestonIGATestUser",
-      },
-      "description": "Test certification template description",
-      "enableForward": true,
-      "enableReassign": true,
-      "escalationFrequency": 1095,
-      "escalationNotification": null,
-      "escalationOwner": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-      "escalationOwnerInfo": {
-        "givenName": "Preston",
-        "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-        "mail": "test@test.com",
-        "sn": "Test",
-        "userName": "PrestonIGATestUser",
-      },
-      "events": {},
-      "exceptionDuration": 730,
-      "excludeConditionalAccess": true,
-      "excludeRoleBasedAccess": true,
-      "expirationAction": "reassign",
-      "expirationActionDelay": 0,
-      "expirationNotification": null,
-      "expirationNotificationDay": 30,
-      "expirationReassignee": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-      "expirationReassigneeInfo": {
-        "givenName": "Preston",
-        "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-        "mail": "test@test.com",
-        "sn": "Test",
-        "userName": "PrestonIGATestUser",
-      },
-      "finalizeRule": "",
-      "id": "df115033-5ecd-4111-83ee-b16a30204570",
-      "initializeRule": "",
-      "isEventBased": false,
-      "metadata": {
-        "createdDate": "2026-02-10T19:29:27.233072289Z",
-        "modifiedDate": "2026-02-10T19:29:27.233074288Z",
-      },
-      "name": "test_certification_7",
-      "ownerId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-      "ownerInfo": {
-        "givenName": "Preston",
-        "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-        "mail": "test@test.com",
-        "sn": "Test",
-        "userName": "PrestonIGATestUser",
-      },
-      "parameters": [
-        {
-          "displayName": "ID of user this campaign will target",
-          "id": "userId",
-          "type": "string",
-        },
-        {
-          "displayName": "Name of the event triggering this campaign",
-          "id": "eventName",
-          "type": "string",
-        },
-        {
-          "displayName": "Display friendly name of user this campaign targets",
-          "id": "userDisplayName",
-          "type": "string",
-        },
-      ],
-      "reassignNotification": null,
-      "reassignPermissions": {
-        "certify": true,
-        "claim": true,
-        "comment": true,
-        "delegate": true,
-        "exception": true,
-        "forward": true,
-        "reassign": true,
-        "reset": true,
-        "revoke": true,
-        "save": true,
-        "signoff": true,
-      },
-      "remediationDelay": 1825,
-      "remediationRule": "BasicRevocation",
-      "reminderFrequency": 1095,
-      "reminderNotification": null,
-      "requireJustification": {
-        "exceptionAllowed": true,
-        "revoke": true,
-      },
-      "selfCertificationRule": "restricted",
-      "skipInactiveCertifiers": false,
-      "stageDuration": 1095,
-      "stages": [
-        {
-          "certifierId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-          "certifierInfo": {
-            "givenName": "Preston",
-            "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-            "mail": "test@test.com",
-            "sn": "Test",
-            "userName": "PrestonIGATestUser",
-          },
-          "certifierPath": null,
-          "certifierScript": null,
-          "certifierType": "user",
-        },
-      ],
-      "stagingEnabled": false,
-      "status": "active",
-      "targetFilter": {
-        "account": {
-          "operand": [],
-          "operator": "ALL",
-        },
-        "application": {
-          "operand": [],
-          "operator": "OR",
-        },
-        "decision": {
-          "operand": [
-            {
-              "operand": {
-                "targetName": "campaignId",
-                "targetValue": "a",
-              },
-              "operator": "CONTAINS",
-            },
-            {
-              "operand": {
-                "targetName": "status",
-                "targetValue": "b",
-              },
-              "operator": "EQUALS",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "decision",
-                    "targetValue": "c",
-                  },
-                  "operator": "STARTS_WITH",
-                },
-                {
-                  "operand": {
-                    "targetName": "completionDate",
-                    "targetValue": "",
-                  },
-                  "operator": "EXISTS",
-                },
-              ],
-              "operator": "OR",
-            },
-          ],
-          "operator": "AND",
-        },
-        "entitlement": {
-          "operand": [
-            {
-              "operand": {
-                "targetName": "glossary.description",
-                "targetValue": "a",
-              },
-              "operator": "CONTAINS",
-            },
-            {
-              "operand": {
-                "targetName": "glossary.entitlementType",
-                "targetValue": "b",
-              },
-              "operator": "EQUALS",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "displayName",
-                    "targetValue": "c",
-                  },
-                  "operator": "STARTS_WITH",
-                },
-                {
-                  "operand": [
-                    {
-                      "operand": {
-                        "targetName": "glossary.parentEntitlement",
-                        "targetValue": "d",
-                      },
-                      "operator": "ENDS_WITH",
-                    },
-                  ],
-                  "operator": "OR",
-                },
-              ],
-              "operator": "OR",
-            },
-          ],
-          "operator": "AND",
-        },
-        "memberOfOrg": [],
-        "role": {
-          "operand": [
-            {
-              "operand": {
-                "targetName": "glossary.Test User",
-                "targetValue": "managed/user/645363b3-7cbb-47a3-bf93-d96c59c387d9",
-              },
-              "operator": "EXISTS",
-            },
-            {
-              "operand": {
-                "targetName": "glossary.Test User",
-                "targetValue": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-              },
-              "operator": "EQUALS",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test User",
-                    "targetValue": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "NOT",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Boolean",
-                    "targetValue": true,
-                  },
-                  "operator": "EQUALS",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Boolean",
-                    "targetValue": "False",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "AND",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Integer",
-                    "targetValue": 1,
-                  },
-                  "operator": "GTE",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Integer",
-                    "targetValue": 2,
-                  },
-                  "operator": "GT",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Integer",
-                    "targetValue": 3,
-                  },
-                  "operator": "LTE",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Integer",
-                    "targetValue": 4,
-                  },
-                  "operator": "LT",
-                },
-              ],
-              "operator": "OR",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Organization",
-                    "targetValue": "managed/organization/ddebad91-eb40-4ae0-8bc0-4578c07098a5",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "OR",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test String",
-                    "targetValue": "a",
-                  },
-                  "operator": "CONTAINS",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test String",
-                    "targetValue": "b",
-                  },
-                  "operator": "EQUALS",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test String",
-                    "targetValue": "c",
-                  },
-                  "operator": "STARTS_WITH",
-                },
-                {
-                  "operand": {
-                    "targetName": "glossary.Test String",
-                    "targetValue": "d",
-                  },
-                  "operator": "ENDS_WITH",
-                },
-              ],
-              "operator": "OR",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Role",
-                    "targetValue": "managed/role/be68f831-a8f3-42da-93df-84bbc66427f6",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "OR",
-            },
-            {
-              "operand": [
-                {
-                  "operand": {
-                    "targetName": "glossary.Test Date",
-                    "targetValue": "2026-02-12",
-                  },
-                  "operator": "EQUALS",
-                },
-              ],
-              "operator": "OR",
-            },
-          ],
-          "operator": "OR",
-        },
-        "type": [
-          "accountGrant",
-          "entitlementGrant",
-          "roleMembership",
-          "AccountGrant",
-          "ResourceGrant",
-        ],
-        "user": {
-          "operand": {
-            "targetName": "id",
-            "targetValue": "{{IGA_PARAM_userId_IGA_PARAM}}",
-          },
-          "operator": "EQUALS",
-        },
-      },
-      "templateEventType": "user",
-      "uiConfig": {
-        "columnConfig": {
-          "accounts": [
-            "user.user",
-            "application.application",
-            "review.flags",
-            "review.comments",
-            "account.displayName",
-            "account.account",
-            "application.description",
-            "user.city",
-          ],
-          "entitlements": [
-            "user.user",
-            "application.application",
-            "entitlement.entitlement",
-            "account.account",
-            "review.flags",
-            "review.comments",
-            "user.city",
-            "user.cn",
-            "application.glossary.sensitive",
-            "account.displayName",
-            "entitlement.displayName",
-          ],
-          "roles": [
-            "role.role",
-            "user.user",
-            "review.flags",
-            "review.comments",
-            "user.city",
-            "role.glossary.Test Integer",
           ],
         },
       },
@@ -6420,8 +5024,8 @@ exports[`IgaCertificationTemplateOps exportCertificationTemplates() 2: Export ex
       "initializeRule": "",
       "isEventBased": false,
       "metadata": {
-        "createdDate": "2026-02-10T19:29:22.099934306Z",
-        "modifiedDate": "2026-02-10T19:29:23.009Z",
+        "createdDate": "2026-03-03T16:15:13.257044018Z",
+        "modifiedDate": "2026-03-03T16:15:14.133Z",
       },
       "name": "test_certification_2",
       "ownerId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
@@ -6454,7 +5058,7 @@ exports[`IgaCertificationTemplateOps exportCertificationTemplates() 2: Export ex
         "exceptionAllowed": true,
         "revoke": true,
       },
-      "scheduleId": "templateSchedule956f7fe5cc6947a28bb809fdf87d8b68",
+      "scheduleId": "templateSchedule5dac65264e1a47caa19cb5361848a63e",
       "selfCertificationRule": "restricted",
       "skipInactiveCertifiers": false,
       "stageDuration": 1095,
@@ -6769,6 +5373,7 @@ exports[`IgaCertificationTemplateOps exportCertificationTemplates() 2: Export ex
   },
   "emailTemplate": {},
   "meta": Any<Object>,
+  "variable": {},
 }
 `;
 
@@ -12741,6 +11346,962 @@ exports[`IgaCertificationTemplateOps readCertificationTemplates() 1: Read existi
           "user.user",
           "review.flags",
           "review.comments",
+        ],
+      },
+    },
+  },
+]
+`;
+
+exports[`IgaCertificationTemplateOps readCertificationTemplates() 2: Read existing certification templates, excluding event ones 1`] = `
+[
+  {
+    "allowBulkCertify": false,
+    "allowPartialSignoff": true,
+    "allowSelfCertification": false,
+    "assignmentNotification": "emailTemplate/certificationAssigned",
+    "assignmentNotificationIncludeManager": false,
+    "certificationType": "entitlement",
+    "defaultCertifierId": "managed/user/6b21c283-d491-4fd9-8322-898c171c7018",
+    "defaultCertifierInfo": {
+      "givenName": "Parent",
+      "id": "6b21c283-d491-4fd9-8322-898c171c7018",
+      "mail": "pholderness+poadmin@trivir.com",
+      "sn": "Admin",
+      "userName": "phh-parent-org-admin",
+    },
+    "description": "Entitlements Review - All Applications",
+    "enableForward": true,
+    "enableReassign": true,
+    "escalationFrequency": null,
+    "escalationNotification": null,
+    "escalationOwner": null,
+    "events": {
+      "assignment": {
+        "notification": "emailTemplate/certificationAssigned",
+      },
+      "reassign": {
+        "notification": "emailTemplate/certificationReassigned",
+      },
+    },
+    "exceptionDuration": 14,
+    "excludeConditionalAccess": true,
+    "excludeRoleBasedAccess": true,
+    "expirationAction": null,
+    "expirationActionDelay": 0,
+    "expirationNotification": null,
+    "expirationReassignee": null,
+    "finalizeRule": "",
+    "id": "ae1381d5-cfad-4374-b3dc-075605b1036d",
+    "initializeRule": "",
+    "isEventBased": false,
+    "metadata": {
+      "createdDate": "2025-12-18T18:46:21.120859941Z",
+      "modifiedDate": "2025-12-19T22:30:24.617Z",
+    },
+    "name": "phh-entitlement-assignment-certification",
+    "ownerId": "managed/user/6b21c283-d491-4fd9-8322-898c171c7018",
+    "ownerInfo": {
+      "givenName": "Parent",
+      "id": "6b21c283-d491-4fd9-8322-898c171c7018",
+      "mail": "pholderness+poadmin@trivir.com",
+      "sn": "Admin",
+      "userName": "phh-parent-org-admin",
+    },
+    "reassignNotification": "emailTemplate/certificationReassigned",
+    "reassignPermissions": {
+      "certify": true,
+      "claim": true,
+      "comment": true,
+      "delegate": true,
+      "exception": true,
+      "forward": true,
+      "reassign": true,
+      "reset": true,
+      "revoke": true,
+      "save": true,
+      "signoff": true,
+    },
+    "remediationDelay": 0,
+    "remediationRule": "BasicRevocation",
+    "reminderFrequency": 0,
+    "reminderNotification": null,
+    "requireJustification": {
+      "exceptionAllowed": true,
+      "revoke": true,
+    },
+    "scheduleId": "templateScheduleae1381d5cfad4374b3dc075605b1036d",
+    "selfCertificationRule": "none",
+    "skipInactiveCertifiers": false,
+    "stageDuration": 14,
+    "stages": [
+      {
+        "certifierId": null,
+        "certifierPath": null,
+        "certifierScript": null,
+        "certifierType": "entitlementOwner",
+      },
+    ],
+    "stagingEnabled": true,
+    "status": "active",
+    "targetFilter": {
+      "application": {
+        "operand": {
+          "targetName": "authoritative",
+          "targetValue": false,
+        },
+        "operator": "EQUALS",
+      },
+      "decision": {
+        "operand": [],
+        "operator": "ALL",
+      },
+      "entitlement": {
+        "operand": [],
+        "operator": "ALL",
+      },
+      "memberOfOrg": [],
+      "type": [
+        "entitlementGrant",
+        "ResourceGrant",
+      ],
+      "user": {
+        "operand": [],
+        "operator": "ALL",
+      },
+    },
+    "uiConfig": {
+      "columnConfig": {
+        "entitlements": [
+          "user.user",
+          "application.application",
+          "entitlement.entitlement",
+          "account.account",
+          "review.flags",
+          "review.comments",
+        ],
+      },
+    },
+  },
+  {
+    "allowBulkCertify": true,
+    "allowPartialSignoff": true,
+    "allowSelfCertification": true,
+    "assignmentNotification": "emailTemplate/FrodoTestEmailTemplate1",
+    "assignmentNotificationIncludeManager": false,
+    "certificationType": "entitlement",
+    "defaultCertifierId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+    "defaultCertifierInfo": {
+      "givenName": "Preston",
+      "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+      "mail": "test@test.com",
+      "sn": "Test",
+      "userName": "PrestonIGATestUser",
+    },
+    "description": "Test certification template description",
+    "enableForward": true,
+    "enableReassign": true,
+    "escalationFrequency": 1095,
+    "escalationNotification": "emailTemplate/FrodoTestEmailTemplate1",
+    "escalationOwner": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+    "escalationOwnerInfo": {
+      "givenName": "Preston",
+      "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+      "mail": "test@test.com",
+      "sn": "Test",
+      "userName": "PrestonIGATestUser",
+    },
+    "events": {
+      "assignment": {
+        "notification": "emailTemplate/FrodoTestEmailTemplate1",
+      },
+      "escalation": {
+        "action": "notification",
+        "actors": [
+          {
+            "id": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+            "type": "user",
+          },
+        ],
+        "frequency": 1095,
+        "notification": "emailTemplate/FrodoTestEmailTemplate1",
+      },
+      "expirationNotification": {
+        "day": 30,
+        "includeActor": true,
+        "includeManager": false,
+        "notification": "emailTemplate/FrodoTestEmailTemplate1",
+      },
+      "reassign": {
+        "notification": "emailTemplate/FrodoTestEmailTemplate1",
+      },
+      "reminder": {
+        "frequency": 1095,
+        "includeActor": true,
+        "includeManager": false,
+        "notification": "emailTemplate/FrodoTestEmailTemplate1",
+      },
+    },
+    "exceptionDuration": 730,
+    "excludeConditionalAccess": true,
+    "excludeRoleBasedAccess": true,
+    "expirationAction": "reassign",
+    "expirationActionDelay": 0,
+    "expirationNotification": "emailTemplate/FrodoTestEmailTemplate1",
+    "expirationNotificationDay": 30,
+    "expirationReassignee": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+    "expirationReassigneeInfo": {
+      "givenName": "Preston",
+      "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+      "mail": "test@test.com",
+      "sn": "Test",
+      "userName": "PrestonIGATestUser",
+    },
+    "finalizeRule": "",
+    "id": "f52d6c57-68d6-4fa2-82cc-4f924a81a574",
+    "initializeRule": "",
+    "isEventBased": false,
+    "metadata": {
+      "createdDate": "2026-03-03T16:24:30.178903111Z",
+      "modifiedDate": "2026-03-03T16:24:31.114Z",
+    },
+    "name": "test_certification_2",
+    "ownerId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+    "ownerInfo": {
+      "givenName": "Preston",
+      "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+      "mail": "test@test.com",
+      "sn": "Test",
+      "userName": "PrestonIGATestUser",
+    },
+    "reassignNotification": "emailTemplate/FrodoTestEmailTemplate1",
+    "reassignPermissions": {
+      "certify": true,
+      "claim": true,
+      "comment": true,
+      "delegate": true,
+      "exception": true,
+      "forward": true,
+      "reassign": true,
+      "reset": true,
+      "revoke": true,
+      "save": true,
+      "signoff": true,
+    },
+    "remediationDelay": 1825,
+    "remediationRule": "BasicRevocation",
+    "reminderFrequency": 1095,
+    "reminderNotification": "emailTemplate/FrodoTestEmailTemplate1",
+    "requireJustification": {
+      "exceptionAllowed": true,
+      "revoke": true,
+    },
+    "scheduleId": "templateSchedulef9f5eafa560d45e180212bab3348ec73",
+    "selfCertificationRule": "restricted",
+    "skipInactiveCertifiers": false,
+    "stageDuration": 1095,
+    "stages": [
+      {
+        "certifierId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+        "certifierInfo": {
+          "givenName": "Preston",
+          "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+          "mail": "test@test.com",
+          "sn": "Test",
+          "userName": "PrestonIGATestUser",
+        },
+        "certifierPath": null,
+        "certifierScript": null,
+        "certifierType": "user",
+      },
+    ],
+    "stagingEnabled": false,
+    "status": "pending",
+    "targetFilter": {
+      "account": {
+        "operand": [],
+        "operator": "ALL",
+      },
+      "application": {
+        "operand": [],
+        "operator": "OR",
+      },
+      "decision": {
+        "operand": [
+          {
+            "operand": {
+              "targetName": "campaignId",
+              "targetValue": "a",
+            },
+            "operator": "CONTAINS",
+          },
+          {
+            "operand": {
+              "targetName": "status",
+              "targetValue": "b",
+            },
+            "operator": "EQUALS",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "decision",
+                  "targetValue": "c",
+                },
+                "operator": "STARTS_WITH",
+              },
+              {
+                "operand": {
+                  "targetName": "completionDate",
+                  "targetValue": "",
+                },
+                "operator": "EXISTS",
+              },
+            ],
+            "operator": "OR",
+          },
+        ],
+        "operator": "AND",
+      },
+      "entitlement": {
+        "operand": [
+          {
+            "operand": {
+              "targetName": "glossary.description",
+              "targetValue": "a",
+            },
+            "operator": "CONTAINS",
+          },
+          {
+            "operand": {
+              "targetName": "glossary.entitlementType",
+              "targetValue": "b",
+            },
+            "operator": "EQUALS",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "displayName",
+                  "targetValue": "c",
+                },
+                "operator": "STARTS_WITH",
+              },
+              {
+                "operand": [
+                  {
+                    "operand": {
+                      "targetName": "glossary.parentEntitlement",
+                      "targetValue": "d",
+                    },
+                    "operator": "ENDS_WITH",
+                  },
+                ],
+                "operator": "OR",
+              },
+            ],
+            "operator": "OR",
+          },
+        ],
+        "operator": "AND",
+      },
+      "memberOfOrg": [],
+      "role": {
+        "operand": [
+          {
+            "operand": {
+              "targetName": "glossary.Test User",
+              "targetValue": "managed/user/645363b3-7cbb-47a3-bf93-d96c59c387d9",
+            },
+            "operator": "EXISTS",
+          },
+          {
+            "operand": {
+              "targetName": "glossary.Test User",
+              "targetValue": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+            },
+            "operator": "EQUALS",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test User",
+                  "targetValue": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+                },
+                "operator": "EQUALS",
+              },
+            ],
+            "operator": "NOT",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test Boolean",
+                  "targetValue": true,
+                },
+                "operator": "EQUALS",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test Boolean",
+                  "targetValue": "False",
+                },
+                "operator": "EQUALS",
+              },
+            ],
+            "operator": "AND",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test Integer",
+                  "targetValue": 1,
+                },
+                "operator": "GTE",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test Integer",
+                  "targetValue": 2,
+                },
+                "operator": "GT",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test Integer",
+                  "targetValue": 3,
+                },
+                "operator": "LTE",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test Integer",
+                  "targetValue": 4,
+                },
+                "operator": "LT",
+              },
+            ],
+            "operator": "OR",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test Organization",
+                  "targetValue": "managed/organization/ddebad91-eb40-4ae0-8bc0-4578c07098a5",
+                },
+                "operator": "EQUALS",
+              },
+            ],
+            "operator": "OR",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test String",
+                  "targetValue": "a",
+                },
+                "operator": "CONTAINS",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test String",
+                  "targetValue": "b",
+                },
+                "operator": "EQUALS",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test String",
+                  "targetValue": "c",
+                },
+                "operator": "STARTS_WITH",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test String",
+                  "targetValue": "d",
+                },
+                "operator": "ENDS_WITH",
+              },
+            ],
+            "operator": "OR",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test Role",
+                  "targetValue": "managed/role/be68f831-a8f3-42da-93df-84bbc66427f6",
+                },
+                "operator": "EQUALS",
+              },
+            ],
+            "operator": "OR",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test Date",
+                  "targetValue": "2026-02-12",
+                },
+                "operator": "EQUALS",
+              },
+            ],
+            "operator": "OR",
+          },
+        ],
+        "operator": "OR",
+      },
+      "type": [
+        "entitlementGrant",
+        "ResourceGrant",
+      ],
+      "user": {
+        "operand": {
+          "targetName": "id",
+          "targetValue": "{{IGA_PARAM_userId_IGA_PARAM}}",
+        },
+        "operator": "EQUALS",
+      },
+    },
+    "uiConfig": {
+      "columnConfig": {
+        "accounts": [
+          "user.user",
+          "application.application",
+          "review.flags",
+          "review.comments",
+          "account.displayName",
+          "account.account",
+          "application.description",
+          "user.city",
+        ],
+        "entitlements": [
+          "user.user",
+          "application.application",
+          "entitlement.entitlement",
+          "account.account",
+          "review.flags",
+          "review.comments",
+          "user.city",
+          "user.cn",
+          "application.glossary.sensitive",
+          "account.displayName",
+          "entitlement.displayName",
+        ],
+        "roles": [
+          "role.role",
+          "user.user",
+          "review.flags",
+          "review.comments",
+          "user.city",
+          "role.glossary.Test Integer",
+        ],
+      },
+    },
+  },
+  {
+    "allowBulkCertify": true,
+    "allowPartialSignoff": true,
+    "allowSelfCertification": true,
+    "assignmentNotification": null,
+    "assignmentNotificationIncludeManager": false,
+    "certificationType": "identity",
+    "defaultCertifierId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+    "defaultCertifierInfo": {
+      "givenName": "Preston",
+      "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+      "mail": "test@test.com",
+      "sn": "Test",
+      "userName": "PrestonIGATestUser",
+    },
+    "description": "Test certification template description",
+    "enableForward": true,
+    "enableReassign": true,
+    "escalationFrequency": 1095,
+    "escalationNotification": null,
+    "escalationOwner": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+    "escalationOwnerInfo": {
+      "givenName": "Preston",
+      "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+      "mail": "test@test.com",
+      "sn": "Test",
+      "userName": "PrestonIGATestUser",
+    },
+    "events": {},
+    "exceptionDuration": 730,
+    "excludeConditionalAccess": true,
+    "excludeRoleBasedAccess": true,
+    "expirationAction": "reassign",
+    "expirationActionDelay": 0,
+    "expirationNotification": null,
+    "expirationNotificationDay": 30,
+    "expirationReassignee": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+    "expirationReassigneeInfo": {
+      "givenName": "Preston",
+      "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+      "mail": "test@test.com",
+      "sn": "Test",
+      "userName": "PrestonIGATestUser",
+    },
+    "finalizeRule": "",
+    "id": "a0a41b41-9a72-4da8-a1f4-9c2dca60d9b8",
+    "initializeRule": "",
+    "isEventBased": false,
+    "metadata": {
+      "createdDate": "2026-03-03T16:24:33.347115904Z",
+      "modifiedDate": "2026-03-03T16:24:34.173Z",
+    },
+    "name": "test_certification_6",
+    "ownerId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+    "ownerInfo": {
+      "givenName": "Preston",
+      "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+      "mail": "test@test.com",
+      "sn": "Test",
+      "userName": "PrestonIGATestUser",
+    },
+    "reassignNotification": null,
+    "reassignPermissions": {
+      "certify": true,
+      "claim": true,
+      "comment": true,
+      "delegate": true,
+      "exception": true,
+      "forward": true,
+      "reassign": true,
+      "reset": true,
+      "revoke": true,
+      "save": true,
+      "signoff": true,
+    },
+    "remediationDelay": 1825,
+    "remediationRule": "BasicRevocation",
+    "reminderFrequency": 1095,
+    "reminderNotification": null,
+    "requireJustification": {
+      "exceptionAllowed": true,
+      "revoke": true,
+    },
+    "scheduleId": "templateScheduleebc152ce5fdd41bb8a130a8be59dc085",
+    "selfCertificationRule": "restricted",
+    "skipInactiveCertifiers": false,
+    "stageDuration": 1095,
+    "stages": [
+      {
+        "certifierId": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+        "certifierInfo": {
+          "givenName": "Preston",
+          "id": "0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+          "mail": "test@test.com",
+          "sn": "Test",
+          "userName": "PrestonIGATestUser",
+        },
+        "certifierPath": null,
+        "certifierScript": null,
+        "certifierType": "user",
+      },
+    ],
+    "stagingEnabled": false,
+    "status": "pending",
+    "targetFilter": {
+      "account": {
+        "operand": [],
+        "operator": "ALL",
+      },
+      "application": {
+        "operand": [],
+        "operator": "OR",
+      },
+      "decision": {
+        "operand": [
+          {
+            "operand": {
+              "targetName": "campaignId",
+              "targetValue": "a",
+            },
+            "operator": "CONTAINS",
+          },
+          {
+            "operand": {
+              "targetName": "status",
+              "targetValue": "b",
+            },
+            "operator": "EQUALS",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "decision",
+                  "targetValue": "c",
+                },
+                "operator": "STARTS_WITH",
+              },
+              {
+                "operand": {
+                  "targetName": "completionDate",
+                  "targetValue": "",
+                },
+                "operator": "EXISTS",
+              },
+            ],
+            "operator": "OR",
+          },
+        ],
+        "operator": "AND",
+      },
+      "entitlement": {
+        "operand": [
+          {
+            "operand": {
+              "targetName": "glossary.description",
+              "targetValue": "a",
+            },
+            "operator": "CONTAINS",
+          },
+          {
+            "operand": {
+              "targetName": "glossary.entitlementType",
+              "targetValue": "b",
+            },
+            "operator": "EQUALS",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "displayName",
+                  "targetValue": "c",
+                },
+                "operator": "STARTS_WITH",
+              },
+              {
+                "operand": [
+                  {
+                    "operand": {
+                      "targetName": "glossary.parentEntitlement",
+                      "targetValue": "d",
+                    },
+                    "operator": "ENDS_WITH",
+                  },
+                ],
+                "operator": "OR",
+              },
+            ],
+            "operator": "OR",
+          },
+        ],
+        "operator": "AND",
+      },
+      "memberOfOrg": [],
+      "role": {
+        "operand": [
+          {
+            "operand": {
+              "targetName": "glossary.Test User",
+              "targetValue": "managed/user/645363b3-7cbb-47a3-bf93-d96c59c387d9",
+            },
+            "operator": "EXISTS",
+          },
+          {
+            "operand": {
+              "targetName": "glossary.Test User",
+              "targetValue": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+            },
+            "operator": "EQUALS",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test User",
+                  "targetValue": "managed/user/0f325c99-6965-4f45-b1e4-f9db1fa4dcf6",
+                },
+                "operator": "EQUALS",
+              },
+            ],
+            "operator": "NOT",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test Boolean",
+                  "targetValue": true,
+                },
+                "operator": "EQUALS",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test Boolean",
+                  "targetValue": "False",
+                },
+                "operator": "EQUALS",
+              },
+            ],
+            "operator": "AND",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test Integer",
+                  "targetValue": 1,
+                },
+                "operator": "GTE",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test Integer",
+                  "targetValue": 2,
+                },
+                "operator": "GT",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test Integer",
+                  "targetValue": 3,
+                },
+                "operator": "LTE",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test Integer",
+                  "targetValue": 4,
+                },
+                "operator": "LT",
+              },
+            ],
+            "operator": "OR",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test Organization",
+                  "targetValue": "managed/organization/ddebad91-eb40-4ae0-8bc0-4578c07098a5",
+                },
+                "operator": "EQUALS",
+              },
+            ],
+            "operator": "OR",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test String",
+                  "targetValue": "a",
+                },
+                "operator": "CONTAINS",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test String",
+                  "targetValue": "b",
+                },
+                "operator": "EQUALS",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test String",
+                  "targetValue": "c",
+                },
+                "operator": "STARTS_WITH",
+              },
+              {
+                "operand": {
+                  "targetName": "glossary.Test String",
+                  "targetValue": "d",
+                },
+                "operator": "ENDS_WITH",
+              },
+            ],
+            "operator": "OR",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test Role",
+                  "targetValue": "managed/role/be68f831-a8f3-42da-93df-84bbc66427f6",
+                },
+                "operator": "EQUALS",
+              },
+            ],
+            "operator": "OR",
+          },
+          {
+            "operand": [
+              {
+                "operand": {
+                  "targetName": "glossary.Test Date",
+                  "targetValue": "2026-02-12",
+                },
+                "operator": "EQUALS",
+              },
+            ],
+            "operator": "OR",
+          },
+        ],
+        "operator": "OR",
+      },
+      "type": [
+        "accountGrant",
+        "AccountGrant",
+        "roleMembership",
+        "entitlementGrant",
+        "ResourceGrant",
+      ],
+      "user": {
+        "operand": {
+          "targetName": "id",
+          "targetValue": "{{IGA_PARAM_userId_IGA_PARAM}}",
+        },
+        "operator": "EQUALS",
+      },
+    },
+    "uiConfig": {
+      "columnConfig": {
+        "accounts": [
+          "user.user",
+          "application.application",
+          "review.flags",
+          "review.comments",
+          "account.displayName",
+          "account.account",
+          "application.description",
+          "user.city",
+        ],
+        "entitlements": [
+          "user.user",
+          "application.application",
+          "entitlement.entitlement",
+          "account.account",
+          "review.flags",
+          "review.comments",
+          "user.city",
+          "user.cn",
+          "application.glossary.sensitive",
+          "account.displayName",
+          "entitlement.displayName",
+        ],
+        "roles": [
+          "role.role",
+          "user.user",
+          "review.flags",
+          "review.comments",
+          "user.city",
+          "role.glossary.Test Integer",
         ],
       },
     },

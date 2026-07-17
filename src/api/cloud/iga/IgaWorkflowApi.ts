@@ -2,9 +2,9 @@ import util from 'util';
 
 import { State } from '../../../shared/State';
 import { getHostOnlyUrl } from '../../../utils/ForgeRockUtils';
-import { QueryResult } from '../../ApiTypes';
 import { generateGovernanceApi } from '../../BaseApi';
 import { StaticNodeRefSkeletonInterface } from '../../NodeApi';
+import { governanceApiSearchAll } from '../../../utils/ExportImportUtils';
 
 const allWorkflowsURLTemplate = '%s/iga/governance/workflow';
 const workflowURLTemplate = allWorkflowsURLTemplate + '/%s';
@@ -12,9 +12,10 @@ const draftWorkflowURLTemplate = workflowURLTemplate + '/draft';
 const publishedWorkflowURLTemplate = workflowURLTemplate + '/published';
 const publishWorkflowURLTemplate = allWorkflowsURLTemplate + '?_action=publish';
 
-// The orchestration endpoints are what the admin UI use instead for workflow operations
+// The orchestration endpoints are an alternative API for workflows that can be used
 const allOrchestrationsURLTemplate = '%s/auto/orchestration/definition';
 const orchestrationURLTemplate = allOrchestrationsURLTemplate + '/%s';
+const draftOrchestrationURLTemplate = orchestrationURLTemplate + '/draft';
 const publishedOrchestrationURLTemplate =
   orchestrationURLTemplate + '/published';
 
@@ -239,25 +240,30 @@ export async function getPublishedWorkflow({
 }
 
 /**
- * Get all workflows
- * @returns {Promise<QueryResult<WorkflowSkeleton>>} a promise that resolves to an object containing an array of workflow objects
+ * Query all workflows
+ * @param {string} queryString The query string that matches name, displayName, and description keys. Default is '' which returns all workflows (see https://docs.pingidentity.com/pingoneaic/identity-governance/rest-api/endpoints/rest-iga.html#rest-api-workflow)
+ * @returns {Promise<WorkflowSkeleton[]>} a promise that resolves to an object containing an array of workflow objects
  */
-export async function getWorkflows({
+export async function queryWorkflows({
+  queryString = '',
   state,
 }: {
+  queryString?: string;
   state: State;
-}): Promise<QueryResult<WorkflowSkeleton>> {
+}): Promise<WorkflowSkeleton[]> {
   const urlString = util.format(
     allWorkflowsURLTemplate,
     getHostOnlyUrl(state.getHost())
   );
-  const { data } = await generateGovernanceApi({
-    resource: {},
+  return await governanceApiSearchAll({
+    url: urlString,
+    pageOffsetStrategy: 'PAGE',
+    pageSize: 10000,
+    // The page offset starts at 1 instead of 0 for workflows, so we need to add one to it
+    queryParamBuilder: (size, offset) =>
+      `_queryString=${queryString}&_pageSize=${size}&_pagedResultsOffset=${offset + 1}`,
     state,
-  }).get(urlString, {
-    withCredentials: true,
   });
-  return data;
 }
 
 /**
@@ -292,17 +298,23 @@ export async function putWorkflow({
 /**
  * Delete draft workflow
  * @param {string} workflowId the workflow id
+ * @param {boolean} useOrchestrationApi true to use orchestration API, false to use normal IGA API. Default: false
  * @returns {Promise<WorkflowSkeleton>} a promise that resolves to a workflow object
  */
 export async function deleteDraftWorkflow({
   workflowId,
+  useOrchestrationApi = false,
   state,
 }: {
   workflowId: string;
+  useOrchestrationApi?: boolean;
   state: State;
 }): Promise<WorkflowSkeleton> {
   const urlString = util.format(
-    draftWorkflowURLTemplate,
+    // See comment in deletePublishedWorkflow for the differences between orchestration vs normal workflow API
+    useOrchestrationApi
+      ? draftOrchestrationURLTemplate
+      : draftWorkflowURLTemplate,
     getHostOnlyUrl(state.getHost()),
     workflowId
   );
@@ -318,18 +330,27 @@ export async function deleteDraftWorkflow({
 /**
  * Delete published workflow
  * @param {string} workflowId the workflow id
+ * @param {boolean} useOrchestrationApi true to use orchestration API, false to use normal IGA API. Default: false
  * @returns {Promise<WorkflowSkeleton>} a promise that resolves to a workflow object
  */
 export async function deletePublishedWorkflow({
   workflowId,
+  useOrchestrationApi = false,
   state,
 }: {
   workflowId: string;
+  useOrchestrationApi?: boolean;
   state: State;
 }): Promise<WorkflowSkeleton> {
   const urlString = util.format(
-    // Need to use orchestration endpoint here instead due to a bug with the workflow endpoint that returns a 500 error in some cases when you try to delete a published workflow (as of AIC version 20679.0).
-    publishedOrchestrationURLTemplate,
+    // (AIC 22555.0) The orchestration API is what the UI used to use for workflows. By default we use the normal IGA API for workflows to follow what the UI does, but there are some
+    // differences between the two, especially with deleting. First difference is the orchestration API returns the full workflow object on delete, while the normal API
+    // returns a message in a JSON object indicating what happened. Second difference is the orchestration API throws a 500 HTTP error when deleting a non-existing workflow
+    // while the normal API throws a 404 HTTP error. Third difference is the orchestration API allows you to delete a workflow that is referenced by a request type, while
+    // the normal API throws a 500 HTTP error. Both have their own advantages, so we support both at the moment.
+    useOrchestrationApi
+      ? publishedOrchestrationURLTemplate
+      : publishedWorkflowURLTemplate,
     getHostOnlyUrl(state.getHost()),
     workflowId
   );
