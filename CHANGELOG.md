@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-07-20
+
 ### Added
 
 - Added support for including IGA event certification templates in certification template read, export, and delete flows, along with related variable dependency handling in exports and imports (PR #603).
@@ -313,6 +315,7 @@ Fixes and improvements to imports and exports:
 - Expose API factory to developers using Frodo Library to configure AIC, ForgeOps, and PingAM deployments.
 
   Under `frodo.factory` developers now have access to:
+
   - `generateAmApi`: Generates an AM Axios API instance
   - `generateOauth2Api`: Generates an OAuth2 Axios API instance
   - `generateIdmApi`: Generates an IDM Axios API instance
@@ -330,6 +333,7 @@ Fixes and improvements to imports and exports:
 ### Added
 
 - Improve support for custom platform deployments (non-forgeops or customized forgeops)
+
   - rockcarver/frodo-cli#429: Added state functions to support custom oauth2 clients for IDM API calls:
     - `state.setAdminClientId(clientId: string): void`
     - `state.getAdminClientId(): string`
@@ -551,14 +555,14 @@ The 2.x version of the library automatically refreshes session and access tokens
 - Kept supporting Node.js 18.
 - Added support for Node.js 20 and 22.
 
-| Node.js |   frodo-lib 1.x    | **_frodo-lib 2.x_** |   frodo-lib 3.x    |
+| Node.js |    frodo-lib 1.x   | **_frodo-lib 2.x_** |    frodo-lib 3.x   |
 | :-----: | :----------------: | :-----------------: | :----------------: |
-|   14    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
-|   16    | :white_check_mark: | :heavy_minus_sign:  | :heavy_minus_sign: |
-|   18    | :white_check_mark: | :white_check_mark:  | :heavy_minus_sign: |
-|   20    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
-|   22    | :heavy_minus_sign: | :white_check_mark:  | :white_check_mark: |
-|   24    | :heavy_minus_sign: | :heavy_minus_sign:  | :white_check_mark: |
+|    14   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
+|    16   | :white_check_mark: |  :heavy_minus_sign: | :heavy_minus_sign: |
+|    18   | :white_check_mark: |  :white_check_mark: | :heavy_minus_sign: |
+|    20   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
+|    22   | :heavy_minus_sign: |  :white_check_mark: | :white_check_mark: |
+|    24   | :heavy_minus_sign: |  :heavy_minus_sign: | :white_check_mark: |
 
 ### Considerations
 
@@ -873,6 +877,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 ### Changed
 
 - Fix import/require resolution issues for library users. Developers using the library can now:
+
   - ESM:
 
     Member style import any other modules from the library:
@@ -1138,6 +1143,7 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - `FRODO_POLLY_LOG_LEVEL=info`: Frodo mock engine log level (`trace`, `debug`, `info`, `warn`, `error`, `silent`). This is helpful for troubleshooting the mock capability, only.
 
   Environment variables added in 0.17.1:
+
   - `FRODO_HOST`
   - `FRODO_REALM`
   - `FRODO_USERNAME`
@@ -2080,7 +2086,8 @@ Frodo supports exporting and importing of ESV secret values. To leave stuartship
 - Fixed problem with adding connection profiles
 - Miscellaneous bug fixes
 
-[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v4.0.2-0...HEAD
+[unreleased]: https://github.com/rockcarver/frodo-lib/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/rockcarver/frodo-lib/compare/v4.0.2-0...v4.1.0
 [4.0.2-0]: https://github.com/rockcarver/frodo-lib/compare/v4.0.1...v4.0.2-0
 [4.0.1]: https://github.com/rockcarver/frodo-lib/compare/v4.0.1-6...v4.0.1
 [4.0.1-6]: https://github.com/rockcarver/frodo-lib/compare/v4.0.1-5...v4.0.1-6
