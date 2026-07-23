@@ -7,15 +7,11 @@ import { type IdObjectSkeletonInterface } from './ApiTypes';
 import { generateAmApi } from './BaseApi';
 
 const authenticationSettingsURLTemplate = '%s/json%s/%s/authentication';
-const apiVersion = 'protocol=2.1,resource=%s';
-const globalVersion = '1.0';
-const realmVersion = '1.0';
+const globalApiVersion = 'protocol=1.0,resource=1.0';
+const realmApiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = (globalConfig) => {
   return {
-    apiVersion: util.format(
-      apiVersion,
-      globalConfig ? globalVersion : realmVersion
-    ),
+    apiVersion: globalConfig ? globalApiVersion : realmApiVersion,
   };
 };
 
