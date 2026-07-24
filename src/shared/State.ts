@@ -738,11 +738,11 @@ const globalState: StateInterface = {
     }
   },
   errorHandler: (error: Error, message?: string) => {
-    if (message) process.stderr.write('' + c.red(message));
+    if (message) process.stderr.write('' + c.redBright(message));
     switch (error.name) {
       case 'FrodoError':
         process.stderr.write(
-          '' + c.red((error as FrodoError).getCombinedMessage())
+          '' + c.redBright((error as FrodoError).getCombinedMessage())
         );
         break;
 
@@ -764,12 +764,12 @@ const globalState: StateInterface = {
         errorMessage += status ? `\n  Status: ${status}` : '';
         errorMessage += message ? `\n  Message: ${message}` : '';
         errorMessage += detail ? `\n  Detail: ${detail}` : '';
-        process.stderr.write(c.red(errorMessage));
+        process.stderr.write(c.redBright(errorMessage));
         break;
       }
 
       default:
-        process.stderr.write(c.red(error.message));
+        process.stderr.write(c.redBright(error.message));
         break;
     }
   },

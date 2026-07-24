@@ -363,7 +363,7 @@ async function determineDeploymentType(state: State): Promise<string> {
           e.response.headers?.location?.indexOf('code=') > -1
         ) {
           verboseMessage({
-            message: c.cyan(`ForgeRock Identity Cloud`) + ` detected.`,
+            message: c.cyanBright(`ForgeRock Identity Cloud`) + ` detected.`,
             state,
           });
           deploymentType = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
@@ -384,13 +384,13 @@ async function determineDeploymentType(state: State): Promise<string> {
               // maybe we don't want to run through the auto-detect code if we get a custom admin client id?
               adminClientId = state.getAdminClientId() || forgeopsClientId;
               verboseMessage({
-                message: c.cyan(`ForgeOps deployment`) + ` detected.`,
+                message: c.cyanBright(`ForgeOps deployment`) + ` detected.`,
                 state,
               });
               deploymentType = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
             } else {
               verboseMessage({
-                message: c.cyan(`Classic deployment`) + ` detected.`,
+                message: c.cyanBright(`Classic deployment`) + ` detected.`,
                 state,
               });
             }
