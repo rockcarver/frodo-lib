@@ -41,9 +41,9 @@ export type PagedResult<Type> = {
 export type SearchResult<Type> = {
   result: Type[];
   resultCount: number;
-  totalCount?: number;
-  totalHits?: number;
-  searchAfterKey?: string[];
+  totalCount?: number | null;
+  totalHits?: number | null;
+  searchAfterKey?: string | string[] | null;
 };
 
 export type EntityType = IdObjectSkeletonInterface & {
