@@ -30,6 +30,7 @@ import {
   createProgressIndicator,
   debugMessage,
   printError,
+  printMessage,
   stopProgressIndicator,
   updateProgressIndicator,
   verboseMessage,
@@ -551,6 +552,24 @@ export enum NodeClassification {
 }
 
 const containerNodes = ['PageNode', 'CustomPageNode'];
+
+// Node objects in different API contexts expose version under different keys.
+// Prefer explicit type version when present, then fallback to node-level keys.
+function resolveNodeTypeVersion({
+  node,
+  state,
+}: {
+  node: any;
+  state: State;
+}): string {
+  if (!requireVersion(state)) {
+    return '1.0';
+  }
+  return (node?._type?.version ||
+    node?.version ||
+    node?.nodeVersion ||
+    '1.0') as string;
+}
 
 /**
  * Create an empty node export template
@@ -1383,6 +1402,7 @@ export async function findOrphanedNodes({
   state: State;
 }): Promise<NodeSkeleton[]> {
   const allNodes = [];
+  const allNodeMap = new Map<string, NodeSkeleton>();
   const orphanedNodes = [];
   let types: NodeTypeSkeleton[] = [];
   const allJourneys = (await getTrees({ state })).result;
@@ -1413,9 +1433,12 @@ export async function findOrphanedNodes({
           ).result;
           for (const node of nodes) {
             allNodes.push(node);
+            if (!allNodeMap.has(node._id)) {
+              allNodeMap.set(node._id, node);
+            }
             updateProgressIndicator({
               id: indicatorId,
-              message: `${allNodes.length} total nodes${errorMessage}`,
+              message: `${allNodeMap.size} total nodes${errorMessage}`,
               state,
             });
           }
@@ -1425,7 +1448,7 @@ export async function findOrphanedNodes({
           errorMessage = c.yellowBright(` (Skipped type(s): ${errorTypes})`);
           updateProgressIndicator({
             id: indicatorId,
-            message: `${allNodes.length} total nodes${errorMessage}`,
+            message: `${allNodeMap.size} total nodes${errorMessage}`,
             state,
           });
         }
@@ -1436,9 +1459,12 @@ export async function findOrphanedNodes({
           .result;
         for (const node of nodes) {
           allNodes.push(node);
+          if (!allNodeMap.has(node._id)) {
+            allNodeMap.set(node._id, node);
+          }
           updateProgressIndicator({
             id: indicatorId,
-            message: `${allNodes.length} total nodes${errorMessage}`,
+            message: `${allNodeMap.size} total nodes${errorMessage}`,
             state,
           });
         }
@@ -1448,23 +1474,30 @@ export async function findOrphanedNodes({
         errorMessage = c.yellowBright(` (Skipped type(s): ${errorTypes})`);
         updateProgressIndicator({
           id: indicatorId,
-          message: `${allNodes.length} total nodes${errorMessage}`,
+          message: `${allNodeMap.size} total nodes${errorMessage}`,
           state,
         });
       }
     }
   }
   if (errorTypes.length > 0) {
+    printMessage({
+      message:
+        `Warning: skipped ${errorTypes.length} node type/version scan(s) while counting total nodes. ` +
+        `Results may be partial for this run.`,
+      type: 'warn',
+      state,
+    });
     stopProgressIndicator({
       id: indicatorId,
-      message: `${allNodes.length} total nodes${errorMessage}`,
+      message: `${allNodeMap.size} total nodes${errorMessage}`,
       state,
       status: 'warn',
     });
   } else {
     stopProgressIndicator({
       id: indicatorId,
-      message: `${allNodes.length} total nodes`,
+      message: `${allNodeMap.size} total nodes`,
       status: 'success',
       state,
     });
@@ -1477,30 +1510,54 @@ export async function findOrphanedNodes({
     state,
   });
   const activeNodes = [];
+  const activeNodeSet = new Set<string>();
+  const activeNodeSetInTotal = new Set<string>();
+  const activeNodeErrorNodes = [];
+
   for (const journey of allJourneys) {
     for (const nodeId in journey.nodes) {
       if ({}.hasOwnProperty.call(journey.nodes, nodeId)) {
         activeNodes.push(nodeId);
+        activeNodeSet.add(nodeId);
+        if (allNodeMap.has(nodeId)) {
+          activeNodeSetInTotal.add(nodeId);
+        }
         updateProgressIndicator({
           id: indicatorId2,
-          message: `${activeNodes.length} active nodes`,
+          message: `${activeNodeSetInTotal.size} active nodes`,
           state,
         });
         const node = journey.nodes[nodeId];
         if (containerNodes.includes(node.nodeType)) {
-          const containerNode = await _getNode({
-            nodeId,
-            nodeType: node.nodeType,
-            nodeTypeVersion: requireVersion(state)
-              ? node.version || '1.0'
-              : '1.0',
-            state,
-          });
-          for (const innerNode of containerNode.nodes) {
-            activeNodes.push(innerNode._id);
-            updateProgressIndicator({
-              id: indicatorId2,
-              message: `${activeNodes.length} active nodes`,
+          const nodeTypeVersion = resolveNodeTypeVersion({ node, state });
+          try {
+            const containerNode = await _getNode({
+              nodeId,
+              nodeType: node.nodeType,
+              nodeTypeVersion,
+              state,
+            });
+            for (const innerNode of containerNode.nodes) {
+              activeNodes.push(innerNode._id);
+              activeNodeSet.add(innerNode._id);
+              if (allNodeMap.has(innerNode._id)) {
+                activeNodeSetInTotal.add(innerNode._id);
+              }
+              updateProgressIndicator({
+                id: indicatorId2,
+                message: `${activeNodeSetInTotal.size} active nodes`,
+                state,
+              });
+            }
+          } catch (error) {
+            activeNodeErrorNodes.push(
+              `${nodeId} (${node.nodeType} v${nodeTypeVersion})`
+            );
+            printError({
+              error: error as Error,
+              message:
+                `Failed to inspect container node ${nodeId} ` +
+                `(${node.nodeType} v${nodeTypeVersion}); continuing.\n`,
               state,
             });
           }
@@ -1510,10 +1567,26 @@ export async function findOrphanedNodes({
   }
   stopProgressIndicator({
     id: indicatorId2,
-    message: `${activeNodes.length} active nodes`,
-    status: 'success',
+    message:
+      activeNodeErrorNodes.length > 0
+        ? `${activeNodeSetInTotal.size} active nodes (skipped ${activeNodeErrorNodes.length} container node(s))`
+        : `${activeNodeSetInTotal.size} active nodes`,
+    status: activeNodeErrorNodes.length > 0 ? 'warn' : 'success',
     state,
   });
+  if (activeNodeErrorNodes.length > 0) {
+    printMessage({
+      message:
+        `Warning: ${activeNodeErrorNodes.length} container node(s) could not be inspected while counting active nodes. ` +
+        `Continuing with partial active-node data may overestimate orphaned nodes for this run.`,
+      type: 'warn',
+      state,
+    });
+    debugMessage({
+      message: `Skipped container nodes: ${activeNodeErrorNodes.join(', ')}`,
+      state,
+    });
+  }
 
   const indicatorId3 = createProgressIndicator({
     total: undefined,
@@ -1521,8 +1594,16 @@ export async function findOrphanedNodes({
     type: 'indeterminate',
     state,
   });
-  const diff = allNodes.filter((x) => !activeNodes.includes(x._id));
-  for (const orphanedNode of diff) {
+  const orphanedNodeMap = new Map<string, NodeSkeleton>();
+  const diff = Array.from(allNodeMap.values()).filter(
+    (x) => !activeNodeSetInTotal.has(x._id)
+  );
+  for (const node of diff) {
+    if (!orphanedNodeMap.has(node._id)) {
+      orphanedNodeMap.set(node._id, node);
+    }
+  }
+  for (const orphanedNode of orphanedNodeMap.values()) {
     orphanedNodes.push(orphanedNode);
   }
   stopProgressIndicator({
@@ -1547,12 +1628,39 @@ export async function removeOrphanedNodes({
   state: State;
 }): Promise<NodeSkeleton[]> {
   const errorNodes = [];
+  const errorNodeIds = new Set<string>();
+
+  const orphanedNodeMap = new Map<string, NodeSkeleton>();
+  for (const node of orphanedNodes) {
+    if (!orphanedNodeMap.has(node._id)) {
+      orphanedNodeMap.set(node._id, node);
+    }
+  }
+  const uniqueOrphanedNodes = Array.from(orphanedNodeMap.values());
+  const orderedOrphanedNodes = uniqueOrphanedNodes.sort((a, b) => {
+    const aIsContainer = containerNodes.includes(a['_type']?._id);
+    const bIsContainer = containerNodes.includes(b['_type']?._id);
+    if (aIsContainer === bIsContainer) {
+      return 0;
+    }
+    return aIsContainer ? 1 : -1;
+  });
+
+  const getFailedRequestUrl = (error: any): string | undefined => {
+    return (
+      error?.config?.url ||
+      error?.originalErrors?.[0]?.config?.url ||
+      error?.originalErrors?.find?.((e: any) => e?.config?.url)?.config?.url
+    );
+  };
+
   const indicatorId = createProgressIndicator({
-    total: orphanedNodes.length,
+    total: orderedOrphanedNodes.length,
     message: 'Removing orphaned nodes...',
     state,
   });
-  for (const node of orphanedNodes) {
+  for (const node of orderedOrphanedNodes) {
+    const nodeTypeVersion = resolveNodeTypeVersion({ node, state });
     updateProgressIndicator({
       id: indicatorId,
       message: `Removing ${node['_id']}...`,
@@ -1562,19 +1670,38 @@ export async function removeOrphanedNodes({
       await deleteNode({
         nodeId: node['_id'],
         nodeType: node['_type']['_id'],
-        nodeTypeVersion: requireVersion(state)
-          ? ((node.version || '1.0') as string)
-          : '1.0',
+        nodeTypeVersion,
         state,
       });
     } catch (deleteError) {
-      errorNodes.push(node);
-      printError(deleteError);
+      if (!errorNodeIds.has(node._id)) {
+        errorNodeIds.add(node._id);
+        errorNodes.push(node);
+      }
+      const failedRequestUrl = getFailedRequestUrl(deleteError);
+      const nodeContext =
+        `Failed to delete orphaned node ${node['_id']} ` +
+        `(${node['_type']['_id']} v${nodeTypeVersion})`;
+      const details = failedRequestUrl
+        ? `\n  Request URL: ${failedRequestUrl}`
+        : '';
+      printError({
+        error: deleteError as Error,
+        message: `${nodeContext}${details}\n`,
+        state,
+      });
     }
   }
+
+  const removedCount = orderedOrphanedNodes.length - errorNodes.length;
+  const failedCount = errorNodes.length;
   stopProgressIndicator({
     id: indicatorId,
-    message: `Removed ${orphanedNodes.length} orphaned nodes.`,
+    message:
+      failedCount > 0
+        ? `Removed ${removedCount} orphaned nodes (${failedCount} failed).`
+        : `Removed ${removedCount} orphaned nodes.`,
+    status: failedCount > 0 ? 'warn' : 'success',
     state,
   });
   return errorNodes;
