@@ -257,11 +257,8 @@ export async function queryWorkflows({
   );
   return await governanceApiSearchAll({
     url: urlString,
-    pageOffsetStrategy: 'PAGE',
-    pageSize: 10000,
-    // The page offset starts at 1 instead of 0 for workflows, so we need to add one to it
     queryParamBuilder: (size, offset) =>
-      `_queryString=${queryString}&_pageSize=${size}&_pagedResultsOffset=${offset + 1}`,
+      `_queryString=${queryString}&_pageSize=${size}&_pagedResultsOffset=${offset}`,
     state,
   });
 }

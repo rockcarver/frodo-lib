@@ -911,10 +911,11 @@ export async function governanceApiSearchAll<T>({
         })
       ).data;
     }
+    // If both totalCount and totalHits are nullish, then resultCount should just be 0, meaning no results found.
     currentSearchTotalCount =
-      currentSearchResult.totalCount !== undefined
-        ? currentSearchResult.totalCount
-        : currentSearchResult.totalHits;
+      currentSearchResult.totalCount ??
+      currentSearchResult.totalHits ??
+      currentSearchResult.resultCount;
     results.push(...currentSearchResult.result);
   } while (
     currentSearchResult.resultCount === pageSize &&
