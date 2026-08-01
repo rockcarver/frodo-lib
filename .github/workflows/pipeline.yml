@@ -22,12 +22,29 @@ on:
       - '**/doc.yml'
       - 'docs/**'
   workflow_dispatch:
+    inputs:
+      release-type:
+        description: 'Release kind: prerelease | patch | minor | major'
+        type: choice
+        options:
+          - prerelease
+          - patch
+          - minor
+          - major
+        default: 'prerelease'
+        required: true
+      dry-run:
+        description: 'Test release pipeline without publishing, tagging, or creating GitHub releases'
+        type: boolean
+        default: false
+        required: true
 
 env:
   NODE_VERSION: 24
 
 permissions:
   contents: write
+  pull-requests: read
   id-token: write
       
 jobs:
@@ -39,45 +56,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          # Need to specify ref and repository for PRs from forked repos
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          # Use PR head repo/ref for forked PRs; default to current repo/ref for push/workflow_dispatch.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
 
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
-
-      - name: Update package-log.json before version bump
-        run: npm i --package-lock-only
 
       - name: Install dependencies
         run: npm ci
 
       - name: 'Prepare Version Bump'
         id: version-bump
-        uses: 'phips28/gh-action-bump-version@master'
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        uses: vscheuber/version-bump-action@v1
         with:
-          major-wording: 'MAJOR RELEASE'
-          minor-wording: 'MINOR RELEASE'
-          patch-wording: 'PATCH RELEASE'
-          rc-wording: ''
-          tag-prefix: 'v'
-          default: prerelease
-          preid: ''
-          bump-policy: 'ignore'
-          skip-commit: 'true'
-          skip-tag: 'true'
-          skip-push: 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          release-type: ${{ github.event.inputs.release-type }}
 
-      - name: Update package-log.json after version bump
-        run: npm i --package-lock-only
-
-      - name: Version From Tag
-        id: version-from-tag
-        run: echo "version=$(echo '${{ steps.version-bump.outputs.newTag }}' | sed 's/v//')" >> "$GITHUB_OUTPUT"
+      - name: Update package manifests for release
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        uses: vscheuber/manifest-version-update-action@v1
+        with:
+          version: ${{ steps.version-bump.outputs.newVersion }}
 
       - name: Build library
         run: npm run build
@@ -102,9 +105,10 @@ jobs:
             build.zip
 
     outputs:
-      newTag: ${{ steps.version-bump.outputs.newTag }}
-      newVersion: ${{ steps.version-from-tag.outputs.version }}
-      preRelease: ${{ contains(steps.version-bump.outputs.newTag, '-') }}
+      newTag: ${{ steps.version-bump.outputs.newTag || '' }}
+      newVersion: ${{ steps.version-bump.outputs.newVersion || '' }}
+      preRelease: ${{ steps.version-bump.outputs.preRelease || '' }}
+      actionReleaseType: ${{ steps.version-bump.outputs.action_release_type || '' }}
 
   test:
     name: 'Test'
@@ -132,9 +136,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          # Need to specify ref and repository for PRs from forked repos
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          # Use PR head repo/ref for forked PRs; default to current repo/ref for push/workflow_dispatch.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
 
       - uses: actions/download-artifact@v7
         with:
@@ -205,7 +209,7 @@ jobs:
           npm audit --omit=dev --audit-level high
 
   npm-release:
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     needs: [build, test]
     runs-on: ubuntu-latest
     steps:
@@ -223,30 +227,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Pre-Release
-        if: ${{ fromJSON(needs.build.outputs.preRelease) }}
-        uses: JS-DevTools/npm-publish@v4
+      - name: Publish package
+        id: npm-publish
+        uses: vscheuber/npm-trusted-publish-action@v1
         with:
-          access: public
-          tag: 'next'
-          token: ${{ secrets.NPM_ACCESS_TOKEN }}
+          release-type: ${{ github.event.inputs.release-type }}
+          package-name: '@rockcarver/frodo-lib'
+          version: ${{ needs.build.outputs.newVersion }}
+          dry-run: ${{ github.event.inputs.dry-run && 'true' || 'false' }}
 
-      - name: Release
-        if: ${{ ! fromJSON(needs.build.outputs.preRelease) }}
-        uses: JS-DevTools/npm-publish@v4
-        with:
-          access: public
-          token: ${{ secrets.NPM_ACCESS_TOKEN }}
-
-      - name: Add next tag
-        if: ${{ ! fromJSON(needs.build.outputs.preRelease) }}
+      - name: Publish summary
         run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_ACCESS_TOKEN }}" >> ~/.npmrc
-          npm whoami
-          npm dist-tag add @rockcarver/frodo-lib@${{ needs.build.outputs.newVersion }} next
+          echo "published=${{ steps.npm-publish.outputs.published }}"
+          echo "tag=${{ steps.npm-publish.outputs.tag }}"
+          echo "is-prerelease=${{ steps.npm-publish.outputs.is-prerelease }}"
 
   release:
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     needs: [build, npm-release]
     name: 'Release'
     runs-on: ubuntu-latest
@@ -267,43 +264,64 @@ jobs:
         id: github-sha
         run: echo ${{ github.sha }} > Release.txt
 
-      - name: Update Changelog
-        uses: thomaseizinger/keep-a-changelog-new-release@v3
+      - name: Generate and promote AI changelog
+        id: changelog
+        uses: vscheuber/ai-changelog-action@v1
         with:
-          tag: ${{ needs.build.outputs.newTag }}
-
-      - name: 'Output Changelog'
-        run: cat CHANGELOG.md
-
-      - name: 'Release Header'
-        id: release-header
-        run: echo "header=$(echo `grep '## \\[${{ needs.build.outputs.newVersion }}] -' CHANGELOG.md | sed 's/## //' | sed 's/\\[//' | sed 's/]//'`)" >> "$GITHUB_OUTPUT"
-
-      - name: 'Extract Release Notes'
-        id: extract-release-notes
-        uses: 'dahlia/submark@main'
-        with:
-          input-file: 'CHANGELOG.md'
-          heading-level: 2
-          heading-title-text: '${{ steps.release-header.outputs.header }}'
-          ignore-case: true
-          omit-heading: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          llm-api-key: ${{ secrets.OPENAI_API_KEY }}
+          changelog-path: CHANGELOG.md
+          since: last-release
+          target-user-type: developer
+          release-type: ${{ needs.build.outputs.actionReleaseType || github.event.inputs.release-type }}
+          version: ${{ needs.build.outputs.newVersion }}
+          promote-release: true
+          release-tag: ${{ needs.build.outputs.newTag }}
+          release-notes-path: RELEASE_NOTES.md
+          commit: false
 
       - name: Commit updated changelog, version, and docs
         id: commit-changelog
+        if: ${{ !github.event.inputs.dry-run }}
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add CHANGELOG.md package.json package-lock.json docs
-          git commit --message "Updated changelog, version, and docs for release ${{ needs.build.outputs.newTag }}"
-          git push
+          if git diff --cached --quiet; then
+            echo "No release changes to commit"
+          else
+            git commit --message "Updated changelog, version, and docs for release ${{ needs.build.outputs.newTag }}"
+            git push origin HEAD
+          fi
+
+      - name: Create and push tag
+        if: ${{ !github.event.inputs.dry-run }}
+        run: |
+          set -euo pipefail
+          git fetch --tags
+          tag='${{ needs.build.outputs.newTag }}'
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            existing_commit="$(git rev-list -n 1 "${tag}")"
+            current_commit="$(git rev-parse HEAD)"
+            if [[ "$existing_commit" == "$current_commit" ]]; then
+              echo "Tag ${tag} already exists on the current commit; skipping"
+              exit 0
+            fi
+
+            echo "Tag ${tag} already exists on a different commit"
+            exit 1
+          fi
+          git tag -a "${tag}" -m "Release ${tag}"
+          git push origin "${tag}"
 
       - name: Release
+        if: ${{ !github.event.inputs.dry-run }}
         uses: softprops/action-gh-release@v2
         with:
           name: Frodo Library ${{ needs.build.outputs.newVersion }}
           tag_name: ${{ needs.build.outputs.newTag }}
-          body: ${{ steps.extract-release-notes.outputs.output-text }}
+          body: ${{ steps.changelog.outputs.release-notes }}
           prerelease: ${{ needs.build.outputs.preRelease }}
           generate_release_notes: ${{ contains(needs.build.outputs.newTag, '-') }}
           files: |
@@ -313,7 +331,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   doc:
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && !github.event.inputs.dry-run
     needs: [build, release]
     # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
     permissions:
