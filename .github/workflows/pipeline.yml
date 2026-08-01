@@ -234,7 +234,7 @@ jobs:
           release-type: ${{ github.event.inputs.release-type }}
           package-name: '@rockcarver/frodo-lib'
           version: ${{ needs.build.outputs.newVersion }}
-          dry-run: ${{ github.event.inputs.dry-run && 'true' || 'false' }}
+          dry-run: ${{ inputs.dry-run && 'true' || 'false' }}
 
       - name: Publish summary
         run: |
@@ -282,7 +282,7 @@ jobs:
 
       - name: Commit updated changelog, version, and docs
         id: commit-changelog
-        if: ${{ !github.event.inputs.dry-run }}
+        if: ${{ !inputs.dry-run }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -296,7 +296,7 @@ jobs:
           fi
 
       - name: Create and push tag
-        if: ${{ !github.event.inputs.dry-run }}
+        if: ${{ !inputs.dry-run }}
         run: |
           set -euo pipefail
           git fetch --tags
@@ -316,7 +316,7 @@ jobs:
           git push origin "${tag}"
 
       - name: Release
-        if: ${{ !github.event.inputs.dry-run }}
+        if: ${{ !inputs.dry-run }}
         uses: softprops/action-gh-release@v2
         with:
           name: Frodo Library ${{ needs.build.outputs.newVersion }}
@@ -331,7 +331,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   doc:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && !github.event.inputs.dry-run
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && !inputs.dry-run
     needs: [build, release]
     # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
     permissions:
