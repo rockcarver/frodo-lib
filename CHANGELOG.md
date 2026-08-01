@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased
+
+## [v4.1.3-1] - 2026-08-01
+
+### Added
+- Introduced API functions for importing raw configuration with `fr-config-manager` push commands, enhancing flexibility in configuration management. (#567)
+- Added support for AI agent integration and improved handling of managed objects. (#580)
+- Implemented library functions to export, import, and delete IGA-related configurations, including workflows, events, certification templates, request forms, and glossaries. This facilitates comprehensive IGA management within the library. (#554, #553, #552, #551)
+- Added composable filters for bulk AM script operations, allowing selection by metadata such as language and context. (#599)
+- Added ability to determine if a tenant is an IGA tenant, enabling conditional access to IGA endpoints. (#546)
+
+### Changed
+- Enhanced error handling and security features, and updated node APIs to be version-aware. (#588, #587)
+- Refactored realm naming to support dashes, maintaining backward compatibility by escaping '-' as '--'. (#581)
+- Improved agent import logic to handle identity inclusion, enhancing code clarity. (#589)
+
+### Fixed
+- Resolved a bug where indeterminate loading spinners conflicted with curlirize messages in the console by routing messages through `printMessage` and `printError`. (#583)
+- Fixed an issue with Forgeops deployments to allow full AM configuration export/import. (#582)
+- Corrected a bug in app deletion to ensure connector and mapping dependencies are deleted when `deep=true`. (#547)
+- Addressed a bug with root realm managed object prefixes to correctly handle the root realm name. (#544)
+- Fixed workflow export issues in certain tenants by aligning workflow commands with tenant configurations. (#607)
+- Resolved a bug in ESV secretstore export/import related to root realm 403 errors and mapping imports with `_rev` attributes. (#549)
+- Fixed PolicySet `--prereqs` import to create missing resource types before importing PolicySets, preventing import failures. (#578)
+- Improved AM version parsing to handle incomplete serverinfo responses gracefully. (#594)
+
+### Removed
+- Removed functions deprecated in versions 2.0.0 and 4.0.0, streamlining the codebase. (#565)
+
 All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
