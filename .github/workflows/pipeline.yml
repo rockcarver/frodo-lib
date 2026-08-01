@@ -251,6 +251,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/download-artifact@v7
         with:
@@ -323,7 +326,7 @@ jobs:
           tag_name: ${{ needs.build.outputs.newTag }}
           body: ${{ steps.changelog.outputs.release-notes }}
           prerelease: ${{ needs.build.outputs.preRelease }}
-          generate_release_notes: ${{ contains(needs.build.outputs.newTag, '-') }}
+          generate_release_notes: false
           files: |
             CHANGELOG.md
             LICENSE
