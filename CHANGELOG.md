@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [v4.1.3-2] - 2026-08-01
+
+### Changed
+- Internal pipeline update release. This release updates CI/CD or release automation under `.github/` without changing the action's functional behavior.
+
 ## [v4.1.3-1] - 2026-08-01
 
 ### Added
