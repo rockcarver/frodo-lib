@@ -59,6 +59,8 @@ jobs:
           # Use PR head repo/ref for forked PRs; default to current repo/ref for push/workflow_dispatch.
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
           repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/setup-node@v6
         with:
@@ -75,6 +77,15 @@ jobs:
         uses: vscheuber/version-bump-action@v1
         with:
           release-type: ${{ github.event.inputs.release-type }}
+
+      - name: Show resolved release base
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        run: |
+          echo "base=${{ steps.version-bump.outputs.base }}"
+          echo "base_source=${{ steps.version-bump.outputs.base_source }}"
+          echo "base_ref=${{ steps.version-bump.outputs.base_ref }}"
+          echo "newVersion=${{ steps.version-bump.outputs.newVersion }}"
+          echo "newTag=${{ steps.version-bump.outputs.newTag }}"
 
       - name: Update package manifests for release
         if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
@@ -230,6 +241,8 @@ jobs:
       - name: Publish package
         id: npm-publish
         uses: vscheuber/npm-trusted-publish-action@v1
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_DIST_TAG_TOKEN }}
         with:
           release-type: ${{ github.event.inputs.release-type }}
           package-name: '@rockcarver/frodo-lib'
