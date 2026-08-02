@@ -241,12 +241,11 @@ jobs:
       - name: Publish package
         id: npm-publish
         uses: vscheuber/npm-trusted-publish-action@v1
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_DIST_TAG_TOKEN }}
         with:
           release-type: ${{ github.event.inputs.release-type }}
           package-name: '@rockcarver/frodo-lib'
           version: ${{ needs.build.outputs.newVersion }}
+          dual-release-on-stable: 'true'
           dry-run: ${{ inputs.dry-run && 'true' || 'false' }}
 
       - name: Publish summary
@@ -255,6 +254,11 @@ jobs:
           echo "already_published=${{ steps.npm-publish.outputs.already_published }}"
           echo "tag=${{ steps.npm-publish.outputs.tag }}"
           echo "is-prerelease=${{ steps.npm-publish.outputs.is-prerelease }}"
+          echo "stable_published=${{ steps.npm-publish.outputs.stable_published }}"
+          echo "stable_already_published=${{ steps.npm-publish.outputs.stable_already_published }}"
+          echo "companion_prerelease_published=${{ steps.npm-publish.outputs.companion_prerelease_published }}"
+          echo "companion_prerelease_already_published=${{ steps.npm-publish.outputs.companion_prerelease_already_published }}"
+          echo "companion_prerelease_version=${{ steps.npm-publish.outputs.companion_prerelease_version }}"
 
   release:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
