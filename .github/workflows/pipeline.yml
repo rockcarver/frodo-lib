@@ -250,15 +250,46 @@ jobs:
 
       - name: Publish summary
         run: |
-          echo "published=${{ steps.npm-publish.outputs.published }}"
-          echo "already_published=${{ steps.npm-publish.outputs.already_published }}"
-          echo "tag=${{ steps.npm-publish.outputs.tag }}"
-          echo "is-prerelease=${{ steps.npm-publish.outputs.is-prerelease }}"
-          echo "stable_published=${{ steps.npm-publish.outputs.stable_published }}"
-          echo "stable_already_published=${{ steps.npm-publish.outputs.stable_already_published }}"
-          echo "companion_prerelease_published=${{ steps.npm-publish.outputs.companion_prerelease_published }}"
-          echo "companion_prerelease_already_published=${{ steps.npm-publish.outputs.companion_prerelease_already_published }}"
-          echo "companion_prerelease_version=${{ steps.npm-publish.outputs.companion_prerelease_version }}"
+          release_type='${{ github.event.inputs.release-type }}'
+          stable_version='${{ needs.build.outputs.newVersion }}'
+          publish_tag='${{ steps.npm-publish.outputs.tag }}'
+          is_prerelease='${{ steps.npm-publish.outputs.is-prerelease }}'
+          stable_published='${{ steps.npm-publish.outputs.stable_published }}'
+          stable_already='${{ steps.npm-publish.outputs.stable_already_published }}'
+          companion_published='${{ steps.npm-publish.outputs.companion_prerelease_published }}'
+          companion_already='${{ steps.npm-publish.outputs.companion_prerelease_already_published }}'
+          companion_version='${{ steps.npm-publish.outputs.companion_prerelease_version }}'
+
+          echo "release_type=${release_type}"
+          echo "stable_version=${stable_version}"
+          echo "publish_tag=${publish_tag}"
+
+          if [[ "$release_type" == 'prerelease' || "$is_prerelease" == 'true' ]]; then
+            if [[ "$stable_published" == 'true' ]]; then
+              echo "result=published prerelease to next"
+            elif [[ '${{ steps.npm-publish.outputs.already_published }}' == 'true' ]]; then
+              echo "result=prerelease already published, skipped"
+            else
+              echo "result=no publish performed"
+            fi
+          else
+            echo "companion_prerelease_version=${companion_version}"
+            if [[ "$companion_published" == 'true' ]]; then
+              echo "companion_result=published ${companion_version} to next"
+            elif [[ "$companion_already" == 'true' ]]; then
+              echo "companion_result=already published (${companion_version})"
+            else
+              echo "companion_result=not attempted"
+            fi
+
+            if [[ "$stable_published" == 'true' ]]; then
+              echo "stable_result=published ${stable_version} to ${publish_tag}"
+            elif [[ "$stable_already" == 'true' ]]; then
+              echo "stable_result=already published (${stable_version})"
+            else
+              echo "stable_result=not attempted"
+            fi
+          fi
 
   release:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
