@@ -239,6 +239,7 @@ jobs:
       - name: Publish summary
         run: |
           echo "published=${{ steps.npm-publish.outputs.published }}"
+          echo "already_published=${{ steps.npm-publish.outputs.already_published }}"
           echo "tag=${{ steps.npm-publish.outputs.tag }}"
           echo "is-prerelease=${{ steps.npm-publish.outputs.is-prerelease }}"
 
