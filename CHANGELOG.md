@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [v4.1.7] - 2026-08-03
+
+### Changed
+- Internal changes only. This release does not introduce functional behavior changes.
+
 ## [v4.1.6] - 2026-08-02
 
 ### Changed
