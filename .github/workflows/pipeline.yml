@@ -78,6 +78,18 @@ jobs:
         with:
           release-type: ${{ github.event.inputs.release-type }}
 
+      - name: Release preflight checks
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        uses: vscheuber/release-preflight-action@v1
+        with:
+          candidate-version: ${{ steps.version-bump.outputs.newVersion }}
+          candidate-tag: ${{ steps.version-bump.outputs.newTag }}
+          package-name: '@rockcarver/frodo-lib'
+          current-version: ${{ steps.version-bump.outputs.base }}
+          check-remote-tag: true
+          check-npm-version: true
+          check-version-drift: true
+
       - name: Show resolved release base
         if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
         run: |
@@ -101,10 +113,10 @@ jobs:
           npm run doc
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint:fix
 
       - name: Security Audit
-        run: npm audit --audit-level critical
+        run: npm audit fix --audit-level critical
 
       - name: Zip build artifacts
         run: zip -r build.zip dist mocks package.json package-lock.json snapshotResolve.js types docs

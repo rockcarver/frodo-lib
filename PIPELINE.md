@@ -1,120 +1,104 @@
 # Frodo Library Release Pipeline
 
-The Frodo Library project uses a fully automated release [pipeline](../.github/workflows/pipeline.yml) based on GitHub workflows and actions ([check GitHub services status](https://www.githubstatus.com/)):
+The Frodo Library project uses an automated release pipeline defined in [../.github/workflows/pipeline.yml](../.github/workflows/pipeline.yml).
 
 ![Frodo Library Release Pipeline Workflow](resources/images/release_pipeline.png)
 
-## Releasing Frodo Library
+## Release Model
 
-This information is only actionable if you are an active contributor or maintainer with appropriate access to the repository and need to understand how frodo-lib releases work.
+### Triggers
 
-### Every Push Triggers A Release
+The workflow runs on:
 
-Frodo Library adopted the principle of continuous integration. Therefore every push to the main branch in the [rockcarver/frodo-lib] repository triggers the automated release pipeline.
+- Pull requests to `main` (build + test validation)
+- Pushes to `main` (build + test validation)
+- Manual `workflow_dispatch` (release flow)
 
-The pipeline determines the type of release - `prerelease`, `patch`, `minor`, `major` - for the push:
+### Release Type Selection
 
-- Scans the commit and PR comments for trigger phrases:
-  - `PATCH RELEASE` triggers a `patch` release
-  - `MINOR RELEASE` triggers a `minor` release
-  - `MAJOR RELEASE` triggers a `major` release
-  - Everything else triggers a `prerelease`
-- Bumps the version accordingly:<br>
-  `<major>`.`<minor>`.`<patch>`-`<prerelease>`
-- Updates the [changelog](../CHANGELOG.md) file in [keep a changelog](https://keepachangelog.com/en/1.0.0/) format:
-  - Creates a new release heading using the bumped version and a date stamp
-  - Moves the content of the `Unreleased` section into the new section
-  - Adds release details links
+Releases are explicit. Maintainers choose the release type from workflow input:
 
-❗❗❗ IMPORTANT ❗❗❗<br>
-Contributors are instructed to submit pull requests. Maintainers must make sure none of the commit comments nor the PR comment contain trigger phrases that would cause the pipeline to perform an undesired version bump and release.
+- `prerelease`
+- `patch`
+- `minor`
+- `major`
 
-### Automatic Pre-Releases During Iterative Development
+There is no label-based or phrase-based bump logic in this pipeline.
 
-The default release type (if no specific and exact trigger phrases are used) results in a pre-release. Pre-releases are flagged with the label `Pre-release` on the [release page](../releases) indicating to users that these releases are not considered final or complete.
+### Dry Run Support
 
-Pre-releases are a great way to publish the latest and greatest functionality but they are not fully polished, readme and changelog might not be updated and test coverage might not be complete.
+Manual runs include `dry-run`:
 
-### Triggering Patch, Minor, and Major Releases
+- `true`: computes versions and runs release logic without publishing, tagging, or creating GitHub releases
+- `false`: performs the full release flow
 
-Maintainers must validate PRs contain an updated `Unreleased` section in the[changelog](../CHANGELOG.md) before merging any PR. Changelog entries must adhere to the [keep a changelog](https://keepachangelog.com/en/1.0.0/) format.
-
-Maintainers must use an appropriate trigger phrase (see: [Every Push Triggers A Release](#Every-Push-Triggers-A-Release)) in the PR title to trigger the appropriate automated version bump and release.
-
-❗❗❗ IMPORTANT ❗❗❗<br>
-Maintainers must adhere to the [guidelines set forth by the npm project](https://docs.npmjs.com/about-semantic-versioning#incrementing-semantic-versions-in-published-packages) to determine the appropriate release type:
-
-![NPM Versioning Guidelines](resources/images/npm_versioning_guidelines.png)
-
-## Current Pipeline Explained
-
-### Trigger Event
-
-The trigger event is any `push` to the `main` branch in the repository.
+## Jobs
 
 ### Build
 
-Builds the library, bumps the version, and makes the build artifacts available for processing in subsequent pipeline steps.
+Build does the following:
+
+- Uses deep checkout with tags (`fetch-depth: 0`, `fetch-tags: true`)
+- Computes next version with `vscheuber/version-bump-action@v1` (manual release runs)
+- Updates manifests with `vscheuber/manifest-version-update-action@v1` (manual release runs)
+- Builds library + docs and uploads `build.zip`
 
 ### Test
 
-Downloads the build artifacts produced in the `Build` step and runs all the automated tests.
+Test consumes `build.zip`, runs direct and proxy tests, and performs a production-focused security audit.
 
 ### npm-release
 
-Publishes the npm package using the new version tag to [npmjs.com](https://github.com/rockcarver/frodo-lib).
+`npm-release` runs for manual release executions on `main` and uses trusted publishing via `vscheuber/npm-trusted-publish-action@v1`.
+
+For stable release types (`patch`, `minor`, `major`), it performs dual publish:
+
+- Publishes companion prerelease `x.y.z-n` to `next`
+- Publishes stable `x.y.z` to `latest`
+
+For `prerelease`, it publishes to `next`.
 
 ### Release
 
-Downloads the build artifacts produced in the `Build` step, updates the changelog, and creates a GitHub release based on the new version tag and posts the following artifacts:
+Release job:
 
--   [CHANGELOG.md](../CHANGELOG.md)
--   [LICENSE](../LICENSE)
--   `Release.txt` - Generated for each release containing the git sha of the release
--   `<new version tag>.zip` -  Generated for each release containing the full repository as a `.zip` archive
--   `<new version tag>.tar.gz` - Generated for each release containing the full repository as a `.tar.gz` archive
+- Generates and promotes changelog content with `vscheuber/ai-changelog-action@v1`
+- Commits changelog/version/docs changes (unless `dry-run`)
+- Creates and pushes tag with duplicate-tag safety checks
+- Publishes GitHub release (unless `dry-run`)
+
+GitHub release assets currently include:
+
+- [../CHANGELOG.md](../CHANGELOG.md)
+- [../LICENSE](../LICENSE)
+- `Release.txt`
 
 ### Doc
 
-Builds the library API docs and publishes them to [https://rockcarver.github.io/frodo-lib/](https://rockcarver.github.io/frodo-lib/).
+Doc deployment runs after successful manual releases (and not in dry-run mode) and publishes docs to GitHub Pages.
 
-## Pipeline Maintenance
+## Operational Notes
 
-Pipeline maintenance is a tricky business. Pipeline testing in forks is difficult because GitHub by default imposes a different behaviour for pipeline events than in the main repository. Some pipeline steps require branch names, which means the pipeline needs to be adopted to run in the fork and branch it is being tested in.
+- Pipeline behavior in forks can differ because secrets and permissions differ from the main repository.
+- Keep release changes tested in the main repository release workflow before relying on them.
 
-All of the above has lead the team to make and test pipeline changes in the main repository on the real pipeline.
+## Recovering From A Bad Release
 
-### Recover From A Wrong Version Bump And Release
+If a bad release slips through:
 
-When testing the pipeline and especially when experimenting with the automated version bump logic, it is unavoidable that once in a while a version is released that really has to be removed. E.g. during the pipeline development and testing of the first full automation, a bump to version 1.0.0 was triggered unintentionally. While minor and patch version bumps can be dealt with, major version bumps should really not be taken lightly.
+1. Delete the incorrect GitHub release from the releases page.
+2. Revert release content changes in [../CHANGELOG.md](../CHANGELOG.md), [../package.json](../package.json), and [../package-lock.json](../package-lock.json).
+3. Merge the corrective PR.
+4. Remove the incorrect npm version if needed:
 
-So to recover from that, the following needs to happen:
+   ```console
+   npm unpublish @rockcarver/frodo-lib@<version>
+   ```
 
-1.  Manually delete the `faulty release` from the [release page](../releases)
-2.  Manually modify the following files in your fork:
-    -   [CHANGELOG.md](../CHANGELOG.md)
-        1.  Find the faulty release heading towards the top of the file
-            1.  Move your changelog entries in the faulty release section back into the Unreleased section
-            1.  Now remove the faulty release header
-        1.  Find the link to the faulty release tag at the bottom of the file and remove it
-    -   [package.json](../package.json)
-        -   Fine the 1 occurance of the frodo version in package.json and reset it to the `previous version` from before the faulty version bump
-    -   [package-lock.json](../package-lock.json)
-        -   Find the 2 occurances of the faulty version in package-lock.json and reset them to the `previous version` from before the faulty version bump
-3.  Commit your changes and create a new pull request
-4.  In the frodo repository, merge the PR and provide the appropriate comment to trigger the intended version bump
-5.  Remove the faulty release from npmjs.com
-    This is important as without this step the faulty release will remain published on [npmjs.com](https://www.npmjs.com/package/@rockcarver/frodo-lib) (npm registry).
-    - You must be a maintainer of the package on npmjs.com.
-    - Issue the following command:<br>
-      ```console
-      npm unpublish @rockcarver/frodo-lib@1.0.0
-      ```
-6.  Remove the faulty tag from the repository:<br>
-    This is important because you cannot update an existing tag and in order to eventually release the version in the future, you must delete it first. Beware the difference between version (e.g. `1.0.0`) and tag (e.g. `v1.0.0`). This step requires you to use the tag:
-    - From the command line, navigate to the directory where you cloned the frodo repository (_not your fork, the real one!_)
-    - Issue the following command:<br>
-      ```console
-      git push --delete origin v1.0.0
-      ```
-7. Validate the pipeline created the desired new version and release
+5. Delete the incorrect Git tag if it blocks a corrected re-release:
+
+   ```console
+   git push --delete origin v<version>
+   ```
+
+6. Re-run the manual release workflow with the intended release type.
