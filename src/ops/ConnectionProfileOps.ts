@@ -950,12 +950,12 @@ export async function addNewServiceAccount({
       message: `ConnectionProfileOps.addNewServiceAccount: start`,
       state,
     });
-    const name = `Frodo-SA-${new Date().getTime()}`;
+    const name = `frodo-${state.getUsername()}-${new Date().toISOString()}`;
     debugMessage({
       message: `ConnectionProfileOps.addNewServiceAccount: name=${name}...`,
       state,
     });
-    const description = `${state.getUsername()}'s Frodo Service Account`;
+    const description = null;
     const availableScopes = (await readServiceAccountScopes({
       flatten: true,
       state,
