@@ -432,7 +432,10 @@ export function createToolRuntime(
       request.toolName === DISPATCH_TOOL_NAME
     ) {
       const args = parseDispatchExecutionArguments(request.arguments);
-      const contextForExecution = applyDispatchScopeOverride(request.context, args);
+      const contextForExecution = applyDispatchScopeOverride(
+        request.context,
+        args
+      );
       const descriptor = resolveDescriptorForDispatch(
         request.toolName,
         args,
@@ -934,7 +937,10 @@ function parseFindCapabilitiesArguments(
     return {};
   }
   const args = raw as McpFindCapabilitiesArguments;
-  if (args.limit !== undefined && (!Number.isInteger(args.limit) || args.limit <= 0)) {
+  if (
+    args.limit !== undefined &&
+    (!Number.isInteger(args.limit) || args.limit <= 0)
+  ) {
     throw new FrodoError(
       `MCP runtime error: '${FIND_CAPABILITIES_TOOL_NAME}' requires limit to be a positive integer when provided.`
     );
@@ -976,7 +982,10 @@ function parseDispatchExecutionArguments(
       `MCP runtime error: dispatch tools require capabilityId or the selector tuple { operationType, domain, objectType }.`
     );
   }
-  if (args.capabilityId !== undefined && typeof args.capabilityId !== 'string') {
+  if (
+    args.capabilityId !== undefined &&
+    typeof args.capabilityId !== 'string'
+  ) {
     throw new FrodoError(
       `MCP runtime error: dispatch tools require capabilityId to be a string when provided.`
     );
@@ -1055,8 +1064,10 @@ function findCapabilities(
     }
     if (
       args.capabilityIdPrefix &&
-      !(descriptor.id === args.capabilityIdPrefix ||
-        descriptor.id.startsWith(`${args.capabilityIdPrefix}.`))
+      !(
+        descriptor.id === args.capabilityIdPrefix ||
+        descriptor.id.startsWith(`${args.capabilityIdPrefix}.`)
+      )
     ) {
       return false;
     }
@@ -1196,7 +1207,6 @@ function applyDispatchScopeOverride(
       return context;
   }
 }
-
 
 /**
  * Converts execution arguments into positional call arguments for invoking a

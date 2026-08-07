@@ -4,7 +4,11 @@
 
 import { jest } from '@jest/globals';
 
-import { McpCapabilityDescriptor, McpToolManifest, createToolRuntime } from '../index';
+import {
+  McpCapabilityDescriptor,
+  McpToolManifest,
+  createToolRuntime,
+} from '../index';
 
 function makeDescriptor(
   overrides: Partial<McpCapabilityDescriptor> = {}
@@ -33,11 +37,11 @@ function makeDescriptor(
   };
 }
 
-function makeManifest(
-  descriptors: McpCapabilityDescriptor[]
-): McpToolManifest {
+function makeManifest(descriptors: McpCapabilityDescriptor[]): McpToolManifest {
   const readDescriptor = descriptors.find((d) => d.operationType === 'read');
-  const updateDescriptor = descriptors.find((d) => d.operationType === 'update');
+  const updateDescriptor = descriptors.find(
+    (d) => d.operationType === 'update'
+  );
 
   return {
     canonicalTools: [
@@ -150,7 +154,16 @@ function makeManifest(
           domain: 'authn',
           objectType: 'Journey',
           supportedOperations: ['read', 'update'],
-          unsupportedOperations: ['create', 'delete', 'search', 'list', 'count', 'export', 'import', 'special'],
+          unsupportedOperations: [
+            'create',
+            'delete',
+            'search',
+            'list',
+            'count',
+            'export',
+            'import',
+            'special',
+          ],
         },
       ],
     },
@@ -177,13 +190,17 @@ describe('MCP hybrid runtime', () => {
     });
     const manifest = makeManifest([readDescriptor, updateDescriptor]);
 
-    const runtime = createToolRuntime(manifest, [readDescriptor, updateDescriptor], {
-      resolveFrodoForRequest: () =>
-        ({
-          login: { getTokens: jest.fn(async () => {}) },
-          authn: { journey: {} },
-        }) as any,
-    });
+    const runtime = createToolRuntime(
+      manifest,
+      [readDescriptor, updateDescriptor],
+      {
+        resolveFrodoForRequest: () =>
+          ({
+            login: { getTokens: jest.fn(async () => {}) },
+            authn: { journey: {} },
+          }) as any,
+      }
+    );
 
     const result = await runtime.executeTool({
       toolName: 'frodo_find_capabilities',
@@ -196,10 +213,16 @@ describe('MCP hybrid runtime', () => {
       },
     });
 
-    const payload = result.data as { total: number; returned: number; capabilities: Array<{ capabilityId: string }> };
+    const payload = result.data as {
+      total: number;
+      returned: number;
+      capabilities: Array<{ capabilityId: string }>;
+    };
     expect(payload.total).toBe(1);
     expect(payload.returned).toBe(1);
-    expect(payload.capabilities[0].capabilityId).toBe('authn.journey.readJourney');
+    expect(payload.capabilities[0].capabilityId).toBe(
+      'authn.journey.readJourney'
+    );
   });
 
   test('describe_capability returns descriptor contract by id', async () => {
@@ -232,7 +255,9 @@ describe('MCP hybrid runtime', () => {
   });
 
   test('dispatch_read_only executes read descriptor by capability id', async () => {
-    const readJourney = jest.fn(async (journeyId: string) => ({ id: journeyId }));
+    const readJourney = jest.fn(async (journeyId: string) => ({
+      id: journeyId,
+    }));
     const descriptor = makeDescriptor();
     const manifest = makeManifest([descriptor]);
 
@@ -268,11 +293,13 @@ describe('MCP hybrid runtime', () => {
   });
 
   test('dispatch executes mutating descriptor selected by tuple', async () => {
-    const updateJourney = jest.fn(async (journeyId: string, payload: unknown) => ({
-      id: journeyId,
-      payload,
-      updated: true,
-    }));
+    const updateJourney = jest.fn(
+      async (journeyId: string, payload: unknown) => ({
+        id: journeyId,
+        payload,
+        updated: true,
+      })
+    );
     const descriptor = makeDescriptor({
       id: 'authn.journey.updateJourney',
       methodName: 'updateJourney',
@@ -316,7 +343,9 @@ describe('MCP hybrid runtime', () => {
       },
     });
 
-    expect(updateJourney).toHaveBeenCalledWith('journey-321', { status: 'active' });
+    expect(updateJourney).toHaveBeenCalledWith('journey-321', {
+      status: 'active',
+    });
     expect(result.descriptorId).toBe('authn.journey.updateJourney');
     expect(result.data).toEqual({
       id: 'journey-321',

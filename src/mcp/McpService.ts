@@ -149,11 +149,13 @@ export function createMcpService(options: McpServiceOptions = {}): McpService {
    * @returns Tool definition list.
    */
   const listTools = (): McpServiceToolDefinition[] => {
-    const canonicalDefinitions = (manifest.canonicalTools ?? []).map((tool) => ({
-      name: tool.toolName,
-      description: tool.description,
-      annotations: tool.annotations,
-    }));
+    const canonicalDefinitions = (manifest.canonicalTools ?? []).map(
+      (tool) => ({
+        name: tool.toolName,
+        description: tool.description,
+        annotations: tool.annotations,
+      })
+    );
     const specialDefinitions = manifest.specialTools.map((tool) => ({
       name: tool.toolName,
       description: tool.description,
