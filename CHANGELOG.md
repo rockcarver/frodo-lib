@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [v4.1.8] - 2026-08-07
+
+### Changed
+- Updated the service account naming scheme to be more user-identifiable, enhancing clarity when managing multiple accounts. This change improves the readability and management of service accounts within the system. (#620, commit e51d2f14)
+
 ## [v4.1.7] - 2026-08-03
 
 ### Changed
