@@ -129,10 +129,9 @@ describe('createMcpService', () => {
     });
 
     const result = await service.executeTool({
-      toolName: 'frodo_read',
+      toolName: 'frodo_dispatch_read_only',
       arguments: {
-        domain: 'authn',
-        objectType: 'Journey',
+        capabilityId: 'authn.journey.readJourney',
         positionalArgs: ['journey-123'],
       },
       context: {
@@ -162,9 +161,11 @@ describe('createMcpService', () => {
     expect(discovery).toBeDefined();
     expect(discovery?.annotations?.readOnlyHint).toBe(true);
 
-    const generic = tools.find((tool) => tool.name.startsWith('frodo_'));
-    expect(generic).toBeDefined();
-    expect(generic?.description.length).toBeGreaterThan(0);
+    const findCapabilities = tools.find(
+      (tool) => tool.name === 'frodo_find_capabilities'
+    );
+    expect(findCapabilities).toBeDefined();
+    expect(findCapabilities?.description.length).toBeGreaterThan(0);
   });
 
   test('supports policyOverride to exclude authn domain', () => {
@@ -176,14 +177,22 @@ describe('createMcpService', () => {
       },
     });
 
-    // Only discovery remains because all capabilities were filtered out.
+    // Canonical tools + discovery remain even when all descriptors are filtered out.
     expect(service.manifest.backingDescriptorCount).toBe(0);
-    expect(service.manifest.totalToolCount).toBe(1);
-    expect(service.listTools()).toHaveLength(1);
-    expect(service.listTools()[0].name).toBe('frodo_discover');
+    expect(service.manifest.totalToolCount).toBe(5);
+    expect(service.listTools()).toHaveLength(5);
+    expect(service.listTools().map((tool) => tool.name)).toEqual(
+      expect.arrayContaining([
+        'frodo_find_capabilities',
+        'frodo_describe_capability',
+        'frodo_dispatch_read_only',
+        'frodo_dispatch',
+        'frodo_discover',
+      ])
+    );
   });
 
-  test('agentic policy does not expose import or export generic tools', () => {
+  test('agentic policy exposes canonical dispatch surface and not legacy CRUD tools', () => {
     const service = createMcpService({
       inventoryOptions: { includeTopLevelDomains: ['authn'] },
       policyPreset: 'agentic',
@@ -192,7 +201,9 @@ describe('createMcpService', () => {
     const toolNames = service.listTools().map((tool) => tool.name);
     expect(toolNames).not.toContain('frodo_export');
     expect(toolNames).not.toContain('frodo_import');
-    expect(toolNames).toContain('frodo_read');
+    expect(toolNames).not.toContain('frodo_read');
+    expect(toolNames).toContain('frodo_dispatch');
+    expect(toolNames).toContain('frodo_dispatch_read_only');
   });
 
   test('builds from explicit descriptor fixture through custom runtime resolver', async () => {
@@ -226,10 +237,9 @@ describe('createMcpService', () => {
     });
 
     const result = await service.executeTool({
-      toolName: 'frodo_read',
+      toolName: 'frodo_dispatch_read_only',
       arguments: {
-        domain: descriptor.domain,
-        objectType: descriptor.objectType,
+        capabilityId: descriptor.id,
       },
       context: {
         auth: {
@@ -239,7 +249,7 @@ describe('createMcpService', () => {
       },
     });
 
-    expect(result.toolName).toBe('frodo_read');
+    expect(result.toolName).toBe('frodo_dispatch_read_only');
     expect(result.data).toEqual({ ok: true });
   });
 });

@@ -33,6 +33,7 @@ export {
   inferRiskClass,
 } from './CapabilityRegistry';
 export {
+  McpCanonicalTool,
   McpDiscoveryEntry,
   McpGenericTool,
   McpObjectTypeEntry,

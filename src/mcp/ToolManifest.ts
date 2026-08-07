@@ -47,6 +47,10 @@ const RISK_ORDER: McpCapabilityRiskClass[] = [
 
 /** Fixed tool name for the built-in introspection/discovery tool. */
 const DISCOVERY_TOOL_NAME = 'frodo_discover' as const;
+const FIND_CAPABILITIES_TOOL_NAME = 'frodo_find_capabilities' as const;
+const DESCRIBE_CAPABILITY_TOOL_NAME = 'frodo_describe_capability' as const;
+const DISPATCH_READ_ONLY_TOOL_NAME = 'frodo_dispatch_read_only' as const;
+const DISPATCH_TOOL_NAME = 'frodo_dispatch' as const;
 
 /**
  * Human-readable descriptions keyed by operation type.
@@ -225,6 +229,8 @@ export type McpDiscoveryEntry = {
  * inventory.
  */
 export type McpToolManifest = {
+  /** Canonical hybrid tools exposed to agents. */
+  canonicalTools?: McpCanonicalTool[];
   /** Generic CRUDS tools parameterized by domain and objectType. */
   genericTools: McpGenericTool[];
   /** One-per-descriptor tools for non-standard domain capabilities. */
@@ -233,8 +239,21 @@ export type McpToolManifest = {
   discoveryTool: McpDiscoveryEntry;
   /** Number of capability descriptors that back this manifest. */
   backingDescriptorCount: number;
-  /** Total exposed tool count: `genericTools.length + specialTools.length + 1`. */
+  /** Total exposed tool count: `canonicalTools.length + specialTools.length + 1`. */
   totalToolCount: number;
+};
+
+export type McpCanonicalTool = {
+  /** Stable MCP tool name. */
+  toolName:
+    | typeof FIND_CAPABILITIES_TOOL_NAME
+    | typeof DESCRIBE_CAPABILITY_TOOL_NAME
+    | typeof DISPATCH_READ_ONLY_TOOL_NAME
+    | typeof DISPATCH_TOOL_NAME;
+  /** Description suitable for MCP registration and model guidance. */
+  description: string;
+  /** MCP annotations for tool behavior guidance. */
+  annotations: McpToolAnnotations;
 };
 
 // ---------------------------------------------------------------------------
@@ -265,17 +284,68 @@ export function buildToolManifest(
   const generic = capabilities.filter((c) => c.kind === 'generic');
   const special = capabilities.filter((c) => c.kind === 'special');
 
+  const canonicalTools = buildCanonicalTools();
   const genericTools = buildGenericTools(generic);
   const specialTools = buildSpecialTools(special);
   const discoveryTool = buildDiscoveryEntry(genericTools, specialTools);
 
   return {
+    canonicalTools,
     genericTools,
     specialTools,
     discoveryTool,
     backingDescriptorCount: capabilities.length,
-    totalToolCount: genericTools.length + specialTools.length + 1,
+    totalToolCount: canonicalTools.length + specialTools.length + 1,
   };
+}
+
+function buildCanonicalTools(): McpCanonicalTool[] {
+  return [
+    {
+      toolName: FIND_CAPABILITIES_TOOL_NAME,
+      description:
+        'Search and filter available capabilities under the active profile boundary. Use this first to narrow candidate operations before dispatch.',
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    {
+      toolName: DESCRIBE_CAPABILITY_TOOL_NAME,
+      description:
+        'Describe one capability contract by id, including argument mode, parameters, scope hints, and deployment constraints.',
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    {
+      toolName: DISPATCH_READ_ONLY_TOOL_NAME,
+      description:
+        'Execute a read-only capability (count/read/list/search) by capability id or by operation/domain/objectType selector.',
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    {
+      toolName: DISPATCH_TOOL_NAME,
+      description:
+        'Execute a mutating capability (create/update/delete/import/export/special) by capability id or by operation/domain/objectType selector.',
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+  ];
 }
 
 // ---------------------------------------------------------------------------

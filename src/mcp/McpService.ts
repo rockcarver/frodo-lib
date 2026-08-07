@@ -149,7 +149,7 @@ export function createMcpService(options: McpServiceOptions = {}): McpService {
    * @returns Tool definition list.
    */
   const listTools = (): McpServiceToolDefinition[] => {
-    const genericDefinitions = manifest.genericTools.map((tool) => ({
+    const canonicalDefinitions = (manifest.canonicalTools ?? []).map((tool) => ({
       name: tool.toolName,
       description: tool.description,
       annotations: tool.annotations,
@@ -170,7 +170,7 @@ export function createMcpService(options: McpServiceOptions = {}): McpService {
       },
     };
     return [
-      ...genericDefinitions,
+      ...canonicalDefinitions,
       ...specialDefinitions,
       discoveryDefinition,
     ].sort((a, b) => a.name.localeCompare(b.name));

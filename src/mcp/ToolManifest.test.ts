@@ -28,7 +28,7 @@ describe('MCP tool manifest builder', () => {
 
     expect(manifest.backingDescriptorCount).toBe(inventory.length);
     expect(manifest.totalToolCount).toBe(
-      manifest.genericTools.length + manifest.specialTools.length + 1
+      manifest.canonicalTools.length + manifest.specialTools.length + 1
     );
     expect(manifest.discoveryTool.toolName).toBe('frodo_discover');
   });
@@ -261,9 +261,10 @@ describe('MCP tool manifest builder', () => {
   test('empty inventory produces a manifest with only the discovery tool', () => {
     const manifest = buildToolManifest([]);
 
+    expect(manifest.canonicalTools).toHaveLength(4);
     expect(manifest.genericTools).toHaveLength(0);
     expect(manifest.specialTools).toHaveLength(0);
-    expect(manifest.totalToolCount).toBe(1);
+    expect(manifest.totalToolCount).toBe(5);
     expect(manifest.backingDescriptorCount).toBe(0);
     expect(manifest.discoveryTool.domains).toHaveLength(0);
   });
