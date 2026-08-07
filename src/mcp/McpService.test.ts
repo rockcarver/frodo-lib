@@ -131,7 +131,7 @@ describe('createMcpService', () => {
     const result = await service.executeTool({
       toolName: 'frodo_dispatch_read_only',
       arguments: {
-        capabilityId: 'authn.journey.readJourney',
+        skillId: 'authn.journey.readJourney',
         positionalArgs: ['journey-123'],
       },
       context: {
@@ -161,11 +161,11 @@ describe('createMcpService', () => {
     expect(discovery).toBeDefined();
     expect(discovery?.annotations?.readOnlyHint).toBe(true);
 
-    const findCapabilities = tools.find(
-      (tool) => tool.name === 'frodo_find_capabilities'
+    const findSkills = tools.find(
+      (tool) => tool.name === 'frodo_find_skills'
     );
-    expect(findCapabilities).toBeDefined();
-    expect(findCapabilities?.description.length).toBeGreaterThan(0);
+    expect(findSkills).toBeDefined();
+    expect(findSkills?.description.length).toBeGreaterThan(0);
   });
 
   test('supports policyOverride to exclude authn domain', () => {
@@ -183,8 +183,8 @@ describe('createMcpService', () => {
     expect(service.listTools()).toHaveLength(5);
     expect(service.listTools().map((tool) => tool.name)).toEqual(
       expect.arrayContaining([
-        'frodo_find_capabilities',
-        'frodo_describe_capability',
+        'frodo_find_skills',
+        'frodo_describe_skill',
         'frodo_dispatch_read_only',
         'frodo_dispatch',
         'frodo_discover',
@@ -239,7 +239,7 @@ describe('createMcpService', () => {
     const result = await service.executeTool({
       toolName: 'frodo_dispatch_read_only',
       arguments: {
-        capabilityId: descriptor.id,
+        skillId: descriptor.id,
       },
       context: {
         auth: {

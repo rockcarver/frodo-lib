@@ -46,8 +46,8 @@ function makeManifest(descriptors: McpCapabilityDescriptor[]): McpToolManifest {
   return {
     canonicalTools: [
       {
-        toolName: 'frodo_find_capabilities',
-        description: 'Find capabilities',
+        toolName: 'frodo_find_skills',
+        description: 'Find skills',
         annotations: {
           readOnlyHint: true,
           destructiveHint: false,
@@ -56,8 +56,8 @@ function makeManifest(descriptors: McpCapabilityDescriptor[]): McpToolManifest {
         },
       },
       {
-        toolName: 'frodo_describe_capability',
-        description: 'Describe capability',
+        toolName: 'frodo_describe_skill',
+        description: 'Describe skill',
         annotations: {
           readOnlyHint: true,
           destructiveHint: false,
@@ -173,7 +173,7 @@ function makeManifest(descriptors: McpCapabilityDescriptor[]): McpToolManifest {
 }
 
 describe('MCP hybrid runtime', () => {
-  test('find_capabilities returns filtered results', async () => {
+  test('find_skills returns filtered results', async () => {
     const readDescriptor = makeDescriptor();
     const updateDescriptor = makeDescriptor({
       id: 'authn.journey.updateJourney',
@@ -203,7 +203,7 @@ describe('MCP hybrid runtime', () => {
     );
 
     const result = await runtime.executeTool({
-      toolName: 'frodo_find_capabilities',
+      toolName: 'frodo_find_skills',
       arguments: { operationTypes: ['read'] },
       context: {
         auth: {
@@ -216,16 +216,16 @@ describe('MCP hybrid runtime', () => {
     const payload = result.data as {
       total: number;
       returned: number;
-      capabilities: Array<{ capabilityId: string }>;
+      skills: Array<{ skillId: string }>;
     };
     expect(payload.total).toBe(1);
     expect(payload.returned).toBe(1);
-    expect(payload.capabilities[0].capabilityId).toBe(
+    expect(payload.skills[0].skillId).toBe(
       'authn.journey.readJourney'
     );
   });
 
-  test('describe_capability returns descriptor contract by id', async () => {
+  test('describe_skill returns descriptor contract by id', async () => {
     const descriptor = makeDescriptor();
     const manifest = makeManifest([descriptor]);
 
@@ -238,8 +238,8 @@ describe('MCP hybrid runtime', () => {
     });
 
     const result = await runtime.executeTool({
-      toolName: 'frodo_describe_capability',
-      arguments: { capabilityId: descriptor.id },
+      toolName: 'frodo_describe_skill',
+      arguments: { skillId: descriptor.id },
       context: {
         auth: {
           mode: 'state-config',
@@ -254,7 +254,7 @@ describe('MCP hybrid runtime', () => {
     expect(payload.descriptor.operationType).toBe('read');
   });
 
-  test('dispatch_read_only executes read descriptor by capability id', async () => {
+  test('dispatch_read_only executes read descriptor by skill id', async () => {
     const readJourney = jest.fn(async (journeyId: string) => ({
       id: journeyId,
     }));
@@ -276,7 +276,7 @@ describe('MCP hybrid runtime', () => {
     const result = await runtime.executeTool({
       toolName: 'frodo_dispatch_read_only',
       arguments: {
-        capabilityId: descriptor.id,
+        skillId: descriptor.id,
         positionalArgs: ['journey-123'],
       },
       context: {
@@ -382,7 +382,7 @@ describe('MCP hybrid runtime', () => {
       runtime.executeTool({
         toolName: 'frodo_dispatch_read_only',
         arguments: {
-          capabilityId: descriptor.id,
+          skillId: descriptor.id,
         },
         context: {
           auth: {

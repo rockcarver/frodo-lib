@@ -80,7 +80,7 @@ export type McpService = {
   /**
    * Returns tool definition metadata for transport registration.
    *
-   * @returns Flattened tool list including generic, special, and discovery.
+   * @returns Flattened canonical tool list plus discovery tool.
    */
   listTools(): McpServiceToolDefinition[];
   /**
@@ -156,11 +156,6 @@ export function createMcpService(options: McpServiceOptions = {}): McpService {
         annotations: tool.annotations,
       })
     );
-    const specialDefinitions = manifest.specialTools.map((tool) => ({
-      name: tool.toolName,
-      description: tool.description,
-      annotations: tool.descriptor.annotations,
-    }));
     const discoveryDefinition: McpServiceToolDefinition = {
       name: manifest.discoveryTool.toolName,
       description: manifest.discoveryTool.description,
@@ -171,11 +166,9 @@ export function createMcpService(options: McpServiceOptions = {}): McpService {
         openWorldHint: false,
       },
     };
-    return [
-      ...canonicalDefinitions,
-      ...specialDefinitions,
-      discoveryDefinition,
-    ].sort((a, b) => a.name.localeCompare(b.name));
+    return [...canonicalDefinitions, discoveryDefinition].sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
   };
 
   return {

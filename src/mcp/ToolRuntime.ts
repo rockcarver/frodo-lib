@@ -31,8 +31,8 @@ import {
   McpToolManifest,
 } from './ToolManifest';
 
-const FIND_CAPABILITIES_TOOL_NAME = 'frodo_find_capabilities';
-const DESCRIBE_CAPABILITY_TOOL_NAME = 'frodo_describe_capability';
+const FIND_SKILLS_TOOL_NAME = 'frodo_find_skills';
+const DESCRIBE_SKILL_TOOL_NAME = 'frodo_describe_skill';
 const DISPATCH_READ_ONLY_TOOL_NAME = 'frodo_dispatch_read_only';
 const DISPATCH_TOOL_NAME = 'frodo_dispatch';
 
@@ -145,23 +145,23 @@ export type McpGenericExecutionArguments = {
   namedArgs?: Record<string, unknown>;
 };
 
-export type McpFindCapabilitiesArguments = {
+export type McpFindSkillsArguments = {
   query?: string;
   domain?: string;
   objectType?: string;
-  capabilityIdPrefix?: string;
+  skillIdPrefix?: string;
   operationTypes?: McpCapabilityOperationType[];
   riskClasses?: Array<'low' | 'medium' | 'high' | 'critical'>;
   kind?: 'generic' | 'special';
   limit?: number;
 };
 
-export type McpDescribeCapabilityArguments = {
-  capabilityId: string;
+export type McpDescribeSkillArguments = {
+  skillId: string;
 };
 
 export type McpDispatchExecutionArguments = {
-  capabilityId?: string;
+  skillId?: string;
   operationType?: McpCapabilityOperationType;
   domain?: string;
   objectType?: string;
@@ -273,8 +273,8 @@ export type McpToolExecutionRequest = {
    */
   arguments?:
     | McpGenericExecutionArguments
-    | McpFindCapabilitiesArguments
-    | McpDescribeCapabilityArguments
+    | McpFindSkillsArguments
+    | McpDescribeSkillArguments
     | McpDispatchExecutionArguments
     | McpSpecialExecutionArguments
     | Record<string, unknown>;
@@ -395,21 +395,21 @@ export function createToolRuntime(
       };
     }
 
-    if (request.toolName === FIND_CAPABILITIES_TOOL_NAME) {
-      const args = parseFindCapabilitiesArguments(request.arguments);
-      const result = findCapabilities(capabilities, args);
+    if (request.toolName === FIND_SKILLS_TOOL_NAME) {
+      const args = parseFindSkillsArguments(request.arguments);
+      const result = findSkills(capabilities, args);
       return {
         toolName: request.toolName,
         data: result,
       };
     }
 
-    if (request.toolName === DESCRIBE_CAPABILITY_TOOL_NAME) {
-      const args = parseDescribeCapabilityArguments(request.arguments);
-      const descriptor = byId.get(args.capabilityId);
+    if (request.toolName === DESCRIBE_SKILL_TOOL_NAME) {
+      const args = parseDescribeSkillArguments(request.arguments);
+      const descriptor = byId.get(args.skillId);
       if (!descriptor) {
         throw new FrodoError(
-          `MCP runtime error: unknown capabilityId '${args.capabilityId}'. Use '${FIND_CAPABILITIES_TOOL_NAME}' first.`
+          `MCP runtime error: unknown skillId '${args.skillId}'. Use '${FIND_SKILLS_TOOL_NAME}' first.`
         );
       }
       return {
@@ -930,36 +930,32 @@ async function invokeManagedObjectSearchPage(
   });
 }
 
-function parseFindCapabilitiesArguments(
-  raw: unknown
-): McpFindCapabilitiesArguments {
+function parseFindSkillsArguments(raw: unknown): McpFindSkillsArguments {
   if (!raw || typeof raw !== 'object') {
     return {};
   }
-  const args = raw as McpFindCapabilitiesArguments;
+  const args = raw as McpFindSkillsArguments;
   if (
     args.limit !== undefined &&
     (!Number.isInteger(args.limit) || args.limit <= 0)
   ) {
     throw new FrodoError(
-      `MCP runtime error: '${FIND_CAPABILITIES_TOOL_NAME}' requires limit to be a positive integer when provided.`
+      `MCP runtime error: '${FIND_SKILLS_TOOL_NAME}' requires limit to be a positive integer when provided.`
     );
   }
   return args;
 }
 
-function parseDescribeCapabilityArguments(
-  raw: unknown
-): McpDescribeCapabilityArguments {
-  const args = raw as McpDescribeCapabilityArguments | undefined;
-  if (!args || typeof args !== 'object' || !args.capabilityId) {
+function parseDescribeSkillArguments(raw: unknown): McpDescribeSkillArguments {
+  const args = raw as McpDescribeSkillArguments | undefined;
+  if (!args || typeof args !== 'object' || !args.skillId) {
     throw new FrodoError(
-      `MCP runtime error: '${DESCRIBE_CAPABILITY_TOOL_NAME}' requires capabilityId.`
+      `MCP runtime error: '${DESCRIBE_SKILL_TOOL_NAME}' requires skillId.`
     );
   }
-  if (typeof args.capabilityId !== 'string') {
+  if (typeof args.skillId !== 'string') {
     throw new FrodoError(
-      `MCP runtime error: '${DESCRIBE_CAPABILITY_TOOL_NAME}' requires capabilityId to be a string.`
+      `MCP runtime error: '${DESCRIBE_SKILL_TOOL_NAME}' requires skillId to be a string.`
     );
   }
   return args;
@@ -975,19 +971,16 @@ function parseDispatchExecutionArguments(
   }
   const args = raw as McpDispatchExecutionArguments;
   if (
-    args.capabilityId === undefined &&
+    args.skillId === undefined &&
     (!args.operationType || !args.domain || !args.objectType)
   ) {
     throw new FrodoError(
-      `MCP runtime error: dispatch tools require capabilityId or the selector tuple { operationType, domain, objectType }.`
+      `MCP runtime error: dispatch tools require skillId or the selector tuple { operationType, domain, objectType }.`
     );
   }
-  if (
-    args.capabilityId !== undefined &&
-    typeof args.capabilityId !== 'string'
-  ) {
+  if (args.skillId !== undefined && typeof args.skillId !== 'string') {
     throw new FrodoError(
-      `MCP runtime error: dispatch tools require capabilityId to be a string when provided.`
+      `MCP runtime error: dispatch tools require skillId to be a string when provided.`
     );
   }
   if (args.realm !== undefined && typeof args.realm !== 'string') {
@@ -1032,14 +1025,14 @@ function parseDispatchExecutionArguments(
   return args;
 }
 
-function findCapabilities(
+function findSkills(
   capabilities: McpCapabilityDescriptor[],
-  args: McpFindCapabilitiesArguments
+  args: McpFindSkillsArguments
 ): {
   total: number;
   returned: number;
-  capabilities: Array<{
-    capabilityId: string;
+  skills: Array<{
+    skillId: string;
     kind: McpCapabilityDescriptor['kind'];
     operationType: McpCapabilityOperationType;
     domain: string;
@@ -1063,10 +1056,10 @@ function findCapabilities(
       return false;
     }
     if (
-      args.capabilityIdPrefix &&
+      args.skillIdPrefix &&
       !(
-        descriptor.id === args.capabilityIdPrefix ||
-        descriptor.id.startsWith(`${args.capabilityIdPrefix}.`)
+        descriptor.id === args.skillIdPrefix ||
+        descriptor.id.startsWith(`${args.skillIdPrefix}.`)
       )
     ) {
       return false;
@@ -1107,7 +1100,7 @@ function findCapabilities(
     .sort((left, right) => left.id.localeCompare(right.id))
     .slice(0, limit)
     .map((descriptor) => ({
-      capabilityId: descriptor.id,
+      skillId: descriptor.id,
       kind: descriptor.kind,
       operationType: descriptor.operationType,
       domain: descriptor.domain,
@@ -1122,7 +1115,7 @@ function findCapabilities(
   return {
     total: filtered.length,
     returned: results.length,
-    capabilities: results,
+    skills: results,
   };
 }
 
@@ -1133,11 +1126,11 @@ function resolveDescriptorForDispatch(
   genericDescriptorIndex: Map<string, McpCapabilityDescriptor[]>,
   discovery: McpDiscoveryEntry
 ): McpCapabilityDescriptor {
-  if (args.capabilityId) {
-    const descriptor = descriptorById.get(args.capabilityId);
+  if (args.skillId) {
+    const descriptor = descriptorById.get(args.skillId);
     if (!descriptor) {
       throw new FrodoError(
-        `MCP runtime error: unknown capabilityId '${args.capabilityId}'. Use '${FIND_CAPABILITIES_TOOL_NAME}' first.`
+        `MCP runtime error: unknown skillId '${args.skillId}'. Use '${FIND_SKILLS_TOOL_NAME}' first.`
       );
     }
     return descriptor;

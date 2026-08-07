@@ -27,9 +27,8 @@ describe('MCP tool manifest builder', () => {
     const manifest: McpToolManifest = buildToolManifest(inventory);
 
     expect(manifest.backingDescriptorCount).toBe(inventory.length);
-    expect(manifest.totalToolCount).toBe(
-      manifest.canonicalTools.length + manifest.specialTools.length + 1
-    );
+    expect(manifest.totalToolCount).toBe(manifest.canonicalTools.length + 1);
+    expect(manifest.specialTools).toHaveLength(0);
     expect(manifest.discoveryTool.toolName).toBe('frodo_discover');
   });
 
@@ -209,18 +208,17 @@ describe('MCP tool manifest builder', () => {
     );
   });
 
-  test('read-only manifest total tool count stays within agent-usability ceiling', () => {
+  test('read-only manifest exposes canonical tool count', () => {
     const inventory = applyCapabilityPolicy(
       buildCapabilityInventory(frodo),
       MCP_POLICY_PRESETS['read-only']
     );
     const manifest = buildToolManifest(inventory);
 
-    // Plan target: ≤40 tools for the reduced default surface.
-    expect(manifest.totalToolCount).toBeLessThanOrEqual(40);
+    expect(manifest.totalToolCount).toBe(5);
   });
 
-  test('admin manifest exposes more tools than read-only manifest', () => {
+  test('admin manifest keeps canonical tool count while exposing more skills', () => {
     const readOnlyManifest = buildToolManifest(
       applyCapabilityPolicy(
         buildCapabilityInventory(frodo),
@@ -234,9 +232,10 @@ describe('MCP tool manifest builder', () => {
       )
     );
 
-    // Admin includes special tools and all operation types; it will always exceed read-only.
-    expect(adminManifest.totalToolCount).toBeGreaterThan(
-      readOnlyManifest.totalToolCount
+    expect(readOnlyManifest.totalToolCount).toBe(5);
+    expect(adminManifest.totalToolCount).toBe(5);
+    expect(adminManifest.backingDescriptorCount).toBeGreaterThan(
+      readOnlyManifest.backingDescriptorCount
     );
   });
 

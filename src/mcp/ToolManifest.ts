@@ -6,8 +6,7 @@
  * Frodo method) and the MCP runtime (one registered tool per unique operation
  * category). Generic CRUDS-style tools accept `domain` and `objectType`
  * parameters so the full breadth of the library is reachable via a small,
- * stable set of tool names — keeping the exposed surface well under 40 tools
- * by default while special-purpose domain operations are exposed individually.
+ * stable set of tool names.
  *
  * A built-in discovery tool is always present in every manifest, enabling
  * agents to introspect the available operation space without requiring
@@ -47,8 +46,8 @@ const RISK_ORDER: McpCapabilityRiskClass[] = [
 
 /** Fixed tool name for the built-in introspection/discovery tool. */
 const DISCOVERY_TOOL_NAME = 'frodo_discover' as const;
-const FIND_CAPABILITIES_TOOL_NAME = 'frodo_find_capabilities' as const;
-const DESCRIBE_CAPABILITY_TOOL_NAME = 'frodo_describe_capability' as const;
+const FIND_SKILLS_TOOL_NAME = 'frodo_find_skills' as const;
+const DESCRIBE_SKILL_TOOL_NAME = 'frodo_describe_skill' as const;
 const DISPATCH_READ_ONLY_TOOL_NAME = 'frodo_dispatch_read_only' as const;
 const DISPATCH_TOOL_NAME = 'frodo_dispatch' as const;
 
@@ -176,6 +175,9 @@ export type McpGenericTool = {
 
 /**
  * A single domain-special tool, backed by exactly one non-CRUDS descriptor.
+ *
+ * Special capabilities are no longer surfaced as standalone MCP tools.
+ * They remain discoverable and executable via canonical dispatch tools.
  */
 export type McpSpecialTool = {
   /** MCP tool name derived from the descriptor's dot-separated path. */
@@ -233,21 +235,24 @@ export type McpToolManifest = {
   canonicalTools?: McpCanonicalTool[];
   /** Generic CRUDS tools parameterized by domain and objectType. */
   genericTools: McpGenericTool[];
-  /** One-per-descriptor tools for non-standard domain capabilities. */
+  /**
+   * Reserved for backwards compatibility; no standalone special tools are
+   * emitted in canonical MCP mode.
+   */
   specialTools: McpSpecialTool[];
   /** Built-in introspection tool entry describing the available operation space. */
   discoveryTool: McpDiscoveryEntry;
   /** Number of capability descriptors that back this manifest. */
   backingDescriptorCount: number;
-  /** Total exposed tool count: `canonicalTools.length + specialTools.length + 1`. */
+  /** Total exposed tool count: `canonicalTools.length + 1`. */
   totalToolCount: number;
 };
 
 export type McpCanonicalTool = {
   /** Stable MCP tool name. */
   toolName:
-    | typeof FIND_CAPABILITIES_TOOL_NAME
-    | typeof DESCRIBE_CAPABILITY_TOOL_NAME
+    | typeof FIND_SKILLS_TOOL_NAME
+    | typeof DESCRIBE_SKILL_TOOL_NAME
     | typeof DISPATCH_READ_ONLY_TOOL_NAME
     | typeof DISPATCH_TOOL_NAME;
   /** Description suitable for MCP registration and model guidance. */
@@ -271,8 +276,7 @@ export type McpCanonicalTool = {
  *
  * Generic capabilities (`kind === 'generic'`) are collapsed by
  * `operationType`, each producing one {@link McpGenericTool} with an
- * enumerated `supportedObjectTypes` list. Special capabilities
- * (`kind === 'special'`) produce one {@link McpSpecialTool} each. A single
+ * enumerated `supportedObjectTypes` list. A single
  * {@link McpDiscoveryEntry} is always appended and counted in `totalToolCount`.
  *
  * @param capabilities Policy-filtered capability descriptors.
@@ -282,12 +286,18 @@ export function buildToolManifest(
   capabilities: McpCapabilityDescriptor[]
 ): McpToolManifest {
   const generic = capabilities.filter((c) => c.kind === 'generic');
-  const special = capabilities.filter((c) => c.kind === 'special');
 
   const canonicalTools = buildCanonicalTools();
   const genericTools = buildGenericTools(generic);
-  const specialTools = buildSpecialTools(special);
-  const discoveryTool = buildDiscoveryEntry(genericTools, specialTools);
+  const specialTools: McpSpecialTool[] = [];
+  const discoveryTool = buildDiscoveryEntry(genericTools);
+
+  // Keep domains comprehensive for discovery even when a domain is represented
+  // only by special capabilities.
+  const allDomains = [...new Set(capabilities.map((c) => c.domain))].sort();
+  discoveryTool.domains = [
+    ...new Set([...discoveryTool.domains, ...allDomains]),
+  ].sort();
 
   return {
     canonicalTools,
@@ -295,16 +305,16 @@ export function buildToolManifest(
     specialTools,
     discoveryTool,
     backingDescriptorCount: capabilities.length,
-    totalToolCount: canonicalTools.length + specialTools.length + 1,
+    totalToolCount: canonicalTools.length + 1,
   };
 }
 
 function buildCanonicalTools(): McpCanonicalTool[] {
   return [
     {
-      toolName: FIND_CAPABILITIES_TOOL_NAME,
+      toolName: FIND_SKILLS_TOOL_NAME,
       description:
-        'Search and filter available capabilities under the active profile boundary. Use this first to narrow candidate operations before dispatch.',
+        'Search and filter available skills under the active profile boundary. Use this first to narrow candidate operations before dispatch.',
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -313,9 +323,9 @@ function buildCanonicalTools(): McpCanonicalTool[] {
       },
     },
     {
-      toolName: DESCRIBE_CAPABILITY_TOOL_NAME,
+      toolName: DESCRIBE_SKILL_TOOL_NAME,
       description:
-        'Describe one capability contract by id, including argument mode, parameters, scope hints, and deployment constraints.',
+        'Describe one skill contract by id, including argument mode, parameters, scope hints, and deployment constraints.',
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -326,7 +336,7 @@ function buildCanonicalTools(): McpCanonicalTool[] {
     {
       toolName: DISPATCH_READ_ONLY_TOOL_NAME,
       description:
-        'Execute a read-only capability (count/read/list/search) by capability id or by operation/domain/objectType selector.',
+        'Execute a read-only skill (count/read/list/search) by skill id or by operation/domain/objectType selector.',
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -337,7 +347,7 @@ function buildCanonicalTools(): McpCanonicalTool[] {
     {
       toolName: DISPATCH_TOOL_NAME,
       description:
-        'Execute a mutating capability (create/update/delete/import/export/special) by capability id or by operation/domain/objectType selector.',
+        'Execute a mutating skill (create/update/delete/import/export/special) by skill id or by operation/domain/objectType selector.',
       annotations: {
         readOnlyHint: false,
         destructiveHint: true,
@@ -402,35 +412,14 @@ function buildGenericTools(
 }
 
 /**
- * Produces one {@link McpSpecialTool} per special-kind descriptor.
- *
- * @param descriptors Special capability descriptors (`kind === 'special'`).
- * @returns Array of special tools sorted alphabetically by tool name.
- */
-function buildSpecialTools(
-  descriptors: McpCapabilityDescriptor[]
-): McpSpecialTool[] {
-  return descriptors
-    .map((d) => ({
-      toolName: d.toolName,
-      domain: d.domain,
-      description: buildSpecialDescription(d),
-      descriptor: d,
-    }))
-    .sort((a, b) => a.toolName.localeCompare(b.toolName));
-}
-
-/**
  * Builds the discovery tool entry that enumerates the full operation space of
  * the manifest.
  *
  * @param genericTools Populated generic tools from {@link buildGenericTools}.
- * @param specialTools Populated special tools from {@link buildSpecialTools}.
  * @returns A fully populated {@link McpDiscoveryEntry}.
  */
 function buildDiscoveryEntry(
-  genericTools: McpGenericTool[],
-  specialTools: McpSpecialTool[]
+  genericTools: McpGenericTool[]
 ): McpDiscoveryEntry {
   const domainSet = new Set<string>();
   const objectTypesByDomain: Record<string, Set<string>> = {};
@@ -488,11 +477,6 @@ function buildDiscoveryEntry(
     }
   }
 
-  // Special tools contribute their domain to the domains list only.
-  for (const tool of specialTools) {
-    domainSet.add(tool.domain);
-  }
-
   // Convert sets to sorted arrays.
   const domains = [...domainSet].sort();
   const objectTypesByDomainResult: Record<string, string[]> = {};
@@ -548,24 +532,6 @@ function buildDiscoveryEntry(
     operationDetailsByType,
     objectTypeOperationSupport,
   };
-}
-
-/**
- * Derives a human-readable MCP tool description from a special-kind
- * descriptor by converting the camelCase method name to title-case prose.
- *
- * @example
- * `enableJourney` in domain `authn` → `"Enable Journey (authn domain)."`
- *
- * @param descriptor The special-kind capability descriptor.
- * @returns A short description suitable for MCP tool registration.
- */
-function buildSpecialDescription(descriptor: McpCapabilityDescriptor): string {
-  const readable = descriptor.methodName
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (c) => c.toUpperCase())
-    .trim();
-  return `${readable} (${descriptor.domain} domain).`;
 }
 
 /**
