@@ -116,6 +116,49 @@ export function applyCapabilityPolicy(
       return false;
     }
 
+    if (
+      policy.allowCapabilityPathPrefixes &&
+      !allowCapabilityPathMatches(
+        capability,
+        policy.allowCapabilityPathPrefixes
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      policy.denyCapabilityPathPrefixes &&
+      allowCapabilityPathMatches(capability, policy.denyCapabilityPathPrefixes)
+    ) {
+      return false;
+    }
+
     return true;
   });
+}
+
+function allowCapabilityPathMatches(
+  capability: McpCapabilityDescriptor,
+  prefixes: string[]
+): boolean {
+  const capabilityPath = capability.modulePath.join('.');
+  for (const prefix of prefixes) {
+    if (matchesPathPrefix(capability.id, capabilityPath, prefix)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function matchesPathPrefix(
+  capabilityId: string,
+  capabilityPath: string,
+  prefix: string
+): boolean {
+  return (
+    capabilityId === prefix ||
+    capabilityId.startsWith(`${prefix}.`) ||
+    capabilityPath === prefix ||
+    capabilityPath.startsWith(`${prefix}.`)
+  );
 }

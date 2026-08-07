@@ -18,6 +18,7 @@ import {
 import { MCP_POLICY_PRESETS, applyCapabilityPolicy } from './CapabilityPolicy';
 import { buildCapabilityInventory } from './CapabilityRegistry';
 import { buildToolManifest, McpToolManifest } from './ToolManifest';
+import { McpProfileName, resolveMcpProfileSelection } from './ProfileRegistry';
 import {
   createToolRuntime,
   McpToolExecutionRequest,
@@ -52,6 +53,8 @@ export type McpServiceOptions = {
    * Defaults to the library singleton.
    */
   frodoInstance?: Frodo;
+  /** Optional profile name to constrain the active capability universe. */
+  profileName?: McpProfileName;
   /** Optional inventory-scoping controls (domains, utils visibility). */
   inventoryOptions?: McpCapabilityInventoryOptions;
   /** Built-in policy preset to start from. Defaults to `standard`. */
@@ -118,14 +121,20 @@ export function composeCapabilityPolicy(
  */
 export function createMcpService(options: McpServiceOptions = {}): McpService {
   const frodoInstance = options.frodoInstance ?? frodo;
+  const profileSelection = options.profileName
+    ? resolveMcpProfileSelection(options.profileName)
+    : undefined;
   const policy = composeCapabilityPolicy(
-    options.policyPreset ?? 'standard',
-    options.policyOverride
+    options.policyPreset ?? profileSelection?.policyPreset ?? 'standard',
+    {
+      ...profileSelection?.policyOverride,
+      ...options.policyOverride,
+    }
   );
-  const inventory = buildCapabilityInventory(
-    frodoInstance,
-    options.inventoryOptions
-  );
+  const inventory = buildCapabilityInventory(frodoInstance, {
+    ...profileSelection?.inventoryOptions,
+    ...options.inventoryOptions,
+  });
   const capabilities = applyCapabilityPolicy(inventory, policy);
   const manifest = buildToolManifest(capabilities);
   const runtime = createToolRuntime(manifest, capabilities, {

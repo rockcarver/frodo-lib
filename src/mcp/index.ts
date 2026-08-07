@@ -19,6 +19,14 @@ export {
 } from './CapabilityTypes';
 export { MCP_POLICY_PRESETS, applyCapabilityPolicy } from './CapabilityPolicy';
 export {
+  capabilityMatchesAnyProfile,
+  capabilityMatchesDisabled,
+  getMcpProfileDefinition,
+  listAllMcpProfiles,
+  listMcpProfiles,
+  resolveMcpProfileSelection,
+} from './ProfileRegistry';
+export {
   buildCapabilityInventory,
   inferObjectType,
   inferOperationType,

@@ -169,6 +169,10 @@ export type McpCapabilityPolicy = {
   denyRiskClasses?: McpCapabilityRiskClass[];
   allowDomains?: string[];
   denyDomains?: string[];
+  /** Optional allow-list of capability module/id path prefixes. */
+  allowCapabilityPathPrefixes?: string[];
+  /** Optional deny-list of capability module/id path prefixes. */
+  denyCapabilityPathPrefixes?: string[];
   includeSpecial?: boolean;
 };
 
