@@ -220,9 +220,7 @@ describe('MCP hybrid runtime', () => {
     };
     expect(payload.total).toBe(1);
     expect(payload.returned).toBe(1);
-    expect(payload.skills[0].skillId).toBe(
-      'authn.journey.readJourney'
-    );
+    expect(payload.skills[0].skillId).toBe('authn.journey.readJourney');
   });
 
   test('describe_skill returns descriptor contract by id', async () => {

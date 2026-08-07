@@ -161,9 +161,7 @@ describe('createMcpService', () => {
     expect(discovery).toBeDefined();
     expect(discovery?.annotations?.readOnlyHint).toBe(true);
 
-    const findSkills = tools.find(
-      (tool) => tool.name === 'frodo_find_skills'
-    );
+    const findSkills = tools.find((tool) => tool.name === 'frodo_find_skills');
     expect(findSkills).toBeDefined();
     expect(findSkills?.description.length).toBeGreaterThan(0);
   });
