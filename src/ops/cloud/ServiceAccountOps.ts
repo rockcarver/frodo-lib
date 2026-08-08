@@ -248,7 +248,10 @@ export async function getServiceAccount({
       fields: ['*'],
       state,
     });
-    debugMessage({ message: serviceAccount, state });
+    debugMessage({
+      message: `ServiceAccountOps.getServiceAccount: accountStatus=${serviceAccount.accountStatus ?? 'unknown'}, scopeCount=${Array.isArray(serviceAccount.scopes) ? serviceAccount.scopes.length : 0}`,
+      state,
+    });
     debugMessage({
       message: `ServiceAccountOps.getServiceAccount: end`,
       state,

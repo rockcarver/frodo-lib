@@ -5,7 +5,6 @@ import {
   isNetworkOrIdempotentRequestError,
 } from 'axios-retry';
 import c from 'tinyrainbow';
-import winston from 'winston';
 
 import { RetryStrategy } from '../api/BaseApi';
 import { FeatureInterface } from '../api/cloud/FeatureApi';
@@ -643,17 +642,6 @@ export default (initialState: StateInterface): State => {
   };
 };
 
-const logger = winston.createLogger({
-  level: 'debug',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.File({ filename: 'frodo-lib-debug.log' }),
-  ],
-});
-
 export interface StateInterface {
   // connection settings
   host?: string;
@@ -783,18 +771,7 @@ const globalState: StateInterface = {
       }
     }
   },
-  debugHandler: (message: string | object) => {
-    if (!message) return;
-    if (getDebug()) {
-      if (typeof message === 'object') {
-        logger.debug(message);
-        // console.dir(message, { depth: 6 });
-      } else {
-        logger.debug(message);
-        // console.log(message);
-      }
-    }
-  },
+  debugHandler: () => undefined,
   curlirizeHandler: (message: string) => {
     if (!message) return;
     if (getDebug()) {

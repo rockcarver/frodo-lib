@@ -32,6 +32,8 @@ import { FrodoError } from './FrodoError';
 import { ExportMetaData, ResultCallback } from './OpsTypes';
 
 export type IdmConfig = {
+  /** Read configured managed-object type names. */
+  readManagedObjectTypes(): Promise<string[]>;
   /**
    * Read available config entity types
    * @returns {string[]} promise resolving to an array of config entity types
@@ -173,6 +175,9 @@ export type IdmConfig = {
 
 export default (state: State): IdmConfig => {
   return {
+    async readManagedObjectTypes(): Promise<string[]> {
+      return readManagedObjectTypes({ state });
+    },
     async readConfigEntityTypes(): Promise<string[]> {
       return readConfigEntityTypes({ state });
     },
@@ -417,6 +422,34 @@ export async function readConfigEntity({
   } catch (error) {
     throw new FrodoError(`Error reading config entity ${entityId}`, error);
   }
+}
+
+/**
+ * Reads the tenant's configured managed-object type names.
+ */
+export async function readManagedObjectTypes({
+  state,
+}: {
+  state: State;
+}): Promise<string[]> {
+  const entity = await readConfigEntity({ entityId: 'managed', state });
+  return extractManagedObjectTypes(entity);
+}
+
+/** Extracts validated, unique managed-object names from a managed config. */
+export function extractManagedObjectTypes(entity: unknown): string[] {
+  if (!entity || typeof entity !== 'object') return [];
+  const objects = (entity as { objects?: unknown }).objects;
+  if (!Array.isArray(objects)) return [];
+  return [
+    ...new Set(
+      objects.flatMap((object) => {
+        if (!object || typeof object !== 'object') return [];
+        const name = (object as { name?: unknown }).name;
+        return typeof name === 'string' && name.trim() ? [name.trim()] : [];
+      })
+    ),
+  ].sort((left, right) => left.localeCompare(right));
 }
 
 export const AIC_PROTECTED_ENTITIES: string[] = [

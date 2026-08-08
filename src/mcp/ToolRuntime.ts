@@ -27,6 +27,7 @@ import {
 import {
   McpDiscoveryEntry,
   McpGenericTool,
+  McpManagedObjectHydrationStatus,
   McpSpecialTool,
   McpToolManifest,
 } from './ToolManifest';
@@ -35,11 +36,23 @@ import {
   McpCapabilityRoutingStatus,
   rankCapabilitiesForDeployment,
 } from './CapabilityRouting';
+import {
+  discoverManagedObjectFamilies,
+  descriptorPatternsSupportFamily,
+  matchManagedObjectFamily,
+  MCP_AMBIGUOUS_OBJECT_CONCEPTS,
+  MCP_SEMANTIC_OBJECT_SYNONYMS,
+  McpSemanticObjectFamily,
+  McpSemanticObjectFamilyResolution,
+  normalizeSemanticObjectFamily,
+  resolveSemanticObjectFamily,
+} from './SemanticObjectFamilies';
 
 const FIND_SKILLS_TOOL_NAME = 'frodo_find_skills';
 const DESCRIBE_SKILL_TOOL_NAME = 'frodo_describe_skill';
 const DISPATCH_READ_ONLY_TOOL_NAME = 'frodo_dispatch_read_only';
 const DISPATCH_TOOL_NAME = 'frodo_dispatch';
+const DISCOVERY_TOOL_NAME = 'frodo_discover';
 
 const READ_ONLY_OPERATION_TYPES: McpCapabilityOperationType[] = [
   'count',
@@ -122,9 +135,31 @@ export type McpRuntimeRequestContext = {
   requestId?: string;
   /** Auth mode and credential payload for this request. */
   auth: McpRuntimeAuth;
-  /** Optional request-scoped sink for payload-free lifecycle traces. */
+  /** Optional request-scoped sink for bounded lifecycle and discovery traces. */
   trace?: McpToolRuntimeTraceHandler;
 };
+
+export type McpToolRuntimeTraceCandidate = {
+  skillId: string;
+  routingStatus: McpCapabilityRoutingStatus;
+  matchedObjectTypeCount?: number;
+};
+
+export type McpToolRuntimeTraceCriteria = Readonly<
+  Pick<
+    McpFindSkillsArguments,
+    | 'query'
+    | 'objectFamily'
+    | 'domain'
+    | 'objectType'
+    | 'skillIdPrefix'
+    | 'operationTypes'
+    | 'riskClasses'
+    | 'kind'
+    | 'limit'
+    | 'includeIncompatible'
+  >
+>;
 
 export type McpToolRuntimeTraceEvent = {
   event:
@@ -140,6 +175,8 @@ export type McpToolRuntimeTraceEvent = {
   deploymentType?: McpDeploymentType;
   candidateCount?: number;
   resultCount?: number;
+  criteria?: McpToolRuntimeTraceCriteria;
+  topCandidates?: McpToolRuntimeTraceCandidate[];
   routingReason?: string;
   elapsedMs?: number;
   error?: string;
@@ -169,6 +206,11 @@ export type McpGenericExecutionArguments = {
   pageToken?: string;
   /** Optional hint to request exact totals when supported. */
   includeTotal?: boolean;
+  /** Optional logical target resolved to deployment-specific object types. */
+  semanticTarget?: {
+    family: string;
+    realm?: string;
+  };
   /** Optional positional args forwarded to the underlying Frodo method. */
   positionalArgs?: unknown[];
   /** Optional named args forwarded as a single object argument. */
@@ -177,6 +219,7 @@ export type McpGenericExecutionArguments = {
 
 export type McpFindSkillsArguments = {
   query?: string;
+  objectFamily?: string;
   domain?: string;
   objectType?: string;
   skillIdPrefix?: string;
@@ -184,6 +227,11 @@ export type McpFindSkillsArguments = {
   riskClasses?: Array<'low' | 'medium' | 'high' | 'critical'>;
   kind?: 'generic' | 'special';
   limit?: number;
+  includeIncompatible?: boolean;
+};
+
+export type McpDiscoverArguments = {
+  detail?: 'summary' | 'catalog';
 };
 
 export type McpDescribeSkillArguments = {
@@ -201,6 +249,10 @@ export type McpDispatchExecutionArguments = {
   pageOffset?: number;
   pageToken?: string;
   includeTotal?: boolean;
+  semanticTarget?: {
+    family: string;
+    realm?: string;
+  };
   positionalArgs?: unknown[];
   namedArgs?: Record<string, unknown>;
 };
@@ -359,6 +411,10 @@ export type McpToolRuntimeOptions = {
   resultWarningThresholdBytes?: number;
   /** Optional service-wide sink for payload-free lifecycle traces. */
   trace?: McpToolRuntimeTraceHandler;
+  /** Tenant managed-object types available to service-local semantic search. */
+  managedObjectTypes?: readonly string[];
+  /** Outcome of tenant managed-object type hydration. */
+  managedObjectHydrationStatus?: McpManagedObjectHydrationStatus;
 };
 
 /**
@@ -421,6 +477,7 @@ export function createToolRuntime(
     }
 
     if (request.toolName === manifest.discoveryTool.toolName) {
+      const args = parseDiscoverArguments(request.arguments);
       const deploymentType = await resolveDeploymentForDiscovery(
         request.context,
         frodoRoot,
@@ -432,12 +489,40 @@ export function createToolRuntime(
         deploymentType,
         resultCount: capabilities.length,
       });
+      const {
+        activeTarget,
+        managedObjectTypeCount,
+        managedObjectHydrationStatus,
+        ...discoveryDetails
+      } = manifest.discoveryTool;
+      const commonDiscoveryData = {
+        ...(activeTarget && { activeTarget }),
+        ...(deploymentType && { activeDeploymentType: deploymentType }),
+        ...(managedObjectTypeCount !== undefined && {
+          managedObjectTypeCount,
+        }),
+        ...(managedObjectHydrationStatus && {
+          managedObjectHydrationStatus,
+        }),
+      };
       return {
         toolName: request.toolName,
-        data: {
-          ...manifest.discoveryTool,
-          ...(deploymentType && { activeDeploymentType: deploymentType }),
-        },
+        data:
+          args.detail === 'catalog'
+            ? { ...commonDiscoveryData, ...discoveryDetails }
+            : {
+                ...commonDiscoveryData,
+                skillCount: capabilities.length,
+                objectFamilies: discoverManagedObjectFamilies(
+                  options.managedObjectTypes ?? []
+                ),
+                nextSteps: [
+                  FIND_SKILLS_TOOL_NAME,
+                  DESCRIBE_SKILL_TOOL_NAME,
+                  DISPATCH_READ_ONLY_TOOL_NAME,
+                  DISPATCH_TOOL_NAME,
+                ],
+              },
       };
     }
 
@@ -448,13 +533,26 @@ export function createToolRuntime(
         frodoRoot,
         options.resolveFrodoForRequest
       );
-      const result = findSkills(capabilities, args, deploymentType);
+      const result = findSkills(
+        capabilities,
+        args,
+        deploymentType,
+        options.managedObjectTypes
+      );
       emitRuntimeTrace(request, options, {
         event: 'discovery',
         toolName: request.toolName,
         deploymentType,
         candidateCount: result.total,
         resultCount: result.returned,
+        criteria: buildFindSkillsTraceCriteria(args),
+        topCandidates: result.skills.slice(0, 5).map((skill) => ({
+          skillId: skill.skillId,
+          routingStatus: skill.routingStatus,
+          ...(skill.matchedObjectTypeCount !== undefined && {
+            matchedObjectTypeCount: skill.matchedObjectTypeCount,
+          }),
+        })),
       });
       return {
         toolName: request.toolName,
@@ -565,7 +663,9 @@ export function createToolRuntime(
             ? await invokeGenericDescriptorMethod(
                 scopedFrodo,
                 descriptor,
-                args as McpGenericExecutionArguments
+                args as McpGenericExecutionArguments,
+                options.managedObjectTypes ?? [],
+                options.managedObjectHydrationStatus
               )
             : await invokeDescriptorMethod(
                 scopedFrodo,
@@ -1032,7 +1132,9 @@ async function resolveDeploymentForDiscovery(
 async function invokeGenericDescriptorMethod(
   scopedFrodo: Frodo,
   descriptor: McpCapabilityDescriptor,
-  args: McpGenericExecutionArguments
+  args: McpGenericExecutionArguments,
+  managedObjectTypes: readonly string[],
+  managedObjectHydrationStatus?: McpManagedObjectHydrationStatus
 ): Promise<unknown> {
   if (descriptor.id === 'script.createScript') {
     return invokeScriptCreate(scopedFrodo, args, descriptor);
@@ -1042,11 +1144,102 @@ async function invokeGenericDescriptorMethod(
     return invokeManagedObjectSearchPage(scopedFrodo, args, descriptor);
   }
 
+  if (
+    descriptor.id === 'idm.managed.countManagedObjects' &&
+    args.semanticTarget
+  ) {
+    return invokeManagedObjectFamilyCount(
+      scopedFrodo,
+      args,
+      descriptor,
+      managedObjectTypes,
+      managedObjectHydrationStatus
+    );
+  }
+
   return invokeDescriptorMethod(
     scopedFrodo,
     descriptor,
     toInvocationArgs(args, descriptor)
   );
+}
+
+async function invokeManagedObjectFamilyCount(
+  scopedFrodo: Frodo,
+  args: McpGenericExecutionArguments,
+  descriptor: McpCapabilityDescriptor,
+  managedObjectTypes: readonly string[],
+  managedObjectHydrationStatus?: McpManagedObjectHydrationStatus
+): Promise<unknown> {
+  if (
+    managedObjectHydrationStatus === 'failed' ||
+    managedObjectHydrationStatus === 'timed-out'
+  ) {
+    throw new FrodoError(
+      `MCP runtime error: semantic count is unavailable because managed-object type hydration ${managedObjectHydrationStatus}. Use exact dispatch with namedArgs.type or restart the server after restoring tenant access.`
+    );
+  }
+  const resolution = resolveSemanticObjectFamily(
+    args.semanticTarget?.family,
+    managedObjectTypes
+  );
+  if (resolution.status !== 'resolved') {
+    throw new FrodoError(formatFamilyResolutionError(resolution));
+  }
+  const family = resolution.family;
+  if (!descriptorPatternsSupportFamily(descriptor.objectTypePatterns, family)) {
+    throw new FrodoError(
+      `MCP runtime error: descriptor '${descriptor.id}' does not support semantic family '${family}'.`
+    );
+  }
+
+  const requestedRealm = args.semanticTarget?.realm
+    ?.trim()
+    .replace(/^\/+|\/+$/g, '')
+    .toLowerCase();
+  const matches = managedObjectTypes
+    .map((type) => matchManagedObjectFamily(type, family))
+    .filter((match): match is NonNullable<typeof match> => !!match)
+    .filter(
+      (match) =>
+        !requestedRealm || match.realm?.toLowerCase() === requestedRealm
+    );
+
+  if (matches.length === 0) {
+    throw new FrodoError(
+      `MCP runtime error: no managed-object types matched semantic family '${family}'${
+        requestedRealm ? ` in realm '${requestedRealm}'` : ''
+      }. Exact dispatch remains available with namedArgs.type.`
+    );
+  }
+  if (requestedRealm && matches.length !== 1) {
+    throw new FrodoError(
+      `MCP runtime error: realm '${requestedRealm}' resolved to ${matches.length} managed-object types for family '${family}'. Use namedArgs.type for an exact count.`
+    );
+  }
+
+  const filter =
+    typeof args.namedArgs?.filter === 'string'
+      ? args.namedArgs.filter
+      : undefined;
+  const breakdown = await Promise.all(
+    matches.map(async (match) => ({
+      family,
+      type: match.type,
+      ...(match.realm && { realm: match.realm }),
+      count: (await invokeDescriptorMethod(scopedFrodo, descriptor, [
+        match.type,
+        filter,
+      ])) as number,
+    }))
+  );
+
+  return {
+    family,
+    ...(requestedRealm && { realm: requestedRealm }),
+    total: breakdown.reduce((total, entry) => total + entry.count, 0),
+    breakdown,
+  };
 }
 
 async function invokeScriptCreate(
@@ -1124,6 +1317,14 @@ function parseFindSkillsArguments(raw: unknown): McpFindSkillsArguments {
   }
   const args = raw as McpFindSkillsArguments;
   if (
+    args.objectFamily !== undefined &&
+    (typeof args.objectFamily !== 'string' || !args.objectFamily.trim())
+  ) {
+    throw new FrodoError(
+      `MCP runtime error: '${FIND_SKILLS_TOOL_NAME}' requires objectFamily to be a non-empty string.`
+    );
+  }
+  if (
     args.limit !== undefined &&
     (!Number.isInteger(args.limit) || args.limit <= 0)
   ) {
@@ -1131,7 +1332,63 @@ function parseFindSkillsArguments(raw: unknown): McpFindSkillsArguments {
       `MCP runtime error: '${FIND_SKILLS_TOOL_NAME}' requires limit to be a positive integer when provided.`
     );
   }
+  if (
+    args.includeIncompatible !== undefined &&
+    typeof args.includeIncompatible !== 'boolean'
+  ) {
+    throw new FrodoError(
+      `MCP runtime error: '${FIND_SKILLS_TOOL_NAME}' requires includeIncompatible to be a boolean when provided.`
+    );
+  }
   return args;
+}
+
+function parseDiscoverArguments(raw: unknown): McpDiscoverArguments {
+  if (raw === undefined) return {};
+  if (!raw || typeof raw !== 'object') {
+    throw new FrodoError(
+      `MCP runtime error: '${DISCOVERY_TOOL_NAME}' requires an arguments object when provided.`
+    );
+  }
+  const args = raw as McpDiscoverArguments;
+  if (
+    args.detail !== undefined &&
+    args.detail !== 'summary' &&
+    args.detail !== 'catalog'
+  ) {
+    throw new FrodoError(
+      `MCP runtime error: '${DISCOVERY_TOOL_NAME}' requires detail to be 'summary' or 'catalog'.`
+    );
+  }
+  return args;
+}
+
+function buildFindSkillsTraceCriteria(
+  args: McpFindSkillsArguments
+): McpToolRuntimeTraceCriteria | undefined {
+  const criteria: McpToolRuntimeTraceCriteria = {
+    ...(args.query !== undefined && { query: args.query }),
+    ...(args.objectFamily !== undefined && {
+      objectFamily: args.objectFamily,
+    }),
+    ...(args.domain !== undefined && { domain: args.domain }),
+    ...(args.objectType !== undefined && { objectType: args.objectType }),
+    ...(args.skillIdPrefix !== undefined && {
+      skillIdPrefix: args.skillIdPrefix,
+    }),
+    ...(args.operationTypes !== undefined && {
+      operationTypes: [...args.operationTypes],
+    }),
+    ...(args.riskClasses !== undefined && {
+      riskClasses: [...args.riskClasses],
+    }),
+    ...(args.kind !== undefined && { kind: args.kind }),
+    ...(args.limit !== undefined && { limit: args.limit }),
+    ...(args.includeIncompatible !== undefined && {
+      includeIncompatible: args.includeIncompatible,
+    }),
+  };
+  return Object.keys(criteria).length > 0 ? criteria : undefined;
 }
 
 function parseDescribeSkillArguments(raw: unknown): McpDescribeSkillArguments {
@@ -1176,6 +1433,20 @@ function parseDispatchExecutionArguments(
       'MCP runtime error: dispatch tools require realm to be a string when provided.'
     );
   }
+  if (args.semanticTarget !== undefined) {
+    if (
+      !args.semanticTarget ||
+      typeof args.semanticTarget !== 'object' ||
+      typeof args.semanticTarget.family !== 'string' ||
+      !args.semanticTarget.family.trim() ||
+      (args.semanticTarget.realm !== undefined &&
+        typeof args.semanticTarget.realm !== 'string')
+    ) {
+      throw new FrodoError(
+        'MCP runtime error: dispatch tools require semanticTarget with a non-empty family and optional string realm.'
+      );
+    }
+  }
   if (args.scope !== undefined && typeof args.scope !== 'string') {
     throw new FrodoError(
       'MCP runtime error: dispatch tools require scope to be a string when provided.'
@@ -1216,10 +1487,12 @@ function parseDispatchExecutionArguments(
 function findSkills(
   capabilities: McpCapabilityDescriptor[],
   args: McpFindSkillsArguments,
-  deploymentType?: McpDeploymentType
+  deploymentType?: McpDeploymentType,
+  managedObjectTypes: readonly string[] = []
 ): {
   total: number;
   returned: number;
+  guidance?: string;
   skills: Array<{
     skillId: string;
     kind: McpCapabilityDescriptor['kind'];
@@ -1233,22 +1506,74 @@ function findSkills(
     preferredDeploymentTypes?: McpCapabilityDescriptor['preferredDeploymentTypes'];
     identitySurface?: McpCapabilityDescriptor['identitySurface'];
     objectTypePatterns?: string[];
+    matchedObjectFamilies?: McpSemanticObjectFamily[];
+    matchedObjectTypes?: string[];
+    matchedObjectTypeCount?: number;
     routingStatus: McpCapabilityRoutingStatus;
     routingReason: string;
     argumentMode?: McpCapabilityDescriptor['argumentMode'];
     scope?: string;
   }>;
 } {
-  const query = args.query?.trim().toLowerCase();
-  const filtered = capabilities.filter((descriptor) => {
+  const queryTerms = normalizeSearchTerms(args.query);
+  const requestedResolution = args.objectFamily
+    ? resolveSemanticObjectFamily(args.objectFamily, managedObjectTypes)
+    : undefined;
+  if (requestedResolution && requestedResolution.status !== 'resolved') {
+    return {
+      total: 0,
+      returned: 0,
+      guidance: formatFamilyResolutionError(requestedResolution),
+      skills: [],
+    };
+  }
+  const queryResolution = findSemanticObjectFamilies(
+    args.query,
+    managedObjectTypes
+  );
+  if (queryResolution.ambiguity) {
+    return {
+      total: 0,
+      returned: 0,
+      guidance: formatFamilyResolutionError(queryResolution.ambiguity),
+      skills: [],
+    };
+  }
+  const requestedFamily =
+    requestedResolution?.status === 'resolved'
+      ? requestedResolution.family
+      : undefined;
+  const queryFamilies = queryResolution.families;
+  if (isUserIdentitySelector(args)) queryFamilies.add('user');
+  if (requestedFamily) queryFamilies.add(requestedFamily);
+  const filtered = capabilities.flatMap((descriptor) => {
+    const matchesManagedUserAlias =
+      isUserIdentitySelector(args) && descriptor.identitySurface === 'managed';
     if (args.kind && descriptor.kind !== args.kind) {
-      return false;
+      return [];
     }
-    if (args.domain && descriptor.domain !== args.domain) {
-      return false;
+    if (
+      requestedFamily &&
+      !descriptorPatternsSupportFamily(
+        descriptor.objectTypePatterns,
+        requestedFamily
+      )
+    ) {
+      return [];
     }
-    if (args.objectType && descriptor.objectType !== args.objectType) {
-      return false;
+    if (
+      args.domain &&
+      descriptor.domain !== args.domain &&
+      !matchesManagedUserAlias
+    ) {
+      return [];
+    }
+    if (
+      args.objectType &&
+      descriptor.objectType !== args.objectType &&
+      !matchesManagedUserAlias
+    ) {
+      return [];
     }
     if (
       args.skillIdPrefix &&
@@ -1257,62 +1582,63 @@ function findSkills(
         descriptor.id.startsWith(`${args.skillIdPrefix}.`)
       )
     ) {
-      return false;
+      return [];
     }
     if (
       args.operationTypes &&
       args.operationTypes.length > 0 &&
       !args.operationTypes.includes(descriptor.operationType)
     ) {
-      return false;
+      return [];
     }
     if (
       args.riskClasses &&
       args.riskClasses.length > 0 &&
       !args.riskClasses.includes(descriptor.riskClass)
     ) {
-      return false;
+      return [];
     }
-    if (!query) {
-      return true;
+    const routing = describeCapabilityRouting(descriptor, deploymentType);
+    if (
+      routing.status === 'incompatible' &&
+      deploymentType &&
+      deploymentType !== 'any' &&
+      !args.includeIncompatible
+    ) {
+      return [];
     }
-    const haystack = [
-      descriptor.id,
-      descriptor.domain,
-      descriptor.objectType,
-      descriptor.methodName,
-      descriptor.modulePath.join('.'),
-      descriptor.scope ?? '',
-      descriptor.notes ?? '',
-      descriptor.identitySurface ?? '',
-      ...(descriptor.objectTypePatterns ?? []),
-    ]
-      .join(' ')
-      .toLowerCase();
-    return query
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((term) =>
-        term.length > 3 && term.endsWith('s') ? term.slice(0, -1) : term
-      )
-      .every(
-        (term) =>
-          haystack.includes(term) ||
-          descriptor.objectTypePatterns?.some((pattern) =>
-            matchesGlobPattern(term, pattern)
-          )
-      );
+    const managedObjectMatches = findMatchedManagedObjectTypes(
+      descriptor,
+      queryTerms,
+      managedObjectTypes,
+      queryFamilies
+    );
+    const relevance =
+      scoreCapabilitySearch(descriptor, queryTerms) +
+      [...queryFamilies].filter((family) =>
+        descriptorPatternsSupportFamily(descriptor.objectTypePatterns, family)
+      ).length *
+        8 +
+      managedObjectMatches.matches.length * 6;
+    return queryTerms.length === 0 || relevance > 0
+      ? [{ descriptor, relevance, routing, managedObjectMatches }]
+      : [];
   });
 
   const limit = args.limit ?? 100;
-  const results = rankCapabilitiesForDeployment(
-    filtered,
-    deploymentType,
-    args.query
-  )
+  const results = filtered
+    .sort(
+      (left, right) =>
+        getRoutingRank(left.routing.status) -
+          getRoutingRank(right.routing.status) ||
+        right.relevance - left.relevance ||
+        left.descriptor.id.localeCompare(right.descriptor.id)
+    )
     .slice(0, limit)
-    .map((descriptor) => {
-      const routing = describeCapabilityRouting(descriptor, deploymentType);
+    .map(({ descriptor, routing, managedObjectMatches }) => {
+      const matchedObjectFamilies = [...queryFamilies].filter((family) =>
+        descriptorPatternsSupportFamily(descriptor.objectTypePatterns, family)
+      );
       return {
         skillId: descriptor.id,
         kind: descriptor.kind,
@@ -1326,6 +1652,11 @@ function findSkills(
         preferredDeploymentTypes: descriptor.preferredDeploymentTypes,
         identitySurface: descriptor.identitySurface,
         objectTypePatterns: descriptor.objectTypePatterns,
+        ...(matchedObjectFamilies.length > 0 && { matchedObjectFamilies }),
+        ...(managedObjectMatches.total > 0 && {
+          matchedObjectTypes: managedObjectMatches.matches,
+          matchedObjectTypeCount: managedObjectMatches.total,
+        }),
         routingStatus: routing.status,
         routingReason: routing.reason,
         argumentMode: descriptor.argumentMode,
@@ -1336,15 +1667,310 @@ function findSkills(
   return {
     total: filtered.length,
     returned: results.length,
+    ...(results.length === 0 &&
+      (args.domain || args.objectType || args.skillIdPrefix) && {
+        guidance:
+          queryFamilies.size > 0
+            ? `The recognized object ${
+                queryFamilies.size === 1 ? 'family is' : 'families are'
+              } unavailable under the active profile, policy, and deployment constraints.`
+            : 'No skills matched all exact filters. domain, objectType, and skillIdPrefix are exact skill coordinates, not tenant object names. Retry with query and operationTypes only.',
+      }),
     skills: results,
   };
 }
 
-function matchesGlobPattern(value: string, pattern: string): boolean {
-  const expression = pattern
-    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*/g, '.*');
-  return new RegExp(`^${expression}$`, 'i').test(value);
+function isUserIdentitySelector(args: McpFindSkillsArguments): boolean {
+  return (
+    args.domain?.toLowerCase() === 'user' &&
+    args.objectType?.toLowerCase() === 'user'
+  );
+}
+
+function findMatchedManagedObjectTypes(
+  descriptor: McpCapabilityDescriptor,
+  terms: string[],
+  managedObjectTypes: readonly string[],
+  requestedFamilies: ReadonlySet<McpSemanticObjectFamily>
+): { matches: string[]; total: number } {
+  if (
+    descriptor.identitySurface !== 'managed' ||
+    (terms.length === 0 && requestedFamilies.size === 0)
+  ) {
+    return { matches: [], total: 0 };
+  }
+  const concreteTerms = terms.filter(
+    (term) =>
+      !MANAGED_TYPE_GENERIC_TERMS.has(term) &&
+      !termMatchesRequestedFamily(term, requestedFamilies, managedObjectTypes)
+  );
+  const rankedMatches = managedObjectTypes
+    .map((type) => {
+      const normalizedType = type.toLowerCase();
+      const typeTerms = normalizeSearchTerms(type);
+      const matchesRequestedFamily =
+        requestedFamilies.size === 0 ||
+        [...requestedFamilies].some((family) =>
+          matchManagedObjectFamily(type, family)
+        );
+      const matchedTermCount =
+        terms.filter(
+          (term) =>
+            normalizedType === term ||
+            normalizedType.includes(term) ||
+            typeTerms.includes(term) ||
+            termMatchesRequestedFamily(
+              term,
+              requestedFamilies,
+              managedObjectTypes
+            )
+        ).length +
+        (matchesRequestedFamily && requestedFamilies.size > 0 ? 1 : 0);
+      const matchesConcreteTerms = concreteTerms.every(
+        (term) => normalizedType.includes(term) || typeTerms.includes(term)
+      );
+      return {
+        type,
+        matchedTermCount,
+        matchesConcreteTerms,
+        matchesRequestedFamily,
+      };
+    })
+    .filter(
+      ({ matchedTermCount, matchesConcreteTerms, matchesRequestedFamily }) =>
+        matchedTermCount > 0 && matchesConcreteTerms && matchesRequestedFamily
+    )
+    .sort(
+      (left, right) =>
+        right.matchedTermCount - left.matchedTermCount ||
+        left.type.localeCompare(right.type)
+    )
+    .map(({ type }) => type);
+  return { matches: rankedMatches.slice(0, 5), total: rankedMatches.length };
+}
+
+const SEARCH_STOP_WORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'for',
+  'forgerock',
+  'in',
+  'of',
+  'the',
+  'to',
+  'environment',
+  'cloud',
+]);
+
+const SEARCH_SYNONYMS: Record<string, string[]> = {
+  count: ['many', 'number', 'total'],
+  identity: ['user', 'person'],
+  list: ['enumerate'],
+  read: ['get'],
+  search: ['find', 'query'],
+  user: ['identity', 'person'],
+};
+
+const MANAGED_TYPE_GENERIC_TERMS = new Set([
+  'count',
+  'enumerate',
+  'find',
+  'get',
+  'group',
+  'identity',
+  'list',
+  'managed',
+  'many',
+  'number',
+  'object',
+  'person',
+  'query',
+  'read',
+  'search',
+  'total',
+  'user',
+]);
+
+function normalizeSearchTerms(query?: string): string[] {
+  if (!query) return [];
+  return [
+    ...new Set(
+      query
+        .toLowerCase()
+        .split(/[^a-z0-9*]+/)
+        .map(normalizeSearchTerm)
+        .filter((term) => term && !SEARCH_STOP_WORDS.has(term))
+    ),
+  ];
+}
+
+function findSemanticObjectFamilies(
+  query: string | undefined,
+  managedObjectTypes: readonly string[]
+): {
+  families: Set<McpSemanticObjectFamily>;
+  ambiguity?: Extract<
+    McpSemanticObjectFamilyResolution,
+    { status: 'ambiguous' }
+  >;
+} {
+  if (!query) return { families: new Set() };
+  if (
+    managedObjectTypes.some(
+      (type) => type.toLowerCase() === query.trim().toLowerCase()
+    )
+  ) {
+    return { families: new Set() };
+  }
+  const tokens = query
+    .toLowerCase()
+    .split(/[^a-z0-9_]+/)
+    .filter(Boolean);
+  const matches: Array<
+    | { family: McpSemanticObjectFamily; start: number; end: number }
+    | {
+        ambiguity: Extract<
+          McpSemanticObjectFamilyResolution,
+          { status: 'ambiguous' }
+        >;
+        start: number;
+        end: number;
+      }
+  > = [];
+  tokens.forEach((_, start) => {
+    tokens.slice(start).forEach((__, offset) => {
+      const phrase = tokens.slice(start, start + offset + 1).join(' ');
+      if (
+        managedObjectTypes.length === 0 &&
+        !(phrase in MCP_SEMANTIC_OBJECT_SYNONYMS) &&
+        !(phrase in MCP_AMBIGUOUS_OBJECT_CONCEPTS)
+      ) {
+        return;
+      }
+      const resolution = resolveSemanticObjectFamily(
+        phrase,
+        managedObjectTypes
+      );
+      if (resolution.status === 'resolved') {
+        matches.push({
+          family: resolution.family,
+          start,
+          end: start + offset + 1,
+        });
+      } else if (resolution.status === 'ambiguous') {
+        matches.push({ ambiguity: resolution, start, end: start + offset + 1 });
+      }
+    });
+  });
+  const mostSpecific = matches.filter(
+    (match) =>
+      !matches.some(
+        (candidate) =>
+          candidate.start <= match.start &&
+          candidate.end >= match.end &&
+          candidate.end - candidate.start > match.end - match.start
+      )
+  );
+  const ambiguous = mostSpecific.find((match) => 'ambiguity' in match);
+  if (ambiguous && 'ambiguity' in ambiguous) {
+    return { families: new Set(), ambiguity: ambiguous.ambiguity };
+  }
+  return {
+    families: new Set(
+      mostSpecific.flatMap((match) => ('family' in match ? [match.family] : []))
+    ),
+  };
+}
+
+function termMatchesRequestedFamily(
+  term: string,
+  requestedFamilies: ReadonlySet<McpSemanticObjectFamily>,
+  managedObjectTypes: readonly string[]
+): boolean {
+  const resolution = resolveSemanticObjectFamily(term, managedObjectTypes);
+  return (
+    resolution.status === 'resolved' &&
+    [...requestedFamilies].some(
+      (family) =>
+        normalizeSemanticObjectFamily(family) ===
+        normalizeSemanticObjectFamily(resolution.family)
+    )
+  );
+}
+
+function formatFamilyResolutionError(
+  resolution: Exclude<McpSemanticObjectFamilyResolution, { status: 'resolved' }>
+): string {
+  const candidates = resolution.candidates.join(', ');
+  return resolution.status === 'ambiguous'
+    ? `The managed-object concept is ambiguous. Choose one of: ${candidates}.`
+    : `No managed-object family matched the live tenant catalog.${
+        candidates ? ` Closest candidates: ${candidates}.` : ''
+      }`;
+}
+
+function normalizeSearchTerm(term: string): string {
+  if (term === 'identities') return 'identity';
+  if (term.length > 3 && term.endsWith('ies')) return `${term.slice(0, -3)}y`;
+  if (term.length > 3 && term.endsWith('s')) return term.slice(0, -1);
+  return term;
+}
+
+function scoreCapabilitySearch(
+  descriptor: McpCapabilityDescriptor,
+  terms: string[]
+): number {
+  if (terms.length === 0) return 0;
+  const weightedFields: Array<[string, number]> = [
+    [descriptor.id, 12],
+    [descriptor.operationType, 10],
+    [descriptor.domain, 9],
+    [descriptor.objectType, 9],
+    [descriptor.methodName, 8],
+    [descriptor.modulePath.join('.'), 8],
+    [descriptor.scope ?? '', 7],
+    [descriptor.identitySurface ?? '', 7],
+    ...(descriptor.objectTypePatterns ?? []).map(
+      (pattern) => [pattern, 7] as [string, number]
+    ),
+    ...(descriptor.parameters ?? []).flatMap((parameter) => [
+      [parameter.name, 4] as [string, number],
+      [parameter.description ?? '', 2] as [string, number],
+    ]),
+    [descriptor.notes ?? '', 2],
+  ];
+  const operationAliases = [
+    descriptor.operationType,
+    ...(SEARCH_SYNONYMS[descriptor.operationType] ?? []),
+  ];
+  const identityAliases =
+    descriptor.identitySurface === 'managed' ||
+    descriptor.identitySurface === 'am-user' ||
+    descriptor.objectTypePatterns?.some((pattern) => pattern.includes('user'))
+      ? ['user', 'identity', 'person']
+      : [];
+
+  return terms.reduce((score, term) => {
+    const aliases = [term, ...(SEARCH_SYNONYMS[term] ?? [])];
+    const fieldScore = weightedFields.reduce((best, [field, weight]) => {
+      const normalizedField = field.toLowerCase();
+      return aliases.some((alias) => normalizedField.includes(alias))
+        ? Math.max(best, weight)
+        : best;
+    }, 0);
+    const semanticScore = aliases.some(
+      (alias) =>
+        operationAliases.includes(alias) || identityAliases.includes(alias)
+    )
+      ? 8
+      : 0;
+    return score + Math.max(fieldScore, semanticScore);
+  }, 0);
+}
+
+function getRoutingRank(status: McpCapabilityRoutingStatus): number {
+  return ['preferred', 'compatible', 'unknown', 'incompatible'].indexOf(status);
 }
 
 function resolveDescriptorForDispatch(

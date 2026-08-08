@@ -1422,6 +1422,14 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "IdmConfig",
+    methodName: "readManagedObjectTypes",
+    signature: "readManagedObjectTypes(): Promise<string[]>",
+    description: "/** Read configured managed-object type names. */",
+    params: [],
+    returns: "",
+  },
+  {
+    typeName: "IdmConfig",
     methodName: "readConfigEntityTypes",
     signature: "readConfigEntityTypes(): Promise<string[]>",
     description: "Read available config entity types",

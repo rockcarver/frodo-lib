@@ -17,7 +17,11 @@ import {
 } from './CapabilityTypes';
 import { MCP_POLICY_PRESETS, applyCapabilityPolicy } from './CapabilityPolicy';
 import { buildCapabilityInventory } from './CapabilityRegistry';
-import { buildToolManifest, McpToolManifest } from './ToolManifest';
+import {
+  buildToolManifest,
+  McpDiscoveryContext,
+  McpToolManifest,
+} from './ToolManifest';
 import { McpProfileName, resolveMcpProfileSelection } from './ProfileRegistry';
 import {
   createToolRuntime,
@@ -62,7 +66,12 @@ export type McpServiceOptions = {
   /** Optional override fields merged on top of the selected preset. */
   policyOverride?: Partial<McpCapabilityPolicy>;
   /** Optional runtime customization hooks. */
-  runtimeOptions?: Omit<McpToolRuntimeOptions, 'frodoRoot'>;
+  runtimeOptions?: Omit<
+    McpToolRuntimeOptions,
+    'frodoRoot' | 'managedObjectTypes' | 'managedObjectHydrationStatus'
+  >;
+  /** Service-local tenant metadata used only for discovery and search. */
+  discoveryContext?: McpDiscoveryContext;
 };
 
 /**
@@ -136,9 +145,20 @@ export function createMcpService(options: McpServiceOptions = {}): McpService {
     ...options.inventoryOptions,
   });
   const capabilities = applyCapabilityPolicy(inventory, policy);
-  const manifest = buildToolManifest(capabilities);
+  const discoveryContext = options.discoveryContext
+    ? {
+        ...options.discoveryContext,
+        managedObjectTypes: options.discoveryContext.managedObjectTypes
+          ? [...options.discoveryContext.managedObjectTypes]
+          : undefined,
+      }
+    : undefined;
+  const manifest = buildToolManifest(capabilities, discoveryContext);
   const runtime = createToolRuntime(manifest, capabilities, {
     frodoRoot: frodoInstance,
+    managedObjectTypes: discoveryContext?.managedObjectTypes,
+    managedObjectHydrationStatus:
+      discoveryContext?.managedObjectHydrationStatus,
     ...options.runtimeOptions,
   });
 

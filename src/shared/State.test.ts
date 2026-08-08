@@ -6,10 +6,12 @@
  * Note: FRODO_DEBUG=1 is optional and enables debug logging for some output
  * in case things don't function as expected
  */
+import { jest } from '@jest/globals';
+
 import { state } from '../index';
 import { JwkRsa } from '../ops/JoseOps';
 import Constants from './Constants';
-import fs from 'fs'
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -21,6 +23,21 @@ describe('State', () => {
 
   beforeEach(() => {
     state.setDeploymentType(undefined);
+  });
+
+  describe('debug output', () => {
+    test('preserves explicitly registered debug handlers', () => {
+      const originalHandler = state.getDebugHandler();
+      const handler = jest.fn();
+
+      try {
+        state.setDebugHandler(handler);
+        state.getDebugHandler()('diagnostic');
+        expect(handler).toHaveBeenCalledWith('diagnostic');
+      } finally {
+        state.setDebugHandler(originalHandler);
+      }
+    });
   });
 
   describe('getHost()/setHost()/getTenant()/setTenant()', () => {

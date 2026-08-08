@@ -20,6 +20,26 @@ import {
 } from '../index';
 
 describe('MCP tool manifest builder', () => {
+  test('includes target metadata and managed type count without the catalog', () => {
+    const inventory = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['idm'],
+    });
+    const manifest = buildToolManifest(inventory, {
+      managedObjectTypes: ['alpha_user', 'group'],
+      activeTarget: {
+        host: 'https://example.test',
+        profile: 'managed-objects',
+      },
+    });
+
+    expect(manifest.discoveryTool.activeTarget).toEqual({
+      host: 'https://example.test',
+      profile: 'managed-objects',
+    });
+    expect(manifest.discoveryTool.managedObjectTypeCount).toBe(2);
+    expect(manifest.discoveryTool).not.toHaveProperty('managedObjectTypes');
+  });
+
   test('produces a valid manifest shape from a domain inventory', () => {
     const inventory = buildCapabilityInventory(frodo, {
       includeTopLevelDomains: ['authn'],
@@ -134,9 +154,7 @@ describe('MCP tool manifest builder', () => {
       preferredDeploymentTypes: ['cloud', 'forgeops'],
       identitySurface: 'managed',
     });
-    expect(managedCount?.objectTypePatterns).toEqual(
-      expect.arrayContaining(['user', '*_user'])
-    );
+    expect(managedCount?.objectTypePatterns).toEqual(['*']);
     expect(amUserCount).toMatchObject({
       deploymentTypes: ['classic'],
       preferredDeploymentTypes: ['classic'],

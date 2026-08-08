@@ -25,6 +25,18 @@ export {
   rankCapabilitiesForDeployment,
 } from './CapabilityRouting';
 export {
+  MCP_AMBIGUOUS_OBJECT_CONCEPTS,
+  MCP_SEMANTIC_OBJECT_SYNONYMS,
+  McpManagedObjectFamilyMatch,
+  McpSemanticObjectFamily,
+  McpSemanticObjectFamilyResolution,
+  descriptorPatternsSupportFamily,
+  discoverManagedObjectFamilies,
+  matchManagedObjectFamily,
+  normalizeSemanticObjectFamily,
+  resolveSemanticObjectFamily,
+} from './SemanticObjectFamilies';
+export {
   capabilityMatchesAnyProfile,
   capabilityMatchesDisabled,
   getMcpProfileDefinition,
@@ -40,7 +52,10 @@ export {
 } from './CapabilityRegistry';
 export {
   McpCanonicalTool,
+  McpDiscoveryContext,
   McpDiscoveryEntry,
+  McpDiscoveryTarget,
+  McpManagedObjectHydrationStatus,
   McpGenericTool,
   McpObjectTypeEntry,
   McpSpecialTool,
@@ -48,6 +63,7 @@ export {
   buildToolManifest,
 } from './ToolManifest';
 export {
+  McpDiscoverArguments,
   McpExecutionPaginationMetadata,
   McpExecutionScopeMetadata,
   McpGenericExecutionArguments,
@@ -62,6 +78,8 @@ export {
   McpToolExecutionMetadata,
   McpToolRuntime,
   McpToolRuntimeOptions,
+  McpToolRuntimeTraceCandidate,
+  McpToolRuntimeTraceCriteria,
   McpToolRuntimeTraceEvent,
   McpToolRuntimeTraceHandler,
   createToolRuntime,
