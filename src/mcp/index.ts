@@ -40,7 +40,9 @@ export {
 } from './CapabilityRegistry';
 export {
   McpCanonicalTool,
+  McpDiscoveryContext,
   McpDiscoveryEntry,
+  McpDiscoveryTarget,
   McpGenericTool,
   McpObjectTypeEntry,
   McpSpecialTool,
@@ -62,6 +64,8 @@ export {
   McpToolExecutionMetadata,
   McpToolRuntime,
   McpToolRuntimeOptions,
+  McpToolRuntimeTraceCandidate,
+  McpToolRuntimeTraceCriteria,
   McpToolRuntimeTraceEvent,
   McpToolRuntimeTraceHandler,
   createToolRuntime,

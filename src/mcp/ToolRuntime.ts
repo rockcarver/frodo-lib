@@ -122,9 +122,30 @@ export type McpRuntimeRequestContext = {
   requestId?: string;
   /** Auth mode and credential payload for this request. */
   auth: McpRuntimeAuth;
-  /** Optional request-scoped sink for payload-free lifecycle traces. */
+  /** Optional request-scoped sink for bounded lifecycle and discovery traces. */
   trace?: McpToolRuntimeTraceHandler;
 };
+
+export type McpToolRuntimeTraceCandidate = {
+  skillId: string;
+  routingStatus: McpCapabilityRoutingStatus;
+  matchedObjectTypeCount?: number;
+};
+
+export type McpToolRuntimeTraceCriteria = Readonly<
+  Pick<
+    McpFindSkillsArguments,
+    | 'query'
+    | 'domain'
+    | 'objectType'
+    | 'skillIdPrefix'
+    | 'operationTypes'
+    | 'riskClasses'
+    | 'kind'
+    | 'limit'
+    | 'includeIncompatible'
+  >
+>;
 
 export type McpToolRuntimeTraceEvent = {
   event:
@@ -140,6 +161,8 @@ export type McpToolRuntimeTraceEvent = {
   deploymentType?: McpDeploymentType;
   candidateCount?: number;
   resultCount?: number;
+  criteria?: McpToolRuntimeTraceCriteria;
+  topCandidates?: McpToolRuntimeTraceCandidate[];
   routingReason?: string;
   elapsedMs?: number;
   error?: string;
@@ -184,6 +207,7 @@ export type McpFindSkillsArguments = {
   riskClasses?: Array<'low' | 'medium' | 'high' | 'critical'>;
   kind?: 'generic' | 'special';
   limit?: number;
+  includeIncompatible?: boolean;
 };
 
 export type McpDescribeSkillArguments = {
@@ -359,6 +383,8 @@ export type McpToolRuntimeOptions = {
   resultWarningThresholdBytes?: number;
   /** Optional service-wide sink for payload-free lifecycle traces. */
   trace?: McpToolRuntimeTraceHandler;
+  /** Tenant managed-object types available to service-local semantic search. */
+  managedObjectTypes?: readonly string[];
 };
 
 /**
@@ -448,13 +474,26 @@ export function createToolRuntime(
         frodoRoot,
         options.resolveFrodoForRequest
       );
-      const result = findSkills(capabilities, args, deploymentType);
+      const result = findSkills(
+        capabilities,
+        args,
+        deploymentType,
+        options.managedObjectTypes
+      );
       emitRuntimeTrace(request, options, {
         event: 'discovery',
         toolName: request.toolName,
         deploymentType,
         candidateCount: result.total,
         resultCount: result.returned,
+        criteria: buildFindSkillsTraceCriteria(args),
+        topCandidates: result.skills.slice(0, 5).map((skill) => ({
+          skillId: skill.skillId,
+          routingStatus: skill.routingStatus,
+          ...(skill.matchedObjectTypeCount !== undefined && {
+            matchedObjectTypeCount: skill.matchedObjectTypeCount,
+          }),
+        })),
       });
       return {
         toolName: request.toolName,
@@ -1131,7 +1170,40 @@ function parseFindSkillsArguments(raw: unknown): McpFindSkillsArguments {
       `MCP runtime error: '${FIND_SKILLS_TOOL_NAME}' requires limit to be a positive integer when provided.`
     );
   }
+  if (
+    args.includeIncompatible !== undefined &&
+    typeof args.includeIncompatible !== 'boolean'
+  ) {
+    throw new FrodoError(
+      `MCP runtime error: '${FIND_SKILLS_TOOL_NAME}' requires includeIncompatible to be a boolean when provided.`
+    );
+  }
   return args;
+}
+
+function buildFindSkillsTraceCriteria(
+  args: McpFindSkillsArguments
+): McpToolRuntimeTraceCriteria | undefined {
+  const criteria: McpToolRuntimeTraceCriteria = {
+    ...(args.query !== undefined && { query: args.query }),
+    ...(args.domain !== undefined && { domain: args.domain }),
+    ...(args.objectType !== undefined && { objectType: args.objectType }),
+    ...(args.skillIdPrefix !== undefined && {
+      skillIdPrefix: args.skillIdPrefix,
+    }),
+    ...(args.operationTypes !== undefined && {
+      operationTypes: [...args.operationTypes],
+    }),
+    ...(args.riskClasses !== undefined && {
+      riskClasses: [...args.riskClasses],
+    }),
+    ...(args.kind !== undefined && { kind: args.kind }),
+    ...(args.limit !== undefined && { limit: args.limit }),
+    ...(args.includeIncompatible !== undefined && {
+      includeIncompatible: args.includeIncompatible,
+    }),
+  };
+  return Object.keys(criteria).length > 0 ? criteria : undefined;
 }
 
 function parseDescribeSkillArguments(raw: unknown): McpDescribeSkillArguments {
@@ -1216,7 +1288,8 @@ function parseDispatchExecutionArguments(
 function findSkills(
   capabilities: McpCapabilityDescriptor[],
   args: McpFindSkillsArguments,
-  deploymentType?: McpDeploymentType
+  deploymentType?: McpDeploymentType,
+  managedObjectTypes: readonly string[] = []
 ): {
   total: number;
   returned: number;
@@ -1233,22 +1306,24 @@ function findSkills(
     preferredDeploymentTypes?: McpCapabilityDescriptor['preferredDeploymentTypes'];
     identitySurface?: McpCapabilityDescriptor['identitySurface'];
     objectTypePatterns?: string[];
+    matchedObjectTypes?: string[];
+    matchedObjectTypeCount?: number;
     routingStatus: McpCapabilityRoutingStatus;
     routingReason: string;
     argumentMode?: McpCapabilityDescriptor['argumentMode'];
     scope?: string;
   }>;
 } {
-  const query = args.query?.trim().toLowerCase();
-  const filtered = capabilities.filter((descriptor) => {
+  const queryTerms = normalizeSearchTerms(args.query);
+  const filtered = capabilities.flatMap((descriptor) => {
     if (args.kind && descriptor.kind !== args.kind) {
-      return false;
+      return [];
     }
     if (args.domain && descriptor.domain !== args.domain) {
-      return false;
+      return [];
     }
     if (args.objectType && descriptor.objectType !== args.objectType) {
-      return false;
+      return [];
     }
     if (
       args.skillIdPrefix &&
@@ -1257,62 +1332,55 @@ function findSkills(
         descriptor.id.startsWith(`${args.skillIdPrefix}.`)
       )
     ) {
-      return false;
+      return [];
     }
     if (
       args.operationTypes &&
       args.operationTypes.length > 0 &&
       !args.operationTypes.includes(descriptor.operationType)
     ) {
-      return false;
+      return [];
     }
     if (
       args.riskClasses &&
       args.riskClasses.length > 0 &&
       !args.riskClasses.includes(descriptor.riskClass)
     ) {
-      return false;
+      return [];
     }
-    if (!query) {
-      return true;
+    const routing = describeCapabilityRouting(descriptor, deploymentType);
+    if (
+      routing.status === 'incompatible' &&
+      deploymentType &&
+      deploymentType !== 'any' &&
+      !args.includeIncompatible
+    ) {
+      return [];
     }
-    const haystack = [
-      descriptor.id,
-      descriptor.domain,
-      descriptor.objectType,
-      descriptor.methodName,
-      descriptor.modulePath.join('.'),
-      descriptor.scope ?? '',
-      descriptor.notes ?? '',
-      descriptor.identitySurface ?? '',
-      ...(descriptor.objectTypePatterns ?? []),
-    ]
-      .join(' ')
-      .toLowerCase();
-    return query
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((term) =>
-        term.length > 3 && term.endsWith('s') ? term.slice(0, -1) : term
-      )
-      .every(
-        (term) =>
-          haystack.includes(term) ||
-          descriptor.objectTypePatterns?.some((pattern) =>
-            matchesGlobPattern(term, pattern)
-          )
-      );
+    const managedObjectMatches = findMatchedManagedObjectTypes(
+      descriptor,
+      queryTerms,
+      managedObjectTypes
+    );
+    const relevance =
+      scoreCapabilitySearch(descriptor, queryTerms) +
+      managedObjectMatches.matches.length * 6;
+    return queryTerms.length === 0 || relevance > 0
+      ? [{ descriptor, relevance, routing, managedObjectMatches }]
+      : [];
   });
 
   const limit = args.limit ?? 100;
-  const results = rankCapabilitiesForDeployment(
-    filtered,
-    deploymentType,
-    args.query
-  )
+  const results = filtered
+    .sort(
+      (left, right) =>
+        getRoutingRank(left.routing.status) -
+          getRoutingRank(right.routing.status) ||
+        right.relevance - left.relevance ||
+        left.descriptor.id.localeCompare(right.descriptor.id)
+    )
     .slice(0, limit)
-    .map((descriptor) => {
-      const routing = describeCapabilityRouting(descriptor, deploymentType);
+    .map(({ descriptor, routing, managedObjectMatches }) => {
       return {
         skillId: descriptor.id,
         kind: descriptor.kind,
@@ -1326,6 +1394,10 @@ function findSkills(
         preferredDeploymentTypes: descriptor.preferredDeploymentTypes,
         identitySurface: descriptor.identitySurface,
         objectTypePatterns: descriptor.objectTypePatterns,
+        ...(managedObjectMatches.total > 0 && {
+          matchedObjectTypes: managedObjectMatches.matches,
+          matchedObjectTypeCount: managedObjectMatches.total,
+        }),
         routingStatus: routing.status,
         routingReason: routing.reason,
         argumentMode: descriptor.argumentMode,
@@ -1340,11 +1412,161 @@ function findSkills(
   };
 }
 
-function matchesGlobPattern(value: string, pattern: string): boolean {
-  const expression = pattern
-    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*/g, '.*');
-  return new RegExp(`^${expression}$`, 'i').test(value);
+function findMatchedManagedObjectTypes(
+  descriptor: McpCapabilityDescriptor,
+  terms: string[],
+  managedObjectTypes: readonly string[]
+): { matches: string[]; total: number } {
+  if (descriptor.identitySurface !== 'managed' || terms.length === 0) {
+    return { matches: [], total: 0 };
+  }
+  const concreteTerms = terms.filter(
+    (term) => !MANAGED_TYPE_GENERIC_TERMS.has(term)
+  );
+  const rankedMatches = managedObjectTypes
+    .map((type) => {
+      const normalizedType = type.toLowerCase();
+      const typeTerms = normalizeSearchTerms(type);
+      const matchedTermCount = terms.filter(
+        (term) =>
+          normalizedType === term ||
+          normalizedType.includes(term) ||
+          typeTerms.includes(term)
+      ).length;
+      const matchesConcreteTerms = concreteTerms.every(
+        (term) => normalizedType.includes(term) || typeTerms.includes(term)
+      );
+      return { type, matchedTermCount, matchesConcreteTerms };
+    })
+    .filter(
+      ({ matchedTermCount, matchesConcreteTerms }) =>
+        matchedTermCount > 0 && matchesConcreteTerms
+    )
+    .sort(
+      (left, right) =>
+        right.matchedTermCount - left.matchedTermCount ||
+        left.type.localeCompare(right.type)
+    )
+    .map(({ type }) => type);
+  return { matches: rankedMatches.slice(0, 5), total: rankedMatches.length };
+}
+
+const SEARCH_STOP_WORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'for',
+  'forgerock',
+  'in',
+  'of',
+  'the',
+  'to',
+  'environment',
+  'cloud',
+]);
+
+const SEARCH_SYNONYMS: Record<string, string[]> = {
+  count: ['many', 'number', 'total'],
+  identity: ['user', 'person'],
+  list: ['enumerate'],
+  read: ['get'],
+  search: ['find', 'query'],
+  user: ['identity', 'person'],
+};
+
+const MANAGED_TYPE_GENERIC_TERMS = new Set([
+  'count',
+  'enumerate',
+  'find',
+  'get',
+  'group',
+  'identity',
+  'list',
+  'managed',
+  'many',
+  'number',
+  'object',
+  'person',
+  'query',
+  'read',
+  'search',
+  'total',
+  'user',
+]);
+
+function normalizeSearchTerms(query?: string): string[] {
+  if (!query) return [];
+  return [
+    ...new Set(
+      query
+        .toLowerCase()
+        .split(/[^a-z0-9*]+/)
+        .map(normalizeSearchTerm)
+        .filter((term) => term && !SEARCH_STOP_WORDS.has(term))
+    ),
+  ];
+}
+
+function normalizeSearchTerm(term: string): string {
+  if (term === 'identities') return 'identity';
+  if (term.length > 3 && term.endsWith('ies')) return `${term.slice(0, -3)}y`;
+  if (term.length > 3 && term.endsWith('s')) return term.slice(0, -1);
+  return term;
+}
+
+function scoreCapabilitySearch(
+  descriptor: McpCapabilityDescriptor,
+  terms: string[]
+): number {
+  if (terms.length === 0) return 0;
+  const weightedFields: Array<[string, number]> = [
+    [descriptor.id, 12],
+    [descriptor.operationType, 10],
+    [descriptor.domain, 9],
+    [descriptor.objectType, 9],
+    [descriptor.methodName, 8],
+    [descriptor.modulePath.join('.'), 8],
+    [descriptor.scope ?? '', 7],
+    [descriptor.identitySurface ?? '', 7],
+    ...(descriptor.objectTypePatterns ?? []).map(
+      (pattern) => [pattern, 7] as [string, number]
+    ),
+    ...(descriptor.parameters ?? []).flatMap((parameter) => [
+      [parameter.name, 4] as [string, number],
+      [parameter.description ?? '', 2] as [string, number],
+    ]),
+    [descriptor.notes ?? '', 2],
+  ];
+  const operationAliases = [
+    descriptor.operationType,
+    ...(SEARCH_SYNONYMS[descriptor.operationType] ?? []),
+  ];
+  const identityAliases =
+    descriptor.identitySurface === 'managed' ||
+    descriptor.identitySurface === 'am-user' ||
+    descriptor.objectTypePatterns?.some((pattern) => pattern.includes('user'))
+      ? ['user', 'identity', 'person']
+      : [];
+
+  return terms.reduce((score, term) => {
+    const aliases = [term, ...(SEARCH_SYNONYMS[term] ?? [])];
+    const fieldScore = weightedFields.reduce((best, [field, weight]) => {
+      const normalizedField = field.toLowerCase();
+      return aliases.some((alias) => normalizedField.includes(alias))
+        ? Math.max(best, weight)
+        : best;
+    }, 0);
+    const semanticScore = aliases.some(
+      (alias) => operationAliases.includes(alias) || identityAliases.includes(alias)
+    )
+      ? 8
+      : 0;
+    return score + Math.max(fieldScore, semanticScore);
+  }, 0);
+}
+
+function getRoutingRank(status: McpCapabilityRoutingStatus): number {
+  return ['preferred', 'compatible', 'unknown', 'incompatible'].indexOf(status);
 }
 
 function resolveDescriptorForDispatch(

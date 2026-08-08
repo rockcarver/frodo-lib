@@ -282,11 +282,27 @@ describe('MCP hybrid runtime', () => {
 
       expect(payload.skills.map((skill) => skill.skillId)).toEqual([
         preferredSkillId,
-        incompatibleSkillId,
       ]);
       expect(payload.skills[0].routingStatus).toBe('preferred');
-      expect(payload.skills[1].routingStatus).toBe('incompatible');
-      expect(payload.skills[1].routingReason).toContain('Not supported');
+
+      const diagnosticResult = await runtime.executeTool({
+        toolName: 'frodo_find_skills',
+        arguments: { query: 'count users', includeIncompatible: true },
+        context: {
+          auth: {
+            mode: 'state-config',
+            config: { deploymentType },
+          },
+        },
+      });
+      const diagnosticPayload = diagnosticResult.data as {
+        skills: Array<{ skillId: string; routingStatus: string }>;
+      };
+      expect(diagnosticPayload.skills.map((skill) => skill.skillId)).toEqual([
+        preferredSkillId,
+        incompatibleSkillId,
+      ]);
+      expect(diagnosticPayload.skills[1].routingStatus).toBe('incompatible');
 
       if (deploymentType !== 'classic') {
         const managedObjectResult = await runtime.executeTool({
@@ -308,6 +324,107 @@ describe('MCP hybrid runtime', () => {
       }
     }
   );
+
+  test.each([
+    'count users identities in a ForgeRock environment',
+    'how many users are there',
+    'user identity managed user count',
+    'managed object user list query identity cloud total count',
+    'users',
+    'users/groups',
+  ])('find_skills semantically matches managed user intent: %s', async (query) => {
+    const managedDescriptor = makeDescriptor({
+      id: 'idm.managed.countManagedObjects',
+      toolName: 'frodo.idm.managed.countManagedObjects',
+      methodName: 'countManagedObjects',
+      modulePath: ['idm', 'managed'],
+      domain: 'idm',
+      objectType: 'ManagedObject',
+      operationType: 'count',
+      deploymentTypes: ['cloud', 'forgeops'],
+      preferredDeploymentTypes: ['cloud', 'forgeops'],
+      identitySurface: 'managed',
+      objectTypePatterns: ['user', '*_user', 'group', '*_group'],
+      notes: 'Count or query managed identities and native object types.',
+    });
+    const runtime = createToolRuntime(
+      makeManifest([managedDescriptor]),
+      [managedDescriptor]
+    );
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_find_skills',
+      arguments: { query },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: { deploymentType: 'cloud' },
+        },
+      },
+    });
+    const payload = result.data as { skills: Array<{ skillId: string }> };
+    expect(payload.skills[0]?.skillId).toBe(
+      'idm.managed.countManagedObjects'
+    );
+  });
+
+  test('find_skills rejects a non-boolean includeIncompatible value', async () => {
+    const descriptor = makeDescriptor();
+    const runtime = createToolRuntime(makeManifest([descriptor]), [descriptor]);
+
+    await expect(
+      runtime.executeTool({
+        toolName: 'frodo_find_skills',
+        arguments: { includeIncompatible: 'yes' } as any,
+        context: {
+          auth: { mode: 'state-config', config: {} },
+        },
+      })
+    ).rejects.toThrow('includeIncompatible to be a boolean');
+  });
+
+  test('find_skills returns bounded hydrated managed-object type matches', async () => {
+    const descriptor = makeDescriptor({
+      id: 'idm.managed.countManagedObjects',
+      domain: 'idm',
+      objectType: 'ManagedObject',
+      operationType: 'count',
+      identitySurface: 'managed',
+      deploymentTypes: ['cloud'],
+    });
+    const runtime = createToolRuntime(
+      makeManifest([descriptor]),
+      [descriptor],
+      {
+        managedObjectTypes: [
+          'alpha_user',
+          ...Array.from({ length: 12 }, (_, index) => `alpha_${index}`),
+          'bravo_user',
+        ],
+      }
+    );
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_find_skills',
+      arguments: { query: 'alpha_user' },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: { deploymentType: 'cloud' },
+        },
+      },
+    });
+    const payload = result.data as {
+      skills: Array<{
+        matchedObjectTypes?: string[];
+        matchedObjectTypeCount?: number;
+      }>;
+    };
+    expect(payload.skills[0].matchedObjectTypes).toHaveLength(5);
+    expect(payload.skills[0].matchedObjectTypeCount).toBe(13);
+    expect(payload.skills[0].matchedObjectTypes).toContain('alpha_user');
+    expect(payload.skills[0].matchedObjectTypes).not.toContain('bravo_user');
+  });
 
   test('describe_skill returns descriptor contract by id', async () => {
     const descriptor = makeDescriptor();
@@ -415,6 +532,55 @@ describe('MCP hybrid runtime', () => {
     expect(serializedEvents).not.toContain('secret-argument');
     expect(serializedEvents).not.toContain('secretResult');
     expect(serializedEvents).not.toContain('hidden');
+  });
+
+  test('find_skills traces its criteria and top five ranked candidates', async () => {
+    const trace = jest.fn<(event: McpToolRuntimeTraceEvent) => void>();
+    const descriptors = Array.from({ length: 7 }, (_, index) =>
+      makeDescriptor({
+        id: `authn.journey.readJourney${index}`,
+        toolName: `frodo.authn.journey.readJourney${index}`,
+        methodName: `readJourney${index}`,
+      })
+    );
+    const runtime = createToolRuntime(makeManifest(descriptors), descriptors);
+
+    await runtime.executeTool({
+      toolName: 'frodo_find_skills',
+      arguments: {
+        query: 'journey',
+        domain: 'authn',
+        skillIdPrefix: 'authn.journey',
+        kind: 'generic',
+        limit: 7,
+      },
+      context: {
+        trace,
+        auth: {
+          mode: 'state-config',
+          config: { deploymentType: 'classic' },
+        },
+      },
+    });
+
+    expect(trace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'discovery',
+        criteria: {
+          query: 'journey',
+          domain: 'authn',
+          skillIdPrefix: 'authn.journey',
+          kind: 'generic',
+          limit: 7,
+        },
+        candidateCount: 7,
+        resultCount: 7,
+        topCandidates: descriptors.slice(0, 5).map((descriptor) => ({
+          skillId: descriptor.id,
+          routingStatus: 'compatible',
+        })),
+      })
+    );
   });
 
   test('dispatch uses deployment detected by getTokens before invocation', async () => {

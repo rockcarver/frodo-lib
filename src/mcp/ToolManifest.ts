@@ -216,6 +216,10 @@ export type McpDiscoveryEntry = {
   description: string;
   /** Deployment type resolved for this request, when available. */
   activeDeploymentType?: McpDeploymentType;
+  /** Sanitized active MCP target, when supplied by the transport. */
+  activeTarget?: McpDiscoveryTarget;
+  /** Number of tenant managed-object types available to semantic discovery. */
+  managedObjectTypeCount?: number;
   /** Sorted list of all domain keys present in the manifest. */
   domains: string[];
   /**
@@ -240,6 +244,16 @@ export type McpDiscoveryEntry = {
    * operations are supported vs unsupported under the current policy.
    */
   objectTypeOperationSupport?: McpDiscoveryObjectTypeSupport[];
+};
+
+export type McpDiscoveryTarget = {
+  host?: string;
+  profile?: string;
+};
+
+export type McpDiscoveryContext = {
+  managedObjectTypes?: readonly string[];
+  activeTarget?: McpDiscoveryTarget;
 };
 
 /**
@@ -299,7 +313,8 @@ export type McpCanonicalTool = {
  * @returns Fully populated tool manifest ready for MCP runtime registration.
  */
 export function buildToolManifest(
-  capabilities: McpCapabilityDescriptor[]
+  capabilities: McpCapabilityDescriptor[],
+  discoveryContext: McpDiscoveryContext = {}
 ): McpToolManifest {
   const generic = capabilities.filter((c) => c.kind === 'generic');
 
@@ -307,6 +322,13 @@ export function buildToolManifest(
   const genericTools = buildGenericTools(generic);
   const specialTools: McpSpecialTool[] = [];
   const discoveryTool = buildDiscoveryEntry(genericTools);
+  if (discoveryContext.activeTarget) {
+    discoveryTool.activeTarget = { ...discoveryContext.activeTarget };
+  }
+  if (discoveryContext.managedObjectTypes) {
+    discoveryTool.managedObjectTypeCount =
+      discoveryContext.managedObjectTypes.length;
+  }
 
   // Keep domains comprehensive for discovery even when a domain is represented
   // only by special capabilities.
@@ -330,7 +352,7 @@ function buildCanonicalTools(): McpCanonicalTool[] {
     {
       toolName: FIND_SKILLS_TOOL_NAME,
       description:
-        'Search and filter available skills under the active profile boundary. Use this first to narrow candidate operations before dispatch.',
+        'Search available skills under the active target and profile using concise intent or structured selectors. Compatible skills are returned by default; matched native managed-object types are included when available.',
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
