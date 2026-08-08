@@ -6,6 +6,7 @@ import { jest } from '@jest/globals';
 
 import {
   McpCapabilityDescriptor,
+  McpToolRuntimeTraceEvent,
   McpToolManifest,
   createToolRuntime,
 } from '../index';
@@ -106,6 +107,7 @@ function makeManifest(descriptors: McpCapabilityDescriptor[]): McpToolManifest {
                 descriptorId: readDescriptor.id,
                 methodName: readDescriptor.methodName,
                 sourcePath: readDescriptor.id,
+                deploymentTypes: readDescriptor.deploymentTypes,
                 riskClass: readDescriptor.riskClass,
                 annotations: readDescriptor.annotations,
               },
@@ -131,6 +133,7 @@ function makeManifest(descriptors: McpCapabilityDescriptor[]): McpToolManifest {
                 descriptorId: updateDescriptor.id,
                 methodName: updateDescriptor.methodName,
                 sourcePath: updateDescriptor.id,
+                deploymentTypes: updateDescriptor.deploymentTypes,
                 riskClass: updateDescriptor.riskClass,
                 annotations: updateDescriptor.annotations,
               },
@@ -223,6 +226,89 @@ describe('MCP hybrid runtime', () => {
     expect(payload.skills[0].skillId).toBe('authn.journey.readJourney');
   });
 
+  test.each([
+    ['cloud', 'idm.managed.countManagedObjects', 'user.countUsers'],
+    ['forgeops', 'idm.managed.countManagedObjects', 'user.countUsers'],
+    ['classic', 'user.countUsers', 'idm.managed.countManagedObjects'],
+  ] as const)(
+    'find_skills prefers the correct user surface for %s',
+    async (deploymentType, preferredSkillId, incompatibleSkillId) => {
+      const managedDescriptor = makeDescriptor({
+        id: 'idm.managed.countManagedObjects',
+        toolName: 'frodo.idm.managed.countManagedObjects',
+        methodName: 'countManagedObjects',
+        modulePath: ['idm', 'managed'],
+        domain: 'idm',
+        objectType: 'ManagedObject',
+        operationType: 'count',
+        deploymentTypes: ['cloud', 'forgeops'],
+        preferredDeploymentTypes: ['cloud', 'forgeops'],
+        identitySurface: 'managed',
+        objectTypePatterns: ['user', '*_user'],
+      });
+      const amUserDescriptor = makeDescriptor({
+        id: 'user.countUsers',
+        toolName: 'frodo.user.countUsers',
+        methodName: 'countUsers',
+        modulePath: ['user'],
+        domain: 'user',
+        objectType: 'User',
+        operationType: 'count',
+        deploymentTypes: ['classic'],
+        preferredDeploymentTypes: ['classic'],
+        identitySurface: 'am-user',
+        objectTypePatterns: ['user'],
+      });
+      const descriptors = [amUserDescriptor, managedDescriptor];
+      const runtime = createToolRuntime(makeManifest(descriptors), descriptors);
+
+      const result = await runtime.executeTool({
+        toolName: 'frodo_find_skills',
+        arguments: { query: 'count users' },
+        context: {
+          auth: {
+            mode: 'state-config',
+            config: { deploymentType },
+          },
+        },
+      });
+      const payload = result.data as {
+        skills: Array<{
+          skillId: string;
+          routingStatus: string;
+          routingReason: string;
+        }>;
+      };
+
+      expect(payload.skills.map((skill) => skill.skillId)).toEqual([
+        preferredSkillId,
+        incompatibleSkillId,
+      ]);
+      expect(payload.skills[0].routingStatus).toBe('preferred');
+      expect(payload.skills[1].routingStatus).toBe('incompatible');
+      expect(payload.skills[1].routingReason).toContain('Not supported');
+
+      if (deploymentType !== 'classic') {
+        const managedObjectResult = await runtime.executeTool({
+          toolName: 'frodo_find_skills',
+          arguments: { query: 'alpha_user' },
+          context: {
+            auth: {
+              mode: 'state-config',
+              config: { deploymentType },
+            },
+          },
+        });
+        const managedObjectPayload = managedObjectResult.data as {
+          skills: Array<{ skillId: string }>;
+        };
+        expect(managedObjectPayload.skills[0].skillId).toBe(
+          'idm.managed.countManagedObjects'
+        );
+      }
+    }
+  );
+
   test('describe_skill returns descriptor contract by id', async () => {
     const descriptor = makeDescriptor();
     const manifest = makeManifest([descriptor]);
@@ -288,6 +374,86 @@ describe('MCP hybrid runtime', () => {
     expect(readJourney).toHaveBeenCalledWith('journey-123');
     expect(result.descriptorId).toBe(descriptor.id);
     expect(result.data).toEqual({ id: 'journey-123' });
+  });
+
+  test('runtime traces lifecycle metadata without arguments or results', async () => {
+    const trace = jest.fn<(event: McpToolRuntimeTraceEvent) => void>();
+    const readJourney = jest.fn(async () => ({ secretResult: 'hidden' }));
+    const descriptor = makeDescriptor();
+    const runtime = createToolRuntime(makeManifest([descriptor]), [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          login: { getTokens: jest.fn(async () => {}) },
+          authn: { journey: { readJourney } },
+        }) as any,
+    });
+
+    await runtime.executeTool({
+      toolName: 'frodo_dispatch_read_only',
+      arguments: {
+        skillId: descriptor.id,
+        positionalArgs: ['secret-argument'],
+      },
+      context: {
+        requestId: 'request-123',
+        trace,
+        auth: {
+          mode: 'state-config',
+          config: { deploymentType: 'classic' },
+        },
+      },
+    });
+
+    expect(trace.mock.calls.map(([event]) => event.event)).toEqual([
+      'selection',
+      'dispatch-start',
+      'dispatch-success',
+    ]);
+    const serializedEvents = JSON.stringify(trace.mock.calls);
+    expect(serializedEvents).toContain('request-123');
+    expect(serializedEvents).toContain(descriptor.id);
+    expect(serializedEvents).not.toContain('secret-argument');
+    expect(serializedEvents).not.toContain('secretResult');
+    expect(serializedEvents).not.toContain('hidden');
+  });
+
+  test('dispatch uses deployment detected by getTokens before invocation', async () => {
+    let detectedDeployment: string | undefined;
+    const countUsers = jest.fn(async () => 1);
+    const getTokens = jest.fn(async () => {
+      detectedDeployment = 'cloud';
+    });
+    const descriptor = makeDescriptor({
+      id: 'user.countUsers',
+      toolName: 'frodo.user.countUsers',
+      methodName: 'countUsers',
+      modulePath: ['user'],
+      domain: 'user',
+      objectType: 'User',
+      operationType: 'count',
+      deploymentTypes: ['classic'],
+      preferredDeploymentTypes: ['classic'],
+      identitySurface: 'am-user',
+      objectTypePatterns: ['user'],
+    });
+    const runtime = createToolRuntime(makeManifest([descriptor]), [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          state: { getDeploymentType: () => detectedDeployment },
+          login: { getTokens },
+          user: { countUsers },
+        }) as any,
+    });
+
+    await expect(
+      runtime.executeTool({
+        toolName: 'frodo_dispatch_read_only',
+        arguments: { skillId: descriptor.id },
+        context: { auth: { mode: 'state-config', config: {} } },
+      })
+    ).rejects.toThrow("not supported for deployment 'cloud'");
+    expect(getTokens).toHaveBeenCalledTimes(1);
+    expect(countUsers).not.toHaveBeenCalled();
   });
 
   test('dispatch executes mutating descriptor selected by tuple', async () => {

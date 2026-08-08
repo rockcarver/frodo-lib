@@ -19,6 +19,12 @@ export {
 } from './CapabilityTypes';
 export { MCP_POLICY_PRESETS, applyCapabilityPolicy } from './CapabilityPolicy';
 export {
+  McpCapabilityRouting,
+  McpCapabilityRoutingStatus,
+  describeCapabilityRouting,
+  rankCapabilitiesForDeployment,
+} from './CapabilityRouting';
+export {
   capabilityMatchesAnyProfile,
   capabilityMatchesDisabled,
   getMcpProfileDefinition,
@@ -56,6 +62,8 @@ export {
   McpToolExecutionMetadata,
   McpToolRuntime,
   McpToolRuntimeOptions,
+  McpToolRuntimeTraceEvent,
+  McpToolRuntimeTraceHandler,
   createToolRuntime,
   resolveRequestScopedFrodo,
 } from './ToolRuntime';

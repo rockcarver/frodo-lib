@@ -26,6 +26,8 @@ import {
   McpCapabilityOperationType,
   McpCapabilityParameter,
   McpCapabilityRiskClass,
+  McpDeploymentType,
+  McpIdentitySurface,
   McpToolAnnotations,
 } from './CapabilityTypes';
 
@@ -109,6 +111,14 @@ export type McpObjectTypeEntry = {
   supportsIncludeTotal?: boolean;
   /** Optional human-readable notes for agents. */
   notes?: string;
+  /** Deployment families where this operation is functional. */
+  deploymentTypes: McpDeploymentType[];
+  /** Deployment families where this operation is preferred. */
+  preferredDeploymentTypes?: McpDeploymentType[];
+  /** Identity data surface used by this operation. */
+  identitySurface?: McpIdentitySurface;
+  /** Managed-object type patterns associated with this operation. */
+  objectTypePatterns?: string[];
   /** Risk class of the backing descriptor. */
   riskClass: McpCapabilityRiskClass;
   /** MCP annotations from the backing descriptor. */
@@ -132,6 +142,10 @@ export type McpDiscoveryOperationDetail = {
   supportsRealm?: boolean;
   supportsPaging?: boolean;
   supportsIncludeTotal?: boolean;
+  deploymentTypes: McpDeploymentType[];
+  preferredDeploymentTypes?: McpDeploymentType[];
+  identitySurface?: McpIdentitySurface;
+  objectTypePatterns?: string[];
   notes?: string;
 };
 
@@ -200,6 +214,8 @@ export type McpDiscoveryEntry = {
   toolName: typeof DISCOVERY_TOOL_NAME;
   /** Description for MCP tool registration. */
   description: string;
+  /** Deployment type resolved for this request, when available. */
+  activeDeploymentType?: McpDeploymentType;
   /** Sorted list of all domain keys present in the manifest. */
   domains: string[];
   /**
@@ -393,6 +409,16 @@ function buildGenericTools(
       supportsRealm: d.supportsRealm,
       supportsPaging: d.supportsPaging,
       supportsIncludeTotal: d.supportsIncludeTotal,
+      deploymentTypes: d.deploymentTypes,
+      ...(d.preferredDeploymentTypes !== undefined && {
+        preferredDeploymentTypes: d.preferredDeploymentTypes,
+      }),
+      ...(d.identitySurface !== undefined && {
+        identitySurface: d.identitySurface,
+      }),
+      ...(d.objectTypePatterns !== undefined && {
+        objectTypePatterns: d.objectTypePatterns,
+      }),
       ...(d.notes !== undefined && { notes: d.notes }),
       riskClass: d.riskClass,
       annotations: d.annotations,
@@ -472,6 +498,16 @@ function buildDiscoveryEntry(
         supportsRealm: entry.supportsRealm,
         supportsPaging: entry.supportsPaging,
         supportsIncludeTotal: entry.supportsIncludeTotal,
+        deploymentTypes: entry.deploymentTypes,
+        ...(entry.preferredDeploymentTypes !== undefined && {
+          preferredDeploymentTypes: entry.preferredDeploymentTypes,
+        }),
+        ...(entry.identitySurface !== undefined && {
+          identitySurface: entry.identitySurface,
+        }),
+        ...(entry.objectTypePatterns !== undefined && {
+          objectTypePatterns: entry.objectTypePatterns,
+        }),
         ...(entry.notes !== undefined && { notes: entry.notes }),
       });
     }

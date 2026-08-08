@@ -190,7 +190,7 @@ export type McpCapabilityPolicyPresetName =
  *
  * @remarks
  * - `managed` — IDM managed objects accessed via `openidm/managed/` (cloud + forgeops only)
- * - `am-user` — AM realm users accessed via the AM REST API (all deployment types)
+ * - `am-user` — AM realm users accessed via the AM REST API (classic only)
  * - `connector-system` — Objects in an ICF connector system via `openidm/system/` (cloud + forgeops only)
  * - `unknown` — Surface not classified
  */

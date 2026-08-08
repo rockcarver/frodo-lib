@@ -30,6 +30,11 @@ import {
   McpSpecialTool,
   McpToolManifest,
 } from './ToolManifest';
+import {
+  describeCapabilityRouting,
+  McpCapabilityRoutingStatus,
+  rankCapabilitiesForDeployment,
+} from './CapabilityRouting';
 
 const FIND_SKILLS_TOOL_NAME = 'frodo_find_skills';
 const DESCRIBE_SKILL_TOOL_NAME = 'frodo_describe_skill';
@@ -117,7 +122,32 @@ export type McpRuntimeRequestContext = {
   requestId?: string;
   /** Auth mode and credential payload for this request. */
   auth: McpRuntimeAuth;
+  /** Optional request-scoped sink for payload-free lifecycle traces. */
+  trace?: McpToolRuntimeTraceHandler;
 };
+
+export type McpToolRuntimeTraceEvent = {
+  event:
+    | 'discovery'
+    | 'selection'
+    | 'dispatch-start'
+    | 'dispatch-success'
+    | 'dispatch-failure'
+    | 'compatibility-rejection';
+  requestId?: string;
+  toolName: string;
+  descriptorId?: string;
+  deploymentType?: McpDeploymentType;
+  candidateCount?: number;
+  resultCount?: number;
+  routingReason?: string;
+  elapsedMs?: number;
+  error?: string;
+};
+
+export type McpToolRuntimeTraceHandler = (
+  event: McpToolRuntimeTraceEvent
+) => void | Promise<void>;
 
 /**
  * Generic-tool execution arguments.
@@ -327,6 +357,8 @@ export type McpToolRuntimeOptions = {
    * Defaults to `65536` bytes.
    */
   resultWarningThresholdBytes?: number;
+  /** Optional service-wide sink for payload-free lifecycle traces. */
+  trace?: McpToolRuntimeTraceHandler;
 };
 
 /**
@@ -389,15 +421,41 @@ export function createToolRuntime(
     }
 
     if (request.toolName === manifest.discoveryTool.toolName) {
+      const deploymentType = await resolveDeploymentForDiscovery(
+        request.context,
+        frodoRoot,
+        options.resolveFrodoForRequest
+      );
+      emitRuntimeTrace(request, options, {
+        event: 'discovery',
+        toolName: request.toolName,
+        deploymentType,
+        resultCount: capabilities.length,
+      });
       return {
         toolName: request.toolName,
-        data: manifest.discoveryTool,
+        data: {
+          ...manifest.discoveryTool,
+          ...(deploymentType && { activeDeploymentType: deploymentType }),
+        },
       };
     }
 
     if (request.toolName === FIND_SKILLS_TOOL_NAME) {
       const args = parseFindSkillsArguments(request.arguments);
-      const result = findSkills(capabilities, args);
+      const deploymentType = await resolveDeploymentForDiscovery(
+        request.context,
+        frodoRoot,
+        options.resolveFrodoForRequest
+      );
+      const result = findSkills(capabilities, args, deploymentType);
+      emitRuntimeTrace(request, options, {
+        event: 'discovery',
+        toolName: request.toolName,
+        deploymentType,
+        candidateCount: result.total,
+        resultCount: result.returned,
+      });
       return {
         toolName: request.toolName,
         data: result,
@@ -436,13 +494,31 @@ export function createToolRuntime(
         request.context,
         args
       );
+      const scopedFrodo = await resolveScopedFrodoInstance(
+        contextForExecution,
+        frodoRoot,
+        options.resolveFrodoForRequest
+      );
+      const deploymentType = resolveScopedDeploymentType(
+        scopedFrodo,
+        contextForExecution
+      );
       const descriptor = resolveDescriptorForDispatch(
         request.toolName,
         args,
         byId,
         genericDescriptorIndex,
-        manifest.discoveryTool
+        manifest.discoveryTool,
+        deploymentType
       );
+      const routing = describeCapabilityRouting(descriptor, deploymentType);
+      emitRuntimeTrace(request, options, {
+        event: 'selection',
+        toolName: request.toolName,
+        descriptorId: descriptor.id,
+        deploymentType,
+        routingReason: routing.reason,
+      });
 
       if (
         request.toolName === DISPATCH_READ_ONLY_TOOL_NAME &&
@@ -462,24 +538,58 @@ export function createToolRuntime(
         );
       }
 
-      assertDeploymentCompatibility(descriptor, contextForExecution);
-      const scopedFrodo = await resolveScopedFrodoInstance(
-        contextForExecution,
-        frodoRoot,
-        options.resolveFrodoForRequest
-      );
-      const methodResult =
-        descriptor.kind === 'generic'
-          ? await invokeGenericDescriptorMethod(
-              scopedFrodo,
-              descriptor,
-              args as McpGenericExecutionArguments
-            )
-          : await invokeDescriptorMethod(
-              scopedFrodo,
-              descriptor,
-              toInvocationArgs(args, descriptor)
-            );
+      try {
+        assertDeploymentCompatibility(descriptor, deploymentType);
+      } catch (error) {
+        emitRuntimeTrace(request, options, {
+          event: 'compatibility-rejection',
+          toolName: request.toolName,
+          descriptorId: descriptor.id,
+          deploymentType,
+          routingReason: routing.reason,
+          error: toErrorMessage(error),
+        });
+        throw error;
+      }
+      const startedAt = Date.now();
+      emitRuntimeTrace(request, options, {
+        event: 'dispatch-start',
+        toolName: request.toolName,
+        descriptorId: descriptor.id,
+        deploymentType,
+      });
+      let methodResult: unknown;
+      try {
+        methodResult =
+          descriptor.kind === 'generic'
+            ? await invokeGenericDescriptorMethod(
+                scopedFrodo,
+                descriptor,
+                args as McpGenericExecutionArguments
+              )
+            : await invokeDescriptorMethod(
+                scopedFrodo,
+                descriptor,
+                toInvocationArgs(args, descriptor)
+              );
+        emitRuntimeTrace(request, options, {
+          event: 'dispatch-success',
+          toolName: request.toolName,
+          descriptorId: descriptor.id,
+          deploymentType,
+          elapsedMs: Date.now() - startedAt,
+        });
+      } catch (error) {
+        emitRuntimeTrace(request, options, {
+          event: 'dispatch-failure',
+          toolName: request.toolName,
+          descriptorId: descriptor.id,
+          deploymentType,
+          elapsedMs: Date.now() - startedAt,
+          error: toErrorMessage(error),
+        });
+        throw error;
+      }
       const metadata = buildGenericExecutionMetadata(
         methodResult,
         args as McpGenericExecutionArguments,
@@ -499,11 +609,14 @@ export function createToolRuntime(
 
     const specialTool = specialToolIndex.get(request.toolName);
     if (specialTool) {
-      assertDeploymentCompatibility(specialTool.descriptor, request.context);
       const scopedFrodo = await resolveScopedFrodoInstance(
         request.context,
         frodoRoot,
         options.resolveFrodoForRequest
+      );
+      assertDeploymentCompatibility(
+        specialTool.descriptor,
+        resolveScopedDeploymentType(scopedFrodo, request.context)
       );
       const methodResult = await invokeDescriptorMethod(
         scopedFrodo,
@@ -534,6 +647,33 @@ export function createToolRuntime(
   };
 }
 
+function emitRuntimeTrace(
+  request: McpToolExecutionRequest,
+  options: McpToolRuntimeOptions,
+  event: Omit<McpToolRuntimeTraceEvent, 'requestId'>
+): void {
+  const traceEvent: McpToolRuntimeTraceEvent = {
+    ...event,
+    ...(request.context.requestId && {
+      requestId: request.context.requestId,
+    }),
+  };
+  for (const handler of [options.trace, request.context.trace]) {
+    if (!handler) {
+      continue;
+    }
+    try {
+      void Promise.resolve(handler(traceEvent)).catch(() => undefined);
+    } catch {
+      // Tracing must never alter tool behavior.
+    }
+  }
+}
+
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.name : 'Error';
+}
+
 /**
  * Validates that the descriptor is supported for the request deployment type.
  *
@@ -547,10 +687,9 @@ export function createToolRuntime(
  */
 function assertDeploymentCompatibility(
   descriptor: McpCapabilityDescriptor,
-  context: McpRuntimeRequestContext
+  deploymentType?: McpDeploymentType
 ): void {
-  const deploymentType = resolveContextDeploymentType(context);
-  if (!deploymentType) {
+  if (!deploymentType || deploymentType === 'any') {
     return;
   }
 
@@ -584,6 +723,22 @@ function resolveContextDeploymentType(
       ? context.auth.config?.deploymentType
       : context.auth.deploymentType;
 
+  return normalizeDeploymentType(rawType);
+}
+
+function resolveScopedDeploymentType(
+  scopedFrodo: Frodo,
+  context: McpRuntimeRequestContext
+): McpDeploymentType | undefined {
+  return (
+    normalizeDeploymentType(scopedFrodo.state?.getDeploymentType?.()) ??
+    resolveContextDeploymentType(context)
+  );
+}
+
+function normalizeDeploymentType(
+  rawType: unknown
+): McpDeploymentType | undefined {
   if (typeof rawType !== 'string') {
     return undefined;
   }
@@ -696,18 +851,21 @@ function buildGenericDescriptorIndex(
 function selectGenericDescriptor(
   toolName: string,
   args: McpGenericExecutionArguments,
-  descriptors: McpCapabilityDescriptor[]
+  descriptors: McpCapabilityDescriptor[],
+  deploymentType?: McpDeploymentType
 ): McpCapabilityDescriptor {
   if (descriptors.length === 1) {
     return descriptors[0];
   }
+
+  let candidates = descriptors;
 
   const requestedScope =
     typeof args.scope === 'string' && args.scope.trim().length > 0
       ? args.scope.trim()
       : undefined;
   if (requestedScope) {
-    const scopedDescriptors = descriptors.filter(
+    const scopedDescriptors = candidates.filter(
       (descriptor) => descriptor.scope === requestedScope
     );
     if (scopedDescriptors.length === 1) {
@@ -727,23 +885,24 @@ function selectGenericDescriptor(
         `MCP runtime error: tool '${toolName}' does not support scope '${requestedScope}' for domain '${args.domain}' and objectType '${args.objectType}'. Supported scopes: ${supportedScopes.join(', ')}.`
       );
     }
+    candidates = scopedDescriptors;
   }
 
   if (args.namedArgs && typeof args.namedArgs === 'object') {
-    const matchingDescriptor = descriptors.find((descriptor) =>
+    const matchingDescriptors = candidates.filter((descriptor) =>
       matchesNamedArgumentShape(
         descriptor,
         args.namedArgs as Record<string, unknown>
       )
     );
-    if (matchingDescriptor) {
-      return matchingDescriptor;
+    if (matchingDescriptors.length > 0) {
+      candidates = matchingDescriptors;
     }
   }
 
   const supportedScopes = [
     ...new Set(
-      descriptors
+      candidates
         .map((descriptor) => descriptor.scope)
         .filter(
           (scope): scope is NonNullable<typeof scope> => scope !== undefined
@@ -756,7 +915,7 @@ function selectGenericDescriptor(
     );
   }
 
-  return descriptors[0];
+  return rankCapabilitiesForDeployment(candidates, deploymentType)[0];
 }
 
 /**
@@ -835,6 +994,35 @@ async function resolveScopedFrodoInstance(
   }
 
   return scopedFrodo;
+}
+
+async function resolveDeploymentForDiscovery(
+  context: McpRuntimeRequestContext,
+  frodoRoot: Frodo,
+  customResolver?: (
+    context: McpRuntimeRequestContext,
+    frodoRoot: Frodo
+  ) => Frodo | Promise<Frodo>
+): Promise<McpDeploymentType | undefined> {
+  const configuredDeployment = resolveContextDeploymentType(context);
+  if (configuredDeployment) {
+    return configuredDeployment;
+  }
+
+  const configuredHost =
+    context.auth.mode === 'state-config'
+      ? context.auth.config.host
+      : context.auth.host;
+  if (!configuredHost) {
+    return undefined;
+  }
+
+  const scopedFrodo = await resolveScopedFrodoInstance(
+    context,
+    frodoRoot,
+    customResolver
+  );
+  return resolveScopedDeploymentType(scopedFrodo, context);
 }
 
 /**
@@ -1027,7 +1215,8 @@ function parseDispatchExecutionArguments(
 
 function findSkills(
   capabilities: McpCapabilityDescriptor[],
-  args: McpFindSkillsArguments
+  args: McpFindSkillsArguments,
+  deploymentType?: McpDeploymentType
 ): {
   total: number;
   returned: number;
@@ -1040,6 +1229,12 @@ function findSkills(
     methodName: string;
     modulePath: string;
     riskClass: McpCapabilityDescriptor['riskClass'];
+    deploymentTypes: McpCapabilityDescriptor['deploymentTypes'];
+    preferredDeploymentTypes?: McpCapabilityDescriptor['preferredDeploymentTypes'];
+    identitySurface?: McpCapabilityDescriptor['identitySurface'];
+    objectTypePatterns?: string[];
+    routingStatus: McpCapabilityRoutingStatus;
+    routingReason: string;
     argumentMode?: McpCapabilityDescriptor['argumentMode'];
     scope?: string;
   }>;
@@ -1089,28 +1284,54 @@ function findSkills(
       descriptor.modulePath.join('.'),
       descriptor.scope ?? '',
       descriptor.notes ?? '',
+      descriptor.identitySurface ?? '',
+      ...(descriptor.objectTypePatterns ?? []),
     ]
       .join(' ')
       .toLowerCase();
-    return haystack.includes(query);
+    return query
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((term) =>
+        term.length > 3 && term.endsWith('s') ? term.slice(0, -1) : term
+      )
+      .every(
+        (term) =>
+          haystack.includes(term) ||
+          descriptor.objectTypePatterns?.some((pattern) =>
+            matchesGlobPattern(term, pattern)
+          )
+      );
   });
 
   const limit = args.limit ?? 100;
-  const results = filtered
-    .sort((left, right) => left.id.localeCompare(right.id))
+  const results = rankCapabilitiesForDeployment(
+    filtered,
+    deploymentType,
+    args.query
+  )
     .slice(0, limit)
-    .map((descriptor) => ({
-      skillId: descriptor.id,
-      kind: descriptor.kind,
-      operationType: descriptor.operationType,
-      domain: descriptor.domain,
-      objectType: descriptor.objectType,
-      methodName: descriptor.methodName,
-      modulePath: descriptor.modulePath.join('.'),
-      riskClass: descriptor.riskClass,
-      argumentMode: descriptor.argumentMode,
-      scope: descriptor.scope,
-    }));
+    .map((descriptor) => {
+      const routing = describeCapabilityRouting(descriptor, deploymentType);
+      return {
+        skillId: descriptor.id,
+        kind: descriptor.kind,
+        operationType: descriptor.operationType,
+        domain: descriptor.domain,
+        objectType: descriptor.objectType,
+        methodName: descriptor.methodName,
+        modulePath: descriptor.modulePath.join('.'),
+        riskClass: descriptor.riskClass,
+        deploymentTypes: descriptor.deploymentTypes,
+        preferredDeploymentTypes: descriptor.preferredDeploymentTypes,
+        identitySurface: descriptor.identitySurface,
+        objectTypePatterns: descriptor.objectTypePatterns,
+        routingStatus: routing.status,
+        routingReason: routing.reason,
+        argumentMode: descriptor.argumentMode,
+        scope: descriptor.scope,
+      };
+    });
 
   return {
     total: filtered.length,
@@ -1119,12 +1340,20 @@ function findSkills(
   };
 }
 
+function matchesGlobPattern(value: string, pattern: string): boolean {
+  const expression = pattern
+    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*/g, '.*');
+  return new RegExp(`^${expression}$`, 'i').test(value);
+}
+
 function resolveDescriptorForDispatch(
   toolName: string,
   args: McpDispatchExecutionArguments,
   descriptorById: Map<string, McpCapabilityDescriptor>,
   genericDescriptorIndex: Map<string, McpCapabilityDescriptor[]>,
-  discovery: McpDiscoveryEntry
+  discovery: McpDiscoveryEntry,
+  deploymentType?: McpDeploymentType
 ): McpCapabilityDescriptor {
   if (args.skillId) {
     const descriptor = descriptorById.get(args.skillId);
@@ -1156,7 +1385,8 @@ function resolveDescriptorForDispatch(
   return selectGenericDescriptor(
     toolName,
     args as McpGenericExecutionArguments,
-    descriptors
+    descriptors,
+    deploymentType
   );
 }
 

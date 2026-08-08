@@ -115,6 +115,36 @@ describe('MCP tool manifest builder', () => {
     );
   });
 
+  test('discovery exposes deployment-aware identity routing metadata', () => {
+    const inventory = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['idm', 'user'],
+    });
+    const manifest = buildToolManifest(inventory);
+    const managedCount =
+      manifest.discoveryTool.operationDetailsByType?.count?.find(
+        (entry) => entry.descriptorId === 'idm.managed.countManagedObjects'
+      );
+    const amUserCount =
+      manifest.discoveryTool.operationDetailsByType?.count?.find(
+        (entry) => entry.descriptorId === 'user.countUsers'
+      );
+
+    expect(managedCount).toMatchObject({
+      deploymentTypes: ['cloud', 'forgeops'],
+      preferredDeploymentTypes: ['cloud', 'forgeops'],
+      identitySurface: 'managed',
+    });
+    expect(managedCount?.objectTypePatterns).toEqual(
+      expect.arrayContaining(['user', '*_user'])
+    );
+    expect(amUserCount).toMatchObject({
+      deploymentTypes: ['classic'],
+      preferredDeploymentTypes: ['classic'],
+      identitySurface: 'am-user',
+      objectTypePatterns: ['user'],
+    });
+  });
+
   test('discovery keeps single and bulk journey exports distinct', () => {
     const inventory = buildCapabilityInventory(frodo, {
       includeTopLevelDomains: ['authn'],

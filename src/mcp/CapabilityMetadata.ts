@@ -1751,6 +1751,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     preferredDeploymentTypes: IDM_DEPLOYMENTS,
     identitySurface: 'managed',
     objectTypePatterns: [
+      'user',
       '*_user',
       '*_organization',
       '*_application',
@@ -1791,9 +1792,9 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
  * Resolves the most specific {@link OperationCapabilityMeta} entry for a capability id.
  *
  * @remarks
- * Lookup order (first match wins):
- * 1. Exact id match.
- * 2. Longest module-prefix match (key is a strict prefix of `<capabilityId>.`).
+ * Matching module-prefix metadata is composed from least to most specific,
+ * then exact operation metadata is applied last. This lets exact argument
+ * contracts inherit deployment and identity-surface metadata from their module.
  *
  * @param capabilityId Full dot-path capability id, e.g. `"idm.managed.countManagedObjects"`.
  * @returns The matching metadata entry, or `undefined` if no entry covers this id.
@@ -1801,23 +1802,23 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
 export function resolveCapabilityMeta(
   capabilityId: string
 ): OperationCapabilityMeta | undefined {
-  // 1. Exact match.
-  if (Object.prototype.hasOwnProperty.call(CAPABILITY_META, capabilityId)) {
-    return CAPABILITY_META[capabilityId];
+  const matchingPrefixes = Object.keys(CAPABILITY_META)
+    .filter((key) => capabilityId.startsWith(`${key}.`))
+    .sort((left, right) => left.length - right.length);
+  const exactMeta = Object.prototype.hasOwnProperty.call(
+    CAPABILITY_META,
+    capabilityId
+  )
+    ? CAPABILITY_META[capabilityId]
+    : undefined;
+
+  if (matchingPrefixes.length === 0 && exactMeta === undefined) {
+    return undefined;
   }
 
-  // 2. Longest prefix match. A key is a valid prefix when the capability id
-  //    starts with `<key>.` (the dot ensures we never match 'idm.map' as a
-  //    prefix of 'idm.mapping.something').
-  let bestKey: string | undefined;
-  for (const key of Object.keys(CAPABILITY_META)) {
-    if (
-      capabilityId.startsWith(`${key}.`) &&
-      (bestKey === undefined || key.length > bestKey.length)
-    ) {
-      bestKey = key;
-    }
-  }
-
-  return bestKey !== undefined ? CAPABILITY_META[bestKey] : undefined;
+  return Object.assign(
+    {},
+    ...matchingPrefixes.map((key) => CAPABILITY_META[key]),
+    exactMeta ?? {}
+  );
 }
