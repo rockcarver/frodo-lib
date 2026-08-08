@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [v4.2.1] - 2026-08-08
+
+### Added
+- Introduced dynamic resolution of managed object families in the MCP module, enhancing flexibility in handling object hierarchies. This feature allows for more adaptive and context-aware management of object relationships. (#623, commit f6e258993)
+- Added semantic object family discovery in the MCP module, improving the ability to categorize and manage objects based on their semantic relationships. This addition facilitates more intuitive and efficient object management. (#623, commit f3e1dccd1)
+- Enhanced managed-object discovery and diagnostics in the MCP module, providing improved tools for identifying and troubleshooting object configurations. This enhancement aids developers in maintaining and optimizing their deployments. (#623, commit 825ef8e58)
+
 ## [v4.2.0] - 2026-08-08
 
 ### Added
