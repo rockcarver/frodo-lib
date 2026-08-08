@@ -30,6 +30,23 @@ import {
   McpSpecialTool,
   McpToolManifest,
 } from './ToolManifest';
+import {
+  describeCapabilityRouting,
+  McpCapabilityRoutingStatus,
+  rankCapabilitiesForDeployment,
+} from './CapabilityRouting';
+
+const FIND_SKILLS_TOOL_NAME = 'frodo_find_skills';
+const DESCRIBE_SKILL_TOOL_NAME = 'frodo_describe_skill';
+const DISPATCH_READ_ONLY_TOOL_NAME = 'frodo_dispatch_read_only';
+const DISPATCH_TOOL_NAME = 'frodo_dispatch';
+
+const READ_ONLY_OPERATION_TYPES: McpCapabilityOperationType[] = [
+  'count',
+  'read',
+  'list',
+  'search',
+];
 
 /**
  * Credentials payload for a service-account request context.
@@ -105,7 +122,32 @@ export type McpRuntimeRequestContext = {
   requestId?: string;
   /** Auth mode and credential payload for this request. */
   auth: McpRuntimeAuth;
+  /** Optional request-scoped sink for payload-free lifecycle traces. */
+  trace?: McpToolRuntimeTraceHandler;
 };
+
+export type McpToolRuntimeTraceEvent = {
+  event:
+    | 'discovery'
+    | 'selection'
+    | 'dispatch-start'
+    | 'dispatch-success'
+    | 'dispatch-failure'
+    | 'compatibility-rejection';
+  requestId?: string;
+  toolName: string;
+  descriptorId?: string;
+  deploymentType?: McpDeploymentType;
+  candidateCount?: number;
+  resultCount?: number;
+  routingReason?: string;
+  elapsedMs?: number;
+  error?: string;
+};
+
+export type McpToolRuntimeTraceHandler = (
+  event: McpToolRuntimeTraceEvent
+) => void | Promise<void>;
 
 /**
  * Generic-tool execution arguments.
@@ -130,6 +172,36 @@ export type McpGenericExecutionArguments = {
   /** Optional positional args forwarded to the underlying Frodo method. */
   positionalArgs?: unknown[];
   /** Optional named args forwarded as a single object argument. */
+  namedArgs?: Record<string, unknown>;
+};
+
+export type McpFindSkillsArguments = {
+  query?: string;
+  domain?: string;
+  objectType?: string;
+  skillIdPrefix?: string;
+  operationTypes?: McpCapabilityOperationType[];
+  riskClasses?: Array<'low' | 'medium' | 'high' | 'critical'>;
+  kind?: 'generic' | 'special';
+  limit?: number;
+};
+
+export type McpDescribeSkillArguments = {
+  skillId: string;
+};
+
+export type McpDispatchExecutionArguments = {
+  skillId?: string;
+  operationType?: McpCapabilityOperationType;
+  domain?: string;
+  objectType?: string;
+  scope?: string;
+  realm?: string;
+  pageSize?: number;
+  pageOffset?: number;
+  pageToken?: string;
+  includeTotal?: boolean;
+  positionalArgs?: unknown[];
   namedArgs?: Record<string, unknown>;
 };
 
@@ -231,6 +303,9 @@ export type McpToolExecutionRequest = {
    */
   arguments?:
     | McpGenericExecutionArguments
+    | McpFindSkillsArguments
+    | McpDescribeSkillArguments
+    | McpDispatchExecutionArguments
     | McpSpecialExecutionArguments
     | Record<string, unknown>;
   /** Request-scoped context used to create an isolated Frodo instance. */
@@ -282,6 +357,8 @@ export type McpToolRuntimeOptions = {
    * Defaults to `65536` bytes.
    */
   resultWarningThresholdBytes?: number;
+  /** Optional service-wide sink for payload-free lifecycle traces. */
+  trace?: McpToolRuntimeTraceHandler;
 };
 
 /**
@@ -344,76 +421,202 @@ export function createToolRuntime(
     }
 
     if (request.toolName === manifest.discoveryTool.toolName) {
+      const deploymentType = await resolveDeploymentForDiscovery(
+        request.context,
+        frodoRoot,
+        options.resolveFrodoForRequest
+      );
+      emitRuntimeTrace(request, options, {
+        event: 'discovery',
+        toolName: request.toolName,
+        deploymentType,
+        resultCount: capabilities.length,
+      });
       return {
         toolName: request.toolName,
-        data: manifest.discoveryTool,
+        data: {
+          ...manifest.discoveryTool,
+          ...(deploymentType && { activeDeploymentType: deploymentType }),
+        },
       };
     }
 
-    const genericTool = manifest.genericTools.find(
-      (t) => t.toolName === request.toolName
-    );
-    if (genericTool) {
-      const args = parseGenericArguments(request.arguments);
-      const contextForExecution = applyGenericScopeOverride(
+    if (request.toolName === FIND_SKILLS_TOOL_NAME) {
+      const args = parseFindSkillsArguments(request.arguments);
+      const deploymentType = await resolveDeploymentForDiscovery(
+        request.context,
+        frodoRoot,
+        options.resolveFrodoForRequest
+      );
+      const result = findSkills(capabilities, args, deploymentType);
+      emitRuntimeTrace(request, options, {
+        event: 'discovery',
+        toolName: request.toolName,
+        deploymentType,
+        candidateCount: result.total,
+        resultCount: result.returned,
+      });
+      return {
+        toolName: request.toolName,
+        data: result,
+      };
+    }
+
+    if (request.toolName === DESCRIBE_SKILL_TOOL_NAME) {
+      const args = parseDescribeSkillArguments(request.arguments);
+      const descriptor = byId.get(args.skillId);
+      if (!descriptor) {
+        throw new FrodoError(
+          `MCP runtime error: unknown skillId '${args.skillId}'. Use '${FIND_SKILLS_TOOL_NAME}' first.`
+        );
+      }
+      return {
+        toolName: request.toolName,
+        descriptorId: descriptor.id,
+        data: {
+          descriptor,
+          supportedSelectors: {
+            operationType: descriptor.operationType,
+            domain: descriptor.domain,
+            objectType: descriptor.objectType,
+            scope: descriptor.scope,
+          },
+        },
+      };
+    }
+
+    if (
+      request.toolName === DISPATCH_READ_ONLY_TOOL_NAME ||
+      request.toolName === DISPATCH_TOOL_NAME
+    ) {
+      const args = parseDispatchExecutionArguments(request.arguments);
+      const contextForExecution = applyDispatchScopeOverride(
         request.context,
         args
       );
-      const key = buildGenericDescriptorIndexKey(
-        genericTool.operationType,
-        args.domain,
-        args.objectType
-      );
-      const descriptors = genericDescriptorIndex.get(key);
-      if (!descriptors || descriptors.length === 0) {
-        throw new FrodoError(
-          buildUnsupportedGenericCombinationMessage(
-            request.toolName,
-            args.domain,
-            args.objectType,
-            manifest.discoveryTool
-          )
-        );
-      }
-      const descriptor = selectGenericDescriptor(
-        request.toolName,
-        args,
-        descriptors
-      );
-      assertDeploymentCompatibility(descriptor, contextForExecution);
       const scopedFrodo = await resolveScopedFrodoInstance(
         contextForExecution,
         frodoRoot,
         options.resolveFrodoForRequest
       );
-      const methodResult = await invokeGenericDescriptorMethod(
+      const deploymentType = resolveScopedDeploymentType(
         scopedFrodo,
-        descriptor,
-        args
+        contextForExecution
       );
+      const descriptor = resolveDescriptorForDispatch(
+        request.toolName,
+        args,
+        byId,
+        genericDescriptorIndex,
+        manifest.discoveryTool,
+        deploymentType
+      );
+      const routing = describeCapabilityRouting(descriptor, deploymentType);
+      emitRuntimeTrace(request, options, {
+        event: 'selection',
+        toolName: request.toolName,
+        descriptorId: descriptor.id,
+        deploymentType,
+        routingReason: routing.reason,
+      });
+
+      if (
+        request.toolName === DISPATCH_READ_ONLY_TOOL_NAME &&
+        !READ_ONLY_OPERATION_TYPES.includes(descriptor.operationType)
+      ) {
+        throw new FrodoError(
+          `MCP runtime error: '${DISPATCH_READ_ONLY_TOOL_NAME}' cannot execute '${descriptor.operationType}'. Use '${DISPATCH_TOOL_NAME}' instead.`
+        );
+      }
+
+      if (
+        request.toolName === DISPATCH_TOOL_NAME &&
+        READ_ONLY_OPERATION_TYPES.includes(descriptor.operationType)
+      ) {
+        throw new FrodoError(
+          `MCP runtime error: '${DISPATCH_TOOL_NAME}' is for mutating operations. Use '${DISPATCH_READ_ONLY_TOOL_NAME}' for '${descriptor.operationType}'.`
+        );
+      }
+
+      try {
+        assertDeploymentCompatibility(descriptor, deploymentType);
+      } catch (error) {
+        emitRuntimeTrace(request, options, {
+          event: 'compatibility-rejection',
+          toolName: request.toolName,
+          descriptorId: descriptor.id,
+          deploymentType,
+          routingReason: routing.reason,
+          error: toErrorMessage(error),
+        });
+        throw error;
+      }
+      const startedAt = Date.now();
+      emitRuntimeTrace(request, options, {
+        event: 'dispatch-start',
+        toolName: request.toolName,
+        descriptorId: descriptor.id,
+        deploymentType,
+      });
+      let methodResult: unknown;
+      try {
+        methodResult =
+          descriptor.kind === 'generic'
+            ? await invokeGenericDescriptorMethod(
+                scopedFrodo,
+                descriptor,
+                args as McpGenericExecutionArguments
+              )
+            : await invokeDescriptorMethod(
+                scopedFrodo,
+                descriptor,
+                toInvocationArgs(args, descriptor)
+              );
+        emitRuntimeTrace(request, options, {
+          event: 'dispatch-success',
+          toolName: request.toolName,
+          descriptorId: descriptor.id,
+          deploymentType,
+          elapsedMs: Date.now() - startedAt,
+        });
+      } catch (error) {
+        emitRuntimeTrace(request, options, {
+          event: 'dispatch-failure',
+          toolName: request.toolName,
+          descriptorId: descriptor.id,
+          deploymentType,
+          elapsedMs: Date.now() - startedAt,
+          error: toErrorMessage(error),
+        });
+        throw error;
+      }
       const metadata = buildGenericExecutionMetadata(
         methodResult,
-        args,
+        args as McpGenericExecutionArguments,
         descriptor.operationType,
         contextForExecution,
         paginationWarningThreshold,
         resultWarningThresholdBytes
       );
+
       return {
         toolName: request.toolName,
         descriptorId: descriptor.id,
         data: methodResult,
-        metadata,
+        ...(metadata ? { metadata } : {}),
       };
     }
 
     const specialTool = specialToolIndex.get(request.toolName);
     if (specialTool) {
-      assertDeploymentCompatibility(specialTool.descriptor, request.context);
       const scopedFrodo = await resolveScopedFrodoInstance(
         request.context,
         frodoRoot,
         options.resolveFrodoForRequest
+      );
+      assertDeploymentCompatibility(
+        specialTool.descriptor,
+        resolveScopedDeploymentType(scopedFrodo, request.context)
       );
       const methodResult = await invokeDescriptorMethod(
         scopedFrodo,
@@ -444,6 +647,33 @@ export function createToolRuntime(
   };
 }
 
+function emitRuntimeTrace(
+  request: McpToolExecutionRequest,
+  options: McpToolRuntimeOptions,
+  event: Omit<McpToolRuntimeTraceEvent, 'requestId'>
+): void {
+  const traceEvent: McpToolRuntimeTraceEvent = {
+    ...event,
+    ...(request.context.requestId && {
+      requestId: request.context.requestId,
+    }),
+  };
+  for (const handler of [options.trace, request.context.trace]) {
+    if (!handler) {
+      continue;
+    }
+    try {
+      void Promise.resolve(handler(traceEvent)).catch(() => undefined);
+    } catch {
+      // Tracing must never alter tool behavior.
+    }
+  }
+}
+
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.name : 'Error';
+}
+
 /**
  * Validates that the descriptor is supported for the request deployment type.
  *
@@ -457,10 +687,9 @@ export function createToolRuntime(
  */
 function assertDeploymentCompatibility(
   descriptor: McpCapabilityDescriptor,
-  context: McpRuntimeRequestContext
+  deploymentType?: McpDeploymentType
 ): void {
-  const deploymentType = resolveContextDeploymentType(context);
-  if (!deploymentType) {
+  if (!deploymentType || deploymentType === 'any') {
     return;
   }
 
@@ -494,6 +723,22 @@ function resolveContextDeploymentType(
       ? context.auth.config?.deploymentType
       : context.auth.deploymentType;
 
+  return normalizeDeploymentType(rawType);
+}
+
+function resolveScopedDeploymentType(
+  scopedFrodo: Frodo,
+  context: McpRuntimeRequestContext
+): McpDeploymentType | undefined {
+  return (
+    normalizeDeploymentType(scopedFrodo.state?.getDeploymentType?.()) ??
+    resolveContextDeploymentType(context)
+  );
+}
+
+function normalizeDeploymentType(
+  rawType: unknown
+): McpDeploymentType | undefined {
   if (typeof rawType !== 'string') {
     return undefined;
   }
@@ -606,18 +851,21 @@ function buildGenericDescriptorIndex(
 function selectGenericDescriptor(
   toolName: string,
   args: McpGenericExecutionArguments,
-  descriptors: McpCapabilityDescriptor[]
+  descriptors: McpCapabilityDescriptor[],
+  deploymentType?: McpDeploymentType
 ): McpCapabilityDescriptor {
   if (descriptors.length === 1) {
     return descriptors[0];
   }
+
+  let candidates = descriptors;
 
   const requestedScope =
     typeof args.scope === 'string' && args.scope.trim().length > 0
       ? args.scope.trim()
       : undefined;
   if (requestedScope) {
-    const scopedDescriptors = descriptors.filter(
+    const scopedDescriptors = candidates.filter(
       (descriptor) => descriptor.scope === requestedScope
     );
     if (scopedDescriptors.length === 1) {
@@ -637,23 +885,24 @@ function selectGenericDescriptor(
         `MCP runtime error: tool '${toolName}' does not support scope '${requestedScope}' for domain '${args.domain}' and objectType '${args.objectType}'. Supported scopes: ${supportedScopes.join(', ')}.`
       );
     }
+    candidates = scopedDescriptors;
   }
 
   if (args.namedArgs && typeof args.namedArgs === 'object') {
-    const matchingDescriptor = descriptors.find((descriptor) =>
+    const matchingDescriptors = candidates.filter((descriptor) =>
       matchesNamedArgumentShape(
         descriptor,
         args.namedArgs as Record<string, unknown>
       )
     );
-    if (matchingDescriptor) {
-      return matchingDescriptor;
+    if (matchingDescriptors.length > 0) {
+      candidates = matchingDescriptors;
     }
   }
 
   const supportedScopes = [
     ...new Set(
-      descriptors
+      candidates
         .map((descriptor) => descriptor.scope)
         .filter(
           (scope): scope is NonNullable<typeof scope> => scope !== undefined
@@ -666,7 +915,7 @@ function selectGenericDescriptor(
     );
   }
 
-  return descriptors[0];
+  return rankCapabilitiesForDeployment(candidates, deploymentType)[0];
 }
 
 /**
@@ -745,6 +994,35 @@ async function resolveScopedFrodoInstance(
   }
 
   return scopedFrodo;
+}
+
+async function resolveDeploymentForDiscovery(
+  context: McpRuntimeRequestContext,
+  frodoRoot: Frodo,
+  customResolver?: (
+    context: McpRuntimeRequestContext,
+    frodoRoot: Frodo
+  ) => Frodo | Promise<Frodo>
+): Promise<McpDeploymentType | undefined> {
+  const configuredDeployment = resolveContextDeploymentType(context);
+  if (configuredDeployment) {
+    return configuredDeployment;
+  }
+
+  const configuredHost =
+    context.auth.mode === 'state-config'
+      ? context.auth.config.host
+      : context.auth.host;
+  if (!configuredHost) {
+    return undefined;
+  }
+
+  const scopedFrodo = await resolveScopedFrodoInstance(
+    context,
+    frodoRoot,
+    customResolver
+  );
+  return resolveScopedDeploymentType(scopedFrodo, context);
 }
 
 /**
@@ -840,37 +1118,67 @@ async function invokeManagedObjectSearchPage(
   });
 }
 
-/**
- * Validates and normalizes generic-tool arguments.
- *
- * @param raw Raw arguments payload from an execution request.
- * @returns Parsed generic execution arguments.
- */
-function parseGenericArguments(raw: unknown): McpGenericExecutionArguments {
-  const args = raw as McpGenericExecutionArguments | undefined;
-  if (!args || typeof args !== 'object') {
+function parseFindSkillsArguments(raw: unknown): McpFindSkillsArguments {
+  if (!raw || typeof raw !== 'object') {
+    return {};
+  }
+  const args = raw as McpFindSkillsArguments;
+  if (
+    args.limit !== undefined &&
+    (!Number.isInteger(args.limit) || args.limit <= 0)
+  ) {
     throw new FrodoError(
-      'MCP runtime error: generic tools require an arguments object.'
+      `MCP runtime error: '${FIND_SKILLS_TOOL_NAME}' requires limit to be a positive integer when provided.`
     );
   }
-  if (!args.domain || typeof args.domain !== 'string') {
+  return args;
+}
+
+function parseDescribeSkillArguments(raw: unknown): McpDescribeSkillArguments {
+  const args = raw as McpDescribeSkillArguments | undefined;
+  if (!args || typeof args !== 'object' || !args.skillId) {
     throw new FrodoError(
-      'MCP runtime error: generic tools require a string domain argument.'
+      `MCP runtime error: '${DESCRIBE_SKILL_TOOL_NAME}' requires skillId.`
     );
   }
-  if (!args.objectType || typeof args.objectType !== 'string') {
+  if (typeof args.skillId !== 'string') {
     throw new FrodoError(
-      'MCP runtime error: generic tools require a string objectType argument.'
+      `MCP runtime error: '${DESCRIBE_SKILL_TOOL_NAME}' requires skillId to be a string.`
     );
   }
-  if (args.scope !== undefined && typeof args.scope !== 'string') {
+  return args;
+}
+
+function parseDispatchExecutionArguments(
+  raw: unknown
+): McpDispatchExecutionArguments {
+  if (!raw || typeof raw !== 'object') {
     throw new FrodoError(
-      'MCP runtime error: generic tools require scope to be a string when provided.'
+      `MCP runtime error: dispatch tools require an arguments object.`
+    );
+  }
+  const args = raw as McpDispatchExecutionArguments;
+  if (
+    args.skillId === undefined &&
+    (!args.operationType || !args.domain || !args.objectType)
+  ) {
+    throw new FrodoError(
+      `MCP runtime error: dispatch tools require skillId or the selector tuple { operationType, domain, objectType }.`
+    );
+  }
+  if (args.skillId !== undefined && typeof args.skillId !== 'string') {
+    throw new FrodoError(
+      `MCP runtime error: dispatch tools require skillId to be a string when provided.`
     );
   }
   if (args.realm !== undefined && typeof args.realm !== 'string') {
     throw new FrodoError(
-      'MCP runtime error: generic tools require realm to be a string when provided.'
+      'MCP runtime error: dispatch tools require realm to be a string when provided.'
+    );
+  }
+  if (args.scope !== undefined && typeof args.scope !== 'string') {
+    throw new FrodoError(
+      'MCP runtime error: dispatch tools require scope to be a string when provided.'
     );
   }
   if (
@@ -878,7 +1186,7 @@ function parseGenericArguments(raw: unknown): McpGenericExecutionArguments {
     (!Number.isInteger(args.pageSize) || args.pageSize <= 0)
   ) {
     throw new FrodoError(
-      'MCP runtime error: generic tools require pageSize to be a positive integer when provided.'
+      'MCP runtime error: dispatch tools require pageSize to be a positive integer when provided.'
     );
   }
   if (
@@ -886,12 +1194,12 @@ function parseGenericArguments(raw: unknown): McpGenericExecutionArguments {
     (!Number.isInteger(args.pageOffset) || args.pageOffset < 0)
   ) {
     throw new FrodoError(
-      'MCP runtime error: generic tools require pageOffset to be a non-negative integer when provided.'
+      'MCP runtime error: dispatch tools require pageOffset to be a non-negative integer when provided.'
     );
   }
   if (args.pageToken !== undefined && typeof args.pageToken !== 'string') {
     throw new FrodoError(
-      'MCP runtime error: generic tools require pageToken to be a string when provided.'
+      'MCP runtime error: dispatch tools require pageToken to be a string when provided.'
     );
   }
   if (
@@ -899,10 +1207,228 @@ function parseGenericArguments(raw: unknown): McpGenericExecutionArguments {
     typeof args.includeTotal !== 'boolean'
   ) {
     throw new FrodoError(
-      'MCP runtime error: generic tools require includeTotal to be a boolean when provided.'
+      'MCP runtime error: dispatch tools require includeTotal to be a boolean when provided.'
     );
   }
   return args;
+}
+
+function findSkills(
+  capabilities: McpCapabilityDescriptor[],
+  args: McpFindSkillsArguments,
+  deploymentType?: McpDeploymentType
+): {
+  total: number;
+  returned: number;
+  skills: Array<{
+    skillId: string;
+    kind: McpCapabilityDescriptor['kind'];
+    operationType: McpCapabilityOperationType;
+    domain: string;
+    objectType: string;
+    methodName: string;
+    modulePath: string;
+    riskClass: McpCapabilityDescriptor['riskClass'];
+    deploymentTypes: McpCapabilityDescriptor['deploymentTypes'];
+    preferredDeploymentTypes?: McpCapabilityDescriptor['preferredDeploymentTypes'];
+    identitySurface?: McpCapabilityDescriptor['identitySurface'];
+    objectTypePatterns?: string[];
+    routingStatus: McpCapabilityRoutingStatus;
+    routingReason: string;
+    argumentMode?: McpCapabilityDescriptor['argumentMode'];
+    scope?: string;
+  }>;
+} {
+  const query = args.query?.trim().toLowerCase();
+  const filtered = capabilities.filter((descriptor) => {
+    if (args.kind && descriptor.kind !== args.kind) {
+      return false;
+    }
+    if (args.domain && descriptor.domain !== args.domain) {
+      return false;
+    }
+    if (args.objectType && descriptor.objectType !== args.objectType) {
+      return false;
+    }
+    if (
+      args.skillIdPrefix &&
+      !(
+        descriptor.id === args.skillIdPrefix ||
+        descriptor.id.startsWith(`${args.skillIdPrefix}.`)
+      )
+    ) {
+      return false;
+    }
+    if (
+      args.operationTypes &&
+      args.operationTypes.length > 0 &&
+      !args.operationTypes.includes(descriptor.operationType)
+    ) {
+      return false;
+    }
+    if (
+      args.riskClasses &&
+      args.riskClasses.length > 0 &&
+      !args.riskClasses.includes(descriptor.riskClass)
+    ) {
+      return false;
+    }
+    if (!query) {
+      return true;
+    }
+    const haystack = [
+      descriptor.id,
+      descriptor.domain,
+      descriptor.objectType,
+      descriptor.methodName,
+      descriptor.modulePath.join('.'),
+      descriptor.scope ?? '',
+      descriptor.notes ?? '',
+      descriptor.identitySurface ?? '',
+      ...(descriptor.objectTypePatterns ?? []),
+    ]
+      .join(' ')
+      .toLowerCase();
+    return query
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((term) =>
+        term.length > 3 && term.endsWith('s') ? term.slice(0, -1) : term
+      )
+      .every(
+        (term) =>
+          haystack.includes(term) ||
+          descriptor.objectTypePatterns?.some((pattern) =>
+            matchesGlobPattern(term, pattern)
+          )
+      );
+  });
+
+  const limit = args.limit ?? 100;
+  const results = rankCapabilitiesForDeployment(
+    filtered,
+    deploymentType,
+    args.query
+  )
+    .slice(0, limit)
+    .map((descriptor) => {
+      const routing = describeCapabilityRouting(descriptor, deploymentType);
+      return {
+        skillId: descriptor.id,
+        kind: descriptor.kind,
+        operationType: descriptor.operationType,
+        domain: descriptor.domain,
+        objectType: descriptor.objectType,
+        methodName: descriptor.methodName,
+        modulePath: descriptor.modulePath.join('.'),
+        riskClass: descriptor.riskClass,
+        deploymentTypes: descriptor.deploymentTypes,
+        preferredDeploymentTypes: descriptor.preferredDeploymentTypes,
+        identitySurface: descriptor.identitySurface,
+        objectTypePatterns: descriptor.objectTypePatterns,
+        routingStatus: routing.status,
+        routingReason: routing.reason,
+        argumentMode: descriptor.argumentMode,
+        scope: descriptor.scope,
+      };
+    });
+
+  return {
+    total: filtered.length,
+    returned: results.length,
+    skills: results,
+  };
+}
+
+function matchesGlobPattern(value: string, pattern: string): boolean {
+  const expression = pattern
+    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*/g, '.*');
+  return new RegExp(`^${expression}$`, 'i').test(value);
+}
+
+function resolveDescriptorForDispatch(
+  toolName: string,
+  args: McpDispatchExecutionArguments,
+  descriptorById: Map<string, McpCapabilityDescriptor>,
+  genericDescriptorIndex: Map<string, McpCapabilityDescriptor[]>,
+  discovery: McpDiscoveryEntry,
+  deploymentType?: McpDeploymentType
+): McpCapabilityDescriptor {
+  if (args.skillId) {
+    const descriptor = descriptorById.get(args.skillId);
+    if (!descriptor) {
+      throw new FrodoError(
+        `MCP runtime error: unknown skillId '${args.skillId}'. Use '${FIND_SKILLS_TOOL_NAME}' first.`
+      );
+    }
+    return descriptor;
+  }
+
+  const key = buildGenericDescriptorIndexKey(
+    args.operationType!,
+    args.domain!,
+    args.objectType!
+  );
+  const descriptors = genericDescriptorIndex.get(key);
+  if (!descriptors || descriptors.length === 0) {
+    throw new FrodoError(
+      buildUnsupportedGenericCombinationMessage(
+        toolName,
+        args.domain!,
+        args.objectType!,
+        discovery
+      )
+    );
+  }
+
+  return selectGenericDescriptor(
+    toolName,
+    args as McpGenericExecutionArguments,
+    descriptors,
+    deploymentType
+  );
+}
+
+function applyDispatchScopeOverride(
+  context: McpRuntimeRequestContext,
+  args: McpDispatchExecutionArguments
+): McpRuntimeRequestContext {
+  if (!args.realm) {
+    return context;
+  }
+
+  switch (context.auth.mode) {
+    case 'state-config':
+      return {
+        ...context,
+        auth: {
+          mode: 'state-config',
+          config: {
+            ...context.auth.config,
+            realm: args.realm,
+          },
+        },
+      };
+    case 'service-account':
+      return {
+        ...context,
+        auth: {
+          ...context.auth,
+          realm: args.realm,
+        },
+      };
+    case 'admin-account':
+      return {
+        ...context,
+        auth: {
+          ...context.auth,
+          realm: args.realm,
+        },
+      };
+    default:
+      return context;
+  }
 }
 
 /**
@@ -1404,54 +1930,6 @@ function resolveDescriptorMethod(
     );
   }
   return (method as (...args: unknown[]) => unknown).bind(node);
-}
-
-/**
- * Applies generic-tool scope controls to the request context.
- *
- * @param context Original request context.
- * @param args Parsed generic-tool arguments.
- * @returns Context with realm override applied when provided.
- */
-function applyGenericScopeOverride(
-  context: McpRuntimeRequestContext,
-  args: McpGenericExecutionArguments
-): McpRuntimeRequestContext {
-  if (!args.realm) {
-    return context;
-  }
-
-  switch (context.auth.mode) {
-    case 'state-config':
-      return {
-        ...context,
-        auth: {
-          mode: 'state-config',
-          config: {
-            ...context.auth.config,
-            realm: args.realm,
-          },
-        },
-      };
-    case 'service-account':
-      return {
-        ...context,
-        auth: {
-          ...context.auth,
-          realm: args.realm,
-        },
-      };
-    case 'admin-account':
-      return {
-        ...context,
-        auth: {
-          ...context.auth,
-          realm: args.realm,
-        },
-      };
-    default:
-      return context;
-  }
 }
 
 /**

@@ -18,6 +18,7 @@ import {
 import { MCP_POLICY_PRESETS, applyCapabilityPolicy } from './CapabilityPolicy';
 import { buildCapabilityInventory } from './CapabilityRegistry';
 import { buildToolManifest, McpToolManifest } from './ToolManifest';
+import { McpProfileName, resolveMcpProfileSelection } from './ProfileRegistry';
 import {
   createToolRuntime,
   McpToolExecutionRequest,
@@ -52,6 +53,8 @@ export type McpServiceOptions = {
    * Defaults to the library singleton.
    */
   frodoInstance?: Frodo;
+  /** Optional profile name to constrain the active capability universe. */
+  profileName?: McpProfileName;
   /** Optional inventory-scoping controls (domains, utils visibility). */
   inventoryOptions?: McpCapabilityInventoryOptions;
   /** Built-in policy preset to start from. Defaults to `standard`. */
@@ -77,7 +80,7 @@ export type McpService = {
   /**
    * Returns tool definition metadata for transport registration.
    *
-   * @returns Flattened tool list including generic, special, and discovery.
+   * @returns Flattened canonical tool list plus discovery tool.
    */
   listTools(): McpServiceToolDefinition[];
   /**
@@ -118,14 +121,20 @@ export function composeCapabilityPolicy(
  */
 export function createMcpService(options: McpServiceOptions = {}): McpService {
   const frodoInstance = options.frodoInstance ?? frodo;
+  const profileSelection = options.profileName
+    ? resolveMcpProfileSelection(options.profileName)
+    : undefined;
   const policy = composeCapabilityPolicy(
-    options.policyPreset ?? 'standard',
-    options.policyOverride
+    options.policyPreset ?? profileSelection?.policyPreset ?? 'standard',
+    {
+      ...profileSelection?.policyOverride,
+      ...options.policyOverride,
+    }
   );
-  const inventory = buildCapabilityInventory(
-    frodoInstance,
-    options.inventoryOptions
-  );
+  const inventory = buildCapabilityInventory(frodoInstance, {
+    ...profileSelection?.inventoryOptions,
+    ...options.inventoryOptions,
+  });
   const capabilities = applyCapabilityPolicy(inventory, policy);
   const manifest = buildToolManifest(capabilities);
   const runtime = createToolRuntime(manifest, capabilities, {
@@ -140,16 +149,13 @@ export function createMcpService(options: McpServiceOptions = {}): McpService {
    * @returns Tool definition list.
    */
   const listTools = (): McpServiceToolDefinition[] => {
-    const genericDefinitions = manifest.genericTools.map((tool) => ({
-      name: tool.toolName,
-      description: tool.description,
-      annotations: tool.annotations,
-    }));
-    const specialDefinitions = manifest.specialTools.map((tool) => ({
-      name: tool.toolName,
-      description: tool.description,
-      annotations: tool.descriptor.annotations,
-    }));
+    const canonicalDefinitions = (manifest.canonicalTools ?? []).map(
+      (tool) => ({
+        name: tool.toolName,
+        description: tool.description,
+        annotations: tool.annotations,
+      })
+    );
     const discoveryDefinition: McpServiceToolDefinition = {
       name: manifest.discoveryTool.toolName,
       description: manifest.discoveryTool.description,
@@ -160,11 +166,9 @@ export function createMcpService(options: McpServiceOptions = {}): McpService {
         openWorldHint: false,
       },
     };
-    return [
-      ...genericDefinitions,
-      ...specialDefinitions,
-      discoveryDefinition,
-    ].sort((a, b) => a.name.localeCompare(b.name));
+    return [...canonicalDefinitions, discoveryDefinition].sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
   };
 
   return {

@@ -27,9 +27,8 @@ describe('MCP tool manifest builder', () => {
     const manifest: McpToolManifest = buildToolManifest(inventory);
 
     expect(manifest.backingDescriptorCount).toBe(inventory.length);
-    expect(manifest.totalToolCount).toBe(
-      manifest.genericTools.length + manifest.specialTools.length + 1
-    );
+    expect(manifest.totalToolCount).toBe(manifest.canonicalTools.length + 1);
+    expect(manifest.specialTools).toHaveLength(0);
     expect(manifest.discoveryTool.toolName).toBe('frodo_discover');
   });
 
@@ -114,6 +113,36 @@ describe('MCP tool manifest builder', () => {
     expect(nodeRead?.parameters?.map((param) => param.name)).toEqual(
       expect.arrayContaining(['nodeId', 'nodeType'])
     );
+  });
+
+  test('discovery exposes deployment-aware identity routing metadata', () => {
+    const inventory = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['idm', 'user'],
+    });
+    const manifest = buildToolManifest(inventory);
+    const managedCount =
+      manifest.discoveryTool.operationDetailsByType?.count?.find(
+        (entry) => entry.descriptorId === 'idm.managed.countManagedObjects'
+      );
+    const amUserCount =
+      manifest.discoveryTool.operationDetailsByType?.count?.find(
+        (entry) => entry.descriptorId === 'user.countUsers'
+      );
+
+    expect(managedCount).toMatchObject({
+      deploymentTypes: ['cloud', 'forgeops'],
+      preferredDeploymentTypes: ['cloud', 'forgeops'],
+      identitySurface: 'managed',
+    });
+    expect(managedCount?.objectTypePatterns).toEqual(
+      expect.arrayContaining(['user', '*_user'])
+    );
+    expect(amUserCount).toMatchObject({
+      deploymentTypes: ['classic'],
+      preferredDeploymentTypes: ['classic'],
+      identitySurface: 'am-user',
+      objectTypePatterns: ['user'],
+    });
   });
 
   test('discovery keeps single and bulk journey exports distinct', () => {
@@ -209,18 +238,17 @@ describe('MCP tool manifest builder', () => {
     );
   });
 
-  test('read-only manifest total tool count stays within agent-usability ceiling', () => {
+  test('read-only manifest exposes canonical tool count', () => {
     const inventory = applyCapabilityPolicy(
       buildCapabilityInventory(frodo),
       MCP_POLICY_PRESETS['read-only']
     );
     const manifest = buildToolManifest(inventory);
 
-    // Plan target: ≤40 tools for the reduced default surface.
-    expect(manifest.totalToolCount).toBeLessThanOrEqual(40);
+    expect(manifest.totalToolCount).toBe(5);
   });
 
-  test('admin manifest exposes more tools than read-only manifest', () => {
+  test('admin manifest keeps canonical tool count while exposing more skills', () => {
     const readOnlyManifest = buildToolManifest(
       applyCapabilityPolicy(
         buildCapabilityInventory(frodo),
@@ -234,9 +262,10 @@ describe('MCP tool manifest builder', () => {
       )
     );
 
-    // Admin includes special tools and all operation types; it will always exceed read-only.
-    expect(adminManifest.totalToolCount).toBeGreaterThan(
-      readOnlyManifest.totalToolCount
+    expect(readOnlyManifest.totalToolCount).toBe(5);
+    expect(adminManifest.totalToolCount).toBe(5);
+    expect(adminManifest.backingDescriptorCount).toBeGreaterThan(
+      readOnlyManifest.backingDescriptorCount
     );
   });
 
@@ -261,9 +290,10 @@ describe('MCP tool manifest builder', () => {
   test('empty inventory produces a manifest with only the discovery tool', () => {
     const manifest = buildToolManifest([]);
 
+    expect(manifest.canonicalTools).toHaveLength(4);
     expect(manifest.genericTools).toHaveLength(0);
     expect(manifest.specialTools).toHaveLength(0);
-    expect(manifest.totalToolCount).toBe(1);
+    expect(manifest.totalToolCount).toBe(5);
     expect(manifest.backingDescriptorCount).toBe(0);
     expect(manifest.discoveryTool.domains).toHaveLength(0);
   });
