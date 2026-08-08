@@ -25,6 +25,14 @@ export {
   rankCapabilitiesForDeployment,
 } from './CapabilityRouting';
 export {
+  MCP_SEMANTIC_OBJECT_FAMILIES,
+  McpManagedObjectFamilyMatch,
+  McpSemanticObjectFamily,
+  descriptorPatternsSupportFamily,
+  matchManagedObjectFamily,
+  resolveSemanticObjectFamily,
+} from './SemanticObjectFamilies';
+export {
   capabilityMatchesAnyProfile,
   capabilityMatchesDisabled,
   getMcpProfileDefinition,
@@ -43,6 +51,7 @@ export {
   McpDiscoveryContext,
   McpDiscoveryEntry,
   McpDiscoveryTarget,
+  McpManagedObjectHydrationStatus,
   McpGenericTool,
   McpObjectTypeEntry,
   McpSpecialTool,
@@ -50,6 +59,7 @@ export {
   buildToolManifest,
 } from './ToolManifest';
 export {
+  McpDiscoverArguments,
   McpExecutionPaginationMetadata,
   McpExecutionScopeMetadata,
   McpGenericExecutionArguments,

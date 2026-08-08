@@ -68,7 +68,7 @@ export type McpServiceOptions = {
   /** Optional runtime customization hooks. */
   runtimeOptions?: Omit<
     McpToolRuntimeOptions,
-    'frodoRoot' | 'managedObjectTypes'
+    'frodoRoot' | 'managedObjectTypes' | 'managedObjectHydrationStatus'
   >;
   /** Service-local tenant metadata used only for discovery and search. */
   discoveryContext?: McpDiscoveryContext;
@@ -157,6 +157,8 @@ export function createMcpService(options: McpServiceOptions = {}): McpService {
   const runtime = createToolRuntime(manifest, capabilities, {
     frodoRoot: frodoInstance,
     managedObjectTypes: discoveryContext?.managedObjectTypes,
+    managedObjectHydrationStatus:
+      discoveryContext?.managedObjectHydrationStatus,
     ...options.runtimeOptions,
   });
 
