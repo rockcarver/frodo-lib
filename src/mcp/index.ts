@@ -25,11 +25,15 @@ export {
   rankCapabilitiesForDeployment,
 } from './CapabilityRouting';
 export {
-  MCP_SEMANTIC_OBJECT_FAMILIES,
+  MCP_AMBIGUOUS_OBJECT_CONCEPTS,
+  MCP_SEMANTIC_OBJECT_SYNONYMS,
   McpManagedObjectFamilyMatch,
   McpSemanticObjectFamily,
+  McpSemanticObjectFamilyResolution,
   descriptorPatternsSupportFamily,
+  discoverManagedObjectFamilies,
   matchManagedObjectFamily,
+  normalizeSemanticObjectFamily,
   resolveSemanticObjectFamily,
 } from './SemanticObjectFamilies';
 export {

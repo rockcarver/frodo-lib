@@ -1750,16 +1750,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     deploymentTypes: IDM_DEPLOYMENTS,
     preferredDeploymentTypes: IDM_DEPLOYMENTS,
     identitySurface: 'managed',
-    objectTypePatterns: [
-      'user',
-      '*_user',
-      '*_organization',
-      '*_application',
-      '*_role',
-      '*_assignment',
-      '*_group',
-      '*_device',
-    ],
+    objectTypePatterns: ['*'],
     notes:
       'Operates on IDM managed objects (openidm/managed/). Only available in cloud and forgeops deployments. Use these methods as the preferred way to manage realm-qualified identity objects (e.g. alpha_user).',
   },

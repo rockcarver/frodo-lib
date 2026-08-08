@@ -184,7 +184,26 @@ describe('MCP hybrid runtime', () => {
       profile: 'all',
     };
     manifest.discoveryTool.managedObjectTypeCount = 16;
-    const runtime = createToolRuntime(manifest, [descriptor]);
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      managedObjectTypes: [
+        'alpha_aiagent',
+        'alpha_aiagentprivilege',
+        'alpha_application',
+        'alpha_assignment',
+        'alpha_group',
+        'alpha_organization',
+        'alpha_role',
+        'alpha_user',
+        'bravo_aiagent',
+        'bravo_aiagentprivilege',
+        'bravo_application',
+        'bravo_assignment',
+        'bravo_group',
+        'bravo_organization',
+        'bravo_role',
+        'bravo_user',
+      ],
+    });
 
     const result = await runtime.executeTool({
       toolName: 'frodo_discover',
@@ -204,7 +223,16 @@ describe('MCP hybrid runtime', () => {
     ]);
     expect(data).toMatchObject({
       skillCount: 1,
-      objectFamilies: ['user', 'group', 'organization', 'application'],
+      objectFamilies: [
+        'aiagent',
+        'aiagentprivilege',
+        'application',
+        'assignment',
+        'group',
+        'organization',
+        'role',
+        'user',
+      ],
     });
     expect(data).not.toHaveProperty('operationDetailsByType');
   });
@@ -643,9 +671,13 @@ describe('MCP hybrid runtime', () => {
 
   test.each([
     ['users', 'user', ['alpha_user', 'bravo_user']],
-    ['groups', 'group', ['alpha_group', 'bravo_group']],
+    ['people', 'user', ['alpha_user', 'bravo_user']],
+    ['identities', 'user', ['alpha_user', 'bravo_user']],
     ['orgs', 'organization', ['alpha_organization']],
     ['apps', 'application', ['alpha_application']],
+    ['orgnizations', 'organization', ['alpha_organization']],
+    ['families', 'family', ['alpha_family', 'bravo_family', 'charlie_family']],
+    ['ai agent privileges', 'aiagentprivilege', ['alpha_aiagentprivilege']],
   ] as const)(
     'find_skills resolves the %s semantic family',
     async (query, family, expectedTypes) => {
@@ -656,14 +688,7 @@ describe('MCP hybrid runtime', () => {
         operationType: 'count',
         identitySurface: 'managed',
         deploymentTypes: ['cloud'],
-        objectTypePatterns: [
-          'user',
-          '*_user',
-          'group',
-          '*_group',
-          '*_organization',
-          '*_application',
-        ],
+        objectTypePatterns: ['*'],
       });
       const runtime = createToolRuntime(
         makeManifest([descriptor]),
@@ -676,7 +701,11 @@ describe('MCP hybrid runtime', () => {
             'bravo_group',
             'alpha_organization',
             'alpha_application',
-            'alpha_device',
+            'alpha_aiagent',
+            'alpha_aiagentprivilege',
+            'alpha_family',
+            'bravo_family',
+            'charlie_family',
           ],
         }
       );
@@ -711,11 +740,15 @@ describe('MCP hybrid runtime', () => {
       operationType: 'count',
       identitySurface: 'managed',
       deploymentTypes: ['cloud'],
-      objectTypePatterns: ['*_organization'],
+      objectTypePatterns: ['*'],
     });
-    const runtime = createToolRuntime(makeManifest([descriptor]), [descriptor], {
-      managedObjectTypes: ['north_america_organization', 'alpha_user'],
-    });
+    const runtime = createToolRuntime(
+      makeManifest([descriptor]),
+      [descriptor],
+      {
+        managedObjectTypes: ['north_america_organization', 'alpha_user'],
+      }
+    );
 
     const result = await runtime.executeTool({
       toolName: 'frodo_find_skills',
@@ -733,6 +766,82 @@ describe('MCP hybrid runtime', () => {
 
     expect(payload.skills[0].matchedObjectTypes).toEqual([
       'north_america_organization',
+    ]);
+  });
+
+  test('find_skills returns candidates for ambiguous entitlement language', async () => {
+    const descriptor = makeDescriptor({
+      id: 'idm.managed.countManagedObjects',
+      domain: 'idm',
+      objectType: 'ManagedObject',
+      operationType: 'count',
+      identitySurface: 'managed',
+      deploymentTypes: ['cloud'],
+      objectTypePatterns: ['*'],
+    });
+    const runtime = createToolRuntime(
+      makeManifest([descriptor]),
+      [descriptor],
+      {
+        managedObjectTypes: [
+          'alpha_assignment',
+          'alpha_role',
+          'alpha_aiagentprivilege',
+        ],
+      }
+    );
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_find_skills',
+      arguments: { query: 'count entitlements' },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: { deploymentType: 'cloud' },
+        },
+      },
+    });
+    const payload = result.data as { guidance?: string; skills: unknown[] };
+
+    expect(payload.skills).toEqual([]);
+    expect(payload.guidance).toContain(
+      'Choose one of: assignment, role, aiagentprivilege.'
+    );
+  });
+
+  test('find_skills prefers an exact live entitlement family', async () => {
+    const descriptor = makeDescriptor({
+      id: 'idm.managed.countManagedObjects',
+      domain: 'idm',
+      objectType: 'ManagedObject',
+      operationType: 'count',
+      identitySurface: 'managed',
+      deploymentTypes: ['cloud'],
+      objectTypePatterns: ['*'],
+    });
+    const runtime = createToolRuntime(makeManifest([descriptor]), [descriptor], {
+      managedObjectTypes: ['alpha_entitlement', 'bravo_entitlement'],
+    });
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_find_skills',
+      arguments: { query: 'count entitlements' },
+      context: {
+        auth: {
+          mode: 'state-config',
+          config: { deploymentType: 'cloud' },
+        },
+      },
+    });
+    const payload = result.data as {
+      guidance?: string;
+      skills: Array<{ matchedObjectTypes?: string[] }>;
+    };
+
+    expect(payload.guidance).toBeUndefined();
+    expect(payload.skills[0].matchedObjectTypes).toEqual([
+      'alpha_entitlement',
+      'bravo_entitlement',
     ]);
   });
 
@@ -827,9 +936,9 @@ describe('MCP hybrid runtime', () => {
     expect(result.data).toEqual({ id: 'journey-123' });
   });
 
-  test('dispatch_read_only aggregates semantic user counts across IDM realms', async () => {
+  test('dispatch_read_only aggregates a dynamic family across IDM realms', async () => {
     const countManagedObjects = jest.fn(async (type: string) =>
-      type === 'alpha_user' ? 12 : 8
+      type === 'alpha_family' ? 12 : type === 'bravo_family' ? 8 : 3
     );
     const descriptor = makeDescriptor({
       id: 'idm.managed.countManagedObjects',
@@ -841,22 +950,31 @@ describe('MCP hybrid runtime', () => {
       operationType: 'count',
       deploymentTypes: ['cloud'],
       identitySurface: 'managed',
-      objectTypePatterns: ['user', '*_user'],
+      objectTypePatterns: ['*'],
     });
-    const runtime = createToolRuntime(makeManifest([descriptor]), [descriptor], {
-      managedObjectTypes: ['alpha_user', 'bravo_user', 'alpha_group'],
-      resolveFrodoForRequest: () =>
-        ({
-          login: { getTokens: jest.fn(async () => {}) },
-          idm: { managed: { countManagedObjects } },
-        }) as any,
-    });
+    const runtime = createToolRuntime(
+      makeManifest([descriptor]),
+      [descriptor],
+      {
+        managedObjectTypes: [
+          'alpha_family',
+          'bravo_family',
+          'charlie_family',
+          'alpha_user',
+        ],
+        resolveFrodoForRequest: () =>
+          ({
+            login: { getTokens: jest.fn(async () => {}) },
+            idm: { managed: { countManagedObjects } },
+          }) as any,
+      }
+    );
 
     const result = await runtime.executeTool({
       toolName: 'frodo_dispatch_read_only',
       arguments: {
         skillId: descriptor.id,
-        semanticTarget: { family: 'users' },
+        semanticTarget: { family: 'families' },
       },
       context: {
         auth: {
@@ -866,13 +984,29 @@ describe('MCP hybrid runtime', () => {
       },
     });
 
-    expect(countManagedObjects).toHaveBeenCalledTimes(2);
+    expect(countManagedObjects).toHaveBeenCalledTimes(3);
     expect(result.data).toEqual({
-      family: 'user',
-      total: 20,
+      family: 'family',
+      total: 23,
       breakdown: [
-        { family: 'user', type: 'alpha_user', realm: 'alpha', count: 12 },
-        { family: 'user', type: 'bravo_user', realm: 'bravo', count: 8 },
+        {
+          family: 'family',
+          type: 'alpha_family',
+          realm: 'alpha',
+          count: 12,
+        },
+        {
+          family: 'family',
+          type: 'bravo_family',
+          realm: 'bravo',
+          count: 8,
+        },
+        {
+          family: 'family',
+          type: 'charlie_family',
+          realm: 'charlie',
+          count: 3,
+        },
       ],
     });
   });

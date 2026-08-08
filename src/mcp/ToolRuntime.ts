@@ -37,10 +37,14 @@ import {
   rankCapabilitiesForDeployment,
 } from './CapabilityRouting';
 import {
-  MCP_SEMANTIC_OBJECT_FAMILIES,
+  discoverManagedObjectFamilies,
   descriptorPatternsSupportFamily,
   matchManagedObjectFamily,
+  MCP_AMBIGUOUS_OBJECT_CONCEPTS,
+  MCP_SEMANTIC_OBJECT_SYNONYMS,
   McpSemanticObjectFamily,
+  McpSemanticObjectFamilyResolution,
+  normalizeSemanticObjectFamily,
   resolveSemanticObjectFamily,
 } from './SemanticObjectFamilies';
 
@@ -509,7 +513,9 @@ export function createToolRuntime(
             : {
                 ...commonDiscoveryData,
                 skillCount: capabilities.length,
-                objectFamilies: Object.keys(MCP_SEMANTIC_OBJECT_FAMILIES),
+                objectFamilies: discoverManagedObjectFamilies(
+                  options.managedObjectTypes ?? []
+                ),
                 nextSteps: [
                   FIND_SKILLS_TOOL_NAME,
                   DESCRIBE_SKILL_TOOL_NAME,
@@ -1173,12 +1179,14 @@ async function invokeManagedObjectFamilyCount(
       `MCP runtime error: semantic count is unavailable because managed-object type hydration ${managedObjectHydrationStatus}. Use exact dispatch with namedArgs.type or restart the server after restoring tenant access.`
     );
   }
-  const family = resolveSemanticObjectFamily(args.semanticTarget?.family);
-  if (!family) {
-    throw new FrodoError(
-      'MCP runtime error: semanticTarget.family must identify user, group, organization, or application.'
-    );
+  const resolution = resolveSemanticObjectFamily(
+    args.semanticTarget?.family,
+    managedObjectTypes
+  );
+  if (resolution.status !== 'resolved') {
+    throw new FrodoError(formatFamilyResolutionError(resolution));
   }
+  const family = resolution.family;
   if (!descriptorPatternsSupportFamily(descriptor.objectTypePatterns, family)) {
     throw new FrodoError(
       `MCP runtime error: descriptor '${descriptor.id}' does not support semantic family '${family}'.`
@@ -1310,11 +1318,10 @@ function parseFindSkillsArguments(raw: unknown): McpFindSkillsArguments {
   const args = raw as McpFindSkillsArguments;
   if (
     args.objectFamily !== undefined &&
-    (typeof args.objectFamily !== 'string' ||
-      !resolveSemanticObjectFamily(args.objectFamily))
+    (typeof args.objectFamily !== 'string' || !args.objectFamily.trim())
   ) {
     throw new FrodoError(
-      `MCP runtime error: '${FIND_SKILLS_TOOL_NAME}' requires objectFamily to be one of user, group, organization, or application (singular, plural, and documented short aliases are accepted).`
+      `MCP runtime error: '${FIND_SKILLS_TOOL_NAME}' requires objectFamily to be a non-empty string.`
     );
   }
   if (
@@ -1431,12 +1438,12 @@ function parseDispatchExecutionArguments(
       !args.semanticTarget ||
       typeof args.semanticTarget !== 'object' ||
       typeof args.semanticTarget.family !== 'string' ||
-      !resolveSemanticObjectFamily(args.semanticTarget.family) ||
+      !args.semanticTarget.family.trim() ||
       (args.semanticTarget.realm !== undefined &&
         typeof args.semanticTarget.realm !== 'string')
     ) {
       throw new FrodoError(
-        'MCP runtime error: dispatch tools require semanticTarget with a recognized family and optional string realm.'
+        'MCP runtime error: dispatch tools require semanticTarget with a non-empty family and optional string realm.'
       );
     }
   }
@@ -1509,8 +1516,35 @@ function findSkills(
   }>;
 } {
   const queryTerms = normalizeSearchTerms(args.query);
-  const requestedFamily = resolveSemanticObjectFamily(args.objectFamily);
-  const queryFamilies = findSemanticObjectFamilies(args.query);
+  const requestedResolution = args.objectFamily
+    ? resolveSemanticObjectFamily(args.objectFamily, managedObjectTypes)
+    : undefined;
+  if (requestedResolution && requestedResolution.status !== 'resolved') {
+    return {
+      total: 0,
+      returned: 0,
+      guidance: formatFamilyResolutionError(requestedResolution),
+      skills: [],
+    };
+  }
+  const queryResolution = findSemanticObjectFamilies(
+    args.query,
+    managedObjectTypes
+  );
+  if (queryResolution.ambiguity) {
+    return {
+      total: 0,
+      returned: 0,
+      guidance: formatFamilyResolutionError(queryResolution.ambiguity),
+      skills: [],
+    };
+  }
+  const requestedFamily =
+    requestedResolution?.status === 'resolved'
+      ? requestedResolution.family
+      : undefined;
+  const queryFamilies = queryResolution.families;
+  if (isUserIdentitySelector(args)) queryFamilies.add('user');
   if (requestedFamily) queryFamilies.add(requestedFamily);
   const filtered = capabilities.flatMap((descriptor) => {
     const matchesManagedUserAlias =
@@ -1668,7 +1702,7 @@ function findMatchedManagedObjectTypes(
   const concreteTerms = terms.filter(
     (term) =>
       !MANAGED_TYPE_GENERIC_TERMS.has(term) &&
-      !requestedFamilies.has(resolveSemanticObjectFamily(term)!)
+      !termMatchesRequestedFamily(term, requestedFamilies, managedObjectTypes)
   );
   const rankedMatches = managedObjectTypes
     .map((type) => {
@@ -1685,7 +1719,11 @@ function findMatchedManagedObjectTypes(
             normalizedType === term ||
             normalizedType.includes(term) ||
             typeTerms.includes(term) ||
-            requestedFamilies.has(resolveSemanticObjectFamily(term)!)
+            termMatchesRequestedFamily(
+              term,
+              requestedFamilies,
+              managedObjectTypes
+            )
         ).length +
         (matchesRequestedFamily && requestedFamilies.size > 0 ? 1 : 0);
       const matchesConcreteTerms = concreteTerms.every(
@@ -1768,16 +1806,108 @@ function normalizeSearchTerms(query?: string): string[] {
 }
 
 function findSemanticObjectFamilies(
-  query?: string
-): Set<McpSemanticObjectFamily> {
-  if (!query) return new Set();
-  return new Set(
-    query
-      .toLowerCase()
-      .split(/[^a-z0-9_]+/)
-      .map(resolveSemanticObjectFamily)
-      .filter((family): family is McpSemanticObjectFamily => !!family)
+  query: string | undefined,
+  managedObjectTypes: readonly string[]
+): {
+  families: Set<McpSemanticObjectFamily>;
+  ambiguity?: Extract<
+    McpSemanticObjectFamilyResolution,
+    { status: 'ambiguous' }
+  >;
+} {
+  if (!query) return { families: new Set() };
+  if (
+    managedObjectTypes.some(
+      (type) => type.toLowerCase() === query.trim().toLowerCase()
+    )
+  ) {
+    return { families: new Set() };
+  }
+  const tokens = query
+    .toLowerCase()
+    .split(/[^a-z0-9_]+/)
+    .filter(Boolean);
+  const matches: Array<
+    | { family: McpSemanticObjectFamily; start: number; end: number }
+    | {
+        ambiguity: Extract<
+          McpSemanticObjectFamilyResolution,
+          { status: 'ambiguous' }
+        >;
+        start: number;
+        end: number;
+      }
+  > = [];
+  tokens.forEach((_, start) => {
+    tokens.slice(start).forEach((__, offset) => {
+      const phrase = tokens.slice(start, start + offset + 1).join(' ');
+      if (
+        managedObjectTypes.length === 0 &&
+        !(phrase in MCP_SEMANTIC_OBJECT_SYNONYMS) &&
+        !(phrase in MCP_AMBIGUOUS_OBJECT_CONCEPTS)
+      ) {
+        return;
+      }
+      const resolution = resolveSemanticObjectFamily(
+        phrase,
+        managedObjectTypes
+      );
+      if (resolution.status === 'resolved') {
+        matches.push({
+          family: resolution.family,
+          start,
+          end: start + offset + 1,
+        });
+      } else if (resolution.status === 'ambiguous') {
+        matches.push({ ambiguity: resolution, start, end: start + offset + 1 });
+      }
+    });
+  });
+  const mostSpecific = matches.filter(
+    (match) =>
+      !matches.some(
+        (candidate) =>
+          candidate.start <= match.start &&
+          candidate.end >= match.end &&
+          candidate.end - candidate.start > match.end - match.start
+      )
   );
+  const ambiguous = mostSpecific.find((match) => 'ambiguity' in match);
+  if (ambiguous && 'ambiguity' in ambiguous) {
+    return { families: new Set(), ambiguity: ambiguous.ambiguity };
+  }
+  return {
+    families: new Set(
+      mostSpecific.flatMap((match) => ('family' in match ? [match.family] : []))
+    ),
+  };
+}
+
+function termMatchesRequestedFamily(
+  term: string,
+  requestedFamilies: ReadonlySet<McpSemanticObjectFamily>,
+  managedObjectTypes: readonly string[]
+): boolean {
+  const resolution = resolveSemanticObjectFamily(term, managedObjectTypes);
+  return (
+    resolution.status === 'resolved' &&
+    [...requestedFamilies].some(
+      (family) =>
+        normalizeSemanticObjectFamily(family) ===
+        normalizeSemanticObjectFamily(resolution.family)
+    )
+  );
+}
+
+function formatFamilyResolutionError(
+  resolution: Exclude<McpSemanticObjectFamilyResolution, { status: 'resolved' }>
+): string {
+  const candidates = resolution.candidates.join(', ');
+  return resolution.status === 'ambiguous'
+    ? `The managed-object concept is ambiguous. Choose one of: ${candidates}.`
+    : `No managed-object family matched the live tenant catalog.${
+        candidates ? ` Closest candidates: ${candidates}.` : ''
+      }`;
 }
 
 function normalizeSearchTerm(term: string): string {

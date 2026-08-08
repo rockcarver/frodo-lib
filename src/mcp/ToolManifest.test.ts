@@ -154,9 +154,7 @@ describe('MCP tool manifest builder', () => {
       preferredDeploymentTypes: ['cloud', 'forgeops'],
       identitySurface: 'managed',
     });
-    expect(managedCount?.objectTypePatterns).toEqual(
-      expect.arrayContaining(['user', '*_user'])
-    );
+    expect(managedCount?.objectTypePatterns).toEqual(['*']);
     expect(amUserCount).toMatchObject({
       deploymentTypes: ['classic'],
       preferredDeploymentTypes: ['classic'],
