@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## [v4.2.0] - 2026-08-08
+
+### Added
+- Introduced deployment-aware capability routing in the MCP module, allowing for more dynamic and context-sensitive routing of capabilities. This enhances the flexibility and scalability of deployments. (#622, commit 34b345d0)
+- Added a new MCP profile registry, which enables the registration and management of profiles within the MCP system. This feature supports better organization and retrieval of profile data. (#622, commit f619290f)
+
+### Changed
+- Switched the canonical API to use skills naming within the MCP module, aligning terminology with industry standards and improving developer understanding and integration. (#622, commit c6d1d856)
+- Adopted a hybrid MCP dispatch runtime, optimizing the performance and responsiveness of the MCP system by integrating multiple dispatch strategies. (#622, commit 648c7ec3)
+
+### Fixed
+- Normalized skills assertions formatting in MCP tests, improving the consistency and reliability of test outputs. (commit 78a879c1)
+
 ## [v4.1.8] - 2026-08-07
 
 ### Changed
