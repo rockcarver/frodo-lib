@@ -267,9 +267,9 @@ describe('MCP capability foundation', () => {
     const readNodeType = byId.get('authn.node.readNodeType');
     expect(readNodeType).toBeDefined();
     expect(readNodeType?.argumentMode).toBe('named');
-    expect(readNodeType?.parameters?.map((parameter) => parameter.name)).toEqual(
-      ['nodeType', 'nodeTypeVersion']
-    );
+    expect(
+      readNodeType?.parameters?.map((parameter) => parameter.name)
+    ).toEqual(['nodeType', 'nodeTypeVersion']);
 
     const readNodesByType = byId.get('authn.node.readNodesByType');
     expect(readNodesByType).toBeDefined();
@@ -311,6 +311,41 @@ describe('MCP capability foundation', () => {
     expect(
       createConfigEntity?.parameters?.map((parameter) => parameter.name)
     ).toEqual(['entityId', 'entityData', 'wait']);
+
+    const readConfigEntity = byId.get('idm.config.readConfigEntity');
+    expect(readConfigEntity).toMatchObject({
+      argumentMode: 'named',
+      scope: 'single',
+      semanticAliases: expect.arrayContaining([
+        'password policy',
+        'realm password policy',
+      ]),
+      parameters: [
+        expect.objectContaining({
+          name: 'entityId',
+          examples: ['fieldPolicy/alpha_user'],
+        }),
+      ],
+    });
+
+    const readConfigEntitiesByType = byId.get(
+      'idm.config.readConfigEntitiesByType'
+    );
+    expect(readConfigEntitiesByType).toMatchObject({
+      argumentMode: 'named',
+      scope: 'bulk',
+      semanticAliases: expect.arrayContaining([
+        'all password policies',
+        'password policies',
+      ]),
+      parameters: [
+        expect.objectContaining({
+          name: 'type',
+          examples: ['fieldPolicy'],
+        }),
+        expect.objectContaining({ name: 'includeDefault', required: false }),
+      ],
+    });
 
     const readManagedObject = byId.get('idm.managed.readManagedObject');
     expect(readManagedObject).toBeDefined();

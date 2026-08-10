@@ -695,6 +695,64 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Create a config entity with namedArgs { entityId, entityData, wait }. wait defaults to false.',
   },
+  'idm.config.readConfigEntitiesByType': {
+    argumentMode: 'named',
+    scope: 'bulk',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          'IDM config entity type. Use fieldPolicy to read password policies for all realms.',
+        examples: ['fieldPolicy'],
+      },
+      {
+        name: 'includeDefault',
+        type: 'boolean',
+        required: false,
+        position: 1,
+        description:
+          'Include default email templates when reading emailTemplate entities.',
+        defaultValue: false,
+        examples: [false, true],
+      },
+    ],
+    supportsRealm: false,
+    semanticAliases: [
+      'all password policies',
+      'password policies',
+      'field policies',
+      'fieldPolicy',
+    ],
+    notes:
+      'Read password policies across realms with namedArgs { type: "fieldPolicy" }.',
+  },
+  'idm.config.readConfigEntity': {
+    argumentMode: 'named',
+    scope: 'single',
+    parameters: [
+      {
+        name: 'entityId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          'IDM config entity id. AIC realm-user password policies use fieldPolicy/<realm>_user.',
+        examples: ['fieldPolicy/alpha_user'],
+      },
+    ],
+    supportsRealm: false,
+    semanticAliases: [
+      'realm password policy',
+      'password policy',
+      'field policy',
+      'fieldPolicy',
+    ],
+    notes:
+      'Read one realm password policy with namedArgs { entityId: "fieldPolicy/<realm>_user" }, for example fieldPolicy/alpha_user.',
+  },
   'idm.config.readSubConfigEntity': {
     argumentMode: 'named',
     parameters: [

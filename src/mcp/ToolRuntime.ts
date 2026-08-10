@@ -1513,6 +1513,7 @@ function findSkills(
     routingReason: string;
     argumentMode?: McpCapabilityDescriptor['argumentMode'];
     scope?: string;
+    matchedSemanticAliases?: string[];
   }>;
 } {
   const queryTerms = normalizeSearchTerms(args.query);
@@ -1613,15 +1614,29 @@ function findSkills(
       managedObjectTypes,
       queryFamilies
     );
+    const matchedSemanticAliases = findMatchedSemanticAliases(
+      descriptor,
+      args.query
+    );
     const relevance =
       scoreCapabilitySearch(descriptor, queryTerms) +
+      scoreSemanticAliasPhrases(matchedSemanticAliases, args.query) +
+      (descriptor.scope === 'bulk' && queryTerms.includes('all') ? 32 : 0) +
       [...queryFamilies].filter((family) =>
         descriptorPatternsSupportFamily(descriptor.objectTypePatterns, family)
       ).length *
         8 +
       managedObjectMatches.matches.length * 6;
     return queryTerms.length === 0 || relevance > 0
-      ? [{ descriptor, relevance, routing, managedObjectMatches }]
+      ? [
+          {
+            descriptor,
+            relevance,
+            routing,
+            managedObjectMatches,
+            matchedSemanticAliases,
+          },
+        ]
       : [];
   });
 
@@ -1635,34 +1650,42 @@ function findSkills(
         left.descriptor.id.localeCompare(right.descriptor.id)
     )
     .slice(0, limit)
-    .map(({ descriptor, routing, managedObjectMatches }) => {
-      const matchedObjectFamilies = [...queryFamilies].filter((family) =>
-        descriptorPatternsSupportFamily(descriptor.objectTypePatterns, family)
-      );
-      return {
-        skillId: descriptor.id,
-        kind: descriptor.kind,
-        operationType: descriptor.operationType,
-        domain: descriptor.domain,
-        objectType: descriptor.objectType,
-        methodName: descriptor.methodName,
-        modulePath: descriptor.modulePath.join('.'),
-        riskClass: descriptor.riskClass,
-        deploymentTypes: descriptor.deploymentTypes,
-        preferredDeploymentTypes: descriptor.preferredDeploymentTypes,
-        identitySurface: descriptor.identitySurface,
-        objectTypePatterns: descriptor.objectTypePatterns,
-        ...(matchedObjectFamilies.length > 0 && { matchedObjectFamilies }),
-        ...(managedObjectMatches.total > 0 && {
-          matchedObjectTypes: managedObjectMatches.matches,
-          matchedObjectTypeCount: managedObjectMatches.total,
-        }),
-        routingStatus: routing.status,
-        routingReason: routing.reason,
-        argumentMode: descriptor.argumentMode,
-        scope: descriptor.scope,
-      };
-    });
+    .map(
+      ({
+        descriptor,
+        routing,
+        managedObjectMatches,
+        matchedSemanticAliases,
+      }) => {
+        const matchedObjectFamilies = [...queryFamilies].filter((family) =>
+          descriptorPatternsSupportFamily(descriptor.objectTypePatterns, family)
+        );
+        return {
+          skillId: descriptor.id,
+          kind: descriptor.kind,
+          operationType: descriptor.operationType,
+          domain: descriptor.domain,
+          objectType: descriptor.objectType,
+          methodName: descriptor.methodName,
+          modulePath: descriptor.modulePath.join('.'),
+          riskClass: descriptor.riskClass,
+          deploymentTypes: descriptor.deploymentTypes,
+          preferredDeploymentTypes: descriptor.preferredDeploymentTypes,
+          identitySurface: descriptor.identitySurface,
+          objectTypePatterns: descriptor.objectTypePatterns,
+          ...(matchedObjectFamilies.length > 0 && { matchedObjectFamilies }),
+          ...(managedObjectMatches.total > 0 && {
+            matchedObjectTypes: managedObjectMatches.matches,
+            matchedObjectTypeCount: managedObjectMatches.total,
+          }),
+          routingStatus: routing.status,
+          routingReason: routing.reason,
+          argumentMode: descriptor.argumentMode,
+          scope: descriptor.scope,
+          ...(matchedSemanticAliases.length > 0 && { matchedSemanticAliases }),
+        };
+      }
+    );
 
   return {
     total: filtered.length,
@@ -1938,6 +1961,9 @@ function scoreCapabilitySearch(
       [parameter.name, 4] as [string, number],
       [parameter.description ?? '', 2] as [string, number],
     ]),
+    ...(descriptor.semanticAliases ?? []).map(
+      (alias) => [alias, 10] as [string, number]
+    ),
     [descriptor.notes ?? '', 2],
   ];
   const operationAliases = [
@@ -1966,6 +1992,34 @@ function scoreCapabilitySearch(
       ? 8
       : 0;
     return score + Math.max(fieldScore, semanticScore);
+  }, 0);
+}
+
+function findMatchedSemanticAliases(
+  descriptor: McpCapabilityDescriptor,
+  query?: string
+): string[] {
+  if (!query) return [];
+  const queryTerms = new Set(normalizeSearchTerms(query));
+  return (descriptor.semanticAliases ?? []).filter((alias) => {
+    const aliasTerms = normalizeSearchTerms(alias);
+    return (
+      aliasTerms.length > 0 && aliasTerms.every((term) => queryTerms.has(term))
+    );
+  });
+}
+
+function scoreSemanticAliasPhrases(
+  aliases: readonly string[],
+  query?: string
+): number {
+  if (!query || aliases.length === 0) return 0;
+  const normalizedQuery = normalizeSearchTerms(query).join(' ');
+  return aliases.reduce((best, alias) => {
+    const normalizedAlias = normalizeSearchTerms(alias).join(' ');
+    return normalizedAlias && normalizedQuery.includes(normalizedAlias)
+      ? Math.max(best, normalizedAlias.split(' ').length * 12)
+      : best;
   }, 0);
 }
 
@@ -2142,7 +2196,7 @@ function validateInvocationArguments(
 
   if (argumentMode === 'named' && hasPositional) {
     throw new FrodoError(
-      `MCP runtime error: descriptor '${descriptor.id}' requires namedArgs. Use frodo_discover for the exact parameter contract.`
+      `MCP runtime error: descriptor '${descriptor.id}' requires namedArgs. Use frodo_describe_skill for the exact parameter contract.`
     );
   }
   if (argumentMode === 'named' && !hasNamed && requiresNamedParameters) {

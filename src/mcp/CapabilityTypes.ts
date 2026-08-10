@@ -145,6 +145,8 @@ export type McpCapabilityDescriptor = {
   objectTypePatterns?: string[];
   /** Optional human-readable note surfaced in discovery and validation output. */
   notes?: string;
+  /** Curated natural-language phrases used to retrieve this capability. */
+  semanticAliases?: string[];
   requiredScopes: string[];
   annotations: McpToolAnnotations;
 };
@@ -239,6 +241,9 @@ export type OperationCapabilityMeta = {
 
   /** Optional human-readable note surfaced in discovery tool output. */
   notes?: string;
+
+  /** Curated natural-language phrases used for capability retrieval. */
+  semanticAliases?: string[];
 
   /** Explicit MCP-facing argument mode override for the capability. */
   argumentMode?: McpCapabilityArgumentMode;
