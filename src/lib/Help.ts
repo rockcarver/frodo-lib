@@ -6108,6 +6108,19 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<VersionOfSecretSkeleton>} a promise that resolves to a version object",
   },
   {
+    typeName: "Secret",
+    methodName: "pruneVersionsOfSecret",
+    signature: "pruneVersionsOfSecret( secretId: string, keepLoaded?: boolean, keepDeactivated?: boolean, resultCallback?: ResultCallback<VersionOfSecretSkeleton> ): Promise<VersionOfSecretSkeleton[]>",
+    description: "Prune versions of secret that are not the latest secret version",
+    params: [
+      { name: "secretId", type: "string", description: "secret id/name" },
+      { name: "keepLoaded", type: "boolean", description: "true to keep the currently loaded secret versions regardless of if they are active or not. Default: false" },
+      { name: "keepDeactivated", type: "boolean", description: "true to keep the deactivated versions and only prune the active versions that aren't the latest version. Default: false" },
+      { name: "resultCallback", type: "ResultCallback<VersionOfSecretSkeleton>", description: "Optional callback to process individual results" },
+    ],
+    returns: "{Promise<VersionOfSecretSkeleton[]>} a promise that reolves to the pruned version objects",
+  },
+  {
     typeName: "ServiceAccount",
     methodName: "isServiceAccountsFeatureAvailable",
     signature: "isServiceAccountsFeatureAvailable(): Promise<boolean>",
