@@ -323,10 +323,10 @@ describe('MCP capability foundation', () => {
       parameters: [
         expect.objectContaining({
           name: 'entityId',
-          examples: ['fieldPolicy/alpha_user'],
         }),
       ],
     });
+    expect(readConfigEntity?.parameters?.[0].examples).toBeUndefined();
 
     const readConfigEntitiesByType = byId.get(
       'idm.config.readConfigEntitiesByType'
@@ -341,11 +341,11 @@ describe('MCP capability foundation', () => {
       parameters: [
         expect.objectContaining({
           name: 'type',
-          examples: ['fieldPolicy'],
         }),
         expect.objectContaining({ name: 'includeDefault', required: false }),
       ],
     });
+    expect(readConfigEntitiesByType?.parameters?.[0].examples).toBeUndefined();
 
     const readManagedObject = byId.get('idm.managed.readManagedObject');
     expect(readManagedObject).toBeDefined();

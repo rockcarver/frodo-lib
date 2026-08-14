@@ -25,6 +25,12 @@ export {
   rankCapabilitiesForDeployment,
 } from './CapabilityRouting';
 export {
+  McpDiscoveryHydrationCatalog,
+  McpDiscoveryHydrationEvent,
+  McpDiscoveryHydrationOptions,
+  hydrateMcpDiscoveryContext,
+} from './DiscoveryHydration';
+export {
   MCP_AMBIGUOUS_OBJECT_CONCEPTS,
   MCP_SEMANTIC_OBJECT_SYNONYMS,
   McpManagedObjectFamilyMatch,
@@ -36,6 +42,12 @@ export {
   normalizeSemanticObjectFamily,
   resolveSemanticObjectFamily,
 } from './SemanticObjectFamilies';
+export {
+  MCP_SEMANTIC_TERM_SYNONYMS,
+  McpSemanticIdentifierMatch,
+  matchSemanticIdentifiers,
+  normalizeSemanticIdentifier,
+} from './SemanticIdentifiers';
 export {
   capabilityMatchesAnyProfile,
   capabilityMatchesDisabled,
@@ -52,6 +64,7 @@ export {
 } from './CapabilityRegistry';
 export {
   McpCanonicalTool,
+  McpCatalogHydrationStatus,
   McpDiscoveryContext,
   McpDiscoveryEntry,
   McpDiscoveryTarget,

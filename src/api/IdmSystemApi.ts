@@ -77,6 +77,22 @@ export async function readAvailableSystems({
   return data;
 }
 
+export async function readAvailableConnectors({
+  state,
+}: {
+  state: State;
+}): Promise<SystemStatusInterface[]> {
+  const urlString = util.format(
+    systemActionsUrlTemplate,
+    getIdmBaseUrl(state),
+    'availableConnectors'
+  );
+  const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
+    urlString
+  );
+  return data;
+}
+
 export async function readSystemStatus({
   systemName,
   state,

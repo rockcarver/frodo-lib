@@ -25,6 +25,7 @@ import {
   McpDeploymentType,
 } from './CapabilityTypes';
 import {
+  McpCatalogHydrationStatus,
   McpDiscoveryEntry,
   McpGenericTool,
   McpManagedObjectHydrationStatus,
@@ -47,6 +48,7 @@ import {
   normalizeSemanticObjectFamily,
   resolveSemanticObjectFamily,
 } from './SemanticObjectFamilies';
+import { matchSemanticIdentifiers } from './SemanticIdentifiers';
 
 const FIND_SKILLS_TOOL_NAME = 'frodo_find_skills';
 const DESCRIBE_SKILL_TOOL_NAME = 'frodo_describe_skill';
@@ -228,6 +230,8 @@ export type McpFindSkillsArguments = {
   kind?: 'generic' | 'special';
   limit?: number;
   includeIncompatible?: boolean;
+  /** Execute a unique deterministic read-only recommendation. Defaults to true. */
+  executeRecommended?: boolean;
 };
 
 export type McpDiscoverArguments = {
@@ -415,6 +419,12 @@ export type McpToolRuntimeOptions = {
   managedObjectTypes?: readonly string[];
   /** Outcome of tenant managed-object type hydration. */
   managedObjectHydrationStatus?: McpManagedObjectHydrationStatus;
+  /** Tenant config entity IDs available to service-local semantic search. */
+  configEntityIds?: readonly string[];
+  /** Outcome of tenant config entity hydration. */
+  configEntityHydrationStatus?: McpCatalogHydrationStatus;
+  /** Execute unique deterministic read-only recommendations unless a request opts out. */
+  executeRecommendedByDefault?: boolean;
 };
 
 /**
@@ -493,6 +503,8 @@ export function createToolRuntime(
         activeTarget,
         managedObjectTypeCount,
         managedObjectHydrationStatus,
+        configEntityIdCount,
+        configEntityHydrationStatus,
         ...discoveryDetails
       } = manifest.discoveryTool;
       const commonDiscoveryData = {
@@ -504,6 +516,8 @@ export function createToolRuntime(
         ...(managedObjectHydrationStatus && {
           managedObjectHydrationStatus,
         }),
+        ...(configEntityIdCount !== undefined && { configEntityIdCount }),
+        ...(configEntityHydrationStatus && { configEntityHydrationStatus }),
       };
       return {
         toolName: request.toolName,
@@ -516,6 +530,8 @@ export function createToolRuntime(
                 objectFamilies: discoverManagedObjectFamilies(
                   options.managedObjectTypes ?? []
                 ),
+                guidance:
+                  'Bootstrap is complete. Do not call frodo_discover again for this task. Call frodo_find_skills once, then execute its recommendedDispatch when present.',
                 nextSteps: [
                   FIND_SKILLS_TOOL_NAME,
                   DESCRIBE_SKILL_TOOL_NAME,
@@ -537,8 +553,19 @@ export function createToolRuntime(
         capabilities,
         args,
         deploymentType,
-        options.managedObjectTypes
+        options.managedObjectTypes,
+        options.configEntityIds
       );
+      const recommendedExecution =
+        (args.executeRecommended ??
+          options.executeRecommendedByDefault ??
+          false) && result.recommendedDispatch
+          ? await executeTool({
+              toolName: result.recommendedDispatch.toolName,
+              arguments: result.recommendedDispatch.arguments,
+              context: request.context,
+            })
+          : undefined;
       emitRuntimeTrace(request, options, {
         event: 'discovery',
         toolName: request.toolName,
@@ -556,7 +583,14 @@ export function createToolRuntime(
       });
       return {
         toolName: request.toolName,
-        data: result,
+        data: recommendedExecution
+          ? {
+              ...result,
+              nextAction:
+                'Answer the user from execution.data. The recommended read-only skill has already run; do not call any more discovery tools.',
+              execution: recommendedExecution,
+            }
+          : result,
       };
     }
 
@@ -1340,6 +1374,14 @@ function parseFindSkillsArguments(raw: unknown): McpFindSkillsArguments {
       `MCP runtime error: '${FIND_SKILLS_TOOL_NAME}' requires includeIncompatible to be a boolean when provided.`
     );
   }
+  if (
+    args.executeRecommended !== undefined &&
+    typeof args.executeRecommended !== 'boolean'
+  ) {
+    throw new FrodoError(
+      `MCP runtime error: '${FIND_SKILLS_TOOL_NAME}' requires executeRecommended to be a boolean when provided.`
+    );
+  }
   return args;
 }
 
@@ -1488,11 +1530,17 @@ function findSkills(
   capabilities: McpCapabilityDescriptor[],
   args: McpFindSkillsArguments,
   deploymentType?: McpDeploymentType,
-  managedObjectTypes: readonly string[] = []
+  managedObjectTypes: readonly string[] = [],
+  configEntityIds: readonly string[] = []
 ): {
   total: number;
   returned: number;
   guidance?: string;
+  nextAction?: string;
+  recommendedDispatch?: {
+    toolName: typeof DISPATCH_READ_ONLY_TOOL_NAME;
+    arguments: McpDispatchExecutionArguments;
+  };
   skills: Array<{
     skillId: string;
     kind: McpCapabilityDescriptor['kind'];
@@ -1514,9 +1562,24 @@ function findSkills(
     argumentMode?: McpCapabilityDescriptor['argumentMode'];
     scope?: string;
     matchedSemanticAliases?: string[];
+    matchedConfigEntityIds?: string[];
+    matchedConfigEntityIdCount?: number;
+    matchedConfigEntityTypes?: string[];
+    matchedConfigEntityTypeCount?: number;
+    recommendedDispatch?: {
+      toolName: typeof DISPATCH_READ_ONLY_TOOL_NAME;
+      arguments: McpDispatchExecutionArguments;
+    };
   }>;
 } {
   const queryTerms = normalizeSearchTerms(args.query);
+  const configEntityTypes = [
+    ...new Set(
+      configEntityIds
+        .map((id) => id.split('/')[0])
+        .filter((type): type is string => !!type)
+    ),
+  ];
   const requestedResolution = args.objectFamily
     ? resolveSemanticObjectFamily(args.objectFamily, managedObjectTypes)
     : undefined;
@@ -1618,9 +1681,25 @@ function findSkills(
       descriptor,
       args.query
     );
+    const semanticPhrases = [args.query ?? '', ...matchedSemanticAliases];
+    const configEntityMatches = descriptor.parameters?.some(
+      (parameter) => parameter.name === 'entityId'
+    )
+      ? matchSemanticIdentifiers(semanticPhrases, configEntityIds)
+      : [];
+    const configTypeMatches =
+      descriptor.modulePath.join('.') === 'idm.config' &&
+      descriptor.parameters?.some((parameter) => parameter.name === 'type')
+        ? matchSemanticIdentifiers(semanticPhrases, configEntityTypes)
+        : [];
     const relevance =
       scoreCapabilitySearch(descriptor, queryTerms) +
       scoreSemanticAliasPhrases(matchedSemanticAliases, args.query) +
+      Math.max(
+        configEntityMatches[0]?.matchedTerms.length ?? 0,
+        configTypeMatches[0]?.matchedTerms.length ?? 0
+      ) *
+        12 +
       (descriptor.scope === 'bulk' && queryTerms.includes('all') ? 32 : 0) +
       [...queryFamilies].filter((family) =>
         descriptorPatternsSupportFamily(descriptor.objectTypePatterns, family)
@@ -1635,6 +1714,8 @@ function findSkills(
             routing,
             managedObjectMatches,
             matchedSemanticAliases,
+            configEntityMatches,
+            configTypeMatches,
           },
         ]
       : [];
@@ -1656,10 +1737,31 @@ function findSkills(
         routing,
         managedObjectMatches,
         matchedSemanticAliases,
+        configEntityMatches,
+        configTypeMatches,
       }) => {
         const matchedObjectFamilies = [...queryFamilies].filter((family) =>
           descriptorPatternsSupportFamily(descriptor.objectTypePatterns, family)
         );
+        const semanticCountFamily =
+          descriptor.id === 'idm.managed.countManagedObjects' &&
+          matchedObjectFamilies.length === 1
+            ? matchedObjectFamilies[0]
+            : undefined;
+        const exactManagedObjectType = managedObjectMatches.matches.find(
+          (type) => args.query?.toLowerCase().includes(type.toLowerCase())
+        );
+        const recommendedCountArguments = exactManagedObjectType
+          ? {
+              skillId: descriptor.id,
+              namedArgs: { type: exactManagedObjectType },
+            }
+          : semanticCountFamily
+            ? {
+                skillId: descriptor.id,
+                semanticTarget: { family: semanticCountFamily },
+              }
+            : undefined;
         return {
           skillId: descriptor.id,
           kind: descriptor.kind,
@@ -1683,13 +1785,38 @@ function findSkills(
           argumentMode: descriptor.argumentMode,
           scope: descriptor.scope,
           ...(matchedSemanticAliases.length > 0 && { matchedSemanticAliases }),
+          ...(configEntityMatches.length > 0 && {
+            matchedConfigEntityIds: configEntityMatches
+              .slice(0, 5)
+              .map((match) => match.identifier),
+            matchedConfigEntityIdCount: configEntityMatches.length,
+          }),
+          ...(configTypeMatches.length > 0 && {
+            matchedConfigEntityTypes: configTypeMatches
+              .slice(0, 5)
+              .map((match) => match.identifier),
+            matchedConfigEntityTypeCount: configTypeMatches.length,
+          }),
+          ...(recommendedCountArguments && {
+            recommendedDispatch: {
+              toolName: 'frodo_dispatch_read_only' as const,
+              arguments: recommendedCountArguments,
+            },
+          }),
         };
       }
     );
 
+  const recommendedDispatch =
+    results.length === 1 ? results[0].recommendedDispatch : undefined;
   return {
     total: filtered.length,
     returned: results.length,
+    ...(recommendedDispatch && {
+      nextAction:
+        'Execute recommendedDispatch now. Do not call frodo_discover, frodo_find_skills, or frodo_describe_skill again for this read-only task.',
+      recommendedDispatch,
+    }),
     ...(results.length === 0 &&
       (args.domain || args.objectType || args.skillIdPrefix) && {
         guidance:
@@ -1706,7 +1833,7 @@ function findSkills(
 function isUserIdentitySelector(args: McpFindSkillsArguments): boolean {
   return (
     args.domain?.toLowerCase() === 'user' &&
-    args.objectType?.toLowerCase() === 'user'
+    (!args.objectType || args.objectType.toLowerCase() === 'user')
   );
 }
 

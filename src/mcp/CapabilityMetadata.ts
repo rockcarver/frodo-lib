@@ -704,9 +704,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'string',
         required: true,
         position: 0,
-        description:
-          'IDM config entity type. Use fieldPolicy to read password policies for all realms.',
-        examples: ['fieldPolicy'],
+        description: 'IDM config entity type.',
       },
       {
         name: 'includeDefault',
@@ -724,10 +722,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       'all password policies',
       'password policies',
       'field policies',
-      'fieldPolicy',
     ],
-    notes:
-      'Read password policies across realms with namedArgs { type: "fieldPolicy" }.',
+    notes: 'Read config entities of one type with namedArgs { type }.',
   },
   'idm.config.readConfigEntity': {
     argumentMode: 'named',
@@ -738,9 +734,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'string',
         required: true,
         position: 0,
-        description:
-          'IDM config entity id. AIC realm-user password policies use fieldPolicy/<realm>_user.',
-        examples: ['fieldPolicy/alpha_user'],
+        description: 'IDM config entity id.',
       },
     ],
     supportsRealm: false,
@@ -748,10 +742,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       'realm password policy',
       'password policy',
       'field policy',
-      'fieldPolicy',
     ],
-    notes:
-      'Read one realm password policy with namedArgs { entityId: "fieldPolicy/<realm>_user" }, for example fieldPolicy/alpha_user.',
+    notes: 'Read one config entity with namedArgs { entityId }.',
   },
   'idm.config.readSubConfigEntity': {
     argumentMode: 'named',
