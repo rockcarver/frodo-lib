@@ -1827,6 +1827,657 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Operates on AM realm users via the AM REST API. Exposed for MCP use only in classic deployments. In cloud/forgeops deployments, use idm.managed.* for identity operations.',
   },
+
+  // ── Cloud log operations ──────────────────────────────────────────────────────
+  // LogOps methods are named after the debug/audit log domain vocabulary (tail,
+  // fetch, sources) rather than the create/read/update/delete/list/search naming
+  // convention buildDescriptor infers operationType from, so most of them land as
+  // operationType 'special' by default even though several are plain reads. These
+  // entries give the true CRUD identity explicitly instead of renaming the
+  // underlying LogOps methods.
+  'cloud.log.getLogSources': {
+    operationType: 'list',
+    objectType: 'LogSource',
+    argumentMode: 'none',
+    parameters: [],
+    supportsPaging: false,
+    supportsIncludeTotal: false,
+    notes:
+      'Returns the full set of available log source identifiers (e.g. am-core, idm-core, am-authentication) for this tenant. Pass one or more of these as the source parameter to fetch/tail.',
+  },
+  'cloud.log.getLogApiKey': {
+    operationType: 'read',
+    objectType: 'LogApiKey',
+    argumentMode: 'positional',
+    parameters: [
+      {
+        name: 'keyId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Log API key id.',
+      },
+    ],
+  },
+  'cloud.log.getLogApiKeys': {
+    operationType: 'list',
+    objectType: 'LogApiKey',
+    argumentMode: 'none',
+    parameters: [],
+  },
+  'cloud.log.isLogApiKeyValid': {
+    // Not a resource read: validates a key id + secret pair and returns a boolean.
+    // Stays 'special' rather than being forced into 'read' semantics, but gets an
+    // explicit non-mutating classification so it isn't gated by the CRUD allow list.
+    mutating: false,
+    destructive: false,
+    riskClass: 'low',
+    argumentMode: 'positional',
+    parameters: [
+      {
+        name: 'keyId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Log API key id.',
+      },
+      {
+        name: 'secret',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Log API key secret.',
+      },
+    ],
+    notes: 'Validates a log API key id/secret pair; returns a boolean.',
+  },
+  'cloud.log.tail': {
+    operationType: 'list',
+    objectType: 'LogEvent',
+    argumentMode: 'positional',
+    parameters: [
+      {
+        name: 'source',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          'Log source(s) to tail, comma-separated. See cloud.log.getLogSources.',
+        examples: ['am-core', 'am-authentication,idm-core'],
+      },
+      {
+        name: 'cookie',
+        type: 'string',
+        required: false,
+        position: 1,
+        description: 'Paged-results cookie from a previous tail call.',
+      },
+    ],
+    supportsPaging: true,
+    supportsIncludeTotal: false,
+    notes:
+      'Reads the next batch of log events from a live cursor position for the given source(s). No time range or filter; use cloud.log.fetch for bounded/filtered queries.',
+  },
+  'cloud.log.fetch': {
+    operationType: 'search',
+    objectType: 'LogEvent',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'source',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          'Log source(s) to query, comma-separated. See cloud.log.getLogSources.',
+        examples: ['am-core', 'am-authentication,idm-core'],
+      },
+      {
+        name: 'startTs',
+        type: 'string',
+        required: false,
+        position: 1,
+        description: 'Start timestamp (ISO 8601), inclusive.',
+        examples: ['2026-08-14T00:00:00Z'],
+      },
+      {
+        name: 'endTs',
+        type: 'string',
+        required: false,
+        position: 2,
+        description: 'End timestamp (ISO 8601), exclusive.',
+        examples: ['2026-08-15T00:00:00Z'],
+      },
+      {
+        name: 'cookie',
+        type: 'string',
+        required: false,
+        position: 3,
+        description: 'Paged-results cookie from a previous fetch call.',
+      },
+      {
+        name: 'txid',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional transaction id to narrow the query to.',
+      },
+      {
+        name: 'filter',
+        type: 'string',
+        required: false,
+        position: 5,
+        description:
+          'Optional query filter expression evaluated against the log payload, for example to isolate authentication events.',
+      },
+    ],
+    supportsPaging: true,
+    supportsIncludeTotal: false,
+    notes:
+      'Queries log events by source, time range, transaction id, and/or filter. This is the operation for bounded questions like "what were the last N logins" — filter on the authentication topic and sort by timestamp client-side.',
+  },
+  'cloud.log.resolveLevel': { excluded: true },
+  'cloud.log.resolvePayloadLevel': { excluded: true },
+  'cloud.log.getDefaultNoiseFilter': { excluded: true },
+
+  // ── Special-capability audit (library-wide) ───────────────────────────────────
+  //
+  // Every method below was classified `kind: 'special'` by naming-convention
+  // inference alone, which only recognizes create/update/delete/import as mutating
+  // and only escalates risk for names matching /secret|password|token|credential|
+  // serviceAccount/i. That leaves a permissive default (mutating: false, low risk)
+  // for anything named outside those conventions — including real mutations like
+  // `disableJourney` or `removeOrphanedNodes`. This section gives each one an
+  // explicit, reviewed classification instead of inheriting that default, so
+  // policy presets with `includeSpecial: true` expose only what's actually been
+  // checked. New special-kind methods should get an entry here (or be covered by
+  // the `contract-gap-baseline.json` guardrail test) before a permissive preset
+  // can reach them.
+  //
+  // A few entries also carry an `operationType` override where the method is
+  // genuinely CRUD-shaped and just fails the naming regex (e.g. `disableJourney`
+  // → `update`, `removeOrphanedNodes` → `delete`), following the same reasoning
+  // as the cloud.log remap above. Parameter/argument-contract authoring for the
+  // newly-reachable operations is a separate follow-up, not covered here.
+
+  'admin.executeRfc7523AuthZGrantFlow': {
+    mutating: true,
+    riskClass: 'critical',
+    notes:
+      'Executes a live RFC 7523 JWT-bearer authorization grant against the tenant, obtaining a real access token. Treat as credential issuance.',
+  },
+  'admin.generateRfc7523AuthZGrantArtefacts': {
+    mutating: false,
+    riskClass: 'high',
+    notes:
+      'Generates local JWT-bearer grant artefacts (assertions/keys). No tenant call, but produces auth material.',
+  },
+  'admin.generateRfc7523ClientAuthNArtefacts': {
+    mutating: false,
+    riskClass: 'high',
+    notes:
+      'Generates local client-authentication artefacts. No tenant call, but produces auth material.',
+  },
+  'admin.trainAA': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Best-effort classification: assumed to trigger Autonomous Access model training on the tenant, a real and potentially long-running operation. Confirm against product docs before relying on this.',
+  },
+
+  'app.getRealmManagedApplication': {
+    operationType: 'read',
+    objectType: 'ManagedApplication',
+    mutating: false,
+    riskClass: 'low',
+  },
+
+  'authn.journey.disableJourney': {
+    operationType: 'update',
+    objectType: 'Journey',
+    mutating: true,
+    riskClass: 'medium',
+    notes: 'Deactivates a journey.',
+  },
+  'authn.journey.enableJourney': {
+    operationType: 'update',
+    objectType: 'Journey',
+    mutating: true,
+    riskClass: 'medium',
+    notes: 'Activates a journey.',
+  },
+  'authn.journey.getJourneyClassification': {
+    operationType: 'read',
+    objectType: 'JourneyClassification',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'authn.journey.getNodeRef': {
+    // Takes a full NodeSkeleton + SingleTreeExportInterface as input, not a
+    // simple identifier — internal plumbing used while processing an export
+    // already in hand, not a standalone operation an agent could call.
+    excluded: true,
+  },
+  'authn.journey.getTreeDescendents': {
+    operationType: 'list',
+    objectType: 'Journey',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'authn.journey.resolveDependencies': {
+    operationType: 'list',
+    objectType: 'JourneyDependency',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'authn.journey.isCloudOnlyJourney': { mutating: false, riskClass: 'low' },
+  'authn.journey.isCustomJourney': { mutating: false, riskClass: 'low' },
+  'authn.journey.isPremiumJourney': { mutating: false, riskClass: 'low' },
+  'authn.journey.fileByIdTreeExportResolver': {
+    excluded: true, // internal resolver used by exportJourney, not a standalone operation
+  },
+  'authn.journey.onlineTreeExportResolver': {
+    excluded: true, // internal resolver used by exportJourney, not a standalone operation
+  },
+
+  'authn.node.findOrphanedNodes': {
+    operationType: 'list',
+    objectType: 'OrphanedNode',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'authn.node.getCustomNodeUsage': {
+    operationType: 'read',
+    objectType: 'NodeUsage',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'authn.node.getNodeClassification': {
+    operationType: 'read',
+    objectType: 'NodeClassification',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'authn.node.removeOrphanedNodes': {
+    operationType: 'delete',
+    objectType: 'OrphanedNode',
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes: 'Bulk-deletes orphaned node configuration objects.',
+  },
+  'authn.node.isCloudExcludedNode': { mutating: false, riskClass: 'low' },
+  'authn.node.isCloudOnlyNode': { mutating: false, riskClass: 'low' },
+  'authn.node.isCustomNode': { mutating: false, riskClass: 'low' },
+  'authn.node.isDeprecatedNode': { mutating: false, riskClass: 'low' },
+  'authn.node.isPremiumNode': { mutating: false, riskClass: 'low' },
+
+  // Local SDK plumbing, not tenant capabilities. `cache` is frodo's local
+  // encrypted token-cache bookkeeping; `conn` is frodo's local connection-profile
+  // store, which holds saved login credentials for every environment a user has
+  // ever configured frodo against — not scoped to the active MCP session's
+  // tenant. Exposing either as an agent-callable skill risks credential
+  // disclosure across environments the current session has no business
+  // touching, so both are excluded outright rather than risk-ranked per method.
+  cache: { excluded: true },
+  conn: { excluded: true },
+
+  'cloud.env.abortDirectConfigurationSession': {
+    mutating: true,
+    riskClass: 'medium',
+    notes: 'Cancels a staged direct-configuration session.',
+  },
+  'cloud.env.initDirectConfigurationSession': {
+    mutating: true,
+    riskClass: 'medium',
+    notes: 'Opens a staged direct-configuration session.',
+  },
+  'cloud.env.applyDirectConfigurationSession': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'critical',
+    notes: 'Commits a staged direct-configuration session to the live tenant.',
+  },
+  'cloud.env.cert.activateCertificate': { mutating: true, riskClass: 'high' },
+  'cloud.env.cert.deactivateCertificate': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+  },
+  'cloud.env.cert.isCertificateActive': { mutating: false, riskClass: 'low' },
+  'cloud.env.cert.isCertificateLive': { mutating: false, riskClass: 'low' },
+  'cloud.env.enableAIAgentFeature': { mutating: true, riskClass: 'medium' },
+  'cloud.env.enforceFederationFor': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes:
+      'Enforces federated login for a target, which can lock out password-based access.',
+  },
+  'cloud.env.promotion.lockEnvironment': {
+    mutating: true,
+    riskClass: 'medium',
+  },
+  'cloud.env.promotion.unlockEnvironment': {
+    mutating: true,
+    riskClass: 'medium',
+  },
+  'cloud.env.promotion.promoteConfiguration': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'critical',
+    notes: 'Promotes staged configuration to the live tenant.',
+  },
+  'cloud.env.promotion.rollbackPromotion': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'critical',
+    notes: 'Reverts a prior promotion on the live tenant.',
+  },
+  'cloud.env.promotion.runProvisionalPromotionReport': {
+    mutating: false,
+    riskClass: 'low',
+    notes: 'Dry-run preview; does not apply changes.',
+  },
+  'cloud.env.promotion.runProvisionalRollbackReport': {
+    mutating: false,
+    riskClass: 'low',
+    notes: 'Dry-run preview; does not apply changes.',
+  },
+  'cloud.env.resetSSOCookieConfig': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes:
+      'Resets tenant-wide SSO cookie configuration; can invalidate active sessions.',
+  },
+  'cloud.env.verifyCNAME': { mutating: false, riskClass: 'low' },
+
+  'cloud.esvCount.getEsvCount': {
+    operationType: 'count',
+    objectType: 'Esv',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'cloud.getEsvCount': {
+    operationType: 'count',
+    objectType: 'Esv',
+    mutating: false,
+    riskClass: 'low',
+  },
+
+  'cloud.feature.hasFeature': { mutating: false, riskClass: 'low' },
+
+  'cloud.iga.workflow.publishWorkflow': {
+    mutating: true,
+    riskClass: 'medium',
+    notes: 'Publishes a workflow definition, making it active.',
+  },
+
+  'cloud.secret.disableVersionOfSecret': { mutating: true, destructive: true },
+  'cloud.secret.enableVersionOfSecret': { mutating: true },
+
+  'cloud.serviceAccount.getServiceAccount': {
+    operationType: 'read',
+    objectType: 'ServiceAccount',
+    mutating: false,
+    // riskClass intentionally left to inference: "ServiceAccount" already
+    // matches the credential-keyword regex and infers 'critical'.
+  },
+  'cloud.serviceAccount.isServiceAccountsFeatureAvailable': {
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Feature-availability flag only; does not touch service account data. Explicit override corrects the keyword-based critical default.',
+  },
+  'cloud.serviceAccount.validateServiceAccount': {
+    mutating: false,
+    // riskClass intentionally left to inference (critical): validates
+    // credential material.
+  },
+
+  'cloud.startup.checkForUpdates': { mutating: false, riskClass: 'low' },
+  'cloud.startup.applyUpdates': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'critical',
+    notes: 'Applies platform updates to the environment.',
+  },
+
+  'cloud.variable.getVariable': {
+    operationType: 'read',
+    objectType: 'Variable',
+    mutating: false,
+    riskClass: 'medium',
+    notes: 'ESV variables may hold sensitive-but-unclassified config values.',
+  },
+  'cloud.variable.getVariables': {
+    operationType: 'list',
+    objectType: 'Variable',
+    mutating: false,
+    riskClass: 'medium',
+  },
+  'cloud.variable.resolveVariable': {
+    operationType: 'read',
+    objectType: 'Variable',
+    mutating: false,
+    riskClass: 'medium',
+  },
+  'cloud.variable.putVariable': {
+    operationType: 'update',
+    objectType: 'Variable',
+    mutating: true,
+    riskClass: 'medium',
+  },
+  'cloud.variable.setVariableDescription': {
+    operationType: 'update',
+    objectType: 'Variable',
+    mutating: true,
+    riskClass: 'low',
+  },
+
+  'cloud.wsfed.generateSigningKeyPair': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes:
+      'Generates and persists a new WS-Fed signing key pair; can supersede/invalidate prior signatures.',
+  },
+
+  'idm.crypto.decrypt': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Decryption oracle — treat as a secret-disclosure risk even though it does not mutate state.',
+  },
+  'idm.crypto.decryptMap': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Decryption oracle — treat as a secret-disclosure risk even though it does not mutate state.',
+  },
+  'idm.crypto.encrypt': { mutating: false, riskClass: 'medium' },
+  'idm.crypto.encryptMap': { mutating: false, riskClass: 'medium' },
+  'idm.crypto.isEncrypted': { mutating: false, riskClass: 'low' },
+
+  'idm.managed.resolveFullName': {
+    operationType: 'read',
+    objectType: 'ManagedObjectName',
+    argumentMode: 'positional',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id (UUID).',
+      },
+    ],
+    mutating: false,
+    riskClass: 'low',
+  },
+  'idm.managed.resolvePerpetratorUuid': {
+    operationType: 'read',
+    objectType: 'ManagedObjectName',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'idm.managed.resolveUserName': {
+    operationType: 'read',
+    objectType: 'ManagedObjectName',
+    argumentMode: 'positional',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id (UUID).',
+      },
+    ],
+    mutating: false,
+    riskClass: 'low',
+  },
+
+  'idm.mapping.isLegacyMapping': { mutating: false, riskClass: 'low' },
+
+  'idm.organization.getRealmManagedOrganization': {
+    operationType: 'read',
+    objectType: 'ManagedOrganization',
+    mutating: false,
+    riskClass: 'low',
+  },
+
+  'idm.recon.startRecon': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Starts a reconciliation run, which can create/update/delete managed objects as a side effect.',
+  },
+  'idm.recon.startReconById': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Starts a reconciliation run, which can create/update/delete managed objects as a side effect.',
+  },
+  'idm.recon.cancelRecon': { mutating: true, riskClass: 'medium' },
+
+  'idm.script.evaluateScript': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'critical',
+    notes:
+      'Executes arbitrary script against the tenant — equivalent to a remote code execution capability.',
+  },
+  'idm.script.compileScript': {
+    mutating: false,
+    riskClass: 'medium',
+    notes: 'Syntax-checks a script without executing it.',
+  },
+
+  'idm.system.runSystemScript': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'critical',
+    notes:
+      'Executes arbitrary script in a connector/system context — equivalent to a remote code execution capability.',
+  },
+  'idm.system.authenticateSystemObject': {
+    mutating: false,
+    riskClass: 'high',
+    notes:
+      'Authenticates against an external connected system using stored credentials.',
+  },
+  'idm.system.testConnectorServers': { mutating: false, riskClass: 'low' },
+
+  'info.getInfo': {
+    operationType: 'read',
+    objectType: 'Info',
+    mutating: false,
+    riskClass: 'low',
+  },
+
+  'login.getTokens': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Returns live bearer/session tokens for the current identity. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin).',
+  },
+
+  'oauth2oidc.endpoint.accessToken': { mutating: true },
+  'oauth2oidc.endpoint.accessTokenRfc7523AuthZGrant': { mutating: true },
+  'oauth2oidc.endpoint.clientCredentialsGrant': { mutating: true },
+  'oauth2oidc.endpoint.getTokenInfo': { mutating: false },
+  'oauth2oidc.endpoint.authorize': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Initiates a live OAuth2 authorization request against the tenant. Explicit override — the method name does not match the credential-keyword inference.',
+  },
+
+  'realm.addCustomDomain': {
+    operationType: 'create',
+    objectType: 'CustomDomain',
+    mutating: true,
+    riskClass: 'medium',
+  },
+  'realm.removeCustomDomain': {
+    operationType: 'delete',
+    objectType: 'CustomDomain',
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+  },
+
+  'saml2.entityProvider.getSaml2ProviderMetadata': {
+    operationType: 'read',
+    objectType: 'Saml2ProviderMetadata',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'saml2.entityProvider.getSaml2ProviderMetadataUrl': {
+    operationType: 'read',
+    objectType: 'Saml2ProviderMetadata',
+    mutating: false,
+    riskClass: 'low',
+  },
+
+  'script.getLibraryScriptNames': {
+    operationType: 'list',
+    objectType: 'ScriptName',
+    mutating: false,
+    riskClass: 'low',
+  },
+
+  'secretStore.canSecretStoreHaveMappings': {
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Capability flag only; explicit override corrects the keyword-based critical default triggered by "Secret" in the method name.',
+  },
+
+  'session.getSessionInfo': {
+    operationType: 'read',
+    objectType: 'SessionInfo',
+    mutating: false,
+    riskClass: 'medium',
+  },
 };
 
 /**
