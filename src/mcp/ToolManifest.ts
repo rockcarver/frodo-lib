@@ -222,6 +222,10 @@ export type McpDiscoveryEntry = {
   managedObjectTypeCount?: number;
   /** Whether tenant managed-object type hydration completed successfully. */
   managedObjectHydrationStatus?: McpManagedObjectHydrationStatus;
+  /** Number of tenant config entity IDs available to semantic discovery. */
+  configEntityIdCount?: number;
+  /** Whether tenant config entity hydration completed successfully. */
+  configEntityHydrationStatus?: McpCatalogHydrationStatus;
   /** Sorted list of all domain keys present in the manifest. */
   domains: string[];
   /**
@@ -256,14 +260,18 @@ export type McpDiscoveryTarget = {
 export type McpDiscoveryContext = {
   managedObjectTypes?: readonly string[];
   managedObjectHydrationStatus?: McpManagedObjectHydrationStatus;
+  configEntityIds?: readonly string[];
+  configEntityHydrationStatus?: McpCatalogHydrationStatus;
   activeTarget?: McpDiscoveryTarget;
 };
 
-export type McpManagedObjectHydrationStatus =
+export type McpCatalogHydrationStatus =
   | 'available'
   | 'not-applicable'
   | 'failed'
   | 'timed-out';
+
+export type McpManagedObjectHydrationStatus = McpCatalogHydrationStatus;
 
 /**
  * The complete reduced tool surface derived from a policy-filtered capability
@@ -342,6 +350,13 @@ export function buildToolManifest(
     discoveryTool.managedObjectHydrationStatus =
       discoveryContext.managedObjectHydrationStatus;
   }
+  if (discoveryContext.configEntityIds) {
+    discoveryTool.configEntityIdCount = discoveryContext.configEntityIds.length;
+  }
+  if (discoveryContext.configEntityHydrationStatus) {
+    discoveryTool.configEntityHydrationStatus =
+      discoveryContext.configEntityHydrationStatus;
+  }
 
   // Keep domains comprehensive for discovery even when a domain is represented
   // only by special capabilities.
@@ -365,7 +380,7 @@ function buildCanonicalTools(): McpCanonicalTool[] {
     {
       toolName: FIND_SKILLS_TOOL_NAME,
       description:
-        'Search available skills under the active target and profile using concise intent or structured selectors. Compatible skills are returned by default; matched native managed-object types are included when available.',
+        'Search available skills under the active target and profile. A unique deterministic read-only recommendation executes automatically by default and is returned as execution.data; answer from that result without further discovery. Set executeRecommended=false only for diagnostics.',
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -387,7 +402,7 @@ function buildCanonicalTools(): McpCanonicalTool[] {
     {
       toolName: DISPATCH_READ_ONLY_TOOL_NAME,
       description:
-        'Execute a read-only skill (count/read/list/search) by skill id or by operation/domain/objectType selector.',
+        'Execute a read-only skill (count/read/list/search). Prefer the exact tool name and arguments returned as recommendedDispatch by frodo_find_skills.',
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,

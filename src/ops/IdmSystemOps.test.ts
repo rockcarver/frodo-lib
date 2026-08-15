@@ -328,6 +328,12 @@ describe('IdmSystemOps', () => {
       });
     });
 
+    describe('readAvailableConnectors()', () => {
+      test('0: Method is implemented', async () => {
+        expect(IdmSystemOps.readAvailableConnectors).toBeDefined();
+      });
+    });
+
     describe('readSystemObject()', () => {
       test('0: Method is implemented', async () => {
         expect(IdmSystemOps.readSystemObject).toBeDefined();
