@@ -155,6 +155,9 @@ function shouldIncludeMethod(path: string[]): boolean {
   if (DEFAULT_INSTANCE_HELPERS.has(methodName)) {
     return false;
   }
+  if (resolveCapabilityMeta(path.join('.'))?.excluded) {
+    return false;
+  }
   return true;
 }
 
@@ -170,17 +173,21 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
   const methodName = path[path.length - 1];
   const modulePath = path.slice(0, -1);
   const domain = modulePath[0] || 'root';
-  const operationType = inferOperationType(methodName);
-  const objectType = inferObjectType(methodName, modulePath, operationType);
+  const sourcePath = [...modulePath, methodName].join('.');
+  const meta = resolveCapabilityMeta(sourcePath);
+
+  const operationType = meta?.operationType ?? inferOperationType(methodName);
+  const objectType =
+    meta?.objectType ?? inferObjectType(methodName, modulePath, operationType);
   const kind: McpCapabilityKind =
     operationType === 'special' ? 'special' : 'generic';
-  const riskClass = inferRiskClass(operationType, methodName);
-  const mutating = isMutating(operationType);
-  const destructive = isDestructive(operationType, methodName);
+  const riskClass =
+    meta?.riskClass ?? inferRiskClass(operationType, methodName);
+  const mutating = meta?.mutating ?? isMutating(operationType);
+  const destructive =
+    meta?.destructive ?? isDestructive(operationType, methodName);
   const annotations = inferAnnotations(operationType, mutating, destructive);
-  const sourcePath = [...modulePath, methodName].join('.');
 
-  const meta = resolveCapabilityMeta(sourcePath);
   const argumentMode = meta?.argumentMode ?? inferArgumentMode(operationType);
   const parameters =
     meta?.parameters ?? inferParameters(methodName, objectType, operationType);
