@@ -142,7 +142,6 @@ function makeManifest(descriptors: McpCapabilityDescriptor[]): McpToolManifest {
           : [],
       },
     ],
-    specialTools: [],
     discoveryTool: {
       toolName: 'frodo_discover',
       description: 'Discover tool surface.',

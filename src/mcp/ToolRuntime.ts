@@ -29,7 +29,6 @@ import {
   McpDiscoveryEntry,
   McpGenericTool,
   McpManagedObjectHydrationStatus,
-  McpSpecialTool,
   McpToolManifest,
 } from './ToolManifest';
 import {
@@ -465,9 +464,6 @@ export function createToolRuntime(
     manifest.genericTools,
     byId
   );
-  const specialToolIndex = new Map<string, McpSpecialTool>(
-    manifest.specialTools.map((t) => [t.toolName, t])
-  );
   const frodoRoot = options.frodoRoot ?? frodo;
   const paginationWarningThreshold = options.paginationWarningThreshold ?? 1000;
   const resultWarningThresholdBytes =
@@ -559,7 +555,8 @@ export function createToolRuntime(
       const recommendedExecution =
         (args.executeRecommended ??
           options.executeRecommendedByDefault ??
-          false) && result.recommendedDispatch
+          false) &&
+        result.recommendedDispatch
           ? await executeTool({
               toolName: result.recommendedDispatch.toolName,
               arguments: result.recommendedDispatch.arguments,
@@ -738,35 +735,6 @@ export function createToolRuntime(
         descriptorId: descriptor.id,
         data: methodResult,
         ...(metadata ? { metadata } : {}),
-      };
-    }
-
-    const specialTool = specialToolIndex.get(request.toolName);
-    if (specialTool) {
-      const scopedFrodo = await resolveScopedFrodoInstance(
-        request.context,
-        frodoRoot,
-        options.resolveFrodoForRequest
-      );
-      assertDeploymentCompatibility(
-        specialTool.descriptor,
-        resolveScopedDeploymentType(scopedFrodo, request.context)
-      );
-      const methodResult = await invokeDescriptorMethod(
-        scopedFrodo,
-        specialTool.descriptor,
-        toInvocationArgs(request.arguments, specialTool.descriptor)
-      );
-      const resultMetadata = buildResultMetadata(
-        methodResult,
-        specialTool.descriptor.operationType,
-        resultWarningThresholdBytes
-      );
-      return {
-        toolName: request.toolName,
-        descriptorId: specialTool.descriptor.id,
-        data: methodResult,
-        ...(resultMetadata ? { metadata: { result: resultMetadata } } : {}),
       };
     }
 

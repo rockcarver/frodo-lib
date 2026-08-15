@@ -71,7 +71,6 @@ export {
   McpManagedObjectHydrationStatus,
   McpGenericTool,
   McpObjectTypeEntry,
-  McpSpecialTool,
   McpToolManifest,
   buildToolManifest,
 } from './ToolManifest';
