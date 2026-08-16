@@ -287,6 +287,37 @@ describe('MCP hybrid runtime', () => {
     });
   });
 
+  test('discover resolves docsContext to independently versioned am/idm docsets plus domain routing for forgeops', async () => {
+    const descriptor = makeDescriptor();
+    const manifest = makeManifest([descriptor]);
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          state: {
+            getDeploymentType: () => 'forgeops',
+            getAmVersion: () => '7.5.0',
+            getIdmVersion: () => '8.1.0',
+          },
+          login: { getTokens: jest.fn(async () => {}) },
+        }) as any,
+    });
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_discover',
+      context: {
+        auth: { mode: 'state-config', config: { host: 'https://example.test/am' } },
+      },
+    });
+    const data = result.data as { docsContext: Record<string, unknown> };
+
+    expect(data.docsContext).toMatchObject({
+      deploymentType: 'forgeops',
+      am: { product: 'pingam', version: '7.5' },
+      idm: { product: 'pingidm', version: '8.1' },
+      domainRouting: { idm: 'idm', realm: 'am' },
+    });
+  });
+
   test('discover returns the legacy operation catalog only when requested', async () => {
     const descriptor = makeDescriptor();
     const manifest = makeManifest([descriptor]);

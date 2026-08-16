@@ -494,7 +494,8 @@ export function createToolRuntime(
         );
       const docsContext = resolveDocsContext(
         deploymentType,
-        discoveryScopedFrodo?.state?.getAmVersion?.()
+        discoveryScopedFrodo?.state?.getAmVersion?.(),
+        discoveryScopedFrodo?.state?.getIdmVersion?.()
       );
       emitRuntimeTrace(request, options, {
         event: 'discovery',

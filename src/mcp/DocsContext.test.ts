@@ -5,7 +5,12 @@
  * stale-index problem).
  */
 
-import { parseAmDocsVersion, resolveDocsContext } from './DocsContext';
+import {
+  classifyDomainProduct,
+  parseAmDocsVersion,
+  parseIdmDocsVersion,
+  resolveDocsContext,
+} from './DocsContext';
 
 describe('parseAmDocsVersion', () => {
   test('extracts major.minor from state.getAmVersion()\'s clean semantic version string', () => {
@@ -21,6 +26,46 @@ describe('parseAmDocsVersion', () => {
 
   test('treats the "0.0.0" unknown-version sentinel as unresolved', () => {
     expect(parseAmDocsVersion('0.0.0')).toBeUndefined();
+  });
+});
+
+describe('parseIdmDocsVersion', () => {
+  test('extracts major.minor from state.getIdmVersion()\'s clean semantic version string', () => {
+    expect(parseIdmDocsVersion('8.1.0')).toBe('8.1');
+  });
+
+  test('returns undefined for missing input or the "0.0.0" sentinel', () => {
+    expect(parseIdmDocsVersion(undefined)).toBeUndefined();
+    expect(parseIdmDocsVersion('0.0.0')).toBeUndefined();
+  });
+});
+
+describe('classifyDomainProduct', () => {
+  test('classifies AM-only domains', () => {
+    expect(classifyDomainProduct('realm')).toBe('am');
+    expect(classifyDomainProduct('authn')).toBe('am');
+    expect(classifyDomainProduct('user')).toBe('am');
+  });
+
+  test('classifies IDM-only domains', () => {
+    expect(classifyDomainProduct('idm')).toBe('idm');
+    expect(classifyDomainProduct('theme')).toBe('idm');
+    expect(classifyDomainProduct('role')).toBe('idm');
+  });
+
+  test('classifies domains that span both components', () => {
+    expect(classifyDomainProduct('config')).toBe('both');
+    expect(classifyDomainProduct('rawConfig')).toBe('both');
+    expect(classifyDomainProduct('info')).toBe('both');
+  });
+
+  test('classifies AIC-only and internal-helper domains', () => {
+    expect(classifyDomainProduct('cloud')).toBe('cloud-only');
+    expect(classifyDomainProduct('utils')).toBe('n/a');
+  });
+
+  test('defaults an unrecognized domain to "both" rather than guessing', () => {
+    expect(classifyDomainProduct('someFutureDomain')).toBe('both');
   });
 });
 
@@ -58,12 +103,42 @@ describe('resolveDocsContext', () => {
     });
   });
 
-  test('forgeops is explicitly unresolved, not silently mapped to either product', () => {
-    const result = resolveDocsContext('forgeops', '7.5.0');
-    expect(result).toEqual({
+  test('forgeops resolves independently versioned am and idm targets plus domain routing', () => {
+    const result = resolveDocsContext('forgeops', '7.5.0', '8.1.0');
+    expect(result).toMatchObject({
+      deploymentType: 'forgeops',
+      am: {
+        product: 'pingam',
+        versioned: true,
+        version: '7.5',
+        llmsTxtUrl: 'https://docs.pingidentity.com/pingam/llms.txt',
+      },
+      idm: {
+        product: 'pingidm',
+        versioned: true,
+        version: '8.1',
+        llmsTxtUrl: 'https://docs.pingidentity.com/pingidm/llms.txt',
+      },
+      domainRouting: {
+        realm: 'am',
+        idm: 'idm',
+        config: 'both',
+        cloud: 'cloud-only',
+      },
+    });
+  });
+
+  test('forgeops leaves am or idm individually unresolved when their version is unavailable, without failing the whole result', () => {
+    const result = resolveDocsContext(
+      'forgeops',
+      '7.5.0',
+      undefined
+    ) as { am: unknown; idm: unknown };
+    expect(result.am).toMatchObject({ product: 'pingam', version: '7.5' });
+    expect(result.idm).toEqual({
       product: null,
       unresolved: true,
-      reason: expect.stringContaining('forgeops'),
+      reason: expect.stringContaining('IDM version'),
     });
   });
 

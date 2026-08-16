@@ -57,10 +57,15 @@ export {
   resolveMcpProfileSelection,
 } from './ProfileRegistry';
 export {
+  FORGEOPS_DOMAIN_PRODUCT_MAP,
   McpDocsContext,
+  McpDocsContextForgeops,
   McpDocsContextUnresolved,
+  McpDocsDomainProduct,
   McpDocsProduct,
+  classifyDomainProduct,
   parseAmDocsVersion,
+  parseIdmDocsVersion,
   resolveDocsContext,
 } from './DocsContext';
 export {
