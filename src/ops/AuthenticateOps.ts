@@ -1505,6 +1505,36 @@ export async function getTokens({
           `Unsupported deployment type '${state.getDeploymentType()}'`
         );
       }
+    } else if (
+      // a username was given without a password: never require the password
+      // to be passed or embedded anywhere in the invoking command/config —
+      // pull it from the connection profile stored for this host instead,
+      // but only when that profile's own username matches the one given, so
+      // a typo'd or wrong username fails loudly rather than silently
+      // switching identities.
+      state.getUsername() != null &&
+      state.getPassword() == null &&
+      !state.getServiceAccountId() &&
+      !state.getServiceAccountJwk() &&
+      !state.getAmsterPrivateKey()
+    ) {
+      const conn = await getConnectionProfile({ state });
+      if (
+        conn.username &&
+        conn.password &&
+        conn.username === state.getUsername()
+      ) {
+        state.setPassword(conn.password);
+        usingConnectionProfile = true;
+        debugMessage({
+          message: `AuthenticateOps.getTokens: resolved password for username '${state.getUsername()}' from the connection profile for '${state.getHost()}'.`,
+          state,
+        });
+      } else {
+        throw new FrodoError(
+          `No stored password found for username '${state.getUsername()}' in the connection profile for '${state.getHost()}'. Provide --password explicitly, or omit --username to use the full stored connection profile.`
+        );
+      }
     }
 
     // if host is not a valid URL, try to locate a valid URL and deployment type from connections.json
