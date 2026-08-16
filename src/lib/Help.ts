@@ -5895,6 +5895,22 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result",
   },
   {
+    typeName: "Log",
+    methodName: "searchEvents",
+    signature: "searchEvents( source: string, startTs: string, endTs: string, eventNames?: string[], principal?: string, maxEvents?: number, dedupeByTransactionId?: boolean ): Promise<LogEventSkeleton[]>",
+    description: "Search audit events by event name(s) and/or principal, across the full time range (auto-paginating), with client-side dedup by transaction id.",
+    params: [
+      { name: "source", type: "string", description: "log source(s) to search, e.g. am-authentication" },
+      { name: "startTs", type: "string", description: "start timestamp" },
+      { name: "endTs", type: "string", description: "end timestamp" },
+      { name: "eventNames", type: "string[]", description: "optional event names to match (OR'd together server-side)" },
+      { name: "principal", type: "string", description: "optional principal substring to match against payload.userId (co)" },
+      { name: "maxEvents", type: "number", description: "safety cap on total events fetched across pages" },
+      { name: "dedupeByTransactionId", type: "boolean", description: "collapse multiple events sharing a transaction id (e.g. a failed-then-successful retry) down to the last one seen; default true" },
+    ],
+    returns: "{Promise<LogEventSkeleton[]>} promise resolving to the matched (and optionally deduped) events",
+  },
+  {
     typeName: "Secret",
     methodName: "readSecrets",
     signature: "readSecrets(): Promise<SecretSkeleton[]>",

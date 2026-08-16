@@ -2282,6 +2282,82 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       '\n' +
       'Requires a Log API key/secret — see cloud.log.createLogApiKey.',
   },
+  'cloud.log.searchEvents': {
+    operationType: 'search',
+    objectType: 'LogEvent',
+    argumentMode: 'named',
+    requiredCredential: 'logApi',
+    parameters: [
+      {
+        name: 'source',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          'Log source(s) to search, comma-separated. Same source taxonomy as cloud.log.fetch.',
+        examples: ['am-authentication', 'am-everything'],
+      },
+      {
+        name: 'startTs',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Start timestamp (ISO 8601), inclusive.',
+        examples: ['2026-08-14T00:00:00Z'],
+      },
+      {
+        name: 'endTs',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'End timestamp (ISO 8601), exclusive.',
+        examples: ['2026-08-15T00:00:00Z'],
+      },
+      {
+        name: 'eventNames',
+        type: 'string[]',
+        required: false,
+        position: 3,
+        description:
+          'Optional event names to match, OR\'d together server-side (e.g. ["AM-TREE-LOGIN-COMPLETED"]). Omit to match every event in the source/window.',
+        schema: { type: 'array', items: { type: 'string' } },
+        examples: [['AM-TREE-LOGIN-COMPLETED'], ['AM-CONFIG-CHANGE']],
+      },
+      {
+        name: 'principal',
+        type: 'string',
+        required: false,
+        position: 4,
+        description:
+          'Optional substring matched against payload.userId (co). A realm-qualified substring like "o=alpha" scopes to genuine managed users in that realm; the DN-realm heuristic in cloud.log.fetch\'s notes explains why.',
+        examples: ['o=alpha'],
+      },
+      {
+        name: 'maxEvents',
+        type: 'integer',
+        required: false,
+        position: 5,
+        description:
+          'Safety cap on total events fetched across auto-paginated pages.',
+        defaultValue: 1000,
+        examples: [200, 1000],
+      },
+      {
+        name: 'dedupeByTransactionId',
+        type: 'boolean',
+        required: false,
+        position: 6,
+        description:
+          'Collapse multiple events sharing a transaction id (e.g. a failed login attempt immediately followed by a successful retry) down to the last one seen, the actual outcome. Set false to see every raw event.',
+        defaultValue: true,
+        examples: [true, false],
+      },
+    ],
+    supportsPaging: false,
+    supportsIncludeTotal: false,
+    notes:
+      'Composed primitive over cloud.log.fetch: builds the correct server-side _queryFilter from structured eventNames/principal inputs (see cloud.log.fetch\'s notes for the underlying CREST syntax and event/source taxonomy — this skill assumes that context), auto-paginates the full time range respecting the ~1 request/second Log API rate limit, and dedupes by transaction id client-side (CREST filters cannot express "collapse retries of the same transaction", so this has to happen after fetching). Prefer this over cloud.log.fetch directly for "how many/which X happened" questions scoped by event name and/or identity; use cloud.log.fetch directly only when you need raw pagination control or a transaction-id-scoped lookup.',
+  },
   'cloud.log.resolveLevel': { excluded: true },
   'cloud.log.resolvePayloadLevel': { excluded: true },
   'cloud.log.getDefaultNoiseFilter': { excluded: true },
