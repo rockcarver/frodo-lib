@@ -179,11 +179,14 @@ export type ManagedObject = {
    */
   resolveFullName(type: string, id: string): Promise<string>;
   /**
-   * Resolve a perpetrator's uuid to a human readable string identifying the perpetrator
-   * @param {string} id managed object _id
-   * @returns {Promise<string>} resolved perpetrator descriptive string or uuid if any error occurs during reslution
+   * Resolve a DN or bare uuid to a structured identity: what kind of principal it is
+   * (managed user, service account, tenant admin, or unknown/unconfirmed) and its
+   * display name, without the caller needing to already know its managed object type.
+   * @param {string} idOrDn a managed/system object uuid, or a full userId DN (e.g. from an audit log event)
+   * @param {string} realm optional realm override; only consulted when idOrDn is a bare uuid (a DN's own realm segment, if present, always wins)
+   * @returns {Promise<ResolvedIdentity>} the resolved identity
    */
-  resolvePerpetratorUuid(id: string): Promise<string>;
+  resolveIdentity(idOrDn: string, realm?: string): Promise<ResolvedIdentity>;
 };
 
 export default (state: State): ManagedObject => {
@@ -297,8 +300,11 @@ export default (state: State): ManagedObject => {
     async resolveFullName(type: string, id: string) {
       return resolveFullName({ type, id, state });
     },
-    async resolvePerpetratorUuid(id: string): Promise<string> {
-      return resolvePerpetratorUuid({ id, state });
+    async resolveIdentity(
+      idOrDn: string,
+      realm?: string
+    ): Promise<ResolvedIdentity> {
+      return resolveIdentity({ idOrDn, realm, state });
     },
   };
 };
@@ -878,81 +884,192 @@ export async function resolveFullName({
   return id;
 }
 
-export async function resolvePerpetratorUuid({
+/** What kind of principal a resolved identity turned out to be. */
+export type ResolvedIdentityKind =
+  | 'user'
+  | 'service'
+  | 'admin'
+  | 'admin-unconfirmed'
+  | 'unknown';
+
+export type ResolvedIdentity = {
+  /** The uuid that was resolved (extracted from the DN, if one was given). */
+  id: string;
+  kind: ResolvedIdentityKind;
+  /** Realm the identity belongs to. Only set for kind 'user'. */
+  realm?: string;
+  username?: string;
+  displayName?: string;
+  /** The managed/system object type the identity was actually found under, e.g. 'alpha_user', 'svcacct', 'teammember'. */
+  resolvedVia?: string;
+  /** Present for 'admin-unconfirmed'/'unknown': why a definitive kind couldn't be determined. */
+  note?: string;
+};
+
+const DN_UUID_REGEX = /^id=([^,]+),/;
+const DN_REALM_REGEX = /,o=([^,]+),/;
+
+/**
+ * Extracts the uuid and, if present, the realm segment from a userId-style DN
+ * (e.g. "id=<uuid>,ou=user,o=<realm>,ou=services,ou=am-config"). A DN with no
+ * o=<realm> segment (e.g. "id=<uuid>,ou=user,ou=am-config") is AM-internal —
+ * either a service account or tenant admin, never a realm-scoped managed user.
+ * @see the DN-realm-qualification heuristic established across this session's
+ *   audit-log identity resolution work.
+ */
+function parseIdentityDn(
+  idOrDn: string
+): { uuid: string; realm?: string } | undefined {
+  const uuidMatch = idOrDn.match(DN_UUID_REGEX);
+  if (!uuidMatch) return undefined;
+  const realmMatch = idOrDn.match(DN_REALM_REGEX);
+  return { uuid: uuidMatch[1], realm: realmMatch ? realmMatch[1] : undefined };
+}
+
+async function tryReadManagedSystemObject({
+  type,
   id,
+  fields,
   state,
 }: {
+  type: string;
   id: string;
+  fields: string[];
   state: State;
-}): Promise<string> {
+}): Promise<
+  | { status: 'found'; object: IdObjectSkeletonInterface }
+  | { status: 'not-found' }
+  | { status: 'forbidden' }
+> {
   try {
-    if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
-      const lookupPromises: Promise<IdObjectSkeletonInterface>[] = [];
-      lookupPromises.push(
-        _getManagedSystemObject({
-          type: 'teammember',
-          id,
-          fields: ['givenName', 'sn', 'userName'],
-          state,
-        })
-      );
-      lookupPromises.push(
-        _getManagedSystemObject({
-          type: 'svcacct',
-          id,
-          fields: ['name', 'description'],
-          state,
-        })
-      );
-      lookupPromises.push(
-        _getManagedObject({
-          type: 'alpha_user',
-          id,
-          fields: ['givenName', 'sn', 'userName'],
-          state,
-        })
-      );
-      lookupPromises.push(
-        _getManagedObject({
-          type: 'bravo_user',
-          id,
-          fields: ['givenName', 'sn', 'userName'],
-          state,
-        })
-      );
-      const lookupResults = await Promise.allSettled(lookupPromises);
-      // tenant admin
-      if (lookupResults[0].status === 'fulfilled') {
-        const admin = lookupResults[0].value;
-        return `Admin user: ${admin.givenName} ${admin.sn} (${admin.userName})`;
-      }
-      // service account
-      if (lookupResults[1].status === 'fulfilled') {
-        const sa = lookupResults[1].value;
-        return `Service account: ${sa.name} (${sa.description})`;
-      }
-      // alpha user
-      if (lookupResults[2].status === 'fulfilled') {
-        const user = lookupResults[2].value;
-        return `Alpha user: ${user.givenName} ${user.sn} (${user.userName})`;
-      }
-      // bravo user
-      if (lookupResults[3].status === 'fulfilled') {
-        const user = lookupResults[3].value;
-        return `Bravo user:${user.givenName} ${user.sn} (${user.userName})`;
-      }
-    } else {
+    const object = await _getManagedSystemObject({ type, id, fields, state });
+    return { status: 'found', object };
+  } catch (error) {
+    if (error?.['response']?.status === 403) {
+      return { status: 'forbidden' };
+    }
+    return { status: 'not-found' };
+  }
+}
+
+/**
+ * Resolves a DN or bare uuid to a structured identity, without the caller
+ * needing to already know its managed object type. Replaces the older
+ * resolvePerpetratorUuid, which returned an opaque formatted string, hardcoded
+ * 'alpha_user'/'bravo_user' as the only realms, and couldn't distinguish "not
+ * found" from "found but the calling credential lacks visibility" — a real
+ * distinction: a service-account-authenticated session can read svcacct
+ * objects but gets a 403, not a 404, on teammember.
+ */
+export async function resolveIdentity({
+  idOrDn,
+  realm,
+  state,
+}: {
+  idOrDn: string;
+  realm?: string;
+  state: State;
+}): Promise<ResolvedIdentity> {
+  const parsedDn = parseIdentityDn(idOrDn);
+  const uuid = parsedDn?.uuid ?? idOrDn;
+  const effectiveRealm = parsedDn?.realm ?? realm;
+  const isCloudOrForgeops =
+    state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+    state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
+
+  // A realm-qualified DN (or an explicit realm override) means this is a
+  // genuine realm-scoped managed user — resolve it directly, no need to
+  // consider service-account/admin at all.
+  if (effectiveRealm) {
+    const userType = isCloudOrForgeops ? `${effectiveRealm}_user` : 'user';
+    try {
       const user = await _getManagedObject({
-        type: 'user',
-        id,
+        type: userType,
+        id: uuid,
         fields: ['givenName', 'sn', 'userName'],
         state,
       });
-      return `${user.givenName} ${user.sn} (${user.userName})`;
+      return {
+        id: uuid,
+        kind: 'user',
+        realm: effectiveRealm,
+        username: user.userName as string,
+        displayName: `${user.givenName ?? ''} ${user.sn ?? ''}`.trim(),
+        resolvedVia: userType,
+      };
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      return {
+        id: uuid,
+        kind: 'unknown',
+        note: `Not found as ${userType} in realm ${effectiveRealm}.`,
+      };
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error) {
-    // ignore
   }
-  return id;
+
+  // No realm segment: AM-internal identity. Cloud/forgeops distinguishes
+  // service account from tenant admin via two managed system object types;
+  // classic has neither concept, so an unqualified DN there is unresolvable.
+  if (!isCloudOrForgeops) {
+    return {
+      id: uuid,
+      kind: 'unknown',
+      note: 'No realm segment in the DN and this deployment type has no service-account/tenant-admin managed object types to check.',
+    };
+  }
+
+  const svcacct = await tryReadManagedSystemObject({
+    type: 'svcacct',
+    id: uuid,
+    fields: ['name', 'description'],
+    state,
+  });
+  if (svcacct.status === 'found') {
+    return {
+      id: uuid,
+      kind: 'service',
+      username: svcacct.object.name as string,
+      displayName: svcacct.object.description as string,
+      resolvedVia: 'svcacct',
+    };
+  }
+
+  const teammember = await tryReadManagedSystemObject({
+    type: 'teammember',
+    id: uuid,
+    fields: ['givenName', 'sn', 'userName'],
+    state,
+  });
+  if (teammember.status === 'found') {
+    return {
+      id: uuid,
+      kind: 'admin',
+      username: teammember.object.userName as string,
+      displayName:
+        `${teammember.object.givenName ?? ''} ${teammember.object.sn ?? ''}`.trim(),
+      resolvedVia: 'teammember',
+    };
+  }
+
+  if (teammember.status === 'forbidden') {
+    return {
+      id: uuid,
+      kind: 'admin-unconfirmed',
+      note: 'Not a service account, and the calling credential lacks permission to check teammember directly (403, not 404) — service accounts typically cannot read teammember. By elimination this is presumed to be a tenant admin, but it could not be independently confirmed with this credential.',
+    };
+  }
+
+  if (svcacct.status === 'forbidden') {
+    return {
+      id: uuid,
+      kind: 'unknown',
+      note: 'Not a tenant admin (teammember lookup succeeded and found nothing), but the calling credential lacks permission to check svcacct directly (403, not 404), so service-account status could not be confirmed either.',
+    };
+  }
+
+  return {
+    id: uuid,
+    kind: 'unknown',
+    note: 'No realm segment in the DN, and not found as svcacct or teammember — an AM-internal identity of an unrecognized kind (e.g. an agent).',
+  };
 }

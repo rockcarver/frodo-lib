@@ -2630,11 +2630,41 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     mutating: false,
     riskClass: 'low',
   },
-  'idm.managed.resolvePerpetratorUuid': {
+  'idm.managed.resolveIdentity': {
     operationType: 'read',
     objectType: 'ManagedObjectName',
+    argumentMode: 'positional',
+    parameters: [
+      {
+        name: 'idOrDn',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          "A managed/system object uuid, or a full userId DN (e.g. from an audit log event's userId field). A DN qualified under a realm (...,o=<realm>,ou=services,ou=am-config) resolves as that realm's managed user; a DN with no realm segment (...,ou=am-config) is AM-internal and is checked against service-account and tenant-admin managed system object types instead.",
+        examples: [
+          'id=03f4f90e-d1fa-433d-bc67-6349a8a6ca77,ou=user,o=alpha,ou=services,ou=am-config',
+          'a2245410-33a6-4442-9f3b-453c9aaf158a',
+        ],
+      },
+      {
+        name: 'realm',
+        type: 'string',
+        required: false,
+        position: 1,
+        description:
+          'Realm override, only consulted when idOrDn is a bare uuid with no DN to derive a realm from. Ignored if idOrDn is a DN that already carries its own realm segment.',
+        examples: ['alpha'],
+      },
+    ],
     mutating: false,
-    riskClass: 'low',
+    // Can return the same teammember/svcacct roster data idm.managedSystem.*
+    // exposes directly — must carry the same admin-only risk class regardless
+    // of which branch a given input happens to resolve through, since the
+    // caller can't know in advance which one it'll be.
+    riskClass: 'critical',
+    notes:
+      'Resolves a DN or bare uuid to a structured identity: { id, kind: "user"|"service"|"admin"|"admin-unconfirmed"|"unknown", realm?, username?, displayName?, resolvedVia?, note? }. Replaces the old resolvePerpetratorUuid (which returned an opaque formatted string and hardcoded alpha_user/bravo_user as the only realms). "admin-unconfirmed" means the calling credential got a 403 (not a 404) checking the tenant-admin managed object type directly — common for service-account-authenticated sessions, which typically cannot read teammember — so admin status is inferred by elimination rather than independently confirmed; treat it as likely-but-unverified.',
   },
   'idm.managed.resolveUserName': {
     operationType: 'read',

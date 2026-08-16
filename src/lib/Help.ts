@@ -2470,13 +2470,14 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "ManagedObject",
-    methodName: "resolvePerpetratorUuid",
-    signature: "resolvePerpetratorUuid(id: string): Promise<string>",
-    description: "Resolve a perpetrator's uuid to a human readable string identifying the perpetrator",
+    methodName: "resolveIdentity",
+    signature: "resolveIdentity(idOrDn: string, realm?: string): Promise<ResolvedIdentity>",
+    description: "Resolve a DN or bare uuid to a structured identity: what kind of principal it is (managed user, service account, tenant admin, or unknown/unconfirmed) and its display name, without the caller needing to already know its managed object type.",
     params: [
-      { name: "id", type: "string", description: "managed object _id" },
+      { name: "idOrDn", type: "string", description: "a managed/system object uuid, or a full userId DN (e.g. from an audit log event)" },
+      { name: "realm", type: "string", description: "optional realm override; only consulted when idOrDn is a bare uuid (a DN's own realm segment, if present, always wins)" },
     ],
-    returns: "{Promise<string>} resolved perpetrator descriptive string or uuid if any error occurs during reslution",
+    returns: "{Promise<ResolvedIdentity>} the resolved identity",
   },
   {
     typeName: "ManagedSystemObject",
