@@ -77,6 +77,19 @@ const ACCEPTED_PARAMETER_NAME_ALIASES: Record<string, Record<string, string>> =
   };
 
 /**
+ * Descriptor ids whose dispatch unconditionally bypasses the generic
+ * resolveDescriptorMethod path (see invokeGenericDescriptorMethod in
+ * ToolRuntime.ts) in favor of a hand-written invoke function. Their
+ * descriptor parameters are validated against that invoke function's own
+ * destructuring, not the bound Frodo method below it, so a parameter-count
+ * difference from the bound method is expected and not a bug.
+ */
+const BYPASSES_GENERIC_DISPATCH = new Set([
+  'script.createScript',
+  'idm.managed.queryManagedObjects',
+]);
+
+/**
  * Extracts a compiled method's declared parameter names, in order, by parsing
  * its source. Used to catch drift between a descriptor's declared parameter
  * `position`s and the actual argument order the bound Frodo method expects —
@@ -482,8 +495,7 @@ describe('MCP capability foundation', () => {
         continue;
       }
       const parameters = capability.parameters ?? [];
-      if (parameters.length < 2) {
-        // A single mismatched parameter can't be out of order relative to itself.
+      if (parameters.length === 0) {
         continue;
       }
 
@@ -503,15 +515,17 @@ describe('MCP capability foundation', () => {
         continue;
       }
 
-      const actualNames = extractParameterNames(
+      const rawActualNames = extractParameterNames(
         method as (...args: unknown[]) => unknown
       );
-      // Skip methods bound with a single destructured-object parameter —
-      // those have no positional slots for a descriptor to misalign with.
-      if (actualNames.length !== parameters.length) {
-        continue;
-      }
-
+      // A trailing resultCallback is a JS function reference, not something
+      // an MCP JSON namedArgs payload can ever carry — every bulk
+      // export/delete-style method across the ops layer has one, and
+      // omitting it from the descriptor is correct, not a gap.
+      const actualNames =
+        rawActualNames[rawActualNames.length - 1] === 'resultCallback'
+          ? rawActualNames.slice(0, -1)
+          : rawActualNames;
       const declaredNames = parameters
         .slice()
         .sort(
@@ -520,6 +534,27 @@ describe('MCP capability foundation', () => {
             (right.position ?? Number.MAX_SAFE_INTEGER)
         )
         .map((parameter) => parameter.name);
+
+      if (actualNames.length !== parameters.length) {
+        // A single destructured-object parameter has no positional slots to
+        // misalign with — not a bug, nothing more to check.
+        if (actualNames.length === 1) {
+          continue;
+        }
+        if (BYPASSES_GENERIC_DISPATCH.has(capability.id)) {
+          continue;
+        }
+        // A declared parameter count that doesn't match the bound method's
+        // real arity means some namedArgs the descriptor documents as usable
+        // are silently dropped (extra declared params) or some real
+        // parameters aren't exposed to callers at all (missing declared
+        // params) — a real, if less dangerous, sibling of the position-order
+        // bug above.
+        mismatches.push(
+          `${capability.id}: descriptor declares ${parameters.length} parameter(s) [${declaredNames.join(', ')}] but bound method expects ${actualNames.length} [${actualNames.join(', ')}]`
+        );
+        continue;
+      }
 
       const aliases = ACCEPTED_PARAMETER_NAME_ALIASES[capability.id];
       const misalignedIndex = declaredNames.findIndex(

@@ -74,6 +74,13 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
+      {
+        name: 'nodeTypeVersion',
+        type: 'string',
+        required: false,
+        position: 2,
+        description: 'Optional node type version, when more than one exists.',
+      },
     ],
     supportsRealm: true,
     notes:
@@ -1645,6 +1652,27 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         position: 2,
         description:
           'Name of the relationship to query, the reverse direction.',
+      },
+      {
+        name: 'fields',
+        type: 'string[]',
+        required: false,
+        position: 3,
+        description: 'Optional list of fields to return.',
+        schema: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        examples: [['userName', 'mail']],
+      },
+      {
+        name: 'pageSize',
+        type: 'integer',
+        required: false,
+        position: 4,
+        description:
+          'Optional page size hint forwarded from the generic pageSize control.',
+        examples: [100, 250],
       },
     ],
     supportsRealm: false,
