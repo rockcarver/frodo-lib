@@ -200,4 +200,25 @@ describe('resolveIdentity', () => {
     expect(result.kind).toBe('user');
     expect(result.resolvedVia).toBe('user');
   });
+
+  test('forgeops deployment resolves a realm-qualified DN via the generic "user" type, not a realm-prefixed one — verified live against a real forgeops tenant, whose IDM managed object families are flat with no realm prefix, unlike cloud', async () => {
+    getManagedObject.mockResolvedValue({
+      givenName: 'ForgeOps',
+      sn: 'User',
+      userName: 'forgeopsuser',
+    });
+
+    const result = await resolveIdentity({
+      idOrDn:
+        'id=03f4f90e-d1fa-433d-bc67-6349a8a6ca77,ou=user,o=customRealm,ou=services,ou=am-config',
+      state: mockState('forgeops'),
+    });
+
+    expect(getManagedObject).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'user' })
+    );
+    expect(result.kind).toBe('user');
+    expect(result.realm).toBe('customRealm');
+    expect(result.resolvedVia).toBe('user');
+  });
 });

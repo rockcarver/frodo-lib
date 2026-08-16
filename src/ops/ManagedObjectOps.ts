@@ -973,15 +973,21 @@ export async function resolveIdentity({
   const parsedDn = parseIdentityDn(idOrDn);
   const uuid = parsedDn?.uuid ?? idOrDn;
   const effectiveRealm = parsedDn?.realm ?? realm;
+  const isCloud =
+    state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
   const isCloudOrForgeops =
-    state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+    isCloud ||
     state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
 
   // A realm-qualified DN (or an explicit realm override) means this is a
   // genuine realm-scoped managed user — resolve it directly, no need to
-  // consider service-account/admin at all.
+  // consider service-account/admin at all. Only cloud partitions managed
+  // users per realm (alpha_user, bravo_user, ...) — verified live this
+  // session against a real forgeops tenant, whose IDM managed object
+  // families are a flat, deployment-wide 'user' with no realm prefix at
+  // all, same as classic.
   if (effectiveRealm) {
-    const userType = isCloudOrForgeops ? `${effectiveRealm}_user` : 'user';
+    const userType = isCloud ? `${effectiveRealm}_user` : 'user';
     try {
       const user = await _getManagedObject({
         type: userType,
