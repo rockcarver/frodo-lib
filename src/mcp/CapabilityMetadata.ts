@@ -886,7 +886,11 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     ],
     supportsRealm: true,
     notes:
-      'Create a managed object with namedArgs { type, id, moData }. id is optional.',
+      "Create a managed object with namedArgs { type, id, moData }. id is optional. A relationship field can be set at creation time too, by including it directly in moData with the same ref-shaped value idm.managed.updateManagedObjectProperties's notes describe — see that skill for the full relationship-write pattern (discovering fields via schema, single- vs many-valued, add/remove/replace).",
+  },
+  'idm.managed.readManagedObjectSchema': {
+    notes:
+      "Read a type's schema — the way to discover its relationship fields before writing to them. A property with type 'relationship' is a relationship field; resourceCollection.path (nested under items for a many-valued field, directly on the property for a single-valued one) is the target type to reference. See idm.managed.updateManagedObjectProperties's notes for the actual write pattern.",
   },
   'idm.managed.readManagedObject': {
     argumentMode: 'named',
@@ -978,13 +982,25 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'PatchOperationInterface[]',
         required: true,
         position: 2,
-        description: 'JSON patch-style operations for the target object.',
+        description:
+          "JSON patch-style operations for the target object. Also the mechanism for writing relationships (adding/removing a member, setting a manager, etc.) — see this skill's notes for the exact shape; there is no separate relationship-write skill.",
         schema: {
           type: 'array',
           items: { type: 'object', additionalProperties: true },
         },
         examples: [
           [{ operation: 'replace', field: '/mail', value: 'a@example.com' }],
+          [
+            {
+              operation: 'add',
+              field: '/roles',
+              value: {
+                _ref: 'managed/alpha_role/1234abcd-0000-1111-2222-abcdefabcdef',
+                _refResourceCollection: 'managed/alpha_role',
+                _refResourceId: '1234abcd-0000-1111-2222-abcdefabcdef',
+              },
+            },
+          ],
         ],
       },
       {
@@ -997,7 +1013,11 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     ],
     supportsRealm: true,
     notes:
-      'Patch one managed object with namedArgs { type, id, operations, rev }.',
+      'Patch one managed object with namedArgs { type, id, operations, rev }. This is also how relationships are written — there is no dedicated relationship-write skill; a relationship field is just a regular field from a PATCH point of view, proven correct by existing production code in AgentOps.ts (createAIAgent links agents/privileges/groups via this exact mechanism).\n' +
+      '\n' +
+      "To find a type's relationship fields and what they target, call idm.managed.readManagedObjectSchema first: a property with type 'relationship' is a relationship field. A single-valued one (e.g. alpha_user's 'manager', targeting managed/alpha_user, reverse property 'reports') has resourceCollection directly on the property; a many-valued one (e.g. alpha_user's 'roles', targeting managed/alpha_role) has it nested under items instead — that items/no-items distinction is exactly what tells you whether the field holds one relationship or an array of them.\n" +
+      '\n' +
+      'For a many-valued relationship, use operation "add" with a single ref-shaped value to append one member without disturbing the rest (as in the second example above), or operation "remove" with the same ref-shaped value to take one out — do not use "replace" with a partial array, since that overwrites the whole field. For a single-valued relationship (like \'manager\'), use "replace" with a single ref-shaped value (or with a bare `[]`/`null` per your platform version\'s convention to clear it). The ref-shaped value is always { _ref: "<resourceCollection.path>/<id>", _refResourceCollection: "<resourceCollection.path>", _refResourceId: "<id>" } — resourceCollection.path comes straight from the schema (e.g. "managed/alpha_role"), never guess or hardcode a realm prefix into it.',
   },
   'idm.managed.updateManagedObjectsProperties': {
     argumentMode: 'named',
