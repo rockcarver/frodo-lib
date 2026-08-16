@@ -3346,7 +3346,9 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'read',
     objectType: 'Info',
     mutating: false,
-    riskClass: 'low',
+    riskClass: 'critical',
+    notes:
+      'Returns live bearer/session tokens for the current identity alongside platform info — the sessionToken and bearerToken fields are the actual, currently-valid credentials, not references to them. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin). A lower-risk identity-check skill returning only { authenticatedSubject, host, deploymentType, amVersion } without the raw tokens is a reasonable future addition — see idm.managed.resolveIdentity for the equivalent pattern applied to managed-object identities.',
   },
 
   'login.getTokens': {
@@ -3413,6 +3415,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     objectType: 'SessionInfo',
     mutating: false,
     riskClass: 'medium',
+    notes:
+      "Reads the current AM session — username/universalId of the authenticated subject, realm, and session expiration. Works for both admin and service-account-authenticated MCP sessions, but the sessions differ in kind: an admin session is a real login session (session-length maxSessionExpirationTime, hours out); a service account has no real AM session at all — this reads a short-lived session synthesized as a workaround so bearer-token-only credentials can still call AM's session-cookie-based endpoints, and its maxSessionExpirationTime is only minutes past latestAccessTime, not a reliable long-lived value. info.getInfo's authenticatedSubject field is the more architecturally reliable identity check for both credential types (no session dependency at all, verified live against both), but currently sits at critical risk itself because its raw response also carries live session/bearer tokens — pending redaction or a dedicated minimal skill, not a drop-in lower-risk substitute today.",
   },
 };
 
