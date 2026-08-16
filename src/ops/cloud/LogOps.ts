@@ -692,9 +692,39 @@ function buildEventFilter({
 }
 
 /**
+ * The Log API rejects a fetch/search whose startTs..endTs span exceeds
+ * roughly 24 hours with an opaque 400 — verified live this session against
+ * both a filtered and an unfiltered request, and against two different
+ * sources (am-config, am-authentication), so this is a Log API-wide limit,
+ * not specific to one source or to using a filter. A 24h window succeeded;
+ * 25h and wider both failed, so 24h is used as the safe chunk size.
+ */
+const MAX_LOG_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** Splits a startTs..endTs span into sequential sub-windows no wider than {@link MAX_LOG_WINDOW_MS}. */
+function* splitIntoSafeWindows(
+  startTs: string,
+  endTs: string
+): Generator<{ startTs: string; endTs: string }> {
+  let chunkStart = new Date(startTs).getTime();
+  const end = new Date(endTs).getTime();
+  while (chunkStart < end) {
+    const chunkEnd = Math.min(chunkStart + MAX_LOG_WINDOW_MS, end);
+    yield {
+      startTs: new Date(chunkStart).toISOString(),
+      endTs: new Date(chunkEnd).toISOString(),
+    };
+    chunkStart = chunkEnd;
+  }
+}
+
+/**
  * Search audit events by event name(s) and/or principal, across the full
- * time range (auto-paginating, respecting the ~1 request/second Log API
- * rate limit between pages), with client-side dedup by transaction id.
+ * time range (auto-paginating within each ~24h chunk the Log API allows,
+ * and auto-chunking the requested range into consecutive windows that size
+ * when it's wider than that — see {@link MAX_LOG_WINDOW_MS} — respecting the
+ * ~1 request/second Log API rate limit between every fetch call, chunk
+ * boundaries included), with client-side dedup by transaction id.
  *
  * @remarks
  * Filtering happens server-side (see {@link buildEventFilter}) rather than
@@ -706,8 +736,9 @@ function buildEventFilter({
  * Dedup collapses multiple events sharing a transaction id (e.g. a failed
  * login attempt immediately followed by a successful retry, observed live
  * this session) down to the last one seen. Since fetch results are already
- * ordered ascending by timestamp, "last seen" is the most recent event for
- * that transaction — the actual outcome, not an arbitrary one. CREST filters
+ * ordered ascending by timestamp within each chunk (and chunks are fetched
+ * in chronological order), "last seen" is the most recent event for that
+ * transaction — the actual outcome, not an arbitrary one. CREST filters
  * can't express this dedup themselves, so it has to happen client-side.
  */
 export async function searchEvents({
@@ -731,26 +762,31 @@ export async function searchEvents({
 }): Promise<LogEventSkeleton[]> {
   const filter = buildEventFilter({ eventNames, principal });
   const events: LogEventSkeleton[] = [];
-  let cookie: string | undefined;
-  let firstPage = true;
+  let firstFetch = true;
   try {
-    do {
-      if (!firstPage) {
-        await sleep(1000);
+    for (const window of splitIntoSafeWindows(startTs, endTs)) {
+      let cookie: string | undefined;
+      do {
+        if (!firstFetch) {
+          await sleep(1000);
+        }
+        firstFetch = false;
+        const page = await _fetch({
+          source,
+          startTs: window.startTs,
+          endTs: window.endTs,
+          cookie,
+          txid: undefined,
+          filter,
+          state,
+        });
+        events.push(...page.result);
+        cookie = page.pagedResultsCookie;
+      } while (cookie && events.length < maxEvents);
+      if (events.length >= maxEvents) {
+        break;
       }
-      firstPage = false;
-      const page = await _fetch({
-        source,
-        startTs,
-        endTs,
-        cookie,
-        txid: undefined,
-        filter,
-        state,
-      });
-      events.push(...page.result);
-      cookie = page.pagedResultsCookie;
-    } while (cookie && events.length < maxEvents);
+    }
   } catch (error) {
     throw new FrodoError(`Error searching events`, error);
   }

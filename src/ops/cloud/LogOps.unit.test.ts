@@ -227,4 +227,71 @@ describe('searchEvents', () => {
 
     expect(result).toHaveLength(2);
   });
+
+  test('chunks a window wider than ~24h into consecutive sub-24h calls — verified live the Log API 400s past that regardless of source or filter', async () => {
+    await searchEvents({
+      source: 'am-authentication',
+      startTs: '2026-08-14T00:00:00.000Z',
+      endTs: '2026-08-16T18:00:00.000Z',
+      state: mockState(),
+    });
+
+    // ~66.5h / 24h chunks = 3 calls: [Aug14 00:00, Aug15 00:00), [Aug15 00:00, Aug16 00:00), [Aug16 00:00, Aug16 18:00]
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        startTs: '2026-08-14T00:00:00.000Z',
+        endTs: '2026-08-15T00:00:00.000Z',
+      })
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        startTs: '2026-08-15T00:00:00.000Z',
+        endTs: '2026-08-16T00:00:00.000Z',
+      })
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        startTs: '2026-08-16T00:00:00.000Z',
+        endTs: '2026-08-16T18:00:00.000Z',
+      })
+    );
+  });
+
+  test('does not chunk a window at or under ~24h — a single call, matching what was actually verified live', async () => {
+    await searchEvents({
+      source: 'am-authentication',
+      startTs: '2026-08-15T17:19:20.000Z',
+      endTs: '2026-08-16T17:19:20.000Z',
+      state: mockState(),
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  test('stops chunking early once maxEvents is reached mid-sequence, without fetching remaining chunks', async () => {
+    fetch.mockResolvedValue({
+      result: [event('tx-1'), event('tx-2')],
+      resultCount: 2,
+      pagedResultsCookie: null,
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    });
+
+    await searchEvents({
+      source: 'am-authentication',
+      startTs: '2026-08-14T00:00:00.000Z',
+      endTs: '2026-08-16T18:00:00.000Z',
+      maxEvents: 2,
+      dedupeByTransactionId: false,
+      state: mockState(),
+    });
+
+    // Would be 3 calls across the full range if not for maxEvents cutting it short after the first chunk.
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
 });
