@@ -13,7 +13,11 @@ import {
   step,
 } from '../api/AuthenticateApi';
 import { ServiceAccountScope } from '../api/cloud/EnvServiceAccountScopesApi';
-import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
+import {
+  getIdmServerVersionInfo,
+  getServerInfo,
+  getServerVersionInfo,
+} from '../api/ServerInfoApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { encodeBase64Url } from '../utils/Base64Utils';
@@ -1282,6 +1286,29 @@ async function determineDeploymentTypeAndDefaultRealmAndVersion(
 
   const version = await getSemanticVersion(versionInfo);
   state.setAmVersion(version);
+
+  // IDM only exists alongside AM on cloud and forgeops deployments, never on
+  // classic (self-managed AM only). Best-effort: an unreachable or misbehaving
+  // IDM instance must never fail login, so failures here are swallowed and
+  // simply leave the IDM version unresolved.
+  if (
+    state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
+    state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY
+  ) {
+    try {
+      const idmVersionInfo = await getIdmServerVersionInfo({ state });
+      const idmVersion = await getSemanticVersion({
+        version: idmVersionInfo?.productVersion,
+      });
+      state.setIdmVersion(idmVersion);
+    } catch (error) {
+      debugMessage({
+        message: `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: could not determine IDM version: ${error}`,
+        state,
+      });
+    }
+  }
+
   debugMessage({
     message: `AuthenticateOps.determineDeploymentTypeAndDefaultRealmAndVersion: end`,
     state,

@@ -1,9 +1,11 @@
 import util from 'util';
 
 import { State } from '../shared/State';
-import { generateAmAuthApi } from './BaseApi';
+import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
+import { generateAmAuthApi, generateIdmApi } from './BaseApi';
 
 const serverInfoUrlTemplate = '%s/json/serverinfo/%s';
+const idmVersionUrlTemplate = '%s/info/version';
 
 const serverInfoApiVersion = 'resource=1.1';
 const serverVersionoApiVersion = 'resource=1.0';
@@ -47,5 +49,16 @@ export async function getServerVersionInfo({ state }: { state: State }) {
     requestOverride: {},
     state,
   }).get(urlString, {});
+  return data;
+}
+
+/**
+ * Get IDM server version info
+ * @param {State} state library state
+ * @returns {Promise} a promise that resolves to an object containing an IDM version info object
+ */
+export async function getIdmServerVersionInfo({ state }: { state: State }) {
+  const urlString = util.format(idmVersionUrlTemplate, getIdmBaseUrl(state));
+  const { data } = await generateIdmApi({ state }).get(urlString, {});
   return data;
 }
