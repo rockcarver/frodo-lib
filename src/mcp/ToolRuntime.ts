@@ -169,7 +169,8 @@ export type McpToolRuntimeTraceEvent = {
     | 'dispatch-start'
     | 'dispatch-success'
     | 'dispatch-failure'
-    | 'compatibility-rejection';
+    | 'compatibility-rejection'
+    | 'credential-rejection';
   requestId?: string;
   toolName: string;
   descriptorId?: string;
@@ -680,6 +681,19 @@ export function createToolRuntime(
         });
         throw error;
       }
+      try {
+        assertRequiredCredential(descriptor, scopedFrodo);
+      } catch (error) {
+        emitRuntimeTrace(request, options, {
+          event: 'credential-rejection',
+          toolName: request.toolName,
+          descriptorId: descriptor.id,
+          deploymentType,
+          routingReason: routing.reason,
+          error: toErrorMessage(error),
+        });
+        throw error;
+      }
       const startedAt = Date.now();
       emitRuntimeTrace(request, options, {
         event: 'dispatch-start',
@@ -808,6 +822,38 @@ function assertDeploymentCompatibility(
   throw new FrodoError(
     `MCP runtime error: descriptor '${descriptor.id}' is not supported for deployment '${deploymentType}'. Supported deployments: ${supportedList}.`
   );
+}
+
+/**
+ * Verifies a descriptor's declared {@link McpRequiredCredential} is actually
+ * present on the dispatching Frodo instance's state before invoking it.
+ *
+ * @remarks
+ * Some capabilities authenticate with a credential other than the standard
+ * AM/IDM bearer token (e.g. the Identity Cloud Log API's `X-API-Key`/
+ * `X-API-Secret` pair). That credential isn't guaranteed to be populated just
+ * because the session is otherwise authenticated — it comes from the
+ * connection profile's own optional fields or explicit env vars. Failing here
+ * with an actionable message is preferable to letting the underlying HTTP
+ * call surface a bare 401.
+ */
+function assertRequiredCredential(
+  descriptor: McpCapabilityDescriptor,
+  scopedFrodo: Frodo
+): void {
+  if (!descriptor.requiredCredential) {
+    return;
+  }
+
+  if (descriptor.requiredCredential === 'logApi') {
+    const state = scopedFrodo.state;
+    if (state?.getLogApiKey() && state?.getLogApiSecret()) {
+      return;
+    }
+    throw new FrodoError(
+      `MCP runtime error: descriptor '${descriptor.id}' requires a Log API key/secret, which is not configured for this connection. Add logApiKey/logApiSecret to the connection profile (see 'cloud.log.createLogApiKey' to provision one), or set the FRODO_LOG_KEY/FRODO_LOG_SECRET environment variables.`
+    );
+  }
 }
 
 /**
@@ -1521,6 +1567,7 @@ function findSkills(
     deploymentTypes: McpCapabilityDescriptor['deploymentTypes'];
     preferredDeploymentTypes?: McpCapabilityDescriptor['preferredDeploymentTypes'];
     identitySurface?: McpCapabilityDescriptor['identitySurface'];
+    requiredCredential?: McpCapabilityDescriptor['requiredCredential'];
     objectTypePatterns?: string[];
     matchedObjectFamilies?: McpSemanticObjectFamily[];
     matchedObjectTypes?: string[];
@@ -1742,6 +1789,7 @@ function findSkills(
           deploymentTypes: descriptor.deploymentTypes,
           preferredDeploymentTypes: descriptor.preferredDeploymentTypes,
           identitySurface: descriptor.identitySurface,
+          requiredCredential: descriptor.requiredCredential,
           objectTypePatterns: descriptor.objectTypePatterns,
           ...(matchedObjectFamilies.length > 0 && { matchedObjectFamilies }),
           ...(managedObjectMatches.total > 0 && {

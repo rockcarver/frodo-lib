@@ -224,6 +224,9 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
     ...(meta?.identitySurface !== undefined && {
       identitySurface: meta.identitySurface,
     }),
+    ...(meta?.requiredCredential !== undefined && {
+      requiredCredential: meta.requiredCredential,
+    }),
     ...(meta?.objectTypePatterns !== undefined && {
       objectTypePatterns: meta.objectTypePatterns,
     }),

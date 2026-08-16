@@ -147,6 +147,14 @@ export type McpCapabilityDescriptor = {
   notes?: string;
   /** Curated natural-language phrases used to retrieve this capability. */
   semanticAliases?: string[];
+  /**
+   * A credential beyond the standard AM/IDM bearer token this capability
+   * requires. When set, the runtime verifies it's present on the dispatching
+   * Frodo instance's state before invoking the descriptor, and fails fast with
+   * an actionable error instead of letting the underlying API call 401.
+   * Set from {@link OperationCapabilityMeta.requiredCredential} when available.
+   */
+  requiredCredential?: McpRequiredCredential;
   requiredScopes: string[];
   annotations: McpToolAnnotations;
 };
@@ -203,6 +211,17 @@ export type McpIdentitySurface =
   | 'unknown';
 
 /**
+ * Identifies a credential a capability needs beyond the standard AM/IDM bearer
+ * token, which the MCP runtime should verify is present before dispatching.
+ *
+ * @remarks
+ * - `logApi` — a Log API key/secret (`state.getLogApiKey()`/`getLogApiSecret()`),
+ *   used by the Identity Cloud debug/audit log endpoints, which authenticate
+ *   with `X-API-Key`/`X-API-Secret` rather than the AM session bearer token.
+ */
+export type McpRequiredCredential = 'logApi';
+
+/**
  * Explicit capability metadata entry stored in the static {@link CAPABILITY_META} map.
  *
  * @remarks
@@ -231,6 +250,12 @@ export type OperationCapabilityMeta = {
    * Enables discovery tools to recommend the right domain for a given object type.
    */
   identitySurface?: McpIdentitySurface;
+
+  /**
+   * A credential beyond the standard AM/IDM bearer token this capability
+   * requires. See {@link McpRequiredCredential}.
+   */
+  requiredCredential?: McpRequiredCredential;
 
   /**
    * Glob-style object type patterns this capability applies to.

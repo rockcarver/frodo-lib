@@ -1550,6 +1550,82 @@ describe('MCP hybrid runtime', () => {
     expect(countUsers).not.toHaveBeenCalled();
   });
 
+  test('dispatch rejects a descriptor requiring log API credentials when none are configured', async () => {
+    const fetch = jest.fn(async () => ({ result: [] }));
+    const descriptor = makeDescriptor({
+      id: 'cloud.log.fetch',
+      toolName: 'frodo.cloud.log.fetch',
+      methodName: 'fetch',
+      modulePath: ['cloud', 'log'],
+      domain: 'cloud',
+      objectType: 'LogEvent',
+      operationType: 'search',
+      requiredCredential: 'logApi',
+    });
+    const runtime = createToolRuntime(
+      makeManifest([descriptor]),
+      [descriptor],
+      {
+        resolveFrodoForRequest: () =>
+          ({
+            state: {
+              getLogApiKey: () => undefined,
+              getLogApiSecret: () => undefined,
+            },
+            login: { getTokens: jest.fn(async () => {}) },
+            cloud: { log: { fetch } },
+          }) as any,
+      }
+    );
+
+    await expect(
+      runtime.executeTool({
+        toolName: 'frodo_dispatch_read_only',
+        arguments: { skillId: descriptor.id },
+        context: { auth: { mode: 'state-config', config: {} } },
+      })
+    ).rejects.toThrow('requires a Log API key/secret');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test('dispatch executes a descriptor requiring log API credentials when they are configured', async () => {
+    const fetch = jest.fn(async () => ({ result: [] }));
+    const descriptor = makeDescriptor({
+      id: 'cloud.log.fetch',
+      toolName: 'frodo.cloud.log.fetch',
+      methodName: 'fetch',
+      modulePath: ['cloud', 'log'],
+      domain: 'cloud',
+      objectType: 'LogEvent',
+      operationType: 'search',
+      requiredCredential: 'logApi',
+    });
+    const runtime = createToolRuntime(
+      makeManifest([descriptor]),
+      [descriptor],
+      {
+        resolveFrodoForRequest: () =>
+          ({
+            state: {
+              getLogApiKey: () => 'example-key-id',
+              getLogApiSecret: () => 'example-secret',
+            },
+            login: { getTokens: jest.fn(async () => {}) },
+            cloud: { log: { fetch } },
+          }) as any,
+      }
+    );
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_dispatch_read_only',
+      arguments: { skillId: descriptor.id },
+      context: { auth: { mode: 'state-config', config: {} } },
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.data).toEqual({ result: [] });
+  });
+
   test('dispatch executes mutating descriptor selected by tuple', async () => {
     const updateJourney = jest.fn(
       async (journeyId: string, payload: unknown) => ({
