@@ -2428,6 +2428,26 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'medium',
     notes: 'Activates a journey.',
   },
+  'authn.journey.findScriptReferences': {
+    operationType: 'search',
+    objectType: 'ScriptReference',
+    argumentMode: 'positional',
+    parameters: [
+      {
+        name: 'scriptId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          'Script id to find journey/node references to (the same id used by authn.journey/authz.* script fields, script.script.readScript, etc.).',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+    ],
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Answers "which journey uses this script?" — a config dependency question no other skill can answer, since the reference only lives on individual node objects (node.script), not on the journey itself or the script. Implemented as a full-realm scan (bulk-reads every node and every journey once, then joins in memory — no per-node fetches), so it stays cheap even on realms with many journeys. Each result reports the journey and the top-level node it actually references; when the script is used by a node nested inside a container node (e.g. a Page Node), the result also carries innerNodeId for the specific nested node, since a journey\'s own node map only ever points at the container. Returns an empty array, not an error, when nothing references the script.',
+  },
   'authn.journey.getJourneyClassification': {
     operationType: 'read',
     objectType: 'JourneyClassification',

@@ -20,6 +20,7 @@ jest.unstable_mockModule('./NodeOps', () => ({
   isPremiumNode: jest.fn(() => false),
   readCustomNode: jest.fn(),
   readNode: readNodeMock,
+  readNodes: jest.fn(),
   updateNode: updateNodeMock,
   deleteNode: jest.fn(),
 }));

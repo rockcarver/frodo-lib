@@ -2193,6 +2193,16 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Journey",
+    methodName: "findScriptReferences",
+    signature: "findScriptReferences(scriptId: string): Promise<ScriptReference[]>",
+    description: "Find every journey/node that references a given script, by scanning all nodes in the active realm for a matching script id and cross-referencing against every journey's node map. Also resolves references nested inside a container node (e.g. a Page Node), reporting the top-level node a journey actually references alongside the inner node that uses the script.",
+    params: [
+      { name: "scriptId", type: "string", description: "script id to find references to" },
+    ],
+    returns: "{Promise<ScriptReference[]>} a promise that resolves to every reference found",
+  },
+  {
+    typeName: "Journey",
     methodName: "readJourney",
     signature: "readJourney(journeyId: string): Promise<TreeSkeleton>",
     description: "Read journey without dependencies.",
