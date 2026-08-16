@@ -73,7 +73,7 @@ describe('ConnectionProfileOps', () => {
   });
 
   describe('findConnectionProfiles()', () => {
-    test.only('1: Find connection profile by alias', async () => {
+    test('1: Find connection profile by alias', async () => {
       const tenant = exampleHost
       const alias = 'unique-alias';
       const host = alias;
@@ -288,6 +288,65 @@ describe('ConnectionProfileOps', () => {
         );
       }
       expect.assertions(3);
+    });
+  });
+
+  describe('loadConnectionProfileByHost()', () => {
+    test('1: Populates log API credentials on state from a saved profile', async () => {
+      const host = exampleHost;
+      const user = exampleUsername;
+      const password = examplePassword;
+      const logApiKey = 'example-log-api-key-id';
+      const logApiSecret = 'example-log-api-secret';
+
+      state.setConnectionProfilesPath(connectionProfilePath1);
+      state.setHost(host);
+      state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
+      state.setUsername(user);
+      state.setPassword(password);
+      state.setLogApiKey(logApiKey);
+      state.setLogApiSecret(logApiSecret);
+      await ConnectionProfileOps.saveConnectionProfile({ host, state });
+
+      // Simulate a fresh session: clear everything loadConnectionProfileByHost
+      // is responsible for repopulating, the same way it would be unset before
+      // a generic `frodo.login.getTokens()` call (e.g. MCP server startup).
+      state.setUsername(null);
+      state.setPassword(null);
+      state.setLogApiKey(null);
+      state.setLogApiSecret(null);
+
+      await ConnectionProfileOps.loadConnectionProfileByHost({ host, state });
+
+      expect(state.getUsername()).toEqual(user);
+      expect(state.getPassword()).toEqual(password);
+      expect(state.getLogApiKey()).toEqual(logApiKey);
+      expect(state.getLogApiSecret()).toEqual(logApiSecret);
+    });
+
+    test('2: Leaves log API credentials unset when the profile has none', async () => {
+      const host = exampleHost;
+      const user = exampleUsername;
+      const password = examplePassword;
+
+      state.setConnectionProfilesPath(connectionProfilePath2);
+      state.setHost(host);
+      state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
+      state.setUsername(user);
+      state.setPassword(password);
+      state.setLogApiKey(null);
+      state.setLogApiSecret(null);
+      await ConnectionProfileOps.saveConnectionProfile({ host, state });
+
+      state.setLogApiKey(null);
+      state.setLogApiSecret(null);
+      delete process.env.FRODO_LOG_KEY;
+      delete process.env.FRODO_LOG_SECRET;
+
+      await ConnectionProfileOps.loadConnectionProfileByHost({ host, state });
+
+      expect(state.getLogApiKey()).toBeFalsy();
+      expect(state.getLogApiSecret()).toBeFalsy();
     });
   });
 
