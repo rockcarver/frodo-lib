@@ -57,6 +57,13 @@ export {
   resolveMcpProfileSelection,
 } from './ProfileRegistry';
 export {
+  McpDocsContext,
+  McpDocsContextUnresolved,
+  McpDocsProduct,
+  parseAmDocsVersion,
+  resolveDocsContext,
+} from './DocsContext';
+export {
   buildCapabilityInventory,
   inferObjectType,
   inferOperationType,

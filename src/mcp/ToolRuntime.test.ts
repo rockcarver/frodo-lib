@@ -237,6 +237,56 @@ describe('MCP hybrid runtime', () => {
     expect(data).not.toHaveProperty('operationDetailsByType');
   });
 
+  test('discover resolves docsContext to the unversioned pingoneaic docset for cloud', async () => {
+    const descriptor = makeDescriptor();
+    const manifest = makeManifest([descriptor]);
+    const runtime = createToolRuntime(manifest, [descriptor]);
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_discover',
+      context: {
+        auth: { mode: 'state-config', config: { deploymentType: 'cloud' } },
+      },
+    });
+    const data = result.data as { docsContext: Record<string, unknown> };
+
+    expect(data.docsContext).toMatchObject({
+      product: 'pingoneaic',
+      versioned: false,
+      llmsTxtUrl: 'https://docs.pingidentity.com/pingoneaic/llms.txt',
+    });
+  });
+
+  test('discover resolves docsContext to a versioned pingam docset for classic, using the scoped instance already authenticated for deployment detection', async () => {
+    const descriptor = makeDescriptor();
+    const manifest = makeManifest([descriptor]);
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          state: {
+            getDeploymentType: () => 'classic',
+            getAmVersion: () => '7.5.0',
+          },
+          login: { getTokens: jest.fn(async () => {}) },
+        }) as any,
+    });
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_discover',
+      context: {
+        auth: { mode: 'state-config', config: { host: 'https://example.test/am' } },
+      },
+    });
+    const data = result.data as { docsContext: Record<string, unknown> };
+
+    expect(data.docsContext).toMatchObject({
+      product: 'pingam',
+      versioned: true,
+      version: '7.5',
+      llmsTxtUrl: 'https://docs.pingidentity.com/pingam/llms.txt',
+    });
+  });
+
   test('discover returns the legacy operation catalog only when requested', async () => {
     const descriptor = makeDescriptor();
     const manifest = makeManifest([descriptor]);

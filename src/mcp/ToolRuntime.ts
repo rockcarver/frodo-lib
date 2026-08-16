@@ -48,6 +48,7 @@ import {
   resolveSemanticObjectFamily,
 } from './SemanticObjectFamilies';
 import { matchSemanticIdentifiers } from './SemanticIdentifiers';
+import { resolveDocsContext } from './DocsContext';
 
 const FIND_SKILLS_TOOL_NAME = 'frodo_find_skills';
 const DESCRIBE_SKILL_TOOL_NAME = 'frodo_describe_skill';
@@ -485,10 +486,15 @@ export function createToolRuntime(
 
     if (request.toolName === manifest.discoveryTool.toolName) {
       const args = parseDiscoverArguments(request.arguments);
-      const deploymentType = await resolveDeploymentForDiscovery(
-        request.context,
-        frodoRoot,
-        options.resolveFrodoForRequest
+      const { deploymentType, scopedFrodo: discoveryScopedFrodo } =
+        await resolveDeploymentAndFrodoForDiscovery(
+          request.context,
+          frodoRoot,
+          options.resolveFrodoForRequest
+        );
+      const docsContext = resolveDocsContext(
+        deploymentType,
+        discoveryScopedFrodo?.state?.getAmVersion?.()
       );
       emitRuntimeTrace(request, options, {
         event: 'discovery',
@@ -515,6 +521,7 @@ export function createToolRuntime(
         }),
         ...(configEntityIdCount !== undefined && { configEntityIdCount }),
         ...(configEntityHydrationStatus && { configEntityHydrationStatus }),
+        docsContext,
       };
       return {
         toolName: request.toolName,
@@ -1144,6 +1151,45 @@ async function resolveScopedFrodoInstance(
   return scopedFrodo;
 }
 
+/**
+ * Resolves the active deployment type for a discovery-style request, along
+ * with the scoped Frodo instance if one had to be authenticated to determine
+ * it (undefined when the deployment type was already known from context —
+ * the common fast path — so callers that only need the version-detection
+ * side effect don't pay for an extra auth round-trip they didn't ask for).
+ */
+async function resolveDeploymentAndFrodoForDiscovery(
+  context: McpRuntimeRequestContext,
+  frodoRoot: Frodo,
+  customResolver?: (
+    context: McpRuntimeRequestContext,
+    frodoRoot: Frodo
+  ) => Frodo | Promise<Frodo>
+): Promise<{ deploymentType?: McpDeploymentType; scopedFrodo?: Frodo }> {
+  const configuredDeployment = resolveContextDeploymentType(context);
+  if (configuredDeployment) {
+    return { deploymentType: configuredDeployment };
+  }
+
+  const configuredHost =
+    context.auth.mode === 'state-config'
+      ? context.auth.config.host
+      : context.auth.host;
+  if (!configuredHost) {
+    return {};
+  }
+
+  const scopedFrodo = await resolveScopedFrodoInstance(
+    context,
+    frodoRoot,
+    customResolver
+  );
+  return {
+    deploymentType: resolveScopedDeploymentType(scopedFrodo, context),
+    scopedFrodo,
+  };
+}
+
 async function resolveDeploymentForDiscovery(
   context: McpRuntimeRequestContext,
   frodoRoot: Frodo,
@@ -1152,25 +1198,12 @@ async function resolveDeploymentForDiscovery(
     frodoRoot: Frodo
   ) => Frodo | Promise<Frodo>
 ): Promise<McpDeploymentType | undefined> {
-  const configuredDeployment = resolveContextDeploymentType(context);
-  if (configuredDeployment) {
-    return configuredDeployment;
-  }
-
-  const configuredHost =
-    context.auth.mode === 'state-config'
-      ? context.auth.config.host
-      : context.auth.host;
-  if (!configuredHost) {
-    return undefined;
-  }
-
-  const scopedFrodo = await resolveScopedFrodoInstance(
+  const { deploymentType } = await resolveDeploymentAndFrodoForDiscovery(
     context,
     frodoRoot,
     customResolver
   );
-  return resolveScopedDeploymentType(scopedFrodo, context);
+  return deploymentType;
 }
 
 /**
