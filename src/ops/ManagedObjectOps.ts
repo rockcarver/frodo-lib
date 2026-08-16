@@ -165,6 +165,70 @@ export type ManagedObject = {
     pageSize?: number
   ): Promise<IdObjectSkeletonInterface[]>;
   /**
+   * Read the current value of a relationship field directly off a managed
+   * object (the forward direction, e.g. an alpha_user's own `manager` or
+   * `roles` field). For the reverse direction use queryRelatedManagedObjects.
+   * @param {string} type managed object type, e.g. alpha_user
+   * @param {string} id managed object id
+   * @param {string} field relationship field name, e.g. 'manager' or 'roles'
+   * @returns {Promise<unknown>} the field's current value: a single ref object, an array of them, or null/undefined if unset
+   */
+  readRelationship(type: string, id: string, field: string): Promise<unknown>;
+  /**
+   * Add one target to a many-valued relationship field without disturbing
+   * any existing members.
+   * @param {string} type managed object type, e.g. alpha_user
+   * @param {string} id managed object id
+   * @param {string} field relationship field name, e.g. 'roles'
+   * @param {RelationshipTarget} target the object to add, as plain { type, id }
+   * @param {string} rev optional optimistic concurrency revision token
+   * @returns {Promise<IdObjectSkeletonInterface>} the patched object
+   */
+  addRelationship(
+    type: string,
+    id: string,
+    field: string,
+    target: RelationshipTarget,
+    rev?: string
+  ): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Remove one target from a many-valued relationship field without
+   * disturbing any other members.
+   * @param {string} type managed object type, e.g. alpha_user
+   * @param {string} id managed object id
+   * @param {string} field relationship field name, e.g. 'roles'
+   * @param {RelationshipTarget} target the object to remove, as plain { type, id }
+   * @param {string} rev optional optimistic concurrency revision token
+   * @returns {Promise<IdObjectSkeletonInterface>} the patched object
+   */
+  removeRelationship(
+    type: string,
+    id: string,
+    field: string,
+    target: RelationshipTarget,
+    rev?: string
+  ): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Replace the entire value of a relationship field: a single target (or
+   * null to clear it) for a single-valued field like 'manager', or an array
+   * of targets for a many-valued field like 'roles'. Replaces the whole
+   * field — use addRelationship/removeRelationship to change one member of
+   * a many-valued field without disturbing the rest.
+   * @param {string} type managed object type, e.g. alpha_user
+   * @param {string} id managed object id
+   * @param {string} field relationship field name, e.g. 'manager' or 'roles'
+   * @param {RelationshipTarget | RelationshipTarget[] | null} target the new value
+   * @param {string} rev optional optimistic concurrency revision token
+   * @returns {Promise<IdObjectSkeletonInterface>} the patched object
+   */
+  replaceRelationship(
+    type: string,
+    id: string,
+    field: string,
+    target: RelationshipTarget | RelationshipTarget[] | null,
+    rev?: string
+  ): Promise<IdObjectSkeletonInterface>;
+  /**
    * Resolve a managed object's uuid to a human readable username
    * @param {string} type managed object type, e.g. teammember or alpha_user
    * @param {string} id managed object _id
@@ -293,6 +357,40 @@ export default (state: State): ManagedObject => {
         pageSize,
         state,
       });
+    },
+    async readRelationship(
+      type: string,
+      id: string,
+      field: string
+    ): Promise<unknown> {
+      return readRelationship({ type, id, field, state });
+    },
+    async addRelationship(
+      type: string,
+      id: string,
+      field: string,
+      target: RelationshipTarget,
+      rev?: string
+    ): Promise<IdObjectSkeletonInterface> {
+      return addRelationship({ type, id, field, target, rev, state });
+    },
+    async removeRelationship(
+      type: string,
+      id: string,
+      field: string,
+      target: RelationshipTarget,
+      rev?: string
+    ): Promise<IdObjectSkeletonInterface> {
+      return removeRelationship({ type, id, field, target, rev, state });
+    },
+    async replaceRelationship(
+      type: string,
+      id: string,
+      field: string,
+      target: RelationshipTarget | RelationshipTarget[] | null,
+      rev?: string
+    ): Promise<IdObjectSkeletonInterface> {
+      return replaceRelationship({ type, id, field, target, rev, state });
     },
     async resolveUserName(type: string, id: string) {
       return resolveUserName({ type, id, state });
@@ -833,6 +931,229 @@ export async function queryRelatedManagedObjects({
     );
   }
   return result;
+}
+
+/** A relationship target: the managed object type and id it points to, without any of the underlying _ref plumbing. */
+export type RelationshipTarget = {
+  type: string;
+  id: string;
+};
+
+/**
+ * Builds the underlying { _ref, _refResourceCollection, _refResourceId }
+ * shape IDM expects for a relationship reference in a "replace" operation,
+ * so callers of replaceRelationship only ever need to think in plain
+ * { type, id } terms.
+ */
+function buildRelationshipRefValue({ type, id }: RelationshipTarget): {
+  _ref: string;
+  _refResourceCollection: string;
+  _refResourceId: string;
+} {
+  return {
+    _ref: `managed/${type}/${id}`,
+    _refResourceCollection: `managed/${type}`,
+    _refResourceId: id,
+  };
+}
+
+/**
+ * Builds the minimal { _ref, _refProperties } shape an "add" operation
+ * needs — captured directly from a real request AIC's own admin UI sends
+ * for "add a role to this user", and verified live to work exactly as
+ * shown. Deliberately not reusing buildRelationshipRefValue's shape:
+ * "add" and "replace" turned out to want different value shapes, not
+ * variations of the same one.
+ */
+function buildAddRelationshipValue({ type, id }: RelationshipTarget): {
+  _ref: string;
+  _refProperties: Record<string, never>;
+} {
+  return { _ref: `managed/${type}/${id}`, _refProperties: {} };
+}
+
+/**
+ * Reads the current value of a relationship field directly off a managed
+ * object — the forward direction (e.g. an alpha_user's own `manager` or
+ * `roles` field). For the reverse direction (e.g. an alpha_role's members),
+ * use queryRelatedManagedObjects instead; reverse relationships aren't
+ * stored as a field on the object at all, so there's nothing here to read.
+ */
+export async function readRelationship({
+  type,
+  id,
+  field,
+  state,
+}: {
+  type: string;
+  id: string;
+  field: string;
+  state: State;
+}): Promise<unknown> {
+  const object = await readManagedObject({ type, id, fields: [field], state });
+  return object[field];
+}
+
+/**
+ * Adds one target to a many-valued relationship field without disturbing
+ * any existing members — the safe way to "add a member" (use
+ * replaceRelationship instead only when you actually mean to overwrite the
+ * whole field).
+ *
+ * @remarks
+ * Uses the exact request shape captured from AIC's own admin UI performing
+ * this action and verified live: field addressed as `/field/-` (JSON
+ * Pointer append-to-array syntax, RFC 6902) with a bare (not array-wrapped)
+ * { _ref, _refProperties: {} } value — not the field's own resourceCollection
+ * fields.
+ */
+export async function addRelationship({
+  type,
+  id,
+  field,
+  target,
+  rev,
+  state,
+}: {
+  type: string;
+  id: string;
+  field: string;
+  target: RelationshipTarget;
+  rev?: string;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
+  return updateManagedObjectProperties({
+    type,
+    id,
+    operations: [
+      {
+        operation: 'add',
+        field: `/${field}/-`,
+        value: buildAddRelationshipValue(target),
+      },
+    ],
+    rev,
+    state,
+  });
+}
+
+/** True if a stored relationship element refers to the given { type, id } target. */
+function matchesRelationshipTarget(
+  item: unknown,
+  target: RelationshipTarget
+): boolean {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    (item as Record<string, unknown>)._refResourceCollection ===
+      `managed/${target.type}` &&
+    (item as Record<string, unknown>)._refResourceId === target.id
+  );
+}
+
+/**
+ * Removes one target from a many-valued relationship field without
+ * disturbing any other members.
+ *
+ * @remarks
+ * Reads the field's current value first to find the exact stored element,
+ * then removes that exact object (not array-wrapped) — the request shape
+ * captured directly from AIC's own admin UI performing this action and
+ * verified live. Two things this gets exactly right that a naively-built
+ * request gets wrong: the value must be the object matching what's
+ * actually stored, _refProperties (an internal id/rev IDM itself generates
+ * for the relationship, distinct from the referenced object's own id)
+ * included — a freshly-built ref without it doesn't match and the request
+ * is silently ignored; and unlike "add" (which needs its value array-
+ * wrapped), "remove" needs a bare object, not an array containing one.
+ * Throws if the target isn't currently a member, rather than silently
+ * doing nothing the way a raw PATCH with a non-matching value would.
+ */
+export async function removeRelationship({
+  type,
+  id,
+  field,
+  target,
+  rev,
+  state,
+}: {
+  type: string;
+  id: string;
+  field: string;
+  target: RelationshipTarget;
+  rev?: string;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
+  const currentValue = await readRelationship({ type, id, field, state });
+  const currentArray = Array.isArray(currentValue)
+    ? currentValue
+    : currentValue
+      ? [currentValue]
+      : [];
+  const matchingElement = currentArray.find((item) =>
+    matchesRelationshipTarget(item, target)
+  );
+  if (!matchingElement) {
+    throw new FrodoError(
+      `Error removing relationship: ${target.type}/${target.id} is not currently a member of ${type}/${id}'s "${field}" field.`
+    );
+  }
+  return updateManagedObjectProperties({
+    type,
+    id,
+    operations: [
+      {
+        operation: 'remove',
+        field: `/${field}`,
+        value: matchingElement,
+      },
+    ],
+    rev,
+    state,
+  });
+}
+
+/**
+ * Replaces the entire value of a relationship field: a single target (or
+ * null to clear it) for a single-valued field like 'manager', or an array
+ * of targets for a many-valued field like 'roles' — replacing the whole
+ * array, not adding to it. Use addRelationship/removeRelationship instead
+ * when you only want to change one member of a many-valued field.
+ */
+export async function replaceRelationship({
+  type,
+  id,
+  field,
+  target,
+  rev,
+  state,
+}: {
+  type: string;
+  id: string;
+  field: string;
+  target: RelationshipTarget | RelationshipTarget[] | null;
+  rev?: string;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
+  const value =
+    target === null
+      ? null
+      : Array.isArray(target)
+        ? target.map(buildRelationshipRefValue)
+        : buildRelationshipRefValue(target);
+  return updateManagedObjectProperties({
+    type,
+    id,
+    operations: [
+      {
+        operation: 'replace',
+        field: `/${field}`,
+        value,
+      },
+    ],
+    rev,
+    state,
+  });
 }
 
 export async function resolveUserName({

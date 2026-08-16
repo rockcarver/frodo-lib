@@ -892,6 +892,213 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       "Read a type's schema — the way to discover its relationship fields before writing to them. A property with type 'relationship' is a relationship field; resourceCollection.path (nested under items for a many-valued field, directly on the property for a single-valued one) is the target type to reference. See idm.managed.updateManagedObjectProperties's notes for the actual write pattern.",
   },
+  'idm.managed.readRelationship': {
+    operationType: 'read',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description:
+          "Relationship field name, e.g. 'manager' or 'roles'. Use idm.managed.readManagedObjectSchema to discover a type's relationship fields.",
+        examples: ['manager', 'roles'],
+      },
+    ],
+    supportsRealm: true,
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      "Reads the current value of a relationship field directly off a managed object with namedArgs { type, id, field } — the forward direction (e.g. an alpha_user's own 'manager' or 'roles'). Returns a single { _ref, ... } object for a single-valued field, an array of them for a many-valued field, or null/undefined if unset. For the reverse direction (e.g. an alpha_role's members) use idm.managed.queryRelatedManagedObjects instead — reverse relationships aren't stored as a field on the object at all.",
+  },
+  'idm.managed.addRelationship': {
+    operationType: 'update',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type of the object being patched.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id being patched.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'Many-valued relationship field name to add a member to.',
+        examples: ['roles'],
+      },
+      {
+        name: 'target',
+        type: 'RelationshipTarget',
+        required: true,
+        position: 3,
+        description:
+          "The object to add, as plain { type, id } — no _ref/_refResourceCollection plumbing required, this skill builds it. type is the target's own managed object type (from the field's schema resourceCollection, e.g. alpha_role for alpha_user's roles field), not the source object's type.",
+        schema: {
+          type: 'object',
+          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          required: ['type', 'id'],
+        },
+        examples: [
+          { type: 'alpha_role', id: '1234abcd-0000-1111-2222-abcdefabcdef' },
+        ],
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Adds one target to a many-valued relationship field without disturbing any existing members — the safe way to "add a member". Builds the exact request shape captured from AIC\'s own admin UI performing this action and verified live — field addressed as "/field/-" (JSON Pointer append-to-array syntax) with a bare { _ref, _refProperties: {} } value — so you don\'t have to know that shape yourself. Use idm.managed.replaceRelationship instead only when you actually mean to overwrite the whole field. Discover a field\'s name and target type via idm.managed.readManagedObjectSchema first (a relationship property with items present is many-valued).',
+  },
+  'idm.managed.removeRelationship': {
+    operationType: 'update',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type of the object being patched.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id being patched.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description:
+          'Many-valued relationship field name to remove a member from.',
+        examples: ['roles'],
+      },
+      {
+        name: 'target',
+        type: 'RelationshipTarget',
+        required: true,
+        position: 3,
+        description:
+          "The object to remove, as plain { type, id } — same shape as addRelationship's target.",
+        schema: {
+          type: 'object',
+          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          required: ['type', 'id'],
+        },
+        examples: [
+          { type: 'alpha_role', id: '1234abcd-0000-1111-2222-abcdefabcdef' },
+        ],
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: true,
+    riskClass: 'medium',
+    notes:
+      "Removes one target from a many-valued relationship field without disturbing any other members. Revokes access/membership — for example removing a role grants the tenant admin who ran it just took away, or a group membership — so treated as a step above the plain-read/add-a-member default. Builds the exact request shape captured from AIC's own admin UI performing this action and verified live: reads the field's current value first to find the exact stored element (including an internal _refProperties block IDM itself generates for the relationship, distinct from the referenced object's own id — a freshly-built ref without it silently matches nothing and removes nothing, no error), then removes that exact object as a bare (not array-wrapped) value — a different shape from what \"add\" needs, not a variation of it. Throws a clear error rather than silently doing nothing if the target isn't currently a member.",
+  },
+  'idm.managed.replaceRelationship': {
+    operationType: 'update',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type of the object being patched.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id being patched.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'Relationship field name to replace entirely.',
+        examples: ['manager', 'roles'],
+      },
+      {
+        name: 'target',
+        type: 'RelationshipTarget | RelationshipTarget[] | null',
+        required: true,
+        position: 3,
+        description:
+          "The new value: a single { type, id } (or null to clear it) for a single-valued field like 'manager'; an array of { type, id } for a many-valued field like 'roles' — replacing the whole array, not adding to it. Use addRelationship/removeRelationship instead to change one member of a many-valued field without disturbing the rest.",
+        examples: [
+          { type: 'alpha_user', id: '1234abcd-0000-1111-2222-abcdefabcdef' },
+          null,
+        ],
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: true,
+    riskClass: 'medium',
+    notes:
+      "Replaces the entire value of a relationship field — a destructive overwrite of a many-valued field's whole membership list, not an incremental change, so treated as a step above add/read. Prefer addRelationship/removeRelationship for changing one member.",
+  },
   'idm.managed.readManagedObject': {
     argumentMode: 'named',
     parameters: [
@@ -993,11 +1200,25 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           [
             {
               operation: 'add',
+              field: '/roles/-',
+              value: {
+                _ref: 'managed/alpha_role/1234abcd-0000-1111-2222-abcdefabcdef',
+                _refProperties: {},
+              },
+            },
+          ],
+          [
+            {
+              operation: 'remove',
               field: '/roles',
               value: {
                 _ref: 'managed/alpha_role/1234abcd-0000-1111-2222-abcdefabcdef',
                 _refResourceCollection: 'managed/alpha_role',
                 _refResourceId: '1234abcd-0000-1111-2222-abcdefabcdef',
+                _refProperties: {
+                  _id: 'internal-relationship-id',
+                  _rev: '...',
+                },
               },
             },
           ],
@@ -1013,11 +1234,11 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     ],
     supportsRealm: true,
     notes:
-      'Patch one managed object with namedArgs { type, id, operations, rev }. This is also how relationships are written — there is no dedicated relationship-write skill; a relationship field is just a regular field from a PATCH point of view, proven correct by existing production code in AgentOps.ts (createAIAgent links agents/privileges/groups via this exact mechanism).\n' +
+      'Patch one managed object with namedArgs { type, id, operations, rev }. This is also the underlying mechanism relationships are written through — a relationship field is just a regular field from a PATCH point of view. Prefer the dedicated idm.managed.readRelationship/addRelationship/removeRelationship/replaceRelationship skills instead of raw operations here for relationship work — they take a plain { type, id } target and build the correct value shape for you, including two real gotchas verified live this session (and confirmed against the exact request shape AIC\'s own admin UI sends): "add" and "remove" each need a different, specific value shape that neither guessing nor generalizing from the other gets right.\n' +
       '\n' +
       "To find a type's relationship fields and what they target, call idm.managed.readManagedObjectSchema first: a property with type 'relationship' is a relationship field. A single-valued one (e.g. alpha_user's 'manager', targeting managed/alpha_user, reverse property 'reports') has resourceCollection directly on the property; a many-valued one (e.g. alpha_user's 'roles', targeting managed/alpha_role) has it nested under items instead — that items/no-items distinction is exactly what tells you whether the field holds one relationship or an array of them.\n" +
       '\n' +
-      'For a many-valued relationship, use operation "add" with a single ref-shaped value to append one member without disturbing the rest (as in the second example above), or operation "remove" with the same ref-shaped value to take one out — do not use "replace" with a partial array, since that overwrites the whole field. For a single-valued relationship (like \'manager\'), use "replace" with a single ref-shaped value (or with a bare `[]`/`null` per your platform version\'s convention to clear it). The ref-shaped value is always { _ref: "<resourceCollection.path>/<id>", _refResourceCollection: "<resourceCollection.path>", _refResourceId: "<id>" } — resourceCollection.path comes straight from the schema (e.g. "managed/alpha_role"), never guess or hardcode a realm prefix into it.',
+      'If you do use raw operations here for a many-valued relationship: to add one member without disturbing the rest, address the field as "/field/-" (JSON Pointer append-to-array syntax) with operation "add" and a bare value of just { _ref: "<resourceCollection.path>/<id>", _refProperties: {} } — not array-wrapped, and no _refResourceCollection/_refResourceId (as in the second example above). To remove one member, address the field as "/field" (no index) with operation "remove" and a bare value that exactly matches the currently-stored element, including its _refProperties (an internal id/rev IDM itself generates for the relationship, distinct from the referenced object\'s own id) — read the field first (idm.managed.readRelationship) to get that exact stored element, since a freshly-built ref without the real _refProperties silently matches nothing and removes nothing, with no error (as in the third example above; the _refProperties values there are illustrative — always use the real ones from a fresh read, never fabricate them). For a single-valued relationship (like \'manager\'), use "replace" with a single (unwrapped) ref-shaped value { _ref, _refResourceCollection, _refResourceId }, or null to clear it — resourceCollection.path comes straight from the schema (e.g. "managed/alpha_role"), never guess or hardcode a realm prefix into it.',
   },
   'idm.managed.updateManagedObjectsProperties': {
     argumentMode: 'named',
@@ -1395,6 +1616,233 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'critical',
     notes:
       'Delete multiple managed system objects (teammember or svcacct) with namedArgs { type, filter }. Deleting a teammember revokes tenant-admin access — treat as critical regardless of type.',
+  },
+  'idm.managedSystem.queryRelatedManagedSystemObjects': {
+    operationType: 'search',
+    objectType: 'RelatedManagedSystemObject',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'relationship',
+        type: 'string',
+        required: true,
+        position: 2,
+        description:
+          'Name of the relationship to query, the reverse direction.',
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Query the reverse direction of a relationship on a managed system object (teammember or svcacct) with namedArgs { type, id, relationship, fields, pageSize }. Admin-only regardless of read-only intent, same as the rest of idm.managedSystem.*.',
+  },
+  'idm.managedSystem.readRelationship': {
+    operationType: 'read',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description:
+          "Relationship field name. Use idm.managedSystem.readManagedSystemObjectSchema to discover a type's relationship fields.",
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Reads the current value of a relationship field directly off a managed system object (teammember or svcacct) with namedArgs { type, id, field } — the forward direction. Admin-only regardless of read-only intent, same as the rest of idm.managedSystem.*.',
+  },
+  'idm.managedSystem.addRelationship': {
+    operationType: 'update',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type of the object being patched.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id being patched.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'Many-valued relationship field name to add a member to.',
+      },
+      {
+        name: 'target',
+        type: 'RelationshipTarget',
+        required: true,
+        position: 3,
+        description:
+          'The object to add, as plain { type, id } — no _ref/_refResourceCollection plumbing required.',
+        schema: {
+          type: 'object',
+          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          required: ['type', 'id'],
+        },
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      "Adds one target to a many-valued relationship field on a managed system object (teammember or svcacct) without disturbing any existing members. Admin-only regardless of write intent, same as the rest of idm.managedSystem.*. See idm.managed.addRelationship's notes for the exact request shape this skill builds for you (captured from AIC's own admin UI, verified live).",
+  },
+  'idm.managedSystem.removeRelationship': {
+    operationType: 'update',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type of the object being patched.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id being patched.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description:
+          'Many-valued relationship field name to remove a member from.',
+      },
+      {
+        name: 'target',
+        type: 'RelationshipTarget',
+        required: true,
+        position: 3,
+        description: 'The object to remove, as plain { type, id }.',
+        schema: {
+          type: 'object',
+          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          required: ['type', 'id'],
+        },
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      "Removes one target from a many-valued relationship field on a managed system object (teammember or svcacct) without disturbing any other members. See idm.managed.removeRelationship's notes for the exact request shape this skill builds for you — reads the field's current value first to match IDM's own internal _refProperties on the exact stored element, then removes it as a bare value.",
+  },
+  'idm.managedSystem.replaceRelationship': {
+    operationType: 'update',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type of the object being patched.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id being patched.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'Relationship field name to replace entirely.',
+      },
+      {
+        name: 'target',
+        type: 'RelationshipTarget | RelationshipTarget[] | null',
+        required: true,
+        position: 3,
+        description:
+          'The new value: a single { type, id } (or null to clear it) for a single-valued field, an array for a many-valued field.',
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Replaces the entire value of a relationship field on a managed system object (teammember or svcacct) — a destructive overwrite of the whole field, not an incremental change. Prefer addRelationship/removeRelationship for changing one member.',
   },
 
   'idm.mapping.createMapping': {

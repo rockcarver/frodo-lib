@@ -21,7 +21,10 @@ import { State } from '../shared/State';
 import { FrodoError } from './FrodoError';
 import { debugMessage } from '../utils/Console';
 import { cloneDeep } from '../utils/JsonUtils';
-import { ManagedObjectSchemaOptions } from './ManagedObjectOps';
+import {
+  ManagedObjectSchemaOptions,
+  type RelationshipTarget,
+} from './ManagedObjectOps';
 
 export type ManagedSystemObject = {
   /**
@@ -148,6 +151,85 @@ export type ManagedSystemObject = {
     fields?: string[],
     pageSize?: number
   ): Promise<IdObjectSkeletonInterface[]>;
+  /**
+   * Query related managed system objects
+   * @param {string} type managed system object type, e.g. svcacct or teammember
+   * @param {string} id managed system object id
+   * @param {string} relationship name of the relationship to query
+   * @param {string[]} fields array of fields to return
+   * @return {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of managed system objects
+   */
+  queryRelatedManagedSystemObjects(
+    type: string,
+    id: string,
+    relationship: string,
+    fields?: string[],
+    pageSize?: number
+  ): Promise<IdObjectSkeletonInterface[]>;
+  /**
+   * Read the current value of a relationship field directly off a managed
+   * system object (the forward direction). For the reverse direction use
+   * queryRelatedManagedSystemObjects.
+   * @param {string} type managed system object type, e.g. svcacct or teammember
+   * @param {string} id managed system object id
+   * @param {string} field relationship field name
+   * @returns {Promise<unknown>} the field's current value: a single ref object, an array of them, or null/undefined if unset
+   */
+  readRelationship(type: string, id: string, field: string): Promise<unknown>;
+  /**
+   * Add one target to a many-valued relationship field without disturbing
+   * any existing members.
+   * @param {string} type managed system object type, e.g. svcacct or teammember
+   * @param {string} id managed system object id
+   * @param {string} field relationship field name
+   * @param {RelationshipTarget} target the object to add, as plain { type, id }
+   * @param {string} rev optional optimistic concurrency revision token
+   * @returns {Promise<IdObjectSkeletonInterface>} the patched object
+   */
+  addRelationship(
+    type: string,
+    id: string,
+    field: string,
+    target: RelationshipTarget,
+    rev?: string
+  ): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Remove one target from a many-valued relationship field without
+   * disturbing any other members.
+   * @param {string} type managed system object type, e.g. svcacct or teammember
+   * @param {string} id managed system object id
+   * @param {string} field relationship field name
+   * @param {RelationshipTarget} target the object to remove, as plain { type, id }
+   * @param {string} rev optional optimistic concurrency revision token
+   * @returns {Promise<IdObjectSkeletonInterface>} the patched object
+   */
+  removeRelationship(
+    type: string,
+    id: string,
+    field: string,
+    target: RelationshipTarget,
+    rev?: string
+  ): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Replace the entire value of a relationship field: a single target (or
+   * null to clear it) for a single-valued field, or an array of targets for
+   * a many-valued field. Replaces the whole field — use
+   * addRelationship/removeRelationship to change one member of a
+   * many-valued field without disturbing the rest.
+   * @param {string} type managed system object type, e.g. svcacct or teammember
+   * @param {string} id managed system object id
+   * @param {string} field relationship field name
+   * @param {RelationshipTarget | RelationshipTarget[] | null} target the new value
+   * @param {string} rev optional optimistic concurrency revision token
+   * @returns {Promise<IdObjectSkeletonInterface>} the patched object
+   */
+  replaceRelationship(
+    type: string,
+    id: string,
+    field: string,
+    target: RelationshipTarget | RelationshipTarget[] | null,
+    rev?: string
+  ): Promise<IdObjectSkeletonInterface>;
 };
 
 export default (state: State): ManagedSystemObject => {
@@ -252,6 +334,56 @@ export default (state: State): ManagedSystemObject => {
         pageSize,
         state,
       });
+    },
+    async queryRelatedManagedSystemObjects(
+      type: string,
+      id: string,
+      relationship: string,
+      fields: string[] = [],
+      pageSize: number = DEFAULT_PAGE_SIZE
+    ): Promise<IdObjectSkeletonInterface[]> {
+      return queryRelatedManagedSystemObjects({
+        type,
+        id,
+        relationship,
+        fields,
+        pageSize,
+        state,
+      });
+    },
+    async readRelationship(
+      type: string,
+      id: string,
+      field: string
+    ): Promise<unknown> {
+      return readRelationship({ type, id, field, state });
+    },
+    async addRelationship(
+      type: string,
+      id: string,
+      field: string,
+      target: RelationshipTarget,
+      rev?: string
+    ): Promise<IdObjectSkeletonInterface> {
+      return addRelationship({ type, id, field, target, rev, state });
+    },
+    async removeRelationship(
+      type: string,
+      id: string,
+      field: string,
+      target: RelationshipTarget,
+      rev?: string
+    ): Promise<IdObjectSkeletonInterface> {
+      return removeRelationship({ type, id, field, target, rev, state });
+    },
+    async replaceRelationship(
+      type: string,
+      id: string,
+      field: string,
+      target: RelationshipTarget | RelationshipTarget[] | null,
+      rev?: string
+    ): Promise<IdObjectSkeletonInterface> {
+      return replaceRelationship({ type, id, field, target, rev, state });
     },
   };
 };
@@ -766,4 +898,206 @@ export async function queryRelatedManagedSystemObjects({
     );
   }
   return result;
+}
+
+/**
+ * Builds the underlying { _ref, _refResourceCollection, _refResourceId }
+ * shape IDM expects for a relationship reference. Relationship targets are
+ * always addressed under the managed/ collection regardless of whether the
+ * object being patched is a regular managed object or a managed system
+ * object, so this is identical to ManagedObjectOps' own version.
+ */
+function buildRelationshipRefValue({ type, id }: RelationshipTarget): {
+  _ref: string;
+  _refResourceCollection: string;
+  _refResourceId: string;
+} {
+  return {
+    _ref: `managed/${type}/${id}`,
+    _refResourceCollection: `managed/${type}`,
+    _refResourceId: id,
+  };
+}
+
+/**
+ * Builds the minimal { _ref, _refProperties } shape an "add" operation
+ * needs. See the matching comment in ManagedObjectOps.ts: captured
+ * directly from AIC's own admin UI and verified live — "add" and
+ * "replace" want different value shapes, not variations of the same one.
+ */
+function buildAddRelationshipValue({ type, id }: RelationshipTarget): {
+  _ref: string;
+  _refProperties: Record<string, never>;
+} {
+  return { _ref: `managed/${type}/${id}`, _refProperties: {} };
+}
+
+/**
+ * Reads the current value of a relationship field directly off a managed
+ * system object — the forward direction. For the reverse direction use
+ * queryRelatedManagedSystemObjects instead.
+ */
+export async function readRelationship({
+  type,
+  id,
+  field,
+  state,
+}: {
+  type: string;
+  id: string;
+  field: string;
+  state: State;
+}): Promise<unknown> {
+  const object = await readManagedSystemObject({
+    type,
+    id,
+    fields: [field],
+    state,
+  });
+  return object[field];
+}
+
+/**
+ * Adds one target to a many-valued relationship field without disturbing
+ * any existing members.
+ */
+export async function addRelationship({
+  type,
+  id,
+  field,
+  target,
+  rev,
+  state,
+}: {
+  type: string;
+  id: string;
+  field: string;
+  target: RelationshipTarget;
+  rev?: string;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
+  return updateManagedSystemObjectProperties({
+    type,
+    id,
+    operations: [
+      {
+        operation: 'add',
+        field: `/${field}/-`,
+        value: buildAddRelationshipValue(target),
+      },
+    ],
+    rev,
+    state,
+  });
+}
+
+/** True if a stored relationship element refers to the given { type, id } target. */
+function matchesRelationshipTarget(
+  item: unknown,
+  target: RelationshipTarget
+): boolean {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    (item as Record<string, unknown>)._refResourceCollection ===
+      `managed/${target.type}` &&
+    (item as Record<string, unknown>)._refResourceId === target.id
+  );
+}
+
+/**
+ * Removes one target from a many-valued relationship field without
+ * disturbing any other members.
+ *
+ * @remarks
+ * Reads the field's current value first to find the exact stored element,
+ * then removes that exact object (not array-wrapped) — see the matching
+ * comment in ManagedObjectOps.ts: this is the request shape captured
+ * directly from AIC's own admin UI and verified live, including IDM's own
+ * internal _refProperties on the matched element.
+ */
+export async function removeRelationship({
+  type,
+  id,
+  field,
+  target,
+  rev,
+  state,
+}: {
+  type: string;
+  id: string;
+  field: string;
+  target: RelationshipTarget;
+  rev?: string;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
+  const currentValue = await readRelationship({ type, id, field, state });
+  const currentArray = Array.isArray(currentValue)
+    ? currentValue
+    : currentValue
+      ? [currentValue]
+      : [];
+  const matchingElement = currentArray.find((item) =>
+    matchesRelationshipTarget(item, target)
+  );
+  if (!matchingElement) {
+    throw new FrodoError(
+      `Error removing relationship: ${target.type}/${target.id} is not currently a member of ${type}/${id}'s "${field}" field.`
+    );
+  }
+  return updateManagedSystemObjectProperties({
+    type,
+    id,
+    operations: [
+      {
+        operation: 'remove',
+        field: `/${field}`,
+        value: matchingElement,
+      },
+    ],
+    rev,
+    state,
+  });
+}
+
+/**
+ * Replaces the entire value of a relationship field: a single target (or
+ * null to clear it) for a single-valued field, or an array of targets for a
+ * many-valued field. Use addRelationship/removeRelationship instead when
+ * you only want to change one member of a many-valued field.
+ */
+export async function replaceRelationship({
+  type,
+  id,
+  field,
+  target,
+  rev,
+  state,
+}: {
+  type: string;
+  id: string;
+  field: string;
+  target: RelationshipTarget | RelationshipTarget[] | null;
+  rev?: string;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
+  const value =
+    target === null
+      ? null
+      : Array.isArray(target)
+        ? target.map(buildRelationshipRefValue)
+        : buildRelationshipRefValue(target);
+  return updateManagedSystemObjectProperties({
+    type,
+    id,
+    operations: [
+      {
+        operation: 'replace',
+        field: `/${field}`,
+        value,
+      },
+    ],
+    rev,
+    state,
+  });
 }

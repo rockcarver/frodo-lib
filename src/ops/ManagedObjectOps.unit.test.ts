@@ -4,6 +4,9 @@ const getManagedObject = jest.fn(async (_args?: any): Promise<any> => ({}));
 const getManagedSystemObject = jest.fn(
   async (_args?: any): Promise<any> => ({})
 );
+const patchManagedObject = jest.fn(
+  async (_args?: any): Promise<any> => ({})
+);
 
 jest.unstable_mockModule('../api/ManagedObjectApi', () => ({
   countManagedObjects: jest.fn(),
@@ -12,7 +15,7 @@ jest.unstable_mockModule('../api/ManagedObjectApi', () => ({
   deleteManagedObject: jest.fn(),
   getManagedObject,
   getManagedObjectSchema: jest.fn(),
-  patchManagedObject: jest.fn(),
+  patchManagedObject,
   putManagedObject: jest.fn(),
   queryAllManagedObjectsByType: jest.fn(),
   queryManagedObjects: jest.fn(),
@@ -22,7 +25,13 @@ jest.unstable_mockModule('../api/ManagedSystemObjectApi', () => ({
   getManagedSystemObject,
 }));
 
-const { resolveIdentity } = await import('./ManagedObjectOps');
+const {
+  resolveIdentity,
+  readRelationship,
+  addRelationship,
+  removeRelationship,
+  replaceRelationship,
+} = await import('./ManagedObjectOps');
 
 function mockState(deploymentType: string) {
   return { getDeploymentType: () => deploymentType } as any;
@@ -220,5 +229,239 @@ describe('resolveIdentity', () => {
     expect(result.kind).toBe('user');
     expect(result.realm).toBe('customRealm');
     expect(result.resolvedVia).toBe('user');
+  });
+});
+
+describe('relationship helpers', () => {
+  beforeEach(() => {
+    getManagedObject.mockReset();
+    patchManagedObject.mockReset();
+    getManagedObject.mockResolvedValue({});
+    patchManagedObject.mockResolvedValue({});
+  });
+
+  test('readRelationship reads the field directly off the object, requesting only that field', async () => {
+    getManagedObject.mockResolvedValue({ manager: { _ref: 'managed/alpha_user/mgr-1' } });
+
+    const result = await readRelationship({
+      type: 'alpha_user',
+      id: 'user-1',
+      field: 'manager',
+      state: {} as any,
+    });
+
+    expect(getManagedObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'alpha_user',
+        id: 'user-1',
+        fields: ['manager'],
+      })
+    );
+    expect(result).toEqual({ _ref: 'managed/alpha_user/mgr-1' });
+  });
+
+  test('addRelationship uses field "/field/-" (JSON Pointer append) and a bare { _ref, _refProperties } value — the exact request shape captured from AIC\'s own admin UI, verified live', async () => {
+    await addRelationship({
+      type: 'alpha_user',
+      id: 'user-1',
+      field: 'roles',
+      target: { type: 'alpha_role', id: 'role-1' },
+      state: {} as any,
+    });
+
+    expect(patchManagedObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'alpha_user',
+        id: 'user-1',
+        operations: [
+          {
+            operation: 'add',
+            field: '/roles/-',
+            value: {
+              _ref: 'managed/alpha_role/role-1',
+              _refProperties: {},
+            },
+          },
+        ],
+      })
+    );
+  });
+
+  test('removeRelationship reads the current value first and removes the exact stored element (bare, not array-wrapped, including IDM\'s own _refProperties) — the exact request shape captured from AIC\'s own admin UI, verified live', async () => {
+    const storedElement = {
+      _ref: 'managed/alpha_role/role-1',
+      _refResourceCollection: 'managed/alpha_role',
+      _refResourceId: 'role-1',
+      _refProperties: { _id: 'rel-id-1', _rev: 'rel-rev-1' },
+    };
+    getManagedObject.mockResolvedValue({ roles: [storedElement] });
+
+    await removeRelationship({
+      type: 'alpha_user',
+      id: 'user-1',
+      field: 'roles',
+      target: { type: 'alpha_role', id: 'role-1' },
+      state: {} as any,
+    });
+
+    expect(getManagedObject).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'alpha_user', id: 'user-1', fields: ['roles'] })
+    );
+    expect(patchManagedObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: [
+          {
+            operation: 'remove',
+            field: '/roles',
+            value: storedElement,
+          },
+        ],
+      })
+    );
+  });
+
+  test('removeRelationship finds and removes the correct element when other members are present', async () => {
+    const targetElement = {
+      _ref: 'managed/alpha_role/role-1',
+      _refResourceCollection: 'managed/alpha_role',
+      _refResourceId: 'role-1',
+    };
+    const otherElement = {
+      _ref: 'managed/alpha_role/role-2',
+      _refResourceCollection: 'managed/alpha_role',
+      _refResourceId: 'role-2',
+    };
+    getManagedObject.mockResolvedValue({ roles: [targetElement, otherElement] });
+
+    await removeRelationship({
+      type: 'alpha_user',
+      id: 'user-1',
+      field: 'roles',
+      target: { type: 'alpha_role', id: 'role-1' },
+      state: {} as any,
+    });
+
+    expect(patchManagedObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: [
+          { operation: 'remove', field: '/roles', value: targetElement },
+        ],
+      })
+    );
+  });
+
+  test('removeRelationship throws rather than silently no-op\'ing when the target is not currently a member', async () => {
+    getManagedObject.mockResolvedValue({ roles: [] });
+
+    await expect(
+      removeRelationship({
+        type: 'alpha_user',
+        id: 'user-1',
+        field: 'roles',
+        target: { type: 'alpha_role', id: 'role-1' },
+        state: {} as any,
+      })
+    ).rejects.toThrow(/not currently a member/);
+    expect(patchManagedObject).not.toHaveBeenCalled();
+  });
+
+  test('removeRelationship handles a single-valued (non-array) current value', async () => {
+    const storedElement = {
+      _ref: 'managed/alpha_user/mgr-1',
+      _refResourceCollection: 'managed/alpha_user',
+      _refResourceId: 'mgr-1',
+      _refProperties: { _id: 'rel-id-2', _rev: 'rel-rev-2' },
+    };
+    getManagedObject.mockResolvedValue({ manager: storedElement });
+
+    await removeRelationship({
+      type: 'alpha_user',
+      id: 'user-1',
+      field: 'manager',
+      target: { type: 'alpha_user', id: 'mgr-1' },
+      state: {} as any,
+    });
+
+    expect(patchManagedObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: [
+          {
+            operation: 'remove',
+            field: '/manager',
+            value: storedElement,
+          },
+        ],
+      })
+    );
+  });
+
+  test('replaceRelationship builds a single ref value for a single-valued field', async () => {
+    await replaceRelationship({
+      type: 'alpha_user',
+      id: 'user-1',
+      field: 'manager',
+      target: { type: 'alpha_user', id: 'mgr-1' },
+      state: {} as any,
+    });
+
+    expect(patchManagedObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: [
+          {
+            operation: 'replace',
+            field: '/manager',
+            value: {
+              _ref: 'managed/alpha_user/mgr-1',
+              _refResourceCollection: 'managed/alpha_user',
+              _refResourceId: 'mgr-1',
+            },
+          },
+        ],
+      })
+    );
+  });
+
+  test('replaceRelationship builds an array of ref values for a many-valued field', async () => {
+    await replaceRelationship({
+      type: 'alpha_user',
+      id: 'user-1',
+      field: 'roles',
+      target: [
+        { type: 'alpha_role', id: 'role-1' },
+        { type: 'alpha_role', id: 'role-2' },
+      ],
+      state: {} as any,
+    });
+
+    expect(patchManagedObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: [
+          expect.objectContaining({
+            operation: 'replace',
+            field: '/roles',
+            value: [
+              expect.objectContaining({ _refResourceId: 'role-1' }),
+              expect.objectContaining({ _refResourceId: 'role-2' }),
+            ],
+          }),
+        ],
+      })
+    );
+  });
+
+  test('replaceRelationship passes null through directly to clear a field', async () => {
+    await replaceRelationship({
+      type: 'alpha_user',
+      id: 'user-1',
+      field: 'manager',
+      target: null,
+      state: {} as any,
+    });
+
+    expect(patchManagedObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operations: [{ operation: 'replace', field: '/manager', value: null }],
+      })
+    );
   });
 });
