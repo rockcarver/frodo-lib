@@ -2479,7 +2479,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<string>} resolved perpetrator descriptive string or uuid if any error occurs during reslution",
   },
   {
-    typeName: "ManagedObject",
+    typeName: "ManagedSystemObject",
     methodName: "readManagedSystemObjectSchema",
     signature: "readManagedSystemObjectSchema( type: string, refreshCache?: boolean, options?: ManagedObjectSchemaOptions ): Promise<ManagedObjectSchema>",
     description: "Read managed system object schema",
@@ -2491,7 +2491,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<ManagedObjectSchema>} a promise that resolves to a managed system object schema",
   },
   {
-    typeName: "ManagedObject",
+    typeName: "ManagedSystemObject",
     methodName: "createManagedSystemObject",
     signature: "createManagedSystemObject( type: string, moData: IdObjectSkeletonInterface, id?: string ): Promise<IdObjectSkeletonInterface>",
     description: "Create managed system object",
@@ -2503,7 +2503,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "",
   },
   {
-    typeName: "ManagedObject",
+    typeName: "ManagedSystemObject",
     methodName: "readManagedSystemObject",
     signature: "readManagedSystemObject( type: string, id: string, fields: string[] ): Promise<IdObjectSkeletonInterface>",
     description: "Read managed system object",
@@ -2515,7 +2515,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface",
   },
   {
-    typeName: "ManagedObject",
+    typeName: "ManagedSystemObject",
     methodName: "readManagedSystemObjects",
     signature: "readManagedSystemObjects( type: string, fields: string[] ): Promise<IdObjectSkeletonInterface[]>",
     description: "Read all managed system object of the specified type",
@@ -2526,7 +2526,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<IdObjectSkeletonInterface[]>} a promise that resolves to an array of IdObjectSkeletonInterfaces",
   },
   {
-    typeName: "ManagedObject",
+    typeName: "ManagedSystemObject",
     methodName: "countManagedSystemObjects",
     signature: "countManagedSystemObjects(type: string, filter?: string): Promise<number>",
     description: "Count managed system objects of the specified type.",
@@ -2537,7 +2537,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<number>} a promise that resolves to the object count",
   },
   {
-    typeName: "ManagedObject",
+    typeName: "ManagedSystemObject",
     methodName: "updateManagedSystemObject",
     signature: "updateManagedSystemObject( type: string, id: string, moData: IdObjectSkeletonInterface ): Promise<IdObjectSkeletonInterface>",
     description: "Update managed system object",
@@ -2549,7 +2549,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface",
   },
   {
-    typeName: "ManagedObject",
+    typeName: "ManagedSystemObject",
     methodName: "updateManagedSystemObjectProperties",
     signature: "updateManagedSystemObjectProperties( type: string, id: string, operations: PatchOperationInterface[], rev?: string ): Promise<IdObjectSkeletonInterface>",
     description: "Partially update managed system object through a collection of patch operations.",
@@ -2562,7 +2562,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface",
   },
   {
-    typeName: "ManagedObject",
+    typeName: "ManagedSystemObject",
     methodName: "updateManagedSystemObjectsProperties",
     signature: "updateManagedSystemObjectsProperties( type: string, filter: string, operations: PatchOperationInterface[], rev?: string, pageSize?: number ): Promise<IdObjectSkeletonInterface[]>",
     description: "Partially update multiple managed system object through a collection of patch operations.",
@@ -2576,7 +2576,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface",
   },
   {
-    typeName: "ManagedObject",
+    typeName: "ManagedSystemObject",
     methodName: "deleteManagedSystemObject",
     signature: "deleteManagedSystemObject( type: string, id: string ): Promise<IdObjectSkeletonInterface>",
     description: "Delete managed system object",
@@ -2587,7 +2587,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface",
   },
   {
-    typeName: "ManagedObject",
+    typeName: "ManagedSystemObject",
     methodName: "deleteManagedSystemObjects",
     signature: "deleteManagedSystemObjects(type: string, filter: string): Promise<number>",
     description: "Delete managed system objects by filter",
@@ -2598,7 +2598,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<number>} a promise that resolves the number of deleted objects",
   },
   {
-    typeName: "ManagedObject",
+    typeName: "ManagedSystemObject",
     methodName: "queryManagedSystemObjects",
     signature: "queryManagedSystemObjects( type: string, filter?: string, fields?: string[], pageSize?: number ): Promise<IdObjectSkeletonInterface[]>",
     description: "Query managed system objects",
@@ -2608,38 +2608,6 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "fields", type: "string[]", description: "array of fields to return" },
     ],
     returns: "{Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of managed system objects",
-  },
-  {
-    typeName: "ManagedObject",
-    methodName: "resolveUserName",
-    signature: "resolveUserName(type: string, id: string): Promise<string>",
-    description: "Resolve a managed system object's uuid to a human readable username",
-    params: [
-      { name: "type", type: "string", description: "managed system object type, e.g. teammember or alpha_user" },
-      { name: "id", type: "string", description: "managed system object _id" },
-    ],
-    returns: "{Promise<string>} resolved username or uuid if any error occurs during reslution",
-  },
-  {
-    typeName: "ManagedObject",
-    methodName: "resolveFullName",
-    signature: "resolveFullName(type: string, id: string): Promise<string>",
-    description: "Resolve a managed system object's uuid to a human readable full name",
-    params: [
-      { name: "type", type: "string", description: "managed system object type, e.g. teammember or alpha_user" },
-      { name: "id", type: "string", description: "managed system object _id" },
-    ],
-    returns: "{Promise<string>} resolved full name or uuid if any error occurs during reslution",
-  },
-  {
-    typeName: "ManagedObject",
-    methodName: "resolvePerpetratorUuid",
-    signature: "resolvePerpetratorUuid(id: string): Promise<string>",
-    description: "Resolve a perpetrator's uuid to a human readable string identifying the perpetrator",
-    params: [
-      { name: "id", type: "string", description: "managed system object _id" },
-    ],
-    returns: "{Promise<string>} resolved perpetrator descriptive string or uuid if any error occurs during reslution",
   },
   {
     typeName: "Mapping",

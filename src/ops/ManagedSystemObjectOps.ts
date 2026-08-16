@@ -16,18 +16,14 @@ import {
   queryManagedSystemObjects as _queryManagedSystemObjects,
   queryRelatedManagedSystemObjects as _queryRelatedManagedSystemObjects,
 } from '../api/ManagedSystemObjectApi';
-import {
-  getManagedObject as _getManagedObject,
-  type ManagedObjectSchema,
-} from '../api/ManagedObjectApi';
-import Constants from '../shared/Constants';
+import { type ManagedObjectSchema } from '../api/ManagedObjectApi';
 import { State } from '../shared/State';
 import { FrodoError } from './FrodoError';
 import { debugMessage } from '../utils/Console';
 import { cloneDeep } from '../utils/JsonUtils';
 import { ManagedObjectSchemaOptions } from './ManagedObjectOps';
 
-export type ManagedObject = {
+export type ManagedSystemObject = {
   /**
    * Read managed system object schema
    * @param {string} type managed system object type, e.g. svcacct or teammember
@@ -152,29 +148,9 @@ export type ManagedObject = {
     fields?: string[],
     pageSize?: number
   ): Promise<IdObjectSkeletonInterface[]>;
-  /**
-   * Resolve a managed system object's uuid to a human readable username
-   * @param {string} type managed system object type, e.g. teammember or alpha_user
-   * @param {string} id managed system object _id
-   * @returns {Promise<string>} resolved username or uuid if any error occurs during reslution
-   */
-  resolveUserName(type: string, id: string): Promise<string>;
-  /**
-   * Resolve a managed system object's uuid to a human readable full name
-   * @param {string} type managed system object type, e.g. teammember or alpha_user
-   * @param {string} id managed system object _id
-   * @returns {Promise<string>} resolved full name or uuid if any error occurs during reslution
-   */
-  resolveFullName(type: string, id: string): Promise<string>;
-  /**
-   * Resolve a perpetrator's uuid to a human readable string identifying the perpetrator
-   * @param {string} id managed system object _id
-   * @returns {Promise<string>} resolved perpetrator descriptive string or uuid if any error occurs during reslution
-   */
-  resolvePerpetratorUuid(id: string): Promise<string>;
 };
 
-export default (state: State): ManagedObject => {
+export default (state: State): ManagedSystemObject => {
   return {
     async readManagedSystemObjectSchema(
       type: string,
@@ -276,15 +252,6 @@ export default (state: State): ManagedObject => {
         pageSize,
         state,
       });
-    },
-    async resolveUserName(type: string, id: string) {
-      return resolveUserName({ type, id, state });
-    },
-    async resolveFullName(type: string, id: string) {
-      return resolveFullName({ type, id, state });
-    },
-    async resolvePerpetratorUuid(id: string): Promise<string> {
-      return resolvePerpetratorUuid({ id, state });
     },
   };
 };
@@ -799,132 +766,4 @@ export async function queryRelatedManagedSystemObjects({
     );
   }
   return result;
-}
-
-export async function resolveUserName({
-  type,
-  id,
-  state,
-}: {
-  type: string;
-  id: string;
-  state: State;
-}): Promise<string> {
-  try {
-    return (
-      await _getManagedSystemObject({
-        type,
-        id,
-        fields: ['userName'],
-        state,
-      })
-    ).userName as string;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error) {
-    // ignore
-  }
-  return id;
-}
-
-export async function resolveFullName({
-  type,
-  id,
-  state,
-}: {
-  type: string;
-  id: string;
-  state: State;
-}): Promise<string> {
-  try {
-    const managedObject = await _getManagedSystemObject({
-      type,
-      id,
-      fields: ['givenName', 'sn'],
-      state,
-    });
-    return `${managedObject.givenName} ${managedObject.sn}`;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error) {
-    // ignore
-  }
-  return id;
-}
-
-export async function resolvePerpetratorUuid({
-  id,
-  state,
-}: {
-  id: string;
-  state: State;
-}): Promise<string> {
-  try {
-    if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
-      const lookupPromises: Promise<IdObjectSkeletonInterface>[] = [];
-      lookupPromises.push(
-        _getManagedSystemObject({
-          type: 'teammember',
-          id,
-          fields: ['givenName', 'sn', 'userName'],
-          state,
-        })
-      );
-      lookupPromises.push(
-        _getManagedSystemObject({
-          type: 'svcacct',
-          id,
-          fields: ['name', 'description'],
-          state,
-        })
-      );
-      lookupPromises.push(
-        _getManagedObject({
-          type: 'alpha_user',
-          id,
-          fields: ['givenName', 'sn', 'userName'],
-          state,
-        })
-      );
-      lookupPromises.push(
-        _getManagedObject({
-          type: 'bravo_user',
-          id,
-          fields: ['givenName', 'sn', 'userName'],
-          state,
-        })
-      );
-      const lookupResults = await Promise.allSettled(lookupPromises);
-      // tenant admin
-      if (lookupResults[0].status === 'fulfilled') {
-        const admin = lookupResults[0].value;
-        return `Admin user: ${admin.givenName} ${admin.sn} (${admin.userName})`;
-      }
-      // service account
-      if (lookupResults[1].status === 'fulfilled') {
-        const sa = lookupResults[1].value;
-        return `Service account: ${sa.name} (${sa.description})`;
-      }
-      // alpha user
-      if (lookupResults[2].status === 'fulfilled') {
-        const user = lookupResults[2].value;
-        return `Alpha user: ${user.givenName} ${user.sn} (${user.userName})`;
-      }
-      // bravo user
-      if (lookupResults[3].status === 'fulfilled') {
-        const user = lookupResults[3].value;
-        return `Bravo user:${user.givenName} ${user.sn} (${user.userName})`;
-      }
-    } else {
-      const user = await _getManagedObject({
-        type: 'user',
-        id,
-        fields: ['givenName', 'sn', 'userName'],
-        state,
-      });
-      return `${user.givenName} ${user.sn} (${user.userName})`;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error) {
-    // ignore
-  }
-  return id;
 }

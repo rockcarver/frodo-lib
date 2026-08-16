@@ -94,6 +94,7 @@ const SUBJECT_PROFILE_DEFINITIONS: Record<
       'IDM object model and lifecycle operations, including managed objects, mappings, recon, connectors, organization, config, system, and script.',
     includePathPrefixes: [
       'idm.managed',
+      'idm.managedSystem',
       'idm.mapping',
       'idm.recon',
       'idm.connector',

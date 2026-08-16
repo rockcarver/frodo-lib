@@ -1101,6 +1101,282 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     supportsRealm: true,
     notes: 'Delete multiple managed objects with namedArgs { type, filter }.',
   },
+
+  'idm.managedSystem.readManagedSystemObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          'Managed system object type: teammember (tenant admin) or svcacct (service account). Distinct from regular managed object types like alpha_user — use idm.managed.readManagedObject for those.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id (UUID) to read.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'fields',
+        type: 'string[]',
+        required: false,
+        position: 2,
+        description: 'Optional list of fields to return.',
+        schema: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        examples: [['givenName', 'sn', 'userName']],
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Read a managed system object (teammember or svcacct) with namedArgs { type, id, fields }. A 403/permission error here — as opposed to a 404 — means the caller\'s own credential lacks visibility into that type (for example, a service-account-authenticated session typically cannot read teammember), not that the object doesn\'t exist; distinguish the two rather than treating both as "not found".',
+  },
+  'idm.managedSystem.readManagedSystemObjects': {
+    riskClass: 'critical',
+    notes:
+      'List all managed system objects of a type (teammember or svcacct) — reveals the full tenant-admin or service-account roster. Admin-only regardless of read-only intent.',
+  },
+  'idm.managedSystem.readManagedSystemObjectSchema': {
+    riskClass: 'critical',
+  },
+  'idm.managedSystem.queryManagedSystemObjects': {
+    riskClass: 'critical',
+    notes:
+      'Search managed system objects of a type (teammember or svcacct) — can reveal tenant-admin or service-account membership. Admin-only regardless of read-only intent.',
+  },
+  'idm.managedSystem.countManagedSystemObjects': {
+    riskClass: 'critical',
+  },
+  'idm.managedSystem.createManagedSystemObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'moData',
+        type: 'IdObjectSkeletonInterface',
+        required: true,
+        position: 1,
+        description: 'Managed system object payload object.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: false,
+        position: 2,
+        description:
+          'Optional managed system object id. Omit to let IDM assign one.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Create a managed system object (teammember or svcacct) with namedArgs { type, moData, id }. teammember creation grants tenant-admin access — treat as critical regardless of type.',
+  },
+  'idm.managedSystem.updateManagedSystemObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id to update.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'moData',
+        type: 'IdObjectSkeletonInterface',
+        required: true,
+        position: 2,
+        description: 'Updated managed system object payload object.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Update a managed system object (teammember or svcacct) with namedArgs { type, id, moData }. Can change tenant-admin privileges — treat as critical regardless of type.',
+  },
+  'idm.managedSystem.updateManagedSystemObjectProperties': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id to patch.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'operations',
+        type: 'PatchOperationInterface[]',
+        required: true,
+        position: 2,
+        description: 'JSON patch-style operations for the target object.',
+        schema: {
+          type: 'array',
+          items: { type: 'object', additionalProperties: true },
+        },
+        examples: [
+          [{ operation: 'replace', field: '/description', value: 'updated' }],
+        ],
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 3,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Patch one managed system object (teammember or svcacct) with namedArgs { type, id, operations, rev }. Can change tenant-admin privileges — treat as critical regardless of type.',
+  },
+  'idm.managedSystem.updateManagedSystemObjectsProperties': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'filter',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'IDM query filter selecting the objects to patch.',
+        examples: ['userName sw "a"'],
+      },
+      {
+        name: 'operations',
+        type: 'PatchOperationInterface[]',
+        required: true,
+        position: 2,
+        description:
+          'JSON patch-style operations applied to all matching objects.',
+        schema: {
+          type: 'array',
+          items: { type: 'object', additionalProperties: true },
+        },
+        examples: [
+          [{ operation: 'replace', field: '/description', value: 'updated' }],
+        ],
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 3,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+      {
+        name: 'pageSize',
+        type: 'integer',
+        required: false,
+        position: 4,
+        description: 'Optional batch page size for large updates.',
+        defaultValue: 1000,
+        examples: [100, 1000],
+      },
+    ],
+    supportsRealm: false,
+    supportsPaging: true,
+    riskClass: 'critical',
+    notes:
+      'Patch multiple managed system objects (teammember or svcacct) with namedArgs { type, filter, operations, rev, pageSize }. Can change tenant-admin privileges — treat as critical regardless of type.',
+  },
+  'idm.managedSystem.deleteManagedSystemObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id to delete.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Delete a managed system object (teammember or svcacct) with namedArgs { type, id }. Deleting a teammember revokes tenant-admin access — treat as critical regardless of type.',
+  },
+  'idm.managedSystem.deleteManagedSystemObjects': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'filter',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'IDM query filter selecting the objects to delete.',
+        examples: ['userName sw "a"'],
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Delete multiple managed system objects (teammember or svcacct) with namedArgs { type, filter }. Deleting a teammember revokes tenant-admin access — treat as critical regardless of type.',
+  },
+
   'idm.mapping.createMapping': {
     argumentMode: 'named',
     parameters: [
