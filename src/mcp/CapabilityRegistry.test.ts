@@ -63,6 +63,56 @@ function getHighRiskMixedContractViolations(): string[] {
     .sort();
 }
 
+/**
+ * Deliberate, MCP-facing parameter name aliases: descriptor parameter name ->
+ * accepted actual bound-method parameter name, keyed by capability id. Journey
+ * and tree are interchangeable names for the same AM concept, and the journey
+ * domain consistently exposes the friendlier "journeyId" even where the
+ * underlying method still calls it "treeId" — same position, same value, no
+ * functional difference.
+ */
+const ACCEPTED_PARAMETER_NAME_ALIASES: Record<string, Record<string, string>> =
+  {
+    'authn.journey.exportJourney': { journeyId: 'treeId' },
+  };
+
+/**
+ * Extracts a compiled method's declared parameter names, in order, by parsing
+ * its source. Used to catch drift between a descriptor's declared parameter
+ * `position`s and the actual argument order the bound Frodo method expects —
+ * a mismatch that toInvocationArgs cannot detect at runtime, because a
+ * positional call site has no way to know an argument was meant for a
+ * different slot than the one the descriptor put it in.
+ */
+function extractParameterNames(fn: (...args: unknown[]) => unknown): string[] {
+  const source = fn.toString();
+  const match = source.match(/^(?:async\s+)?(?:function\s*)?[^(]*\(([^)]*)\)/);
+  if (!match) {
+    return [];
+  }
+  const paramsSource = match[1].trim();
+  if (!paramsSource) {
+    return [];
+  }
+  const parts: string[] = [];
+  let depth = 0;
+  let current = '';
+  for (const char of paramsSource) {
+    if (char === '(' || char === '[' || char === '{') depth++;
+    if (char === ')' || char === ']' || char === '}') depth--;
+    if (char === ',' && depth === 0) {
+      parts.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  if (current.trim()) {
+    parts.push(current);
+  }
+  return parts.map((part) => part.trim().split('=')[0].trim());
+}
+
 function summarizeContractGapsByDomain(ids: string[]): Record<string, unknown> {
   const summary: Record<
     string,
@@ -410,5 +460,80 @@ describe('MCP capability foundation', () => {
     expect(summary.idm?.ids).toEqual([
       'idm.managed.queryRelatedManagedObjects',
     ]);
+  });
+
+  test('named-argument-mode descriptor parameter positions match the bound method signature', () => {
+    // Regression test: idm.managed.createManagedObject once declared
+    // parameters in order [type, id, moData], but the bound method's real
+    // signature is (type, moData, id = undefined). toInvocationArgs trusts
+    // the descriptor's declared `position`s to build a positional call, so
+    // that mismatch silently sent id's value where moData was expected (and
+    // vice versa) on every dispatch — no error, just a corrupted request.
+    // This walks every generic, named-argument-mode descriptor and confirms
+    // its declared parameter names, in position order, match the actual
+    // bound method's parameter names, in declaration order.
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeUtils: false,
+    });
+    const mismatches: string[] = [];
+
+    for (const capability of capabilities) {
+      if (capability.kind !== 'generic' || capability.argumentMode !== 'named') {
+        continue;
+      }
+      const parameters = capability.parameters ?? [];
+      if (parameters.length < 2) {
+        // A single mismatched parameter can't be out of order relative to itself.
+        continue;
+      }
+
+      let node: unknown = frodo;
+      for (const segment of capability.modulePath) {
+        if (!node || (typeof node !== 'object' && typeof node !== 'function')) {
+          node = undefined;
+          break;
+        }
+        node = (node as Record<string, unknown>)[segment];
+      }
+      const method =
+        node && (typeof node === 'object' || typeof node === 'function')
+          ? (node as Record<string, unknown>)[capability.methodName]
+          : undefined;
+      if (typeof method !== 'function') {
+        continue;
+      }
+
+      const actualNames = extractParameterNames(
+        method as (...args: unknown[]) => unknown
+      );
+      // Skip methods bound with a single destructured-object parameter —
+      // those have no positional slots for a descriptor to misalign with.
+      if (actualNames.length !== parameters.length) {
+        continue;
+      }
+
+      const declaredNames = parameters
+        .slice()
+        .sort(
+          (left, right) =>
+            (left.position ?? Number.MAX_SAFE_INTEGER) -
+            (right.position ?? Number.MAX_SAFE_INTEGER)
+        )
+        .map((parameter) => parameter.name);
+
+      const aliases = ACCEPTED_PARAMETER_NAME_ALIASES[capability.id];
+      const misalignedIndex = declaredNames.findIndex(
+        (declaredName, index) =>
+          declaredName !== actualNames[index] &&
+          aliases?.[declaredName] !== actualNames[index]
+      );
+      if (misalignedIndex !== -1) {
+        mismatches.push(
+          `${capability.id}: descriptor declares [${declaredNames.join(', ')}] but bound method expects [${actualNames.join(', ')}]`
+        );
+      }
+    }
+
+    expect(mismatches).toEqual([]);
   });
 });
