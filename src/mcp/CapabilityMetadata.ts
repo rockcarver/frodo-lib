@@ -2658,11 +2658,17 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     mutating: false,
-    // Can return the same teammember/svcacct roster data idm.managedSystem.*
-    // exposes directly — must carry the same admin-only risk class regardless
-    // of which branch a given input happens to resolve through, since the
-    // caller can't know in advance which one it'll be.
-    riskClass: 'critical',
+    // Unlike idm.managedSystem.* (arbitrary-field reads on raw teammember/
+    // svcacct objects, critical/admin-only), this always requests a fixed,
+    // narrow field set and returns a bounded {kind, username, displayName}
+    // shape — never arbitrary fields, never anything credential-adjacent.
+    // Same disclosure category as resolveUserName/resolveFullName (low),
+    // which it's the structured, realm-general, honestly-uncertain successor
+    // to. Needs to stay broadly available: it's the load-bearing primitive
+    // behind ordinary audit-attribution questions like "who modified journey
+    // X" and "which tenant admin logged in", which must work under the
+    // default agentic policy, not just admin.
+    riskClass: 'low',
     notes:
       'Resolves a DN or bare uuid to a structured identity: { id, kind: "user"|"service"|"admin"|"admin-unconfirmed"|"unknown", realm?, username?, displayName?, resolvedVia?, note? }. Replaces the old resolvePerpetratorUuid (which returned an opaque formatted string and hardcoded alpha_user/bravo_user as the only realms). "admin-unconfirmed" means the calling credential got a 403 (not a 404) checking the tenant-admin managed object type directly — common for service-account-authenticated sessions, which typically cannot read teammember — so admin status is inferred by elimination rather than independently confirmed; treat it as likely-but-unverified.',
   },
