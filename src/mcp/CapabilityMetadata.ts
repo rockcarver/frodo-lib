@@ -1842,8 +1842,9 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     parameters: [],
     supportsPaging: false,
     supportsIncludeTotal: false,
+    requiredCredential: 'logApi',
     notes:
-      'Returns the full set of available log source identifiers (e.g. am-core, idm-core, am-authentication) for this tenant. Pass one or more of these as the source parameter to fetch/tail.',
+      'Returns the full set of available log source identifiers for this tenant. Pass one or more as the source parameter to fetch/tail. Sources split into two kinds: DEBUG sources (am-core, idm-core, ws-core — no audit events, troubleshooting only, e.g. authentication script output) and AUDIT sources (everything else — structured events with timestamps, transaction ids, and identity attribution). Each family has its own aggregate: am-everything covers only am-access/am-activity/am-authentication/am-config/am-core; idm-everything and ws-everything are scoped the same way to their own family — there is no single source spanning AM and IDM together. See cloud.log.fetch for the verified per-source event taxonomy. Requires a Log API key/secret — see cloud.log.createLogApiKey.',
   },
   'cloud.log.getLogApiKey': {
     operationType: 'read',
@@ -1873,6 +1874,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     destructive: false,
     riskClass: 'low',
     argumentMode: 'positional',
+    requiredCredential: 'logApi',
     parameters: [
       {
         name: 'keyId',
@@ -1895,6 +1897,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'list',
     objectType: 'LogEvent',
     argumentMode: 'positional',
+    requiredCredential: 'logApi',
     parameters: [
       {
         name: 'source',
@@ -1902,7 +1905,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         required: true,
         position: 0,
         description:
-          'Log source(s) to tail, comma-separated. See cloud.log.getLogSources.',
+          'Log source(s) to tail, comma-separated. am-core/idm-core/ws-core are DEBUG sources (no audit events); everything else is an AUDIT source. See cloud.log.getLogSources and cloud.log.fetch for the full taxonomy.',
         examples: ['am-core', 'am-authentication,idm-core'],
       },
       {
@@ -1916,12 +1919,13 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     supportsPaging: true,
     supportsIncludeTotal: false,
     notes:
-      'Reads the next batch of log events from a live cursor position for the given source(s). No time range or filter; use cloud.log.fetch for bounded/filtered queries.',
+      'Reads the next batch of log events from a live cursor position for the given source(s). No time range or filter; use cloud.log.fetch for bounded/filtered queries and for the event/source taxonomy (identity events, session-granted signal, config-change attribution) documented on that skill. Requires a Log API key/secret — see cloud.log.createLogApiKey.',
   },
   'cloud.log.fetch': {
     operationType: 'search',
     objectType: 'LogEvent',
     argumentMode: 'named',
+    requiredCredential: 'logApi',
     parameters: [
       {
         name: 'source',
@@ -1929,7 +1933,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         required: true,
         position: 0,
         description:
-          'Log source(s) to query, comma-separated. See cloud.log.getLogSources.',
+          "Log source(s) to query, comma-separated. am-core/idm-core/ws-core are DEBUG sources (no audit events); everything else is an AUDIT source. See the source taxonomy in this method's notes, and cloud.log.getLogSources for the live list.",
         examples: ['am-core', 'am-authentication,idm-core'],
       },
       {
@@ -1968,13 +1972,39 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         required: false,
         position: 5,
         description:
-          'Optional query filter expression evaluated against the log payload, for example to isolate authentication events.',
+          'CREST _queryFilter syntax: a leading-slash field path against the log payload, e.g. /payload/eventName eq "AM-TREE-LOGIN-COMPLETED". Operators: eq, co (contains), sw (starts with), pr (present); combine multiple with "and". Field paths WITHOUT the leading slash (payload.eventName, payload/eventName) or an unprefixed field both fail with an opaque 500 — the leading slash is not optional. Prefer filtering server-side over fetching unfiltered and post-filtering: results are capped by an inline size limit and returned oldest-first within the window, so an unfiltered fetch over a noisy tenant truncates before reaching what you want.',
+        examples: [
+          '/payload/eventName eq "AM-TREE-LOGIN-COMPLETED"',
+          '/payload/eventName eq "AM-TREE-LOGIN-COMPLETED" and /payload/userId co "o=alpha"',
+          '/payload/transactionId sw "83da4a26-4156-4d1a-85a8-64ee5b719f1d"',
+        ],
       },
     ],
     supportsPaging: true,
     supportsIncludeTotal: false,
     notes:
-      'Queries log events by source, time range, transaction id, and/or filter. This is the operation for bounded questions like "what were the last N logins" — filter on the authentication topic and sort by timestamp client-side.',
+      'Queries log events by source, time range, transaction id, and/or filter — the operation for bounded questions like "what were the last N logins" or "who changed journey X". Source taxonomy below combines Ping\'s documented source descriptions (docs.pingidentity.com/pingoneaic/tenants/audit-debug-log-sources.html) with event-level shapes verified live against a real tenant this session — the AM-side entries are directly observed; the IDM-side entries are documented but not yet independently verified against live IDM events, so treat their event-name specifics as provisional until checked.\n' +
+      '\n' +
+      'DEBUG sources — no audit events, troubleshooting only. am-core and idm-core are DEBUG-level in dev/sandbox tenants, WARNING-and-above in staging/production; am-core specifically is where authentication SCRIPT logging output shows up (relevant for "why did this script do X" questions, not identity/change questions). Shape is raw application log lines (`context`/`logger`/`message`/`thread`/`mdc.transactionId`), not the structured audit payload described below. ws-core is the WS-Federation equivalent.\n' +
+      '\n' +
+      'AUDIT sources, AM side (verified live):\n' +
+      '- am-authentication (topic authentication): identity/login events. AM-TREE-LOGIN-COMPLETED fires once per completed journey, human or service, carrying `result` and — only on completion — a resolved `userId`; this is the event to filter on. AM-LOGIN-COMPLETED / AM-LOGIN-MODULE-COMPLETED only fire for legacy module-class auth (service/agent bindings), not tree-based human logins. AM-NODE-LOGIN-COMPLETED fires per node and is too granular for identity queries.\n' +
+      '- am-access (topic access): "who, what, when, and the output for every access request" per Ping\'s docs — REST-level ATTEMPT/OUTCOME pairs. Redundant with AM-TREE-LOGIN-COMPLETED for identity purposes.\n' +
+      "- am-activity (topic activity): state changes to objects created/updated/deleted by end users — sessions, user profiles, device profiles per Ping's docs. `operation`: CREATE/UPDATE/DELETE against a typed `component`. AM-SESSION-CREATED here is the only reliable signal that a session was actually granted — AM-TREE-LOGIN-COMPLETED and the am-access OUTCOME both report a plain SUCCESSFUL/200 even for a noSession=true journey that grants no session at all, with no other difference in either event.\n" +
+      "- am-config (topic config): AM configuration changes with timestamp and user attribution per Ping's docs — documented as available in DEVELOPMENT ENVIRONMENTS ONLY, so don't assume this exists on staging/production tenants without checking cloud.log.getLogSources first. AM-CONFIG-CHANGE events cover admin-console config edits (journeys, nodes, scripts, services) — `objectId` is the changed resource's DN, `changedFields` lists which fields changed (names only, not before/after values), `operation` is CREATE/UPDATE/DELETE. Attribution caveat: script/service-level changes carry the real editor's `userId`, but authentication-tree and node changes are attributed to an internal directory-service account (`dsameuser`) instead of the admin who made them — recover the real identity by following the event's `trackingIds` to a correlated am-activity AM-SESSION-CREATED event for the same session.\n" +
+      '- am-everything: aggregates am-access/am-activity/am-authentication/am-config/am-core only — AM side, not IDM. The fastest way to explore an unfamiliar AM-side question: scope tightly by transaction id (filter: /payload/transactionId sw "<txid>") or a narrow recent window, rather than guessing which individual source holds the answer.\n' +
+      '\n' +
+      "AUDIT sources, IDM side (per Ping's docs, event-name specifics not yet independently verified this session):\n" +
+      '- idm-authentication: when and how a user authenticated through IDM.\n' +
+      '- idm-access: IDM access calls as audit events, same who/what/when/output shape as am-access.\n' +
+      '- idm-activity: state changes to objects created/updated/deleted by IDM end users — the likely IDM-side equivalent of am-activity, not yet confirmed to carry the same session-granted signal.\n' +
+      '- idm-config: IDM configuration changes with timestamp and by whom — the likely place to look for changes to IDM-managed objects (users, roles) analogous to what am-config covers for AM config, not yet confirmed live.\n' +
+      '- idm-recon / idm-sync: reconciliation and synchronization events; no verified event shape yet.\n' +
+      '- idm-everything: aggregates the idm-* sources above only — not AM. Query both am-everything and idm-everything (or the specific sources on each side) for a question that could touch either.\n' +
+      '\n' +
+      'Identity: a resolved `userId` DN under a realm segment (...,o=<realm>,ou=services,ou=am-config) is a genuine managed user; a DN directly under root ou=am-config (whether it says ou=agent or, misleadingly, ou=user) is an AM-internal identity. Extract the uuid from the DN and resolve it with idm.managed.resolveUserName(<realm>_user, uuid).\n' +
+      '\n' +
+      'Requires a Log API key/secret — see cloud.log.createLogApiKey.',
   },
   'cloud.log.resolveLevel': { excluded: true },
   'cloud.log.resolvePayloadLevel': { excluded: true },
