@@ -11,6 +11,7 @@ import {
   setSecretDescription as _setSecretDescription,
   setStatusOfVersionOfSecret as _setStatusOfVersionOfSecret,
   VersionOfSecretSkeleton,
+  deleteVersionOfSecret,
 } from '../../api/cloud/SecretsApi';
 import FrodoLib from '../../lib/FrodoLib';
 import { State } from '../../shared/State';
@@ -22,11 +23,11 @@ import {
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../../utils/Console';
-import { getMetadata } from '../../utils/ExportImportUtils';
+import { getMetadata, getResult } from '../../utils/ExportImportUtils';
 import { FrodoError } from '../FrodoError';
 import { decrypt, decryptMap, isEncrypted } from '../IdmCryptoOps';
 import { evaluateScript } from '../IdmScriptOps';
-import { ExportMetaData } from '../OpsTypes';
+import { ExportMetaData, ResultCallback } from '../OpsTypes';
 
 export type Secret = {
   /**
@@ -197,6 +198,20 @@ export type Secret = {
     secretId: string,
     version: string
   ): Promise<VersionOfSecretSkeleton>;
+  /**
+   * Prune versions of secret that are not the latest secret version
+   * @param {string} secretId secret id/name
+   * @param {boolean} keepLoaded true to keep the currently loaded secret versions regardless of if they are active or not. Default: false
+   * @param {boolean} keepDeactivated true to keep the deactivated versions and only prune the active versions that aren't the latest version. Default: false
+   * @param {ResultCallback<VersionOfSecretSkeleton>} resultCallback Optional callback to process individual results
+   * @returns {Promise<VersionOfSecretSkeleton[]>} a promise that reolves to the pruned version objects
+   */
+  pruneVersionsOfSecret(
+    secretId: string,
+    keepLoaded?: boolean,
+    keepDeactivated?: boolean,
+    resultCallback?: ResultCallback<VersionOfSecretSkeleton>
+  ): Promise<VersionOfSecretSkeleton[]>;
 };
 
 export default (state: State): Secret => {
@@ -309,6 +324,20 @@ export default (state: State): Secret => {
     },
     async deleteVersionOfSecret(secretId: string, version: string) {
       return _deleteVersionOfSecret({ secretId, version, state });
+    },
+    async pruneVersionsOfSecret(
+      secretId: string,
+      keepLoaded: boolean = false,
+      keepDeactivated: boolean = false,
+      resultCallback: ResultCallback<VersionOfSecretSkeleton> = void 0
+    ): Promise<VersionOfSecretSkeleton[]> {
+      return pruneVersionsOfSecret({
+        secretId,
+        keepLoaded,
+        keepDeactivated,
+        resultCallback,
+        state,
+      });
     },
   };
 };
@@ -1217,5 +1246,84 @@ export async function updateSecretDescription({
       `Error updating description of secret ${secretId}`,
       error
     );
+  }
+}
+
+/**
+ * Prune versions of secret that are not the latest secret version
+ * @param {string} secretId secret id/name
+ * @param {boolean} keepLoaded true to keep the currently loaded secret versions regardless of if they are active or not. Default: false
+ * @param {boolean} keepDeactivated true to keep the deactivated versions and only prune the active versions that aren't the latest version. Default: false
+ * @param {ResultCallback<VersionOfSecretSkeleton>} resultCallback Optional callback to process individual results
+ * @returns {Promise<VersionOfSecretSkeleton[]>} a promise that reolves to the pruned version objects
+ */
+export async function pruneVersionsOfSecret({
+  secretId,
+  keepLoaded = false,
+  keepDeactivated = false,
+  resultCallback = void 0,
+  state,
+}: {
+  secretId: string;
+  keepLoaded?: boolean;
+  keepDeactivated?: boolean;
+  resultCallback?: ResultCallback<VersionOfSecretSkeleton>;
+  state: State;
+}): Promise<VersionOfSecretSkeleton[]> {
+  let indicatorId;
+  try {
+    debugMessage({
+      message: `SecretsOps.pruneVersionsOfSecret: start`,
+      state,
+    });
+    const secret = await readSecret({ secretId, state });
+    const pruned = [];
+    const versions = (await readVersionsOfSecret({ secretId, state })).filter(
+      (v) => {
+        const isActive = v.version === secret.activeVersion;
+        const isDestroyed = v.status === 'DESTROYED';
+        const isLoaded =
+          keepLoaded && (v.loaded || secret.loadedVersion === v.version);
+        const isDeactivated = keepDeactivated && v.status === 'DISABLED';
+        return !isActive && !isDestroyed && !isLoaded && !isDeactivated;
+      }
+    );
+    indicatorId = createProgressIndicator({
+      total: versions.length,
+      message: `Pruning versions of secret ${secretId}...`,
+      state,
+    });
+    for (const v of versions) {
+      pruned.push(
+        await getResult(
+          resultCallback,
+          `Failed to prune version ${v.version} of secret ${secretId}`,
+          deleteVersionOfSecret,
+          { secretId, version: v.version, state }
+        )
+      );
+      updateProgressIndicator({
+        id: indicatorId,
+        message: `Pruned secret version ${v.version}`,
+        state,
+      });
+    }
+    stopProgressIndicator({
+      id: indicatorId,
+      message: `Pruned ${versions.length} versions from secret ${secretId}.`,
+      state,
+    });
+    debugMessage({ message: `SecretsOps.pruneVersionsOfSecret: end`, state });
+    return pruned;
+  } catch (error) {
+    if (indicatorId) {
+      stopProgressIndicator({
+        id: indicatorId,
+        message: `Error pruning versions of secret ${secretId}`,
+        status: 'fail',
+        state,
+      });
+    }
+    throw new FrodoError(`Error pruning versions of secret ${secretId}`, error);
   }
 }
