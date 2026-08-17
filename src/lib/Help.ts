@@ -5109,6 +5109,14 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Version",
+    methodName: "getBuildTimestamp",
+    signature: "getBuildTimestamp(): string",
+    description: "",
+    params: [],
+    returns: "",
+  },
+  {
+    typeName: "Version",
     methodName: "getAllVersions",
     signature: "getAllVersions( endpoints: { base: string",
     description: "",
