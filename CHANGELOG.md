@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## [v4.3.0] - 2026-08-17
+
+### Added
+- Introduced semantic skill aliases in the MCP module, enabling fuzzy catalog-term matching for more flexible object-family resolution without exact-string coupling. This feature enhances the adaptability of object management by allowing semantic identifier matching. (#626, commit 5b739f538)
+- Added config-entity hydration in the MCP module, which unifies discovery hydration processes. The new `hydrateMcpDiscoveryContext()` function supports both managed-object type hydration and config entity execution, streamlining configuration management. (#626, commit 5b739f538)
+- Implemented a library function to prune old secret versions, aiding in the management of secret versioning and potentially supporting future CLI commands for secret version pruning. (#624, commit a8643f59f)
+
+### Changed
+- Enhanced the MCP module with executeRecommended auto-dispatch functionality, improving the automation and efficiency of recommended actions within the system. (#626, commit 5b739f538)
+
+### Fixed
+- Improved semantic identifier matching in the MCP module, enhancing the accuracy and reliability of object-family resolution processes. (#626, commit 5b739f538)
+
 ## [v4.2.1] - 2026-08-08
 
 ### Added
