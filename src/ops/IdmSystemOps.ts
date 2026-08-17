@@ -10,6 +10,7 @@ import {
   putSystemObject as _putSystemObject,
   queryAllSystemObjectIds as _queryAllSystemObjectIds,
   querySystemObjects as _querySystemObjects,
+  readAvailableConnectors as _readAvailableConnectors,
   readAvailableSystems as _readAvailableSystems,
   readSystemStatus as _readSystemStatus,
   runSystemScript as _runSystemScript,
@@ -32,6 +33,11 @@ export type IdmSystem = {
    * @returns {Promise<SystemStatusInterface[]>} a promise resolving to an array of system status objects
    */
   readAvailableSystems(): Promise<SystemStatusInterface[]>;
+  /**
+   * Read available connectors
+   * @returns {Promise<SystemStatusInterface[]>} a promise resolving to an array of connector status objects
+   */
+  readAvailableConnectors(): Promise<SystemStatusInterface[]>;
   /**
    * Read system/connector status
    * @returns {Promise<SystemStatusInterface>} a promise resolving to a system status object
@@ -175,6 +181,9 @@ export default (state: State): IdmSystem => {
     },
     async readAvailableSystems(): Promise<SystemStatusInterface[]> {
       return readAvailableSystems({ state });
+    },
+    async readAvailableConnectors(): Promise<SystemStatusInterface[]> {
+      return readAvailableConnectors({ state });
     },
     async readSystemStatus(systemName: string): Promise<SystemStatusInterface> {
       return readSystemStatus({ systemName, state });
@@ -333,6 +342,18 @@ export async function readAvailableSystems({
     return _readAvailableSystems({ state });
   } catch (error) {
     throw new FrodoError(`Error reading available systems`, error);
+  }
+}
+
+export async function readAvailableConnectors({
+  state,
+}: {
+  state: State;
+}): Promise<SystemStatusInterface[]> {
+  try {
+    return _readAvailableConnectors({ state });
+  } catch (error) {
+    throw new FrodoError(`Error reading available connectors`, error);
   }
 }
 

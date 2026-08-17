@@ -1,5 +1,6 @@
 import { distance } from 'fastest-levenshtein';
-import pluralize from 'pluralize';
+
+import { normalizeSemanticIdentifier } from './SemanticIdentifiers';
 
 export const MCP_SEMANTIC_OBJECT_SYNONYMS: Readonly<Record<string, string>> = {
   identity: 'user',
@@ -34,13 +35,7 @@ type FamilyCandidate = {
 };
 
 export function normalizeSemanticObjectFamily(value: string): string {
-  const words = value
-    .trim()
-    .toLowerCase()
-    .replace(/[_-]+/g, ' ')
-    .replace(/[^a-z0-9 ]+/g, ' ')
-    .replace(/\s+/g, ' ');
-  return pluralize.singular(words).replace(/\s+/g, '');
+  return normalizeSemanticIdentifier(value).join('');
 }
 
 export function discoverManagedObjectFamilies(

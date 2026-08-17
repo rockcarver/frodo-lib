@@ -68,7 +68,11 @@ export type McpServiceOptions = {
   /** Optional runtime customization hooks. */
   runtimeOptions?: Omit<
     McpToolRuntimeOptions,
-    'frodoRoot' | 'managedObjectTypes' | 'managedObjectHydrationStatus'
+    | 'frodoRoot'
+    | 'managedObjectTypes'
+    | 'managedObjectHydrationStatus'
+    | 'configEntityIds'
+    | 'configEntityHydrationStatus'
   >;
   /** Service-local tenant metadata used only for discovery and search. */
   discoveryContext?: McpDiscoveryContext;
@@ -151,6 +155,9 @@ export function createMcpService(options: McpServiceOptions = {}): McpService {
         managedObjectTypes: options.discoveryContext.managedObjectTypes
           ? [...options.discoveryContext.managedObjectTypes]
           : undefined,
+        configEntityIds: options.discoveryContext.configEntityIds
+          ? [...options.discoveryContext.configEntityIds]
+          : undefined,
       }
     : undefined;
   const manifest = buildToolManifest(capabilities, discoveryContext);
@@ -159,6 +166,8 @@ export function createMcpService(options: McpServiceOptions = {}): McpService {
     managedObjectTypes: discoveryContext?.managedObjectTypes,
     managedObjectHydrationStatus:
       discoveryContext?.managedObjectHydrationStatus,
+    configEntityIds: discoveryContext?.configEntityIds,
+    configEntityHydrationStatus: discoveryContext?.configEntityHydrationStatus,
     ...options.runtimeOptions,
   });
 

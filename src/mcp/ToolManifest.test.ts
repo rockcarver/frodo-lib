@@ -20,12 +20,14 @@ import {
 } from '../index';
 
 describe('MCP tool manifest builder', () => {
-  test('includes target metadata and managed type count without the catalog', () => {
+  test('includes target metadata and catalog counts without catalog contents', () => {
     const inventory = buildCapabilityInventory(frodo, {
       includeTopLevelDomains: ['idm'],
     });
     const manifest = buildToolManifest(inventory, {
       managedObjectTypes: ['alpha_user', 'group'],
+      configEntityIds: ['alphaOrgPrivileges', 'fieldPolicy/alpha_user'],
+      configEntityHydrationStatus: 'available',
       activeTarget: {
         host: 'https://example.test',
         profile: 'managed-objects',
@@ -37,7 +39,12 @@ describe('MCP tool manifest builder', () => {
       profile: 'managed-objects',
     });
     expect(manifest.discoveryTool.managedObjectTypeCount).toBe(2);
+    expect(manifest.discoveryTool.configEntityIdCount).toBe(2);
+    expect(manifest.discoveryTool.configEntityHydrationStatus).toBe(
+      'available'
+    );
     expect(manifest.discoveryTool).not.toHaveProperty('managedObjectTypes');
+    expect(manifest.discoveryTool).not.toHaveProperty('configEntityIds');
   });
 
   test('produces a valid manifest shape from a domain inventory', () => {

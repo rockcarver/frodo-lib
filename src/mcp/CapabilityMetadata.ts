@@ -695,6 +695,56 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Create a config entity with namedArgs { entityId, entityData, wait }. wait defaults to false.',
   },
+  'idm.config.readConfigEntitiesByType': {
+    argumentMode: 'named',
+    scope: 'bulk',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'IDM config entity type.',
+      },
+      {
+        name: 'includeDefault',
+        type: 'boolean',
+        required: false,
+        position: 1,
+        description:
+          'Include default email templates when reading emailTemplate entities.',
+        defaultValue: false,
+        examples: [false, true],
+      },
+    ],
+    supportsRealm: false,
+    semanticAliases: [
+      'all password policies',
+      'password policies',
+      'field policies',
+    ],
+    notes: 'Read config entities of one type with namedArgs { type }.',
+  },
+  'idm.config.readConfigEntity': {
+    argumentMode: 'named',
+    scope: 'single',
+    parameters: [
+      {
+        name: 'entityId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'IDM config entity id.',
+      },
+    ],
+    supportsRealm: false,
+    semanticAliases: [
+      'realm password policy',
+      'password policy',
+      'field policy',
+    ],
+    notes: 'Read one config entity with namedArgs { entityId }.',
+  },
   'idm.config.readSubConfigEntity': {
     argumentMode: 'named',
     parameters: [

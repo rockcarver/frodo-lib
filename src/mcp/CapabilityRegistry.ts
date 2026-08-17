@@ -223,6 +223,9 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
     ...(meta?.notes !== undefined && {
       notes: meta.notes,
     }),
+    ...(meta?.semanticAliases !== undefined && {
+      semanticAliases: meta.semanticAliases,
+    }),
     requiredScopes: [],
     annotations,
   };

@@ -1669,6 +1669,14 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "IdmSystem",
+    methodName: "readAvailableConnectors",
+    signature: "readAvailableConnectors(): Promise<SystemStatusInterface[]>",
+    description: "Read available connectors",
+    params: [],
+    returns: "{Promise<SystemStatusInterface[]>} a promise resolving to an array of connector status objects",
+  },
+  {
+    typeName: "IdmSystem",
     methodName: "readSystemStatus",
     signature: "readSystemStatus(systemName: string): Promise<SystemStatusInterface>",
     description: "Read system/connector status",
