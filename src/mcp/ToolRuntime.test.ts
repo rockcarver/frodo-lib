@@ -1040,6 +1040,56 @@ describe('MCP hybrid runtime', () => {
     }
   );
 
+  test('find_skills lets a much more relevant compatible-tier result outrank a barely-relevant preferred-tier one', async () => {
+    // Regression test: routing status (preferred/compatible) used to be an
+    // absolute pre-sort tier — checked before relevance was even
+    // consulted, so any "preferred" result outranked every "compatible"
+    // result regardless of actual query relevance. A skill that happened
+    // to be "preferred" for the active deployment (idm.managed.* skills
+    // are preferred on cloud) could bury a genuinely, strongly relevant
+    // "compatible" result from an entirely different domain no matter how
+    // well-matched it was.
+    const preferredButBarelyRelevant = makeDescriptor({
+      id: 'idm.managed.readManagedObjectSchema',
+      toolName: 'frodo.idm.managed.readManagedObjectSchema',
+      methodName: 'readManagedObjectSchema',
+      modulePath: ['idm', 'managed'],
+      domain: 'idm',
+      objectType: 'ManagedObjectSchema',
+      operationType: 'read',
+      deploymentTypes: ['cloud', 'forgeops'],
+      preferredDeploymentTypes: ['cloud', 'forgeops'],
+      identitySurface: 'managed',
+    });
+    const compatibleButHighlyRelevant = makeDescriptor({
+      id: 'session.getSessionInfo',
+      toolName: 'frodo.session.getSessionInfo',
+      methodName: 'getSessionInfo',
+      modulePath: ['session'],
+      domain: 'session',
+      objectType: 'SessionInfo',
+      operationType: 'read',
+      deploymentTypes: ['any'],
+      semanticAliases: ['authenticated identity'],
+      notes: 'Reports the authenticated identity behind the current session.',
+    });
+    const descriptors = [preferredButBarelyRelevant, compatibleButHighlyRelevant];
+    const runtime = createToolRuntime(makeManifest(descriptors), descriptors);
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_find_skills',
+      arguments: { query: 'authenticated identity', executeRecommended: false },
+      context: {
+        auth: { mode: 'state-config', config: { deploymentType: 'cloud' } },
+      },
+    });
+    const skillIds = (
+      result.data as { skills: Array<{ skillId: string }> }
+    ).skills.map((skill) => skill.skillId);
+
+    expect(skillIds[0]).toBe('session.getSessionInfo');
+  });
+
   test.each([
     'count users identities in a ForgeRock environment',
     'how many users are there',

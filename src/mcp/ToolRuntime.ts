@@ -1754,7 +1754,8 @@ function findSkills(
         descriptorPatternsSupportFamily(descriptor.objectTypePatterns, family)
       ).length *
         8 +
-      managedObjectMatches.matches.length * 6;
+      managedObjectMatches.matches.length * 6 +
+      getRoutingRelevanceBonus(routing.status);
     return queryTerms.length === 0 || relevance > 0
       ? [
           {
@@ -1774,9 +1775,9 @@ function findSkills(
   const results = filtered
     .sort(
       (left, right) =>
+        right.relevance - left.relevance ||
         getRoutingRank(left.routing.status) -
           getRoutingRank(right.routing.status) ||
-        right.relevance - left.relevance ||
         left.descriptor.id.localeCompare(right.descriptor.id)
     )
     .slice(0, limit)
@@ -2210,6 +2211,40 @@ function scoreSemanticAliasPhrases(
 
 function getRoutingRank(status: McpCapabilityRoutingStatus): number {
   return ['preferred', 'compatible', 'unknown', 'incompatible'].indexOf(status);
+}
+
+/**
+ * Routing-status bonus folded additively into a search result's relevance
+ * score, rather than used as an absolute pre-sort tier (see findSkills).
+ *
+ * @remarks
+ * Routing status answers "is this capability the deployment-native way to do
+ * this, or just a compatible fallback" — meaningful when comparing genuine
+ * alternative implementations of the same operation (e.g. classic
+ * `user.countUsers` vs cloud `idm.managed.countManagedObjects`). It says
+ * nothing about how relevant a capability is to an unrelated query. A small
+ * additive bonus preserves the original intent — break near-ties toward the
+ * deployment-native answer — without letting it categorically outrank every
+ * more-relevant "compatible" result from a completely different domain, the
+ * way an absolute pre-sort tier did.
+ *
+ * No entry for "incompatible" deliberately: incompatible results are already
+ * excluded by default (see the includeIncompatible check above) and only
+ * ever reach this scoring at all when a caller explicitly asks to see them
+ * for diagnostics — a penalty here large enough to push them below the
+ * relevance > 0 inclusion filter would make them vanish from that
+ * diagnostic view entirely instead of just sorting last. The secondary
+ * getRoutingRank tiebreak in findSkills' sort still orders them after
+ * preferred/compatible results whenever relevance ties.
+ */
+const ROUTING_RELEVANCE_BONUS: Partial<
+  Record<McpCapabilityRoutingStatus, number>
+> = {
+  preferred: 6,
+};
+
+function getRoutingRelevanceBonus(status: McpCapabilityRoutingStatus): number {
+  return ROUTING_RELEVANCE_BONUS[status] ?? 0;
 }
 
 function resolveDescriptorForDispatch(
