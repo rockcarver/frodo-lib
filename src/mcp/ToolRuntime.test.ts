@@ -742,6 +742,99 @@ describe('MCP hybrid runtime', () => {
     });
   });
 
+  test('find_skills lets a specific notes match compete with the generic identity/user bonus', async () => {
+    // Regression test: session.getSessionInfo went undiscoverable for
+    // natural-language identity queries ("authenticated identity session")
+    // because a matched notes field scored at the lowest weight in the
+    // system (2) while every identitySurface: 'managed' read skill gets a
+    // flat +8 for the same query just for touching a user-shaped object,
+    // regardless of how well its own notes actually describe it. A
+    // handful of such flat-bonus skills could bury a real, well-documented
+    // match. The target descriptor here matches purely via a specific,
+    // multi-term notes phrase; the noise descriptors match purely via the
+    // generic bonus on a single term ("identity") and are otherwise
+    // unrelated to the query.
+    const targetDescriptor = makeDescriptor({
+      id: 'session.getSessionInfo',
+      domain: 'session',
+      objectType: 'SessionInfo',
+      modulePath: ['session'],
+      notes:
+        'Reports the authenticated identity behind the current session.',
+    });
+    const noiseDescriptors = ['a', 'b', 'c', 'd'].map((suffix) =>
+      makeDescriptor({
+        id: `idm.managed.noiseSkill${suffix}`,
+        domain: 'idm',
+        objectType: 'ManagedObject',
+        methodName: `noiseSkill${suffix}`,
+        modulePath: ['idm', 'managed'],
+        identitySurface: 'managed',
+        objectTypePatterns: ['*'],
+      })
+    );
+    const descriptors = [targetDescriptor, ...noiseDescriptors];
+    const runtime = createToolRuntime(makeManifest(descriptors), descriptors);
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_find_skills',
+      arguments: {
+        query: 'authenticated identity session',
+        executeRecommended: false,
+        limit: 4,
+      },
+      context: { auth: { mode: 'state-config', config: {} } },
+    });
+    const skillIds = (
+      result.data as { skills: Array<{ skillId: string }> }
+    ).skills.map((skill) => skill.skillId);
+
+    expect(skillIds).toContain('session.getSessionInfo');
+  });
+
+  test('find_skills does not give the generic identity/user bonus to mutating operations', async () => {
+    // A create/update/delete skill on a user-shaped object shouldn't tie
+    // with genuine identity-lookup skills just because it touches a user
+    // object — that bonus is reserved for read-like operations.
+    const readDescriptor = makeDescriptor({
+      id: 'idm.managed.readManagedObject',
+      domain: 'idm',
+      objectType: 'ManagedObject',
+      methodName: 'readManagedObject',
+      operationType: 'read',
+      identitySurface: 'managed',
+      objectTypePatterns: ['*'],
+    });
+    const mutatingDescriptor = makeDescriptor({
+      id: 'idm.managed.deleteManagedObject',
+      domain: 'idm',
+      objectType: 'ManagedObject',
+      methodName: 'deleteManagedObject',
+      operationType: 'delete',
+      mutating: true,
+      destructive: true,
+      identitySurface: 'managed',
+      objectTypePatterns: ['*'],
+    });
+    const descriptors = [readDescriptor, mutatingDescriptor];
+    const runtime = createToolRuntime(makeManifest(descriptors), descriptors);
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_find_skills',
+      arguments: {
+        query: 'identity',
+        executeRecommended: false,
+        limit: 1,
+      },
+      context: { auth: { mode: 'state-config', config: {} } },
+    });
+    const skillIds = (
+      result.data as { skills: Array<{ skillId: string }> }
+    ).skills.map((skill) => skill.skillId);
+
+    expect(skillIds).toEqual(['idm.managed.readManagedObject']);
+  });
+
   test('find_skills keeps user.User coordinates on the classic AM surface', async () => {
     const managedDescriptor = makeDescriptor({
       id: 'idm.managed.countManagedObjects',

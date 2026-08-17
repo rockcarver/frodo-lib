@@ -2141,16 +2141,24 @@ function scoreCapabilitySearch(
     ...(descriptor.semanticAliases ?? []).map(
       (alias) => [alias, 10] as [string, number]
     ),
-    [descriptor.notes ?? '', 2],
+    [descriptor.notes ?? '', 6],
   ];
   const operationAliases = [
     descriptor.operationType,
     ...(SEARCH_SYNONYMS[descriptor.operationType] ?? []),
   ];
+  // Only read-like operations get the generic identity/user/person bonus —
+  // otherwise every create/update/delete/relationship-write skill on a user
+  // object ties with the actual identity-lookup skills on any query
+  // containing "identity" or "user", crowding them out regardless of how
+  // specifically a skill's own notes describe it.
   const identityAliases =
-    descriptor.identitySurface === 'managed' ||
-    descriptor.identitySurface === 'am-user' ||
-    descriptor.objectTypePatterns?.some((pattern) => pattern.includes('user'))
+    READ_ONLY_OPERATION_TYPES.includes(descriptor.operationType) &&
+    (descriptor.identitySurface === 'managed' ||
+      descriptor.identitySurface === 'am-user' ||
+      descriptor.objectTypePatterns?.some((pattern) =>
+        pattern.includes('user')
+      ))
       ? ['user', 'identity', 'person']
       : [];
 
