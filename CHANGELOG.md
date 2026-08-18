@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [v4.4.0] - 2026-08-18
+
+### Added
+- Introduced functions to load environment files and replace environment-specific values, enhancing configuration management capabilities. This includes support for config manager placeholders and associated tests. (#625, af75c9b6d)
+
 ## [v4.3.3] - 2026-08-18
 
 ### Fixed
