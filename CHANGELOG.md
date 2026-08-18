@@ -2,6 +2,36 @@
 
 ## Unreleased
 
+## [v4.3.2] - 2026-08-18
+
+### Added
+- Introduced `frodo.utils.version.getBuildTimestamp()` to expose a real build timestamp for builds. This utility aids in tracking and debugging build versions. (#89d093539)
+- Added relationship read/add/remove/replace helpers to `ManagedObjectOps`, enhancing the management of object relationships. (#47246e950)
+- Implemented `cloud.log.searchEvents`, a composed audit-search primitive that auto-chunks search events across the Log API's ~24-hour window limit. (#568773fbb)
+- Added `findScriptReferences` to `JourneyOps`, providing a structural/relationship skill for script management. (#9068046d7)
+- Enabled auto-resolution of a connection profile's password when only a username is provided, simplifying authentication processes. (#d7ffc0ad5)
+- Introduced `ManagedSystemObjectOps` and gated it to the admin policy, expanding administrative capabilities. (#f2df3e615)
+- Added tracking of IDM version alongside AM version in the state module, improving version management. (#590e4fab8)
+
+### Changed
+- Refactored `resolvePerpetratorUuid` into a structured `resolveIdentity`, enhancing identity resolution processes. (#b44859954)
+- Allowed explicit classification overrides in capability metadata, offering more flexibility in capability management. (#7e2d5c36b)
+
+### Fixed
+- Stopped the routing tier from overriding query relevance and added symmetric caller-identity semantic aliases, improving query accuracy. (#43a5c2009)
+- Made `find_skills`' notes field competitive and ceased boosting mutating identity skills, ensuring fair skill evaluation. (#96eacce83)
+- Prevented leaking of live bearer/session tokens through `info.getInfo` and documented `getSessionInfo`'s service-account caveat, enhancing security. (#eda17baff)
+- Corrected `idm.managed.createManagedObject`'s descriptor parameter order, ensuring accurate parameter handling. (#0f6766d44)
+- Closed two descriptor parameter-count gaps identified by strengthening regression tests, improving test coverage and reliability. (#483aeda49)
+- Resolved identity issues where the cloud's realm-prefixed user type was used on ForgeOps, ensuring correct identity handling. (#c35ce1dbd)
+- Un-gated `resolveIdentity` from the managedSystem admin-only tier, broadening its accessibility. (#48b3a98e1)
+- Closed two special/risk gaps in capability policy gating, enhancing security measures. (#54d77154d)
+- Populated log API credentials during generic login, ensuring proper credential management. (#e1071c1f7)
+
+### Documentation
+- Documented the relationship-write pattern on managed object PATCH, providing guidance for developers. (#e833c28f5)
+- Updated documentation to teach `cloud.log.*` the log-source taxonomy and filter syntax, clarifying logging capabilities. (#11946888f)
+
 ## [v4.3.1] - 2026-08-17
 
 ### Changed
