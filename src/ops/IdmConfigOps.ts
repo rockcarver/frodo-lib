@@ -68,13 +68,9 @@ export type IdmConfig = {
   /**
    * Export a single IDM config entity
    * @param {string} entityId config entity id
-   * @param {ConfigEntityExportOptions} options export options
    * @returns {ConfigEntityExportInterface} promise resolving to a ConfigEntityExportInterface object
    */
-  exportConfigEntity(
-    entityId: string,
-    options?: ConfigEntityExportOptions
-  ): Promise<ConfigEntityExportInterface>;
+  exportConfigEntity(entityId: string): Promise<ConfigEntityExportInterface>;
   /**
    * Export all IDM config entities
    * @param {ConfigEntityExportOptions} options export options
@@ -151,13 +147,11 @@ export type IdmConfig = {
    * Read a idm sub config entity.
    * @param {string} entityId entity id for the parent config entity of the sub config entity that is being read
    * @param {string} name name of the sub config entity that is being read
-   * @param {ConfigEntityExportOptions} options export options
    * @returns {Promise<IdObjectSkeletonInterface>} a promise resolving to a sub config entity object
    */
   readSubConfigEntity(
     entityId: string,
-    name: string,
-    options?: ConfigEntityExportOptions
+    name: string
   ): Promise<NoIdObjectSkeletonInterface>;
   /**
    * Import a idm sub config entity.
@@ -199,17 +193,12 @@ export default (state: State): IdmConfig => {
       return readConfigEntity({ entityId, state });
     },
     async exportConfigEntity(
-      entityId: string,
-      options: ConfigEntityExportOptions = {
-        envReplaceParams: undefined,
-        entitiesToExport: undefined,
-      }
+      entityId: string
     ): Promise<ConfigEntityExportInterface> {
-      return exportConfigEntity({ entityId, options, state });
+      return exportConfigEntity({ entityId, state });
     },
     async exportConfigEntities(
       options: ConfigEntityExportOptions = {
-        envReplaceParams: undefined,
         entitiesToExport: undefined,
       },
       resultCallback: ResultCallback<IdObjectSkeletonInterface> = void 0
@@ -262,16 +251,11 @@ export default (state: State): IdmConfig => {
     },
     async readSubConfigEntity(
       entityId: string,
-      name: string,
-      options: ConfigEntityExportOptions = {
-        envReplaceParams: undefined,
-        entitiesToExport: undefined,
-      }
+      name: string
     ): Promise<NoIdObjectSkeletonInterface> {
       return readSubConfigEntity({
         entityId,
         name,
-        options,
         state,
       });
     },
@@ -298,10 +282,6 @@ export interface ConfigEntityExportOptions {
    * Gives a list of entities to export. If undefined or empty, it will export all entities.
    */
   entitiesToExport?: string[];
-  /**
-   * Gives the list of key-value pairs of env replacements. Replaces each occurrence of the value with '${key}', where key is the correspond key to the value.
-   */
-  envReplaceParams?: string[][];
 }
 
 /**
@@ -312,10 +292,6 @@ export interface ConfigEntityImportOptions {
    * Gives a list of entities to import. If undefined or empty, it will import all entities.
    */
   entitiesToImport?: string[];
-  /**
-   * Gives the list of key-value pairs of env replacements. Replaces each occurrence of '${key}' with its value.
-   */
-  envReplaceParams?: string[][];
   /**
    * validate script hooks
    */
@@ -481,23 +457,20 @@ const IDM_UNAVAILABLE_ENTITIES = [
 /**
  * Export a single IDM config entity
  * @param {string} entityId config entity id
- * @param {ConfigEntityExportOptions} options export options
  * @returns {ConfigEntityExportInterface} promise resolving to a ConfigEntityExportInterface object
  */
 export async function exportConfigEntity({
   entityId,
-  options = { envReplaceParams: undefined, entitiesToExport: undefined },
   state,
 }: {
   entityId: string;
-  options?: ConfigEntityExportOptions;
   state: State;
 }): Promise<ConfigEntityExportInterface> {
   try {
     const exportData = createConfigEntityExportTemplate({ state });
     const entity = substituteEntityWithEnv(
       await readConfigEntity({ entityId, state }),
-      options.envReplaceParams
+      state
     );
     if (!entity) {
       throw new FrodoError(`Error getting config entity ${entityId}`);
@@ -516,7 +489,7 @@ export async function exportConfigEntity({
  * @returns {ConfigEntityExportInterface} promise resolving to a ConfigEntityExportInterface object
  */
 export async function exportConfigEntities({
-  options = { envReplaceParams: undefined, entitiesToExport: undefined },
+  options = { entitiesToExport: undefined },
   resultCallback = void 0,
   state,
 }: {
@@ -581,7 +554,7 @@ export async function exportConfigEntities({
       if (entity) {
         const substitutedEntity = substituteEntityWithEnv(
           entity as IdObjectSkeletonInterface,
-          options.envReplaceParams
+          state
         );
         exportData.idm[(entity as IdObjectSkeletonInterface)._id] =
           substitutedEntity;
@@ -658,7 +631,6 @@ export async function importConfigEntities({
   entityId,
   importData,
   options = {
-    envReplaceParams: undefined,
     entitiesToImport: undefined,
     validate: false,
   },
@@ -686,10 +658,7 @@ export async function importConfigEntities({
         message: `IdmConfigOps.importConfigEntities: ${id}`,
         state,
       });
-      const entityData = unSubstituteEntityWithEnv(
-        importData.idm[id],
-        options.envReplaceParams
-      );
+      const entityData = unSubstituteEntityWithEnv(importData.idm[id], state);
       if (
         options.validate &&
         !areScriptHooksValid({ jsonData: entityData, state })
@@ -827,18 +796,16 @@ export async function deleteConfigEntity({
 export async function readSubConfigEntity({
   entityId,
   name,
-  options = { envReplaceParams: undefined, entitiesToExport: undefined },
   state,
 }: {
   entityId: string;
   name: string;
-  options?: ConfigEntityExportOptions;
   state: State;
 }): Promise<NoIdObjectSkeletonInterface> {
   try {
     const entity = substituteEntityWithEnv(
       await readConfigEntity({ entityId, state }),
-      options.envReplaceParams
+      state
     );
 
     const subEntityKey = Object.keys(entity).find((key) => key !== '_id');
@@ -864,7 +831,6 @@ export async function importSubConfigEntity({
   entityId,
   updatedSubConfigEntity,
   options = {
-    envReplaceParams: undefined,
     entitiesToImport: undefined,
     validate: false,
   },
@@ -922,9 +888,10 @@ export async function importSubConfigEntity({
 
 function substituteEntityWithEnv(
   entity: IdObjectSkeletonInterface,
-  envReplaceParams: string[][]
+  state: State
 ): IdObjectSkeletonInterface {
-  if (!entity || !envReplaceParams || envReplaceParams.length === 0) {
+  const envReplaceParams = Object.entries(state.getEnvs());
+  if (!entity || envReplaceParams.length === 0) {
     return entity;
   }
   let configEntityString = stringify(entity);
@@ -936,9 +903,10 @@ function substituteEntityWithEnv(
 
 function unSubstituteEntityWithEnv(
   entity: IdObjectSkeletonInterface,
-  envReplaceParams: string[][]
+  state: State
 ): IdObjectSkeletonInterface {
-  if (!entity || !envReplaceParams || envReplaceParams.length === 0) {
+  const envReplaceParams = Object.entries(state.getEnvs());
+  if (!entity || envReplaceParams.length === 0) {
     return entity;
   }
   let configEntityString = stringify(entity);

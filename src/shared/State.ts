@@ -121,6 +121,10 @@ export type State = {
   setOutputFile(file: string): void;
   getOutputFile(): string;
   setDirectory(directory: string): void;
+  setEnv(key: string, value: string): void;
+  setEnvs(env: Record<string, string>, clear?: boolean): void;
+  getEnv(key: string): string | undefined;
+  getEnvs(): Record<string, string>;
   getDirectory(): string;
   setAutoRefreshTimer(timer: NodeJS.Timeout): void;
   getAutoRefreshTimer(): NodeJS.Timeout;
@@ -499,7 +503,18 @@ export default (initialState: StateInterface): State => {
     getDirectory() {
       return state.directory;
     },
-
+    setEnv(key: string, value: string) {
+      state.env[key] = value;
+    },
+    setEnvs(env: Record<string, string>, clear: boolean = false) {
+      state.env = mergeDeep(clear ? {} : state.env, env);
+    },
+    getEnv(key: string): string | undefined {
+      return state.env[key];
+    },
+    getEnvs() {
+      return { ...state.env };
+    },
     setAutoRefreshTimer(timer: NodeJS.Timeout): void {
       state.autoRefreshTimer = timer;
     },
@@ -701,6 +716,7 @@ export interface StateInterface {
   outputFile?: string;
   directory?: string;
   autoRefreshTimer?: NodeJS.Timeout;
+  env?: Record<string, string>;
   // output handler settings
   printHandler?: (
     message: string | object,
@@ -727,6 +743,7 @@ export interface StateInterface {
 const globalState: StateInterface = {
   authenticationHeaderOverrides: {},
   configurationHeaderOverrides: {},
+  env: {},
   printHandler: (message: string | object) => {
     if (!message) return;
     if (typeof message === 'object') {

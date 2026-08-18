@@ -188,6 +188,7 @@ describe('IdmConfigOps', () => {
         filterRecording(recording);
       });
     }
+    state.setEnvs({}, true);
   });
 
   describe('readConfigEntities()', () => {
@@ -267,9 +268,8 @@ describe('IdmConfigOps', () => {
     });
 
     test('2: Export config entities with env replacement', async () => {
-      const response = await IdmConfigOps.exportConfigEntity({ entityId: configEntity1.id, options: {
-        envReplaceParams: [['english', 'en']]
-      }, state });
+      state.setEnv('english', 'en')
+      const response = await IdmConfigOps.exportConfigEntity({ entityId: configEntity1.id, state });
       expect(response).toMatchSnapshot({
         meta: expect.any(Object),
       });
@@ -390,6 +390,7 @@ describe('IdmConfigOps', () => {
           [configEntity3.id]: configEntity3,
         },
       };
+      state.setEnv( 'en', 'english')
       const response = await IdmConfigOps.importConfigEntities({
         importData,
         options: {
@@ -397,7 +398,6 @@ describe('IdmConfigOps', () => {
             configEntity1.id,
             configEntity2.id
           ],
-          envReplaceParams: [['en', 'english']],
           validate: false,
         },
         resultCallback: snapshotResultCallback,

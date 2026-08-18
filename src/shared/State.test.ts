@@ -22,6 +22,7 @@ describe('State', () => {
   const hostEnv = 'https://openam-host-env.forgeblocks.com/am';
 
   beforeEach(() => {
+    state.setEnvs({}, true)
     state.setDeploymentType(undefined);
   });
 
@@ -417,6 +418,51 @@ describe('State', () => {
       expect(state.getLogApiSecret()).toEqual(logApiSecretEnv);
       state.setLogApiSecret(logApiSecret);
       expect(state.getLogApiSecret()).toEqual(logApiSecret);
+    });
+  });
+
+  describe('getEnv()/setEnv()', () => {
+    const envKey = 'TEST_ENV_KEY';
+    const envValue = 'test-value';
+  
+    test('0: Method getEnv is implemented', () => {
+      expect(state.getEnv).toBeDefined();
+    });
+  
+    test('1: Method setEnv is implemented', () => {
+      expect(state.setEnv).toBeDefined();
+    });
+  
+    test("2: Env value should be undefined if it hasn't been set before or defined if set explicitly", () => {
+      expect(state.getEnv(envKey)).toBeUndefined();
+      state.setEnv(envKey, envValue);
+      expect(state.getEnv(envKey)).toEqual(envValue);
+    });
+  });
+
+  describe('getEnvs()/setEnvs()', () => {
+    const env = {
+      envKey: 'test1',
+      envValue: 'test2',
+    }
+    const env2 = {
+      diff: 'diffValue'
+    }
+  
+    test('0: Method getEnvs is implemented', () => {
+      expect(state.getEnvs).toBeDefined();
+    });
+    
+    test('1: Method setEnvs is implemented', () => {
+      expect(state.setEnvs).toBeDefined();
+    });
+  
+    test("2: Env value should be undefined if it hasn't been set before or defined if set explicitly", () => {
+      expect(state.getEnvs()).toEqual({});
+      state.setEnvs(env)
+      expect(state.getEnvs()).toEqual(env);
+      state.setEnvs(env2, true) 
+      expect(state.getEnvs()).toEqual(env2);
     });
   });
 
