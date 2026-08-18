@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [v4.3.3] - 2026-08-18
+
+### Fixed
+- Stopped probing IDM version on every login, resolving it lazily for ForgeOps discovery only, optimizing login performance. (#629)
+
 ## [v4.3.2] - 2026-08-18
 
 ### Added
