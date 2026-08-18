@@ -15,7 +15,9 @@
 
 import { Frodo, frodo } from '../lib/FrodoLib';
 import { FrodoError } from '../ops/FrodoError';
+import { getSemanticVersion } from '../ops/AuthenticateOps';
 import * as ManagedObjectApi from '../api/ManagedObjectApi';
+import { getIdmServerVersionInfo } from '../api/ServerInfoApi';
 import { StateInterface } from '../shared/State';
 import {
   McpCapabilityDescriptor,
@@ -492,6 +494,10 @@ export function createToolRuntime(
           frodoRoot,
           options.resolveFrodoForRequest
         );
+      await ensureIdmVersionResolvedForDiscovery(
+        deploymentType,
+        discoveryScopedFrodo
+      );
       const docsContext = resolveDocsContext(
         deploymentType,
         discoveryScopedFrodo?.state?.getAmVersion?.(),
@@ -1189,6 +1195,34 @@ async function resolveDeploymentAndFrodoForDiscovery(
     deploymentType: resolveScopedDeploymentType(scopedFrodo, context),
     scopedFrodo,
   };
+}
+
+/**
+ * Lazily resolves and caches the IDM version on a scoped instance's state,
+ * for forgeops deployments only (the only deployment type whose docs
+ * routing consults it — see DocsContext.ts). Deferred out of the shared
+ * login path so plain authentication never pays for an IDM round trip that
+ * only the discovery tool's forgeops docs routing needs. Best-effort: an
+ * unreachable or misbehaving IDM instance must not fail discovery, so
+ * failures here are swallowed and simply leave the IDM version unresolved.
+ */
+async function ensureIdmVersionResolvedForDiscovery(
+  deploymentType: McpDeploymentType | undefined,
+  scopedFrodo: Frodo | undefined
+): Promise<void> {
+  const state = scopedFrodo?.state;
+  if (deploymentType !== 'forgeops' || !state || state.getIdmVersion()) {
+    return;
+  }
+  try {
+    const idmVersionInfo = await getIdmServerVersionInfo({ state });
+    const idmVersion = getSemanticVersion({
+      version: idmVersionInfo?.productVersion,
+    });
+    state.setIdmVersion(idmVersion);
+  } catch {
+    // leave the IDM version unresolved; DocsContext reports it as such
+  }
 }
 
 async function resolveDeploymentForDiscovery(
