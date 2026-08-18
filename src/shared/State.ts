@@ -106,6 +106,8 @@ export type State = {
   getLogApiSecret(): string;
   setAmVersion(version: string): void;
   getAmVersion(): string;
+  setIdmVersion(version: string): void;
+  getIdmVersion(): string;
   setFrodoVersion(version: string): void;
   getFrodoVersion(): string;
   setConnectionProfilesPath(path: string): void;
@@ -443,6 +445,13 @@ export default (initialState: StateInterface): State => {
       return state.amVersion;
     },
 
+    setIdmVersion(version: string) {
+      state.idmVersion = version;
+    },
+    getIdmVersion() {
+      return state.idmVersion;
+    },
+
     setFrodoVersion(version: string) {
       state.frodoVersion = version;
     },
@@ -682,6 +691,7 @@ export interface StateInterface {
   logApiSecret?: string;
   // versions
   amVersion?: string;
+  idmVersion?: string;
   frodoVersion?: string;
   // miscellaneous settings
   connectionProfilesPath?: string;

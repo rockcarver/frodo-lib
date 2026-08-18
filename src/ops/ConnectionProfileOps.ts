@@ -516,6 +516,8 @@ export async function loadConnectionProfileByHost({
   );
   state.setUsername(conn.username);
   state.setPassword(conn.password);
+  state.setLogApiKey(conn.logApiKey);
+  state.setLogApiSecret(conn.logApiSecret);
   if (conn.authenticationService && !state.getAuthenticationService()) {
     state.setAuthenticationService(conn.authenticationService);
   }

@@ -80,6 +80,9 @@ import InternalRoleOps, { InternalRole } from '../ops/InternalRoleOps';
 import JoseOps, { Jose } from '../ops/JoseOps';
 import JourneyOps, { Journey } from '../ops/JourneyOps';
 import ManagedObjectOps, { ManagedObject } from '../ops/ManagedObjectOps';
+import ManagedSystemObjectOps, {
+  ManagedSystemObject,
+} from '../ops/ManagedSystemObjectOps';
 import MappingOps, { Mapping } from '../ops/MappingOps';
 import NodeOps, { Node } from '../ops/NodeOps';
 import OAuth2ClientOps, { OAuth2Client } from '../ops/OAuth2ClientOps';
@@ -196,6 +199,7 @@ export type Frodo = {
     connector: Connector;
     crypto: IdmCrypto;
     managed: ManagedObject;
+    managedSystem: ManagedSystemObject;
     mapping: Mapping;
     organization: Organization;
     recon: Recon;
@@ -407,6 +411,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       connector: ConnectorOps(state),
       crypto: IdmCryptoOps(state),
       managed: ManagedObjectOps(state),
+      managedSystem: ManagedSystemObjectOps(state),
       mapping: MappingOps(state),
       organization: OrganizationOps(state),
       recon: ReconOps(state),

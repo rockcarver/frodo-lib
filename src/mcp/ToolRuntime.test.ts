@@ -142,7 +142,6 @@ function makeManifest(descriptors: McpCapabilityDescriptor[]): McpToolManifest {
           : [],
       },
     ],
-    specialTools: [],
     discoveryTool: {
       toolName: 'frodo_discover',
       description: 'Discover tool surface.',
@@ -236,6 +235,87 @@ describe('MCP hybrid runtime', () => {
       ],
     });
     expect(data).not.toHaveProperty('operationDetailsByType');
+  });
+
+  test('discover resolves docsContext to the unversioned pingoneaic docset for cloud', async () => {
+    const descriptor = makeDescriptor();
+    const manifest = makeManifest([descriptor]);
+    const runtime = createToolRuntime(manifest, [descriptor]);
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_discover',
+      context: {
+        auth: { mode: 'state-config', config: { deploymentType: 'cloud' } },
+      },
+    });
+    const data = result.data as { docsContext: Record<string, unknown> };
+
+    expect(data.docsContext).toMatchObject({
+      product: 'pingoneaic',
+      versioned: false,
+      llmsTxtUrl: 'https://docs.pingidentity.com/pingoneaic/llms.txt',
+    });
+  });
+
+  test('discover resolves docsContext to a versioned pingam docset for classic, using the scoped instance already authenticated for deployment detection', async () => {
+    const descriptor = makeDescriptor();
+    const manifest = makeManifest([descriptor]);
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          state: {
+            getDeploymentType: () => 'classic',
+            getAmVersion: () => '7.5.0',
+          },
+          login: { getTokens: jest.fn(async () => {}) },
+        }) as any,
+    });
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_discover',
+      context: {
+        auth: { mode: 'state-config', config: { host: 'https://example.test/am' } },
+      },
+    });
+    const data = result.data as { docsContext: Record<string, unknown> };
+
+    expect(data.docsContext).toMatchObject({
+      product: 'pingam',
+      versioned: true,
+      version: '7.5',
+      llmsTxtUrl: 'https://docs.pingidentity.com/pingam/llms.txt',
+    });
+  });
+
+  test('discover resolves docsContext to independently versioned am/idm docsets plus domain routing for forgeops', async () => {
+    const descriptor = makeDescriptor();
+    const manifest = makeManifest([descriptor]);
+    const runtime = createToolRuntime(manifest, [descriptor], {
+      resolveFrodoForRequest: () =>
+        ({
+          state: {
+            getDeploymentType: () => 'forgeops',
+            getAmVersion: () => '7.5.0',
+            getIdmVersion: () => '8.1.0',
+          },
+          login: { getTokens: jest.fn(async () => {}) },
+        }) as any,
+    });
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_discover',
+      context: {
+        auth: { mode: 'state-config', config: { host: 'https://example.test/am' } },
+      },
+    });
+    const data = result.data as { docsContext: Record<string, unknown> };
+
+    expect(data.docsContext).toMatchObject({
+      deploymentType: 'forgeops',
+      am: { product: 'pingam', version: '7.5' },
+      idm: { product: 'pingidm', version: '8.1' },
+      domainRouting: { idm: 'idm', realm: 'am' },
+    });
   });
 
   test('discover returns the legacy operation catalog only when requested', async () => {
@@ -662,6 +742,99 @@ describe('MCP hybrid runtime', () => {
     });
   });
 
+  test('find_skills lets a specific notes match compete with the generic identity/user bonus', async () => {
+    // Regression test: session.getSessionInfo went undiscoverable for
+    // natural-language identity queries ("authenticated identity session")
+    // because a matched notes field scored at the lowest weight in the
+    // system (2) while every identitySurface: 'managed' read skill gets a
+    // flat +8 for the same query just for touching a user-shaped object,
+    // regardless of how well its own notes actually describe it. A
+    // handful of such flat-bonus skills could bury a real, well-documented
+    // match. The target descriptor here matches purely via a specific,
+    // multi-term notes phrase; the noise descriptors match purely via the
+    // generic bonus on a single term ("identity") and are otherwise
+    // unrelated to the query.
+    const targetDescriptor = makeDescriptor({
+      id: 'session.getSessionInfo',
+      domain: 'session',
+      objectType: 'SessionInfo',
+      modulePath: ['session'],
+      notes:
+        'Reports the authenticated identity behind the current session.',
+    });
+    const noiseDescriptors = ['a', 'b', 'c', 'd'].map((suffix) =>
+      makeDescriptor({
+        id: `idm.managed.noiseSkill${suffix}`,
+        domain: 'idm',
+        objectType: 'ManagedObject',
+        methodName: `noiseSkill${suffix}`,
+        modulePath: ['idm', 'managed'],
+        identitySurface: 'managed',
+        objectTypePatterns: ['*'],
+      })
+    );
+    const descriptors = [targetDescriptor, ...noiseDescriptors];
+    const runtime = createToolRuntime(makeManifest(descriptors), descriptors);
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_find_skills',
+      arguments: {
+        query: 'authenticated identity session',
+        executeRecommended: false,
+        limit: 4,
+      },
+      context: { auth: { mode: 'state-config', config: {} } },
+    });
+    const skillIds = (
+      result.data as { skills: Array<{ skillId: string }> }
+    ).skills.map((skill) => skill.skillId);
+
+    expect(skillIds).toContain('session.getSessionInfo');
+  });
+
+  test('find_skills does not give the generic identity/user bonus to mutating operations', async () => {
+    // A create/update/delete skill on a user-shaped object shouldn't tie
+    // with genuine identity-lookup skills just because it touches a user
+    // object — that bonus is reserved for read-like operations.
+    const readDescriptor = makeDescriptor({
+      id: 'idm.managed.readManagedObject',
+      domain: 'idm',
+      objectType: 'ManagedObject',
+      methodName: 'readManagedObject',
+      operationType: 'read',
+      identitySurface: 'managed',
+      objectTypePatterns: ['*'],
+    });
+    const mutatingDescriptor = makeDescriptor({
+      id: 'idm.managed.deleteManagedObject',
+      domain: 'idm',
+      objectType: 'ManagedObject',
+      methodName: 'deleteManagedObject',
+      operationType: 'delete',
+      mutating: true,
+      destructive: true,
+      identitySurface: 'managed',
+      objectTypePatterns: ['*'],
+    });
+    const descriptors = [readDescriptor, mutatingDescriptor];
+    const runtime = createToolRuntime(makeManifest(descriptors), descriptors);
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_find_skills',
+      arguments: {
+        query: 'identity',
+        executeRecommended: false,
+        limit: 1,
+      },
+      context: { auth: { mode: 'state-config', config: {} } },
+    });
+    const skillIds = (
+      result.data as { skills: Array<{ skillId: string }> }
+    ).skills.map((skill) => skill.skillId);
+
+    expect(skillIds).toEqual(['idm.managed.readManagedObject']);
+  });
+
   test('find_skills keeps user.User coordinates on the classic AM surface', async () => {
     const managedDescriptor = makeDescriptor({
       id: 'idm.managed.countManagedObjects',
@@ -866,6 +1039,56 @@ describe('MCP hybrid runtime', () => {
       }
     }
   );
+
+  test('find_skills lets a much more relevant compatible-tier result outrank a barely-relevant preferred-tier one', async () => {
+    // Regression test: routing status (preferred/compatible) used to be an
+    // absolute pre-sort tier — checked before relevance was even
+    // consulted, so any "preferred" result outranked every "compatible"
+    // result regardless of actual query relevance. A skill that happened
+    // to be "preferred" for the active deployment (idm.managed.* skills
+    // are preferred on cloud) could bury a genuinely, strongly relevant
+    // "compatible" result from an entirely different domain no matter how
+    // well-matched it was.
+    const preferredButBarelyRelevant = makeDescriptor({
+      id: 'idm.managed.readManagedObjectSchema',
+      toolName: 'frodo.idm.managed.readManagedObjectSchema',
+      methodName: 'readManagedObjectSchema',
+      modulePath: ['idm', 'managed'],
+      domain: 'idm',
+      objectType: 'ManagedObjectSchema',
+      operationType: 'read',
+      deploymentTypes: ['cloud', 'forgeops'],
+      preferredDeploymentTypes: ['cloud', 'forgeops'],
+      identitySurface: 'managed',
+    });
+    const compatibleButHighlyRelevant = makeDescriptor({
+      id: 'session.getSessionInfo',
+      toolName: 'frodo.session.getSessionInfo',
+      methodName: 'getSessionInfo',
+      modulePath: ['session'],
+      domain: 'session',
+      objectType: 'SessionInfo',
+      operationType: 'read',
+      deploymentTypes: ['any'],
+      semanticAliases: ['authenticated identity'],
+      notes: 'Reports the authenticated identity behind the current session.',
+    });
+    const descriptors = [preferredButBarelyRelevant, compatibleButHighlyRelevant];
+    const runtime = createToolRuntime(makeManifest(descriptors), descriptors);
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_find_skills',
+      arguments: { query: 'authenticated identity', executeRecommended: false },
+      context: {
+        auth: { mode: 'state-config', config: { deploymentType: 'cloud' } },
+      },
+    });
+    const skillIds = (
+      result.data as { skills: Array<{ skillId: string }> }
+    ).skills.map((skill) => skill.skillId);
+
+    expect(skillIds[0]).toBe('session.getSessionInfo');
+  });
 
   test.each([
     'count users identities in a ForgeRock environment',
@@ -1549,6 +1772,82 @@ describe('MCP hybrid runtime', () => {
     ).rejects.toThrow("not supported for deployment 'cloud'");
     expect(getTokens).toHaveBeenCalledTimes(1);
     expect(countUsers).not.toHaveBeenCalled();
+  });
+
+  test('dispatch rejects a descriptor requiring log API credentials when none are configured', async () => {
+    const fetch = jest.fn(async () => ({ result: [] }));
+    const descriptor = makeDescriptor({
+      id: 'cloud.log.fetch',
+      toolName: 'frodo.cloud.log.fetch',
+      methodName: 'fetch',
+      modulePath: ['cloud', 'log'],
+      domain: 'cloud',
+      objectType: 'LogEvent',
+      operationType: 'search',
+      requiredCredential: 'logApi',
+    });
+    const runtime = createToolRuntime(
+      makeManifest([descriptor]),
+      [descriptor],
+      {
+        resolveFrodoForRequest: () =>
+          ({
+            state: {
+              getLogApiKey: () => undefined,
+              getLogApiSecret: () => undefined,
+            },
+            login: { getTokens: jest.fn(async () => {}) },
+            cloud: { log: { fetch } },
+          }) as any,
+      }
+    );
+
+    await expect(
+      runtime.executeTool({
+        toolName: 'frodo_dispatch_read_only',
+        arguments: { skillId: descriptor.id },
+        context: { auth: { mode: 'state-config', config: {} } },
+      })
+    ).rejects.toThrow('requires a Log API key/secret');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test('dispatch executes a descriptor requiring log API credentials when they are configured', async () => {
+    const fetch = jest.fn(async () => ({ result: [] }));
+    const descriptor = makeDescriptor({
+      id: 'cloud.log.fetch',
+      toolName: 'frodo.cloud.log.fetch',
+      methodName: 'fetch',
+      modulePath: ['cloud', 'log'],
+      domain: 'cloud',
+      objectType: 'LogEvent',
+      operationType: 'search',
+      requiredCredential: 'logApi',
+    });
+    const runtime = createToolRuntime(
+      makeManifest([descriptor]),
+      [descriptor],
+      {
+        resolveFrodoForRequest: () =>
+          ({
+            state: {
+              getLogApiKey: () => 'example-key-id',
+              getLogApiSecret: () => 'example-secret',
+            },
+            login: { getTokens: jest.fn(async () => {}) },
+            cloud: { log: { fetch } },
+          }) as any,
+      }
+    );
+
+    const result = await runtime.executeTool({
+      toolName: 'frodo_dispatch_read_only',
+      arguments: { skillId: descriptor.id },
+      context: { auth: { mode: 'state-config', config: {} } },
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.data).toEqual({ result: [] });
   });
 
   test('dispatch executes mutating descriptor selected by tuple', async () => {

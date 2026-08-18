@@ -147,6 +147,14 @@ export type McpCapabilityDescriptor = {
   notes?: string;
   /** Curated natural-language phrases used to retrieve this capability. */
   semanticAliases?: string[];
+  /**
+   * A credential beyond the standard AM/IDM bearer token this capability
+   * requires. When set, the runtime verifies it's present on the dispatching
+   * Frodo instance's state before invoking the descriptor, and fails fast with
+   * an actionable error instead of letting the underlying API call 401.
+   * Set from {@link OperationCapabilityMeta.requiredCredential} when available.
+   */
+  requiredCredential?: McpRequiredCredential;
   requiredScopes: string[];
   annotations: McpToolAnnotations;
 };
@@ -203,6 +211,17 @@ export type McpIdentitySurface =
   | 'unknown';
 
 /**
+ * Identifies a credential a capability needs beyond the standard AM/IDM bearer
+ * token, which the MCP runtime should verify is present before dispatching.
+ *
+ * @remarks
+ * - `logApi` — a Log API key/secret (`state.getLogApiKey()`/`getLogApiSecret()`),
+ *   used by the Identity Cloud debug/audit log endpoints, which authenticate
+ *   with `X-API-Key`/`X-API-Secret` rather than the AM session bearer token.
+ */
+export type McpRequiredCredential = 'logApi';
+
+/**
  * Explicit capability metadata entry stored in the static {@link CAPABILITY_META} map.
  *
  * @remarks
@@ -231,6 +250,12 @@ export type OperationCapabilityMeta = {
    * Enables discovery tools to recommend the right domain for a given object type.
    */
   identitySurface?: McpIdentitySurface;
+
+  /**
+   * A credential beyond the standard AM/IDM bearer token this capability
+   * requires. See {@link McpRequiredCredential}.
+   */
+  requiredCredential?: McpRequiredCredential;
 
   /**
    * Glob-style object type patterns this capability applies to.
@@ -262,4 +287,46 @@ export type OperationCapabilityMeta = {
 
   /** Whether the capability supports MCP includeTotal hints. */
   supportsIncludeTotal?: boolean;
+
+  /**
+   * Explicit operation-type override for capabilities whose method name doesn't
+   * follow the CRUD naming convention `inferOperationType` relies on (e.g. `fetch`,
+   * `tail`). When set, this wins over naming-convention inference and also drives
+   * the derived `kind` (`'special'` iff `operationType === 'special'`).
+   */
+  operationType?: McpCapabilityOperationType;
+
+  /**
+   * Explicit object-type override for capabilities whose method name doesn't carry
+   * an inferable object-type suffix (e.g. `fetch` → `LogEvent`). When set, this wins
+   * over naming-convention inference.
+   */
+  objectType?: string;
+
+  /**
+   * Explicit mutating override. Naming-convention inference only recognizes
+   * `create`/`update`/`delete`/`import` as mutating, so any capability that writes
+   * state under a different verb (including one classified `operationType: 'special'`)
+   * needs this set explicitly rather than relying on the permissive `false` default.
+   */
+  mutating?: boolean;
+
+  /**
+   * Explicit destructive-hint override, analogous to {@link mutating}.
+   */
+  destructive?: boolean;
+
+  /**
+   * Explicit risk-class override. Naming-convention inference only escalates risk
+   * for `delete`/`import`/`export`/`create`/`update` and secret-ish keyword matches,
+   * so non-CRUD capabilities that warrant elevated caution need this set explicitly.
+   */
+  riskClass?: McpCapabilityRiskClass;
+
+  /**
+   * When `true`, this capability is dropped from the inventory entirely instead of
+   * becoming a descriptor. Intended for methods that make no tenant/API call (pure
+   * local helpers) and therefore aren't remote operations at all.
+   */
+  excluded?: boolean;
 };

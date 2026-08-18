@@ -98,6 +98,27 @@ export type Log = {
     txid: string,
     filter: string
   ): Promise<PagedResult<LogEventSkeleton>>;
+  /**
+   * Search audit events by event name(s) and/or principal, across the full time
+   * range (auto-paginating), with client-side dedup by transaction id.
+   * @param {string} source log source(s) to search, e.g. am-authentication
+   * @param {string} startTs start timestamp
+   * @param {string} endTs end timestamp
+   * @param {string[]} eventNames optional event names to match (OR'd together server-side)
+   * @param {string} principal optional principal substring to match against payload.userId (co)
+   * @param {number} maxEvents safety cap on total events fetched across pages
+   * @param {boolean} dedupeByTransactionId collapse multiple events sharing a transaction id (e.g. a failed-then-successful retry) down to the last one seen; default true
+   * @returns {Promise<LogEventSkeleton[]>} promise resolving to the matched (and optionally deduped) events
+   */
+  searchEvents(
+    source: string,
+    startTs: string,
+    endTs: string,
+    eventNames?: string[],
+    principal?: string,
+    maxEvents?: number,
+    dedupeByTransactionId?: boolean
+  ): Promise<LogEventSkeleton[]>;
 };
 
 export default (state: State): Log => {
@@ -147,6 +168,26 @@ export default (state: State): Log => {
       filter: string
     ): Promise<PagedResult<LogEventSkeleton>> {
       return fetch({ source, startTs, endTs, cookie, txid, filter, state });
+    },
+    async searchEvents(
+      source: string,
+      startTs: string,
+      endTs: string,
+      eventNames?: string[],
+      principal?: string,
+      maxEvents?: number,
+      dedupeByTransactionId?: boolean
+    ): Promise<LogEventSkeleton[]> {
+      return searchEvents({
+        source,
+        startTs,
+        endTs,
+        eventNames,
+        principal,
+        maxEvents,
+        dedupeByTransactionId,
+        state,
+      });
     },
   };
 };
@@ -608,4 +649,159 @@ export async function fetch({
   } catch (error) {
     throw new FrodoError(`Error fetching logs`, error);
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Builds a _queryFilter expression from structured search inputs. Multiple
+ * event names are OR'd together (verified live: CREST supports both `or` and
+ * parenthesized grouping on this endpoint, not just `and`); a principal
+ * filter is AND'd on. Throws rather than risk filter injection if either
+ * input contains a double-quote — legitimate event names and DN substrings
+ * never do.
+ */
+function buildEventFilter({
+  eventNames,
+  principal,
+}: {
+  eventNames?: string[];
+  principal?: string;
+}): string | undefined {
+  if (
+    eventNames?.some((name) => name.includes('"')) ||
+    principal?.includes('"')
+  ) {
+    throw new FrodoError(
+      'searchEvents: eventNames and principal must not contain a double-quote character.'
+    );
+  }
+  const clauses: string[] = [];
+  if (eventNames && eventNames.length > 0) {
+    const eventClause = eventNames
+      .map((name) => `/payload/eventName eq "${name}"`)
+      .join(' or ');
+    clauses.push(eventNames.length > 1 ? `(${eventClause})` : eventClause);
+  }
+  if (principal) {
+    clauses.push(`/payload/userId co "${principal}"`);
+  }
+  return clauses.length > 0 ? clauses.join(' and ') : undefined;
+}
+
+/**
+ * The Log API rejects a fetch/search whose startTs..endTs span exceeds
+ * roughly 24 hours with an opaque 400 — verified live this session against
+ * both a filtered and an unfiltered request, and against two different
+ * sources (am-config, am-authentication), so this is a Log API-wide limit,
+ * not specific to one source or to using a filter. A 24h window succeeded;
+ * 25h and wider both failed, so 24h is used as the safe chunk size.
+ */
+const MAX_LOG_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** Splits a startTs..endTs span into sequential sub-windows no wider than {@link MAX_LOG_WINDOW_MS}. */
+function* splitIntoSafeWindows(
+  startTs: string,
+  endTs: string
+): Generator<{ startTs: string; endTs: string }> {
+  let chunkStart = new Date(startTs).getTime();
+  const end = new Date(endTs).getTime();
+  while (chunkStart < end) {
+    const chunkEnd = Math.min(chunkStart + MAX_LOG_WINDOW_MS, end);
+    yield {
+      startTs: new Date(chunkStart).toISOString(),
+      endTs: new Date(chunkEnd).toISOString(),
+    };
+    chunkStart = chunkEnd;
+  }
+}
+
+/**
+ * Search audit events by event name(s) and/or principal, across the full
+ * time range (auto-paginating within each ~24h chunk the Log API allows,
+ * and auto-chunking the requested range into consecutive windows that size
+ * when it's wider than that — see {@link MAX_LOG_WINDOW_MS} — respecting the
+ * ~1 request/second Log API rate limit between every fetch call, chunk
+ * boundaries included), with client-side dedup by transaction id.
+ *
+ * @remarks
+ * Filtering happens server-side (see {@link buildEventFilter}) rather than
+ * fetching unfiltered and post-filtering client-side — the corrected,
+ * verified-working approach from this session's investigation, materially
+ * cheaper than an unfiltered fetch that risks truncating before reaching
+ * the events in question.
+ *
+ * Dedup collapses multiple events sharing a transaction id (e.g. a failed
+ * login attempt immediately followed by a successful retry, observed live
+ * this session) down to the last one seen. Since fetch results are already
+ * ordered ascending by timestamp within each chunk (and chunks are fetched
+ * in chronological order), "last seen" is the most recent event for that
+ * transaction — the actual outcome, not an arbitrary one. CREST filters
+ * can't express this dedup themselves, so it has to happen client-side.
+ */
+export async function searchEvents({
+  source,
+  startTs,
+  endTs,
+  eventNames,
+  principal,
+  maxEvents = 1000,
+  dedupeByTransactionId = true,
+  state,
+}: {
+  source: string;
+  startTs: string;
+  endTs: string;
+  eventNames?: string[];
+  principal?: string;
+  maxEvents?: number;
+  dedupeByTransactionId?: boolean;
+  state: State;
+}): Promise<LogEventSkeleton[]> {
+  const filter = buildEventFilter({ eventNames, principal });
+  const events: LogEventSkeleton[] = [];
+  let firstFetch = true;
+  try {
+    for (const window of splitIntoSafeWindows(startTs, endTs)) {
+      let cookie: string | undefined;
+      do {
+        if (!firstFetch) {
+          await sleep(1000);
+        }
+        firstFetch = false;
+        const page = await _fetch({
+          source,
+          startTs: window.startTs,
+          endTs: window.endTs,
+          cookie,
+          txid: undefined,
+          filter,
+          state,
+        });
+        events.push(...page.result);
+        cookie = page.pagedResultsCookie;
+      } while (cookie && events.length < maxEvents);
+      if (events.length >= maxEvents) {
+        break;
+      }
+    }
+  } catch (error) {
+    throw new FrodoError(`Error searching events`, error);
+  }
+
+  if (!dedupeByTransactionId) {
+    return events;
+  }
+
+  const byTransactionId = new Map<string, LogEventSkeleton>();
+  let syntheticKey = 0;
+  for (const event of events) {
+    const payload =
+      typeof event.payload === 'string' ? undefined : event.payload;
+    const transactionId = payload?.transactionId;
+    byTransactionId.set(transactionId ?? `__no-tx-${syntheticKey++}`, event);
+  }
+  return Array.from(byTransactionId.values());
 }

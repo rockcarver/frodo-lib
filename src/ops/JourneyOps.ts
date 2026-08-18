@@ -83,6 +83,7 @@ import {
   isPremiumNode,
   readCustomNode,
   readNode,
+  readNodes,
   updateNode,
   deleteNode,
 } from './NodeOps';
@@ -137,6 +138,17 @@ export type Journey = {
    * @returns {Promise<number>} exact count when supported by the backing API
    */
   countJourneys(): Promise<number>;
+  /**
+   * Find every journey/node that references a given script, by scanning all
+   * nodes in the active realm for a matching script id and cross-referencing
+   * against every journey's node map. Also resolves references nested inside
+   * a container node (e.g. a Page Node), reporting the top-level node a
+   * journey actually references alongside the inner node that uses the
+   * script.
+   * @param {string} scriptId script id to find references to
+   * @returns {Promise<ScriptReference[]>} a promise that resolves to every reference found
+   */
+  findScriptReferences(scriptId: string): Promise<ScriptReference[]>;
   /**
    * Read journey without dependencies.
    * @param {string} journeyId journey id/name
@@ -355,6 +367,9 @@ export default (state: State): Journey => {
     },
     async countJourneys(): Promise<number> {
       return countJourneys({ state });
+    },
+    async findScriptReferences(scriptId: string): Promise<ScriptReference[]> {
+      return findScriptReferences({ scriptId, state });
     },
     async readJourney(journeyId: string): Promise<TreeSkeleton> {
       return readJourney({ journeyId, state });
@@ -1603,6 +1618,95 @@ export async function readJourneys({
   } catch (error) {
     throw new FrodoError(
       `Error reading ${getCurrentRealmName(state) + ' realm'} journeys`,
+      error
+    );
+  }
+}
+
+/** A single journey/node reference to a script, found by {@link findScriptReferences}. */
+export type ScriptReference = {
+  journeyId: string;
+  /** The top-level node id a journey's own node map actually references. */
+  nodeId: string;
+  nodeType: string;
+  nodeDisplayName?: string;
+  /**
+   * Present when the script-referencing node is nested inside a container
+   * node (e.g. a Page Node) rather than being the top-level node itself —
+   * this is the inner node's id, distinct from `nodeId` (the container).
+   */
+  innerNodeId?: string;
+};
+
+/**
+ * Finds every journey/node in the active realm that references a given
+ * script, via two bulk realm-scoped reads (all nodes, all journeys) and an
+ * in-memory join — no per-node fetches, so this stays cheap even on realms
+ * with many journeys.
+ * @param {string} scriptId script id to find references to
+ * @returns {Promise<ScriptReference[]>} a promise that resolves to every reference found
+ */
+export async function findScriptReferences({
+  scriptId,
+  state,
+}: {
+  scriptId: string;
+  state: State;
+}): Promise<ScriptReference[]> {
+  try {
+    const [nodes, journeys] = await Promise.all([
+      readNodes({ state }),
+      readJourneys({ state }),
+    ]);
+
+    const matchingNodeIds = new Set(
+      nodes.filter((node) => node.script === scriptId).map((node) => node._id)
+    );
+    if (matchingNodeIds.size === 0) {
+      return [];
+    }
+
+    // Inner nodes (e.g. inside a Page Node) are real node instances too, but
+    // a journey's own node map only ever references the container's id, not
+    // the inner node's — resolve inner id -> container id so those matches
+    // can still be attributed to the right journey.
+    const containerByInnerNodeId = new Map<string, string>();
+    for (const node of nodes) {
+      for (const inner of node.nodes ?? []) {
+        containerByInnerNodeId.set(inner._id, node._id);
+      }
+    }
+
+    const matchesByTopLevelNodeId = new Map<
+      string,
+      { innerNodeId?: string }[]
+    >();
+    for (const matchId of matchingNodeIds) {
+      const containerId = containerByInnerNodeId.get(matchId);
+      const topLevelId = containerId ?? matchId;
+      const existing = matchesByTopLevelNodeId.get(topLevelId) ?? [];
+      existing.push(containerId ? { innerNodeId: matchId } : {});
+      matchesByTopLevelNodeId.set(topLevelId, existing);
+    }
+
+    const references: ScriptReference[] = [];
+    for (const journey of journeys) {
+      for (const [nodeId, nodeRef] of Object.entries(journey.nodes ?? {})) {
+        for (const match of matchesByTopLevelNodeId.get(nodeId) ?? []) {
+          references.push({
+            journeyId: journey._id,
+            nodeId,
+            nodeType: nodeRef.nodeType,
+            nodeDisplayName: nodeRef.displayName,
+            ...(match.innerNodeId && { innerNodeId: match.innerNodeId }),
+          });
+        }
+      }
+    }
+    return references;
+  } catch (error) {
+    throw new FrodoError(
+      `Error finding references to script ${scriptId}`,
       error
     );
   }

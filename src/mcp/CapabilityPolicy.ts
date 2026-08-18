@@ -24,6 +24,10 @@ export const MCP_POLICY_PRESETS: Record<
     name: 'read-only',
     allowOperationTypes: ['count', 'read', 'search', 'list'],
     denyOperationTypes: ['create', 'update', 'delete', 'import'],
+    // Read-only operation types can still return sensitive material (e.g.
+    // cloud.serviceAccount.getServiceAccount). Deny critical risk explicitly
+    // rather than relying on operation-type restriction alone.
+    denyRiskClasses: ['critical'],
     includeSpecial: false,
   },
   agentic: {
@@ -73,22 +77,28 @@ export function applyCapabilityPolicy(
   policy: McpCapabilityPolicy
 ): McpCapabilityDescriptor[] {
   return capabilities.filter((capability) => {
-    if (policy.includeSpecial === false && capability.kind === 'special') {
-      return false;
-    }
+    // 'special' capabilities don't fit the create/read/update/delete/... vocabulary
+    // allowOperationTypes/denyOperationTypes are written in, so they're governed by
+    // includeSpecial alone. Every other filter below (risk class, domain, path
+    // prefix) still applies uniformly to both kinds.
+    if (capability.kind === 'special') {
+      if (policy.includeSpecial === false) {
+        return false;
+      }
+    } else {
+      if (
+        policy.allowOperationTypes &&
+        !policy.allowOperationTypes.includes(capability.operationType)
+      ) {
+        return false;
+      }
 
-    if (
-      policy.allowOperationTypes &&
-      !policy.allowOperationTypes.includes(capability.operationType)
-    ) {
-      return false;
-    }
-
-    if (
-      policy.denyOperationTypes &&
-      policy.denyOperationTypes.includes(capability.operationType)
-    ) {
-      return false;
+      if (
+        policy.denyOperationTypes &&
+        policy.denyOperationTypes.includes(capability.operationType)
+      ) {
+        return false;
+      }
     }
 
     if (

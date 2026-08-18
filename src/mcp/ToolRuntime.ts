@@ -29,7 +29,6 @@ import {
   McpDiscoveryEntry,
   McpGenericTool,
   McpManagedObjectHydrationStatus,
-  McpSpecialTool,
   McpToolManifest,
 } from './ToolManifest';
 import {
@@ -49,6 +48,7 @@ import {
   resolveSemanticObjectFamily,
 } from './SemanticObjectFamilies';
 import { matchSemanticIdentifiers } from './SemanticIdentifiers';
+import { resolveDocsContext } from './DocsContext';
 
 const FIND_SKILLS_TOOL_NAME = 'frodo_find_skills';
 const DESCRIBE_SKILL_TOOL_NAME = 'frodo_describe_skill';
@@ -170,7 +170,8 @@ export type McpToolRuntimeTraceEvent = {
     | 'dispatch-start'
     | 'dispatch-success'
     | 'dispatch-failure'
-    | 'compatibility-rejection';
+    | 'compatibility-rejection'
+    | 'credential-rejection';
   requestId?: string;
   toolName: string;
   descriptorId?: string;
@@ -465,9 +466,6 @@ export function createToolRuntime(
     manifest.genericTools,
     byId
   );
-  const specialToolIndex = new Map<string, McpSpecialTool>(
-    manifest.specialTools.map((t) => [t.toolName, t])
-  );
   const frodoRoot = options.frodoRoot ?? frodo;
   const paginationWarningThreshold = options.paginationWarningThreshold ?? 1000;
   const resultWarningThresholdBytes =
@@ -488,10 +486,16 @@ export function createToolRuntime(
 
     if (request.toolName === manifest.discoveryTool.toolName) {
       const args = parseDiscoverArguments(request.arguments);
-      const deploymentType = await resolveDeploymentForDiscovery(
-        request.context,
-        frodoRoot,
-        options.resolveFrodoForRequest
+      const { deploymentType, scopedFrodo: discoveryScopedFrodo } =
+        await resolveDeploymentAndFrodoForDiscovery(
+          request.context,
+          frodoRoot,
+          options.resolveFrodoForRequest
+        );
+      const docsContext = resolveDocsContext(
+        deploymentType,
+        discoveryScopedFrodo?.state?.getAmVersion?.(),
+        discoveryScopedFrodo?.state?.getIdmVersion?.()
       );
       emitRuntimeTrace(request, options, {
         event: 'discovery',
@@ -518,6 +522,7 @@ export function createToolRuntime(
         }),
         ...(configEntityIdCount !== undefined && { configEntityIdCount }),
         ...(configEntityHydrationStatus && { configEntityHydrationStatus }),
+        docsContext,
       };
       return {
         toolName: request.toolName,
@@ -559,7 +564,8 @@ export function createToolRuntime(
       const recommendedExecution =
         (args.executeRecommended ??
           options.executeRecommendedByDefault ??
-          false) && result.recommendedDispatch
+          false) &&
+        result.recommendedDispatch
           ? await executeTool({
               toolName: result.recommendedDispatch.toolName,
               arguments: result.recommendedDispatch.arguments,
@@ -683,6 +689,19 @@ export function createToolRuntime(
         });
         throw error;
       }
+      try {
+        assertRequiredCredential(descriptor, scopedFrodo);
+      } catch (error) {
+        emitRuntimeTrace(request, options, {
+          event: 'credential-rejection',
+          toolName: request.toolName,
+          descriptorId: descriptor.id,
+          deploymentType,
+          routingReason: routing.reason,
+          error: toErrorMessage(error),
+        });
+        throw error;
+      }
       const startedAt = Date.now();
       emitRuntimeTrace(request, options, {
         event: 'dispatch-start',
@@ -738,35 +757,6 @@ export function createToolRuntime(
         descriptorId: descriptor.id,
         data: methodResult,
         ...(metadata ? { metadata } : {}),
-      };
-    }
-
-    const specialTool = specialToolIndex.get(request.toolName);
-    if (specialTool) {
-      const scopedFrodo = await resolveScopedFrodoInstance(
-        request.context,
-        frodoRoot,
-        options.resolveFrodoForRequest
-      );
-      assertDeploymentCompatibility(
-        specialTool.descriptor,
-        resolveScopedDeploymentType(scopedFrodo, request.context)
-      );
-      const methodResult = await invokeDescriptorMethod(
-        scopedFrodo,
-        specialTool.descriptor,
-        toInvocationArgs(request.arguments, specialTool.descriptor)
-      );
-      const resultMetadata = buildResultMetadata(
-        methodResult,
-        specialTool.descriptor.operationType,
-        resultWarningThresholdBytes
-      );
-      return {
-        toolName: request.toolName,
-        descriptorId: specialTool.descriptor.id,
-        data: methodResult,
-        ...(resultMetadata ? { metadata: { result: resultMetadata } } : {}),
       };
     }
 
@@ -840,6 +830,38 @@ function assertDeploymentCompatibility(
   throw new FrodoError(
     `MCP runtime error: descriptor '${descriptor.id}' is not supported for deployment '${deploymentType}'. Supported deployments: ${supportedList}.`
   );
+}
+
+/**
+ * Verifies a descriptor's declared {@link McpRequiredCredential} is actually
+ * present on the dispatching Frodo instance's state before invoking it.
+ *
+ * @remarks
+ * Some capabilities authenticate with a credential other than the standard
+ * AM/IDM bearer token (e.g. the Identity Cloud Log API's `X-API-Key`/
+ * `X-API-Secret` pair). That credential isn't guaranteed to be populated just
+ * because the session is otherwise authenticated — it comes from the
+ * connection profile's own optional fields or explicit env vars. Failing here
+ * with an actionable message is preferable to letting the underlying HTTP
+ * call surface a bare 401.
+ */
+function assertRequiredCredential(
+  descriptor: McpCapabilityDescriptor,
+  scopedFrodo: Frodo
+): void {
+  if (!descriptor.requiredCredential) {
+    return;
+  }
+
+  if (descriptor.requiredCredential === 'logApi') {
+    const state = scopedFrodo.state;
+    if (state?.getLogApiKey() && state?.getLogApiSecret()) {
+      return;
+    }
+    throw new FrodoError(
+      `MCP runtime error: descriptor '${descriptor.id}' requires a Log API key/secret, which is not configured for this connection. Add logApiKey/logApiSecret to the connection profile (see 'cloud.log.createLogApiKey' to provision one), or set the FRODO_LOG_KEY/FRODO_LOG_SECRET environment variables.`
+    );
+  }
 }
 
 /**
@@ -1130,6 +1152,45 @@ async function resolveScopedFrodoInstance(
   return scopedFrodo;
 }
 
+/**
+ * Resolves the active deployment type for a discovery-style request, along
+ * with the scoped Frodo instance if one had to be authenticated to determine
+ * it (undefined when the deployment type was already known from context —
+ * the common fast path — so callers that only need the version-detection
+ * side effect don't pay for an extra auth round-trip they didn't ask for).
+ */
+async function resolveDeploymentAndFrodoForDiscovery(
+  context: McpRuntimeRequestContext,
+  frodoRoot: Frodo,
+  customResolver?: (
+    context: McpRuntimeRequestContext,
+    frodoRoot: Frodo
+  ) => Frodo | Promise<Frodo>
+): Promise<{ deploymentType?: McpDeploymentType; scopedFrodo?: Frodo }> {
+  const configuredDeployment = resolveContextDeploymentType(context);
+  if (configuredDeployment) {
+    return { deploymentType: configuredDeployment };
+  }
+
+  const configuredHost =
+    context.auth.mode === 'state-config'
+      ? context.auth.config.host
+      : context.auth.host;
+  if (!configuredHost) {
+    return {};
+  }
+
+  const scopedFrodo = await resolveScopedFrodoInstance(
+    context,
+    frodoRoot,
+    customResolver
+  );
+  return {
+    deploymentType: resolveScopedDeploymentType(scopedFrodo, context),
+    scopedFrodo,
+  };
+}
+
 async function resolveDeploymentForDiscovery(
   context: McpRuntimeRequestContext,
   frodoRoot: Frodo,
@@ -1138,25 +1199,12 @@ async function resolveDeploymentForDiscovery(
     frodoRoot: Frodo
   ) => Frodo | Promise<Frodo>
 ): Promise<McpDeploymentType | undefined> {
-  const configuredDeployment = resolveContextDeploymentType(context);
-  if (configuredDeployment) {
-    return configuredDeployment;
-  }
-
-  const configuredHost =
-    context.auth.mode === 'state-config'
-      ? context.auth.config.host
-      : context.auth.host;
-  if (!configuredHost) {
-    return undefined;
-  }
-
-  const scopedFrodo = await resolveScopedFrodoInstance(
+  const { deploymentType } = await resolveDeploymentAndFrodoForDiscovery(
     context,
     frodoRoot,
     customResolver
   );
-  return resolveScopedDeploymentType(scopedFrodo, context);
+  return deploymentType;
 }
 
 /**
@@ -1553,6 +1601,7 @@ function findSkills(
     deploymentTypes: McpCapabilityDescriptor['deploymentTypes'];
     preferredDeploymentTypes?: McpCapabilityDescriptor['preferredDeploymentTypes'];
     identitySurface?: McpCapabilityDescriptor['identitySurface'];
+    requiredCredential?: McpCapabilityDescriptor['requiredCredential'];
     objectTypePatterns?: string[];
     matchedObjectFamilies?: McpSemanticObjectFamily[];
     matchedObjectTypes?: string[];
@@ -1705,7 +1754,8 @@ function findSkills(
         descriptorPatternsSupportFamily(descriptor.objectTypePatterns, family)
       ).length *
         8 +
-      managedObjectMatches.matches.length * 6;
+      managedObjectMatches.matches.length * 6 +
+      getRoutingRelevanceBonus(routing.status);
     return queryTerms.length === 0 || relevance > 0
       ? [
           {
@@ -1725,9 +1775,9 @@ function findSkills(
   const results = filtered
     .sort(
       (left, right) =>
+        right.relevance - left.relevance ||
         getRoutingRank(left.routing.status) -
           getRoutingRank(right.routing.status) ||
-        right.relevance - left.relevance ||
         left.descriptor.id.localeCompare(right.descriptor.id)
     )
     .slice(0, limit)
@@ -1774,6 +1824,7 @@ function findSkills(
           deploymentTypes: descriptor.deploymentTypes,
           preferredDeploymentTypes: descriptor.preferredDeploymentTypes,
           identitySurface: descriptor.identitySurface,
+          requiredCredential: descriptor.requiredCredential,
           objectTypePatterns: descriptor.objectTypePatterns,
           ...(matchedObjectFamilies.length > 0 && { matchedObjectFamilies }),
           ...(managedObjectMatches.total > 0 && {
@@ -2091,16 +2142,24 @@ function scoreCapabilitySearch(
     ...(descriptor.semanticAliases ?? []).map(
       (alias) => [alias, 10] as [string, number]
     ),
-    [descriptor.notes ?? '', 2],
+    [descriptor.notes ?? '', 6],
   ];
   const operationAliases = [
     descriptor.operationType,
     ...(SEARCH_SYNONYMS[descriptor.operationType] ?? []),
   ];
+  // Only read-like operations get the generic identity/user/person bonus —
+  // otherwise every create/update/delete/relationship-write skill on a user
+  // object ties with the actual identity-lookup skills on any query
+  // containing "identity" or "user", crowding them out regardless of how
+  // specifically a skill's own notes describe it.
   const identityAliases =
-    descriptor.identitySurface === 'managed' ||
-    descriptor.identitySurface === 'am-user' ||
-    descriptor.objectTypePatterns?.some((pattern) => pattern.includes('user'))
+    READ_ONLY_OPERATION_TYPES.includes(descriptor.operationType) &&
+    (descriptor.identitySurface === 'managed' ||
+      descriptor.identitySurface === 'am-user' ||
+      descriptor.objectTypePatterns?.some((pattern) =>
+        pattern.includes('user')
+      ))
       ? ['user', 'identity', 'person']
       : [];
 
@@ -2152,6 +2211,40 @@ function scoreSemanticAliasPhrases(
 
 function getRoutingRank(status: McpCapabilityRoutingStatus): number {
   return ['preferred', 'compatible', 'unknown', 'incompatible'].indexOf(status);
+}
+
+/**
+ * Routing-status bonus folded additively into a search result's relevance
+ * score, rather than used as an absolute pre-sort tier (see findSkills).
+ *
+ * @remarks
+ * Routing status answers "is this capability the deployment-native way to do
+ * this, or just a compatible fallback" — meaningful when comparing genuine
+ * alternative implementations of the same operation (e.g. classic
+ * `user.countUsers` vs cloud `idm.managed.countManagedObjects`). It says
+ * nothing about how relevant a capability is to an unrelated query. A small
+ * additive bonus preserves the original intent — break near-ties toward the
+ * deployment-native answer — without letting it categorically outrank every
+ * more-relevant "compatible" result from a completely different domain, the
+ * way an absolute pre-sort tier did.
+ *
+ * No entry for "incompatible" deliberately: incompatible results are already
+ * excluded by default (see the includeIncompatible check above) and only
+ * ever reach this scoring at all when a caller explicitly asks to see them
+ * for diagnostics — a penalty here large enough to push them below the
+ * relevance > 0 inclusion filter would make them vanish from that
+ * diagnostic view entirely instead of just sorting last. The secondary
+ * getRoutingRank tiebreak in findSkills' sort still orders them after
+ * preferred/compatible results whenever relevance ties.
+ */
+const ROUTING_RELEVANCE_BONUS: Partial<
+  Record<McpCapabilityRoutingStatus, number>
+> = {
+  preferred: 6,
+};
+
+function getRoutingRelevanceBonus(status: McpCapabilityRoutingStatus): number {
+  return ROUTING_RELEVANCE_BONUS[status] ?? 0;
 }
 
 function resolveDescriptorForDispatch(

@@ -165,6 +165,70 @@ export type ManagedObject = {
     pageSize?: number
   ): Promise<IdObjectSkeletonInterface[]>;
   /**
+   * Read the current value of a relationship field directly off a managed
+   * object (the forward direction, e.g. an alpha_user's own `manager` or
+   * `roles` field). For the reverse direction use queryRelatedManagedObjects.
+   * @param {string} type managed object type, e.g. alpha_user
+   * @param {string} id managed object id
+   * @param {string} field relationship field name, e.g. 'manager' or 'roles'
+   * @returns {Promise<unknown>} the field's current value: a single ref object, an array of them, or null/undefined if unset
+   */
+  readRelationship(type: string, id: string, field: string): Promise<unknown>;
+  /**
+   * Add one target to a many-valued relationship field without disturbing
+   * any existing members.
+   * @param {string} type managed object type, e.g. alpha_user
+   * @param {string} id managed object id
+   * @param {string} field relationship field name, e.g. 'roles'
+   * @param {RelationshipTarget} target the object to add, as plain { type, id }
+   * @param {string} rev optional optimistic concurrency revision token
+   * @returns {Promise<IdObjectSkeletonInterface>} the patched object
+   */
+  addRelationship(
+    type: string,
+    id: string,
+    field: string,
+    target: RelationshipTarget,
+    rev?: string
+  ): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Remove one target from a many-valued relationship field without
+   * disturbing any other members.
+   * @param {string} type managed object type, e.g. alpha_user
+   * @param {string} id managed object id
+   * @param {string} field relationship field name, e.g. 'roles'
+   * @param {RelationshipTarget} target the object to remove, as plain { type, id }
+   * @param {string} rev optional optimistic concurrency revision token
+   * @returns {Promise<IdObjectSkeletonInterface>} the patched object
+   */
+  removeRelationship(
+    type: string,
+    id: string,
+    field: string,
+    target: RelationshipTarget,
+    rev?: string
+  ): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Replace the entire value of a relationship field: a single target (or
+   * null to clear it) for a single-valued field like 'manager', or an array
+   * of targets for a many-valued field like 'roles'. Replaces the whole
+   * field — use addRelationship/removeRelationship to change one member of
+   * a many-valued field without disturbing the rest.
+   * @param {string} type managed object type, e.g. alpha_user
+   * @param {string} id managed object id
+   * @param {string} field relationship field name, e.g. 'manager' or 'roles'
+   * @param {RelationshipTarget | RelationshipTarget[] | null} target the new value
+   * @param {string} rev optional optimistic concurrency revision token
+   * @returns {Promise<IdObjectSkeletonInterface>} the patched object
+   */
+  replaceRelationship(
+    type: string,
+    id: string,
+    field: string,
+    target: RelationshipTarget | RelationshipTarget[] | null,
+    rev?: string
+  ): Promise<IdObjectSkeletonInterface>;
+  /**
    * Resolve a managed object's uuid to a human readable username
    * @param {string} type managed object type, e.g. teammember or alpha_user
    * @param {string} id managed object _id
@@ -179,11 +243,14 @@ export type ManagedObject = {
    */
   resolveFullName(type: string, id: string): Promise<string>;
   /**
-   * Resolve a perpetrator's uuid to a human readable string identifying the perpetrator
-   * @param {string} id managed object _id
-   * @returns {Promise<string>} resolved perpetrator descriptive string or uuid if any error occurs during reslution
+   * Resolve a DN or bare uuid to a structured identity: what kind of principal it is
+   * (managed user, service account, tenant admin, or unknown/unconfirmed) and its
+   * display name, without the caller needing to already know its managed object type.
+   * @param {string} idOrDn a managed/system object uuid, or a full userId DN (e.g. from an audit log event)
+   * @param {string} realm optional realm override; only consulted when idOrDn is a bare uuid (a DN's own realm segment, if present, always wins)
+   * @returns {Promise<ResolvedIdentity>} the resolved identity
    */
-  resolvePerpetratorUuid(id: string): Promise<string>;
+  resolveIdentity(idOrDn: string, realm?: string): Promise<ResolvedIdentity>;
 };
 
 export default (state: State): ManagedObject => {
@@ -291,14 +358,51 @@ export default (state: State): ManagedObject => {
         state,
       });
     },
+    async readRelationship(
+      type: string,
+      id: string,
+      field: string
+    ): Promise<unknown> {
+      return readRelationship({ type, id, field, state });
+    },
+    async addRelationship(
+      type: string,
+      id: string,
+      field: string,
+      target: RelationshipTarget,
+      rev?: string
+    ): Promise<IdObjectSkeletonInterface> {
+      return addRelationship({ type, id, field, target, rev, state });
+    },
+    async removeRelationship(
+      type: string,
+      id: string,
+      field: string,
+      target: RelationshipTarget,
+      rev?: string
+    ): Promise<IdObjectSkeletonInterface> {
+      return removeRelationship({ type, id, field, target, rev, state });
+    },
+    async replaceRelationship(
+      type: string,
+      id: string,
+      field: string,
+      target: RelationshipTarget | RelationshipTarget[] | null,
+      rev?: string
+    ): Promise<IdObjectSkeletonInterface> {
+      return replaceRelationship({ type, id, field, target, rev, state });
+    },
     async resolveUserName(type: string, id: string) {
       return resolveUserName({ type, id, state });
     },
     async resolveFullName(type: string, id: string) {
       return resolveFullName({ type, id, state });
     },
-    async resolvePerpetratorUuid(id: string): Promise<string> {
-      return resolvePerpetratorUuid({ id, state });
+    async resolveIdentity(
+      idOrDn: string,
+      realm?: string
+    ): Promise<ResolvedIdentity> {
+      return resolveIdentity({ idOrDn, realm, state });
     },
   };
 };
@@ -829,6 +933,229 @@ export async function queryRelatedManagedObjects({
   return result;
 }
 
+/** A relationship target: the managed object type and id it points to, without any of the underlying _ref plumbing. */
+export type RelationshipTarget = {
+  type: string;
+  id: string;
+};
+
+/**
+ * Builds the underlying { _ref, _refResourceCollection, _refResourceId }
+ * shape IDM expects for a relationship reference in a "replace" operation,
+ * so callers of replaceRelationship only ever need to think in plain
+ * { type, id } terms.
+ */
+function buildRelationshipRefValue({ type, id }: RelationshipTarget): {
+  _ref: string;
+  _refResourceCollection: string;
+  _refResourceId: string;
+} {
+  return {
+    _ref: `managed/${type}/${id}`,
+    _refResourceCollection: `managed/${type}`,
+    _refResourceId: id,
+  };
+}
+
+/**
+ * Builds the minimal { _ref, _refProperties } shape an "add" operation
+ * needs — captured directly from a real request AIC's own admin UI sends
+ * for "add a role to this user", and verified live to work exactly as
+ * shown. Deliberately not reusing buildRelationshipRefValue's shape:
+ * "add" and "replace" turned out to want different value shapes, not
+ * variations of the same one.
+ */
+function buildAddRelationshipValue({ type, id }: RelationshipTarget): {
+  _ref: string;
+  _refProperties: Record<string, never>;
+} {
+  return { _ref: `managed/${type}/${id}`, _refProperties: {} };
+}
+
+/**
+ * Reads the current value of a relationship field directly off a managed
+ * object — the forward direction (e.g. an alpha_user's own `manager` or
+ * `roles` field). For the reverse direction (e.g. an alpha_role's members),
+ * use queryRelatedManagedObjects instead; reverse relationships aren't
+ * stored as a field on the object at all, so there's nothing here to read.
+ */
+export async function readRelationship({
+  type,
+  id,
+  field,
+  state,
+}: {
+  type: string;
+  id: string;
+  field: string;
+  state: State;
+}): Promise<unknown> {
+  const object = await readManagedObject({ type, id, fields: [field], state });
+  return object[field];
+}
+
+/**
+ * Adds one target to a many-valued relationship field without disturbing
+ * any existing members — the safe way to "add a member" (use
+ * replaceRelationship instead only when you actually mean to overwrite the
+ * whole field).
+ *
+ * @remarks
+ * Uses the exact request shape captured from AIC's own admin UI performing
+ * this action and verified live: field addressed as `/field/-` (JSON
+ * Pointer append-to-array syntax, RFC 6902) with a bare (not array-wrapped)
+ * { _ref, _refProperties: {} } value — not the field's own resourceCollection
+ * fields.
+ */
+export async function addRelationship({
+  type,
+  id,
+  field,
+  target,
+  rev,
+  state,
+}: {
+  type: string;
+  id: string;
+  field: string;
+  target: RelationshipTarget;
+  rev?: string;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
+  return updateManagedObjectProperties({
+    type,
+    id,
+    operations: [
+      {
+        operation: 'add',
+        field: `/${field}/-`,
+        value: buildAddRelationshipValue(target),
+      },
+    ],
+    rev,
+    state,
+  });
+}
+
+/** True if a stored relationship element refers to the given { type, id } target. */
+function matchesRelationshipTarget(
+  item: unknown,
+  target: RelationshipTarget
+): boolean {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    (item as Record<string, unknown>)._refResourceCollection ===
+      `managed/${target.type}` &&
+    (item as Record<string, unknown>)._refResourceId === target.id
+  );
+}
+
+/**
+ * Removes one target from a many-valued relationship field without
+ * disturbing any other members.
+ *
+ * @remarks
+ * Reads the field's current value first to find the exact stored element,
+ * then removes that exact object (not array-wrapped) — the request shape
+ * captured directly from AIC's own admin UI performing this action and
+ * verified live. Two things this gets exactly right that a naively-built
+ * request gets wrong: the value must be the object matching what's
+ * actually stored, _refProperties (an internal id/rev IDM itself generates
+ * for the relationship, distinct from the referenced object's own id)
+ * included — a freshly-built ref without it doesn't match and the request
+ * is silently ignored; and unlike "add" (which needs its value array-
+ * wrapped), "remove" needs a bare object, not an array containing one.
+ * Throws if the target isn't currently a member, rather than silently
+ * doing nothing the way a raw PATCH with a non-matching value would.
+ */
+export async function removeRelationship({
+  type,
+  id,
+  field,
+  target,
+  rev,
+  state,
+}: {
+  type: string;
+  id: string;
+  field: string;
+  target: RelationshipTarget;
+  rev?: string;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
+  const currentValue = await readRelationship({ type, id, field, state });
+  const currentArray = Array.isArray(currentValue)
+    ? currentValue
+    : currentValue
+      ? [currentValue]
+      : [];
+  const matchingElement = currentArray.find((item) =>
+    matchesRelationshipTarget(item, target)
+  );
+  if (!matchingElement) {
+    throw new FrodoError(
+      `Error removing relationship: ${target.type}/${target.id} is not currently a member of ${type}/${id}'s "${field}" field.`
+    );
+  }
+  return updateManagedObjectProperties({
+    type,
+    id,
+    operations: [
+      {
+        operation: 'remove',
+        field: `/${field}`,
+        value: matchingElement,
+      },
+    ],
+    rev,
+    state,
+  });
+}
+
+/**
+ * Replaces the entire value of a relationship field: a single target (or
+ * null to clear it) for a single-valued field like 'manager', or an array
+ * of targets for a many-valued field like 'roles' — replacing the whole
+ * array, not adding to it. Use addRelationship/removeRelationship instead
+ * when you only want to change one member of a many-valued field.
+ */
+export async function replaceRelationship({
+  type,
+  id,
+  field,
+  target,
+  rev,
+  state,
+}: {
+  type: string;
+  id: string;
+  field: string;
+  target: RelationshipTarget | RelationshipTarget[] | null;
+  rev?: string;
+  state: State;
+}): Promise<IdObjectSkeletonInterface> {
+  const value =
+    target === null
+      ? null
+      : Array.isArray(target)
+        ? target.map(buildRelationshipRefValue)
+        : buildRelationshipRefValue(target);
+  return updateManagedObjectProperties({
+    type,
+    id,
+    operations: [
+      {
+        operation: 'replace',
+        field: `/${field}`,
+        value,
+      },
+    ],
+    rev,
+    state,
+  });
+}
+
 export async function resolveUserName({
   type,
   id,
@@ -878,81 +1205,198 @@ export async function resolveFullName({
   return id;
 }
 
-export async function resolvePerpetratorUuid({
+/** What kind of principal a resolved identity turned out to be. */
+export type ResolvedIdentityKind =
+  | 'user'
+  | 'service'
+  | 'admin'
+  | 'admin-unconfirmed'
+  | 'unknown';
+
+export type ResolvedIdentity = {
+  /** The uuid that was resolved (extracted from the DN, if one was given). */
+  id: string;
+  kind: ResolvedIdentityKind;
+  /** Realm the identity belongs to. Only set for kind 'user'. */
+  realm?: string;
+  username?: string;
+  displayName?: string;
+  /** The managed/system object type the identity was actually found under, e.g. 'alpha_user', 'svcacct', 'teammember'. */
+  resolvedVia?: string;
+  /** Present for 'admin-unconfirmed'/'unknown': why a definitive kind couldn't be determined. */
+  note?: string;
+};
+
+const DN_UUID_REGEX = /^id=([^,]+),/;
+const DN_REALM_REGEX = /,o=([^,]+),/;
+
+/**
+ * Extracts the uuid and, if present, the realm segment from a userId-style DN
+ * (e.g. "id=<uuid>,ou=user,o=<realm>,ou=services,ou=am-config"). A DN with no
+ * o=<realm> segment (e.g. "id=<uuid>,ou=user,ou=am-config") is AM-internal —
+ * either a service account or tenant admin, never a realm-scoped managed user.
+ * @see the DN-realm-qualification heuristic established across this session's
+ *   audit-log identity resolution work.
+ */
+function parseIdentityDn(
+  idOrDn: string
+): { uuid: string; realm?: string } | undefined {
+  const uuidMatch = idOrDn.match(DN_UUID_REGEX);
+  if (!uuidMatch) return undefined;
+  const realmMatch = idOrDn.match(DN_REALM_REGEX);
+  return { uuid: uuidMatch[1], realm: realmMatch ? realmMatch[1] : undefined };
+}
+
+async function tryReadManagedSystemObject({
+  type,
   id,
+  fields,
   state,
 }: {
+  type: string;
   id: string;
+  fields: string[];
   state: State;
-}): Promise<string> {
+}): Promise<
+  | { status: 'found'; object: IdObjectSkeletonInterface }
+  | { status: 'not-found' }
+  | { status: 'forbidden' }
+> {
   try {
-    if (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
-      const lookupPromises: Promise<IdObjectSkeletonInterface>[] = [];
-      lookupPromises.push(
-        _getManagedSystemObject({
-          type: 'teammember',
-          id,
-          fields: ['givenName', 'sn', 'userName'],
-          state,
-        })
-      );
-      lookupPromises.push(
-        _getManagedSystemObject({
-          type: 'svcacct',
-          id,
-          fields: ['name', 'description'],
-          state,
-        })
-      );
-      lookupPromises.push(
-        _getManagedObject({
-          type: 'alpha_user',
-          id,
-          fields: ['givenName', 'sn', 'userName'],
-          state,
-        })
-      );
-      lookupPromises.push(
-        _getManagedObject({
-          type: 'bravo_user',
-          id,
-          fields: ['givenName', 'sn', 'userName'],
-          state,
-        })
-      );
-      const lookupResults = await Promise.allSettled(lookupPromises);
-      // tenant admin
-      if (lookupResults[0].status === 'fulfilled') {
-        const admin = lookupResults[0].value;
-        return `Admin user: ${admin.givenName} ${admin.sn} (${admin.userName})`;
-      }
-      // service account
-      if (lookupResults[1].status === 'fulfilled') {
-        const sa = lookupResults[1].value;
-        return `Service account: ${sa.name} (${sa.description})`;
-      }
-      // alpha user
-      if (lookupResults[2].status === 'fulfilled') {
-        const user = lookupResults[2].value;
-        return `Alpha user: ${user.givenName} ${user.sn} (${user.userName})`;
-      }
-      // bravo user
-      if (lookupResults[3].status === 'fulfilled') {
-        const user = lookupResults[3].value;
-        return `Bravo user:${user.givenName} ${user.sn} (${user.userName})`;
-      }
-    } else {
+    const object = await _getManagedSystemObject({ type, id, fields, state });
+    return { status: 'found', object };
+  } catch (error) {
+    if (error?.['response']?.status === 403) {
+      return { status: 'forbidden' };
+    }
+    return { status: 'not-found' };
+  }
+}
+
+/**
+ * Resolves a DN or bare uuid to a structured identity, without the caller
+ * needing to already know its managed object type. Replaces the older
+ * resolvePerpetratorUuid, which returned an opaque formatted string, hardcoded
+ * 'alpha_user'/'bravo_user' as the only realms, and couldn't distinguish "not
+ * found" from "found but the calling credential lacks visibility" — a real
+ * distinction: a service-account-authenticated session can read svcacct
+ * objects but gets a 403, not a 404, on teammember.
+ */
+export async function resolveIdentity({
+  idOrDn,
+  realm,
+  state,
+}: {
+  idOrDn: string;
+  realm?: string;
+  state: State;
+}): Promise<ResolvedIdentity> {
+  const parsedDn = parseIdentityDn(idOrDn);
+  const uuid = parsedDn?.uuid ?? idOrDn;
+  const effectiveRealm = parsedDn?.realm ?? realm;
+  const isCloud =
+    state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
+  const isCloudOrForgeops =
+    isCloud ||
+    state.getDeploymentType() === Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
+
+  // A realm-qualified DN (or an explicit realm override) means this is a
+  // genuine realm-scoped managed user — resolve it directly, no need to
+  // consider service-account/admin at all. Only cloud partitions managed
+  // users per realm (alpha_user, bravo_user, ...) — verified live this
+  // session against a real forgeops tenant, whose IDM managed object
+  // families are a flat, deployment-wide 'user' with no realm prefix at
+  // all, same as classic.
+  if (effectiveRealm) {
+    const userType = isCloud ? `${effectiveRealm}_user` : 'user';
+    try {
       const user = await _getManagedObject({
-        type: 'user',
-        id,
+        type: userType,
+        id: uuid,
         fields: ['givenName', 'sn', 'userName'],
         state,
       });
-      return `${user.givenName} ${user.sn} (${user.userName})`;
+      return {
+        id: uuid,
+        kind: 'user',
+        realm: effectiveRealm,
+        username: user.userName as string,
+        displayName: `${user.givenName ?? ''} ${user.sn ?? ''}`.trim(),
+        resolvedVia: userType,
+      };
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      return {
+        id: uuid,
+        kind: 'unknown',
+        note: `Not found as ${userType} in realm ${effectiveRealm}.`,
+      };
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error) {
-    // ignore
   }
-  return id;
+
+  // No realm segment: AM-internal identity. Cloud/forgeops distinguishes
+  // service account from tenant admin via two managed system object types;
+  // classic has neither concept, so an unqualified DN there is unresolvable.
+  if (!isCloudOrForgeops) {
+    return {
+      id: uuid,
+      kind: 'unknown',
+      note: 'No realm segment in the DN and this deployment type has no service-account/tenant-admin managed object types to check.',
+    };
+  }
+
+  const svcacct = await tryReadManagedSystemObject({
+    type: 'svcacct',
+    id: uuid,
+    fields: ['name', 'description'],
+    state,
+  });
+  if (svcacct.status === 'found') {
+    return {
+      id: uuid,
+      kind: 'service',
+      username: svcacct.object.name as string,
+      displayName: svcacct.object.description as string,
+      resolvedVia: 'svcacct',
+    };
+  }
+
+  const teammember = await tryReadManagedSystemObject({
+    type: 'teammember',
+    id: uuid,
+    fields: ['givenName', 'sn', 'userName'],
+    state,
+  });
+  if (teammember.status === 'found') {
+    return {
+      id: uuid,
+      kind: 'admin',
+      username: teammember.object.userName as string,
+      displayName:
+        `${teammember.object.givenName ?? ''} ${teammember.object.sn ?? ''}`.trim(),
+      resolvedVia: 'teammember',
+    };
+  }
+
+  if (teammember.status === 'forbidden') {
+    return {
+      id: uuid,
+      kind: 'admin-unconfirmed',
+      note: 'Not a service account, and the calling credential lacks permission to check teammember directly (403, not 404) — service accounts typically cannot read teammember. By elimination this is presumed to be a tenant admin, but it could not be independently confirmed with this credential.',
+    };
+  }
+
+  if (svcacct.status === 'forbidden') {
+    return {
+      id: uuid,
+      kind: 'unknown',
+      note: 'Not a tenant admin (teammember lookup succeeded and found nothing), but the calling credential lacks permission to check svcacct directly (403, not 404), so service-account status could not be confirmed either.',
+    };
+  }
+
+  return {
+    id: uuid,
+    kind: 'unknown',
+    note: 'No realm segment in the DN, and not found as svcacct or teammember — an AM-internal identity of an unrecognized kind (e.g. an agent).',
+  };
 }

@@ -74,6 +74,13 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
+      {
+        name: 'nodeTypeVersion',
+        type: 'string',
+        required: false,
+        position: 2,
+        description: 'Optional node type version, when more than one exists.',
+      },
     ],
     supportsRealm: true,
     notes:
@@ -868,25 +875,236 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         examples: ['alpha_user'],
       },
       {
-        name: 'id',
-        type: 'string',
-        required: false,
-        position: 1,
-        description: 'Optional managed object id. Omit to let IDM assign one.',
-        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
-      },
-      {
         name: 'moData',
         type: 'IdObjectSkeletonInterface',
         required: true,
-        position: 2,
+        position: 1,
         description: 'Managed object payload object.',
         schema: { type: 'object', additionalProperties: true },
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: false,
+        position: 2,
+        description: 'Optional managed object id. Omit to let IDM assign one.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
     ],
     supportsRealm: true,
     notes:
-      'Create a managed object with namedArgs { type, id, moData }. id is optional.',
+      "Create a managed object with namedArgs { type, id, moData }. id is optional. A relationship field can be set at creation time too, by including it directly in moData with the same ref-shaped value idm.managed.updateManagedObjectProperties's notes describe — see that skill for the full relationship-write pattern (discovering fields via schema, single- vs many-valued, add/remove/replace).",
+  },
+  'idm.managed.readManagedObjectSchema': {
+    notes:
+      "Read a type's schema — the way to discover its relationship fields before writing to them. A property with type 'relationship' is a relationship field; resourceCollection.path (nested under items for a many-valued field, directly on the property for a single-valued one) is the target type to reference. See idm.managed.updateManagedObjectProperties's notes for the actual write pattern.",
+  },
+  'idm.managed.readRelationship': {
+    operationType: 'read',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description:
+          "Relationship field name, e.g. 'manager' or 'roles'. Use idm.managed.readManagedObjectSchema to discover a type's relationship fields.",
+        examples: ['manager', 'roles'],
+      },
+    ],
+    supportsRealm: true,
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      "Reads the current value of a relationship field directly off a managed object with namedArgs { type, id, field } — the forward direction (e.g. an alpha_user's own 'manager' or 'roles'). Returns a single { _ref, ... } object for a single-valued field, an array of them for a many-valued field, or null/undefined if unset. For the reverse direction (e.g. an alpha_role's members) use idm.managed.queryRelatedManagedObjects instead — reverse relationships aren't stored as a field on the object at all.",
+  },
+  'idm.managed.addRelationship': {
+    operationType: 'update',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type of the object being patched.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id being patched.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'Many-valued relationship field name to add a member to.',
+        examples: ['roles'],
+      },
+      {
+        name: 'target',
+        type: 'RelationshipTarget',
+        required: true,
+        position: 3,
+        description:
+          "The object to add, as plain { type, id } — no _ref/_refResourceCollection plumbing required, this skill builds it. type is the target's own managed object type (from the field's schema resourceCollection, e.g. alpha_role for alpha_user's roles field), not the source object's type.",
+        schema: {
+          type: 'object',
+          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          required: ['type', 'id'],
+        },
+        examples: [
+          { type: 'alpha_role', id: '1234abcd-0000-1111-2222-abcdefabcdef' },
+        ],
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Adds one target to a many-valued relationship field without disturbing any existing members — the safe way to "add a member". Builds the exact request shape captured from AIC\'s own admin UI performing this action and verified live — field addressed as "/field/-" (JSON Pointer append-to-array syntax) with a bare { _ref, _refProperties: {} } value — so you don\'t have to know that shape yourself. Use idm.managed.replaceRelationship instead only when you actually mean to overwrite the whole field. Discover a field\'s name and target type via idm.managed.readManagedObjectSchema first (a relationship property with items present is many-valued).',
+  },
+  'idm.managed.removeRelationship': {
+    operationType: 'update',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type of the object being patched.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id being patched.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description:
+          'Many-valued relationship field name to remove a member from.',
+        examples: ['roles'],
+      },
+      {
+        name: 'target',
+        type: 'RelationshipTarget',
+        required: true,
+        position: 3,
+        description:
+          "The object to remove, as plain { type, id } — same shape as addRelationship's target.",
+        schema: {
+          type: 'object',
+          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          required: ['type', 'id'],
+        },
+        examples: [
+          { type: 'alpha_role', id: '1234abcd-0000-1111-2222-abcdefabcdef' },
+        ],
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: true,
+    riskClass: 'medium',
+    notes:
+      "Removes one target from a many-valued relationship field without disturbing any other members. Revokes access/membership — for example removing a role grants the tenant admin who ran it just took away, or a group membership — so treated as a step above the plain-read/add-a-member default. Builds the exact request shape captured from AIC's own admin UI performing this action and verified live: reads the field's current value first to find the exact stored element (including an internal _refProperties block IDM itself generates for the relationship, distinct from the referenced object's own id — a freshly-built ref without it silently matches nothing and removes nothing, no error), then removes that exact object as a bare (not array-wrapped) value — a different shape from what \"add\" needs, not a variation of it. Throws a clear error rather than silently doing nothing if the target isn't currently a member.",
+  },
+  'idm.managed.replaceRelationship': {
+    operationType: 'update',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type of the object being patched.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id being patched.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'Relationship field name to replace entirely.',
+        examples: ['manager', 'roles'],
+      },
+      {
+        name: 'target',
+        type: 'RelationshipTarget | RelationshipTarget[] | null',
+        required: true,
+        position: 3,
+        description:
+          "The new value: a single { type, id } (or null to clear it) for a single-valued field like 'manager'; an array of { type, id } for a many-valued field like 'roles' — replacing the whole array, not adding to it. Use addRelationship/removeRelationship instead to change one member of a many-valued field without disturbing the rest.",
+        examples: [
+          { type: 'alpha_user', id: '1234abcd-0000-1111-2222-abcdefabcdef' },
+          null,
+        ],
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: true,
+    riskClass: 'medium',
+    notes:
+      "Replaces the entire value of a relationship field — a destructive overwrite of a many-valued field's whole membership list, not an incremental change, so treated as a step above add/read. Prefer addRelationship/removeRelationship for changing one member.",
   },
   'idm.managed.readManagedObject': {
     argumentMode: 'named',
@@ -978,13 +1196,39 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
         type: 'PatchOperationInterface[]',
         required: true,
         position: 2,
-        description: 'JSON patch-style operations for the target object.',
+        description:
+          "JSON patch-style operations for the target object. Also the mechanism for writing relationships (adding/removing a member, setting a manager, etc.) — see this skill's notes for the exact shape; there is no separate relationship-write skill.",
         schema: {
           type: 'array',
           items: { type: 'object', additionalProperties: true },
         },
         examples: [
           [{ operation: 'replace', field: '/mail', value: 'a@example.com' }],
+          [
+            {
+              operation: 'add',
+              field: '/roles/-',
+              value: {
+                _ref: 'managed/alpha_role/1234abcd-0000-1111-2222-abcdefabcdef',
+                _refProperties: {},
+              },
+            },
+          ],
+          [
+            {
+              operation: 'remove',
+              field: '/roles',
+              value: {
+                _ref: 'managed/alpha_role/1234abcd-0000-1111-2222-abcdefabcdef',
+                _refResourceCollection: 'managed/alpha_role',
+                _refResourceId: '1234abcd-0000-1111-2222-abcdefabcdef',
+                _refProperties: {
+                  _id: 'internal-relationship-id',
+                  _rev: '...',
+                },
+              },
+            },
+          ],
         ],
       },
       {
@@ -997,7 +1241,11 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     ],
     supportsRealm: true,
     notes:
-      'Patch one managed object with namedArgs { type, id, operations, rev }.',
+      'Patch one managed object with namedArgs { type, id, operations, rev }. This is also the underlying mechanism relationships are written through — a relationship field is just a regular field from a PATCH point of view. Prefer the dedicated idm.managed.readRelationship/addRelationship/removeRelationship/replaceRelationship skills instead of raw operations here for relationship work — they take a plain { type, id } target and build the correct value shape for you, including two real gotchas verified live this session (and confirmed against the exact request shape AIC\'s own admin UI sends): "add" and "remove" each need a different, specific value shape that neither guessing nor generalizing from the other gets right.\n' +
+      '\n' +
+      "To find a type's relationship fields and what they target, call idm.managed.readManagedObjectSchema first: a property with type 'relationship' is a relationship field. A single-valued one (e.g. alpha_user's 'manager', targeting managed/alpha_user, reverse property 'reports') has resourceCollection directly on the property; a many-valued one (e.g. alpha_user's 'roles', targeting managed/alpha_role) has it nested under items instead — that items/no-items distinction is exactly what tells you whether the field holds one relationship or an array of them.\n" +
+      '\n' +
+      'If you do use raw operations here for a many-valued relationship: to add one member without disturbing the rest, address the field as "/field/-" (JSON Pointer append-to-array syntax) with operation "add" and a bare value of just { _ref: "<resourceCollection.path>/<id>", _refProperties: {} } — not array-wrapped, and no _refResourceCollection/_refResourceId (as in the second example above). To remove one member, address the field as "/field" (no index) with operation "remove" and a bare value that exactly matches the currently-stored element, including its _refProperties (an internal id/rev IDM itself generates for the relationship, distinct from the referenced object\'s own id) — read the field first (idm.managed.readRelationship) to get that exact stored element, since a freshly-built ref without the real _refProperties silently matches nothing and removes nothing, with no error (as in the third example above; the _refProperties values there are illustrative — always use the real ones from a fresh read, never fabricate them). For a single-valued relationship (like \'manager\'), use "replace" with a single (unwrapped) ref-shaped value { _ref, _refResourceCollection, _refResourceId }, or null to clear it — resourceCollection.path comes straight from the schema (e.g. "managed/alpha_role"), never guess or hardcode a realm prefix into it.',
   },
   'idm.managed.updateManagedObjectsProperties': {
     argumentMode: 'named',
@@ -1101,6 +1349,530 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     supportsRealm: true,
     notes: 'Delete multiple managed objects with namedArgs { type, filter }.',
   },
+
+  'idm.managedSystem.readManagedSystemObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          'Managed system object type: teammember (tenant admin) or svcacct (service account). Distinct from regular managed object types like alpha_user — use idm.managed.readManagedObject for those.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id (UUID) to read.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'fields',
+        type: 'string[]',
+        required: false,
+        position: 2,
+        description: 'Optional list of fields to return.',
+        schema: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        examples: [['givenName', 'sn', 'userName']],
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Read a managed system object (teammember or svcacct) with namedArgs { type, id, fields }. A 403/permission error here — as opposed to a 404 — means the caller\'s own credential lacks visibility into that type (for example, a service-account-authenticated session typically cannot read teammember), not that the object doesn\'t exist; distinguish the two rather than treating both as "not found".',
+  },
+  'idm.managedSystem.readManagedSystemObjects': {
+    riskClass: 'critical',
+    notes:
+      'List all managed system objects of a type (teammember or svcacct) — reveals the full tenant-admin or service-account roster. Admin-only regardless of read-only intent.',
+  },
+  'idm.managedSystem.readManagedSystemObjectSchema': {
+    riskClass: 'critical',
+  },
+  'idm.managedSystem.queryManagedSystemObjects': {
+    riskClass: 'critical',
+    notes:
+      'Search managed system objects of a type (teammember or svcacct) — can reveal tenant-admin or service-account membership. Admin-only regardless of read-only intent.',
+  },
+  'idm.managedSystem.countManagedSystemObjects': {
+    riskClass: 'critical',
+  },
+  'idm.managedSystem.createManagedSystemObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'moData',
+        type: 'IdObjectSkeletonInterface',
+        required: true,
+        position: 1,
+        description: 'Managed system object payload object.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: false,
+        position: 2,
+        description:
+          'Optional managed system object id. Omit to let IDM assign one.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Create a managed system object (teammember or svcacct) with namedArgs { type, moData, id }. teammember creation grants tenant-admin access — treat as critical regardless of type.',
+  },
+  'idm.managedSystem.updateManagedSystemObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id to update.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'moData',
+        type: 'IdObjectSkeletonInterface',
+        required: true,
+        position: 2,
+        description: 'Updated managed system object payload object.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Update a managed system object (teammember or svcacct) with namedArgs { type, id, moData }. Can change tenant-admin privileges — treat as critical regardless of type.',
+  },
+  'idm.managedSystem.updateManagedSystemObjectProperties': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id to patch.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'operations',
+        type: 'PatchOperationInterface[]',
+        required: true,
+        position: 2,
+        description: 'JSON patch-style operations for the target object.',
+        schema: {
+          type: 'array',
+          items: { type: 'object', additionalProperties: true },
+        },
+        examples: [
+          [{ operation: 'replace', field: '/description', value: 'updated' }],
+        ],
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 3,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Patch one managed system object (teammember or svcacct) with namedArgs { type, id, operations, rev }. Can change tenant-admin privileges — treat as critical regardless of type.',
+  },
+  'idm.managedSystem.updateManagedSystemObjectsProperties': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'filter',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'IDM query filter selecting the objects to patch.',
+        examples: ['userName sw "a"'],
+      },
+      {
+        name: 'operations',
+        type: 'PatchOperationInterface[]',
+        required: true,
+        position: 2,
+        description:
+          'JSON patch-style operations applied to all matching objects.',
+        schema: {
+          type: 'array',
+          items: { type: 'object', additionalProperties: true },
+        },
+        examples: [
+          [{ operation: 'replace', field: '/description', value: 'updated' }],
+        ],
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 3,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+      {
+        name: 'pageSize',
+        type: 'integer',
+        required: false,
+        position: 4,
+        description: 'Optional batch page size for large updates.',
+        defaultValue: 1000,
+        examples: [100, 1000],
+      },
+    ],
+    supportsRealm: false,
+    supportsPaging: true,
+    riskClass: 'critical',
+    notes:
+      'Patch multiple managed system objects (teammember or svcacct) with namedArgs { type, filter, operations, rev, pageSize }. Can change tenant-admin privileges — treat as critical regardless of type.',
+  },
+  'idm.managedSystem.deleteManagedSystemObject': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id to delete.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Delete a managed system object (teammember or svcacct) with namedArgs { type, id }. Deleting a teammember revokes tenant-admin access — treat as critical regardless of type.',
+  },
+  'idm.managedSystem.deleteManagedSystemObjects': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'filter',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'IDM query filter selecting the objects to delete.',
+        examples: ['userName sw "a"'],
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Delete multiple managed system objects (teammember or svcacct) with namedArgs { type, filter }. Deleting a teammember revokes tenant-admin access — treat as critical regardless of type.',
+  },
+  'idm.managedSystem.queryRelatedManagedSystemObjects': {
+    operationType: 'search',
+    objectType: 'RelatedManagedSystemObject',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'relationship',
+        type: 'string',
+        required: true,
+        position: 2,
+        description:
+          'Name of the relationship to query, the reverse direction.',
+      },
+      {
+        name: 'fields',
+        type: 'string[]',
+        required: false,
+        position: 3,
+        description: 'Optional list of fields to return.',
+        schema: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        examples: [['userName', 'mail']],
+      },
+      {
+        name: 'pageSize',
+        type: 'integer',
+        required: false,
+        position: 4,
+        description:
+          'Optional page size hint forwarded from the generic pageSize control.',
+        examples: [100, 250],
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Query the reverse direction of a relationship on a managed system object (teammember or svcacct) with namedArgs { type, id, relationship, fields, pageSize }. Admin-only regardless of read-only intent, same as the rest of idm.managedSystem.*.',
+  },
+  'idm.managedSystem.readRelationship': {
+    operationType: 'read',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type: teammember or svcacct.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description:
+          "Relationship field name. Use idm.managedSystem.readManagedSystemObjectSchema to discover a type's relationship fields.",
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Reads the current value of a relationship field directly off a managed system object (teammember or svcacct) with namedArgs { type, id, field } — the forward direction. Admin-only regardless of read-only intent, same as the rest of idm.managedSystem.*.',
+  },
+  'idm.managedSystem.addRelationship': {
+    operationType: 'update',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type of the object being patched.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id being patched.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'Many-valued relationship field name to add a member to.',
+      },
+      {
+        name: 'target',
+        type: 'RelationshipTarget',
+        required: true,
+        position: 3,
+        description:
+          'The object to add, as plain { type, id } — no _ref/_refResourceCollection plumbing required.',
+        schema: {
+          type: 'object',
+          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          required: ['type', 'id'],
+        },
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      "Adds one target to a many-valued relationship field on a managed system object (teammember or svcacct) without disturbing any existing members. Admin-only regardless of write intent, same as the rest of idm.managedSystem.*. See idm.managed.addRelationship's notes for the exact request shape this skill builds for you (captured from AIC's own admin UI, verified live).",
+  },
+  'idm.managedSystem.removeRelationship': {
+    operationType: 'update',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type of the object being patched.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id being patched.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description:
+          'Many-valued relationship field name to remove a member from.',
+      },
+      {
+        name: 'target',
+        type: 'RelationshipTarget',
+        required: true,
+        position: 3,
+        description: 'The object to remove, as plain { type, id }.',
+        schema: {
+          type: 'object',
+          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          required: ['type', 'id'],
+        },
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      "Removes one target from a many-valued relationship field on a managed system object (teammember or svcacct) without disturbing any other members. See idm.managed.removeRelationship's notes for the exact request shape this skill builds for you — reads the field's current value first to match IDM's own internal _refProperties on the exact stored element, then removes it as a bare value.",
+  },
+  'idm.managedSystem.replaceRelationship': {
+    operationType: 'update',
+    objectType: 'Relationship',
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed system object type of the object being patched.',
+        examples: ['teammember', 'svcacct'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed system object id being patched.',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+      {
+        name: 'field',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'Relationship field name to replace entirely.',
+      },
+      {
+        name: 'target',
+        type: 'RelationshipTarget | RelationshipTarget[] | null',
+        required: true,
+        position: 3,
+        description:
+          'The new value: a single { type, id } (or null to clear it) for a single-valued field, an array for a many-valued field.',
+      },
+      {
+        name: 'rev',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional optimistic concurrency revision token.',
+      },
+    ],
+    supportsRealm: false,
+    riskClass: 'critical',
+    notes:
+      'Replaces the entire value of a relationship field on a managed system object (teammember or svcacct) — a destructive overwrite of the whole field, not an incremental change. Prefer addRelationship/removeRelationship for changing one member.',
+  },
+
   'idm.mapping.createMapping': {
     argumentMode: 'named',
     parameters: [
@@ -1826,6 +2598,849 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     objectTypePatterns: ['user'],
     notes:
       'Operates on AM realm users via the AM REST API. Exposed for MCP use only in classic deployments. In cloud/forgeops deployments, use idm.managed.* for identity operations.',
+  },
+
+  // ── Cloud log operations ──────────────────────────────────────────────────────
+  // LogOps methods are named after the debug/audit log domain vocabulary (tail,
+  // fetch, sources) rather than the create/read/update/delete/list/search naming
+  // convention buildDescriptor infers operationType from, so most of them land as
+  // operationType 'special' by default even though several are plain reads. These
+  // entries give the true CRUD identity explicitly instead of renaming the
+  // underlying LogOps methods.
+  'cloud.log.getLogSources': {
+    operationType: 'list',
+    objectType: 'LogSource',
+    argumentMode: 'none',
+    parameters: [],
+    supportsPaging: false,
+    supportsIncludeTotal: false,
+    requiredCredential: 'logApi',
+    notes:
+      'Returns the full set of available log source identifiers for this tenant. Pass one or more as the source parameter to fetch/tail. Sources split into two kinds: DEBUG sources (am-core, idm-core, ws-core — no audit events, troubleshooting only, e.g. authentication script output) and AUDIT sources (everything else — structured events with timestamps, transaction ids, and identity attribution). Each family has its own aggregate: am-everything covers only am-access/am-activity/am-authentication/am-config/am-core; idm-everything and ws-everything are scoped the same way to their own family — there is no single source spanning AM and IDM together. See cloud.log.fetch for the verified per-source event taxonomy. Requires a Log API key/secret — see cloud.log.createLogApiKey.',
+  },
+  'cloud.log.getLogApiKey': {
+    operationType: 'read',
+    objectType: 'LogApiKey',
+    argumentMode: 'positional',
+    parameters: [
+      {
+        name: 'keyId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Log API key id.',
+      },
+    ],
+  },
+  'cloud.log.getLogApiKeys': {
+    operationType: 'list',
+    objectType: 'LogApiKey',
+    argumentMode: 'none',
+    parameters: [],
+  },
+  'cloud.log.isLogApiKeyValid': {
+    // Not a resource read: validates a key id + secret pair and returns a boolean.
+    // Stays 'special' rather than being forced into 'read' semantics, but gets an
+    // explicit non-mutating classification so it isn't gated by the CRUD allow list.
+    mutating: false,
+    destructive: false,
+    riskClass: 'low',
+    argumentMode: 'positional',
+    requiredCredential: 'logApi',
+    parameters: [
+      {
+        name: 'keyId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Log API key id.',
+      },
+      {
+        name: 'secret',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Log API key secret.',
+      },
+    ],
+    notes: 'Validates a log API key id/secret pair; returns a boolean.',
+  },
+  'cloud.log.tail': {
+    operationType: 'list',
+    objectType: 'LogEvent',
+    argumentMode: 'positional',
+    requiredCredential: 'logApi',
+    parameters: [
+      {
+        name: 'source',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          'Log source(s) to tail, comma-separated. am-core/idm-core/ws-core are DEBUG sources (no audit events); everything else is an AUDIT source. See cloud.log.getLogSources and cloud.log.fetch for the full taxonomy.',
+        examples: ['am-core', 'am-authentication,idm-core'],
+      },
+      {
+        name: 'cookie',
+        type: 'string',
+        required: false,
+        position: 1,
+        description: 'Paged-results cookie from a previous tail call.',
+      },
+    ],
+    supportsPaging: true,
+    supportsIncludeTotal: false,
+    notes:
+      'Reads the next batch of log events from a live cursor position for the given source(s). No time range or filter; use cloud.log.fetch for bounded/filtered queries and for the event/source taxonomy (identity events, session-granted signal, config-change attribution) documented on that skill. Requires a Log API key/secret — see cloud.log.createLogApiKey.',
+  },
+  'cloud.log.fetch': {
+    operationType: 'search',
+    objectType: 'LogEvent',
+    argumentMode: 'named',
+    requiredCredential: 'logApi',
+    parameters: [
+      {
+        name: 'source',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          "Log source(s) to query, comma-separated. am-core/idm-core/ws-core are DEBUG sources (no audit events); everything else is an AUDIT source. See the source taxonomy in this method's notes, and cloud.log.getLogSources for the live list.",
+        examples: ['am-core', 'am-authentication,idm-core'],
+      },
+      {
+        name: 'startTs',
+        type: 'string',
+        required: false,
+        position: 1,
+        description: 'Start timestamp (ISO 8601), inclusive.',
+        examples: ['2026-08-14T00:00:00Z'],
+      },
+      {
+        name: 'endTs',
+        type: 'string',
+        required: false,
+        position: 2,
+        description: 'End timestamp (ISO 8601), exclusive.',
+        examples: ['2026-08-15T00:00:00Z'],
+      },
+      {
+        name: 'cookie',
+        type: 'string',
+        required: false,
+        position: 3,
+        description: 'Paged-results cookie from a previous fetch call.',
+      },
+      {
+        name: 'txid',
+        type: 'string',
+        required: false,
+        position: 4,
+        description: 'Optional transaction id to narrow the query to.',
+      },
+      {
+        name: 'filter',
+        type: 'string',
+        required: false,
+        position: 5,
+        description:
+          'CREST _queryFilter syntax: a leading-slash field path against the log payload, e.g. /payload/eventName eq "AM-TREE-LOGIN-COMPLETED". Operators: eq, co (contains), sw (starts with), pr (present); combine multiple with "and". Field paths WITHOUT the leading slash (payload.eventName, payload/eventName) or an unprefixed field both fail with an opaque 500 — the leading slash is not optional. Prefer filtering server-side over fetching unfiltered and post-filtering: results are capped by an inline size limit and returned oldest-first within the window, so an unfiltered fetch over a noisy tenant truncates before reaching what you want.',
+        examples: [
+          '/payload/eventName eq "AM-TREE-LOGIN-COMPLETED"',
+          '/payload/eventName eq "AM-TREE-LOGIN-COMPLETED" and /payload/userId co "o=alpha"',
+          '/payload/transactionId sw "83da4a26-4156-4d1a-85a8-64ee5b719f1d"',
+        ],
+      },
+    ],
+    supportsPaging: true,
+    supportsIncludeTotal: false,
+    notes:
+      'Queries log events by source, time range, transaction id, and/or filter — the operation for bounded questions like "what were the last N logins" or "who changed journey X". Source taxonomy below combines Ping\'s documented source descriptions (docs.pingidentity.com/pingoneaic/tenants/audit-debug-log-sources.html) with event-level shapes verified live against a real tenant this session — the AM-side entries are directly observed; the IDM-side entries are documented but not yet independently verified against live IDM events, so treat their event-name specifics as provisional until checked.\n' +
+      '\n' +
+      'Time window limit: startTs..endTs spans wider than ~24 hours fail with an opaque 400, verified live against two different sources (am-config, am-authentication) both with and without a filter — this is a Log API-wide limit, not specific to one source or to filtering. Split any wider question into consecutive ~24h calls yourself using this skill directly, or use cloud.log.searchEvents instead, which does that chunking automatically.\n' +
+      '\n' +
+      'DEBUG sources — no audit events, troubleshooting only. am-core and idm-core are DEBUG-level in dev/sandbox tenants, WARNING-and-above in staging/production; am-core specifically is where authentication SCRIPT logging output shows up (relevant for "why did this script do X" questions, not identity/change questions). Shape is raw application log lines (`context`/`logger`/`message`/`thread`/`mdc.transactionId`), not the structured audit payload described below. ws-core is the WS-Federation equivalent.\n' +
+      '\n' +
+      'AUDIT sources, AM side (verified live):\n' +
+      '- am-authentication (topic authentication): identity/login events. AM-TREE-LOGIN-COMPLETED fires once per completed journey, human or service, carrying `result` and — only on completion — a resolved `userId`; this is the event to filter on. AM-LOGIN-COMPLETED / AM-LOGIN-MODULE-COMPLETED only fire for legacy module-class auth (service/agent bindings), not tree-based human logins. AM-NODE-LOGIN-COMPLETED fires per node and is too granular for identity queries.\n' +
+      '- am-access (topic access): "who, what, when, and the output for every access request" per Ping\'s docs — REST-level ATTEMPT/OUTCOME pairs. Redundant with AM-TREE-LOGIN-COMPLETED for identity purposes.\n' +
+      "- am-activity (topic activity): state changes to objects created/updated/deleted by end users — sessions, user profiles, device profiles per Ping's docs. `operation`: CREATE/UPDATE/DELETE against a typed `component`. AM-SESSION-CREATED here is the only reliable signal that a session was actually granted — AM-TREE-LOGIN-COMPLETED and the am-access OUTCOME both report a plain SUCCESSFUL/200 even for a noSession=true journey that grants no session at all, with no other difference in either event.\n" +
+      "- am-config (topic config): AM configuration changes with timestamp and user attribution per Ping's docs — documented as available in DEVELOPMENT ENVIRONMENTS ONLY, so don't assume this exists on staging/production tenants without checking cloud.log.getLogSources first. AM-CONFIG-CHANGE events cover admin-console config edits (journeys, nodes, scripts, services) — `objectId` is the changed resource's DN, `changedFields` lists which fields changed (names only, not before/after values), `operation` is CREATE/UPDATE/DELETE. Attribution caveat: script/service-level changes carry the real editor's `userId`, but authentication-tree and node changes are attributed to an internal directory-service account (`dsameuser`) instead of the admin who made them — recover the real identity by following the event's `trackingIds` to a correlated am-activity AM-SESSION-CREATED event for the same session.\n" +
+      '- am-everything: aggregates am-access/am-activity/am-authentication/am-config/am-core only — AM side, not IDM. The fastest way to explore an unfamiliar AM-side question: scope tightly by transaction id (filter: /payload/transactionId sw "<txid>") or a narrow recent window, rather than guessing which individual source holds the answer.\n' +
+      '\n' +
+      "AUDIT sources, IDM side (per Ping's docs, event-name specifics not yet independently verified this session):\n" +
+      '- idm-authentication: when and how a user authenticated through IDM.\n' +
+      '- idm-access: IDM access calls as audit events, same who/what/when/output shape as am-access.\n' +
+      '- idm-activity: state changes to objects created/updated/deleted by IDM end users — the likely IDM-side equivalent of am-activity, not yet confirmed to carry the same session-granted signal.\n' +
+      '- idm-config: IDM configuration changes with timestamp and by whom — the likely place to look for changes to IDM-managed objects (users, roles) analogous to what am-config covers for AM config, not yet confirmed live.\n' +
+      '- idm-recon / idm-sync: reconciliation and synchronization events; no verified event shape yet.\n' +
+      '- idm-everything: aggregates the idm-* sources above only — not AM. Query both am-everything and idm-everything (or the specific sources on each side) for a question that could touch either.\n' +
+      '\n' +
+      'Identity: a resolved `userId` DN under a realm segment (...,o=<realm>,ou=services,ou=am-config) is a genuine managed user; a DN directly under root ou=am-config (whether it says ou=agent or, misleadingly, ou=user) is an AM-internal identity. Extract the uuid from the DN and resolve it with idm.managed.resolveUserName(<realm>_user, uuid).\n' +
+      '\n' +
+      'Requires a Log API key/secret — see cloud.log.createLogApiKey.',
+  },
+  'cloud.log.searchEvents': {
+    operationType: 'search',
+    objectType: 'LogEvent',
+    argumentMode: 'named',
+    requiredCredential: 'logApi',
+    parameters: [
+      {
+        name: 'source',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          'Log source(s) to search, comma-separated. Same source taxonomy as cloud.log.fetch.',
+        examples: ['am-authentication', 'am-everything'],
+      },
+      {
+        name: 'startTs',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Start timestamp (ISO 8601), inclusive.',
+        examples: ['2026-08-14T00:00:00Z'],
+      },
+      {
+        name: 'endTs',
+        type: 'string',
+        required: true,
+        position: 2,
+        description: 'End timestamp (ISO 8601), exclusive.',
+        examples: ['2026-08-15T00:00:00Z'],
+      },
+      {
+        name: 'eventNames',
+        type: 'string[]',
+        required: false,
+        position: 3,
+        description:
+          'Optional event names to match, OR\'d together server-side (e.g. ["AM-TREE-LOGIN-COMPLETED"]). Omit to match every event in the source/window.',
+        schema: { type: 'array', items: { type: 'string' } },
+        examples: [['AM-TREE-LOGIN-COMPLETED'], ['AM-CONFIG-CHANGE']],
+      },
+      {
+        name: 'principal',
+        type: 'string',
+        required: false,
+        position: 4,
+        description:
+          'Optional substring matched against payload.userId (co). A realm-qualified substring like "o=alpha" scopes to genuine managed users in that realm; the DN-realm heuristic in cloud.log.fetch\'s notes explains why.',
+        examples: ['o=alpha'],
+      },
+      {
+        name: 'maxEvents',
+        type: 'integer',
+        required: false,
+        position: 5,
+        description:
+          'Safety cap on total events fetched across auto-paginated pages.',
+        defaultValue: 1000,
+        examples: [200, 1000],
+      },
+      {
+        name: 'dedupeByTransactionId',
+        type: 'boolean',
+        required: false,
+        position: 6,
+        description:
+          'Collapse multiple events sharing a transaction id (e.g. a failed login attempt immediately followed by a successful retry) down to the last one seen, the actual outcome. Set false to see every raw event.',
+        defaultValue: true,
+        examples: [true, false],
+      },
+    ],
+    supportsPaging: false,
+    supportsIncludeTotal: false,
+    notes:
+      'Composed primitive over cloud.log.fetch: builds the correct server-side _queryFilter from structured eventNames/principal inputs (see cloud.log.fetch\'s notes for the underlying CREST syntax and event/source taxonomy — this skill assumes that context), and handles the two constraints that make wide-range questions like "activities of user X over 2 weeks" fail if called against cloud.log.fetch directly: it auto-chunks startTs..endTs into consecutive ~24h windows (the Log API 400s past that span — see cloud.log.fetch\'s notes), and auto-paginates within each, all while respecting the ~1 request/second rate limit between every call, chunk boundaries included. Dedupes by transaction id client-side (CREST filters cannot express "collapse retries of the same transaction", so this has to happen after fetching). Prefer this over cloud.log.fetch directly for "how many/which X happened" questions scoped by event name and/or identity, especially over wide time ranges; use cloud.log.fetch directly only when you need raw pagination control or a transaction-id-scoped lookup.',
+  },
+  'cloud.log.resolveLevel': { excluded: true },
+  'cloud.log.resolvePayloadLevel': { excluded: true },
+  'cloud.log.getDefaultNoiseFilter': { excluded: true },
+
+  // ── Special-capability audit (library-wide) ───────────────────────────────────
+  //
+  // Every method below was classified `kind: 'special'` by naming-convention
+  // inference alone, which only recognizes create/update/delete/import as mutating
+  // and only escalates risk for names matching /secret|password|token|credential|
+  // serviceAccount/i. That leaves a permissive default (mutating: false, low risk)
+  // for anything named outside those conventions — including real mutations like
+  // `disableJourney` or `removeOrphanedNodes`. This section gives each one an
+  // explicit, reviewed classification instead of inheriting that default, so
+  // policy presets with `includeSpecial: true` expose only what's actually been
+  // checked. New special-kind methods should get an entry here (or be covered by
+  // the `contract-gap-baseline.json` guardrail test) before a permissive preset
+  // can reach them.
+  //
+  // A few entries also carry an `operationType` override where the method is
+  // genuinely CRUD-shaped and just fails the naming regex (e.g. `disableJourney`
+  // → `update`, `removeOrphanedNodes` → `delete`), following the same reasoning
+  // as the cloud.log remap above. Parameter/argument-contract authoring for the
+  // newly-reachable operations is a separate follow-up, not covered here.
+
+  'admin.executeRfc7523AuthZGrantFlow': {
+    mutating: true,
+    riskClass: 'critical',
+    notes:
+      'Executes a live RFC 7523 JWT-bearer authorization grant against the tenant, obtaining a real access token. Treat as credential issuance.',
+  },
+  'admin.generateRfc7523AuthZGrantArtefacts': {
+    mutating: false,
+    riskClass: 'high',
+    notes:
+      'Generates local JWT-bearer grant artefacts (assertions/keys). No tenant call, but produces auth material.',
+  },
+  'admin.generateRfc7523ClientAuthNArtefacts': {
+    mutating: false,
+    riskClass: 'high',
+    notes:
+      'Generates local client-authentication artefacts. No tenant call, but produces auth material.',
+  },
+  'admin.trainAA': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Best-effort classification: assumed to trigger Autonomous Access model training on the tenant, a real and potentially long-running operation. Confirm against product docs before relying on this.',
+  },
+
+  'app.getRealmManagedApplication': {
+    operationType: 'read',
+    objectType: 'ManagedApplication',
+    mutating: false,
+    riskClass: 'low',
+  },
+
+  'authn.journey.disableJourney': {
+    operationType: 'update',
+    objectType: 'Journey',
+    mutating: true,
+    riskClass: 'medium',
+    notes: 'Deactivates a journey.',
+  },
+  'authn.journey.enableJourney': {
+    operationType: 'update',
+    objectType: 'Journey',
+    mutating: true,
+    riskClass: 'medium',
+    notes: 'Activates a journey.',
+  },
+  'authn.journey.findScriptReferences': {
+    operationType: 'search',
+    objectType: 'ScriptReference',
+    argumentMode: 'positional',
+    parameters: [
+      {
+        name: 'scriptId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          'Script id to find journey/node references to (the same id used by authn.journey/authz.* script fields, script.script.readScript, etc.).',
+        examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
+      },
+    ],
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Answers "which journey uses this script?" — a config dependency question no other skill can answer, since the reference only lives on individual node objects (node.script), not on the journey itself or the script. Implemented as a full-realm scan (bulk-reads every node and every journey once, then joins in memory — no per-node fetches), so it stays cheap even on realms with many journeys. Each result reports the journey and the top-level node it actually references; when the script is used by a node nested inside a container node (e.g. a Page Node), the result also carries innerNodeId for the specific nested node, since a journey\'s own node map only ever points at the container. Returns an empty array, not an error, when nothing references the script.',
+  },
+  'authn.journey.getJourneyClassification': {
+    operationType: 'read',
+    objectType: 'JourneyClassification',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'authn.journey.getNodeRef': {
+    // Takes a full NodeSkeleton + SingleTreeExportInterface as input, not a
+    // simple identifier — internal plumbing used while processing an export
+    // already in hand, not a standalone operation an agent could call.
+    excluded: true,
+  },
+  'authn.journey.getTreeDescendents': {
+    operationType: 'list',
+    objectType: 'Journey',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'authn.journey.resolveDependencies': {
+    operationType: 'list',
+    objectType: 'JourneyDependency',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'authn.journey.isCloudOnlyJourney': { mutating: false, riskClass: 'low' },
+  'authn.journey.isCustomJourney': { mutating: false, riskClass: 'low' },
+  'authn.journey.isPremiumJourney': { mutating: false, riskClass: 'low' },
+  'authn.journey.fileByIdTreeExportResolver': {
+    excluded: true, // internal resolver used by exportJourney, not a standalone operation
+  },
+  'authn.journey.onlineTreeExportResolver': {
+    excluded: true, // internal resolver used by exportJourney, not a standalone operation
+  },
+
+  'authn.node.findOrphanedNodes': {
+    operationType: 'list',
+    objectType: 'OrphanedNode',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'authn.node.getCustomNodeUsage': {
+    operationType: 'read',
+    objectType: 'NodeUsage',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'authn.node.getNodeClassification': {
+    operationType: 'read',
+    objectType: 'NodeClassification',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'authn.node.removeOrphanedNodes': {
+    operationType: 'delete',
+    objectType: 'OrphanedNode',
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes: 'Bulk-deletes orphaned node configuration objects.',
+  },
+  'authn.node.isCloudExcludedNode': { mutating: false, riskClass: 'low' },
+  'authn.node.isCloudOnlyNode': { mutating: false, riskClass: 'low' },
+  'authn.node.isCustomNode': { mutating: false, riskClass: 'low' },
+  'authn.node.isDeprecatedNode': { mutating: false, riskClass: 'low' },
+  'authn.node.isPremiumNode': { mutating: false, riskClass: 'low' },
+
+  // Local SDK plumbing, not tenant capabilities. `cache` is frodo's local
+  // encrypted token-cache bookkeeping; `conn` is frodo's local connection-profile
+  // store, which holds saved login credentials for every environment a user has
+  // ever configured frodo against — not scoped to the active MCP session's
+  // tenant. Exposing either as an agent-callable skill risks credential
+  // disclosure across environments the current session has no business
+  // touching, so both are excluded outright rather than risk-ranked per method.
+  cache: { excluded: true },
+  conn: { excluded: true },
+
+  'cloud.env.abortDirectConfigurationSession': {
+    mutating: true,
+    riskClass: 'medium',
+    notes: 'Cancels a staged direct-configuration session.',
+  },
+  'cloud.env.initDirectConfigurationSession': {
+    mutating: true,
+    riskClass: 'medium',
+    notes: 'Opens a staged direct-configuration session.',
+  },
+  'cloud.env.applyDirectConfigurationSession': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'critical',
+    notes: 'Commits a staged direct-configuration session to the live tenant.',
+  },
+  'cloud.env.cert.activateCertificate': { mutating: true, riskClass: 'high' },
+  'cloud.env.cert.deactivateCertificate': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+  },
+  'cloud.env.cert.isCertificateActive': { mutating: false, riskClass: 'low' },
+  'cloud.env.cert.isCertificateLive': { mutating: false, riskClass: 'low' },
+  'cloud.env.enableAIAgentFeature': { mutating: true, riskClass: 'medium' },
+  'cloud.env.enforceFederationFor': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes:
+      'Enforces federated login for a target, which can lock out password-based access.',
+  },
+  'cloud.env.promotion.lockEnvironment': {
+    mutating: true,
+    riskClass: 'medium',
+  },
+  'cloud.env.promotion.unlockEnvironment': {
+    mutating: true,
+    riskClass: 'medium',
+  },
+  'cloud.env.promotion.promoteConfiguration': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'critical',
+    notes: 'Promotes staged configuration to the live tenant.',
+  },
+  'cloud.env.promotion.rollbackPromotion': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'critical',
+    notes: 'Reverts a prior promotion on the live tenant.',
+  },
+  'cloud.env.promotion.runProvisionalPromotionReport': {
+    mutating: false,
+    riskClass: 'low',
+    notes: 'Dry-run preview; does not apply changes.',
+  },
+  'cloud.env.promotion.runProvisionalRollbackReport': {
+    mutating: false,
+    riskClass: 'low',
+    notes: 'Dry-run preview; does not apply changes.',
+  },
+  'cloud.env.resetSSOCookieConfig': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes:
+      'Resets tenant-wide SSO cookie configuration; can invalidate active sessions.',
+  },
+  'cloud.env.verifyCNAME': { mutating: false, riskClass: 'low' },
+
+  'cloud.esvCount.getEsvCount': {
+    operationType: 'count',
+    objectType: 'Esv',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'cloud.getEsvCount': {
+    operationType: 'count',
+    objectType: 'Esv',
+    mutating: false,
+    riskClass: 'low',
+  },
+
+  'cloud.feature.hasFeature': { mutating: false, riskClass: 'low' },
+
+  'cloud.iga.workflow.publishWorkflow': {
+    mutating: true,
+    riskClass: 'medium',
+    notes: 'Publishes a workflow definition, making it active.',
+  },
+
+  'cloud.secret.disableVersionOfSecret': { mutating: true, destructive: true },
+  'cloud.secret.enableVersionOfSecret': { mutating: true },
+
+  'cloud.serviceAccount.getServiceAccount': {
+    operationType: 'read',
+    objectType: 'ServiceAccount',
+    mutating: false,
+    // riskClass intentionally left to inference: "ServiceAccount" already
+    // matches the credential-keyword regex and infers 'critical'.
+  },
+  'cloud.serviceAccount.isServiceAccountsFeatureAvailable': {
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Feature-availability flag only; does not touch service account data. Explicit override corrects the keyword-based critical default.',
+  },
+  'cloud.serviceAccount.validateServiceAccount': {
+    mutating: false,
+    // riskClass intentionally left to inference (critical): validates
+    // credential material.
+  },
+
+  'cloud.startup.checkForUpdates': { mutating: false, riskClass: 'low' },
+  'cloud.startup.applyUpdates': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'critical',
+    notes: 'Applies platform updates to the environment.',
+  },
+
+  'cloud.variable.getVariable': {
+    operationType: 'read',
+    objectType: 'Variable',
+    mutating: false,
+    riskClass: 'medium',
+    notes: 'ESV variables may hold sensitive-but-unclassified config values.',
+  },
+  'cloud.variable.getVariables': {
+    operationType: 'list',
+    objectType: 'Variable',
+    mutating: false,
+    riskClass: 'medium',
+  },
+  'cloud.variable.resolveVariable': {
+    operationType: 'read',
+    objectType: 'Variable',
+    mutating: false,
+    riskClass: 'medium',
+  },
+  'cloud.variable.putVariable': {
+    operationType: 'update',
+    objectType: 'Variable',
+    mutating: true,
+    riskClass: 'medium',
+  },
+  'cloud.variable.setVariableDescription': {
+    operationType: 'update',
+    objectType: 'Variable',
+    mutating: true,
+    riskClass: 'low',
+  },
+
+  'cloud.wsfed.generateSigningKeyPair': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes:
+      'Generates and persists a new WS-Fed signing key pair; can supersede/invalidate prior signatures.',
+  },
+
+  'idm.crypto.decrypt': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Decryption oracle — treat as a secret-disclosure risk even though it does not mutate state.',
+  },
+  'idm.crypto.decryptMap': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Decryption oracle — treat as a secret-disclosure risk even though it does not mutate state.',
+  },
+  'idm.crypto.encrypt': { mutating: false, riskClass: 'medium' },
+  'idm.crypto.encryptMap': { mutating: false, riskClass: 'medium' },
+  'idm.crypto.isEncrypted': { mutating: false, riskClass: 'low' },
+
+  'idm.managed.resolveFullName': {
+    operationType: 'read',
+    objectType: 'ManagedObjectName',
+    argumentMode: 'positional',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id (UUID).',
+      },
+    ],
+    mutating: false,
+    riskClass: 'low',
+  },
+  'idm.managed.resolveIdentity': {
+    operationType: 'read',
+    objectType: 'ManagedObjectName',
+    argumentMode: 'positional',
+    parameters: [
+      {
+        name: 'idOrDn',
+        type: 'string',
+        required: true,
+        position: 0,
+        description:
+          "A managed/system object uuid, or a full userId DN (e.g. from an audit log event's userId field). A DN qualified under a realm (...,o=<realm>,ou=services,ou=am-config) resolves as that realm's managed user; a DN with no realm segment (...,ou=am-config) is AM-internal and is checked against service-account and tenant-admin managed system object types instead.",
+        examples: [
+          'id=03f4f90e-d1fa-433d-bc67-6349a8a6ca77,ou=user,o=alpha,ou=services,ou=am-config',
+          'a2245410-33a6-4442-9f3b-453c9aaf158a',
+        ],
+      },
+      {
+        name: 'realm',
+        type: 'string',
+        required: false,
+        position: 1,
+        description:
+          'Realm override, only consulted when idOrDn is a bare uuid with no DN to derive a realm from. Ignored if idOrDn is a DN that already carries its own realm segment.',
+        examples: ['alpha'],
+      },
+    ],
+    mutating: false,
+    // Unlike idm.managedSystem.* (arbitrary-field reads on raw teammember/
+    // svcacct objects, critical/admin-only), this always requests a fixed,
+    // narrow field set and returns a bounded {kind, username, displayName}
+    // shape — never arbitrary fields, never anything credential-adjacent.
+    // Same disclosure category as resolveUserName/resolveFullName (low),
+    // which it's the structured, realm-general, honestly-uncertain successor
+    // to. Needs to stay broadly available: it's the load-bearing primitive
+    // behind ordinary audit-attribution questions like "who modified journey
+    // X" and "which tenant admin logged in", which must work under the
+    // default agentic policy, not just admin.
+    riskClass: 'low',
+    notes:
+      'Resolves a DN or bare uuid to a structured identity: { id, kind: "user"|"service"|"admin"|"admin-unconfirmed"|"unknown", realm?, username?, displayName?, resolvedVia?, note? }. Replaces the old resolvePerpetratorUuid (which returned an opaque formatted string and hardcoded alpha_user/bravo_user as the only realms). "admin-unconfirmed" means the calling credential got a 403 (not a 404) checking the tenant-admin managed object type directly — common for service-account-authenticated sessions, which typically cannot read teammember — so admin status is inferred by elimination rather than independently confirmed; treat it as likely-but-unverified. Only cloud partitions managed users per realm (alpha_user, bravo_user, ...); forgeops and classic both resolve realm-qualified DNs against a single flat "user" type — verified live against a real forgeops tenant, whose IDM managed object families reported no realm prefix at all.',
+  },
+  'idm.managed.resolveUserName': {
+    operationType: 'read',
+    objectType: 'ManagedObjectName',
+    argumentMode: 'positional',
+    parameters: [
+      {
+        name: 'type',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Managed object type, for example alpha_user.',
+        examples: ['alpha_user'],
+      },
+      {
+        name: 'id',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'Managed object id (UUID).',
+      },
+    ],
+    mutating: false,
+    riskClass: 'low',
+  },
+
+  'idm.mapping.isLegacyMapping': { mutating: false, riskClass: 'low' },
+
+  'idm.organization.getRealmManagedOrganization': {
+    operationType: 'read',
+    objectType: 'ManagedOrganization',
+    mutating: false,
+    riskClass: 'low',
+  },
+
+  'idm.recon.startRecon': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Starts a reconciliation run, which can create/update/delete managed objects as a side effect.',
+  },
+  'idm.recon.startReconById': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Starts a reconciliation run, which can create/update/delete managed objects as a side effect.',
+  },
+  'idm.recon.cancelRecon': { mutating: true, riskClass: 'medium' },
+
+  'idm.script.evaluateScript': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'critical',
+    notes:
+      'Executes arbitrary script against the tenant — equivalent to a remote code execution capability.',
+  },
+  'idm.script.compileScript': {
+    mutating: false,
+    riskClass: 'medium',
+    notes: 'Syntax-checks a script without executing it.',
+  },
+
+  'idm.system.runSystemScript': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'critical',
+    notes:
+      'Executes arbitrary script in a connector/system context — equivalent to a remote code execution capability.',
+  },
+  'idm.system.authenticateSystemObject': {
+    mutating: false,
+    riskClass: 'high',
+    notes:
+      'Authenticates against an external connected system using stored credentials.',
+  },
+  'idm.system.testConnectorServers': { mutating: false, riskClass: 'low' },
+
+  'info.getInfo': {
+    operationType: 'read',
+    objectType: 'Info',
+    mutating: false,
+    riskClass: 'critical',
+    // "identity" is overloaded: it can mean a directory record (routes to
+    // idm.managed.* via the identity/user/person bonus below) or the
+    // caller's own authenticated session (this skill and
+    // session.getSessionInfo). Without these, the directory-record meaning
+    // always won on sheer numbers — ~10 idm.managed.* read skills share
+    // that bonus, against 2 candidates here — regardless of which meaning
+    // a given query actually intended.
+    semanticAliases: [
+      'who am i',
+      'authenticated identity',
+      'my identity',
+      'current session',
+      'current identity',
+    ],
+    notes:
+      'Returns live bearer/session tokens for the current identity alongside platform info — the sessionToken and bearerToken fields are the actual, currently-valid credentials, not references to them. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin). A lower-risk identity-check skill returning only { authenticatedSubject, host, deploymentType, amVersion } without the raw tokens is a reasonable future addition — see idm.managed.resolveIdentity for the equivalent pattern applied to managed-object identities.',
+  },
+
+  'login.getTokens': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Returns live bearer/session tokens for the current identity. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin).',
+  },
+
+  'oauth2oidc.endpoint.accessToken': { mutating: true },
+  'oauth2oidc.endpoint.accessTokenRfc7523AuthZGrant': { mutating: true },
+  'oauth2oidc.endpoint.clientCredentialsGrant': { mutating: true },
+  'oauth2oidc.endpoint.getTokenInfo': { mutating: false },
+  'oauth2oidc.endpoint.authorize': {
+    mutating: true,
+    riskClass: 'high',
+    notes:
+      'Initiates a live OAuth2 authorization request against the tenant. Explicit override — the method name does not match the credential-keyword inference.',
+  },
+
+  'realm.addCustomDomain': {
+    operationType: 'create',
+    objectType: 'CustomDomain',
+    mutating: true,
+    riskClass: 'medium',
+  },
+  'realm.removeCustomDomain': {
+    operationType: 'delete',
+    objectType: 'CustomDomain',
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+  },
+
+  'saml2.entityProvider.getSaml2ProviderMetadata': {
+    operationType: 'read',
+    objectType: 'Saml2ProviderMetadata',
+    mutating: false,
+    riskClass: 'low',
+  },
+  'saml2.entityProvider.getSaml2ProviderMetadataUrl': {
+    operationType: 'read',
+    objectType: 'Saml2ProviderMetadata',
+    mutating: false,
+    riskClass: 'low',
+  },
+
+  'script.getLibraryScriptNames': {
+    operationType: 'list',
+    objectType: 'ScriptName',
+    mutating: false,
+    riskClass: 'low',
+  },
+
+  'secretStore.canSecretStoreHaveMappings': {
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Capability flag only; explicit override corrects the keyword-based critical default triggered by "Secret" in the method name.',
+  },
+
+  'session.getSessionInfo': {
+    operationType: 'read',
+    objectType: 'SessionInfo',
+    mutating: false,
+    riskClass: 'medium',
+    // See info.getInfo's matching semanticAliases for why these exist: the
+    // directory-record meaning of "identity" always won on sheer numbers
+    // without a symmetric bonus for the caller's-own-session meaning.
+    semanticAliases: [
+      'who am i',
+      'authenticated identity',
+      'my identity',
+      'current session',
+      'current identity',
+    ],
+    notes:
+      "Reads the current AM session — username/universalId of the authenticated subject, realm, and session expiration. Works for both admin and service-account-authenticated MCP sessions, but the sessions differ in kind: an admin session is a real login session (session-length maxSessionExpirationTime, hours out); a service account has no real AM session at all — this reads a short-lived session synthesized as a workaround so bearer-token-only credentials can still call AM's session-cookie-based endpoints, and its maxSessionExpirationTime is only minutes past latestAccessTime, not a reliable long-lived value. info.getInfo's authenticatedSubject field is the more architecturally reliable identity check for both credential types (no session dependency at all, verified live against both), but currently sits at critical risk itself because its raw response also carries live session/bearer tokens — pending redaction or a dedicated minimal skill, not a drop-in lower-risk substitute today.",
   },
 };
 

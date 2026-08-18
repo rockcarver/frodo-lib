@@ -188,23 +188,6 @@ export type McpGenericTool = {
 };
 
 /**
- * A single domain-special tool, backed by exactly one non-CRUDS descriptor.
- *
- * Special capabilities are no longer surfaced as standalone MCP tools.
- * They remain discoverable and executable via canonical dispatch tools.
- */
-export type McpSpecialTool = {
-  /** MCP tool name derived from the descriptor's dot-separated path. */
-  toolName: string;
-  /** Domain the operation belongs to, e.g. `'authn'`. */
-  domain: string;
-  /** Description suitable for MCP tool registration and model guidance. */
-  description: string;
-  /** Original capability descriptor that backs this tool. */
-  descriptor: McpCapabilityDescriptor;
-};
-
-/**
  * Entry for the built-in introspection tool.
  * Agents can invoke this to learn what object types and operations are
  * available without requiring external documentation.
@@ -282,11 +265,6 @@ export type McpToolManifest = {
   canonicalTools?: McpCanonicalTool[];
   /** Generic CRUDS tools parameterized by domain and objectType. */
   genericTools: McpGenericTool[];
-  /**
-   * Reserved for backwards compatibility; no standalone special tools are
-   * emitted in canonical MCP mode.
-   */
-  specialTools: McpSpecialTool[];
   /** Built-in introspection tool entry describing the available operation space. */
   discoveryTool: McpDiscoveryEntry;
   /** Number of capability descriptors that back this manifest. */
@@ -337,7 +315,6 @@ export function buildToolManifest(
 
   const canonicalTools = buildCanonicalTools();
   const genericTools = buildGenericTools(generic);
-  const specialTools: McpSpecialTool[] = [];
   const discoveryTool = buildDiscoveryEntry(genericTools);
   if (discoveryContext.activeTarget) {
     discoveryTool.activeTarget = { ...discoveryContext.activeTarget };
@@ -368,7 +345,6 @@ export function buildToolManifest(
   return {
     canonicalTools,
     genericTools,
-    specialTools,
     discoveryTool,
     backingDescriptorCount: capabilities.length,
     totalToolCount: canonicalTools.length + 1,

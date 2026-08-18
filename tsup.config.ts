@@ -9,6 +9,14 @@ export default defineConfig({
   clean: true,
   bundle: true,
   legacyOutput: false,
+  // Injected as a literal at bundle time so frodo-cli (and anyone else
+  // consuming this build) can verify which frodo-lib build they're
+  // actually running, rather than trusting file mtimes or on-disk content
+  // that a packaging step might not have picked up. See getLibBuildTimestamp
+  // in shared/Version.ts.
+  define: {
+    __LIB_BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
+  },
   external: [
     // list all the dev dependencies, which do NOT need to be bundled as indicated in package.json (_devDependencies)
     '@jest/globals',
