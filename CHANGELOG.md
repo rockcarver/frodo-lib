@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [v4.4.1] - 2026-08-19
+
 ### Added
 - Added `readScriptSource`, `readScriptSourceByName`, and `updateScriptSource` to `ScriptOps`, returning/accepting a script's plain-text source directly instead of the full `ScriptSkeleton` wrapper.
 - Added `listScripts` to `ScriptOps`, returning lightweight script summaries (`_id`, `name`, `context`, `language`, `evaluatorVersion`, `default`) without script bodies.
@@ -11,6 +13,14 @@
 
 ### Fixed
 - Corrected `script.getLibraryScriptNames`'s capability metadata: it is a local helper requiring a `ScriptSkeleton` argument, not a parameterless list operation, and is now excluded from the MCP capability surface.
+
+- Added `readScriptSource`, `readScriptSourceByName`, and `updateScriptSource` to `ScriptOps`, allowing direct interaction with a script's plain-text source instead of the full `ScriptSkeleton` wrapper. (b97c90d11)
+- Introduced `listScripts` to `ScriptOps`, providing lightweight script summaries (`_id`, `name`, `context`, `language`, `evaluatorVersion`, `default`) without including script bodies. (b97c90d11)
+- Implemented a `required` flag in Help.ts's generated parameter metadata, derived from the actual TypeScript signature for improved accuracy. (bb5502524)
+- Enhanced the MCP capability registry to derive parameter contracts from the Help.ts catalog as a fallback when no explicit capability metadata override exists, automatically constraining several previously-unconstrained mixed-argument capabilities. (bb5502524)
+- Introduced a default response-size safety net in the MCP tool runtime for list/search results, which slices oversized array responses by a byte budget with pagination continuation metadata. (bb5502524)
+
+- Corrected `script.getLibraryScriptNames`'s capability metadata: it is a local helper requiring a `ScriptSkeleton` argument and is now excluded from the MCP capability surface to prevent crashes when called without arguments. (bb5502524)
 
 ## [v4.4.0] - 2026-08-18
 
