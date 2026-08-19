@@ -1980,4 +1980,182 @@ describe('MCP hybrid runtime', () => {
       })
     ).rejects.toThrow("unknown tool 'frodo_read'");
   });
+
+  describe('default response-size safety net for list/search results', () => {
+    function makeListDescriptor(): McpCapabilityDescriptor {
+      return makeDescriptor({
+        id: 'script.readScripts',
+        toolName: 'frodo.script.readScripts',
+        methodName: 'readScripts',
+        modulePath: ['script'],
+        domain: 'script',
+        objectType: 'Script',
+        operationType: 'list',
+      });
+    }
+
+    function makeItems(count: number, blobSize: number) {
+      return Array.from({ length: count }, (_, i) => ({
+        _id: `item-${i}`,
+        blob: 'x'.repeat(blobSize),
+      }));
+    }
+
+    test('slices an oversized array result by default, with no paging args from the caller', async () => {
+      const items = makeItems(50, 50);
+      const readScripts = jest.fn(async () => items);
+      const descriptor = makeListDescriptor();
+      const runtime = createToolRuntime(
+        makeManifest([descriptor]),
+        [descriptor],
+        {
+          resultWarningThresholdBytes: 500,
+          resolveFrodoForRequest: () =>
+            ({
+              login: { getTokens: jest.fn(async () => {}) },
+              script: { readScripts },
+            }) as any,
+        }
+      );
+
+      const result = await runtime.executeTool({
+        toolName: 'frodo_dispatch_read_only',
+        arguments: { skillId: descriptor.id },
+        context: { auth: { mode: 'state-config', config: {} } },
+      });
+
+      const data = result.data as Array<{ _id: string }>;
+      // The full 50-item, ~2.5KB result must not pass through untouched when
+      // the byte budget is only 500 bytes — this is the exact failure mode
+      // that originally broke script.readScripts for MCP callers.
+      expect(data.length).toBeGreaterThan(0);
+      expect(data.length).toBeLessThan(items.length);
+      expect(result.metadata?.pagination).toMatchObject({
+        isPartial: true,
+        hasMore: true,
+        totalCount: 50,
+        returnedCount: data.length,
+        nextPageOffset: data.length,
+      });
+    });
+
+    test('an explicit pageOffset continues from where the previous page left off', async () => {
+      const items = makeItems(10, 10);
+      const readScripts = jest.fn(async () => items);
+      const descriptor = makeListDescriptor();
+      const runtime = createToolRuntime(
+        makeManifest([descriptor]),
+        [descriptor],
+        {
+          resolveFrodoForRequest: () =>
+            ({
+              login: { getTokens: jest.fn(async () => {}) },
+              script: { readScripts },
+            }) as any,
+        }
+      );
+
+      const result = await runtime.executeTool({
+        toolName: 'frodo_dispatch_read_only',
+        arguments: { skillId: descriptor.id, pageOffset: 4, pageSize: 3 },
+        context: { auth: { mode: 'state-config', config: {} } },
+      });
+
+      const data = result.data as Array<{ _id: string }>;
+      expect(data.map((item) => item._id)).toEqual([
+        'item-4',
+        'item-5',
+        'item-6',
+      ]);
+      expect(result.metadata?.pagination).toMatchObject({
+        hasMore: true,
+        nextPageOffset: 7,
+        totalCount: 10,
+      });
+    });
+
+    test('the byte budget still wins even when the caller requests a large explicit pageSize', async () => {
+      const items = makeItems(20, 200);
+      const readScripts = jest.fn(async () => items);
+      const descriptor = makeListDescriptor();
+      const runtime = createToolRuntime(
+        makeManifest([descriptor]),
+        [descriptor],
+        {
+          resultWarningThresholdBytes: 500,
+          resolveFrodoForRequest: () =>
+            ({
+              login: { getTokens: jest.fn(async () => {}) },
+              script: { readScripts },
+            }) as any,
+        }
+      );
+
+      const result = await runtime.executeTool({
+        toolName: 'frodo_dispatch_read_only',
+        // Caller asks for all 20, well past what the 500-byte budget allows.
+        arguments: { skillId: descriptor.id, pageSize: 20 },
+        context: { auth: { mode: 'state-config', config: {} } },
+      });
+
+      const data = result.data as Array<{ _id: string }>;
+      expect(data.length).toBeLessThan(20);
+      expect(result.metadata?.pagination?.hasMore).toBe(true);
+    });
+
+    test('a single item exceeding the byte budget on its own is still returned, not dropped', async () => {
+      const items = makeItems(3, 2000);
+      const readScripts = jest.fn(async () => items);
+      const descriptor = makeListDescriptor();
+      const runtime = createToolRuntime(
+        makeManifest([descriptor]),
+        [descriptor],
+        {
+          resultWarningThresholdBytes: 500,
+          resolveFrodoForRequest: () =>
+            ({
+              login: { getTokens: jest.fn(async () => {}) },
+              script: { readScripts },
+            }) as any,
+        }
+      );
+
+      const result = await runtime.executeTool({
+        toolName: 'frodo_dispatch_read_only',
+        arguments: { skillId: descriptor.id },
+        context: { auth: { mode: 'state-config', config: {} } },
+      });
+
+      const data = result.data as Array<{ _id: string }>;
+      expect(data.length).toBe(1);
+      expect(data[0]._id).toBe('item-0');
+      expect(result.metadata?.pagination?.hasMore).toBe(true);
+    });
+
+    test('a small array within budget passes through unmodified with no truncation metadata', async () => {
+      const items = makeItems(3, 5);
+      const readScripts = jest.fn(async () => items);
+      const descriptor = makeListDescriptor();
+      const runtime = createToolRuntime(
+        makeManifest([descriptor]),
+        [descriptor],
+        {
+          resolveFrodoForRequest: () =>
+            ({
+              login: { getTokens: jest.fn(async () => {}) },
+              script: { readScripts },
+            }) as any,
+        }
+      );
+
+      const result = await runtime.executeTool({
+        toolName: 'frodo_dispatch_read_only',
+        arguments: { skillId: descriptor.id },
+        context: { auth: { mode: 'state-config', config: {} } },
+      });
+
+      expect(result.data).toEqual(items);
+      expect(result.metadata?.pagination?.hasMore).toBeUndefined();
+    });
+  });
 });

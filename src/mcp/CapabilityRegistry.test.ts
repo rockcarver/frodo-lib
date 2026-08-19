@@ -15,6 +15,8 @@ import {
   inferOperationType,
   inferRiskClass,
 } from '../index';
+import { getHelpMetadataByMethod } from '../utils/HelpUtils';
+import { resolveCapabilityMeta } from './CapabilityMetadata';
 import knownContractGaps from './contract-gap-baseline.json';
 
 const HIGH_RISK_DOMAINS = ['script', 'oauth2oidc', 'authn', 'idm'];
@@ -451,6 +453,33 @@ describe('MCP capability foundation', () => {
     expect(violations).toEqual(KNOWN_CONTRACT_GAPS);
   });
 
+  test('never advertises an empty parameter contract when Help.ts reports required params', () => {
+    // Regression guard for the script.getLibraryScriptNames bug class: a
+    // capability with no explicit CAPABILITY_META.parameters override must
+    // never end up with an empty/undefined parameter list when the build-time
+    // Help.ts catalog (generated from the real TS signature) shows the
+    // underlying method has required parameters. See
+    // deriveParametersFromHelp in CapabilityRegistry.ts.
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeUtils: false,
+    });
+    const violations: string[] = [];
+    for (const capability of capabilities) {
+      const meta = resolveCapabilityMeta(capability.id);
+      if (meta?.parameters !== undefined) {
+        continue; // explicit override always wins; not this guard's concern
+      }
+      const helpDocs = getHelpMetadataByMethod(capability.methodName);
+      const requiresParams =
+        helpDocs.length > 0 &&
+        helpDocs[0].params.some((param) => param.required);
+      if (requiresParams && (capability.parameters ?? []).length === 0) {
+        violations.push(capability.id);
+      }
+    }
+    expect(violations).toEqual([]);
+  });
+
   test('summarizes known mixed-contract gaps by domain and operation', () => {
     const violations = getHighRiskMixedContractViolations();
     const summary = summarizeContractGapsByDomain(violations) as Record<
@@ -466,13 +495,10 @@ describe('MCP capability foundation', () => {
     expect(summary.authn).toBeUndefined();
     expect(summary.oauth2oidc).toBeUndefined();
 
-    // Verify idm gaps
-    expect(summary.idm).toBeDefined();
-    expect(summary.idm?.total).toBe(1);
-    expect(summary.idm?.byOperation).toEqual({ search: 1 });
-    expect(summary.idm?.ids).toEqual([
-      'idm.managed.queryRelatedManagedObjects',
-    ]);
+    // idm.managed.queryRelatedManagedObjects was the sole idm gap; it now
+    // gets a real parameter contract from the Help.ts-derived fallback (see
+    // deriveParametersFromHelp in CapabilityRegistry.ts), so idm has none.
+    expect(summary.idm).toBeUndefined();
   });
 
   test('named-argument-mode descriptor parameter positions match the bound method signature', () => {

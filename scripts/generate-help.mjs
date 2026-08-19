@@ -65,6 +65,61 @@ function parseJsDoc(raw) {
 }
 
 // ---------------------------------------------------------------------------
+// Signature parameter parser — derives `required` from the real TS signature
+// (not JSDoc prose), so it can't drift from what the compiler actually checks.
+// Interface-style method signatures only (no destructuring, no defaults), so a
+// simple `name?: Type` / `name: Type` check per top-level parameter suffices.
+// ---------------------------------------------------------------------------
+
+function splitTopLevelParams(paramsStr) {
+    const parts = [];
+    let depth = 0;
+    let current = '';
+    for (let i = 0; i < paramsStr.length; i++) {
+        const ch = paramsStr[i];
+        if (ch === '(' || ch === '{' || ch === '<' || ch === '[') depth++;
+        else if (ch === ')' || ch === '}' || ch === '>' || ch === ']') depth--;
+        if (ch === ',' && depth === 0) {
+            parts.push(current);
+            current = '';
+        } else {
+            current += ch;
+        }
+    }
+    if (current.trim().length > 0) parts.push(current);
+    return parts;
+}
+
+function extractParamRequiredMap(signature) {
+    const openIdx = signature.indexOf('(');
+    if (openIdx === -1) return {};
+    let depth = 0;
+    let closeIdx = -1;
+    for (let i = openIdx; i < signature.length; i++) {
+        const ch = signature[i];
+        if (ch === '(') depth++;
+        else if (ch === ')') {
+            depth--;
+            if (depth === 0) {
+                closeIdx = i;
+                break;
+            }
+        }
+    }
+    if (closeIdx === -1) return {};
+    const paramsStr = signature.slice(openIdx + 1, closeIdx);
+    if (!paramsStr.trim()) return {};
+    const map = {};
+    for (const part of splitTopLevelParams(paramsStr)) {
+        const trimmed = part.trim();
+        if (!trimmed) continue;
+        const match = trimmed.match(/^(\w+)(\?)?\s*:/) || trimmed.match(/^(\w+)(\?)?/);
+        if (match) map[match[1]] = !match[2];
+    }
+    return map;
+}
+
+// ---------------------------------------------------------------------------
 // .ts file parser — same brace-depth state machine as the runtime version
 // ---------------------------------------------------------------------------
 
@@ -156,7 +211,19 @@ function parseOpsFile(filePath) {
 
                 const signature = sigText.replace(/;\s*$/, '').trim();
                 const { description, params, returns } = parseJsDoc(pendingJsdoc);
-                results.push({ typeName, methodName, signature, description, params, returns });
+                const requiredMap = extractParamRequiredMap(signature);
+                const paramsWithRequired = params.map((p) => ({
+                    ...p,
+                    required: requiredMap[p.name] ?? true,
+                }));
+                results.push({
+                    typeName,
+                    methodName,
+                    signature,
+                    description,
+                    params: paramsWithRequired,
+                    returns,
+                });
                 pendingJsdoc = '';
                 continue;
             }
@@ -224,7 +291,7 @@ function renderEntry(doc) {
             : `[\n      ${doc.params
                 .map(
                     (p) =>
-                        `{ name: ${JSON.stringify(p.name)}, type: ${JSON.stringify(p.type)}, description: ${JSON.stringify(p.description)} }`
+                        `{ name: ${JSON.stringify(p.name)}, type: ${JSON.stringify(p.type)}, description: ${JSON.stringify(p.description)}, required: ${JSON.stringify(!!p.required)} }`
                 )
                 .join(',\n      ')},\n    ]`;
 
@@ -252,6 +319,8 @@ export interface MethodParam {
   name: string;
   type: string;
   description: string;
+  /** Derived from the real TS signature (a \`?\` before the type), not JSDoc prose. */
+  required: boolean;
 }
 
 export interface MethodHelpDoc {

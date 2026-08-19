@@ -46,6 +46,12 @@ export type Script = {
    */
   readScripts(filter?: ScriptFilter): Promise<ScriptSkeleton[]>;
   /**
+   * List scripts with only lightweight identifying fields (no script body)
+   * @param {ScriptFilter} filter Optional script filter
+   * @returns {Promise<ScriptSummary[]>} a promise that resolves to an array of lightweight script summaries
+   */
+  listScripts(filter?: ScriptFilter): Promise<ScriptSummary[]>;
+  /**
    * Get the names of library scripts required by the input script object
    *
    * @param {ScriptSkeleton} scriptObj the script object
@@ -64,6 +70,18 @@ export type Script = {
    * @returns {Promise<ScriptSkeleton>} promise that resolves to a script object
    */
   readScriptByName(scriptName: string): Promise<ScriptSkeleton>;
+  /**
+   * Read a script's plain-text source only, without the surrounding metadata
+   * @param {string} scriptId script id
+   * @returns {Promise<string>} the decoded script source
+   */
+  readScriptSource(scriptId: string): Promise<string>;
+  /**
+   * Read a script's plain-text source only, by name, without the surrounding metadata
+   * @param {string} scriptName name of the script
+   * @returns {Promise<string>} the decoded script source
+   */
+  readScriptSourceByName(scriptName: string): Promise<string>;
   /**
    * Create script
    * @param {string} scriptId script id
@@ -85,6 +103,16 @@ export type Script = {
   updateScript(
     scriptId: string,
     scriptData: ScriptSkeleton
+  ): Promise<ScriptSkeleton>;
+  /**
+   * Update only a script's source, preserving all other metadata
+   * @param {string} scriptId script id
+   * @param {string} source new plain-text script source
+   * @returns {Promise<ScriptSkeleton>} the updated script object
+   */
+  updateScriptSource(
+    scriptId: string,
+    source: string
   ): Promise<ScriptSkeleton>;
   /**
    * Delete script
@@ -167,6 +195,9 @@ export default (state: State): Script => {
     async readScripts(filter?: ScriptFilter): Promise<ScriptSkeleton[]> {
       return readScripts({ filter, state });
     },
+    async listScripts(filter?: ScriptFilter): Promise<ScriptSummary[]> {
+      return listScripts({ filter, state });
+    },
     getLibraryScriptNames(scriptObj: ScriptSkeleton): string[] {
       return getLibraryScriptNames(scriptObj);
     },
@@ -175,6 +206,12 @@ export default (state: State): Script => {
     },
     async readScriptByName(scriptName: string): Promise<ScriptSkeleton> {
       return readScriptByName({ scriptName, state });
+    },
+    async readScriptSource(scriptId: string): Promise<string> {
+      return readScriptSource({ scriptId, state });
+    },
+    async readScriptSourceByName(scriptName: string): Promise<string> {
+      return readScriptSourceByName({ scriptName, state });
     },
     async createScript(
       scriptId: string,
@@ -188,6 +225,12 @@ export default (state: State): Script => {
       scriptData: ScriptSkeleton
     ): Promise<ScriptSkeleton> {
       return updateScript({ scriptId, scriptData, state });
+    },
+    async updateScriptSource(
+      scriptId: string,
+      source: string
+    ): Promise<ScriptSkeleton> {
+      return updateScriptSource({ scriptId, source, state });
     },
     async deleteScript(scriptId: string): Promise<ScriptSkeleton> {
       return deleteScript({ scriptId, state });
@@ -345,6 +388,17 @@ export interface ScriptFilterGroup {
 export type ScriptFilter = ScriptFilterCondition | ScriptFilterGroup;
 
 /**
+ * Lightweight script identifying fields, without the (potentially large)
+ * script body. Returned by {@link listScripts} so callers that only need to
+ * enumerate scripts (e.g. to check what exists, or diff against another
+ * source of ids) don't have to fetch every script's full body to get there.
+ */
+export type ScriptSummary = Pick<
+  ScriptSkeleton,
+  '_id' | 'name' | 'context' | 'language' | 'evaluatorVersion' | 'default'
+>;
+
+/**
  * Create an empty script export template
  * @returns {ScriptExportInterface} an empty script export template
  */
@@ -383,15 +437,58 @@ export async function readScripts({
 }
 
 /**
+ * List scripts with only lightweight identifying fields (no script body)
+ *
+ * @remarks
+ * A realm can hold hundreds of scripts, and {@link readScripts} always
+ * returns the full body of every one of them. This is a strip-down wrapper
+ * over readScripts (the underlying AM endpoint doesn't currently support
+ * field-projection query params here), so it doesn't reduce the network
+ * call, but it avoids ever handing large script bodies to a caller that only
+ * needs to know what scripts exist.
+ *
+ * @param {ScriptFilter} filter Optional script filter
+ * @returns {Promise<ScriptSummary[]>} a promise that resolves to an array of lightweight script summaries
+ */
+export async function listScripts({
+  filter,
+  state,
+}: {
+  filter?: ScriptFilter;
+  state: State;
+}): Promise<ScriptSummary[]> {
+  const scripts = await readScripts({ filter, state });
+  return scripts.map((script) => ({
+    _id: script._id,
+    name: script.name,
+    context: script.context,
+    language: script.language,
+    evaluatorVersion: script.evaluatorVersion,
+    default: script.default,
+  }));
+}
+
+/**
+ * Decodes a script's body to plain text, regardless of whether it is stored
+ * as a base64 string or a string array.
+ *
+ * @param {ScriptSkeleton} scriptData the script object
+ * @returns {string} the decoded, plain-text script source
+ */
+function decodeScriptSource(scriptData: ScriptSkeleton): string {
+  return Array.isArray(scriptData.script)
+    ? scriptData.script.join('\n')
+    : decode(scriptData.script as string);
+}
+
+/**
  * Get the names of library scripts required by the input script object
  *
  * @param {ScriptSkeleton} scriptObj the script object
  * @returns {string[]} an array of required library script names
  */
 export function getLibraryScriptNames(scriptObj: ScriptSkeleton): string[] {
-  const script = Array.isArray(scriptObj.script)
-    ? scriptObj.script.join('\n')
-    : decode(scriptObj.script as string);
+  const script = decodeScriptSource(scriptObj);
   const regex = /require\(['|"](.+?)['|"]\)/g;
   const matches = [...script.matchAll(regex)];
   return matches.map((m) => String(m[1]));
@@ -510,6 +607,38 @@ export async function readScriptByName({
 }
 
 /**
+ * Read a script's plain-text source only, without the surrounding metadata
+ * @param {string} scriptId script id
+ * @returns {Promise<string>} the decoded script source
+ */
+export async function readScriptSource({
+  scriptId,
+  state,
+}: {
+  scriptId: string;
+  state: State;
+}): Promise<string> {
+  const scriptData = await readScript({ scriptId, state });
+  return decodeScriptSource(scriptData);
+}
+
+/**
+ * Read a script's plain-text source only, by name, without the surrounding metadata
+ * @param {string} scriptName name of the script
+ * @returns {Promise<string>} the decoded script source
+ */
+export async function readScriptSourceByName({
+  scriptName,
+  state,
+}: {
+  scriptName: string;
+  state: State;
+}): Promise<string> {
+  const scriptData = await readScriptByName({ scriptName, state });
+  return decodeScriptSource(scriptData);
+}
+
+/**
  * Create script
  * @param {string} scriptId the script id
  * @param {string} scriptName the script name
@@ -597,6 +726,26 @@ export async function updateScript({
       );
   }
   return result;
+}
+
+/**
+ * Update only a script's source, preserving all other metadata
+ * @param {string} scriptId script uuid
+ * @param {string} source new plain-text script source
+ * @returns {Promise<ScriptSkeleton>} the updated script object
+ */
+export async function updateScriptSource({
+  scriptId,
+  source,
+  state,
+}: {
+  scriptId: string;
+  source: string;
+  state: State;
+}): Promise<ScriptSkeleton> {
+  const scriptData = await readScript({ scriptId, state });
+  scriptData.script = source;
+  return updateScript({ scriptId, scriptData, state });
 }
 
 /**
