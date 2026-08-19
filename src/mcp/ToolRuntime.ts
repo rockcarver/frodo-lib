@@ -266,12 +266,21 @@ export type McpDispatchExecutionArguments = {
 
 /**
  * Pagination metadata returned for list/search style tool calls.
+ *
+ * @remarks
+ * When {@link McpExecutionPaginationMetadata.hasMore} is present, the result
+ * was actually sliced by the runtime's default response-size safety net (see
+ * `applyResponseSizeLimit`) before being returned — not just flagged as
+ * possibly truncated. `nextPageOffset` is always a usable continuation value
+ * in that case.
  */
 export type McpExecutionPaginationMetadata = {
   /** Whether the result appears to be truncated/paginated. */
   isPartial: boolean;
   /** Number of rows returned when the payload is an array. */
   returnedCount?: number;
+  /** Total number of rows available before truncation, when known. */
+  totalCount?: number;
   /** Requested page size hint, if provided by caller. */
   requestedPageSize?: number;
   /** Requested page offset hint, if provided by caller. */
@@ -280,6 +289,10 @@ export type McpExecutionPaginationMetadata = {
   requestedPageToken?: string;
   /** Whether caller requested exact totals. */
   includeTotalRequested?: boolean;
+  /** Whether more items remain past the returned page. */
+  hasMore?: boolean;
+  /** Offset to pass as pageOffset to fetch the next page, when hasMore is true. */
+  nextPageOffset?: number;
   /** Optional advisory warning for agent callers. */
   warning?: string;
 };
@@ -749,19 +762,31 @@ export function createToolRuntime(
         });
         throw error;
       }
+      const generic = descriptor.kind === 'generic';
+      const { data: responseData, truncation } = generic
+        ? applyResponseSizeLimit(
+            methodResult,
+            args as McpGenericExecutionArguments,
+            descriptor.operationType,
+            paginationWarningThreshold,
+            resultWarningThresholdBytes
+          )
+        : { data: methodResult, truncation: undefined };
+
       const metadata = buildGenericExecutionMetadata(
-        methodResult,
+        responseData,
         args as McpGenericExecutionArguments,
         descriptor.operationType,
         contextForExecution,
         paginationWarningThreshold,
-        resultWarningThresholdBytes
+        resultWarningThresholdBytes,
+        truncation
       );
 
       return {
         toolName: request.toolName,
         descriptorId: descriptor.id,
-        data: methodResult,
+        data: responseData,
         ...(metadata ? { metadata } : {}),
       };
     }
@@ -2868,6 +2893,11 @@ function resolveDescriptorMethod(
 
 /**
  * Builds standardized execution metadata for generic tool calls.
+ *
+ * @param truncation Truncation result from {@link applyResponseSizeLimit},
+ *   when the caller already applied it. `data` must be the (possibly
+ *   sliced) value actually being returned, not the pre-truncation original —
+ *   metadata describes what the caller receives.
  */
 function buildGenericExecutionMetadata(
   data: unknown,
@@ -2875,14 +2905,16 @@ function buildGenericExecutionMetadata(
   operationType: McpCapabilityOperationType,
   context: McpRuntimeRequestContext,
   paginationWarningThreshold: number,
-  resultWarningThresholdBytes: number
+  resultWarningThresholdBytes: number,
+  truncation?: McpArrayTruncationResult
 ): McpToolExecutionMetadata | undefined {
   const scope = buildScopeMetadata(data, args, context);
   const pagination = buildPaginationMetadata(
     data,
     args,
     operationType,
-    paginationWarningThreshold
+    paginationWarningThreshold,
+    truncation
   );
   const result = buildResultMetadata(
     data,
@@ -3035,16 +3067,145 @@ function buildScopeMetadata(
 }
 
 /**
+ * Result of applying the default response-size safety net to an array result.
+ */
+type McpArrayTruncationResult = {
+  returnedCount: number;
+  totalCount: number;
+  hasMore: boolean;
+  nextPageOffset?: number;
+};
+
+/**
+ * Applies a default response-size safety net to array-shaped list/search
+ * results before they are serialized back over MCP.
+ *
+ * @remarks
+ * `src/ops/**` has no notion of a caller-specific response ceiling — only the
+ * MCP transport does — so this enforcement lives entirely here, never in an
+ * ops module (see `McpToolRuntimeOptions.resultWarningThresholdBytes`/
+ * `paginationWarningThreshold`, the two existing configurable thresholds this
+ * reuses). It is applied by default, not just opt-in: a caller has no way to
+ * know in advance that an unfiltered list call will be oversized, so the
+ * absence of `pageSize`/`pageOffset` must not mean "no limit" — previously,
+ * those args only fed a post-hoc truncation *warning* here; the full array
+ * was always serialized regardless of size.
+ *
+ * Cuts by byte budget first — item sizes vary wildly by domain (a lightweight
+ * managed-object summary vs. a full script body with its base64 source,
+ * which is what originally broke `script.readScripts` for MCP callers) — with
+ * the item-count ceiling as a secondary safety valve. Always includes at
+ * least one item past the requested offset even if it alone exceeds the byte
+ * budget: a single oversized item is a field-projection problem (see
+ * `script.readScriptSource`/`script.listScripts`), not something pagination
+ * can fix.
+ *
+ * @param data Raw method result, prior to any truncation.
+ * @param args Generic execution arguments (may carry caller paging hints).
+ * @param operationType Capability operation type; only `list`/`search` are
+ *   eligible for truncation.
+ * @param paginationWarningThreshold Default item-count ceiling (also used as
+ *   the fallback page size when the caller didn't request one).
+ * @param resultWarningThresholdBytes Byte budget for one page.
+ * @returns The (possibly sliced) data to actually return, plus truncation
+ *   details when slicing occurred.
+ */
+function applyResponseSizeLimit(
+  data: unknown,
+  args: McpGenericExecutionArguments,
+  operationType: McpCapabilityOperationType,
+  paginationWarningThreshold: number,
+  resultWarningThresholdBytes: number
+): { data: unknown; truncation?: McpArrayTruncationResult } {
+  if (
+    !Array.isArray(data) ||
+    (operationType !== 'list' && operationType !== 'search')
+  ) {
+    return { data };
+  }
+
+  const requestedOffset =
+    args.pageOffset !== undefined && args.pageOffset >= 0 ? args.pageOffset : 0;
+  const maxItems =
+    args.pageSize !== undefined && args.pageSize > 0
+      ? args.pageSize
+      : paginationWarningThreshold;
+
+  const window = data.slice(requestedOffset);
+  const page: unknown[] = [];
+  let bytes = 2; // '[' + ']'
+  for (const item of window) {
+    if (page.length >= maxItems) {
+      break;
+    }
+    const itemBytes = estimatePayloadSizeBytes(item) ?? 0;
+    const separatorBytes = page.length > 0 ? 1 : 0; // ','
+    if (
+      page.length > 0 &&
+      bytes + separatorBytes + itemBytes > resultWarningThresholdBytes
+    ) {
+      break;
+    }
+    page.push(item);
+    bytes += separatorBytes + itemBytes;
+  }
+
+  const returnedCount = page.length;
+  const hasMore = requestedOffset + returnedCount < data.length;
+
+  if (!hasMore && requestedOffset === 0 && returnedCount === data.length) {
+    return { data };
+  }
+
+  return {
+    data: page,
+    truncation: {
+      returnedCount,
+      totalCount: data.length,
+      hasMore,
+      ...(hasMore && { nextPageOffset: requestedOffset + returnedCount }),
+    },
+  };
+}
+
+/**
  * Produces pagination diagnostics for list/search style calls.
+ *
+ * @param truncation When provided, reflects an actual slice already applied
+ *   by {@link applyResponseSizeLimit} — takes priority over the heuristic
+ *   "looks truncated" guess below, which only fires as a fallback for
+ *   non-array or non list/search results this function is otherwise called
+ *   with.
  */
 function buildPaginationMetadata(
   data: unknown,
   args: McpGenericExecutionArguments,
   operationType: McpCapabilityOperationType,
-  paginationWarningThreshold: number
+  paginationWarningThreshold: number,
+  truncation?: McpArrayTruncationResult
 ): McpExecutionPaginationMetadata | undefined {
   if (operationType !== 'list' && operationType !== 'search') {
     return undefined;
+  }
+
+  if (truncation) {
+    const metadata: McpExecutionPaginationMetadata = {
+      isPartial: truncation.hasMore,
+      returnedCount: truncation.returnedCount,
+      totalCount: truncation.totalCount,
+      requestedPageSize: args.pageSize,
+      requestedPageOffset: args.pageOffset,
+      requestedPageToken: args.pageToken,
+      includeTotalRequested: args.includeTotal,
+      ...(truncation.hasMore && {
+        hasMore: true,
+        nextPageOffset: truncation.nextPageOffset,
+      }),
+    };
+    if (truncation.hasMore) {
+      metadata.warning = `Result truncated to ${truncation.returnedCount} of ${truncation.totalCount} items to stay within the MCP response size limit. Pass pageOffset: ${truncation.nextPageOffset} to continue.`;
+    }
+    return metadata;
   }
 
   const returnedCount = Array.isArray(data) ? data.length : undefined;

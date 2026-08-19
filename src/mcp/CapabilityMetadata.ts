@@ -2251,6 +2251,55 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     supportsRealm: true,
     notes: 'Use this when you know the script name rather than its UUID.',
   },
+  'script.listScripts': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'filter',
+        type: 'ScriptFilter',
+        required: false,
+        position: 0,
+        description:
+          'Optional script filter, e.g. { field: "context", value: "AUTHENTICATION_TREE_DECISION_NODE" }.',
+        schema: { type: 'object', additionalProperties: true },
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Lightweight script enumeration — returns only { _id, name, context, language, evaluatorVersion, default } for every matching script, never the script body. Use this instead of script.readScripts to find/diff script ids or names in a realm with many scripts, since readScripts returns full bodies and can exceed the MCP response size limit. Use script.readScript/readScriptSource for one script\'s full detail or source once you have its id.',
+  },
+  'script.readScriptSource': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'scriptId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Script UUID.',
+        examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Returns only the decoded, plain-text script source (a bare string) — not the ScriptSkeleton wrapper with metadata. Use this when you only need the code itself, e.g. to review or diff script logic.',
+  },
+  'script.readScriptSourceByName': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'scriptName',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Human-readable script name.',
+        examples: ['Process SAML Data'],
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Same as script.readScriptSource, but looked up by name instead of UUID.',
+  },
   'script.createScript': {
     argumentMode: 'named',
     parameters: [
@@ -2327,6 +2376,29 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     supportsRealm: true,
     notes:
       'Update (or upsert) a script by id. Prefer namedArgs { scriptId, scriptData }.',
+  },
+  'script.updateScriptSource': {
+    argumentMode: 'named',
+    parameters: [
+      {
+        name: 'scriptId',
+        type: 'string',
+        required: true,
+        position: 0,
+        description: 'Script UUID to update.',
+        examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
+      },
+      {
+        name: 'source',
+        type: 'string',
+        required: true,
+        position: 1,
+        description: 'New plain-text script source (not base64-encoded).',
+      },
+    ],
+    supportsRealm: true,
+    notes:
+      'Updates only a script\'s source code, preserving all other metadata (name, context, language, etc.) untouched. Prefer this over script.updateScript when you only need to change the code itself — no need to fetch and re-send the full ScriptSkeleton.',
   },
   'script.deleteScripts': {
     argumentMode: 'named',
@@ -3402,10 +3474,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
 
   'script.getLibraryScriptNames': {
-    operationType: 'list',
-    objectType: 'ScriptName',
-    mutating: false,
-    riskClass: 'low',
+    // Takes a full ScriptSkeleton as input (parses require() calls out of its
+    // body) — internal plumbing for library-dependency resolution, not a
+    // listing operation an agent could call standalone.
+    excluded: true,
   },
 
   'secretStore.canSecretStoreHaveMappings': {
