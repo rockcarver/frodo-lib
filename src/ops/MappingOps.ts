@@ -379,10 +379,23 @@ export async function readSyncMappings({
       entityId: 'sync',
       state,
     });
-    const mappings = (sync.mappings as MappingSkeleton[]).map((it) => {
-      it._id = `sync/${it.name}`;
-      return it;
-    });
+    const rawMappings = sync.mappings as MappingSkeleton[];
+    const mappings = rawMappings
+      .filter((it) => {
+        if (!it) {
+          debugMessage({
+            message:
+              'MappingOps.readLegacyMappings: skipping null/malformed entry in sync.json mappings array',
+            state,
+          });
+          return false;
+        }
+        return true;
+      })
+      .map((it) => {
+        it._id = `sync/${it.name}`;
+        return it;
+      });
     //Add syncAfter property to mappings, according to the ordering
     const syncAfter = [];
     for (const mapping of mappings) {
@@ -583,12 +596,12 @@ export async function updateMapping({
         entityData: { mappings },
         state,
       });
-      for (const mapping of (sync.mappings as MappingSkeleton[]).map(
-        (it: MappingSkeleton) => {
+      for (const mapping of (sync.mappings as MappingSkeleton[])
+        .filter((it) => !!it)
+        .map((it: MappingSkeleton) => {
           it._id = `sync/${it.name}`;
           return it;
-        }
-      )) {
+        })) {
         if (mapping._id === mappingId) return mapping;
       }
     } catch (error) {

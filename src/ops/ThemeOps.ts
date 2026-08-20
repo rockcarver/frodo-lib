@@ -239,7 +239,8 @@ function getRealmThemes({
   realm: string;
 }): ThemeSkeleton[] {
   if (themes.realm && themes.realm[realm]) {
-    return themes.realm[realm];
+    // Skip null/malformed entries in the tenant's ui/themerealm config.
+    return themes.realm[realm].filter((theme) => !!theme);
   }
   return [];
 }
