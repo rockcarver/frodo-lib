@@ -2,9 +2,11 @@
 
 ## Unreleased
 
+## [v4.4.2] - 2026-08-20
+
 ### Fixed
-- `MappingOps.readSyncMappings` and `MappingOps.updateMapping` no longer throw `Cannot read properties of null (reading 'name')` when a tenant's legacy `sync.json` `mappings` array contains a null/malformed entry; such entries are now skipped instead of aborting the operation.
-- `ThemeOps.getRealmThemes` now filters out null/malformed entries from the `ui/themerealm` config entity's per-realm theme array, preventing `Cannot read properties of null (reading 'name'/'_id')` in `readTheme`, `readThemeByName`, `exportThemes`, `updateTheme`, and `updateThemes`.
+- `MappingOps.readSyncMappings` and `MappingOps.updateMapping` no longer throw `Cannot read properties of null (reading 'name')` when a tenant's legacy `sync.json` `mappings` array contains a null/malformed entry; such entries are now skipped instead of aborting the operation. (PR #631)
+- `ThemeOps.getRealmThemes` now filters out null/malformed entries from the `ui/themerealm` config entity's per-realm theme array, preventing `Cannot read properties of null (reading 'name'/'_id')` in `readTheme`, `readThemeByName`, `exportThemes`, `updateTheme`, and `updateThemes`. (PR #631)
 
 ## [v4.4.1] - 2026-08-19
 
