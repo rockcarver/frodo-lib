@@ -3661,6 +3661,17 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // no tenant scoping, not a meaningful bounded operation.
     excluded: true,
   },
+
+  'utils.jose.createJwkRsa': {
+    riskClass: 'critical',
+    // Generates and returns a brand-new RSA private key (the full JwkRsa,
+    // including d/p/q/dp/dq/qi) — not caught by the generic sensitive-name
+    // regex in inferRiskClass because "jwk" alone isn't a safe keyword to
+    // blanket-match (utils.jose.getJwkRsaPublic deliberately returns only
+    // the public half and must stay low-risk).
+    notes:
+      'Generates new RSA private key material. Distinct from utils.jose.getJwkRsaPublic, which strips private components and is safe at low risk.',
+  },
 };
 
 /**

@@ -37,8 +37,22 @@ import {
  * `State.getUseTokenCache`) — `TokenCacheOps.ts` itself performs full file
  * I/O unconditionally regardless of that flag. Excluded unconditionally,
  * the same way `state` is, rather than gated dynamically.
+ *
+ * `factory` (ApiFactoryOps) generates raw, pre-authenticated Axios API
+ * client instances (AM/IDM/log/governance/env/release) with a
+ * caller-controlled `requestOverride`. It's an instance-factory helper in
+ * the same category as {@link DEFAULT_INSTANCE_HELPERS} — not a managed-
+ * object operation — and its return value (a function) doesn't survive
+ * JSON serialization today, so calling it via MCP is currently just
+ * broken rather than a live arbitrary-request proxy. Excluding it removes
+ * both the dead capability and the latent risk of it becoming a real one
+ * if the runtime's serialization ever changes.
  */
-const DEFAULT_EXCLUDED_TOP_LEVEL_DOMAINS = new Set<string>(['state', 'cache']);
+const DEFAULT_EXCLUDED_TOP_LEVEL_DOMAINS = new Set<string>([
+  'state',
+  'cache',
+  'factory',
+]);
 
 /**
  * Frodo instance factory helpers that should never appear as MCP tools.
@@ -437,6 +451,15 @@ function normalizeObjectTypeSuffix(suffix: string): string {
 /**
  * Infers a baseline risk class from the operation and method name.
  *
+ * @remarks
+ * The sensitive-keyword check runs before the operation-type branches, not
+ * after: a `create`/`update`/`export` on a secret, credential, or
+ * service-account is at least as sensitive as reading one, but until this
+ * ordering was fixed the operation-type branches returned first and the
+ * keyword check never ran, silently capping methods like
+ * `cloud.secret.createSecret` and `cloud.serviceAccount.createServiceAccount`
+ * at `'medium'` no matter what they were named.
+ *
  * @param operationType Inferred operation type.
  * @param methodName Method name used for keyword-based risk escalation.
  * @returns Inferred risk class.
@@ -445,13 +468,17 @@ export function inferRiskClass(
   operationType: McpCapabilityOperationType,
   methodName: string
 ): McpCapabilityRiskClass {
+  if (
+    /secret|password|token|credential|serviceAccount|apiKey|privateKey/i.test(
+      methodName
+    )
+  ) {
+    return 'critical';
+  }
   if (operationType === 'delete') return 'high';
   if (operationType === 'import') return 'high';
   if (operationType === 'export') return 'medium';
   if (operationType === 'create' || operationType === 'update') return 'medium';
-  if (/secret|password|token|credential|serviceAccount/i.test(methodName)) {
-    return 'critical';
-  }
   return 'low';
 }
 
