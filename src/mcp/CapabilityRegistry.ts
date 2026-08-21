@@ -268,11 +268,15 @@ function inferArgumentMode(
  * prose), so it can't silently disagree with the compiler the way a
  * hand-authored {@link OperationCapabilityMeta.parameters} override or the
  * operationType-based `inferParameters` default can. Method names are
- * effectively unique across the library (729 of 733 as of this writing; the
- * remaining 4 collisions are `ManagedObject`/`ManagedSystemObject` relationship
- * methods that share an identical parameter shape), so a lookup by bare
- * method name — without needing a typeName-to-domain-path bridge table — is
- * sufficient to resolve the right entry.
+ * effectively unique across the library (806 of 811 as of this writing).
+ * Four of the five collisions are `ManagedObject`/`ManagedSystemObject`
+ * relationship methods that share an identical parameter shape; the fifth,
+ * `getRealmUsingExportFormat`, is a pre-existing duplicate method signature
+ * inside `FRUtils` in src/utils/ForgeRockUtils.ts (harmless here since both
+ * declarations describe the same real function, but worth cleaning up at
+ * the source). A lookup by bare method name — without needing a
+ * typeName-to-domain-path bridge table — is sufficient to resolve the right
+ * entry.
  *
  * Takes priority over `inferParameters`'s naming-convention default: that
  * default forces an empty parameter list for any method classified as `list`
@@ -282,8 +286,9 @@ function inferArgumentMode(
  *
  * @param methodName Bare method name to look up.
  * @returns Derived parameters, or `undefined` if Help.ts has no entry for
- *   this method (e.g. methods outside `src/ops/**`, which generate-help.mjs
- *   does not scan).
+ *   this method (e.g. methods outside `src/ops/**` and `src/utils/**`, which
+ *   generate-help.mjs does not scan, or methods declared outside an
+ *   `export type X = {...}` interface block).
  */
 function deriveParametersFromHelp(
   methodName: string

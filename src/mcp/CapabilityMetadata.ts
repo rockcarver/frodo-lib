@@ -3505,6 +3505,162 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       "Reads the current AM session — username/universalId of the authenticated subject, realm, and session expiration. Works for both admin and service-account-authenticated MCP sessions, but the sessions differ in kind: an admin session is a real login session (session-length maxSessionExpirationTime, hours out); a service account has no real AM session at all — this reads a short-lived session synthesized as a workaround so bearer-token-only credentials can still call AM's session-cookie-based endpoints, and its maxSessionExpirationTime is only minutes past latestAccessTime, not a reliable long-lived value. info.getInfo's authenticatedSubject field is the more architecturally reliable identity check for both credential types (no session dependency at all, verified live against both), but currently sits at critical risk itself because its raw response also carries live session/bearer tokens — pending redaction or a dedicated minimal skill, not a drop-in lower-risk substitute today.",
   },
+
+  // ---------------------------------------------------------------------
+  // utils.* — reviewed against "would an autonomous agentic MCP client
+  // plausibly call this directly", not "does the library use it
+  // internally". Entries below are internal plumbing, CLI/build
+  // bookkeeping, no-op stubs, or trivial data-shuffling that adds nothing
+  // over what the caller already holds in its own MCP call args; every
+  // other utils.* capability (base64, crypto, jose, script validation, and
+  // the rest of ExportImportUtils/ForgeRockUtils/JsonUtils) is kept.
+  // ---------------------------------------------------------------------
+
+  'utils.getMetadata': {
+    // Builds the {origin, originAmVersion, exportedBy, exportDate,
+    // exportTool, exportToolVersion} block stamped into Frodo's own
+    // export-file `meta` field — internal bookkeeping consumed by
+    // saveJsonToFile, not a general tenant/version query.
+    excluded: true,
+  },
+
+  'utils.getRealmString': {
+    // Converts the current realm path into a TitleCase-concatenated token
+    // (e.g. /alpha/beta -> AlphaBeta) purely for Frodo's own
+    // filename/naming conventions, not usable realm data.
+    excluded: true,
+  },
+
+  'utils.substituteEnvParams': {
+    // Second argument is a properties-reader Reader instance (a parsed
+    // .properties file), not a plain JSON value — no MCP JSON payload can
+    // construct one, so this is uncallable via MCP in practice.
+    excluded: true,
+  },
+
+  'utils.unSubstituteEnvParams': {
+    // Same Reader-instance-argument problem as substituteEnvParams.
+    excluded: true,
+  },
+
+  'utils.titleCase': {
+    // Trivial text-casing an LLM already produces natively in its own
+    // output; not FR/IDM domain-specific.
+    excluded: true,
+  },
+
+  'utils.validateImport': {
+    // Implementation is literally `return metadata || true;` — it
+    // performs no actual validation and always returns truthy, so exposing
+    // it as "validateImport" is actively misleading.
+    excluded: true,
+  },
+
+  'utils.getHostBaseUrl': {
+    // Its own JSDoc says "@deprecated since v2.1.2 use getHostUrl
+    // instead" — identical behavior to utils.getHostUrl under a different
+    // name.
+    excluded: true,
+  },
+
+  'utils.getRealmPath': {
+    // Builds the raw CREST realm path used internally when the AM API
+    // layer constructs request URLs; every domain capability that takes a
+    // realm already builds this itself, so there's no scenario where an
+    // agent needs to hand-construct one.
+    excluded: true,
+  },
+
+  'utils.getRealmsForExport': {
+    // Lists realms in Frodo's own obscure export-directory token format
+    // (e.g. root-first-second), purely to name export folders — not a
+    // usable realm listing.
+    excluded: true,
+  },
+
+  'utils.getRealmUsingExportFormat': {
+    // Reverses getRealmsForExport's token format back to a realm path;
+    // only meaningful paired with that internal naming scheme.
+    excluded: true,
+  },
+
+  'utils.getFrodoHome': {
+    // Returns the local ~/.frodo directory used by frodo-cli's own
+    // connection-profile bootstrap — reveals the host filesystem's home
+    // directory and is meaningful only to the CLI's own config location,
+    // not to any tenant the agent is managing.
+    excluded: true,
+  },
+
+  'utils.getHelpMetadata': {
+    // Dumps frodo-lib's entire generated Help.ts JSDoc catalog. That same
+    // data already flows into every tool's own MCP parameter schema via
+    // deriveParametersFromHelp in CapabilityRegistry.ts, so calling this
+    // as a tool just re-fetches metadata the agent already has through the
+    // standard MCP tool listing.
+    excluded: true,
+  },
+
+  'utils.getHelpMetadataByMethod': {
+    // Same redundancy as utils.getHelpMetadata, filtered by method name.
+    excluded: true,
+  },
+
+  'utils.json.cloneDeep': {
+    // `JSON.parse(JSON.stringify(obj))` — called via MCP this just
+    // returns the same object the caller just sent, with zero new
+    // information.
+    excluded: true,
+  },
+
+  'utils.json.findInArray': {
+    // Trivial key/value filter over an array the agent already has in its
+    // own call args; no value beyond what's already visible in the JSON
+    // it's holding.
+    excluded: true,
+  },
+
+  'utils.json.get': {
+    // Trivial nested-path getter over an object already in the agent's
+    // own context.
+    excluded: true,
+  },
+
+  'utils.json.put': {
+    // Trivial nested-path setter; the agent can just construct the nested
+    // value directly in whatever payload it's building next.
+    excluded: true,
+  },
+
+  'utils.json.getPaths': {
+    // Its own doc comment: "This function was explicitly created for the
+    // shell command in the Frodo CLI and has some special casing that may
+    // not leave it generic enough to be used for what its name implies."
+    // It also stringifies function *source code* when walking
+    // function-valued properties — special-cased for the CLI shell's own
+    // object-graph walk, not general JSON.
+    excluded: true,
+  },
+
+  'utils.version.getVersion': {
+    // Returns frodo-lib's own npm package version — library-build
+    // bookkeeping for the CLI's --version, not tenant data.
+    excluded: true,
+  },
+
+  'utils.version.getBuildTimestamp': {
+    // frodo-lib's own build ISO timestamp — same category as
+    // utils.version.getVersion.
+    excluded: true,
+  },
+
+  'utils.version.getAllVersions': {
+    // Internal plumbing for the CLI's own release/update-check dashboard:
+    // takes an arbitrary array of {base, path} endpoint pairs and fires a
+    // raw GET at each — an open-ended, caller-controlled URL fetcher with
+    // no tenant scoping, not a meaningful bounded operation.
+    excluded: true,
+  },
 };
 
 /**
