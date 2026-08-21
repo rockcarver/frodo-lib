@@ -150,7 +150,6 @@ export type Script = {
    * Export script by id
    * @param {string} scriptId script uuid
    * @param {ScriptExportOptions} options script export options
-   * @param {ResultCallback} resultCallback Optional callback to process individual results
    * @returns {Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object
    */
   exportScript(

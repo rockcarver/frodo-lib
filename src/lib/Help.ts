@@ -4457,7 +4457,6 @@ export const helpMetadata: MethodHelpDoc[] = [
     params: [
       { name: "scriptId", type: "string", description: "script uuid", required: true },
       { name: "options", type: "ScriptExportOptions", description: "script export options", required: false },
-      { name: "resultCallback", type: "ResultCallback", description: "Optional callback to process individual results", required: true },
     ],
     returns: "{Promise<ScriptExportInterface>} a promise that resolved to a ScriptExportInterface object",
   },
@@ -4858,9 +4857,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     methodName: "readThemes",
     signature: "readThemes(): Promise<ThemeSkeleton[]>",
     description: "Read all themes",
-    params: [
-      { name: "realm", type: "string", description: "realm name", required: true },
-    ],
+    params: [],
     returns: "{Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes",
   },
   {

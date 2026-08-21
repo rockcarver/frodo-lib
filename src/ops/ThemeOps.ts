@@ -35,7 +35,6 @@ export type Theme = {
   createThemeExportTemplate(): ThemeExportInterface;
   /**
    * Read all themes
-   * @param {string} realm realm name
    * @returns {Promise<ThemeSkeleton[]>} a promise that resolves to an array of themes
    */
   readThemes(): Promise<ThemeSkeleton[]>;

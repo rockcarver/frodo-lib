@@ -854,6 +854,11 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     supportsRealm: true,
     notes: 'Update a connector with namedArgs { connectorId, connectorData }.',
   },
+  'idm.connector.createConnectorExportTemplate': {
+    // Pure local builder (no API calls), used internally by exportConnector/
+    // exportConnectors — no standalone value to an agent.
+    excluded: true,
+  },
   'idm.managed.createManagedObject': {
     argumentMode: 'named',
     parameters: [
@@ -2266,7 +2271,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     ],
     supportsRealm: true,
     notes:
-      'Lightweight script enumeration — returns only { _id, name, context, language, evaluatorVersion, default } for every matching script, never the script body. Use this instead of script.readScripts to find/diff script ids or names in a realm with many scripts, since readScripts returns full bodies and can exceed the MCP response size limit. Use script.readScript/readScriptSource for one script\'s full detail or source once you have its id.',
+      "Lightweight script enumeration — returns only { _id, name, context, language, evaluatorVersion, default } for every matching script, never the script body. Use this instead of script.readScripts to find/diff script ids or names in a realm with many scripts, since readScripts returns full bodies and can exceed the MCP response size limit. Use script.readScript/readScriptSource for one script's full detail or source once you have its id.",
   },
   'script.readScriptSource': {
     argumentMode: 'named',
@@ -2398,7 +2403,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     ],
     supportsRealm: true,
     notes:
-      'Updates only a script\'s source code, preserving all other metadata (name, context, language, etc.) untouched. Prefer this over script.updateScript when you only need to change the code itself — no need to fetch and re-send the full ScriptSkeleton.',
+      "Updates only a script's source code, preserving all other metadata (name, context, language, etc.) untouched. Prefer this over script.updateScript when you only need to change the code itself — no need to fetch and re-send the full ScriptSkeleton.",
   },
   'script.deleteScripts': {
     argumentMode: 'named',
@@ -2461,8 +2466,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
     notes:
-      'Create an OAuth2 client. Prefer namedArgs { clientId, clientData } so the target id and payload are explicit.',
+      "Create an OAuth2 client. Prefer namedArgs { clientId, clientData } so the target id and payload are explicit. Writes coreOAuth2ClientConfig.userpassword (the client secret) — confirmed via mock fixtures that reads mask this field to null, but writes carry the real value. Previously medium; the sensitive-keyword regex misses it since it's a payload field, not part of the method name.",
   },
   'oauth2oidc.client.updateOAuth2Client': {
     argumentMode: 'named',
@@ -2497,8 +2504,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
     notes:
-      'Update or upsert an OAuth2 client. Prefer namedArgs { clientId, clientData } to avoid positional ambiguity.',
+      'Update or upsert an OAuth2 client. Prefer namedArgs { clientId, clientData } to avoid positional ambiguity. Same client-secret-write exposure as oauth2oidc.client.createOAuth2Client.',
   },
   'oauth2oidc.external.createSocialIdentityProvider': {
     argumentMode: 'named',
@@ -2533,8 +2542,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
     notes:
-      'Create a social identity provider. Prefer namedArgs { providerType, providerId, providerData }.',
+      'Create a social identity provider. Prefer namedArgs { providerType, providerId, providerData }. Writes SocialIdpSkeleton.clientSecret — same name-vs-payload gap as oauth2oidc.client.createOAuth2Client, previously medium.',
   },
   'oauth2oidc.external.updateSocialIdentityProvider': {
     argumentMode: 'named',
@@ -2569,8 +2580,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
     notes:
-      'Update or upsert a social identity provider. Prefer namedArgs { providerType, providerId, providerData }.',
+      'Update or upsert a social identity provider. Prefer namedArgs { providerType, providerId, providerData }. Same client-secret-write exposure as createSocialIdentityProvider.',
   },
   'oauth2oidc.issuer.createOAuth2TrustedJwtIssuer': {
     argumentMode: 'named',
@@ -2596,8 +2609,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
     notes:
-      'Create a trusted JWT issuer. Prefer namedArgs { issuerId, issuerData }.',
+      'Create a trusted JWT issuer. Prefer namedArgs { issuerId, issuerData }. No secret is stored, but this registers a trust anchor (issuer + public JWKS) accepted for the already-critical RFC 7523 JWT-bearer grant — auth-bypass-adjacent if misconfigured. Previously medium.',
   },
   'oauth2oidc.issuer.updateOAuth2TrustedJwtIssuer': {
     argumentMode: 'named',
@@ -2623,8 +2638,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
     ],
     supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
     notes:
-      'Update or upsert a trusted JWT issuer. Prefer namedArgs { issuerId, issuerData }.',
+      'Update or upsert a trusted JWT issuer. Prefer namedArgs { issuerId, issuerData }. Same trust-anchor exposure as createOAuth2TrustedJwtIssuer.',
   },
 
   // ── IDM managed objects ─────────────────────────────────────────────────────
@@ -2950,16 +2967,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       'Executes a live RFC 7523 JWT-bearer authorization grant against the tenant, obtaining a real access token. Treat as credential issuance.',
   },
   'admin.generateRfc7523AuthZGrantArtefacts': {
-    mutating: false,
-    riskClass: 'high',
+    mutating: true,
+    riskClass: 'critical',
     notes:
-      'Generates local JWT-bearer grant artefacts (assertions/keys). No tenant call, but produces auth material.',
+      'Generates local JWT-bearer grant artefacts (assertions/keys). Previously documented as "no tenant call", but with options.save:true it actually calls updateOAuth2Client and updateOAuth2TrustedJwtIssuer, provisioning a real OAuth2 client scoped fr:am:*,fr:idm:*,openid — tenant-wide, admin-equivalent access. Treat as credential/trust-anchor issuance, not local-only artefact generation.',
   },
   'admin.generateRfc7523ClientAuthNArtefacts': {
-    mutating: false,
-    riskClass: 'high',
+    mutating: true,
+    riskClass: 'critical',
     notes:
-      'Generates local client-authentication artefacts. No tenant call, but produces auth material.',
+      'Generates local client-authentication artefacts. Previously documented as "no tenant call", but with options.save:true it calls updateOAuth2Client, provisioning a real confidential private_key_jwt OAuth2 client on the tenant. Treat as credential issuance, not local-only artefact generation.',
   },
   'admin.trainAA': {
     mutating: true,
@@ -3010,10 +3027,11 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       'Answers "which journey uses this script?" — a config dependency question no other skill can answer, since the reference only lives on individual node objects (node.script), not on the journey itself or the script. Implemented as a full-realm scan (bulk-reads every node and every journey once, then joins in memory — no per-node fetches), so it stays cheap even on realms with many journeys. Each result reports the journey and the top-level node it actually references; when the script is used by a node nested inside a container node (e.g. a Page Node), the result also carries innerNodeId for the specific nested node, since a journey\'s own node map only ever points at the container. Returns an empty array, not an error, when nothing references the script.',
   },
   'authn.journey.getJourneyClassification': {
-    operationType: 'read',
-    objectType: 'JourneyClassification',
-    mutating: false,
-    riskClass: 'low',
+    // @deprecated since v4.0.0: "Frodo no longer classifies journeys as
+    // 'custom' or 'standard' or 'cloud-only' or 'premium'. This function
+    // will be removed in a future major release." ForgeRock's own JSDoc
+    // says the product no longer tracks this categorization.
+    excluded: true,
   },
   'authn.journey.getNodeRef': {
     // Takes a full NodeSkeleton + SingleTreeExportInterface as input, not a
@@ -3028,19 +3046,44 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'low',
   },
   'authn.journey.resolveDependencies': {
-    operationType: 'list',
-    objectType: 'JourneyDependency',
-    mutating: false,
-    riskClass: 'low',
+    // Returns Promise<void> and communicates its result only by mutating
+    // reference arguments (installedJorneys/journeyMap/etc.) in place — a
+    // pattern with no meaning across an MCP call boundary, since the caller
+    // never sees those mutated locals. Effectively a dead call over MCP.
+    excluded: true,
   },
-  'authn.journey.isCloudOnlyJourney': { mutating: false, riskClass: 'low' },
-  'authn.journey.isCustomJourney': { mutating: false, riskClass: 'low' },
-  'authn.journey.isPremiumJourney': { mutating: false, riskClass: 'low' },
+  'authn.journey.isCloudOnlyJourney': {
+    // @deprecated since v4.0.0, same rationale as getJourneyClassification.
+    excluded: true,
+  },
+  'authn.journey.isCustomJourney': {
+    // @deprecated since v4.0.0, same rationale as getJourneyClassification.
+    excluded: true,
+  },
+  'authn.journey.isPremiumJourney': {
+    // @deprecated since v4.0.0, same rationale as getJourneyClassification.
+    excluded: true,
+  },
   'authn.journey.fileByIdTreeExportResolver': {
     excluded: true, // internal resolver used by exportJourney, not a standalone operation
   },
   'authn.journey.onlineTreeExportResolver': {
     excluded: true, // internal resolver used by exportJourney, not a standalone operation
+  },
+  'authn.journey.createFileParamTreeExportResolver': {
+    // Returns a closure (function) — doesn't survive JSON serialization
+    // across the MCP boundary, same failure class as the excluded `factory`
+    // domain and the resolver methods directly above.
+    excluded: true,
+  },
+  'authn.journey.createMultiTreeExportTemplate': {
+    // Pure local builder (no API calls) that constructs an empty in-memory
+    // skeleton object — no agentic value standalone; a real export already
+    // returns the populated equivalent.
+    excluded: true,
+  },
+  'authn.journey.createSingleTreeExportTemplate': {
+    excluded: true, // same rationale as createMultiTreeExportTemplate
   },
 
   'authn.node.findOrphanedNodes': {
@@ -3056,10 +3099,9 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'low',
   },
   'authn.node.getNodeClassification': {
-    operationType: 'read',
-    objectType: 'NodeClassification',
-    mutating: false,
-    riskClass: 'low',
+    // @deprecated, same rationale as authn.journey.getJourneyClassification
+    // — ForgeRock no longer tracks node classification.
+    excluded: true,
   },
   'authn.node.removeOrphanedNodes': {
     operationType: 'delete',
@@ -3069,11 +3111,27 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'high',
     notes: 'Bulk-deletes orphaned node configuration objects.',
   },
-  'authn.node.isCloudExcludedNode': { mutating: false, riskClass: 'low' },
-  'authn.node.isCloudOnlyNode': { mutating: false, riskClass: 'low' },
-  'authn.node.isCustomNode': { mutating: false, riskClass: 'low' },
-  'authn.node.isDeprecatedNode': { mutating: false, riskClass: 'low' },
-  'authn.node.isPremiumNode': { mutating: false, riskClass: 'low' },
+  'authn.node.isCloudExcludedNode': {
+    excluded: true, // @deprecated, same rationale as getNodeClassification
+  },
+  'authn.node.isCloudOnlyNode': {
+    excluded: true, // @deprecated, same rationale as getNodeClassification
+  },
+  'authn.node.isCustomNode': {
+    // @deprecated, same rationale as getNodeClassification. Also has
+    // opposing, unreliable fallback behavior (default: case returns true)
+    // for any AM version not in its hardcoded list.
+    excluded: true,
+  },
+  'authn.node.isDeprecatedNode': {
+    // @deprecated, same rationale as getNodeClassification. Also has
+    // opposing, unreliable fallback behavior (default: case returns false)
+    // for any AM version not in its hardcoded list.
+    excluded: true,
+  },
+  'authn.node.isPremiumNode': {
+    excluded: true, // @deprecated, same rationale as getNodeClassification
+  },
 
   // Local SDK plumbing, not tenant capabilities. `cache` is frodo's local
   // encrypted token-cache bookkeeping; `conn` is frodo's local connection-profile
@@ -3109,6 +3167,13 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'cloud.env.cert.isCertificateActive': { mutating: false, riskClass: 'low' },
   'cloud.env.cert.isCertificateLive': { mutating: false, riskClass: 'low' },
+  'cloud.env.cert.updateCertificate': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes:
+      'Generic certificate update — but activateCertificate/deactivateCertificate are themselves thin wrappers that call this same update API with the active flag flipped. Calling this directly with active:false deactivates a live certificate exactly like deactivateCertificate, which is already high/destructive; this entry keeps the two in sync.',
+  },
   'cloud.env.enableAIAgentFeature': { mutating: true, riskClass: 'medium' },
   'cloud.env.enforceFederationFor': {
     mutating: true,
@@ -3116,6 +3181,26 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'high',
     notes:
       'Enforces federated login for a target, which can lock out password-based access.',
+  },
+  'cloud.env.readServiceAccountScopes': {
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Returns the static catalog of available service-account scope name strings (e.g. fr:idm:*) — not any account\'s credentials or granted scopes. Explicit override corrects the keyword-based critical default triggered by "ServiceAccount" in the method name.',
+  },
+  'cloud.env.updateFederationEnforcement': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes:
+      "Generic federation-enforcement update — but enforceFederationFor is a thin wrapper that calls this same underlying API. Kept in sync with enforceFederationFor's high/destructive classification (can lock out password-based access).",
+  },
+  'cloud.env.updateSSOCookieConfig': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes:
+      "Generic SSO-cookie-config update, writing the same resource resetSSOCookieConfig restores to defaults. Kept in sync with resetSSOCookieConfig's high/destructive classification (can invalidate active sessions).",
   },
   'cloud.env.promotion.lockEnvironment': {
     mutating: true,
@@ -3157,10 +3242,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'cloud.env.verifyCNAME': { mutating: false, riskClass: 'low' },
 
   'cloud.esvCount.getEsvCount': {
-    operationType: 'count',
-    objectType: 'Esv',
-    mutating: false,
-    riskClass: 'low',
+    // frodo.cloud.esvCount is @deprecated since v2.0.4, "use
+    // frodo.cloud.getEsvCount instead" — both are literally the same
+    // EsvCountOps(state) instance spread onto two graph locations.
+    excluded: true,
   },
   'cloud.getEsvCount': {
     operationType: 'count',
@@ -3169,12 +3254,26 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'low',
   },
 
+  'cloud.adminFed.createAdminFederationExportTemplate': {
+    // Pure local function returning an empty {meta, config:{}, idp:{}}
+    // shell — never calls the API. Internal helper used by the export
+    // functions, no useful standalone output.
+    excluded: true,
+  },
+
   'cloud.feature.hasFeature': { mutating: false, riskClass: 'low' },
 
   'cloud.iga.workflow.publishWorkflow': {
     mutating: true,
+    destructive: true,
     riskClass: 'medium',
-    notes: 'Publishes a workflow definition, making it active.',
+    notes:
+      'Publishes a workflow definition, making it active. Also deletes the workflow\'s draft version as a side effect if one exists — confirmed by the implementation\'s own comment that publishing "ends up deleting the draft workflow if it exists."',
+  },
+
+  'cloud.iga.workflow.updateWorkflow': {
+    notes:
+      'Calls the same underlying publish API as cloud.iga.workflow.publishWorkflow — and inherits its side effect of deleting the draft version — whenever the update payload sets status to "published". Not unconditionally destructive like publishWorkflow, since most updates leave status untouched, so no blanket destructive override is applied here; callers changing status should expect draft loss.',
   },
 
   'cloud.secret.disableVersionOfSecret': { mutating: true, destructive: true },
@@ -3208,17 +3307,27 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
 
   'cloud.variable.getVariable': {
+    // @deprecated 1:1 alias of readVariable, same underlying call — same
+    // precedent as the existing utils.getHostBaseUrl exclusion.
+    excluded: true,
+  },
+  'cloud.variable.getVariables': {
+    // @deprecated 1:1 alias of readVariables.
+    excluded: true,
+  },
+  'cloud.variable.readVariable': {
     operationType: 'read',
     objectType: 'Variable',
     mutating: false,
     riskClass: 'medium',
     notes: 'ESV variables may hold sensitive-but-unclassified config values.',
   },
-  'cloud.variable.getVariables': {
+  'cloud.variable.readVariables': {
     operationType: 'list',
     objectType: 'Variable',
     mutating: false,
     riskClass: 'medium',
+    notes: 'ESV variables may hold sensitive-but-unclassified config values.',
   },
   'cloud.variable.resolveVariable': {
     operationType: 'read',
@@ -3227,16 +3336,21 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'medium',
   },
   'cloud.variable.putVariable': {
-    operationType: 'update',
-    objectType: 'Variable',
-    mutating: true,
-    riskClass: 'medium',
+    // @deprecated 1:1 alias of updateVariable — inference already gives
+    // updateVariable itself the correct medium/mutating classification, no
+    // override needed there.
+    excluded: true,
   },
   'cloud.variable.setVariableDescription': {
+    // @deprecated 1:1 alias of updateVariableDescription.
+    excluded: true,
+  },
+  'cloud.variable.updateVariableDescription': {
     operationType: 'update',
     objectType: 'Variable',
     mutating: true,
     riskClass: 'low',
+    notes: 'Updates only the description field — no sensitive value exposure.',
   },
 
   'cloud.wsfed.generateSigningKeyPair': {
@@ -3354,6 +3468,17 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'low',
   },
 
+  'idm.mapping.createMappingExportTemplate': {
+    // Pure local builder (no API calls), used internally by exportMapping/
+    // exportMappings — no standalone value to an agent.
+    excluded: true,
+  },
+  'idm.mapping.importFirstMapping': {
+    // Imports whichever mapping happens to be "first" by an unpredictable,
+    // insertion-order-dependent heuristic. importMapping (explicit id) and
+    // importMappings (all) already cover every deliberate agent intent.
+    excluded: true,
+  },
   'idm.mapping.isLegacyMapping': { mutating: false, riskClass: 'low' },
 
   'idm.organization.getRealmManagedOrganization': {
@@ -3435,15 +3560,50 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       'Returns live bearer/session tokens for the current identity. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin).',
   },
 
+  'am.config.createConfigEntityExportTemplate': {
+    // Pure local builder (no API calls), used internally by
+    // exportAmConfigEntities — no standalone value to an agent.
+    excluded: true,
+  },
+
+  'config.exportFullConfiguration': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Exports the entire tenant configuration in one call, whose graph includes cloud.secret.exportSecrets (ESV secret values), secretStore.exportSecretStores (global and per-realm), and OAuth2/SAML/social-IdP client configs. Previously medium purely from the export operationType default; the aggregate payload is at least as sensitive as any individual secret-bearing export it pulls in.',
+  },
+  'config.importFullConfiguration': {
+    mutating: true,
+    riskClass: 'critical',
+    notes:
+      'Writes back the same secret-bearing payload set (ESV secrets, secret stores, OAuth2/SAML/social-IdP client configs) that config.exportFullConfiguration reads. Previously high via the import operationType default; bumped to critical to match the sensitivity of what it actually writes.',
+  },
+
+  'rawConfig.exportRawConfig': {
+    // Arbitrary-path GET passthrough to the AM/IDM/environment API roots
+    // with no per-endpoint semantics — can reach secret/credential
+    // endpoints directly, undercutting every other capability's risk
+    // classification. Excluded rather than reclassified: no riskClass is
+    // meaningful for an operation whose actual sensitivity is entirely
+    // determined by a caller-supplied path.
+    excluded: true,
+  },
+  'rawConfig.importRawConfig': {
+    // Same escape-hatch shape as rawConfig.exportRawConfig, but as a write
+    // (PUT) passthrough to arbitrary AM/IDM/environment paths — strictly
+    // higher risk than the read side. Excluded for the same reason.
+    excluded: true,
+  },
+
   'oauth2oidc.endpoint.accessToken': { mutating: true },
   'oauth2oidc.endpoint.accessTokenRfc7523AuthZGrant': { mutating: true },
   'oauth2oidc.endpoint.clientCredentialsGrant': { mutating: true },
   'oauth2oidc.endpoint.getTokenInfo': { mutating: false },
   'oauth2oidc.endpoint.authorize': {
     mutating: true,
-    riskClass: 'high',
+    riskClass: 'critical',
     notes:
-      'Initiates a live OAuth2 authorization request against the tenant. Explicit override — the method name does not match the credential-keyword inference.',
+      'Initiates a live OAuth2 authorization request against the tenant, POSTing a fully caller-controlled AxiosRequestConfig (arbitrary headers, e.g. Cookie/Authorization) to the live /oauth2/authorize endpoint — same risk shape as its sibling endpoint.* methods (accessToken, accessTokenRfc7523AuthZGrant, clientCredentialsGrant, getTokenInfo, all critical via the credential-keyword inference), usable toward session/auth-code hijacking. Explicit override because the method name itself does not match the credential-keyword inference the way its siblings do.',
   },
 
   'realm.addCustomDomain': {
@@ -3671,6 +3831,82 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     // the public half and must stay low-risk).
     notes:
       'Generates new RSA private key material. Distinct from utils.jose.getJwkRsaPublic, which strips private components and is safe at low risk.',
+  },
+
+  // ---------------------------------------------------------------------
+  // Full-inventory risk sweep (11 parallel domain reviews, same method as
+  // the utils.* review above): create*ExportTemplate exclusions, deprecated
+  // duplicates, and under/over-classified riskClass findings across the
+  // rest of the capability surface.
+  // ---------------------------------------------------------------------
+
+  // --- pure local create*ExportTemplate scaffolds: no API call, no value
+  // to an agent beyond what the real export* method already returns. ---
+  'authz.policy.createPolicyExportTemplate': { excluded: true },
+  'authz.policySet.createPolicySetExportTemplate': { excluded: true },
+  'oauth2oidc.client.createOAuth2ClientExportTemplate': { excluded: true },
+  'oauth2oidc.issuer.createOAuth2TrustedJwtIssuerExportTemplate': {
+    excluded: true,
+  },
+  'app.createApplicationExportTemplate': { excluded: true },
+  'role.createInternalRoleExportTemplate': { excluded: true },
+  'saml2.circlesOfTrust.createCirclesOfTrustExportTemplate': {
+    excluded: true,
+  },
+  'script.createScriptExportTemplate': { excluded: true },
+  'scriptType.createScriptTypeExportTemplate': { excluded: true },
+  'secretStore.createSecretStoreExportTemplate': { excluded: true },
+  'theme.createThemeExportTemplate': { excluded: true },
+  'email.template.createEmailTemplateExportTemplate': { excluded: true },
+  'server.createServerExportTemplate': { excluded: true },
+  'service.createServiceExportTemplate': { excluded: true },
+  'site.createSiteExportTemplate': { excluded: true },
+  'user.createUserExportTemplate': { excluded: true },
+  'user.createUserGroupExportTemplate': { excluded: true },
+
+  // --- server/service config export & listing: payloads embed real
+  // credentials (config/CTS-store LDAP bind password, OAuth/SMTP client
+  // secrets) that the method NAME never mentions, so the sensitive-keyword
+  // inference can't catch them the way it catches e.g. cloud.secret.*. ---
+  'server.exportServer': {
+    mutating: false,
+    riskClass: 'high',
+    notes:
+      "Pulls the AM server's directoryConfiguration and cts property groups, which include the config-store/CTS-store LDAP bind Login ID and Password for that server. Previously medium purely from the export operationType default.",
+  },
+  'server.exportServerByUrl': {
+    mutating: false,
+    riskClass: 'high',
+    notes: 'Same payload shape as server.exportServer.',
+  },
+  'server.exportServers': {
+    mutating: false,
+    riskClass: 'high',
+    notes: 'Same payload shape as server.exportServer, for every server.',
+  },
+  'service.getListOfServices': {
+    mutating: false,
+    riskClass: 'high',
+    notes:
+      'AM has no true "names only" list endpoint, so this uses _action=nextdescendents on the services collection and returns each service\'s full top-level attributes — potentially including secret fields (e.g. the SMTP/EmailService transport password). Previously low.',
+  },
+  'service.getFullServices': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      "Explicitly walks every service's descendants (e.g. each SocialIdentityProviders entry's OAuth client secret). Previously low.",
+  },
+  'service.exportService': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Wraps the same full-service-config content as service.getFullServices. Previously medium.',
+  },
+  'service.exportServices': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Wraps the same full-service-config content as service.getFullServices, for every service. Previously medium.',
   },
 };
 
