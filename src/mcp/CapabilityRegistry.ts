@@ -22,8 +22,23 @@ import {
   McpToolAnnotations,
 } from './CapabilityTypes';
 
-/** Top-level domain keys excluded from the capability inventory by default. */
-const DEFAULT_EXCLUDED_TOP_LEVEL_DOMAINS = new Set<string>(['state']);
+/**
+ * Top-level domain keys excluded from the capability inventory by default.
+ *
+ * @remarks
+ * `cache` (TokenCacheOps) manages the local on-disk, machine-wide token
+ * cache used to bootstrap CLI sessions — a shared file keyed by
+ * host/realm/subject, not scoped to any one process. Its `read*`/`save*`
+ * methods expose or let a caller inject live session/bearer-token
+ * credential material, and `flush` unconditionally wipes every cached
+ * token for every host/realm on the machine. None of this is tenant data
+ * an agentic client should ever need, and frodo-lib has no visibility into
+ * whether the embedding CLI session even has token caching enabled (see
+ * `State.getUseTokenCache`) — `TokenCacheOps.ts` itself performs full file
+ * I/O unconditionally regardless of that flag. Excluded unconditionally,
+ * the same way `state` is, rather than gated dynamically.
+ */
+const DEFAULT_EXCLUDED_TOP_LEVEL_DOMAINS = new Set<string>(['state', 'cache']);
 
 /**
  * Frodo instance factory helpers that should never appear as MCP tools.
