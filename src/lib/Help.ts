@@ -2423,6 +2423,40 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "ManagedObject",
+    methodName: "readManagedObjectSchemaProperty",
+    signature: "readManagedObjectSchemaProperty( type: string, propertyName: string ): Promise<ManagedObjectSchemaProperty>",
+    description: "Read a single managed object schema property definition. Cloud (PingOne Advanced Identity Cloud) only — uses IDM's v2 schema API to read one property/relationship definition without fetching the type's entire schema. On ForgeOps/classic, use readSubConfigEntity('managed', type) and read the property off the returned schema.properties instead.",
+    params: [
+      { name: "type", type: "string", description: "managed object type, e.g. alpha_user", required: true },
+      { name: "propertyName", type: "string", description: "schema property name, e.g. custom_merchantId", required: true },
+    ],
+    returns: "{Promise<ManagedObjectSchemaProperty>} a promise that resolves to the property definition",
+  },
+  {
+    typeName: "ManagedObject",
+    methodName: "updateManagedObjectSchemaProperty",
+    signature: "updateManagedObjectSchemaProperty( type: string, propertyName: string, propertyData: ManagedObjectSchemaProperty ): Promise<ManagedObjectSchemaProperty>",
+    description: "Create or update a single managed object schema property definition, leaving the rest of the type's schema untouched. Cloud only — see {@link readManagedObjectSchemaProperty}. On ForgeOps/classic, use importSubConfigEntity('managed', ...) with the full updated type definition instead.",
+    params: [
+      { name: "type", type: "string", description: "managed object type, e.g. alpha_user", required: true },
+      { name: "propertyName", type: "string", description: "schema property name, e.g. custom_merchantId", required: true },
+      { name: "propertyData", type: "ManagedObjectSchemaProperty", description: "the property definition to write", required: true },
+    ],
+    returns: "{Promise<ManagedObjectSchemaProperty>} a promise that resolves to the written property definition",
+  },
+  {
+    typeName: "ManagedObject",
+    methodName: "removeManagedObjectSchemaProperty",
+    signature: "removeManagedObjectSchemaProperty( type: string, propertyName: string ): Promise<ManagedObjectSchemaProperty>",
+    description: "Remove a single managed object schema property definition, leaving the rest of the type's schema untouched. Cloud only — see {@link readManagedObjectSchemaProperty}.",
+    params: [
+      { name: "type", type: "string", description: "managed object type, e.g. alpha_user", required: true },
+      { name: "propertyName", type: "string", description: "schema property name, e.g. custom_merchantId", required: true },
+    ],
+    returns: "{Promise<ManagedObjectSchemaProperty>} a promise that resolves to the removed property definition",
+  },
+  {
+    typeName: "ManagedObject",
     methodName: "createManagedObject",
     signature: "createManagedObject( type: string, moData: IdObjectSkeletonInterface, id?: string ): Promise<IdObjectSkeletonInterface>",
     description: "Create managed object",

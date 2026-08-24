@@ -689,6 +689,20 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       "Finds a managed object by a CREST query filter, creating one with a server-generated _id if no match exists — the JIT-provisioning pattern: query by an external identity's metadata (e.g. a foreign IDP's JWT subject stored in a custom field) rather than using that external identity as the object's own _id/userName, since it may not be UUID-shaped or stable. Throws if the filter matches more than one object rather than picking arbitrarily. moData is ignored when an existing match is found.",
   },
+  'idm.managed.readManagedObjectSchemaProperty': {
+    notes:
+      "Cloud (PingOne Advanced Identity Cloud) only — reads one schema property/relationship definition via IDM's v2 schema API, without fetching the type's whole schema. Throws on ForgeOps/classic; use readSubConfigEntity('managed', type) and read the property off schema.properties there instead.",
+  },
+  'idm.managed.updateManagedObjectSchemaProperty': {
+    notes:
+      "Cloud only — creates or updates one schema property/relationship definition in place via IDM's v2 schema API, leaving the rest of the type's schema untouched. See idm.managed.readManagedObjectSchemaProperty's notes for the ForgeOps/classic alternative and idm.managed.updateManagedObjectProperties's notes for the relationship-property shape (type/resourceCollection/reversePropertyName/etc.).",
+  },
+  'idm.managed.removeManagedObjectSchemaProperty': {
+    operationType: 'delete',
+    objectType: 'ManagedObjectSchemaProperty',
+    notes:
+      "Cloud only — removes one schema property/relationship definition via IDM's v2 schema API, leaving the rest of the type's schema untouched. See idm.managed.readManagedObjectSchemaProperty's notes for the ForgeOps/classic alternative.",
+  },
   'idm.managed.readRelationship': {
     operationType: 'read',
     objectType: 'Relationship',

@@ -11,6 +11,11 @@ import { generateIdmApi } from './BaseApi';
 import { MANAGED_SYSTEM_OBJECT_TYPES } from './ManagedSystemObjectApi';
 
 const managedObjectSchemaURLTemplate = '%s/schema/managed/%s';
+const managedObjectSchemaPropertyURLTemplate =
+  '%s/schema/managed/%s/properties/%s';
+const managedObjectSchemaApiConfig = {
+  headers: { 'Accept-API-Version': 'resource=2.0' },
+};
 const createManagedObjectURLTemplate = '%s/managed/%s?_action=create';
 const managedObjectByIdURLTemplate = '%s/managed/%s/%s';
 const queryAllManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=true&_pageSize=%s`;
@@ -136,6 +141,103 @@ export async function getManagedObjectSchema({
     urlString
   );
   return data as ManagedObjectSchema;
+}
+
+/**
+ * Get a single managed object schema property definition. Cloud (PingOne
+ * Advanced Identity Cloud) only — part of IDM's v2 schema API
+ * (`Accept-API-Version: resource=2.0`), which lets individual property/
+ * relationship definitions be read, created, updated, or deleted without
+ * reading and rewriting the type's entire schema document. Not available on
+ * ForgeOps/classic; use the config/managed whole-type-blob path there.
+ * @param {string} type managed object type, e.g. alpha_user
+ * @param {string} propertyName schema property name, e.g. custom_merchantId
+ * @param {State} state library state
+ * @returns {Promise<ManagedObjectSchemaProperty>} a promise that resolves to the property definition
+ */
+export async function getManagedObjectSchemaProperty({
+  type,
+  propertyName,
+  state,
+}: {
+  type: string;
+  propertyName: string;
+  state: State;
+}): Promise<ManagedObjectSchemaProperty> {
+  const urlString = util.format(
+    managedObjectSchemaPropertyURLTemplate,
+    getIdmBaseUrl(state),
+    type,
+    propertyName
+  );
+  const { data } = await generateIdmApi({
+    requestOverride: managedObjectSchemaApiConfig,
+    state,
+  }).get(urlString);
+  return data as ManagedObjectSchemaProperty;
+}
+
+/**
+ * Create or update a single managed object schema property definition.
+ * Cloud only — see {@link getManagedObjectSchemaProperty}.
+ * @param {string} type managed object type, e.g. alpha_user
+ * @param {string} propertyName schema property name, e.g. custom_merchantId
+ * @param {ManagedObjectSchemaProperty} propertyData the property definition to write
+ * @param {State} state library state
+ * @returns {Promise<ManagedObjectSchemaProperty>} a promise that resolves to the written property definition
+ */
+export async function putManagedObjectSchemaProperty({
+  type,
+  propertyName,
+  propertyData,
+  state,
+}: {
+  type: string;
+  propertyName: string;
+  propertyData: ManagedObjectSchemaProperty;
+  state: State;
+}): Promise<ManagedObjectSchemaProperty> {
+  const urlString = util.format(
+    managedObjectSchemaPropertyURLTemplate,
+    getIdmBaseUrl(state),
+    type,
+    propertyName
+  );
+  const { data } = await generateIdmApi({
+    requestOverride: managedObjectSchemaApiConfig,
+    state,
+  }).put(urlString, propertyData);
+  return data as ManagedObjectSchemaProperty;
+}
+
+/**
+ * Delete a single managed object schema property definition. Cloud only —
+ * see {@link getManagedObjectSchemaProperty}.
+ * @param {string} type managed object type, e.g. alpha_user
+ * @param {string} propertyName schema property name, e.g. custom_merchantId
+ * @param {State} state library state
+ * @returns {Promise<ManagedObjectSchemaProperty>} a promise that resolves to the deleted property definition
+ */
+export async function deleteManagedObjectSchemaProperty({
+  type,
+  propertyName,
+  state,
+}: {
+  type: string;
+  propertyName: string;
+  state: State;
+}): Promise<ManagedObjectSchemaProperty> {
+  const urlString = util.format(
+    managedObjectSchemaPropertyURLTemplate,
+    getIdmBaseUrl(state),
+    type,
+    propertyName
+  );
+  const { data } = await generateIdmApi({
+    requestOverride: managedObjectSchemaApiConfig,
+    state,
+  }).delete(urlString);
+  return data as ManagedObjectSchemaProperty;
 }
 
 /**

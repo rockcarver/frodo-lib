@@ -9,9 +9,13 @@ import {
   DEFAULT_PAGE_SIZE,
   deleteManagedObject as _deleteManagedObject,
   getManagedObject as _getManagedObject,
+  deleteManagedObjectSchemaProperty as _deleteManagedObjectSchemaProperty,
   getManagedObjectSchema as _getManagedObjectSchema,
+  getManagedObjectSchemaProperty as _getManagedObjectSchemaProperty,
   type ManagedObjectSchema,
+  type ManagedObjectSchemaProperty,
   patchManagedObject as _patchManagedObject,
+  putManagedObjectSchemaProperty as _putManagedObjectSchemaProperty,
   putManagedObject as _putManagedObject,
   queryAllManagedObjectsByType,
   queryManagedObjects as _queryManagedObjects,
@@ -46,6 +50,48 @@ export type ManagedObject = {
     refreshCache?: boolean,
     options?: ManagedObjectSchemaOptions
   ): Promise<ManagedObjectSchema>;
+  /**
+   * Read a single managed object schema property definition. Cloud (PingOne
+   * Advanced Identity Cloud) only — uses IDM's v2 schema API to read one
+   * property/relationship definition without fetching the type's entire
+   * schema. On ForgeOps/classic, use readSubConfigEntity('managed', type)
+   * and read the property off the returned schema.properties instead.
+   * @param {string} type managed object type, e.g. alpha_user
+   * @param {string} propertyName schema property name, e.g. custom_merchantId
+   * @returns {Promise<ManagedObjectSchemaProperty>} a promise that resolves to the property definition
+   */
+  readManagedObjectSchemaProperty(
+    type: string,
+    propertyName: string
+  ): Promise<ManagedObjectSchemaProperty>;
+  /**
+   * Create or update a single managed object schema property definition,
+   * leaving the rest of the type's schema untouched. Cloud only — see
+   * {@link readManagedObjectSchemaProperty}. On ForgeOps/classic, use
+   * importSubConfigEntity('managed', ...) with the full updated type
+   * definition instead.
+   * @param {string} type managed object type, e.g. alpha_user
+   * @param {string} propertyName schema property name, e.g. custom_merchantId
+   * @param {ManagedObjectSchemaProperty} propertyData the property definition to write
+   * @returns {Promise<ManagedObjectSchemaProperty>} a promise that resolves to the written property definition
+   */
+  updateManagedObjectSchemaProperty(
+    type: string,
+    propertyName: string,
+    propertyData: ManagedObjectSchemaProperty
+  ): Promise<ManagedObjectSchemaProperty>;
+  /**
+   * Remove a single managed object schema property definition, leaving the
+   * rest of the type's schema untouched. Cloud only — see
+   * {@link readManagedObjectSchemaProperty}.
+   * @param {string} type managed object type, e.g. alpha_user
+   * @param {string} propertyName schema property name, e.g. custom_merchantId
+   * @returns {Promise<ManagedObjectSchemaProperty>} a promise that resolves to the removed property definition
+   */
+  removeManagedObjectSchemaProperty(
+    type: string,
+    propertyName: string
+  ): Promise<ManagedObjectSchemaProperty>;
   /**
    * Create managed object
    * @param {string} type managed object type, e.g. teammember or alpha_user
@@ -291,6 +337,30 @@ export default (state: State): ManagedObject => {
       options: ManagedObjectSchemaOptions = {}
     ): Promise<ManagedObjectSchema> {
       return readManagedObjectSchema({ type, refreshCache, options, state });
+    },
+    async readManagedObjectSchemaProperty(
+      type: string,
+      propertyName: string
+    ): Promise<ManagedObjectSchemaProperty> {
+      return readManagedObjectSchemaProperty({ type, propertyName, state });
+    },
+    async updateManagedObjectSchemaProperty(
+      type: string,
+      propertyName: string,
+      propertyData: ManagedObjectSchemaProperty
+    ): Promise<ManagedObjectSchemaProperty> {
+      return updateManagedObjectSchemaProperty({
+        type,
+        propertyName,
+        propertyData,
+        state,
+      });
+    },
+    async removeManagedObjectSchemaProperty(
+      type: string,
+      propertyName: string
+    ): Promise<ManagedObjectSchemaProperty> {
+      return removeManagedObjectSchemaProperty({ type, propertyName, state });
     },
     async createManagedObject(
       type: string,
@@ -595,6 +665,124 @@ export async function readManagedObjectSchema({
     return schema;
   } catch (error) {
     throw new FrodoError(`Error reading managed ${type} schema`, error);
+  }
+}
+
+/**
+ * Throws unless the current deployment is Cloud (PingOne Advanced Identity
+ * Cloud). The individual-schema-property v2 API these helpers wrap is only
+ * documented under Ping's Cloud product family, and its realm-qualified
+ * type examples match Cloud's per-realm managed-object partitioning — on
+ * ForgeOps/classic, ManagedObjectOps.resolveIdentity's own isCloud check
+ * documents that managed types are flat (no realm prefix), so the same v2
+ * paths wouldn't resolve the same way there even if reachable. Not
+ * confirmed against a live ForgeOps tenant; treat as the safe default until
+ * checked.
+ */
+function assertCloudDeploymentForSchemaPropertyApi({
+  type,
+  state,
+}: {
+  type: string;
+  state: State;
+}): void {
+  if (state.getDeploymentType() !== Constants.CLOUD_DEPLOYMENT_TYPE_KEY) {
+    throw new FrodoError(
+      `Individual schema property CRUD for managed type "${type}" requires the Cloud (PingOne Advanced Identity Cloud) deployment's v2 schema API. On ForgeOps/classic, read/modify/write the whole type definition instead via readSubConfigEntity('managed', '${type}') and importSubConfigEntity('managed', ...).`
+    );
+  }
+}
+
+/**
+ * Read a single managed object schema property definition. Cloud only —
+ * see {@link assertCloudDeploymentForSchemaPropertyApi}.
+ */
+export async function readManagedObjectSchemaProperty({
+  type,
+  propertyName,
+  state,
+}: {
+  type: string;
+  propertyName: string;
+  state: State;
+}): Promise<ManagedObjectSchemaProperty> {
+  try {
+    assertCloudDeploymentForSchemaPropertyApi({ type, state });
+    return await _getManagedObjectSchemaProperty({ type, propertyName, state });
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading managed ${type} schema property ${propertyName}`,
+      error
+    );
+  }
+}
+
+/**
+ * Create or update a single managed object schema property definition,
+ * leaving the rest of the type's schema untouched. Cloud only — see
+ * {@link assertCloudDeploymentForSchemaPropertyApi}. Invalidates (rather
+ * than eagerly re-fetching) the cached whole-type schema readManagedObject
+ * Schema uses, so the next read for this type picks up the change without
+ * an extra round-trip here.
+ */
+export async function updateManagedObjectSchemaProperty({
+  type,
+  propertyName,
+  propertyData,
+  state,
+}: {
+  type: string;
+  propertyName: string;
+  propertyData: ManagedObjectSchemaProperty;
+  state: State;
+}): Promise<ManagedObjectSchemaProperty> {
+  try {
+    assertCloudDeploymentForSchemaPropertyApi({ type, state });
+    const result = await _putManagedObjectSchemaProperty({
+      type,
+      propertyName,
+      propertyData,
+      state,
+    });
+    delete ManagedObjectSchemaCache[type];
+    return result;
+  } catch (error) {
+    throw new FrodoError(
+      `Error updating managed ${type} schema property ${propertyName}`,
+      error
+    );
+  }
+}
+
+/**
+ * Remove a single managed object schema property definition, leaving the
+ * rest of the type's schema untouched. Cloud only — see
+ * {@link assertCloudDeploymentForSchemaPropertyApi}. Invalidates the cached
+ * whole-type schema; see {@link updateManagedObjectSchemaProperty}.
+ */
+export async function removeManagedObjectSchemaProperty({
+  type,
+  propertyName,
+  state,
+}: {
+  type: string;
+  propertyName: string;
+  state: State;
+}): Promise<ManagedObjectSchemaProperty> {
+  try {
+    assertCloudDeploymentForSchemaPropertyApi({ type, state });
+    const result = await _deleteManagedObjectSchemaProperty({
+      type,
+      propertyName,
+      state,
+    });
+    delete ManagedObjectSchemaCache[type];
+    return result;
+  } catch (error) {
+    throw new FrodoError(
+      `Error removing managed ${type} schema property ${propertyName}`,
+      error
+    );
   }
 }
 
