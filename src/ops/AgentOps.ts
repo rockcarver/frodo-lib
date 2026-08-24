@@ -665,10 +665,67 @@ export interface AgentGroupExportInterface {
   agentGroup: Record<string, AgentGroupSkeleton>;
 }
 
+/**
+ * Per-privilege outcome of creating and linking an AI agent's privileges,
+ * as attached to `createAIAgent`'s result under `_provisioningStatus`.
+ */
+export interface AIAgentPrivilegeProvisioningResult {
+  privilegeId: string;
+  outcome: 'created' | 'reused' | 'error';
+  linkedToAgent: boolean;
+  linkedToApplication: boolean;
+  linkedToSubjectGroups: boolean;
+  linkedToSubjects: boolean;
+  errors: FrodoError[];
+}
+
+/**
+ * Structured, non-fatal report of the AI agent identity/privilege/owner
+ * provisioning steps `createAIAgent` performs after the core agent object
+ * itself has been created. None of these steps failing prevents
+ * `createAIAgent` from returning the created agent -- inspect this status
+ * (attached to the result as `_provisioningStatus`) to find out which, if
+ * any, of them didn't complete.
+ */
+export interface AIAgentProvisioningStatus {
+  agentIdentityId?: string;
+  ownersLinked?: boolean;
+  privileges: AIAgentPrivilegeProvisioningResult[];
+  errors: FrodoError[];
+}
+
 function sanitizeAIAgentPayload(agentData: AgentSkeleton): AgentSkeleton {
   const sanitized = cloneDeep(agentData);
   delete sanitized._aiAgentIdentity;
   return sanitized;
+}
+
+function collectAIAgentProvisioningErrors(
+  status: AIAgentProvisioningStatus | undefined
+): FrodoError[] {
+  if (!status) {
+    return [];
+  }
+  return [
+    ...status.errors,
+    ...status.privileges.flatMap((privilege) => privilege.errors),
+  ];
+}
+
+/**
+ * AM returns `aiAgentIdentityUid` as a plain string from the agent-list endpoint but as a
+ * wrapped `{ inherited, value }` object (AM's standard "writable" config-property shape) from
+ * the single-agent endpoint. Both `readAIAgents` and `readAIAgent` normalize the field to a
+ * plain string via this helper so the shape is consistent regardless of which was called.
+ */
+function resolveAiAgentIdentityUid(raw: unknown): string | undefined {
+  if (typeof raw === 'string') {
+    return raw;
+  }
+  if (raw && typeof raw === 'object' && typeof raw['value'] === 'string') {
+    return raw['value'] as string;
+  }
+  return undefined;
 }
 
 function isAlreadyExistsError(error: unknown): boolean {
@@ -2458,9 +2515,13 @@ export async function readAIAgents({
             aiAgentIdentity._privileges = privileges;
           }
           for (const agent of result) {
-            if (agent['aiAgentIdentityUid']) {
+            const identityUid = resolveAiAgentIdentityUid(
+              agent['aiAgentIdentityUid']
+            );
+            if (identityUid) {
+              agent['aiAgentIdentityUid'] = identityUid;
               const aiAgentIdentity = aiAgentIdentities.find(
-                (i) => i._id === agent['aiAgentIdentityUid']
+                (i) => i._id === identityUid
               );
               if (aiAgentIdentity) {
                 agent._aiAgentIdentity = aiAgentIdentity;
@@ -2513,10 +2574,11 @@ export async function readAIAgent({
         case Constants.CLOUD_DEPLOYMENT_TYPE_KEY:
         case Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY: {
           // also read agent identity and privileges from IDM and merge into result
-          if (
-            result['aiAgentIdentityUid'] &&
-            result['aiAgentIdentityUid']['value']
-          ) {
+          const identityUid = resolveAiAgentIdentityUid(
+            result['aiAgentIdentityUid']
+          );
+          if (identityUid) {
+            result['aiAgentIdentityUid'] = identityUid;
             const aiAgentIdentitySchema = await readManagedObjectSchema({
               type: `${getCurrentRealmName(state)}_aiagent`,
               state,
@@ -2527,7 +2589,7 @@ export async function readAIAgent({
             });
             const aiAgentIdentity = await readManagedObject({
               type: `${getCurrentRealmName(state)}_aiagent`,
-              id: result['aiAgentIdentityUid']['value'] as string,
+              id: identityUid,
               fields: aiAgentIdentitySchema
                 ? Object.keys(aiAgentIdentitySchema.properties)
                 : ['*'],
@@ -2535,7 +2597,7 @@ export async function readAIAgent({
             });
             const aiAgentPrivileges = await queryRelatedManagedObjects({
               type: `${getCurrentRealmName(state)}_aiagent`,
-              id: `${result['aiAgentIdentityUid']['value']}`,
+              id: identityUid,
               relationship: 'privileges',
               fields: aiAgentPrivilegeSchema
                 ? Object.keys(aiAgentPrivilegeSchema.properties)
@@ -2569,7 +2631,12 @@ export async function readAIAgent({
  * @param {Object} params.agentData AI agent object
  * @param {boolean} [params.includeAgentIdentity=true] whether to also update agent identity and privileges.
  * @param {State} params.state state object
- * @returns {Promise} a promise that resolves to an object containing an AI agent object
+ * @returns {Promise<AgentSkeleton>} a promise that resolves to an object containing an AI agent object. When
+ * `includeAgentIdentity` is true, the result also carries a `_provisioningStatus`
+ * ({@link AIAgentProvisioningStatus}) reporting the outcome of the identity/privilege/owner
+ * provisioning steps performed after the agent object itself was created. Those steps are
+ * best-effort and non-fatal: a failure there is reported in `_provisioningStatus`, not thrown --
+ * only a failure to create the core agent object rejects the promise.
  */
 export async function createAIAgent({
   agentId,
@@ -2595,303 +2662,313 @@ export async function createAIAgent({
       throw error;
     }
   }
-  {
-    try {
-      // clone ai agent identity data and remove it from agent data before creating the AI agent
-      let aiAgentIdentity: IdObjectSkeletonInterface;
-      if (includeAgentIdentity) {
-        aiAgentIdentity = cloneDeep(agentData._aiAgentIdentity);
-      }
-      delete agentData._aiAgentIdentity;
 
-      // create the ai agent first before creating the agent identity and privileges
-      const result = await _putAgentByTypeAndId({
-        agentType: 'AIAgent',
-        agentId,
-        agentData,
-        globalConfig: false,
+  // clone ai agent identity data and remove it from agent data before creating the AI agent
+  let aiAgentIdentity: IdObjectSkeletonInterface | undefined;
+  if (includeAgentIdentity) {
+    aiAgentIdentity = cloneDeep(agentData._aiAgentIdentity);
+  }
+  delete agentData._aiAgentIdentity;
+
+  // create the ai agent first before creating the agent identity and privileges. Only this
+  // step is fatal -- nothing has been persisted if it fails.
+  let result: AgentSkeleton;
+  try {
+    result = await _putAgentByTypeAndId({
+      agentType: 'AIAgent',
+      agentId,
+      agentData,
+      globalConfig: false,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error creating ${getCurrentRealmName(state) + ' realm'} AI agent ${agentId}`,
+      error
+    );
+  }
+
+  // if includeAgentIdentity is true, create agent identity and privileges for the AI agent.
+  // From here on, failures are collected into a structured status rather than thrown, since
+  // the agent object itself has already been successfully created.
+  if (includeAgentIdentity && aiAgentIdentity) {
+    const status: AIAgentProvisioningStatus = {
+      agentIdentityId: aiAgentIdentity._id,
+      privileges: [],
+      errors: [],
+    };
+    // clone privileges array and remove it from the ai agent identity before creating the ai agent identity
+    const privileges = (cloneDeep(aiAgentIdentity._privileges) ??
+      []) as IdObjectSkeletonInterface[];
+    delete aiAgentIdentity._privileges;
+    try {
+      // create skeleton managed objects for privileges
+      debugMessage({
+        message: `AgentOps.createAIAgent: Creating privileges for AI agent identity ${aiAgentIdentity._id}`,
         state,
       });
-
-      // if includeAgentIdentity is true, create agent identity and privileges for the AI agent
-      if (includeAgentIdentity) {
-        const errors: FrodoError[] = [];
-        // clone privileges array and remove it from the ai agent identity before creating the ai agent identity
-        const privileges = cloneDeep(
-          aiAgentIdentity._privileges
-        ) as IdObjectSkeletonInterface[];
-        delete aiAgentIdentity._privileges;
+      for (const privilege of privileges) {
+        const privilegeStatus: AIAgentPrivilegeProvisioningResult = {
+          privilegeId: privilege._id as string,
+          outcome: 'error',
+          linkedToAgent: false,
+          linkedToApplication: false,
+          linkedToSubjectGroups: false,
+          linkedToSubjects: false,
+          errors: [],
+        };
         try {
-          // create skeleton managed objects for privileges
-          debugMessage({
-            message: `AgentOps.createAIAgent: Creating privileges for AI agent identity ${aiAgentIdentity._id}`,
-            state,
-          });
-          for (const privilege of privileges) {
+          {
+            // create skeleton managed object for each privilege and persist it before creating the AI agent identity itself,
+            // otherwise the privileges won't be properly linked to the identity
+            const privilegeSkeleton: IdObjectSkeletonInterface =
+              cloneDeep(privilege);
+            // The IDM policy requires /agent when creating an AI privilege.
+            const privilegeSkeletonSchema = await readManagedObjectSchema({
+              type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+              options: {
+                excludeVirtual: true,
+                excludeRelationships: true,
+              },
+              state,
+            });
+            for (const prop of Object.keys(privilegeSkeleton)) {
+              if (!privilegeSkeletonSchema.properties[prop]) {
+                delete privilegeSkeleton[prop];
+              }
+            }
+            privilegeSkeleton.agent = {
+              _ref: `managed/${getCurrentRealmName(state)}_aiagent/${aiAgentIdentity._id}`,
+              _refResourceCollection: `managed/${getCurrentRealmName(state)}_aiagent`,
+              _refResourceId: aiAgentIdentity._id,
+            };
             try {
-              {
-                // create skeleton managed object for each privilege and persist it before creating the AI agent identity itself,
-                // otherwise the privileges won't be properly linked to the identity
-                const privilegeSkeleton: IdObjectSkeletonInterface =
-                  cloneDeep(privilege);
-                // The IDM policy requires /agent when creating an AI privilege.
-                const privilegeSkeletonSchema = await readManagedObjectSchema({
-                  type: `${getCurrentRealmName(state)}_aiagentprivilege`,
-                  options: {
-                    excludeVirtual: true,
-                    excludeRelationships: true,
-                  },
-                  state,
-                });
-                for (const prop of Object.keys(privilegeSkeleton)) {
-                  if (!privilegeSkeletonSchema.properties[prop]) {
-                    delete privilegeSkeleton[prop];
-                  }
-                }
-                privilegeSkeleton.agent = {
-                  _ref: `managed/${getCurrentRealmName(state)}_aiagent/${aiAgentIdentity._id}`,
-                  _refResourceCollection: `managed/${getCurrentRealmName(state)}_aiagent`,
-                  _refResourceId: aiAgentIdentity._id,
-                };
-                try {
-                  await createManagedObject({
-                    type: `${getCurrentRealmName(state)}_aiagentprivilege`,
-                    id: privilegeSkeleton._id,
-                    moData: privilegeSkeleton,
-                    state,
-                  });
-                } catch (createPrivilegeError) {
-                  if (!isAlreadyExistsError(createPrivilegeError)) {
-                    throw createPrivilegeError;
-                  }
-                  debugMessage({
-                    message: `AgentOps.createAIAgent: privilege ${privilegeSkeleton._id} already exists; reusing existing object`,
-                    state,
-                  });
-                }
+              await createManagedObject({
+                type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+                id: privilegeSkeleton._id,
+                moData: privilegeSkeleton,
+                state,
+              });
+              privilegeStatus.outcome = 'created';
+            } catch (createPrivilegeError) {
+              if (!isAlreadyExistsError(createPrivilegeError)) {
+                throw createPrivilegeError;
               }
+              privilegeStatus.outcome = 'reused';
+              debugMessage({
+                message: `AgentOps.createAIAgent: privilege ${privilegeSkeleton._id} already exists; reusing existing object`,
+                state,
+              });
+            }
+          }
 
-              // Link privilege to agent identity and create reverse link from agent identity to privilege
+          // Link privilege to agent identity and create reverse link from agent identity to privilege
+          try {
+            // Link privilege to agent identity
+            await replaceRelationship({
+              type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+              id: privilege._id,
+              field: 'agent',
+              target: {
+                type: `${getCurrentRealmName(state)}_aiagent`,
+                id: aiAgentIdentity._id,
+              },
+              state,
+            });
+            privilegeStatus.linkedToAgent = true;
+          } catch (error) {
+            privilegeStatus.errors.push(
+              new FrodoError(
+                `Error linking privilege ${privilege._id} to AI agent identity ${aiAgentIdentity._id}`,
+                error
+              )
+            );
+          }
+
+          // Link privilege to application and create reverse link from application to privilege
+          if (
+            privilege['resource'] &&
+            privilege['resource']['_refResourceId']
+          ) {
+            try {
+              // Link privilege to application
+              await replaceRelationship({
+                type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+                id: privilege._id,
+                field: 'resource',
+                target: {
+                  type: `${getCurrentRealmName(state)}_application`,
+                  id: privilege['resource']['_refResourceId'] as string,
+                },
+                state,
+              });
+              privilegeStatus.linkedToApplication = true;
+              // create reverse link from application to privilege (best effort)
               try {
-                // Link privilege to agent identity
-                await replaceRelationship({
-                  type: `${getCurrentRealmName(state)}_aiagentprivilege`,
-                  id: privilege._id,
-                  field: 'agent',
+                await addRelationship({
+                  type: `${getCurrentRealmName(state)}_application`,
+                  id: privilege['resource']['_refResourceId'] as string,
+                  field: 'aiagentprivileges',
                   target: {
-                    type: `${getCurrentRealmName(state)}_aiagent`,
-                    id: aiAgentIdentity._id,
+                    type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+                    id: privilege._id,
                   },
                   state,
                 });
-              } catch (error) {
-                errors.push(
-                  new FrodoError(
-                    `Error linking privilege ${privilege._id} to AI agent identity ${aiAgentIdentity._id}`,
-                    error
-                  )
-                );
-              }
-
-              // Link privilege to application and create reverse link from application to privilege
-              if (
-                privilege['resource'] &&
-                privilege['resource']['_refResourceId']
-              ) {
-                try {
-                  // Link privilege to application
-                  await replaceRelationship({
-                    type: `${getCurrentRealmName(state)}_aiagentprivilege`,
-                    id: privilege._id,
-                    field: 'resource',
-                    target: {
-                      type: `${getCurrentRealmName(state)}_application`,
-                      id: privilege['resource']['_refResourceId'] as string,
-                    },
-                    state,
-                  });
-                  // create reverse link from application to privilege (best effort)
-                  try {
-                    await addRelationship({
-                      type: `${getCurrentRealmName(state)}_application`,
-                      id: privilege['resource']['_refResourceId'] as string,
-                      field: 'aiagentprivileges',
-                      target: {
-                        type: `${getCurrentRealmName(state)}_aiagentprivilege`,
-                        id: privilege._id,
-                      },
-                      state,
-                    });
-                  } catch {
-                    debugMessage({
-                      message: `AgentOps.createAIAgent: optional reverse application link failed for privilege ${privilege._id} and application ${privilege['resource']['_refResourceId']}`,
-                      state,
-                    });
-                  }
-                } catch (error) {
-                  errors.push(
-                    new FrodoError(
-                      `Error linking privilege ${privilege._id} to AI agent identity ${aiAgentIdentity._id}`,
-                      error
-                    )
-                  );
-                }
-              }
-
-              // Link privileges to subject groups and create reverse link from subject groups to privileges
-              if (
-                privilege['subjectGroups'] &&
-                Array.isArray(privilege['subjectGroups']) &&
-                privilege['subjectGroups'].length > 0
-              ) {
-                try {
-                  // Link privilege to subject groups
-                  const subjectGroups = privilege['subjectGroups'].map(
-                    (group) => ({
-                      type: `${getCurrentRealmName(state)}_group`,
-                      id: group['_refResourceId'] as string,
-                    })
-                  );
-                  await replaceRelationship({
-                    type: `${getCurrentRealmName(state)}_aiagentprivilege`,
-                    id: privilege._id,
-                    field: 'subjectGroups',
-                    target: subjectGroups,
-                    state,
-                  });
-                  // create reverse link from subject groups to privilege
-                  for (const group of privilege['subjectGroups']) {
-                    try {
-                      await addRelationship({
-                        type: `${getCurrentRealmName(state)}_group`,
-                        id: group['_refResourceId'] as string,
-                        field: 'aiagentprivileges',
-                        target: {
-                          type: `${getCurrentRealmName(state)}_aiagentprivilege`,
-                          id: privilege._id,
-                        },
-                        state,
-                      });
-                    } catch {
-                      debugMessage({
-                        message: `AgentOps.createAIAgent: optional reverse group link failed for privilege ${privilege._id} and group ${group['_refResourceId']}`,
-                        state,
-                      });
-                    }
-                  }
-                } catch (error) {
-                  errors.push(
-                    new FrodoError(
-                      `Error linking privilege ${privilege._id} to subject groups for AI agent identity ${aiAgentIdentity._id}`,
-                      error
-                    )
-                  );
-                }
-              }
-
-              // Link privileges to subjects (users)
-              if (
-                privilege['subjects'] &&
-                Array.isArray(privilege['subjects']) &&
-                privilege['subjects'].length > 0
-              ) {
-                try {
-                  // Link privilege to subjects
-                  const subjects = privilege['subjects'].map((subject) => ({
-                    type: `${getCurrentRealmName(state)}_user`,
-                    id: subject['_refResourceId'] as string,
-                  }));
-                  await replaceRelationship({
-                    type: `${getCurrentRealmName(state)}_aiagentprivilege`,
-                    id: privilege._id,
-                    field: 'subjects',
-                    target: subjects,
-                    state,
-                  });
-                } catch (error) {
-                  errors.push(
-                    new FrodoError(
-                      `Error linking privilege ${privilege._id} to user subjects for AI agent identity ${aiAgentIdentity._id}`,
-                      error
-                    )
-                  );
-                }
+              } catch {
+                debugMessage({
+                  message: `AgentOps.createAIAgent: optional reverse application link failed for privilege ${privilege._id} and application ${privilege['resource']['_refResourceId']}`,
+                  state,
+                });
               }
             } catch (error) {
-              errors.push(
+              privilegeStatus.errors.push(
                 new FrodoError(
-                  `Error creating privilege ${privilege._id} for AI agent identity ${aiAgentIdentity._id}`,
+                  `Error linking privilege ${privilege._id} to AI agent identity ${aiAgentIdentity._id}`,
                   error
                 )
               );
             }
           }
-          debugMessage({
-            message: `AgentOps.createAIAgent: Finished creating privileges for AI agent identity ${aiAgentIdentity._id}`,
-            state,
-          });
+
+          // Link privileges to subject groups and create reverse link from subject groups to privileges
+          if (
+            privilege['subjectGroups'] &&
+            Array.isArray(privilege['subjectGroups']) &&
+            privilege['subjectGroups'].length > 0
+          ) {
+            try {
+              // Link privilege to subject groups
+              const subjectGroups = privilege['subjectGroups'].map((group) => ({
+                type: `${getCurrentRealmName(state)}_group`,
+                id: group['_refResourceId'] as string,
+              }));
+              await replaceRelationship({
+                type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+                id: privilege._id,
+                field: 'subjectGroups',
+                target: subjectGroups,
+                state,
+              });
+              privilegeStatus.linkedToSubjectGroups = true;
+              // create reverse link from subject groups to privilege
+              for (const group of privilege['subjectGroups']) {
+                try {
+                  await addRelationship({
+                    type: `${getCurrentRealmName(state)}_group`,
+                    id: group['_refResourceId'] as string,
+                    field: 'aiagentprivileges',
+                    target: {
+                      type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+                      id: privilege._id,
+                    },
+                    state,
+                  });
+                } catch {
+                  debugMessage({
+                    message: `AgentOps.createAIAgent: optional reverse group link failed for privilege ${privilege._id} and group ${group['_refResourceId']}`,
+                    state,
+                  });
+                }
+              }
+            } catch (error) {
+              privilegeStatus.errors.push(
+                new FrodoError(
+                  `Error linking privilege ${privilege._id} to subject groups for AI agent identity ${aiAgentIdentity._id}`,
+                  error
+                )
+              );
+            }
+          }
+
+          // Link privileges to subjects (users)
+          if (
+            privilege['subjects'] &&
+            Array.isArray(privilege['subjects']) &&
+            privilege['subjects'].length > 0
+          ) {
+            try {
+              // Link privilege to subjects
+              const subjects = privilege['subjects'].map((subject) => ({
+                type: `${getCurrentRealmName(state)}_user`,
+                id: subject['_refResourceId'] as string,
+              }));
+              await replaceRelationship({
+                type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+                id: privilege._id,
+                field: 'subjects',
+                target: subjects,
+                state,
+              });
+              privilegeStatus.linkedToSubjects = true;
+            } catch (error) {
+              privilegeStatus.errors.push(
+                new FrodoError(
+                  `Error linking privilege ${privilege._id} to user subjects for AI agent identity ${aiAgentIdentity._id}`,
+                  error
+                )
+              );
+            }
+          }
         } catch (error) {
-          errors.push(
+          privilegeStatus.errors.push(
             new FrodoError(
-              `Error creating AI agent identity ${aiAgentIdentity._id}`,
+              `Error creating privilege ${privilege._id} for AI agent identity ${aiAgentIdentity._id}`,
               error
             )
           );
         }
-
-        // Link ai agent to owners (users)
-        if (
-          aiAgentIdentity['owners'] &&
-          Array.isArray(aiAgentIdentity['owners']) &&
-          aiAgentIdentity['owners'].length > 0
-        ) {
-          try {
-            const owners = aiAgentIdentity['owners'].map((owner) => ({
-              type: `${getCurrentRealmName(state)}_user`,
-              id: owner['_refResourceId'] as string,
-            }));
-            await replaceRelationship({
-              type: `${getCurrentRealmName(state)}_aiagent`,
-              id: aiAgentIdentity._id,
-              field: 'owners',
-              target: owners,
-              state,
-            });
-          } catch (error) {
-            errors.push(
-              new FrodoError(
-                `Error linking AI agent identity ${aiAgentIdentity._id} to owners for AI agent ${agentId}`,
-                error
-              )
-            );
-          }
-        }
-
-        if (errors.length > 0) {
-          const errorSummary = errors
-            .map((entry) => entry.getCombinedMessage())
-            .join(' | ');
-          throw new FrodoError(
-            `Error creating AI agent identity and privileges: ${errorSummary}`,
-            errors
-          );
-        }
+        status.privileges.push(privilegeStatus);
       }
       debugMessage({
-        message: `AgentOps.createAIAgent: end`,
+        message: `AgentOps.createAIAgent: Finished creating privileges for AI agent identity ${aiAgentIdentity._id}`,
         state,
       });
-      return result;
     } catch (error) {
-      if (error instanceof FrodoError) {
-        throw error;
-      }
-      throw new FrodoError(
-        `Error creating ${getCurrentRealmName(state) + ' realm'} AI agent ${agentId}`,
-        error
+      status.errors.push(
+        new FrodoError(
+          `Error creating AI agent identity ${aiAgentIdentity._id}`,
+          error
+        )
       );
     }
+
+    // Link ai agent to owners (users)
+    if (
+      aiAgentIdentity['owners'] &&
+      Array.isArray(aiAgentIdentity['owners']) &&
+      aiAgentIdentity['owners'].length > 0
+    ) {
+      try {
+        const owners = aiAgentIdentity['owners'].map((owner) => ({
+          type: `${getCurrentRealmName(state)}_user`,
+          id: owner['_refResourceId'] as string,
+        }));
+        await replaceRelationship({
+          type: `${getCurrentRealmName(state)}_aiagent`,
+          id: aiAgentIdentity._id,
+          field: 'owners',
+          target: owners,
+          state,
+        });
+        status.ownersLinked = true;
+      } catch (error) {
+        status.errors.push(
+          new FrodoError(
+            `Error linking AI agent identity ${aiAgentIdentity._id} to owners for AI agent ${agentId}`,
+            error
+          )
+        );
+      }
+    }
+
+    result._provisioningStatus = status;
   }
+  debugMessage({
+    message: `AgentOps.createAIAgent: end`,
+    state,
+  });
+  return result;
 }
 
 /**
@@ -3155,12 +3232,24 @@ export async function importAIAgents({
             `Wrong agent type! Expected 'AIAgent' but got '${agentType}'.`
           );
         if (includeAgentIdentity) {
-          await createAIAgent({
+          const result = await createAIAgent({
             agentId,
             agentData: cloneDeep(importData.agent[agentId]),
             includeAgentIdentity,
             state,
           });
+          const provisioningErrors = collectAIAgentProvisioningErrors(
+            result._provisioningStatus as AIAgentProvisioningStatus
+          );
+          if (provisioningErrors.length > 0) {
+            const errorSummary = provisioningErrors
+              .map((entry) => entry.getCombinedMessage())
+              .join(' | ');
+            throw new FrodoError(
+              `Error creating AI agent identity and privileges: ${errorSummary}`,
+              provisioningErrors
+            );
+          }
         } else {
           const agentData = sanitizeAIAgentPayload(importData.agent[agentId]);
           await _putAgentByTypeAndId({
@@ -3244,6 +3333,20 @@ export async function importAIAgent({
           globalConfig: false,
           state,
         });
+    if (includeAgentIdentity) {
+      const provisioningErrors = collectAIAgentProvisioningErrors(
+        result._provisioningStatus as AIAgentProvisioningStatus
+      );
+      if (provisioningErrors.length > 0) {
+        const errorSummary = provisioningErrors
+          .map((entry) => entry.getCombinedMessage())
+          .join(' | ');
+        throw new FrodoError(
+          `Error creating AI agent identity and privileges: ${errorSummary}`,
+          provisioningErrors
+        );
+      }
+    }
     debugMessage({ message: `AgentOps.importAIAgent: end`, state });
     return result;
   } catch (error) {

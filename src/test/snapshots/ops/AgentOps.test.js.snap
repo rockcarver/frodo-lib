@@ -59,6 +59,11 @@ exports[`AgentOps Classic Tests readAgents() 2: Read all agents 1`] = `
 exports[`AgentOps Cloud Tests createAIAgent() 1: Create AIAgent 'FrodoOpsTestAIAgent2' 1`] = `
 {
   "_id": "FrodoOpsTestAIAgent2",
+  "_provisioningStatus": {
+    "agentIdentityId": "a558e950-3a86-4cb6-a3d3-bbbbbbbbbbbb",
+    "errors": [],
+    "privileges": [],
+  },
   "_rev": "-667711609",
   "_type": {
     "_id": "AIAgent",
@@ -428,6 +433,12 @@ exports[`AgentOps Cloud Tests createAIAgent() 1: Create AIAgent 'FrodoOpsTestAIA
 exports[`AgentOps Cloud Tests createAIAgent() 2: createAIAgent() - with owner (FrodoOpsTestAIAgent10) 1`] = `
 {
   "_id": "FrodoOpsTestAIAgent10",
+  "_provisioningStatus": {
+    "agentIdentityId": "935b2bda-43b4-454b-a13d-d25e530f0d39",
+    "errors": [],
+    "ownersLinked": true,
+    "privileges": [],
+  },
   "_rev": "1199790509",
   "_type": {
     "_id": "AIAgent",
@@ -797,6 +808,30 @@ exports[`AgentOps Cloud Tests createAIAgent() 2: createAIAgent() - with owner (F
 exports[`AgentOps Cloud Tests createAIAgent() 3: createAIAgent() - with privileges (FrodoOpsTestAIAgent11) 1`] = `
 {
   "_id": "FrodoOpsTestAIAgent11",
+  "_provisioningStatus": {
+    "agentIdentityId": "d4e78146-e92e-408d-8b88-e95de6272f3a",
+    "errors": [],
+    "privileges": [
+      {
+        "errors": [],
+        "linkedToAgent": true,
+        "linkedToApplication": true,
+        "linkedToSubjectGroups": true,
+        "linkedToSubjects": true,
+        "outcome": "created",
+        "privilegeId": "07707883-48f5-46cd-b6be-d740f87aeded",
+      },
+      {
+        "errors": [],
+        "linkedToAgent": true,
+        "linkedToApplication": true,
+        "linkedToSubjectGroups": false,
+        "linkedToSubjects": true,
+        "outcome": "created",
+        "privilegeId": "3ae361a9-9174-4164-927d-cde30ad90412",
+      },
+    ],
+  },
   "_rev": "-1094573622",
   "_type": {
     "_id": "AIAgent",
@@ -1230,10 +1265,7 @@ exports[`AgentOps Cloud Tests exportAIAgent() 1: Export AIAgent 'FrodoOpsTestAIA
           "oauth2ClientId": "FrodoOpsTestAIAgent1",
         },
       },
-      "aiAgentIdentityUid": {
-        "inherited": false,
-        "value": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
-      },
+      "aiAgentIdentityUid": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
     },
   },
   "meta": Any<Object>,
@@ -9363,10 +9395,7 @@ exports[`AgentOps Cloud Tests readAIAgent() 1: Read AIAgent 'FrodoOpsTestAIAgent
       "oauth2ClientId": "FrodoOpsTestAIAgent1",
     },
   },
-  "aiAgentIdentityUid": {
-    "inherited": false,
-    "value": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
-  },
+  "aiAgentIdentityUid": "63d324ec-78c6-4c84-a629-aaaaaaaaaaaa",
   "coreOAuth2ClientConfig": {
     "accessTokenLifetime": {
       "inherited": false,
