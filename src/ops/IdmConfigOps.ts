@@ -28,7 +28,7 @@ import {
 } from '../utils/ExportImportUtils';
 import { stringify } from '../utils/JsonUtils';
 import { areScriptHooksValid } from '../utils/ScriptValidationUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 import { ExportMetaData, ResultCallback } from './OpsTypes';
 
 export type IdmConfig = {
@@ -585,8 +585,13 @@ export async function createConfigEntity({
   debugMessage({ message: `IdmConfigOps.createConfigEntity: start`, state });
   try {
     await readConfigEntity({ entityId, state });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw new FrodoError(
+        `Error checking if config entity ${entityId} already exists`,
+        error
+      );
+    }
     try {
       const result = await updateConfigEntity({
         entityId,

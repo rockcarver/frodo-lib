@@ -1229,9 +1229,13 @@ export async function createIdentityGatewayAgent({
   });
   try {
     await readIdentityGatewayAgent({ gatewayId, state });
-    throw new FrodoError(`Agent ${gatewayId} already exists!`);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw new FrodoError(
+        `Error checking if ${getCurrentRealmName(state) + ' realm'} identity gateway agent ${gatewayId} already exists`,
+        error
+      );
+    }
     try {
       const result = await _putAgentByTypeAndId({
         agentType: 'IdentityGatewayAgent',
@@ -1252,6 +1256,9 @@ export async function createIdentityGatewayAgent({
       );
     }
   }
+  throw new FrodoError(
+    `${getCurrentRealmName(state) + ' realm'} identity gateway agent ${gatewayId} already exists!`
+  );
 }
 
 /**
@@ -1660,9 +1667,13 @@ export async function createJavaAgent({
   debugMessage({ message: `AgentOps.createJavaAgent: start`, state });
   try {
     await readJavaAgent({ agentId, state });
-    throw new FrodoError(`Agent ${agentId} already exists!`);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw new FrodoError(
+        `Error checking if ${getCurrentRealmName(state) + ' realm'} java agent ${agentId} already exists`,
+        error
+      );
+    }
     try {
       const result = await _putAgentByTypeAndId({
         agentType: 'J2EEAgent',
@@ -1683,6 +1694,9 @@ export async function createJavaAgent({
       );
     }
   }
+  throw new FrodoError(
+    `${getCurrentRealmName(state) + ' realm'} java agent ${agentId} already exists!`
+  );
 }
 
 /**
@@ -2048,9 +2062,13 @@ export async function createWebAgent({
   debugMessage({ message: `AgentOps.createWebAgent: start`, state });
   try {
     await readWebAgent({ agentId, state });
-    throw new FrodoError(`Agent ${agentId} already exists!`);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw new FrodoError(
+        `Error checking if ${getCurrentRealmName(state) + ' realm'} web agent ${agentId} already exists`,
+        error
+      );
+    }
     try {
       const result = await _putAgentByTypeAndId({
         agentType: 'WebAgent',
@@ -2071,6 +2089,9 @@ export async function createWebAgent({
       );
     }
   }
+  throw new FrodoError(
+    `${getCurrentRealmName(state) + ' realm'} web agent ${agentId} already exists!`
+  );
 }
 
 /**

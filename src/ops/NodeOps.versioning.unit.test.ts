@@ -196,7 +196,9 @@ describe('NodeOps readNodesByVersion unit coverage', () => {
   });
 
   test('createNode forwards explicit nodeTypeVersion when creating new node', async () => {
-    getNodeApiMock.mockRejectedValueOnce(new Error('missing'));
+    getNodeApiMock.mockRejectedValueOnce(
+      Object.assign(new Error('missing'), { httpStatus: 404 })
+    );
 
     await NodeOps.createNode({
       nodeId: 'node-id',

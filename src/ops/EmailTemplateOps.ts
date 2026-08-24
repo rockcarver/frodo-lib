@@ -13,7 +13,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 import {
   AIC_PROTECTED_ENTITIES,
   readConfigEntitiesByType,
@@ -206,7 +206,7 @@ export async function readEmailTemplate({
   state: State;
 }): Promise<EmailTemplateSkeleton> {
   try {
-    return getConfigEntity({
+    return await getConfigEntity({
       entityId: `${EMAIL_TEMPLATE_TYPE}/${templateId}`,
       state,
     });
@@ -290,8 +290,13 @@ export async function createEmailTemplate({
       templateId,
       state,
     });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw new FrodoError(
+        `Error checking if email template ${templateId} already exists`,
+        error
+      );
+    }
     try {
       const result = await putConfigEntity({
         entityId: `${EMAIL_TEMPLATE_TYPE}/${templateId}`,
@@ -310,7 +315,7 @@ export async function createEmailTemplate({
       );
     }
   }
-  throw new Error(`Email template ${templateId} already exists!`);
+  throw new FrodoError(`Email template ${templateId} already exists!`);
 }
 
 /**

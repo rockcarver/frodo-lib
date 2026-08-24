@@ -537,29 +537,30 @@ export async function createMapping({
     message: `MappingOps.createMapping: start`,
     state,
   });
+  // readMapping's own "not found" signal is a synthetic, locally-thrown
+  // FrodoError (readMappings reads the whole list; there's no per-item GET
+  // to return a real 404 from), not an HTTP status isNotFoundError could
+  // recognize -- so existence is checked directly against the list instead
+  // of via a try/catch around readMapping. A genuine readMappings failure
+  // (permission/network/5xx) propagates unchanged, not treated as "absent".
+  const mappings = await readMappings({ state });
+  if (mappings.some((mapping) => mapping._id === mappingId)) {
+    throw new FrodoError(`Mapping ${mappingId} already exists!`);
+  }
   try {
-    await readMapping({
+    const result = await updateMapping({
       mappingId,
+      mappingData,
       state,
     });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    debugMessage({
+      message: `MappingOps.createMapping: end`,
+      state,
+    });
+    return result as MappingSkeleton;
   } catch (error) {
-    try {
-      const result = await updateMapping({
-        mappingId,
-        mappingData,
-        state,
-      });
-      debugMessage({
-        message: `MappingOps.createMapping: end`,
-        state,
-      });
-      return result as MappingSkeleton;
-    } catch (error) {
-      throw new FrodoError(`Error creating mapping ${mappingId}`, error);
-    }
+    throw new FrodoError(`Error creating mapping ${mappingId}`, error);
   }
-  throw new FrodoError(`Mapping ${mappingId} already exists!`);
 }
 
 /**

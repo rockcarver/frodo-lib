@@ -31,7 +31,7 @@ import {
   getCurrentRealmName,
 } from '../utils/ForgeRockUtils';
 import { isScriptValid } from '../utils/ScriptValidationUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 
 export type Script = {
   /**
@@ -660,8 +660,13 @@ export async function createScript({
   scriptData.name = scriptName;
   try {
     await _getScript({ scriptId, state });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw new FrodoError(
+        `Error checking if ${getCurrentRealmName(state) + ' realm'} script ${scriptId} already exists`,
+        error
+      );
+    }
     try {
       const result = await updateScript({
         scriptId,

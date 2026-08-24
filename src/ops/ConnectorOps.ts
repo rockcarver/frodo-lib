@@ -12,7 +12,7 @@ import {
   updateProgressIndicator,
 } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 import { readConfigEntitiesByType } from './IdmConfigOps';
 import {
   deleteMapping,
@@ -397,8 +397,13 @@ export async function createConnector({
       connectorId: connectorId,
       state,
     });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw new FrodoError(
+        `Error checking if connector ${connectorId} already exists`,
+        error
+      );
+    }
     try {
       const result = await putConfigEntity({
         entityId: `${CONNECTOR_TYPE}/${connectorId}`,
@@ -414,7 +419,7 @@ export async function createConnector({
       throw new FrodoError(`Error creating connector ${connectorId}`, error);
     }
   }
-  throw new Error(`Connector ${connectorId} already exists!`);
+  throw new FrodoError(`Connector ${connectorId} already exists!`);
 }
 
 /**

@@ -39,7 +39,7 @@ import {
 import { getMetadata, getResult } from '../utils/ExportImportUtils';
 import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
 import { eq, gt, lt } from '../utils/SemverUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 import { ExportMetaData, ResultCallback } from './OpsTypes';
 
 /**
@@ -941,7 +941,7 @@ export async function readNode({
   state: State;
 }): Promise<NodeSkeleton> {
   try {
-    return _getNode({ nodeId, nodeType, nodeTypeVersion, state });
+    return await _getNode({ nodeId, nodeType, nodeTypeVersion, state });
   } catch (error) {
     throw new FrodoError(`Error reading ${nodeType} node ${nodeId}`, error);
   }
@@ -1016,8 +1016,10 @@ export async function createNode({
     if (nodeId) {
       try {
         await readNode({ nodeId, nodeType, nodeTypeVersion, state });
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
+        if (!isNotFoundError(error)) {
+          throw error;
+        }
         const result = await updateNode({
           nodeId,
           nodeType,
