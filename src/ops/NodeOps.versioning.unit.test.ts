@@ -22,6 +22,7 @@ jest.unstable_mockModule('../api/NodeApi', () => ({
   getNodesByType: getNodesByTypeMock,
   getNodeType: jest.fn(),
   getNodeTypes: getNodeTypesMock,
+  getNodeSchema: jest.fn(),
   putCustomNode: jest.fn(),
   putNode: putNodeApiMock,
   requireVersion: requireVersionMock,

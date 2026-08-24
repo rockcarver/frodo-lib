@@ -7,10 +7,23 @@ const getManagedSystemObject = jest.fn(
 const patchManagedObject = jest.fn(
   async (_args?: any): Promise<any> => ({})
 );
+const createManagedObjectApi = jest.fn(
+  async (_args?: any): Promise<any> => ({})
+);
+const queryManagedObjectsApi = jest.fn(
+  async (_args?: any): Promise<any> => ({
+    result: [],
+    resultCount: 0,
+    pagedResultsCookie: null,
+    totalPagedResultsPolicy: 'NONE',
+    totalPagedResults: -1,
+    remainingPagedResults: -1,
+  })
+);
 
 jest.unstable_mockModule('../api/ManagedObjectApi', () => ({
   countManagedObjects: jest.fn(),
-  createManagedObject: jest.fn(),
+  createManagedObject: createManagedObjectApi,
   DEFAULT_PAGE_SIZE: 1000,
   deleteManagedObject: jest.fn(),
   getManagedObject,
@@ -18,7 +31,7 @@ jest.unstable_mockModule('../api/ManagedObjectApi', () => ({
   patchManagedObject,
   putManagedObject: jest.fn(),
   queryAllManagedObjectsByType: jest.fn(),
-  queryManagedObjects: jest.fn(),
+  queryManagedObjects: queryManagedObjectsApi,
   queryRelatedManagedObjects: jest.fn(),
 }));
 jest.unstable_mockModule('../api/ManagedSystemObjectApi', () => ({
@@ -31,6 +44,7 @@ const {
   addRelationship,
   removeRelationship,
   replaceRelationship,
+  findOrCreateManagedObject,
 } = await import('./ManagedObjectOps');
 
 function mockState(deploymentType: string) {
@@ -463,5 +477,91 @@ describe('relationship helpers', () => {
         operations: [{ operation: 'replace', field: '/manager', value: null }],
       })
     );
+  });
+});
+
+describe('findOrCreateManagedObject', () => {
+  beforeEach(() => {
+    createManagedObjectApi.mockReset();
+    createManagedObjectApi.mockResolvedValue({});
+    queryManagedObjectsApi.mockReset();
+    queryManagedObjectsApi.mockResolvedValue({
+      result: [],
+      resultCount: 0,
+      pagedResultsCookie: null,
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    });
+  });
+
+  test('returns the existing object without creating one when exactly one match is found', async () => {
+    const existing = { _id: 'user-1', custom_merchantCustomerId: 'cust-1' };
+    queryManagedObjectsApi.mockResolvedValue({
+      result: [existing],
+      resultCount: 1,
+      pagedResultsCookie: null,
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    });
+
+    const result = await findOrCreateManagedObject({
+      type: 'alpha_user',
+      filter: 'custom_merchantCustomerId eq "cust-1"',
+      moData: { custom_merchantCustomerId: 'cust-1' },
+      state: {} as any,
+    });
+
+    expect(result).toEqual({ object: existing, created: false });
+    expect(createManagedObjectApi).not.toHaveBeenCalled();
+  });
+
+  test('creates a new object with a server-generated id when no match is found', async () => {
+    const created = { _id: 'user-2', custom_merchantCustomerId: 'cust-2' };
+    createManagedObjectApi.mockResolvedValue(created);
+
+    const result = await findOrCreateManagedObject({
+      type: 'alpha_user',
+      filter: 'custom_merchantCustomerId eq "cust-2"',
+      moData: { custom_merchantCustomerId: 'cust-2' },
+      state: {} as any,
+    });
+
+    expect(result).toEqual({ object: created, created: true });
+    expect(createManagedObjectApi).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'alpha_user',
+        moData: { custom_merchantCustomerId: 'cust-2' },
+      })
+    );
+  });
+
+  test('throws when the filter matches more than one object', async () => {
+    queryManagedObjectsApi.mockResolvedValue({
+      result: [{ _id: 'user-1' }, { _id: 'user-2' }],
+      resultCount: 2,
+      pagedResultsCookie: null,
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    });
+
+    let caught: any;
+    try {
+      await findOrCreateManagedObject({
+        type: 'alpha_user',
+        filter: 'custom_merchantCustomerId eq "cust-3"',
+        moData: {},
+        state: {} as any,
+      });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeDefined();
+    expect(caught.originalErrors[0].message).toMatch(
+      /matched 2 alpha_user objects/
+    );
+    expect(createManagedObjectApi).not.toHaveBeenCalled();
   });
 });

@@ -25,6 +25,12 @@ import {
   ManagedObjectSchemaOptions,
   type RelationshipTarget,
 } from './ManagedObjectOps';
+import {
+  addRelationshipImpl,
+  readRelationshipImpl,
+  removeRelationshipImpl,
+  replaceRelationshipImpl,
+} from './internal/RelationshipHelpers';
 
 export type ManagedSystemObject = {
   /**
@@ -901,38 +907,6 @@ export async function queryRelatedManagedSystemObjects({
 }
 
 /**
- * Builds the underlying { _ref, _refResourceCollection, _refResourceId }
- * shape IDM expects for a relationship reference. Relationship targets are
- * always addressed under the managed/ collection regardless of whether the
- * object being patched is a regular managed object or a managed system
- * object, so this is identical to ManagedObjectOps' own version.
- */
-function buildRelationshipRefValue({ type, id }: RelationshipTarget): {
-  _ref: string;
-  _refResourceCollection: string;
-  _refResourceId: string;
-} {
-  return {
-    _ref: `managed/${type}/${id}`,
-    _refResourceCollection: `managed/${type}`,
-    _refResourceId: id,
-  };
-}
-
-/**
- * Builds the minimal { _ref, _refProperties } shape an "add" operation
- * needs. See the matching comment in ManagedObjectOps.ts: captured
- * directly from AIC's own admin UI and verified live — "add" and
- * "replace" want different value shapes, not variations of the same one.
- */
-function buildAddRelationshipValue({ type, id }: RelationshipTarget): {
-  _ref: string;
-  _refProperties: Record<string, never>;
-} {
-  return { _ref: `managed/${type}/${id}`, _refProperties: {} };
-}
-
-/**
  * Reads the current value of a relationship field directly off a managed
  * system object — the forward direction. For the reverse direction use
  * queryRelatedManagedSystemObjects instead.
@@ -948,13 +922,13 @@ export async function readRelationship({
   field: string;
   state: State;
 }): Promise<unknown> {
-  const object = await readManagedSystemObject({
+  return readRelationshipImpl({
     type,
     id,
-    fields: [field],
+    field,
     state,
+    readObject: readManagedSystemObject,
   });
-  return object[field];
 }
 
 /**
@@ -976,45 +950,20 @@ export async function addRelationship({
   rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return updateManagedSystemObjectProperties({
+  return addRelationshipImpl({
     type,
     id,
-    operations: [
-      {
-        operation: 'add',
-        field: `/${field}/-`,
-        value: buildAddRelationshipValue(target),
-      },
-    ],
+    field,
+    target,
     rev,
     state,
+    updateProperties: updateManagedSystemObjectProperties,
   });
-}
-
-/** True if a stored relationship element refers to the given { type, id } target. */
-function matchesRelationshipTarget(
-  item: unknown,
-  target: RelationshipTarget
-): boolean {
-  return (
-    typeof item === 'object' &&
-    item !== null &&
-    (item as Record<string, unknown>)._refResourceCollection ===
-      `managed/${target.type}` &&
-    (item as Record<string, unknown>)._refResourceId === target.id
-  );
 }
 
 /**
  * Removes one target from a many-valued relationship field without
  * disturbing any other members.
- *
- * @remarks
- * Reads the field's current value first to find the exact stored element,
- * then removes that exact object (not array-wrapped) — see the matching
- * comment in ManagedObjectOps.ts: this is the request shape captured
- * directly from AIC's own admin UI and verified live, including IDM's own
- * internal _refProperties on the matched element.
  */
 export async function removeRelationship({
   type,
@@ -1031,32 +980,15 @@ export async function removeRelationship({
   rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  const currentValue = await readRelationship({ type, id, field, state });
-  const currentArray = Array.isArray(currentValue)
-    ? currentValue
-    : currentValue
-      ? [currentValue]
-      : [];
-  const matchingElement = currentArray.find((item) =>
-    matchesRelationshipTarget(item, target)
-  );
-  if (!matchingElement) {
-    throw new FrodoError(
-      `Error removing relationship: ${target.type}/${target.id} is not currently a member of ${type}/${id}'s "${field}" field.`
-    );
-  }
-  return updateManagedSystemObjectProperties({
+  return removeRelationshipImpl({
     type,
     id,
-    operations: [
-      {
-        operation: 'remove',
-        field: `/${field}`,
-        value: matchingElement,
-      },
-    ],
+    field,
+    target,
     rev,
     state,
+    readObject: readManagedSystemObject,
+    updateProperties: updateManagedSystemObjectProperties,
   });
 }
 
@@ -1081,23 +1013,13 @@ export async function replaceRelationship({
   rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  const value =
-    target === null
-      ? null
-      : Array.isArray(target)
-        ? target.map(buildRelationshipRefValue)
-        : buildRelationshipRefValue(target);
-  return updateManagedSystemObjectProperties({
+  return replaceRelationshipImpl({
     type,
     id,
-    operations: [
-      {
-        operation: 'replace',
-        field: `/${field}`,
-        value,
-      },
-    ],
+    field,
+    target,
     rev,
     state,
+    updateProperties: updateManagedSystemObjectProperties,
   });
 }

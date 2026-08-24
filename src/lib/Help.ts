@@ -2433,6 +2433,19 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "ManagedObject",
+    methodName: "findOrCreateManagedObject",
+    signature: "findOrCreateManagedObject( type: string, filter: string, moData: IdObjectSkeletonInterface, fields?: string[] ): Promise<FindOrCreateManagedObjectResult>",
+    description: "Find a managed object by a CREST query filter, creating one with a server-generated _id if no match exists. Intended for JIT-provisioning flows where an external identity (e.g. a JWT subject from a foreign IDP) must not become the managed object's own _id/userName: query by a metadata field pair that captures the external identity instead (e.g. `custom_merchantCustomerId eq \"...\" and custom_merchantId eq \"...\"`), and let IDM generate the local _id on first use.",
+    params: [
+      { name: "type", type: "string", description: "managed object type, e.g. alpha_user", required: true },
+      { name: "filter", type: "string", description: "CREST search filter uniquely identifying the object by its external identity metadata", required: true },
+      { name: "moData", type: "IdObjectSkeletonInterface", description: "object data to create with if no match is found; ignored if a match is found", required: true },
+      { name: "fields", type: "string[]", description: "array of fields to return in either case", required: false },
+    ],
+    returns: "{Promise<FindOrCreateManagedObjectResult>} the found or newly created object, and whether it was newly created",
+  },
+  {
+    typeName: "ManagedObject",
     methodName: "readManagedObject",
     signature: "readManagedObject( type: string, id: string, fields?: string[] ): Promise<IdObjectSkeletonInterface>",
     description: "Read managed object",
@@ -3012,6 +3025,18 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "Node",
+    methodName: "readNodeSchema",
+    signature: "readNodeSchema( nodeType: string, nodeTypeVersion?: string, refreshCache?: boolean ): Promise<NodeSkeleton>",
+    description: "Read a node type's configurable-property schema (the schema an agent or UI needs to construct valid node config before creating/updating a node instance).",
+    params: [
+      { name: "nodeType", type: "string", description: "node type", required: true },
+      { name: "nodeTypeVersion", type: "string", description: "node type version", required: false },
+      { name: "refreshCache", type: "boolean", description: "whether to refresh the schema cache for the specified node type/version", required: false },
+    ],
+    returns: "{Promise<NodeSkeleton>} a promise that resolves to a node schema object",
+  },
+  {
+    typeName: "Node",
     methodName: "readNodes",
     signature: "readNodes(): Promise<NodeSkeleton[]>",
     description: "Read all nodes",
@@ -3111,6 +3136,17 @@ export const helpMetadata: MethodHelpDoc[] = [
     description: "Read all custom nodes",
     params: [],
     returns: "{Promise<CustomNodeSkeleton[]>} a promise that resolves to an array of custom nodes objects",
+  },
+  {
+    typeName: "Node",
+    methodName: "readCustomNodeSchema",
+    signature: "readCustomNodeSchema( serviceName: string, refreshCache?: boolean ): Promise<NodeSkeleton>",
+    description: "Read a custom node's configurable-property schema.",
+    params: [
+      { name: "serviceName", type: "string", description: "custom node service name (not the '_id' and without the 'designer-' prefix)", required: true },
+      { name: "refreshCache", type: "boolean", description: "whether to refresh the schema cache for the specified custom node", required: false },
+    ],
+    returns: "{Promise<NodeSkeleton>} a promise that resolves to a node schema object",
   },
   {
     typeName: "Node",

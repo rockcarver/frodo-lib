@@ -27,13 +27,14 @@ import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
 import {
+  addRelationship,
   createManagedObject,
   queryManagedObjects,
   queryRelatedManagedObjects,
   readManagedObject,
   readManagedObjects,
   readManagedObjectSchema,
-  updateManagedObjectProperties,
+  replaceRelationship,
 } from './ManagedObjectOps';
 import { type ExportMetaData } from './OpsTypes';
 
@@ -2644,20 +2645,14 @@ export async function createAIAgent({
               // Link privilege to agent identity and create reverse link from agent identity to privilege
               try {
                 // Link privilege to agent identity
-                await updateManagedObjectProperties({
+                await replaceRelationship({
                   type: `${getCurrentRealmName(state)}_aiagentprivilege`,
                   id: privilege._id,
-                  operations: [
-                    {
-                      operation: 'replace',
-                      field: '/agent',
-                      value: {
-                        _ref: `managed/${getCurrentRealmName(state)}_aiagent/${aiAgentIdentity._id}`,
-                        _refResourceCollection: `managed/${getCurrentRealmName(state)}_aiagent`,
-                        _refResourceId: aiAgentIdentity._id,
-                      },
-                    },
-                  ],
+                  field: 'agent',
+                  target: {
+                    type: `${getCurrentRealmName(state)}_aiagent`,
+                    id: aiAgentIdentity._id,
+                  },
                   state,
                 });
               } catch (error) {
@@ -2676,39 +2671,26 @@ export async function createAIAgent({
               ) {
                 try {
                   // Link privilege to application
-                  await updateManagedObjectProperties({
+                  await replaceRelationship({
                     type: `${getCurrentRealmName(state)}_aiagentprivilege`,
                     id: privilege._id,
-                    operations: [
-                      {
-                        operation: 'replace',
-                        field: '/resource',
-                        value: {
-                          _ref: `managed/${getCurrentRealmName(state)}_application/${privilege['resource']['_refResourceId']}`,
-                          _refResourceCollection: `managed/${getCurrentRealmName(state)}_application`,
-                          _refResourceId:
-                            privilege['resource']['_refResourceId'],
-                        },
-                      },
-                    ],
+                    field: 'resource',
+                    target: {
+                      type: `${getCurrentRealmName(state)}_application`,
+                      id: privilege['resource']['_refResourceId'] as string,
+                    },
                     state,
                   });
                   // create reverse link from application to privilege (best effort)
                   try {
-                    await updateManagedObjectProperties({
+                    await addRelationship({
                       type: `${getCurrentRealmName(state)}_application`,
                       id: privilege['resource']['_refResourceId'] as string,
-                      operations: [
-                        {
-                          operation: 'add',
-                          field: '/aiagentprivileges',
-                          value: {
-                            _ref: `managed/${getCurrentRealmName(state)}_aiagentprivilege/${privilege._id}`,
-                            _refResourceCollection: `managed/${getCurrentRealmName(state)}_aiagentprivilege`,
-                            _refResourceId: privilege._id,
-                          },
-                        },
-                      ],
+                      field: 'aiagentprivileges',
+                      target: {
+                        type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+                        id: privilege._id,
+                      },
                       state,
                     });
                   } catch {
@@ -2735,43 +2717,30 @@ export async function createAIAgent({
               ) {
                 try {
                   // Link privilege to subject groups
-                  const subjectGroups = [];
-                  for (const group of privilege['subjectGroups']) {
-                    subjectGroups.push({
-                      _ref: `managed/${getCurrentRealmName(state)}_group/${group['_refResourceId']}`,
-                      _refResourceCollection: `managed/${getCurrentRealmName(state)}_group`,
-                      _refResourceId: group['_refResourceId'],
-                    });
-                  }
-                  await updateManagedObjectProperties({
+                  const subjectGroups = privilege['subjectGroups'].map(
+                    (group) => ({
+                      type: `${getCurrentRealmName(state)}_group`,
+                      id: group['_refResourceId'] as string,
+                    })
+                  );
+                  await replaceRelationship({
                     type: `${getCurrentRealmName(state)}_aiagentprivilege`,
                     id: privilege._id,
-                    operations: [
-                      {
-                        operation: 'replace',
-                        field: '/subjectGroups',
-                        value: subjectGroups,
-                      },
-                    ],
+                    field: 'subjectGroups',
+                    target: subjectGroups,
                     state,
                   });
                   // create reverse link from subject groups to privilege
                   for (const group of privilege['subjectGroups']) {
                     try {
-                      await updateManagedObjectProperties({
+                      await addRelationship({
                         type: `${getCurrentRealmName(state)}_group`,
                         id: group['_refResourceId'] as string,
-                        operations: [
-                          {
-                            operation: 'add',
-                            field: '/aiagentprivileges',
-                            value: {
-                              _ref: `managed/${getCurrentRealmName(state)}_aiagentprivilege/${privilege._id}`,
-                              _refResourceCollection: `managed/${getCurrentRealmName(state)}_aiagentprivilege`,
-                              _refResourceId: privilege._id,
-                            },
-                          },
-                        ],
+                        field: 'aiagentprivileges',
+                        target: {
+                          type: `${getCurrentRealmName(state)}_aiagentprivilege`,
+                          id: privilege._id,
+                        },
                         state,
                       });
                     } catch {
@@ -2799,24 +2768,15 @@ export async function createAIAgent({
               ) {
                 try {
                   // Link privilege to subjects
-                  const subjects = [];
-                  for (const subject of privilege['subjects']) {
-                    subjects.push({
-                      _ref: `managed/${getCurrentRealmName(state)}_user/${subject['_refResourceId']}`,
-                      _refResourceCollection: `managed/${getCurrentRealmName(state)}_user`,
-                      _refResourceId: subject['_refResourceId'],
-                    });
-                  }
-                  await updateManagedObjectProperties({
+                  const subjects = privilege['subjects'].map((subject) => ({
+                    type: `${getCurrentRealmName(state)}_user`,
+                    id: subject['_refResourceId'] as string,
+                  }));
+                  await replaceRelationship({
                     type: `${getCurrentRealmName(state)}_aiagentprivilege`,
                     id: privilege._id,
-                    operations: [
-                      {
-                        operation: 'replace',
-                        field: '/subjects',
-                        value: subjects,
-                      },
-                    ],
+                    field: 'subjects',
+                    target: subjects,
                     state,
                   });
                 } catch (error) {
@@ -2857,24 +2817,15 @@ export async function createAIAgent({
           aiAgentIdentity['owners'].length > 0
         ) {
           try {
-            const owners = [];
-            for (const owner of aiAgentIdentity['owners']) {
-              owners.push({
-                _ref: `managed/${getCurrentRealmName(state)}_user/${owner['_refResourceId']}`,
-                _refResourceCollection: `managed/${getCurrentRealmName(state)}_user`,
-                _refResourceId: owner['_refResourceId'],
-              });
-            }
-            await updateManagedObjectProperties({
+            const owners = aiAgentIdentity['owners'].map((owner) => ({
+              type: `${getCurrentRealmName(state)}_user`,
+              id: owner['_refResourceId'] as string,
+            }));
+            await replaceRelationship({
               type: `${getCurrentRealmName(state)}_aiagent`,
               id: aiAgentIdentity._id,
-              operations: [
-                {
-                  operation: 'replace',
-                  field: '/owners',
-                  value: owners,
-                },
-              ],
+              field: 'owners',
+              target: owners,
               state,
             });
           } catch (error) {

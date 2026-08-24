@@ -895,6 +895,14 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       "Read a type's schema — the way to discover its relationship fields before writing to them. A property with type 'relationship' is a relationship field; resourceCollection.path (nested under items for a many-valued field, directly on the property for a single-valued one) is the target type to reference. See idm.managed.updateManagedObjectProperties's notes for the actual write pattern.",
   },
+  'idm.managed.findOrCreateManagedObject': {
+    operationType: 'create',
+    objectType: 'ManagedObject',
+    mutating: true,
+    riskClass: 'medium',
+    notes:
+      "Finds a managed object by a CREST query filter, creating one with a server-generated _id if no match exists — the JIT-provisioning pattern: query by an external identity's metadata (e.g. a foreign IDP's JWT subject stored in a custom field) rather than using that external identity as the object's own _id/userName, since it may not be UUID-shaped or stable. Throws if the filter matches more than one object rather than picking arbitrarily. moData is ignored when an existing match is found.",
+  },
   'idm.managed.readRelationship': {
     operationType: 'read',
     objectType: 'Relationship',

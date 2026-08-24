@@ -23,6 +23,15 @@ import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import { cloneDeep } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
+import {
+  addRelationshipImpl,
+  readRelationshipImpl,
+  removeRelationshipImpl,
+  replaceRelationshipImpl,
+  type RelationshipTarget,
+} from './internal/RelationshipHelpers';
+
+export type { RelationshipTarget } from './internal/RelationshipHelpers';
 
 export type ManagedObject = {
   /**
@@ -48,6 +57,26 @@ export type ManagedObject = {
     moData: IdObjectSkeletonInterface,
     id?: string
   ): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Find a managed object by a CREST query filter, creating one with a
+   * server-generated _id if no match exists. Intended for JIT-provisioning
+   * flows where an external identity (e.g. a JWT subject from a foreign IDP)
+   * must not become the managed object's own _id/userName: query by a
+   * metadata field pair that captures the external identity instead (e.g.
+   * `custom_merchantCustomerId eq "..." and custom_merchantId eq "..."`),
+   * and let IDM generate the local _id on first use.
+   * @param {string} type managed object type, e.g. alpha_user
+   * @param {string} filter CREST search filter uniquely identifying the object by its external identity metadata
+   * @param {IdObjectSkeletonInterface} moData object data to create with if no match is found; ignored if a match is found
+   * @param {string[]} fields array of fields to return in either case
+   * @returns {Promise<FindOrCreateManagedObjectResult>} the found or newly created object, and whether it was newly created
+   */
+  findOrCreateManagedObject(
+    type: string,
+    filter: string,
+    moData: IdObjectSkeletonInterface,
+    fields?: string[]
+  ): Promise<FindOrCreateManagedObjectResult>;
   /**
    * Read managed object
    * @param {string} type managed object type, e.g. alpha_user or user
@@ -268,6 +297,14 @@ export default (state: State): ManagedObject => {
       id: string = undefined
     ): Promise<IdObjectSkeletonInterface> {
       return createManagedObject({ type, id, moData, state });
+    },
+    async findOrCreateManagedObject(
+      type: string,
+      filter: string,
+      moData: IdObjectSkeletonInterface,
+      fields: string[] = ['*']
+    ): Promise<FindOrCreateManagedObjectResult> {
+      return findOrCreateManagedObject({ type, filter, moData, fields, state });
     },
     async readManagedObject(
       type: string,
@@ -578,6 +615,61 @@ export async function createManagedObject({
   } catch (error) {
     throw new FrodoError(
       `Error creating managed ${type} object${id ? ' (' + id + ')' : ''}`,
+      error
+    );
+  }
+}
+
+/** Result of {@link findOrCreateManagedObject}. */
+export type FindOrCreateManagedObjectResult = {
+  /** The found or newly created managed object. */
+  object: IdObjectSkeletonInterface;
+  /** True if no existing object matched the filter and a new one was created. */
+  created: boolean;
+};
+
+/**
+ * Find a managed object by a CREST query filter, creating one with a
+ * server-generated _id if no match exists. Intended for JIT-provisioning
+ * flows where an external identity (e.g. a JWT subject from a foreign IDP)
+ * must not become the managed object's own _id/userName: query by a
+ * metadata field pair that captures the external identity instead (e.g.
+ * `custom_merchantCustomerId eq "..." and custom_merchantId eq "..."`),
+ * and let IDM generate the local _id on first use.
+ */
+export async function findOrCreateManagedObject({
+  type,
+  filter,
+  moData,
+  fields = ['*'],
+  state,
+}: {
+  type: string;
+  filter: string;
+  moData: IdObjectSkeletonInterface;
+  fields?: string[];
+  state: State;
+}): Promise<FindOrCreateManagedObjectResult> {
+  try {
+    const matches = await queryManagedObjects({
+      type,
+      filter,
+      fields,
+      state,
+    });
+    if (matches.length > 1) {
+      throw new FrodoError(
+        `Filter "${filter}" matched ${matches.length} ${type} objects, expected at most 1.`
+      );
+    }
+    if (matches.length === 1) {
+      return { object: matches[0], created: false };
+    }
+    const created = await createManagedObject({ type, moData, state });
+    return { object: created, created: true };
+  } catch (error) {
+    throw new FrodoError(
+      `Error finding or creating managed ${type} object`,
       error
     );
   }
@@ -933,45 +1025,6 @@ export async function queryRelatedManagedObjects({
   return result;
 }
 
-/** A relationship target: the managed object type and id it points to, without any of the underlying _ref plumbing. */
-export type RelationshipTarget = {
-  type: string;
-  id: string;
-};
-
-/**
- * Builds the underlying { _ref, _refResourceCollection, _refResourceId }
- * shape IDM expects for a relationship reference in a "replace" operation,
- * so callers of replaceRelationship only ever need to think in plain
- * { type, id } terms.
- */
-function buildRelationshipRefValue({ type, id }: RelationshipTarget): {
-  _ref: string;
-  _refResourceCollection: string;
-  _refResourceId: string;
-} {
-  return {
-    _ref: `managed/${type}/${id}`,
-    _refResourceCollection: `managed/${type}`,
-    _refResourceId: id,
-  };
-}
-
-/**
- * Builds the minimal { _ref, _refProperties } shape an "add" operation
- * needs — captured directly from a real request AIC's own admin UI sends
- * for "add a role to this user", and verified live to work exactly as
- * shown. Deliberately not reusing buildRelationshipRefValue's shape:
- * "add" and "replace" turned out to want different value shapes, not
- * variations of the same one.
- */
-function buildAddRelationshipValue({ type, id }: RelationshipTarget): {
-  _ref: string;
-  _refProperties: Record<string, never>;
-} {
-  return { _ref: `managed/${type}/${id}`, _refProperties: {} };
-}
-
 /**
  * Reads the current value of a relationship field directly off a managed
  * object — the forward direction (e.g. an alpha_user's own `manager` or
@@ -990,8 +1043,13 @@ export async function readRelationship({
   field: string;
   state: State;
 }): Promise<unknown> {
-  const object = await readManagedObject({ type, id, fields: [field], state });
-  return object[field];
+  return readRelationshipImpl({
+    type,
+    id,
+    field,
+    state,
+    readObject: readManagedObject,
+  });
 }
 
 /**
@@ -999,13 +1057,6 @@ export async function readRelationship({
  * any existing members — the safe way to "add a member" (use
  * replaceRelationship instead only when you actually mean to overwrite the
  * whole field).
- *
- * @remarks
- * Uses the exact request shape captured from AIC's own admin UI performing
- * this action and verified live: field addressed as `/field/-` (JSON
- * Pointer append-to-array syntax, RFC 6902) with a bare (not array-wrapped)
- * { _ref, _refProperties: {} } value — not the field's own resourceCollection
- * fields.
  */
 export async function addRelationship({
   type,
@@ -1022,52 +1073,22 @@ export async function addRelationship({
   rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return updateManagedObjectProperties({
+  return addRelationshipImpl({
     type,
     id,
-    operations: [
-      {
-        operation: 'add',
-        field: `/${field}/-`,
-        value: buildAddRelationshipValue(target),
-      },
-    ],
+    field,
+    target,
     rev,
     state,
+    updateProperties: updateManagedObjectProperties,
   });
-}
-
-/** True if a stored relationship element refers to the given { type, id } target. */
-function matchesRelationshipTarget(
-  item: unknown,
-  target: RelationshipTarget
-): boolean {
-  return (
-    typeof item === 'object' &&
-    item !== null &&
-    (item as Record<string, unknown>)._refResourceCollection ===
-      `managed/${target.type}` &&
-    (item as Record<string, unknown>)._refResourceId === target.id
-  );
 }
 
 /**
  * Removes one target from a many-valued relationship field without
- * disturbing any other members.
- *
- * @remarks
- * Reads the field's current value first to find the exact stored element,
- * then removes that exact object (not array-wrapped) — the request shape
- * captured directly from AIC's own admin UI performing this action and
- * verified live. Two things this gets exactly right that a naively-built
- * request gets wrong: the value must be the object matching what's
- * actually stored, _refProperties (an internal id/rev IDM itself generates
- * for the relationship, distinct from the referenced object's own id)
- * included — a freshly-built ref without it doesn't match and the request
- * is silently ignored; and unlike "add" (which needs its value array-
- * wrapped), "remove" needs a bare object, not an array containing one.
- * Throws if the target isn't currently a member, rather than silently
- * doing nothing the way a raw PATCH with a non-matching value would.
+ * disturbing any other members. Throws if the target isn't currently a
+ * member, rather than silently doing nothing the way a raw PATCH with a
+ * non-matching value would.
  */
 export async function removeRelationship({
   type,
@@ -1084,32 +1105,15 @@ export async function removeRelationship({
   rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  const currentValue = await readRelationship({ type, id, field, state });
-  const currentArray = Array.isArray(currentValue)
-    ? currentValue
-    : currentValue
-      ? [currentValue]
-      : [];
-  const matchingElement = currentArray.find((item) =>
-    matchesRelationshipTarget(item, target)
-  );
-  if (!matchingElement) {
-    throw new FrodoError(
-      `Error removing relationship: ${target.type}/${target.id} is not currently a member of ${type}/${id}'s "${field}" field.`
-    );
-  }
-  return updateManagedObjectProperties({
+  return removeRelationshipImpl({
     type,
     id,
-    operations: [
-      {
-        operation: 'remove',
-        field: `/${field}`,
-        value: matchingElement,
-      },
-    ],
+    field,
+    target,
     rev,
     state,
+    readObject: readManagedObject,
+    updateProperties: updateManagedObjectProperties,
   });
 }
 
@@ -1135,24 +1139,14 @@ export async function replaceRelationship({
   rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  const value =
-    target === null
-      ? null
-      : Array.isArray(target)
-        ? target.map(buildRelationshipRefValue)
-        : buildRelationshipRefValue(target);
-  return updateManagedObjectProperties({
+  return replaceRelationshipImpl({
     type,
     id,
-    operations: [
-      {
-        operation: 'replace',
-        field: `/${field}`,
-        value,
-      },
-    ],
+    field,
+    target,
     rev,
     state,
+    updateProperties: updateManagedObjectProperties,
   });
 }
 
