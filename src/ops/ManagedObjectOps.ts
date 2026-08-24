@@ -37,6 +37,40 @@ import {
 
 export type { RelationshipTarget } from './internal/RelationshipHelpers';
 
+/**
+ * `ManagedObject` covers three distinct things that are easy to conflate:
+ * - **Records**: actual data instances of a managed type (e.g. a specific
+ *   `alpha_user`), created/read/updated/deleted via the `createManagedObject`
+ *   / `readManagedObject` / `updateManagedObjectProperties` /
+ *   `deleteManagedObject` family below.
+ * - **Configuration**: the `managed.json` config entity that defines every
+ *   managed type for the tenant (properties, relationships, etc.), read and
+ *   written as a whole document via `IdmConfigOps.ts`'s
+ *   `readSubConfigEntity('managed', type)` / `importSubConfigEntity('managed', ...)`.
+ * - **Schema**: a specific type's resolved property/relationship
+ *   definitions, readable in full via `readManagedObjectSchema` below (a
+ *   read-only projection of the same underlying configuration).
+ *
+ * There are two ways to *mutate* a type's schema, and they are not
+ * interchangeable:
+ * 1. `readManagedObjectSchemaProperty` / `updateManagedObjectSchemaProperty` /
+ *    `removeManagedObjectSchemaProperty` below use IDM's dedicated v2 schema
+ *    API to create, update, or remove **one property or relationship
+ *    definition at a time**, in place, with no whole-blob read-modify-write.
+ *    This is Cloud (PingOne Advanced Identity Cloud) only — see
+ *    [rockcarver/frodo-lib#388](https://github.com/rockcarver/frodo-lib/issues/388)
+ *    for the design discussion this followed.
+ * 2. On ForgeOps/classic, or for whole-type schema changes on any
+ *    deployment, use `IdmConfigOps.ts`'s `readSubConfigEntity('managed', type)`
+ *    / `importSubConfigEntity('managed', ...)` to read-modify-write the
+ *    entire type definition instead.
+ *
+ * Neither path touches the underlying repository's index/persistence-layer
+ * definitions (e.g. DS's `repo.ds` on ForgeOps/classic) — Frodo has no
+ * support for reading or writing `repo.ds` today, so adding a genuinely new
+ * custom relationship property on ForgeOps/classic still requires a manual,
+ * Frodo-unassisted edit to that file outside either API above.
+ */
 export type ManagedObject = {
   /**
    * Read managed object schema

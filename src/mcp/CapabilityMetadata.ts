@@ -104,6 +104,14 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Read nodes by type with namedArgs { nodeType, nodeTypeVersion }. nodeTypeVersion defaults to 1.0.',
   },
+  'authn.node.readNodeSchema': {
+    notes:
+      "Returns the node type's configurable-property schema. Use this before setting nodeData on authn.node.createNode/updateNode instead of guessing property names. Some node types are part of a paired/family set (e.g. registration + verification nodes) that must be wired together in the same journey to work -- see authn.node.createNode's notes for the known pairs.",
+  },
+  'authn.node.readCustomNodeSchema': {
+    notes:
+      "Returns a custom node's configurable-property schema, keyed by its service name. Use this before setting nodeData on a custom node instead of guessing property names.",
+  },
   'authn.journey.createJourney': {
     argumentMode: 'named',
     parameterOverrides: {
@@ -197,7 +205,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     },
     supportsRealm: true,
     notes:
-      'Create a node with namedArgs { nodeType, nodeData } so node type and payload are explicit.',
+      'Create a node with namedArgs { nodeType, nodeData } so node type and payload are explicit.\n' +
+      'Some OOTB node types only make sense as part of a paired/family set that must be wired together in the same journey, or the enrollment they perform can never be verified: WebAuthnRegistrationNode needs a WebAuthnAuthenticationNode (and usually a WebAuthnDeviceStorageNode) elsewhere in the tree; the same register/verify pattern holds for PushRegistrationNode + PushAuthenticationSenderNode/PushResultVerifierNode, OathRegistrationNode + OathTokenVerifierNode (+ OathDeviceStorageNode), DeviceBindingNode + DeviceBindingStorageNode/DeviceSigningVerifierNode, and RecoveryCodeDisplayNode + RecoveryCodeCollectorDecisionNode. This list is drawn from Frodo\'s own OOTB node-type catalog naming (OOTB_NODE_TYPES_* in NodeOps.ts), not from an official Ping "node family" taxonomy -- before wiring a registration/enrollment-style node into a journey, check authn.node.readNodeSchema (or readCustomNodeSchema for custom nodes) for its configurable properties and confirm the paired node type is actually present on this tenant via authn.node.readNodesByType.',
   },
   'authn.node.updateNode': {
     argumentMode: 'named',
@@ -1792,7 +1801,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     },
     supportsRealm: true,
     notes:
-      'Create a script by id. Prefer namedArgs { scriptId, scriptData } and optionally scriptName.',
+      'Create a script by id. Prefer namedArgs { scriptId, scriptData } and optionally scriptName.\n' +
+      "Available bindings and the script engine/evaluator depend on scriptData.context (see the ScriptContext union in ScriptApi.ts -- e.g. AUTHENTICATION_TREE_DECISION_NODE, OAUTH2_ACCESS_TOKEN_MODIFICATION, POLICY_CONDITION, CONFIG_PROVIDER_NODE, OIDC_CLAIMS, SAML2_IDP_ADAPTER, LIBRARY, etc.) and on evaluatorVersion (Frodo defaults new scripts to '1.0' -- AM's Legacy evaluator -- when unset; '2.0' is the Next Generation evaluator). Per docs.pingidentity.com/pingoneaic/latest/am-scripting/script-bindings.html, binding availability differs by evaluator generation: `openidm`, `policy`, `utils`, `cookieName`, and `emailService` are Next Generation-only; `httpClient` and `scriptName` are only partially available on Legacy; `logger`, `realm`, and `systemEnv` are on both; `jwtAssertion`/`jwtValidator` are documented specifically for OAuth 2.0, Scripted Decision, and SAML 2.0 contexts; `locales`/`journey` are documented for Config Provider, Scripted Decision, Device Match, and custom nodes. That page explicitly does not enumerate every binding for every context -- it directs readers to each script type's own doc page. Neither that page nor docs.pingidentity.com/pingoneaic/idm-scripting/scripting-func-engine.html (IDM's scripting function reference) names a specific script engine (e.g. Rhino/GraalJS), ECMAScript level, or timeout/sandboxing limit -- do not assume one; verify live against the target tenant if it matters for the task.",
   },
   'script.updateScript': {
     argumentMode: 'named',
@@ -1826,7 +1836,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     },
     supportsRealm: true,
     notes:
-      'Update (or upsert) a script by id. Prefer namedArgs { scriptId, scriptData }.',
+      "Update (or upsert) a script by id. Prefer namedArgs { scriptId, scriptData }. See script.createScript's notes for engine/binding constraints per context and evaluator version.",
   },
   'script.updateScriptSource': {
     argumentMode: 'named',

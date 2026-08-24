@@ -148,6 +148,10 @@ export type IdmConfig = {
    * @param {string} entityId entity id for the parent config entity of the sub config entity that is being read
    * @param {string} name name of the sub config entity that is being read
    * @returns {Promise<IdObjectSkeletonInterface>} a promise resolving to a sub config entity object
+   * @remarks For `entityId: 'managed'`, this reads the whole managed-object
+   * type definition (schema included). On Cloud, if you only need to read
+   * one property/relationship definition, `ManagedObjectOps.ts`'s
+   * `readManagedObjectSchemaProperty` avoids fetching the entire type.
    */
   readSubConfigEntity(
     entityId: string,
@@ -159,6 +163,12 @@ export type IdmConfig = {
    * @param {NoIdObjectSkeletonInterface} updatedSubConfigEntity the updated sub config entity
    * @param {ConfigEntityImportOptions} options import options
    * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects
+   * @remarks For `entityId: 'managed'`, this read-modify-writes the whole
+   * managed-object type definition (schema included). On Cloud, if you only
+   * need to add, change, or remove one custom property/relationship
+   * definition, prefer `ManagedObjectOps.ts`'s
+   * `updateManagedObjectSchemaProperty` / `removeManagedObjectSchemaProperty`
+   * instead of read-modify-writing the whole type here.
    */
   importSubConfigEntity(
     entityId: string,
