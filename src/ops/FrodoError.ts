@@ -136,3 +136,49 @@ export class FrodoError extends Error {
     return this.getCombinedMessage();
   }
 }
+
+/** True if `error` itself (not any wrapped cause) directly carries a 404 status. */
+function hasDirect404Status(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const withStatus = error as { httpStatus?: unknown; response?: unknown };
+  if (withStatus.httpStatus === 404) {
+    return true;
+  }
+  const response = withStatus.response as { status?: unknown } | undefined;
+  return !!response && response.status === 404;
+}
+
+/**
+ * True only for a confirmed HTTP 404 — never for permission (403), server
+ * (5xx), network/timeout, or malformed-response failures. Use this (not a
+ * bare `catch` block) to decide whether a failed existence-check read means
+ * "confirmed absent, safe to create" versus "the check itself failed, don't
+ * guess."
+ *
+ * @remarks
+ * Checks the error itself first (a `FrodoError.httpStatus`, or a raw
+ * axios-shaped `error.response.status` — `originalErrors` can hold either,
+ * see {@link FrodoError.getCombinedMessage}'s own `FrodoError`-vs-
+ * `AxiosError` branching), then recurses through
+ * {@link FrodoError.originalErrors} if this is a `FrodoError`. Two things
+ * make the direct check alone insufficient: a `FrodoError` thrown from
+ * inside another `FrodoError`'s own `catch` block (a double-wrap, e.g. a
+ * read function that itself calls another read function) has no
+ * `.response` of its own for the outer wrap's constructor to read a status
+ * off of, so its own `httpStatus` is `null` even when the underlying
+ * failure genuinely was a 404; and `FrodoError.httpStatus` itself only ever
+ * reflects `originalErrors[0]` (see the constructor), so a 404 at another
+ * index of a wrapped *array* of causes would otherwise be missed too.
+ * Recursing checks every node in the chain, at any depth, individually.
+ */
+export function isNotFoundError(error: unknown): boolean {
+  if (hasDirect404Status(error)) {
+    return true;
+  }
+  if (error instanceof FrodoError) {
+    return error.originalErrors.some((original) => isNotFoundError(original));
+  }
+  return false;
+}

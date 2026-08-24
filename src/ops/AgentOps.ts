@@ -25,7 +25,7 @@ import {
 import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 import {
   addRelationship,
   createManagedObject,
@@ -2564,9 +2564,17 @@ export async function createAIAgent({
   debugMessage({ message: `AgentOps.createAIAgent: start`, state });
   try {
     await readAIAgent({ agentId, state });
-    throw new FrodoError(`Agent ${agentId} already exists!`);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // Agent already exists. importAIAgent relies on this falling through to
+    // (re)create/overwrite rather than refusing -- an existing, tested
+    // upsert-style behavior this fix isn't meant to change. It's the
+    // *read failing* case below (permission, network, 5xx, malformed
+    // response) that must not be silently treated as "doesn't exist yet."
   } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw error;
+    }
+  }
+  {
     try {
       // clone ai agent identity data and remove it from agent data before creating the AI agent
       let aiAgentIdentity: IdObjectSkeletonInterface;
