@@ -93,6 +93,27 @@ export type McpCapabilityParameter = {
 };
 
 /**
+ * Per-parameter annotation overlay applied on top of an auto-derived
+ * parameter (see {@link OperationCapabilityMeta.parameterOverrides}).
+ *
+ * @remarks
+ * Deliberately excludes `name` and `position`: which parameters exist, in
+ * which order, always comes from the auto-derived signature (Help.ts,
+ * falling back to name-based inference) so it can't silently drift from the
+ * real bound method. `type` and `required` may be set here too, but only
+ * for refinements the type system can't express on its own (e.g. narrowing
+ * a `number` to a JSON-Schema `integer`, or documenting an MCP-dispatch-
+ * layer default that makes an otherwise-required parameter effectively
+ * optional at the call site) — not as a general-purpose escape hatch.
+ */
+export type McpCapabilityParameterOverlay = Partial<
+  Pick<
+    McpCapabilityParameter,
+    'type' | 'required' | 'description' | 'defaultValue' | 'schema' | 'examples'
+  >
+>;
+
+/**
  * Optional selector that disambiguates multiple capabilities sharing the same
  * generic `(operationType, domain, objectType)` tuple.
  */
@@ -273,8 +294,23 @@ export type OperationCapabilityMeta = {
   /** Explicit MCP-facing argument mode override for the capability. */
   argumentMode?: McpCapabilityArgumentMode;
 
-  /** Explicit ordered parameter metadata used for discovery and validation. */
-  parameters?: McpCapabilityParameter[];
+  /**
+   * Per-parameter annotation overlay, keyed by the parameter's auto-derived
+   * name (from Help.ts, falling back to name-based inference). Only fields
+   * present in {@link McpCapabilityParameterOverlay} may be set — the
+   * auto-derived parameter list (which parameters exist, their order) is
+   * always the baseline, so an entry here can annotate a real parameter but
+   * can never fabricate one, silently reorder one, or hide a signature
+   * change. Use {@link excludeParameters} to hide a parameter entirely.
+   */
+  parameterOverrides?: Record<string, McpCapabilityParameterOverlay>;
+
+  /**
+   * Names of auto-derived parameters to exclude from this capability's
+   * advertised parameter contract — e.g. a trailing `resultCallback` (a JS
+   * function reference an MCP JSON payload can never carry).
+   */
+  excludeParameters?: string[];
 
   /** Optional selector value used to distinguish single vs bulk semantics, etc. */
   scope?: McpCapabilityScope;

@@ -20,6 +20,7 @@ import {
   McpCapabilityParameter,
   McpCapabilityRiskClass,
   McpToolAnnotations,
+  OperationCapabilityMeta,
 } from './CapabilityTypes';
 
 /**
@@ -192,6 +193,45 @@ function shouldIncludeMethod(path: string[]): boolean {
 }
 
 /**
+ * Applies a capability's `excludeParameters`/`parameterOverrides` metadata
+ * on top of its auto-derived parameter list.
+ *
+ * @remarks
+ * The auto-derived list (from Help.ts, falling back to name-based
+ * inference) is always the baseline for which parameters exist, their
+ * order, and their `required`ness — a hand-authored `CAPABILITY_META` entry
+ * can only annotate a real, currently-derived parameter (by name) or
+ * exclude one; it can never fabricate a parameter that isn't in the
+ * baseline, since `parameterOverrides` keys that don't match a baseline
+ * parameter name are silently inert here (see the
+ * `describe capability parameter overlays` test suite for the drift check
+ * that turns a stale/renamed key into a failure instead).
+ *
+ * @param baseline Auto-derived parameters for this capability, or
+ *   `undefined` if neither Help.ts nor name-based inference produced any.
+ * @param meta Resolved capability metadata, if any.
+ * @returns The overlaid parameter list, or `undefined` if there's nothing
+ *   to report (mirrors the baseline's own undefined-when-empty contract).
+ */
+function applyParameterOverlay(
+  baseline: McpCapabilityParameter[] | undefined,
+  meta: OperationCapabilityMeta | undefined
+): McpCapabilityParameter[] | undefined {
+  if (!baseline) {
+    return undefined;
+  }
+  const excluded = new Set(meta?.excludeParameters ?? []);
+  const overrides = meta?.parameterOverrides;
+  const overlaid = baseline
+    .filter((parameter) => !excluded.has(parameter.name))
+    .map((parameter) => {
+      const overlay = overrides?.[parameter.name];
+      return overlay ? { ...parameter, ...overlay } : parameter;
+    });
+  return overlaid.length > 0 ? overlaid : undefined;
+}
+
+/**
  * Builds a fully populated {@link McpCapabilityDescriptor} for the method at
  * the given path by running all inference helpers.
  *
@@ -219,10 +259,10 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
   const annotations = inferAnnotations(operationType, mutating, destructive);
 
   const argumentMode = meta?.argumentMode ?? inferArgumentMode(operationType);
-  const parameters =
-    meta?.parameters ??
+  const derivedParameters =
     deriveParametersFromHelp(methodName) ??
     inferParameters(methodName, objectType, operationType);
+  const parameters = applyParameterOverlay(derivedParameters, meta);
   const supportsPaging =
     meta?.supportsPaging ??
     (operationType === 'list' || operationType === 'search');

@@ -847,8 +847,8 @@ export const helpMetadata: MethodHelpDoc[] = [
     signature: "queryApplications( filter: string, fields?: string[] ): Promise<ApplicationSkeleton[]>",
     description: "Query applications",
     params: [
-      { name: "filter", type: "", description: "CREST search filter", required: true },
-      { name: "fields", type: "", description: "array of fields to return", required: false },
+      { name: "filter", type: "string", description: "CREST search filter", required: true },
+      { name: "fields", type: "string[]", description: "array of fields to return", required: false },
     ],
     returns: "",
   },
@@ -2046,8 +2046,8 @@ export const helpMetadata: MethodHelpDoc[] = [
     signature: "queryInternalRoles( filter: string, fields?: string[] ): Promise<InternalRoleSkeleton[]>",
     description: "Query internal roles",
     params: [
-      { name: "filter", type: "", description: "CREST search filter", required: true },
-      { name: "fields", type: "", description: "array of fields to return", required: false },
+      { name: "filter", type: "string", description: "CREST search filter", required: true },
+      { name: "fields", type: "string[]", description: "array of fields to return", required: false },
     ],
     returns: "",
   },
@@ -2242,6 +2242,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     description: "Create journey without dependencies.",
     params: [
       { name: "journeyId", type: "string", description: "journey id/name", required: true },
+      { name: "journeyData", type: "TreeSkeleton", description: "journey payload object", required: true },
     ],
     returns: "{Promise<TreeSkeleton>} a promise that resolves to a journey object",
   },
@@ -2252,6 +2253,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     description: "Update journey without dependencies.",
     params: [
       { name: "journeyId", type: "string", description: "journey id/name", required: true },
+      { name: "journeyData", type: "TreeSkeleton", description: "journey payload object", required: true },
     ],
     returns: "{Promise<TreeSkeleton>} a promise that resolves to a journey object",
   },
@@ -2548,6 +2550,7 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "type", type: "string", description: "managed object type, e.g. alpha_user or user", required: true },
       { name: "filter", type: "string", description: "CREST search filter", required: false },
       { name: "fields", type: "string[]", description: "array of fields to return", required: false },
+      { name: "pageSize", type: "number", description: "page size", required: false },
     ],
     returns: "{Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of managed objects",
   },
@@ -2683,7 +2686,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     params: [
       { name: "type", type: "string", description: "managed system object type, e.g. alpha_user or user", required: true },
       { name: "id", type: "string", description: "managed system object id", required: true },
-      { name: "id", type: "string[]", description: "array of fields to include", required: true },
+      { name: "fields", type: "string[]", description: "array of fields to include", required: true },
     ],
     returns: "{Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface",
   },
@@ -2792,6 +2795,7 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "id", type: "string", description: "managed system object id", required: true },
       { name: "relationship", type: "string", description: "name of the relationship to query", required: true },
       { name: "fields", type: "string[]", description: "array of fields to return", required: false },
+      { name: "pageSize", type: "number", description: "page size", required: false },
     ],
     returns: "{Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of managed system objects",
   },

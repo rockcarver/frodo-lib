@@ -60,7 +60,7 @@ export type ManagedSystemObject = {
    * Read managed system object
    * @param {string} type managed system object type, e.g. alpha_user or user
    * @param {string} id managed system object id
-   * @param {string[]} id array of fields to include
+   * @param {string[]} fields array of fields to include
    * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface
    */
   readManagedSystemObject(
@@ -163,6 +163,7 @@ export type ManagedSystemObject = {
    * @param {string} id managed system object id
    * @param {string} relationship name of the relationship to query
    * @param {string[]} fields array of fields to return
+   * @param {number} pageSize page size
    * @return {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of managed system objects
    */
   queryRelatedManagedSystemObjects(

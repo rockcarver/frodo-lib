@@ -170,6 +170,7 @@ export type ManagedObject = {
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} filter CREST search filter
    * @param {string[]} fields array of fields to return
+   * @param {number} pageSize page size
    * @return {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of managed objects
    */
   queryManagedObjects(

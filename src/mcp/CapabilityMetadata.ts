@@ -41,376 +41,272 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   // ── Agent-facing MCP contracts for ambiguous operations ─────────────────────
   'authn.journey.readJourney': {
     argumentMode: 'mixed',
-    parameters: [
-      {
-        name: 'journeyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      journeyId: {
         description: 'Journey identifier or name.',
         examples: ['Azure'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'For MCP callers, prefer namedArgs { journeyId } so the object identifier is explicit.',
   },
   'authn.node.readNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeId: {
         description: 'Node UUID.',
         examples: ['313597f3-2e86-4476-b899-17a0209f0386'],
       },
-      {
-        name: 'nodeType',
-        type: 'string',
-        required: true,
-        position: 1,
+      nodeType: {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
-      {
-        name: 'nodeTypeVersion',
-        type: 'string',
-        required: false,
-        position: 2,
+      nodeTypeVersion: {
         description: 'Optional node type version, when more than one exists.',
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'MCP callers should use namedArgs { nodeId, nodeType } to avoid swapping the required positional arguments.',
   },
   'authn.node.readNodeType': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeType',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeType: {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
-      {
-        name: 'nodeTypeVersion',
-        type: 'string',
-        required: false,
-        position: 1,
+      nodeTypeVersion: {
         description: 'Node type version.',
         defaultValue: '1.0',
         examples: ['1.0', '2.0'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Read a node type with namedArgs { nodeType, nodeTypeVersion }. nodeTypeVersion defaults to 1.0.',
   },
   'authn.node.readNodesByType': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeType',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeType: {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
-      {
-        name: 'nodeTypeVersion',
-        type: 'string',
-        required: false,
-        position: 1,
+      nodeTypeVersion: {
         description: 'Node type version.',
         defaultValue: '1.0',
         examples: ['1.0', '2.0'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Read nodes by type with namedArgs { nodeType, nodeTypeVersion }. nodeTypeVersion defaults to 1.0.',
   },
   'authn.journey.createJourney': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'journeyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      journeyId: {
         description: 'Journey identifier or name to create.',
         examples: ['Example Journey'],
       },
-      {
-        name: 'journeyData',
-        type: 'TreeSkeleton',
-        required: true,
-        position: 1,
+      journeyData: {
         description: 'Journey payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Create a journey with namedArgs { journeyId, journeyData } so the target id and payload are explicit.',
   },
   'authn.journey.updateJourney': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'journeyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      journeyId: {
         description: 'Journey identifier or name to update.',
         examples: ['Example Journey'],
       },
-      {
-        name: 'journeyData',
-        type: 'TreeSkeleton',
-        required: true,
-        position: 1,
+      journeyData: {
         description: 'Journey payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Update a journey with namedArgs { journeyId, journeyData } to avoid positional ambiguity.',
   },
   'authn.journey.deleteJourney': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'journeyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      journeyId: {
         description: 'Journey identifier or name to delete.',
         examples: ['Example Journey'],
       },
-      {
-        name: 'options',
+      options: {
         type: 'DeleteJourneyOptions',
-        required: true,
-        position: 1,
         description:
           'Delete options controlling deep node cleanup, verbosity, and progress display.',
         schema: {
           type: 'object',
           additionalProperties: false,
           properties: {
-            deep: { type: 'boolean' },
-            verbose: { type: 'boolean' },
-            progress: { type: 'boolean' },
+            deep: {
+              type: 'boolean',
+            },
+            verbose: {
+              type: 'boolean',
+            },
+            progress: {
+              type: 'boolean',
+            },
           },
         },
-        examples: [{ deep: false, verbose: false }],
+        examples: [
+          {
+            deep: false,
+            verbose: false,
+          },
+        ],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Delete a journey with namedArgs { journeyId, options }. Set options.deep=true only when you intend to remove journey nodes as well.',
   },
   'authn.node.createNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeType',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeType: {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
-      {
-        name: 'nodeData',
-        type: 'NodeSkeleton',
-        required: true,
-        position: 1,
+      nodeData: {
         description: 'Node payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Create a node with namedArgs { nodeType, nodeData } so node type and payload are explicit.',
   },
   'authn.node.updateNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeId: {
         description: 'Node UUID.',
         examples: ['313597f3-2e86-4476-b899-17a0209f0386'],
       },
-      {
-        name: 'nodeType',
-        type: 'string',
-        required: true,
-        position: 1,
+      nodeType: {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
-      {
-        name: 'nodeData',
-        type: 'NodeSkeleton',
-        required: true,
-        position: 2,
+      nodeData: {
         description: 'Updated node payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Update a node with namedArgs { nodeId, nodeType, nodeData } to preserve the UUID/type ordering.',
   },
   'authn.node.deleteNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeId: {
         description: 'Node UUID.',
         examples: ['313597f3-2e86-4476-b899-17a0209f0386'],
       },
-      {
-        name: 'nodeType',
-        type: 'string',
-        required: true,
-        position: 1,
+      nodeType: {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Delete a node with namedArgs { nodeId, nodeType } to avoid swapping the required positional arguments.',
   },
   'authn.node.readCustomNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeId',
-        type: 'string',
-        required: false,
-        position: 0,
+    parameterOverrides: {
+      nodeId: {
         description:
           'Custom node id or service name. Takes priority over nodeName when both are provided.',
         examples: ['custom-node-service'],
       },
-      {
-        name: 'nodeName',
-        type: 'string',
-        required: false,
-        position: 1,
+      nodeName: {
         description: 'Custom node display name.',
         examples: ['My Custom Node'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Read a custom node with either namedArgs { nodeId } or { nodeName }. If both are provided, nodeId wins.',
   },
   'authn.node.updateCustomNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeId: {
         description: 'Custom node id or service name.',
         examples: ['custom-node-service'],
       },
-      {
-        name: 'nodeData',
-        type: 'CustomNodeSkeleton',
-        required: true,
-        position: 1,
+      nodeData: {
         description: 'Custom node payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Update a custom node with namedArgs { nodeId, nodeData }.',
   },
   'authn.node.deleteCustomNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeId',
-        type: 'string',
-        required: false,
-        position: 0,
+    parameterOverrides: {
+      nodeId: {
         description:
           'Custom node id or service name. Takes priority over nodeName when both are provided.',
         examples: ['custom-node-service'],
       },
-      {
-        name: 'nodeName',
-        type: 'string',
-        required: false,
-        position: 1,
+      nodeName: {
         description: 'Custom node display name.',
         examples: ['My Custom Node'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Delete a custom node with either namedArgs { nodeId } or { nodeName }. If both are provided, nodeId wins.',
   },
   'authn.settings.updateAuthenticationSettings': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'settings',
-        type: 'AuthenticationSettingsSkeleton',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      settings: {
         description: 'Authentication settings payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-      {
-        name: 'globalConfig',
-        type: 'boolean',
-        required: false,
-        position: 1,
+      globalConfig: {
         description:
           'Set true to target global authentication settings instead of the active realm.',
         defaultValue: false,
         examples: [false, true],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Update authentication settings with namedArgs { settings, globalConfig }. globalConfig defaults to false.',
@@ -418,20 +314,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'authn.journey.exportJourney': {
     argumentMode: 'named',
     scope: 'single',
-    parameters: [
-      {
-        name: 'journeyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      treeId: {
         description: 'Journey identifier or name to export.',
         examples: ['Azure'],
       },
-      {
-        name: 'options',
-        type: 'TreeExportOptions',
-        required: false,
-        position: 1,
+      options: {
         description:
           'Optional export options such as deps/useStringArrays/coords.',
         defaultValue: {
@@ -473,7 +361,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           },
         ],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Single-journey export. In MCP, scope="single" defaults to a thin export bundle (deps=false, useStringArrays=true, coords=true). Explicitly request deps=true only when you need dependency bundles.',
@@ -481,12 +369,9 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'authn.journey.exportJourneys': {
     argumentMode: 'named',
     scope: 'bulk',
-    parameters: [
-      {
-        name: 'options',
-        type: 'TreeExportOptions',
-        required: false,
-        position: 0,
+    excludeParameters: ['resultCallback'],
+    parameterOverrides: {
+      options: {
         description:
           'Optional export options such as deps/useStringArrays/coords.',
         defaultValue: {
@@ -528,117 +413,83 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           },
         ],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Bulk journey export. In MCP, scope="bulk" defaults to a thin export bundle (deps=false, useStringArrays=true, coords=true). Request deps=true only when a full dependency bundle is required.',
   },
   'app.queryApplications': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      filter: {
         description: 'CREST search filter, for example name co "HR".',
         examples: ['name co "HR"'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 1,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['name', '_id']],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Search applications with a CREST filter. Prefer namedArgs { filter, fields } so the query intent is explicit.',
   },
   'role.queryInternalRoles': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      filter: {
         description: 'CREST search filter, for example name eq "helpdesk".',
         examples: ['name eq "helpdesk"'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 1,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['name', '_id']],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Search internal roles with a CREST filter. Prefer namedArgs { filter, fields } for clarity.',
   },
   'idm.managed.queryManagedObjects': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: false,
-        position: 1,
+      filter: {
         description: 'Optional IDM query filter such as userName sw "a".',
         examples: ['userName sw "a"'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 2,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['userName', 'mail']],
       },
-      {
-        name: 'pageSize',
+      pageSize: {
         type: 'integer',
-        required: false,
-        position: 3,
         description:
           'Optional page size hint forwarded from the generic pageSize control.',
         examples: [100, 250],
       },
-      {
-        name: 'pageCookie',
-        type: 'string',
-        required: false,
-        position: 4,
-        description:
-          'Paged-results cookie. The generic pageToken control maps to this parameter.',
-        examples: ['opaque-cookie-token'],
-      },
-    ],
+    },
     supportsRealm: true,
     supportsPaging: true,
     supportsIncludeTotal: true,
@@ -647,57 +498,40 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managed.countManagedObjects': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: false,
-        position: 1,
+      filter: {
         description: 'Optional IDM query filter such as userName sw "a".',
         examples: ['userName sw "a"'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Count managed objects with explicit type and optional filter. For exact totals in cloud/forgeops deployments, prefer this over AM user counting.',
   },
   'idm.config.createConfigEntity': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'entityId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      entityId: {
         description: 'IDM config entity id to create.',
         examples: ['provisioner.openicf/ldap'],
       },
-      {
-        name: 'entityData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 1,
+      entityData: {
         description: 'IDM config entity payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-      {
-        name: 'wait',
-        type: 'boolean',
-        required: false,
-        position: 2,
+      wait: {
         description: 'Wait for async processing to complete when supported.',
         defaultValue: false,
         examples: [false, true],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Create a config entity with namedArgs { entityId, entityData, wait }. wait defaults to false.',
@@ -705,25 +539,17 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'idm.config.readConfigEntitiesByType': {
     argumentMode: 'named',
     scope: 'bulk',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'IDM config entity type.',
       },
-      {
-        name: 'includeDefault',
-        type: 'boolean',
-        required: false,
-        position: 1,
+      includeDefault: {
         description:
           'Include default email templates when reading emailTemplate entities.',
         defaultValue: false,
         examples: [false, true],
       },
-    ],
+    },
     supportsRealm: false,
     semanticAliases: [
       'all password policies',
@@ -735,15 +561,11 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'idm.config.readConfigEntity': {
     argumentMode: 'named',
     scope: 'single',
-    parameters: [
-      {
-        name: 'entityId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      entityId: {
         description: 'IDM config entity id.',
       },
-    ],
+    },
     supportsRealm: false,
     semanticAliases: [
       'realm password policy',
@@ -754,103 +576,76 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.config.readSubConfigEntity': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'entityId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      entityId: {
         description: 'Parent IDM config entity id.',
         examples: ['provisioner.openicf/ldap'],
       },
-      {
-        name: 'name',
-        type: 'string',
-        required: true,
-        position: 1,
+      name: {
         description: 'Sub-entity name to read from the parent entity.',
         examples: ['configurationProperties'],
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Read a named sub-entity with namedArgs { entityId, name }.',
   },
   'idm.config.updateConfigEntity': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'entityId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      entityId: {
         description: 'IDM config entity id to update.',
         examples: ['provisioner.openicf/ldap'],
       },
-      {
-        name: 'entityData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 1,
+      entityData: {
         description: 'Updated IDM config entity payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-      {
-        name: 'wait',
-        type: 'boolean',
-        required: false,
-        position: 2,
+      wait: {
         description: 'Wait for async processing to complete when supported.',
         defaultValue: false,
         examples: [false, true],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Update a config entity with namedArgs { entityId, entityData, wait }. wait defaults to false.',
   },
   'idm.connector.createConnector': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'connectorId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      connectorId: {
         description: 'Connector id to create.',
         examples: ['provisioner.openicf/ldap'],
       },
-      {
-        name: 'connectorData',
-        type: 'ConnectorSkeleton',
-        required: true,
-        position: 1,
+      connectorData: {
         description: 'Connector payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Create a connector with namedArgs { connectorId, connectorData }.',
   },
   'idm.connector.updateConnector': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'connectorId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      connectorId: {
         description: 'Connector id to update.',
         examples: ['provisioner.openicf/ldap'],
       },
-      {
-        name: 'connectorData',
-        type: 'ConnectorSkeleton',
-        required: true,
-        position: 1,
+      connectorData: {
         description: 'Updated connector payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Update a connector with namedArgs { connectorId, connectorData }.',
   },
@@ -861,32 +656,23 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managed.createManagedObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'moData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 1,
+      moData: {
         description: 'Managed object payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: false,
-        position: 2,
+      id: {
         description: 'Optional managed object id. Omit to let IDM assign one.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       "Create a managed object with namedArgs { type, id, moData }. id is optional. A relationship field can be set at creation time too, by including it directly in moData with the same ref-shaped value idm.managed.updateManagedObjectProperties's notes describe — see that skill for the full relationship-write pattern (discovering fields via schema, single- vs many-valued, add/remove/replace).",
@@ -907,33 +693,21 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'read',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description:
           "Relationship field name, e.g. 'manager' or 'roles'. Use idm.managed.readManagedObjectSchema to discover a type's relationship fields.",
         examples: ['manager', 'roles'],
       },
-    ],
+    },
     supportsRealm: true,
     mutating: false,
     riskClass: 'low',
@@ -944,55 +718,45 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'update',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type of the object being patched.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id being patched.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description: 'Many-valued relationship field name to add a member to.',
         examples: ['roles'],
       },
-      {
-        name: 'target',
-        type: 'RelationshipTarget',
-        required: true,
-        position: 3,
+      target: {
         description:
           "The object to add, as plain { type, id } — no _ref/_refResourceCollection plumbing required, this skill builds it. type is the target's own managed object type (from the field's schema resourceCollection, e.g. alpha_role for alpha_user's roles field), not the source object's type.",
         schema: {
           type: 'object',
-          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          properties: {
+            type: {
+              type: 'string',
+            },
+            id: {
+              type: 'string',
+            },
+          },
           required: ['type', 'id'],
         },
         examples: [
-          { type: 'alpha_role', id: '1234abcd-0000-1111-2222-abcdefabcdef' },
+          {
+            type: 'alpha_role',
+            id: '1234abcd-0000-1111-2222-abcdefabcdef',
+          },
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 4,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Adds one target to a many-valued relationship field without disturbing any existing members — the safe way to "add a member". Builds the exact request shape captured from AIC\'s own admin UI performing this action and verified live — field addressed as "/field/-" (JSON Pointer append-to-array syntax) with a bare { _ref, _refProperties: {} } value — so you don\'t have to know that shape yourself. Use idm.managed.replaceRelationship instead only when you actually mean to overwrite the whole field. Discover a field\'s name and target type via idm.managed.readManagedObjectSchema first (a relationship property with items present is many-valued).',
@@ -1001,56 +765,46 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'update',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type of the object being patched.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id being patched.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description:
           'Many-valued relationship field name to remove a member from.',
         examples: ['roles'],
       },
-      {
-        name: 'target',
-        type: 'RelationshipTarget',
-        required: true,
-        position: 3,
+      target: {
         description:
           "The object to remove, as plain { type, id } — same shape as addRelationship's target.",
         schema: {
           type: 'object',
-          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          properties: {
+            type: {
+              type: 'string',
+            },
+            id: {
+              type: 'string',
+            },
+          },
           required: ['type', 'id'],
         },
         examples: [
-          { type: 'alpha_role', id: '1234abcd-0000-1111-2222-abcdefabcdef' },
+          {
+            type: 'alpha_role',
+            id: '1234abcd-0000-1111-2222-abcdefabcdef',
+          },
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 4,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: true,
     riskClass: 'medium',
     notes:
@@ -1060,51 +814,34 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'update',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type of the object being patched.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id being patched.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description: 'Relationship field name to replace entirely.',
         examples: ['manager', 'roles'],
       },
-      {
-        name: 'target',
-        type: 'RelationshipTarget | RelationshipTarget[] | null',
-        required: true,
-        position: 3,
+      target: {
         description:
           "The new value: a single { type, id } (or null to clear it) for a single-valued field like 'manager'; an array of { type, id } for a many-valued field like 'roles' — replacing the whole array, not adding to it. Use addRelationship/removeRelationship instead to change one member of a many-valued field without disturbing the rest.",
         examples: [
-          { type: 'alpha_user', id: '1234abcd-0000-1111-2222-abcdefabcdef' },
+          {
+            type: 'alpha_user',
+            id: '1234abcd-0000-1111-2222-abcdefabcdef',
+          },
           null,
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 4,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: true,
     riskClass: 'medium',
     notes:
@@ -1112,102 +849,80 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managed.readManagedObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id to read.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 2,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['userName', 'mail']],
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Read a managed object with namedArgs { type, id, fields }.',
   },
   'idm.managed.updateManagedObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id to update.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'moData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 2,
+      moData: {
         description: 'Updated managed object payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Update a managed object with namedArgs { type, id, moData }.',
   },
   'idm.managed.updateManagedObjectProperties': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id to patch.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'operations',
-        type: 'PatchOperationInterface[]',
-        required: true,
-        position: 2,
+      operations: {
         description:
           "JSON patch-style operations for the target object. Also the mechanism for writing relationships (adding/removing a member, setting a manager, etc.) — see this skill's notes for the exact shape; there is no separate relationship-write skill.",
         schema: {
           type: 'array',
-          items: { type: 'object', additionalProperties: true },
+          items: {
+            type: 'object',
+            additionalProperties: true,
+          },
         },
         examples: [
-          [{ operation: 'replace', field: '/mail', value: 'a@example.com' }],
+          [
+            {
+              operation: 'replace',
+              field: '/mail',
+              value: 'a@example.com',
+            },
+          ],
           [
             {
               operation: 'add',
@@ -1235,14 +950,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           ],
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 3,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Patch one managed object with namedArgs { type, id, operations, rev }. This is also the underlying mechanism relationships are written through — a relationship field is just a regular field from a PATCH point of view. Prefer the dedicated idm.managed.readRelationship/addRelationship/removeRelationship/replaceRelationship skills instead of raw operations here for relationship work — they take a plain { type, id } target and build the correct value shape for you, including two real gotchas verified live this session (and confirmed against the exact request shape AIC\'s own admin UI sends): "add" and "remove" each need a different, specific value shape that neither guessing nor generalizing from the other gets right.\n' +
@@ -1253,55 +964,45 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managed.updateManagedObjectsProperties': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 1,
+      filter: {
         description: 'IDM query filter selecting the objects to patch.',
         examples: ['userName sw "a"'],
       },
-      {
-        name: 'operations',
-        type: 'PatchOperationInterface[]',
-        required: true,
-        position: 2,
+      operations: {
         description:
           'JSON patch-style operations applied to all matching objects.',
         schema: {
           type: 'array',
-          items: { type: 'object', additionalProperties: true },
+          items: {
+            type: 'object',
+            additionalProperties: true,
+          },
         },
         examples: [
-          [{ operation: 'replace', field: '/mail', value: 'a@example.com' }],
+          [
+            {
+              operation: 'replace',
+              field: '/mail',
+              value: 'a@example.com',
+            },
+          ],
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 3,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-      {
-        name: 'pageSize',
+      pageSize: {
         type: 'integer',
-        required: false,
-        position: 4,
         description: 'Optional batch page size for large updates.',
         defaultValue: 1000,
         examples: [100, 1000],
       },
-    ],
+    },
     supportsRealm: true,
     supportsPaging: true,
     notes:
@@ -1309,84 +1010,58 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managed.deleteManagedObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id to delete.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Delete a managed object with namedArgs { type, id }.',
   },
   'idm.managed.deleteManagedObjects': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 1,
+      filter: {
         description: 'IDM query filter selecting the objects to delete.',
         examples: ['userName sw "a"'],
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Delete multiple managed objects with namedArgs { type, filter }.',
   },
 
   'idm.managedSystem.readManagedSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description:
           'Managed system object type: teammember (tenant admin) or svcacct (service account). Distinct from regular managed object types like alpha_user — use idm.managed.readManagedObject for those.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id (UUID) to read.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 2,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['givenName', 'sn', 'userName']],
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1410,33 +1085,24 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.createManagedSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'moData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 1,
+      moData: {
         description: 'Managed system object payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: false,
-        position: 2,
+      id: {
         description:
           'Optional managed system object id. Omit to let IDM assign one.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1444,32 +1110,23 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.updateManagedSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id to update.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'moData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 2,
+      moData: {
         description: 'Updated managed system object payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1477,45 +1134,38 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.updateManagedSystemObjectProperties': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id to patch.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'operations',
-        type: 'PatchOperationInterface[]',
-        required: true,
-        position: 2,
+      operations: {
         description: 'JSON patch-style operations for the target object.',
         schema: {
           type: 'array',
-          items: { type: 'object', additionalProperties: true },
+          items: {
+            type: 'object',
+            additionalProperties: true,
+          },
         },
         examples: [
-          [{ operation: 'replace', field: '/description', value: 'updated' }],
+          [
+            {
+              operation: 'replace',
+              field: '/description',
+              value: 'updated',
+            },
+          ],
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 3,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1523,55 +1173,45 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.updateManagedSystemObjectsProperties': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 1,
+      filter: {
         description: 'IDM query filter selecting the objects to patch.',
         examples: ['userName sw "a"'],
       },
-      {
-        name: 'operations',
-        type: 'PatchOperationInterface[]',
-        required: true,
-        position: 2,
+      operations: {
         description:
           'JSON patch-style operations applied to all matching objects.',
         schema: {
           type: 'array',
-          items: { type: 'object', additionalProperties: true },
+          items: {
+            type: 'object',
+            additionalProperties: true,
+          },
         },
         examples: [
-          [{ operation: 'replace', field: '/description', value: 'updated' }],
+          [
+            {
+              operation: 'replace',
+              field: '/description',
+              value: 'updated',
+            },
+          ],
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 3,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-      {
-        name: 'pageSize',
+      pageSize: {
         type: 'integer',
-        required: false,
-        position: 4,
         description: 'Optional batch page size for large updates.',
         defaultValue: 1000,
         examples: [100, 1000],
       },
-    ],
+    },
     supportsRealm: false,
     supportsPaging: true,
     riskClass: 'critical',
@@ -1580,24 +1220,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.deleteManagedSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id to delete.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1605,24 +1237,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.deleteManagedSystemObjects': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 1,
+      filter: {
         description: 'IDM query filter selecting the objects to delete.',
         examples: ['userName sw "a"'],
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1632,53 +1256,36 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'search',
     objectType: 'RelatedManagedSystemObject',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'relationship',
-        type: 'string',
-        required: true,
-        position: 2,
+      relationship: {
         description:
           'Name of the relationship to query, the reverse direction.',
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 3,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['userName', 'mail']],
       },
-      {
-        name: 'pageSize',
+      pageSize: {
         type: 'integer',
-        required: false,
-        position: 4,
         description:
           'Optional page size hint forwarded from the generic pageSize control.',
         examples: [100, 250],
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1688,32 +1295,20 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'read',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description:
           "Relationship field name. Use idm.managedSystem.readManagedSystemObjectSchema to discover a type's relationship fields.",
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1723,51 +1318,38 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'update',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type of the object being patched.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id being patched.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description: 'Many-valued relationship field name to add a member to.',
       },
-      {
-        name: 'target',
-        type: 'RelationshipTarget',
-        required: true,
-        position: 3,
+      target: {
         description:
           'The object to add, as plain { type, id } — no _ref/_refResourceCollection plumbing required.',
         schema: {
           type: 'object',
-          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          properties: {
+            type: {
+              type: 'string',
+            },
+            id: {
+              type: 'string',
+            },
+          },
           required: ['type', 'id'],
         },
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 4,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1777,51 +1359,38 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'update',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type of the object being patched.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id being patched.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description:
           'Many-valued relationship field name to remove a member from.',
       },
-      {
-        name: 'target',
-        type: 'RelationshipTarget',
-        required: true,
-        position: 3,
+      target: {
         description: 'The object to remove, as plain { type, id }.',
         schema: {
           type: 'object',
-          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          properties: {
+            type: {
+              type: 'string',
+            },
+            id: {
+              type: 'string',
+            },
+          },
           required: ['type', 'id'],
         },
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 4,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1831,46 +1400,26 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'update',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type of the object being patched.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id being patched.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description: 'Relationship field name to replace entirely.',
       },
-      {
-        name: 'target',
-        type: 'RelationshipTarget | RelationshipTarget[] | null',
-        required: true,
-        position: 3,
+      target: {
         description:
           'The new value: a single { type, id } (or null to clear it) for a single-valued field, an array for a many-valued field.',
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 4,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1879,293 +1428,209 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
 
   'idm.mapping.createMapping': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'mappingId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      mappingId: {
         description: 'Mapping id to create.',
         examples: ['managedUser_systemLdapAccounts'],
       },
-      {
-        name: 'mappingData',
-        type: 'MappingSkeleton',
-        required: true,
-        position: 1,
+      mappingData: {
         description: 'Mapping payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Create a mapping with namedArgs { mappingId, mappingData }.',
   },
   'idm.mapping.updateMapping': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'mappingId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      mappingId: {
         description: 'Mapping id to update.',
         examples: ['managedUser_systemLdapAccounts'],
       },
-      {
-        name: 'mappingData',
-        type: 'MappingSkeleton',
-        required: true,
-        position: 1,
+      mappingData: {
         description: 'Updated mapping payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Update a mapping with namedArgs { mappingId, mappingData }.',
   },
   'idm.system.readSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'systemObjectId',
-        type: 'string',
-        required: true,
-        position: 2,
+      systemObjectId: {
         description: 'Connector object id to read.',
         examples: ['uid=test,ou=people,dc=example,dc=com'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 3,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['uid', 'mail']],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Read a connector object with namedArgs { systemName, systemObjectType, systemObjectId, fields }.',
   },
   'idm.system.createSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'systemObjectData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 2,
+      systemObjectData: {
         description: 'Connector object payload.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Create a connector object with namedArgs { systemName, systemObjectType, systemObjectData }.',
   },
   'idm.system.updateSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'systemObjectId',
-        type: 'string',
-        required: true,
-        position: 2,
+      systemObjectId: {
         description: 'Connector object id to update.',
         examples: ['uid=test,ou=people,dc=example,dc=com'],
       },
-      {
-        name: 'systemObjectData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 3,
+      systemObjectData: {
         description: 'Updated connector object payload.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-      {
-        name: 'failIfExists',
-        type: 'boolean',
-        required: false,
-        position: 4,
+      failIfExists: {
         description:
           'Set true to fail instead of upserting when the object already exists.',
         defaultValue: false,
         examples: [false, true],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Update a connector object with namedArgs { systemName, systemObjectType, systemObjectId, systemObjectData, failIfExists }.',
   },
   'idm.system.updateSystemObjectProperties': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'systemObjectId',
-        type: 'string',
-        required: true,
-        position: 2,
+      systemObjectId: {
         description: 'Connector object id to patch.',
         examples: ['uid=test,ou=people,dc=example,dc=com'],
       },
-      {
-        name: 'operations',
-        type: 'SystemObjectPatchOperationInterface[]',
-        required: true,
-        position: 3,
+      operations: {
         description:
           'JSON patch-style operations for the target connector object.',
         schema: {
           type: 'array',
-          items: { type: 'object', additionalProperties: true },
+          items: {
+            type: 'object',
+            additionalProperties: true,
+          },
         },
         examples: [
-          [{ operation: 'replace', field: '/mail', value: 'a@example.com' }],
+          [
+            {
+              operation: 'replace',
+              field: '/mail',
+              value: 'a@example.com',
+            },
+          ],
         ],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Patch a connector object with namedArgs { systemName, systemObjectType, systemObjectId, operations }.',
   },
   'idm.system.deleteSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'systemObjectId',
-        type: 'string',
-        required: true,
-        position: 2,
+      systemObjectId: {
         description: 'Connector object id to delete.',
         examples: ['uid=test,ou=people,dc=example,dc=com'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Delete a connector object with namedArgs { systemName, systemObjectType, systemObjectId }.',
   },
   'idm.system.queryAllSystemObjectIds': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'pageSize',
+      pageSize: {
         type: 'integer',
-        required: false,
-        position: 2,
         description:
           'Optional page size hint forwarded from the generic pageSize control.',
         examples: [100, 250],
       },
-      {
-        name: 'pageCookie',
-        type: 'string',
-        required: false,
-        position: 3,
+      pageCookie: {
         description:
           'Paged-results cookie. The generic pageToken control maps to this parameter.',
         examples: ['opaque-cookie-token'],
       },
-    ],
+    },
     supportsRealm: true,
     supportsPaging: true,
     notes:
@@ -2173,62 +1638,41 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.system.querySystemObjects': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 2,
+      filter: {
         description: 'Connector query filter, for example uid sw "a".',
         examples: ['uid sw "a"'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 3,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['uid', 'mail']],
       },
-      {
-        name: 'pageSize',
+      pageSize: {
         type: 'integer',
-        required: false,
-        position: 4,
         description:
           'Optional page size hint forwarded from the generic pageSize control.',
         examples: [100, 250],
       },
-      {
-        name: 'pageCookie',
-        type: 'string',
-        required: false,
-        position: 5,
+      pageCookie: {
         description:
           'Paged-results cookie. The generic pageToken control maps to this parameter.',
         examples: ['opaque-cookie-token'],
       },
-    ],
+    },
     supportsRealm: true,
     supportsPaging: true,
     notes:
@@ -2236,199 +1680,164 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'script.readScript': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptId: {
         description: 'Script UUID.',
         examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Use this when a node or journey references a script UUID.',
   },
   'script.readScriptByName': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptName: {
         description: 'Human-readable script name.',
         examples: ['Process SAML Data'],
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Use this when you know the script name rather than its UUID.',
   },
   'script.listScripts': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'filter',
-        type: 'ScriptFilter',
-        required: false,
-        position: 0,
+    parameterOverrides: {
+      filter: {
         description:
           'Optional script filter, e.g. { field: "context", value: "AUTHENTICATION_TREE_DECISION_NODE" }.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       "Lightweight script enumeration — returns only { _id, name, context, language, evaluatorVersion, default } for every matching script, never the script body. Use this instead of script.readScripts to find/diff script ids or names in a realm with many scripts, since readScripts returns full bodies and can exceed the MCP response size limit. Use script.readScript/readScriptSource for one script's full detail or source once you have its id.",
   },
   'script.readScriptSource': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptId: {
         description: 'Script UUID.',
         examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Returns only the decoded, plain-text script source (a bare string) — not the ScriptSkeleton wrapper with metadata. Use this when you only need the code itself, e.g. to review or diff script logic.',
   },
   'script.readScriptSourceByName': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptName: {
         description: 'Human-readable script name.',
         examples: ['Process SAML Data'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Same as script.readScriptSource, but looked up by name instead of UUID.',
   },
   'script.createScript': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptId: {
         description: 'Script UUID to create.',
         examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
       },
-      {
-        name: 'scriptName',
-        type: 'string',
-        required: false,
-        position: 1,
+      scriptName: {
         description:
           'Optional script display name. If omitted, MCP defaults it to scriptId.',
         examples: ['My OAUTH2_MAY_ACT Script'],
+        required: false,
       },
-      {
-        name: 'scriptData',
-        type: 'ScriptSkeleton',
-        required: true,
-        position: 2,
+      scriptData: {
         description:
           'Script payload object. For JavaScript, provide script as plain text or base64 and set context/language.',
         schema: {
           type: 'object',
           properties: {
-            context: { type: 'string' },
-            language: { type: 'string' },
-            script: { type: 'string' },
-            description: { type: 'string' },
+            context: {
+              type: 'string',
+            },
+            language: {
+              type: 'string',
+            },
+            script: {
+              type: 'string',
+            },
+            description: {
+              type: 'string',
+            },
           },
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Create a script by id. Prefer namedArgs { scriptId, scriptData } and optionally scriptName.',
   },
   'script.updateScript': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptId: {
         description: 'Script UUID to update.',
         examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
       },
-      {
-        name: 'scriptData',
-        type: 'ScriptSkeleton',
-        required: true,
-        position: 1,
+      scriptData: {
         description:
           'Script payload object. For JavaScript, provide script as plain text or base64 and set context/language.',
         schema: {
           type: 'object',
           properties: {
-            context: { type: 'string' },
-            language: { type: 'string' },
-            script: { type: 'string' },
-            description: { type: 'string' },
+            context: {
+              type: 'string',
+            },
+            language: {
+              type: 'string',
+            },
+            script: {
+              type: 'string',
+            },
+            description: {
+              type: 'string',
+            },
           },
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Update (or upsert) a script by id. Prefer namedArgs { scriptId, scriptData }.',
   },
   'script.updateScriptSource': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptId: {
         description: 'Script UUID to update.',
         examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
       },
-      {
-        name: 'source',
-        type: 'string',
-        required: true,
-        position: 1,
+      source: {
         description: 'New plain-text script source (not base64-encoded).',
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       "Updates only a script's source code, preserving all other metadata (name, context, language, etc.) untouched. Prefer this over script.updateScript when you only need to change the code itself — no need to fetch and re-send the full ScriptSkeleton.",
   },
   'script.deleteScripts': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'resultCallback',
+    parameterOverrides: {
+      resultCallback: {
         type: 'ResultCallback<ScriptSkeleton>',
-        required: false,
-        position: 0,
         description:
           'Optional callback to process each deleted script as it is removed.',
       },
-      {
-        name: 'filter',
-        type: 'ScriptFilter',
-        required: false,
-        position: 1,
+      filter: {
         description:
           'Optional script filter selecting which non-default scripts to delete.',
         schema: {
@@ -2436,43 +1845,48 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Prefer namedArgs { filter } for MCP callers. resultCallback is primarily intended for in-process library usage.',
   },
   'oauth2oidc.client.createOAuth2Client': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'clientId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      clientId: {
         description: 'OAuth2 client id to create.',
         examples: ['my-test-client'],
       },
-      {
-        name: 'clientData',
+      clientData: {
         type: 'OAuth2ClientSkeleton',
-        required: true,
-        position: 1,
         description:
           'OAuth2 client payload object including core/advanced override configuration.',
         schema: {
           type: 'object',
           properties: {
-            coreOAuth2ClientConfig: { type: 'object' },
-            advancedOAuth2ClientConfig: { type: 'object' },
-            overrideOAuth2ClientConfig: { type: 'object' },
-            signEncOAuth2ClientConfig: { type: 'object' },
-            coreOpenIDClientConfig: { type: 'object' },
-            coreUmaClientConfig: { type: 'object' },
+            coreOAuth2ClientConfig: {
+              type: 'object',
+            },
+            advancedOAuth2ClientConfig: {
+              type: 'object',
+            },
+            overrideOAuth2ClientConfig: {
+              type: 'object',
+            },
+            signEncOAuth2ClientConfig: {
+              type: 'object',
+            },
+            coreOpenIDClientConfig: {
+              type: 'object',
+            },
+            coreUmaClientConfig: {
+              type: 'object',
+            },
           },
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     mutating: true,
     riskClass: 'high',
@@ -2481,36 +1895,41 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'oauth2oidc.client.updateOAuth2Client': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'clientId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      clientId: {
         description: 'OAuth2 client id to update.',
         examples: ['my-test-client'],
       },
-      {
-        name: 'clientData',
+      clientData: {
         type: 'OAuth2ClientSkeleton',
-        required: true,
-        position: 1,
         description:
           'OAuth2 client payload object including core/advanced override configuration.',
         schema: {
           type: 'object',
           properties: {
-            coreOAuth2ClientConfig: { type: 'object' },
-            advancedOAuth2ClientConfig: { type: 'object' },
-            overrideOAuth2ClientConfig: { type: 'object' },
-            signEncOAuth2ClientConfig: { type: 'object' },
-            coreOpenIDClientConfig: { type: 'object' },
-            coreUmaClientConfig: { type: 'object' },
+            coreOAuth2ClientConfig: {
+              type: 'object',
+            },
+            advancedOAuth2ClientConfig: {
+              type: 'object',
+            },
+            overrideOAuth2ClientConfig: {
+              type: 'object',
+            },
+            signEncOAuth2ClientConfig: {
+              type: 'object',
+            },
+            coreOpenIDClientConfig: {
+              type: 'object',
+            },
+            coreUmaClientConfig: {
+              type: 'object',
+            },
           },
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     mutating: true,
     riskClass: 'high',
@@ -2519,36 +1938,24 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'oauth2oidc.external.createSocialIdentityProvider': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'providerType',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      providerType: {
         description:
           'Social identity provider type, for example Google or Facebook.',
         examples: ['Google'],
       },
-      {
-        name: 'providerId',
-        type: 'string',
-        required: true,
-        position: 1,
+      providerId: {
         description: 'Identity provider id or name to create.',
         examples: ['my-google-idp'],
       },
-      {
-        name: 'providerData',
-        type: 'SocialIdpSkeleton',
-        required: true,
-        position: 2,
+      providerData: {
         description: 'Social identity provider payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     mutating: true,
     riskClass: 'high',
@@ -2557,36 +1964,24 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'oauth2oidc.external.updateSocialIdentityProvider': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'providerType',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      providerType: {
         description:
           'Social identity provider type, for example Google or Facebook.',
         examples: ['Google'],
       },
-      {
-        name: 'providerId',
-        type: 'string',
-        required: true,
-        position: 1,
+      providerId: {
         description: 'Identity provider id or name to update.',
         examples: ['my-google-idp'],
       },
-      {
-        name: 'providerData',
-        type: 'SocialIdpSkeleton',
-        required: true,
-        position: 2,
+      providerData: {
         description: 'Social identity provider payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     mutating: true,
     riskClass: 'high',
@@ -2595,27 +1990,20 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'oauth2oidc.issuer.createOAuth2TrustedJwtIssuer': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'issuerId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      issuerId: {
         description: 'Trusted JWT issuer id to create.',
         examples: ['my-trusted-issuer'],
       },
-      {
-        name: 'issuerData',
+      issuerData: {
         type: 'OAuth2TrustedJwtIssuerSkeleton',
-        required: true,
-        position: 1,
         description: 'Trusted JWT issuer payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     mutating: true,
     riskClass: 'high',
@@ -2624,27 +2012,20 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'oauth2oidc.issuer.updateOAuth2TrustedJwtIssuer': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'issuerId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      issuerId: {
         description: 'Trusted JWT issuer id to update.',
         examples: ['my-trusted-issuer'],
       },
-      {
-        name: 'issuerData',
+      issuerData: {
         type: 'OAuth2TrustedJwtIssuerSkeleton',
-        required: true,
-        position: 1,
         description: 'Trusted JWT issuer payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     mutating: true,
     riskClass: 'high',
@@ -2699,7 +2080,6 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'list',
     objectType: 'LogSource',
     argumentMode: 'none',
-    parameters: [],
     supportsPaging: false,
     supportsIncludeTotal: false,
     requiredCredential: 'logApi',
@@ -2710,21 +2090,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'read',
     objectType: 'LogApiKey',
     argumentMode: 'positional',
-    parameters: [
-      {
-        name: 'keyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      keyId: {
         description: 'Log API key id.',
       },
-    ],
+    },
   },
   'cloud.log.getLogApiKeys': {
     operationType: 'list',
     objectType: 'LogApiKey',
     argumentMode: 'none',
-    parameters: [],
   },
   'cloud.log.isLogApiKeyValid': {
     // Not a resource read: validates a key id + secret pair and returns a boolean.
@@ -2735,22 +2110,14 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'low',
     argumentMode: 'positional',
     requiredCredential: 'logApi',
-    parameters: [
-      {
-        name: 'keyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      keyId: {
         description: 'Log API key id.',
       },
-      {
-        name: 'secret',
-        type: 'string',
-        required: true,
-        position: 1,
+      secret: {
         description: 'Log API key secret.',
       },
-    ],
+    },
     notes: 'Validates a log API key id/secret pair; returns a boolean.',
   },
   'cloud.log.tail': {
@@ -2758,24 +2125,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     objectType: 'LogEvent',
     argumentMode: 'positional',
     requiredCredential: 'logApi',
-    parameters: [
-      {
-        name: 'source',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      source: {
         description:
           'Log source(s) to tail, comma-separated. am-core/idm-core/ws-core are DEBUG sources (no audit events); everything else is an AUDIT source. See cloud.log.getLogSources and cloud.log.fetch for the full taxonomy.',
         examples: ['am-core', 'am-authentication,idm-core'],
       },
-      {
-        name: 'cookie',
-        type: 'string',
-        required: false,
-        position: 1,
+      cookie: {
         description: 'Paged-results cookie from a previous tail call.',
       },
-    ],
+    },
     supportsPaging: true,
     supportsIncludeTotal: false,
     notes:
@@ -2786,51 +2145,27 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     objectType: 'LogEvent',
     argumentMode: 'named',
     requiredCredential: 'logApi',
-    parameters: [
-      {
-        name: 'source',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      source: {
         description:
           "Log source(s) to query, comma-separated. am-core/idm-core/ws-core are DEBUG sources (no audit events); everything else is an AUDIT source. See the source taxonomy in this method's notes, and cloud.log.getLogSources for the live list.",
         examples: ['am-core', 'am-authentication,idm-core'],
       },
-      {
-        name: 'startTs',
-        type: 'string',
-        required: false,
-        position: 1,
+      startTs: {
         description: 'Start timestamp (ISO 8601), inclusive.',
         examples: ['2026-08-14T00:00:00Z'],
       },
-      {
-        name: 'endTs',
-        type: 'string',
-        required: false,
-        position: 2,
+      endTs: {
         description: 'End timestamp (ISO 8601), exclusive.',
         examples: ['2026-08-15T00:00:00Z'],
       },
-      {
-        name: 'cookie',
-        type: 'string',
-        required: false,
-        position: 3,
+      cookie: {
         description: 'Paged-results cookie from a previous fetch call.',
       },
-      {
-        name: 'txid',
-        type: 'string',
-        required: false,
-        position: 4,
+      txid: {
         description: 'Optional transaction id to narrow the query to.',
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: false,
-        position: 5,
+      filter: {
         description:
           'CREST _queryFilter syntax: a leading-slash field path against the log payload, e.g. /payload/eventName eq "AM-TREE-LOGIN-COMPLETED". Operators: eq, co (contains), sw (starts with), pr (present); combine multiple with "and". Field paths WITHOUT the leading slash (payload.eventName, payload/eventName) or an unprefixed field both fail with an opaque 500 — the leading slash is not optional. Prefer filtering server-side over fetching unfiltered and post-filtering: results are capped by an inline size limit and returned oldest-first within the window, so an unfiltered fetch over a noisy tenant truncates before reaching what you want.',
         examples: [
@@ -2839,7 +2174,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           '/payload/transactionId sw "83da4a26-4156-4d1a-85a8-64ee5b719f1d"',
         ],
       },
-    ],
+    },
     supportsPaging: true,
     supportsIncludeTotal: false,
     notes:
@@ -2873,72 +2208,50 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     objectType: 'LogEvent',
     argumentMode: 'named',
     requiredCredential: 'logApi',
-    parameters: [
-      {
-        name: 'source',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      source: {
         description:
           'Log source(s) to search, comma-separated. Same source taxonomy as cloud.log.fetch.',
         examples: ['am-authentication', 'am-everything'],
       },
-      {
-        name: 'startTs',
-        type: 'string',
-        required: true,
-        position: 1,
+      startTs: {
         description: 'Start timestamp (ISO 8601), inclusive.',
         examples: ['2026-08-14T00:00:00Z'],
       },
-      {
-        name: 'endTs',
-        type: 'string',
-        required: true,
-        position: 2,
+      endTs: {
         description: 'End timestamp (ISO 8601), exclusive.',
         examples: ['2026-08-15T00:00:00Z'],
       },
-      {
-        name: 'eventNames',
-        type: 'string[]',
-        required: false,
-        position: 3,
+      eventNames: {
         description:
           'Optional event names to match, OR\'d together server-side (e.g. ["AM-TREE-LOGIN-COMPLETED"]). Omit to match every event in the source/window.',
-        schema: { type: 'array', items: { type: 'string' } },
+        schema: {
+          type: 'array',
+          items: {
+            type: 'string',
+          },
+        },
         examples: [['AM-TREE-LOGIN-COMPLETED'], ['AM-CONFIG-CHANGE']],
       },
-      {
-        name: 'principal',
-        type: 'string',
-        required: false,
-        position: 4,
+      principal: {
         description:
           'Optional substring matched against payload.userId (co). A realm-qualified substring like "o=alpha" scopes to genuine managed users in that realm; the DN-realm heuristic in cloud.log.fetch\'s notes explains why.',
         examples: ['o=alpha'],
       },
-      {
-        name: 'maxEvents',
+      maxEvents: {
         type: 'integer',
-        required: false,
-        position: 5,
         description:
           'Safety cap on total events fetched across auto-paginated pages.',
         defaultValue: 1000,
         examples: [200, 1000],
       },
-      {
-        name: 'dedupeByTransactionId',
-        type: 'boolean',
-        required: false,
-        position: 6,
+      dedupeByTransactionId: {
         description:
           'Collapse multiple events sharing a transaction id (e.g. a failed login attempt immediately followed by a successful retry) down to the last one seen, the actual outcome. Set false to see every raw event.',
         defaultValue: true,
         examples: [true, false],
       },
-    ],
+    },
     supportsPaging: false,
     supportsIncludeTotal: false,
     notes:
@@ -3018,17 +2331,13 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'search',
     objectType: 'ScriptReference',
     argumentMode: 'positional',
-    parameters: [
-      {
-        name: 'scriptId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptId: {
         description:
           'Script id to find journey/node references to (the same id used by authn.journey/authz.* script fields, script.script.readScript, etc.).',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-    ],
+    },
     mutating: false,
     riskClass: 'low',
     notes:
@@ -3389,23 +2698,15 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'read',
     objectType: 'ManagedObjectName',
     argumentMode: 'positional',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id (UUID).',
       },
-    ],
+    },
     mutating: false,
     riskClass: 'low',
   },
@@ -3413,12 +2714,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'read',
     objectType: 'ManagedObjectName',
     argumentMode: 'positional',
-    parameters: [
-      {
-        name: 'idOrDn',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      idOrDn: {
         description:
           "A managed/system object uuid, or a full userId DN (e.g. from an audit log event's userId field). A DN qualified under a realm (...,o=<realm>,ou=services,ou=am-config) resolves as that realm's managed user; a DN with no realm segment (...,ou=am-config) is AM-internal and is checked against service-account and tenant-admin managed system object types instead.",
         examples: [
@@ -3426,16 +2723,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           'a2245410-33a6-4442-9f3b-453c9aaf158a',
         ],
       },
-      {
-        name: 'realm',
-        type: 'string',
-        required: false,
-        position: 1,
+      realm: {
         description:
           'Realm override, only consulted when idOrDn is a bare uuid with no DN to derive a realm from. Ignored if idOrDn is a DN that already carries its own realm segment.',
         examples: ['alpha'],
       },
-    ],
+    },
     mutating: false,
     // Unlike idm.managedSystem.* (arbitrary-field reads on raw teammember/
     // svcacct objects, critical/admin-only), this always requests a fixed,
@@ -3455,23 +2748,15 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'read',
     objectType: 'ManagedObjectName',
     argumentMode: 'positional',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id (UUID).',
       },
-    ],
+    },
     mutating: false,
     riskClass: 'low',
   },

@@ -16,7 +16,7 @@ import {
   inferRiskClass,
 } from '../index';
 import { getHelpMetadataByMethod } from '../utils/HelpUtils';
-import { resolveCapabilityMeta } from './CapabilityMetadata';
+import { CAPABILITY_META } from './CapabilityMetadata';
 import knownContractGaps from './contract-gap-baseline.json';
 
 const HIGH_RISK_DOMAINS = ['script', 'oauth2oidc', 'authn', 'idm'];
@@ -455,26 +455,56 @@ describe('MCP capability foundation', () => {
 
   test('never advertises an empty parameter contract when Help.ts reports required params', () => {
     // Regression guard for the script.getLibraryScriptNames bug class: a
-    // capability with no explicit CAPABILITY_META.parameters override must
-    // never end up with an empty/undefined parameter list when the build-time
-    // Help.ts catalog (generated from the real TS signature) shows the
-    // underlying method has required parameters. See
-    // deriveParametersFromHelp in CapabilityRegistry.ts.
+    // capability must never end up with an empty/undefined parameter list
+    // when the build-time Help.ts catalog (generated from the real TS
+    // signature) shows the underlying method has required parameters. Since
+    // CAPABILITY_META overrides can only annotate or exclude auto-derived
+    // parameters (never replace the list wholesale — see
+    // applyParameterOverlay in CapabilityRegistry.ts), this now applies
+    // unconditionally: there's no override shape left that could mask a
+    // baseline-derivation bug by supplying its own non-empty list.
     const capabilities = buildCapabilityInventory(frodo, {
       includeUtils: false,
     });
     const violations: string[] = [];
     for (const capability of capabilities) {
-      const meta = resolveCapabilityMeta(capability.id);
-      if (meta?.parameters !== undefined) {
-        continue; // explicit override always wins; not this guard's concern
-      }
       const helpDocs = getHelpMetadataByMethod(capability.methodName);
       const requiresParams =
         helpDocs.length > 0 &&
         helpDocs[0].params.some((param) => param.required);
       if (requiresParams && (capability.parameters ?? []).length === 0) {
         violations.push(capability.id);
+      }
+    }
+    expect(violations).toEqual([]);
+  });
+
+  test('parameterOverrides/excludeParameters keys always name a currently-derived parameter', () => {
+    // Drift guard for the precedence fix in applyParameterOverlay: a
+    // CAPABILITY_META entry's parameterOverrides/excludeParameters keys are
+    // matched against the auto-derived parameter list by name (see
+    // applyParameterOverlay), so a key that no longer matches — because the
+    // real method's parameter was renamed or removed — doesn't error, it
+    // just silently stops applying. This walks every entry and fails if any
+    // key doesn't name a parameter Help.ts currently reports for that
+    // method, turning that silent drift into a CI failure instead of a
+    // stale/incomplete tool description nobody notices.
+    const violations: string[] = [];
+    for (const [id, meta] of Object.entries(CAPABILITY_META)) {
+      const keys = [
+        ...Object.keys(meta.parameterOverrides ?? {}),
+        ...(meta.excludeParameters ?? []),
+      ];
+      if (keys.length === 0) continue;
+      const methodName = id.split('.').pop() as string;
+      const helpDocs = getHelpMetadataByMethod(methodName);
+      const derivedNames = new Set(
+        helpDocs.length > 0 ? helpDocs[0].params.map((param) => param.name) : []
+      );
+      for (const key of keys) {
+        if (!derivedNames.has(key)) {
+          violations.push(`${id}: '${key}' is not a currently-derived parameter`);
+        }
       }
     }
     expect(violations).toEqual([]);

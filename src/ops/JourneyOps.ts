@@ -158,6 +158,7 @@ export type Journey = {
   /**
    * Create journey without dependencies.
    * @param {string} journeyId journey id/name
+   * @param {TreeSkeleton} journeyData journey payload object
    * @returns {Promise<TreeSkeleton>} a promise that resolves to a journey object
    */
   createJourney(
@@ -167,6 +168,7 @@ export type Journey = {
   /**
    * Update journey without dependencies.
    * @param {string} journeyId journey id/name
+   * @param {TreeSkeleton} journeyData journey payload object
    * @returns {Promise<TreeSkeleton>} a promise that resolves to a journey object
    */
   updateJourney(
