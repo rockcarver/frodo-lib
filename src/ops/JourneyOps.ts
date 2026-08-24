@@ -572,6 +572,10 @@ const scriptedNodesConditions = {
   DeviceMatchNode: (nodeConfig: NodeSkeleton): boolean => {
     return nodeConfig.useScript;
   },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  OidcNode: (_nodeConfig: NodeSkeleton): boolean => {
+    return true;
+  },
   PingOneVerifyCompletionDecisionNode: (nodeConfig: NodeSkeleton): boolean => {
     return nodeConfig.useFilterScript;
   },
