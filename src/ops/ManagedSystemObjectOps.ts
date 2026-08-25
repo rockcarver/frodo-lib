@@ -9,36 +9,23 @@ import {
   DEFAULT_PAGE_SIZE,
   deleteManagedSystemObject as _deleteManagedSystemObject,
   getManagedSystemObject as _getManagedSystemObject,
-  getManagedSystemObjectSchema as _getManagedSystemObjectSchema,
   patchManagedSystemObject as _patchManagedSystemObject,
   putManagedSystemObject as _putManagedSystemObject,
   queryAllManagedSystemObjectsByType as _queryAllManagedSystemObjectsByType,
   queryManagedSystemObjects as _queryManagedSystemObjects,
   queryRelatedManagedSystemObjects as _queryRelatedManagedSystemObjects,
 } from '../api/ManagedSystemObjectApi';
-import { type ManagedObjectSchema } from '../api/ManagedObjectApi';
 import { State } from '../shared/State';
 import { FrodoError } from './FrodoError';
-import { debugMessage } from '../utils/Console';
-import { cloneDeep } from '../utils/JsonUtils';
+import { type RelationshipTarget } from './ManagedObjectOps';
 import {
-  ManagedObjectSchemaOptions,
-  type RelationshipTarget,
-} from './ManagedObjectOps';
+  addRelationshipImpl,
+  readRelationshipImpl,
+  removeRelationshipImpl,
+  replaceRelationshipImpl,
+} from './internal/RelationshipHelpers';
 
 export type ManagedSystemObject = {
-  /**
-   * Read managed system object schema
-   * @param {string} type managed system object type, e.g. svcacct or teammember
-   * @param {boolean} refreshCache whether to refresh the schema cache for the specified type
-   * @param {ManagedObjectSchemaOptions} options options to filter the returned schema
-   * @returns {Promise<ManagedObjectSchema>} a promise that resolves to a managed system object schema
-   */
-  readManagedSystemObjectSchema(
-    type: string,
-    refreshCache?: boolean,
-    options?: ManagedObjectSchemaOptions
-  ): Promise<ManagedObjectSchema>;
   /**
    * Create managed system object
    * @param {string} type managed system object type, e.g. teammember or alpha_user
@@ -54,7 +41,7 @@ export type ManagedSystemObject = {
    * Read managed system object
    * @param {string} type managed system object type, e.g. alpha_user or user
    * @param {string} id managed system object id
-   * @param {string[]} id array of fields to include
+   * @param {string[]} fields array of fields to include
    * @returns {Promise<IdObjectSkeletonInterface>} a promise that resolves to an IdObjectSkeletonInterface
    */
   readManagedSystemObject(
@@ -157,6 +144,7 @@ export type ManagedSystemObject = {
    * @param {string} id managed system object id
    * @param {string} relationship name of the relationship to query
    * @param {string[]} fields array of fields to return
+   * @param {number} pageSize page size
    * @return {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of managed system objects
    */
   queryRelatedManagedSystemObjects(
@@ -234,18 +222,6 @@ export type ManagedSystemObject = {
 
 export default (state: State): ManagedSystemObject => {
   return {
-    async readManagedSystemObjectSchema(
-      type: string,
-      refreshCache: boolean = false,
-      options: ManagedObjectSchemaOptions = {}
-    ): Promise<ManagedObjectSchema> {
-      return readManagedSystemObjectSchema({
-        type,
-        refreshCache,
-        options,
-        state,
-      });
-    },
     async createManagedSystemObject(
       type: string,
       moData: IdObjectSkeletonInterface,
@@ -387,139 +363,6 @@ export default (state: State): ManagedSystemObject => {
     },
   };
 };
-
-const ManagedSystemObjectSchemaCache: Record<string, ManagedObjectSchema> = {};
-
-export async function readManagedSystemObjectSchema({
-  type,
-  refreshCache = false,
-  options = {
-    excludeVirtual: false,
-    excludeRelationships: false,
-    includeRelationshipsFilter: undefined,
-  },
-  state,
-}: {
-  type: string;
-  refreshCache?: boolean;
-  options?: ManagedObjectSchemaOptions;
-  state: State;
-}): Promise<ManagedObjectSchema> {
-  try {
-    debugMessage({
-      message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: start`,
-      state,
-    });
-    let schema: ManagedObjectSchema;
-    if (!refreshCache && ManagedSystemObjectSchemaCache[type]) {
-      debugMessage({
-        message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: Using cached schema for type "${type}"`,
-        state,
-      });
-      schema = cloneDeep(ManagedSystemObjectSchemaCache[type]);
-    } else {
-      debugMessage({
-        message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: Fetching schema for type "${type}" from API`,
-        state,
-      });
-      schema = await _getManagedSystemObjectSchema({ type, state });
-      ManagedSystemObjectSchemaCache[type] = cloneDeep(schema);
-    }
-    // Apply schema options
-    if (options.excludeVirtual) {
-      for (const prop in schema.properties) {
-        if (schema.properties[prop]['isVirtual']) {
-          debugMessage({
-            message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: Excluding virtual property "${prop}" from schema for type "${type}"`,
-            state,
-          });
-          delete schema.properties[prop];
-        }
-      }
-    }
-    if (options.excludeRelationships) {
-      for (const prop in schema.properties) {
-        if (
-          schema.properties[prop]['type'] === 'relationship' ||
-          (schema.properties[prop]['type'] === 'array' &&
-            schema.properties[prop]['items'] &&
-            schema.properties[prop]['items']['type'] === 'relationship')
-        ) {
-          // apply relationship type filter if specified
-          // sample relationship property definition:
-          // agent: {
-          //   description: 'Agent',
-          //   id: 'urn:jsonschema:org:forgerock:openidm:managed:api:AIAgentPrivilege:agent',
-          //   notifySelf: true,
-          //   properties: {
-          //     _ref: {
-          //       description: 'References a relationship from a managed object',
-          //       type: 'string'
-          //     },
-          //     _refProperties: {
-          //       description: 'Supports metadata within the relationship',
-          //       properties: {
-          //         _id: {
-          //           description: '_refProperties object ID',
-          //           propName: '_id',
-          //           required: false,
-          //           type: 'string'
-          //         }
-          //       },
-          //       title: 'Agent Privilege Agent _refProperties',
-          //       type: 'object'
-          //     }
-          //   },
-          //   resourceCollection: [
-          //     {
-          //       label: 'Agent',
-          //       notify: false,
-          //       path: 'managed/alpha_aiagent',
-          //       query: { fields: [ '_id' ], queryFilter: 'true', sortKeys: [] }
-          //     }
-          //   ],
-          //   returnByDefault: false,
-          //   reversePropertyName: 'privileges',
-          //   reverseRelationship: true,
-          //   searchable: false,
-          //   title: 'Agent',
-          //   type: 'relationship',
-          //   userEditable: false,
-          //   validate: true,
-          //   viewable: true
-          // }
-          const resourcePath =
-            schema.properties[prop]['resourceCollection']?.[0]?.['path'];
-          debugMessage({
-            message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: Found relationship property "${prop}" with resource path "${resourcePath}" in schema for type "${type}"`,
-            state,
-          });
-          if (
-            !options.includeRelationshipsFilter ||
-            options.includeRelationshipsFilter.length === 0 ||
-            !resourcePath ||
-            !options.includeRelationshipsFilter.includes(
-              resourcePath.split('/')[1]
-            )
-          ) {
-            debugMessage({
-              message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: Excluding relationship property "${prop}" from schema for type "${type}"`,
-              state,
-            });
-            delete schema.properties[prop];
-          }
-        }
-      }
-    }
-    debugMessage({
-      message: `ManagedSystemObjectOps.readManagedSystemObjectSchema: end`,
-      state,
-    });
-    return schema;
-  } catch (error) {
-    throw new FrodoError(`Error reading managed ${type} schema`, error);
-  }
-}
 
 export async function createManagedSystemObject({
   type,
@@ -901,38 +744,6 @@ export async function queryRelatedManagedSystemObjects({
 }
 
 /**
- * Builds the underlying { _ref, _refResourceCollection, _refResourceId }
- * shape IDM expects for a relationship reference. Relationship targets are
- * always addressed under the managed/ collection regardless of whether the
- * object being patched is a regular managed object or a managed system
- * object, so this is identical to ManagedObjectOps' own version.
- */
-function buildRelationshipRefValue({ type, id }: RelationshipTarget): {
-  _ref: string;
-  _refResourceCollection: string;
-  _refResourceId: string;
-} {
-  return {
-    _ref: `managed/${type}/${id}`,
-    _refResourceCollection: `managed/${type}`,
-    _refResourceId: id,
-  };
-}
-
-/**
- * Builds the minimal { _ref, _refProperties } shape an "add" operation
- * needs. See the matching comment in ManagedObjectOps.ts: captured
- * directly from AIC's own admin UI and verified live — "add" and
- * "replace" want different value shapes, not variations of the same one.
- */
-function buildAddRelationshipValue({ type, id }: RelationshipTarget): {
-  _ref: string;
-  _refProperties: Record<string, never>;
-} {
-  return { _ref: `managed/${type}/${id}`, _refProperties: {} };
-}
-
-/**
  * Reads the current value of a relationship field directly off a managed
  * system object — the forward direction. For the reverse direction use
  * queryRelatedManagedSystemObjects instead.
@@ -948,13 +759,13 @@ export async function readRelationship({
   field: string;
   state: State;
 }): Promise<unknown> {
-  const object = await readManagedSystemObject({
+  return readRelationshipImpl({
     type,
     id,
-    fields: [field],
+    field,
     state,
+    readObject: readManagedSystemObject,
   });
-  return object[field];
 }
 
 /**
@@ -976,45 +787,20 @@ export async function addRelationship({
   rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  return updateManagedSystemObjectProperties({
+  return addRelationshipImpl({
     type,
     id,
-    operations: [
-      {
-        operation: 'add',
-        field: `/${field}/-`,
-        value: buildAddRelationshipValue(target),
-      },
-    ],
+    field,
+    target,
     rev,
     state,
+    updateProperties: updateManagedSystemObjectProperties,
   });
-}
-
-/** True if a stored relationship element refers to the given { type, id } target. */
-function matchesRelationshipTarget(
-  item: unknown,
-  target: RelationshipTarget
-): boolean {
-  return (
-    typeof item === 'object' &&
-    item !== null &&
-    (item as Record<string, unknown>)._refResourceCollection ===
-      `managed/${target.type}` &&
-    (item as Record<string, unknown>)._refResourceId === target.id
-  );
 }
 
 /**
  * Removes one target from a many-valued relationship field without
  * disturbing any other members.
- *
- * @remarks
- * Reads the field's current value first to find the exact stored element,
- * then removes that exact object (not array-wrapped) — see the matching
- * comment in ManagedObjectOps.ts: this is the request shape captured
- * directly from AIC's own admin UI and verified live, including IDM's own
- * internal _refProperties on the matched element.
  */
 export async function removeRelationship({
   type,
@@ -1031,32 +817,15 @@ export async function removeRelationship({
   rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  const currentValue = await readRelationship({ type, id, field, state });
-  const currentArray = Array.isArray(currentValue)
-    ? currentValue
-    : currentValue
-      ? [currentValue]
-      : [];
-  const matchingElement = currentArray.find((item) =>
-    matchesRelationshipTarget(item, target)
-  );
-  if (!matchingElement) {
-    throw new FrodoError(
-      `Error removing relationship: ${target.type}/${target.id} is not currently a member of ${type}/${id}'s "${field}" field.`
-    );
-  }
-  return updateManagedSystemObjectProperties({
+  return removeRelationshipImpl({
     type,
     id,
-    operations: [
-      {
-        operation: 'remove',
-        field: `/${field}`,
-        value: matchingElement,
-      },
-    ],
+    field,
+    target,
     rev,
     state,
+    readObject: readManagedSystemObject,
+    updateProperties: updateManagedSystemObjectProperties,
   });
 }
 
@@ -1081,23 +850,13 @@ export async function replaceRelationship({
   rev?: string;
   state: State;
 }): Promise<IdObjectSkeletonInterface> {
-  const value =
-    target === null
-      ? null
-      : Array.isArray(target)
-        ? target.map(buildRelationshipRefValue)
-        : buildRelationshipRefValue(target);
-  return updateManagedSystemObjectProperties({
+  return replaceRelationshipImpl({
     type,
     id,
-    operations: [
-      {
-        operation: 'replace',
-        field: `/${field}`,
-        value,
-      },
-    ],
+    field,
+    target,
     rev,
     state,
+    updateProperties: updateManagedSystemObjectProperties,
   });
 }

@@ -41,376 +41,281 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   // ── Agent-facing MCP contracts for ambiguous operations ─────────────────────
   'authn.journey.readJourney': {
     argumentMode: 'mixed',
-    parameters: [
-      {
-        name: 'journeyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      journeyId: {
         description: 'Journey identifier or name.',
         examples: ['Azure'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'For MCP callers, prefer namedArgs { journeyId } so the object identifier is explicit.',
   },
   'authn.node.readNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeId: {
         description: 'Node UUID.',
         examples: ['313597f3-2e86-4476-b899-17a0209f0386'],
       },
-      {
-        name: 'nodeType',
-        type: 'string',
-        required: true,
-        position: 1,
+      nodeType: {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
-      {
-        name: 'nodeTypeVersion',
-        type: 'string',
-        required: false,
-        position: 2,
+      nodeTypeVersion: {
         description: 'Optional node type version, when more than one exists.',
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'MCP callers should use namedArgs { nodeId, nodeType } to avoid swapping the required positional arguments.',
   },
   'authn.node.readNodeType': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeType',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeType: {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
-      {
-        name: 'nodeTypeVersion',
-        type: 'string',
-        required: false,
-        position: 1,
+      nodeTypeVersion: {
         description: 'Node type version.',
         defaultValue: '1.0',
         examples: ['1.0', '2.0'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Read a node type with namedArgs { nodeType, nodeTypeVersion }. nodeTypeVersion defaults to 1.0.',
   },
   'authn.node.readNodesByType': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeType',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeType: {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
-      {
-        name: 'nodeTypeVersion',
-        type: 'string',
-        required: false,
-        position: 1,
+      nodeTypeVersion: {
         description: 'Node type version.',
         defaultValue: '1.0',
         examples: ['1.0', '2.0'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Read nodes by type with namedArgs { nodeType, nodeTypeVersion }. nodeTypeVersion defaults to 1.0.',
   },
+  'authn.node.readNodeSchema': {
+    notes:
+      "Returns the node type's configurable-property schema. Use this before setting nodeData on authn.node.createNode/updateNode instead of guessing property names. Some node types are part of a paired/family set (e.g. registration + verification nodes) that must be wired together in the same journey to work -- see authn.node.createNode's notes for the known pairs.",
+  },
+  'authn.node.readCustomNodeSchema': {
+    notes:
+      "Returns a custom node's configurable-property schema, keyed by its service name. Use this before setting nodeData on a custom node instead of guessing property names.",
+  },
   'authn.journey.createJourney': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'journeyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      journeyId: {
         description: 'Journey identifier or name to create.',
         examples: ['Example Journey'],
       },
-      {
-        name: 'journeyData',
-        type: 'TreeSkeleton',
-        required: true,
-        position: 1,
+      journeyData: {
         description: 'Journey payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Create a journey with namedArgs { journeyId, journeyData } so the target id and payload are explicit.',
   },
   'authn.journey.updateJourney': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'journeyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      journeyId: {
         description: 'Journey identifier or name to update.',
         examples: ['Example Journey'],
       },
-      {
-        name: 'journeyData',
-        type: 'TreeSkeleton',
-        required: true,
-        position: 1,
+      journeyData: {
         description: 'Journey payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Update a journey with namedArgs { journeyId, journeyData } to avoid positional ambiguity.',
   },
   'authn.journey.deleteJourney': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'journeyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      journeyId: {
         description: 'Journey identifier or name to delete.',
         examples: ['Example Journey'],
       },
-      {
-        name: 'options',
+      options: {
         type: 'DeleteJourneyOptions',
-        required: true,
-        position: 1,
         description:
           'Delete options controlling deep node cleanup, verbosity, and progress display.',
         schema: {
           type: 'object',
           additionalProperties: false,
           properties: {
-            deep: { type: 'boolean' },
-            verbose: { type: 'boolean' },
-            progress: { type: 'boolean' },
+            deep: {
+              type: 'boolean',
+            },
+            verbose: {
+              type: 'boolean',
+            },
+            progress: {
+              type: 'boolean',
+            },
           },
         },
-        examples: [{ deep: false, verbose: false }],
+        examples: [
+          {
+            deep: false,
+            verbose: false,
+          },
+        ],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Delete a journey with namedArgs { journeyId, options }. Set options.deep=true only when you intend to remove journey nodes as well.',
   },
   'authn.node.createNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeType',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeType: {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
-      {
-        name: 'nodeData',
-        type: 'NodeSkeleton',
-        required: true,
-        position: 1,
+      nodeData: {
         description: 'Node payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
-      'Create a node with namedArgs { nodeType, nodeData } so node type and payload are explicit.',
+      'Create a node with namedArgs { nodeType, nodeData } so node type and payload are explicit.\n' +
+      'Some OOTB node types only make sense as part of a paired/family set that must be wired together in the same journey, or the enrollment they perform can never be verified: WebAuthnRegistrationNode needs a WebAuthnAuthenticationNode (and usually a WebAuthnDeviceStorageNode) elsewhere in the tree; the same register/verify pattern holds for PushRegistrationNode + PushAuthenticationSenderNode/PushResultVerifierNode, OathRegistrationNode + OathTokenVerifierNode (+ OathDeviceStorageNode), DeviceBindingNode + DeviceBindingStorageNode/DeviceSigningVerifierNode, and RecoveryCodeDisplayNode + RecoveryCodeCollectorDecisionNode. This list is drawn from Frodo\'s own OOTB node-type catalog naming (OOTB_NODE_TYPES_* in NodeOps.ts), not from an official Ping "node family" taxonomy -- before wiring a registration/enrollment-style node into a journey, check authn.node.readNodeSchema (or readCustomNodeSchema for custom nodes) for its configurable properties and confirm the paired node type is actually present on this tenant via authn.node.readNodesByType.',
   },
   'authn.node.updateNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeId: {
         description: 'Node UUID.',
         examples: ['313597f3-2e86-4476-b899-17a0209f0386'],
       },
-      {
-        name: 'nodeType',
-        type: 'string',
-        required: true,
-        position: 1,
+      nodeType: {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
-      {
-        name: 'nodeData',
-        type: 'NodeSkeleton',
-        required: true,
-        position: 2,
+      nodeData: {
         description: 'Updated node payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Update a node with namedArgs { nodeId, nodeType, nodeData } to preserve the UUID/type ordering.',
   },
   'authn.node.deleteNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeId: {
         description: 'Node UUID.',
         examples: ['313597f3-2e86-4476-b899-17a0209f0386'],
       },
-      {
-        name: 'nodeType',
-        type: 'string',
-        required: true,
-        position: 1,
+      nodeType: {
         description: 'Node type, for example PageNode.',
         examples: ['PageNode'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Delete a node with namedArgs { nodeId, nodeType } to avoid swapping the required positional arguments.',
   },
   'authn.node.readCustomNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeId',
-        type: 'string',
-        required: false,
-        position: 0,
+    parameterOverrides: {
+      nodeId: {
         description:
           'Custom node id or service name. Takes priority over nodeName when both are provided.',
         examples: ['custom-node-service'],
       },
-      {
-        name: 'nodeName',
-        type: 'string',
-        required: false,
-        position: 1,
+      nodeName: {
         description: 'Custom node display name.',
         examples: ['My Custom Node'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Read a custom node with either namedArgs { nodeId } or { nodeName }. If both are provided, nodeId wins.',
   },
   'authn.node.updateCustomNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      nodeId: {
         description: 'Custom node id or service name.',
         examples: ['custom-node-service'],
       },
-      {
-        name: 'nodeData',
-        type: 'CustomNodeSkeleton',
-        required: true,
-        position: 1,
+      nodeData: {
         description: 'Custom node payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Update a custom node with namedArgs { nodeId, nodeData }.',
   },
   'authn.node.deleteCustomNode': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'nodeId',
-        type: 'string',
-        required: false,
-        position: 0,
+    parameterOverrides: {
+      nodeId: {
         description:
           'Custom node id or service name. Takes priority over nodeName when both are provided.',
         examples: ['custom-node-service'],
       },
-      {
-        name: 'nodeName',
-        type: 'string',
-        required: false,
-        position: 1,
+      nodeName: {
         description: 'Custom node display name.',
         examples: ['My Custom Node'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Delete a custom node with either namedArgs { nodeId } or { nodeName }. If both are provided, nodeId wins.',
   },
   'authn.settings.updateAuthenticationSettings': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'settings',
-        type: 'AuthenticationSettingsSkeleton',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      settings: {
         description: 'Authentication settings payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-      {
-        name: 'globalConfig',
-        type: 'boolean',
-        required: false,
-        position: 1,
+      globalConfig: {
         description:
           'Set true to target global authentication settings instead of the active realm.',
         defaultValue: false,
         examples: [false, true],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Update authentication settings with namedArgs { settings, globalConfig }. globalConfig defaults to false.',
@@ -418,20 +323,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'authn.journey.exportJourney': {
     argumentMode: 'named',
     scope: 'single',
-    parameters: [
-      {
-        name: 'journeyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      treeId: {
         description: 'Journey identifier or name to export.',
         examples: ['Azure'],
       },
-      {
-        name: 'options',
-        type: 'TreeExportOptions',
-        required: false,
-        position: 1,
+      options: {
         description:
           'Optional export options such as deps/useStringArrays/coords.',
         defaultValue: {
@@ -473,7 +370,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           },
         ],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Single-journey export. In MCP, scope="single" defaults to a thin export bundle (deps=false, useStringArrays=true, coords=true). Explicitly request deps=true only when you need dependency bundles.',
@@ -481,12 +378,9 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'authn.journey.exportJourneys': {
     argumentMode: 'named',
     scope: 'bulk',
-    parameters: [
-      {
-        name: 'options',
-        type: 'TreeExportOptions',
-        required: false,
-        position: 0,
+    excludeParameters: ['resultCallback'],
+    parameterOverrides: {
+      options: {
         description:
           'Optional export options such as deps/useStringArrays/coords.',
         defaultValue: {
@@ -528,117 +422,83 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           },
         ],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Bulk journey export. In MCP, scope="bulk" defaults to a thin export bundle (deps=false, useStringArrays=true, coords=true). Request deps=true only when a full dependency bundle is required.',
   },
   'app.queryApplications': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      filter: {
         description: 'CREST search filter, for example name co "HR".',
         examples: ['name co "HR"'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 1,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['name', '_id']],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Search applications with a CREST filter. Prefer namedArgs { filter, fields } so the query intent is explicit.',
   },
   'role.queryInternalRoles': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      filter: {
         description: 'CREST search filter, for example name eq "helpdesk".',
         examples: ['name eq "helpdesk"'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 1,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['name', '_id']],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Search internal roles with a CREST filter. Prefer namedArgs { filter, fields } for clarity.',
   },
   'idm.managed.queryManagedObjects': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: false,
-        position: 1,
+      filter: {
         description: 'Optional IDM query filter such as userName sw "a".',
         examples: ['userName sw "a"'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 2,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['userName', 'mail']],
       },
-      {
-        name: 'pageSize',
+      pageSize: {
         type: 'integer',
-        required: false,
-        position: 3,
         description:
           'Optional page size hint forwarded from the generic pageSize control.',
         examples: [100, 250],
       },
-      {
-        name: 'pageCookie',
-        type: 'string',
-        required: false,
-        position: 4,
-        description:
-          'Paged-results cookie. The generic pageToken control maps to this parameter.',
-        examples: ['opaque-cookie-token'],
-      },
-    ],
+    },
     supportsRealm: true,
     supportsPaging: true,
     supportsIncludeTotal: true,
@@ -647,57 +507,40 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managed.countManagedObjects': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: false,
-        position: 1,
+      filter: {
         description: 'Optional IDM query filter such as userName sw "a".',
         examples: ['userName sw "a"'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Count managed objects with explicit type and optional filter. For exact totals in cloud/forgeops deployments, prefer this over AM user counting.',
   },
   'idm.config.createConfigEntity': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'entityId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      entityId: {
         description: 'IDM config entity id to create.',
         examples: ['provisioner.openicf/ldap'],
       },
-      {
-        name: 'entityData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 1,
+      entityData: {
         description: 'IDM config entity payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-      {
-        name: 'wait',
-        type: 'boolean',
-        required: false,
-        position: 2,
+      wait: {
         description: 'Wait for async processing to complete when supported.',
         defaultValue: false,
         examples: [false, true],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Create a config entity with namedArgs { entityId, entityData, wait }. wait defaults to false.',
@@ -705,25 +548,17 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'idm.config.readConfigEntitiesByType': {
     argumentMode: 'named',
     scope: 'bulk',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'IDM config entity type.',
       },
-      {
-        name: 'includeDefault',
-        type: 'boolean',
-        required: false,
-        position: 1,
+      includeDefault: {
         description:
           'Include default email templates when reading emailTemplate entities.',
         defaultValue: false,
         examples: [false, true],
       },
-    ],
+    },
     supportsRealm: false,
     semanticAliases: [
       'all password policies',
@@ -735,15 +570,11 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'idm.config.readConfigEntity': {
     argumentMode: 'named',
     scope: 'single',
-    parameters: [
-      {
-        name: 'entityId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      entityId: {
         description: 'IDM config entity id.',
       },
-    ],
+    },
     supportsRealm: false,
     semanticAliases: [
       'realm password policy',
@@ -754,173 +585,172 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.config.readSubConfigEntity': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'entityId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      entityId: {
         description: 'Parent IDM config entity id.',
         examples: ['provisioner.openicf/ldap'],
       },
-      {
-        name: 'name',
-        type: 'string',
-        required: true,
-        position: 1,
+      name: {
         description: 'Sub-entity name to read from the parent entity.',
         examples: ['configurationProperties'],
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Read a named sub-entity with namedArgs { entityId, name }.',
   },
+  'idm.config.removeSubConfigEntity': {
+    operationType: 'delete',
+    objectType: 'ConfigSubEntity',
+    argumentMode: 'named',
+    parameterOverrides: {
+      entityId: {
+        description: 'Parent IDM config entity id.',
+        examples: ['managed'],
+      },
+      name: {
+        description: 'Sub-entity name to remove from the parent entity.',
+        examples: ['alpha_customType'],
+      },
+    },
+    supportsRealm: true,
+    notes:
+      'Remove a named sub-entity with namedArgs { entityId, name }. For entityId "managed", this deletes an entire managed-object type definition (schema included) — every existing record of that type becomes orphaned. Applies to any deployment type.',
+  },
   'idm.config.updateConfigEntity': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'entityId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      entityId: {
         description: 'IDM config entity id to update.',
         examples: ['provisioner.openicf/ldap'],
       },
-      {
-        name: 'entityData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 1,
+      entityData: {
         description: 'Updated IDM config entity payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-      {
-        name: 'wait',
-        type: 'boolean',
-        required: false,
-        position: 2,
+      wait: {
         description: 'Wait for async processing to complete when supported.',
         defaultValue: false,
         examples: [false, true],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Update a config entity with namedArgs { entityId, entityData, wait }. wait defaults to false.',
   },
   'idm.connector.createConnector': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'connectorId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      connectorId: {
         description: 'Connector id to create.',
         examples: ['provisioner.openicf/ldap'],
       },
-      {
-        name: 'connectorData',
-        type: 'ConnectorSkeleton',
-        required: true,
-        position: 1,
+      connectorData: {
         description: 'Connector payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Create a connector with namedArgs { connectorId, connectorData }.',
   },
   'idm.connector.updateConnector': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'connectorId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      connectorId: {
         description: 'Connector id to update.',
         examples: ['provisioner.openicf/ldap'],
       },
-      {
-        name: 'connectorData',
-        type: 'ConnectorSkeleton',
-        required: true,
-        position: 1,
+      connectorData: {
         description: 'Updated connector payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Update a connector with namedArgs { connectorId, connectorData }.',
   },
+  'idm.connector.createConnectorExportTemplate': {
+    // Pure local builder (no API calls), used internally by exportConnector/
+    // exportConnectors — no standalone value to an agent.
+    excluded: true,
+  },
   'idm.managed.createManagedObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'moData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 1,
+      moData: {
         description: 'Managed object payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: false,
-        position: 2,
+      id: {
         description: 'Optional managed object id. Omit to let IDM assign one.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       "Create a managed object with namedArgs { type, id, moData }. id is optional. A relationship field can be set at creation time too, by including it directly in moData with the same ref-shaped value idm.managed.updateManagedObjectProperties's notes describe — see that skill for the full relationship-write pattern (discovering fields via schema, single- vs many-valued, add/remove/replace).",
   },
-  'idm.managed.readManagedObjectSchema': {
+  'idm.managed.schema.readManagedObjectSchema': {
     notes:
       "Read a type's schema — the way to discover its relationship fields before writing to them. A property with type 'relationship' is a relationship field; resourceCollection.path (nested under items for a many-valued field, directly on the property for a single-valued one) is the target type to reference. See idm.managed.updateManagedObjectProperties's notes for the actual write pattern.",
+  },
+  'idm.managed.findOrCreateManagedObject': {
+    operationType: 'create',
+    objectType: 'ManagedObject',
+    mutating: true,
+    riskClass: 'medium',
+    notes:
+      "Finds a managed object by a CREST query filter, creating one with a server-generated _id if no match exists — the JIT-provisioning pattern: query by an external identity's metadata (e.g. a foreign IDP's JWT subject stored in a custom field) rather than using that external identity as the object's own _id/userName, since it may not be UUID-shaped or stable. Throws if the filter matches more than one object rather than picking arbitrarily. moData is ignored when an existing match is found.",
+  },
+  'idm.managed.schema.readManagedObjectSchemaProperty': {
+    notes:
+      "Cloud (PingOne Advanced Identity Cloud) only — this is IDM's dedicated v2 relationship-schema API, for reading one relationship-property definition without fetching the type's whole schema. It is not a general per-property API: for any non-relationship property, or for any property at all on ForgeOps/classic (relationships included), use idm.config.readSubConfigEntity('managed', type) and read the property off schema.properties there instead.",
+  },
+  'idm.managed.schema.updateManagedObjectSchemaProperty': {
+    riskClass: 'critical',
+    notes:
+      "Cloud only — creates or updates one relationship-property definition in place via IDM's dedicated v2 relationship-schema API, leaving the rest of the type's schema untouched. Critical risk regardless of update's usual agentic-tier availability — a schema-property write changes the type's structure for every existing and future record, not one record's data, so it's guarded the same way idm.managedSystem.* is. See idm.managed.schema.readManagedObjectSchemaProperty's notes for when to use idm.config.readSubConfigEntity/importSubConfigEntity instead (any non-relationship property, or anything on ForgeOps/classic), and idm.managed.updateManagedObjectProperties's notes for the relationship-property shape (type/resourceCollection/reversePropertyName/etc.).",
+  },
+  'idm.managed.schema.removeManagedObjectSchemaProperty': {
+    operationType: 'delete',
+    objectType: 'ManagedObjectSchemaProperty',
+    riskClass: 'critical',
+    notes:
+      "Cloud only — removes one relationship-property definition via IDM's dedicated v2 relationship-schema API, leaving the rest of the type's schema untouched. Critical risk, same reasoning as idm.managed.schema.updateManagedObjectSchemaProperty. See idm.managed.schema.readManagedObjectSchemaProperty's notes for when to use idm.config.readSubConfigEntity/importSubConfigEntity instead (any non-relationship property, or anything on ForgeOps/classic).",
   },
   'idm.managed.readRelationship': {
     operationType: 'read',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description:
-          "Relationship field name, e.g. 'manager' or 'roles'. Use idm.managed.readManagedObjectSchema to discover a type's relationship fields.",
+          "Relationship field name, e.g. 'manager' or 'roles'. Use idm.managed.schema.readManagedObjectSchema to discover a type's relationship fields.",
         examples: ['manager', 'roles'],
       },
-    ],
+    },
     supportsRealm: true,
     mutating: false,
     riskClass: 'low',
@@ -931,113 +761,93 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'update',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type of the object being patched.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id being patched.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description: 'Many-valued relationship field name to add a member to.',
         examples: ['roles'],
       },
-      {
-        name: 'target',
-        type: 'RelationshipTarget',
-        required: true,
-        position: 3,
+      target: {
         description:
           "The object to add, as plain { type, id } — no _ref/_refResourceCollection plumbing required, this skill builds it. type is the target's own managed object type (from the field's schema resourceCollection, e.g. alpha_role for alpha_user's roles field), not the source object's type.",
         schema: {
           type: 'object',
-          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          properties: {
+            type: {
+              type: 'string',
+            },
+            id: {
+              type: 'string',
+            },
+          },
           required: ['type', 'id'],
         },
         examples: [
-          { type: 'alpha_role', id: '1234abcd-0000-1111-2222-abcdefabcdef' },
+          {
+            type: 'alpha_role',
+            id: '1234abcd-0000-1111-2222-abcdefabcdef',
+          },
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 4,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: true,
     notes:
-      'Adds one target to a many-valued relationship field without disturbing any existing members — the safe way to "add a member". Builds the exact request shape captured from AIC\'s own admin UI performing this action and verified live — field addressed as "/field/-" (JSON Pointer append-to-array syntax) with a bare { _ref, _refProperties: {} } value — so you don\'t have to know that shape yourself. Use idm.managed.replaceRelationship instead only when you actually mean to overwrite the whole field. Discover a field\'s name and target type via idm.managed.readManagedObjectSchema first (a relationship property with items present is many-valued).',
+      'Adds one target to a many-valued relationship field without disturbing any existing members — the safe way to "add a member". Builds the exact request shape captured from AIC\'s own admin UI performing this action and verified live — field addressed as "/field/-" (JSON Pointer append-to-array syntax) with a bare { _ref, _refProperties: {} } value — so you don\'t have to know that shape yourself. Use idm.managed.replaceRelationship instead only when you actually mean to overwrite the whole field. Discover a field\'s name and target type via idm.managed.schema.readManagedObjectSchema first (a relationship property with items present is many-valued).',
   },
   'idm.managed.removeRelationship': {
     operationType: 'update',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type of the object being patched.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id being patched.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description:
           'Many-valued relationship field name to remove a member from.',
         examples: ['roles'],
       },
-      {
-        name: 'target',
-        type: 'RelationshipTarget',
-        required: true,
-        position: 3,
+      target: {
         description:
           "The object to remove, as plain { type, id } — same shape as addRelationship's target.",
         schema: {
           type: 'object',
-          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          properties: {
+            type: {
+              type: 'string',
+            },
+            id: {
+              type: 'string',
+            },
+          },
           required: ['type', 'id'],
         },
         examples: [
-          { type: 'alpha_role', id: '1234abcd-0000-1111-2222-abcdefabcdef' },
+          {
+            type: 'alpha_role',
+            id: '1234abcd-0000-1111-2222-abcdefabcdef',
+          },
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 4,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: true,
     riskClass: 'medium',
     notes:
@@ -1047,51 +857,34 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'update',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type of the object being patched.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id being patched.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description: 'Relationship field name to replace entirely.',
         examples: ['manager', 'roles'],
       },
-      {
-        name: 'target',
-        type: 'RelationshipTarget | RelationshipTarget[] | null',
-        required: true,
-        position: 3,
+      target: {
         description:
           "The new value: a single { type, id } (or null to clear it) for a single-valued field like 'manager'; an array of { type, id } for a many-valued field like 'roles' — replacing the whole array, not adding to it. Use addRelationship/removeRelationship instead to change one member of a many-valued field without disturbing the rest.",
         examples: [
-          { type: 'alpha_user', id: '1234abcd-0000-1111-2222-abcdefabcdef' },
+          {
+            type: 'alpha_user',
+            id: '1234abcd-0000-1111-2222-abcdefabcdef',
+          },
           null,
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 4,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: true,
     riskClass: 'medium',
     notes:
@@ -1099,102 +892,80 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managed.readManagedObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id to read.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 2,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['userName', 'mail']],
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Read a managed object with namedArgs { type, id, fields }.',
   },
   'idm.managed.updateManagedObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id to update.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'moData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 2,
+      moData: {
         description: 'Updated managed object payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Update a managed object with namedArgs { type, id, moData }.',
   },
   'idm.managed.updateManagedObjectProperties': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id to patch.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'operations',
-        type: 'PatchOperationInterface[]',
-        required: true,
-        position: 2,
+      operations: {
         description:
           "JSON patch-style operations for the target object. Also the mechanism for writing relationships (adding/removing a member, setting a manager, etc.) — see this skill's notes for the exact shape; there is no separate relationship-write skill.",
         schema: {
           type: 'array',
-          items: { type: 'object', additionalProperties: true },
+          items: {
+            type: 'object',
+            additionalProperties: true,
+          },
         },
         examples: [
-          [{ operation: 'replace', field: '/mail', value: 'a@example.com' }],
+          [
+            {
+              operation: 'replace',
+              field: '/mail',
+              value: 'a@example.com',
+            },
+          ],
           [
             {
               operation: 'add',
@@ -1222,73 +993,59 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           ],
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 3,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Patch one managed object with namedArgs { type, id, operations, rev }. This is also the underlying mechanism relationships are written through — a relationship field is just a regular field from a PATCH point of view. Prefer the dedicated idm.managed.readRelationship/addRelationship/removeRelationship/replaceRelationship skills instead of raw operations here for relationship work — they take a plain { type, id } target and build the correct value shape for you, including two real gotchas verified live this session (and confirmed against the exact request shape AIC\'s own admin UI sends): "add" and "remove" each need a different, specific value shape that neither guessing nor generalizing from the other gets right.\n' +
       '\n' +
-      "To find a type's relationship fields and what they target, call idm.managed.readManagedObjectSchema first: a property with type 'relationship' is a relationship field. A single-valued one (e.g. alpha_user's 'manager', targeting managed/alpha_user, reverse property 'reports') has resourceCollection directly on the property; a many-valued one (e.g. alpha_user's 'roles', targeting managed/alpha_role) has it nested under items instead — that items/no-items distinction is exactly what tells you whether the field holds one relationship or an array of them.\n" +
+      "To find a type's relationship fields and what they target, call idm.managed.schema.readManagedObjectSchema first: a property with type 'relationship' is a relationship field. A single-valued one (e.g. alpha_user's 'manager', targeting managed/alpha_user, reverse property 'reports') has resourceCollection directly on the property; a many-valued one (e.g. alpha_user's 'roles', targeting managed/alpha_role) has it nested under items instead — that items/no-items distinction is exactly what tells you whether the field holds one relationship or an array of them.\n" +
       '\n' +
       'If you do use raw operations here for a many-valued relationship: to add one member without disturbing the rest, address the field as "/field/-" (JSON Pointer append-to-array syntax) with operation "add" and a bare value of just { _ref: "<resourceCollection.path>/<id>", _refProperties: {} } — not array-wrapped, and no _refResourceCollection/_refResourceId (as in the second example above). To remove one member, address the field as "/field" (no index) with operation "remove" and a bare value that exactly matches the currently-stored element, including its _refProperties (an internal id/rev IDM itself generates for the relationship, distinct from the referenced object\'s own id) — read the field first (idm.managed.readRelationship) to get that exact stored element, since a freshly-built ref without the real _refProperties silently matches nothing and removes nothing, with no error (as in the third example above; the _refProperties values there are illustrative — always use the real ones from a fresh read, never fabricate them). For a single-valued relationship (like \'manager\'), use "replace" with a single (unwrapped) ref-shaped value { _ref, _refResourceCollection, _refResourceId }, or null to clear it — resourceCollection.path comes straight from the schema (e.g. "managed/alpha_role"), never guess or hardcode a realm prefix into it.',
   },
   'idm.managed.updateManagedObjectsProperties': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 1,
+      filter: {
         description: 'IDM query filter selecting the objects to patch.',
         examples: ['userName sw "a"'],
       },
-      {
-        name: 'operations',
-        type: 'PatchOperationInterface[]',
-        required: true,
-        position: 2,
+      operations: {
         description:
           'JSON patch-style operations applied to all matching objects.',
         schema: {
           type: 'array',
-          items: { type: 'object', additionalProperties: true },
+          items: {
+            type: 'object',
+            additionalProperties: true,
+          },
         },
         examples: [
-          [{ operation: 'replace', field: '/mail', value: 'a@example.com' }],
+          [
+            {
+              operation: 'replace',
+              field: '/mail',
+              value: 'a@example.com',
+            },
+          ],
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 3,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-      {
-        name: 'pageSize',
+      pageSize: {
         type: 'integer',
-        required: false,
-        position: 4,
         description: 'Optional batch page size for large updates.',
         defaultValue: 1000,
         examples: [100, 1000],
       },
-    ],
+    },
     supportsRealm: true,
     supportsPaging: true,
     notes:
@@ -1296,84 +1053,58 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managed.deleteManagedObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id to delete.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Delete a managed object with namedArgs { type, id }.',
   },
   'idm.managed.deleteManagedObjects': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 1,
+      filter: {
         description: 'IDM query filter selecting the objects to delete.',
         examples: ['userName sw "a"'],
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Delete multiple managed objects with namedArgs { type, filter }.',
   },
 
   'idm.managedSystem.readManagedSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description:
           'Managed system object type: teammember (tenant admin) or svcacct (service account). Distinct from regular managed object types like alpha_user — use idm.managed.readManagedObject for those.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id (UUID) to read.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 2,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['givenName', 'sn', 'userName']],
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1384,7 +1115,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'List all managed system objects of a type (teammember or svcacct) — reveals the full tenant-admin or service-account roster. Admin-only regardless of read-only intent.',
   },
-  'idm.managedSystem.readManagedSystemObjectSchema': {
+  'idm.managedSystem.schema.readManagedSystemObjectSchema': {
     riskClass: 'critical',
   },
   'idm.managedSystem.queryManagedSystemObjects': {
@@ -1397,33 +1128,24 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.createManagedSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'moData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 1,
+      moData: {
         description: 'Managed system object payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: false,
-        position: 2,
+      id: {
         description:
           'Optional managed system object id. Omit to let IDM assign one.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1431,32 +1153,23 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.updateManagedSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id to update.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'moData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 2,
+      moData: {
         description: 'Updated managed system object payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1464,45 +1177,38 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.updateManagedSystemObjectProperties': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id to patch.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'operations',
-        type: 'PatchOperationInterface[]',
-        required: true,
-        position: 2,
+      operations: {
         description: 'JSON patch-style operations for the target object.',
         schema: {
           type: 'array',
-          items: { type: 'object', additionalProperties: true },
+          items: {
+            type: 'object',
+            additionalProperties: true,
+          },
         },
         examples: [
-          [{ operation: 'replace', field: '/description', value: 'updated' }],
+          [
+            {
+              operation: 'replace',
+              field: '/description',
+              value: 'updated',
+            },
+          ],
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 3,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1510,55 +1216,45 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.updateManagedSystemObjectsProperties': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 1,
+      filter: {
         description: 'IDM query filter selecting the objects to patch.',
         examples: ['userName sw "a"'],
       },
-      {
-        name: 'operations',
-        type: 'PatchOperationInterface[]',
-        required: true,
-        position: 2,
+      operations: {
         description:
           'JSON patch-style operations applied to all matching objects.',
         schema: {
           type: 'array',
-          items: { type: 'object', additionalProperties: true },
+          items: {
+            type: 'object',
+            additionalProperties: true,
+          },
         },
         examples: [
-          [{ operation: 'replace', field: '/description', value: 'updated' }],
+          [
+            {
+              operation: 'replace',
+              field: '/description',
+              value: 'updated',
+            },
+          ],
         ],
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 3,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-      {
-        name: 'pageSize',
+      pageSize: {
         type: 'integer',
-        required: false,
-        position: 4,
         description: 'Optional batch page size for large updates.',
         defaultValue: 1000,
         examples: [100, 1000],
       },
-    ],
+    },
     supportsRealm: false,
     supportsPaging: true,
     riskClass: 'critical',
@@ -1567,24 +1263,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.deleteManagedSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id to delete.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1592,24 +1280,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.deleteManagedSystemObjects': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 1,
+      filter: {
         description: 'IDM query filter selecting the objects to delete.',
         examples: ['userName sw "a"'],
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1619,53 +1299,36 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'search',
     objectType: 'RelatedManagedSystemObject',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'relationship',
-        type: 'string',
-        required: true,
-        position: 2,
+      relationship: {
         description:
           'Name of the relationship to query, the reverse direction.',
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 3,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['userName', 'mail']],
       },
-      {
-        name: 'pageSize',
+      pageSize: {
         type: 'integer',
-        required: false,
-        position: 4,
         description:
           'Optional page size hint forwarded from the generic pageSize control.',
         examples: [100, 250],
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1675,32 +1338,20 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'read',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type: teammember or svcacct.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description:
-          "Relationship field name. Use idm.managedSystem.readManagedSystemObjectSchema to discover a type's relationship fields.",
+          "Relationship field name. Use idm.managedSystem.schema.readManagedSystemObjectSchema to discover a type's relationship fields.",
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1710,51 +1361,38 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'update',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type of the object being patched.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id being patched.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description: 'Many-valued relationship field name to add a member to.',
       },
-      {
-        name: 'target',
-        type: 'RelationshipTarget',
-        required: true,
-        position: 3,
+      target: {
         description:
           'The object to add, as plain { type, id } — no _ref/_refResourceCollection plumbing required.',
         schema: {
           type: 'object',
-          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          properties: {
+            type: {
+              type: 'string',
+            },
+            id: {
+              type: 'string',
+            },
+          },
           required: ['type', 'id'],
         },
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 4,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1764,51 +1402,38 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'update',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type of the object being patched.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id being patched.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description:
           'Many-valued relationship field name to remove a member from.',
       },
-      {
-        name: 'target',
-        type: 'RelationshipTarget',
-        required: true,
-        position: 3,
+      target: {
         description: 'The object to remove, as plain { type, id }.',
         schema: {
           type: 'object',
-          properties: { type: { type: 'string' }, id: { type: 'string' } },
+          properties: {
+            type: {
+              type: 'string',
+            },
+            id: {
+              type: 'string',
+            },
+          },
           required: ['type', 'id'],
         },
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 4,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1818,46 +1443,26 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'update',
     objectType: 'Relationship',
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed system object type of the object being patched.',
         examples: ['teammember', 'svcacct'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed system object id being patched.',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-      {
-        name: 'field',
-        type: 'string',
-        required: true,
-        position: 2,
+      field: {
         description: 'Relationship field name to replace entirely.',
       },
-      {
-        name: 'target',
-        type: 'RelationshipTarget | RelationshipTarget[] | null',
-        required: true,
-        position: 3,
+      target: {
         description:
           'The new value: a single { type, id } (or null to clear it) for a single-valued field, an array for a many-valued field.',
       },
-      {
-        name: 'rev',
-        type: 'string',
-        required: false,
-        position: 4,
+      rev: {
         description: 'Optional optimistic concurrency revision token.',
       },
-    ],
+    },
     supportsRealm: false,
     riskClass: 'critical',
     notes:
@@ -1866,293 +1471,209 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
 
   'idm.mapping.createMapping': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'mappingId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      mappingId: {
         description: 'Mapping id to create.',
         examples: ['managedUser_systemLdapAccounts'],
       },
-      {
-        name: 'mappingData',
-        type: 'MappingSkeleton',
-        required: true,
-        position: 1,
+      mappingData: {
         description: 'Mapping payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Create a mapping with namedArgs { mappingId, mappingData }.',
   },
   'idm.mapping.updateMapping': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'mappingId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      mappingId: {
         description: 'Mapping id to update.',
         examples: ['managedUser_systemLdapAccounts'],
       },
-      {
-        name: 'mappingData',
-        type: 'MappingSkeleton',
-        required: true,
-        position: 1,
+      mappingData: {
         description: 'Updated mapping payload object.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Update a mapping with namedArgs { mappingId, mappingData }.',
   },
   'idm.system.readSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'systemObjectId',
-        type: 'string',
-        required: true,
-        position: 2,
+      systemObjectId: {
         description: 'Connector object id to read.',
         examples: ['uid=test,ou=people,dc=example,dc=com'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 3,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['uid', 'mail']],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Read a connector object with namedArgs { systemName, systemObjectType, systemObjectId, fields }.',
   },
   'idm.system.createSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'systemObjectData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 2,
+      systemObjectData: {
         description: 'Connector object payload.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Create a connector object with namedArgs { systemName, systemObjectType, systemObjectData }.',
   },
   'idm.system.updateSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'systemObjectId',
-        type: 'string',
-        required: true,
-        position: 2,
+      systemObjectId: {
         description: 'Connector object id to update.',
         examples: ['uid=test,ou=people,dc=example,dc=com'],
       },
-      {
-        name: 'systemObjectData',
-        type: 'IdObjectSkeletonInterface',
-        required: true,
-        position: 3,
+      systemObjectData: {
         description: 'Updated connector object payload.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-      {
-        name: 'failIfExists',
-        type: 'boolean',
-        required: false,
-        position: 4,
+      failIfExists: {
         description:
           'Set true to fail instead of upserting when the object already exists.',
         defaultValue: false,
         examples: [false, true],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Update a connector object with namedArgs { systemName, systemObjectType, systemObjectId, systemObjectData, failIfExists }.',
   },
   'idm.system.updateSystemObjectProperties': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'systemObjectId',
-        type: 'string',
-        required: true,
-        position: 2,
+      systemObjectId: {
         description: 'Connector object id to patch.',
         examples: ['uid=test,ou=people,dc=example,dc=com'],
       },
-      {
-        name: 'operations',
-        type: 'SystemObjectPatchOperationInterface[]',
-        required: true,
-        position: 3,
+      operations: {
         description:
           'JSON patch-style operations for the target connector object.',
         schema: {
           type: 'array',
-          items: { type: 'object', additionalProperties: true },
+          items: {
+            type: 'object',
+            additionalProperties: true,
+          },
         },
         examples: [
-          [{ operation: 'replace', field: '/mail', value: 'a@example.com' }],
+          [
+            {
+              operation: 'replace',
+              field: '/mail',
+              value: 'a@example.com',
+            },
+          ],
         ],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Patch a connector object with namedArgs { systemName, systemObjectType, systemObjectId, operations }.',
   },
   'idm.system.deleteSystemObject': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'systemObjectId',
-        type: 'string',
-        required: true,
-        position: 2,
+      systemObjectId: {
         description: 'Connector object id to delete.',
         examples: ['uid=test,ou=people,dc=example,dc=com'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Delete a connector object with namedArgs { systemName, systemObjectType, systemObjectId }.',
   },
   'idm.system.queryAllSystemObjectIds': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'pageSize',
+      pageSize: {
         type: 'integer',
-        required: false,
-        position: 2,
         description:
           'Optional page size hint forwarded from the generic pageSize control.',
         examples: [100, 250],
       },
-      {
-        name: 'pageCookie',
-        type: 'string',
-        required: false,
-        position: 3,
+      pageCookie: {
         description:
           'Paged-results cookie. The generic pageToken control maps to this parameter.',
         examples: ['opaque-cookie-token'],
       },
-    ],
+    },
     supportsRealm: true,
     supportsPaging: true,
     notes:
@@ -2160,62 +1681,41 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.system.querySystemObjects': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'systemName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      systemName: {
         description: 'Connector/system name, for example ldap.',
         examples: ['ldap'],
       },
-      {
-        name: 'systemObjectType',
-        type: 'string',
-        required: true,
-        position: 1,
+      systemObjectType: {
         description: 'Connector object type, for example account.',
         examples: ['account'],
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: true,
-        position: 2,
+      filter: {
         description: 'Connector query filter, for example uid sw "a".',
         examples: ['uid sw "a"'],
       },
-      {
-        name: 'fields',
-        type: 'string[]',
-        required: false,
-        position: 3,
+      fields: {
         description: 'Optional list of fields to return.',
         schema: {
           type: 'array',
-          items: { type: 'string' },
+          items: {
+            type: 'string',
+          },
         },
         examples: [['uid', 'mail']],
       },
-      {
-        name: 'pageSize',
+      pageSize: {
         type: 'integer',
-        required: false,
-        position: 4,
         description:
           'Optional page size hint forwarded from the generic pageSize control.',
         examples: [100, 250],
       },
-      {
-        name: 'pageCookie',
-        type: 'string',
-        required: false,
-        position: 5,
+      pageCookie: {
         description:
           'Paged-results cookie. The generic pageToken control maps to this parameter.',
         examples: ['opaque-cookie-token'],
       },
-    ],
+    },
     supportsRealm: true,
     supportsPaging: true,
     notes:
@@ -2223,199 +1723,165 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'script.readScript': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptId: {
         description: 'Script UUID.',
         examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Use this when a node or journey references a script UUID.',
   },
   'script.readScriptByName': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptName: {
         description: 'Human-readable script name.',
         examples: ['Process SAML Data'],
       },
-    ],
+    },
     supportsRealm: true,
     notes: 'Use this when you know the script name rather than its UUID.',
   },
   'script.listScripts': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'filter',
-        type: 'ScriptFilter',
-        required: false,
-        position: 0,
+    parameterOverrides: {
+      filter: {
         description:
           'Optional script filter, e.g. { field: "context", value: "AUTHENTICATION_TREE_DECISION_NODE" }.',
-        schema: { type: 'object', additionalProperties: true },
+        schema: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
-      'Lightweight script enumeration — returns only { _id, name, context, language, evaluatorVersion, default } for every matching script, never the script body. Use this instead of script.readScripts to find/diff script ids or names in a realm with many scripts, since readScripts returns full bodies and can exceed the MCP response size limit. Use script.readScript/readScriptSource for one script\'s full detail or source once you have its id.',
+      "Lightweight script enumeration — returns only { _id, name, context, language, evaluatorVersion, default } for every matching script, never the script body. Use this instead of script.readScripts to find/diff script ids or names in a realm with many scripts, since readScripts returns full bodies and can exceed the MCP response size limit. Use script.readScript/readScriptSource for one script's full detail or source once you have its id.",
   },
   'script.readScriptSource': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptId: {
         description: 'Script UUID.',
         examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Returns only the decoded, plain-text script source (a bare string) — not the ScriptSkeleton wrapper with metadata. Use this when you only need the code itself, e.g. to review or diff script logic.',
   },
   'script.readScriptSourceByName': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptName',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptName: {
         description: 'Human-readable script name.',
         examples: ['Process SAML Data'],
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Same as script.readScriptSource, but looked up by name instead of UUID.',
   },
   'script.createScript': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptId: {
         description: 'Script UUID to create.',
         examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
       },
-      {
-        name: 'scriptName',
-        type: 'string',
-        required: false,
-        position: 1,
+      scriptName: {
         description:
           'Optional script display name. If omitted, MCP defaults it to scriptId.',
         examples: ['My OAUTH2_MAY_ACT Script'],
+        required: false,
       },
-      {
-        name: 'scriptData',
-        type: 'ScriptSkeleton',
-        required: true,
-        position: 2,
+      scriptData: {
         description:
           'Script payload object. For JavaScript, provide script as plain text or base64 and set context/language.',
         schema: {
           type: 'object',
           properties: {
-            context: { type: 'string' },
-            language: { type: 'string' },
-            script: { type: 'string' },
-            description: { type: 'string' },
+            context: {
+              type: 'string',
+            },
+            language: {
+              type: 'string',
+            },
+            script: {
+              type: 'string',
+            },
+            description: {
+              type: 'string',
+            },
           },
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
-      'Create a script by id. Prefer namedArgs { scriptId, scriptData } and optionally scriptName.',
+      'Create a script by id. Prefer namedArgs { scriptId, scriptData } and optionally scriptName.\n' +
+      "Available bindings and the script engine/evaluator depend on scriptData.context (see the ScriptContext union in ScriptApi.ts -- e.g. AUTHENTICATION_TREE_DECISION_NODE, OAUTH2_ACCESS_TOKEN_MODIFICATION, POLICY_CONDITION, CONFIG_PROVIDER_NODE, OIDC_CLAIMS, SAML2_IDP_ADAPTER, LIBRARY, etc.) and on evaluatorVersion (Frodo defaults new scripts to '1.0' -- AM's Legacy evaluator -- when unset; '2.0' is the Next Generation evaluator). Per docs.pingidentity.com/pingoneaic/latest/am-scripting/script-bindings.html, binding availability differs by evaluator generation: `openidm`, `policy`, `utils`, `cookieName`, and `emailService` are Next Generation-only; `httpClient` and `scriptName` are only partially available on Legacy; `logger`, `realm`, and `systemEnv` are on both; `jwtAssertion`/`jwtValidator` are documented specifically for OAuth 2.0, Scripted Decision, and SAML 2.0 contexts; `locales`/`journey` are documented for Config Provider, Scripted Decision, Device Match, and custom nodes. That page explicitly does not enumerate every binding for every context -- it directs readers to each script type's own doc page. Neither that page nor docs.pingidentity.com/pingoneaic/idm-scripting/scripting-func-engine.html (IDM's scripting function reference) names a specific script engine (e.g. Rhino/GraalJS), ECMAScript level, or timeout/sandboxing limit -- do not assume one; verify live against the target tenant if it matters for the task.",
   },
   'script.updateScript': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptId: {
         description: 'Script UUID to update.',
         examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
       },
-      {
-        name: 'scriptData',
-        type: 'ScriptSkeleton',
-        required: true,
-        position: 1,
+      scriptData: {
         description:
           'Script payload object. For JavaScript, provide script as plain text or base64 and set context/language.',
         schema: {
           type: 'object',
           properties: {
-            context: { type: 'string' },
-            language: { type: 'string' },
-            script: { type: 'string' },
-            description: { type: 'string' },
+            context: {
+              type: 'string',
+            },
+            language: {
+              type: 'string',
+            },
+            script: {
+              type: 'string',
+            },
+            description: {
+              type: 'string',
+            },
           },
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
-      'Update (or upsert) a script by id. Prefer namedArgs { scriptId, scriptData }.',
+      "Update (or upsert) a script by id. Prefer namedArgs { scriptId, scriptData }. See script.createScript's notes for engine/binding constraints per context and evaluator version.",
   },
   'script.updateScriptSource': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'scriptId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptId: {
         description: 'Script UUID to update.',
         examples: ['8e03eb43-ed5d-4c12-9e15-2051cc9be578'],
       },
-      {
-        name: 'source',
-        type: 'string',
-        required: true,
-        position: 1,
+      source: {
         description: 'New plain-text script source (not base64-encoded).',
       },
-    ],
+    },
     supportsRealm: true,
     notes:
-      'Updates only a script\'s source code, preserving all other metadata (name, context, language, etc.) untouched. Prefer this over script.updateScript when you only need to change the code itself — no need to fetch and re-send the full ScriptSkeleton.',
+      "Updates only a script's source code, preserving all other metadata (name, context, language, etc.) untouched. Prefer this over script.updateScript when you only need to change the code itself — no need to fetch and re-send the full ScriptSkeleton.",
   },
   'script.deleteScripts': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'resultCallback',
+    parameterOverrides: {
+      resultCallback: {
         type: 'ResultCallback<ScriptSkeleton>',
-        required: false,
-        position: 0,
         description:
           'Optional callback to process each deleted script as it is removed.',
       },
-      {
-        name: 'filter',
-        type: 'ScriptFilter',
-        required: false,
-        position: 1,
+      filter: {
         description:
           'Optional script filter selecting which non-default scripts to delete.',
         schema: {
@@ -2423,208 +1889,192 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
     notes:
       'Prefer namedArgs { filter } for MCP callers. resultCallback is primarily intended for in-process library usage.',
   },
   'oauth2oidc.client.createOAuth2Client': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'clientId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      clientId: {
         description: 'OAuth2 client id to create.',
         examples: ['my-test-client'],
       },
-      {
-        name: 'clientData',
+      clientData: {
         type: 'OAuth2ClientSkeleton',
-        required: true,
-        position: 1,
         description:
           'OAuth2 client payload object including core/advanced override configuration.',
         schema: {
           type: 'object',
           properties: {
-            coreOAuth2ClientConfig: { type: 'object' },
-            advancedOAuth2ClientConfig: { type: 'object' },
-            overrideOAuth2ClientConfig: { type: 'object' },
-            signEncOAuth2ClientConfig: { type: 'object' },
-            coreOpenIDClientConfig: { type: 'object' },
-            coreUmaClientConfig: { type: 'object' },
+            coreOAuth2ClientConfig: {
+              type: 'object',
+            },
+            advancedOAuth2ClientConfig: {
+              type: 'object',
+            },
+            overrideOAuth2ClientConfig: {
+              type: 'object',
+            },
+            signEncOAuth2ClientConfig: {
+              type: 'object',
+            },
+            coreOpenIDClientConfig: {
+              type: 'object',
+            },
+            coreUmaClientConfig: {
+              type: 'object',
+            },
           },
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
     notes:
-      'Create an OAuth2 client. Prefer namedArgs { clientId, clientData } so the target id and payload are explicit.',
+      "Create an OAuth2 client. Prefer namedArgs { clientId, clientData } so the target id and payload are explicit. Writes coreOAuth2ClientConfig.userpassword (the client secret) — confirmed via mock fixtures that reads mask this field to null, but writes carry the real value. Previously medium; the sensitive-keyword regex misses it since it's a payload field, not part of the method name.",
   },
   'oauth2oidc.client.updateOAuth2Client': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'clientId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      clientId: {
         description: 'OAuth2 client id to update.',
         examples: ['my-test-client'],
       },
-      {
-        name: 'clientData',
+      clientData: {
         type: 'OAuth2ClientSkeleton',
-        required: true,
-        position: 1,
         description:
           'OAuth2 client payload object including core/advanced override configuration.',
         schema: {
           type: 'object',
           properties: {
-            coreOAuth2ClientConfig: { type: 'object' },
-            advancedOAuth2ClientConfig: { type: 'object' },
-            overrideOAuth2ClientConfig: { type: 'object' },
-            signEncOAuth2ClientConfig: { type: 'object' },
-            coreOpenIDClientConfig: { type: 'object' },
-            coreUmaClientConfig: { type: 'object' },
+            coreOAuth2ClientConfig: {
+              type: 'object',
+            },
+            advancedOAuth2ClientConfig: {
+              type: 'object',
+            },
+            overrideOAuth2ClientConfig: {
+              type: 'object',
+            },
+            signEncOAuth2ClientConfig: {
+              type: 'object',
+            },
+            coreOpenIDClientConfig: {
+              type: 'object',
+            },
+            coreUmaClientConfig: {
+              type: 'object',
+            },
           },
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
     notes:
-      'Update or upsert an OAuth2 client. Prefer namedArgs { clientId, clientData } to avoid positional ambiguity.',
+      'Update or upsert an OAuth2 client. Prefer namedArgs { clientId, clientData } to avoid positional ambiguity. Same client-secret-write exposure as oauth2oidc.client.createOAuth2Client.',
   },
   'oauth2oidc.external.createSocialIdentityProvider': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'providerType',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      providerType: {
         description:
           'Social identity provider type, for example Google or Facebook.',
         examples: ['Google'],
       },
-      {
-        name: 'providerId',
-        type: 'string',
-        required: true,
-        position: 1,
+      providerId: {
         description: 'Identity provider id or name to create.',
         examples: ['my-google-idp'],
       },
-      {
-        name: 'providerData',
-        type: 'SocialIdpSkeleton',
-        required: true,
-        position: 2,
+      providerData: {
         description: 'Social identity provider payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
     notes:
-      'Create a social identity provider. Prefer namedArgs { providerType, providerId, providerData }.',
+      'Create a social identity provider. Prefer namedArgs { providerType, providerId, providerData }. Writes SocialIdpSkeleton.clientSecret — same name-vs-payload gap as oauth2oidc.client.createOAuth2Client, previously medium.',
   },
   'oauth2oidc.external.updateSocialIdentityProvider': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'providerType',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      providerType: {
         description:
           'Social identity provider type, for example Google or Facebook.',
         examples: ['Google'],
       },
-      {
-        name: 'providerId',
-        type: 'string',
-        required: true,
-        position: 1,
+      providerId: {
         description: 'Identity provider id or name to update.',
         examples: ['my-google-idp'],
       },
-      {
-        name: 'providerData',
-        type: 'SocialIdpSkeleton',
-        required: true,
-        position: 2,
+      providerData: {
         description: 'Social identity provider payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
     notes:
-      'Update or upsert a social identity provider. Prefer namedArgs { providerType, providerId, providerData }.',
+      'Update or upsert a social identity provider. Prefer namedArgs { providerType, providerId, providerData }. Same client-secret-write exposure as createSocialIdentityProvider.',
   },
   'oauth2oidc.issuer.createOAuth2TrustedJwtIssuer': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'issuerId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      issuerId: {
         description: 'Trusted JWT issuer id to create.',
         examples: ['my-trusted-issuer'],
       },
-      {
-        name: 'issuerData',
+      issuerData: {
         type: 'OAuth2TrustedJwtIssuerSkeleton',
-        required: true,
-        position: 1,
         description: 'Trusted JWT issuer payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
     notes:
-      'Create a trusted JWT issuer. Prefer namedArgs { issuerId, issuerData }.',
+      'Create a trusted JWT issuer. Prefer namedArgs { issuerId, issuerData }. No secret is stored, but this registers a trust anchor (issuer + public JWKS) accepted for the already-critical RFC 7523 JWT-bearer grant — auth-bypass-adjacent if misconfigured. Previously medium.',
   },
   'oauth2oidc.issuer.updateOAuth2TrustedJwtIssuer': {
     argumentMode: 'named',
-    parameters: [
-      {
-        name: 'issuerId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      issuerId: {
         description: 'Trusted JWT issuer id to update.',
         examples: ['my-trusted-issuer'],
       },
-      {
-        name: 'issuerData',
+      issuerData: {
         type: 'OAuth2TrustedJwtIssuerSkeleton',
-        required: true,
-        position: 1,
         description: 'Trusted JWT issuer payload object.',
         schema: {
           type: 'object',
           additionalProperties: true,
         },
       },
-    ],
+    },
     supportsRealm: true,
+    mutating: true,
+    riskClass: 'high',
     notes:
-      'Update or upsert a trusted JWT issuer. Prefer namedArgs { issuerId, issuerData }.',
+      'Update or upsert a trusted JWT issuer. Prefer namedArgs { issuerId, issuerData }. Same trust-anchor exposure as createOAuth2TrustedJwtIssuer.',
   },
 
   // ── IDM managed objects ─────────────────────────────────────────────────────
@@ -2674,7 +2124,6 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'list',
     objectType: 'LogSource',
     argumentMode: 'none',
-    parameters: [],
     supportsPaging: false,
     supportsIncludeTotal: false,
     requiredCredential: 'logApi',
@@ -2685,21 +2134,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'read',
     objectType: 'LogApiKey',
     argumentMode: 'positional',
-    parameters: [
-      {
-        name: 'keyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      keyId: {
         description: 'Log API key id.',
       },
-    ],
+    },
   },
   'cloud.log.getLogApiKeys': {
     operationType: 'list',
     objectType: 'LogApiKey',
     argumentMode: 'none',
-    parameters: [],
   },
   'cloud.log.isLogApiKeyValid': {
     // Not a resource read: validates a key id + secret pair and returns a boolean.
@@ -2710,22 +2154,14 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'low',
     argumentMode: 'positional',
     requiredCredential: 'logApi',
-    parameters: [
-      {
-        name: 'keyId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      keyId: {
         description: 'Log API key id.',
       },
-      {
-        name: 'secret',
-        type: 'string',
-        required: true,
-        position: 1,
+      secret: {
         description: 'Log API key secret.',
       },
-    ],
+    },
     notes: 'Validates a log API key id/secret pair; returns a boolean.',
   },
   'cloud.log.tail': {
@@ -2733,24 +2169,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     objectType: 'LogEvent',
     argumentMode: 'positional',
     requiredCredential: 'logApi',
-    parameters: [
-      {
-        name: 'source',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      source: {
         description:
           'Log source(s) to tail, comma-separated. am-core/idm-core/ws-core are DEBUG sources (no audit events); everything else is an AUDIT source. See cloud.log.getLogSources and cloud.log.fetch for the full taxonomy.',
         examples: ['am-core', 'am-authentication,idm-core'],
       },
-      {
-        name: 'cookie',
-        type: 'string',
-        required: false,
-        position: 1,
+      cookie: {
         description: 'Paged-results cookie from a previous tail call.',
       },
-    ],
+    },
     supportsPaging: true,
     supportsIncludeTotal: false,
     notes:
@@ -2761,51 +2189,27 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     objectType: 'LogEvent',
     argumentMode: 'named',
     requiredCredential: 'logApi',
-    parameters: [
-      {
-        name: 'source',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      source: {
         description:
           "Log source(s) to query, comma-separated. am-core/idm-core/ws-core are DEBUG sources (no audit events); everything else is an AUDIT source. See the source taxonomy in this method's notes, and cloud.log.getLogSources for the live list.",
         examples: ['am-core', 'am-authentication,idm-core'],
       },
-      {
-        name: 'startTs',
-        type: 'string',
-        required: false,
-        position: 1,
+      startTs: {
         description: 'Start timestamp (ISO 8601), inclusive.',
         examples: ['2026-08-14T00:00:00Z'],
       },
-      {
-        name: 'endTs',
-        type: 'string',
-        required: false,
-        position: 2,
+      endTs: {
         description: 'End timestamp (ISO 8601), exclusive.',
         examples: ['2026-08-15T00:00:00Z'],
       },
-      {
-        name: 'cookie',
-        type: 'string',
-        required: false,
-        position: 3,
+      cookie: {
         description: 'Paged-results cookie from a previous fetch call.',
       },
-      {
-        name: 'txid',
-        type: 'string',
-        required: false,
-        position: 4,
+      txid: {
         description: 'Optional transaction id to narrow the query to.',
       },
-      {
-        name: 'filter',
-        type: 'string',
-        required: false,
-        position: 5,
+      filter: {
         description:
           'CREST _queryFilter syntax: a leading-slash field path against the log payload, e.g. /payload/eventName eq "AM-TREE-LOGIN-COMPLETED". Operators: eq, co (contains), sw (starts with), pr (present); combine multiple with "and". Field paths WITHOUT the leading slash (payload.eventName, payload/eventName) or an unprefixed field both fail with an opaque 500 — the leading slash is not optional. Prefer filtering server-side over fetching unfiltered and post-filtering: results are capped by an inline size limit and returned oldest-first within the window, so an unfiltered fetch over a noisy tenant truncates before reaching what you want.',
         examples: [
@@ -2814,7 +2218,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           '/payload/transactionId sw "83da4a26-4156-4d1a-85a8-64ee5b719f1d"',
         ],
       },
-    ],
+    },
     supportsPaging: true,
     supportsIncludeTotal: false,
     notes:
@@ -2848,72 +2252,50 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     objectType: 'LogEvent',
     argumentMode: 'named',
     requiredCredential: 'logApi',
-    parameters: [
-      {
-        name: 'source',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      source: {
         description:
           'Log source(s) to search, comma-separated. Same source taxonomy as cloud.log.fetch.',
         examples: ['am-authentication', 'am-everything'],
       },
-      {
-        name: 'startTs',
-        type: 'string',
-        required: true,
-        position: 1,
+      startTs: {
         description: 'Start timestamp (ISO 8601), inclusive.',
         examples: ['2026-08-14T00:00:00Z'],
       },
-      {
-        name: 'endTs',
-        type: 'string',
-        required: true,
-        position: 2,
+      endTs: {
         description: 'End timestamp (ISO 8601), exclusive.',
         examples: ['2026-08-15T00:00:00Z'],
       },
-      {
-        name: 'eventNames',
-        type: 'string[]',
-        required: false,
-        position: 3,
+      eventNames: {
         description:
           'Optional event names to match, OR\'d together server-side (e.g. ["AM-TREE-LOGIN-COMPLETED"]). Omit to match every event in the source/window.',
-        schema: { type: 'array', items: { type: 'string' } },
+        schema: {
+          type: 'array',
+          items: {
+            type: 'string',
+          },
+        },
         examples: [['AM-TREE-LOGIN-COMPLETED'], ['AM-CONFIG-CHANGE']],
       },
-      {
-        name: 'principal',
-        type: 'string',
-        required: false,
-        position: 4,
+      principal: {
         description:
           'Optional substring matched against payload.userId (co). A realm-qualified substring like "o=alpha" scopes to genuine managed users in that realm; the DN-realm heuristic in cloud.log.fetch\'s notes explains why.',
         examples: ['o=alpha'],
       },
-      {
-        name: 'maxEvents',
+      maxEvents: {
         type: 'integer',
-        required: false,
-        position: 5,
         description:
           'Safety cap on total events fetched across auto-paginated pages.',
         defaultValue: 1000,
         examples: [200, 1000],
       },
-      {
-        name: 'dedupeByTransactionId',
-        type: 'boolean',
-        required: false,
-        position: 6,
+      dedupeByTransactionId: {
         description:
           'Collapse multiple events sharing a transaction id (e.g. a failed login attempt immediately followed by a successful retry) down to the last one seen, the actual outcome. Set false to see every raw event.',
         defaultValue: true,
         examples: [true, false],
       },
-    ],
+    },
     supportsPaging: false,
     supportsIncludeTotal: false,
     notes:
@@ -2950,16 +2332,16 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       'Executes a live RFC 7523 JWT-bearer authorization grant against the tenant, obtaining a real access token. Treat as credential issuance.',
   },
   'admin.generateRfc7523AuthZGrantArtefacts': {
-    mutating: false,
-    riskClass: 'high',
+    mutating: true,
+    riskClass: 'critical',
     notes:
-      'Generates local JWT-bearer grant artefacts (assertions/keys). No tenant call, but produces auth material.',
+      'Generates local JWT-bearer grant artefacts (assertions/keys). Previously documented as "no tenant call", but with options.save:true it actually calls updateOAuth2Client and updateOAuth2TrustedJwtIssuer, provisioning a real OAuth2 client scoped fr:am:*,fr:idm:*,openid — tenant-wide, admin-equivalent access. Treat as credential/trust-anchor issuance, not local-only artefact generation.',
   },
   'admin.generateRfc7523ClientAuthNArtefacts': {
-    mutating: false,
-    riskClass: 'high',
+    mutating: true,
+    riskClass: 'critical',
     notes:
-      'Generates local client-authentication artefacts. No tenant call, but produces auth material.',
+      'Generates local client-authentication artefacts. Previously documented as "no tenant call", but with options.save:true it calls updateOAuth2Client, provisioning a real confidential private_key_jwt OAuth2 client on the tenant. Treat as credential issuance, not local-only artefact generation.',
   },
   'admin.trainAA': {
     mutating: true,
@@ -2993,27 +2375,24 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'search',
     objectType: 'ScriptReference',
     argumentMode: 'positional',
-    parameters: [
-      {
-        name: 'scriptId',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      scriptId: {
         description:
           'Script id to find journey/node references to (the same id used by authn.journey/authz.* script fields, script.script.readScript, etc.).',
         examples: ['1234abcd-0000-1111-2222-abcdefabcdef'],
       },
-    ],
+    },
     mutating: false,
     riskClass: 'low',
     notes:
       'Answers "which journey uses this script?" — a config dependency question no other skill can answer, since the reference only lives on individual node objects (node.script), not on the journey itself or the script. Implemented as a full-realm scan (bulk-reads every node and every journey once, then joins in memory — no per-node fetches), so it stays cheap even on realms with many journeys. Each result reports the journey and the top-level node it actually references; when the script is used by a node nested inside a container node (e.g. a Page Node), the result also carries innerNodeId for the specific nested node, since a journey\'s own node map only ever points at the container. Returns an empty array, not an error, when nothing references the script.',
   },
   'authn.journey.getJourneyClassification': {
-    operationType: 'read',
-    objectType: 'JourneyClassification',
-    mutating: false,
-    riskClass: 'low',
+    // @deprecated since v4.0.0: "Frodo no longer classifies journeys as
+    // 'custom' or 'standard' or 'cloud-only' or 'premium'. This function
+    // will be removed in a future major release." ForgeRock's own JSDoc
+    // says the product no longer tracks this categorization.
+    excluded: true,
   },
   'authn.journey.getNodeRef': {
     // Takes a full NodeSkeleton + SingleTreeExportInterface as input, not a
@@ -3028,19 +2407,44 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'low',
   },
   'authn.journey.resolveDependencies': {
-    operationType: 'list',
-    objectType: 'JourneyDependency',
-    mutating: false,
-    riskClass: 'low',
+    // Returns Promise<void> and communicates its result only by mutating
+    // reference arguments (installedJorneys/journeyMap/etc.) in place — a
+    // pattern with no meaning across an MCP call boundary, since the caller
+    // never sees those mutated locals. Effectively a dead call over MCP.
+    excluded: true,
   },
-  'authn.journey.isCloudOnlyJourney': { mutating: false, riskClass: 'low' },
-  'authn.journey.isCustomJourney': { mutating: false, riskClass: 'low' },
-  'authn.journey.isPremiumJourney': { mutating: false, riskClass: 'low' },
+  'authn.journey.isCloudOnlyJourney': {
+    // @deprecated since v4.0.0, same rationale as getJourneyClassification.
+    excluded: true,
+  },
+  'authn.journey.isCustomJourney': {
+    // @deprecated since v4.0.0, same rationale as getJourneyClassification.
+    excluded: true,
+  },
+  'authn.journey.isPremiumJourney': {
+    // @deprecated since v4.0.0, same rationale as getJourneyClassification.
+    excluded: true,
+  },
   'authn.journey.fileByIdTreeExportResolver': {
     excluded: true, // internal resolver used by exportJourney, not a standalone operation
   },
   'authn.journey.onlineTreeExportResolver': {
     excluded: true, // internal resolver used by exportJourney, not a standalone operation
+  },
+  'authn.journey.createFileParamTreeExportResolver': {
+    // Returns a closure (function) — doesn't survive JSON serialization
+    // across the MCP boundary, same failure class as the excluded `factory`
+    // domain and the resolver methods directly above.
+    excluded: true,
+  },
+  'authn.journey.createMultiTreeExportTemplate': {
+    // Pure local builder (no API calls) that constructs an empty in-memory
+    // skeleton object — no agentic value standalone; a real export already
+    // returns the populated equivalent.
+    excluded: true,
+  },
+  'authn.journey.createSingleTreeExportTemplate': {
+    excluded: true, // same rationale as createMultiTreeExportTemplate
   },
 
   'authn.node.findOrphanedNodes': {
@@ -3056,10 +2460,9 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'low',
   },
   'authn.node.getNodeClassification': {
-    operationType: 'read',
-    objectType: 'NodeClassification',
-    mutating: false,
-    riskClass: 'low',
+    // @deprecated, same rationale as authn.journey.getJourneyClassification
+    // — ForgeRock no longer tracks node classification.
+    excluded: true,
   },
   'authn.node.removeOrphanedNodes': {
     operationType: 'delete',
@@ -3069,11 +2472,27 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'high',
     notes: 'Bulk-deletes orphaned node configuration objects.',
   },
-  'authn.node.isCloudExcludedNode': { mutating: false, riskClass: 'low' },
-  'authn.node.isCloudOnlyNode': { mutating: false, riskClass: 'low' },
-  'authn.node.isCustomNode': { mutating: false, riskClass: 'low' },
-  'authn.node.isDeprecatedNode': { mutating: false, riskClass: 'low' },
-  'authn.node.isPremiumNode': { mutating: false, riskClass: 'low' },
+  'authn.node.isCloudExcludedNode': {
+    excluded: true, // @deprecated, same rationale as getNodeClassification
+  },
+  'authn.node.isCloudOnlyNode': {
+    excluded: true, // @deprecated, same rationale as getNodeClassification
+  },
+  'authn.node.isCustomNode': {
+    // @deprecated, same rationale as getNodeClassification. Also has
+    // opposing, unreliable fallback behavior (default: case returns true)
+    // for any AM version not in its hardcoded list.
+    excluded: true,
+  },
+  'authn.node.isDeprecatedNode': {
+    // @deprecated, same rationale as getNodeClassification. Also has
+    // opposing, unreliable fallback behavior (default: case returns false)
+    // for any AM version not in its hardcoded list.
+    excluded: true,
+  },
+  'authn.node.isPremiumNode': {
+    excluded: true, // @deprecated, same rationale as getNodeClassification
+  },
 
   // Local SDK plumbing, not tenant capabilities. `cache` is frodo's local
   // encrypted token-cache bookkeeping; `conn` is frodo's local connection-profile
@@ -3109,6 +2528,13 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'cloud.env.cert.isCertificateActive': { mutating: false, riskClass: 'low' },
   'cloud.env.cert.isCertificateLive': { mutating: false, riskClass: 'low' },
+  'cloud.env.cert.updateCertificate': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes:
+      'Generic certificate update — but activateCertificate/deactivateCertificate are themselves thin wrappers that call this same update API with the active flag flipped. Calling this directly with active:false deactivates a live certificate exactly like deactivateCertificate, which is already high/destructive; this entry keeps the two in sync.',
+  },
   'cloud.env.enableAIAgentFeature': { mutating: true, riskClass: 'medium' },
   'cloud.env.enforceFederationFor': {
     mutating: true,
@@ -3116,6 +2542,26 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'high',
     notes:
       'Enforces federated login for a target, which can lock out password-based access.',
+  },
+  'cloud.env.readServiceAccountScopes': {
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'Returns the static catalog of available service-account scope name strings (e.g. fr:idm:*) — not any account\'s credentials or granted scopes. Explicit override corrects the keyword-based critical default triggered by "ServiceAccount" in the method name.',
+  },
+  'cloud.env.updateFederationEnforcement': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes:
+      "Generic federation-enforcement update — but enforceFederationFor is a thin wrapper that calls this same underlying API. Kept in sync with enforceFederationFor's high/destructive classification (can lock out password-based access).",
+  },
+  'cloud.env.updateSSOCookieConfig': {
+    mutating: true,
+    destructive: true,
+    riskClass: 'high',
+    notes:
+      "Generic SSO-cookie-config update, writing the same resource resetSSOCookieConfig restores to defaults. Kept in sync with resetSSOCookieConfig's high/destructive classification (can invalidate active sessions).",
   },
   'cloud.env.promotion.lockEnvironment': {
     mutating: true,
@@ -3157,10 +2603,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   'cloud.env.verifyCNAME': { mutating: false, riskClass: 'low' },
 
   'cloud.esvCount.getEsvCount': {
-    operationType: 'count',
-    objectType: 'Esv',
-    mutating: false,
-    riskClass: 'low',
+    // frodo.cloud.esvCount is @deprecated since v2.0.4, "use
+    // frodo.cloud.getEsvCount instead" — both are literally the same
+    // EsvCountOps(state) instance spread onto two graph locations.
+    excluded: true,
   },
   'cloud.getEsvCount': {
     operationType: 'count',
@@ -3169,12 +2615,26 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'low',
   },
 
+  'cloud.adminFed.createAdminFederationExportTemplate': {
+    // Pure local function returning an empty {meta, config:{}, idp:{}}
+    // shell — never calls the API. Internal helper used by the export
+    // functions, no useful standalone output.
+    excluded: true,
+  },
+
   'cloud.feature.hasFeature': { mutating: false, riskClass: 'low' },
 
   'cloud.iga.workflow.publishWorkflow': {
     mutating: true,
+    destructive: true,
     riskClass: 'medium',
-    notes: 'Publishes a workflow definition, making it active.',
+    notes:
+      'Publishes a workflow definition, making it active. Also deletes the workflow\'s draft version as a side effect if one exists — confirmed by the implementation\'s own comment that publishing "ends up deleting the draft workflow if it exists."',
+  },
+
+  'cloud.iga.workflow.updateWorkflow': {
+    notes:
+      'Calls the same underlying publish API as cloud.iga.workflow.publishWorkflow — and inherits its side effect of deleting the draft version — whenever the update payload sets status to "published". Not unconditionally destructive like publishWorkflow, since most updates leave status untouched, so no blanket destructive override is applied here; callers changing status should expect draft loss.',
   },
 
   'cloud.secret.disableVersionOfSecret': { mutating: true, destructive: true },
@@ -3208,17 +2668,27 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
 
   'cloud.variable.getVariable': {
+    // @deprecated 1:1 alias of readVariable, same underlying call — same
+    // precedent as the existing utils.getHostBaseUrl exclusion.
+    excluded: true,
+  },
+  'cloud.variable.getVariables': {
+    // @deprecated 1:1 alias of readVariables.
+    excluded: true,
+  },
+  'cloud.variable.readVariable': {
     operationType: 'read',
     objectType: 'Variable',
     mutating: false,
     riskClass: 'medium',
     notes: 'ESV variables may hold sensitive-but-unclassified config values.',
   },
-  'cloud.variable.getVariables': {
+  'cloud.variable.readVariables': {
     operationType: 'list',
     objectType: 'Variable',
     mutating: false,
     riskClass: 'medium',
+    notes: 'ESV variables may hold sensitive-but-unclassified config values.',
   },
   'cloud.variable.resolveVariable': {
     operationType: 'read',
@@ -3227,16 +2697,21 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'medium',
   },
   'cloud.variable.putVariable': {
-    operationType: 'update',
-    objectType: 'Variable',
-    mutating: true,
-    riskClass: 'medium',
+    // @deprecated 1:1 alias of updateVariable — inference already gives
+    // updateVariable itself the correct medium/mutating classification, no
+    // override needed there.
+    excluded: true,
   },
   'cloud.variable.setVariableDescription': {
+    // @deprecated 1:1 alias of updateVariableDescription.
+    excluded: true,
+  },
+  'cloud.variable.updateVariableDescription': {
     operationType: 'update',
     objectType: 'Variable',
     mutating: true,
     riskClass: 'low',
+    notes: 'Updates only the description field — no sensitive value exposure.',
   },
 
   'cloud.wsfed.generateSigningKeyPair': {
@@ -3267,23 +2742,15 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'read',
     objectType: 'ManagedObjectName',
     argumentMode: 'positional',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id (UUID).',
       },
-    ],
+    },
     mutating: false,
     riskClass: 'low',
   },
@@ -3291,12 +2758,8 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'read',
     objectType: 'ManagedObjectName',
     argumentMode: 'positional',
-    parameters: [
-      {
-        name: 'idOrDn',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      idOrDn: {
         description:
           "A managed/system object uuid, or a full userId DN (e.g. from an audit log event's userId field). A DN qualified under a realm (...,o=<realm>,ou=services,ou=am-config) resolves as that realm's managed user; a DN with no realm segment (...,ou=am-config) is AM-internal and is checked against service-account and tenant-admin managed system object types instead.",
         examples: [
@@ -3304,16 +2767,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
           'a2245410-33a6-4442-9f3b-453c9aaf158a',
         ],
       },
-      {
-        name: 'realm',
-        type: 'string',
-        required: false,
-        position: 1,
+      realm: {
         description:
           'Realm override, only consulted when idOrDn is a bare uuid with no DN to derive a realm from. Ignored if idOrDn is a DN that already carries its own realm segment.',
         examples: ['alpha'],
       },
-    ],
+    },
     mutating: false,
     // Unlike idm.managedSystem.* (arbitrary-field reads on raw teammember/
     // svcacct objects, critical/admin-only), this always requests a fixed,
@@ -3333,27 +2792,30 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     operationType: 'read',
     objectType: 'ManagedObjectName',
     argumentMode: 'positional',
-    parameters: [
-      {
-        name: 'type',
-        type: 'string',
-        required: true,
-        position: 0,
+    parameterOverrides: {
+      type: {
         description: 'Managed object type, for example alpha_user.',
         examples: ['alpha_user'],
       },
-      {
-        name: 'id',
-        type: 'string',
-        required: true,
-        position: 1,
+      id: {
         description: 'Managed object id (UUID).',
       },
-    ],
+    },
     mutating: false,
     riskClass: 'low',
   },
 
+  'idm.mapping.createMappingExportTemplate': {
+    // Pure local builder (no API calls), used internally by exportMapping/
+    // exportMappings — no standalone value to an agent.
+    excluded: true,
+  },
+  'idm.mapping.importFirstMapping': {
+    // Imports whichever mapping happens to be "first" by an unpredictable,
+    // insertion-order-dependent heuristic. importMapping (explicit id) and
+    // importMappings (all) already cover every deliberate agent intent.
+    excluded: true,
+  },
   'idm.mapping.isLegacyMapping': { mutating: false, riskClass: 'low' },
 
   'idm.organization.getRealmManagedOrganization': {
@@ -3435,15 +2897,50 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       'Returns live bearer/session tokens for the current identity. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin).',
   },
 
+  'am.config.createConfigEntityExportTemplate': {
+    // Pure local builder (no API calls), used internally by
+    // exportAmConfigEntities — no standalone value to an agent.
+    excluded: true,
+  },
+
+  'config.exportFullConfiguration': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Exports the entire tenant configuration in one call, whose graph includes cloud.secret.exportSecrets (ESV secret values), secretStore.exportSecretStores (global and per-realm), and OAuth2/SAML/social-IdP client configs. Previously medium purely from the export operationType default; the aggregate payload is at least as sensitive as any individual secret-bearing export it pulls in.',
+  },
+  'config.importFullConfiguration': {
+    mutating: true,
+    riskClass: 'critical',
+    notes:
+      'Writes back the same secret-bearing payload set (ESV secrets, secret stores, OAuth2/SAML/social-IdP client configs) that config.exportFullConfiguration reads. Previously high via the import operationType default; bumped to critical to match the sensitivity of what it actually writes.',
+  },
+
+  'rawConfig.exportRawConfig': {
+    // Arbitrary-path GET passthrough to the AM/IDM/environment API roots
+    // with no per-endpoint semantics — can reach secret/credential
+    // endpoints directly, undercutting every other capability's risk
+    // classification. Excluded rather than reclassified: no riskClass is
+    // meaningful for an operation whose actual sensitivity is entirely
+    // determined by a caller-supplied path.
+    excluded: true,
+  },
+  'rawConfig.importRawConfig': {
+    // Same escape-hatch shape as rawConfig.exportRawConfig, but as a write
+    // (PUT) passthrough to arbitrary AM/IDM/environment paths — strictly
+    // higher risk than the read side. Excluded for the same reason.
+    excluded: true,
+  },
+
   'oauth2oidc.endpoint.accessToken': { mutating: true },
   'oauth2oidc.endpoint.accessTokenRfc7523AuthZGrant': { mutating: true },
   'oauth2oidc.endpoint.clientCredentialsGrant': { mutating: true },
   'oauth2oidc.endpoint.getTokenInfo': { mutating: false },
   'oauth2oidc.endpoint.authorize': {
     mutating: true,
-    riskClass: 'high',
+    riskClass: 'critical',
     notes:
-      'Initiates a live OAuth2 authorization request against the tenant. Explicit override — the method name does not match the credential-keyword inference.',
+      'Initiates a live OAuth2 authorization request against the tenant, POSTing a fully caller-controlled AxiosRequestConfig (arbitrary headers, e.g. Cookie/Authorization) to the live /oauth2/authorize endpoint — same risk shape as its sibling endpoint.* methods (accessToken, accessTokenRfc7523AuthZGrant, clientCredentialsGrant, getTokenInfo, all critical via the credential-keyword inference), usable toward session/auth-code hijacking. Explicit override because the method name itself does not match the credential-keyword inference the way its siblings do.',
   },
 
   'realm.addCustomDomain': {
@@ -3504,6 +3001,249 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     ],
     notes:
       "Reads the current AM session — username/universalId of the authenticated subject, realm, and session expiration. Works for both admin and service-account-authenticated MCP sessions, but the sessions differ in kind: an admin session is a real login session (session-length maxSessionExpirationTime, hours out); a service account has no real AM session at all — this reads a short-lived session synthesized as a workaround so bearer-token-only credentials can still call AM's session-cookie-based endpoints, and its maxSessionExpirationTime is only minutes past latestAccessTime, not a reliable long-lived value. info.getInfo's authenticatedSubject field is the more architecturally reliable identity check for both credential types (no session dependency at all, verified live against both), but currently sits at critical risk itself because its raw response also carries live session/bearer tokens — pending redaction or a dedicated minimal skill, not a drop-in lower-risk substitute today.",
+  },
+
+  // ---------------------------------------------------------------------
+  // utils.* — reviewed against "would an autonomous agentic MCP client
+  // plausibly call this directly", not "does the library use it
+  // internally". Entries below are internal plumbing, CLI/build
+  // bookkeeping, no-op stubs, or trivial data-shuffling that adds nothing
+  // over what the caller already holds in its own MCP call args; every
+  // other utils.* capability (base64, crypto, jose, script validation, and
+  // the rest of ExportImportUtils/ForgeRockUtils/JsonUtils) is kept.
+  // ---------------------------------------------------------------------
+
+  'utils.getMetadata': {
+    // Builds the {origin, originAmVersion, exportedBy, exportDate,
+    // exportTool, exportToolVersion} block stamped into Frodo's own
+    // export-file `meta` field — internal bookkeeping consumed by
+    // saveJsonToFile, not a general tenant/version query.
+    excluded: true,
+  },
+
+  'utils.getRealmString': {
+    // Converts the current realm path into a TitleCase-concatenated token
+    // (e.g. /alpha/beta -> AlphaBeta) purely for Frodo's own
+    // filename/naming conventions, not usable realm data.
+    excluded: true,
+  },
+
+  'utils.substituteEnvParams': {
+    // Second argument is a properties-reader Reader instance (a parsed
+    // .properties file), not a plain JSON value — no MCP JSON payload can
+    // construct one, so this is uncallable via MCP in practice.
+    excluded: true,
+  },
+
+  'utils.unSubstituteEnvParams': {
+    // Same Reader-instance-argument problem as substituteEnvParams.
+    excluded: true,
+  },
+
+  'utils.titleCase': {
+    // Trivial text-casing an LLM already produces natively in its own
+    // output; not FR/IDM domain-specific.
+    excluded: true,
+  },
+
+  'utils.validateImport': {
+    // Implementation is literally `return metadata || true;` — it
+    // performs no actual validation and always returns truthy, so exposing
+    // it as "validateImport" is actively misleading.
+    excluded: true,
+  },
+
+  'utils.getHostBaseUrl': {
+    // Its own JSDoc says "@deprecated since v2.1.2 use getHostUrl
+    // instead" — identical behavior to utils.getHostUrl under a different
+    // name.
+    excluded: true,
+  },
+
+  'utils.getRealmPath': {
+    // Builds the raw CREST realm path used internally when the AM API
+    // layer constructs request URLs; every domain capability that takes a
+    // realm already builds this itself, so there's no scenario where an
+    // agent needs to hand-construct one.
+    excluded: true,
+  },
+
+  'utils.getRealmsForExport': {
+    // Lists realms in Frodo's own obscure export-directory token format
+    // (e.g. root-first-second), purely to name export folders — not a
+    // usable realm listing.
+    excluded: true,
+  },
+
+  'utils.getRealmUsingExportFormat': {
+    // Reverses getRealmsForExport's token format back to a realm path;
+    // only meaningful paired with that internal naming scheme.
+    excluded: true,
+  },
+
+  'utils.getFrodoHome': {
+    // Returns the local ~/.frodo directory used by frodo-cli's own
+    // connection-profile bootstrap — reveals the host filesystem's home
+    // directory and is meaningful only to the CLI's own config location,
+    // not to any tenant the agent is managing.
+    excluded: true,
+  },
+
+  'utils.getHelpMetadata': {
+    // Dumps frodo-lib's entire generated Help.ts JSDoc catalog. That same
+    // data already flows into every tool's own MCP parameter schema via
+    // deriveParametersFromHelp in CapabilityRegistry.ts, so calling this
+    // as a tool just re-fetches metadata the agent already has through the
+    // standard MCP tool listing.
+    excluded: true,
+  },
+
+  'utils.getHelpMetadataByMethod': {
+    // Same redundancy as utils.getHelpMetadata, filtered by method name.
+    excluded: true,
+  },
+
+  'utils.json.cloneDeep': {
+    // `JSON.parse(JSON.stringify(obj))` — called via MCP this just
+    // returns the same object the caller just sent, with zero new
+    // information.
+    excluded: true,
+  },
+
+  'utils.json.findInArray': {
+    // Trivial key/value filter over an array the agent already has in its
+    // own call args; no value beyond what's already visible in the JSON
+    // it's holding.
+    excluded: true,
+  },
+
+  'utils.json.get': {
+    // Trivial nested-path getter over an object already in the agent's
+    // own context.
+    excluded: true,
+  },
+
+  'utils.json.put': {
+    // Trivial nested-path setter; the agent can just construct the nested
+    // value directly in whatever payload it's building next.
+    excluded: true,
+  },
+
+  'utils.json.getPaths': {
+    // Its own doc comment: "This function was explicitly created for the
+    // shell command in the Frodo CLI and has some special casing that may
+    // not leave it generic enough to be used for what its name implies."
+    // It also stringifies function *source code* when walking
+    // function-valued properties — special-cased for the CLI shell's own
+    // object-graph walk, not general JSON.
+    excluded: true,
+  },
+
+  'utils.version.getVersion': {
+    // Returns frodo-lib's own npm package version — library-build
+    // bookkeeping for the CLI's --version, not tenant data.
+    excluded: true,
+  },
+
+  'utils.version.getBuildTimestamp': {
+    // frodo-lib's own build ISO timestamp — same category as
+    // utils.version.getVersion.
+    excluded: true,
+  },
+
+  'utils.version.getAllVersions': {
+    // Internal plumbing for the CLI's own release/update-check dashboard:
+    // takes an arbitrary array of {base, path} endpoint pairs and fires a
+    // raw GET at each — an open-ended, caller-controlled URL fetcher with
+    // no tenant scoping, not a meaningful bounded operation.
+    excluded: true,
+  },
+
+  'utils.jose.createJwkRsa': {
+    riskClass: 'critical',
+    // Generates and returns a brand-new RSA private key (the full JwkRsa,
+    // including d/p/q/dp/dq/qi) — not caught by the generic sensitive-name
+    // regex in inferRiskClass because "jwk" alone isn't a safe keyword to
+    // blanket-match (utils.jose.getJwkRsaPublic deliberately returns only
+    // the public half and must stay low-risk).
+    notes:
+      'Generates new RSA private key material. Distinct from utils.jose.getJwkRsaPublic, which strips private components and is safe at low risk.',
+  },
+
+  // ---------------------------------------------------------------------
+  // Full-inventory risk sweep (11 parallel domain reviews, same method as
+  // the utils.* review above): create*ExportTemplate exclusions, deprecated
+  // duplicates, and under/over-classified riskClass findings across the
+  // rest of the capability surface.
+  // ---------------------------------------------------------------------
+
+  // --- pure local create*ExportTemplate scaffolds: no API call, no value
+  // to an agent beyond what the real export* method already returns. ---
+  'authz.policy.createPolicyExportTemplate': { excluded: true },
+  'authz.policySet.createPolicySetExportTemplate': { excluded: true },
+  'oauth2oidc.client.createOAuth2ClientExportTemplate': { excluded: true },
+  'oauth2oidc.issuer.createOAuth2TrustedJwtIssuerExportTemplate': {
+    excluded: true,
+  },
+  'app.createApplicationExportTemplate': { excluded: true },
+  'role.createInternalRoleExportTemplate': { excluded: true },
+  'saml2.circlesOfTrust.createCirclesOfTrustExportTemplate': {
+    excluded: true,
+  },
+  'script.createScriptExportTemplate': { excluded: true },
+  'scriptType.createScriptTypeExportTemplate': { excluded: true },
+  'secretStore.createSecretStoreExportTemplate': { excluded: true },
+  'theme.createThemeExportTemplate': { excluded: true },
+  'email.template.createEmailTemplateExportTemplate': { excluded: true },
+  'server.createServerExportTemplate': { excluded: true },
+  'service.createServiceExportTemplate': { excluded: true },
+  'site.createSiteExportTemplate': { excluded: true },
+  'user.createUserExportTemplate': { excluded: true },
+  'user.createUserGroupExportTemplate': { excluded: true },
+
+  // --- server/service config export & listing: payloads embed real
+  // credentials (config/CTS-store LDAP bind password, OAuth/SMTP client
+  // secrets) that the method NAME never mentions, so the sensitive-keyword
+  // inference can't catch them the way it catches e.g. cloud.secret.*. ---
+  'server.exportServer': {
+    mutating: false,
+    riskClass: 'high',
+    notes:
+      "Pulls the AM server's directoryConfiguration and cts property groups, which include the config-store/CTS-store LDAP bind Login ID and Password for that server. Previously medium purely from the export operationType default.",
+  },
+  'server.exportServerByUrl': {
+    mutating: false,
+    riskClass: 'high',
+    notes: 'Same payload shape as server.exportServer.',
+  },
+  'server.exportServers': {
+    mutating: false,
+    riskClass: 'high',
+    notes: 'Same payload shape as server.exportServer, for every server.',
+  },
+  'service.getListOfServices': {
+    mutating: false,
+    riskClass: 'high',
+    notes:
+      'AM has no true "names only" list endpoint, so this uses _action=nextdescendents on the services collection and returns each service\'s full top-level attributes — potentially including secret fields (e.g. the SMTP/EmailService transport password). Previously low.',
+  },
+  'service.getFullServices': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      "Explicitly walks every service's descendants (e.g. each SocialIdentityProviders entry's OAuth client secret). Previously low.",
+  },
+  'service.exportService': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Wraps the same full-service-config content as service.getFullServices. Previously medium.',
+  },
+  'service.exportServices': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Wraps the same full-service-config content as service.getFullServices, for every service. Previously medium.',
   },
 };
 

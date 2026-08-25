@@ -316,7 +316,7 @@ describe('NodeOps', () => {
             state,
           });
         } catch (error) {
-          expect(error.response.data).toMatchSnapshot();
+          expect(error.originalErrors[0].response.data).toMatchSnapshot();
         }
       });
     });

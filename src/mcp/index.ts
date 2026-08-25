@@ -107,6 +107,7 @@ export {
   McpToolRuntimeTraceEvent,
   McpToolRuntimeTraceHandler,
   createToolRuntime,
+  getRealmFromContext,
   resolveRequestScopedFrodo,
 } from './ToolRuntime';
 export {

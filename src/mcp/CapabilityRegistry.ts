@@ -20,10 +20,40 @@ import {
   McpCapabilityParameter,
   McpCapabilityRiskClass,
   McpToolAnnotations,
+  OperationCapabilityMeta,
 } from './CapabilityTypes';
 
-/** Top-level domain keys excluded from the capability inventory by default. */
-const DEFAULT_EXCLUDED_TOP_LEVEL_DOMAINS = new Set<string>(['state']);
+/**
+ * Top-level domain keys excluded from the capability inventory by default.
+ *
+ * @remarks
+ * `cache` (TokenCacheOps) manages the local on-disk, machine-wide token
+ * cache used to bootstrap CLI sessions — a shared file keyed by
+ * host/realm/subject, not scoped to any one process. Its `read*`/`save*`
+ * methods expose or let a caller inject live session/bearer-token
+ * credential material, and `flush` unconditionally wipes every cached
+ * token for every host/realm on the machine. None of this is tenant data
+ * an agentic client should ever need, and frodo-lib has no visibility into
+ * whether the embedding CLI session even has token caching enabled (see
+ * `State.getUseTokenCache`) — `TokenCacheOps.ts` itself performs full file
+ * I/O unconditionally regardless of that flag. Excluded unconditionally,
+ * the same way `state` is, rather than gated dynamically.
+ *
+ * `factory` (ApiFactoryOps) generates raw, pre-authenticated Axios API
+ * client instances (AM/IDM/log/governance/env/release) with a
+ * caller-controlled `requestOverride`. It's an instance-factory helper in
+ * the same category as {@link DEFAULT_INSTANCE_HELPERS} — not a managed-
+ * object operation — and its return value (a function) doesn't survive
+ * JSON serialization today, so calling it via MCP is currently just
+ * broken rather than a live arbitrary-request proxy. Excluding it removes
+ * both the dead capability and the latent risk of it becoming a real one
+ * if the runtime's serialization ever changes.
+ */
+const DEFAULT_EXCLUDED_TOP_LEVEL_DOMAINS = new Set<string>([
+  'state',
+  'cache',
+  'factory',
+]);
 
 /**
  * Frodo instance factory helpers that should never appear as MCP tools.
@@ -163,6 +193,45 @@ function shouldIncludeMethod(path: string[]): boolean {
 }
 
 /**
+ * Applies a capability's `excludeParameters`/`parameterOverrides` metadata
+ * on top of its auto-derived parameter list.
+ *
+ * @remarks
+ * The auto-derived list (from Help.ts, falling back to name-based
+ * inference) is always the baseline for which parameters exist, their
+ * order, and their `required`ness — a hand-authored `CAPABILITY_META` entry
+ * can only annotate a real, currently-derived parameter (by name) or
+ * exclude one; it can never fabricate a parameter that isn't in the
+ * baseline, since `parameterOverrides` keys that don't match a baseline
+ * parameter name are silently inert here (see the
+ * `describe capability parameter overlays` test suite for the drift check
+ * that turns a stale/renamed key into a failure instead).
+ *
+ * @param baseline Auto-derived parameters for this capability, or
+ *   `undefined` if neither Help.ts nor name-based inference produced any.
+ * @param meta Resolved capability metadata, if any.
+ * @returns The overlaid parameter list, or `undefined` if there's nothing
+ *   to report (mirrors the baseline's own undefined-when-empty contract).
+ */
+function applyParameterOverlay(
+  baseline: McpCapabilityParameter[] | undefined,
+  meta: OperationCapabilityMeta | undefined
+): McpCapabilityParameter[] | undefined {
+  if (!baseline) {
+    return undefined;
+  }
+  const excluded = new Set(meta?.excludeParameters ?? []);
+  const overrides = meta?.parameterOverrides;
+  const overlaid = baseline
+    .filter((parameter) => !excluded.has(parameter.name))
+    .map((parameter) => {
+      const overlay = overrides?.[parameter.name];
+      return overlay ? { ...parameter, ...overlay } : parameter;
+    });
+  return overlaid.length > 0 ? overlaid : undefined;
+}
+
+/**
  * Builds a fully populated {@link McpCapabilityDescriptor} for the method at
  * the given path by running all inference helpers.
  *
@@ -190,10 +259,10 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
   const annotations = inferAnnotations(operationType, mutating, destructive);
 
   const argumentMode = meta?.argumentMode ?? inferArgumentMode(operationType);
-  const parameters =
-    meta?.parameters ??
+  const derivedParameters =
     deriveParametersFromHelp(methodName) ??
     inferParameters(methodName, objectType, operationType);
+  const parameters = applyParameterOverlay(derivedParameters, meta);
   const supportsPaging =
     meta?.supportsPaging ??
     (operationType === 'list' || operationType === 'search');
@@ -268,11 +337,15 @@ function inferArgumentMode(
  * prose), so it can't silently disagree with the compiler the way a
  * hand-authored {@link OperationCapabilityMeta.parameters} override or the
  * operationType-based `inferParameters` default can. Method names are
- * effectively unique across the library (729 of 733 as of this writing; the
- * remaining 4 collisions are `ManagedObject`/`ManagedSystemObject` relationship
- * methods that share an identical parameter shape), so a lookup by bare
- * method name — without needing a typeName-to-domain-path bridge table — is
- * sufficient to resolve the right entry.
+ * effectively unique across the library (806 of 811 as of this writing).
+ * Four of the five collisions are `ManagedObject`/`ManagedSystemObject`
+ * relationship methods that share an identical parameter shape; the fifth,
+ * `getRealmUsingExportFormat`, is a pre-existing duplicate method signature
+ * inside `FRUtils` in src/utils/ForgeRockUtils.ts (harmless here since both
+ * declarations describe the same real function, but worth cleaning up at
+ * the source). A lookup by bare method name — without needing a
+ * typeName-to-domain-path bridge table — is sufficient to resolve the right
+ * entry.
  *
  * Takes priority over `inferParameters`'s naming-convention default: that
  * default forces an empty parameter list for any method classified as `list`
@@ -282,8 +355,9 @@ function inferArgumentMode(
  *
  * @param methodName Bare method name to look up.
  * @returns Derived parameters, or `undefined` if Help.ts has no entry for
- *   this method (e.g. methods outside `src/ops/**`, which generate-help.mjs
- *   does not scan).
+ *   this method (e.g. methods outside `src/ops/**` and `src/utils/**`, which
+ *   generate-help.mjs does not scan, or methods declared outside an
+ *   `export type X = {...}` interface block).
  */
 function deriveParametersFromHelp(
   methodName: string
@@ -417,6 +491,15 @@ function normalizeObjectTypeSuffix(suffix: string): string {
 /**
  * Infers a baseline risk class from the operation and method name.
  *
+ * @remarks
+ * The sensitive-keyword check runs before the operation-type branches, not
+ * after: a `create`/`update`/`export` on a secret, credential, or
+ * service-account is at least as sensitive as reading one, but until this
+ * ordering was fixed the operation-type branches returned first and the
+ * keyword check never ran, silently capping methods like
+ * `cloud.secret.createSecret` and `cloud.serviceAccount.createServiceAccount`
+ * at `'medium'` no matter what they were named.
+ *
  * @param operationType Inferred operation type.
  * @param methodName Method name used for keyword-based risk escalation.
  * @returns Inferred risk class.
@@ -425,13 +508,17 @@ export function inferRiskClass(
   operationType: McpCapabilityOperationType,
   methodName: string
 ): McpCapabilityRiskClass {
+  if (
+    /secret|password|token|credential|serviceAccount|apiKey|privateKey/i.test(
+      methodName
+    )
+  ) {
+    return 'critical';
+  }
   if (operationType === 'delete') return 'high';
   if (operationType === 'import') return 'high';
   if (operationType === 'export') return 'medium';
   if (operationType === 'create' || operationType === 'update') return 'medium';
-  if (/secret|password|token|credential|serviceAccount/i.test(methodName)) {
-    return 'critical';
-  }
   return 'low';
 }
 

@@ -10,6 +10,11 @@ const getManagedSystemObject = jest.fn(async () => ({
 jest.unstable_mockModule('../../api/ManagedSystemObjectApi', () => ({
   createManagedSystemObject: jest.fn(),
   getManagedSystemObject,
+  // Real constant, not a stub: IdmConfigOps.ts (transitively imported via
+  // FeatureOps -> Console -> State -> ... -> EmailTemplateOps) imports this
+  // named export too, and an incomplete mock factory breaks the whole
+  // module graph's ESM linking, not just this file's own imports.
+  MANAGED_SYSTEM_OBJECT_TYPES: ['svcacct', 'teammember'],
 }));
 jest.unstable_mockModule('../AuthenticateOps', () => ({
   getFreshSaBearerToken: jest.fn(),

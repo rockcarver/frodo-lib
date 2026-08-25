@@ -10,7 +10,7 @@ import { State } from '../shared/State';
 import { debugMessage, printMessage } from '../utils/Console';
 import { getMetadata } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 import { ExportMetaData } from './OpsTypes';
 
 export type OAuth2TrustedJwtIssuer = {
@@ -275,7 +275,7 @@ export async function readOAuth2TrustedJwtIssuer({
   state: State;
 }): Promise<OAuth2TrustedJwtIssuerSkeleton> {
   try {
-    return _getOAuth2TrustedJwtIssuer({ id: issuerId, state });
+    return await _getOAuth2TrustedJwtIssuer({ id: issuerId, state });
   } catch (error) {
     throw new FrodoError(
       `Error reading ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId}`,
@@ -305,8 +305,13 @@ export async function createOAuth2TrustedJwtIssuer({
   });
   try {
     await readOAuth2TrustedJwtIssuer({ issuerId, state });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw new FrodoError(
+        `Error checking if ${getCurrentRealmName(state) + ' realm'} trusted issuer ${issuerId} already exists`,
+        error
+      );
+    }
     try {
       const result = await updateOAuth2TrustedJwtIssuer({
         issuerId,

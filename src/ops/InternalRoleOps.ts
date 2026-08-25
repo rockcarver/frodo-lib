@@ -88,8 +88,8 @@ export type InternalRole = {
   deleteInternalRoles(): Promise<InternalRoleSkeleton[]>;
   /**
    * Query internal roles
-   * @param filter CREST search filter
-   * @param fields array of fields to return
+   * @param {string} filter CREST search filter
+   * @param {string[]} fields array of fields to return
    */
   queryInternalRoles(
     filter: string,

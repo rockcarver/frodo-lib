@@ -70,7 +70,7 @@ import {
   readEmailTemplate,
   updateEmailTemplate,
 } from './EmailTemplateOps';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 import {
   createSocialIdentityProvider,
   readSocialIdentityProviders,
@@ -158,6 +158,7 @@ export type Journey = {
   /**
    * Create journey without dependencies.
    * @param {string} journeyId journey id/name
+   * @param {TreeSkeleton} journeyData journey payload object
    * @returns {Promise<TreeSkeleton>} a promise that resolves to a journey object
    */
   createJourney(
@@ -167,6 +168,7 @@ export type Journey = {
   /**
    * Update journey without dependencies.
    * @param {string} journeyId journey id/name
+   * @param {TreeSkeleton} journeyData journey payload object
    * @returns {Promise<TreeSkeleton>} a promise that resolves to a journey object
    */
   updateJourney(
@@ -569,6 +571,10 @@ const scriptedNodesConditions = {
   },
   DeviceMatchNode: (nodeConfig: NodeSkeleton): boolean => {
     return nodeConfig.useScript;
+  },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  OidcNode: (_nodeConfig: NodeSkeleton): boolean => {
+    return true;
   },
   PingOneVerifyCompletionDecisionNode: (nodeConfig: NodeSkeleton): boolean => {
     return nodeConfig.useFilterScript;
@@ -1772,8 +1778,13 @@ export async function createJourney({
   debugMessage({ message: `JourneyOps.createJourney: start`, state });
   try {
     await readJourney({ journeyId, state });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw new FrodoError(
+        `Error checking if ${getCurrentRealmName(state) + ' realm'} journey ${journeyId} already exists`,
+        error
+      );
+    }
     try {
       const result = await putTree({
         treeId: journeyId,

@@ -20,6 +20,7 @@ import {
   type NodeTypeSkeleton,
   putCustomNode,
   putNode as _putNode,
+  getNodeSchema as _getNodeSchema,
   getCustomNodeSchema as _getCustomNodeSchema,
   requireVersion,
 } from '../api/NodeApi';
@@ -38,7 +39,7 @@ import {
 import { getMetadata, getResult } from '../utils/ExportImportUtils';
 import { applyNameCollisionPolicy } from '../utils/ForgeRockUtils';
 import { eq, gt, lt } from '../utils/SemverUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 import { ExportMetaData, ResultCallback } from './OpsTypes';
 
 /**
@@ -85,6 +86,19 @@ export type Node = {
    * @returns {Promise<any>} a promise that resolves to a node type object
    */
   readNodeType(nodeType: string, nodeTypeVersion?: string): Promise<any>;
+  /**
+   * Read a node type's configurable-property schema (the schema an agent or UI
+   * needs to construct valid node config before creating/updating a node instance).
+   * @param {string} nodeType node type
+   * @param {string} nodeTypeVersion node type version
+   * @param {boolean} refreshCache whether to refresh the schema cache for the specified node type/version
+   * @returns {Promise<NodeSkeleton>} a promise that resolves to a node schema object
+   */
+  readNodeSchema(
+    nodeType: string,
+    nodeTypeVersion?: string,
+    refreshCache?: boolean
+  ): Promise<NodeSkeleton>;
   /**
    * Read all nodes
    * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an object containing an array of node objects
@@ -166,6 +180,16 @@ export type Node = {
    * @returns {Promise<CustomNodeSkeleton[]>} a promise that resolves to an array of custom nodes objects
    */
   readCustomNodes(): Promise<CustomNodeSkeleton[]>;
+  /**
+   * Read a custom node's configurable-property schema.
+   * @param {string} serviceName custom node service name (not the '_id' and without the 'designer-' prefix)
+   * @param {boolean} refreshCache whether to refresh the schema cache for the specified custom node
+   * @returns {Promise<NodeSkeleton>} a promise that resolves to a node schema object
+   */
+  readCustomNodeSchema(
+    serviceName: string,
+    refreshCache?: boolean
+  ): Promise<NodeSkeleton>;
   /**
    * Export custom node. Either ID or name must be provided.
    * @param {string} nodeId ID or service name of custom node. Takes priority over node display name if both are provided.
@@ -316,6 +340,13 @@ export default (state: State): Node => {
     ): Promise<any> {
       return readNodeType({ nodeType, nodeTypeVersion, state });
     },
+    async readNodeSchema(
+      nodeType: string,
+      nodeTypeVersion?: string,
+      refreshCache = false
+    ): Promise<NodeSkeleton> {
+      return readNodeSchema({ nodeType, nodeTypeVersion, refreshCache, state });
+    },
     async readNodes(): Promise<NodeSkeleton[]> {
       return readNodes({ state });
     },
@@ -370,6 +401,12 @@ export default (state: State): Node => {
       return readCustomNodes({
         state,
       });
+    },
+    async readCustomNodeSchema(
+      serviceName: string,
+      refreshCache = false
+    ): Promise<NodeSkeleton> {
+      return readCustomNodeSchema({ serviceName, refreshCache, state });
     },
     async exportCustomNode(
       nodeId?: string,
@@ -642,6 +679,83 @@ export async function readNodeType({
   }
 }
 
+const NodeSchemaCache: Record<string, NodeSkeleton> = {};
+
+/**
+ * Read a node type's configurable-property schema.
+ * @param {string} nodeType node type
+ * @param {string} nodeTypeVersion node type version
+ * @param {boolean} refreshCache whether to refresh the schema cache for the specified node type/version
+ * @param {State} state state object
+ * @returns {Promise<NodeSkeleton>} a promise that resolves to a node schema object
+ */
+export async function readNodeSchema({
+  nodeType,
+  nodeTypeVersion = '1.0',
+  refreshCache = false,
+  state,
+}: {
+  nodeType: string;
+  nodeTypeVersion?: string;
+  refreshCache?: boolean;
+  state: State;
+}): Promise<NodeSkeleton> {
+  const cacheKey = `${nodeType}:${nodeTypeVersion}`;
+  try {
+    if (!refreshCache && NodeSchemaCache[cacheKey]) {
+      debugMessage({
+        message: `NodeOps.readNodeSchema: Using cached schema for node type "${nodeType}" version "${nodeTypeVersion}"`,
+        state,
+      });
+      return NodeSchemaCache[cacheKey];
+    }
+    const schema = await _getNodeSchema({ nodeType, nodeTypeVersion, state });
+    NodeSchemaCache[cacheKey] = schema;
+    return schema;
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading schema for node type ${nodeType}`,
+      error
+    );
+  }
+}
+
+/**
+ * Read a custom node's configurable-property schema.
+ * @param {string} serviceName custom node service name (not the '_id' and without the 'designer-' prefix)
+ * @param {boolean} refreshCache whether to refresh the schema cache for the specified custom node
+ * @param {State} state state object
+ * @returns {Promise<NodeSkeleton>} a promise that resolves to a node schema object
+ */
+export async function readCustomNodeSchema({
+  serviceName,
+  refreshCache = false,
+  state,
+}: {
+  serviceName: string;
+  refreshCache?: boolean;
+  state: State;
+}): Promise<NodeSkeleton> {
+  const cacheKey = `designer-${serviceName}`;
+  try {
+    if (!refreshCache && NodeSchemaCache[cacheKey]) {
+      debugMessage({
+        message: `NodeOps.readCustomNodeSchema: Using cached schema for custom node "${serviceName}"`,
+        state,
+      });
+      return NodeSchemaCache[cacheKey];
+    }
+    const schema = await _getCustomNodeSchema({ serviceName, state });
+    NodeSchemaCache[cacheKey] = schema;
+    return schema;
+  } catch (error) {
+    throw new FrodoError(
+      `Error reading schema for custom node ${serviceName}`,
+      error
+    );
+  }
+}
+
 /**
  * Get all nodes
  * @returns {Promise<NodeSkeleton[]>} a promise that resolves to an object containing an array of node objects
@@ -827,7 +941,7 @@ export async function readNode({
   state: State;
 }): Promise<NodeSkeleton> {
   try {
-    return _getNode({ nodeId, nodeType, nodeTypeVersion, state });
+    return await _getNode({ nodeId, nodeType, nodeTypeVersion, state });
   } catch (error) {
     throw new FrodoError(`Error reading ${nodeType} node ${nodeId}`, error);
   }
@@ -902,8 +1016,10 @@ export async function createNode({
     if (nodeId) {
       try {
         await readNode({ nodeId, nodeType, nodeTypeVersion, state });
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
+        if (!isNotFoundError(error)) {
+          throw error;
+        }
         const result = await updateNode({
           nodeId,
           nodeType,

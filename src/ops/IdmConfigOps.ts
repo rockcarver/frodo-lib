@@ -13,6 +13,7 @@ import {
   getConfigEntity,
   IdmConfigStub,
 } from '../api/IdmConfigApi';
+import { MANAGED_SYSTEM_OBJECT_TYPES } from '../api/ManagedSystemObjectApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
@@ -28,7 +29,7 @@ import {
 } from '../utils/ExportImportUtils';
 import { stringify } from '../utils/JsonUtils';
 import { areScriptHooksValid } from '../utils/ScriptValidationUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 import { ExportMetaData, ResultCallback } from './OpsTypes';
 
 export type IdmConfig = {
@@ -148,6 +149,12 @@ export type IdmConfig = {
    * @param {string} entityId entity id for the parent config entity of the sub config entity that is being read
    * @param {string} name name of the sub config entity that is being read
    * @returns {Promise<IdObjectSkeletonInterface>} a promise resolving to a sub config entity object
+   * @remarks For `entityId: 'managed'`, this reads the whole managed-object
+   * type definition (schema included), for any deployment type. This is the
+   * general-purpose per-property read path too — read the whole type and
+   * look up the property you need. `ManagedObjectSchemaOps.ts`'s
+   * `readManagedObjectSchemaProperty` is a narrower, Cloud-only,
+   * relationship-property-specific alternative, not a general replacement.
    */
   readSubConfigEntity(
     entityId: string,
@@ -159,10 +166,35 @@ export type IdmConfig = {
    * @param {NoIdObjectSkeletonInterface} updatedSubConfigEntity the updated sub config entity
    * @param {ConfigEntityImportOptions} options import options
    * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects
+   * @remarks For `entityId: 'managed'`, this read-modify-writes the whole
+   * managed-object type definition (schema included), for any deployment
+   * type — including adding, changing, or removing individual custom
+   * property/relationship definitions (edit `.schema.properties` on the
+   * object you pass in). `ManagedObjectSchemaOps.ts`'s
+   * `updateManagedObjectSchemaProperty` / `removeManagedObjectSchemaProperty`
+   * are a narrower, Cloud-only, relationship-property-specific alternative,
+   * not a general replacement.
    */
   importSubConfigEntity(
     entityId: string,
     updatedSubConfigEntity: IdObjectSkeletonInterface,
+    options?: ConfigEntityImportOptions
+  ): Promise<IdObjectSkeletonInterface[]>;
+  /**
+   * Remove a idm sub config entity.
+   * @param {string} entityId entity id for parent config entity of the sub config that is being removed
+   * @param {string} name name of the sub config entity that is being removed
+   * @param {ConfigEntityImportOptions} options import options
+   * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects
+   * @remarks For `entityId: 'managed'`, this removes a whole managed-object
+   * type definition (schema included), for any deployment type. To remove a
+   * single property within a type instead, use `readSubConfigEntity` /
+   * `importSubConfigEntity` to read-modify-write that type's
+   * `.schema.properties`.
+   */
+  removeSubConfigEntity(
+    entityId: string,
+    name: string,
     options?: ConfigEntityImportOptions
   ): Promise<IdObjectSkeletonInterface[]>;
 };
@@ -267,6 +299,18 @@ export default (state: State): IdmConfig => {
       return importSubConfigEntity({
         entityId,
         updatedSubConfigEntity,
+        options,
+        state,
+      });
+    },
+    async removeSubConfigEntity(
+      entityId: string,
+      name: string,
+      options: ConfigEntityImportOptions = { validate: false }
+    ): Promise<IdObjectSkeletonInterface[]> {
+      return removeSubConfigEntity({
+        entityId,
+        name,
         options,
         state,
       });
@@ -585,8 +629,13 @@ export async function createConfigEntity({
   debugMessage({ message: `IdmConfigOps.createConfigEntity: start`, state });
   try {
     await readConfigEntity({ entityId, state });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw new FrodoError(
+        `Error checking if config entity ${entityId} already exists`,
+        error
+      );
+    }
     try {
       const result = await updateConfigEntity({
         entityId,
@@ -793,6 +842,30 @@ export async function deleteConfigEntity({
   }
 }
 
+/**
+ * `readSubConfigEntity`/`importSubConfigEntity`/`removeSubConfigEntity` are
+ * generic (any `entityId`, e.g. 'managed' or 'sync'), so this only fires
+ * for the specific case that matters: `entityId === 'managed'` with a
+ * `name` that is a managed *system* object type (svcacct, teammember).
+ * Those types have their own guarded API family (`ManagedSystemObjectApi.ts`
+ * / `ManagedSystemObjectOps.ts`) and must not be reachable through the
+ * regular managed-object config path, the same way `ManagedObjectApi.ts`
+ * already refuses them for records and for the v2 schema-property API.
+ */
+function assertNotManagedSystemObjectType({
+  entityId,
+  name,
+}: {
+  entityId: string;
+  name: string;
+}) {
+  if (entityId === 'managed' && MANAGED_SYSTEM_OBJECT_TYPES.includes(name)) {
+    throw new FrodoError(
+      `${name} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+    );
+  }
+}
+
 export async function readSubConfigEntity({
   entityId,
   name,
@@ -803,6 +876,7 @@ export async function readSubConfigEntity({
   state: State;
 }): Promise<NoIdObjectSkeletonInterface> {
   try {
+    assertNotManagedSystemObjectType({ entityId, name });
     const entity = substituteEntityWithEnv(
       await readConfigEntity({ entityId, state }),
       state
@@ -842,6 +916,10 @@ export async function importSubConfigEntity({
   state: State;
 }): Promise<IdObjectSkeletonInterface[]> {
   try {
+    assertNotManagedSystemObjectType({
+      entityId,
+      name: updatedSubConfigEntity.name as string,
+    });
     const entityExport = await exportConfigEntity({
       entityId,
       state,
@@ -883,6 +961,70 @@ export async function importSubConfigEntity({
     });
   } catch (error) {
     throw new FrodoError(`Error importing sub config ${entityId}`, error);
+  }
+}
+
+/**
+ * Remove a idm sub config entity.
+ * @param {string} entityId entity id for parent config entity of the sub config that is being removed
+ * @param {string} name name of the sub config entity that is being removed
+ * @param {ConfigEntityImportOptions} options import options
+ * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects
+ */
+export async function removeSubConfigEntity({
+  entityId,
+  name,
+  options = {
+    entitiesToImport: undefined,
+    validate: false,
+  },
+  state,
+}: {
+  entityId: string;
+  name: string;
+  options?: ConfigEntityImportOptions;
+  state: State;
+}): Promise<IdObjectSkeletonInterface[]> {
+  try {
+    assertNotManagedSystemObjectType({ entityId, name });
+    const entityExport = await exportConfigEntity({
+      entityId,
+      state,
+    });
+
+    const subEntityKey = Object.keys(entityExport.idm?.[entityId]).find(
+      (key) => key !== '_id'
+    );
+
+    if (!Array.isArray(entityExport.idm?.[entityId]?.[subEntityKey])) {
+      throw new FrodoError(`Error removing sub config of ${entityId}`);
+    }
+
+    const existingSubEntityIndex = (
+      entityExport.idm?.[entityId]?.[
+        subEntityKey
+      ] as NoIdObjectSkeletonInterface[]
+    ).findIndex((item) => item.name === name);
+
+    if (existingSubEntityIndex === -1) {
+      throw new FrodoError(`Sub config ${entityId} ${name} not found`);
+    }
+
+    (
+      entityExport.idm[entityId][subEntityKey] as NoIdObjectSkeletonInterface[]
+    ).splice(existingSubEntityIndex, 1);
+
+    return importConfigEntities({
+      entityId,
+      importData: entityExport,
+      options,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error removing sub config ${entityId} ${name}`,
+      error
+    );
   }
 }
 

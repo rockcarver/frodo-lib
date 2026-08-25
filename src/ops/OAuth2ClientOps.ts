@@ -20,7 +20,7 @@ import {
   getMetadata,
 } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 import { readOAuth2Provider } from './OAuth2ProviderOps';
 import { ExportMetaData } from './OpsTypes';
 import { readScript, updateScript } from './ScriptOps';
@@ -279,7 +279,7 @@ export async function readOAuth2Client({
   state: State;
 }): Promise<OAuth2ClientSkeleton> {
   try {
-    return _getOAuth2Client({ id: clientId, state });
+    return await _getOAuth2Client({ id: clientId, state });
   } catch (error) {
     throw new FrodoError(
       `Error reading ${getCurrentRealmName(state) + ' realm'} oauth2 client ${clientId}`,
@@ -306,8 +306,13 @@ export async function createOAuth2Client({
   debugMessage({ message: `OAuth2ClientOps.createOAuth2Client: start`, state });
   try {
     await readOAuth2Client({ clientId, state });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw new FrodoError(
+        `Error checking if ${getCurrentRealmName(state) + ' realm'} oauth2 client ${clientId} already exists`,
+        error
+      );
+    }
     try {
       const result = await updateOAuth2Client({
         clientId,

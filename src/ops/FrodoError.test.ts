@@ -33,6 +33,7 @@
  * in case things don't function as expected
  */
 import { FrodoError } from '../index';
+import { isNotFoundError } from './FrodoError';
 import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
 import { defaultMatchRequestsBy, filterRecording } from '../utils/PollyUtils';
 import path from 'path';
@@ -107,6 +108,42 @@ const axiosError2: AxiosError = new AxiosError(
   axiosConfig2,
   axiosRequest2,
   axiosResponse2
+);
+
+const axiosConfig3 = {
+  url: 'https://api.example.com/data',
+  headers: new AxiosHeaders(),
+};
+
+const axiosRequest3 = { path: '/data' };
+
+const axiosResponse3 = {
+  status: 500,
+  statusText: 'Internal Server Error',
+  config: axiosConfig3,
+  headers: new AxiosHeaders({ 'content-type': 'application/json' }),
+  data: {
+    message: 'Something went wrong.',
+  },
+};
+
+// Constructor: (message, code, config, request, response)
+const axiosError500: AxiosError = new AxiosError(
+  'Request failed with status code 500',
+  AxiosError.ERR_BAD_REQUEST,
+  axiosConfig3,
+  axiosRequest3,
+  axiosResponse3
+);
+
+// A network/timeout failure never reaches the server, so it has no
+// `response` at all (unlike a 4xx/5xx, which does).
+const axiosTimeoutError: AxiosError = new AxiosError(
+  'timeout of 5000ms exceeded',
+  AxiosError.ECONNABORTED,
+  axiosConfig1,
+  axiosRequest1,
+  undefined
 );
 
 describe('FrodoError', () => {
@@ -537,5 +574,77 @@ error3\n\
 ');
       }
     });
+  });
+});
+
+describe('isNotFoundError', () => {
+  test('false for a plain FrodoError with no wrapped cause', () => {
+    expect(isNotFoundError(new FrodoError('error0'))).toBe(false);
+  });
+
+  test('false for a non-FrodoError value', () => {
+    expect(isNotFoundError(new Error('error0'))).toBe(false);
+    expect(isNotFoundError('error0')).toBe(false);
+    expect(isNotFoundError(undefined)).toBe(false);
+    expect(isNotFoundError(null)).toBe(false);
+  });
+
+  test('true for a FrodoError directly wrapping a 404 AxiosError', () => {
+    expect(isNotFoundError(new FrodoError('error1', axiosError2))).toBe(true);
+  });
+
+  test('false for a FrodoError directly wrapping a 401 AxiosError', () => {
+    expect(isNotFoundError(new FrodoError('error1', axiosError1))).toBe(false);
+  });
+
+  test('false for a FrodoError directly wrapping a 500 AxiosError', () => {
+    expect(isNotFoundError(new FrodoError('error1', axiosError500))).toBe(
+      false
+    );
+  });
+
+  test('false for a FrodoError wrapping a network/timeout error with no response', () => {
+    expect(
+      isNotFoundError(new FrodoError('error1', axiosTimeoutError))
+    ).toBe(false);
+  });
+
+  test('true for a double-wrapped 404 (recurses through a nested FrodoError with its own null httpStatus)', () => {
+    const inner = new FrodoError('error1', axiosError2);
+    const outer = new FrodoError('error2', inner);
+    // The outer wrap's own httpStatus is null (a FrodoError has no
+    // `.response` for the constructor to read a status off of) -- the
+    // recursion into originalErrors is what makes this true.
+    expect(outer.httpStatus).toBeNull();
+    expect(isNotFoundError(outer)).toBe(true);
+  });
+
+  test('true for a triple-wrapped 404', () => {
+    const error = new FrodoError(
+      'error3',
+      new FrodoError('error2', new FrodoError('error1', axiosError2))
+    );
+    expect(isNotFoundError(error)).toBe(true);
+  });
+
+  test('false for a double-wrapped 401 (never a false positive just from nesting)', () => {
+    const error = new FrodoError('error2', new FrodoError('error1', axiosError1));
+    expect(isNotFoundError(error)).toBe(false);
+  });
+
+  test('false for a FrodoError wrapping a plain Error (no response at all)', () => {
+    expect(isNotFoundError(new FrodoError('error1', new Error('boom')))).toBe(
+      false
+    );
+  });
+
+  test('true if any one error in a wrapped array is a 404, even if others are not', () => {
+    const error = new FrodoError('error1', [axiosError1, axiosError2]);
+    expect(isNotFoundError(error)).toBe(true);
+  });
+
+  test('false if a wrapped array has no 404 among several other failures', () => {
+    const error = new FrodoError('error1', [axiosError1, axiosError500]);
+    expect(isNotFoundError(error)).toBe(false);
   });
 });

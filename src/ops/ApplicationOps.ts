@@ -170,8 +170,8 @@ export type Application = {
   deleteApplications(deep?: boolean): Promise<ApplicationGlossarySkeleton[]>;
   /**
    * Query applications
-   * @param filter CREST search filter
-   * @param fields array of fields to return
+   * @param {string} filter CREST search filter
+   * @param {string[]} fields array of fields to return
    */
   queryApplications(
     filter: string,

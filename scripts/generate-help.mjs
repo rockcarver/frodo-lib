@@ -2,9 +2,10 @@
 /**
  * generate-help.mjs
  *
- * Build-time code-generator.  Parses every  src/ops/**\/*.ts  file (source of
- * truth for JSDoc) and writes  src/lib/Help.ts  — a static TypeScript module
- * that exports all help metadata as a plain JS array.
+ * Build-time code-generator.  Parses every  src/ops/**\/*.ts  and
+ * src/utils/**\/*.ts  file (source of truth for JSDoc) and writes
+ * src/lib/Help.ts  — a static TypeScript module that exports all help
+ * metadata as a plain JS array.
  *
  * Because the metadata is bundled by tsup into dist/, frodo-cli (and the
  * single-binary build produced by pkg) can import it directly without any
@@ -19,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const SRC_OPS_DIR = path.join(ROOT, 'src', 'ops');
+const SRC_DIRS = [path.join(ROOT, 'src', 'ops'), path.join(ROOT, 'src', 'utils')];
 const OUT_FILE = path.join(ROOT, 'src', 'lib', 'Help.ts');
 
 // ---------------------------------------------------------------------------
@@ -123,6 +124,21 @@ function extractParamRequiredMap(signature) {
 // .ts file parser — same brace-depth state machine as the runtime version
 // ---------------------------------------------------------------------------
 
+/**
+ * Net change in paren/brace nesting depth contributed by one line of a
+ * method signature. Used to detect when a multi-line signature has actually
+ * closed, instead of assuming the first trailing ';' ends it (see the
+ * accumulation loop below).
+ */
+function signatureDepthDelta(text) {
+    let delta = 0;
+    for (const ch of text) {
+        if (ch === '(' || ch === '{') delta++;
+        else if (ch === ')' || ch === '}') delta--;
+    }
+    return delta;
+}
+
 function parseOpsFile(filePath) {
     let content;
     try {
@@ -201,11 +217,25 @@ function parseOpsFile(filePath) {
             if (methodMatch) {
                 const methodName = methodMatch[1];
 
+                // A multi-line signature isn't done just because the
+                // accumulated text ends in ';' — an inline object-type
+                // parameter (e.g. `options: { deep: boolean; verbose:
+                // boolean; }`) has its own semicolon-terminated members, so
+                // that naive check stops mid-parameter. Track paren/brace
+                // depth instead: the signature is only complete once every
+                // '(' and '{' it opened has been closed AND the line ends
+                // in ';'.
                 let sigText = trimmed;
+                let sigDepth = signatureDepthDelta(trimmed);
                 let j = i;
-                while (!sigText.trimEnd().endsWith(';') && j + 1 < lines.length) {
+                while (
+                    (sigDepth > 0 || !sigText.trimEnd().endsWith(';')) &&
+                    j + 1 < lines.length
+                ) {
                     j++;
-                    sigText += ' ' + lines[j].trim();
+                    const nextLine = lines[j].trim();
+                    sigText += ' ' + nextLine;
+                    sigDepth += signatureDepthDelta(nextLine);
                 }
                 i = j;
 
@@ -236,7 +266,7 @@ function parseOpsFile(filePath) {
 }
 
 // ---------------------------------------------------------------------------
-// Walk src/ops recursively, skip test and template files
+// Walk a source directory recursively, skip test and template files
 // ---------------------------------------------------------------------------
 
 function walkDir(dir, collector) {
@@ -267,7 +297,7 @@ function walkDir(dir, collector) {
 // ---------------------------------------------------------------------------
 
 const sourceFiles = [];
-walkDir(SRC_OPS_DIR, sourceFiles);
+for (const dir of SRC_DIRS) walkDir(dir, sourceFiles);
 sourceFiles.sort(); // stable output
 
 const allDocs = [];

@@ -65,11 +65,8 @@ import { autoSetupPolly, setDefaultState } from '../utils/AutoSetupPolly';
 import { defaultMatchRequestsBy, filterRecording } from '../utils/PollyUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
-import {
-  createManagedObject,
-  deleteManagedObject,
-  readManagedObjectSchema,
-} from './ManagedObjectOps';
+import { createManagedObject, deleteManagedObject } from './ManagedObjectOps';
+import { readManagedObjectSchema } from './ManagedObjectSchemaOps';
 import {
   importApplication,
   deleteApplication,

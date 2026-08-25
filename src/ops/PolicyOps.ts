@@ -25,7 +25,7 @@ import {
   getMetadata,
 } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
-import { FrodoError } from './FrodoError';
+import { FrodoError, isNotFoundError } from './FrodoError';
 import { type ExportMetaData } from './OpsTypes';
 import { readPolicySet, updatePolicySet } from './PolicySetOps';
 import { updateResourceType } from './ResourceTypeOps';
@@ -371,8 +371,13 @@ export async function createPolicy({
   debugMessage({ message: `PolicyOps.createPolicy: start`, state });
   try {
     await _getPolicy({ policyId, state });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw new FrodoError(
+        `Error checking if ${getCurrentRealmName(state) + ' realm'} policy ${policyId} already exists`,
+        error
+      );
+    }
     try {
       const result = await _putPolicy({
         policyId,
@@ -391,7 +396,7 @@ export async function createPolicy({
       );
     }
   }
-  throw new Error(`Policy ${policyId} already exists!`);
+  throw new FrodoError(`Policy ${policyId} already exists!`);
 }
 
 export async function updatePolicy({
