@@ -3274,8 +3274,17 @@ function buildUnsupportedGenericCombinationMessage(
 
 /**
  * Reads the effective realm from a runtime request context.
+ *
+ * @remarks
+ * Exported for custom `resolveFrodoForRequest` implementations (see
+ * {@link McpToolRuntimeOptions.resolveFrodoForRequest}) that reuse a
+ * pre-authenticated singleton `Frodo` instance for performance instead of
+ * calling {@link resolveRequestScopedFrodo} on every request: such a
+ * resolver still needs to know when `context` carries a realm that differs
+ * from the singleton's own, so it can fall back to a genuinely scoped
+ * instance for that one call rather than silently ignoring the override.
  */
-function getRealmFromContext(
+export function getRealmFromContext(
   context: McpRuntimeRequestContext
 ): string | undefined {
   switch (context.auth.mode) {

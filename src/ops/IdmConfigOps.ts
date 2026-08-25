@@ -13,6 +13,7 @@ import {
   getConfigEntity,
   IdmConfigStub,
 } from '../api/IdmConfigApi';
+import { MANAGED_SYSTEM_OBJECT_TYPES } from '../api/ManagedSystemObjectApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import {
@@ -841,6 +842,30 @@ export async function deleteConfigEntity({
   }
 }
 
+/**
+ * `readSubConfigEntity`/`importSubConfigEntity`/`removeSubConfigEntity` are
+ * generic (any `entityId`, e.g. 'managed' or 'sync'), so this only fires
+ * for the specific case that matters: `entityId === 'managed'` with a
+ * `name` that is a managed *system* object type (svcacct, teammember).
+ * Those types have their own guarded API family (`ManagedSystemObjectApi.ts`
+ * / `ManagedSystemObjectOps.ts`) and must not be reachable through the
+ * regular managed-object config path, the same way `ManagedObjectApi.ts`
+ * already refuses them for records and for the v2 schema-property API.
+ */
+function assertNotManagedSystemObjectType({
+  entityId,
+  name,
+}: {
+  entityId: string;
+  name: string;
+}) {
+  if (entityId === 'managed' && MANAGED_SYSTEM_OBJECT_TYPES.includes(name)) {
+    throw new FrodoError(
+      `${name} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+    );
+  }
+}
+
 export async function readSubConfigEntity({
   entityId,
   name,
@@ -851,6 +876,7 @@ export async function readSubConfigEntity({
   state: State;
 }): Promise<NoIdObjectSkeletonInterface> {
   try {
+    assertNotManagedSystemObjectType({ entityId, name });
     const entity = substituteEntityWithEnv(
       await readConfigEntity({ entityId, state }),
       state
@@ -890,6 +916,10 @@ export async function importSubConfigEntity({
   state: State;
 }): Promise<IdObjectSkeletonInterface[]> {
   try {
+    assertNotManagedSystemObjectType({
+      entityId,
+      name: updatedSubConfigEntity.name as string,
+    });
     const entityExport = await exportConfigEntity({
       entityId,
       state,
@@ -956,6 +986,7 @@ export async function removeSubConfigEntity({
   state: State;
 }): Promise<IdObjectSkeletonInterface[]> {
   try {
+    assertNotManagedSystemObjectType({ entityId, name });
     const entityExport = await exportConfigEntity({
       entityId,
       state,
