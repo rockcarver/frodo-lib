@@ -25,8 +25,11 @@ jest.unstable_mockModule('./ManagedObjectOps', () => ({
   queryRelatedManagedObjects: jest.fn(),
   readManagedObject: jest.fn(),
   readManagedObjects: jest.fn(),
-  readManagedObjectSchema: jest.fn(async () => ({ properties: { _id: {} } })),
   replaceRelationship,
+}));
+
+jest.unstable_mockModule('./ManagedObjectSchemaOps', () => ({
+  readManagedObjectSchema: jest.fn(async () => ({ properties: { _id: {} } })),
 }));
 
 const { createAIAgent } = await import('./AgentOps');

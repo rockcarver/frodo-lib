@@ -164,6 +164,11 @@ export async function getManagedObjectSchemaProperty({
   propertyName: string;
   state: State;
 }): Promise<ManagedObjectSchemaProperty> {
+  if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new Error(
+      `${type} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+    );
+  }
   const urlString = util.format(
     managedObjectSchemaPropertyURLTemplate,
     getIdmBaseUrl(state),
@@ -197,6 +202,11 @@ export async function putManagedObjectSchemaProperty({
   propertyData: ManagedObjectSchemaProperty;
   state: State;
 }): Promise<ManagedObjectSchemaProperty> {
+  if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new Error(
+      `${type} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+    );
+  }
   const urlString = util.format(
     managedObjectSchemaPropertyURLTemplate,
     getIdmBaseUrl(state),
@@ -227,6 +237,11 @@ export async function deleteManagedObjectSchemaProperty({
   propertyName: string;
   state: State;
 }): Promise<ManagedObjectSchemaProperty> {
+  if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
+    throw new Error(
+      `${type} is a managed system object type. Use the ManagedSystemObjectApi for this type.`
+    );
+  }
   const urlString = util.format(
     managedObjectSchemaPropertyURLTemplate,
     getIdmBaseUrl(state),

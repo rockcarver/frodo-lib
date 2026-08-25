@@ -1050,10 +1050,10 @@ describe('MCP hybrid runtime', () => {
     // "compatible" result from an entirely different domain no matter how
     // well-matched it was.
     const preferredButBarelyRelevant = makeDescriptor({
-      id: 'idm.managed.readManagedObjectSchema',
-      toolName: 'frodo.idm.managed.readManagedObjectSchema',
+      id: 'idm.managed.schema.readManagedObjectSchema',
+      toolName: 'frodo.idm.managed.schema.readManagedObjectSchema',
       methodName: 'readManagedObjectSchema',
-      modulePath: ['idm', 'managed'],
+      modulePath: ['idm', 'managed', 'schema'],
       domain: 'idm',
       objectType: 'ManagedObjectSchema',
       operationType: 'read',

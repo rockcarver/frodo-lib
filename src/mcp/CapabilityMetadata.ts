@@ -598,6 +598,24 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     supportsRealm: true,
     notes: 'Read a named sub-entity with namedArgs { entityId, name }.',
   },
+  'idm.config.removeSubConfigEntity': {
+    operationType: 'delete',
+    objectType: 'ConfigSubEntity',
+    argumentMode: 'named',
+    parameterOverrides: {
+      entityId: {
+        description: 'Parent IDM config entity id.',
+        examples: ['managed'],
+      },
+      name: {
+        description: 'Sub-entity name to remove from the parent entity.',
+        examples: ['alpha_customType'],
+      },
+    },
+    supportsRealm: true,
+    notes:
+      'Remove a named sub-entity with namedArgs { entityId, name }. For entityId "managed", this deletes an entire managed-object type definition (schema included) — every existing record of that type becomes orphaned. Applies to any deployment type.',
+  },
   'idm.config.updateConfigEntity': {
     argumentMode: 'named',
     parameterOverrides: {
@@ -686,7 +704,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       "Create a managed object with namedArgs { type, id, moData }. id is optional. A relationship field can be set at creation time too, by including it directly in moData with the same ref-shaped value idm.managed.updateManagedObjectProperties's notes describe — see that skill for the full relationship-write pattern (discovering fields via schema, single- vs many-valued, add/remove/replace).",
   },
-  'idm.managed.readManagedObjectSchema': {
+  'idm.managed.schema.readManagedObjectSchema': {
     notes:
       "Read a type's schema — the way to discover its relationship fields before writing to them. A property with type 'relationship' is a relationship field; resourceCollection.path (nested under items for a many-valued field, directly on the property for a single-valued one) is the target type to reference. See idm.managed.updateManagedObjectProperties's notes for the actual write pattern.",
   },
@@ -698,19 +716,21 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       "Finds a managed object by a CREST query filter, creating one with a server-generated _id if no match exists — the JIT-provisioning pattern: query by an external identity's metadata (e.g. a foreign IDP's JWT subject stored in a custom field) rather than using that external identity as the object's own _id/userName, since it may not be UUID-shaped or stable. Throws if the filter matches more than one object rather than picking arbitrarily. moData is ignored when an existing match is found.",
   },
-  'idm.managed.readManagedObjectSchemaProperty': {
+  'idm.managed.schema.readManagedObjectSchemaProperty': {
     notes:
-      "Cloud (PingOne Advanced Identity Cloud) only — reads one schema property/relationship definition via IDM's v2 schema API, without fetching the type's whole schema. Throws on ForgeOps/classic; use readSubConfigEntity('managed', type) and read the property off schema.properties there instead.",
+      "Cloud (PingOne Advanced Identity Cloud) only — this is IDM's dedicated v2 relationship-schema API, for reading one relationship-property definition without fetching the type's whole schema. It is not a general per-property API: for any non-relationship property, or for any property at all on ForgeOps/classic (relationships included), use idm.config.readSubConfigEntity('managed', type) and read the property off schema.properties there instead.",
   },
-  'idm.managed.updateManagedObjectSchemaProperty': {
+  'idm.managed.schema.updateManagedObjectSchemaProperty': {
+    riskClass: 'critical',
     notes:
-      "Cloud only — creates or updates one schema property/relationship definition in place via IDM's v2 schema API, leaving the rest of the type's schema untouched. See idm.managed.readManagedObjectSchemaProperty's notes for the ForgeOps/classic alternative and idm.managed.updateManagedObjectProperties's notes for the relationship-property shape (type/resourceCollection/reversePropertyName/etc.).",
+      "Cloud only — creates or updates one relationship-property definition in place via IDM's dedicated v2 relationship-schema API, leaving the rest of the type's schema untouched. Critical risk regardless of update's usual agentic-tier availability — a schema-property write changes the type's structure for every existing and future record, not one record's data, so it's guarded the same way idm.managedSystem.* is. See idm.managed.schema.readManagedObjectSchemaProperty's notes for when to use idm.config.readSubConfigEntity/importSubConfigEntity instead (any non-relationship property, or anything on ForgeOps/classic), and idm.managed.updateManagedObjectProperties's notes for the relationship-property shape (type/resourceCollection/reversePropertyName/etc.).",
   },
-  'idm.managed.removeManagedObjectSchemaProperty': {
+  'idm.managed.schema.removeManagedObjectSchemaProperty': {
     operationType: 'delete',
     objectType: 'ManagedObjectSchemaProperty',
+    riskClass: 'critical',
     notes:
-      "Cloud only — removes one schema property/relationship definition via IDM's v2 schema API, leaving the rest of the type's schema untouched. See idm.managed.readManagedObjectSchemaProperty's notes for the ForgeOps/classic alternative.",
+      "Cloud only — removes one relationship-property definition via IDM's dedicated v2 relationship-schema API, leaving the rest of the type's schema untouched. Critical risk, same reasoning as idm.managed.schema.updateManagedObjectSchemaProperty. See idm.managed.schema.readManagedObjectSchemaProperty's notes for when to use idm.config.readSubConfigEntity/importSubConfigEntity instead (any non-relationship property, or anything on ForgeOps/classic).",
   },
   'idm.managed.readRelationship': {
     operationType: 'read',
@@ -727,7 +747,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
       field: {
         description:
-          "Relationship field name, e.g. 'manager' or 'roles'. Use idm.managed.readManagedObjectSchema to discover a type's relationship fields.",
+          "Relationship field name, e.g. 'manager' or 'roles'. Use idm.managed.schema.readManagedObjectSchema to discover a type's relationship fields.",
         examples: ['manager', 'roles'],
       },
     },
@@ -782,7 +802,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     },
     supportsRealm: true,
     notes:
-      'Adds one target to a many-valued relationship field without disturbing any existing members — the safe way to "add a member". Builds the exact request shape captured from AIC\'s own admin UI performing this action and verified live — field addressed as "/field/-" (JSON Pointer append-to-array syntax) with a bare { _ref, _refProperties: {} } value — so you don\'t have to know that shape yourself. Use idm.managed.replaceRelationship instead only when you actually mean to overwrite the whole field. Discover a field\'s name and target type via idm.managed.readManagedObjectSchema first (a relationship property with items present is many-valued).',
+      'Adds one target to a many-valued relationship field without disturbing any existing members — the safe way to "add a member". Builds the exact request shape captured from AIC\'s own admin UI performing this action and verified live — field addressed as "/field/-" (JSON Pointer append-to-array syntax) with a bare { _ref, _refProperties: {} } value — so you don\'t have to know that shape yourself. Use idm.managed.replaceRelationship instead only when you actually mean to overwrite the whole field. Discover a field\'s name and target type via idm.managed.schema.readManagedObjectSchema first (a relationship property with items present is many-valued).',
   },
   'idm.managed.removeRelationship': {
     operationType: 'update',
@@ -981,7 +1001,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Patch one managed object with namedArgs { type, id, operations, rev }. This is also the underlying mechanism relationships are written through — a relationship field is just a regular field from a PATCH point of view. Prefer the dedicated idm.managed.readRelationship/addRelationship/removeRelationship/replaceRelationship skills instead of raw operations here for relationship work — they take a plain { type, id } target and build the correct value shape for you, including two real gotchas verified live this session (and confirmed against the exact request shape AIC\'s own admin UI sends): "add" and "remove" each need a different, specific value shape that neither guessing nor generalizing from the other gets right.\n' +
       '\n' +
-      "To find a type's relationship fields and what they target, call idm.managed.readManagedObjectSchema first: a property with type 'relationship' is a relationship field. A single-valued one (e.g. alpha_user's 'manager', targeting managed/alpha_user, reverse property 'reports') has resourceCollection directly on the property; a many-valued one (e.g. alpha_user's 'roles', targeting managed/alpha_role) has it nested under items instead — that items/no-items distinction is exactly what tells you whether the field holds one relationship or an array of them.\n" +
+      "To find a type's relationship fields and what they target, call idm.managed.schema.readManagedObjectSchema first: a property with type 'relationship' is a relationship field. A single-valued one (e.g. alpha_user's 'manager', targeting managed/alpha_user, reverse property 'reports') has resourceCollection directly on the property; a many-valued one (e.g. alpha_user's 'roles', targeting managed/alpha_role) has it nested under items instead — that items/no-items distinction is exactly what tells you whether the field holds one relationship or an array of them.\n" +
       '\n' +
       'If you do use raw operations here for a many-valued relationship: to add one member without disturbing the rest, address the field as "/field/-" (JSON Pointer append-to-array syntax) with operation "add" and a bare value of just { _ref: "<resourceCollection.path>/<id>", _refProperties: {} } — not array-wrapped, and no _refResourceCollection/_refResourceId (as in the second example above). To remove one member, address the field as "/field" (no index) with operation "remove" and a bare value that exactly matches the currently-stored element, including its _refProperties (an internal id/rev IDM itself generates for the relationship, distinct from the referenced object\'s own id) — read the field first (idm.managed.readRelationship) to get that exact stored element, since a freshly-built ref without the real _refProperties silently matches nothing and removes nothing, with no error (as in the third example above; the _refProperties values there are illustrative — always use the real ones from a fresh read, never fabricate them). For a single-valued relationship (like \'manager\'), use "replace" with a single (unwrapped) ref-shaped value { _ref, _refResourceCollection, _refResourceId }, or null to clear it — resourceCollection.path comes straight from the schema (e.g. "managed/alpha_role"), never guess or hardcode a realm prefix into it.',
   },
@@ -1095,7 +1115,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'List all managed system objects of a type (teammember or svcacct) — reveals the full tenant-admin or service-account roster. Admin-only regardless of read-only intent.',
   },
-  'idm.managedSystem.readManagedSystemObjectSchema': {
+  'idm.managedSystem.schema.readManagedSystemObjectSchema': {
     riskClass: 'critical',
   },
   'idm.managedSystem.queryManagedSystemObjects': {
@@ -1329,7 +1349,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
       },
       field: {
         description:
-          "Relationship field name. Use idm.managedSystem.readManagedSystemObjectSchema to discover a type's relationship fields.",
+          "Relationship field name. Use idm.managedSystem.schema.readManagedSystemObjectSchema to discover a type's relationship fields.",
       },
     },
     supportsRealm: false,

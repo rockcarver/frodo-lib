@@ -33,9 +33,9 @@ import {
   queryRelatedManagedObjects,
   readManagedObject,
   readManagedObjects,
-  readManagedObjectSchema,
   replaceRelationship,
 } from './ManagedObjectOps';
+import { readManagedObjectSchema } from './ManagedObjectSchemaOps';
 import { type ExportMetaData } from './OpsTypes';
 
 export type Agent = {

@@ -149,9 +149,11 @@ export type IdmConfig = {
    * @param {string} name name of the sub config entity that is being read
    * @returns {Promise<IdObjectSkeletonInterface>} a promise resolving to a sub config entity object
    * @remarks For `entityId: 'managed'`, this reads the whole managed-object
-   * type definition (schema included). On Cloud, if you only need to read
-   * one property/relationship definition, `ManagedObjectOps.ts`'s
-   * `readManagedObjectSchemaProperty` avoids fetching the entire type.
+   * type definition (schema included), for any deployment type. This is the
+   * general-purpose per-property read path too — read the whole type and
+   * look up the property you need. `ManagedObjectSchemaOps.ts`'s
+   * `readManagedObjectSchemaProperty` is a narrower, Cloud-only,
+   * relationship-property-specific alternative, not a general replacement.
    */
   readSubConfigEntity(
     entityId: string,
@@ -164,15 +166,34 @@ export type IdmConfig = {
    * @param {ConfigEntityImportOptions} options import options
    * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects
    * @remarks For `entityId: 'managed'`, this read-modify-writes the whole
-   * managed-object type definition (schema included). On Cloud, if you only
-   * need to add, change, or remove one custom property/relationship
-   * definition, prefer `ManagedObjectOps.ts`'s
+   * managed-object type definition (schema included), for any deployment
+   * type — including adding, changing, or removing individual custom
+   * property/relationship definitions (edit `.schema.properties` on the
+   * object you pass in). `ManagedObjectSchemaOps.ts`'s
    * `updateManagedObjectSchemaProperty` / `removeManagedObjectSchemaProperty`
-   * instead of read-modify-writing the whole type here.
+   * are a narrower, Cloud-only, relationship-property-specific alternative,
+   * not a general replacement.
    */
   importSubConfigEntity(
     entityId: string,
     updatedSubConfigEntity: IdObjectSkeletonInterface,
+    options?: ConfigEntityImportOptions
+  ): Promise<IdObjectSkeletonInterface[]>;
+  /**
+   * Remove a idm sub config entity.
+   * @param {string} entityId entity id for parent config entity of the sub config that is being removed
+   * @param {string} name name of the sub config entity that is being removed
+   * @param {ConfigEntityImportOptions} options import options
+   * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects
+   * @remarks For `entityId: 'managed'`, this removes a whole managed-object
+   * type definition (schema included), for any deployment type. To remove a
+   * single property within a type instead, use `readSubConfigEntity` /
+   * `importSubConfigEntity` to read-modify-write that type's
+   * `.schema.properties`.
+   */
+  removeSubConfigEntity(
+    entityId: string,
+    name: string,
     options?: ConfigEntityImportOptions
   ): Promise<IdObjectSkeletonInterface[]>;
 };
@@ -277,6 +298,18 @@ export default (state: State): IdmConfig => {
       return importSubConfigEntity({
         entityId,
         updatedSubConfigEntity,
+        options,
+        state,
+      });
+    },
+    async removeSubConfigEntity(
+      entityId: string,
+      name: string,
+      options: ConfigEntityImportOptions = { validate: false }
+    ): Promise<IdObjectSkeletonInterface[]> {
+      return removeSubConfigEntity({
+        entityId,
+        name,
         options,
         state,
       });
@@ -898,6 +931,69 @@ export async function importSubConfigEntity({
     });
   } catch (error) {
     throw new FrodoError(`Error importing sub config ${entityId}`, error);
+  }
+}
+
+/**
+ * Remove a idm sub config entity.
+ * @param {string} entityId entity id for parent config entity of the sub config that is being removed
+ * @param {string} name name of the sub config entity that is being removed
+ * @param {ConfigEntityImportOptions} options import options
+ * @returns {Promise<IdObjectSkeletonInterface[]>} a promise resolving to an array of config entity objects
+ */
+export async function removeSubConfigEntity({
+  entityId,
+  name,
+  options = {
+    entitiesToImport: undefined,
+    validate: false,
+  },
+  state,
+}: {
+  entityId: string;
+  name: string;
+  options?: ConfigEntityImportOptions;
+  state: State;
+}): Promise<IdObjectSkeletonInterface[]> {
+  try {
+    const entityExport = await exportConfigEntity({
+      entityId,
+      state,
+    });
+
+    const subEntityKey = Object.keys(entityExport.idm?.[entityId]).find(
+      (key) => key !== '_id'
+    );
+
+    if (!Array.isArray(entityExport.idm?.[entityId]?.[subEntityKey])) {
+      throw new FrodoError(`Error removing sub config of ${entityId}`);
+    }
+
+    const existingSubEntityIndex = (
+      entityExport.idm?.[entityId]?.[
+        subEntityKey
+      ] as NoIdObjectSkeletonInterface[]
+    ).findIndex((item) => item.name === name);
+
+    if (existingSubEntityIndex === -1) {
+      throw new FrodoError(`Sub config ${entityId} ${name} not found`);
+    }
+
+    (
+      entityExport.idm[entityId][subEntityKey] as NoIdObjectSkeletonInterface[]
+    ).splice(existingSubEntityIndex, 1);
+
+    return importConfigEntities({
+      entityId,
+      importData: entityExport,
+      options,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(
+      `Error removing sub config ${entityId} ${name}`,
+      error
+    );
   }
 }
 
