@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## [v4.5.0] - 2026-08-25
+
+### Added
+- Introduced `OidcNode` condition in `JourneyOps` to enhance scripted node conditions. (commit 672a907e8)
+- Added structured provisioning status for `createAIAgent` and normalized identity UID in `AgentOps`. (commit bffb6a296)
+- Implemented Cloud-only individual schema property CRUD operations in `ManagedObjectOps`. (commit 986133b6b)
+- Added node schema discovery and Just-In-Time (JIT) find-or-create functionality in `NodeOps`. (commit 08507f623)
+
+### Changed
+- Guarded managed-system-object types on generic config paths and exported realm-context helper for MCP resolvers. (commit 82feaf5e1)
+- Split schema operations into dedicated files and hardened system-type guards in `ManagedObjectOps`. (commit 471260760)
+- Enhanced MCP capability surface by excluding cache domain and correcting risk classifications. (commit 321e1334c, 65f837f9d, 885e9cb8c)
+- Updated `generate-help.mjs` to fix signature parsing and scan utilities, excluding non-agentic utility tools. (commit f0f1a5f94)
+
+### Fixed
+- Completed a sweep to correct misclassification of "not found" errors across create-if-absent flows. (commit 3bc50b922)
+- Stopped treating any read failure as "not found" in `AgentOps` and `OAuth2ClientOps`. (commit 565089122)
+- Made auto-derived parameters the master and used overrides for annotation only in MCP. (commit 28c7b2eba)
+
 ## [v4.4.2] - 2026-08-20
 
 ### Fixed
