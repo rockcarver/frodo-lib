@@ -201,6 +201,7 @@ List of modules that have been updated and/or added by version:
 | frodo.cloud.env.csr        | 2.0.3 | Manage certificate signing requests in PingOne Advanced Identity Cloud |
 | frodo.cloud.env.promotion  | 2.0.3 | Manage promotions in PingOne Advanced Identity Cloud |
 | frodo.cloud.feature        | 1.0.0 | Obtain info on PingOne Advanced Identity Cloud features. |
+| frodo.cloud.idmFeature     | 4.6.0 | Read, validate, and install IDM tenant-configuration features (distinct from `frodo.cloud.feature`, which covers AM-side platform features). |
 | frodo.cloud.log            | 1.0.0 | Access PingOne Advanced Identity Cloud debug and audit logs. |
 | frodo.cloud.secret         | 1.0.0 | Mange secrets in PingOne Advanced Identity Cloud. |
 | frodo.cloud.serviceAccount | 1.0.0 | Manage service accounts in PingOne Advanced Identity Cloud. |
@@ -213,6 +214,9 @@ List of modules that have been updated and/or added by version:
 | frodo.idm.connector        | 2.0.0 | Manage IDM connector configuration. |
 | frodo.idm.crypto.          | 2.0.0 | Manage IDM connector configuration. |
 | frodo.idm.managed          | 1.0.0 | Manage IDM managed object schema (managed.json). |
+| frodo.idm.managed.schema   | 4.6.0 | Manage individual managed-object schema properties. Relationship-property CRUD (`readManagedObjectSchemaProperty`/`updateManagedObjectSchemaProperty`/`removeManagedObjectSchemaProperty`) via IDM's dedicated v2 schema API is Cloud-only; also supports auto-creating a bidirectional relationship's reverse side in the same write. |
+| frodo.idm.managedSystem    | 4.6.0 | Manage managed-system-object (`svcacct`, `teammember`) records. Read-only for schema (see `frodo.idm.managedSystem.schema`). |
+| frodo.idm.managedSystem.schema | 4.6.0 | Read managed-system-object schema (`svcacct`, `teammember`). Read-only -- these are Ping-owned system types, not user-customizable. |
 | frodo.idm.mapping          | 2.0.0 | Manage IDM mappings (sync.json). |
 | frodo.idm.organization     | 1.0.0 | Limited Org Model management exposed through the library but primarily used internally. |
 | frodo.idm.recon            | 2.0.0 | Read, start, cancel IDM recons. |
@@ -231,7 +235,7 @@ List of modules that have been updated and/or added by version:
 | frodo.saml.circlesOfTrust  | 1.0.0 | Manage SAML 2.0 circles of trust. |
 | frodo.saml.entityProvider  | 1.0.0 | Manage SAML 2.0 entity providers. |
 | frodo.script               | 1.0.0 | Manage access management scripts. |
-| frodo.scriptType           | 3.0.1 | Manage access management script types. |
+| frodo.scriptType           | 3.0.1 | Manage access management script types. Since 4.6.0, also introspects the bindings (available objects/APIs) exposed to scripts running in a given scripting context via `readScriptBindings`. |
 | frodo.secretStore          | 3.0.1 | Manage access management secret stores in classic and forgeops deployments. |
 | frodo.server               | 3.0.1 | Manage access management servers in classic and forgeops deployments. |
 | frodo.service              | 1.0.0 | Manage access management services. |

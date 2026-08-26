@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added
+- Added `frodo.cloud.idmFeature` for reading, validating, and installing IDM tenant-configuration features (distinct from the existing `frodo.cloud.feature`, which covers AM-side platform entitlement flags). (commit 99f97c52d)
+- Added an `irreversible` field to MCP capability metadata/descriptors (`OperationCapabilityMeta`/`McpCapabilityDescriptor`), and a `CapabilityMetadata.ts` entry documenting `agent.createAIAgent`'s partial-success semantics. (commit 99f97c52d)
+- Exposed standalone script-binding introspection via `frodo.scriptType.readScriptBindings`, widening `ScriptingContextSkeleton` with the real `bindings` array and a corrected `allowLists` union type. (commit 99f97c52d)
+
+### Fixed
+- `createAIAgent` no longer mutates the caller-supplied `agentData` object when sanitizing the AI-agent identity field before submission. (commit 7158f7313)
+
 ## [v4.5.0] - 2026-08-25
 
 ### Added
