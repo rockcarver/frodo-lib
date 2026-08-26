@@ -2535,7 +2535,28 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Generic certificate update — but activateCertificate/deactivateCertificate are themselves thin wrappers that call this same update API with the active flag flipped. Calling this directly with active:false deactivates a live certificate exactly like deactivateCertificate, which is already high/destructive; this entry keeps the two in sync.',
   },
-  'cloud.env.enableAIAgentFeature': { mutating: true, riskClass: 'medium' },
+  'cloud.env.enableAIAgentFeature': {
+    mutating: true,
+    riskClass: 'medium',
+    notes:
+      "Toggles the environment-level AI Agent capability (POST /environment/aiagent?_action=enable) -- a different, higher-level gate than idmFeature.installIdmFeature('aiagent') (POST /openidm/feature/aiagent?_action=install), which installs the IDM-side AI-agent managed-object types/schema. Confirmed live these are two distinct REST resources; whether one implies or requires the other was not established -- treat them as two separate, not-yet-fully-understood prerequisites for AI Agent functionality rather than assuming either alone is sufficient.",
+  },
+  'cloud.idmFeature.readIdmFeatures': { mutating: false, riskClass: 'low' },
+  'cloud.idmFeature.readIdmFeature': { mutating: false, riskClass: 'low' },
+  'cloud.idmFeature.hasIdmFeature': { mutating: false, riskClass: 'low' },
+  'cloud.idmFeature.validateIdmFeature': {
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'A dry run only -- POST /openidm/feature/{id}?_action=validate reports whether installIdmFeature would succeed without installing anything.',
+  },
+  'cloud.idmFeature.installIdmFeature': {
+    mutating: true,
+    riskClass: 'critical',
+    irreversible: true,
+    notes:
+      'Installs an IDM tenant-configuration feature (e.g. groups, aiagent, am/2fa/profiles) -- a one-way operation. Per Ping\'s own documentation, uninstalling or disabling a feature once installed requires contacting Ping support and rolling back the tenant; there is no self-service undo. Distinct from cloud.env.enableAIAgentFeature -- see that entry\'s notes.',
+  },
   'cloud.env.enforceFederationFor': {
     mutating: true,
     destructive: true,
@@ -3244,6 +3265,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'critical',
     notes:
       'Wraps the same full-service-config content as service.getFullServices, for every service. Previously medium.',
+  },
+  'agent.createAIAgent': {
+    notes:
+      "The returned object can represent a partial success: the core AI agent object is created synchronously and its creation is the only fatal step, but identity creation and privilege/owner linking that follow are best-effort and never roll back or throw on failure. Check the returned object's _provisioningStatus.errors and _provisioningStatus.privileges[].errors to know whether those follow-up steps actually completed -- a response without a thrown error does not by itself mean everything succeeded.",
   },
 };
 

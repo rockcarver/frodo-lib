@@ -628,3 +628,39 @@ describe('MCP capability foundation', () => {
     expect(mismatches).toEqual([]);
   });
 });
+
+describe('capability metadata pass-through', () => {
+  test('agent.createAIAgent surfaces partial-failure guidance via notes', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['agent'],
+      includeUtils: false,
+    });
+    const descriptor = capabilities.find(
+      (capability) => capability.id === 'agent.createAIAgent'
+    );
+    expect(descriptor?.notes).toMatch(/_provisioningStatus/);
+  });
+
+  test('an irreversible: true override surfaces on the built descriptor', () => {
+    expect(CAPABILITY_META['idm.config.removeSubConfigEntity']).toBeDefined();
+    const original = CAPABILITY_META['idm.config.removeSubConfigEntity'];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (CAPABILITY_META as any)['idm.config.removeSubConfigEntity'] = {
+      ...original,
+      irreversible: true,
+    };
+    try {
+      const capabilities = buildCapabilityInventory(frodo, {
+        includeTopLevelDomains: ['idm'],
+        includeUtils: false,
+      });
+      const descriptor = capabilities.find(
+        (capability) => capability.id === 'idm.config.removeSubConfigEntity'
+      );
+      expect(descriptor?.irreversible).toBe(true);
+    } finally {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (CAPABILITY_META as any)['idm.config.removeSubConfigEntity'] = original;
+    }
+  });
+});

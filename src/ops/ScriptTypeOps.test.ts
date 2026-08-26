@@ -92,6 +92,22 @@ describe('ScriptTypeOps', () => {
     });
   });
 
+  describe('readScriptBindings()', () => {
+    test('0: Method is implemented', async () => {
+      expect(ScriptTypeOps.readScriptBindings).toBeDefined();
+    });
+
+    test('1: Read script bindings for SCRIPTED_DECISION_NODE', async () => {
+      const response = await ScriptTypeOps.readScriptBindings({
+        context: 'SCRIPTED_DECISION_NODE',
+        state,
+      });
+      expect(Array.isArray(response)).toBe(true);
+      expect(response.length).toBeGreaterThan(0);
+      expect(response).toMatchSnapshot();
+    });
+  });
+
   describe('updateScriptType()', () => {
     test('0: Method is implemented', async () => {
       expect(ScriptTypeOps.updateScriptType).toBeDefined();

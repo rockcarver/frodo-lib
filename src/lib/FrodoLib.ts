@@ -44,6 +44,7 @@ import EnvSSOCookieConfigOps, {
 } from '../ops/cloud/EnvSSOCookieConfigOps';
 import EsvCountOps, { EsvCount } from '../ops/cloud/EsvCountOps';
 import FeatureOps, { Feature } from '../ops/cloud/FeatureOps';
+import IdmFeatureOps, { IdmFeature } from '../ops/cloud/IdmFeatureOps';
 import IgaCertificationTemplateOps, {
   CertificationTemplate,
 } from '../ops/cloud/iga/IgaCertificationTemplateOps';
@@ -174,6 +175,7 @@ export type Frodo = {
      */
     esvCount: EsvCount;
     feature: Feature;
+    idmFeature: IdmFeature;
     iga: {
       certificationTemplate: CertificationTemplate;
       event: IgaEvent;
@@ -388,6 +390,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
       },
       esvCount: EsvCountOps(state),
       feature: FeatureOps(state),
+      idmFeature: IdmFeatureOps(state),
       iga: {
         certificationTemplate: IgaCertificationTemplateOps(state),
         event: IgaEventOps(state),

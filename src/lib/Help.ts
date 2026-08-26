@@ -4608,6 +4608,16 @@ export const helpMetadata: MethodHelpDoc[] = [
   },
   {
     typeName: "ScriptType",
+    methodName: "readScriptBindings",
+    signature: "readScriptBindings(context: string): Promise<ScriptBinding[]>",
+    description: "Read the bindings (available objects/APIs, e.g. httpClient, idRepository) exposed to scripts running in a given scripting context.",
+    params: [
+      { name: "context", type: "string", description: "scripting context id, e.g. SCRIPTED_DECISION_NODE", required: true },
+    ],
+    returns: "{Promise<ScriptBinding[]>} a promise that resolves to an array of script bindings",
+  },
+  {
+    typeName: "ScriptType",
     methodName: "updateScriptType",
     signature: "updateScriptType( scriptTypeId: string, scriptTypeData: ScriptTypeSkeleton ): Promise<ScriptTypeSkeleton>",
     description: "Update script type",
@@ -6132,6 +6142,54 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "featureId", type: "string", description: "feature id (e.g. 'service-accounts')", required: true },
     ],
     returns: "{Promise<boolean>} a promise that resolves to true if the feature is available and to false otherwise",
+  },
+  {
+    typeName: "IdmFeature",
+    methodName: "readIdmFeatures",
+    signature: "readIdmFeatures(): Promise<IdmFeatureInterface[]>",
+    description: "Read all IDM tenant-configuration features and their install status.",
+    params: [],
+    returns: "{Promise<IdmFeatureInterface[]>} a promise that resolves to an array of feature objects",
+  },
+  {
+    typeName: "IdmFeature",
+    methodName: "readIdmFeature",
+    signature: "readIdmFeature(featureId: string): Promise<IdmFeatureInterface>",
+    description: "Read a single IDM tenant-configuration feature and its install status.",
+    params: [
+      { name: "featureId", type: "string", description: "feature id, e.g. 'aiagent'", required: true },
+    ],
+    returns: "{Promise<IdmFeatureInterface>} a promise that resolves to the feature object",
+  },
+  {
+    typeName: "IdmFeature",
+    methodName: "hasIdmFeature",
+    signature: "hasIdmFeature(featureId: string): Promise<boolean>",
+    description: "Check if an IDM tenant-configuration feature is installed.",
+    params: [
+      { name: "featureId", type: "string", description: "feature id, e.g. 'aiagent'", required: true },
+    ],
+    returns: "{Promise<boolean>} a promise that resolves to true if the feature is installed",
+  },
+  {
+    typeName: "IdmFeature",
+    methodName: "validateIdmFeature",
+    signature: "validateIdmFeature(featureId: string): Promise<IdmFeatureActionResult>",
+    description: "Validate whether an IDM tenant-configuration feature is installable, without installing it.",
+    params: [
+      { name: "featureId", type: "string", description: "feature id, e.g. 'aiagent'", required: true },
+    ],
+    returns: "{Promise<IdmFeatureActionResult>} a promise that resolves to the validation result",
+  },
+  {
+    typeName: "IdmFeature",
+    methodName: "installIdmFeature",
+    signature: "installIdmFeature(featureId: string): Promise<IdmFeatureActionResult>",
+    description: "Install an IDM tenant-configuration feature. Irreversible -- see the module-level remarks.",
+    params: [
+      { name: "featureId", type: "string", description: "feature id, e.g. 'aiagent'", required: true },
+    ],
+    returns: "{Promise<IdmFeatureActionResult>} a promise that resolves to the install result",
   },
   {
     typeName: "Log",
