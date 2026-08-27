@@ -398,16 +398,19 @@ export async function readManagedObjectSchemaProperty({
  * (rather than eagerly re-fetching) the cached whole-type schema
  * readManagedObjectSchema uses, so the next read for this type picks up the
  * change without an extra round-trip here.
+ * @param {boolean} wait wait for the config change to fully propagate before returning. Defaults to true — see {@link putManagedObjectSchemaProperty}.
  */
 export async function updateManagedObjectSchemaProperty({
   type,
   propertyName,
   propertyData,
+  wait = true,
   state,
 }: {
   type: string;
   propertyName: string;
   propertyData: ManagedObjectSchemaProperty;
+  wait?: boolean;
   state: State;
 }): Promise<ManagedObjectSchemaProperty> {
   try {
@@ -416,6 +419,7 @@ export async function updateManagedObjectSchemaProperty({
       type,
       propertyName,
       propertyData,
+      wait,
       state,
     });
     delete ManagedObjectSchemaCache[type];
@@ -434,14 +438,17 @@ export async function updateManagedObjectSchemaProperty({
  * runs IDM (Cloud and ForgeOps) — see
  * {@link assertIdmDeploymentForSchemaPropertyApi}. Invalidates the cached
  * whole-type schema; see {@link updateManagedObjectSchemaProperty}.
+ * @param {boolean} wait wait for the config change to fully propagate before returning. Defaults to true — see {@link putManagedObjectSchemaProperty}.
  */
 export async function removeManagedObjectSchemaProperty({
   type,
   propertyName,
+  wait = true,
   state,
 }: {
   type: string;
   propertyName: string;
+  wait?: boolean;
   state: State;
 }): Promise<ManagedObjectSchemaProperty> {
   try {
@@ -449,6 +456,7 @@ export async function removeManagedObjectSchemaProperty({
     const result = await _deleteManagedObjectSchemaProperty({
       type,
       propertyName,
+      wait,
       state,
     });
     delete ManagedObjectSchemaCache[type];

@@ -188,6 +188,7 @@ export async function getManagedObjectSchemaProperty({
  * @param {string} type managed object type, e.g. alpha_user
  * @param {string} propertyName schema property name, e.g. custom_merchantId
  * @param {ManagedObjectSchemaProperty} propertyData the property definition to write
+ * @param {boolean} wait delay the response until an OSGi service event confirms the change has been consumed by the corresponding service or the request times out. Defaults to true: an immediately-following read or dependent write (e.g. the auto-created reverse side of a relationship property) can otherwise race the config's own asynchronous propagation and fail spuriously.
  * @param {State} state library state
  * @returns {Promise<ManagedObjectSchemaProperty>} a promise that resolves to the written property definition
  */
@@ -195,11 +196,13 @@ export async function putManagedObjectSchemaProperty({
   type,
   propertyName,
   propertyData,
+  wait = true,
   state,
 }: {
   type: string;
   propertyName: string;
   propertyData: ManagedObjectSchemaProperty;
+  wait?: boolean;
   state: State;
 }): Promise<ManagedObjectSchemaProperty> {
   if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
@@ -208,7 +211,9 @@ export async function putManagedObjectSchemaProperty({
     );
   }
   const urlString = util.format(
-    managedObjectSchemaPropertyURLTemplate,
+    wait
+      ? `${managedObjectSchemaPropertyURLTemplate}?waitForCompletion=true`
+      : managedObjectSchemaPropertyURLTemplate,
     getIdmBaseUrl(state),
     type,
     propertyName
@@ -225,16 +230,19 @@ export async function putManagedObjectSchemaProperty({
  * see {@link getManagedObjectSchemaProperty}.
  * @param {string} type managed object type, e.g. alpha_user
  * @param {string} propertyName schema property name, e.g. custom_merchantId
+ * @param {boolean} wait delay the response until an OSGi service event confirms the change has been consumed by the corresponding service or the request times out. Defaults to true — see {@link putManagedObjectSchemaProperty}.
  * @param {State} state library state
  * @returns {Promise<ManagedObjectSchemaProperty>} a promise that resolves to the deleted property definition
  */
 export async function deleteManagedObjectSchemaProperty({
   type,
   propertyName,
+  wait = true,
   state,
 }: {
   type: string;
   propertyName: string;
+  wait?: boolean;
   state: State;
 }): Promise<ManagedObjectSchemaProperty> {
   if (MANAGED_SYSTEM_OBJECT_TYPES.includes(type)) {
@@ -243,7 +251,9 @@ export async function deleteManagedObjectSchemaProperty({
     );
   }
   const urlString = util.format(
-    managedObjectSchemaPropertyURLTemplate,
+    wait
+      ? `${managedObjectSchemaPropertyURLTemplate}?waitForCompletion=true`
+      : managedObjectSchemaPropertyURLTemplate,
     getIdmBaseUrl(state),
     type,
     propertyName

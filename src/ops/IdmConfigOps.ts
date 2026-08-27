@@ -342,6 +342,16 @@ export interface ConfigEntityImportOptions {
    * validate script hooks
    */
   validate: boolean;
+  /**
+   * Wait for each entity's config write to fully propagate before returning,
+   * rather than the async-by-default behavior. Defaults to false to match
+   * this option's pre-existing behavior for bulk/whole-config imports (where
+   * waiting on every entity could be slow); pass true for an import an
+   * immediately-following read or dependent write needs to be consistent
+   * with (e.g. importing a single managed-object type just before creating
+   * a relationship property that targets it).
+   */
+  wait?: boolean;
 }
 
 export interface ConfigEntityExportInterface {
@@ -721,6 +731,7 @@ export async function importConfigEntities({
       const result = await updateConfigEntity({
         entityId: id,
         entityData,
+        wait: options.wait,
         state,
       });
       response.push(result);
