@@ -8,7 +8,7 @@ function defaultLogCallback(curlResult, err = undefined) {
   if (err) {
     printError(err);
   } else {
-    c.blueBright(printMessage(command));
+    printMessage(c.blueBright(command) as any);
   }
 }
 
