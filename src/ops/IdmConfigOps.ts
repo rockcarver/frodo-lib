@@ -153,8 +153,9 @@ export type IdmConfig = {
    * type definition (schema included), for any deployment type. This is the
    * general-purpose per-property read path too — read the whole type and
    * look up the property you need. `ManagedObjectSchemaOps.ts`'s
-   * `readManagedObjectSchemaProperty` is a narrower, Cloud-only,
-   * relationship-property-specific alternative, not a general replacement.
+   * `readManagedObjectSchemaProperty` is a narrower, relationship-property-
+   * specific alternative (available wherever IDM runs -- Cloud and
+   * ForgeOps, not classic), not a general replacement.
    */
   readSubConfigEntity(
     entityId: string,
@@ -172,8 +173,9 @@ export type IdmConfig = {
    * property/relationship definitions (edit `.schema.properties` on the
    * object you pass in). `ManagedObjectSchemaOps.ts`'s
    * `updateManagedObjectSchemaProperty` / `removeManagedObjectSchemaProperty`
-   * are a narrower, Cloud-only, relationship-property-specific alternative,
-   * not a general replacement.
+   * are a narrower, relationship-property-specific alternative (available
+   * wherever IDM runs -- Cloud and ForgeOps, not classic), not a general
+   * replacement.
    */
   importSubConfigEntity(
     entityId: string,

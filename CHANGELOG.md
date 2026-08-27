@@ -9,6 +9,7 @@
 
 ### Fixed
 - `createAIAgent` no longer mutates the caller-supplied `agentData` object when sanitizing the AI-agent identity field before submission. (commit 7158f7313)
+- `readManagedObjectSchemaProperty`/`updateManagedObjectSchemaProperty`/`removeManagedObjectSchemaProperty` no longer reject ForgeOps deployments. These wrap IDM's dedicated v2 relationship-schema API, which is a standard IDM REST API available since IDM 7.5.0 (confirmed directly against Ping's self-hosted 7.5/8.1 REST API references and IDM 7.5.0's own release notes) and not Cloud-specific as previously assumed; the gate now rejects only classic (no IDM instance to serve it).
 
 ## [v4.5.0] - 2026-08-25
 

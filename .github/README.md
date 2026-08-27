@@ -214,7 +214,7 @@ List of modules that have been updated and/or added by version:
 | frodo.idm.connector        | 2.0.0 | Manage IDM connector configuration. |
 | frodo.idm.crypto.          | 2.0.0 | Manage IDM connector configuration. |
 | frodo.idm.managed          | 1.0.0 | Manage IDM managed object schema (managed.json). |
-| frodo.idm.managed.schema   | 4.6.0 | Manage individual managed-object schema properties. Relationship-property CRUD (`readManagedObjectSchemaProperty`/`updateManagedObjectSchemaProperty`/`removeManagedObjectSchemaProperty`) via IDM's dedicated v2 schema API is Cloud-only; also supports auto-creating a bidirectional relationship's reverse side in the same write. |
+| frodo.idm.managed.schema   | 4.6.0 | Manage individual managed-object schema properties. Relationship-property CRUD (`readManagedObjectSchemaProperty`/`updateManagedObjectSchemaProperty`/`removeManagedObjectSchemaProperty`) via IDM's dedicated v2 schema API is available on any deployment that runs IDM (Cloud and ForgeOps), not classic; also supports auto-creating a bidirectional relationship's reverse side in the same write. |
 | frodo.idm.managedSystem    | 4.6.0 | Manage managed-system-object (`svcacct`, `teammember`) records. Read-only for schema (see `frodo.idm.managedSystem.schema`). |
 | frodo.idm.managedSystem.schema | 4.6.0 | Read managed-system-object schema (`svcacct`, `teammember`). Read-only -- these are Ping-owned system types, not user-customizable. |
 | frodo.idm.mapping          | 2.0.0 | Manage IDM mappings (sync.json). |

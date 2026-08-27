@@ -718,19 +718,19 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managed.schema.readManagedObjectSchemaProperty': {
     notes:
-      "Cloud (PingOne Advanced Identity Cloud) only — this is IDM's dedicated v2 relationship-schema API, for reading one relationship-property definition without fetching the type's whole schema. It is not a general per-property API: for any non-relationship property, or for any property at all on ForgeOps/classic (relationships included), use idm.config.readSubConfigEntity('managed', type) and read the property off schema.properties there instead.",
+      "Available on any deployment that runs IDM (Cloud and ForgeOps), not classic — this is IDM's dedicated v2 relationship-schema API, for reading one relationship-property definition without fetching the type's whole schema. It is not a general per-property API: for any non-relationship property, or for any property at all on classic (relationships included), use idm.config.readSubConfigEntity('managed', type) and read the property off schema.properties there instead.",
   },
   'idm.managed.schema.updateManagedObjectSchemaProperty': {
     riskClass: 'critical',
     notes:
-      "Cloud only — creates or updates one relationship-property definition in place via IDM's dedicated v2 relationship-schema API, leaving the rest of the type's schema untouched. Critical risk regardless of update's usual agentic-tier availability — a schema-property write changes the type's structure for every existing and future record, not one record's data, so it's guarded the same way idm.managedSystem.* is. See idm.managed.schema.readManagedObjectSchemaProperty's notes for when to use idm.config.readSubConfigEntity/importSubConfigEntity instead (any non-relationship property, or anything on ForgeOps/classic), and idm.managed.updateManagedObjectProperties's notes for the relationship-property shape (type/resourceCollection/reversePropertyName/etc.).",
+      "Available on any deployment that runs IDM (Cloud and ForgeOps) — creates or updates one relationship-property definition in place via IDM's dedicated v2 relationship-schema API, leaving the rest of the type's schema untouched. Critical risk regardless of update's usual agentic-tier availability — a schema-property write changes the type's structure for every existing and future record, not one record's data, so it's guarded the same way idm.managedSystem.* is. See idm.managed.schema.readManagedObjectSchemaProperty's notes for when to use idm.config.readSubConfigEntity/importSubConfigEntity instead (any non-relationship property, or anything on classic), and idm.managed.updateManagedObjectProperties's notes for the relationship-property shape (type/resourceCollection/reversePropertyName/etc.).",
   },
   'idm.managed.schema.removeManagedObjectSchemaProperty': {
     operationType: 'delete',
     objectType: 'ManagedObjectSchemaProperty',
     riskClass: 'critical',
     notes:
-      "Cloud only — removes one relationship-property definition via IDM's dedicated v2 relationship-schema API, leaving the rest of the type's schema untouched. Critical risk, same reasoning as idm.managed.schema.updateManagedObjectSchemaProperty. See idm.managed.schema.readManagedObjectSchemaProperty's notes for when to use idm.config.readSubConfigEntity/importSubConfigEntity instead (any non-relationship property, or anything on ForgeOps/classic).",
+      "Available on any deployment that runs IDM (Cloud and ForgeOps) — removes one relationship-property definition via IDM's dedicated v2 relationship-schema API, leaving the rest of the type's schema untouched. Critical risk, same reasoning as idm.managed.schema.updateManagedObjectSchemaProperty. See idm.managed.schema.readManagedObjectSchemaProperty's notes for when to use idm.config.readSubConfigEntity/importSubConfigEntity instead (any non-relationship property, or anything on classic).",
   },
   'idm.managed.readRelationship': {
     operationType: 'read',
