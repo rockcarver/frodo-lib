@@ -2670,7 +2670,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "ManagedObjectSchemaOps",
     methodName: "readManagedObjectSchemaProperty",
     signature: "readManagedObjectSchemaProperty( type: string, propertyName: string ): Promise<ManagedObjectSchemaProperty>",
-    description: "Read a single managed object relationship-property definition. Available on any deployment that runs IDM (Cloud and ForgeOps), not classic — uses IDM's dedicated v2 relationship-schema API to read one relationship-property definition without fetching the type's entire schema. For any non-relationship property, or for any property (including relationships) on classic, use readSubConfigEntity('managed', type) and read the property off the returned schema.properties instead.",
+    description: "Read a single managed object relationship-property definition. Requires IDM 7.5+ (Cloud always qualifies) — uses IDM's dedicated v2 relationship-schema API to read one relationship-property definition without fetching the type's entire schema. For any non-relationship property, or on an IDM version that predates 7.5, use readSubConfigEntity('managed', type) and read the property off the returned schema.properties instead. Neither path is reachable on classic (AM-only, no IDM at all).",
     params: [
       { name: "type", type: "string", description: "managed object type, e.g. alpha_user or user", required: true },
       { name: "propertyName", type: "string", description: "schema property name, e.g. custom_merchantId", required: true },
@@ -2681,7 +2681,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "ManagedObjectSchemaOps",
     methodName: "updateManagedObjectSchemaProperty",
     signature: "updateManagedObjectSchemaProperty( type: string, propertyName: string, propertyData: ManagedObjectSchemaProperty ): Promise<ManagedObjectSchemaProperty>",
-    description: "Create or update a single managed object relationship-property definition, leaving the rest of the type's schema untouched. Available on any deployment that runs IDM (Cloud and ForgeOps) — see {@link readManagedObjectSchemaProperty}. For any non-relationship property, or for any property on classic, use importSubConfigEntity('managed', ...) with the full updated type definition instead.",
+    description: "Create or update a single managed object relationship-property definition, leaving the rest of the type's schema untouched. Requires IDM 7.5+ — see {@link readManagedObjectSchemaProperty}. For any non-relationship property, or on an IDM version that predates 7.5, use importSubConfigEntity('managed', ...) with the full updated type definition instead. Neither path is reachable on classic.",
     params: [
       { name: "type", type: "string", description: "managed object type, e.g. alpha_user or user", required: true },
       { name: "propertyName", type: "string", description: "schema property name, e.g. custom_merchantId", required: true },
@@ -2693,7 +2693,7 @@ export const helpMetadata: MethodHelpDoc[] = [
     typeName: "ManagedObjectSchemaOps",
     methodName: "removeManagedObjectSchemaProperty",
     signature: "removeManagedObjectSchemaProperty( type: string, propertyName: string ): Promise<ManagedObjectSchemaProperty>",
-    description: "Remove a single managed object relationship-property definition, leaving the rest of the type's schema untouched. Available on any deployment that runs IDM (Cloud and ForgeOps) — see {@link readManagedObjectSchemaProperty}.",
+    description: "Remove a single managed object relationship-property definition, leaving the rest of the type's schema untouched. Requires IDM 7.5+ — see {@link readManagedObjectSchemaProperty}.",
     params: [
       { name: "type", type: "string", description: "managed object type, e.g. alpha_user or user", required: true },
       { name: "propertyName", type: "string", description: "schema property name, e.g. custom_merchantId", required: true },

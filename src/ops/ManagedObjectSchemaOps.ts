@@ -22,35 +22,44 @@ import { FrodoError } from './FrodoError';
  * relates to managed-object *records* and *configuration*, the other two
  * things this domain covers.
  *
- * There are two ways to *mutate* a type's schema, and they are not
- * interchangeable:
+ * Neither path is available on classic (AM-only) deployments at all — there
+ * is no IDM instance there, so neither the dedicated v2 API nor the generic
+ * config path below has anything to talk to. Both require a deployment that
+ * actually runs IDM (Cloud or ForgeOps); see
+ * {@link assertIdmDeploymentForSchemaPropertyApi}.
+ *
+ * There are two ways to *mutate* a type's schema on a deployment that does
+ * run IDM, and they are not interchangeable:
  * 1. `readManagedObjectSchemaProperty` / `updateManagedObjectSchemaProperty` /
  *    `removeManagedObjectSchemaProperty` below use IDM's dedicated v2 schema
  *    API, which is specifically for **relationship-property definitions**,
  *    one at a time, in place, with no whole-blob read-modify-write. This is
- *    a standard IDM REST API, available on any deployment that runs IDM
- *    (Cloud and ForgeOps) — not Cloud-only, contrary to an earlier version
- *    of this comment. Confirmed by directly comparing Ping's self-hosted
- *    PingIDM REST API reference (7.5 and 8.1, the oldest and newest publicly
- *    fetchable self-hosted doc snapshots — everything between is archived
- *    and unreachable) against the PingOne Advanced Identity Cloud REST API
- *    reference: identical endpoint (`/openidm/schema/managed/{type}/
+ *    a standard IDM REST API, introduced in **IDM 7.5.0** (confirmed
+ *    directly in IDM 7.5.0's own "New features" release notes, which link
+ *    to this same endpoint) and present unchanged through IDM 8.1 — not
+ *    Cloud-only, contrary to an earlier version of this comment, which
+ *    wrongly assumed the API was Cloud-specific. Confirmed by directly
+ *    comparing Ping's self-hosted PingIDM REST API reference (7.5 and 8.1)
+ *    against the PingOne Advanced Identity Cloud REST API reference:
+ *    identical endpoint (`/openidm/schema/managed/{type}/
  *    properties/{propertyName}`), identical `Accept-API-Version: resource=2.0`
  *    header, identical field shape (including `reverseProperty`), and no
- *    deployment restriction stated on either side. Not available on classic
- *    (AM-only, no IDM at all) — see {@link assertIdmDeploymentForSchemaPropertyApi}.
- *    See [rockcarver/frodo-lib#388](https://github.com/rockcarver/frodo-lib/issues/388)
+ *    deployment restriction stated on either side. So this path specifically
+ *    requires IDM 7.5+ (Cloud always qualifies; a ForgeOps deployment on an
+ *    older IDM version would not, though Frodo has no way to detect that and
+ *    doesn't attempt to — the deployment-type gate alone can't distinguish
+ *    IDM versions within ForgeOps). See
+ *    [rockcarver/frodo-lib#388](https://github.com/rockcarver/frodo-lib/issues/388)
  *    for the original feature request (which itself doesn't claim Cloud-only
  *    either).
- * 2. For every other case — any non-relationship property on any deployment,
- *    relationship properties on classic (no IDM, so neither path applies —
- *    see below), and whole-type schema changes on any deployment — use
- *    `IdmConfigOps.ts`'s `readSubConfigEntity('managed', type)` /
- *    `importSubConfigEntity('managed', ...)` to read-modify-write the entire
- *    type definition (edit `.schema.properties` on the object you read
- *    before writing it back). This is the general-purpose path; #1 above is
- *    an optimization for one particular case (single relationship-property
- *    reads/writes on a deployment that runs IDM), not the default.
+ * 2. For every other case — any non-relationship property, relationship
+ *    properties on an IDM version that predates 7.5, and whole-type schema
+ *    changes — use `IdmConfigOps.ts`'s `readSubConfigEntity('managed', type)`
+ *    / `importSubConfigEntity('managed', ...)` to read-modify-write the
+ *    entire type definition (edit `.schema.properties` on the object you
+ *    read before writing it back). This is the general-purpose path,
+ *    available on any IDM version; #1 above is an optimization for one
+ *    particular case on a sufficiently recent one, not the default.
  *
  * Neither path touches the underlying repository's index/persistence-layer
  * definitions (e.g. DS's `repo.ds` on ForgeOps) — Frodo has no support for
@@ -72,14 +81,14 @@ export type ManagedObjectSchemaOps = {
     options?: ManagedObjectSchemaOptions
   ): Promise<ManagedObjectSchema>;
   /**
-   * Read a single managed object relationship-property definition. Available
-   * on any deployment that runs IDM (Cloud and ForgeOps), not classic —
-   * uses IDM's dedicated v2 relationship-schema API to read one
-   * relationship-property definition without fetching the type's entire
-   * schema. For any non-relationship property, or for any property
-   * (including relationships) on classic, use
+   * Read a single managed object relationship-property definition. Requires
+   * IDM 7.5+ (Cloud always qualifies) — uses IDM's dedicated v2
+   * relationship-schema API to read one relationship-property definition
+   * without fetching the type's entire schema. For any non-relationship
+   * property, or on an IDM version that predates 7.5, use
    * readSubConfigEntity('managed', type) and read the property off the
-   * returned schema.properties instead.
+   * returned schema.properties instead. Neither path is reachable on
+   * classic (AM-only, no IDM at all).
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} propertyName schema property name, e.g. custom_merchantId
    * @returns {Promise<ManagedObjectSchemaProperty>} a promise that resolves to the property definition
@@ -90,12 +99,11 @@ export type ManagedObjectSchemaOps = {
   ): Promise<ManagedObjectSchemaProperty>;
   /**
    * Create or update a single managed object relationship-property
-   * definition, leaving the rest of the type's schema untouched. Available
-   * on any deployment that runs IDM (Cloud and ForgeOps) — see
-   * {@link readManagedObjectSchemaProperty}. For any non-relationship
-   * property, or for any property on classic, use
+   * definition, leaving the rest of the type's schema untouched. Requires
+   * IDM 7.5+ — see {@link readManagedObjectSchemaProperty}. For any
+   * non-relationship property, or on an IDM version that predates 7.5, use
    * importSubConfigEntity('managed', ...) with the full updated type
-   * definition instead.
+   * definition instead. Neither path is reachable on classic.
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} propertyName schema property name, e.g. custom_merchantId
    * @param {ManagedObjectSchemaProperty} propertyData the property definition to write
@@ -108,8 +116,7 @@ export type ManagedObjectSchemaOps = {
   ): Promise<ManagedObjectSchemaProperty>;
   /**
    * Remove a single managed object relationship-property definition, leaving
-   * the rest of the type's schema untouched. Available on any deployment
-   * that runs IDM (Cloud and ForgeOps) — see
+   * the rest of the type's schema untouched. Requires IDM 7.5+ — see
    * {@link readManagedObjectSchemaProperty}.
    * @param {string} type managed object type, e.g. alpha_user or user
    * @param {string} propertyName schema property name, e.g. custom_merchantId
@@ -313,7 +320,10 @@ export async function readManagedObjectSchema({
 /**
  * Throws if the current deployment is classic (AM-only, no IDM at all) —
  * the only deployment type this dedicated v2 relationship-schema API
- * genuinely can't reach, since there's no IDM instance to serve it.
+ * genuinely can't reach, since there's no IDM instance to serve it. Note
+ * this gate cannot check the IDM *version* on ForgeOps (this API needs IDM
+ * 7.5+ — see the module header comment) — it only distinguishes "runs IDM
+ * at all" from "doesn't."
  *
  * This was previously gated to Cloud only, on the assumption the API was
  * Cloud-specific. That assumption was wrong: directly comparing Ping's
@@ -325,20 +335,21 @@ export async function readManagedObjectSchema({
  * (`/openidm/schema/managed/{type}/properties/{propertyName}`), identical
  * `Accept-API-Version: resource=2.0` header, and identical field shape on
  * both sides, with no deployment restriction stated on either. It's a
- * standard IDM REST API, available wherever IDM itself runs (Cloud and
- * ForgeOps) -- not gated on which product family, only on whether IDM is
- * present at all. Not independently live-verified against a real ForgeOps
- * deployment (no working ForgeOps tenant credentials were available at the
- * time this was corrected) -- this reclassification rests on the
- * documentation comparison above, not a live round trip.
+ * standard IDM REST API (introduced in IDM 7.5.0, confirmed via that
+ * release's own release notes), available wherever IDM itself runs (Cloud
+ * and ForgeOps) -- not gated on which product family, only on whether IDM
+ * is present at all. Not independently live-verified against a real
+ * ForgeOps deployment (no working ForgeOps tenant credentials were
+ * available at the time this was corrected) -- this reclassification rests
+ * on the documentation comparison above, not a live round trip.
  *
  * This gate is specific to this relationship-schema API; it does not mean
- * schema property CRUD in general is unavailable on classic -- every other
- * case (any non-relationship property, or any property including
- * relationships, on any deployment) is handled the regular way via
- * readSubConfigEntity/importSubConfigEntity instead, which is
- * deployment-agnostic (though on classic there's no IDM for that path
- * either, since classic has no managed-object subsystem at all).
+ * generic schema property CRUD is available on classic either. Every other
+ * case (any non-relationship property, or a relationship property on an
+ * IDM version that predates 7.5) is handled the regular way via
+ * readSubConfigEntity/importSubConfigEntity instead -- but that path also
+ * requires IDM, so it's equally unreachable on classic. Classic simply has
+ * no managed-object schema surface at all, through either path.
  */
 function assertIdmDeploymentForSchemaPropertyApi({
   type,
@@ -349,7 +360,7 @@ function assertIdmDeploymentForSchemaPropertyApi({
 }): void {
   if (state.getDeploymentType() === Constants.CLASSIC_DEPLOYMENT_TYPE_KEY) {
     throw new FrodoError(
-      `The dedicated relationship-schema v2 API for managed type "${type}" requires a deployment that runs IDM (Cloud or ForgeOps); classic deployments have no IDM instance to serve it. On any other deployment, read/modify/write the whole type definition instead via readSubConfigEntity('managed', '${type}') and importSubConfigEntity('managed', ...) — this is the regular path for relationship properties there too, not just non-relationship ones.`
+      `The dedicated relationship-schema v2 API for managed type "${type}" requires a deployment that runs IDM (Cloud or ForgeOps, IDM 7.5+); classic deployments have no IDM instance to serve it, so there is no schema-property path available for this type at all on classic.`
     );
   }
 }
