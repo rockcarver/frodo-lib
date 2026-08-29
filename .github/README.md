@@ -4,7 +4,7 @@
 
 A hybrid (ESM and CJS) library to manage PingOne Advanced Identity Cloud environments, ForgeOps deployments, and classic deployments.
 
-Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the command line tool to manage SaaS and self-hosted deployments.
+Frodo-lib powers [frodo-cli](https://github.com/rockcarver/frodo-cli), the command line tool to manage SaaS and self-hosted deployments. This includes the capability metadata and registry (`frodo-lib`'s `mcp` module) behind frodo-cli's turn-key MCP server — see frodo-cli's [MCP Server](https://github.com/rockcarver/frodo-cli#mcp-server) docs if you're looking to use MCP; frodo-lib itself doesn't run one, though it's the primitive a custom MCP integration built directly on the library could use.
 
 ## Quick Nav
 
