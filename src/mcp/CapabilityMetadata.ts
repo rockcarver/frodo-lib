@@ -718,19 +718,80 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managed.schema.readManagedObjectSchemaProperty': {
     notes:
-      "Cloud (PingOne Advanced Identity Cloud) only — this is IDM's dedicated v2 relationship-schema API, for reading one relationship-property definition without fetching the type's whole schema. It is not a general per-property API: for any non-relationship property, or for any property at all on ForgeOps/classic (relationships included), use idm.config.readSubConfigEntity('managed', type) and read the property off schema.properties there instead.",
+      "Requires IDM 7.5+ (Cloud always qualifies; not reachable on classic, which has no IDM at all) — this is IDM's dedicated v2 relationship-schema API, for reading one relationship-property definition without fetching the type's whole schema. It is not a general per-property API: for any non-relationship property, or on an IDM version that predates 7.5, use idm.config.readSubConfigEntity('managed', type) and read the property off schema.properties there instead (also unreachable on classic, for the same reason).",
   },
   'idm.managed.schema.updateManagedObjectSchemaProperty': {
     riskClass: 'critical',
     notes:
-      "Cloud only — creates or updates one relationship-property definition in place via IDM's dedicated v2 relationship-schema API, leaving the rest of the type's schema untouched. Critical risk regardless of update's usual agentic-tier availability — a schema-property write changes the type's structure for every existing and future record, not one record's data, so it's guarded the same way idm.managedSystem.* is. See idm.managed.schema.readManagedObjectSchemaProperty's notes for when to use idm.config.readSubConfigEntity/importSubConfigEntity instead (any non-relationship property, or anything on ForgeOps/classic), and idm.managed.updateManagedObjectProperties's notes for the relationship-property shape (type/resourceCollection/reversePropertyName/etc.).",
+      "Requires IDM 7.5+ (not reachable on classic) — creates or updates one relationship-property definition in place via IDM's dedicated v2 relationship-schema API, leaving the rest of the type's schema untouched. Critical risk regardless of update's usual agentic-tier availability — a schema-property write changes the type's structure for every existing and future record, not one record's data, so it's guarded the same way idm.managedSystem.* is. See idm.managed.schema.readManagedObjectSchemaProperty's notes for when to use idm.config.readSubConfigEntity/importSubConfigEntity instead (any non-relationship property, or an older IDM version), and idm.managed.updateManagedObjectProperties's notes for the relationship-property shape (type/resourceCollection/reversePropertyName/etc.).",
   },
   'idm.managed.schema.removeManagedObjectSchemaProperty': {
     operationType: 'delete',
     objectType: 'ManagedObjectSchemaProperty',
     riskClass: 'critical',
     notes:
-      "Cloud only — removes one relationship-property definition via IDM's dedicated v2 relationship-schema API, leaving the rest of the type's schema untouched. Critical risk, same reasoning as idm.managed.schema.updateManagedObjectSchemaProperty. See idm.managed.schema.readManagedObjectSchemaProperty's notes for when to use idm.config.readSubConfigEntity/importSubConfigEntity instead (any non-relationship property, or anything on ForgeOps/classic).",
+      "Requires IDM 7.5+ (not reachable on classic) — removes one relationship-property definition via IDM's dedicated v2 relationship-schema API, leaving the rest of the type's schema untouched. Critical risk, same reasoning as idm.managed.schema.updateManagedObjectSchemaProperty. See idm.managed.schema.readManagedObjectSchemaProperty's notes for when to use idm.config.readSubConfigEntity/importSubConfigEntity instead (any non-relationship property, or an older IDM version).",
+  },
+  'idm.managed.schema.createManagedObjectSchemaFlatProperty': {
+    objectType: 'ManagedObjectSchemaProperty',
+    riskClass: 'critical',
+    notes:
+      "Creates a flat (non-relationship) schema property via the generic readSubConfigEntity/importSubConfigEntity whole-type path, available on any deployment that runs IDM — unlike idm.managed.schema.updateManagedObjectSchemaProperty's dedicated v2 API, which requires IDM 7.5+ and only covers relationship properties. Supports nested sub-properties, enumerations, default values, and script-derived/relationship-derived virtual properties. Critical risk, same reasoning as the v2-API siblings above — a schema-property write changes the type's structure for every existing and future record, not one record's data.",
+  },
+  'idm.managed.schema.updateManagedObjectSchemaFlatProperty': {
+    objectType: 'ManagedObjectSchemaProperty',
+    riskClass: 'critical',
+    notes:
+      "Updates a flat (non-relationship) schema property in place, merging only the passed fields onto the property's current definition. Same generic path and critical-risk reasoning as idm.managed.schema.createManagedObjectSchemaFlatProperty.",
+  },
+  'idm.managed.schema.removeManagedObjectSchemaFlatProperty': {
+    operationType: 'delete',
+    objectType: 'ManagedObjectSchemaProperty',
+    riskClass: 'critical',
+    notes:
+      "Removes a flat (non-relationship) schema property. Method name doesn't match the delete*/removeManagedObjectSchemaProperty naming pattern inferOperationType recognizes, so operationType/riskClass are set explicitly here — left to inference, this would classify as a non-mutating, low-risk 'special' capability despite deleting part of a type's schema. Same generic path as idm.managed.schema.createManagedObjectSchemaFlatProperty.",
+  },
+  'idm.managed.schema.createManagedObjectType': {
+    objectType: 'ManagedObjectType',
+    riskClass: 'critical',
+    notes:
+      'Creates a new managed object type (title/icon/description plus a minimal seed schema — just the _id property and a populated order array). Critical risk: this defines a wholly new schema surface that future property/relationship create/update/delete calls on the type will operate against.',
+  },
+  'idm.managed.schema.updateManagedObjectType': {
+    objectType: 'ManagedObjectType',
+    riskClass: 'critical',
+    notes:
+      "Updates a managed object type's own metadata (title/icon/description). Critical risk, same reasoning as the schema-property functions above — this is type-level structure, not one record's data.",
+  },
+  'idm.managed.schema.removeManagedObjectType': {
+    operationType: 'delete',
+    objectType: 'ManagedObjectType',
+    riskClass: 'critical',
+    notes:
+      "Removes a managed object type's entire definition, including its schema. Method name doesn't match the delete* naming convention, so operationType/riskClass are set explicitly (see idm.managed.schema.removeManagedObjectSchemaFlatProperty's note). Unlike frodo-cli's 'object delete' command, this function does not itself check for existing records of the type before removing it — that safety gate (refusing without an explicit override when records exist or the count can't be confirmed) lives only in the CLI wrapper, not here; a caller invoking this directly is responsible for its own pre-check.",
+  },
+  'idm.managed.schema.createManagedObjectSchemaRelationshipProperty': {
+    objectType: 'ManagedObjectSchemaProperty',
+    riskClass: 'critical',
+    notes:
+      "Creates a relationship schema property via IDM's dedicated v2 API (requires IDM 7.5+; not reachable on classic), with optional bidirectional support — passing a reverse descriptor auto-creates the reverse side on the target type in the same server-side write. Critical risk, same reasoning as idm.managed.schema.updateManagedObjectSchemaProperty; here a single call can define schema structure on two managed object types at once.",
+  },
+  'idm.managed.schema.updateManagedObjectSchemaRelationshipProperty': {
+    objectType: 'ManagedObjectSchemaProperty',
+    riskClass: 'critical',
+    notes:
+      "Updates a relationship schema property. Requires IDM 7.5+. A configured reverse side's descriptor is always re-supplied internally (the v2 API requires it on every write of a bidirectional property, not just its creation); withReverse additionally applies the same field overrides to the reverse side as a second, separate write — if that second write fails after the first already succeeded, the thrown error names both sides, but there is no automatic rollback. Critical risk, same reasoning as idm.managed.schema.updateManagedObjectSchemaProperty.",
+  },
+  'idm.managed.schema.removeManagedObjectSchemaRelationshipProperty': {
+    operationType: 'delete',
+    objectType: 'ManagedObjectSchemaProperty',
+    riskClass: 'critical',
+    notes:
+      "Removes a relationship schema property. Requires IDM 7.5+. Method name doesn't match the delete* naming convention, so operationType/riskClass are set explicitly (see idm.managed.schema.removeManagedObjectSchemaFlatProperty's note). withReverse deletes the reverse side first, then the forward side; deleting the reverse side of a bidirectionally-auto-created pair cascades and removes the forward side too, so a 404 on the forward delete immediately after that is treated as success, not an error.",
+  },
+  'idm.managed.schema.readManagedObjectSchemaRelationshipPropertyOrNull': {
+    notes:
+      "Reads a single relationship schema property via the dedicated v2 API (requires IDM 7.5+), returning null instead of throwing when the property doesn't exist — a confirmed 404 reliably means absence; any other failure still propagates. Read-only counterpart to idm.managed.schema.readManagedObjectSchemaProperty, which throws on a missing property instead.",
   },
   'idm.managed.readRelationship': {
     operationType: 'read',
@@ -2535,7 +2596,28 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Generic certificate update — but activateCertificate/deactivateCertificate are themselves thin wrappers that call this same update API with the active flag flipped. Calling this directly with active:false deactivates a live certificate exactly like deactivateCertificate, which is already high/destructive; this entry keeps the two in sync.',
   },
-  'cloud.env.enableAIAgentFeature': { mutating: true, riskClass: 'medium' },
+  'cloud.env.enableAIAgentFeature': {
+    mutating: true,
+    riskClass: 'medium',
+    notes:
+      "Toggles the environment-level AI Agent capability (POST /environment/aiagent?_action=enable) -- a different, higher-level gate than idmFeature.installIdmFeature('aiagent') (POST /openidm/feature/aiagent?_action=install), which installs the IDM-side AI-agent managed-object types/schema. Confirmed live these are two distinct REST resources; whether one implies or requires the other was not established -- treat them as two separate, not-yet-fully-understood prerequisites for AI Agent functionality rather than assuming either alone is sufficient.",
+  },
+  'cloud.idmFeature.readIdmFeatures': { mutating: false, riskClass: 'low' },
+  'cloud.idmFeature.readIdmFeature': { mutating: false, riskClass: 'low' },
+  'cloud.idmFeature.hasIdmFeature': { mutating: false, riskClass: 'low' },
+  'cloud.idmFeature.validateIdmFeature': {
+    mutating: false,
+    riskClass: 'low',
+    notes:
+      'A dry run only -- POST /openidm/feature/{id}?_action=validate reports whether installIdmFeature would succeed without installing anything.',
+  },
+  'cloud.idmFeature.installIdmFeature': {
+    mutating: true,
+    riskClass: 'critical',
+    irreversible: true,
+    notes:
+      "Installs an IDM tenant-configuration feature (e.g. groups, aiagent, am/2fa/profiles) -- a one-way operation. Per Ping's own documentation, uninstalling or disabling a feature once installed requires contacting Ping support and rolling back the tenant; there is no self-service undo. Distinct from cloud.env.enableAIAgentFeature -- see that entry's notes.",
+  },
   'cloud.env.enforceFederationFor': {
     mutating: true,
     destructive: true,
@@ -2639,6 +2721,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
 
   'cloud.secret.disableVersionOfSecret': { mutating: true, destructive: true },
   'cloud.secret.enableVersionOfSecret': { mutating: true },
+  'cloud.secret.pruneVersionsOfSecret': {
+    mutating: true,
+    destructive: true,
+    notes:
+      'Permanently deletes old versions of a secret, keeping only the currently loaded and/or deactivated versions when keepLoaded/keepDeactivated ask for that. Already excluded from read-only/agentic/standard via the secret-keyword riskClass match; mutating/destructive are set explicitly here since naming-convention inference only infers those from operationType, which this special-kind capability has none of.',
+  },
 
   'cloud.serviceAccount.getServiceAccount': {
     operationType: 'read',
@@ -3244,6 +3332,10 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'critical',
     notes:
       'Wraps the same full-service-config content as service.getFullServices, for every service. Previously medium.',
+  },
+  'agent.createAIAgent': {
+    notes:
+      "The returned object can represent a partial success: the core AI agent object is created synchronously and its creation is the only fatal step, but identity creation and privilege/owner linking that follow are best-effort and never roll back or throw on failure. Check the returned object's _provisioningStatus.errors and _provisioningStatus.privileges[].errors to know whether those follow-up steps actually completed -- a response without a thrown error does not by itself mean everything succeeded.",
   },
 };
 

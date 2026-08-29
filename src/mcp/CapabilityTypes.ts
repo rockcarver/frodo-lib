@@ -146,6 +146,13 @@ export type McpCapabilityDescriptor = {
   riskClass: McpCapabilityRiskClass;
   mutating: boolean;
   destructive: boolean;
+  /**
+   * Whether this capability has no platform-native undo once it completes.
+   * Set from {@link OperationCapabilityMeta.irreversible} when declared;
+   * absent otherwise (not inferred, unlike {@link destructive}/{@link riskClass} —
+   * there's no reliable naming-convention signal for irreversibility).
+   */
+  irreversible?: boolean;
   /** Deployment families where this capability is functional. Defaults to `['any']`. */
   deploymentTypes: McpDeploymentType[];
   /**
@@ -351,6 +358,23 @@ export type OperationCapabilityMeta = {
    * Explicit destructive-hint override, analogous to {@link mutating}.
    */
   destructive?: boolean;
+
+  /**
+   * Marks a capability as having no platform-native undo once it completes —
+   * distinct from {@link riskClass}, which describes blast radius. An
+   * operation can be `riskClass: 'critical'` without being irreversible (a
+   * schema-property delete can be restored from a prior export) or
+   * irreversible without being otherwise unusual (an IDM feature install is
+   * a single, deliberate, low-frequency action, not "high blast radius" in
+   * the everyday sense, but Ping's own docs state that uninstalling
+   * requires contacting support and rolling back the tenant). Pure
+   * discoverability metadata — surfaced on the descriptor for callers and
+   * policy designers to see (like {@link destructive}), not itself wired
+   * into policy-tier filtering, since capabilities marked irreversible so
+   * far are already `riskClass: 'critical'` and therefore already excluded
+   * from every non-admin preset by the existing risk-class filter.
+   */
+  irreversible?: boolean;
 
   /**
    * Explicit risk-class override. Naming-convention inference only escalates risk

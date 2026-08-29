@@ -42,8 +42,41 @@ export type EngineConfigurationSkeleton = AmConfigEntityInterface & {
   whiteList: string[];
 };
 
+export type ScriptBindingParameter = {
+  name: string;
+  javaScriptType: string;
+};
+
+/**
+ * One binding element (a method or field) exposed on a script binding, e.g.
+ * `httpClient.send(uri, requestOptions)`. `elements` is present when
+ * `elementType` is `'field'` and the field's value is itself an object
+ * exposing further nested methods/fields (e.g. `crypto.subtle.digest(...)`).
+ */
+export type ScriptBindingElement = {
+  elementType: string;
+  name: string;
+  parameters?: ScriptBindingParameter[];
+  returnType?: string;
+  elements?: ScriptBindingElement[];
+};
+
+/** A single named object (e.g. `httpClient`, `idRepository`) available to a script in a given context. */
+export type ScriptBinding = {
+  name: string;
+  javaClass: string;
+  javaScriptType: string;
+  elements: ScriptBindingElement[];
+};
+
 export type ScriptingContextSkeleton = IdObjectSkeletonInterface & {
-  allowLists: Record<string, string[]>;
+  // Confirmed live (2026) to vary by context: most contexts return a flat
+  // array, but at least AUTHENTICATION_SERVER_SIDE returns a version-keyed
+  // record instead (e.g. `{ "1.0": [...] }`), matching evaluatorVersions'
+  // shape. Both are real, not a guess -- don't narrow this further without
+  // re-checking live data across contexts.
+  allowLists: string[] | Record<string, string[]>;
+  bindings: ScriptBinding[];
   evaluatorVersions: Record<string, string[]>;
 };
 

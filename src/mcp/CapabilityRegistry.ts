@@ -305,6 +305,9 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
     ...(meta?.notes !== undefined && {
       notes: meta.notes,
     }),
+    ...(meta?.irreversible !== undefined && {
+      irreversible: meta.irreversible,
+    }),
     ...(meta?.semanticAliases !== undefined && {
       semanticAliases: meta.semanticAliases,
     }),

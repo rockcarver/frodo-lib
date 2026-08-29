@@ -157,6 +157,26 @@ describe('createAIAgent', () => {
     expect(privilegeStatus.errors).toHaveLength(1);
   });
 
+  test('does not mutate the caller-supplied agentData object', async () => {
+    getAgentByTypeAndId.mockRejectedValue(errorWithStatus(404));
+
+    const agentData = {
+      _aiAgentIdentity: { _id: 'identity-1', _privileges: [] },
+    } as any;
+
+    await createAIAgent({
+      agentId: 'my-agent',
+      agentData,
+      includeAgentIdentity: true,
+      state: mockState(),
+    });
+
+    expect(agentData._aiAgentIdentity).toEqual({
+      _id: 'identity-1',
+      _privileges: [],
+    });
+  });
+
   test('a core agent-creation failure still rejects even when includeAgentIdentity is true', async () => {
     getAgentByTypeAndId.mockRejectedValue(errorWithStatus(404));
     putAgentByTypeAndId.mockRejectedValue(new Error('put failed'));

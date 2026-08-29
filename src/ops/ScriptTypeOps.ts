@@ -6,6 +6,7 @@ import {
   getScriptTypes,
   putScriptingEngineConfiguration,
   putScriptType,
+  ScriptBinding,
   ScriptingContextSkeleton,
   ScriptTypeSkeleton,
 } from '../api/ScriptTypeApi';
@@ -44,6 +45,13 @@ export type ScriptType = {
    */
   exportScriptTypes(): Promise<ScriptTypeExportInterface>;
   /**
+   * Read the bindings (available objects/APIs, e.g. httpClient, idRepository)
+   * exposed to scripts running in a given scripting context.
+   * @param {string} context scripting context id, e.g. SCRIPTED_DECISION_NODE
+   * @returns {Promise<ScriptBinding[]>} a promise that resolves to an array of script bindings
+   */
+  readScriptBindings(context: string): Promise<ScriptBinding[]>;
+  /**
    * Update script type
    * @param {string} scriptTypeId script type id
    * @param {ScriptTypeSkeleton} scriptTypeData script type data
@@ -78,6 +86,9 @@ export default (state: State): ScriptType => {
     },
     async exportScriptTypes(): Promise<ScriptTypeExportInterface> {
       return exportScriptTypes({ state });
+    },
+    async readScriptBindings(context: string): Promise<ScriptBinding[]> {
+      return readScriptBindings({ context, state });
     },
     async updateScriptType(
       scriptTypeId: string,
@@ -139,6 +150,34 @@ export async function readScriptType({
     return getScriptType({ scriptTypeId, state });
   } catch (error) {
     throw new FrodoError(`Error reading scriptType ${scriptTypeId}`, error);
+  }
+}
+
+/**
+ * Read the bindings (available objects/APIs, e.g. httpClient, idRepository)
+ * exposed to scripts running in a given scripting context. This is the same
+ * underlying data `exportScriptTypes` already fetches per script type (as
+ * its `context.bindings` field) -- exposed here as a standalone, targeted
+ * read so a caller doesn't need to export every script type just to answer
+ * "what can a script in context X call?"
+ * @param {string} context scripting context id, e.g. SCRIPTED_DECISION_NODE
+ * @returns {Promise<ScriptBinding[]>} a promise that resolves to an array of script bindings
+ */
+export async function readScriptBindings({
+  context,
+  state,
+}: {
+  context: string;
+  state: State;
+}): Promise<ScriptBinding[]> {
+  try {
+    const scriptingContext = await getScriptingContext({
+      scriptTypeId: context,
+      state,
+    });
+    return scriptingContext.bindings ?? [];
+  } catch (error) {
+    throw new FrodoError(`Error reading script bindings for ${context}`, error);
   }
 }
 

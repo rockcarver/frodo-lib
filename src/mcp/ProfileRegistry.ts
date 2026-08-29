@@ -116,6 +116,7 @@ const SUBJECT_PROFILE_DEFINITIONS: Record<
       'cloud.env',
       'cloud.esvCount',
       'cloud.getEsvCount',
+      'cloud.idmFeature',
       'cloud.log',
       'cloud.secret',
       'cloud.serviceAccount',

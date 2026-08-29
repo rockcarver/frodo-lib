@@ -2663,12 +2663,14 @@ export async function createAIAgent({
     }
   }
 
-  // clone ai agent identity data and remove it from agent data before creating the AI agent
+  // clone ai agent identity data, then work with a sanitized clone of agent
+  // data for the rest of this function -- must not mutate the caller's own
+  // agentData object by deleting _aiAgentIdentity from it directly.
   let aiAgentIdentity: IdObjectSkeletonInterface | undefined;
   if (includeAgentIdentity) {
     aiAgentIdentity = cloneDeep(agentData._aiAgentIdentity);
   }
-  delete agentData._aiAgentIdentity;
+  agentData = sanitizeAIAgentPayload(agentData);
 
   // create the ai agent first before creating the agent identity and privileges. Only this
   // step is fatal -- nothing has been persisted if it fails.

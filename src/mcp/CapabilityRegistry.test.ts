@@ -16,7 +16,7 @@ import {
   inferRiskClass,
 } from '../index';
 import { getHelpMetadataByMethod } from '../utils/HelpUtils';
-import { CAPABILITY_META } from './CapabilityMetadata';
+import { CAPABILITY_META, resolveCapabilityMeta } from './CapabilityMetadata';
 import knownContractGaps from './contract-gap-baseline.json';
 
 const HIGH_RISK_DOMAINS = ['script', 'oauth2oidc', 'authn', 'idm'];
@@ -66,6 +66,40 @@ function getHighRiskMixedContractViolations(): string[] {
 }
 
 /**
+ * Finds every `'special'`-kind capability, library-wide, with no resolvable
+ * {@link resolveCapabilityMeta} entry at all — the exact gap class the
+ * "Special-capability audit (library-wide)" section of `CapabilityMetadata.ts`
+ * closed for every capability that existed at the time it was written.
+ *
+ * @remarks
+ * `buildDescriptor` in `CapabilityRegistry.ts` classifies any method whose
+ * name doesn't match the `create`/`update`/`delete`/`import`/`export`/etc.
+ * naming-convention regex as `operationType: 'special'`, which in turn
+ * defaults to `mutating: false` and `riskClass: 'low'` unless an explicit
+ * `CAPABILITY_META` entry overrides it — a permissive default that has
+ * nothing to do with whether the method actually mutates anything. This
+ * codebase's own `remove*`-prefixed naming convention (as opposed to
+ * `delete*`) is a reliable way to trigger it: `idm.managed.schema.
+ * removeManagedObjectSchemaFlatProperty`/`removeManagedObjectType`/
+ * `removeManagedObjectSchemaRelationshipProperty` all fell through to this
+ * default and, as a result, were reachable under the `agentic`/`standard`
+ * policy presets — both explicitly designed via `denyOperationTypes:
+ * ['delete', ...]`/`denyRiskClasses: ['critical']` to withhold exactly this
+ * class of capability — until an explicit entry was added for each.
+ * Not restricted to any domain subset (unlike
+ * {@link getHighRiskMixedContractViolations}): an unreviewed special-kind
+ * capability is a policy-exposure risk in any domain, not just a few.
+ */
+function getUnreviewedSpecialCapabilities(): string[] {
+  const capabilities = buildCapabilityInventory(frodo, { includeUtils: false });
+  return capabilities
+    .filter((capability) => capability.kind === 'special')
+    .filter((capability) => resolveCapabilityMeta(capability.id) === undefined)
+    .map((capability) => capability.id)
+    .sort();
+}
+
+/**
  * Deliberate, MCP-facing parameter name aliases: descriptor parameter name ->
  * accepted actual bound-method parameter name, keyed by capability id. Journey
  * and tree are interchangeable names for the same AM concept, and the journey
@@ -73,10 +107,12 @@ function getHighRiskMixedContractViolations(): string[] {
  * underlying method still calls it "treeId" — same position, same value, no
  * functional difference.
  */
-const ACCEPTED_PARAMETER_NAME_ALIASES: Record<string, Record<string, string>> =
-  {
-    'authn.journey.exportJourney': { journeyId: 'treeId' },
-  };
+const ACCEPTED_PARAMETER_NAME_ALIASES: Record<
+  string,
+  Record<string, string>
+> = {
+  'authn.journey.exportJourney': { journeyId: 'treeId' },
+};
 
 /**
  * Descriptor ids whose dispatch unconditionally bypasses the generic
@@ -453,6 +489,22 @@ describe('MCP capability foundation', () => {
     expect(violations).toEqual(KNOWN_CONTRACT_GAPS);
   });
 
+  test('every special-kind capability has an explicit, reviewed CapabilityMetadata.ts entry', () => {
+    // Zero-tolerance gate, unlike the mixed-contract check above: the
+    // library-wide special-capability audit closed this gap for every
+    // capability that existed when it ran, so the bar is "still zero", not
+    // "no worse than a known backlog". A newly added method that fails the
+    // create/update/delete/import/export naming convention — including one
+    // using this codebase's own remove*-not-delete* convention — lands here
+    // and must get a reviewed CAPABILITY_META entry (even a minimal one)
+    // before this test passes again, rather than silently inheriting the
+    // permissive mutating:false/riskClass:'low' default and reaching
+    // agentic/standard undetected. See getUnreviewedSpecialCapabilities's
+    // own doc comment for the concrete case (three removeManagedObject*
+    // schema-mutation functions) that motivated this test.
+    expect(getUnreviewedSpecialCapabilities()).toEqual([]);
+  });
+
   test('never advertises an empty parameter contract when Help.ts reports required params', () => {
     // Regression guard for the script.getLibraryScriptNames bug class: a
     // capability must never end up with an empty/undefined parameter list
@@ -503,7 +555,9 @@ describe('MCP capability foundation', () => {
       );
       for (const key of keys) {
         if (!derivedNames.has(key)) {
-          violations.push(`${id}: '${key}' is not a currently-derived parameter`);
+          violations.push(
+            `${id}: '${key}' is not a currently-derived parameter`
+          );
         }
       }
     }
@@ -547,7 +601,10 @@ describe('MCP capability foundation', () => {
     const mismatches: string[] = [];
 
     for (const capability of capabilities) {
-      if (capability.kind !== 'generic' || capability.argumentMode !== 'named') {
+      if (
+        capability.kind !== 'generic' ||
+        capability.argumentMode !== 'named'
+      ) {
         continue;
       }
       const parameters = capability.parameters ?? [];
@@ -626,5 +683,41 @@ describe('MCP capability foundation', () => {
     }
 
     expect(mismatches).toEqual([]);
+  });
+});
+
+describe('capability metadata pass-through', () => {
+  test('agent.createAIAgent surfaces partial-failure guidance via notes', () => {
+    const capabilities = buildCapabilityInventory(frodo, {
+      includeTopLevelDomains: ['agent'],
+      includeUtils: false,
+    });
+    const descriptor = capabilities.find(
+      (capability) => capability.id === 'agent.createAIAgent'
+    );
+    expect(descriptor?.notes).toMatch(/_provisioningStatus/);
+  });
+
+  test('an irreversible: true override surfaces on the built descriptor', () => {
+    expect(CAPABILITY_META['idm.config.removeSubConfigEntity']).toBeDefined();
+    const original = CAPABILITY_META['idm.config.removeSubConfigEntity'];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (CAPABILITY_META as any)['idm.config.removeSubConfigEntity'] = {
+      ...original,
+      irreversible: true,
+    };
+    try {
+      const capabilities = buildCapabilityInventory(frodo, {
+        includeTopLevelDomains: ['idm'],
+        includeUtils: false,
+      });
+      const descriptor = capabilities.find(
+        (capability) => capability.id === 'idm.config.removeSubConfigEntity'
+      );
+      expect(descriptor?.irreversible).toBe(true);
+    } finally {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (CAPABILITY_META as any)['idm.config.removeSubConfigEntity'] = original;
+    }
   });
 });
