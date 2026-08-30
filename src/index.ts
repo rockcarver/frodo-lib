@@ -13,6 +13,7 @@ export {
   theme,
   themeForMode,
   resolveThemeMode,
+  FRODO_COLOR_THEME_ENV_KEY,
   type ColorThemeMode,
   type Intent,
 } from './utils/ColorTheme';
