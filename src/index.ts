@@ -18,6 +18,24 @@ export {
   type Intent,
 } from './utils/ColorTheme';
 
+// Objective, WCAG-based readability checking for the standard 16-color ANSI
+// palette, and best-effort actual terminal-background-color detection built
+// on top of it -- see TerminalContrast.ts/TerminalBackgroundDetection.ts's
+// own doc comments for details.
+export {
+  contrastRatio,
+  TerminalContrastFilter,
+  ALL_ANSI_COLOR_NAMES,
+  type AnsiColorName,
+  type TerminalBackground,
+  type Rgb,
+} from './utils/TerminalContrast';
+export {
+  detectTerminalBackgroundRgb,
+  matchBackgroundPreset,
+  type BackgroundPreset,
+} from './utils/TerminalBackgroundDetection';
+
 // Flat (non-relationship) managed-object schema property support -- pure
 // helpers and shared types for building/parsing/navigating a property
 // definition, reused by consumers (e.g. frodo-cli) that need to preview a

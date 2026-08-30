@@ -32,7 +32,7 @@ export type AnsiColorName =
   | 'cyanBright'
   | 'whiteBright';
 
-type Rgb = [number, number, number];
+export type Rgb = [number, number, number];
 
 export type TerminalBackground = 'black' | 'white';
 
@@ -87,15 +87,24 @@ export function contrastRatio(a: Rgb, b: Rgb): number {
 
 /**
  * Filters the standard 16-color ANSI palette down to the colors that meet a
- * minimum WCAG contrast ratio against a plain black or white background.
- * Default minimum is 4.5, WCAG AA's threshold for normal-sized text.
+ * minimum WCAG contrast ratio against a background. Default minimum is 4.5,
+ * WCAG AA's threshold for normal-sized text.
+ *
+ * `background` accepts either the plain `'black'`/`'white'` reference
+ * (the two extremes every built-in theme is checked against) or an
+ * arbitrary RGB triple -- needed for theme presets tuned to a real,
+ * non-black/non-white terminal background (e.g. a detected or named
+ * background-color preset), where contrast has to be checked against that
+ * background's actual color, not just its nearest black/white extreme.
  */
 export class TerminalContrastFilter {
   private readonly backgroundRgb: Rgb;
   private readonly minRatio: number;
 
-  constructor(background: TerminalBackground, minRatio = 4.5) {
-    this.backgroundRgb = BACKGROUND_RGB[background];
+  constructor(background: TerminalBackground | Rgb, minRatio = 4.5) {
+    this.backgroundRgb = Array.isArray(background)
+      ? background
+      : BACKGROUND_RGB[background];
     this.minRatio = minRatio;
   }
 
