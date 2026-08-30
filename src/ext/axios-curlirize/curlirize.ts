@@ -1,14 +1,21 @@
-import c from 'tinyrainbow';
-
-import { printError, printMessage } from '../../utils/Console';
 import { CurlHelper } from './lib/CurlHelper';
 
+/**
+ * Fallback callback, used only if a caller invokes this module's default
+ * export without supplying its own callback. frodo-lib's own real curl-echo
+ * path (BaseApi.ts's `curlirize()`) always supplies its own callback, routed
+ * through `state`'s `curlirizeHandler` -- this fallback has no `state` in
+ * scope (it isn't threaded through the axios interceptor machinery below),
+ * so it can't resolve a theme and prints in plain, uncolored text rather
+ * than calling frodo-lib's state-aware `printMessage`/`printError` with no
+ * state to give them.
+ */
 function defaultLogCallback(curlResult, err = undefined) {
   const { command } = curlResult;
   if (err) {
-    printError(err);
+    console.error(err);
   } else {
-    c.blueBright(printMessage(command));
+    console.log(command);
   }
 }
 

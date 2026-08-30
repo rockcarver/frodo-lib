@@ -6,6 +6,17 @@ export * from './mcp';
 // Main library exports
 export { frodo, FrodoError, state };
 
+// Semantic color-intent theme (dark/light), consumed by frodo-cli and
+// available to any other consumer wanting readable colored output without
+// hardcoding a hue. See ColorTheme.ts's own doc comments for details.
+export {
+  theme,
+  themeForMode,
+  resolveThemeMode,
+  type ColorThemeMode,
+  type Intent,
+} from './utils/ColorTheme';
+
 // Flat (non-relationship) managed-object schema property support -- pure
 // helpers and shared types for building/parsing/navigating a property
 // definition, reused by consumers (e.g. frodo-cli) that need to preview a

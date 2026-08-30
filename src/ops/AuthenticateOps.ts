@@ -4,7 +4,6 @@ import { URL } from 'url';
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import jose from 'node-jose';
 import sshpk from 'sshpk';
-import c from 'tinyrainbow';
 import { v4 } from 'uuid';
 
 import {
@@ -17,6 +16,7 @@ import { getServerInfo, getServerVersionInfo } from '../api/ServerInfoApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { encodeBase64Url } from '../utils/Base64Utils';
+import { theme } from '../utils/ColorTheme';
 import { debugMessage, verboseMessage } from '../utils/Console';
 import { isValidUrl, parseUrl } from '../utils/ExportImportUtils';
 import {
@@ -363,7 +363,8 @@ async function determineDeploymentType(state: State): Promise<string> {
           e.response.headers?.location?.indexOf('code=') > -1
         ) {
           verboseMessage({
-            message: c.cyanBright(`ForgeRock Identity Cloud`) + ` detected.`,
+            message:
+              theme(state).emphasis(`ForgeRock Identity Cloud`) + ` detected.`,
             state,
           });
           deploymentType = Constants.CLOUD_DEPLOYMENT_TYPE_KEY;
@@ -384,13 +385,15 @@ async function determineDeploymentType(state: State): Promise<string> {
               // maybe we don't want to run through the auto-detect code if we get a custom admin client id?
               adminClientId = state.getAdminClientId() || forgeopsClientId;
               verboseMessage({
-                message: c.cyanBright(`ForgeOps deployment`) + ` detected.`,
+                message:
+                  theme(state).emphasis(`ForgeOps deployment`) + ` detected.`,
                 state,
               });
               deploymentType = Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY;
             } else {
               verboseMessage({
-                message: c.cyanBright(`Classic deployment`) + ` detected.`,
+                message:
+                  theme(state).emphasis(`Classic deployment`) + ` detected.`,
                 state,
               });
             }

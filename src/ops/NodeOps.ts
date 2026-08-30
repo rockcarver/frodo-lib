@@ -1,5 +1,4 @@
 import { v4 as uuidv4 } from 'uuid';
-import c from 'tinyrainbow';
 
 import {
   createCustomNode,
@@ -27,6 +26,7 @@ import {
 import { getTrees } from '../api/TreeApi';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
+import { theme } from '../utils/ColorTheme';
 import {
   createProgressIndicator,
   debugMessage,
@@ -1561,7 +1561,9 @@ export async function findOrphanedNodes({
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
           errorTypes.push(`${type._id} v${version}`);
-          errorMessage = c.yellowBright(` (Skipped type(s): ${errorTypes})`);
+          errorMessage = theme(state).warning(
+            ` (Skipped type(s): ${errorTypes})`
+          );
           updateProgressIndicator({
             id: indicatorId,
             message: `${allNodeMap.size} total nodes${errorMessage}`,
@@ -1587,7 +1589,9 @@ export async function findOrphanedNodes({
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         errorTypes.push(type._id);
-        errorMessage = c.yellowBright(` (Skipped type(s): ${errorTypes})`);
+        errorMessage = theme(state).warning(
+          ` (Skipped type(s): ${errorTypes})`
+        );
         updateProgressIndicator({
           id: indicatorId,
           message: `${allNodeMap.size} total nodes${errorMessage}`,
