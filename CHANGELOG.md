@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [v4.6.0] - 2026-08-31
+
 ### Added
 - Added a semantic color-intent theme (`theme`/`themeForMode`/`resolveThemeMode`, `ColorTheme.ts`) with built-in `dark`/`light` palettes, replacing frodo-lib's previous direct, unthemed `tinyrainbow` calls. Call sites use named intents (`error`, `warning`, `command`, `emphasis`) instead of raw hue names, resolved per `state` instance (or per the `FRODO_COLOR_THEME` env var, or a `dark` default) rather than hardcoded -- `tinyrainbow`'s `*Bright` colors are unreadable on light-background terminals, and frodo-lib had no theming at all before this, unlike frodo-cli's own (non-semantic) fix for the same problem. Also callable as a tagged template (`` theme(state)`{error text}` ``) for inline substring emphasis within a larger message, supporting arbitrarily nested blocks.
   - Added `TerminalContrastFilter` (`TerminalContrast.ts`) -- an objective WCAG 2 contrast-ratio filter over the standard 16-color ANSI palette, used to choose both built-in themes' colors instead of eyeballing them. Notably, it surfaced that no yellow (plain or bright) clears WCAG AA contrast (4.5:1) against a white background at all, so the light theme's `warning` intentionally does not use yellow, unlike the dark theme's.
@@ -27,6 +29,23 @@
 
 ### Changed
 - README: added a brief mention that frodo-lib's `mcp` module supplies the capability metadata/registry behind frodo-cli's turn-key MCP server, linking to frodo-cli's own MCP docs for actual usage -- kept deliberately low-key (no dedicated section, no table-of-contents entry), since frodo-lib and frodo-cli are designed as a combo and MCP is meant to be promoted as a turn-key CLI feature, not a library one, even though the primitives happen to live here.
+
+- Introduced a semantic color-intent theme with built-in `dark` and `light` palettes, replacing direct `tinyrainbow` calls. This includes `theme`/`themeForMode`/`resolveThemeMode` functions and supports named intents like `error`, `warning`, `command`, and `emphasis`. The theme can be set per `state` instance or via the `FRODO_COLOR_THEME` environment variable. It also supports tagged template usage for inline emphasis within messages. Additionally, `TerminalContrastFilter` now objectively selects colors based on WCAG 2 contrast ratios, and terminal background detection is available via `TerminalBackgroundDetection.ts` for better theme adaptation. (commit f04b32a91, #635)
+- Added IDM feature-management capabilities with `frodo.cloud.idmFeature`, allowing for reading, validating, and installing IDM tenant-configuration features. (commit 99f97c52d)
+- Exposed script-binding introspection through `frodo.scriptType.readScriptBindings`, enhancing the `ScriptingContextSkeleton` with real `bindings` and corrected `allowLists`. (commit 99f97c52d)
+- Added comprehensive managed-object schema operations, including flat-property, type-level, and relationship-property CRUD functions. These operations support various property types and configurations, and are available on IDM deployments via generic config paths. This includes functions like `createManagedObjectSchemaFlatProperty` and `createManagedObjectType`, among others. (commit b9718b981)
+- Implemented terminal-background-color detection with `detectTerminalBackgroundRgb` and `matchBackgroundPreset`, aiding in automatic theme adjustments based on actual terminal backgrounds. (commit 072cc9dee)
+
+- Corrected color handling in `AuthenticateOps.ts`, `NodeOps.ts`, and `State.ts` to use the new semantic theme, ensuring consistent and readable output across different terminal backgrounds. (commit f04b32a91)
+- Resolved an issue in `src/ext/axios-curlirize/curlirize.ts` where colored strings were incorrectly discarded, ensuring fallback callbacks print uncolored text when no theme is available. (commit f04b32a91)
+- `createAIAgent` now avoids mutating the input `agentData` object during identity sanitization. (commit 7158f7313)
+- Updated MCP capability registry to correctly classify new schema-mutation methods, ensuring appropriate risk classifications and operation types are applied. (commit 99f97c52d)
+- Fixed `cloud.secret.pruneVersionsOfSecret` metadata to reflect its destructive nature, aligning with its actual behavior of deleting secret versions. (commit 99f97c52d)
+- Added a regression guardrail in `CapabilityRegistry.test.ts` to prevent unreviewed special capabilities from defaulting to permissive classifications. (commit 99f97c52d)
+- Adjusted `readManagedObjectSchemaProperty` and related functions to support ForgeOps deployments, correcting previous assumptions about API availability. (commit 5c7029487)
+- Ensured `updateManagedObjectSchemaProperty` and `removeManagedObjectSchemaProperty` wait for configuration write propagation by default, preventing race conditions in subsequent operations. (commit 24fe72fd7)
+
+- Updated README to mention frodo-lib's role in supplying capability metadata for frodo-cli's MCP server, with a link to frodo-cli's documentation for further details. (commit f1be8fca7)
 
 ## [v4.5.0] - 2026-08-25
 
