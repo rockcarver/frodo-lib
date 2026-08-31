@@ -4,7 +4,6 @@ import {
   IAxiosRetryConfig,
   isNetworkOrIdempotentRequestError,
 } from 'axios-retry';
-import c from 'tinyrainbow';
 
 import { RetryStrategy } from '../api/BaseApi';
 import { FeatureInterface } from '../api/cloud/FeatureApi';
@@ -13,6 +12,7 @@ import { FrodoError } from '../ops/FrodoError';
 import { JwkRsa } from '../ops/JoseOps';
 import { AccessTokenMetaType } from '../ops/OAuth2OidcOps';
 import Constants from '../shared/Constants';
+import { resolveThemeModeFromSetting, themeForMode } from '../utils/ColorTheme';
 import {
   ProgressIndicatorStatusType,
   ProgressIndicatorType,
@@ -182,6 +182,8 @@ export type State = {
   getDebugHandler(): (message: string | object) => void;
   setDebug(debug: boolean): void;
   getDebug(): boolean;
+  setColorTheme(theme: 'dark' | 'light'): void;
+  getColorTheme(): 'dark' | 'light' | undefined;
   getAxiosRetryConfig(): IAxiosRetryConfig;
   setAxiosRetryConfig(axiosRetryConfig: IAxiosRetryConfig): void;
   setAxiosRetryStrategy(strategy: RetryStrategy): void;
@@ -609,6 +611,12 @@ export default (initialState: StateInterface): State => {
     getDebug(): boolean {
       return globalState.debug || process.env.FRODO_DEBUG !== undefined;
     },
+    setColorTheme(theme: 'dark' | 'light') {
+      globalState.colorTheme = theme;
+    },
+    getColorTheme(): 'dark' | 'light' | undefined {
+      return globalState.colorTheme;
+    },
     getAxiosRetryConfig(): IAxiosRetryConfig {
       return globalState.axiosRetryConfig;
     },
@@ -728,6 +736,7 @@ export interface StateInterface {
   verbose?: boolean;
   debugHandler?: (message: string | object) => void;
   debug?: boolean;
+  colorTheme?: 'dark' | 'light';
   curlirizeHandler?: (message: string) => void;
   curlirize?: boolean;
   createProgressHandler?: (
@@ -753,11 +762,18 @@ const globalState: StateInterface = {
     }
   },
   errorHandler: (error: Error, message?: string) => {
-    if (message) process.stderr.write('' + c.redBright(message));
+    // No `State` instance is available this early (this object is the seed
+    // every instance is created from), so the theme mode is resolved from
+    // the shared `colorTheme` setting directly rather than through
+    // `theme(state)` -- see ColorTheme.ts's `resolveThemeModeFromSetting`.
+    const themeColors = themeForMode(
+      resolveThemeModeFromSetting(globalState.colorTheme)
+    );
+    if (message) process.stderr.write('' + themeColors.error(message));
     switch (error.name) {
       case 'FrodoError':
         process.stderr.write(
-          '' + c.redBright((error as FrodoError).getCombinedMessage())
+          '' + themeColors.error((error as FrodoError).getCombinedMessage())
         );
         break;
 
@@ -779,12 +795,12 @@ const globalState: StateInterface = {
         errorMessage += status ? `\n  Status: ${status}` : '';
         errorMessage += message ? `\n  Message: ${message}` : '';
         errorMessage += detail ? `\n  Detail: ${detail}` : '';
-        process.stderr.write(c.redBright(errorMessage));
+        process.stderr.write(themeColors.error(errorMessage));
         break;
       }
 
       default:
-        process.stderr.write(c.redBright(error.message));
+        process.stderr.write(themeColors.error(error.message));
         break;
     }
   },

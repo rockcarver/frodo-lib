@@ -1,0 +1,70 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`TerminalContrast TerminalContrastFilter 7: WCAG AA (4.5:1) pass/fail table for all 16 colors, both backgrounds 1`] = `
+{
+  "black": {
+    "black": false,
+    "white": true,
+  },
+  "blackBright": {
+    "black": true,
+    "white": false,
+  },
+  "blue": {
+    "black": false,
+    "white": true,
+  },
+  "blueBright": {
+    "black": false,
+    "white": true,
+  },
+  "cyan": {
+    "black": true,
+    "white": false,
+  },
+  "cyanBright": {
+    "black": true,
+    "white": false,
+  },
+  "green": {
+    "black": true,
+    "white": false,
+  },
+  "greenBright": {
+    "black": true,
+    "white": false,
+  },
+  "magenta": {
+    "black": false,
+    "white": true,
+  },
+  "magentaBright": {
+    "black": true,
+    "white": false,
+  },
+  "red": {
+    "black": false,
+    "white": true,
+  },
+  "redBright": {
+    "black": true,
+    "white": false,
+  },
+  "white": {
+    "black": true,
+    "white": false,
+  },
+  "whiteBright": {
+    "black": true,
+    "white": false,
+  },
+  "yellow": {
+    "black": true,
+    "white": false,
+  },
+  "yellowBright": {
+    "black": true,
+    "white": false,
+  },
+}
+`;
