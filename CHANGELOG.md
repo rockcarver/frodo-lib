@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+- Outbound HTTP/HTTPS connection keep-alive (`BaseApi.ts`): the shared module-level agents (and the per-call scoped variants) now reuse outbound TCP/TLS connections between axios calls (`keepAlive: true`, `keepAliveMsecs: 1000`, `maxFreeSockets: 16`, `scheduling: 'lifo'`) instead of opening a fresh connection (TCP + TLS handshake) per request — under MCP-gateway or bulk-operation load this removes per-call connection churn, and on constrained hosts it reduces TIME_WAIT/ephemeral-port pressure. Free keep-alive sockets do not hold short-lived processes open (verified empirically on Node v24: a one-shot process making one request through the lib's agents exits naturally in ~0.2-0.3s, same as with keep-alive off, because no ref'd timer or handle survives once the request drains). Set `FRODO_NO_KEEPALIVE=1` (checked once at agent-construction time; `1`/`true`/`yes`, case-insensitive) to restore the old per-request-connection behavior for exotic environments or proxies that don't tolerate connection reuse.
+
+### Fixed
+- Config writers are now self-sufficient for bare library consumers that never call `initConnectionProfiles()`/`initTokenCache()`: `saveTextToFile`/`saveJsonToFile` (the shared chokepoint in `ExportImportUtils.ts`), the token-cache writers in `TokenCacheOps.ts` (`saveUserSessionToken`/`saveUserBearerToken`/`saveSaBearerToken`/`saveToken`/`purge`/`flush`, plus `readToken`'s cache load), and the raw `writeFileSync` sites in `ConnectionProfileOps.ts` (`setConnectionProfileAlias`/`deleteConnectionProfileAlias`/`deleteConnectionProfile`) create the target file's directory (recursively, best-effort) before writing, instead of failing with a confusing ENOENT. `saveTokenCache*` reads now treat a missing cache file as an empty cache (start fresh and create it on write) rather than failing the whole save; each site's existing failure mode is otherwise preserved (`saveTextToFile` catches+prints, token-cache ops catch+debug-log, alias ops throw `FrodoError`). The `init*` functions remain and are unchanged.
+
 ## [v4.6.0] - 2026-08-31
 
 ### Added
