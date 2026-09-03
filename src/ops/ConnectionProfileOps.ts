@@ -779,12 +779,21 @@ export async function saveConnectionProfile({
       }, {});
 
     // save profiles
-    saveJsonToFile({
+    const saved = saveJsonToFile({
       data: orderedProfiles,
       filename,
       includeMeta: false,
       state,
     });
+    if (!saved) {
+      // saveJsonToFile printed the write error and returned false; propagate
+      // the failure instead of reporting success
+      debugMessage({
+        message: `ConnectionProfileOps.saveConnectionProfile: end [false]`,
+        state,
+      });
+      return false;
+    }
     debugMessage({
       message: `Saved connection profile ${state.getHost()} in ${filename}`,
       state,

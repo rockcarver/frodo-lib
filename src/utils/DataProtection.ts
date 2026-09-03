@@ -17,6 +17,7 @@ import { promisify } from 'util';
 import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { printMessage } from './Console';
+import { ensureDirectoryForFile } from './ExportImportUtils';
 import { getFrodoHome } from './FrodoUtils';
 
 const scrypt = promisify(crypto.scrypt);
@@ -49,12 +50,28 @@ class DataProtection {
             return process.env[Constants.FRODO_MASTER_KEY_KEY];
           if (!fs.existsSync(masterKeyPath())) {
             const masterKey = crypto.randomBytes(32).toString('base64');
+            // the directory portion of the path may not exist yet (bare
+            // consumers, custom FRODO_MASTER_KEY_PATH); create it so a
+            // generated key can actually be persisted. A master key that
+            // cannot be persisted must not degrade into empty-key encryption:
+            // scrypt('', salt, 32) is recoverable by anyone, so let the
+            // failure propagate instead of silently encrypting.
+            try {
+              ensureDirectoryForFile(masterKeyPath());
+            } catch (mkdirError) {
+              throw new Error(
+                `Unable to create directory for master key file ${masterKeyPath()}: ${mkdirError.message}`
+              );
+            }
             await fsp.writeFile(masterKeyPath(), masterKey);
           }
           return await fsp.readFile(masterKeyPath(), 'utf8');
         } catch (err) {
           printMessage({ message: err.message, type: 'error', state });
-          return '';
+          // Rethrow so callers see the failure through their existing error
+          // semantics (profile ops throw FrodoError, token ops catch+false)
+          // instead of silently proceeding with a degenerate empty master key.
+          throw err;
         }
       } else {
         return sessionKey;

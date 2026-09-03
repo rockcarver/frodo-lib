@@ -104,6 +104,36 @@ describe('saveConnectionProfile', () => {
       state.setConnectionProfilesPath(prevStatePath);
     }
   }, 30000);
+
+  test('returns false when the underlying profiles-file write fails', async () => {
+    // a parent path component is a file -> saveJsonToFile cannot write there;
+    // saveConnectionProfile must propagate the failure as false instead of
+    // reporting unconditioned success
+    const blockingFile = join(baseTmp, 'blocking-save-profile');
+    fs.writeFileSync(blockingFile, 'not a directory');
+    const filename = join(blockingFile, 'sub', 'Connections.json');
+    const host = 'https://openam-blocked-write.forgeblocks.com/am';
+    const prevStatePath = state.getConnectionProfilesPath();
+    // keep the master-key bootstrap inside the temp tree so the cell never
+    // touches the real ~/.frodo
+    const savedMasterKeyPath = process.env.FRODO_MASTER_KEY_PATH;
+    try {
+      process.env.FRODO_MASTER_KEY_PATH = join(baseTmp, 'blocked-master.key');
+      state.setConnectionProfilesPath(filename);
+      state.setHost(host);
+      state.setDeploymentType('classic');
+      state.setUsername('frodo.baggins@shire.me');
+      state.setPassword('irrelevant');
+      const result = await saveConnectionProfile({ host, state });
+      expect(result).toBe(false);
+      expect(fs.existsSync(filename)).toBe(false);
+    } finally {
+      state.setConnectionProfilesPath(prevStatePath);
+      if (savedMasterKeyPath === undefined)
+        delete process.env.FRODO_MASTER_KEY_PATH;
+      else process.env.FRODO_MASTER_KEY_PATH = savedMasterKeyPath;
+    }
+  }, 30000);
 });
 
 describe('setConnectionProfileAlias', () => {

@@ -91,6 +91,18 @@ describe('BaseApi agent keep-alive configuration (unit)', () => {
     expect(httpsAgent.keepAlive).toBe(false);
   });
 
+  test("FRODO_NO_KEEPALIVE='yes' also restores the legacy configuration", async () => {
+    process.env.FRODO_NO_KEEPALIVE = 'yes';
+    const { httpAgent } = await generateAgentPair();
+    expect(httpAgent.keepAlive).toBe(false);
+  });
+
+  test("FRODO_NO_KEEPALIVE='' (empty) keeps keep-alive enabled", async () => {
+    process.env.FRODO_NO_KEEPALIVE = '';
+    const { httpAgent } = await generateAgentPair();
+    expect(httpAgent.keepAlive).toBe(true);
+  });
+
   test('FRODO_NO_KEEPALIVE set to any other value keeps keep-alive enabled', async () => {
     process.env.FRODO_NO_KEEPALIVE = '0';
     const { httpAgent } = await generateAgentPair();
