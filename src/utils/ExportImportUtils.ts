@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { lstat, readdir, readFile } from 'fs/promises';
-import { join } from 'path';
+import { dirname, join } from 'path';
 
 import { Reader } from 'properties-reader';
 import replaceall from 'replaceall';
@@ -502,6 +502,16 @@ export function saveJsonToFile({
 }
 
 /**
+ * Make sure the directory portion of a file path exists so the file can be
+ * created. Best-effort: the caller's own error handling applies if the
+ * directory cannot be created (e.g. permission denied).
+ * @param {string} filename file name (absolute or relative path)
+ */
+export function ensureDirectoryForFile(filename: string): void {
+  fs.mkdirSync(dirname(filename), { recursive: true });
+}
+
+/**
  * Save text data to file
  * @param data text data
  * @param filename file name
@@ -517,6 +527,9 @@ export function saveTextToFile({
   state: State;
 }): boolean {
   try {
+    // create the directory portion of the path if it doesn't exist so bare
+    // library consumers don't fail with ENOENT when they never called init*
+    ensureDirectoryForFile(filename);
     fs.writeFileSync(filename, data + (data.endsWith('\n') ? '' : '\n'));
     return true;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -6,7 +6,11 @@ import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import DataProtection from '../utils/DataProtection';
-import { isValidUrl, saveJsonToFile } from '../utils/ExportImportUtils';
+import {
+  ensureDirectoryForFile,
+  isValidUrl,
+  saveJsonToFile,
+} from '../utils/ExportImportUtils';
 import { getFrodoHome } from '../utils/FrodoUtils';
 import { readServiceAccountScopes } from './cloud/EnvServiceAccountScopesOps';
 import {
@@ -846,6 +850,7 @@ export function setConnectionProfileAlias({
     }
   }
   connectionsData[tenant].alias = alias;
+  ensureDirectoryForFile(filename);
   fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
   debugMessage({
     message: `Alias '${alias}' has been set for connection profile '${tenant}'`,
@@ -892,6 +897,7 @@ export function deleteConnectionProfileAlias({
   }
   const alias = connectionsData[tenant].alias;
   delete connectionsData[tenant].alias;
+  ensureDirectoryForFile(filename);
   fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
   debugMessage({
     message: `Alias '${alias}' has been deleted for connection profile '${tenant}'.`,
@@ -935,6 +941,7 @@ export function deleteConnectionProfile({
     );
   }
   delete connectionsData[profiles[0].tenant];
+  ensureDirectoryForFile(filename);
   fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
 }
 
