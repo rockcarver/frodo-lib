@@ -8,6 +8,7 @@ import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import DataProtection from '../utils/DataProtection';
+import { ensureDirectoryForFile } from '../utils/ExportImportUtils';
 import { get, put, stringify } from '../utils/JsonUtils';
 import { UserSessionMetaType } from './AuthenticateOps';
 import { type AccessTokenMetaType } from './OAuth2OidcOps';
@@ -330,6 +331,7 @@ export function initTokenCache({ state }: { state: State }) {
       const data = fs.readFileSync(filename, 'utf8');
       const tokenCache: TokenCacheInterface = JSON.parse(data);
       purgeExpiredTokens(tokenCache, state);
+      ensureDirectoryForFile(filename);
       fs.writeFileSync(filename, stringify(tokenCache));
     }
     debugMessage({
@@ -440,8 +442,13 @@ export async function readToken({
       state,
     });
     const filename = getTokenCachePath({ state });
-    const data = fs.readFileSync(filename, 'utf8');
-    const tokenCache: TokenCacheInterface = JSON.parse(data);
+    // bare library consumers may never have called initTokenCache(); treat a
+    // missing cache file (and directory) as an empty cache so the save
+    // succeeds and creates both
+    const data = fs.existsSync(filename)
+      ? fs.readFileSync(filename, 'utf8')
+      : undefined;
+    const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
     const hostKey = getHostKey(state);
     const realmKey = getRealmKey();
     const typeKey = getTypeKey(tokenType);
@@ -541,8 +548,13 @@ export async function saveUserSessionToken({
       state,
     });
     const filename = getTokenCachePath({ state });
-    const data = fs.readFileSync(filename, 'utf8');
-    const tokenCache: TokenCacheInterface = JSON.parse(data);
+    // bare library consumers may never have called initTokenCache(); treat a
+    // missing cache file (and directory) as an empty cache so the save
+    // succeeds and creates both
+    const data = fs.existsSync(filename)
+      ? fs.readFileSync(filename, 'utf8')
+      : undefined;
+    const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
     purgeExpiredTokens(tokenCache, state);
     const hostKey = getHostKey(state);
     const realmKey = getRealmKey();
@@ -587,6 +599,7 @@ export async function saveUserSessionToken({
         `${token.expires}`,
         tokenKey,
       ]);
+      ensureDirectoryForFile(filename);
       fs.writeFileSync(filename, stringify(tokenCache));
       debugMessage({
         message: `TokenCacheOps.saveUserSessionToken: saved token in cache`,
@@ -624,8 +637,13 @@ export async function saveUserBearerToken({
       state,
     });
     const filename = getTokenCachePath({ state });
-    const data = fs.readFileSync(filename, 'utf8');
-    const tokenCache: TokenCacheInterface = JSON.parse(data);
+    // bare library consumers may never have called initTokenCache(); treat a
+    // missing cache file (and directory) as an empty cache so the save
+    // succeeds and creates both
+    const data = fs.existsSync(filename)
+      ? fs.readFileSync(filename, 'utf8')
+      : undefined;
+    const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
     purgeExpiredTokens(tokenCache, state);
     const hostKey = getHostKey(state);
     const realmKey = getRealmKey();
@@ -670,6 +688,7 @@ export async function saveUserBearerToken({
         `${token.expires}`,
         tokenKey,
       ]);
+      ensureDirectoryForFile(filename);
       fs.writeFileSync(filename, stringify(tokenCache));
       debugMessage({
         message: `TokenCacheOps.saveUserBearerToken: saved token in cache`,
@@ -707,8 +726,13 @@ export async function saveSaBearerToken({
       state,
     });
     const filename = getTokenCachePath({ state });
-    const data = fs.readFileSync(filename, 'utf8');
-    const tokenCache: TokenCacheInterface = JSON.parse(data);
+    // bare library consumers may never have called initTokenCache(); treat a
+    // missing cache file (and directory) as an empty cache so the save
+    // succeeds and creates both
+    const data = fs.existsSync(filename)
+      ? fs.readFileSync(filename, 'utf8')
+      : undefined;
+    const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
     purgeExpiredTokens(tokenCache, state);
     const hostKey = getHostKey(state);
     const realmKey = getRealmKey();
@@ -757,6 +781,7 @@ export async function saveSaBearerToken({
         `${token.expires}`,
         tokenKey,
       ]);
+      ensureDirectoryForFile(filename);
       fs.writeFileSync(filename, stringify(tokenCache));
       debugMessage({
         message: `TokenCacheOps.saveSaBearerToken: saved token in cache`,
@@ -796,8 +821,13 @@ export async function saveToken({
       state,
     });
     const filename = getTokenCachePath({ state });
-    const data = fs.readFileSync(filename, 'utf8');
-    const tokenCache: TokenCacheInterface = JSON.parse(data);
+    // bare library consumers may never have called initTokenCache(); treat a
+    // missing cache file (and directory) as an empty cache so the save
+    // succeeds and creates both
+    const data = fs.existsSync(filename)
+      ? fs.readFileSync(filename, 'utf8')
+      : undefined;
+    const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
     purgeExpiredTokens(tokenCache, state);
     const hostKey = getHostKey(state);
     const realmKey = getRealmKey();
@@ -842,6 +872,7 @@ export async function saveToken({
         `${token.expires}`,
         tokenKey,
       ]);
+      ensureDirectoryForFile(filename);
       fs.writeFileSync(filename, stringify(tokenCache));
       debugMessage({
         message: `TokenCacheOps.saveToken: saved token in cache [tokenType=${tokenType}]`,
@@ -873,9 +904,14 @@ export function purge({ state }: { state: State }): TokenCacheInterface {
       message: `TokenCacheOps.purge: purging expired tokens from existing token cache: ${filename}`,
       state,
     });
-    const data = fs.readFileSync(filename, 'utf8');
-    const tokenCache: TokenCacheInterface = JSON.parse(data);
+    // bare library consumers may never have called initTokenCache(); treat a
+    // missing cache file (and directory) as an empty cache
+    const data = fs.existsSync(filename)
+      ? fs.readFileSync(filename, 'utf8')
+      : undefined;
+    const tokenCache: TokenCacheInterface = data ? JSON.parse(data) : {};
     const purgedCache = purgeExpiredTokens(tokenCache, state);
+    ensureDirectoryForFile(filename);
     fs.writeFileSync(filename, stringify(purgedCache));
     debugMessage({
       message: `TokenCacheOps.purge: end`,
@@ -898,6 +934,7 @@ export function flush({ state }: { state: State }): boolean {
       state,
     });
     const filename = getTokenCachePath({ state });
+    ensureDirectoryForFile(filename);
     fs.writeFileSync(filename, stringify({}));
     debugMessage({
       message: `TokenCacheOps.flush: end`,
