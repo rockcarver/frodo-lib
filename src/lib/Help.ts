@@ -8052,7 +8052,7 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "ExportImport",
     methodName: "readJsonFile",
-    signature: "readJsonFile(filePath: string): object",
+    signature: "readJsonFile(filePath: string | number, resolvePlaceholders?: boolean): object",
     description: "",
     params: [],
     returns: "",

@@ -39,7 +39,7 @@ export type ExportImport = {
   getTypedFilename(name: string, type: string, suffix?: string): string;
   getWorkingDirectory(mkdirs?: boolean): string;
   getFilePath(fileName: string, mkdirs?: boolean): string;
-  readJsonFile(filePath: string): object;
+  readJsonFile(filePath: string | number, resolvePlaceholders?: boolean): object;
   escapePlaceholders(content: object): object;
   unescapePlaceholders(content: string): string;
   /**
@@ -245,8 +245,11 @@ export default (state: State): ExportImport => {
     isValidUrl(urlString: string): boolean {
       return isValidUrl(urlString);
     },
-    readJsonFile(filePath: string): object {
-      return readJsonFile({ filePath, state });
+    readJsonFile(
+      filePath: string | number,
+      resolvePlaceholders: boolean = true
+    ): object {
+      return readJsonFile({ filePath, resolvePlaceholders, state });
     },
     escapePlaceholders(content: object): object {
       return escapePlaceholders(content);
@@ -607,14 +610,17 @@ export async function readFiles(directory: string): Promise<
 
 /**
  * Reads a JSON file and resolves any environment placeholders.
- * @param {string} filePath path to the JSON file
+ * @param {string | number} filePath path or file descriptor to the JSON file
+ * @param {boolean} resolvePlaceholders optional boolen to ignore placeholders
  * @returns {object} the parsed JSON with placeholders resolved
  */
 export function readJsonFile({
   filePath,
+  resolvePlaceholders = true,
   state,
 }: {
-  filePath: string;
+  filePath: string | number;
+  resolvePlaceholders?: boolean;
   state: State;
 }): object {
   let content: string;
@@ -623,9 +629,11 @@ export function readJsonFile({
   } catch (error) {
     throw new FrodoError(`Error reading file ${filePath}`, error);
   }
-  const resolved = replaceEnvSpecificValues({ content, state });
+  if (resolvePlaceholders) {
+    content = replaceEnvSpecificValues({ content, state });
+  }
   try {
-    return JSON.parse(resolved);
+    return JSON.parse(content);
   } catch (error) {
     throw new FrodoError(`Error parsing JSON from ${filePath}`, error);
   }
