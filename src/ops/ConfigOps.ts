@@ -10,6 +10,7 @@ import { GlossarySchemaItemSkeleton } from '../api/cloud/iga/IgaGlossaryApi';
 import { RequestFormSkeleton } from '../api/cloud/iga/IgaRequestFormApi';
 import { RequestTypeSkeleton } from '../api/cloud/iga/IgaRequestTypeApi';
 import { SecretSkeleton } from '../api/cloud/SecretsApi';
+import { TelemetryExporters } from '../api/cloud/TelemetryApi';
 import { VariableSkeleton } from '../api/cloud/VariablesApi';
 import { CustomNodeSkeleton } from '../api/NodeApi';
 import { OAuth2ClientSkeleton } from '../api/OAuth2ClientApi';
@@ -89,6 +90,7 @@ import {
   WorkflowGroups,
 } from './cloud/iga/IgaWorkflowOps';
 import { exportSecrets, importSecrets } from './cloud/SecretsOps';
+import { exportTelemetry, importTelemetry } from './cloud/TelemetryOps';
 import { exportVariables, importVariables } from './cloud/VariablesOps';
 import {
   EmailTemplateSkeleton,
@@ -322,6 +324,7 @@ export interface FullGlobalExportInterface extends AmConfigEntitiesInterface {
   service: Record<string, AmServiceSkeleton> | undefined;
   site: Record<string, SiteSkeleton> | undefined;
   sync: SyncSkeleton | undefined;
+  telemetry: TelemetryExporters | undefined;
   variable: Record<string, VariableSkeleton> | undefined;
   workflow: WorkflowGroups | undefined;
 }
@@ -645,6 +648,15 @@ export async function exportFullConfiguration({
         )
       )?.site,
       sync: mappings?.sync,
+      telemetry: (
+        await exportWithErrorHandling(
+          exportTelemetry,
+          stateObj,
+          'Telemetry',
+          resultCallback,
+          isCloudDeployment
+        )
+      )?.telemetry,
       variable: (
         await exportWithErrorHandling(
           exportVariables,
@@ -968,7 +980,7 @@ export async function importFullConfiguration({
   const errorCallback = getErrorCallback(resultCallback);
   // Import to global
   let indicatorId = createProgressIndicator({
-    total: 20,
+    total: 22,
     message: `Importing everything for global...`,
     state,
   });
@@ -1294,6 +1306,19 @@ export async function importFullConfiguration({
       'Events',
       resultCallback,
       !!state.getIsIGA() && !!importData.global.event
+    )
+  );
+  response.push(
+    await importWithErrorHandling(
+      importTelemetry,
+      {
+        importData: importData.global,
+        state,
+      },
+      indicatorId,
+      'Telemetry',
+      resultCallback,
+      isCloudDeployment && !!importData.global.telemetry
     )
   );
   stopProgressIndicator({

@@ -1,0 +1,364 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete OTLP exporter by category 1`] = `
+[
+  {
+    "encoding": "JSON",
+    "endpoint": "https://example.com/v1/logs",
+    "id": "frodo-test-otlp-1",
+    "sources": [
+      "am-access",
+    ],
+    "type": "HTTP",
+  },
+]
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete OTLP exporter by category 2`] = `
+{
+  "meta": Any<Object>,
+  "telemetry": {
+    "otlp": [
+      {
+        "encoding": "JSON",
+        "endpoint": "https://example.com/v1/logs",
+        "id": "frodo-test-otlp-1",
+        "sources": [
+          "am-access",
+        ],
+        "type": "HTTP",
+      },
+    ],
+    "splunk": [],
+  },
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete OTLP exporter by category 3`] = `
+{
+  "encoding": "JSON",
+  "endpoint": "https://updated.example.com/v1/logs",
+  "id": "frodo-test-otlp-1",
+  "sources": [
+    "am-access",
+  ],
+  "type": "HTTP",
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete OTLP exporter by category 4`] = `
+{
+  "otlp": [
+    {
+      "encoding": "JSON",
+      "endpoint": "https://updated.example.com/v1/logs",
+      "id": "frodo-test-otlp-1",
+      "sources": [
+        "am-access",
+      ],
+      "type": "HTTP",
+    },
+  ],
+  "splunk": [],
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete OTLP exporter by category 5`] = `
+[
+  {
+    "encoding": "JSON",
+    "endpoint": "https://updated.example.com/v1/logs",
+    "id": "frodo-test-otlp-1",
+    "sources": [
+      "am-access",
+    ],
+    "type": "HTTP",
+  },
+]
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete Splunk exporter by ID 1`] = `
+[
+  {
+    "endpoint": "https://example.com:8088",
+    "id": "frodo-test-splunk-1",
+    "sources": [
+      "am-access",
+    ],
+    "token": "",
+  },
+]
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete Splunk exporter by ID 2`] = `
+{
+  "meta": Any<Object>,
+  "telemetry": {
+    "otlp": [],
+    "splunk": [
+      {
+        "endpoint": "https://example.com:8088",
+        "id": "frodo-test-splunk-1",
+        "sources": [
+          "am-access",
+        ],
+        "token": "",
+      },
+    ],
+  },
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete Splunk exporter by ID 3`] = `
+{
+  "endpoint": "https://updated.example.com/v1/logs",
+  "id": "frodo-test-splunk-1",
+  "sources": [
+    "am-access",
+  ],
+  "token": "",
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete Splunk exporter by ID 4`] = `
+{
+  "otlp": [],
+  "splunk": [
+    {
+      "endpoint": "https://updated.example.com/v1/logs",
+      "id": "frodo-test-splunk-1",
+      "sources": [
+        "am-access",
+      ],
+      "token": "",
+    },
+  ],
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete Splunk exporter by ID 5`] = `
+[
+  {
+    "endpoint": "https://updated.example.com/v1/logs",
+    "id": "frodo-test-splunk-1",
+    "sources": [
+      "am-access",
+    ],
+    "token": "",
+  },
+]
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete Splunk exporter by category 1`] = `
+[
+  {
+    "endpoint": "https://example.com:8088",
+    "id": "frodo-test-splunk-2",
+    "sources": [
+      "idm-everything",
+    ],
+    "token": "",
+  },
+]
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete Splunk exporter by category 2`] = `
+{
+  "meta": Any<Object>,
+  "telemetry": {
+    "otlp": [],
+    "splunk": [
+      {
+        "endpoint": "https://example.com:8088",
+        "id": "frodo-test-splunk-2",
+        "sources": [
+          "idm-everything",
+        ],
+        "token": "",
+      },
+    ],
+  },
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete Splunk exporter by category 3`] = `
+{
+  "endpoint": "https://updated.example.com/v1/logs",
+  "id": "frodo-test-splunk-2",
+  "sources": [
+    "idm-everything",
+  ],
+  "token": "",
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete Splunk exporter by category 4`] = `
+{
+  "otlp": [],
+  "splunk": [
+    {
+      "endpoint": "https://updated.example.com/v1/logs",
+      "id": "frodo-test-splunk-2",
+      "sources": [
+        "idm-everything",
+      ],
+      "token": "",
+    },
+  ],
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete Splunk exporter by category 5`] = `
+[
+  {
+    "endpoint": "https://updated.example.com/v1/logs",
+    "id": "frodo-test-splunk-2",
+    "sources": [
+      "idm-everything",
+    ],
+    "token": "",
+  },
+]
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete all exporters 1`] = `
+[
+  {
+    "encoding": "JSON",
+    "endpoint": "https://example.com/v1/logs",
+    "id": "frodo-test-otlp-3",
+    "sources": [
+      "am-everything",
+    ],
+    "type": "HTTP",
+  },
+]
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete all exporters 2`] = `
+{
+  "meta": Any<Object>,
+  "telemetry": {
+    "otlp": [
+      {
+        "encoding": "JSON",
+        "endpoint": "https://example.com/v1/logs",
+        "id": "frodo-test-otlp-3",
+        "sources": [
+          "am-everything",
+        ],
+        "type": "HTTP",
+      },
+    ],
+    "splunk": [],
+  },
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete all exporters 3`] = `
+{
+  "otlp": [
+    {
+      "encoding": "JSON",
+      "endpoint": "https://example.com/v1/logs",
+      "id": "frodo-test-otlp-3",
+      "sources": [
+        "am-everything",
+      ],
+      "type": "HTTP",
+    },
+  ],
+  "splunk": [],
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete all exporters 4`] = `
+[
+  {
+    "encoding": "JSON",
+    "endpoint": "https://example.com/v1/logs",
+    "id": "frodo-test-otlp-3",
+    "sources": [
+      "am-everything",
+    ],
+    "type": "HTTP",
+  },
+]
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete otlp exporter by ID 1`] = `
+[
+  {
+    "encoding": "PROTO",
+    "endpoint": "https://example.com/v1/logs",
+    "id": "frodo-test-otlp-2",
+    "sources": [
+      "idm-everything",
+    ],
+    "type": "HTTP",
+  },
+]
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete otlp exporter by ID 2`] = `
+{
+  "meta": Any<Object>,
+  "telemetry": {
+    "otlp": [
+      {
+        "encoding": "PROTO",
+        "endpoint": "https://example.com/v1/logs",
+        "id": "frodo-test-otlp-2",
+        "sources": [
+          "idm-everything",
+        ],
+        "type": "HTTP",
+      },
+    ],
+    "splunk": [],
+  },
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete otlp exporter by ID 3`] = `
+{
+  "encoding": "PROTO",
+  "endpoint": "https://updated.example.com/v1/logs",
+  "id": "frodo-test-otlp-2",
+  "sources": [
+    "idm-everything",
+  ],
+  "type": "HTTP",
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete otlp exporter by ID 4`] = `
+{
+  "otlp": [
+    {
+      "encoding": "PROTO",
+      "endpoint": "https://updated.example.com/v1/logs",
+      "id": "frodo-test-otlp-2",
+      "sources": [
+        "idm-everything",
+      ],
+      "type": "HTTP",
+    },
+  ],
+  "splunk": [],
+}
+`;
+
+exports[`TelemetryOps Telemetry lifecycle Import, export, update, read, and delete otlp exporter by ID 5`] = `
+[
+  {
+    "encoding": "PROTO",
+    "endpoint": "https://updated.example.com/v1/logs",
+    "id": "frodo-test-otlp-2",
+    "sources": [
+      "idm-everything",
+    ],
+    "type": "HTTP",
+  },
+]
+`;

@@ -122,6 +122,7 @@ const SUBJECT_PROFILE_DEFINITIONS: Record<
       'cloud.serviceAccount',
       'cloud.startup',
       'cloud.variable',
+      'cloud.telemetry',
       'config',
       'conn',
       'idm.crypto',
