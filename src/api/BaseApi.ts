@@ -34,9 +34,21 @@ if (process.env.FRODO_MOCK) {
 const timeout = 30000;
 
 // agentkeepalive
+// Reuse outbound TCP/TLS connections between axios calls. Free (idle) sockets
+// are kept open up to maxFreeSockets; set FRODO_NO_KEEPALIVE=1 to restore the
+// old behavior (a fresh TCP+TLS handshake per request) for exotic environments
+// or proxies that don't tolerate connection reuse. Note: on current Node
+// versions (verified on v24), free keep-alive sockets do NOT keep a short-lived
+// process (e.g. one-shot CLI commands) alive — the event loop drains and the
+// process exits promptly.
+const noKeepAlive = ['1', 'true', 'yes'].includes(
+  (process.env.FRODO_NO_KEEPALIVE || '').toLowerCase()
+);
+const keepAlive = !noKeepAlive;
 const maxSockets = 500;
-const maxFreeSockets = 10;
-const keepAlive = false;
+const maxFreeSockets = 16;
+const keepAliveMsecs = 1000;
+const scheduling: 'fifo' | 'lifo' = 'lifo';
 
 const userAgent = getUserAgent();
 const transactionId = `frodo-${randomUUID()}`;
@@ -49,6 +61,8 @@ function getHttpAgent(): ProxyAgent {
     maxFreeSockets,
     timeout,
     keepAlive,
+    keepAliveMsecs,
+    scheduling,
   });
   return httpAgent;
 }
@@ -75,6 +89,8 @@ function getHttpsAgent(
     maxFreeSockets,
     timeout,
     keepAlive,
+    keepAliveMsecs,
+    scheduling,
   });
   if (allowInsecureConnection) {
     // Also inject rejectUnauthorized:false into the per-connection options that

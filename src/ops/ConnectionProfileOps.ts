@@ -6,7 +6,11 @@ import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import DataProtection from '../utils/DataProtection';
-import { isValidUrl, saveJsonToFile } from '../utils/ExportImportUtils';
+import {
+  ensureDirectoryForFile,
+  isValidUrl,
+  saveJsonToFile,
+} from '../utils/ExportImportUtils';
 import { getFrodoHome } from '../utils/FrodoUtils';
 import { readServiceAccountScopes } from './cloud/EnvServiceAccountScopesOps';
 import {
@@ -775,12 +779,21 @@ export async function saveConnectionProfile({
       }, {});
 
     // save profiles
-    saveJsonToFile({
+    const saved = saveJsonToFile({
       data: orderedProfiles,
       filename,
       includeMeta: false,
       state,
     });
+    if (!saved) {
+      // saveJsonToFile printed the write error and returned false; propagate
+      // the failure instead of reporting success
+      debugMessage({
+        message: `ConnectionProfileOps.saveConnectionProfile: end [false]`,
+        state,
+      });
+      return false;
+    }
     debugMessage({
       message: `Saved connection profile ${state.getHost()} in ${filename}`,
       state,
@@ -846,6 +859,7 @@ export function setConnectionProfileAlias({
     }
   }
   connectionsData[tenant].alias = alias;
+  ensureDirectoryForFile(filename);
   fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
   debugMessage({
     message: `Alias '${alias}' has been set for connection profile '${tenant}'`,
@@ -892,6 +906,7 @@ export function deleteConnectionProfileAlias({
   }
   const alias = connectionsData[tenant].alias;
   delete connectionsData[tenant].alias;
+  ensureDirectoryForFile(filename);
   fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
   debugMessage({
     message: `Alias '${alias}' has been deleted for connection profile '${tenant}'.`,
@@ -935,6 +950,7 @@ export function deleteConnectionProfile({
     );
   }
   delete connectionsData[profiles[0].tenant];
+  ensureDirectoryForFile(filename);
   fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
 }
 
