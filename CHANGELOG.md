@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [v4.7.0] - 2026-09-04
+
+### Added
+- Introduced a new Telemetry API and operations functions to support `fr-config` telemetry commands, enhancing monitoring capabilities. This includes comprehensive tests for the new feature. (#638)
+- Added an optional flag to the `readJsonFile` function to ignore placeholders, providing more flexibility in JSON file handling. A corresponding test was also added to ensure functionality. (#639)
+
 ## [v4.6.1] - 2026-09-04
 
 ### Added
