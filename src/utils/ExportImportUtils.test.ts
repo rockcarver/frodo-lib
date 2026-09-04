@@ -103,6 +103,37 @@ test('readJsonFile reads and replaces environment variables in a JSON file', () 
 
 });
 
+test('readJsonFile reads and ignores environment variables in a JSON file', () => {
+  // Arrange
+  if (!existsSync(FS_TMP_DIR)) {
+    mkdirSync(FS_TMP_DIR, { recursive: true });
+  }
+
+  state.setEnv('TEST_VALUE_ONE', 'frodo')
+  state.setEnv('TEST_VALUE_TWO', 'sam')
+  state.setEnv('TEST_VALUE_ESCAPED', 'gollum')
+  state.setEnv('TEST_VALUE_BASE64', Buffer.from('ring bearer').toString('base64'))
+
+  const content = {
+    first: '${TEST_VALUE_ONE}',
+    second: '${TEST_VALUE_TWO}',
+    escaped: '\\${TEST_VALUE_ESCAPED}',
+    encoded: '${BASE64:TEST_VALUE_BASE64}'
+  }
+
+  const expected = content
+
+  writeFileSync(PATH_TO_ARTIFACT, JSON.stringify(content))
+
+  // Act
+  const result = readJsonFile({filePath: PATH_TO_ARTIFACT, resolvePlaceholders: false, state})
+
+  // Assert
+  expect(result).toEqual(expected)
+
+});
+
+
 test('readJsonFile throws an error for an unknown placeholder', () => {
   // Arrange
   if (!existsSync(FS_TMP_DIR)) {
