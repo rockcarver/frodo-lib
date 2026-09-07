@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
@@ -36,6 +37,7 @@ export async function getSSOCookieConfig({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.SSOCookieReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -60,6 +62,7 @@ export async function resetSSOCookieConfig({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.SSOCookieFullScope],
     state,
   }).post(urlString, null, { withCredentials: true });
   return data;
@@ -85,6 +88,7 @@ export async function setSSOCookieConfig({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.SSOCookieFullScope],
     state,
   }).put(urlString, config, { withCredentials: true });
   return data;

@@ -28,7 +28,7 @@ jest.unstable_mockModule('./NodeOps', () => ({
 const { findScriptReferences } = await import('./JourneyOps');
 
 function mockState() {
-  return {} as any;
+  return { getDeploymentType: () => undefined } as any;
 }
 
 function tree(id: string, nodes: Record<string, any>) {

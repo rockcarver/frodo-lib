@@ -59,6 +59,10 @@ export async function getServerVersionInfo({ state }: { state: State }) {
  */
 export async function getIdmServerVersionInfo({ state }: { state: State }) {
   const urlString = util.format(idmVersionUrlTemplate, getIdmBaseUrl(state));
-  const { data } = await generateIdmApi({ state }).get(urlString, {});
+  // Bootstrap/version-discovery probe, deliberately never scope-gated.
+  const { data } = await generateIdmApi({ requiredScopes: [], state }).get(
+    urlString,
+    {}
+  );
   return data;
 }

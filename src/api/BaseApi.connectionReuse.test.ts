@@ -102,6 +102,7 @@ describe('BaseApi real-socket connection reuse (loopback)', () => {
       const request = generateAmApi({
         resource: {},
         requestOverride: { baseURL: `http://127.0.0.1:${port}` },
+        requiredScopes: [],
         state,
       });
       const res1 = await request.get('/');

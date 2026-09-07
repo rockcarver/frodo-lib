@@ -17,13 +17,13 @@ import {
 } from '../api/ManagedSystemObjectApi';
 import { State } from '../shared/State';
 import { FrodoError } from './FrodoError';
-import { type RelationshipTarget } from './ManagedObjectOps';
 import {
   addRelationshipImpl,
   readRelationshipImpl,
   removeRelationshipImpl,
   replaceRelationshipImpl,
 } from './internal/RelationshipHelpers';
+import { type RelationshipTarget } from './ManagedObjectOps';
 
 export type ManagedSystemObject = {
   /**

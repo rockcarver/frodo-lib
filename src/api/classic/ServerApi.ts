@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { printMessage } from '../../utils/Console';
 import { IdObjectSkeletonInterface, PagedResult } from '../ApiTypes';
@@ -58,12 +59,13 @@ export async function getServer({
   state: State;
 }): Promise<ServerSkeleton> {
   const urlString = util.format(serverURLTemplate, state.getHost(), serverId);
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -79,6 +81,7 @@ export async function getServers({
   const urlString = util.format(serversURLTemplate, state.getHost());
   const { data } = await generateAmApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -109,6 +112,7 @@ export async function getServerProperties({
     try {
       const { data } = await generateAmApi({
         resource: getApiConfig(),
+        requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
         state,
       }).get(urlString, {
         withCredentials: true,
@@ -144,6 +148,7 @@ export async function getDefaultServerProperties({
     try {
       const { data } = await generateAmApi({
         resource: getApiConfig(),
+        requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
         state,
       }).get(urlString, {
         withCredentials: true,
@@ -179,6 +184,7 @@ export async function createServer({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, serverData, {
     withCredentials: true,
@@ -211,6 +217,7 @@ export async function putServerProperties({
     );
     const { data } = await generateAmApi({
       resource: getApiConfig(),
+      requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
       state,
     }).put(urlString, propertyData, {
       withCredentials: true,
@@ -244,6 +251,7 @@ export async function putDefaultServerProperties({
     );
     const { data } = await generateAmApi({
       resource: getApiConfig(),
+      requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
       state,
     }).put(urlString, propertyData, {
       withCredentials: true,

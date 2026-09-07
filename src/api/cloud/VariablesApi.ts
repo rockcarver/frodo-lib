@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface, PagedResult } from '../ApiTypes';
@@ -75,6 +76,7 @@ export async function getVariables({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -101,6 +103,7 @@ export async function getVariable({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -140,6 +143,7 @@ export async function putVariable({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVUpdateScope],
     state,
   }).put(urlString, variableData, {
     withCredentials: true,
@@ -169,6 +173,7 @@ export async function setVariableDescription({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVUpdateScope],
     state,
   }).post(urlString, { description }, { withCredentials: true });
   return data;
@@ -193,6 +198,7 @@ export async function deleteVariable({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVUpdateScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

@@ -129,6 +129,7 @@ export async function getUser({
   );
   const { data } = await generateAmApi({
     resource: getIdentityApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -152,6 +153,7 @@ export async function getUsers({
   );
   const { data } = await generateAmApi({
     resource: getIdentityApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -176,6 +178,7 @@ export async function getUserCount({
   );
   const { data } = await generateAmApi({
     resource: getIdentityApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -216,6 +219,7 @@ export async function getUserConfig({
   try {
     const { data } = await generateAmApi({
       resource: getConfigApiConfig(),
+      requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
       state,
     }).post(serviceUrlString, undefined, {
       withCredentials: true,
@@ -247,6 +251,7 @@ export async function getUserConfig({
     try {
       const { data } = await generateAmApi({
         resource: getConfigApiConfig(),
+        requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
         state,
       }).get(urlString, {
         withCredentials: true,
@@ -299,6 +304,7 @@ export async function getUserGroup({
   );
   const { data } = await generateAmApi({
     resource: getIdentityApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -322,6 +328,7 @@ export async function getUserGroups({
   );
   const { data } = await generateAmApi({
     resource: getIdentityApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -349,6 +356,7 @@ export async function putUser({
   );
   const { data } = await generateAmApi({
     resource: getIdentityApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, userData, {
     withCredentials: true,
@@ -385,6 +393,7 @@ export async function putUserConfig({
     try {
       const { data } = await generateAmApi({
         resource: getConfigApiConfig(),
+        requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
         state,
       }).put(serviceUrlString, service, {
         withCredentials: true,
@@ -422,6 +431,7 @@ export async function putUserGroup({
   );
   const { data } = await generateAmApi({
     resource: getIdentityApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, groupData, {
     withCredentials: true,

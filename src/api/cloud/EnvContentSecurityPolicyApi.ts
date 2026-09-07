@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
@@ -113,6 +114,7 @@ export async function getEnforcedContentSecurityPolicy({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ContentSecurityPolicyReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -140,6 +142,7 @@ export async function setEnforcedContentSecurityPolicy({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ContentSecurityPolicyFullScope],
     state,
   }).put(urlString, policy, { withCredentials: true });
   return data;
@@ -160,6 +163,7 @@ export async function getReportOnlyContentSecurityPolicy({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ContentSecurityPolicyReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -187,6 +191,7 @@ export async function setReportOnlyContentSecurityPolicy({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ContentSecurityPolicyFullScope],
     state,
   }).put(urlString, policy, { withCredentials: true });
   return data;

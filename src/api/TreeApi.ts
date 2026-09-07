@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import type { IdObjectSkeletonInterface } from './ApiTypes';
@@ -48,6 +49,7 @@ export async function getTrees({ state }: { state: State }) {
   );
   const { data } = await generateAmApi({
     resource: getTreeApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -72,6 +74,7 @@ export async function getTreesCount({
   );
   const { data } = await generateAmApi({
     resource: getTreeApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -103,6 +106,7 @@ export async function getTree({ id, state }: { id: string; state: State }) {
   );
   const { data } = await generateAmApi({
     resource: getTreeApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -133,6 +137,7 @@ export async function putTree({
   );
   const { data } = await generateAmApi({
     resource: getTreeApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, treeData, {
     withCredentials: true,
@@ -160,6 +165,7 @@ export async function deleteTree({
   );
   const { data } = await generateAmApi({
     resource: getTreeApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

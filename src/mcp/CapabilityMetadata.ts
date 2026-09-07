@@ -1173,6 +1173,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.readManagedSystemObjects': {
     riskClass: 'critical',
+    trustTier: 'full-trust',
     notes:
       'List all managed system objects of a type (teammember or svcacct) — reveals the full tenant-admin or service-account roster. Admin-only regardless of read-only intent.',
   },
@@ -1181,6 +1182,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.queryManagedSystemObjects': {
     riskClass: 'critical',
+    trustTier: 'full-trust',
     notes:
       'Search managed system objects of a type (teammember or svcacct) — can reveal tenant-admin or service-account membership. Admin-only regardless of read-only intent.',
   },
@@ -1392,6 +1394,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     },
     supportsRealm: false,
     riskClass: 'critical',
+    trustTier: 'full-trust',
     notes:
       'Query the reverse direction of a relationship on a managed system object (teammember or svcacct) with namedArgs { type, id, relationship, fields, pageSize }. Admin-only regardless of read-only intent, same as the rest of idm.managedSystem.*.',
   },
@@ -1415,6 +1418,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     },
     supportsRealm: false,
     riskClass: 'critical',
+    trustTier: 'full-trust',
     notes:
       'Reads the current value of a relationship field directly off a managed system object (teammember or svcacct) with namedArgs { type, id, field } — the forward direction. Admin-only regardless of read-only intent, same as the rest of idm.managedSystem.*.',
   },
@@ -1456,6 +1460,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     },
     supportsRealm: false,
     riskClass: 'critical',
+    trustTier: 'full-trust',
     notes:
       "Adds one target to a many-valued relationship field on a managed system object (teammember or svcacct) without disturbing any existing members. Admin-only regardless of write intent, same as the rest of idm.managedSystem.*. See idm.managed.addRelationship's notes for the exact request shape this skill builds for you (captured from AIC's own admin UI, verified live).",
   },
@@ -2984,6 +2989,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Returns live bearer/session tokens for the current identity. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin).',
   },
+  'login.getTokensInteractive': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Drives a real interactive browser (or device-code) login and returns the resulting live bearer/session tokens — same credential-exposure shape as login.getTokens, just for a freshly-established browser-mode identity rather than the one already on state. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin).',
+  },
 
   'am.config.createConfigEntityExportTemplate': {
     // Pure local builder (no API calls), used internally by
@@ -3029,6 +3040,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'critical',
     notes:
       'Initiates a live OAuth2 authorization request against the tenant, POSTing a fully caller-controlled AxiosRequestConfig (arbitrary headers, e.g. Cookie/Authorization) to the live /oauth2/authorize endpoint — same risk shape as its sibling endpoint.* methods (accessToken, accessTokenRfc7523AuthZGrant, clientCredentialsGrant, getTokenInfo, all critical via the credential-keyword inference), usable toward session/auth-code hijacking. Explicit override because the method name itself does not match the credential-keyword inference the way its siblings do.',
+  },
+  'oauth2oidc.endpoint.deviceAuthorizationRequest': {
+    mutating: true,
+    riskClass: 'critical',
+    notes:
+      'Initiates a live OAuth2 device authorization request (RFC 8628) against the tenant, POSTing a fully caller-controlled AxiosRequestConfig to the live /oauth2/device/code endpoint and returning a real device/user code pair usable to drive a genuine interactive login. Same risk shape as its sibling endpoint.* methods; explicit override because the method name does not match the credential-keyword inference the way accessToken/clientCredentialsGrant do.',
   },
 
   'realm.addCustomDomain': {

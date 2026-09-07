@@ -28,6 +28,7 @@ function makeDescriptor(
     mutating: false,
     destructive: false,
     deploymentTypes: ['any'],
+    trustTier: 'full-trust',
     requiredScopes: [],
     annotations: {
       readOnlyHint: true,

@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
@@ -80,6 +81,7 @@ export async function getTelemetryExporters({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.TelemetryReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -112,6 +114,9 @@ export async function putTelemetryExporter({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    // No documented write scope for telemetry exists — using the read scope
+    // as a lower bound.
+    requiredScopes: [Constants.AVAILABLE_SCOPES.TelemetryReadScope],
     state,
   }).put(urlString, exporterData, {
     withCredentials: true,
@@ -142,6 +147,9 @@ export async function deleteTelemetryExporter({
 
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    // No documented write scope for telemetry exists — using the read scope
+    // as a lower bound.
+    requiredScopes: [Constants.AVAILABLE_SCOPES.TelemetryReadScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

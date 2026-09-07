@@ -18,6 +18,9 @@ export type Constants = {
   GLOSSARY_APPLICATION_OBJECT_TYPE: GlossaryObjectType;
   GLOSSARY_ENTITLEMENT_OBJECT_TYPE: GlossaryObjectType;
   GLOSSARY_ROLE_OBJECT_TYPE: GlossaryObjectType;
+  AVAILABLE_SCOPES: Record<string, string>;
+  CLOUD_BROWSER_MODE_AVAILABLE_SCOPES: string[];
+  TOKEN_FRESHNESS_BUFFER_MS: number;
   RETRY_NOTHING_KEY: string;
   RETRY_EVERYTHING_KEY: string;
   RETRY_NETWORK_KEY: string;
@@ -106,6 +109,11 @@ const AVAILABLE_SCOPES = {
   ReleaseFullScope: 'fr:idc:release:*', //                                  All product release APIs
   ReleaseReadScope: 'fr:idc:release:read', //                               Read product release information
 
+  // Confirmed a real tenant scope (2026-09-06, tested against AICMCPExchangeClient
+  // during Phase B's browser-login exchange spikes — see the plan doc), but Ping has
+  // no documented `fr:idc:telemetry:*` write scope; only `:read` is confirmed to exist.
+  TelemetryReadScope: 'fr:idc:telemetry:read', //                           Read telemetry data
+
   SSOCookieFullScope: 'fr:idc:sso-cookie:*', //                             All SSO cookie APIs
   SSOCookieReadScope: 'fr:idc:sso-cookie:read', //                          Read SSO cookie configuration
 
@@ -115,6 +123,32 @@ const AVAILABLE_SCOPES = {
 
   IGAFullScope: 'fr:iga:*', //                                              All Governance APIs
 };
+
+// Confirmed empirically (2026-09-06) against a real AIC tenant: `AICMCPExchangeClient`
+// (the client cloud browser-mode exchanges an AM-domain token through, per RFC 8693 —
+// see frodo-lib/src/ops/BrowserAuthenticateOps.ts's exchangeTokenForScope) rejects any
+// scope outside this exact list with `400 invalid_request — "Invalid token exchange."`.
+// This is a hard ceiling imposed by that client's own configuration, not a Frodo
+// limitation — every ops module's required scope must be checked against this list
+// before cloud browser-mode can reach it; modules requiring anything else are
+// structurally unreachable via browser-mode on cloud until Ping widens the client's
+// allow-list or provisions a dedicated one for third-party tooling.
+const CLOUD_BROWSER_MODE_AVAILABLE_SCOPES = [
+  AVAILABLE_SCOPES.AmFullScope,
+  AVAILABLE_SCOPES.IdmFullScope,
+  AVAILABLE_SCOPES.ESVReadScope,
+  AVAILABLE_SCOPES.ESVUpdateScope,
+];
+
+// The single source of truth for "how close to its recorded expiry is a
+// cached token allowed to get before it's treated as unusable." Consulted
+// by both `ops/TokenCacheOps.ts` (deciding whether a cache hit is fresh
+// enough to hand back) and `api/BaseApi.ts` (deciding, at actual request
+// send time, whether to trigger an on-demand refresh) — those two checks
+// must agree on the same margin, or a token one considers fresh and the
+// other considers stale becomes a real, hard-to-reproduce bug. Defined once
+// here so changing it can't mean updating one file and forgetting the other.
+const TOKEN_FRESHNESS_BUFFER_MS = 30000;
 
 const RETRY_EVERYTHING_KEY = 'everything';
 const RETRY_NETWORK_KEY = 'network';
@@ -143,6 +177,8 @@ export default {
   GLOSSARY_ENTITLEMENT_OBJECT_TYPE,
   GLOSSARY_ROLE_OBJECT_TYPE,
   AVAILABLE_SCOPES,
+  CLOUD_BROWSER_MODE_AVAILABLE_SCOPES,
+  TOKEN_FRESHNESS_BUFFER_MS,
   RETRY_NOTHING_KEY,
   RETRY_EVERYTHING_KEY,
   RETRY_NETWORK_KEY,

@@ -6,7 +6,10 @@ import {
   removeSubConfigEntity,
 } from './IdmConfigOps';
 
-const state = { getDebugHandler: () => undefined } as unknown as State;
+const state = {
+  getDebugHandler: () => undefined,
+  getDeploymentType: () => undefined,
+} as unknown as State;
 
 describe('managed-object type extraction', () => {
   test('validates, trims, deduplicates, and sorts names', () => {

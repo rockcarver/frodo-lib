@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateAmApi } from '../BaseApi';
@@ -42,6 +43,10 @@ export async function getEnvInfo({
   const { data } = await generateAmApi({
     resource: getApiConfig(),
     requestOverride: {},
+    // TODO: verify against a live tenant whether this specific endpoint
+    // actually requires fr:am:* or is unauthenticated/lower-privilege —
+    // defaulted conservatively to this file's own domain.
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,

@@ -44,6 +44,8 @@ export async function getServiceAccountScopes({
           },
         }
       : undefined,
+    // Public discovery endpoint by design — no token/scope required.
+    requiredScopes: [],
     state,
   }).get(urlString, {
     withCredentials: true,

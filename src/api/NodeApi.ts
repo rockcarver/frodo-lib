@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../utils/JsonUtils';
@@ -166,6 +167,7 @@ export async function getNodeTypes({
   );
   const { data } = await generateAmApi({
     resource: getNodeVersionApiConfig({ state }),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(
     urlString,
@@ -203,6 +205,7 @@ export async function getNodeType({
   );
   const { data } = await generateAmApi({
     resource: getNodeVersionApiConfig({ state }),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(
     urlString,
@@ -231,6 +234,7 @@ export async function getNodes({
   );
   const { data } = await generateAmApi({
     resource: getNodeApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(
     urlString,
@@ -266,6 +270,7 @@ export async function getNodesByType({
   );
   const { data } = await generateAmApi({
     resource: getNodeVersionApiConfig({ state }),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -300,6 +305,7 @@ export async function getNode({
   );
   const { data } = await generateAmApi({
     resource: getNodeVersionApiConfig({ state }),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -333,6 +339,7 @@ export async function createNode({
   );
   const { data } = await generateAmApi({
     resource: getNodeVersionApiConfig({ state }),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(urlString, nodeData, {
     withCredentials: true,
@@ -364,6 +371,7 @@ export async function getNodeSchema({
   );
   const { data } = await generateAmApi({
     resource: getNodeVersionApiConfig({ state }),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(
     urlString,
@@ -425,6 +433,7 @@ export async function putNode({
   );
   const { data } = await generateAmApi({
     resource: getNodeVersionApiConfig({ state }),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, cleanData, {
     withCredentials: true,
@@ -460,6 +469,7 @@ export async function deleteNode({
   );
   const { data } = await generateAmApi({
     resource: getNodeVersionApiConfig({ state }),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -482,6 +492,7 @@ export async function createCustomNode({
   const urlString = util.format(customNodeTypeURLTemplate, state.getHost());
   const { data } = await generateAmApi({
     resource: getNodeApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(urlString, nodeData, {
     withCredentials: true,
@@ -504,6 +515,7 @@ export async function getCustomNodes({
   );
   const { data } = await generateAmApi({
     resource: getNodeApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -526,6 +538,7 @@ export async function getCustomNode({
   const urlString = util.format(customNodeURLTemplate, state.getHost(), nodeId);
   const { data } = await generateAmApi({
     resource: getNodeApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -553,6 +566,7 @@ export async function putCustomNode({
   const urlString = util.format(customNodeURLTemplate, state.getHost(), nodeId);
   const { data } = await generateAmApi({
     resource: getNodeApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, nodeData, {
     withCredentials: true,
@@ -578,6 +592,7 @@ export async function deleteCustomNode({
   const urlString = util.format(customNodeURLTemplate, state.getHost(), nodeId);
   const { data } = await generateAmApi({
     resource: getNodeApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -604,6 +619,7 @@ export async function getCustomNodeUsage({
   );
   const { data } = await generateAmApi({
     resource: getNodeApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(urlString, undefined, {
     withCredentials: true,

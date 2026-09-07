@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
@@ -161,6 +162,7 @@ export async function lockEnvironment({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.PromotionScope],
     state,
   }).post(urlString, {}, { withCredentials: true });
   return data;
@@ -187,6 +189,7 @@ export async function unlockEnvironment({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.PromotionScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -209,6 +212,7 @@ export async function getLockStatus({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.PromotionReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -236,6 +240,7 @@ export async function promoteConfiguration({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.PromotionScope],
     state,
   }).post(urlString, config, { withCredentials: true });
   return data;
@@ -258,6 +263,7 @@ export async function getPromotionStatus({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.PromotionReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -282,6 +288,7 @@ export async function getLastPromotionReport({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.PromotionReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -310,6 +317,7 @@ export async function getPromotionReport({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.PromotionReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -336,6 +344,7 @@ export async function getProvisionalPromotionReport({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.PromotionReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -360,6 +369,7 @@ export async function getProvisionalRollbackReport({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.PromotionReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -384,6 +394,7 @@ export async function getPromotionReports({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.PromotionReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -411,6 +422,7 @@ export async function rollbackPromotion({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.PromotionScope],
     state,
   }).post(urlString, config, { withCredentials: true });
   return data;

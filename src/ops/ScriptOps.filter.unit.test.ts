@@ -25,6 +25,7 @@ const state = {
   getAmVersion: () => '7.5.0',
   getCreateProgressHandler: () => undefined,
   getDebugHandler: () => undefined,
+  getDeploymentType: () => undefined,
   getFrodoVersion: () => '4.0.0-test',
   getHost: () => 'https://example.com',
   getRealm: () => '/',

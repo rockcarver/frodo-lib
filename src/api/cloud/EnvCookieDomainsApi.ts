@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
@@ -35,6 +36,7 @@ export async function getCookieDomains({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.CookieDomainsReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -62,6 +64,7 @@ export async function setCookieDomains({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.CookieDomainsFullScope],
     state,
   }).put(urlString, domains, { withCredentials: true });
   return data;

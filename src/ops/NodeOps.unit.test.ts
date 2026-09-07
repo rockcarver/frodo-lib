@@ -29,6 +29,8 @@ function mockState() {
   return {
     getDeploymentType: () => 'cloud',
     getDebugHandler: () => undefined,
+    getAuthMode: () => 'noninteractive',
+    getUseBearerTokenForAmApis: () => false,
   } as any;
 }
 

@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../../shared/Constants';
 import { State } from '../../../shared/State';
 import { getApiSearchAll } from '../../../utils/ExportImportUtils';
 import { getHostOnlyUrl } from '../../../utils/ForgeRockUtils';
@@ -176,6 +177,7 @@ export async function getRequestForm({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -287,6 +289,7 @@ export async function putRequestForm({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).put(urlString, formData, {
     withCredentials: true,
@@ -315,6 +318,7 @@ export async function assignRequestForm({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).post(
     urlString,
@@ -350,6 +354,7 @@ export async function unassignRequestForm({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).post(
     urlString,
@@ -383,6 +388,7 @@ export async function deleteRequestForm({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

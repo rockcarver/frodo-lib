@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import {
   getCurrentRealmName,
@@ -44,6 +45,7 @@ export async function verifyCNAME({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.CustomDomainReadScope],
     state,
   }).post(urlString, { name }, { withCredentials: true });
   return data;
@@ -65,6 +67,7 @@ export async function getCustomDomains({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.CustomDomainReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -93,6 +96,7 @@ export async function setCustomDomains({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.CustomDomainFullScope],
     state,
   }).put(urlString, domains, { withCredentials: true });
   return data;

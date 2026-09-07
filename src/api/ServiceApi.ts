@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getConfigPath, getRealmPathGlobal } from '../utils/ForgeRockUtils';
 import { AmConfigEntityInterface, PagedResult } from './ApiTypes';
@@ -60,6 +61,7 @@ export async function getListOfServices({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post<PagedResult<AmServiceSkeleton>>(urlString, undefined, {
     withCredentials: true,
@@ -91,6 +93,7 @@ export async function getService({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get<AmServiceSkeleton>(urlString, {
     withCredentials: true,
@@ -122,6 +125,7 @@ export async function getServiceDescendents({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post<ServiceNextDescendentResponse>(urlString, undefined, {
     withCredentials: true,
@@ -156,6 +160,7 @@ export async function putService({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, serviceData, {
     withCredentials: true,
@@ -199,6 +204,7 @@ export async function putServiceNextDescendent({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, serviceNextDescendentData, {
     withCredentials: true,
@@ -231,6 +237,7 @@ export async function deleteService({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -270,6 +277,7 @@ export async function deleteServiceNextDescendent({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

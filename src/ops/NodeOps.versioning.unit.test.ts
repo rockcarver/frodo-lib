@@ -30,7 +30,7 @@ jest.unstable_mockModule('../api/NodeApi', () => ({
 
 const NodeOps = await import('./NodeOps');
 
-const state = {} as any;
+const state = { getDeploymentType: () => undefined } as any;
 
 const makeNode = (nodeType: string, nodeTypeVersion = '1.0') => ({
   _id: `${nodeType}-${nodeTypeVersion}`,

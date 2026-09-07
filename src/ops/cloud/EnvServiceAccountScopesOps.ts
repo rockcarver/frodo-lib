@@ -5,6 +5,16 @@ import {
 import { State } from '../../shared/State';
 import { FrodoError } from '../FrodoError';
 
+// Deliberately given `requiredScopes: []` at the api layer
+// (api/cloud/EnvServiceAccountScopesApi.ts's call to generateEnvApi())
+// rather than a real scope. This is a public scope-catalog discovery
+// endpoint: `getServiceAccountScopes()` only conditionally attaches a
+// session cookie (when one already exists on `state`) and never attaches a
+// bearer token at all — by design, no token with scopes and no session are
+// required to call it. Confirmed by code inspection; not yet independently
+// confirmed against a live tenant that the endpoint truly accepts a fully
+// unauthenticated call.
+
 export type EnvServiceAccountScopes = {
   /**
    * Read available service account scopes

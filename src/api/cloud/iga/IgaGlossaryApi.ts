@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../../shared/Constants';
 import { State } from '../../../shared/State';
 import { postApiSearchAll } from '../../../utils/ExportImportUtils';
 import { getHostOnlyUrl } from '../../../utils/ForgeRockUtils';
@@ -79,6 +80,7 @@ export async function getGlossarySchema({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -105,6 +107,7 @@ export async function getApplicationGlossary({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -153,6 +156,7 @@ export async function createGlossarySchema({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).post(urlString, glossarySchemaData, {
     withCredentials: true,
@@ -183,6 +187,7 @@ export async function putGlossarySchema({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).put(urlString, glossarySchemaData, {
     withCredentials: true,
@@ -212,6 +217,7 @@ export async function putApplicationGlossary({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).put(urlString, glossaryData, {
     withCredentials: true,
@@ -238,6 +244,7 @@ export async function deleteGlossarySchema({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -264,6 +271,7 @@ export async function deleteApplicationGlossary({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

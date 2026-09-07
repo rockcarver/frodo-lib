@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getHostOnlyUrl } from '../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
@@ -33,12 +34,13 @@ export async function getRealms({
   state: State;
 }): Promise<PagedResult<RealmSkeleton>> {
   const urlString = util.format(realmsListURLTemplate, state.getHost());
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -55,12 +57,13 @@ export async function getRealm({
   state: State;
 }): Promise<RealmSkeleton> {
   const urlString = util.format(realmURLTemplate, state.getHost(), realmId);
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -86,6 +89,7 @@ export async function createRealm({
   const urlString = util.format(createRealmURLTemplate, state.getHost());
   const { data } = await generateAmApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(urlString, realmData, {
     withCredentials: true,
@@ -109,13 +113,13 @@ export async function putRealm({
   state: State;
 }): Promise<RealmSkeleton> {
   const urlString = util.format(realmURLTemplate, state.getHost(), realmId);
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
-    urlString,
-    realmData,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).put(urlString, realmData, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -138,6 +142,7 @@ export async function deleteRealm({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

@@ -96,6 +96,7 @@ describe('BaseApi expired TLS certificate handling', () => {
     const request = generateAmApi({
       resource: {},
       requestOverride: { baseURL },
+      requiredScopes: [],
       state,
     });
 
@@ -117,6 +118,7 @@ describe('BaseApi expired TLS certificate handling', () => {
     const request = generateAmApi({
       resource: {},
       requestOverride: { baseURL },
+      requiredScopes: [],
       state,
     });
 
@@ -201,6 +203,7 @@ describe('BaseApi expired TLS certificate handling - via HTTPS proxy', () => {
     const request = generateAmApi({
       resource: {},
       requestOverride: { baseURL },
+      requiredScopes: [],
       state,
     });
 
@@ -222,6 +225,7 @@ describe('BaseApi expired TLS certificate handling - via HTTPS proxy', () => {
     const request = generateAmApi({
       resource: {},
       requestOverride: { baseURL },
+      requiredScopes: [],
       state,
     });
 

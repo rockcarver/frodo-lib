@@ -110,10 +110,7 @@ export type Script = {
    * @param {string} source new plain-text script source
    * @returns {Promise<ScriptSkeleton>} the updated script object
    */
-  updateScriptSource(
-    scriptId: string,
-    source: string
-  ): Promise<ScriptSkeleton>;
+  updateScriptSource(scriptId: string, source: string): Promise<ScriptSkeleton>;
   /**
    * Delete script
    * @param {string} scriptId script id

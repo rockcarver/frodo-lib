@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { cloneDeep } from '../utils/JsonUtils';
@@ -38,12 +39,13 @@ export async function getCirclesOfTrust({
     state.getHost(),
     getCurrentRealmPath(state)
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -65,12 +67,13 @@ export async function getCircleOfTrust({
     getCurrentRealmPath(state),
     cotId
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -94,6 +97,7 @@ export async function createCircleOfTrust({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(urlString, postData, {
     withCredentials: true,
@@ -124,13 +128,13 @@ export async function updateCircleOfTrust({
     getCurrentRealmPath(state),
     cotId
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
-    urlString,
-    cotData,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).put(urlString, cotData, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -154,6 +158,7 @@ export async function deleteCircleOfTrust({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

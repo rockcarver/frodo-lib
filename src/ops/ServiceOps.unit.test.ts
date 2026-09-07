@@ -38,6 +38,7 @@ const ServiceOps = await import('./ServiceOps');
 
 const state = {
   getRealm: () => 'alpha',
+  getDeploymentType: () => undefined,
 } as any;
 
 const makeService = (overrides: Record<string, unknown> = {}) =>

@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { NoIdObjectSkeletonInterface } from '../ApiTypes';
@@ -150,6 +151,7 @@ export async function getSpConnections({
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -174,6 +176,7 @@ export async function createSpConnection({
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).post(urlString, spConnection, {
     withCredentials: true,
@@ -202,6 +205,7 @@ export async function updateSpConnectionById({
     id
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).put(urlString, spConnection, {
     withCredentials: true,
@@ -227,6 +231,7 @@ export async function getSpConnectionById({
     id
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -266,6 +271,7 @@ export async function getAuthenticationPolicyContracts({
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -292,6 +298,7 @@ export async function getAuthenticationPolicyContractById({
     id
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -316,6 +323,7 @@ export async function createAuthenticationPolicyContract({
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).post(urlString, authenticationPolicyContractRequest, {
     withCredentials: true,
@@ -344,6 +352,7 @@ export async function updateAuthenticationPolicyContractById({
     id
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).put(urlString, authenticationPolicyContractRequest, {
     withCredentials: true,
@@ -403,6 +412,7 @@ export async function generateSigningKeyPair({
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).post(urlString, params, {
     withCredentials: true,
@@ -428,6 +438,7 @@ export async function getSigningKeyPairById({
     id
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -450,6 +461,7 @@ export async function getSigningKeyPairs({
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -478,6 +490,7 @@ export async function updateOrCreateSigningKeyPairById({
     id
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).put(urlString, params, {
     withCredentials: true,
@@ -503,6 +516,7 @@ export async function getSigningKeyPairCertificate({
     keyPairId
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -531,6 +545,7 @@ export async function updateOrCreateSigningKeyPairCertificate({
     keyPairId
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).put(
     urlString,
@@ -560,6 +575,7 @@ export async function deleteSigningKeyPairById({
     id
   );
   await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -584,6 +600,7 @@ export async function deleteSigningKeyPairCertificate({
     keyPairId
   );
   await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -613,6 +630,7 @@ export async function getFederationInfo({
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -637,6 +655,7 @@ export async function updateFederationInfo({
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).put(urlString, federationInfo, {
     withCredentials: true,
@@ -662,6 +681,7 @@ export async function getVirtualHostNames({
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -738,6 +758,7 @@ export async function getIdpAdapters({
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -763,6 +784,7 @@ export async function getIdpAdapterById({
     id
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -791,6 +813,7 @@ export async function updateIdpAdapterById({
     id
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).put(urlString, idpAdapter, {
     withCredentials: true,
@@ -815,6 +838,7 @@ export async function createIdpAdapter({
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).post(urlString, idpAdapter, {
     withCredentials: true,
@@ -840,6 +864,7 @@ export async function deleteIdpAdapterById({
     id
   );
   await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -942,6 +967,7 @@ export async function getAuthenticationPolicyById({
     id
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -966,6 +992,7 @@ export async function createAuthenticationPolicy({
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).post(urlString, authenticationPolicyRequest, {
     withCredentials: true,
@@ -994,6 +1021,7 @@ export async function updateAuthenticationPolicyById({
     id
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).put(urlString, authenticationPolicyRequest, {
     withCredentials: true,
@@ -1020,6 +1048,7 @@ export async function replicate({
     getHostOnlyUrl(state.getHost())
   );
   const { data } = await generateWSFedApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.WSFedAdminScope],
     state,
   }).post(urlString, null, {
     withCredentials: true,

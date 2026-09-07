@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../../shared/Constants';
 import { State } from '../../../shared/State';
 import { getApiSearchAll } from '../../../utils/ExportImportUtils';
 import { getHostOnlyUrl } from '../../../utils/ForgeRockUtils';
@@ -103,6 +104,7 @@ export async function getEvent({
   );
   const { data } = await generateGovernanceApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -151,6 +153,7 @@ export async function createEvent({
   );
   const { data } = await generateGovernanceApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).post(urlString, eventData, {
     withCredentials: true,
@@ -180,6 +183,7 @@ export async function putEvent({
   );
   const { data } = await generateGovernanceApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).put(urlString, eventData, {
     withCredentials: true,
@@ -206,6 +210,7 @@ export async function deleteEvent({
   );
   const { data } = await generateGovernanceApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

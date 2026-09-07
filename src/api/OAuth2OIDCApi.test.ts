@@ -30,7 +30,7 @@ state.setUserSessionTokenMeta({
   tokenId: 'cookieValue',
   realm: '/realm',
   successUrl: 'url',
-  expires: 0,
+  expires: Date.now() + 60 * 60 * 1000,
 });
 state.setDeploymentType(Constants.CLOUD_DEPLOYMENT_TYPE_KEY);
 

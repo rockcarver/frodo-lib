@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../../shared/Constants';
 import { State } from '../../../shared/State';
 import { getHostOnlyUrl } from '../../../utils/ForgeRockUtils';
 import { generateGovernanceApi } from '../../BaseApi';
@@ -206,6 +207,7 @@ export async function getDraftWorkflow({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -232,6 +234,7 @@ export async function getPublishedWorkflow({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -285,6 +288,7 @@ export async function putWorkflow({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).put(urlString, workflowData, {
     withCredentials: true,
@@ -317,6 +321,7 @@ export async function deleteDraftWorkflow({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -353,6 +358,7 @@ export async function deletePublishedWorkflow({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -378,6 +384,7 @@ export async function publishWorkflow({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).post(urlString, workflowData, {
     withCredentials: true,

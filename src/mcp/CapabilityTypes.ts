@@ -7,21 +7,19 @@
  * can evolve independently without breaking shape compatibility.
  */
 
+import { OperationType } from '../shared/OperationType';
+
 /**
  * Normalized operation kinds inferred from Frodo methods or explicitly supplied by
  * metadata in future registry manifests.
+ *
+ * @remarks
+ * A type alias of the core library's deployment-agnostic `OperationType`
+ * (`shared/OperationType.ts`), not an independent definition — the MCP
+ * capability layer may depend on core library vocabulary, but core library
+ * code must never depend on `mcp/`, so the canonical union lives there.
  */
-export type McpCapabilityOperationType =
-  | 'create'
-  | 'count'
-  | 'read'
-  | 'update'
-  | 'delete'
-  | 'search'
-  | 'list'
-  | 'export'
-  | 'import'
-  | 'special';
+export type McpCapabilityOperationType = OperationType;
 
 /**
  * Risk classification used by policy presets and launch-time exposure controls.
@@ -33,6 +31,22 @@ export type McpCapabilityRiskClass = 'low' | 'medium' | 'high' | 'critical';
  * surface or must be exposed as a domain-specific operation.
  */
 export type McpCapabilityKind = 'generic' | 'special';
+
+/**
+ * Caller-privilege tier a capability is safe to expose to.
+ *
+ * @remarks
+ * Deliberately not named "audience" — that term already has a specific,
+ * unrelated meaning in OAuth2/OIDC (a token's `aud` claim, matched against a
+ * resource server's own identifier). This is Frodo's own concept: today's
+ * `admin-account` and `service-account` auth modes are already full-trust
+ * identities, so `'full-trust'` is the universal default every capability
+ * gets unless explicitly narrowed. `'delegated'` marks a capability safe for
+ * a non-admin caller resolved via a real interactive (browser) login — see
+ * `ops/CallerTrustTierOps.ts`'s `determineCallerTrustTier()`. `'both'`
+ * covers capabilities safe for either.
+ */
+export type McpCapabilityTrustTier = 'full-trust' | 'delegated' | 'both';
 
 /**
  * Deployment families that can be used to constrain capability exposure.
@@ -184,6 +198,15 @@ export type McpCapabilityDescriptor = {
    */
   requiredCredential?: McpRequiredCredential;
   requiredScopes: string[];
+  /**
+   * Caller-privilege tier this capability is safe to expose to. Defaults to
+   * `'full-trust'` (see {@link McpCapabilityTrustTier}) — a conservative
+   * allow-list posture where every capability requires the maintainer to
+   * deliberately opt in a narrower tier, mirroring how {@link deploymentTypes}
+   * always resolves to at least `['any']` rather than being left unset.
+   * Set from {@link OperationCapabilityMeta.trustTier} when declared.
+   */
+  trustTier: McpCapabilityTrustTier;
   annotations: McpToolAnnotations;
 };
 
@@ -205,6 +228,9 @@ export type McpCapabilityPolicy = {
   denyOperationTypes?: McpCapabilityOperationType[];
   allowRiskClasses?: McpCapabilityRiskClass[];
   denyRiskClasses?: McpCapabilityRiskClass[];
+  /** Statically pre-filters capabilities by {@link McpCapabilityTrustTier} at manifest-build time — see `ToolRuntime.ts`'s `assertTrustTierAllowed` for the complementary per-request dynamic check. */
+  allowTrustTiers?: McpCapabilityTrustTier[];
+  denyTrustTiers?: McpCapabilityTrustTier[];
   allowDomains?: string[];
   denyDomains?: string[];
   /** Optional allow-list of capability module/id path prefixes. */
@@ -382,6 +408,15 @@ export type OperationCapabilityMeta = {
    * so non-CRUD capabilities that warrant elevated caution need this set explicitly.
    */
   riskClass?: McpCapabilityRiskClass;
+
+  /**
+   * Explicit caller-privilege-tier override. See {@link McpCapabilityTrustTier}.
+   * The registry defaults every capability to `'full-trust'` when absent —
+   * this is the enforceable replacement for an "Admin-only" free-text note
+   * in {@link notes} (keep the prose too; it explains *why*, this field says
+   * *what's enforced*).
+   */
+  trustTier?: McpCapabilityTrustTier;
 
   /**
    * When `true`, this capability is dropped from the inventory entirely instead of

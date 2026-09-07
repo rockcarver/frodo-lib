@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getConfigPath, getRealmPathGlobal } from '../utils/ForgeRockUtils';
 import { AmConfigEntityInterface, PagedResult } from './ApiTypes';
@@ -131,6 +132,7 @@ export async function getSecretStore({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -162,6 +164,7 @@ export async function getSecretStoreSchema({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(urlString, undefined, {
     withCredentials: true,
@@ -189,6 +192,7 @@ export async function getSecretStores({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(urlString, undefined, {
     withCredentials: true,
@@ -228,6 +232,7 @@ export async function getSecretStoreMapping({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -263,6 +268,7 @@ export async function getSecretStoreMappings({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -301,6 +307,7 @@ export async function createSecretStoreMapping({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(urlString, secretStoreMappingData, {
     withCredentials: true,
@@ -335,6 +342,7 @@ export async function putSecretStore({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, secretStoreData, {
     withCredentials: true,
@@ -375,6 +383,7 @@ export async function putSecretStoreMapping({
   delete secretStoreMappingData._rev;
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, secretStoreMappingData, {
     withCredentials: true,
@@ -410,6 +419,7 @@ export async function deleteSecretStore({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -449,6 +459,7 @@ export async function deleteSecretStoreMapping({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

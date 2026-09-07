@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface, PagedResult } from './ApiTypes';
@@ -55,9 +56,11 @@ export async function testConnectorServers({
     getIdmBaseUrl(state),
     'testConnectorServers'
   );
-  const { data } = await generateIdmApi({ state, requestOverride: {} }).post(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+    requestOverride: {},
+  }).post(urlString);
   return data as TestConnectorServersInterface;
 }
 
@@ -71,9 +74,11 @@ export async function readAvailableSystems({
     getIdmBaseUrl(state),
     'test'
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).post(urlString);
   return data;
 }
 
@@ -87,9 +92,11 @@ export async function readAvailableConnectors({
     getIdmBaseUrl(state),
     'availableConnectors'
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).post(urlString);
   return data;
 }
 
@@ -105,9 +112,11 @@ export async function readSystemStatus({
     getIdmBaseUrl(state),
     systemName
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).post(urlString);
   return data;
 }
 
@@ -131,10 +140,11 @@ export async function authenticateSystemObject({
     systemObjectType,
     'authenticate'
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
-    urlString,
-    { username, password }
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).post(urlString, { username, password });
   return data;
 }
 
@@ -153,9 +163,11 @@ export async function runSystemScript({
     systemName,
     scriptName
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).post(urlString);
   return data;
 }
 
@@ -185,7 +197,10 @@ export async function queryAllSystemObjectIds({
     systemName,
     systemObjectType
   );
-  const { data } = await generateIdmApi({ state }).get(urlString);
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).get(urlString);
   return data;
 }
 
@@ -220,9 +235,11 @@ export async function querySystemObjects({
     systemObjectType,
     decodeURIComponent(filter) === filter ? encodeURIComponent(filter) : filter
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).get(urlString);
   return data as PagedResult<IdObjectSkeletonInterface>;
 }
 
@@ -247,9 +264,11 @@ export async function getSystemObject({
     systemObjectType,
     systemObjectId
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).get(urlString);
   return data as IdObjectSkeletonInterface;
 }
 
@@ -271,10 +290,11 @@ export async function createSystemObject({
     systemObjectType,
     'create'
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
-    urlString,
-    systemObjectData
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).post(urlString, systemObjectData);
   return data;
 }
 
@@ -303,10 +323,11 @@ export async function putSystemObject({
   const requestOverride = failIfExists
     ? { headers: { 'If-None-Match': '*' } }
     : { headers: { 'If-Match': '*' } };
-  const { data } = await generateIdmApi({ requestOverride, state }).put(
-    urlString,
-    systemObjectData
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride,
+    state,
+  }).put(urlString, systemObjectData);
   return data;
 }
 
@@ -344,10 +365,11 @@ export async function patchSystemObject({
     systemObjectType,
     systemObjectId
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).patch(
-    urlString,
-    operations
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).patch(urlString, operations);
   return data;
 }
 
@@ -369,8 +391,10 @@ export async function deleteSystemObject({
     systemObjectType,
     systemObjectId
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).delete(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).delete(urlString);
   return data;
 }

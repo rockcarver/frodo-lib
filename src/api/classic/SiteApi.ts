@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { IdObjectSkeletonInterface, PagedResult } from '../ApiTypes';
 import { generateAmApi } from '../BaseApi';
@@ -38,12 +39,13 @@ export async function getSite({
   state: State;
 }): Promise<SiteSkeleton> {
   const urlString = util.format(siteURLTemplate, state.getHost(), siteId);
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -59,6 +61,7 @@ export async function getSites({
   const urlString = util.format(sitesURLTemplate, state.getHost());
   const { data } = await generateAmApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -82,12 +85,12 @@ export async function putSite({
   state: State;
 }): Promise<SiteSkeleton> {
   const urlString = util.format(siteURLTemplate, state.getHost(), siteId);
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
-    urlString,
-    siteData,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).put(urlString, siteData, {
+    withCredentials: true,
+  });
   return data;
 }

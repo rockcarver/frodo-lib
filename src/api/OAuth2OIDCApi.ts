@@ -11,6 +11,7 @@ import { generateOauth2Api } from './BaseApi';
 const authorizeUrlTemplate = '%s/oauth2%s/authorize';
 const accessTokenUrlTemplate = '%s/oauth2%s/access_token';
 const tokenInfoUrlTemplate = '%s/oauth2%s/tokeninfo';
+const deviceAuthorizationUrlTemplate = '%s/oauth2%s/device/code';
 const apiVersion = 'protocol=2.1,resource=1.0';
 const getApiConfig = () => ({
   apiVersion,
@@ -19,9 +20,26 @@ const getApiConfig = () => ({
 export type AccessTokenResponseType = {
   access_token: string;
   id_token?: string;
+  refresh_token?: string;
   scope: string;
   token_type: string;
   expires_in: number;
+  /**
+   * Present only when an `OAUTH2_ACCESS_TOKEN_MODIFICATION` script on the
+   * issuing OAuth2 client embeds a real AM session id via
+   * `accessToken.addExtraData('sessionId', session.getTokenID())` — see the
+   * plan doc's Phase A/C session-capture-script mechanism.
+   */
+  sessionId?: string;
+};
+
+export type DeviceAuthorizationResponseType = {
+  device_code: string;
+  user_code: string;
+  verification_uri: string;
+  verification_uri_complete?: string;
+  expires_in: number;
+  interval?: number;
 };
 
 export type TokenInfoResponseType = {
@@ -108,6 +126,40 @@ export async function accessToken({
     state,
   }).post(accessTokenURL, postData, config);
   return data;
+}
+
+/**
+ * Perform the device authorization request step of the device authorization
+ * grant flow (RFC 8628)
+ * @param {string} amBaseUrl access management base URL
+ * @param {string} data body form data
+ * @param {AxiosRequestConfig} config axios request config object
+ * @param {State} state library state
+ * @returns {Promise<DeviceAuthorizationResponseType>} a promise resolving to an object containing the device/user code pair
+ */
+export async function deviceAuthorizationRequest({
+  amBaseUrl,
+  data,
+  config,
+  state,
+}: {
+  amBaseUrl: string;
+  data: string;
+  config: AxiosRequestConfig;
+  state: State;
+}): Promise<DeviceAuthorizationResponseType> {
+  const deviceAuthorizationURL = util.format(
+    deviceAuthorizationUrlTemplate,
+    amBaseUrl,
+    ''
+  );
+  const { data: response } = await generateOauth2Api({
+    resource: getApiConfig(),
+    requestOverride: {},
+    authenticate: false,
+    state,
+  }).post(deviceAuthorizationURL, data, config);
+  return response;
 }
 
 /**

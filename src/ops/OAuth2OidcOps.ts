@@ -5,9 +5,13 @@ import {
   type AccessTokenResponseType,
   authorize as _authorize,
   clientCredentialsGrant as _clientCredentialsGrant,
+  deviceAuthorizationRequest as _deviceAuthorizationRequest,
   getTokenInfo as _getTokenInfo,
 } from '../api/OAuth2OIDCApi';
-import { TokenInfoResponseType } from '../api/OAuth2OIDCApi';
+import {
+  DeviceAuthorizationResponseType,
+  TokenInfoResponseType,
+} from '../api/OAuth2OIDCApi';
 import { State } from '../shared/State';
 import { mergeDeep } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
@@ -38,6 +42,11 @@ export type OAuth2Oidc = {
     amBaseUrl: string,
     config: AxiosRequestConfig
   ): Promise<TokenInfoResponseType>;
+  deviceAuthorizationRequest(
+    amBaseUrl: string,
+    data: string,
+    config: AxiosRequestConfig
+  ): Promise<DeviceAuthorizationResponseType>;
   clientCredentialsGrant(
     amBaseUrl: string,
     clientId: string,
@@ -90,6 +99,13 @@ export default (state: State): OAuth2Oidc => {
         config,
         state,
       });
+    },
+    async deviceAuthorizationRequest(
+      amBaseUrl: string,
+      data: string,
+      config: AxiosRequestConfig
+    ): Promise<DeviceAuthorizationResponseType> {
+      return deviceAuthorizationRequest({ amBaseUrl, data, config, state });
     },
     async clientCredentialsGrant(
       amBaseUrl: string,
@@ -194,6 +210,29 @@ export async function accessTokenRfc7523AuthZGrant({
   }
 }
 
+export async function deviceAuthorizationRequest({
+  amBaseUrl,
+  data,
+  config,
+  state,
+}: {
+  amBaseUrl: string;
+  data: string;
+  config: AxiosRequestConfig;
+  state: State;
+}): Promise<DeviceAuthorizationResponseType> {
+  try {
+    return await _deviceAuthorizationRequest({
+      amBaseUrl,
+      data,
+      config,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(`Error starting oauth2 device authorization`, error);
+  }
+}
+
 export async function getTokenInfo({
   amBaseUrl,
   config,
@@ -231,7 +270,7 @@ export async function clientCredentialsGrant({
       scope,
       state,
     });
-    response['expires'] = new Date().getTime() + response.expires_in;
+    response['expires'] = Date.now() + response.expires_in * 1000;
     return response as AccessTokenMetaType;
   } catch (error) {
     throw new FrodoError(

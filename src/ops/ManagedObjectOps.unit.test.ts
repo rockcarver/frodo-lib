@@ -260,7 +260,7 @@ describe('relationship helpers', () => {
       type: 'alpha_user',
       id: 'user-1',
       field: 'manager',
-      state: {} as any,
+      state: mockState(undefined),
     });
 
     expect(getManagedObject).toHaveBeenCalledWith(
@@ -279,7 +279,7 @@ describe('relationship helpers', () => {
       id: 'user-1',
       field: 'roles',
       target: { type: 'alpha_role', id: 'role-1' },
-      state: {} as any,
+      state: mockState(undefined),
     });
 
     expect(patchManagedObject).toHaveBeenCalledWith(
@@ -314,7 +314,7 @@ describe('relationship helpers', () => {
       id: 'user-1',
       field: 'roles',
       target: { type: 'alpha_role', id: 'role-1' },
-      state: {} as any,
+      state: mockState(undefined),
     });
 
     expect(getManagedObject).toHaveBeenCalledWith(
@@ -351,7 +351,7 @@ describe('relationship helpers', () => {
       id: 'user-1',
       field: 'roles',
       target: { type: 'alpha_role', id: 'role-1' },
-      state: {} as any,
+      state: mockState(undefined),
     });
 
     expect(patchManagedObject).toHaveBeenCalledWith(
@@ -372,7 +372,7 @@ describe('relationship helpers', () => {
         id: 'user-1',
         field: 'roles',
         target: { type: 'alpha_role', id: 'role-1' },
-        state: {} as any,
+        state: mockState(undefined),
       })
     ).rejects.toThrow(/not currently a member/);
     expect(patchManagedObject).not.toHaveBeenCalled();
@@ -392,7 +392,7 @@ describe('relationship helpers', () => {
       id: 'user-1',
       field: 'manager',
       target: { type: 'alpha_user', id: 'mgr-1' },
-      state: {} as any,
+      state: mockState(undefined),
     });
 
     expect(patchManagedObject).toHaveBeenCalledWith(
@@ -414,7 +414,7 @@ describe('relationship helpers', () => {
       id: 'user-1',
       field: 'manager',
       target: { type: 'alpha_user', id: 'mgr-1' },
-      state: {} as any,
+      state: mockState(undefined),
     });
 
     expect(patchManagedObject).toHaveBeenCalledWith(
@@ -443,7 +443,7 @@ describe('relationship helpers', () => {
         { type: 'alpha_role', id: 'role-1' },
         { type: 'alpha_role', id: 'role-2' },
       ],
-      state: {} as any,
+      state: mockState(undefined),
     });
 
     expect(patchManagedObject).toHaveBeenCalledWith(
@@ -468,7 +468,7 @@ describe('relationship helpers', () => {
       id: 'user-1',
       field: 'manager',
       target: null,
-      state: {} as any,
+      state: mockState(undefined),
     });
 
     expect(patchManagedObject).toHaveBeenCalledWith(
@@ -509,7 +509,7 @@ describe('findOrCreateManagedObject', () => {
       type: 'alpha_user',
       filter: 'custom_merchantCustomerId eq "cust-1"',
       moData: { custom_merchantCustomerId: 'cust-1' },
-      state: {} as any,
+      state: mockState(undefined),
     });
 
     expect(result).toEqual({ object: existing, created: false });
@@ -524,7 +524,7 @@ describe('findOrCreateManagedObject', () => {
       type: 'alpha_user',
       filter: 'custom_merchantCustomerId eq "cust-2"',
       moData: { custom_merchantCustomerId: 'cust-2' },
-      state: {} as any,
+      state: mockState(undefined),
     });
 
     expect(result).toEqual({ object: created, created: true });
@@ -552,7 +552,7 @@ describe('findOrCreateManagedObject', () => {
         type: 'alpha_user',
         filter: 'custom_merchantCustomerId eq "cust-3"',
         moData: {},
-        state: {} as any,
+        state: mockState(undefined),
       });
     } catch (error) {
       caught = error;

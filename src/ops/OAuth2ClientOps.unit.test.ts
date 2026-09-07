@@ -16,6 +16,7 @@ function mockState() {
   return {
     getRealm: () => 'alpha',
     getDebugHandler: () => undefined,
+    getDeploymentType: () => undefined,
   } as any;
 }
 
