@@ -52,6 +52,7 @@ import {
   accessToken,
   type AccessTokenMetaType,
   authorize,
+  getTokenInfo,
 } from './OAuth2OidcOps';
 import { resolveAvailableScope } from './RequiredScopesOps';
 import { getSessionInfo } from './SessionOps';
@@ -211,6 +212,15 @@ const CLOUD_BROWSER_LOGIN_REDIRECT_URI = 'http://localhost:3000';
 export type UserSessionMetaType = AuthenticateSuccessResponse & {
   expires: number;
   from_cache?: boolean;
+  // Captured from getSessionInfo() at the point it's already being called
+  // (session-capture-script logins call it on every fresh login AND cache
+  // resume, to validate the session and resolve the real username) — see
+  // applySessionCaptureToken(). Optional: only present for session-capture
+  // (ForgeOps/classic) entries, and only once a live session has actually
+  // been captured.
+  universalId?: string;
+  latestAccessTime?: string;
+  amCtxId?: string;
 };
 type StepHandler = (step: AuthenticateStep) => Promise<AuthenticateStep>;
 type MFAResult = {
@@ -2018,6 +2028,12 @@ async function applySessionCaptureToken({
       Date.parse(sessionInfo.maxSessionExpirationTime)
     ),
     from_cache: false,
+    // Free: getSessionInfo() already returned these, previously discarded
+    // after extracting realm/expiry/username. Persisted for `frodo session
+    // describe` to surface locally, without ever calling the network again.
+    universalId: sessionInfo.universalId,
+    latestAccessTime: sessionInfo.latestAccessTime,
+    amCtxId: sessionInfo.properties?.AMCtxId,
   };
   state.setUserSessionTokenMeta(userSessionMeta);
   // Never persisted before: a session-capture-script AM session id is just
@@ -2403,6 +2419,32 @@ export async function getTokensInteractive({
         // (see the plan doc's Phase E).
         state.setRefreshToken(token.refresh_token);
         state.setIdToken(token.id_token);
+        // Opportunistic, one-time enrichment: only at fresh-login time
+        // (never on a cache-hit resume or refresh — those never re-enter
+        // this switch case), so this never adds a network call to either
+        // of those paths. Cloud has no AM SSO session to capture the way
+        // ForgeOps/classic's session-capture path does, so this is the
+        // closest cloud equivalent — best-effort, must not fail the login.
+        try {
+          const info = await getTokenInfo({
+            amBaseUrl: state.getHost(),
+            config: {
+              headers: { Authorization: `Bearer ${token.access_token}` },
+            },
+            state,
+          });
+          token.tokenInfo = {
+            sub: info.sub,
+            tokenName: info.tokenName,
+            realm: info.realm,
+            auditTrackingId: info.auditTrackingId,
+          };
+        } catch (error) {
+          debugMessage({
+            message: `AuthenticateOps.getTokensInteractive: opportunistic getTokenInfo() enrichment failed, continuing without it: ${error}`,
+            state,
+          });
+        }
         // Wires the primary bearer token and the on-demand AM credential
         // provider (see applyCloudInteractiveToken's own comment).
         knownUsername = await applyCloudInteractiveToken({ token, state });

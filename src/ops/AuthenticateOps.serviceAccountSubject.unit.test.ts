@@ -59,11 +59,18 @@ const authorize = jest.fn(async (_args?: any): Promise<any> => {
 const deviceAuthorizationRequest = jest.fn(async (_args?: any): Promise<any> => {
   throw new Error('deviceAuthorizationRequest mock not configured');
 });
+// Not exercised by this test's code path (only called from
+// getTokensInteractive()'s cloud fresh-login case), but AuthenticateOps.ts
+// imports it at module load time, so the mock must still provide it.
+const getTokenInfo = jest.fn(async (_args?: any): Promise<any> => {
+  throw new Error('getTokenInfo mock not configured');
+});
 
 jest.unstable_mockModule('./OAuth2OidcOps', () => ({
   accessToken,
   authorize,
   deviceAuthorizationRequest,
+  getTokenInfo,
 }));
 
 const { getSaBearerToken } = await import('./AuthenticateOps');

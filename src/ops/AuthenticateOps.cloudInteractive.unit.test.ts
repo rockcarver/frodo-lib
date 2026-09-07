@@ -46,6 +46,29 @@ jest.unstable_mockModule('./BrowserAuthenticateOps', () => ({
   exchangeTokenForScope,
 }));
 
+// The cloud interactive path's only touch point into OAuth2OidcOps is the
+// opportunistic getTokenInfo() enrichment (tests 10-11 below) — every
+// other test in this file leaves it at its default rejection, exercising
+// the "must not break the login" fallback implicitly. `accessToken` isn't
+// exercised by this test file's own code path either (that's the
+// non-interactive synthetic flow's function), but AuthenticateOps.ts
+// imports it at module load time, so the mock must still provide it.
+const getTokenInfo = jest.fn(async (_args?: any): Promise<any> => {
+  throw new Error('getTokenInfo mock not configured');
+});
+const accessToken = jest.fn(async (_args?: any): Promise<any> => {
+  throw new Error('accessToken mock not configured');
+});
+const authorize = jest.fn(async (_args?: any): Promise<any> => {
+  throw new Error('authorize mock not configured');
+});
+
+jest.unstable_mockModule('./OAuth2OidcOps', () => ({
+  getTokenInfo,
+  accessToken,
+  authorize,
+}));
+
 // Cloud never runs a session-capture step, so resolveBrowserLoginSubject()
 // always falls through to resolveIdentity() here — mocked so that path
 // stays hermetic instead of attempting a real network call against this
@@ -97,6 +120,7 @@ describe('Cloud browser login (getTokensInteractive)', () => {
 
   beforeEach(() => {
     runInteractiveAuthorizationCodeFlow.mockReset();
+    getTokenInfo.mockReset();
   });
 
   test('1: Default (built-in client) forces the one confirmed-working redirect: "http://localhost:3000"', async () => {
@@ -310,5 +334,57 @@ describe('Cloud browser login (getTokensInteractive)', () => {
     });
 
     expect(tokens.subject).toBe('63dce142-2ade-4311-a43f-165d8705c236');
+  });
+
+  test('10: A successful opportunistic getTokenInfo() call enriches the cached bearer token with sub/tokenName/realm/auditTrackingId', async () => {
+    const state = freshState();
+    runInteractiveAuthorizationCodeFlow.mockResolvedValueOnce({
+      access_token: fakeAccessTokenJwt('jdoe'),
+      token_type: 'Bearer',
+      scope: 'fr:am:* fr:idm:*',
+      expires_in: 1800,
+      expires: Date.now() + 1_800_000,
+    });
+    getTokenInfo.mockResolvedValueOnce({
+      sub: 'jdoe',
+      tokenName: 'Access Token',
+      realm: '/',
+      auditTrackingId: 'abc-123',
+    });
+
+    const tokens = await getTokensInteractive({
+      deploymentType: 'cloud',
+      promptHandler,
+      state,
+    });
+
+    expect(getTokenInfo).toHaveBeenCalledTimes(1);
+    expect(tokens.bearerToken.tokenInfo).toEqual({
+      sub: 'jdoe',
+      tokenName: 'Access Token',
+      realm: '/',
+      auditTrackingId: 'abc-123',
+    });
+  });
+
+  test('11: A failed opportunistic getTokenInfo() call does not break the login — the token is cached without tokenInfo', async () => {
+    const state = freshState();
+    runInteractiveAuthorizationCodeFlow.mockResolvedValueOnce({
+      access_token: fakeAccessTokenJwt('jdoe'),
+      token_type: 'Bearer',
+      scope: 'fr:am:* fr:idm:*',
+      expires_in: 1800,
+      expires: Date.now() + 1_800_000,
+    });
+    getTokenInfo.mockRejectedValueOnce(new Error('tokeninfo endpoint unreachable'));
+
+    const tokens = await getTokensInteractive({
+      deploymentType: 'cloud',
+      promptHandler,
+      state,
+    });
+
+    expect(tokens.subject).toBe('jdoe');
+    expect(tokens.bearerToken.tokenInfo).toBeUndefined();
   });
 });

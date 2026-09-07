@@ -19,6 +19,17 @@ import { FrodoError } from './FrodoError';
 export type AccessTokenMetaType = AccessTokenResponseType & {
   expires: number;
   from_cache?: boolean;
+  // Captured via a one-time getTokenInfo() call at fresh interactive-login
+  // time only (see AuthenticateOps.ts's getTokensInteractive() cloud case)
+  // — never on a cache-hit resume or token refresh, so this never adds a
+  // network call to either of those paths. Optional: only present for
+  // cloud browser-login entries where the opportunistic call succeeded.
+  tokenInfo?: {
+    sub?: string;
+    tokenName?: string;
+    realm?: string;
+    auditTrackingId?: string;
+  };
 };
 
 export type OAuth2Oidc = {

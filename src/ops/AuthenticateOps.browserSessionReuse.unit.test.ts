@@ -46,6 +46,29 @@ jest.unstable_mockModule('./SessionOps', () => ({
   getSessionInfo,
 }));
 
+// Cloud's opportunistic getTokenInfo() enrichment (only called from
+// getTokensInteractive()'s fresh-login case, never from a cache-hit
+// resume) — mocked here purely for test hermeticity/speed; test 1 below
+// also asserts on the call count as a regression guard for that "never on
+// resume" guarantee. `accessToken`/`authorize` aren't exercised by this
+// test file's own code path either, but AuthenticateOps.ts imports them at
+// module load time, so the mock must still provide them.
+const getTokenInfo = jest.fn(async (_args?: any): Promise<any> => {
+  throw new Error('getTokenInfo mock not configured');
+});
+const accessToken = jest.fn(async (_args?: any): Promise<any> => {
+  throw new Error('accessToken mock not configured');
+});
+const authorize = jest.fn(async (_args?: any): Promise<any> => {
+  throw new Error('authorize mock not configured');
+});
+
+jest.unstable_mockModule('./OAuth2OidcOps', () => ({
+  getTokenInfo,
+  accessToken,
+  authorize,
+}));
+
 const getAuthenticationSettings = jest.fn(async (_args?: any): Promise<any> => ({}));
 
 jest.unstable_mockModule('../api/AuthenticationSettingsApi', () => ({
@@ -130,6 +153,7 @@ describe('getTokens() reuses a cached browser-login session instead of a fresh i
   beforeEach(() => {
     runInteractiveAuthorizationCodeFlow.mockReset();
     getSessionInfo.mockReset();
+    getTokenInfo.mockReset();
   });
 
   test('1: cloud — a second, independent getTokens() call reuses the cached session with no interactive round trip', async () => {
@@ -150,6 +174,8 @@ describe('getTokens() reuses a cached browser-login session instead of a fresh i
     });
     expect(first.subject).toBe('jdoe');
     expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
+    // The fresh login above opportunistically called getTokenInfo() once.
+    expect(getTokenInfo).toHaveBeenCalledTimes(1);
 
     const second = await getTokens({
       state: freshState({ cachePath, deploymentType: 'cloud' }),
@@ -158,6 +184,10 @@ describe('getTokens() reuses a cached browser-login session instead of a fresh i
     });
     expect(second.subject).toBe('jdoe');
     expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
+    // Regression guard: a cache-hit resume must never call getTokenInfo()
+    // again — that would add a surprise network call to what's supposed to
+    // stay a cheap, purely local cache read.
+    expect(getTokenInfo).toHaveBeenCalledTimes(1);
   });
 
   test('2: forgeops (session-capture path) — a second call reuses the cached AM session, re-validating it via getSessionInfo but never re-running the interactive flow', async () => {
