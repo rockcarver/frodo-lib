@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -776,8 +777,25 @@ export async function readSaBearerToken({
  * default path). Only used for deriving a browser-login cache-entry key —
  * every other token type derives its key from the credential itself
  * (password/service-account JWK), which browser login has none of.
+ *
+ * Must create the file first (with a fresh random key) when it doesn't
+ * exist yet, rather than returning undefined on a miss: this content gets
+ * wrapped with uuidv5() by generateSessionKey() below. If this returned
+ * undefined for a first-ever save, generateSessionKey() would hand
+ * DataProtection a falsy sessionKey — and DataProtection's own internal
+ * fallback (used whenever sessionKey is falsy) auto-generates the same file
+ * itself, but uses its *raw* content directly as the encryption key, with
+ * no uuidv5 wrapping. That first entry would then be encrypted with a
+ * different effective key than every later call computes (uuidv5(content),
+ * once the file exists) — an unrecoverable mismatch, confirmed live: a
+ * freshly seeded browserUserBearer entry decrypted fine within the same
+ * process, but failed with "Unsupported state or unable to authenticate
+ * data" when read back from a separate process after the file had been
+ * created by that same first save. Creating the file here, before
+ * generateSessionKey() wraps it, keeps the derivation identical on every
+ * call, first or not.
  */
-function readMasterKeyContent(state: State): string | undefined {
+function readMasterKeyContent(state: State): string {
   if (process.env[Constants.FRODO_MASTER_KEY_KEY]) {
     return process.env[Constants.FRODO_MASTER_KEY_KEY];
   }
@@ -786,7 +804,8 @@ function readMasterKeyContent(state: State): string | undefined {
     process.env[Constants.FRODO_MASTER_KEY_PATH_KEY] ||
     path.join(getFrodoHome(), 'masterkey.key');
   if (!fs.existsSync(masterKeyPath)) {
-    return undefined;
+    ensureDirectoryForFile(masterKeyPath);
+    fs.writeFileSync(masterKeyPath, crypto.randomBytes(32).toString('base64'));
   }
   return fs.readFileSync(masterKeyPath, 'utf8');
 }
@@ -813,13 +832,10 @@ function generateSessionKey(tokenType: tokenType, state: State) {
       // tryReuseCachedBrowserSession(), the first real cross-process reader
       // of this token type). The master key already protects every other
       // secret in this same cache file, so this isn't a meaningfully weaker
-      // guarantee. Callers must still treat a `null` return (no master key
-      // resolvable at all) as "do not cache this".
-      const masterKeyContent = readMasterKeyContent(state);
-      if (!masterKeyContent) {
-        return null;
-      }
-      return uuidv5(masterKeyContent, UUIDV5_NAMESPACE);
+      // guarantee. readMasterKeyContent() creates the file on first use if
+      // missing — see its own comment for why this must never fall back to
+      // a null/falsy sessionKey here.
+      return uuidv5(readMasterKeyContent(state), UUIDV5_NAMESPACE);
     }
     default:
       return null;

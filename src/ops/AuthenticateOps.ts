@@ -2315,6 +2315,19 @@ export async function getTokensInteractive({
     if (!state.getHost()) {
       throw new FrodoError(`No host specified`);
     }
+
+    // Resolve an alias/unique-substring host (e.g. `frodo login myhost
+    // --browser`) to its full URL the same way getTokens()'s implicit path
+    // already does — but scoped to the host only. Unlike getTokens(),
+    // getTokensInteractive() is deliberately the "always do a real
+    // interactive login, ignore what's cached/configured" entry point, so
+    // this must not also adopt the profile's other saved fields (deployment
+    // type, credential type, etc.) the way getTokens() does.
+    if (!isValidUrl(state.getHost())) {
+      const conn = await getConnectionProfile({ state });
+      state.setHost(conn.tenant);
+    }
+
     const resolvedDeploymentType = deploymentType || state.getDeploymentType();
     if (!resolvedDeploymentType) {
       throw new FrodoError(

@@ -6,11 +6,13 @@
  * Regression coverage for the browser-login cache-entry key derivation
  * added in Phase E and relaxed in the Phase F session-lifecycle addendum:
  * since there is no password/service-account JWK to derive an encryption
- * key from for a browser-login session, the key prefers binding the master
- * key to the refresh token, but falls back to the master key alone when no
- * refresh token is available (e.g. cloud's AICMCPClient/AICMCPExchangeClient,
- * which never return one) — real, isolated file I/O against a scratch
- * directory (not mocked), matching this repo's existing
+ * key from for a browser-login session, the key binds to the master key
+ * alone (uuidv5-wrapped) — never to the refresh token, even when one is
+ * present, since a cache *lookup* has to work before any token (refresh or
+ * otherwise) is known in a brand-new process. Test 6 covers a real
+ * follow-on bug this same design surfaced: the very first save against a
+ * not-yet-existing master key file — real, isolated file I/O against a
+ * scratch directory (not mocked), matching this repo's existing
  * `BaseApi.connectionReuse.test.ts` convention for tests that need genuine
  * file-system behavior.
  */
@@ -277,5 +279,54 @@ describe('TokenCacheOps browser-login cache-entry key derivation', () => {
     expect(saved).toBe(true);
     const read = await readToken({ tokenType: 'browserUserSession', state });
     expect(read).toEqual(userSessionMeta);
+  });
+
+  test('6: The very first save against a not-yet-existing master key file still round-trips (regression: DataProtection\'s own auto-generate fallback used raw file content as the key, while every later call wraps it with uuidv5 — a mismatch that broke exactly this first-save case)', async () => {
+    // Deliberately NOT reusing freshState()'s shared, beforeAll-pre-written
+    // TMP_DIR/masterkey.key — this test needs a master key path that does
+    // not exist yet when the first save runs, which is exactly the
+    // scenario that was broken. Two separate State instances, mirroring
+    // test 4's real cross-process shape.
+    const isolatedDir = resolve(
+      TMP_DIR,
+      `first-save-race-${Math.random()}`
+    );
+    const masterKeyPath = resolve(isolatedDir, 'masterkey.key');
+    const cachePath = resolve(isolatedDir, 'TokenCache.json');
+    expect(fs.existsSync(masterKeyPath)).toBe(false);
+
+    const writerState = StateImpl({
+      host: 'https://openam-first-save-race.forgeblocks.com/am',
+    });
+    writerState.setTokenCachePath(cachePath);
+    writerState.setMasterKeyPath(masterKeyPath);
+    writerState.setBearerTokenMeta({
+      access_token: fakeAccessTokenJwtWithSub('user-first-save'),
+      token_type: 'Bearer',
+      scope: 'fr:idm:*',
+      expires_in: 1800,
+      expires: Date.now() + 1_800_000,
+    } as any);
+    const saved = await saveToken({
+      tokenType: 'browserUserBearer' as tokenType,
+      token: writerState.getBearerTokenMeta(),
+      state: writerState,
+    });
+    expect(saved).toBe(true);
+    expect(fs.existsSync(masterKeyPath)).toBe(true);
+
+    const readerState = StateImpl({
+      host: 'https://openam-first-save-race.forgeblocks.com/am',
+    });
+    readerState.setTokenCachePath(cachePath);
+    readerState.setMasterKeyPath(masterKeyPath);
+    const read = await readToken({
+      tokenType: 'browserUserBearer',
+      state: readerState,
+    });
+    expect((read as any).access_token).toBe(
+      fakeAccessTokenJwtWithSub('user-first-save')
+    );
+    expect((read as any).scope).toBe('fr:idm:*');
   });
 });
