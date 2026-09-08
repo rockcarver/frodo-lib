@@ -29,6 +29,48 @@ import { State } from '../shared/State';
 import { readUser } from './UserOps';
 
 /**
+ * The subset of `frodo.user.readUser()`'s result relevant to privilege
+ * classification and display — shared by `resolveBuiltInCallerTrustTier()`
+ * below and by the login-time role/group capture in `AuthenticateOps.ts`
+ * (`session describe`'s "besides the scopes" display), so both consult the
+ * exact same field names/shapes.
+ */
+export type CallerPrivilegeGroups = {
+  roles?: string[];
+  isMemberOf?: string[];
+};
+
+/**
+ * Looks up the given identity's own AM-native privilege markers
+ * (`frodo.user.readUser()`, root-realm scoped regardless of the caller's
+ * currently-active realm — see `resolveBuiltInCallerTrustTier()`'s own
+ * remarks). Never throws: returns `undefined` for a missing username or any
+ * lookup failure, so a caller can treat "no privilege info available" and
+ * "genuinely no privilege" identically without special-casing errors.
+ */
+export async function lookupCallerPrivilegeGroups({
+  username,
+  state,
+}: {
+  username: string | undefined;
+  state: State;
+}): Promise<CallerPrivilegeGroups | undefined> {
+  if (!username) {
+    return undefined;
+  }
+  const previousRealm = state.getRealm();
+  try {
+    state.setRealm('/');
+    const user = await readUser({ userId: username, state });
+    return { roles: user.roles, isMemberOf: user.isMemberOf };
+  } catch {
+    return undefined;
+  } finally {
+    state.setRealm(previousRealm);
+  }
+}
+
+/**
  * A customer- (or future built-in-) supplied privilege resolver, plugged in
  * via `state.setCallerTrustTierResolver()`. Only ever consulted for a real
  * interactive (browser) login session — every other auth mode already
@@ -114,26 +156,20 @@ async function resolveBuiltInCallerTrustTier({
 }: {
   state: State;
 }): Promise<'full-trust' | 'delegated'> {
-  const username = state.getUsername();
-  if (!username) {
+  const groups = await lookupCallerPrivilegeGroups({
+    username: state.getUsername(),
+    state,
+  });
+  if (!groups) {
     return 'delegated';
   }
-  const previousRealm = state.getRealm();
-  try {
-    state.setRealm('/');
-    const user = await readUser({ userId: username, state });
-    if (user.roles?.includes(FORGEOPS_CLASSIC_FULL_TRUST_ROLE)) {
-      return 'full-trust';
-    }
-    if (hasCloudFullTrustGroup(user.isMemberOf)) {
-      return 'full-trust';
-    }
-    return 'delegated';
-  } catch {
-    return 'delegated';
-  } finally {
-    state.setRealm(previousRealm);
+  if (groups.roles?.includes(FORGEOPS_CLASSIC_FULL_TRUST_ROLE)) {
+    return 'full-trust';
   }
+  if (hasCloudFullTrustGroup(groups.isMemberOf)) {
+    return 'full-trust';
+  }
+  return 'delegated';
 }
 
 /**

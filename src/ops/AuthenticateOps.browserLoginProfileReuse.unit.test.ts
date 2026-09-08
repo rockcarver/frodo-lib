@@ -53,6 +53,16 @@ jest.unstable_mockModule('../api/ServerInfoApi', () => ({
   getServerVersionInfo,
 }));
 
+// lookupCallerPrivilegeGroups() (CallerTrustTierOps.ts) calls readUser() at
+// fresh-login time to capture the caller's admin role/group for `frodo
+// session describe` — mocked so that stays hermetic instead of attempting a
+// real network call against this test's fake host.
+const readUser = jest.fn(async (_args?: any): Promise<any> => ({}));
+
+jest.unstable_mockModule('./UserOps', () => ({
+  readUser,
+}));
+
 import fs from 'fs';
 import { resolve } from 'path';
 

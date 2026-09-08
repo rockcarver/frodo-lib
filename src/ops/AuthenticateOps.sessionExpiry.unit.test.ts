@@ -53,6 +53,17 @@ jest.unstable_mockModule('./SessionOps', () => ({
   getSessionInfo,
 }));
 
+// Not exercised by this test's code path (getUserSessionToken() isn't the
+// interactive browser-login flow lookupCallerPrivilegeGroups() is called
+// from), but AuthenticateOps.ts imports it (transitively, via
+// CallerTrustTierOps.ts) at module load time, so the mock must still
+// provide it.
+const readUser = jest.fn(async (_args?: any): Promise<any> => ({}));
+
+jest.unstable_mockModule('./UserOps', () => ({
+  readUser,
+}));
+
 const { getTokens } = await import('./AuthenticateOps');
 const { default: StateImpl } = await import('../shared/State');
 const Constants = (await import('../shared/Constants')).default;

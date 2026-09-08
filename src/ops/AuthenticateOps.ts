@@ -32,6 +32,7 @@ import {
   fillCallbacks,
   getCallbackValue,
 } from './CallbackOps';
+import { lookupCallerPrivilegeGroups } from './CallerTrustTierOps';
 import {
   readServiceAccountScopes,
   flattenScopes,
@@ -2593,6 +2594,21 @@ export async function getTokensInteractive({
     // (CallerTrustTierOps.ts) a uniform way to look up "who is the current
     // caller" via frodo.user.readUser() regardless of auth mode.
     state.setUsername(resolvedSubject);
+    // Opportunistic, fresh-login-only (never a resume or refresh — see
+    // AccessTokenMetaType's own comment): the same privilege lookup
+    // determineCallerTrustTier() uses, captured once here so `frodo session
+    // describe` can show the admin role/group alongside the granted scope
+    // without describe itself ever making a network call.
+    const privilegeGroups = await lookupCallerPrivilegeGroups({
+      username: resolvedSubject,
+      state,
+    });
+    if (privilegeGroups?.roles) {
+      token.roles = privilegeGroups.roles;
+    }
+    if (privilegeGroups?.isMemberOf) {
+      token.isMemberOf = privilegeGroups.isMemberOf;
+    }
     // Cacheable like any other AccessTokenMetaType, regardless of whether a
     // refresh token came back — see TokenCacheOps.ts's generateSessionKey(),
     // which falls back to a master-key-only cache-entry encryption key when

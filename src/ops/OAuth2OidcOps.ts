@@ -30,6 +30,15 @@ export type AccessTokenMetaType = AccessTokenResponseType & {
     realm?: string;
     auditTrackingId?: string;
   };
+  // Captured the same way and at the same time as tokenInfo above (fresh
+  // browser login only, never a resume or refresh) — the logged-in
+  // identity's own AM-native privilege markers, via
+  // CallerTrustTierOps.ts's lookupCallerPrivilegeGroups(). ForgeOps/classic
+  // populate `roles`, cloud populates `isMemberOf`; never both. Lets
+  // `frodo session describe` show the admin role alongside the granted
+  // scope — together, the full privilege picture a scope-only view misses.
+  roles?: string[];
+  isMemberOf?: string[];
 };
 
 export type OAuth2Oidc = {

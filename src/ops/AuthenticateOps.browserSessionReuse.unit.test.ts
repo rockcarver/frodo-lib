@@ -85,6 +85,15 @@ jest.unstable_mockModule('../api/ServerInfoApi', () => ({
   getServerVersionInfo,
 }));
 
+// lookupCallerPrivilegeGroups() (CallerTrustTierOps.ts) calls readUser() at
+// fresh-login time, the same "never on resume" shape as getTokenInfo()
+// above — mocked here purely for test hermeticity/speed.
+const readUser = jest.fn(async (_args?: any): Promise<any> => ({}));
+
+jest.unstable_mockModule('./UserOps', () => ({
+  readUser,
+}));
+
 import fs from 'fs';
 import { resolve } from 'path';
 

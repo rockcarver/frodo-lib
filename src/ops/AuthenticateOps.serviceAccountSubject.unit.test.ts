@@ -73,6 +73,16 @@ jest.unstable_mockModule('./OAuth2OidcOps', () => ({
   getTokenInfo,
 }));
 
+// Not exercised by this test's code path (service accounts have no
+// role/group concept), but AuthenticateOps.ts imports it (transitively, via
+// CallerTrustTierOps.ts's lookupCallerPrivilegeGroups()) at module load
+// time, so the mock must still provide it.
+const readUser = jest.fn(async (_args?: any): Promise<any> => ({}));
+
+jest.unstable_mockModule('./UserOps', () => ({
+  readUser,
+}));
+
 const { getSaBearerToken } = await import('./AuthenticateOps');
 const { getRecordedSubject } = await import('./TokenCacheOps');
 const { default: StateImpl } = await import('../shared/State');
