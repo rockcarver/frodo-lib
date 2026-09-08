@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [v4.8.1] - 2026-09-08
+
+### Fixed
+- Corrected the privilege classification logic to skip unnecessary classification when only one escalation candidate remains, preventing unexpected network calls and ensuring compatibility with Polly-replay e2e tests. (#641)
+
 ## [v4.8.0] - 2026-09-08
 
 ### Added
