@@ -177,6 +177,30 @@ export type State = {
   setBearerTokenMeta(token: AccessTokenMetaType): void;
   getBearerToken(): string;
   getBearerTokenMeta(): AccessTokenMetaType;
+  /**
+   * Which credential type is currently active for this session — set once,
+   * wherever `getTokens()`'s non-interactive branches (or a browser login)
+   * actually activate a credential. Used by `ops/PrivilegeEscalationOps.ts`
+   * to know where on the escalation ladder the current session sits.
+   */
+  setActiveCredentialSource(
+    source: 'user' | 'svcacct' | 'amster' | 'browser'
+  ): void;
+  getActiveCredentialSource(): 'user' | 'svcacct' | 'amster' | 'browser' | undefined;
+  /**
+   * Extension point letting `api/BaseApi.ts` trigger a credential-privilege
+   * escalation without importing `ops/AuthenticateOps.ts` directly (would be
+   * circular — `AuthenticateOps.ts` already depends on `BaseApi.ts`
+   * transitively). Installed once by `getTokens()` after the initial
+   * credential activates; called by `attachCredentialInterceptor()` when a
+   * pre-flight scope check fails. Resolves `true` if a higher-tier
+   * credential was found and activated (the failed request should be
+   * retried), `false` if there is nothing left to escalate to.
+   */
+  setPrivilegeEscalationHandler(
+    handler: (() => Promise<boolean>) | undefined
+  ): void;
+  getPrivilegeEscalationHandler(): (() => Promise<boolean>) | undefined;
   setPfBearerTokenMeta(token: AccessTokenMetaType): void;
   getPfBearerToken(): string;
   getPfBearerTokenMeta(): AccessTokenMetaType;
@@ -583,6 +607,20 @@ export default (initialState: StateInterface): State => {
     getBearerTokenMeta(): AccessTokenMetaType {
       return state.bearerToken;
     },
+    setActiveCredentialSource(
+      source: 'user' | 'svcacct' | 'amster' | 'browser'
+    ) {
+      state.activeCredentialSource = source;
+    },
+    getActiveCredentialSource() {
+      return state.activeCredentialSource;
+    },
+    setPrivilegeEscalationHandler(handler: (() => Promise<boolean>) | undefined) {
+      state.privilegeEscalationHandler = handler;
+    },
+    getPrivilegeEscalationHandler() {
+      return state.privilegeEscalationHandler;
+    },
     setPfBearerTokenMeta(token: AccessTokenMetaType) {
       state.pfBearerToken = token;
     },
@@ -870,6 +908,8 @@ export interface StateInterface {
   // browser-login settings
   authMode?: 'noninteractive' | 'interactive';
   defaultCredential?: 'user' | 'svcacct' | 'amster';
+  activeCredentialSource?: 'user' | 'svcacct' | 'amster' | 'browser';
+  privilegeEscalationHandler?: () => Promise<boolean>;
   tokenRefreshHandler?: TokenRefreshHandler;
   amCredentialProvider?: AmCredentialProvider;
   browserLoginClientId?: string;

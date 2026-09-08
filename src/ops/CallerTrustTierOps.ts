@@ -98,12 +98,17 @@ const FORGEOPS_CLASSIC_FULL_TRUST_ROLE = 'ui-global-admin';
  * carry full tenant privilege (item 21's privilege-hierarchy tiers 1–2):
  * `super-admins` ("manages everything... with zero restrictions") and
  * `tenant-admins` ("everything super admin can do except manage other
- * admin users and manage admin federation"). Deliberately an allow-list,
- * not a deny-list — any group not named here (including the two tracked
- * immediately below) fails toward `'delegated'` by default, so a future,
- * as-yet-unseen AIC admin-group name can't accidentally grant full trust.
+ * admin users and manage admin federation"). Named individually (not just
+ * a combined list) since `ops/PrivilegeEscalationOps.ts` needs to rank
+ * them relative to each other, not just know both are full-trust.
+ * Together, deliberately an allow-list, not a deny-list — any group not
+ * named here (including the two tracked immediately below) fails toward
+ * `'delegated'` by default, so a future, as-yet-unseen AIC admin-group
+ * name can't accidentally grant full trust.
  */
-const CLOUD_FULL_TRUST_GROUPS = ['super-admins', 'tenant-admins'];
+export const CLOUD_SUPER_ADMIN_GROUP = 'super-admins';
+export const CLOUD_TENANT_ADMIN_GROUP = 'tenant-admins';
+const CLOUD_FULL_TRUST_GROUPS = [CLOUD_SUPER_ADMIN_GROUP, CLOUD_TENANT_ADMIN_GROUP];
 
 /**
  * Cloud groups confirmed live this session to exist and be genuinely
@@ -113,15 +118,16 @@ const CLOUD_FULL_TRUST_GROUPS = ['super-admins', 'tenant-admins'];
  * and excluded, not simply never checked. Not consulted by
  * `hasCloudFullTrustGroup()` — inclusion here has no effect on the actual
  * `'delegated'` outcome, which already applies to any group not named in
- * `CLOUD_FULL_TRUST_GROUPS` above. `tenant-auditor`: read-only.
- * `brand-admin`: the narrowest tier, hosted pages/themes only. Both are
- * singular, unlike the two full-trust groups above — AIC's own
- * group-naming isn't uniformly pluralized, confirmed by directly
- * inspecting a live identity holding both simultaneously (`isMemberOf` is
- * additive, not a single value).
+ * `CLOUD_FULL_TRUST_GROUPS` above; also reused by
+ * `ops/PrivilegeEscalationOps.ts` to classify these two tiers for the
+ * escalation ladder. `tenant-auditor`: read-only. `brand-admin`: the
+ * narrowest tier, hosted pages/themes only. Both are singular, unlike the
+ * two full-trust groups above — AIC's own group-naming isn't uniformly
+ * pluralized, confirmed by directly inspecting a live identity holding
+ * both simultaneously (`isMemberOf` is additive, not a single value).
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const CLOUD_KNOWN_NON_FULL_TRUST_GROUPS = ['tenant-auditor', 'brand-admin'];
+export const CLOUD_TENANT_AUDITOR_GROUP = 'tenant-auditor';
+export const CLOUD_THEME_ADMIN_GROUP = 'brand-admin';
 
 /**
  * Checks whether a cloud `isMemberOf` DN list names one of

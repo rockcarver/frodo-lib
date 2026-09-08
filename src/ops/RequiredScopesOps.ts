@@ -3,6 +3,18 @@ import { State } from '../shared/State';
 import { FrodoError } from './FrodoError';
 
 /**
+ * Thrown by `assertHasRequiredScope()`/`resolveAvailableScope()` below —
+ * both pre-flight checks reachable only through `api/BaseApi.ts`'s
+ * `attachCredentialInterceptor()`, which distinguishes this from any other
+ * failure to decide whether escalating to a higher-tier credential (see
+ * `ops/PrivilegeEscalationOps.ts`) and retrying is worth attempting at all.
+ * A plain `FrodoError` here would be indistinguishable from an unrelated
+ * failure (a config error, a network error surfacing through the same
+ * call path) that retrying with a different credential can't fix.
+ */
+export class InsufficientScopeError extends FrodoError {}
+
+/**
  * Resolves the scope string to actually request for a module's declared
  * required scopes, given the current session's auth mode.
  *
@@ -39,7 +51,7 @@ export function resolveAvailableScope({
   );
 
   if (unavailable.length > 0) {
-    throw new FrodoError(
+    throw new InsufficientScopeError(
       `This operation requires scope(s) [${unavailable.join(', ')}], which cloud browser-login mode cannot obtain. AICMCPExchangeClient (the client browser-mode exchanges AM-domain tokens through) only allows: ${Constants.CLOUD_BROWSER_MODE_AVAILABLE_SCOPES.join(', ')}. Use a non-browser auth mode for this operation, or wait for a widened/dedicated exchange client.`
     );
   }
@@ -111,7 +123,7 @@ export function assertHasRequiredScope({
   );
 
   if (missing.length > 0) {
-    throw new FrodoError(
+    throw new InsufficientScopeError(
       `This operation requires scope(s) [${missing.join(', ')}], which the current session's token does not carry (granted: [${
         granted.join(', ') || 'none'
       }]). Re-authenticate with a credential granted the required scope to continue.`

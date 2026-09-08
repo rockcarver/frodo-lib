@@ -11,7 +11,10 @@ import { ProxyAgent, ProxyAgentOptions } from 'proxy-agent';
 
 import _curlirize from '../ext/axios-curlirize/curlirize';
 import { FrodoError } from '../ops/FrodoError';
-import { assertHasRequiredScope } from '../ops/RequiredScopesOps';
+import {
+  assertHasRequiredScope,
+  InsufficientScopeError,
+} from '../ops/RequiredScopesOps';
 import Constants from '../shared/Constants';
 import StateImpl, { AmCredentialOverride, State } from '../shared/State';
 import { getUserAgent } from '../shared/Version';
@@ -330,21 +333,108 @@ async function resolvePfBearerRequestCredential(
  * already merged into the instance's static headers at construction time)
  * set explicitly — an explicit override always wins over the derived token,
  * exactly as it did before this credential resolution moved to send time.
+ *
+ * @remarks
+ * Item 1+21's escalation ladder: when `resolve()` throws
+ * `InsufficientScopeError` (the current credential's granted scope isn't
+ * enough for this call — see `RequiredScopesOps.ts`), tries
+ * `state.getPrivilegeEscalationHandler()` (installed by `getTokens()`) to
+ * switch to the next-higher-tier available credential and re-resolve, one
+ * tier at a time, until either a resolve succeeds or there's nothing left
+ * to escalate to (at which point the original error is what surfaces — a
+ * clearer, more actionable message than a generic exhaustion notice). Any
+ * other thrown error (a config problem, a network issue) is not
+ * escalation-eligible and propagates immediately, unchanged.
  */
 function attachCredentialInterceptor(
   axiosInstance: AxiosInstance,
-  resolve: () => Promise<AmCredentialOverride | null>
+  resolve: () => Promise<AmCredentialOverride | null>,
+  state: State
 ) {
   axiosInstance.interceptors.request.use(async (config) => {
     if (config.headers.has('Authorization') || config.headers.has('Cookie')) {
       return config;
     }
-    const credential = await resolve();
+    let credential: AmCredentialOverride | null;
+    for (;;) {
+      try {
+        credential = await resolve();
+        break;
+      } catch (error) {
+        if (!(error instanceof InsufficientScopeError)) {
+          throw error;
+        }
+        const escalate = state.getPrivilegeEscalationHandler();
+        const escalated = escalate ? await escalate() : false;
+        if (!escalated) {
+          throw error;
+        }
+      }
+    }
     if (credential) {
       config.headers.set(credential.header, credential.value);
     }
     return config;
   });
+}
+
+/**
+ * Attaches a response interceptor that, on a live 403 from the server
+ * itself (as opposed to `attachCredentialInterceptor`'s pre-flight
+ * `InsufficientScopeError`), tries the same escalation ladder and retries
+ * the exact same request once escalated.
+ *
+ * @remarks
+ * Item 1+21's escalation ladder, second half: `assertHasRequiredScope()`
+ * only catches OAuth2-scope-based insufficiency, which doesn't exist for
+ * every restriction AIC enforces — a tenant-auditor or theme-admin
+ * identity's restrictions, for instance, are a backend authorization
+ * decision with no scope concept at all (see the
+ * `forgerock-identity-classification` design note), so the only signal
+ * available for those is a live 403 from AM/IDM itself.
+ *
+ * Deliberately scoped to GET requests only. A 403 on a well-behaved REST
+ * endpoint should mean the authorization check rejected the call before
+ * any handler logic ran — but that isn't independently verified for every
+ * one of the ~63 requiredScopes-declaring api-layer files, so a write
+ * (POST/PUT/PATCH/DELETE) that 403s is left to fail with its original
+ * error unchanged rather than assuming a blind retry is side-effect-free.
+ * GET requests have no such risk at all: retrying a read with a different
+ * credential can never cause an unwanted mutation.
+ *
+ * No separate retry-count guard is needed: `state
+ * .getPrivilegeEscalationHandler()`'s own `tried` bookkeeping (see
+ * `AuthenticateOps.ts`'s `buildPrivilegeEscalationHandler()`) already
+ * bounds this to at most one attempt per available credential tier, so it
+ * naturally terminates once every candidate has been tried.
+ */
+function attachEscalationResponseInterceptor(
+  axiosInstance: AxiosInstance,
+  state: State
+) {
+  axiosInstance.interceptors.response.use(
+    (response) => response,
+    async (error: AxiosError) => {
+      const config = error.config;
+      const status = error.response ? error.response.status : null;
+      const method = (config?.method ?? 'get').toLowerCase();
+      if (status === 403 && method === 'get' && config) {
+        const escalate = state.getPrivilegeEscalationHandler();
+        const escalated = escalate ? await escalate() : false;
+        if (escalated) {
+          // Cleared so attachCredentialInterceptor's own request
+          // interceptor (which skips resolution entirely when a credential
+          // header is already present) re-resolves against the
+          // newly-escalated credential instead of resending the same,
+          // still-insufficient one.
+          config.headers?.delete?.('Authorization');
+          config.headers?.delete?.('Cookie');
+          return axiosInstance(config);
+        }
+      }
+      return Promise.reject(error);
+    }
+  );
 }
 
 /**
@@ -458,9 +548,12 @@ export function generateAmApi({
   // cloud browser-login mode — a freshly RFC 8693-exchanged token) right
   // before this request is sent, not once at construction time. See
   // `resolveAmRequestCredential`'s remarks for why this matters.
-  attachCredentialInterceptor(request, () =>
-    resolveAmRequestCredential(state, requiredScopes)
+  attachCredentialInterceptor(
+    request,
+    () => resolveAmRequestCredential(state, requiredScopes),
+    state
   );
+  attachEscalationResponseInterceptor(request, state);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
@@ -651,9 +744,12 @@ export function generateIdmApi({
   // resolve the bearer token right before this request is sent, not once at
   // construction time — see `resolveAmRequestCredential`'s remarks (applies
   // equally here).
-  attachCredentialInterceptor(request, () =>
-    resolveBearerRequestCredential(state, requiredScopes)
+  attachCredentialInterceptor(
+    request,
+    () => resolveBearerRequestCredential(state, requiredScopes),
+    state
   );
+  attachEscalationResponseInterceptor(request, state);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
@@ -710,9 +806,12 @@ export function generateIdmSystemApi({
   // resolve the bearer token right before this request is sent, not once at
   // construction time — see `resolveAmRequestCredential`'s remarks (applies
   // equally here).
-  attachCredentialInterceptor(request, () =>
-    resolveBearerRequestCredential(state, requiredScopes)
+  attachCredentialInterceptor(
+    request,
+    () => resolveBearerRequestCredential(state, requiredScopes),
+    state
   );
+  attachEscalationResponseInterceptor(request, state);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
@@ -901,9 +1000,12 @@ export function generateEnvApi({
   // resolve the bearer token right before this request is sent, not once at
   // construction time — see `resolveAmRequestCredential`'s remarks (applies
   // equally here).
-  attachCredentialInterceptor(request, () =>
-    resolveBearerRequestCredential(state, requiredScopes)
+  attachCredentialInterceptor(
+    request,
+    () => resolveBearerRequestCredential(state, requiredScopes),
+    state
   );
+  attachEscalationResponseInterceptor(request, state);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
@@ -963,9 +1065,12 @@ export function generateGovernanceApi({
   // resolve the bearer token right before this request is sent, not once at
   // construction time — see `resolveAmRequestCredential`'s remarks (applies
   // equally here).
-  attachCredentialInterceptor(request, () =>
-    resolveBearerRequestCredential(state, requiredScopes)
+  attachCredentialInterceptor(
+    request,
+    () => resolveBearerRequestCredential(state, requiredScopes),
+    state
   );
+  attachEscalationResponseInterceptor(request, state);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {
@@ -1022,9 +1127,12 @@ export function generateWSFedApi({
   // resolve the PingFederate bearer token right before this request is
   // sent, not once at construction time — see `resolveAmRequestCredential`'s
   // remarks (applies equally here).
-  attachCredentialInterceptor(request, () =>
-    resolvePfBearerRequestCredential(state, requiredScopes)
+  attachCredentialInterceptor(
+    request,
+    () => resolvePfBearerRequestCredential(state, requiredScopes),
+    state
   );
+  attachEscalationResponseInterceptor(request, state);
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {

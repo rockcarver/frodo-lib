@@ -34,6 +34,12 @@ import {
 } from './CallbackOps';
 import { lookupCallerPrivilegeGroups } from './CallerTrustTierOps';
 import {
+  classifyCredentialTier,
+  type CredentialSource,
+  type EscalationCandidate,
+  pickNextEscalationCandidate,
+} from './PrivilegeEscalationOps';
+import {
   readServiceAccountScopes,
   flattenScopes,
 } from './cloud/EnvServiceAccountScopesOps';
@@ -1542,6 +1548,109 @@ async function authenticateUser(
   }
 }
 
+/**
+ * Builds the closure installed via `state.setPrivilegeEscalationHandler()`
+ * at the end of a successful `getTokens()` call — see item 1+21's
+ * escalation ladder. Only ever escalates to a credential that can complete
+ * an unattended (non-interactive) acquisition: browser login is never a
+ * target here (only ever available as the *already-active* credential,
+ * tracked via `tried` below — escalating "to" a fresh interactive login
+ * would mean popping a browser mid-command, exactly what an automation
+ * tool must never do). Lazy by design: does not classify every possible
+ * candidate up front — `classifyCredentialTier()` (a network call) only
+ * runs for a candidate actually being considered, so the common case where
+ * no escalation is ever needed costs nothing extra.
+ */
+function buildPrivilegeEscalationHandler({
+  usingConnectionProfile,
+  types,
+  callbackHandler,
+  state,
+}: {
+  usingConnectionProfile: boolean;
+  types: string[];
+  callbackHandler: CallbackHandler;
+  state: State;
+}): () => Promise<boolean> {
+  const tried = new Set<CredentialSource>();
+  const initial = state.getActiveCredentialSource();
+  // Amster (classic-only) is never a candidate on this cloud-only ladder —
+  // assertHasRequiredScope()/resolveAvailableScope() are already no-ops for
+  // classic, so this handler is never even called in that case, but the
+  // type guard here keeps `tried`'s element type honest either way.
+  if (initial && initial !== 'amster') {
+    tried.add(initial);
+  }
+  return async function escalatePrivilege(): Promise<boolean> {
+    const available: EscalationCandidate[] = [];
+    if (
+      !tried.has('svcacct') &&
+      state.getServiceAccountId() &&
+      state.getServiceAccountJwk()
+    ) {
+      available.push({ source: 'svcacct', tier: 'service-account' });
+    }
+    if (!tried.has('user') && state.getUsername() && state.getPassword()) {
+      const tier = await classifyCredentialTier({
+        username: state.getUsername(),
+        state,
+      });
+      available.push({ source: 'user', tier });
+    }
+    const next = pickNextEscalationCandidate({ available, tried });
+    if (!next) {
+      return false;
+    }
+    tried.add(next.source);
+    try {
+      if (next.source === 'svcacct') {
+        const token = await getSaBearerToken({ state });
+        if (!token) {
+          return false;
+        }
+        state.setBearerTokenMeta(token);
+        state.setUseBearerTokenForAmApis(true);
+      } else {
+        const maxSteps = 3;
+        let steps = 0;
+        await authenticateUser(
+          usingConnectionProfile,
+          types,
+          async (currentStep: AuthenticateStep) => {
+            if (++steps > maxSteps) {
+              throw new FrodoError('Too many 2FA attempts');
+            }
+            const skip2FA = checkAndHandle2FA({
+              payload: currentStep,
+              otpCallbackHandler: callbackHandler,
+              state,
+            });
+            if (!skip2FA.supported) {
+              throw new Error(`Unsupported 2FA factor: ${skip2FA.factor}`);
+            }
+            return currentStep;
+          },
+          state
+        );
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      // Escalation itself failed (e.g. the "higher-tier" credential turned
+      // out to be misconfigured) — report as "nothing left to try" rather
+      // than throwing here, so the caller's original InsufficientScopeError
+      // (a clearer, more actionable message) is what actually surfaces.
+      return false;
+    }
+    state.setActiveCredentialSource(next.source);
+    printMessage({
+      message: `This operation needed more privilege than the current session had — escalated to a ${next.source === 'svcacct' ? 'configured service account' : 'configured username/password'} credential to continue.`,
+      type: 'warn',
+      state,
+    });
+    return true;
+  };
+}
+
 export type Tokens = {
   bearerToken?: AccessTokenMetaType;
   userSessionToken?: UserSessionMetaType;
@@ -1592,6 +1701,23 @@ export async function getTokens({
   // caller supplies a promptHandler. Every other existing getTokens() caller
   // is unaffected, since they never set/load this authMode.
   async function tryBrowserLogin(): Promise<Tokens | undefined> {
+    // Every successful exit below funnels through here so a browser-login
+    // session — exactly the scope-limited tiers 4/5 item 21's hierarchy
+    // cares about most — gets the same escalation ladder a non-interactive
+    // credential does, rather than only being installed at getTokens()'s
+    // own tail (which a successful browser login never reaches, since
+    // getTokens() returns immediately once tryBrowserLogin() resolves).
+    function withEscalation(tokens: Tokens): Tokens {
+      state.setPrivilegeEscalationHandler(
+        buildPrivilegeEscalationHandler({
+          usingConnectionProfile,
+          types,
+          callbackHandler,
+          state,
+        })
+      );
+      return tokens;
+    }
     if (state.getAuthMode() !== 'interactive') {
       // Not explicitly interactive — but an ad hoc `frodo login --browser`
       // (without --save) leaves a valid, cached session that nothing about
@@ -1609,7 +1735,8 @@ export async function getTokens({
       if (forceLoginAsUser || state.getDefaultCredential()) {
         return undefined;
       }
-      return tryReuseCachedBrowserSession({ state });
+      const reused = await tryReuseCachedBrowserSession({ state });
+      return reused ? withEscalation(reused) : undefined;
     }
     // Unlike every other auth mode's own cache check (see e.g.
     // getUserSessionToken()), getTokensInteractive() never checks the cache
@@ -1618,7 +1745,7 @@ export async function getTokens({
     // getTokens()'s implicit/silent path, used by every other command.
     const reused = await tryReuseCachedBrowserSession({ state });
     if (reused) {
-      return reused;
+      return withEscalation(reused);
     }
     if (!promptHandler) {
       throw new FrodoError(
@@ -1642,7 +1769,7 @@ export async function getTokens({
     if (usingConnectionProfile) {
       saveConnectionProfile({ host: state.getHost(), state });
     }
-    return tokens;
+    return withEscalation(tokens);
   }
   try {
     if (!state.getHost()) {
@@ -1783,6 +1910,7 @@ export async function getTokens({
           saveConnectionProfile({ host: state.getHost(), state });
         }
         state.setUseBearerTokenForAmApis(true);
+        state.setActiveCredentialSource('svcacct');
         await determineDeploymentTypeAndDefaultRealmAndVersion(state);
 
         // fail if deployment type not applicable
@@ -1857,6 +1985,7 @@ export async function getTokens({
         },
         state
       );
+      state.setActiveCredentialSource('amster');
     }
     // use user account to login?
     else if (state.getUsername() && state.getPassword()) {
@@ -1888,6 +2017,7 @@ export async function getTokens({
         },
         state
       );
+      state.setActiveCredentialSource('user');
     }
     // incomplete or no credentials
     else {
@@ -1928,6 +2058,23 @@ export async function getTokens({
               });
             }
           : undefined
+      );
+      // Item 1+21's escalation ladder: api/BaseApi.ts's credential
+      // interceptor calls this when a pre-flight scope check
+      // (InsufficientScopeError) fails on the currently-active credential,
+      // to try a higher-tier one instead of failing the whole command
+      // outright. Built here (not in PrivilegeEscalationOps.ts, which only
+      // owns the pure ranking logic) because acquiring a credential means
+      // calling getSaBearerToken()/authenticateUser() — both local to this
+      // file — and because it needs types/callbackHandler/
+      // usingConnectionProfile from this exact call's own closure.
+      state.setPrivilegeEscalationHandler(
+        buildPrivilegeEscalationHandler({
+          usingConnectionProfile,
+          types,
+          callbackHandler,
+          state,
+        })
       );
       const tokens: Tokens = {
         bearerToken: state.getBearerTokenMeta(),
@@ -2327,6 +2474,7 @@ async function tryReuseCachedBrowserSession({
     // determineCallerTrustTier() working uniformly on a cache-hit resume,
     // not just a fresh interactive login.
     state.setUsername(resolvedSubject);
+    state.setActiveCredentialSource('browser');
     return {
       bearerToken: state.getBearerTokenMeta(),
       userSessionToken: state.getUserSessionTokenMeta(),
@@ -2625,6 +2773,7 @@ export async function getTokensInteractive({
     // (CallerTrustTierOps.ts) a uniform way to look up "who is the current
     // caller" via frodo.user.readUser() regardless of auth mode.
     state.setUsername(resolvedSubject);
+    state.setActiveCredentialSource('browser');
     // Opportunistic, fresh-login-only (never a resume or refresh — see
     // AccessTokenMetaType's own comment): the same privilege lookup
     // determineCallerTrustTier() uses, captured once here so `frodo session
@@ -2662,6 +2811,29 @@ export async function getTokensInteractive({
       host: state.getHost(),
       realm: state.getRealm() ? state.getRealm() : 'root',
     };
+    // Same escalation ladder as getTokens()'s own tail (see
+    // tryBrowserLogin()'s withEscalation()) — installed here too since a
+    // direct getTokensInteractive() call (frodo-cli's `login.ts` for an
+    // explicit --browser/--device login, or the MCP server's per-request
+    // browser-mode resolution) never goes through getTokens() at all.
+    // usingConnectionProfile/callbackHandler have no equivalent at this
+    // entry point: escalating to a service account never needs either, and
+    // escalating to a plain user (needing 2FA mid-escalation, with no OTP
+    // handler available here) is treated as a hard "can't escalate that
+    // way here" rather than crashing — the original InsufficientScopeError
+    // still surfaces correctly in that case.
+    state.setPrivilegeEscalationHandler(
+      buildPrivilegeEscalationHandler({
+        usingConnectionProfile: false,
+        types: Constants.DEPLOYMENT_TYPES,
+        callbackHandler: () => {
+          throw new FrodoError(
+            `2FA is required to escalate to a username/password credential, but no 2FA handler is available from this entry point.`
+          );
+        },
+        state,
+      })
+    );
     debugMessage({
       message: `AuthenticateOps.getTokensInteractive: end with tokens`,
       state,
