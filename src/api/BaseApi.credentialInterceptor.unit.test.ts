@@ -526,6 +526,7 @@ describe('BaseApi credential interceptor — item 1+21 privilege escalation', ()
 describe('BaseApi credential interceptor — item 1+21 privilege escalation on a live 403', () => {
   test('15: a GET that 403s escalates and retries with the newly-escalated credential', async () => {
     const state = StateImpl({});
+    state.setActiveCredentialSource('browser');
     state.setBearerTokenMeta({
       access_token: 'limited-bearer',
       token_type: 'Bearer',
@@ -612,6 +613,7 @@ describe('BaseApi credential interceptor — item 1+21 privilege escalation on a
 
   test('18: a GET 403 where the escalation handler has nothing left to try propagates the original 403 unchanged', async () => {
     const state = StateImpl({});
+    state.setActiveCredentialSource('browser');
     state.setBearerTokenMeta({
       access_token: 'limited-bearer',
       token_type: 'Bearer',
@@ -662,6 +664,9 @@ describe('BaseApi credential interceptor — item 1+21 privilege escalation on a
 
   test('20: a GET 403 for a legacy service unavailable on this deployment type never triggers escalation, regardless of product-name wording — a real regression caught via CI', async () => {
     const state = StateImpl({});
+    // A browser-login session, so this exercises the message-based
+    // exclusion specifically, not the (also-true) starting-tier gate below.
+    state.setActiveCredentialSource('browser');
     state.setUseBearerTokenForAmApis(true);
     state.setBearerTokenMeta({
       access_token: 'sufficiently-privileged-bearer',
@@ -694,6 +699,7 @@ describe('BaseApi credential interceptor — item 1+21 privilege escalation on a
 
   test('21: the same exclusion matches the current "PingOne Advanced Identity Cloud" wording too', async () => {
     const state = StateImpl({});
+    state.setActiveCredentialSource('browser');
     state.setUseBearerTokenForAmApis(true);
     state.setBearerTokenMeta({
       access_token: 'sufficiently-privileged-bearer',
@@ -725,8 +731,9 @@ describe('BaseApi credential interceptor — item 1+21 privilege escalation on a
     expect(escalationCalls).toBe(0);
   });
 
-  test('22: an ordinary 403 with unrelated message text still escalates as before — the exclusion is narrow', async () => {
+  test('22: an ordinary 403 with unrelated message text still escalates as before, for a browser-started session — the exclusion is narrow', async () => {
     const state = StateImpl({});
+    state.setActiveCredentialSource('browser');
     state.setBearerTokenMeta({
       access_token: 'limited-bearer',
       token_type: 'Bearer',
@@ -761,5 +768,59 @@ describe('BaseApi credential interceptor — item 1+21 privilege escalation on a
 
     expect(response.status).toBe(200);
     expect(escalationCalls).toBe(1);
+  });
+
+  test('23: a GET 403 on a non-browser-started session (service account) never triggers escalation, even for an ordinary/unmatched 403 message — the real regression caught via CI (idm export hitting a routine, already-tolerated per-entity "Access denied" 403)', async () => {
+    const state = StateImpl({});
+    state.setActiveCredentialSource('svcacct');
+    state.setBearerTokenMeta({
+      access_token: 'sufficiently-privileged-bearer',
+      token_type: 'Bearer',
+      scope: 'fr:idm:*',
+      expires_in: 3600,
+      expires: Date.now() + 60 * 60 * 1000,
+    } as any);
+    let escalationCalls = 0;
+    state.setPrivilegeEscalationHandler(async () => {
+      escalationCalls++;
+      return true;
+    });
+    const adapter = scriptedAdapter(() => ({
+      status: 403,
+      data: { message: 'Access denied' },
+    }));
+    const request = generateIdmApi({
+      state,
+      requiredScopes: [],
+      requestOverride: { adapter },
+    });
+
+    await expect(request.get('/whatever')).rejects.toThrow(/403/);
+    expect(escalationCalls).toBe(0);
+  });
+
+  test('24: a GET 403 with no active credential source recorded at all never triggers escalation (fails closed, same as any other non-browser source)', async () => {
+    const state = StateImpl({});
+    state.setBearerTokenMeta({
+      access_token: 'sufficiently-privileged-bearer',
+      token_type: 'Bearer',
+      scope: 'fr:idm:*',
+      expires_in: 3600,
+      expires: Date.now() + 60 * 60 * 1000,
+    } as any);
+    let escalationCalls = 0;
+    state.setPrivilegeEscalationHandler(async () => {
+      escalationCalls++;
+      return true;
+    });
+    const adapter = scriptedAdapter(() => ({ status: 403 }));
+    const request = generateIdmApi({
+      state,
+      requiredScopes: [],
+      requestOverride: { adapter },
+    });
+
+    await expect(request.get('/whatever')).rejects.toThrow(/403/);
+    expect(escalationCalls).toBe(0);
   });
 });

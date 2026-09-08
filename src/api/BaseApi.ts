@@ -424,18 +424,35 @@ function isDeploymentTypeUnavailableError(error: AxiosError): boolean {
  * GET requests have no such risk at all: retrying a read with a different
  * credential can never cause an unwanted mutation.
  *
- * Also excludes `isDeploymentTypeUnavailableError()` matches: a real
- * regression, caught via CI on the browser-login PR, where a fully-
- * privileged service account's routine "list all services" sweep hit AM's
- * standard 403 for a legacy service with no cloud equivalent
- * (`id-repositories`, `DataStoreService`), and escalation dutifully — but
- * pointlessly — tried a real re-authentication with the profile's plain
- * user/password before giving up and surfacing the original error anyway.
- * No credential, however privileged, can make a structurally-absent
- * endpoint appear, so attempting one is never useful, and in production
- * would mean every ordinary "sweep every legacy service" export triggers
- * a real, unnecessary login round trip (and, more importantly, exercises
- * a real credential against a real IdP repeatedly for no reason).
+ * Also restricted to sessions whose *active* credential source is
+ * `'browser'` — i.e. only a scope-limited super/tenant-admin browser
+ * login, tenant-auditor, or theme-admin session (the tiers this mechanism
+ * exists for in the first place — see the class doc above) is ever
+ * eligible for a live-403-triggered escalation attempt. A service account
+ * or plain user is already tier 3 or higher on the documented privilege
+ * hierarchy; the only things they can't do that a more privileged
+ * credential could (managing other admin users, managing service
+ * accounts themselves) are already scope-gated and so already caught,
+ * more reliably, by `attachCredentialInterceptor`'s *pre-flight*
+ * `InsufficientScopeError` check above — which this restriction does not
+ * touch. Everything else a fully-privileged svcacct/user 403s on during
+ * an ordinary bulk sweep (`config export --all`, `idm export -a`, etc.)
+ * has turned out, twice now via real CI failures on the browser-login PR,
+ * to be a condition the calling ops code already tolerates as normal and
+ * expected — a legacy AM service with no cloud equivalent
+ * (`id-repositories`, `DataStoreService`), or one specific IDM config
+ * entity a tenant genuinely can't read (`fidc/federation-EntraID`,
+ * "Access denied") — not a privilege gap escalating could ever fix.
+ * Message-matching each newly-discovered "already tolerated" 403 pattern
+ * one at a time (see `isDeploymentTypeUnavailableError()` below, kept as
+ * a second, narrower layer of defense) doesn't scale: this class of
+ * lenient-per-item error handling exists throughout the ops layer, in
+ * more files than can be enumerated up front, so relying on message text
+ * alone would keep resurfacing the same failure with a new shape. Gating
+ * on the *starting* credential's tier instead fixes the whole class at
+ * once, for the overwhelmingly common case (an automation run using a
+ * service account or plain user, not a browser login) — without weakening
+ * the signal for the tiers it actually exists to help.
  *
  * No separate retry-count guard is needed: `state
  * .getPrivilegeEscalationHandler()`'s own `tried` bookkeeping (see
@@ -457,6 +474,7 @@ function attachEscalationResponseInterceptor(
         status === 403 &&
         method === 'get' &&
         config &&
+        state.getActiveCredentialSource() === 'browser' &&
         !isDeploymentTypeUnavailableError(error)
       ) {
         const escalate = state.getPrivilegeEscalationHandler();
