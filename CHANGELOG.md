@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [v4.8.2] - 2026-09-08
+
+### Fixed
+- Prevented escalation on 403 errors for services unavailable on the current deployment type, enhancing stability and preventing unnecessary operations. (#642)
+
 ## [v4.8.1] - 2026-09-08
 
 ### Fixed
