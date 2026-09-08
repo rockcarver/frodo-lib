@@ -326,4 +326,81 @@ describe('getTokens() reuses a cached browser-login session instead of a fresh i
     });
     expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
   });
+
+  test("6: item 21's fix — a later call with no explicit authMode/forceLoginAsUser/defaultCredential still reuses a merely-cached browser session (not just one saved with authMode: 'interactive')", async () => {
+    const cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
+    runInteractiveAuthorizationCodeFlow.mockResolvedValueOnce({
+      access_token: fakeAccessTokenJwt('jdoe'),
+      token_type: 'Bearer',
+      scope: 'fr:idm:*',
+      expires_in: 1800,
+      expires: Date.now() + 1_800_000,
+    });
+    await getTokens({
+      state: freshState({ cachePath, deploymentType: 'cloud' }),
+      autoRefresh: false,
+      promptHandler,
+    });
+    expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
+
+    // Simulates the exact item 21 repro: a later, unrelated implicit
+    // command whose own state never set authMode: 'interactive' at all
+    // (no --browser flag this time, and the ad hoc login was never
+    // --save'd, so no profile carries it either) — only the token cache
+    // file is shared.
+    const laterState = StateImpl({
+      host: 'https://openam-session-reuse.example.com/am',
+    });
+    laterState.setUseTokenCache(true);
+    laterState.setTokenCachePath(cachePath);
+    laterState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    laterState.setDeploymentType('cloud');
+
+    const later = await getTokens({
+      state: laterState,
+      autoRefresh: false,
+      promptHandler,
+    });
+    expect(later.subject).toBe('jdoe');
+    // Still never re-ran the actual interactive round trip.
+    expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
+  });
+
+  test('7: an explicit forceLoginAsUser on that later call skips the merely-cached browser session instead of silently reusing it', async () => {
+    const cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
+    runInteractiveAuthorizationCodeFlow.mockResolvedValueOnce({
+      access_token: fakeAccessTokenJwt('jdoe'),
+      token_type: 'Bearer',
+      scope: 'fr:idm:*',
+      expires_in: 1800,
+      expires: Date.now() + 1_800_000,
+    });
+    await getTokens({
+      state: freshState({ cachePath, deploymentType: 'cloud' }),
+      autoRefresh: false,
+      promptHandler,
+    });
+
+    const laterState = StateImpl({
+      host: 'https://openam-session-reuse.example.com/am',
+    });
+    laterState.setUseTokenCache(true);
+    laterState.setTokenCachePath(cachePath);
+    laterState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    laterState.setDeploymentType('cloud');
+
+    // No service account/Amster/plain-user credential is configured on this
+    // state at all, so if the explicit override is honored (skipping the
+    // cached browser session), this has nothing left to fall back to and
+    // must reject — proving it didn't silently reuse 'jdoe's cached
+    // session, which would have resolved successfully instead.
+    await expect(
+      getTokens({
+        state: laterState,
+        autoRefresh: false,
+        forceLoginAsUser: true,
+        promptHandler,
+      })
+    ).rejects.toThrow();
+  });
 });

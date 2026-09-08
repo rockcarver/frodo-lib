@@ -1593,7 +1593,23 @@ export async function getTokens({
   // is unaffected, since they never set/load this authMode.
   async function tryBrowserLogin(): Promise<Tokens | undefined> {
     if (state.getAuthMode() !== 'interactive') {
-      return undefined;
+      // Not explicitly interactive — but an ad hoc `frodo login --browser`
+      // (without --save) leaves a valid, cached session that nothing about
+      // this invocation or the resolved profile ever marked interactive,
+      // so it would otherwise be silently ignored in favor of whatever
+      // non-interactive credential happens to be configured, however
+      // recently that browser login actually happened. Only reused here
+      // when nothing was explicitly requested instead: forceLoginAsUser or
+      // an explicit defaultCredential preference always wins over merely
+      // ambient cache state. Cache-only — never attempts a fresh
+      // interactive login (that would mean popping a browser mid-script
+      // for a command that never asked for one), so this silently returns
+      // undefined and falls through to the credential-priority chain below
+      // exactly as before when no cached session exists either.
+      if (forceLoginAsUser || state.getDefaultCredential()) {
+        return undefined;
+      }
+      return tryReuseCachedBrowserSession({ state });
     }
     // Unlike every other auth mode's own cache check (see e.g.
     // getUserSessionToken()), getTokensInteractive() never checks the cache
@@ -1727,9 +1743,24 @@ export async function getTokens({
     // now that we have the full tenant URL we can lookup the cookie name
     state.setCookieName(await determineCookieName(state));
 
+    // An explicit defaultCredential preference skips past whatever it
+    // isn't — 'amster' or 'user' both mean "don't use the service account
+    // even though it's configured"; 'user' additionally means "don't use
+    // Amster either." 'svcacct' (or unset) changes nothing: service
+    // account already wins first in the fallback order below, same as
+    // always. forceLoginAsUser (the --force-login-as-user flag/env var)
+    // remains its own, simpler override, equivalent to defaultCredential:
+    // 'user' but without needing to persist anything to the profile.
+    const defaultCredential = state.getDefaultCredential();
+    const skipServiceAccount =
+      forceLoginAsUser ||
+      defaultCredential === 'user' ||
+      defaultCredential === 'amster';
+    const skipAmster = forceLoginAsUser || defaultCredential === 'user';
+
     // use service account to login?
     if (
-      !forceLoginAsUser &&
+      !skipServiceAccount &&
       (state.getDeploymentType() === Constants.CLOUD_DEPLOYMENT_TYPE_KEY ||
         state.getDeploymentType() === undefined) &&
       state.getServiceAccountId() &&
@@ -1773,7 +1804,7 @@ export async function getTokens({
     }
     // use Amster credentials to login?
     else if (
-      !forceLoginAsUser &&
+      !skipAmster &&
       (state.getDeploymentType() === Constants.CLASSIC_DEPLOYMENT_TYPE_KEY ||
         state.getDeploymentType() === undefined) &&
       state.getAmsterPrivateKey()

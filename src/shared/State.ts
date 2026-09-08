@@ -135,6 +135,21 @@ export type State = {
   getUseBearerTokenForAmApis(): boolean;
   setAuthMode(authMode: 'noninteractive' | 'interactive'): void;
   getAuthMode(): 'noninteractive' | 'interactive';
+  /**
+   * Explicit, persisted preference for which non-interactive credential
+   * type a profile with more than one configured should use — an
+   * `undefined` value means "no preference set," not "none of the above."
+   * Unlike authMode, never mirrors ambient session state on save; only
+   * ever written when the caller explicitly requests it (e.g. via
+   * `--default-credential`), so an unrelated save never silently
+   * overwrites a previously-configured preference. See
+   * `AuthenticateOps.ts`'s `tryBrowserLogin()`/`getTokens()` for how this
+   * is consulted.
+   */
+  setDefaultCredential(
+    defaultCredential: 'user' | 'svcacct' | 'amster'
+  ): void;
+  getDefaultCredential(): 'user' | 'svcacct' | 'amster' | undefined;
   setTokenRefreshHandler(handler: TokenRefreshHandler | undefined): void;
   getTokenRefreshHandler(): TokenRefreshHandler | undefined;
   setBrowserLoginClientId(clientId: string): void;
@@ -487,6 +502,12 @@ export default (initialState: StateInterface): State => {
           ? 'interactive'
           : 'noninteractive')
       );
+    },
+    setDefaultCredential(defaultCredential: 'user' | 'svcacct' | 'amster') {
+      state.defaultCredential = defaultCredential;
+    },
+    getDefaultCredential() {
+      return state.defaultCredential;
     },
     setTokenRefreshHandler(handler: TokenRefreshHandler | undefined) {
       // De-duplicated here, structurally, rather than trusting every caller
@@ -848,6 +869,7 @@ export interface StateInterface {
   amsterPrivateKey?: string;
   // browser-login settings
   authMode?: 'noninteractive' | 'interactive';
+  defaultCredential?: 'user' | 'svcacct' | 'amster';
   tokenRefreshHandler?: TokenRefreshHandler;
   amCredentialProvider?: AmCredentialProvider;
   browserLoginClientId?: string;
