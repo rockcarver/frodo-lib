@@ -659,4 +659,107 @@ describe('BaseApi credential interceptor — item 1+21 privilege escalation on a
     await expect(request.get('/whatever')).rejects.toThrow(/500/);
     expect(escalationCalls).toBe(0);
   });
+
+  test('20: a GET 403 for a legacy service unavailable on this deployment type never triggers escalation, regardless of product-name wording — a real regression caught via CI', async () => {
+    const state = StateImpl({});
+    state.setUseBearerTokenForAmApis(true);
+    state.setBearerTokenMeta({
+      access_token: 'sufficiently-privileged-bearer',
+      token_type: 'Bearer',
+      scope: 'fr:am:*',
+      expires_in: 3600,
+      expires: Date.now() + 60 * 60 * 1000,
+    } as any);
+    let escalationCalls = 0;
+    state.setPrivilegeEscalationHandler(async () => {
+      escalationCalls++;
+      return true;
+    });
+    const adapter = scriptedAdapter(() => ({
+      status: 403,
+      data: {
+        message: 'This operation is not available in ForgeRock Identity Cloud.',
+      },
+    }));
+    const request = generateAmApi({
+      resource: {},
+      state,
+      requiredScopes: [],
+      requestOverride: { adapter },
+    });
+
+    await expect(request.get('/whatever')).rejects.toThrow(/403/);
+    expect(escalationCalls).toBe(0);
+  });
+
+  test('21: the same exclusion matches the current "PingOne Advanced Identity Cloud" wording too', async () => {
+    const state = StateImpl({});
+    state.setUseBearerTokenForAmApis(true);
+    state.setBearerTokenMeta({
+      access_token: 'sufficiently-privileged-bearer',
+      token_type: 'Bearer',
+      scope: 'fr:am:*',
+      expires_in: 3600,
+      expires: Date.now() + 60 * 60 * 1000,
+    } as any);
+    let escalationCalls = 0;
+    state.setPrivilegeEscalationHandler(async () => {
+      escalationCalls++;
+      return true;
+    });
+    const adapter = scriptedAdapter(() => ({
+      status: 403,
+      data: {
+        message:
+          'This operation is not available in PingOne Advanced Identity Cloud.',
+      },
+    }));
+    const request = generateAmApi({
+      resource: {},
+      state,
+      requiredScopes: [],
+      requestOverride: { adapter },
+    });
+
+    await expect(request.get('/whatever')).rejects.toThrow(/403/);
+    expect(escalationCalls).toBe(0);
+  });
+
+  test('22: an ordinary 403 with unrelated message text still escalates as before — the exclusion is narrow', async () => {
+    const state = StateImpl({});
+    state.setBearerTokenMeta({
+      access_token: 'limited-bearer',
+      token_type: 'Bearer',
+      scope: 'fr:idm:read',
+      expires_in: 3600,
+      expires: Date.now() + 60 * 60 * 1000,
+    } as any);
+    let escalationCalls = 0;
+    state.setPrivilegeEscalationHandler(async () => {
+      escalationCalls++;
+      state.setBearerTokenMeta({
+        access_token: 'escalated-bearer',
+        token_type: 'Bearer',
+        scope: 'fr:idm:*',
+        expires_in: 3600,
+        expires: Date.now() + 60 * 60 * 1000,
+      } as any);
+      return true;
+    });
+    const adapter = scriptedAdapter((_config, attempt) => {
+      return attempt === 1
+        ? { status: 403, data: { message: 'Not authorized.' } }
+        : { status: 200 };
+    });
+    const request = generateIdmApi({
+      state,
+      requiredScopes: [],
+      requestOverride: { adapter },
+    });
+
+    const response = await request.get('/whatever');
+
+    expect(response.status).toBe(200);
+    expect(escalationCalls).toBe(1);
+  });
 });
