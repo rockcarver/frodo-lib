@@ -105,11 +105,14 @@ jest.unstable_mockModule('./BrowserAuthenticateOps', () => ({
   }),
 }));
 
-// lookupCallerPrivilegeGroups() (CallerTrustTierOps.ts) calls readUser() at
-// fresh-login time — not exercised by any non-interactive branch here, but
-// AuthenticateOps.ts imports it (transitively) at module load time.
+// lookupCallerPrivilegeGroups()/classifyCredentialTier() call readUser() —
+// tracked (not just stubbed) so tests can assert on whether escalation
+// actually needed the network call classifyCredentialTier() exists for, or
+// correctly skipped it (see test 6 below).
+const readUser = jest.fn(async (_args?: any): Promise<any> => ({}));
+
 jest.unstable_mockModule('./UserOps', () => ({
-  readUser: jest.fn(async () => ({})),
+  readUser,
 }));
 
 const { getTokens } = await import('./AuthenticateOps');
@@ -155,6 +158,7 @@ describe('AuthenticateOps defaultCredential resolution', () => {
     accessToken.mockClear();
     step.mockClear();
     getServerInfo.mockClear();
+    readUser.mockClear();
   });
 
   test('1: No defaultCredential set — service account still wins first, unchanged from today', async () => {
@@ -216,5 +220,35 @@ describe('AuthenticateOps defaultCredential resolution', () => {
     expect(state.getAuthenticationService()).not.toBe(
       Constants.DEFAULT_AMSTER_SERVICE
     );
+  });
+
+  test("6: escalating from the service account (the only other configured credential is 'user') never calls readUser() — nothing to rank against, so classifyCredentialTier() must be skipped", async () => {
+    // Regression test for a real bug caught via CI on the actual PR: the
+    // escalation handler used to call classifyCredentialTier() (a
+    // readUser() network call) unconditionally for the 'user' candidate,
+    // even when it was the *only* remaining one — needlessly, since there
+    // was nothing to compare its rank against. That extra, unanticipated
+    // call broke every Polly-replay e2e test whose command happened to
+    // trigger an escalation at all, since no pre-existing fixture
+    // recording could have anticipated it.
+    accessToken.mockResolvedValueOnce({
+      access_token: 'valid-sa-token',
+      token_type: 'Bearer',
+      scope: 'fr:am:*',
+      expires_in: 3600,
+      expires: Date.now() + 3_600_000,
+    });
+    const state = stateWithAllThreeCredentials();
+
+    const tokens = await getTokens({ state });
+
+    expect(tokens).toBeTruthy();
+    expect(state.getActiveCredentialSource()).toBe('svcacct');
+    const escalate = state.getPrivilegeEscalationHandler();
+    expect(escalate).toBeDefined();
+
+    await escalate();
+
+    expect(readUser).not.toHaveBeenCalled();
   });
 });

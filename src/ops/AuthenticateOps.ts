@@ -1556,10 +1556,23 @@ async function authenticateUser(
  * target here (only ever available as the *already-active* credential,
  * tracked via `tried` below — escalating "to" a fresh interactive login
  * would mean popping a browser mid-command, exactly what an automation
- * tool must never do). Lazy by design: does not classify every possible
- * candidate up front — `classifyCredentialTier()` (a network call) only
- * runs for a candidate actually being considered, so the common case where
- * no escalation is ever needed costs nothing extra.
+ * tool must never do).
+ *
+ * @remarks
+ * Lazy in a second, more important sense than just "no classification
+ * up front": `classifyCredentialTier()` (a `frodo.user.readUser()` network
+ * call) only runs when there are genuinely *two or more* untried,
+ * configured sources to rank against each other — the overwhelmingly
+ * common case (escalating from a service account to a plain user, or vice
+ * versa, with nothing else configured) has exactly one remaining
+ * candidate, which needs no ranking at all and is used directly. Confirmed
+ * live (a real regression, caught via CI on the browser-login PR): calling
+ * `classifyCredentialTier()` unconditionally broke every Polly-replay e2e
+ * test whose command happens to trigger an escalation, since it's a new
+ * network call no pre-existing fixture recording anticipated — most
+ * escalations never actually need the rank comparison this call exists
+ * for, so paying for it unconditionally was both wasteful and a real
+ * regression, not just a missed optimization.
  */
 function buildPrivilegeEscalationHandler({
   usingConnectionProfile,
@@ -1582,22 +1595,47 @@ function buildPrivilegeEscalationHandler({
     tried.add(initial);
   }
   return async function escalatePrivilege(): Promise<boolean> {
-    const available: EscalationCandidate[] = [];
+    const untriedSources: CredentialSource[] = [];
     if (
       !tried.has('svcacct') &&
       state.getServiceAccountId() &&
       state.getServiceAccountJwk()
     ) {
-      available.push({ source: 'svcacct', tier: 'service-account' });
+      untriedSources.push('svcacct');
     }
     if (!tried.has('user') && state.getUsername() && state.getPassword()) {
-      const tier = await classifyCredentialTier({
-        username: state.getUsername(),
-        state,
-      });
-      available.push({ source: 'user', tier });
+      untriedSources.push('user');
     }
-    const next = pickNextEscalationCandidate({ available, tried });
+    let next: EscalationCandidate | undefined;
+    if (untriedSources.length === 1) {
+      // Nothing to rank against — classifying this one candidate's tier
+      // couldn't change which one gets picked, so skip the network call
+      // entirely.
+      const [source] = untriedSources;
+      next = {
+        source,
+        tier: source === 'svcacct' ? 'service-account' : 'unknown',
+      };
+    } else if (untriedSources.length > 1) {
+      // Only realistic way to reach here: escalating away from a browser
+      // session that also has both a service account and a plain user
+      // configured on the same profile — a genuine choice, so it's worth
+      // the one classifyCredentialTier() call needed to rank them.
+      const available: EscalationCandidate[] = untriedSources.map(
+        (source) => ({ source, tier: 'service-account' as const })
+      );
+      const userIndex = untriedSources.indexOf('user');
+      if (userIndex !== -1) {
+        available[userIndex] = {
+          source: 'user',
+          tier: await classifyCredentialTier({
+            username: state.getUsername(),
+            state,
+          }),
+        };
+      }
+      next = pickNextEscalationCandidate({ available, tried });
+    }
     if (!next) {
       return false;
     }
