@@ -2152,8 +2152,25 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     preferredDeploymentTypes: IDM_DEPLOYMENTS,
     identitySurface: 'managed',
     objectTypePatterns: ['*'],
+    // 'both': safe to expose to a delegated (non-admin) MCP caller, same as
+    // full-trust. Frodo itself never verifies a request only targets the
+    // caller's own managed-object record (the object id is a plain runtime
+    // parameter) — the real backstop is AM/IDM's own privilege model, the
+    // same one that already lets/denies every other frodo command's calls
+    // today. AIC's own admin UI already grants ordinary end-users
+    // self-service access to their own managed/user record this same way.
+    trustTier: 'both',
     notes:
       'Operates on IDM managed objects (openidm/managed/). Only available in cloud and forgeops deployments. Use these methods as the preferred way to manage realm-qualified identity objects (e.g. alpha_user).',
+  },
+  // idm.managed.schema.* would otherwise inherit 'both' from the prefix
+  // above (it's a nested sub-path), but schema operations create/alter the
+  // managed-object TYPE DEFINITION itself (e.g. adding a new attribute to
+  // every user in the realm) — a structural, tenant-wide config change, not
+  // a per-record self-service operation. Explicitly overridden back to the
+  // default full-trust.
+  'idm.managed.schema': {
+    trustTier: 'full-trust',
   },
 
   // ── IDM connector system objects ─────────────────────────────────────────────
@@ -3094,6 +3111,13 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     objectType: 'SessionInfo',
     mutating: false,
     riskClass: 'medium',
+    // Unlike info.getInfo (see its own notes below), this doesn't carry a
+    // raw bearer/session token in its response — just metadata about the
+    // caller's own already-established session (username, realm,
+    // expiration). A delegated caller reading their own session info is
+    // exactly the "who am I" self-service case its semanticAliases already
+    // anticipate. Safe as 'both'.
+    trustTier: 'both',
     // See info.getInfo's matching semanticAliases for why these exist: the
     // directory-record meaning of "identity" always won on sheer numbers
     // without a symmetric bonus for the caller's-own-session meaning.
@@ -3354,6 +3378,32 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       "The returned object can represent a partial success: the core AI agent object is created synchronously and its creation is the only fatal step, but identity creation and privilege/owner linking that follow are best-effort and never roll back or throw on failure. Check the returned object's _provisioningStatus.errors and _provisioningStatus.privileges[].errors to know whether those follow-up steps actually completed -- a response without a thrown error does not by itself mean everything succeeded.",
   },
+
+  // ── Local helper utilities ───────────────────────────────────────────────────
+  // Most of `utils.*` (and its `utils.jose`/`utils.json`/`utils.crypto`
+  // sub-domains, which inherit this) is pure, local computation that never
+  // calls AM/IDM at all — base64/JSON/URL helpers, script validation, JWT/JWK
+  // crypto. AM/IDM's own privilege model can't backstop these the way it does
+  // everything else marked 'both' (see idm.managed above), because there's no
+  // server call for it to reject — but there's also nothing sensitive to
+  // protect: no tenant data, no credentials, just local computation on
+  // whatever arguments the caller already supplied. Safe as 'both'.
+  utils: {
+    trustTier: 'both',
+  },
+  // The exceptions: these read/write files on whatever host actually runs
+  // the MCP server. That's a real risk with no relationship to AIC/AM
+  // privilege at all — arbitrary local file access for a delegated caller —
+  // so these explicitly override the prefix default back to 'full-trust'.
+  'utils.appendTextToFile': { trustTier: 'full-trust' },
+  'utils.findFilesByName': { trustTier: 'full-trust' },
+  'utils.getFilePath': { trustTier: 'full-trust' },
+  'utils.getWorkingDirectory': { trustTier: 'full-trust' },
+  'utils.readFiles': { trustTier: 'full-trust' },
+  'utils.readJsonFile': { trustTier: 'full-trust' },
+  'utils.saveJsonToFile': { trustTier: 'full-trust' },
+  'utils.saveTextToFile': { trustTier: 'full-trust' },
+  'utils.saveToFile': { trustTier: 'full-trust' },
 };
 
 /**
