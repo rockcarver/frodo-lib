@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [v4.8.3] - 2026-09-08
+
+### Fixed
+- Restricted live-403 escalation to browser-started sessions only, preventing unnecessary privilege escalation attempts for service accounts or plain-user sessions. This change enhances stability by ensuring that only appropriate sessions trigger escalation processes. (#643)
+
 ## [v4.8.2] - 2026-09-08
 
 ### Fixed
