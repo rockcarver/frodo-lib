@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../utils/JsonUtils';
@@ -64,12 +65,13 @@ export async function getSocialIdentityProviderTypes({
     state.getHost(),
     getCurrentRealmPath(state)
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -91,12 +93,13 @@ export async function getSocialIdentityProvidersByType({
     getCurrentRealmPath(state),
     type
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -116,6 +119,7 @@ export async function getSocialIdentityProviders({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(
     urlString,
@@ -149,12 +153,13 @@ export async function getProviderByTypeAndId({
     type,
     id
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -186,13 +191,13 @@ export async function putProviderByTypeAndId({
     type,
     id
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
-    urlString,
-    cleanData,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).put(urlString, cleanData, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -220,6 +225,7 @@ export async function deleteProviderByTypeAndId({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

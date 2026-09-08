@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface, PagedResult } from '../ApiTypes';
@@ -90,6 +91,7 @@ export async function getSecrets({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -116,6 +118,7 @@ export async function getSecret({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -160,6 +163,7 @@ export async function putSecret({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVUpdateScope],
     state,
   }).put(urlString, secretData, {
     withCredentials: true,
@@ -189,6 +193,7 @@ export async function setSecretDescription({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVUpdateScope],
     state,
   }).post(urlString, { description }, { withCredentials: true });
   return data;
@@ -213,6 +218,7 @@ export async function deleteSecret({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVUpdateScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -239,6 +245,7 @@ export async function getSecretVersions({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -268,6 +275,7 @@ export async function createNewVersionOfSecret({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVUpdateScope],
     state,
   }).post(urlString, { valueBase64: value }, { withCredentials: true });
   return data;
@@ -296,6 +304,7 @@ export async function getVersionOfSecret({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -329,6 +338,7 @@ export async function setStatusOfVersionOfSecret({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVUpdateScope],
     state,
   }).post(urlString, { status }, { withCredentials: true });
   return data;
@@ -357,6 +367,7 @@ export async function deleteVersionOfSecret({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.ESVUpdateScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

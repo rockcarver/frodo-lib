@@ -101,13 +101,24 @@ export type ApiFactory = {
   ): AxiosInstance;
 };
 
+// `requiredScopes: []` throughout this factory, not a guessed real scope:
+// this is a raw, generic escape hatch handing back a plain axios instance
+// for direct use — Frodo has no idea what operation the caller intends to
+// perform with it, so there is no single correct scope to declare here. The
+// gate is a no-op for an empty array (nothing to check), which is the
+// honest answer for a passthrough with no fixed operation semantics.
 export default (state: State): ApiFactory => {
   return {
     generateAmApi(
       resource: ResourceConfig,
       requestOverride?: AxiosRequestConfig
     ): AxiosInstance {
-      return generateAmApi({ resource, requestOverride, state });
+      return generateAmApi({
+        resource,
+        requestOverride,
+        requiredScopes: [],
+        state,
+      });
     },
     generateOauth2Api(
       resource: ResourceConfig,
@@ -122,7 +133,7 @@ export default (state: State): ApiFactory => {
       });
     },
     generateIdmApi(requestOverride?: AxiosRequestConfig): AxiosInstance {
-      return generateIdmApi({ requestOverride, state });
+      return generateIdmApi({ requestOverride, requiredScopes: [], state });
     },
     generateLogKeysApi(requestOverride?: AxiosRequestConfig): AxiosInstance {
       return generateLogKeysApi({ requestOverride, state });
@@ -134,13 +145,23 @@ export default (state: State): ApiFactory => {
       resource: ResourceConfig,
       requestOverride?: AxiosRequestConfig
     ): AxiosInstance {
-      return generateEnvApi({ resource, requestOverride, state });
+      return generateEnvApi({
+        resource,
+        requestOverride,
+        requiredScopes: [],
+        state,
+      });
     },
     generateGovernanceApi(
       resource: ResourceConfig,
       requestOverride?: AxiosRequestConfig
     ): AxiosInstance {
-      return generateGovernanceApi({ resource, requestOverride, state });
+      return generateGovernanceApi({
+        resource,
+        requestOverride,
+        requiredScopes: [],
+        state,
+      });
     },
     generateReleaseApi(
       baseUrl: string,

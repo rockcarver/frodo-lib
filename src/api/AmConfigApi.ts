@@ -1,3 +1,4 @@
+import Constants from '../shared/Constants';
 import { FrodoError } from '../ops/FrodoError';
 import { State } from '../shared/State';
 import { getRealmPathGlobal } from '../utils/ForgeRockUtils';
@@ -104,6 +105,7 @@ export async function getConfigEntity({
   try {
     const axios = generateAmApi({
       resource: getApiConfig(protocol ? protocol : DEFAULT_PROTOCOL, version),
+      requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
       state,
     });
     let data;
@@ -175,6 +177,7 @@ export async function putConfigEntity({
   try {
     const { data } = await generateAmApi({
       resource: getApiConfig(protocol ? protocol : DEFAULT_PROTOCOL, version),
+      requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
       state,
     }).put(urlString, entityData, {
       withCredentials: true,

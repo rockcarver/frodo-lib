@@ -1,6 +1,7 @@
 import util from 'util';
 
 import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateAmApi } from '../BaseApi';
@@ -25,11 +26,12 @@ export async function getFeatures({ state }: { state: State }): Promise<{
     envInfoURLTemplate,
     getHostOnlyUrl(state.getHost())
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }

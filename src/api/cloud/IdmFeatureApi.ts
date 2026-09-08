@@ -1,6 +1,7 @@
 import util from 'util';
 
 import { IdObjectSkeletonInterface } from '../../api/ApiTypes';
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getIdmBaseUrl } from '../../utils/ForgeRockUtils';
 import { generateIdmApi } from '../BaseApi';
@@ -37,10 +38,15 @@ export async function getIdmFeatures({
 }: {
   state: State;
 }): Promise<{ result: IdmFeatureInterface[] }> {
-  const urlString = util.format(idmFeatureListURLTemplate, getIdmBaseUrl(state));
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
-    urlString
+  const urlString = util.format(
+    idmFeatureListURLTemplate,
+    getIdmBaseUrl(state)
   );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).get(urlString);
   return data;
 }
 
@@ -66,9 +72,11 @@ export async function getIdmFeature({
     getIdmBaseUrl(state),
     featureId
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).get(urlString);
   return data;
 }
 
@@ -91,10 +99,11 @@ export async function validateIdmFeature({
     featureId,
     'validate'
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
-    urlString,
-    {}
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).post(urlString, {});
   return data;
 }
 
@@ -119,9 +128,10 @@ export async function installIdmFeature({
     featureId,
     'install'
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
-    urlString,
-    {}
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).post(urlString, {});
   return data;
 }

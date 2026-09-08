@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getRealmPath } from '../../utils/ForgeRockUtils';
 import { deleteDeepByKey } from '../../utils/JsonUtils';
@@ -52,12 +53,13 @@ export async function getAdminFederationProviderTypes({
     state.getHost(),
     getRealmPath('/')
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AdminFederationFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -79,12 +81,13 @@ export async function getAdminFederationProvidersByType({
     getRealmPath('/'),
     providerType
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AdminFederationFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -104,6 +107,7 @@ export async function getAdminFederationProviders({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AdminFederationFullScope],
     state,
   }).post(
     urlString,
@@ -137,12 +141,13 @@ export async function getProviderByTypeAndId({
     providerType,
     providerId
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AdminFederationFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -174,13 +179,13 @@ export async function putProviderByTypeAndId({
     providerType,
     providerId
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
-    urlString,
-    cleanData,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AdminFederationFullScope],
+    state,
+  }).put(urlString, cleanData, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -208,6 +213,7 @@ export async function deleteProviderByTypeAndId({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AdminFederationFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

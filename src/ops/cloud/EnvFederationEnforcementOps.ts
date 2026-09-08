@@ -6,6 +6,21 @@ import {
 import { State } from '../../shared/State';
 import { FrodoError } from '../FrodoError';
 
+// Deliberately given `requiredScopes: []` at the api layer
+// (api/cloud/EnvFederationEnforcementApi.ts's call to generateEnvApi())
+// rather than a real scope. Access here is gated by AIC's own internal
+// admin-role framework (Super Admin, Tenant Admin, Tenant Auditor, Brand
+// Admin, and future roles) — an authorization dimension that is not
+// currently expressed as an OAuth2 scope at all. The role is carried on a
+// teammember's own record as a `groups`/`effectiveGroups` claim (e.g.
+// `"groups": ["super-admins"]`), not on the access token. There is no scope
+// value that correctly represents "caller must hold the super-admin role."
+// A real gate for this module needs a role-based check (read the caller's
+// own teammember record's groups/effectiveGroups) instead — open research
+// question: can any admin read their own roles, or only a super admin can
+// query this? See the `frodo-mcp-phase-g-audience-rename-todo` memory for
+// the related discussion.
+
 export type EnvFederationEnforcement = {
   /**
    * Read federation enforcement configuration

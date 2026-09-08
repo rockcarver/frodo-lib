@@ -171,6 +171,17 @@ export interface SecureConnectionProfileInterface {
   svcacctName?: string | null;
   svcacctScope?: string | null;
   encodedAmsterPrivateKey?: string | null;
+  // browser-login settings — none of these are secrets (unlike
+  // username/password above), so no encoded variant is needed
+  authMode?: 'noninteractive' | 'interactive';
+  browserLoginClientId?: string | null;
+  browserLoginScope?: string | null;
+  // Explicit preference for which non-interactive credential type to use
+  // when a profile has more than one configured (e.g. both a service
+  // account and a plain username/password) — see State.ts's
+  // setDefaultCredential()/getDefaultCredential() for the full contract.
+  // Not a secret, so no encoded variant.
+  defaultCredential?: 'user' | 'svcacct' | 'amster';
 }
 
 export interface ConnectionProfileInterface {
@@ -194,6 +205,10 @@ export interface ConnectionProfileInterface {
   svcacctName?: string | null;
   svcacctScope?: string | null;
   amsterPrivateKey?: string | null;
+  authMode?: 'noninteractive' | 'interactive';
+  browserLoginClientId?: string | null;
+  browserLoginScope?: string | null;
+  defaultCredential?: 'user' | 'svcacct' | 'amster';
 }
 
 export interface ConnectionsFileInterface {
@@ -467,6 +482,14 @@ export async function getConnectionProfileByHost({
       amsterPrivateKey: profiles[0].encodedAmsterPrivateKey
         ? await dataProtection.decrypt(profiles[0].encodedAmsterPrivateKey)
         : null,
+      authMode: profiles[0].authMode,
+      browserLoginClientId: profiles[0].browserLoginClientId
+        ? profiles[0].browserLoginClientId
+        : null,
+      browserLoginScope: profiles[0].browserLoginScope
+        ? profiles[0].browserLoginScope
+        : null,
+      defaultCredential: profiles[0].defaultCredential,
     };
     debugMessage({
       message: `ConnectionProfileOps.getConnectionProfileByHost: retrieved connection profile for host '${host}': ${JSON.stringify(connectionProfile, null, 2)}`,
@@ -545,6 +568,18 @@ export async function loadConnectionProfileByHost({
   state.setServiceAccountJwk(conn.svcacctJwk);
   state.setServiceAccountScope(conn.svcacctScope);
   state.setAmsterPrivateKey(conn.amsterPrivateKey);
+  if (conn.authMode) {
+    state.setAuthMode(conn.authMode);
+  }
+  if (conn.browserLoginClientId) {
+    state.setBrowserLoginClientId(conn.browserLoginClientId);
+  }
+  if (conn.browserLoginScope) {
+    state.setBrowserLoginScope(conn.browserLoginScope);
+  }
+  if (conn.defaultCredential) {
+    state.setDefaultCredential(conn.defaultCredential);
+  }
   return true;
 }
 
@@ -666,6 +701,26 @@ export async function saveConnectionProfile({
     // admin client redirect uri
     if (state.getAdminClientRedirectUri())
       profile.adminClientRedirectUri = state.getAdminClientRedirectUri();
+
+    // browser login — none of these are secrets, so no encoding needed.
+    // Deliberately never writes username/encodedPassword for a browser-login
+    // profile: state.getUsername()/getPassword() are simply never set for
+    // that auth mode, so the checks below already omit them naturally.
+    if (state.getAuthMode() === 'interactive') {
+      profile.authMode = state.getAuthMode();
+      if (state.getBrowserLoginClientId())
+        profile.browserLoginClientId = state.getBrowserLoginClientId();
+      if (state.getBrowserLoginScope())
+        profile.browserLoginScope = state.getBrowserLoginScope();
+    }
+
+    // default credential: unlike authMode above, this is never derived from
+    // what this session happened to authenticate as — only ever written
+    // when the caller explicitly set it (e.g. via --default-credential),
+    // so an unrelated save never silently overwrites a previously-saved
+    // preference with nothing/whatever credential this invocation used.
+    if (state.getDefaultCredential())
+      profile.defaultCredential = state.getDefaultCredential();
 
     // user account
     if (state.getUsername()) profile.username = state.getUsername();

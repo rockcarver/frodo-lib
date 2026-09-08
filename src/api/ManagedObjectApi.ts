@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import {
@@ -137,9 +138,11 @@ export async function getManagedObjectSchema({
     getIdmBaseUrl(state),
     type
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).get(urlString);
   return data as ManagedObjectSchema;
 }
 
@@ -176,6 +179,7 @@ export async function getManagedObjectSchemaProperty({
     propertyName
   );
   const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: managedObjectSchemaApiConfig,
     state,
   }).get(urlString);
@@ -219,6 +223,7 @@ export async function putManagedObjectSchemaProperty({
     propertyName
   );
   const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: managedObjectSchemaApiConfig,
     state,
   }).put(urlString, propertyData);
@@ -259,6 +264,7 @@ export async function deleteManagedObjectSchemaProperty({
     propertyName
   );
   const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: managedObjectSchemaApiConfig,
     state,
   }).delete(urlString);
@@ -296,9 +302,11 @@ export async function getManagedObject({
     type,
     id
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).get(urlString);
   return data as IdObjectSkeletonInterface;
 }
 
@@ -328,10 +336,11 @@ export async function createManagedObject({
     getIdmBaseUrl(state),
     type
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
-    urlString,
-    moData
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).post(urlString, moData);
   return data;
 }
 
@@ -370,10 +379,11 @@ export async function putManagedObject({
   const requestOverride = failIfExists
     ? { headers: { 'If-None-Match': '*' } }
     : {};
-  const { data } = await generateIdmApi({ requestOverride, state }).put(
-    urlString,
-    moData
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride,
+    state,
+  }).put(urlString, moData);
   return data;
 }
 
@@ -411,10 +421,11 @@ export async function patchManagedObject({
     id
   );
   const requestOverride = rev ? { headers: { 'If-Match': rev } } : {};
-  const { data } = await generateIdmApi({ requestOverride, state }).patch(
-    urlString,
-    operations
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride,
+    state,
+  }).patch(urlString, operations);
   return data;
 }
 
@@ -459,9 +470,11 @@ export async function queryManagedObjects({
     encodeURIComponent(filter),
     pageSize
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).get(urlString);
   return data as PagedResult<IdObjectSkeletonInterface>;
 }
 
@@ -511,9 +524,11 @@ export async function queryRelatedManagedObjects({
     relationship,
     pageSize
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).get(urlString);
   return data as PagedResult<IdObjectSkeletonInterface>;
 }
 
@@ -546,9 +561,11 @@ export async function countManagedObjects({
     type,
     encodeURIComponent(filter)
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).get(urlString);
 
   if (
     typeof data?.totalPagedResults === 'number' &&
@@ -600,7 +617,10 @@ export async function queryAllManagedObjectsByType({
     type,
     pageSize
   );
-  const { data } = await generateIdmApi({ state }).get(urlString);
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).get(urlString);
   return data;
 }
 
@@ -630,8 +650,10 @@ export async function deleteManagedObject({
     type,
     id
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).delete(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).delete(urlString);
   return data;
 }

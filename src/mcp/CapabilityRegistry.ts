@@ -64,6 +64,7 @@ const DEFAULT_INSTANCE_HELPERS = new Set<string>([
   'createInstanceWithAdminAccount',
   'createInstanceWithServiceAccount',
   'createInstanceWithAmsterAccount',
+  'createInstanceWithBrowserLogin',
 ]);
 
 /**
@@ -290,6 +291,7 @@ function buildDescriptor(path: string[]): McpCapabilityDescriptor {
     mutating,
     destructive,
     deploymentTypes: meta?.deploymentTypes ?? ['any'],
+    trustTier: meta?.trustTier ?? 'full-trust',
     ...(meta?.preferredDeploymentTypes !== undefined && {
       preferredDeploymentTypes: meta.preferredDeploymentTypes,
     }),

@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getHostOnlyUrl, getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import { generateAmApi, generateEnvApi, generateIdmApi } from './BaseApi';
@@ -43,6 +44,7 @@ export async function getRawAm({
   const urlString = util.format(amTemplate, state.getHost(), endpoint);
   const { data } = await generateAmApi({
     resource: getApiConfig(apiVersion),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, { withCredentials: true });
 
@@ -62,7 +64,10 @@ export async function getRawIdm({
   state: State;
 }): Promise<any> {
   const urlString = util.format(idmTemplate, getIdmBaseUrl(state), endpoint);
-  const { data } = await generateIdmApi({ state }).get(urlString);
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).get(urlString);
 
   return data;
 }
@@ -89,6 +94,9 @@ export async function getRawEnv({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(apiVersion),
+    // No single umbrella scope covers arbitrary cloud environment paths —
+    // deliberately empty, meaning "nothing to check", not an oversight.
+    requiredScopes: [],
     state,
   }).get(urlString, { withCredentials: true });
 
@@ -116,6 +124,7 @@ export async function putRawAm({
   const urlString = util.format(amTemplate, state.getHost(), endpoint);
   const { data } = await generateAmApi({
     resource: getApiConfig(apiVersion),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, payload, { withCredentials: true });
   return data;
@@ -137,7 +146,10 @@ export async function putRawIdm({
   state: State;
 }): Promise<any> {
   const urlString = util.format(idmTemplate, getIdmBaseUrl(state), endpoint);
-  const { data } = await generateIdmApi({ state }).put(urlString, payload);
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).put(urlString, payload);
   return data;
 }
 
@@ -166,6 +178,9 @@ export async function putRawEnv({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(apiVersion),
+    // No single umbrella scope covers arbitrary cloud environment paths —
+    // deliberately empty, meaning "nothing to check", not an oversight.
+    requiredScopes: [],
     state,
   }).put(urlString, payload, { withCredentials: true });
   return data;

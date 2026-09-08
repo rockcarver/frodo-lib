@@ -116,6 +116,20 @@ export function applyCapabilityPolicy(
     }
 
     if (
+      policy.allowTrustTiers &&
+      !policy.allowTrustTiers.includes(capability.trustTier)
+    ) {
+      return false;
+    }
+
+    if (
+      policy.denyTrustTiers &&
+      policy.denyTrustTiers.includes(capability.trustTier)
+    ) {
+      return false;
+    }
+
+    if (
       policy.allowDomains &&
       !policy.allowDomains.includes(capability.domain)
     ) {

@@ -8,6 +8,7 @@ import {
 import { RetryStrategy } from '../api/BaseApi';
 import { FeatureInterface } from '../api/cloud/FeatureApi';
 import { UserSessionMetaType } from '../ops/AuthenticateOps';
+import { CallerTrustTierResolver } from '../ops/CallerTrustTierOps';
 import { FrodoError } from '../ops/FrodoError';
 import { JwkRsa } from '../ops/JoseOps';
 import { AccessTokenMetaType } from '../ops/OAuth2OidcOps';
@@ -17,9 +18,47 @@ import {
   ProgressIndicatorStatusType,
   ProgressIndicatorType,
 } from '../utils/Console';
+import { dedupeAsync } from '../utils/AsyncUtils';
 import { convertPrivateKeyToPem } from '../utils/CryptoUtils';
 import { cloneDeep, mergeDeep } from '../utils/JsonUtils';
 import { getPackageVersion } from './Version';
+
+/**
+ * A credential to inject into an outgoing AM request, resolved at actual
+ * send time (see `api/BaseApi.ts`'s request interceptors) rather than baked
+ * in when the axios instance was constructed.
+ */
+export type AmCredentialOverride = {
+  header: 'Authorization' | 'Cookie';
+  value: string;
+};
+
+/**
+ * Browser-mode's per-call AM credential source: cloud browser-login mints a
+ * fresh, short-lived, mint-and-discard RFC 8693-exchanged token immediately
+ * before every AM-domain call (see `ops/BrowserAuthenticateOps.ts`'s
+ * `exchangeTokenForScope`) instead of reusing a cached one. Set on `state`
+ * by `getTokensInteractive()` so `api/BaseApi.ts` — which must never import
+ * from `ops/` — can invoke it without knowing anything about token exchange.
+ * Unset for every non-browser auth mode.
+ */
+export type AmCredentialProvider = (
+  requiredScopes?: string[]
+) => Promise<AmCredentialOverride | null>;
+
+/**
+ * On-demand, de-duplicated "make my cached token(s) fresh again" callback
+ * for non-browser auth modes, invoked by `api/BaseApi.ts`'s request
+ * interceptors when a cached token is found to be stale at actual send
+ * time — not just at the one point in time `getTokens()` originally checked
+ * it. Set by `AuthenticateOps.ts` right after a successful login, alongside
+ * `scheduleAutoRefresh`'s timer (this is the same underlying mechanism,
+ * just invocable on demand instead of only when the timer fires). Browser
+ * login mode deliberately leaves this unset — cloud's primary token has no
+ * refresh token, so there is no silent way to redo an interactive login;
+ * going stale must surface a clear re-authentication error instead.
+ */
+export type TokenRefreshHandler = () => Promise<void>;
 
 export type State = {
   /**
@@ -94,9 +133,74 @@ export type State = {
   getAmsterPrivateKey(): string;
   setUseBearerTokenForAmApis(useBearerTokenForAmApis: boolean): void;
   getUseBearerTokenForAmApis(): boolean;
+  setAuthMode(authMode: 'noninteractive' | 'interactive'): void;
+  getAuthMode(): 'noninteractive' | 'interactive';
+  /**
+   * Explicit, persisted preference for which non-interactive credential
+   * type a profile with more than one configured should use — an
+   * `undefined` value means "no preference set," not "none of the above."
+   * Unlike authMode, never mirrors ambient session state on save; only
+   * ever written when the caller explicitly requests it (e.g. via
+   * `--default-credential`), so an unrelated save never silently
+   * overwrites a previously-configured preference. See
+   * `AuthenticateOps.ts`'s `tryBrowserLogin()`/`getTokens()` for how this
+   * is consulted.
+   */
+  setDefaultCredential(
+    defaultCredential: 'user' | 'svcacct' | 'amster'
+  ): void;
+  getDefaultCredential(): 'user' | 'svcacct' | 'amster' | undefined;
+  setTokenRefreshHandler(handler: TokenRefreshHandler | undefined): void;
+  getTokenRefreshHandler(): TokenRefreshHandler | undefined;
+  setBrowserLoginClientId(clientId: string): void;
+  getBrowserLoginClientId(): string;
+  setBrowserLoginScope(scope: string): void;
+  getBrowserLoginScope(): string;
+  setAmBearerTokenAcceptanceProbed(probed: boolean): void;
+  getAmBearerTokenAcceptanceProbed(): boolean | undefined;
+  setRefreshToken(token: string): void;
+  getRefreshToken(): string;
+  setIdToken(token: string): void;
+  getIdToken(): string;
+  setNeedsReauthentication(needsReauthentication: boolean): void;
+  getNeedsReauthentication(): boolean;
+  setAmCredentialProvider(provider: AmCredentialProvider): void;
+  getAmCredentialProvider(): AmCredentialProvider | undefined;
+  /** Cached for the life of the session by `determineCallerTrustTier()` (`ops/CallerTrustTierOps.ts`). */
+  setCallerTrustTier(tier: 'full-trust' | 'delegated'): void;
+  getCallerTrustTier(): 'full-trust' | 'delegated' | undefined;
+  /** Extension point letting a customer plug in their own privilege model for browser-login sessions — see `ops/CallerTrustTierOps.ts`. */
+  setCallerTrustTierResolver(
+    resolver: CallerTrustTierResolver | undefined
+  ): void;
+  getCallerTrustTierResolver(): CallerTrustTierResolver | undefined;
   setBearerTokenMeta(token: AccessTokenMetaType): void;
   getBearerToken(): string;
   getBearerTokenMeta(): AccessTokenMetaType;
+  /**
+   * Which credential type is currently active for this session — set once,
+   * wherever `getTokens()`'s non-interactive branches (or a browser login)
+   * actually activate a credential. Used by `ops/PrivilegeEscalationOps.ts`
+   * to know where on the escalation ladder the current session sits.
+   */
+  setActiveCredentialSource(
+    source: 'user' | 'svcacct' | 'amster' | 'browser'
+  ): void;
+  getActiveCredentialSource(): 'user' | 'svcacct' | 'amster' | 'browser' | undefined;
+  /**
+   * Extension point letting `api/BaseApi.ts` trigger a credential-privilege
+   * escalation without importing `ops/AuthenticateOps.ts` directly (would be
+   * circular — `AuthenticateOps.ts` already depends on `BaseApi.ts`
+   * transitively). Installed once by `getTokens()` after the initial
+   * credential activates; called by `attachCredentialInterceptor()` when a
+   * pre-flight scope check fails. Resolves `true` if a higher-tier
+   * credential was found and activated (the failed request should be
+   * retried), `false` if there is nothing left to escalate to.
+   */
+  setPrivilegeEscalationHandler(
+    handler: (() => Promise<boolean>) | undefined
+  ): void;
+  getPrivilegeEscalationHandler(): (() => Promise<boolean>) | undefined;
   setPfBearerTokenMeta(token: AccessTokenMetaType): void;
   getPfBearerToken(): string;
   getPfBearerTokenMeta(): AccessTokenMetaType;
@@ -412,6 +516,88 @@ export default (initialState: StateInterface): State => {
     getUseBearerTokenForAmApis() {
       return state.useBearerTokenForAmApis;
     },
+    setAuthMode(authMode: 'noninteractive' | 'interactive') {
+      state.authMode = authMode;
+    },
+    getAuthMode() {
+      return (
+        state.authMode ??
+        (process.env.FRODO_BROWSER_LOGIN === 'true'
+          ? 'interactive'
+          : 'noninteractive')
+      );
+    },
+    setDefaultCredential(defaultCredential: 'user' | 'svcacct' | 'amster') {
+      state.defaultCredential = defaultCredential;
+    },
+    getDefaultCredential() {
+      return state.defaultCredential;
+    },
+    setTokenRefreshHandler(handler: TokenRefreshHandler | undefined) {
+      // De-duplicated here, structurally, rather than trusting every caller
+      // to wrap their own handler: several API calls can discover a stale
+      // token at once (see api/BaseApi.ts's request interceptors), and only
+      // one actual refresh should ever run, with every caller awaiting that
+      // same result.
+      state.tokenRefreshHandler = handler ? dedupeAsync(handler) : undefined;
+    },
+    getTokenRefreshHandler() {
+      return state.tokenRefreshHandler;
+    },
+    setBrowserLoginClientId(clientId: string) {
+      state.browserLoginClientId = clientId;
+    },
+    getBrowserLoginClientId() {
+      return state.browserLoginClientId;
+    },
+    setBrowserLoginScope(scope: string) {
+      state.browserLoginScope = scope;
+    },
+    getBrowserLoginScope() {
+      return state.browserLoginScope;
+    },
+    setAmBearerTokenAcceptanceProbed(probed: boolean) {
+      state.amBearerTokenAcceptanceProbed = probed;
+    },
+    getAmBearerTokenAcceptanceProbed() {
+      return state.amBearerTokenAcceptanceProbed;
+    },
+    setRefreshToken(token: string) {
+      state.refreshToken = token;
+    },
+    getRefreshToken() {
+      return state.refreshToken;
+    },
+    setIdToken(token: string) {
+      state.idToken = token;
+    },
+    getIdToken() {
+      return state.idToken;
+    },
+    setNeedsReauthentication(needsReauthentication: boolean) {
+      state.needsReauthentication = needsReauthentication;
+    },
+    getNeedsReauthentication() {
+      return state.needsReauthentication ?? false;
+    },
+    setAmCredentialProvider(provider: AmCredentialProvider) {
+      state.amCredentialProvider = provider;
+    },
+    getAmCredentialProvider() {
+      return state.amCredentialProvider;
+    },
+    setCallerTrustTier(tier: 'full-trust' | 'delegated') {
+      state.callerTrustTier = tier;
+    },
+    getCallerTrustTier() {
+      return state.callerTrustTier;
+    },
+    setCallerTrustTierResolver(resolver: CallerTrustTierResolver | undefined) {
+      state.callerTrustTierResolver = resolver;
+    },
+    getCallerTrustTierResolver() {
+      return state.callerTrustTierResolver;
+    },
     setBearerTokenMeta(token: AccessTokenMetaType) {
       state.bearerToken = token;
     },
@@ -420,6 +606,20 @@ export default (initialState: StateInterface): State => {
     },
     getBearerTokenMeta(): AccessTokenMetaType {
       return state.bearerToken;
+    },
+    setActiveCredentialSource(
+      source: 'user' | 'svcacct' | 'amster' | 'browser'
+    ) {
+      state.activeCredentialSource = source;
+    },
+    getActiveCredentialSource() {
+      return state.activeCredentialSource;
+    },
+    setPrivilegeEscalationHandler(handler: (() => Promise<boolean>) | undefined) {
+      state.privilegeEscalationHandler = handler;
+    },
+    getPrivilegeEscalationHandler() {
+      return state.privilegeEscalationHandler;
     },
     setPfBearerTokenMeta(token: AccessTokenMetaType) {
       state.pfBearerToken = token;
@@ -705,6 +905,29 @@ export interface StateInterface {
   serviceAccountScope?: string;
   // Amster settings
   amsterPrivateKey?: string;
+  // browser-login settings
+  authMode?: 'noninteractive' | 'interactive';
+  defaultCredential?: 'user' | 'svcacct' | 'amster';
+  activeCredentialSource?: 'user' | 'svcacct' | 'amster' | 'browser';
+  privilegeEscalationHandler?: () => Promise<boolean>;
+  tokenRefreshHandler?: TokenRefreshHandler;
+  amCredentialProvider?: AmCredentialProvider;
+  browserLoginClientId?: string;
+  browserLoginScope?: string;
+  // cached result of a one-shot probe (Phase C/ForgeOps): does this tenant's
+  // AM accept a bearer token for AM-domain calls at all, absent the
+  // session-capture-script mechanism? undefined means "not probed yet".
+  amBearerTokenAcceptanceProbed?: boolean;
+  refreshToken?: string;
+  idToken?: string;
+  // set when a browser-login session's token has expired with no refresh
+  // token to silently renew it — the caller must complete a fresh
+  // interactive login; there is no unattended way to recover.
+  needsReauthentication?: boolean;
+  // cached result of determineCallerTrustTier() (mcp/ — see
+  // ops/CallerTrustTierOps.ts), for the life of the session.
+  callerTrustTier?: 'full-trust' | 'delegated';
+  callerTrustTierResolver?: CallerTrustTierResolver;
   // bearer token settings
   useBearerTokenForAmApis?: boolean;
   bearerToken?: AccessTokenMetaType;

@@ -33,6 +33,8 @@ export async function getStatus({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    // Bootstrap/deployment-detection probe, deliberately never scope-gated.
+    requiredScopes: [],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -57,6 +59,8 @@ export async function initiateRestart({
     );
     const { data } = await generateEnvApi({
       resource: getApiConfig(),
+      // Bootstrap/deployment-detection probe, deliberately never scope-gated.
+      requiredScopes: [],
       state,
     }).post(urlString, null, {
       withCredentials: true,

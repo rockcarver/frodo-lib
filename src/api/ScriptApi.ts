@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getCurrentRealmPath } from '../utils/ForgeRockUtils';
 import { type IdObjectSkeletonInterface, type PagedResult } from './ApiTypes';
@@ -79,9 +80,11 @@ export async function getScripts({
     state.getHost(),
     getCurrentRealmPath(state)
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get<
-    PagedResult<ScriptSkeleton>
-  >(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).get<PagedResult<ScriptSkeleton>>(urlString, {
     withCredentials: true,
   });
   return data;
@@ -105,9 +108,11 @@ export async function getScriptByName({
     getCurrentRealmPath(state),
     encodeURIComponent(scriptName)
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get<
-    PagedResult<ScriptSkeleton>
-  >(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).get<PagedResult<ScriptSkeleton>>(urlString, {
     withCredentials: true,
   });
   return data;
@@ -131,12 +136,13 @@ export async function getScript({
     getCurrentRealmPath(state),
     scriptId
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get(
-    urlString,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).get(urlString, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -158,9 +164,11 @@ export async function getLibraryScriptConfigByName({
     getCurrentRealmPath(state),
     encodeURIComponent(scriptName)
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).get<
-    PagedResult<LibraryScriptConfigSkeleton>
-  >(urlString, {
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).get<PagedResult<LibraryScriptConfigSkeleton>>(urlString, {
     withCredentials: true,
   });
   return data;
@@ -187,13 +195,13 @@ export async function putScript({
     getCurrentRealmPath(state),
     scriptId
   );
-  const { data } = await generateAmApi({ resource: getApiConfig(), state }).put(
-    urlString,
-    scriptData,
-    {
-      withCredentials: true,
-    }
-  );
+  const { data } = await generateAmApi({
+    resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
+    state,
+  }).put(urlString, scriptData, {
+    withCredentials: true,
+  });
   return data;
 }
 
@@ -217,6 +225,7 @@ export async function deleteScript({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

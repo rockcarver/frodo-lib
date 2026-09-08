@@ -36,6 +36,9 @@ export async function getFederationEnforcement({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    // Role-gated by AIC's own admin framework (super-admin/etc.), not by
+    // OAuth2 scope — see the forgerock-identity-classification design note.
+    requiredScopes: [],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -63,6 +66,9 @@ export async function setFederationEnforcement({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    // Role-gated by AIC's own admin framework (super-admin/etc.), not by
+    // OAuth2 scope — see the forgerock-identity-classification design note.
+    requiredScopes: [],
     state,
   }).put(urlString, config, { withCredentials: true });
   return data;

@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { NoIdObjectSkeletonInterface } from '../ApiTypes';
@@ -45,6 +46,7 @@ export async function getCertificates({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.CertificateReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -78,6 +80,7 @@ export async function createCertificate({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.CertificateFullScope],
     state,
   }).post(
     urlString,
@@ -108,6 +111,7 @@ export async function deleteCertificate({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.CertificateFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -136,6 +140,7 @@ export async function getCertificate({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.CertificateReadScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -167,6 +172,7 @@ export async function updateCertificate({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.CertificateFullScope],
     state,
   }).patch(urlString, { active }, { withCredentials: true });
   return data;

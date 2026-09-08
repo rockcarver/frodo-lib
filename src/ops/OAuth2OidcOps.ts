@@ -5,9 +5,13 @@ import {
   type AccessTokenResponseType,
   authorize as _authorize,
   clientCredentialsGrant as _clientCredentialsGrant,
+  deviceAuthorizationRequest as _deviceAuthorizationRequest,
   getTokenInfo as _getTokenInfo,
 } from '../api/OAuth2OIDCApi';
-import { TokenInfoResponseType } from '../api/OAuth2OIDCApi';
+import {
+  DeviceAuthorizationResponseType,
+  TokenInfoResponseType,
+} from '../api/OAuth2OIDCApi';
 import { State } from '../shared/State';
 import { mergeDeep } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
@@ -15,6 +19,26 @@ import { FrodoError } from './FrodoError';
 export type AccessTokenMetaType = AccessTokenResponseType & {
   expires: number;
   from_cache?: boolean;
+  // Captured via a one-time getTokenInfo() call at fresh interactive-login
+  // time only (see AuthenticateOps.ts's getTokensInteractive() cloud case)
+  // — never on a cache-hit resume or token refresh, so this never adds a
+  // network call to either of those paths. Optional: only present for
+  // cloud browser-login entries where the opportunistic call succeeded.
+  tokenInfo?: {
+    sub?: string;
+    tokenName?: string;
+    realm?: string;
+    auditTrackingId?: string;
+  };
+  // Captured the same way and at the same time as tokenInfo above (fresh
+  // browser login only, never a resume or refresh) — the logged-in
+  // identity's own AM-native privilege markers, via
+  // CallerTrustTierOps.ts's lookupCallerPrivilegeGroups(). ForgeOps/classic
+  // populate `roles`, cloud populates `isMemberOf`; never both. Lets
+  // `frodo session describe` show the admin role alongside the granted
+  // scope — together, the full privilege picture a scope-only view misses.
+  roles?: string[];
+  isMemberOf?: string[];
 };
 
 export type OAuth2Oidc = {
@@ -38,6 +62,11 @@ export type OAuth2Oidc = {
     amBaseUrl: string,
     config: AxiosRequestConfig
   ): Promise<TokenInfoResponseType>;
+  deviceAuthorizationRequest(
+    amBaseUrl: string,
+    data: string,
+    config: AxiosRequestConfig
+  ): Promise<DeviceAuthorizationResponseType>;
   clientCredentialsGrant(
     amBaseUrl: string,
     clientId: string,
@@ -90,6 +119,13 @@ export default (state: State): OAuth2Oidc => {
         config,
         state,
       });
+    },
+    async deviceAuthorizationRequest(
+      amBaseUrl: string,
+      data: string,
+      config: AxiosRequestConfig
+    ): Promise<DeviceAuthorizationResponseType> {
+      return deviceAuthorizationRequest({ amBaseUrl, data, config, state });
     },
     async clientCredentialsGrant(
       amBaseUrl: string,
@@ -194,6 +230,29 @@ export async function accessTokenRfc7523AuthZGrant({
   }
 }
 
+export async function deviceAuthorizationRequest({
+  amBaseUrl,
+  data,
+  config,
+  state,
+}: {
+  amBaseUrl: string;
+  data: string;
+  config: AxiosRequestConfig;
+  state: State;
+}): Promise<DeviceAuthorizationResponseType> {
+  try {
+    return await _deviceAuthorizationRequest({
+      amBaseUrl,
+      data,
+      config,
+      state,
+    });
+  } catch (error) {
+    throw new FrodoError(`Error starting oauth2 device authorization`, error);
+  }
+}
+
 export async function getTokenInfo({
   amBaseUrl,
   config,
@@ -231,7 +290,7 @@ export async function clientCredentialsGrant({
       scope,
       state,
     });
-    response['expires'] = new Date().getTime() + response.expires_in;
+    response['expires'] = Date.now() + response.expires_in * 1000;
     return response as AccessTokenMetaType;
   } catch (error) {
     throw new FrodoError(

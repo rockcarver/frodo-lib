@@ -280,11 +280,24 @@ export function setupPollyForFrodoLib({
       polly.server
         .any('/am/json/*/sessions/?_action=getSessionInfo')
         .on('beforeReplay', (_, recording: Recording) => {
-          // Set session expiration to be a day in advance of the current day so it's not expired.
+          // Set session expiration to be a day in advance of the current day
+          // so it's not expired. AuthenticateOps.ts computes the session's
+          // effective expiry as the *earlier* of maxIdleExpirationTime and
+          // maxSessionExpirationTime, so both fields must be advanced here —
+          // leaving either one at its originally-recorded (long past) value
+          // still yields a stale `expires`, which on-demand staleness checks
+          // (api/BaseApi.ts's credential resolvers) now correctly detect
+          // before every request, triggering a same-session re-login that no
+          // replay-mode fixture has a recorded response for.
           const body = JSON.parse(recording.response.content.text);
           const date = new Date();
           date.setDate(date.getDate() + 1);
           body.maxIdleExpirationTime = date.toISOString();
+          if (body.maxSessionExpirationTime) {
+            const sessionDate = new Date(date);
+            sessionDate.setHours(sessionDate.getHours() + 2);
+            body.maxSessionExpirationTime = sessionDate.toISOString();
+          }
           recording.response.content.text = JSON.stringify(body);
         });
       polly.server

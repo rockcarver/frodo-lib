@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../../shared/Constants';
 import { State } from '../../../shared/State';
 import { getApiSearchAll } from '../../../utils/ExportImportUtils';
 import { getHostOnlyUrl } from '../../../utils/ForgeRockUtils';
@@ -89,6 +90,7 @@ export async function createRequestType({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).post(urlString, typeData, {
     withCredentials: true,
@@ -115,6 +117,7 @@ export async function getRequestType({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -171,6 +174,7 @@ export async function putRequestType({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).put(urlString, typeData, {
     withCredentials: true,
@@ -203,6 +207,7 @@ export async function patchRequestType({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).patch(urlString + (useLowLevelApi ? '?_useLowLevelApi=true' : ''), ops, {
     withCredentials: true,
@@ -229,6 +234,7 @@ export async function deleteRequestType({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

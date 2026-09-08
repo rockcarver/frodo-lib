@@ -1173,6 +1173,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.readManagedSystemObjects': {
     riskClass: 'critical',
+    trustTier: 'full-trust',
     notes:
       'List all managed system objects of a type (teammember or svcacct) — reveals the full tenant-admin or service-account roster. Admin-only regardless of read-only intent.',
   },
@@ -1181,6 +1182,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
   },
   'idm.managedSystem.queryManagedSystemObjects': {
     riskClass: 'critical',
+    trustTier: 'full-trust',
     notes:
       'Search managed system objects of a type (teammember or svcacct) — can reveal tenant-admin or service-account membership. Admin-only regardless of read-only intent.',
   },
@@ -1392,6 +1394,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     },
     supportsRealm: false,
     riskClass: 'critical',
+    trustTier: 'full-trust',
     notes:
       'Query the reverse direction of a relationship on a managed system object (teammember or svcacct) with namedArgs { type, id, relationship, fields, pageSize }. Admin-only regardless of read-only intent, same as the rest of idm.managedSystem.*.',
   },
@@ -1415,6 +1418,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     },
     supportsRealm: false,
     riskClass: 'critical',
+    trustTier: 'full-trust',
     notes:
       'Reads the current value of a relationship field directly off a managed system object (teammember or svcacct) with namedArgs { type, id, field } — the forward direction. Admin-only regardless of read-only intent, same as the rest of idm.managedSystem.*.',
   },
@@ -1456,6 +1460,7 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     },
     supportsRealm: false,
     riskClass: 'critical',
+    trustTier: 'full-trust',
     notes:
       "Adds one target to a many-valued relationship field on a managed system object (teammember or svcacct) without disturbing any existing members. Admin-only regardless of write intent, same as the rest of idm.managedSystem.*. See idm.managed.addRelationship's notes for the exact request shape this skill builds for you (captured from AIC's own admin UI, verified live).",
   },
@@ -2147,8 +2152,25 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     preferredDeploymentTypes: IDM_DEPLOYMENTS,
     identitySurface: 'managed',
     objectTypePatterns: ['*'],
+    // 'both': safe to expose to a delegated (non-admin) MCP caller, same as
+    // full-trust. Frodo itself never verifies a request only targets the
+    // caller's own managed-object record (the object id is a plain runtime
+    // parameter) — the real backstop is AM/IDM's own privilege model, the
+    // same one that already lets/denies every other frodo command's calls
+    // today. AIC's own admin UI already grants ordinary end-users
+    // self-service access to their own managed/user record this same way.
+    trustTier: 'both',
     notes:
       'Operates on IDM managed objects (openidm/managed/). Only available in cloud and forgeops deployments. Use these methods as the preferred way to manage realm-qualified identity objects (e.g. alpha_user).',
+  },
+  // idm.managed.schema.* would otherwise inherit 'both' from the prefix
+  // above (it's a nested sub-path), but schema operations create/alter the
+  // managed-object TYPE DEFINITION itself (e.g. adding a new attribute to
+  // every user in the realm) — a structural, tenant-wide config change, not
+  // a per-record self-service operation. Explicitly overridden back to the
+  // default full-trust.
+  'idm.managed.schema': {
+    trustTier: 'full-trust',
   },
 
   // ── IDM connector system objects ─────────────────────────────────────────────
@@ -2984,6 +3006,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Returns live bearer/session tokens for the current identity. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin).',
   },
+  'login.getTokensInteractive': {
+    mutating: false,
+    riskClass: 'critical',
+    notes:
+      'Drives a real interactive browser (or device-code) login and returns the resulting live bearer/session tokens — same credential-exposure shape as login.getTokens, just for a freshly-established browser-mode identity rather than the one already on state. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin).',
+  },
 
   'am.config.createConfigEntityExportTemplate': {
     // Pure local builder (no API calls), used internally by
@@ -3029,6 +3057,12 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     riskClass: 'critical',
     notes:
       'Initiates a live OAuth2 authorization request against the tenant, POSTing a fully caller-controlled AxiosRequestConfig (arbitrary headers, e.g. Cookie/Authorization) to the live /oauth2/authorize endpoint — same risk shape as its sibling endpoint.* methods (accessToken, accessTokenRfc7523AuthZGrant, clientCredentialsGrant, getTokenInfo, all critical via the credential-keyword inference), usable toward session/auth-code hijacking. Explicit override because the method name itself does not match the credential-keyword inference the way its siblings do.',
+  },
+  'oauth2oidc.endpoint.deviceAuthorizationRequest': {
+    mutating: true,
+    riskClass: 'critical',
+    notes:
+      'Initiates a live OAuth2 device authorization request (RFC 8628) against the tenant, POSTing a fully caller-controlled AxiosRequestConfig to the live /oauth2/device/code endpoint and returning a real device/user code pair usable to drive a genuine interactive login. Same risk shape as its sibling endpoint.* methods; explicit override because the method name does not match the credential-keyword inference the way accessToken/clientCredentialsGrant do.',
   },
 
   'realm.addCustomDomain': {
@@ -3077,6 +3111,13 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     objectType: 'SessionInfo',
     mutating: false,
     riskClass: 'medium',
+    // Unlike info.getInfo (see its own notes below), this doesn't carry a
+    // raw bearer/session token in its response — just metadata about the
+    // caller's own already-established session (username, realm,
+    // expiration). A delegated caller reading their own session info is
+    // exactly the "who am I" self-service case its semanticAliases already
+    // anticipate. Safe as 'both'.
+    trustTier: 'both',
     // See info.getInfo's matching semanticAliases for why these exist: the
     // directory-record meaning of "identity" always won on sheer numbers
     // without a symmetric bonus for the caller's-own-session meaning.
@@ -3337,6 +3378,32 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       "The returned object can represent a partial success: the core AI agent object is created synchronously and its creation is the only fatal step, but identity creation and privilege/owner linking that follow are best-effort and never roll back or throw on failure. Check the returned object's _provisioningStatus.errors and _provisioningStatus.privileges[].errors to know whether those follow-up steps actually completed -- a response without a thrown error does not by itself mean everything succeeded.",
   },
+
+  // ── Local helper utilities ───────────────────────────────────────────────────
+  // Most of `utils.*` (and its `utils.jose`/`utils.json`/`utils.crypto`
+  // sub-domains, which inherit this) is pure, local computation that never
+  // calls AM/IDM at all — base64/JSON/URL helpers, script validation, JWT/JWK
+  // crypto. AM/IDM's own privilege model can't backstop these the way it does
+  // everything else marked 'both' (see idm.managed above), because there's no
+  // server call for it to reject — but there's also nothing sensitive to
+  // protect: no tenant data, no credentials, just local computation on
+  // whatever arguments the caller already supplied. Safe as 'both'.
+  utils: {
+    trustTier: 'both',
+  },
+  // The exceptions: these read/write files on whatever host actually runs
+  // the MCP server. That's a real risk with no relationship to AIC/AM
+  // privilege at all — arbitrary local file access for a delegated caller —
+  // so these explicitly override the prefix default back to 'full-trust'.
+  'utils.appendTextToFile': { trustTier: 'full-trust' },
+  'utils.findFilesByName': { trustTier: 'full-trust' },
+  'utils.getFilePath': { trustTier: 'full-trust' },
+  'utils.getWorkingDirectory': { trustTier: 'full-trust' },
+  'utils.readFiles': { trustTier: 'full-trust' },
+  'utils.readJsonFile': { trustTier: 'full-trust' },
+  'utils.saveJsonToFile': { trustTier: 'full-trust' },
+  'utils.saveTextToFile': { trustTier: 'full-trust' },
+  'utils.saveToFile': { trustTier: 'full-trust' },
 };
 
 /**

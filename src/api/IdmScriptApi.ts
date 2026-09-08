@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import { generateIdmApi } from './BaseApi';
@@ -26,10 +27,11 @@ export async function compileScript({
     type: 'text/javascript',
     source: script,
   };
-  const { data } = await generateIdmApi({ state, requestOverride: {} }).post(
-    urlString,
-    postData
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+    requestOverride: {},
+  }).post(urlString, postData);
   return data;
 }
 
@@ -52,9 +54,10 @@ export async function evaluateScript({
     globals,
     source: script,
   };
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
-    urlString,
-    postData
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).post(urlString, postData);
   return data;
 }

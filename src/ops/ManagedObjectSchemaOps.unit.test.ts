@@ -60,6 +60,7 @@ function mockStateWithDebug(deploymentType: string) {
   return {
     getDeploymentType: () => deploymentType,
     getDebugHandler: () => undefined,
+    getBearerTokenMeta: () => undefined,
   } as any;
 }
 
@@ -72,6 +73,7 @@ function mockConfigState() {
     getAmVersion: () => '7.3.0',
     getUsername: () => 'frodo-test',
     getFrodoVersion: () => '1.0.0',
+    getBearerTokenMeta: () => undefined,
   } as any;
 }
 

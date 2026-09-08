@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../shared/Constants';
 import { State } from '../../shared/State';
 import { getHostOnlyUrl } from '../../utils/ForgeRockUtils';
 import { generateEnvApi } from '../BaseApi';
@@ -45,6 +46,9 @@ export async function initDirectConfigurationSession({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [
+      Constants.AVAILABLE_SCOPES.DirectConfigurationSessionFullScope,
+    ],
     state,
   }).put(urlString, null, { withCredentials: true });
   return data;
@@ -67,6 +71,9 @@ export async function applyDirectConfigurationSession({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [
+      Constants.AVAILABLE_SCOPES.DirectConfigurationSessionFullScope,
+    ],
     state,
   }).put(urlString, null, { withCredentials: true });
   return data;
@@ -89,6 +96,9 @@ export async function abortDirectConfigurationSession({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [
+      Constants.AVAILABLE_SCOPES.DirectConfigurationSessionFullScope,
+    ],
     state,
   }).put(urlString, null, { withCredentials: true });
   return data;
@@ -109,6 +119,9 @@ export async function getDirectConfigurationSessionState({
   );
   const { data } = await generateEnvApi({
     resource: getApiConfig(),
+    requiredScopes: [
+      Constants.AVAILABLE_SCOPES.DirectConfigurationSessionReadScope,
+    ],
     state,
   }).get(urlString, {
     withCredentials: true,

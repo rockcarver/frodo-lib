@@ -341,6 +341,37 @@ export type Frodo = {
     debug?: boolean,
     curlirize?: boolean
   ): Frodo;
+
+  /**
+   * Factory helper to create a frodo instance ready for a real interactive
+   * browser login. Unlike the other three factories, this one alone doesn't
+   * make the instance immediately usable — a real interactive round trip is
+   * required first (there is no unattended way to redo it, unlike every
+   * other auth mode's silent background re-login). Call
+   * `.login.getTokensInteractive(...)` on the returned instance before using
+   * it, supplying a `promptHandler` to present the login step.
+   * @param {string} host host base URL, e.g. 'https://openam-my-tenant.forgeblocks.com/am'
+   * @param {string} loginClientId (optional) OAuth2 client id — mandatory for forgeops/classic (no built-in default); cloud has one
+   * @param {string} loginScope (optional) override the default scope requested for the target deployment type
+   * @param {string} loginRedirectUri (optional) full, absolute redirect URI to use, for a client registered with an exact-match redirect URI (shared with the non-interactive synthetic flow's own redirect URI setting)
+   * @param {string} realm (optional) override default realm
+   * @param {string} deploymentType (optional) deployment type ('cloud', 'forgeops', or 'classic') — required for browser login, since there is no existing session to auto-detect it from
+   * @param {boolean} allowInsecureConnection (optional) allow insecure connection
+   * @param {boolean} debug (optional) enable debug output
+   * @param {boolean} curlirize (optional) enable output of all library REST calls as curl commands
+   * @returns {Frodo} frodo instance, not yet logged in
+   */
+  createInstanceWithBrowserLogin(
+    host: string,
+    loginClientId?: string,
+    loginScope?: string,
+    loginRedirectUri?: string,
+    realm?: string,
+    deploymentType?: string,
+    allowInsecureConnection?: boolean,
+    debug?: boolean,
+    curlirize?: boolean
+  ): Frodo;
 };
 
 /**
@@ -491,6 +522,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     createInstanceWithAdminAccount,
     createInstanceWithServiceAccount,
     createInstanceWithAmsterAccount,
+    createInstanceWithBrowserLogin,
   };
 };
 
@@ -537,6 +569,33 @@ function createInstanceWithServiceAccount(
     host,
     serviceAccountId,
     serviceAccountJwk: JSON.parse(serviceAccountJwkStr),
+    realm,
+    deploymentType,
+    allowInsecureConnection,
+    debug,
+    curlirize,
+  };
+  const frodo = FrodoLib(config);
+  return frodo;
+}
+
+function createInstanceWithBrowserLogin(
+  host: string,
+  loginClientId: string = undefined,
+  loginScope: string = undefined,
+  loginRedirectUri: string = undefined,
+  realm: string = undefined,
+  deploymentType: string = undefined,
+  allowInsecureConnection = false,
+  debug = false,
+  curlirize = false
+): Frodo {
+  const config: StateInterface = {
+    host,
+    authMode: 'interactive',
+    browserLoginClientId: loginClientId,
+    browserLoginScope: loginScope,
+    adminClientRedirectUri: loginRedirectUri,
     realm,
     deploymentType,
     allowInsecureConnection,

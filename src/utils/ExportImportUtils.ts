@@ -39,7 +39,10 @@ export type ExportImport = {
   getTypedFilename(name: string, type: string, suffix?: string): string;
   getWorkingDirectory(mkdirs?: boolean): string;
   getFilePath(fileName: string, mkdirs?: boolean): string;
-  readJsonFile(filePath: string | number, resolvePlaceholders?: boolean): object;
+  readJsonFile(
+    filePath: string | number,
+    resolvePlaceholders?: boolean
+  ): object;
   escapePlaceholders(content: object): object;
   unescapePlaceholders(content: string): string;
   /**
@@ -1017,6 +1020,7 @@ export async function governanceApiSearchAll<T>({
   do {
     const axios = generateGovernanceApi({
       resource: {},
+      requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
       state,
     });
     const urlString = `${url}?${queryParamBuilder(pageSize, pageOffsetStrategy === 'PAGE' ? pageNumber++ : results.length)}`;

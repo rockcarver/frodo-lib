@@ -25,6 +25,7 @@ export type McpProfileName =
   | 'apps'
   | 'managed-objects'
   | 'platform-admin'
+  | 'self-service'
   | 'disabled';
 
 export type McpProfileDefinition = {
@@ -36,6 +37,14 @@ export type McpProfileDefinition = {
   excludePathPrefixes?: string[];
   /** Optional default policy posture for the profile. */
   policyPreset?: McpCapabilityPolicyPresetName;
+  /**
+   * Optional additional policy fields merged into this profile's derived
+   * overlay (alongside the `includePathPrefixes`-derived allow/deny path
+   * rules) — e.g. `self-service`'s `denyTrustTiers`, a cross-cutting
+   * restriction that isn't naturally expressed as a subject-area path
+   * prefix.
+   */
+  policyOverride?: Partial<McpCapabilityPolicy>;
   /** Hidden/internal profile entries should not be shown in user-facing lists. */
   hidden?: boolean;
   /** True for the derived `all` profile. */
@@ -45,7 +54,7 @@ export type McpProfileDefinition = {
 const DISABLED_PATH_PREFIXES = ['factory', 'utils'];
 
 const SUBJECT_PROFILE_DEFINITIONS: Record<
-  Exclude<McpProfileName, 'all' | 'disabled'>,
+  Exclude<McpProfileName, 'all' | 'disabled' | 'self-service'>,
   McpProfileDefinition
 > = {
   authentication: {
@@ -152,6 +161,24 @@ const DISABLED_PROFILE_DEFINITION: McpProfileDefinition = {
 };
 
 /**
+ * Cross-cutting (not subject-area-scoped) profile that statically restricts
+ * the manifest to capabilities safe for a non-admin, delegated-user caller
+ * (see `CapabilityTypes.ts`'s `McpCapabilityTrustTier`) — the complement to
+ * `ToolRuntime.ts`'s dynamic per-request `assertTrustTierAllowed` check,
+ * which still applies on top of this for a browser-login caller regardless
+ * of profile. Every capability defaults to `'full-trust'` unless a
+ * maintainer deliberately marks it `'delegated'`/`'both'` in
+ * `CAPABILITY_META`, so this profile's manifest is empty until that
+ * classification work happens.
+ */
+const SELF_SERVICE_PROFILE_DEFINITION: McpProfileDefinition = {
+  name: 'self-service',
+  description:
+    'Capabilities safe to expose to a non-admin, delegated-user caller (e.g. a browser-login session resolved to a non-admin identity). Empty until specific capabilities are marked delegated-safe.',
+  policyOverride: { denyTrustTiers: ['full-trust'] },
+};
+
+/**
  * Returns a stable list of user-facing profiles plus derived `all`.
  */
 export function listMcpProfiles(): McpProfileDefinition[] {
@@ -164,6 +191,7 @@ export function listMcpProfiles(): McpProfileDefinition[] {
     SUBJECT_PROFILE_DEFINITIONS.iga,
     SUBJECT_PROFILE_DEFINITIONS.apps,
     SUBJECT_PROFILE_DEFINITIONS['managed-objects'],
+    SELF_SERVICE_PROFILE_DEFINITION,
   ];
 }
 
@@ -190,6 +218,9 @@ export function getMcpProfileDefinition(
   if (name === 'disabled') {
     return DISABLED_PROFILE_DEFINITION;
   }
+  if (name === 'self-service') {
+    return SELF_SERVICE_PROFILE_DEFINITION;
+  }
   return SUBJECT_PROFILE_DEFINITIONS[name];
 }
 
@@ -207,6 +238,17 @@ export function resolveMcpProfileSelection(name: McpProfileName): {
     ? uniqueTopLevelDomains(profile.includePathPrefixes)
     : undefined;
 
+  const derivedPolicyOverride: Partial<McpCapabilityPolicy> | undefined =
+    profile.includePathPrefixes || profile.policyOverride
+      ? {
+          ...(profile.includePathPrefixes && {
+            allowCapabilityPathPrefixes: profile.includePathPrefixes,
+            denyCapabilityPathPrefixes: DISABLED_PATH_PREFIXES,
+          }),
+          ...profile.policyOverride,
+        }
+      : undefined;
+
   return {
     profile,
     ...(includeTopLevelDomains && {
@@ -214,11 +256,8 @@ export function resolveMcpProfileSelection(name: McpProfileName): {
         includeTopLevelDomains,
       },
     }),
-    ...(profile.includePathPrefixes && {
-      policyOverride: {
-        allowCapabilityPathPrefixes: profile.includePathPrefixes,
-        denyCapabilityPathPrefixes: DISABLED_PATH_PREFIXES,
-      },
+    ...(derivedPolicyOverride && {
+      policyOverride: derivedPolicyOverride,
     }),
     ...(profile.policyPreset && {
       policyPreset: profile.policyPreset,

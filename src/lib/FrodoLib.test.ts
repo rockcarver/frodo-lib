@@ -107,4 +107,31 @@ describe('FrodoLib', () => {
     expect(instance2.state.getAmsterPrivateKey()).toEqual(privateKey2);
     expect(instance2.state.getAuthenticationService()).toEqual(customAmsterService);
   });
+
+  test(`frodo.createInstanceWithBrowserLogin(): FrodoLib is instantiable using factory helper`, async () => {
+    state0.setHost('https://instance0/am');
+    const instance1 = frodo.createInstanceWithBrowserLogin(
+      'https://instance1/am',
+      'client1',
+      'openid fr:idm:*',
+      'http://127.0.0.1:54321/callback'
+    );
+    const instance2 = frodo.createInstanceWithBrowserLogin(
+      'https://instance2/am',
+      'client2'
+    );
+    expect(instance0.state.getHost()).toEqual(host0);
+    expect(instance1.state.getHost()).toEqual(host1);
+    expect(instance1.state.getAuthMode()).toEqual('interactive');
+    expect(instance1.state.getBrowserLoginClientId()).toEqual('client1');
+    expect(instance1.state.getBrowserLoginScope()).toEqual('openid fr:idm:*');
+    expect(instance1.state.getAdminClientRedirectUri()).toEqual(
+      'http://127.0.0.1:54321/callback'
+    );
+    expect(instance1.state.getUsername()).toBeFalsy();
+    expect(instance1.state.getPassword()).toBeFalsy();
+    expect(instance2.state.getHost()).toEqual(host2);
+    expect(instance2.state.getAuthMode()).toEqual('interactive');
+    expect(instance2.state.getBrowserLoginClientId()).toEqual('client2');
+  });
 });

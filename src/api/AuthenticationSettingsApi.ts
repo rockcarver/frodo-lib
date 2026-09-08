@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import { getConfigPath, getRealmPathGlobal } from '../utils/ForgeRockUtils';
@@ -48,6 +49,7 @@ export async function getAuthenticationSettings({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -86,6 +88,7 @@ export async function putAuthenticationSettings({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, settings, {
     withCredentials: true,

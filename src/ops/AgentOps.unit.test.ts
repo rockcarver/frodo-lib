@@ -39,6 +39,8 @@ function mockState() {
     getRealm: () => 'alpha',
     getDebugHandler: () => undefined,
     getDeploymentType: () => 'cloud',
+    getAuthMode: () => 'noninteractive',
+    getUseBearerTokenForAmApis: () => false,
   } as any;
 }
 

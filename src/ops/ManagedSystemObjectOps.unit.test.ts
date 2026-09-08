@@ -20,6 +20,8 @@ jest.unstable_mockModule('../api/ManagedSystemObjectApi', () => ({
 const { readRelationship, addRelationship, removeRelationship, replaceRelationship } =
   await import('./ManagedSystemObjectOps');
 
+const mockState = { getDeploymentType: () => undefined } as any;
+
 describe('ManagedSystemObjectOps relationship helpers', () => {
   beforeEach(() => {
     getManagedSystemObject.mockReset();
@@ -37,7 +39,7 @@ describe('ManagedSystemObjectOps relationship helpers', () => {
       type: 'teammember',
       id: 'admin-1',
       field: 'teamMembers',
-      state: {} as any,
+      state: mockState,
     });
 
     expect(getManagedSystemObject).toHaveBeenCalledWith(
@@ -56,7 +58,7 @@ describe('ManagedSystemObjectOps relationship helpers', () => {
       id: 'sa-1',
       field: 'scopes',
       target: { type: 'alpha_role', id: 'role-1' },
-      state: {} as any,
+      state: mockState,
     });
 
     expect(patchManagedSystemObject).toHaveBeenCalledWith(
@@ -91,7 +93,7 @@ describe('ManagedSystemObjectOps relationship helpers', () => {
       id: 'sa-1',
       field: 'scopes',
       target: { type: 'alpha_role', id: 'role-1' },
-      state: {} as any,
+      state: mockState,
     });
 
     expect(patchManagedSystemObject).toHaveBeenCalledWith(
@@ -112,7 +114,7 @@ describe('ManagedSystemObjectOps relationship helpers', () => {
         id: 'sa-1',
         field: 'scopes',
         target: { type: 'alpha_role', id: 'role-1' },
-        state: {} as any,
+        state: mockState,
       })
     ).rejects.toThrow(/not currently a member/);
     expect(patchManagedSystemObject).not.toHaveBeenCalled();
@@ -124,7 +126,7 @@ describe('ManagedSystemObjectOps relationship helpers', () => {
       id: 'admin-1',
       field: 'manager',
       target: null,
-      state: {} as any,
+      state: mockState,
     });
 
     expect(patchManagedSystemObject).toHaveBeenCalledWith(

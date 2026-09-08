@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import {
@@ -42,9 +43,11 @@ export async function getInternalObject({
     type,
     id
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).get(urlString);
   return data as IdObjectSkeletonInterface;
 }
 
@@ -69,10 +72,11 @@ export async function createInternalObject({
     getIdmBaseUrl(state),
     ioType
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).post(
-    urlString,
-    ioData
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).post(urlString, ioData);
   return data;
 }
 
@@ -106,10 +110,11 @@ export async function putInternalObject({
   const requestOverride = failIfExists
     ? { headers: { 'If-None-Match': '*' } }
     : {};
-  const { data } = await generateIdmApi({ requestOverride, state }).put(
-    urlString,
-    ioData
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride,
+    state,
+  }).put(urlString, ioData);
   return data;
 }
 
@@ -142,10 +147,11 @@ export async function patchInternalObject({
     id
   );
   const requestOverride = rev ? { headers: { 'If-Match': rev } } : {};
-  const { data } = await generateIdmApi({ requestOverride, state }).patch(
-    urlString,
-    operations
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride,
+    state,
+  }).patch(urlString, operations);
   return data;
 }
 
@@ -185,9 +191,11 @@ export async function queryInternalObjects({
     encodeURIComponent(filter),
     pageSize
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).get(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).get(urlString);
   return data as PagedResult<IdObjectSkeletonInterface>;
 }
 
@@ -224,7 +232,10 @@ export async function queryAllInternalObjectsByType({
     type,
     pageSize
   );
-  const { data } = await generateIdmApi({ state }).get(urlString);
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).get(urlString);
   return data;
 }
 
@@ -249,8 +260,10 @@ export async function deleteInternalObject({
     type,
     id
   );
-  const { data } = await generateIdmApi({ requestOverride: {}, state }).delete(
-    urlString
-  );
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride: {},
+    state,
+  }).delete(urlString);
   return data;
 }

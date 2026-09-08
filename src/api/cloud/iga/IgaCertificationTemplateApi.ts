@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../../../shared/Constants';
 import { State } from '../../../shared/State';
 import {
   governanceApiSearchAll,
@@ -227,6 +228,7 @@ export async function getCertificationTemplate({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -300,6 +302,7 @@ export async function createCertificationTemplate({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).post(urlString, templateData, {
     withCredentials: true,
@@ -329,6 +332,7 @@ export async function putCertificationTemplate({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).put(urlString, templateData, {
     withCredentials: true,
@@ -355,6 +359,7 @@ export async function deleteCertificationTemplate({
   );
   const { data } = await generateGovernanceApi({
     resource: {},
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IGAFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,

@@ -1,6 +1,7 @@
 import util from 'util';
 
 import { EMAIL_TEMPLATE_TYPE } from '../ops/EmailTemplateOps';
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import {
@@ -35,7 +36,10 @@ export async function getConfigStubs({
   state: State;
 }): Promise<IdmConfigStubs> {
   const urlString = util.format(idmAllConfigURLTemplate, getIdmBaseUrl(state));
-  const { data } = await generateIdmApi({ state }).get(urlString);
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).get(urlString);
   return data;
 }
 
@@ -53,7 +57,10 @@ export async function getConfigEntities({
     getIdmBaseUrl(state),
     'true'
   );
-  const { data } = await generateIdmApi({ state }).get(urlString);
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).get(urlString);
   return data;
 }
 
@@ -81,7 +88,10 @@ export async function getConfigEntitiesByType({
     getIdmBaseUrl(state),
     encodeURIComponent(`_id sw '${type}'`)
   );
-  const { data } = await generateIdmApi({ state }).get(urlString);
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).get(urlString);
   return data;
 }
 
@@ -102,7 +112,10 @@ export async function getConfigEntity({
     getIdmBaseUrl(state),
     entityId
   );
-  const { data } = await generateIdmApi({ state }).get(urlString);
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).get(urlString);
   return data;
 }
 
@@ -130,7 +143,10 @@ export async function putConfigEntity({
     getIdmBaseUrl(state),
     wait ? `${entityId}?waitForCompletion=true` : entityId
   );
-  const { data } = await generateIdmApi({ state }).put(urlString, entityData);
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).put(urlString, entityData);
   return data;
 }
 
@@ -151,7 +167,10 @@ export async function deleteConfigEntity({
     getIdmBaseUrl(state),
     entityId
   );
-  const { data } = await generateIdmApi({ state }).delete(urlString, {
+  const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).delete(urlString, {
     withCredentials: true,
   });
   return data;

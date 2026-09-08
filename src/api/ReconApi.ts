@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import { IdObjectSkeletonInterface } from './ApiTypes';
@@ -154,6 +155,7 @@ export async function getRecons({
 }): Promise<ReconType[]> {
   const urlString = util.format(reconUrlTemplate, getIdmBaseUrl(state));
   const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: apiConfig,
     state,
   }).get(urlString);
@@ -173,6 +175,7 @@ export async function getRecon({
     reconId
   );
   const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: apiConfig,
     state,
   }).get(urlString);
@@ -192,6 +195,7 @@ export async function startRecon({
     mappingName
   );
   const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: apiConfig,
     state,
   }).post(urlString);
@@ -214,6 +218,7 @@ export async function startReconById({
     objectId
   );
   const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: apiConfig,
     state,
   }).post(urlString);
@@ -233,6 +238,7 @@ export async function cancelRecon({
     reconId
   );
   const { data } = await generateIdmApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: apiConfig,
     state,
   }).post(urlString);

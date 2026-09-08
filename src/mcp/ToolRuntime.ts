@@ -14,8 +14,10 @@
  */
 
 import { Frodo, frodo } from '../lib/FrodoLib';
-import { FrodoError } from '../ops/FrodoError';
 import { getSemanticVersion } from '../ops/AuthenticateOps';
+import type { BrowserLoginPromptHandler } from '../ops/BrowserAuthenticateOps';
+import { determineCallerTrustTier } from '../ops/CallerTrustTierOps';
+import { FrodoError } from '../ops/FrodoError';
 import * as ManagedObjectApi from '../api/ManagedObjectApi';
 import { getIdmServerVersionInfo } from '../api/ServerInfoApi';
 import { StateInterface } from '../shared/State';
@@ -124,12 +126,52 @@ export type McpRuntimeStateAuth = {
 };
 
 /**
+ * Credentials payload for a browser-login (interactive) request context.
+ *
+ * @remarks
+ * Unlike every other auth mode, resolving this one is not a single
+ * synchronous credential lookup — it requires a real interactive round trip
+ * (a loopback-redirect or device-authorization flow) before the instance is
+ * usable. See {@link McpToolRuntimeOptions.browserLoginPromptHandler}: this
+ * runtime never launches a browser or prints to a terminal itself, exactly
+ * like `AuthenticateOps.getTokensInteractive()` — the host embedding this
+ * MCP server (e.g. `frodo-cli`'s `frodo mcp server start`) must supply a
+ * handler that presents the login step however is appropriate for its
+ * environment.
+ */
+export type McpRuntimeBrowserAuth = {
+  /** Discriminator for browser-login auth mode. */
+  mode: 'browser';
+  /** AM host base URL. */
+  host: string;
+  /** Deployment type — required for browser login, since there is no existing session to auto-detect it from. */
+  deploymentType?: string;
+  /** Optional realm override. */
+  realm?: string;
+  /** OAuth2 client id (mandatory for forgeops/classic; cloud has a built-in default). */
+  loginClientId?: string;
+  /** Override the default scope requested for the target deployment type. */
+  loginScope?: string;
+  /** Full, absolute redirect URI to use, for a client registered with an exact-match redirect URI (shared with the non-interactive synthetic flow's own redirect URI setting). */
+  loginRedirectUri?: string;
+  /** Use the OAuth2 Device Authorization Grant instead of a loopback redirect. */
+  useDeviceFlow?: boolean;
+  /** Optional insecure-connection toggle. */
+  allowInsecureConnection?: boolean;
+  /** Optional debug toggle. */
+  debug?: boolean;
+  /** Optional curlirize toggle. */
+  curlirize?: boolean;
+};
+
+/**
  * Union of supported runtime auth modes.
  */
 export type McpRuntimeAuth =
   | McpRuntimeServiceAccountAuth
   | McpRuntimeAdminAccountAuth
-  | McpRuntimeStateAuth;
+  | McpRuntimeStateAuth
+  | McpRuntimeBrowserAuth;
 
 /**
  * Execution-scoped context used to create an isolated Frodo instance.
@@ -141,6 +183,14 @@ export type McpRuntimeRequestContext = {
   auth: McpRuntimeAuth;
   /** Optional request-scoped sink for bounded lifecycle and discovery traces. */
   trace?: McpToolRuntimeTraceHandler;
+  /**
+   * The resolved scoped instance's caller-privilege tier (see
+   * `ops/CallerTrustTierOps.ts`'s `determineCallerTrustTier()`), attached
+   * once the instance is authenticated. Absent until then; `assertTrustTierAllowed`
+   * treats an absent value as `'full-trust'` (see its own remarks for why
+   * that default is safe for every existing, non-browser auth mode).
+   */
+  callerTrustTier?: 'full-trust' | 'delegated';
 };
 
 export type McpToolRuntimeTraceCandidate = {
@@ -173,7 +223,8 @@ export type McpToolRuntimeTraceEvent = {
     | 'dispatch-success'
     | 'dispatch-failure'
     | 'compatibility-rejection'
-    | 'credential-rejection';
+    | 'credential-rejection'
+    | 'trust-tier-rejection';
   requestId?: string;
   toolName: string;
   descriptorId?: string;
@@ -441,6 +492,15 @@ export type McpToolRuntimeOptions = {
   configEntityHydrationStatus?: McpCatalogHydrationStatus;
   /** Execute unique deterministic read-only recommendations unless a request opts out. */
   executeRecommendedByDefault?: boolean;
+  /**
+   * Presents a browser-login (auth mode `'browser'`) interactive login step
+   * to whoever operates this MCP server. Required only for requests using
+   * that auth mode; every other mode ignores it. Frodo's MCP runtime never
+   * launches a browser or writes to stdout itself (stdio transport reserves
+   * stdout for the JSON-RPC stream) — the embedding host supplies this,
+   * typically printing to stderr and/or opening a local browser.
+   */
+  browserLoginPromptHandler?: BrowserLoginPromptHandler;
 };
 
 /**
@@ -505,7 +565,8 @@ export function createToolRuntime(
         await resolveDeploymentAndFrodoForDiscovery(
           request.context,
           frodoRoot,
-          options.resolveFrodoForRequest
+          options.resolveFrodoForRequest,
+          options.browserLoginPromptHandler
         );
       await ensureIdmVersionResolvedForDiscovery(
         deploymentType,
@@ -571,7 +632,8 @@ export function createToolRuntime(
       const deploymentType = await resolveDeploymentForDiscovery(
         request.context,
         frodoRoot,
-        options.resolveFrodoForRequest
+        options.resolveFrodoForRequest,
+        options.browserLoginPromptHandler
       );
       const result = findSkills(
         capabilities,
@@ -654,7 +716,8 @@ export function createToolRuntime(
       const scopedFrodo = await resolveScopedFrodoInstance(
         contextForExecution,
         frodoRoot,
-        options.resolveFrodoForRequest
+        options.resolveFrodoForRequest,
+        options.browserLoginPromptHandler
       );
       const deploymentType = resolveScopedDeploymentType(
         scopedFrodo,
@@ -713,6 +776,19 @@ export function createToolRuntime(
       } catch (error) {
         emitRuntimeTrace(request, options, {
           event: 'credential-rejection',
+          toolName: request.toolName,
+          descriptorId: descriptor.id,
+          deploymentType,
+          routingReason: routing.reason,
+          error: toErrorMessage(error),
+        });
+        throw error;
+      }
+      try {
+        assertTrustTierAllowed(descriptor, contextForExecution);
+      } catch (error) {
+        emitRuntimeTrace(request, options, {
+          event: 'trust-tier-rejection',
           toolName: request.toolName,
           descriptorId: descriptor.id,
           deploymentType,
@@ -896,6 +972,43 @@ function assertRequiredCredential(
 }
 
 /**
+ * Verifies a descriptor's declared {@link McpCapabilityTrustTier} is
+ * satisfied by the resolved caller's own tier before invoking it.
+ *
+ * @remarks
+ * `'full-trust'` is a superset, not a separate exclusive category — it can
+ * invoke *any* descriptor, including one marked `'delegated'`. Only a
+ * resolved `'delegated'` caller is actually restricted, to descriptors
+ * marked `'delegated'` or `'both'`. `context.callerTrustTier` is only ever
+ * attached by `resolveScopedFrodoInstance()` (see its remarks) — a caller
+ * that bypassed that path (a fully custom `resolveFrodoForRequest` with no
+ * matching authentication step) is treated as `'full-trust'`, the same
+ * default every existing non-browser auth mode already resolves to, so
+ * this check is a pure no-op unless a browser-login caller was actually
+ * resolved as `'delegated'`.
+ */
+function assertTrustTierAllowed(
+  descriptor: McpCapabilityDescriptor,
+  context: McpRuntimeRequestContext
+): void {
+  const callerTier = context.callerTrustTier ?? 'full-trust';
+  // 'full-trust' is a superset, not a separate exclusive category — a
+  // full-trust caller (every existing non-browser auth mode, by
+  // construction) can invoke anything, including a 'delegated'-marked
+  // capability. Only a resolved 'delegated' caller is actually restricted,
+  // to capabilities marked 'delegated' or 'both'.
+  if (callerTier === 'full-trust') {
+    return;
+  }
+  if (descriptor.trustTier === 'delegated' || descriptor.trustTier === 'both') {
+    return;
+  }
+  throw new FrodoError(
+    `MCP runtime error: descriptor '${descriptor.id}' requires trust tier '${descriptor.trustTier}', which this session's caller ('${callerTier}') does not have.`
+  );
+}
+
+/**
  * Resolves and normalizes deployment type from request context.
  */
 function resolveContextDeploymentType(
@@ -983,6 +1096,22 @@ export function resolveRequestScopedFrodo(
         context.auth.host,
         context.auth.username,
         context.auth.password,
+        context.auth.realm,
+        context.auth.deploymentType,
+        context.auth.allowInsecureConnection,
+        context.auth.debug,
+        context.auth.curlirize
+      );
+    case 'browser':
+      // Only seeds state (authMode + host/realm/connection options) — the
+      // actual interactive round trip happens afterward, in
+      // resolveScopedFrodoInstance(), which calls getTokensInteractive()
+      // instead of the getTokens() every other mode uses.
+      return frodoRoot.createInstanceWithBrowserLogin(
+        context.auth.host,
+        context.auth.loginClientId,
+        context.auth.loginScope,
+        context.auth.loginRedirectUri,
         context.auth.realm,
         context.auth.deploymentType,
         context.auth.allowInsecureConnection,
@@ -1161,23 +1290,66 @@ async function resolveScopedFrodoInstance(
   customResolver?: (
     context: McpRuntimeRequestContext,
     frodoRoot: Frodo
-  ) => Frodo | Promise<Frodo>
+  ) => Frodo | Promise<Frodo>,
+  browserLoginPromptHandler?: BrowserLoginPromptHandler
 ): Promise<Frodo> {
   const scopedFrodo = customResolver
     ? await customResolver(context, frodoRoot)
     : resolveRequestScopedFrodo(context, frodoRoot);
 
+  // A caller-configuration error, not an authentication failure — thrown
+  // outside the try/catch below so its specific message isn't swallowed by
+  // the generic "authentication failed" wrapper.
+  if (context.auth.mode === 'browser' && !browserLoginPromptHandler) {
+    throw new FrodoError(
+      `MCP runtime error: auth mode 'browser' requires a browserLoginPromptHandler (see McpToolRuntimeOptions.browserLoginPromptHandler) to present the login step to whoever operates this MCP server — this runtime never launches a browser itself.`
+    );
+  }
+
   // Authenticate the scoped instance before any method is invoked. getTokens()
   // populates the instance-local state with a valid bearer token and raises a
   // clean authentication error here rather than letting a 401/403 surface deep
-  // inside a library method call.
+  // inside a library method call. Browser-login mode is the one exception:
+  // it needs a real interactive round trip (getTokensInteractive()), not the
+  // silent credential lookup every other mode uses.
   try {
-    await scopedFrodo.login.getTokens();
+    if (context.auth.mode === 'browser') {
+      await scopedFrodo.login.getTokensInteractive({
+        deploymentType: context.auth.deploymentType,
+        useDeviceFlow: context.auth.useDeviceFlow,
+        loginClientId: context.auth.loginClientId,
+        loginScope: context.auth.loginScope,
+        loginRedirectUri: context.auth.loginRedirectUri,
+        promptHandler: browserLoginPromptHandler,
+      });
+    } else {
+      await scopedFrodo.login.getTokens();
+    }
   } catch (error) {
     throw new FrodoError(
       'MCP runtime error: authentication failed for request-scoped Frodo instance.',
       error instanceof Error ? error : new Error(String(error))
     );
+  }
+
+  // Attached to the request context (mutated in place — the same object
+  // reference the dispatch path reads afterward) so assertTrustTierAllowed
+  // can enforce McpCapabilityTrustTier without re-deriving it per
+  // descriptor. Cheap/instant for every existing non-browser auth mode; see
+  // determineCallerTrustTier()'s own remarks for why. Tolerates a
+  // partial/fake `.state` (a fully custom resolver's returned instance
+  // isn't guaranteed to carry a complete one) the same way
+  // assertRequiredCredential's own `state?.` usage above does — leaving
+  // `callerTrustTier` unset here still resolves to the same 'full-trust'
+  // default assertTrustTierAllowed already applies for every non-browser
+  // mode, so this is never a silent privilege escalation, only a skipped
+  // (redundant) determination.
+  try {
+    context.callerTrustTier = await determineCallerTrustTier({
+      state: scopedFrodo.state,
+    });
+  } catch {
+    // leave context.callerTrustTier unset — see remarks above.
   }
 
   return scopedFrodo;
@@ -1196,7 +1368,8 @@ async function resolveDeploymentAndFrodoForDiscovery(
   customResolver?: (
     context: McpRuntimeRequestContext,
     frodoRoot: Frodo
-  ) => Frodo | Promise<Frodo>
+  ) => Frodo | Promise<Frodo>,
+  browserLoginPromptHandler?: BrowserLoginPromptHandler
 ): Promise<{ deploymentType?: McpDeploymentType; scopedFrodo?: Frodo }> {
   const configuredDeployment = resolveContextDeploymentType(context);
   if (configuredDeployment) {
@@ -1214,7 +1387,8 @@ async function resolveDeploymentAndFrodoForDiscovery(
   const scopedFrodo = await resolveScopedFrodoInstance(
     context,
     frodoRoot,
-    customResolver
+    customResolver,
+    browserLoginPromptHandler
   );
   return {
     deploymentType: resolveScopedDeploymentType(scopedFrodo, context),
@@ -1256,12 +1430,14 @@ async function resolveDeploymentForDiscovery(
   customResolver?: (
     context: McpRuntimeRequestContext,
     frodoRoot: Frodo
-  ) => Frodo | Promise<Frodo>
+  ) => Frodo | Promise<Frodo>,
+  browserLoginPromptHandler?: BrowserLoginPromptHandler
 ): Promise<McpDeploymentType | undefined> {
   const { deploymentType } = await resolveDeploymentAndFrodoForDiscovery(
     context,
     frodoRoot,
-    customResolver
+    customResolver,
+    browserLoginPromptHandler
   );
   return deploymentType;
 }
@@ -3293,6 +3469,8 @@ export function getRealmFromContext(
     case 'service-account':
       return context.auth.realm;
     case 'admin-account':
+      return context.auth.realm;
+    case 'browser':
       return context.auth.realm;
     default:
       return undefined;

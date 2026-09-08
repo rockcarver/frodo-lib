@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { getIdmBaseUrl } from '../utils/ForgeRockUtils';
 import {
@@ -49,6 +50,7 @@ export async function getManagedSystemObjectSchema({
     type
   );
   const { data } = await generateIdmSystemApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: {},
     state,
   }).get(urlString);
@@ -89,6 +91,7 @@ export async function getManagedSystemObject({
     id
   );
   const { data } = await generateIdmSystemApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: {},
     state,
   }).get(urlString);
@@ -124,6 +127,7 @@ export async function createManagedSystemObject({
     type
   );
   const { data } = await generateIdmSystemApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: {},
     state,
   }).post(urlString, moData);
@@ -167,10 +171,11 @@ export async function putManagedSystemObject({
   const requestOverride = failIfExists
     ? { headers: { 'If-None-Match': '*' } }
     : {};
-  const { data } = await generateIdmSystemApi({ requestOverride, state }).put(
-    urlString,
-    moData
-  );
+  const { data } = await generateIdmSystemApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride,
+    state,
+  }).put(urlString, moData);
   return data;
 }
 
@@ -210,10 +215,11 @@ export async function patchManagedSystemObject({
     id
   );
   const requestOverride = rev ? { headers: { 'If-Match': rev } } : {};
-  const { data } = await generateIdmSystemApi({ requestOverride, state }).patch(
-    urlString,
-    operations
-  );
+  const { data } = await generateIdmSystemApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    requestOverride,
+    state,
+  }).patch(urlString, operations);
   return data;
 }
 
@@ -262,6 +268,7 @@ export async function queryManagedSystemObjects({
     pageSize
   );
   const { data } = await generateIdmSystemApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: {},
     state,
   }).get(urlString);
@@ -317,6 +324,7 @@ export async function queryRelatedManagedSystemObjects({
     pageSize
   );
   const { data } = await generateIdmSystemApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: {},
     state,
   }).get(urlString);
@@ -355,6 +363,7 @@ export async function countManagedSystemObjects({
     encodeURIComponent(filter)
   );
   const { data } = await generateIdmSystemApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: {},
     state,
   }).get(urlString);
@@ -411,7 +420,10 @@ export async function queryAllManagedSystemObjectsByType({
     type,
     pageSize
   );
-  const { data } = await generateIdmSystemApi({ state }).get(urlString);
+  const { data } = await generateIdmSystemApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
+    state,
+  }).get(urlString);
   return data;
 }
 
@@ -445,6 +457,7 @@ export async function deleteManagedSystemObject({
     id
   );
   const { data } = await generateIdmSystemApi({
+    requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
     requestOverride: {},
     state,
   }).delete(urlString);

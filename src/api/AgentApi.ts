@@ -1,5 +1,6 @@
 import util from 'util';
 
+import Constants from '../shared/Constants';
 import { State } from '../shared/State';
 import { debugMessage } from '../utils/Console';
 import {
@@ -99,6 +100,7 @@ export async function getAgentTypes({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(false),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(
     urlString,
@@ -132,6 +134,7 @@ export async function getAgentsByType({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(false, agentType === 'AIAgent'),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -161,6 +164,7 @@ export async function getAgents({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(
     urlString,
@@ -194,6 +198,7 @@ export async function findAgentById({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(false),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -227,6 +232,7 @@ export async function findAgentByTypeAndId({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(false, agentType === 'AIAgent'),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -264,6 +270,7 @@ export async function getAgentByTypeAndId({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig, agentType === 'AIAgent'),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).get(urlString, {
     withCredentials: true,
@@ -309,6 +316,7 @@ export async function putAgentByTypeAndId({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(globalConfig, agentType === 'AIAgent'),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, agent, {
     withCredentials: true,
@@ -345,6 +353,7 @@ export async function putAgentGroupByTypeAndId({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(false, agentType === 'AIAgent'),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).put(urlString, agentGroupData, {
     withCredentials: true,
@@ -379,6 +388,7 @@ export async function deleteAgentByTypeAndId({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(false, agentType === 'AIAgent'),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).delete(urlString, {
     withCredentials: true,
@@ -404,6 +414,7 @@ export async function getAgentGroups({
   );
   const { data } = await generateAmApi({
     resource: getApiConfig(false),
+    requiredScopes: [Constants.AVAILABLE_SCOPES.AmFullScope],
     state,
   }).post(
     urlString,

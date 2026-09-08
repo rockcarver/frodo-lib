@@ -67,7 +67,11 @@ switch (process.env.FRODO_POLLY_MODE) {
       tokenId: 'cookieValue',
       realm: '/realm',
       successUrl: 'url',
-      expires: 0,
+      // Recorded fixtures replay a session that was valid when it was
+      // recorded — a far-future expiry, not `0` (an actually-expired
+      // timestamp), correctly reflects that to api/BaseApi.ts's staleness
+      // check, which now consults this field before every AM-domain call.
+      expires: Date.now() + 60 * 60 * 1000,
     });
     break;
 }
