@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## [v4.8.0] - 2026-09-08
+
+### Added
+- Implemented browser-based interactive login, supporting both loopback and device flow methods, enhancing user authentication options. (#640)
+- Introduced automatic least-privilege session escalation, improving security by dynamically adjusting session privileges as needed. (#640)
+- Added defaultCredential preference and improved visibility of ambient browser sessions, facilitating better session management. (#640)
+- Captured richer session metadata, including admin role/group, at browser-login time for enhanced session description capabilities. (#640)
+- Classified browser-login callers by actual AM/AIC privilege, moving away from always using delegated privileges, for more accurate privilege representation. (#640)
+- Classified self-service-safe MCP capabilities into the 'both' trust tier, ensuring appropriate access levels. (#640)
+
+### Fixed
+- Resolved login aliases in the interactive flow and fixed a mismatch in the first-save token-cache key, ensuring consistent session handling. (#640)
+
 ## [v4.7.0] - 2026-09-04
 
 ### Added
