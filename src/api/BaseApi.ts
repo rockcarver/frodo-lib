@@ -379,6 +379,28 @@ function attachCredentialInterceptor(
 }
 
 /**
+ * Matches AM's own standard 403 body for a legacy/classic-only endpoint
+ * that simply doesn't exist on this deployment type (e.g. `id-repositories`,
+ * `DataStoreService` — real AM services with no equivalent concept in
+ * PingOne Advanced Identity Cloud). Already recognized, by the exact same
+ * message text, at over a dozen existing call sites across the ops layer
+ * (`ServiceOps.ts`, `Saml2Ops.ts`, `AgentOps.ts`, `SecretStoreOps.ts`, etc.)
+ * as a structural incompatibility rather than an authorization decision —
+ * matched here with a looser, case-insensitive substring test (rather than
+ * those call sites' exact-string equality) since a real recorded fixture
+ * was observed carrying the pre-rename "ForgeRock Identity Cloud" wording
+ * instead of "PingOne Advanced Identity Cloud", and both must be caught.
+ */
+function isDeploymentTypeUnavailableError(error: AxiosError): boolean {
+  const message = (error.response?.data as { message?: string } | undefined)
+    ?.message;
+  return (
+    typeof message === 'string' &&
+    /not available in .*identity cloud/i.test(message)
+  );
+}
+
+/**
  * Attaches a response interceptor that, on a live 403 from the server
  * itself (as opposed to `attachCredentialInterceptor`'s pre-flight
  * `InsufficientScopeError`), tries the same escalation ladder and retries
@@ -402,6 +424,19 @@ function attachCredentialInterceptor(
  * GET requests have no such risk at all: retrying a read with a different
  * credential can never cause an unwanted mutation.
  *
+ * Also excludes `isDeploymentTypeUnavailableError()` matches: a real
+ * regression, caught via CI on the browser-login PR, where a fully-
+ * privileged service account's routine "list all services" sweep hit AM's
+ * standard 403 for a legacy service with no cloud equivalent
+ * (`id-repositories`, `DataStoreService`), and escalation dutifully — but
+ * pointlessly — tried a real re-authentication with the profile's plain
+ * user/password before giving up and surfacing the original error anyway.
+ * No credential, however privileged, can make a structurally-absent
+ * endpoint appear, so attempting one is never useful, and in production
+ * would mean every ordinary "sweep every legacy service" export triggers
+ * a real, unnecessary login round trip (and, more importantly, exercises
+ * a real credential against a real IdP repeatedly for no reason).
+ *
  * No separate retry-count guard is needed: `state
  * .getPrivilegeEscalationHandler()`'s own `tried` bookkeeping (see
  * `AuthenticateOps.ts`'s `buildPrivilegeEscalationHandler()`) already
@@ -418,7 +453,12 @@ function attachEscalationResponseInterceptor(
       const config = error.config;
       const status = error.response ? error.response.status : null;
       const method = (config?.method ?? 'get').toLowerCase();
-      if (status === 403 && method === 'get' && config) {
+      if (
+        status === 403 &&
+        method === 'get' &&
+        config &&
+        !isDeploymentTypeUnavailableError(error)
+      ) {
         const escalate = state.getPrivilegeEscalationHandler();
         const escalated = escalate ? await escalate() : false;
         if (escalated) {
