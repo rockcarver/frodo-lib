@@ -66,6 +66,27 @@ export type UserSkeleton = IdObjectSkeletonInterface & {
   telephoneNumber?: string[];
   modifyTimestamp?: string[];
   postalAddress?: string[];
+  /**
+   * AM UI-privilege role markers (e.g. `'ui-global-admin'`, `'ui-realm-admin'`)
+   * — present only on privileged ForgeOps/classic identities (confirmed live:
+   * absent on ordinary IDM-synced managed users in the same realm). Not
+   * present on cloud identities, which carry the equivalent signal in
+   * `isMemberOf`/`fr-attr-group` instead — see `CallerTrustTierOps.ts`.
+   */
+  roles?: string[];
+  /**
+   * Cloud (AIC) admin-group membership, as full group DNs (e.g.
+   * `'cn=super-admins,ou=groups,o=root,ou=identities'`). Confirmed
+   * self-readable via this AM-native API even when the equivalent IDM
+   * `teammember` managed-object record is not (403 even for a self-read) —
+   * see `CallerTrustTierOps.ts`. Not present on ForgeOps/classic.
+   */
+  isMemberOf?: string[];
+  /** Cloud (AIC) admin-group membership, as bare group names. Not always
+   * populated even when `isMemberOf` is (confirmed absent for a
+   * `tenant-auditor` identity that still had `isMemberOf` set) — prefer
+   * `isMemberOf` as the more reliable signal. */
+  'fr-attr-group'?: string[];
 };
 
 export type UserConfigSkeleton = {

@@ -2284,17 +2284,22 @@ async function tryReuseCachedBrowserSession({
       message: `AuthenticateOps.tryReuseCachedBrowserSession: reused cached browser-login session, no interactive round trip`,
       state,
     });
+    // Reads the subject already resolved (and indexed) at the original
+    // login, rather than re-resolving — this path runs on nearly every
+    // implicit command, unlike a fresh login, so it must stay a cheap
+    // local read, never a network call.
+    const resolvedSubject =
+      getRecordedSubject({ tokenType: 'browserUserBearer', state }) ??
+      getBrowserLoginSubject(token);
+    // Same reasoning as the fresh-login branch above: keeps
+    // determineCallerTrustTier() working uniformly on a cache-hit resume,
+    // not just a fresh interactive login.
+    state.setUsername(resolvedSubject);
     return {
       bearerToken: state.getBearerTokenMeta(),
       userSessionToken: state.getUserSessionTokenMeta(),
       pfBearerToken: state.getPfBearerTokenMeta(),
-      // Reads the subject already resolved (and indexed) at the original
-      // login, rather than re-resolving — this path runs on nearly every
-      // implicit command, unlike a fresh login, so it must stay a cheap
-      // local read, never a network call.
-      subject:
-        getRecordedSubject({ tokenType: 'browserUserBearer', state }) ??
-        getBrowserLoginSubject(token),
+      subject: resolvedSubject,
       host: state.getHost(),
       realm: state.getRealm() ? state.getRealm() : 'root',
     };
@@ -2582,6 +2587,12 @@ export async function getTokensInteractive({
       deploymentType: resolvedDeploymentType,
       state,
     });
+    // Mirrors getTokens()'s own non-interactive username/password branch,
+    // which already calls state.setUsername() — extended here so a browser
+    // login leaves the same trail, giving determineCallerTrustTier()
+    // (CallerTrustTierOps.ts) a uniform way to look up "who is the current
+    // caller" via frodo.user.readUser() regardless of auth mode.
+    state.setUsername(resolvedSubject);
     // Cacheable like any other AccessTokenMetaType, regardless of whether a
     // refresh token came back — see TokenCacheOps.ts's generateSessionKey(),
     // which falls back to a master-key-only cache-entry encryption key when
