@@ -186,4 +186,85 @@ describe('getTokensInteractive() resolves a non-URL host before use', () => {
       /No connection profile found matching/
     );
   });
+
+  test('4: a saved profile\'s deploymentType is used when the invocation supplies none — no --type needed for a known alias', async () => {
+    const saveState = StateImpl({ host });
+    saveState.setConnectionProfilesPath(connectionProfilesPath);
+    saveState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    saveState.setDeploymentType('cloud');
+    await saveConnectionProfile({ host, state: saveState });
+
+    runInteractiveAuthorizationCodeFlow.mockResolvedValueOnce({
+      access_token: fakeAccessTokenJwt('volker.scheuber@pingidentity.com'),
+      token_type: 'Bearer',
+      scope: 'fr:am:* fr:idm:*',
+      expires_in: 1800,
+      expires: Date.now() + 1_800_000,
+    });
+
+    // Exactly the second reported repro: `frodo login volker-dev --browser`
+    // with no --type at all — deploymentType is deliberately left unset
+    // here to prove it comes from the saved profile, not a test fixture
+    // default.
+    const invocationState = StateImpl({ host: 'volker-dev' });
+    invocationState.setConnectionProfilesPath(connectionProfilesPath);
+    invocationState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+
+    const tokens = await getTokensInteractive({
+      state: invocationState,
+      promptHandler,
+    });
+
+    expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
+    expect(tokens.host).toBe(host);
+    expect(invocationState.getDeploymentType()).toBe('cloud');
+  });
+
+  test('5: an explicit deploymentType always wins over a saved profile\'s own value', async () => {
+    // Saved profile says 'forgeops' (a materially different flow — session
+    // capture, not OAuth2 authorization-code); the invocation explicitly
+    // says 'cloud'. Only cloud's flow is mocked below, so this only passes
+    // if the explicit value actually won and the profile's was ignored.
+    const saveState = StateImpl({ host });
+    saveState.setConnectionProfilesPath(connectionProfilesPath);
+    saveState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    saveState.setDeploymentType('forgeops');
+    await saveConnectionProfile({ host, state: saveState });
+
+    runInteractiveAuthorizationCodeFlow.mockResolvedValueOnce({
+      access_token: fakeAccessTokenJwt('volker.scheuber@pingidentity.com'),
+      token_type: 'Bearer',
+      scope: 'fr:am:* fr:idm:*',
+      expires_in: 1800,
+      expires: Date.now() + 1_800_000,
+    });
+
+    const invocationState = StateImpl({ host: 'volker-dev' });
+    invocationState.setConnectionProfilesPath(connectionProfilesPath);
+    invocationState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    invocationState.setDeploymentType('cloud');
+
+    await getTokensInteractive({ state: invocationState, promptHandler });
+
+    expect(invocationState.getDeploymentType()).toBe('cloud');
+  });
+
+  test('6: an already-full URL with no saved profile and no explicit type still fails clearly', async () => {
+    const invocationState = StateImpl({
+      host: 'https://openam-no-profile-no-type.forgeblocks.com/am',
+    });
+    invocationState.setConnectionProfilesPath(connectionProfilesPath);
+    invocationState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+
+    let caught: any;
+    try {
+      await getTokensInteractive({ state: invocationState, promptHandler });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeDefined();
+    expect(caught.originalErrors?.[0]?.message).toMatch(
+      /Browser login requires a known deployment type/
+    );
+  });
 });

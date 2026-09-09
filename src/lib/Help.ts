@@ -927,7 +927,7 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "Authenticate",
     methodName: "getTokens",
-    signature: "getTokens( forceLoginAsUser?: boolean, autoRefresh?: boolean, types?: string[], callbackHandler?: CallbackHandler, useDeviceFlow?: boolean, promptHandler?: BrowserLoginPromptHandler ): Promise<Tokens>",
+    signature: "getTokens( forceLoginAsUser?: boolean, autoRefresh?: boolean, types?: string[], callbackHandler?: CallbackHandler, useDeviceFlow?: boolean, promptHandler?: BrowserLoginPromptHandler, credentialOverride?: 'user' | 'svcacct' | 'amster' | 'browser' ): Promise<Tokens>",
     description: "Get tokens and store them in State",
     params: [
       { name: "forceLoginAsUser", type: "boolean", description: "true to force login as user even if a service account or Amster account is available (default: false)", required: false },

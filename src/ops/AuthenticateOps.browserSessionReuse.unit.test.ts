@@ -403,4 +403,103 @@ describe('getTokens() reuses a cached browser-login session instead of a fresh i
       })
     ).rejects.toThrow();
   });
+
+  test("8: credentialOverride 'browser' reuses a merely-cached session on a later call with nothing else configured, same as the ambient default", async () => {
+    const cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
+    runInteractiveAuthorizationCodeFlow.mockResolvedValueOnce({
+      access_token: fakeAccessTokenJwt('jdoe'),
+      token_type: 'Bearer',
+      scope: 'fr:idm:*',
+      expires_in: 1800,
+      expires: Date.now() + 1_800_000,
+    });
+    await getTokens({
+      state: freshState({ cachePath, deploymentType: 'cloud' }),
+      autoRefresh: false,
+      promptHandler,
+    });
+
+    const laterState = StateImpl({
+      host: 'https://openam-session-reuse.example.com/am',
+    });
+    laterState.setUseTokenCache(true);
+    laterState.setTokenCachePath(cachePath);
+    laterState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    laterState.setDeploymentType('cloud');
+
+    const later = await getTokens({
+      state: laterState,
+      autoRefresh: false,
+      credentialOverride: 'browser',
+      promptHandler,
+    });
+    expect(later.subject).toBe('jdoe');
+    expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
+  });
+
+  test("9: credentialOverride 'browser' with no cached session at all fails clearly instead of falling back to a fresh interactive login or a different credential", async () => {
+    const laterState = StateImpl({
+      host: 'https://openam-session-reuse.example.com/am',
+    });
+    laterState.setUseTokenCache(true);
+    laterState.setTokenCachePath(
+      resolve(TMP_DIR, `${Math.random()}.TokenCache.json`)
+    );
+    laterState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    laterState.setDeploymentType('cloud');
+
+    let caught: any;
+    try {
+      await getTokens({
+        state: laterState,
+        autoRefresh: false,
+        credentialOverride: 'browser',
+        promptHandler,
+      });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeDefined();
+    expect(caught.originalErrors?.[0]?.message).toMatch(
+      /No valid cached browser-login session/
+    );
+    expect(runInteractiveAuthorizationCodeFlow).not.toHaveBeenCalled();
+  });
+
+  test("10: credentialOverride 'browser' wins even over a saved defaultCredential that would otherwise skip the cached session entirely", async () => {
+    const cachePath = resolve(TMP_DIR, `${Math.random()}.TokenCache.json`);
+    runInteractiveAuthorizationCodeFlow.mockResolvedValueOnce({
+      access_token: fakeAccessTokenJwt('jdoe'),
+      token_type: 'Bearer',
+      scope: 'fr:idm:*',
+      expires_in: 1800,
+      expires: Date.now() + 1_800_000,
+    });
+    await getTokens({
+      state: freshState({ cachePath, deploymentType: 'cloud' }),
+      autoRefresh: false,
+      promptHandler,
+    });
+
+    const laterState = StateImpl({
+      host: 'https://openam-session-reuse.example.com/am',
+    });
+    laterState.setUseTokenCache(true);
+    laterState.setTokenCachePath(cachePath);
+    laterState.setMasterKeyPath(resolve(TMP_DIR, 'masterkey.key'));
+    laterState.setDeploymentType('cloud');
+    // Without credentialOverride, this alone would make tryBrowserLogin()
+    // skip the cached session entirely (per test 7's own mechanism) — and
+    // since nothing else is configured, getTokens() would reject.
+    laterState.setDefaultCredential('svcacct');
+
+    const later = await getTokens({
+      state: laterState,
+      autoRefresh: false,
+      credentialOverride: 'browser',
+      promptHandler,
+    });
+    expect(later.subject).toBe('jdoe');
+    expect(runInteractiveAuthorizationCodeFlow).toHaveBeenCalledTimes(1);
+  });
 });
