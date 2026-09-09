@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [v4.8.4] - 2026-09-09
+
+### Added
+- Implemented browser-based interactive login enhancements, including the ability to resolve `deploymentType` from a saved connection profile. This update eliminates the need for redundant `--type` flags when using `frodo login --browser <alias>`, streamlining the login process. (#644)
+
+### Fixed
+- Resolved an issue with browser login credential resolution by adding a `credentialOverride` option. This fix ensures that credentials are correctly applied during browser-based authentication processes. (commit 02c64674b)
+
 ## [v4.8.3] - 2026-09-08
 
 ### Fixed
