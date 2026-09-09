@@ -251,4 +251,60 @@ describe('AuthenticateOps defaultCredential resolution', () => {
 
     expect(readUser).not.toHaveBeenCalled();
   });
+
+  test("7: credentialOverride 'svcacct' wins even over an explicit defaultCredential 'user' — a stronger, per-invocation override", async () => {
+    const state = stateWithAllThreeCredentials();
+    state.setDefaultCredential('user');
+
+    const underlying = await getUnderlyingError(
+      getTokens({ state, credentialOverride: 'svcacct' })
+    );
+
+    expect(underlying).toBe(SVCACCT_SENTINEL);
+    expect(step).not.toHaveBeenCalled();
+  });
+
+  test("8: credentialOverride 'amster' skips service account and plain user, forcing the amster branch", async () => {
+    const state = stateWithAllThreeCredentials();
+
+    const underlying = await getUnderlyingError(
+      getTokens({ state, credentialOverride: 'amster' })
+    );
+
+    expect(accessToken).not.toHaveBeenCalled();
+    expect(underlying).toBe(TREE_LOGIN_SENTINEL);
+    expect(state.getAuthenticationService()).toBe(
+      Constants.DEFAULT_AMSTER_SERVICE
+    );
+  });
+
+  test("9: credentialOverride 'user' skips service account and amster, forcing the plain-user branch", async () => {
+    const state = stateWithAllThreeCredentials();
+
+    const underlying = await getUnderlyingError(
+      getTokens({ state, credentialOverride: 'user' })
+    );
+
+    expect(accessToken).not.toHaveBeenCalled();
+    expect(underlying).toBe(TREE_LOGIN_SENTINEL);
+    expect(state.getAuthenticationService()).not.toBe(
+      Constants.DEFAULT_AMSTER_SERVICE
+    );
+  });
+
+  test("10: credentialOverride 'svcacct' on a profile with no service account configured fails clearly instead of silently falling through to amster/user", async () => {
+    const state = StateImpl({ host: 'https://openam-example.forgeblocks.com/am' });
+    state.setAmsterPrivateKey('fake-amster-key');
+    state.setUsername('plain-user');
+    state.setPassword('plain-password');
+    state.setUseTokenCache(false);
+
+    const underlying = await getUnderlyingError(
+      getTokens({ state, credentialOverride: 'svcacct' })
+    );
+
+    expect(accessToken).not.toHaveBeenCalled();
+    expect(step).not.toHaveBeenCalled();
+    expect(underlying.message).toMatch(/Incomplete or no credentials/);
+  });
 });

@@ -264,6 +264,46 @@ async function resolveAmRequestCredential(
 }
 
 /**
+ * Resolves the credential for an authentication/session/server-info-domain
+ * request (`generateAmAuthApi()`'s call sites) at send time — deliberately
+ * NOT `resolveAmRequestCredential()` above, despite the overlap. That
+ * function's staleness-check-and-refresh behavior is correct for ordinary
+ * post-login AM business-logic calls, but wrong here: this generator's own
+ * call sites (`AuthenticateApi.step()`, `SessionApi.ts`,
+ * `ServerInfoApi.ts`) include the login/tree-authentication flow itself,
+ * where a session cookie set moments ago by one step in a live-recorded
+ * fixture can appear "expired" purely because the fixture's own recorded
+ * timestamp is old relative to wall-clock replay time — confirmed as a real
+ * regression (a genuine, previously-passing classic login test started
+ * throwing "cannot be silently refreshed") when this generator briefly
+ * shared the other resolver. So: still check
+ * `state.getAmCredentialProvider()` first (the actual bug this generator
+ * needed fixed — a browser-login session's on-demand RFC 8693 exchange was
+ * never consulted here at all, so a plain `frodo info <host>` right after
+ * `frodo login --browser` sent no credential whatsoever and 403'd with "No
+ * session for request"), but otherwise fall back to the exact same
+ * unconditional, no-staleness-check cookie/bearer read this generator
+ * always had.
+ */
+async function resolveAmAuthRequestCredential(
+  state: State
+): Promise<AmCredentialOverride | null> {
+  const provider = state.getAmCredentialProvider();
+  if (provider) {
+    return provider([]);
+  }
+  if (state.getUseBearerTokenForAmApis()) {
+    const token = state.getBearerToken();
+    return token ? { header: 'Authorization', value: `Bearer ${token}` } : null;
+  }
+  const cookieName = state.getCookieName();
+  const cookieValue = state.getCookieValue();
+  return cookieName && cookieValue
+    ? { header: 'Cookie', value: `${cookieName}=${cookieValue}` }
+    : null;
+}
+
+/**
  * Resolves the `Authorization: Bearer` header for an IDM/environment/
  * governance-domain request, at actual send time — see
  * `resolveAmRequestCredential`'s remarks for why this matters. These domains
@@ -646,17 +686,6 @@ export function generateAmAuthApi({
     'Content-Type': 'application/json',
     // only add API version if we have it
     ...(resource.apiVersion && { 'Accept-API-Version': resource.apiVersion }),
-    // only send session cookie if we know its name and value and we are not instructed to use the bearer token for AM APIs
-    ...(!state.getUseBearerTokenForAmApis() &&
-      state.getCookieName() &&
-      state.getCookieValue() && {
-        Cookie: `${state.getCookieName()}=${state.getCookieValue()}`,
-      }),
-    // only add authorization header if we have a bearer token and are instructed to use it for AM APIs
-    ...(state.getUseBearerTokenForAmApis() &&
-      state.getBearerToken() && {
-        Authorization: `Bearer ${state.getBearerToken()}`,
-      }),
   };
 
   const requestConfig = mergeDeep(
@@ -678,6 +707,26 @@ export function generateAmAuthApi({
   );
 
   const request = createAxiosInstance(state, requestConfig);
+
+  // Resolve the actual credential (session cookie, bearer token, or — for
+  // cloud browser-login mode — a freshly RFC 8693-exchanged token) right
+  // before this request is sent. This generator used to build its headers
+  // once, synchronously, at construction time, checking only a plain
+  // session cookie or a bearer token gated by getUseBearerTokenForAmApis().
+  // It never knew about getAmCredentialProvider() at all, so a browser-login
+  // session (which deliberately never sets that flag — see
+  // applyCloudInteractiveToken's own remarks) got a request with no
+  // credential whatsoever: a real, live-repro'd bug (`frodo info <host>`
+  // 403 "No session for request" immediately after a successful `frodo
+  // login --browser`). Uses resolveAmAuthRequestCredential(), not
+  // resolveAmRequestCredential() — see that function's own remarks for why
+  // this generator specifically must not inherit the staleness-check/
+  // refresh/scope-gating behavior bundled into the other one.
+  attachCredentialInterceptor(
+    request,
+    () => resolveAmAuthRequestCredential(state),
+    state
+  );
 
   // enable curlirizer output in debug mode
   if (state.getCurlirize()) {

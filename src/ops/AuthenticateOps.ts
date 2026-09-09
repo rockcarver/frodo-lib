@@ -97,7 +97,8 @@ export type Authenticate = {
     types?: string[],
     callbackHandler?: CallbackHandler,
     useDeviceFlow?: boolean,
-    promptHandler?: BrowserLoginPromptHandler
+    promptHandler?: BrowserLoginPromptHandler,
+    credentialOverride?: 'user' | 'svcacct' | 'amster' | 'browser'
   ): Promise<Tokens>;
   /**
    * Get tokens via a real interactive browser login (loopback-redirect or
@@ -117,10 +118,12 @@ export default (state: State): Authenticate => {
       types = Constants.DEPLOYMENT_TYPES,
       callbackHandler = null,
       useDeviceFlow = false,
-      promptHandler = undefined
+      promptHandler = undefined,
+      credentialOverride = undefined
     ) {
       return getTokens({
         forceLoginAsUser,
+        credentialOverride,
         autoRefresh,
         types,
         callbackHandler,
@@ -1449,6 +1452,7 @@ async function getLoggedInSubject(state: State): Promise<string> {
  */
 function scheduleAutoRefresh(
   forceLoginAsUser: boolean,
+  credentialOverride: 'user' | 'svcacct' | 'amster' | 'browser' | undefined,
   autoRefresh: boolean,
   state: State
 ) {
@@ -1492,6 +1496,7 @@ function scheduleAutoRefresh(
     });
     timer = setTimeout(getTokens, timeout, {
       forceLoginAsUser,
+      credentialOverride,
       autoRefresh,
       state,
       // Volker's Visual Studio Code doesn't want to have it any other way.
@@ -1709,6 +1714,7 @@ export type Tokens = {
  */
 export async function getTokens({
   forceLoginAsUser = process.env.FRODO_FORCE_LOGIN_AS_USER ? true : false,
+  credentialOverride,
   autoRefresh = true,
   types = Constants.DEPLOYMENT_TYPES,
   callbackHandler = null,
@@ -1717,6 +1723,20 @@ export async function getTokens({
   state,
 }: {
   forceLoginAsUser?: boolean;
+  /**
+   * Force this one invocation to use a specific configured credential type,
+   * overriding ambient browser-session cache reuse and any saved
+   * defaultCredential/forceLoginAsUser preference (the generalized,
+   * stateless successor to forceLoginAsUser — see `--credential` on the
+   * CLI). 'browser' means "use my cached browser-login session"; if none
+   * is valid, this throws rather than falling back to a different
+   * credential or popping a fresh interactive login. Every other value
+   * means "don't even consider a cached browser session"; if the requested
+   * type isn't actually configured, this falls through to the same
+   * "Incomplete or no credentials" error any other unconfigured credential
+   * hits today.
+   */
+  credentialOverride?: 'user' | 'svcacct' | 'amster' | 'browser';
   autoRefresh?: boolean;
   types?: string[];
   callbackHandler?: CallbackHandler;
@@ -1755,6 +1775,29 @@ export async function getTokens({
         })
       );
       return tokens;
+    }
+    // credentialOverride is an absolute override, checked before even the
+    // authMode branch below: 'browser' means the caller explicitly wants
+    // the cached browser session (reused regardless of authMode, a saved
+    // defaultCredential, or anything else) and fails clearly rather than
+    // silently trying something else if none is valid — still never pops a
+    // fresh interactive login, exactly like the ambient-reuse case this
+    // generalizes. Any other credentialOverride value means the caller
+    // explicitly does NOT want a browser session this time, so this
+    // returns undefined unconditionally, skipping both branches below
+    // (including a profile's own saved `authMode: 'interactive'`) and
+    // falling straight through to the non-interactive priority chain.
+    if (credentialOverride === 'browser') {
+      const reused = await tryReuseCachedBrowserSession({ state });
+      if (reused) {
+        return withEscalation(reused);
+      }
+      throw new FrodoError(
+        `No valid cached browser-login session exists for this host. Run 'frodo login --browser' first.`
+      );
+    }
+    if (credentialOverride) {
+      return undefined;
     }
     if (state.getAuthMode() !== 'interactive') {
       // Not explicitly interactive — but an ad hoc `frodo login --browser`
@@ -1908,20 +1951,34 @@ export async function getTokens({
     // now that we have the full tenant URL we can lookup the cookie name
     state.setCookieName(await determineCookieName(state));
 
-    // An explicit defaultCredential preference skips past whatever it
-    // isn't — 'amster' or 'user' both mean "don't use the service account
-    // even though it's configured"; 'user' additionally means "don't use
+    // credentialOverride, when set, is an absolute override: it alone
+    // decides every skip flag below, ignoring defaultCredential and
+    // forceLoginAsUser entirely (an explicit per-invocation request must
+    // win over standing profile/env configuration, not merely add to it).
+    // Only when it's unset does the older, narrower logic apply: an
+    // explicit defaultCredential preference skips past whatever it isn't
+    // — 'amster' or 'user' both mean "don't use the service account even
+    // though it's configured"; 'user' additionally means "don't use
     // Amster either." 'svcacct' (or unset) changes nothing: service
     // account already wins first in the fallback order below, same as
     // always. forceLoginAsUser (the --force-login-as-user flag/env var)
     // remains its own, simpler override, equivalent to defaultCredential:
     // 'user' but without needing to persist anything to the profile.
+    // skipUser only exists for credentialOverride's sake — defaultCredential
+    // alone never needed it, since 'user' is the final, unconditional
+    // fallback below regardless.
     const defaultCredential = state.getDefaultCredential();
-    const skipServiceAccount =
-      forceLoginAsUser ||
-      defaultCredential === 'user' ||
-      defaultCredential === 'amster';
-    const skipAmster = forceLoginAsUser || defaultCredential === 'user';
+    const skipServiceAccount = credentialOverride
+      ? credentialOverride !== 'svcacct'
+      : forceLoginAsUser ||
+        defaultCredential === 'user' ||
+        defaultCredential === 'amster';
+    const skipAmster = credentialOverride
+      ? credentialOverride !== 'amster'
+      : forceLoginAsUser || defaultCredential === 'user';
+    const skipUser = credentialOverride
+      ? credentialOverride !== 'user'
+      : false;
 
     // use service account to login?
     if (
@@ -2026,7 +2083,7 @@ export async function getTokens({
       state.setActiveCredentialSource('amster');
     }
     // use user account to login?
-    else if (state.getUsername() && state.getPassword()) {
+    else if (!skipUser && state.getUsername() && state.getPassword()) {
       debugMessage({
         message: `AuthenticateOps.getTokens: Authenticating with user account ${state.getUsername()}`,
         state,
@@ -2074,7 +2131,7 @@ export async function getTokens({
       ) {
         verboseMessage({ message: `Using cached session token.`, state });
       }
-      scheduleAutoRefresh(forceLoginAsUser, autoRefresh, state);
+      scheduleAutoRefresh(forceLoginAsUser, credentialOverride, autoRefresh, state);
       // On-demand counterpart to the timer above: api/BaseApi.ts's request
       // interceptors call this when a cached token is found stale at actual
       // send time, rather than relying solely on the timer (which never
@@ -2557,22 +2614,30 @@ export async function getTokensInteractive({
 
     // Resolve an alias/unique-substring host (e.g. `frodo login myhost
     // --browser`) to its full URL the same way getTokens()'s implicit path
-    // already does — but scoped to the host only. Unlike getTokens(),
-    // getTokensInteractive() is deliberately the "always do a real
-    // interactive login, ignore what's cached/configured" entry point, so
-    // this must not also adopt the profile's other saved fields (deployment
-    // type, credential type, etc.) the way getTokens() does.
+    // already does — but scoped to non-credential fields only. Unlike
+    // getTokens(), getTokensInteractive() is deliberately the "always do a
+    // real interactive login, ignore what's cached/configured" entry point,
+    // so this must not adopt the profile's saved *credential* fields
+    // (service account, username/password, etc.) the way getTokens() does.
+    // deploymentType is not a credential, though — it's structural metadata
+    // (which OAuth2 flow to run), so resolving it here doesn't compromise
+    // that contract, and it means a saved profile's deployment type covers
+    // `login --browser <alias>` the same way it already covers every other
+    // command instead of forcing a redundant --type on the command line.
+    let conn: Awaited<ReturnType<typeof getConnectionProfile>> | undefined;
     if (!isValidUrl(state.getHost())) {
-      const conn = await getConnectionProfile({ state });
+      conn = await getConnectionProfile({ state });
       state.setHost(conn.tenant);
     }
 
-    const resolvedDeploymentType = deploymentType || state.getDeploymentType();
+    const resolvedDeploymentType =
+      deploymentType || state.getDeploymentType() || conn?.deploymentType;
     if (!resolvedDeploymentType) {
       throw new FrodoError(
-        `Browser login requires a known deployment type. Call state.setDeploymentType() first.`
+        `Browser login requires a known deployment type: pass --type, or save a connection profile for this host with a deployment type set.`
       );
     }
+    state.setDeploymentType(resolvedDeploymentType);
 
     let token: AccessTokenMetaType;
     // The real username already resolved during token application, if any
