@@ -6437,6 +6437,14 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<IdmFeatureActionResult>} a promise that resolves to the install result",
   },
   {
+    typeName: "LogTailStream",
+    methodName: "poll",
+    signature: "poll(): Promise<LogEventSkeleton[]>",
+    description: "Polls once for new events since the last poll (the last 15 seconds, on the very first call -- matching the underlying API's own behavior), returning only genuinely new events. Never returns the same event twice, even across repeated calls -- see `createLogTailStream()`.",
+    params: [],
+    returns: "",
+  },
+  {
     typeName: "Log",
     methodName: "getDefaultNoiseFilter",
     signature: "getDefaultNoiseFilter(): string[]",
@@ -6539,6 +6547,16 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "cookie", type: "string", description: "paged results cookie", required: true },
     ],
     returns: "{Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result",
+  },
+  {
+    typeName: "Log",
+    methodName: "createLogTailStream",
+    signature: "createLogTailStream(source: string): LogTailStream",
+    description: "Creates a stateful, deduped consumer of `tail()` -- everything a caller doing a live polling loop (e.g. an interactive follow-style view) needs without reimplementing cookie-tracking or dedup itself.",
+    params: [
+      { name: "source", type: "string", description: "log source(s) to tail", required: true },
+    ],
+    returns: "{LogTailStream} a stream object with a `poll()` method",
   },
   {
     typeName: "Log",
