@@ -2,8 +2,19 @@
 
 ## Unreleased
 
+## [v4.8.5] - 2026-09-14
+
 ### Added
 - Added `createLogTailStream()` to the Log API, a stateful, deduped wrapper around `tail()`. PingOne Advanced Identity Cloud's own tail-endpoint documentation is explicit that each subsequent call's range "starts from the last returned log entry in the previous result (inclusive)" -- the boundary event repeats by design, and the endpoint returns no unique event id to tell repeats apart with. Confirmed live that this can go beyond just that one documented boundary event, redelivering an entire earlier batch verbatim, sometimes even within one poll's own result array. `createLogTailStream()` handles this centrally so callers doing a live polling loop (e.g. an interactive follow-style view) no longer have to reimplement cookie-tracking or dedup for themselves.
+
+- Introduced `createLogTailStream()` to the Log API, providing a stateful, deduplicated wrapper around `tail()`. This enhancement simplifies live polling loops by managing cookie-tracking and deduplication internally, addressing the issue of repeated log entries from PingOne Advanced Identity Cloud's tail-endpoint. (#645, e7432e2b1)
+- Added `verifyJwtAgainstJwks` utility for verifying JWTs against JWKS from external identity providers, enhancing security and integration capabilities. (64567bff4)
+- Implemented support for named, independently-addressable additional service accounts, allowing more flexible management of service account credentials. (601d0157c)
+- Added bearer-token authentication mode for per-request caller identity, enabling more granular access control and integration scenarios. (d40ee07ef)
+
+### Fixed
+- Corrected an issue where a connection profile could be resolved from an absent host, ensuring more reliable connection management. (4738e4ed9)
+- Enhanced support for BYOT (Bring Your Own Token) service-account-flavored tokens in cloud AM calls, improving compatibility and usability. (2e07c8cdc)
 
 ## [v4.8.4] - 2026-09-09
 
