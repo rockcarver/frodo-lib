@@ -263,6 +263,8 @@ export type State = {
   getEnv(key: string): string | undefined;
   getEnvs(): Record<string, string>;
   getDirectory(): string;
+  setForceUpdate(forceUpdate: boolean): void;
+  getForceUpdate(): boolean;
   setAutoRefreshTimer(timer: NodeJS.Timeout): void;
   getAutoRefreshTimer(): NodeJS.Timeout;
   setCurlirizeHandler(handler: (message: string) => void): void;
@@ -769,6 +771,14 @@ export default (initialState: StateInterface): State => {
     getEnvs() {
       return { ...state.env };
     },
+
+    setForceUpdate(forceUpdate: boolean): void {
+      state.forceUpdate = forceUpdate;
+    },
+    getForceUpdate(): boolean {
+      return state.forceUpdate || false;
+    },
+
     setAutoRefreshTimer(timer: NodeJS.Timeout): void {
       state.autoRefreshTimer = timer;
     },
@@ -1004,6 +1014,7 @@ export interface StateInterface {
   masterKeyPath?: string;
   outputFile?: string;
   directory?: string;
+  forceUpdate?: boolean;
   autoRefreshTimer?: NodeJS.Timeout;
   env?: Record<string, string>;
   // output handler settings

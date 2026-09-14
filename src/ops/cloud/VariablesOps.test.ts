@@ -227,6 +227,22 @@ describe('VariablesOps', () => {
       });
       expect(response).toMatchSnapshot();
     });
+
+    test('5: Should not import variable if no changes were made', async () => {
+      state.setForceUpdate(false);
+      let response = await VariablesOps.importVariable({
+        importData: TestData.createTestVariableExport([TestData.variable20]),
+        state: state,
+      });
+      expect(response).toBeNull();
+      response = await VariablesOps.importVariable({
+        importData: TestData.createTestVariableExport([{...TestData.variable20, value: "test new value" }]),
+        state: state,
+      });
+      expect(response.length).not.toBeNull();
+      expect(response.valueBase64).toBe(encode("test new value"));
+      expect(response).toMatchSnapshot();
+    });
   });
 
   describe('importVariables()', () => {
@@ -247,6 +263,22 @@ describe('VariablesOps', () => {
         importData: TestData.createTestVariableExport([TestData.variable10, TestData.variable11]),
         state: state,
       });
+      expect(response).toMatchSnapshot();
+    });
+
+    test('3: Should import all changed variables', async () => {
+      state.setForceUpdate(false);
+      let response = await VariablesOps.importVariables({
+        importData: TestData.createTestVariableExport([TestData.variable2]),
+        state: state,
+      });
+      expect(response.length).toBe(0);
+      response = await VariablesOps.importVariables({
+        importData: TestData.createTestVariableExport([{...TestData.variable2, value: "45" }]),
+        state: state,
+      });
+      expect(response.length).not.toBe(0);
+      expect(response[0].valueBase64).toBe(encode("45"));
       expect(response).toMatchSnapshot();
     });
   });
@@ -333,11 +365,35 @@ describe('VariablesOps', () => {
       });
       expect(response).toMatchSnapshot();
     });
+
+    test('5: Should not update variable if no changes are made', async () => {
+      state.setForceUpdate(false);
+      let response = await VariablesOps.updateVariable({
+        variableId: TestData.variable1._id,
+        description: TestData.variable1.description,
+        expressionType: TestData.variable1.expressionType as VariableExpressionType,
+        value: TestData.variable1.value,
+        noEncode: false,
+        state: state,
+      });
+      expect(response).toBeNull();
+      response = await VariablesOps.updateVariable({
+        variableId: TestData.variable1._id,
+        description: TestData.variable1.description,
+        expressionType: TestData.variable1.expressionType as VariableExpressionType,
+        value: "test new value",
+        noEncode: false,
+        state: state,
+      });
+      expect(response).not.toBeNull();
+      expect(response.valueBase64).toBe(encode("test new value"));
+      expect(response).toMatchSnapshot();
+    });
   });
 
   describe('updateVariableDescription()', () => {
     test('0: Method is implemented', async () => {
-      expect(VariablesOps.updateVariable).toBeDefined();
+      expect(VariablesOps.updateVariableDescription).toBeDefined();
     });
 
     test('1: Update variable18 description', async () => {
@@ -346,6 +402,24 @@ describe('VariablesOps', () => {
         description: TestData.variable18.description,
         state: state,
       });
+      expect(response).toMatchSnapshot();
+    });
+
+    test('2: Do not update variable21 description when no changes', async () => {
+      state.setForceUpdate(false);
+      let response = await VariablesOps.updateVariableDescription({
+        variableId: TestData.variable21._id,
+        description: TestData.variable21.description,
+        state: state,
+      });
+      expect(response).toBeNull();
+      response = await VariablesOps.updateVariableDescription({
+        variableId: TestData.variable21._id,
+        description: "test new description",
+        state: state,
+      });
+      expect(response).not.toBeNull();
+      expect(response.description).toBe("test new description");
       expect(response).toMatchSnapshot();
     });
   });
