@@ -5,6 +5,14 @@
 ### Added
 - Added `createLogTailStream()` to the Log API, a stateful, deduped wrapper around `tail()`. PingOne Advanced Identity Cloud's own tail-endpoint documentation is explicit that each subsequent call's range "starts from the last returned log entry in the previous result (inclusive)" -- the boundary event repeats by design, and the endpoint returns no unique event id to tell repeats apart with. Confirmed live that this can go beyond just that one documented boundary event, redelivering an entire earlier batch verbatim, sometimes even within one poll's own result array. `createLogTailStream()` handles this centrally so callers doing a live polling loop (e.g. an interactive follow-style view) no longer have to reimplement cookie-tracking or dedup for themselves.
 
+## [v4.8.4] - 2026-09-09
+
+### Added
+- Implemented browser-based interactive login enhancements, including the ability to resolve `deploymentType` from a saved connection profile. This update eliminates the need for redundant `--type` flags when using `frodo login --browser <alias>`, streamlining the login process. (#644)
+
+### Fixed
+- Resolved an issue with browser login credential resolution by adding a `credentialOverride` option. This fix ensures that credentials are correctly applied during browser-based authentication processes. (commit 02c64674b)
+
 ## [v4.8.3] - 2026-09-08
 
 ### Fixed
