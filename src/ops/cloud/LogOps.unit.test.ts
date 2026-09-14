@@ -9,6 +9,15 @@ const fetch = jest.fn(async (_args?: any): Promise<any> => ({
   remainingPagedResults: -1,
 }));
 
+const tailMock = jest.fn(async (_args?: any): Promise<any> => ({
+  result: [],
+  resultCount: 0,
+  pagedResultsCookie: null,
+  totalPagedResultsPolicy: 'NONE',
+  totalPagedResults: -1,
+  remainingPagedResults: -1,
+}));
+
 jest.unstable_mockModule('../../api/cloud/LogApi', () => ({
   createLogApiKey: jest.fn(),
   deleteLogApiKey: jest.fn(),
@@ -17,10 +26,10 @@ jest.unstable_mockModule('../../api/cloud/LogApi', () => ({
   getLogApiKeys: jest.fn(),
   getSources: jest.fn(),
   isLogApiKeyValid: jest.fn(),
-  tail: jest.fn(),
+  tail: tailMock,
 }));
 
-const { searchEvents } = await import('./LogOps');
+const { searchEvents, createLogTailStream } = await import('./LogOps');
 
 function mockState() {
   return {} as any;
@@ -293,5 +302,193 @@ describe('searchEvents', () => {
 
     // Would be 3 calls across the full range if not for maxEvents cutting it short after the first chunk.
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('createLogTailStream', () => {
+  beforeEach(() => {
+    tailMock.mockReset();
+  });
+
+  function tailEvent(timestamp: string, payload: unknown) {
+    return {
+      payload,
+      timestamp,
+      type: 'application/json',
+      source: 'am-authentication',
+    };
+  }
+
+  test('threads the cookie returned from each poll into the next', async () => {
+    tailMock
+      .mockResolvedValueOnce({
+        result: [],
+        resultCount: 0,
+        pagedResultsCookie: 'cookie-1',
+        totalPagedResultsPolicy: 'NONE',
+        totalPagedResults: -1,
+        remainingPagedResults: -1,
+      })
+      .mockResolvedValueOnce({
+        result: [],
+        resultCount: 0,
+        pagedResultsCookie: 'cookie-2',
+        totalPagedResultsPolicy: 'NONE',
+        totalPagedResults: -1,
+        remainingPagedResults: -1,
+      });
+
+    const stream = createLogTailStream({
+      source: 'am-authentication',
+      state: mockState(),
+    });
+    await stream.poll();
+    await stream.poll();
+
+    expect(tailMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ cookie: undefined })
+    );
+    expect(tailMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ cookie: 'cookie-1' })
+    );
+  });
+
+  // Regression test: PingOne AIC's own tail-endpoint docs say each
+  // subsequent call's range "starts from the last returned log entry in
+  // the previous result (inclusive)" -- the boundary event is documented
+  // to repeat by design.
+  test("the documented boundary overlap -- the previous poll's last event repeating as the next poll's first -- is filtered out", async () => {
+    const a = tailEvent('t1', { transactionId: 'tx-a' });
+    const b = tailEvent('t2', { transactionId: 'tx-b' });
+    const c = tailEvent('t3', { transactionId: 'tx-c' });
+
+    tailMock
+      .mockResolvedValueOnce({
+        result: [a, b],
+        resultCount: 2,
+        pagedResultsCookie: 'cookie-1',
+        totalPagedResultsPolicy: 'NONE',
+        totalPagedResults: -1,
+        remainingPagedResults: -1,
+      })
+      .mockResolvedValueOnce({
+        result: [b, c],
+        resultCount: 2,
+        pagedResultsCookie: 'cookie-2',
+        totalPagedResultsPolicy: 'NONE',
+        totalPagedResults: -1,
+        remainingPagedResults: -1,
+      });
+
+    const stream = createLogTailStream({
+      source: 'am-authentication',
+      state: mockState(),
+    });
+    const first = await stream.poll();
+    const second = await stream.poll();
+
+    expect(first).toEqual([a, b]);
+    expect(second).toEqual([c]);
+  });
+
+  // Regression test: confirmed live against `volker-dev` that tail() can
+  // redeliver the exact same event twice within a single poll's own
+  // result array, not just across a cookie boundary.
+  test("a redelivered event within a single poll's own result array is also caught", async () => {
+    const a = tailEvent('t1', { transactionId: 'tx-a' });
+    tailMock.mockResolvedValueOnce({
+      result: [a, a],
+      resultCount: 2,
+      pagedResultsCookie: 'cookie-1',
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    });
+
+    const stream = createLogTailStream({
+      source: 'am-authentication',
+      state: mockState(),
+    });
+    const result = await stream.poll();
+
+    expect(result).toHaveLength(1);
+  });
+
+  test('two events with identical payload content but different timestamps are never wrongly deduped', async () => {
+    const a1 = tailEvent('t1', { transactionId: 'tx-a' });
+    const a2 = tailEvent('t2', { transactionId: 'tx-a' });
+    tailMock.mockResolvedValueOnce({
+      result: [a1, a2],
+      resultCount: 2,
+      pagedResultsCookie: 'cookie-1',
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    });
+
+    const stream = createLogTailStream({
+      source: 'am-authentication',
+      state: mockState(),
+    });
+    const result = await stream.poll();
+
+    expect(result).toHaveLength(2);
+  });
+
+  test('an event with no timestamp is never treated as a duplicate (no false-positive drops)', async () => {
+    const noTimestamp = {
+      payload: { transactionId: 'tx-a' },
+      type: 'application/json',
+      source: 'am-authentication',
+    };
+    tailMock.mockResolvedValueOnce({
+      result: [noTimestamp, noTimestamp],
+      resultCount: 2,
+      pagedResultsCookie: 'cookie-1',
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    });
+
+    const stream = createLogTailStream({
+      source: 'am-authentication',
+      state: mockState(),
+    });
+    const result = await stream.poll();
+
+    expect(result).toHaveLength(2);
+  });
+
+  test('a string (debug-source) payload participates in the dedup key too', async () => {
+    const line1 = {
+      payload: 'raw debug line',
+      timestamp: 't1',
+      type: 'text/plain',
+      source: 'am-core',
+    };
+    const line2 = {
+      payload: 'raw debug line',
+      timestamp: 't1',
+      type: 'text/plain',
+      source: 'am-core',
+    };
+    tailMock.mockResolvedValueOnce({
+      result: [line1, line2],
+      resultCount: 2,
+      pagedResultsCookie: 'cookie-1',
+      totalPagedResultsPolicy: 'NONE',
+      totalPagedResults: -1,
+      remainingPagedResults: -1,
+    });
+
+    const stream = createLogTailStream({
+      source: 'am-core',
+      state: mockState(),
+    });
+    const result = await stream.poll();
+
+    expect(result).toHaveLength(1);
   });
 });

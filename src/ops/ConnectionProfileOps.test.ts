@@ -140,6 +140,39 @@ describe('ConnectionProfileOps', () => {
       });
       expect(connections).toHaveLength(0);
     });
+
+    test('4: Never match on a falsy host, even against a profile with no alias set', async () => {
+      // Regression test: `profile.alias === host` used to be `true` for
+      // `undefined === undefined` against the first alias-less profile
+      // (the common case, since alias is optional), silently resolving an
+      // absent host to an arbitrary saved profile instead of reporting
+      // that no host was specified at all.
+      const tenant = exampleHost;
+      const connectionProfiles = {
+        [tenant]: {
+          ...exampleConnectionProfile,
+        },
+      };
+      fs.writeFileSync(
+        connectionProfilePath1,
+        JSON.stringify(connectionProfiles, null, 2)
+      );
+
+      expect(
+        ConnectionProfileOps.findConnectionProfiles({
+          connectionProfiles,
+          host: undefined,
+          state,
+        })
+      ).toHaveLength(0);
+      expect(
+        ConnectionProfileOps.findConnectionProfiles({
+          connectionProfiles,
+          host: '',
+          state,
+        })
+      ).toHaveLength(0);
+    });
   });
 
   describe('saveConnectionProfile()', () => {

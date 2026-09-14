@@ -32,6 +32,7 @@ jest.unstable_mockModule('./BrowserAuthenticateOps', () => ({
   startDeviceAuthorizationFlow,
   refreshBrowserBearerToken,
   exchangeTokenForScope,
+  readMayActClientId: () => undefined,
 }));
 
 const getAuthenticationSettings = jest.fn(async (_args?: any): Promise<any> => ({}));

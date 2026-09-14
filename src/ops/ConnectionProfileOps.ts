@@ -94,6 +94,44 @@ export type ConnectionProfile = {
    * @returns {Promise<IdObjectSkeletonInterface>} A promise resolving to a service account object
    */
   addNewServiceAccount(): Promise<IdObjectSkeletonInterface>;
+  /**
+   * Add a named, independently-addressable service account to a connection
+   * profile, alongside its own single primary service account.
+   * @param {string} host host tenant, host url, unique substring, or alias
+   * @param {string} name unique name for this additional service account, within this profile
+   * @param {string} svcacctId service account uuid
+   * @param {JwkRsa} svcacctJwk service account JWK
+   * @param {string} svcacctScope (optional) granted OAuth2 scope
+   */
+  addAdditionalServiceAccount(
+    host: string,
+    name: string,
+    svcacctId: string,
+    svcacctJwk: JwkRsa,
+    svcacctScope?: string
+  ): Promise<void>;
+  /**
+   * Remove a named additional service account from a connection profile.
+   * @param {string} host host tenant, host url, unique substring, or alias
+   * @param {string} name name of the additional service account to remove
+   */
+  removeAdditionalServiceAccount(host: string, name: string): void;
+  /**
+   * List the additional service accounts on a connection profile (no secrets).
+   * @param {string} host host tenant, host url, unique substring, or alias
+   */
+  listAdditionalServiceAccounts(
+    host: string
+  ): Pick<AdditionalServiceAccountInterface, 'name' | 'svcacctId' | 'svcacctScope'>[];
+  /**
+   * Get one named additional service account from a connection profile, with its JWK decrypted.
+   * @param {string} host host tenant, host url, unique substring, or alias
+   * @param {string} name name of the additional service account to get
+   */
+  getAdditionalServiceAccount(
+    host: string,
+    name: string
+  ): Promise<AdditionalServiceAccountInterface>;
 };
 
 export default (state: State): ConnectionProfile => {
@@ -143,6 +181,36 @@ export default (state: State): ConnectionProfile => {
     async addNewServiceAccount(): Promise<IdObjectSkeletonInterface> {
       return addNewServiceAccount({ state });
     },
+    async addAdditionalServiceAccount(
+      host: string,
+      name: string,
+      svcacctId: string,
+      svcacctJwk: JwkRsa,
+      svcacctScope?: string
+    ): Promise<void> {
+      return addAdditionalServiceAccount({
+        host,
+        name,
+        svcacctId,
+        svcacctJwk,
+        svcacctScope,
+        state,
+      });
+    },
+    removeAdditionalServiceAccount(host: string, name: string): void {
+      removeAdditionalServiceAccount({ host, name, state });
+    },
+    listAdditionalServiceAccounts(
+      host: string
+    ): Pick<AdditionalServiceAccountInterface, 'name' | 'svcacctId' | 'svcacctScope'>[] {
+      return listAdditionalServiceAccounts({ host, state });
+    },
+    async getAdditionalServiceAccount(
+      host: string,
+      name: string
+    ): Promise<AdditionalServiceAccountInterface> {
+      return getAdditionalServiceAccount({ host, name, state });
+    },
   };
 };
 
@@ -182,6 +250,34 @@ export interface SecureConnectionProfileInterface {
   // setDefaultCredential()/getDefaultCredential() for the full contract.
   // Not a secret, so no encoded variant.
   defaultCredential?: 'user' | 'svcacct' | 'amster';
+  // Named service accounts beyond the profile's own single primary one
+  // (svcacctId/encodedSvcacctJwk above), independently addressable by
+  // name — see addAdditionalServiceAccount()'s own remarks for why these
+  // are managed directly rather than mirroring the primary service
+  // account's state-derived save/load path.
+  additionalServiceAccounts?: SecureAdditionalServiceAccountInterface[];
+}
+
+/**
+ * One named, independently-addressable service account on a connection
+ * profile, on-disk (encrypted JWK) shape.
+ */
+export interface SecureAdditionalServiceAccountInterface {
+  name: string;
+  svcacctId: string;
+  encodedSvcacctJwk: string;
+  svcacctScope?: string | null;
+}
+
+/**
+ * One named, independently-addressable service account on a connection
+ * profile, decrypted (in-memory) shape.
+ */
+export interface AdditionalServiceAccountInterface {
+  name: string;
+  svcacctId: string;
+  svcacctJwk: JwkRsa;
+  svcacctScope?: string | null;
 }
 
 export interface ConnectionProfileInterface {
@@ -209,6 +305,7 @@ export interface ConnectionProfileInterface {
   browserLoginClientId?: string | null;
   browserLoginScope?: string | null;
   defaultCredential?: 'user' | 'svcacct' | 'amster';
+  additionalServiceAccounts?: AdditionalServiceAccountInterface[];
 }
 
 export interface ConnectionsFileInterface {
@@ -255,6 +352,15 @@ export function findConnectionProfiles({
   host: string;
   state: State;
 }): SecureConnectionProfileInterface[] {
+  // A falsy host (no host given at all, e.g. a command invoked with no
+  // host argument, no active connection, and no FRODO_HOST) must never
+  // match anything here -- without this guard, `profile.alias === host`
+  // below would be true for `undefined === undefined` against the first
+  // profile with no alias set, and `tenant.includes(host)` would be true
+  // for every tenant if `host` were `''`, silently resolving to an
+  // arbitrary (usually just the oldest-saved) profile instead of reporting
+  // that no host was specified.
+  if (!host) return [];
   const profiles: SecureConnectionProfileInterface[] = [];
   // First check for aliases
   for (const tenant in connectionProfiles) {
@@ -423,6 +529,11 @@ export async function getConnectionProfileByHost({
   const filename = getConnectionProfilesPath({ state });
   if (!fs.statSync(filename, { throwIfNoEntry: false })) {
     throw new FrodoError(`Connection profiles file ${filename} not found`);
+  }
+  if (!host) {
+    throw new FrodoError(
+      `No host specified. Provide a host URL, or a unique substring/alias identifying a saved connection profile.`
+    );
   }
   const connectionsData = JSON.parse(fs.readFileSync(filename, 'utf8'));
   const profiles = findConnectionProfiles({
@@ -1061,4 +1172,204 @@ export async function addNewServiceAccount({
   } catch (error) {
     throw new FrodoError(`Error creating new service account`, error);
   }
+}
+
+/**
+ * Resolves `host` to exactly one connection profile's raw (on-disk,
+ * still-encrypted) record and tenant key, reading the connection profiles
+ * file directly. Shared by the additional-service-account functions below —
+ * unlike the primary service account (whose fields ride along with
+ * whatever this session authenticated as, via `state`), these are managed
+ * directly by explicit parameters, independent of any active session.
+ */
+function loadSingleProfileForHost({
+  host,
+  state,
+}: {
+  host: string;
+  state: State;
+}): { connectionsData: ConnectionsFileInterface; tenant: string } {
+  const filename = getConnectionProfilesPath({ state });
+  if (!fs.statSync(filename, { throwIfNoEntry: false })) {
+    throw new FrodoError(`Connection profiles file ${filename} not found`);
+  }
+  const connectionsData: ConnectionsFileInterface = JSON.parse(
+    fs.readFileSync(filename, 'utf8')
+  );
+  const profiles = findConnectionProfiles({
+    connectionProfiles: connectionsData,
+    host,
+    state,
+  });
+  if (profiles.length === 0) {
+    throw new FrodoError(`No connection profile found matching '${host}'`);
+  }
+  if (profiles.length > 1) {
+    throw new FrodoError(
+      `Multiple matching connection profiles found matching '${host}':\n  - ${profiles
+        .map((profile) => profile.tenant)
+        .join(
+          '\n  - '
+        )}\nSpecify a sub-string uniquely identifying a single connection profile host URL.`
+    );
+  }
+  return { connectionsData, tenant: profiles[0].tenant };
+}
+
+/**
+ * Adds a named, independently-addressable service account to a connection
+ * profile, alongside (not instead of) the profile's own single primary
+ * service account. Built for the MCP HTTP transport's claim-to-credential
+ * mapping ("shared mode"): an operator pre-provisions one or more named
+ * service accounts with different privilege levels, and a claim in an
+ * external caller's token selects which one a session should use, by name.
+ *
+ * @throws {FrodoError} when `name` is already used by another additional
+ * service account on this profile — names must be unique within a profile
+ * so they're a reliable, unambiguous addressing key.
+ */
+export async function addAdditionalServiceAccount({
+  host,
+  name,
+  svcacctId,
+  svcacctJwk,
+  svcacctScope,
+  state,
+}: {
+  host: string;
+  name: string;
+  svcacctId: string;
+  svcacctJwk: JwkRsa;
+  svcacctScope?: string;
+  state: State;
+}): Promise<void> {
+  const { connectionsData, tenant } = loadSingleProfileForHost({
+    host,
+    state,
+  });
+  const existing = connectionsData[tenant].additionalServiceAccounts ?? [];
+  if (existing.some((sa) => sa.name === name)) {
+    throw new FrodoError(
+      `An additional service account named '${name}' already exists on connection profile '${tenant}'. Remove it first, or choose a different name.`
+    );
+  }
+  const dataProtection = new DataProtection({
+    pathToMasterKey: state.getMasterKeyPath(),
+    state,
+  });
+  existing.push({
+    name,
+    svcacctId,
+    encodedSvcacctJwk: await dataProtection.encrypt(svcacctJwk),
+    svcacctScope: svcacctScope ?? null,
+  });
+  connectionsData[tenant].additionalServiceAccounts = existing;
+  const filename = getConnectionProfilesPath({ state });
+  ensureDirectoryForFile(filename);
+  fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
+  debugMessage({
+    message: `ConnectionProfileOps.addAdditionalServiceAccount: added '${name}' to connection profile '${tenant}'`,
+    state,
+  });
+}
+
+/**
+ * Removes a named additional service account from a connection profile.
+ * @throws {FrodoError} when no additional service account with that name exists.
+ */
+export function removeAdditionalServiceAccount({
+  host,
+  name,
+  state,
+}: {
+  host: string;
+  name: string;
+  state: State;
+}): void {
+  const { connectionsData, tenant } = loadSingleProfileForHost({
+    host,
+    state,
+  });
+  const existing = connectionsData[tenant].additionalServiceAccounts ?? [];
+  const index = existing.findIndex((sa) => sa.name === name);
+  if (index === -1) {
+    throw new FrodoError(
+      `No additional service account named '${name}' found on connection profile '${tenant}'.`
+    );
+  }
+  existing.splice(index, 1);
+  connectionsData[tenant].additionalServiceAccounts = existing;
+  const filename = getConnectionProfilesPath({ state });
+  ensureDirectoryForFile(filename);
+  fs.writeFileSync(filename, JSON.stringify(connectionsData, null, 2));
+  debugMessage({
+    message: `ConnectionProfileOps.removeAdditionalServiceAccount: removed '${name}' from connection profile '${tenant}'`,
+    state,
+  });
+}
+
+/**
+ * Lists the additional service accounts on a connection profile, without
+ * decrypting their JWKs (matching `conn list`'s no-secrets-by-default
+ * convention — see {@link getAdditionalServiceAccount} for the decrypted
+ * single-entry form).
+ */
+export function listAdditionalServiceAccounts({
+  host,
+  state,
+}: {
+  host: string;
+  state: State;
+}): Pick<AdditionalServiceAccountInterface, 'name' | 'svcacctId' | 'svcacctScope'>[] {
+  const { connectionsData, tenant } = loadSingleProfileForHost({
+    host,
+    state,
+  });
+  return (connectionsData[tenant].additionalServiceAccounts ?? []).map(
+    (sa) => ({
+      name: sa.name,
+      svcacctId: sa.svcacctId,
+      svcacctScope: sa.svcacctScope ?? null,
+    })
+  );
+}
+
+/**
+ * Gets one named additional service account from a connection profile,
+ * with its JWK decrypted — used both by `conn service-account describe
+ * --show-secrets` and by the MCP HTTP transport's claim-to-credential
+ * resolution ("shared mode").
+ * @throws {FrodoError} when no additional service account with that name exists.
+ */
+export async function getAdditionalServiceAccount({
+  host,
+  name,
+  state,
+}: {
+  host: string;
+  name: string;
+  state: State;
+}): Promise<AdditionalServiceAccountInterface> {
+  const { connectionsData, tenant } = loadSingleProfileForHost({
+    host,
+    state,
+  });
+  const found = (connectionsData[tenant].additionalServiceAccounts ?? []).find(
+    (sa) => sa.name === name
+  );
+  if (!found) {
+    throw new FrodoError(
+      `No additional service account named '${name}' found on connection profile '${tenant}'.`
+    );
+  }
+  const dataProtection = new DataProtection({
+    pathToMasterKey: state.getMasterKeyPath(),
+    state,
+  });
+  return {
+    name: found.name,
+    svcacctId: found.svcacctId,
+    svcacctJwk: await dataProtection.decrypt(found.encodedSvcacctJwk),
+    svcacctScope: found.svcacctScope ?? null,
+  };
 }

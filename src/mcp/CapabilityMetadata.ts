@@ -3012,6 +3012,18 @@ export const CAPABILITY_META: Record<string, OperationCapabilityMeta> = {
     notes:
       'Drives a real interactive browser (or device-code) login and returns the resulting live bearer/session tokens — same credential-exposure shape as login.getTokens, just for a freshly-established browser-mode identity rather than the one already on state. Kept in the inventory at critical risk rather than excluded; only reachable under policies that do not deny critical risk (e.g. admin).',
   },
+  'login.applyAccessToken': {
+    // Internal wiring primitive for a host resolving its own per-request
+    // caller identity from an already-verified external token (e.g. an MCP
+    // server acting as an OAuth2 resource server) — not a capability a tool
+    // caller should invoke themselves. Unlike login.getTokens/
+    // getTokensInteractive (which only ever authenticate using whatever the
+    // operator already configured), this takes arbitrary token material as
+    // its argument and installs it as the live credential on the calling
+    // instance — a different, stranger risk shape with no standalone value
+    // to an agent, so excluded rather than classified.
+    excluded: true,
+  },
 
   'am.config.createConfigEntityExportTemplate': {
     // Pure local builder (no API calls), used internally by

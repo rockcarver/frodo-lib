@@ -46,6 +46,7 @@ jest.unstable_mockModule('./BrowserAuthenticateOps', () => ({
   startDeviceAuthorizationFlow,
   refreshBrowserBearerToken,
   exchangeTokenForScope,
+  readMayActClientId: () => undefined,
 }));
 
 // lookupCallerPrivilegeGroups() (CallerTrustTierOps.ts) calls readUser() at

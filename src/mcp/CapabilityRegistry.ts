@@ -65,6 +65,7 @@ const DEFAULT_INSTANCE_HELPERS = new Set<string>([
   'createInstanceWithServiceAccount',
   'createInstanceWithAmsterAccount',
   'createInstanceWithBrowserLogin',
+  'createInstanceWithAccessToken',
 ]);
 
 /**

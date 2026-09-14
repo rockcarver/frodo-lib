@@ -372,6 +372,32 @@ export type Frodo = {
     debug?: boolean,
     curlirize?: boolean
   ): Frodo;
+
+  /**
+   * Factory helper to create a frodo instance ready to use an already-issued,
+   * externally-obtained OAuth2 access token (e.g. one an MCP server verified
+   * as an OAuth2 resource server). Like `createInstanceWithBrowserLogin`,
+   * this alone doesn't make the instance immediately usable — call
+   * `.login.applyAccessToken(token)` on the returned instance before using
+   * it. Never persists to the local token cache, regardless of the
+   * environment's default: this credential belongs to whoever presented the
+   * token, not to the operator running this process.
+   * @param {string} host host base URL, e.g. 'https://openam-my-tenant.forgeblocks.com/am'
+   * @param {string} realm (optional) override default realm
+   * @param {string} deploymentType deployment type ('cloud', 'forgeops', or 'classic') — required, since there is no existing session to auto-detect it from
+   * @param {boolean} allowInsecureConnection (optional) allow insecure connection
+   * @param {boolean} debug (optional) enable debug output
+   * @param {boolean} curlirize (optional) enable output of all library REST calls as curl commands
+   * @returns {Frodo} frodo instance, not yet ready to use
+   */
+  createInstanceWithAccessToken(
+    host: string,
+    realm?: string,
+    deploymentType?: string,
+    allowInsecureConnection?: boolean,
+    debug?: boolean,
+    curlirize?: boolean
+  ): Frodo;
 };
 
 /**
@@ -523,6 +549,7 @@ const FrodoLib = (config: StateInterface = {}): Frodo => {
     createInstanceWithServiceAccount,
     createInstanceWithAmsterAccount,
     createInstanceWithBrowserLogin,
+    createInstanceWithAccessToken,
   };
 };
 
@@ -625,6 +652,30 @@ function createInstanceWithAdminAccount(
     allowInsecureConnection,
     debug,
     curlirize,
+  };
+  const frodo = FrodoLib(config);
+  return frodo;
+}
+
+function createInstanceWithAccessToken(
+  host: string,
+  realm: string = undefined,
+  deploymentType: string = undefined,
+  allowInsecureConnection = false,
+  debug = false,
+  curlirize = false
+): Frodo {
+  const config: StateInterface = {
+    host,
+    realm,
+    deploymentType,
+    allowInsecureConnection,
+    debug,
+    curlirize,
+    // Never persist an externally-issued token to this process's local
+    // token cache — it belongs to whoever presented it, not to the
+    // operator running this process (see `applyAccessToken()`'s remarks).
+    useTokenCache: false,
   };
   const frodo = FrodoLib(config);
   return frodo;

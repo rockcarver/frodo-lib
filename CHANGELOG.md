@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- Added `createLogTailStream()` to the Log API, a stateful, deduped wrapper around `tail()`. PingOne Advanced Identity Cloud's own tail-endpoint documentation is explicit that each subsequent call's range "starts from the last returned log entry in the previous result (inclusive)" -- the boundary event repeats by design, and the endpoint returns no unique event id to tell repeats apart with. Confirmed live that this can go beyond just that one documented boundary event, redelivering an entire earlier batch verbatim, sometimes even within one poll's own result array. `createLogTailStream()` handles this centrally so callers doing a live polling loop (e.g. an interactive follow-style view) no longer have to reimplement cookie-tracking or dedup for themselves.
+
 ## [v4.8.4] - 2026-09-09
 
 ### Added

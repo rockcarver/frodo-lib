@@ -950,6 +950,16 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<Tokens>} object containing the tokens",
   },
   {
+    typeName: "Authenticate",
+    methodName: "applyAccessToken",
+    signature: "applyAccessToken(token: AccessTokenMetaType): Promise<Tokens>",
+    description: "Applies an already-obtained, externally-issued OAuth2 access token to `state`, ready for immediate use. Unlike `getTokens()`/ `getTokensInteractive()`, this never talks to an authorization endpoint itself — the token was already minted (and, by the caller's own contract, already verified) elsewhere; this only wires it onto `state` using the exact same deployment-type-specific handling a real browser login uses. Intended for hosts that resolve their own caller identity per request (e.g. an MCP server acting as an OAuth2 resource server) rather than performing a login themselves.",
+    params: [
+      { name: "token", type: "AccessTokenMetaType", description: "the already-obtained access token", required: true },
+    ],
+    returns: "{Promise<Tokens>} object containing the tokens",
+  },
+  {
     typeName: "AuthenticationSettings",
     methodName: "readAuthenticationSettings",
     signature: "readAuthenticationSettings( globalConfig: boolean ): Promise<AuthenticationSettingsSkeleton>",
@@ -1263,6 +1273,52 @@ export const helpMetadata: MethodHelpDoc[] = [
     description: "Create a new service account using auto-generated parameters",
     params: [],
     returns: "{Promise<IdObjectSkeletonInterface>} A promise resolving to a service account object",
+  },
+  {
+    typeName: "ConnectionProfile",
+    methodName: "addAdditionalServiceAccount",
+    signature: "addAdditionalServiceAccount( host: string, name: string, svcacctId: string, svcacctJwk: JwkRsa, svcacctScope?: string ): Promise<void>",
+    description: "Add a named, independently-addressable service account to a connection profile, alongside its own single primary service account.",
+    params: [
+      { name: "host", type: "string", description: "host tenant, host url, unique substring, or alias", required: true },
+      { name: "name", type: "string", description: "unique name for this additional service account, within this profile", required: true },
+      { name: "svcacctId", type: "string", description: "service account uuid", required: true },
+      { name: "svcacctJwk", type: "JwkRsa", description: "service account JWK", required: true },
+      { name: "svcacctScope", type: "string", description: "(optional) granted OAuth2 scope", required: false },
+    ],
+    returns: "",
+  },
+  {
+    typeName: "ConnectionProfile",
+    methodName: "removeAdditionalServiceAccount",
+    signature: "removeAdditionalServiceAccount(host: string, name: string): void",
+    description: "Remove a named additional service account from a connection profile.",
+    params: [
+      { name: "host", type: "string", description: "host tenant, host url, unique substring, or alias", required: true },
+      { name: "name", type: "string", description: "name of the additional service account to remove", required: true },
+    ],
+    returns: "",
+  },
+  {
+    typeName: "ConnectionProfile",
+    methodName: "listAdditionalServiceAccounts",
+    signature: "listAdditionalServiceAccounts( host: string ): Pick<AdditionalServiceAccountInterface, 'name' | 'svcacctId' | 'svcacctScope'>[]",
+    description: "List the additional service accounts on a connection profile (no secrets).",
+    params: [
+      { name: "host", type: "string", description: "host tenant, host url, unique substring, or alias", required: true },
+    ],
+    returns: "",
+  },
+  {
+    typeName: "ConnectionProfile",
+    methodName: "getAdditionalServiceAccount",
+    signature: "getAdditionalServiceAccount( host: string, name: string ): Promise<AdditionalServiceAccountInterface>",
+    description: "Get one named additional service account from a connection profile, with its JWK decrypted.",
+    params: [
+      { name: "host", type: "string", description: "host tenant, host url, unique substring, or alias", required: true },
+      { name: "name", type: "string", description: "name of the additional service account to get", required: true },
+    ],
+    returns: "",
   },
   {
     typeName: "Connector",
@@ -2198,6 +2254,14 @@ export const helpMetadata: MethodHelpDoc[] = [
     methodName: "verifySignedJwtToken",
     signature: "verifySignedJwtToken(jwt: string, jwkJson: JwkRsaPublic): Promise<any>",
     description: "",
+    params: [],
+    returns: "",
+  },
+  {
+    typeName: "Jose",
+    methodName: "verifyJwtAgainstJwks",
+    signature: "verifyJwtAgainstJwks( jwt: string, jwks: ExternalJwksDocument ): Promise<Record<string, unknown>>",
+    description: "Verifies a JWT's signature against an arbitrary JWKS document (e.g. a third-party OIDC provider's published key set) and returns its decoded payload. Pure signature verification only — issuer, audience, and expiry are the caller's responsibility.",
     params: [],
     returns: "",
   },
@@ -6373,6 +6437,14 @@ export const helpMetadata: MethodHelpDoc[] = [
     returns: "{Promise<IdmFeatureActionResult>} a promise that resolves to the install result",
   },
   {
+    typeName: "LogTailStream",
+    methodName: "poll",
+    signature: "poll(): Promise<LogEventSkeleton[]>",
+    description: "Polls once for new events since the last poll (the last 15 seconds, on the very first call -- matching the underlying API's own behavior), returning only genuinely new events. Never returns the same event twice, even across repeated calls -- see `createLogTailStream()`.",
+    params: [],
+    returns: "",
+  },
+  {
     typeName: "Log",
     methodName: "getDefaultNoiseFilter",
     signature: "getDefaultNoiseFilter(): string[]",
@@ -6475,6 +6547,16 @@ export const helpMetadata: MethodHelpDoc[] = [
       { name: "cookie", type: "string", description: "paged results cookie", required: true },
     ],
     returns: "{Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result",
+  },
+  {
+    typeName: "Log",
+    methodName: "createLogTailStream",
+    signature: "createLogTailStream(source: string): LogTailStream",
+    description: "Creates a stateful, deduped consumer of `tail()` -- everything a caller doing a live polling loop (e.g. an interactive follow-style view) needs without reimplementing cookie-tracking or dedup itself.",
+    params: [
+      { name: "source", type: "string", description: "log source(s) to tail", required: true },
+    ],
+    returns: "{LogTailStream} a stream object with a `poll()` method",
   },
   {
     typeName: "Log",

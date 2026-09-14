@@ -103,6 +103,7 @@ jest.unstable_mockModule('./BrowserAuthenticateOps', () => ({
   exchangeTokenForScope: jest.fn(async () => {
     throw new Error('exchangeTokenForScope mock not configured');
   }),
+  readMayActClientId: () => undefined,
 }));
 
 // lookupCallerPrivilegeGroups()/classifyCredentialTier() call readUser() —

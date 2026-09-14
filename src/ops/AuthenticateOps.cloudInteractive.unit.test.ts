@@ -44,6 +44,7 @@ jest.unstable_mockModule('./BrowserAuthenticateOps', () => ({
   startDeviceAuthorizationFlow,
   refreshBrowserBearerToken,
   exchangeTokenForScope,
+  readMayActClientId: () => undefined,
 }));
 
 // The cloud interactive path's only touch point into OAuth2OidcOps is the

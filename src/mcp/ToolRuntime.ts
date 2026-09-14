@@ -165,13 +165,56 @@ export type McpRuntimeBrowserAuth = {
 };
 
 /**
+ * Credentials payload for a request context driven by an already-verified,
+ * externally-issued OAuth2 access token — the caller (e.g. an MCP server
+ * acting as an OAuth2 resource server for its HTTP transport) is expected
+ * to have already validated the token (signature/introspection, scope,
+ * expiry) before ever constructing this; this runtime never verifies a
+ * token itself, only wires an already-trusted one onto a fresh instance.
+ *
+ * @remarks
+ * Unlike every other auth mode, resolving this one never calls a login
+ * endpoint at all — see `AuthenticateOps.ts`'s `applyAccessToken()`, which
+ * this ultimately dispatches to.
+ */
+export type McpRuntimeBearerTokenAuth = {
+  /** Discriminator for externally-issued-bearer-token auth mode. */
+  mode: 'bearer-token';
+  /** AM host base URL. */
+  host: string;
+  /** The already-verified access token. */
+  accessToken: string;
+  /** Space-delimited granted scope, when known. */
+  scope?: string;
+  /** Token expiry, epoch milliseconds, when known. */
+  expiresAt?: number;
+  /**
+   * AM SSO session id, when the issuing OAuth2 client has a session-capture
+   * script configured (ForgeOps/classic) and it was already recovered by
+   * the caller (e.g. via `/oauth2/tokeninfo`'s `sessionToken` field).
+   */
+  sessionId?: string;
+  /** Optional realm override. */
+  realm?: string;
+  /** Deployment type — required, since there is no existing session to auto-detect it from. */
+  deploymentType?: string;
+  /** Optional insecure-connection toggle. */
+  allowInsecureConnection?: boolean;
+  /** Optional debug toggle. */
+  debug?: boolean;
+  /** Optional curlirize toggle. */
+  curlirize?: boolean;
+};
+
+/**
  * Union of supported runtime auth modes.
  */
 export type McpRuntimeAuth =
   | McpRuntimeServiceAccountAuth
   | McpRuntimeAdminAccountAuth
   | McpRuntimeStateAuth
-  | McpRuntimeBrowserAuth;
+  | McpRuntimeBrowserAuth
+  | McpRuntimeBearerTokenAuth;
 
 /**
  * Execution-scoped context used to create an isolated Frodo instance.
@@ -1118,6 +1161,19 @@ export function resolveRequestScopedFrodo(
         context.auth.debug,
         context.auth.curlirize
       );
+    case 'bearer-token':
+      // Only seeds bare config (host/realm/deploymentType/connection
+      // options, token cache disabled) — applying the already-verified
+      // token itself happens afterward, in resolveScopedFrodoInstance(),
+      // which calls login.applyAccessToken() instead of getTokens().
+      return frodoRoot.createInstanceWithAccessToken(
+        context.auth.host,
+        context.auth.realm,
+        context.auth.deploymentType,
+        context.auth.allowInsecureConnection,
+        context.auth.debug,
+        context.auth.curlirize
+      );
     default:
       throw new FrodoError(
         `MCP runtime error: unsupported auth mode '${String((context.auth as { mode?: unknown }).mode)}'.`
@@ -1321,6 +1377,16 @@ async function resolveScopedFrodoInstance(
         loginScope: context.auth.loginScope,
         loginRedirectUri: context.auth.loginRedirectUri,
         promptHandler: browserLoginPromptHandler,
+      });
+    } else if (context.auth.mode === 'bearer-token') {
+      const expiresAt = context.auth.expiresAt ?? Date.now();
+      await scopedFrodo.login.applyAccessToken({
+        access_token: context.auth.accessToken,
+        token_type: 'Bearer',
+        scope: context.auth.scope ?? '',
+        expires_in: Math.max(0, Math.round((expiresAt - Date.now()) / 1000)),
+        expires: expiresAt,
+        sessionId: context.auth.sessionId,
       });
     } else {
       await scopedFrodo.login.getTokens();

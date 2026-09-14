@@ -23,6 +23,7 @@ import { createPkcePair } from '../utils/PkceUtils';
 import {
   BrowserLoginPromptHandler,
   exchangeTokenForScope,
+  readMayActClientId,
   refreshBrowserBearerToken,
   runInteractiveAuthorizationCodeFlow,
   startDeviceAuthorizationFlow,
@@ -108,6 +109,20 @@ export type Authenticate = {
    * @returns {Promise<Tokens>} object containing the tokens
    */
   getTokensInteractive(options: BrowserLoginOptions): Promise<Tokens>;
+  /**
+   * Applies an already-obtained, externally-issued OAuth2 access token to
+   * `state`, ready for immediate use. Unlike `getTokens()`/
+   * `getTokensInteractive()`, this never talks to an authorization endpoint
+   * itself — the token was already minted (and, by the caller's own
+   * contract, already verified) elsewhere; this only wires it onto `state`
+   * using the exact same deployment-type-specific handling a real browser
+   * login uses. Intended for hosts that resolve their own caller identity
+   * per request (e.g. an MCP server acting as an OAuth2 resource server)
+   * rather than performing a login themselves.
+   * @param {AccessTokenMetaType} token the already-obtained access token
+   * @returns {Promise<Tokens>} object containing the tokens
+   */
+  applyAccessToken(token: AccessTokenMetaType): Promise<Tokens>;
 };
 
 export default (state: State): Authenticate => {
@@ -134,6 +149,9 @@ export default (state: State): Authenticate => {
     },
     async getTokensInteractive(options: BrowserLoginOptions) {
       return getTokensInteractive({ ...options, state });
+    },
+    async applyAccessToken(token: AccessTokenMetaType) {
+      return applyAccessToken({ token, state });
     },
   };
 };
@@ -2377,12 +2395,23 @@ async function applyClassicInteractiveToken({
 
 /**
  * Applies a cloud browser-login token response to `state`: wires the
- * primary (IDM-only) bearer token, and installs the on-demand AM credential
- * provider that mints a fresh, short-lived RFC 8693-exchanged token
- * immediately before each AM-domain call (see the plan doc's Phase B).
- * Shared between a fresh interactive login and a cache-hit session-reuse
- * resume in a brand-new process — the provider closure is process-local and
- * never persisted, so it must be reinstalled either way.
+ * primary (IDM-only, by default) bearer token, and installs the on-demand
+ * AM credential provider used for every AM-domain call.
+ *
+ * @remarks
+ * The provider's behavior depends on whether the token actually carries a
+ * `may_act` claim (a real interactive/browser-obtained token minted through
+ * a client like `AICMCPClient` does; a BYOT — bring-your-own-token — token
+ * obtained via a service-account-style flow does not, since AM already
+ * accepts that kind directly): when present, it mints a fresh, short-lived
+ * RFC 8693-exchanged token immediately before each AM-domain call (see the
+ * plan doc's Phase B); when absent, it falls back to using the primary
+ * token directly, matching the non-interactive service-account login path
+ * (`state.setUseBearerTokenForAmApis(true)`) — never throwing for a token
+ * shape this provider just doesn't need to exchange. Shared between a
+ * fresh interactive login, a cache-hit session-reuse resume, and BYOT
+ * (`applyAccessToken`) in a brand-new process — the provider closure is
+ * process-local and never persisted, so it must be reinstalled either way.
  */
 async function applyCloudInteractiveToken({
   token,
@@ -2391,14 +2420,28 @@ async function applyCloudInteractiveToken({
   token: AccessTokenMetaType;
   state: State;
 }): Promise<string | undefined> {
-  // Deliberately not `state.setUseBearerTokenForAmApis(true)`: unlike
-  // the service-account path, this primary token is only accepted by
-  // IDM. AM-domain calls need a fresh RFC 8693 exchange
-  // (`exchangeTokenForScope`) immediately before each call — see the
-  // plan doc's Phase B for the full evidence trail. Setting the flag
-  // here would make every AM call fail with 401 using the wrong token.
+  // Deliberately not `state.setUseBearerTokenForAmApis(true)` here: unlike
+  // the service-account path, a real browser-login primary token is only
+  // accepted by IDM directly — AM-domain calls need the RFC 8693 exchange
+  // below. Setting the flag unconditionally would make every AM call for
+  // such a token fail with 401 using the wrong token. BYOT tokens that
+  // don't need the exchange are instead handled per-call, inside the
+  // provider below (not here), since that's the only place able to tell
+  // the two shapes apart cheaply (by inspecting the token itself).
   state.setBearerTokenMeta(token);
   state.setAmCredentialProvider(async (requiredScopes) => {
+    const subjectToken = state.getBearerToken();
+    // BYOT: a token minted through a client with no `may_act` delegation
+    // has nothing to exchange — it's already directly AM-usable (the same
+    // shape a non-interactive service-account login already uses without
+    // any exchange step). Only attempt the RFC 8693 exchange when the
+    // token actually names a client to exchange through.
+    if (!readMayActClientId(subjectToken)) {
+      return {
+        header: 'Authorization',
+        value: `Bearer ${subjectToken}`,
+      };
+    }
     const scope = resolveAvailableScope({
       requiredScopes:
         requiredScopes && requiredScopes.length > 0
@@ -2407,7 +2450,7 @@ async function applyCloudInteractiveToken({
       state,
     });
     const exchanged = await exchangeTokenForScope({
-      subjectToken: state.getBearerToken(),
+      subjectToken,
       scope,
       state,
     });
@@ -2453,6 +2496,67 @@ function applyInteractiveToken({
       throw new FrodoError(
         `Browser login is not yet implemented for deployment type '${deploymentType}'. Supported: ${Constants.CLOUD_DEPLOYMENT_TYPE_KEY}, ${Constants.FORGEOPS_DEPLOYMENT_TYPE_KEY}, ${Constants.CLASSIC_DEPLOYMENT_TYPE_KEY}.`
       );
+  }
+}
+
+/**
+ * Applies an already-obtained, externally-issued access token to `state`,
+ * ready for immediate use.
+ *
+ * @remarks
+ * Reuses `applyInteractiveToken()` — the same deployment-type-specific
+ * wiring a real browser login uses — so an externally-issued token gets
+ * identical treatment: cloud gets the on-demand RFC 8693 token-exchange
+ * credential provider for AM-domain access (`applyCloudInteractiveToken()`),
+ * ForgeOps/classic get session-capture-script handling when the token
+ * carries a `sessionId` (`applyForgeopsInteractiveToken()`/
+ * `applyClassicInteractiveToken()`). Unlike a real browser login, no
+ * authorization endpoint is ever called here — the token already exists and,
+ * by this function's contract, was already verified by the caller before
+ * being handed to it.
+ *
+ * Deliberately never touches the token cache, regardless of
+ * `state.getUseTokenCache()`: this credential belongs to whichever remote
+ * party presented it for this one request, not to the operator who owns
+ * this process's local `Connections.json`/token cache, so nothing about it
+ * should be persisted to disk.
+ */
+async function applyAccessToken({
+  token,
+  state,
+}: {
+  token: AccessTokenMetaType;
+  state: State;
+}): Promise<Tokens> {
+  const deploymentType = state.getDeploymentType();
+  if (!deploymentType) {
+    throw new FrodoError(
+      `Cannot apply an externally-issued access token: no deployment type is configured on this instance.`
+    );
+  }
+  try {
+    const knownUsername = await applyInteractiveToken({
+      deploymentType,
+      token,
+      state,
+    });
+    const resolvedSubject = await resolveBrowserLoginSubject({
+      rawSubject: getBrowserLoginSubject(token),
+      knownUsername,
+      deploymentType,
+      state,
+    });
+    state.setUsername(resolvedSubject);
+    return {
+      bearerToken: state.getBearerTokenMeta(),
+      userSessionToken: state.getUserSessionTokenMeta(),
+      pfBearerToken: state.getPfBearerTokenMeta(),
+      subject: resolvedSubject,
+      host: state.getHost(),
+      realm: state.getRealm() ? state.getRealm() : 'root',
+    };
+  } catch (error) {
+    throw new FrodoError(`Error applying access token`, error);
   }
 }
 

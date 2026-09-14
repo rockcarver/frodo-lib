@@ -158,3 +158,54 @@ describe('JoseOps - verifySignedJwtToken()', () => {
     ).toBeTruthy();
   });
 });
+
+describe('JoseOps - verifyJwtAgainstJwks()', () => {
+  test('verifyJwtAgainstJwks() 0: Method is implemented', async () => {
+    expect(Jose.verifyJwtAgainstJwks).toBeDefined();
+  });
+
+  test('verifyJwtAgainstJwks() 1: Verifies a JWT against a multi-key JWKS, selecting the right key by kid', async () => {
+    const signingJwk = await Jose.createJwkRsa();
+    // A second, unrelated key in the JWKS — proves kid-based selection,
+    // not "verifies against the first/only key" (the shape a real
+    // external IDP's published JWKS always has: multiple keys, rotated
+    // over time).
+    const otherJwk = await Jose.createJwkRsa();
+    const jwks = Jose.createJwks(
+      await Jose.getJwkRsaPublic(otherJwk),
+      await Jose.getJwkRsaPublic(signingJwk)
+    );
+
+    const payload = {
+      iss: 'https://login.microsoftonline.com/tenant-id/v2.0',
+      aud: 'test-client-id',
+      sub: 'user-123',
+      groups: ['frodo-mcp-admins'],
+      exp: Math.floor(Date.now() / 1000 + 180),
+    };
+    // A real external IDP's tokens always carry a `kid` header naming
+    // which of its (rotated) JWKS keys signed them — required here for
+    // node-jose's keystore to pick the right one out of several
+    // candidates. createSignedJwtToken() itself deliberately omits `kid`
+    // by default (node-jose/node-jose#253), so it's set explicitly.
+    const jwt = await Jose.createSignedJwtToken(payload, signingJwk, {
+      kid: signingJwk.kid,
+    });
+
+    const verified = await Jose.verifyJwtAgainstJwks(jwt, jwks as any);
+    expect(verified).toEqual(payload);
+  });
+
+  test('verifyJwtAgainstJwks() 2: Throws when the JWT was not signed by any key in the JWKS', async () => {
+    const signingJwk = await Jose.createJwkRsa();
+    const unrelatedJwk = await Jose.createJwkRsa();
+    const jwks = Jose.createJwks(await Jose.getJwkRsaPublic(unrelatedJwk));
+
+    const jwt = await Jose.createSignedJwtToken(
+      { sub: 'user-123' },
+      signingJwk
+    );
+
+    await expect(Jose.verifyJwtAgainstJwks(jwt, jwks as any)).rejects.toThrow();
+  });
+});

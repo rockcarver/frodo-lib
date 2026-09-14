@@ -8,6 +8,16 @@ export type Jose = {
   createJwks(...keys: JwkInterface[]): JwksInterface;
   createSignedJwtToken(payload: string | object, jwkJson: JwkRsa): Promise<any>;
   verifySignedJwtToken(jwt: string, jwkJson: JwkRsaPublic): Promise<any>;
+  /**
+   * Verifies a JWT's signature against an arbitrary JWKS document (e.g. a
+   * third-party OIDC provider's published key set) and returns its decoded
+   * payload. Pure signature verification only — issuer, audience, and
+   * expiry are the caller's responsibility.
+   */
+  verifyJwtAgainstJwks(
+    jwt: string,
+    jwks: ExternalJwksDocument
+  ): Promise<Record<string, unknown>>;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -31,6 +41,13 @@ export default (_state: State) => {
 
     async verifySignedJwtToken(jwt: string, jwkJson: JwkRsaPublic) {
       return verifySignedJwtToken(jwt, jwkJson);
+    },
+
+    async verifyJwtAgainstJwks(
+      jwt: string,
+      jwks: ExternalJwksDocument
+    ): Promise<Record<string, unknown>> {
+      return verifyJwtAgainstJwks(jwt, jwks);
     },
   };
 };
@@ -65,6 +82,18 @@ export type JwkRsaPublic = JwkInterface & {
 
 export interface JwksInterface {
   keys: JwkInterface[];
+}
+
+/**
+ * A JWKS document as published by an arbitrary third-party OIDC provider,
+ * consumed (not created) by frodo — deliberately looser than
+ * {@link JwksInterface}/{@link JwkInterface}, which model keys frodo itself
+ * creates and can guarantee the shape of (e.g. always carrying `alg`).
+ * A real external IDP's JWKS entries commonly omit fields like `alg`
+ * while still being perfectly valid, verifiable keys.
+ */
+export interface ExternalJwksDocument {
+  keys: Record<string, unknown>[];
 }
 
 export async function createJwkRsa(): Promise<JwkRsa> {
@@ -108,4 +137,24 @@ export async function verifySignedJwtToken(jwt: string, jwkJson: JwkRsaPublic) {
   const jwk = await jose.JWK.asKey(jwkJson);
   const verifyResult = await jose.JWS.createVerify(jwk).verify(jwt);
   return verifyResult;
+}
+
+/**
+ * Verifies a JWT's signature against an arbitrary JWKS document (e.g. a
+ * third-party OIDC provider's published key set — `node-jose`'s keystore
+ * selects the right key by the token's own `kid` header) and returns its
+ * decoded payload. Pure signature verification only — issuer, audience,
+ * and expiry are the caller's responsibility.
+ * @throws if the signature does not verify against any key in the JWKS,
+ * or the payload is not valid JSON.
+ */
+export async function verifyJwtAgainstJwks(
+  jwt: string,
+  jwks: ExternalJwksDocument
+): Promise<Record<string, unknown>> {
+  const keystore = await jose.JWK.asKeyStore(
+    jwks as unknown as Parameters<typeof jose.JWK.asKeyStore>[0]
+  );
+  const verifyResult = await jose.JWS.createVerify(keystore).verify(jwt);
+  return JSON.parse(verifyResult.payload.toString('utf8'));
 }

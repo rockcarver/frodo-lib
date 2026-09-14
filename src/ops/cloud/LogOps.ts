@@ -15,6 +15,16 @@ import {
 import { State } from '../../shared/State';
 import { FrodoError } from '../FrodoError';
 
+export type LogTailStream = {
+  /**
+   * Polls once for new events since the last poll (the last 15 seconds, on
+   * the very first call -- matching the underlying API's own behavior),
+   * returning only genuinely new events. Never returns the same event
+   * twice, even across repeated calls -- see `createLogTailStream()`.
+   */
+  poll(): Promise<LogEventSkeleton[]>;
+};
+
 export type Log = {
   /**
    * Get default noise filter
@@ -80,6 +90,25 @@ export type Log = {
    * @returns {Promise<PagedResult<LogEventSkeleton>>} promise resolving to paged log event result
    */
   tail(source: string, cookie: string): Promise<PagedResult<LogEventSkeleton>>;
+  /**
+   * Creates a stateful, deduped consumer of `tail()` -- everything a caller
+   * doing a live polling loop (e.g. an interactive follow-style view) needs
+   * without reimplementing cookie-tracking or dedup itself.
+   * @remarks
+   * PingOne AIC's own tail-endpoint documentation is explicit that each
+   * subsequent call's range "starts from the last returned log entry in
+   * the previous result (**inclusive**)" -- the boundary event is
+   * documented to repeat by design, and the endpoint returns no unique
+   * event id at all to tell repeats apart with (confirmed live: unlike
+   * `fetch()`, whose results do carry `_id`). A real live poll loop against
+   * `am-authentication` also showed `tail()` redeliver a whole earlier
+   * batch verbatim -- sometimes even within one poll's own result array,
+   * not just across a cookie boundary -- so this dedupes broadly by event
+   * content, not merely by skipping one known boundary event.
+   * @param {string} source log source(s) to tail
+   * @returns {LogTailStream} a stream object with a `poll()` method
+   */
+  createLogTailStream(source: string): LogTailStream;
   /**
    * Fetch logs
    * @param {string} source log source(s) to tail
@@ -158,6 +187,9 @@ export default (state: State): Log => {
       cookie: string
     ): Promise<PagedResult<LogEventSkeleton>> {
       return tail({ source, cookie, state });
+    },
+    createLogTailStream(source: string): LogTailStream {
+      return createLogTailStream({ source, state });
     },
     async fetch(
       source: string,
@@ -615,6 +647,65 @@ export async function tail({
   } catch (error) {
     throw new FrodoError(`Error tailing logs`, error);
   }
+}
+
+// Bounds the tail-stream dedup set -- only ever needs to catch repeats a
+// poll or two apart (the documented boundary overlap, or a real broader
+// redelivery confirmed live), not attempt exactly-once delivery over a
+// tail stream's entire, potentially very long, lifetime.
+const MAX_TAIL_DEDUPE_KEYS = 5000;
+
+/** A content-based dedup key (timestamp + full payload) -- deliberately not tied to any one log source's own shape (e.g. `transactionId`), since `createLogTailStream()` is used across every source, several of which (debug sources like `am-core`) carry no structured payload at all. `undefined` when the event lacks even a timestamp, so it's never treated as a duplicate rather than risk a false-positive drop. */
+function tailDedupeKey(event: LogEventSkeleton): string | undefined {
+  if (!event.timestamp) return undefined;
+  const payloadText =
+    typeof event.payload === 'string'
+      ? event.payload
+      : JSON.stringify(event.payload);
+  return `${event.timestamp}|${payloadText}`;
+}
+
+/**
+ * Creates a stateful, deduped consumer of `tail()` -- see the `Log` type's
+ * own remarks on `createLogTailStream` for why this exists at all instead
+ * of leaving every caller to dedupe `tail()` for itself.
+ * @param {string} source log source(s) to tail
+ * @param {State} state library state
+ * @returns {LogTailStream} a stream object with a `poll()` method
+ */
+export function createLogTailStream({
+  source,
+  state,
+}: {
+  source: string;
+  state: State;
+}): LogTailStream {
+  let cookie: string | undefined;
+  const seen = new Set<string>();
+  const seenOrder: string[] = [];
+
+  return {
+    async poll(): Promise<LogEventSkeleton[]> {
+      const page = await tail({ source, cookie, state });
+      cookie = page.pagedResultsCookie;
+      const events = Array.isArray(page.result) ? page.result : [];
+      const fresh: LogEventSkeleton[] = [];
+      for (const event of events) {
+        const key = tailDedupeKey(event);
+        if (key) {
+          if (seen.has(key)) continue;
+          seen.add(key);
+          seenOrder.push(key);
+          if (seenOrder.length > MAX_TAIL_DEDUPE_KEYS) {
+            const oldest = seenOrder.shift();
+            if (oldest) seen.delete(oldest);
+          }
+        }
+        fresh.push(event);
+      }
+      return fresh;
+    },
+  };
 }
 
 /**

@@ -387,8 +387,13 @@ export async function refreshBrowserBearerToken({
   });
 }
 
-/** Reads the `may_act.client_id` claim off a decoded access token, if present. */
-function readMayActClientId(jwt: string): string | undefined {
+/**
+ * Reads the `may_act.client_id` claim off a decoded access token, if
+ * present. Exported so callers can decide *whether* a token needs an RFC
+ * 8693 exchange before attempting one — see `applyCloudInteractiveToken`'s
+ * BYOT (bring-your-own-token) fallback in `AuthenticateOps.ts`.
+ */
+export function readMayActClientId(jwt: string): string | undefined {
   try {
     const payload = decodeJwtPayload(jwt);
     const mayAct = payload['may_act'] as { client_id?: string } | undefined;
