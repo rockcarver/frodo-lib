@@ -430,6 +430,26 @@ exports[`ResourceTypeOps importFirstResourceType() 1: Import first resource type
 }
 `;
 
+exports[`ResourceTypeOps importFirstResourceType() 2: Do not import first resource type with no changes 1`] = `
+{
+  "actions": {
+    "action1": true,
+    "action2": true,
+  },
+  "createdBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+  "creationDate": 1788909639168,
+  "description": "test new description",
+  "lastModifiedBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+  "lastModifiedDate": 1788909640553,
+  "name": "FrodoTestResourceType8",
+  "patterns": [
+    "pattern2://*:*/*?*",
+    "pattern1://*:*/*",
+  ],
+  "uuid": "84f7b719-cbd4-4b82-8170-6c230f2973be",
+}
+`;
+
 exports[`ResourceTypeOps importResourceType() 1: Import existing resource type by uuid [993eba78-1c3f-4f27-b205-b4b29418f831 - FrodoTestResourceType11] 1`] = `
 {
   "actions": {
@@ -452,6 +472,26 @@ exports[`ResourceTypeOps importResourceType() 1: Import existing resource type b
 
 exports[`ResourceTypeOps importResourceType() 2: Import non-existing resource type by uuid [00000000-0000-0000-0000-000000000000] 1`] = `"Resource type 00000000-0000-0000-0000-000000000000 not found in import data"`;
 
+exports[`ResourceTypeOps importResourceType() 3: Do not import resource type by uuid [cef1897f-1be5-4025-beed-a155605e2f83 - FrodoTestResourceType5] with no changes 1`] = `
+{
+  "actions": {
+    "action1": true,
+    "action2": true,
+  },
+  "createdBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+  "creationDate": 1788909638725,
+  "description": "test new description",
+  "lastModifiedBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+  "lastModifiedDate": 1788909640055,
+  "name": "FrodoTestResourceType5",
+  "patterns": [
+    "pattern2://*:*/*?*",
+    "pattern1://*:*/*",
+  ],
+  "uuid": "cef1897f-1be5-4025-beed-a155605e2f83",
+}
+`;
+
 exports[`ResourceTypeOps importResourceTypeByName() 1: Export existing resource type by name [FrodoTestResourceType12 - 3fc799d7-b73f-49e0-a70b-e37990e54e56] 1`] = `
 {
   "actions": {
@@ -473,6 +513,26 @@ exports[`ResourceTypeOps importResourceTypeByName() 1: Export existing resource 
 `;
 
 exports[`ResourceTypeOps importResourceTypeByName() 2: Export non-existing resource type by name [DoesNotExist] 1`] = `"Resource type DoesNotExist not found in import data"`;
+
+exports[`ResourceTypeOps importResourceTypeByName() 3: Do not import resource type by name [FrodoTestResourceType7 - 3d66c934-9bab-4363-973b-f5502245decc] with no changes 1`] = `
+{
+  "actions": {
+    "action1": true,
+    "action2": true,
+  },
+  "createdBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+  "creationDate": 1788909638970,
+  "description": "test new description",
+  "lastModifiedBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+  "lastModifiedDate": 1788909640305,
+  "name": "FrodoTestResourceType7",
+  "patterns": [
+    "pattern2://*:*/*?*",
+    "pattern1://*:*/*",
+  ],
+  "uuid": "3d66c934-9bab-4363-973b-f5502245decc",
+}
+`;
 
 exports[`ResourceTypeOps importResourceTypes() 1: Import all resource types 1`] = `
 [
@@ -509,6 +569,28 @@ exports[`ResourceTypeOps importResourceTypes() 1: Import all resource types 1`] 
       "pattern1://*:*/*",
     ],
     "uuid": "3c5f13af-ca17-403e-b47d-d15263cce954",
+  },
+]
+`;
+
+exports[`ResourceTypeOps importResourceTypes() 2: Import all changed resource types 1`] = `
+[
+  {
+    "actions": {
+      "action1": true,
+      "action2": true,
+    },
+    "createdBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+    "creationDate": 1788909639342,
+    "description": "test new description",
+    "lastModifiedBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+    "lastModifiedDate": 1788909640799,
+    "name": "FrodoTestResourceType9",
+    "patterns": [
+      "pattern2://*:*/*?*",
+      "pattern1://*:*/*",
+    ],
+    "uuid": "0c2b73b2-f18f-4634-85ec-14dc71f1b216",
   },
 ]
 `;
@@ -861,4 +943,24 @@ exports[`ResourceTypeOps updateResourceType() 2: Update non-existing resource ty
     Code: ERR_BAD_REQUEST
     Reason: Not Found
     Message: Resource Type 05e5fdb6-435e-43d9-b707-c73f7f347358 does not exist in realm /alpha"
+`;
+
+exports[`ResourceTypeOps updateResourceType() 3: Do not update existing resource type [e219144d-8d94-47b6-8789-3a7b820d6cde - FrodoTestResourceType4] with no changes 1`] = `
+{
+  "actions": {
+    "action1": true,
+    "action2": true,
+  },
+  "createdBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+  "creationDate": 1788909638561,
+  "description": "test new description",
+  "lastModifiedBy": "id=9f7b6b8b-6ab5-45b3-aad5-5bda19eb3064,ou=user,ou=am-config",
+  "lastModifiedDate": 1788909639793,
+  "name": "FrodoTestResourceType4",
+  "patterns": [
+    "pattern2://*:*/*?*",
+    "pattern1://*:*/*",
+  ],
+  "uuid": "e219144d-8d94-47b6-8789-3a7b820d6cde",
+}
 `;

@@ -114,6 +114,7 @@ export function setDefaultState(
       break;
   }
   state.setDeploymentType(process.env.FRODO_DEPLOY || deployment);
+  state.setForceUpdate(true);
 }
 
 export function autoSetupPolly(matchRequestsBy = defaultMatchRequestsBy()) {

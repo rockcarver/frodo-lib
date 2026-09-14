@@ -1,5 +1,8 @@
 import { autoSetupPolly } from '../../utils/AutoSetupPolly';
-import { filterRecording } from '../../utils/PollyUtils';
+import {
+  filterRecording,
+  orderedMatchRequestsBy,
+} from '../../utils/PollyUtils';
 import { state } from '../../index';
 import * as VariablesOps from '../../ops/cloud/VariablesOps';
 import {
@@ -140,6 +143,20 @@ export const variable19 = createTestVariable({
   expressionType: 'string',
 });
 
+export const variable20 = createTestVariable({
+  id: 'esv-frodo-test-variable-20',
+  value: 'value20',
+  description: 'description20',
+  expressionType: 'string',
+});
+
+export const variable21 = createTestVariable({
+  id: 'esv-frodo-test-variable-21',
+  value: 'value21',
+  description: 'description21',
+  expressionType: 'string',
+});
+
 function createTestVariable({
   id,
   description,
@@ -199,10 +216,11 @@ export async function stageVariable(variable: VariableSkeleton, create = true) {
 }
 
 export async function setup() {
-  const ctx = autoSetupPolly();
+  const ctx = autoSetupPolly(orderedMatchRequestsBy());
 
   // filter out secrets when recording
   beforeEach(async () => {
+    state.setForceUpdate(true);
     if (process.env.FRODO_POLLY_MODE === 'record') {
       ctx.polly.server.any().on('beforePersist', (_req, recording) => {
         filterRecording(recording);
@@ -232,6 +250,8 @@ export async function setup() {
       await stageVariable(variable17, false);
       await stageVariable(variable18);
       await stageVariable(variable19);
+      await stageVariable(variable20);
+      await stageVariable(variable21);
     }
   });
 
@@ -257,6 +277,8 @@ export async function setup() {
       await stageVariable(variable17, false);
       await stageVariable(variable18, false);
       await stageVariable(variable19, false);
+      await stageVariable(variable20, false);
+      await stageVariable(variable21, false);
     }
   });
 }

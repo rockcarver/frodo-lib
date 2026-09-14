@@ -14,7 +14,7 @@ import {
   stopProgressIndicator,
   updateProgressIndicator,
 } from '../utils/Console';
-import { getMetadata } from '../utils/ExportImportUtils';
+import { getMetadata, updateRemote } from '../utils/ExportImportUtils';
 import { getCurrentRealmName } from '../utils/ForgeRockUtils';
 import { FrodoError } from './FrodoError';
 import { ExportMetaData } from './OpsTypes';
@@ -51,13 +51,14 @@ export type ResourceType = {
   ): Promise<ResourceTypeSkeleton>;
   /**
    * Update resource type
+   * @param resourceTypeUuid resource type uuid
    * @param {string} resourceTypeData resource type data
-   * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
+   * @returns {Promise<ResourceTypeSkeleton | null>} a promise that resolves to a resource type object, or null if no update was made
    */
   updateResourceType(
     resourceTypeUuid: string,
     resourceTypeData: ResourceTypeSkeleton
-  ): Promise<ResourceTypeSkeleton>;
+  ): Promise<ResourceTypeSkeleton | null>;
   /**
    * Delete resource type
    * @param {string} resourceTypeUuid resource type uuid
@@ -97,32 +98,38 @@ export type ResourceType = {
    * Import resource type by uuid
    * @param {string} resourceTypeUuid client uuid
    * @param {ResourceTypeExportInterface} importData import data
+   * @returns {Promise<ResourceTypeSkeleton | null>} a promise that resolves to the imported resource type object, or null if no update was made
    */
   importResourceType(
     resourceTypeUuid: string,
     importData: ResourceTypeExportInterface
-  ): Promise<any>;
+  ): Promise<ResourceTypeSkeleton | null>;
   /**
    * Import resource type by name
    * @param {string} resourceTypeName client id
    * @param {ResourceTypeExportInterface} importData import data
+   * @returns {Promise<ResourceTypeSkeleton | null>} a promise that resolves to the imported resource type object, or null if no update was made
    */
   importResourceTypeByName(
     resourceTypeName: string,
     importData: ResourceTypeExportInterface
-  ): Promise<any>;
+  ): Promise<ResourceTypeSkeleton | null>;
   /**
    * Import first resource type
    * @param {ResourceTypeExportInterface} importData import data
+   * @returns {Promise<ResourceTypeSkeleton | null>} a promise that resolves to the imported resource type object, or null if no update was made
    */
   importFirstResourceType(
     importData: ResourceTypeExportInterface
-  ): Promise<any>;
+  ): Promise<ResourceTypeSkeleton | null>;
   /**
    * Import resource types
    * @param {ResourceTypeExportInterface} importData import data
+   * @returns {Promise<ResourceTypeSkeleton[]>} a promise that resolves to the imported resource type objects
    */
-  importResourceTypes(importData: ResourceTypeExportInterface): Promise<any[]>;
+  importResourceTypes(
+    importData: ResourceTypeExportInterface
+  ): Promise<ResourceTypeSkeleton[]>;
 };
 
 export default (state: State): ResourceType => {
@@ -147,7 +154,7 @@ export default (state: State): ResourceType => {
     async updateResourceType(
       resourceTypeUuid: string,
       resourceTypeData: ResourceTypeSkeleton
-    ): Promise<ResourceTypeSkeleton> {
+    ): Promise<ResourceTypeSkeleton | null> {
       return updateResourceType({
         resourceTypeUuid,
         resourceTypeData,
@@ -178,7 +185,7 @@ export default (state: State): ResourceType => {
     async importResourceType(
       resourceTypeUuid: string,
       importData: ResourceTypeExportInterface
-    ) {
+    ): Promise<ResourceTypeSkeleton | null> {
       return importResourceType({
         resourceTypeUuid,
         importData,
@@ -188,17 +195,21 @@ export default (state: State): ResourceType => {
     async importResourceTypeByName(
       resourceTypeName: string,
       importData: ResourceTypeExportInterface
-    ) {
+    ): Promise<ResourceTypeSkeleton | null> {
       return importResourceTypeByName({
         resourceTypeName,
         importData,
         state,
       });
     },
-    async importFirstResourceType(importData: ResourceTypeExportInterface) {
+    async importFirstResourceType(
+      importData: ResourceTypeExportInterface
+    ): Promise<ResourceTypeSkeleton | null> {
       return importFirstResourceType({ importData, state });
     },
-    async importResourceTypes(importData: ResourceTypeExportInterface) {
+    async importResourceTypes(
+      importData: ResourceTypeExportInterface
+    ): Promise<ResourceTypeSkeleton[]> {
       return importResourceTypes({ importData, state });
     },
   };
@@ -304,8 +315,9 @@ export async function readResourceTypeByName({
 
 /**
  * Update resource type
- * @param {string} resourceTypeData resource type id
- * @returns {Promise<ResourceTypeSkeleton>} a promise that resolves to a resource type object
+ * @param resourceTypeUuid resource type uuid
+ * @param {string} resourceTypeData resource type data
+ * @returns {Promise<ResourceTypeSkeleton | null>} a promise that resolves to a resource type object, or null if no update was made
  */
 export async function updateResourceType({
   resourceTypeUuid,
@@ -315,14 +327,16 @@ export async function updateResourceType({
   resourceTypeUuid: string;
   resourceTypeData: ResourceTypeSkeleton;
   state: State;
-}): Promise<ResourceTypeSkeleton> {
+}): Promise<ResourceTypeSkeleton | null> {
   try {
-    const response = await _putResourceType({
-      resourceTypeUuid,
-      resourceTypeData,
+    return await updateRemote({
+      data: resourceTypeData,
+      type: 'resource type',
+      readFn: async () => await readResourceType({ resourceTypeUuid, state }),
+      updateFn: async () =>
+        await _putResourceType({ resourceTypeUuid, resourceTypeData, state }),
       state,
     });
-    return response;
   } catch (error) {
     throw new FrodoError(
       `Error updating ${getCurrentRealmName(state) + ' realm'} resource type ${resourceTypeUuid}`,
@@ -500,6 +514,7 @@ export async function exportResourceTypes({
  * Import resource type by uuid
  * @param {string} resourceTypeUuid client uuid
  * @param {ResourceTypeExportInterface} importData import data
+ * @returns {Promise<ResourceTypeSkeleton | null>} a promise that resolves to the imported resource type object, or null if no update was made
  */
 export async function importResourceType({
   resourceTypeUuid,
@@ -509,7 +524,7 @@ export async function importResourceType({
   resourceTypeUuid: string;
   importData: ResourceTypeExportInterface;
   state: State;
-}) {
+}): Promise<ResourceTypeSkeleton | null> {
   let response = null;
   const errors = [];
   const imported = [];
@@ -518,17 +533,21 @@ export async function importResourceType({
       try {
         const resourceTypeData = importData.resourcetype[id];
         delete resourceTypeData._rev;
-        try {
-          response = await _createResourceType({ resourceTypeData, state });
-        } catch (createError) {
-          if (createError.response?.status === 409)
-            response = await _putResourceType({
-              resourceTypeUuid: id,
+        response = await updateRemote({
+          data: resourceTypeData,
+          type: 'resource type',
+          readFn: async () =>
+            await readResourceType({ resourceTypeUuid, state }),
+          updateFn: async () =>
+            await _putResourceType({
+              resourceTypeUuid,
               resourceTypeData,
               state,
-            });
-          else throw createError;
-        }
+            }),
+          createFn: async () =>
+            await _createResourceType({ resourceTypeData, state }),
+          state,
+        });
         imported.push(id);
       } catch (error) {
         errors.push(error);
@@ -553,6 +572,7 @@ export async function importResourceType({
  * Import resource type by name
  * @param {string} resourceTypeName client id
  * @param {ResourceTypeExportInterface} importData import data
+ * @returns {Promise<ResourceTypeSkeleton | null>} a promise that resolves to the imported resource type object, or null if no update was made
  */
 export async function importResourceTypeByName({
   resourceTypeName,
@@ -562,7 +582,7 @@ export async function importResourceTypeByName({
   resourceTypeName: string;
   importData: ResourceTypeExportInterface;
   state: State;
-}) {
+}): Promise<ResourceTypeSkeleton | null> {
   let response = null;
   const errors = [];
   const imported = [];
@@ -571,17 +591,21 @@ export async function importResourceTypeByName({
       try {
         const resourceTypeData = importData.resourcetype[id];
         delete resourceTypeData._rev;
-        try {
-          response = await _createResourceType({ resourceTypeData, state });
-        } catch (createError) {
-          if (createError.response?.status === 409)
-            response = await _putResourceType({
+        response = await updateRemote({
+          data: resourceTypeData,
+          type: 'resource type',
+          readFn: async () =>
+            await readResourceType({ resourceTypeUuid: id, state }),
+          updateFn: async () =>
+            await _putResourceType({
               resourceTypeUuid: id,
               resourceTypeData,
               state,
-            });
-          else throw createError;
-        }
+            }),
+          createFn: async () =>
+            await _createResourceType({ resourceTypeData, state }),
+          state,
+        });
         imported.push(id);
       } catch (error) {
         errors.push(error);
@@ -605,6 +629,7 @@ export async function importResourceTypeByName({
 /**
  * Import first resource type
  * @param {ResourceTypeExportInterface} importData import data
+ * @returns {Promise<ResourceTypeSkeleton | null>} a promise that resolves to the imported resource type object, or null if no update was made
  */
 export async function importFirstResourceType({
   importData,
@@ -612,7 +637,7 @@ export async function importFirstResourceType({
 }: {
   importData: ResourceTypeExportInterface;
   state: State;
-}) {
+}): Promise<ResourceTypeSkeleton | null> {
   let response = null;
   const errors = [];
   const imported = [];
@@ -621,17 +646,21 @@ export async function importFirstResourceType({
       const resourceTypeData = importData.resourcetype[id];
       delete resourceTypeData._provider;
       delete resourceTypeData._rev;
-      try {
-        response = await _createResourceType({ resourceTypeData, state });
-      } catch (createError) {
-        if (createError.response?.status === 409)
-          response = await _putResourceType({
+      response = await updateRemote({
+        data: resourceTypeData,
+        type: 'resource type',
+        readFn: async () =>
+          await readResourceType({ resourceTypeUuid: id, state }),
+        updateFn: async () =>
+          await _putResourceType({
             resourceTypeUuid: id,
             resourceTypeData,
             state,
-          });
-        else throw createError;
-      }
+          }),
+        createFn: async () =>
+          await _createResourceType({ resourceTypeData, state }),
+        state,
+      });
       imported.push(id);
     } catch (error) {
       errors.push(error);
@@ -653,6 +682,7 @@ export async function importFirstResourceType({
 /**
  * Import resource types
  * @param {ResourceTypeExportInterface} importData import data
+ * @returns {Promise<ResourceTypeSkeleton[]>} a promise that resolves to the imported resource type objects
  */
 export async function importResourceTypes({
   importData,
@@ -660,26 +690,30 @@ export async function importResourceTypes({
 }: {
   importData: ResourceTypeExportInterface;
   state: State;
-}) {
+}): Promise<ResourceTypeSkeleton[]> {
   const response = [];
   const errors = [];
   for (const id of Object.keys(importData.resourcetype)) {
     try {
       const resourceTypeData = importData.resourcetype[id];
       delete resourceTypeData._rev;
-      try {
-        response.push(await _createResourceType({ resourceTypeData, state }));
-      } catch (createError) {
-        if (createError.response?.status === 409)
-          response.push(
+      response.push(
+        await updateRemote({
+          data: resourceTypeData,
+          type: 'resource type',
+          readFn: async () =>
+            await readResourceType({ resourceTypeUuid: id, state }),
+          updateFn: async () =>
             await _putResourceType({
               resourceTypeUuid: id,
               resourceTypeData,
               state,
-            })
-          );
-        else throw createError;
-      }
+            }),
+          createFn: async () =>
+            await _createResourceType({ resourceTypeData, state }),
+          state,
+        })
+      );
     } catch (error) {
       errors.push(error);
     }
@@ -690,7 +724,7 @@ export async function importResourceTypes({
       errors
     );
   }
-  return response;
+  return response.filter((r) => r);
 }
 
 export async function createResourceType({

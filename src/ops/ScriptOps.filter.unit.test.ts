@@ -32,6 +32,7 @@ const state = {
   getStopProgressHandler: () => undefined,
   getUpdateProgressHandler: () => undefined,
   getUsername: () => 'tester',
+  getForceUpdate: () => true
 } as any;
 
 const encodeScript = (lines: string[]) => Buffer.from(lines.join('\n')).toString('base64');

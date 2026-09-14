@@ -35,6 +35,7 @@ import { autoSetupPolly } from '../utils/AutoSetupPolly';
 import { filterRecording } from '../utils/PollyUtils';
 import { ScriptSkeleton } from '../api/ScriptApi';
 import { snapshotResultCallback } from '../test/utils/TestUtils';
+import { cloneDeep } from '../utils/JsonUtils';
 
 const ctx = autoSetupPolly();
 
@@ -137,6 +138,7 @@ describe('ScriptOps', () => {
       creationDate: 0,
       lastModifiedBy: 'null',
       lastModifiedDate: 0,
+      evaluatorVersion: '1.0',
     } as ScriptSkeleton,
   };
   const script3 = {
@@ -215,6 +217,7 @@ describe('ScriptOps', () => {
       creationDate: 0,
       lastModifiedBy: 'null',
       lastModifiedDate: 0,
+      evaluatorVersion: '1.0',
     } as ScriptSkeleton,
   };
   const script5 = {
@@ -366,6 +369,7 @@ describe('ScriptOps', () => {
     }
   });
   beforeEach(async () => {
+    state.setForceUpdate(true);
     if (process.env.FRODO_POLLY_MODE === 'record') {
       ctx.polly.server.any().on('beforePersist', (_req, recording) => {
         filterRecording(recording);
@@ -436,6 +440,24 @@ describe('ScriptOps', () => {
         scriptData: script3.data,
         state,
       });
+      expect(response).toMatchSnapshot();
+    });
+
+    test(`2: Do not update script '${script2.id}'`, async () => {
+      state.setForceUpdate(false);
+      let response = await ScriptOps.updateScript({
+        scriptId: script2.id,
+        scriptData: script2.data,
+        state,
+      });
+      expect(response).toBeNull();
+      response = await ScriptOps.updateScript({
+        scriptId: script2.id,
+        scriptData: {...script2.data, description: "test new description"},
+        state,
+      });
+      expect(response).not.toBeNull();
+      expect(response.description).toBe("test new description");
       expect(response).toMatchSnapshot();
     });
   });
@@ -569,6 +591,40 @@ describe('ScriptOps', () => {
         state,
       });
       expect(result).toMatchSnapshot();
+    });
+
+    test(`5: Import all changed scripts`, async () => {
+      state.setForceUpdate(false);
+      let response = await ScriptOps.importScripts({
+        scriptId: '',
+        scriptName: '',
+        importData: { script: { [script4.id]: script4.data}  },
+        options: {
+          deps: true,
+          reUuid: false,
+          includeDefault: true,
+        },
+        resultCallback: snapshotResultCallback,
+        state,
+      });
+      expect(response.length).toBe(0);
+      const script = cloneDeep(script4);
+      script.data.description = "test new description";
+      response = await ScriptOps.importScripts({
+        scriptId: '',
+        scriptName: '',
+        importData: { script: { [script.id]: script.data }  },
+        options: {
+          deps: true,
+          reUuid: false,
+          includeDefault: true,
+        },
+        resultCallback: snapshotResultCallback,
+        state,
+      });
+      expect(response.length).not.toBe(0);
+      expect(response[0].description).toBe("test new description");
+      expect(response).toMatchSnapshot();
     });
   });
 
