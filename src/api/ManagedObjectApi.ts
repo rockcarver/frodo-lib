@@ -7,21 +7,23 @@ import {
   PagedResult,
   PatchOperationInterface,
 } from './ApiTypes';
-import { generateIdmApi } from './BaseApi';
+import { generateIdmApi, getApiConfig } from './BaseApi';
 import { MANAGED_SYSTEM_OBJECT_TYPES } from './ManagedSystemObjectApi';
 
 const managedObjectSchemaURLTemplate = '%s/schema/managed/%s';
 const managedObjectSchemaPropertyURLTemplate =
   '%s/schema/managed/%s/properties/%s';
-const managedObjectSchemaApiConfig = {
-  headers: { 'Accept-API-Version': 'resource=2.0' },
-};
 const createManagedObjectURLTemplate = '%s/managed/%s?_action=create';
 const managedObjectByIdURLTemplate = '%s/managed/%s/%s';
 const queryAllManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=true&_pageSize=%s`;
 const queryAllRelatedManagedObjectURLTemplate = `%s/managed/%s/%s/%s?_queryFilter=true&_pageSize=%s`;
 const queryManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=%s`;
 const countManagedObjectURLTemplate = `%s/managed/%s?_queryFilter=%s&_pageSize=0&_totalPagedResultsPolicy=EXACT`;
+
+const managedObjectSchemaApiConfig = {
+  resource: '2.0',
+  protocol: '2.1',
+};
 
 export const DEFAULT_PAGE_SIZE: number = 1000;
 
@@ -179,7 +181,7 @@ export async function getManagedObjectSchemaProperty({
   );
   const { data } = await generateIdmApi({
     requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
-    requestOverride: managedObjectSchemaApiConfig,
+    resource: getApiConfig(managedObjectSchemaApiConfig),
     state,
   }).get(urlString);
   return data as ManagedObjectSchemaProperty;
@@ -223,7 +225,7 @@ export async function putManagedObjectSchemaProperty({
   );
   const { data } = await generateIdmApi({
     requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
-    requestOverride: managedObjectSchemaApiConfig,
+    resource: getApiConfig(managedObjectSchemaApiConfig),
     state,
   }).put(urlString, propertyData);
   return data as ManagedObjectSchemaProperty;
@@ -264,7 +266,7 @@ export async function deleteManagedObjectSchemaProperty({
   );
   const { data } = await generateIdmApi({
     requiredScopes: [Constants.AVAILABLE_SCOPES.IdmFullScope],
-    requestOverride: managedObjectSchemaApiConfig,
+    resource: getApiConfig(managedObjectSchemaApiConfig),
     state,
   }).delete(urlString);
   return data as ManagedObjectSchemaProperty;

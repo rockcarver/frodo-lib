@@ -4663,23 +4663,25 @@ export const helpMetadata: MethodHelpDoc[] = [
   {
     typeName: "RawConfig",
     methodName: "exportRawConfig",
-    signature: "exportRawConfig( options: RawExportOptions ): Promise<IdObjectSkeletonInterface>",
+    signature: "exportRawConfig(endpoint: string, apiVersion?: ApiVersion): Promise<object>",
     description: "Exports raw configuration",
     params: [
-      { name: "options", type: "RawExportOptions", description: "The export options, including the path to the resource", required: true },
+      { name: "endpoint", type: "string", description: "The path to the resource", required: true },
+      { name: "apiVersion", type: "ApiVersion", description: "Optional API version.", required: false },
     ],
-    returns: "{Promise<IdObjectSkeletonInterface>} The raw configuration JSON object at the specified path",
+    returns: "{Promise<object>} The raw configuration JSON object at the specified path",
   },
   {
     typeName: "RawConfig",
     methodName: "importRawConfig",
-    signature: "importRawConfig( options: RawImportOptions, data: IdObjectSkeletonInterface ): Promise<IdObjectSkeletonInterface>",
+    signature: "importRawConfig( endpoint: string, payload: object, apiVersion?: ApiVersion ): Promise<object>",
     description: "Imports raw configuration",
     params: [
-      { name: "options", type: "RawImportOptions", description: "The import options, including the path to the resource", required: true },
-      { name: "data", type: "IdObjectSkeletonInterface", description: "the import data that will be pushed", required: true },
+      { name: "endpoint", type: "string", description: "The path to the resource", required: true },
+      { name: "payload", type: "object", description: "the import payload that will be pushed", required: true },
+      { name: "apiVersion", type: "ApiVersion", description: "Optional API version.", required: false },
     ],
-    returns: "{Promise<IdObjectSkeletonInterface>} The raw configuration JSON object at the specified path",
+    returns: "{Promise<object>} The raw configuration JSON object at the specified path",
   },
   {
     typeName: "Realm",

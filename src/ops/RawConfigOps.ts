@@ -1,136 +1,108 @@
-import { IdObjectSkeletonInterface } from '../api/ApiTypes';
+import { ApiVersion } from '../api/BaseApi';
 import {
-  ApiVersion,
   getRawAm,
   getRawEnv,
   getRawIdm,
+  getRawIga,
+  getRawKeys,
+  getRawMonitoringLogs,
+  getRawWs,
   putRawAm,
   putRawEnv,
   putRawIdm,
+  putRawIga,
+  putRawKeys,
+  putRawMonitoringLogs,
+  putRawWs,
 } from '../api/RawConfigApi';
 import { State } from '../shared/State';
-import { mergeDeep } from '../utils/JsonUtils';
 import { FrodoError } from './FrodoError';
 
 export type RawConfig = {
   /**
    * Exports raw configuration
-   * @param {RawExportOptions} options The export options, including the path to the resource
-   * @returns {Promise<IdObjectSkeletonInterface>} The raw configuration JSON object at the specified path
+   * @param {string} endpoint The path to the resource
+   * @param {ApiVersion} apiVersion Optional API version.
+   * @returns {Promise<object>} The raw configuration JSON object at the specified path
    */
-  exportRawConfig(
-    options: RawExportOptions
-  ): Promise<IdObjectSkeletonInterface>;
+  exportRawConfig(endpoint: string, apiVersion?: ApiVersion): Promise<object>;
   /**
    * Imports raw configuration
-   * @param {RawImportOptions} options The import options, including the path to the resource
-   * @param {IdObjectSkeletonInterface} data the import data that will be pushed
-   * @returns {Promise<IdObjectSkeletonInterface>} The raw configuration JSON object at the specified path
+   * @param {string} endpoint The path to the resource
+   * @param {object} payload the import payload that will be pushed
+   * @param {ApiVersion} apiVersion Optional API version.
+   * @returns {Promise<object>} The raw configuration JSON object at the specified path
    */
   importRawConfig(
-    options: RawImportOptions,
-    data: IdObjectSkeletonInterface
-  ): Promise<IdObjectSkeletonInterface>;
+    endpoint: string,
+    payload: object,
+    apiVersion?: ApiVersion
+  ): Promise<object>;
 };
 
 export default (state: State): RawConfig => {
   return {
     async exportRawConfig(
-      options: RawExportOptions
-    ): Promise<IdObjectSkeletonInterface> {
-      return exportRawConfig({ options, state });
+      endpoint: string,
+      apiVersion?: ApiVersion
+    ): Promise<object> {
+      return exportRawConfig({ endpoint, apiVersion, state });
     },
     async importRawConfig(
-      options: RawImportOptions,
-      data: IdObjectSkeletonInterface
-    ): Promise<IdObjectSkeletonInterface> {
-      return importRawConfig({ options, data, state });
+      endpoint: string,
+      payload: object,
+      apiVersion?: ApiVersion
+    ): Promise<object> {
+      return importRawConfig({ endpoint, payload, apiVersion, state });
     },
   };
 };
 
 /**
- * Raw config export options from fr-config-manager (https://github.com/ForgeRock/fr-config-manager/blob/main/docs/raw.md)
- */
-export interface RawExportOptions {
-  /**
-   * The URL path for the configuration object, relative to the tenant base URL
-   */
-  path: string;
-  /**
-   * An optional partial configuration object which should override the corresponding properties of the object exported from the tenant.
-   */
-  overrides?: IdObjectSkeletonInterface;
-  /**
-   * An optional object containing the properties 'protocol' and 'resource' to be used in the API version header. This allows specific values for specific configuration. The default is { protocol: "2.0". resource: "1.0" }. Only used for configuration under /am or /environment
-   */
-  pushApiVersion?: ApiVersion;
-}
-
-/**
- * Raw config import options from fr-config-manager (https://github.com/ForgeRock/fr-config-manager/blob/main/docs/raw.md)
- */
-export interface RawImportOptions {
-  /**
-   * The URL path for the configuration object, relative to the tenant base URL
-   */
-  path: string;
-}
-
-/**
  * Exports raw configuration
- * @param {RawExportOptions} options The export options, including the path to the resource
- * @returns {Promise<IdObjectSkeletonInterface>} The raw configuration JSON object at the specified path
+ * @param {string} endpoint The path to the resource
+ * @param {ApiVersion} apiVersion Optional API version.
+ * @returns {Promise<object>} The raw configuration JSON object at the specified path
  */
 export async function exportRawConfig({
-  options,
+  endpoint,
+  apiVersion,
   state,
 }: {
-  options: RawExportOptions;
+  endpoint: string;
+  apiVersion?: ApiVersion;
   state: State;
-}): Promise<IdObjectSkeletonInterface> {
+}): Promise<object> {
   try {
-    let response: IdObjectSkeletonInterface;
-
     // remove starting slash from path if it exists
-    const path = options.path.startsWith('/')
-      ? options.path.substring(1)
-      : options.path;
+    endpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
 
-    const urlParts: string[] = path.split('/');
+    const urlParts: string[] = endpoint.split('/');
     const startPath: string = urlParts[0];
-    const noStart: string = urlParts.slice(1).join('/');
 
-    // support for only three root paths: am, openidm, and environment
     switch (startPath) {
-      case 'am':
-        response = await getRawAm({ endpoint: noStart, state });
-        // fr-config-manager has this option, only for am end points
-        if (options.pushApiVersion) {
-          response._pushApiVersion = options.pushApiVersion;
-        }
-        break;
       case 'openidm':
-        response = await getRawIdm({ endpoint: noStart, state });
-        break;
+        return await getRawIdm({ endpoint, apiVersion, state });
       case 'environment':
-        response = await getRawEnv({ endpoint: noStart, state });
-        break;
+        return await getRawEnv({ endpoint, apiVersion, state });
+      case 'iga':
+        return await getRawIga({ endpoint, apiVersion, state });
+      case 'keys':
+        return await getRawKeys({ endpoint, apiVersion, state });
+      case 'monitoring':
+        return await getRawMonitoringLogs({ endpoint, apiVersion, state });
+      case 'ws':
+        return await getRawWs({ endpoint, apiVersion, state });
+      case state.getHost().substring(state.getHost().lastIndexOf('/') + 1):
+        return await getRawAm({ endpoint, apiVersion, state });
       default:
         throw new FrodoError(
-          `URL paths that start with ${startPath} are not supported`
+          `Endpoints that start with ${startPath} are not supported`
         );
     }
-
-    // all endpoints can have overrides
-    if (options.overrides) {
-      response = mergeDeep(response, options.overrides);
-    }
-
-    return response;
   } catch (error) {
     throw new FrodoError(
-      `Error in exportRawIdm with relative url: ${options.path}`,
+      `Error in exportRawConfig with endpoint: ${endpoint}`,
       error
     );
   }
@@ -138,64 +110,87 @@ export async function exportRawConfig({
 
 /**
  * Imports raw configuration
- * @param {RawImportOptions} options The import options, including the path to the resource
- * @param {IdObjectSkeletonInterface} data the import data that will be pushed
- * @returns {Promise<IdObjectSkeletonInterface>} The raw configuration JSON object at the specified path
+ * @param {string} endpoint The path to the resource
+ * @param {object} payload The import payload that will be pushed
+ * @param {ApiVersion} apiVersion Optional API version.
+ * @returns {Promise<object>} The raw configuration JSON object at the specified path
  */
 export async function importRawConfig({
-  options,
-  data,
+  endpoint,
+  payload,
+  apiVersion,
   state,
 }: {
-  options: RawImportOptions;
-  data: IdObjectSkeletonInterface;
+  endpoint: string;
+  payload: object;
+  apiVersion?: ApiVersion;
   state: State;
-}): Promise<IdObjectSkeletonInterface> {
+}): Promise<object> {
   try {
-    let response: IdObjectSkeletonInterface;
-
     // remove starting slash from path if it exists
-    const path = options.path.startsWith('/')
-      ? options.path.substring(1)
-      : options.path;
+    endpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
 
-    const urlParts: string[] = path.split('/');
+    const urlParts: string[] = endpoint.split('/');
     const startPath: string = urlParts[0];
-    const noStart: string = urlParts.slice(1).join('/');
 
-    const { _pushApiVersion, ...payload } = data;
-
-    // support for only three root paths: am, openidm, and environment
     switch (startPath) {
-      case 'am':
-        response = await putRawAm({
-          endpoint: noStart,
-          payload,
-          apiVersion: _pushApiVersion as ApiVersion,
-          state,
-        });
-        break;
       case 'openidm':
-        response = await putRawIdm({ endpoint: noStart, payload, state });
-        break;
-      case 'environment':
-        response = await putRawEnv({
-          endpoint: noStart,
+        return await putRawIdm({
+          endpoint,
           payload,
-          apiVersion: _pushApiVersion as ApiVersion,
+          apiVersion,
           state,
         });
-        break;
+      case 'environment':
+        return await putRawEnv({
+          endpoint,
+          payload,
+          apiVersion,
+          state,
+        });
+      case 'iga':
+        return await putRawIga({
+          endpoint,
+          payload,
+          apiVersion,
+          state,
+        });
+      case 'keys':
+        return await putRawKeys({
+          endpoint,
+          payload,
+          apiVersion,
+          state,
+        });
+      case 'monitoring':
+        return await putRawMonitoringLogs({
+          endpoint,
+          payload,
+          apiVersion,
+          state,
+        });
+      case 'ws':
+        return await putRawWs({
+          endpoint,
+          payload,
+          apiVersion,
+          state,
+        });
+      case state.getHost().substring(state.getHost().lastIndexOf('/') + 1):
+        return await putRawAm({
+          endpoint,
+          payload,
+          apiVersion,
+          state,
+        });
       default:
         throw new FrodoError(
-          `URL paths that start with ${startPath} are not supported`
+          `Endpoints that start with ${startPath} are not supported`
         );
     }
-
-    return response;
   } catch (error) {
     throw new FrodoError(
-      `Error in importRawConfig with relative url: ${options.path}`,
+      `Error in importRawConfig with endpoint: ${endpoint}`,
       error
     );
   }
